@@ -257,6 +257,16 @@ def icon_pc_count():
     return outline(img)
 
 
+def icon_cart():
+    img, d = new(16, 16)
+    d.line([(1, 2), (3, 2), (5, 10), (13, 10)], fill=C['g'], width=2)
+    rect(d, 4, 4, 10, 5, 'y')
+    d.line([(5, 6), (12, 6)], fill=C['Y'])
+    rect(d, 5, 12, 2, 2, 'd')
+    rect(d, 11, 12, 2, 2, 'd')
+    return outline(img)
+
+
 def icon_ok():
     img, d = new(16, 16)
     d.line([(3, 8), (6, 11), (12, 4)], fill=C['G'], width=3)
@@ -286,6 +296,7 @@ if __name__ == '__main__':
         'cable_fiber_sm': icon_cable('f'),
         'pc_count': icon_pc_count(),
         'ok': icon_ok(),
+        'cart': icon_cart(),
     }
     for name, img in icons.items():
         save(img, f'icon/{name}.png')

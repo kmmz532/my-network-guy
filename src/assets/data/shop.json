@@ -1,6 +1,10 @@
 {
   "items": [
     {
+      "device": "pc_basic",
+      "unlock": null
+    },
+    {
       "cable": "utp_cat5e",
       "unlock": null
     },
@@ -20,6 +24,12 @@
       "cable": "fiber_sm",
       "unlock": {
         "contract": "c004_web_server"
+      }
+    },
+    {
+      "device": "server_basic",
+      "unlock": {
+        "contract": "c003_departments"
       }
     }
   ]

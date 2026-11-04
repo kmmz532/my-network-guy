@@ -76,5 +76,7 @@
   "ui.notice.salary": "給与 -{amount} 円",
   "ui.build": "施工",
   "ui.paint": "色",
-  "ui.showIp": "名前とIPアドレスを表示"
+  "ui.showIp": "名前とIPアドレスを表示",
+  "ui.shop.title": "機材ショップ",
+  "ui.shop.buy": "購入"
 }

@@ -252,14 +252,10 @@ export const useGameStore = create<GameState>((set, get) => {
       return true;
     },
     accept: (offerId) => apply(accept(coreOf(get()), offerId)),
-    // 在庫がなければ購入してから配置する
+    // 在庫の機材を配置する（購入はショップで行う）
     place: (deviceId, x, y) => {
       const map = get().active ? get().maps[get().active!.contract.map] : undefined;
       if (!map) return 'map';
-      if ((get().owned[deviceId] ?? 0) < 1 && !get().buy(deviceId)) {
-        set({ lastError: 'money', flash: { key: 'ui.error.money', tx: x, ty: y, at: Date.now() } });
-        return 'money';
-      }
       return apply(placeDevice(coreOf(get()), deviceId, x, y, map, gameEnv), { tx: x, ty: y });
     },
     connect: (aUid, bUid, cableId) =>

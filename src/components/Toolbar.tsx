@@ -41,7 +41,7 @@ const slot = (active: boolean) =>
 
 const sep = <span style={{ width: 1, height: 36, background: '#3b2a33', margin: '0 4px' }} />;
 
-export function Toolbar({ onOffers }: { onOffers: () => void }) {
+export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: () => void }) {
   const offers = useGameStore((s) => s.offers);
   const active = useGameStore((s) => s.active);
   const completed = useGameStore((s) => s.completed);
@@ -75,6 +75,9 @@ export function Toolbar({ onOffers }: { onOffers: () => void }) {
           </span>
         )}
       </button>
+      <button style={slot(false)} title={t('ui.shop.title')} onClick={onShop}>
+        <Icon name="icon/cart" />
+      </button>
       {design && (
         <>
           {sep}
@@ -84,15 +87,19 @@ export function Toolbar({ onOffers }: { onOffers: () => void }) {
             return (
               <button
                 key={id}
-                style={slot(tool === 'build' && placing === id)}
+                style={{ ...slot(tool === 'build' && placing === id), opacity: stock > 0 ? 1 : 0.35 }}
                 title={`${t(`device.${id}.name` as LangKey)} ${yen(d.price)}`}
                 onClick={() => {
+                  // 在庫がなければショップを開く
+                  if (stock === 0) return onShop();
                   setTool('build');
                   setPlacing(placing === id ? null : id);
                 }}
               >
                 <Icon name={d.sprite} scale={1.5} />
-                {stock > 0 && <span style={{ position: 'absolute', fontSize: 10, marginTop: 30, marginLeft: 30 }}>{stock}</span>}
+                <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>
+                  {stock}
+                </span>
               </button>
             );
           })}

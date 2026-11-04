@@ -11,6 +11,7 @@ import { modalBack, modalBox, NoticeToast, ReportModal } from './components/Over
 import { OfferCards } from './components/OfferCards';
 import { Toolbar } from './components/Toolbar';
 import { TaskPanel } from './components/TaskPanel';
+import { ShopCards } from './components/ShopCards';
 import { Icon } from './components/Icon';
 import { TitleScreen } from './components/TitleScreen';
 import { mapLoaders } from 'virtual:loaders';
@@ -19,7 +20,7 @@ const SLOT = 1;
 const SPEEDS: Speed[] = [0, 1, 2, 4];
 
 type Screen = 'title' | 'game';
-type Popup = 'offers' | 'menu' | null;
+type Popup = 'offers' | 'shop' | 'menu' | null;
 
 const hudButton = (on: boolean) =>
   ({
@@ -156,8 +157,9 @@ export function App() {
         </button>
       </header>
       <TaskPanel />
-      <Toolbar onOffers={() => setPopup('offers')} />
+      <Toolbar onOffers={() => setPopup('offers')} onShop={() => setPopup('shop')} />
       {popup === 'offers' && <OfferCards onClose={() => setPopup(null)} />}
+      {popup === 'shop' && <ShopCards onClose={() => setPopup(null)} />}
       {popup === 'menu' && (
         <div style={modalBack} onClick={() => setPopup(null)}>
           <div style={{ ...modalBox, minWidth: 200 }} onClick={(e) => e.stopPropagation()}>
