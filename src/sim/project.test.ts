@@ -16,7 +16,7 @@ import {
   connect,
   placeDevice,
   requestBuild,
-  setInterface,
+  setColor,
   type Core,
   type Env,
 } from './project';
@@ -70,13 +70,13 @@ const ok = (r: ReturnType<typeof accept>) => {
 };
 
 describe('案件の流れ: c001 PC2台の直結', () => {
-  it('IPを設定して配線し、施工すると検収に合格して納品される', () => {
+  it('色を塗って配線し、施工すると検収に合格して納品される', () => {
     let core = ok(accept(start(), 'c001_direct_link')).core;
     expect(core.active?.phase).toBe('design');
     expect(core.offers).toEqual([]);
 
-    core = ok(setInterface(core, 'pc_a', 0, '192.168.1.10', 24)).core;
-    core = ok(setInterface(core, 'pc_b', 0, '192.168.1.11', 24)).core;
+    core = ok(setColor(core, 'pc_a', 0, 1)).core;
+    core = ok(setColor(core, 'pc_b', 0, 1)).core;
     core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
     // 配線費用: 1000 + 300 × 7タイル
     expect(core.clock.money).toBe(1_000_000 - 3100);
@@ -95,7 +95,7 @@ describe('案件の流れ: c001 PC2台の直結', () => {
     expect(done.report?.reputationGain).toBe(1 + 3 * balance.reputationPerStar);
   });
 
-  it('IPが未設定のまま施工すると不合格になり、設計に戻る', () => {
+  it('色を塗らずに施工すると不合格になり、設計に戻る', () => {
     let core = ok(accept(start(), 'c001_direct_link')).core;
     core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
     core = ok(requestBuild(core, env)).core;
@@ -142,9 +142,10 @@ describe('機器の配置と配線', () => {
     expect(r.core.active?.nodes.some((n) => n.uid === 'u0' && n.x === 6)).toBe(true);
   });
 
-  it('IPアドレスの形式が不正なら設定しない', () => {
+  it('設定が固定された機器の色は変えられない', () => {
     const core = ok(accept(start(), 'c001_direct_link')).core;
-    expect(setInterface(core, 'pc_a', 0, '192.168.1.300', 24)).toEqual({ ok: false, reason: 'ip' });
+    const locked = { ...core, active: { ...core.active!, nodes: core.active!.nodes.map((n) => ({ ...n, configLocked: true })) } };
+    expect(setColor(locked, 'pc_a', 0, 2)).toEqual({ ok: false, reason: 'locked' });
   });
 
   it('ケーブルの上限長を超える配線はできない', () => {

@@ -29,6 +29,8 @@ export interface NetNode {
   gateway: string | null;
   routes: Route[];
   services: Service[];
+  // サブネットの色（ポート番号 -> 色番号）。IPアドレスなどは network/compile.ts で生成する
+  colors?: Record<number, number>;
 }
 
 export interface Endpoint {

@@ -4,7 +4,9 @@ import { Application, Container, Graphics, Rectangle, Text, type FederatedPointe
 import type { GameMap } from '../data/schema';
 import { useGameStore, type Trace } from '../stores/useGameStore';
 import { gameEnv } from '../sim/env';
-import { checkConnect, type Project } from '../sim/project';
+import { checkConnect, compiledNet, type Project } from '../sim/project';
+import type { Compiled } from '../network/compile';
+import { subnetColor } from './palette';
 import { t } from '../i18n/t';
 import type { LangKey } from '../generated/lang-keys';
 import type { NetLink, NetNode } from '../network/types';
@@ -57,9 +59,11 @@ export class Scene {
   // 経過時間（ms）と、コマ送りの番号
   private elapsed = 0;
   private frame = -1;
-  // 疎通テストの表示。新しい結果が来たら、その時刻から動かす
-  private trace: Trace | null = null;
+  // 検収のパケット。新しい結果が来たら、その時刻からすべての経路に同時に流す
+  private traces: Trace[] = [];
   private traceStart = 0;
+  // 色と配線から生成したネットワーク（不備と色の表示に使う）
+  private compiled: Compiled | null = null;
   private unsubscribe: () => void;
 
   constructor(private app: Application) {
@@ -71,6 +75,7 @@ export class Scene {
     app.stage.on('pointermove', this.onMove);
     app.stage.on('pointerup', this.onUp);
     app.stage.on('pointerupoutside', this.cancelWire);
+    app.canvas.addEventListener('contextmenu', this.preventMenu);
     app.ticker.add(this.onTick);
     window.addEventListener('resize', this.layout);
     this.unsubscribe = useGameStore.subscribe(() => this.refresh());
@@ -85,16 +90,27 @@ export class Scene {
     this.app.stage.off('pointermove', this.onMove);
     this.app.stage.off('pointerup', this.onUp);
     this.app.stage.off('pointerupoutside', this.cancelWire);
+    this.app.canvas.removeEventListener('contextmenu', this.preventMenu);
+  }
+
+  private preventMenu = (e: Event): void => e.preventDefault();
+
+  // 表示する案件（受注中、または納品の結果を表示中）
+  private project(): Project | null {
+    const s = useGameStore.getState();
+    return s.active ?? s.showcase;
   }
 
   // 表示するマップを選び、タイルを描き直す。マップが読み込まれていなければ何もしない
   private refresh(): void {
     const s = useGameStore.getState();
-    if (s.lastTrace !== this.trace) {
-      this.trace = s.lastTrace;
+    if (s.traces !== this.traces) {
+      this.traces = s.traces;
       this.traceStart = this.elapsed;
     }
-    const mapId = s.active?.contract.map ?? 'office_small';
+    const shown = this.project();
+    this.compiled = shown ? compiledNet(shown, gameEnv) : null;
+    const mapId = shown?.contract.map ?? 'office_small';
     const map = s.maps[mapId];
     if (!map) return;
     if (this.tilesId !== mapId) {
@@ -111,14 +127,15 @@ export class Scene {
   private onTick = (ticker: Ticker): void => {
     this.elapsed += ticker.deltaMS;
     // パケットは滑らかに動かす。それ以外はコマ送り（ART.md）
-    if ((this.trace && this.traceActive()) || this.flashActive()) {
+    if (this.traceActive() || this.flashActive()) {
       this.drawObjects();
       return;
     }
     const frame = Math.floor(this.elapsed / FRAME_MS);
     if (frame === this.frame) return;
     this.frame = frame;
-    if (useGameStore.getState().active?.phase === 'build') this.drawObjects();
+    // 社員はいつもコマ送りで動かす
+    this.drawObjects();
   };
 
   private layout = (): void => {
@@ -128,25 +145,27 @@ export class Scene {
   };
 
   private traceActive(): boolean {
-    const trace = this.tracePath();
-    return trace !== null && this.elapsed - this.traceStart < this.traceDuration(trace.pts);
+    return this.traces.some((trace) => {
+      const route = this.tracePath(trace);
+      return route !== null && this.elapsed - this.traceStart < this.traceDuration(route.pts);
+    });
   }
 
   // 疎通テストの経路。ケーブルの折れ線に沿って点を並べ、各機器が点の何番目にあるかも返す
-  private tracePath(): { pts: Point[]; nodeAt: number[] } | null {
-    const s = useGameStore.getState();
+  private tracePath(trace: Trace): { pts: Point[]; nodeAt: number[] } | null {
+    const project = this.project();
     const map = this.map;
-    if (!this.trace || !s.active || !map) return null;
+    if (!project || !map) return null;
     const ts = map.tileSize;
     const center = (x: number, y: number): Point => ({ x: x * ts + ts / 2, y: y * ts + ts / 2 });
     const pts: Point[] = [];
     const nodeAt: number[] = [];
     let prev: string | null = null;
-    for (const uid of this.trace.result.path) {
-      const n = s.active.nodes.find((x) => x.uid === uid);
+    for (const uid of trace.result.path) {
+      const n = project.nodes.find((x) => x.uid === uid);
       if (!n) continue;
       if (prev) {
-        const link = s.active.links.find(
+        const link = project.links.find(
           (l) => (l.a.node === prev && l.b.node === uid) || (l.b.node === prev && l.a.node === uid),
         );
         if (link) {
@@ -182,7 +201,7 @@ export class Scene {
     g.clear();
     this.clearBubbles();
 
-    const project = s.active;
+    const project = this.project();
     if (!project) return;
     const building = project.phase === 'build';
     const isBuilt = (uid: string, kind: 'nodes' | 'links') => project.built[kind].includes(uid);
@@ -208,7 +227,7 @@ export class Scene {
     }
 
     // 疎通テスト中の機器は LED を速く点滅させる
-    const onPath = new Set(this.trace && this.traceActive() ? this.trace.result.path : []);
+    const onPath = new Set(this.traceActive() ? this.traces.flatMap((tr) => tr.result.path) : []);
     const fastBlink = Math.floor(this.elapsed / 120) % 2 === 0;
     const slowBlink = Math.floor(this.elapsed / 600) % 2 === 0;
 
@@ -217,11 +236,13 @@ export class Scene {
       this.drawNode(node, ts, s.selectedUid === node.uid, dim, project);
       const blinkOn = onPath.has(node.uid) ? fastBlink : slowBlink;
       this.drawLed(node, ts, blinkOn);
+      this.drawColors(node, ts, dim);
       if (this.needsAttention(node, project)) this.drawBubble(node, ts, '?', WARN);
     }
 
     if (building) this.drawBuilding(project, ts);
-    this.drawTrace(ts);
+    else if (s.active) this.drawIdleStaff(ts, s.hint);
+    for (const trace of this.traces) this.drawTrace(trace, ts);
     this.drawHover(project, ts);
     this.drawFlash(ts);
   }
@@ -230,12 +251,55 @@ export class Scene {
     for (const child of this.bubbles.removeChildren()) child.destroy();
   }
 
-  // 機器の状態が不備のとき「？」を出す（IPアドレス未設定の端末・ルーター）
+  // 設計時点の不備（色の未設定・混在・ゲートウェイなし）があれば「？」を出す
   private needsAttention(node: NetNode, project: Project): boolean {
-    const category = gameEnv.devices[node.device]?.category;
     if (project.phase !== 'design') return false;
-    if (category === 'l2_switch') return false;
-    return node.interfaces.length === 0;
+    return !!this.compiled?.issues[node.uid];
+  }
+
+  // サブネットの色。PC・サーバーは左上の札、ルーターはポート、スイッチはつながった色の帯
+  private drawColors(node: NetNode, ts: number, dim: boolean): void {
+    const g = this.g;
+    const alpha = dim ? 0.5 : 1;
+    const category = gameEnv.devices[node.device]?.category;
+    const pad = ts * 0.18;
+    const x = node.x * ts + pad;
+    const y = node.y * ts + pad;
+    const size = ts - pad * 2;
+    const colors = node.colors ?? {};
+    if (category === 'router') {
+      const count = gameEnv.devices[node.device]?.portCount ?? 0;
+      for (let port = 0; port < count; port++) {
+        const c = colors[port];
+        if (!c) continue;
+        const px = x + ((port + 0.5) * size) / count - 3;
+        g.rect(px, y + size + 4, 6, 4).fill({ color: subnetColor(c), alpha }).stroke({ width: 1, color: OUTLINE, alpha });
+      }
+      return;
+    }
+    const c = category === 'l2_switch' ? this.compiled?.switchColors[node.uid] : colors[0];
+    if (!c) return;
+    if (category === 'l2_switch') {
+      g.rect(x, y + size * 0.3 - 3, size, 3).fill({ color: subnetColor(c), alpha });
+    } else {
+      g.rect(x - 3, y - 3, 7, 7).fill({ color: subnetColor(c), alpha }).stroke({ width: 1, color: OUTLINE, alpha });
+    }
+  }
+
+  // 設計中は、社員がマップの左上で待機する。手戻りのときはヒントの吹き出しを出す
+  private drawIdleStaff(ts: number, hint: string | null): void {
+    const bob = Math.floor(this.elapsed / (FRAME_MS * 3)) % 2;
+    const workers = Math.min(2, gameEnv.balance.staff.initialCount);
+    for (let k = 0; k < workers; k++) {
+      this.drawStaff(ts + k * 18, ts - 8 - (k === 0 ? bob : 1 - bob), STAFF_SHIRT[k % STAFF_SHIRT.length]);
+    }
+    const text = new Text({
+      text: hint ? t(hint as LangKey) : '…',
+      style: { fontFamily: 'sans-serif', fontSize: 11, fill: 0xf4f1e6, stroke: { color: OUTLINE, width: 3 } },
+    });
+    text.anchor.set(0, 1);
+    text.position.set(ts, ts - 10);
+    this.bubbles.addChild(text);
   }
 
   // 機器をドット絵で描く。種類ごとに形を変え、ポートは下の辺に並べる（空きは白抜き、使用中は塗りつぶし）
@@ -359,10 +423,9 @@ export class Scene {
   }
 
   // 疎通テストの経路と、パケットの粒。失敗した地点で止まり「×」を出す
-  private drawTrace(ts: number): void {
-    const trace = this.trace;
-    const route = this.tracePath();
-    if (!trace || !route) return;
+  private drawTrace(trace: Trace, ts: number): void {
+    const route = this.tracePath(trace);
+    if (!route) return;
     const { pts: path, nodeAt } = route;
     const cumulative = cumulativeLengths(path);
     const total = cumulative[cumulative.length - 1];
@@ -448,6 +511,14 @@ export class Scene {
     return useGameStore.getState().active?.nodes.find((n) => n.x === tx && n.y === ty);
   }
 
+  // ルーターのどのポートを指したか（機器の幅をポート数で等分する）
+  private portAt(node: NetNode, p: { x: number; y: number }): number {
+    const count = gameEnv.devices[node.device]?.portCount ?? 1;
+    const ts = this.tileSize();
+    const rel = (p.x - node.x * ts) / ts;
+    return Math.max(0, Math.min(count - 1, Math.floor(rel * count)));
+  }
+
   private tileOf(p: { x: number; y: number }): { tx: number; ty: number } | null {
     if (!this.map) return null;
     const tx = Math.floor(p.x / this.map.tileSize);
@@ -463,24 +534,32 @@ export class Scene {
     if (!tile) return;
     const node = this.nodeAt(tile.tx, tile.ty);
 
+    if (store.active?.phase !== 'design') return;
+
+    // 右クリックで撤去する
+    if (e.button === 2) {
+      if (node) store.removeNode(node.uid);
+      return;
+    }
+    if (store.tool === 'paint') {
+      if (!node) return;
+      const category = gameEnv.devices[node.device]?.category;
+      if (category === 'l2_switch') return;
+      store.paint(node.uid, category === 'router' ? this.portAt(node, p) : 0);
+      return;
+    }
     if (store.placing && !node) {
-      const error = store.place(store.placing, tile.tx, tile.ty);
-      if (!error) store.setPlacing(null);
+      // 続けて置けるよう、配置モードはそのままにする
+      store.place(store.placing, tile.tx, tile.ty);
       return;
     }
     if (node) {
       store.setSelected(node.uid);
-      // 機器の設定（IP設定）は、機器の右上に開く
-      const at = this.content.toGlobal({ x: node.x * this.tileSize() + this.tileSize(), y: node.y * this.tileSize() });
-      store.setAnchor({ x: at.x, y: at.y });
-      if (store.active?.phase === 'design') {
-        this.wireFrom = node.uid;
-        this.wireTo = p;
-      }
+      this.wireFrom = node.uid;
+      this.wireTo = p;
       return;
     }
     store.setSelected(null);
-    store.setAnchor(null);
   };
 
   private onMove = (e: FederatedPointerEvent): void => {

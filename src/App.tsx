@@ -7,27 +7,38 @@ import { useTickLoop } from './stores/useTickLoop';
 import { toDate } from './sim/clock';
 import { loadSlot, saveSlot } from './services/db';
 import { exportSave, importSave } from './services/saveFile';
-import { ShopScreen } from './components/ShopScreen';
-import { OfferPanel } from './components/OfferPanel';
-import { ProjectPanel } from './components/ProjectPanel';
-import { DesignPanel } from './components/DesignPanel';
-import { ConfigPanel } from './components/ConfigPanel';
-import { ProbePanel } from './components/ProbePanel';
-import { GuidePanel } from './components/GuidePanel';
-import { NoticeToast, ReportModal } from './components/Overlay';
+import { modalBack, modalBox, NoticeToast, ReportModal } from './components/Overlay';
+import { OfferCards } from './components/OfferCards';
+import { Toolbar } from './components/Toolbar';
 import { TitleScreen } from './components/TitleScreen';
 import { mapLoaders } from 'virtual:loaders';
 
 const SLOT = 1;
-const SPEEDS: Speed[] = [0, 1, 2, 4];
+const SPEEDS: { speed: Speed; icon: string }[] = [
+  { speed: 0, icon: '⏸' },
+  { speed: 1, icon: '▶' },
+  { speed: 2, icon: '▶▶' },
+  { speed: 4, icon: '▶▶▶' },
+];
 
 type Screen = 'title' | 'game';
+type Popup = 'offers' | 'menu' | null;
+
+const hudButton = (on: boolean) =>
+  ({
+    padding: '2px 8px',
+    cursor: 'pointer',
+    background: on ? '#ffd866' : '#25406f',
+    color: on ? '#3b2a33' : '#f4f1e6',
+    border: '1px solid #3b2a33',
+    borderRadius: 3,
+  }) as const;
 
 export function App() {
   const [ready, setReady] = useState(false);
   const [screen, setScreen] = useState<Screen>('title');
+  const [popup, setPopup] = useState<Popup>(null);
   const [message, setMessage] = useState('');
-  const [shopOpen, setShopOpen] = useState(false);
   const clock = useGameStore((s) => s.clock);
   const reputation = useGameStore((s) => s.reputation);
   const speed = useGameStore((s) => s.speed);
@@ -35,9 +46,6 @@ export function App() {
   const load = useGameStore((s) => s.load);
   const snapshot = useGameStore((s) => s.snapshot);
   const newGame = useGameStore((s) => s.newGame);
-  const anchor = useGameStore((s) => s.anchor);
-  const selectedUid = useGameStore((s) => s.selectedUid);
-  const active = useGameStore((s) => s.active);
   const cacheMap = useGameStore((s) => s.cacheMap);
 
   useTickLoop();
@@ -77,28 +85,15 @@ export function App() {
     startGame();
   };
 
-  const backToTitle = () => {
-    setSpeed(0);
-    setScreen('title');
-  };
-
   if (screen === 'title') {
     return <TitleScreen onNew={onNew} onContinue={onContinue} message={message} />;
   }
 
   const date = toDate(clock.minute, balance);
-  const button = { padding: '4px 10px', cursor: 'pointer' } as const;
 
   const onSave = async () => {
     await saveSlot(SLOT, snapshot());
     setMessage(t('ui.save.done'));
-  };
-
-  const onLoad = async () => {
-    const data = await loadSlot(SLOT);
-    if (!data) return setMessage(t('ui.load.empty'));
-    load(data);
-    setMessage(t('ui.import.done'));
   };
 
   const onExport = () => {
@@ -119,8 +114,10 @@ export function App() {
     }
   };
 
+  const menuButton = { display: 'block', width: '100%', margin: '4px 0', padding: '6px 12px', cursor: 'pointer' } as const;
+
   return (
-    <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
+    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       <PixiStage />
       <header
         style={{
@@ -128,96 +125,65 @@ export function App() {
           top: 0,
           left: 0,
           right: 0,
-          padding: '8px 16px',
-          background: 'rgba(47, 79, 143, 0.85)',
-          color: '#f4f1e6',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 16,
-        }}
-      >
-        <span>{t('ui.hud.date', { month: date.month, day: date.day, hour: date.hour })}</span>
-        <span>{t('ui.hud.money', { amount: clock.money.toLocaleString('ja-JP') })}</span>
-        <span>{t('ui.hud.reputation', { value: reputation })}</span>
-      </header>
-      <div style={{ position: 'absolute', top: 56, left: 16 }}>
-        <GuidePanel />
-        <div style={{ height: 8 }} />
-        <DesignPanel />
-      </div>
-      <div style={{ position: 'absolute', top: 56, right: 16 }}>
-        <OfferPanel />
-        <div style={{ height: 8 }} />
-        <ProjectPanel />
-        <div style={{ height: 8 }} />
-        <ProbePanel />
-      </div>
-      <footer
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          padding: '8px 16px',
-          background: 'rgba(47, 79, 143, 0.85)',
+          padding: '6px 12px',
+          background: 'rgba(47, 79, 143, 0.92)',
           color: '#f4f1e6',
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
-          gap: 8,
+          gap: 14,
         }}
       >
-        {SPEEDS.map((s) => (
-          <button
-            key={s}
-            style={{ ...button, fontWeight: speed === s ? 'bold' : 'normal' }}
-            onClick={() => setSpeed(s)}
-          >
-            {t(`ui.speed.${s}` as const)}
-          </button>
-        ))}
-        <button style={button} onClick={onSave}>{t('ui.save')}</button>
-        <button style={button} onClick={onLoad}>{t('ui.load')}</button>
-        <button style={button} onClick={onExport}>{t('ui.export')}</button>
-        <label style={button}>
-          {t('ui.import')}
-          <input
-            type="file"
-            accept="application/json"
-            style={{ display: 'none' }}
-            onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])}
-          />
-        </label>
-        <button style={button} onClick={() => setShopOpen(true)}>{t('ui.shop.open')}</button>
-        <button style={button} onClick={backToTitle}>{t('ui.title.back')}</button>
-        <span>{message}</span>
-      </footer>
-      {shopOpen && <ShopScreen onClose={() => setShopOpen(false)} />}
-      <NoticeToast />
-      <ReportModal />
-      {anchor && selectedUid && active && (
-        // 機器をクリックすると、その機器の近くにIP設定を開く
-        <div style={{ position: 'absolute', left: Math.max(8, Math.min(anchor.x + 8, window.innerWidth - 300)), top: Math.max(56, anchor.y - 16), zIndex: 5 }}>
-          <ConfigPanel />
+        <span>💰 {clock.money.toLocaleString('ja-JP')}</span>
+        <span>⭐ {reputation}</span>
+        <span>📅 {t('ui.hud.date', { month: date.month, day: date.day, hour: date.hour })}</span>
+        <span style={{ display: 'flex', gap: 4 }}>
+          {SPEEDS.map(({ speed: s, icon }) => (
+            <button key={s} style={hudButton(speed === s)} onClick={() => setSpeed(s)}>
+              {icon}
+            </button>
+          ))}
+        </span>
+        <button style={{ ...hudButton(false), marginLeft: 'auto' }} onClick={() => setPopup('menu')}>
+          ☰
+        </button>
+      </header>
+      <Toolbar onOffers={() => setPopup('offers')} />
+      {popup === 'offers' && <OfferCards onClose={() => setPopup(null)} />}
+      {popup === 'menu' && (
+        <div style={modalBack} onClick={() => setPopup(null)}>
+          <div style={{ ...modalBox, minWidth: 200 }} onClick={(e) => e.stopPropagation()}>
+            <button style={menuButton} onClick={onSave}>{t('ui.save')}</button>
+            <button style={menuButton} onClick={onExport}>{t('ui.export')}</button>
+            <label style={{ ...menuButton, textAlign: 'center', background: '#efefef', color: '#000', boxSizing: 'border-box' }}>
+              {t('ui.import')}
+              <input
+                type="file"
+                accept="application/json"
+                style={{ display: 'none' }}
+                onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])}
+              />
+            </label>
+            <button
+              style={menuButton}
+              onClick={() => {
+                setPopup(null);
+                setSpeed(0);
+                setScreen('title');
+              }}
+            >
+              {t('ui.title.back')}
+            </button>
+            {message && <div style={{ marginTop: 6, fontSize: 13 }}>{message}</div>}
+          </div>
         </div>
       )}
+      <NoticeToast />
+      <ReportModal />
       {clock.bankrupt && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'rgba(20, 20, 30, 0.8)',
-            color: '#f4f1e6',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 12,
-          }}
-        >
+        <div style={{ ...modalBack, background: 'rgba(20, 20, 30, 0.8)', flexDirection: 'column', gap: 12, color: '#f4f1e6' }}>
           <h2 style={{ fontSize: 28, margin: 0 }}>{t('ui.gameover.title')}</h2>
-          <p>{t('ui.gameover.body')}</p>
-          <button style={{ ...button, padding: '10px 24px', fontSize: 16 }} onClick={onNew}>
+          <button style={{ padding: '10px 24px', fontSize: 16, cursor: 'pointer' }} onClick={onNew}>
             {t('ui.gameover.retry')}
           </button>
         </div>

@@ -1,7 +1,8 @@
 // セーブデータのバージョン管理。形式を変えたら SAVE_VERSION を上げ、migrations[n]（n → n+1 の変換）を追加する。
 import type { Project } from '../sim/project';
+import { colorsFromConfig } from '../network/compile';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export interface SaveData {
   clock: { minute: number; money: number; paidMonths: number; bankrupt: boolean };
@@ -30,6 +31,12 @@ export const migrations: Record<number, Migration> = {
   2: (data) => ({ ...(data as object), offers: [], nextOfferMinute: 0, offerSeq: 0, rng: 1 }),
   // v3 → v4: 受注中の案件を追加する
   3: (data) => ({ ...(data as object), active: null }),
+  // v4 → v5: 手入力のIPアドレスを色（サブネット）に置き換える
+  4: (data) => {
+    const d = data as { active: Project | null };
+    if (!d.active) return d;
+    return { ...d, active: { ...d.active, nodes: colorsFromConfig(d.active.nodes) } };
+  },
 };
 
 export const isSaveData = (value: unknown): value is SaveData => {

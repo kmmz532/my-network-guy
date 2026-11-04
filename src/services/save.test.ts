@@ -36,3 +36,28 @@ describe('セーブデータ', () => {
   });
 
   });
+
+describe('v4 → v5', () => {
+  it('手入力のIPアドレスを色に置き換える', () => {
+    const node = (uid: string, ip: string) => ({
+      uid,
+      device: 'pc_basic',
+      x: 0,
+      y: 0,
+      locked: false,
+      configLocked: false,
+      interfaces: [{ port: 0, ip, prefix: 24 }],
+      gateway: null,
+      routes: [],
+      services: [],
+    });
+    const v4 = {
+      ...sample,
+      active: { nodes: [node('a', '192.168.1.10'), node('b', '192.168.1.11'), node('c', '192.168.2.10')] },
+    };
+    const out = migrate(4, v4);
+    const colors = out.active!.nodes.map((n) => n.colors?.[0]);
+    expect(colors[0]).toBe(colors[1]);
+    expect(colors[2]).not.toBe(colors[0]);
+  });
+});

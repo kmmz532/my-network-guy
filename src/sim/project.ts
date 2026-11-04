@@ -4,7 +4,8 @@ import type { Balance, Contract, GameMap } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
 import { linkLength } from '../network/engine';
-import type { EngineData, Iface, NetLink, NetNode, Route } from '../network/types';
+import { colorsFromConfig, compile, type Issue } from '../network/compile';
+import type { EngineData, NetLink, NetNode, PathResult } from '../network/types';
 import type { ClockState } from './clock';
 import { rate } from './rating';
 
@@ -35,8 +36,19 @@ export interface ReportFailure {
   goal: string;
 }
 
+// 検収で判定した経路（画面にパケットとして流す）
+export interface Trace {
+  kind: 'ping' | 'http';
+  src: string;
+  dst: string;
+  result: PathResult;
+}
+
 export interface Report {
   passed: boolean;
+  traces: Trace[];
+  // 手戻りのときに社員が出すヒント（言語キー）
+  hint?: string;
   stars?: 1 | 2 | 3;
   money?: number;
   // 評判の増え分（報酬の評判と★による評判の合計）
@@ -77,12 +89,6 @@ export type Outcome = { ok: true; core: Core; report?: Report } | { ok: false; r
 
 const fail = (reason: string): Outcome => ({ ok: false, reason });
 
-const ipPattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-export const isIp = (ip: string): boolean => {
-  const m = ipPattern.exec(ip);
-  return !!m && m.slice(1).every((o) => Number(o) <= 255);
-};
-
 // 案件で最初から置かれている機器
 const fixedNodes = (contract: Contract): NetNode[] =>
   contract.placed.map((p) => ({
@@ -112,7 +118,7 @@ export const accept = (core: Core, offerId: string): Outcome => {
   if (core.active) return fail('busy');
   const offer = core.offers.find((o) => o.id === offerId);
   if (!offer) return fail('none');
-  const nodes = fixedNodes(offer.contract);
+  const nodes = colorsFromConfig(fixedNodes(offer.contract));
   const project: Project = {
     id: offer.id,
     kind: offer.kind,
@@ -153,6 +159,7 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
     gateway: null,
     routes: [],
     services: [],
+    colors: {},
   };
   const next: Project = { ...p, nodes: [...p.nodes, node], seq: p.seq + 1 };
   return {
@@ -260,31 +267,20 @@ const editNode = (core: Core, uid: string, edit: (n: NetNode) => NetNode | strin
   return { ok: true, core: withActive(core, next) };
 };
 
-// ポートのIPアドレスを設定する。ip が空文字なら設定を外す。
-export const setInterface = (core: Core, uid: string, port: number, ip: string, prefix: number): Outcome =>
+// ポートにサブネットの色を塗る。color が null なら色を外す。PC・サーバーはポート0のみ
+export const setColor = (core: Core, uid: string, port: number, color: number | null): Outcome =>
   editNode(core, uid, (node) => {
-    if (ip === '') return { ...node, interfaces: node.interfaces.filter((i) => i.port !== port) };
-    if (!isIp(ip)) return 'ip';
-    const iface: Iface = { port, ip, prefix };
-    return { ...node, interfaces: [...node.interfaces.filter((i) => i.port !== port), iface] };
+    const colors = { ...(node.colors ?? {}) };
+    if (color === null) delete colors[port];
+    else colors[port] = color;
+    return { ...node, colors };
   });
 
-// デフォルトゲートウェイを設定する。null で外す。
-export const setGateway = (core: Core, uid: string, gateway: string | null): Outcome =>
-  editNode(core, uid, (node) => {
-    if (gateway !== null && !isIp(gateway)) return 'ip';
-    return { ...node, gateway };
-  });
+// 色と配線から生成したネットワーク（判定・表示に使う）
+export const compiledNet = (p: Project, env: Env) => compile({ nodes: p.nodes, links: p.links }, env.engine);
 
-// ルーターに静的ルートを追加する
-export const addRoute = (core: Core, uid: string, route: Route): Outcome =>
-  editNode(core, uid, (node) => {
-    if (!isIp(route.dest) || !isIp(route.nextHop)) return 'ip';
-    return { ...node, routes: [...node.routes, route] };
-  });
-
-export const removeRoute = (core: Core, uid: string, index: number): Outcome =>
-  editNode(core, uid, (node) => ({ ...node, routes: node.routes.filter((_, i) => i !== index) }));
+// 設計時点の不備（機器の uid -> 不備の種類）
+export const designIssues = (p: Project, env: Env): Record<string, Issue> => compiledNet(p, env).issues;
 
 // 施工を依頼する。施工時間は、まだ施工していない機器と配線の分だけかかる。
 export const requestBuild = (core: Core, env: Env): Outcome => {
@@ -319,7 +315,8 @@ export const advanceBuild = (core: Core, env: Env, hour: number): Outcome => {
 export const inspect = (core: Core, env: Env): Outcome => {
   const p = core.active;
   if (!p) return fail('none');
-  const result = evaluateContract(p.contract, { nodes: p.nodes, links: p.links }, env.engine);
+  const result = evaluateContract(p.contract, compiledNet(p, env).net, env.engine);
+  const traces: Trace[] = result.results.map((r) => ({ kind: r.kind, src: r.src, dst: r.dst, result: r.result }));
   if (result.passed) {
     const stars = rate(p.cost, p.contract.budget, p.rework, env.balance);
     const money = p.contract.reward.money;
@@ -333,14 +330,15 @@ export const inspect = (core: Core, env: Env): Outcome => {
         completed: p.kind === 'fixed' ? [...core.completed, p.baseId] : core.completed,
         active: null,
       },
-      report: { passed: true, stars, money, reputationGain: reputation - core.reputation, failures: [] },
+      report: { passed: true, traces, stars, money, reputationGain: reputation - core.reputation, failures: [] },
     };
   }
   const failures: ReportFailure[] = result.results
     .filter((r) => !r.ok && r.failure)
     .map((r) => ({ reason: r.failure!.reason, node: r.failure!.node, goal: r.goal.type }));
   const next: Project = { ...p, rework: p.rework + 1, phase: 'design', progress: 0, total: 0 };
-  return { ok: true, core: withActive(core, next), report: { passed: false, failures } };
+    const hint = p.kind === 'fixed' ? `contract.${p.baseId}.hint` : undefined;
+  return { ok: true, core: withActive(core, next), report: { passed: false, traces, failures, hint } };
 };
 
 // 受注中の案件を取り消す（施工前のみ）。配置した機器は在庫に戻す。

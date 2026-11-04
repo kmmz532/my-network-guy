@@ -1,50 +1,56 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { useGameStore } from '../stores/useGameStore';
 
 const NOTICE_MS = 3000;
+// 納品の結果は、パケットが流れ切ってから出す
+const REPORT_DELAY_MS = 1500;
 
-// 検収の結果を出す。合格なら★・報酬・評判、不合格なら理由を出す
+export const modalBack = {
+  position: 'absolute',
+  inset: 0,
+  background: 'rgba(20, 20, 30, 0.45)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 10,
+} as const;
+
+export const modalBox = {
+  background: '#2f4f8f',
+  color: '#f4f1e6',
+  padding: 16,
+  borderRadius: 6,
+  border: '2px solid #f4f1e6',
+  maxWidth: 'calc(100vw - 32px)',
+} as const;
+
+// 納品の結果。★・報酬・評判の数字のみ。不合格はマップ上の「×」と吹き出しで示すため出さない
 export function ReportModal() {
   const report = useGameStore((s) => s.lastReport);
   const dismiss = useGameStore((s) => s.dismissReport);
-  if (!report) return null;
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    setShown(false);
+    if (!report?.passed) return;
+    const id = window.setTimeout(() => setShown(true), REPORT_DELAY_MS);
+    return () => window.clearTimeout(id);
+  }, [report]);
+  if (!report?.passed || !shown) return null;
 
+  const stars = report.stars ?? 1;
   return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        background: 'rgba(20, 20, 30, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10,
-      }}
-    >
-      <div style={{ background: '#2f4f8f', color: '#f4f1e6', padding: 20, borderRadius: 6, minWidth: 260 }}>
-        <h2 style={{ fontSize: 18, margin: '0 0 12px' }}>{t('ui.report.title')}</h2>
-        {report.passed ? (
-          <>
-            <div style={{ fontSize: 20, color: '#ffd866' }}>
-              {t('ui.report.stars', { stars: report.stars ?? 1 })}
-            </div>
-            <div>{t('ui.report.reward', { amount: (report.money ?? 0).toLocaleString('ja-JP') })}</div>
-            <div>{t('ui.report.reputation', { amount: report.reputationGain ?? 0 })}</div>
-          </>
-        ) : (
-          <>
-            <div style={{ color: '#ffd866' }}>{t('ui.report.failed')}</div>
-            {report.failures.map((f, i) => (
-              <div key={i} style={{ fontSize: 13 }}>
-                {t('ui.report.failItem', { text: `${t(`error.${f.reason}` as LangKey)}（${f.node}）` })}
-              </div>
-            ))}
-          </>
-        )}
-        <button style={{ marginTop: 12 }} onClick={dismiss}>
-          {t('ui.report.close')}
+    <div style={modalBack} onClick={dismiss}>
+      <div style={{ ...modalBox, textAlign: 'center', minWidth: 220 }}>
+        <div style={{ fontSize: 32, color: '#ffd866', letterSpacing: 4 }}>
+          {'★'.repeat(stars)}
+          <span style={{ opacity: 0.3 }}>{'★'.repeat(3 - stars)}</span>
+        </div>
+        <div style={{ fontSize: 20, marginTop: 8 }}>💰 +{(report.money ?? 0).toLocaleString('ja-JP')}</div>
+        <div style={{ fontSize: 16, marginTop: 4 }}>⭐ +{report.reputationGain ?? 0}</div>
+        <button style={{ marginTop: 12, padding: '4px 16px', cursor: 'pointer' }} onClick={dismiss}>
+          OK
         </button>
       </div>
     </div>

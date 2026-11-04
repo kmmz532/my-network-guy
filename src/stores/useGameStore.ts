@@ -11,30 +11,21 @@ import { gameEnv } from '../sim/env';
 import {
   abandon,
   accept,
-  addRoute,
-  removeRoute,
   advanceBuild,
   connect,
   placeDevice,
   removeNode,
   requestBuild,
-  setGateway,
-  setInterface,
+  setColor,
   type Core,
   type Outcome,
   type Project,
   type Report,
+  type Trace,
 } from '../sim/project';
-import type { PathResult, Route } from '../network/types';
-import { http as httpProbe, ping as pingProbe } from '../network/engine';
 
-// 疎通テストの結果（保存しない）
-export interface Trace {
-  kind: 'ping' | 'http';
-  src: string;
-  dst: string;
-  result: PathResult;
-}
+export type { Trace };
+export type Tool = 'build' | 'paint';
 
 export type Speed = 0 | 1 | 2 | 4;
 
@@ -65,14 +56,19 @@ export interface GameState {
   placing: string | null;
   // 配線に使うケーブル
   wireCable: string;
-  // 直近の疎通テスト
-  lastTrace: Trace | null;
-  // 機器の設定（IP設定）を出す位置（画面の座標）。選択中の機器に合わせる
-  anchor: { x: number; y: number } | null;
-  setAnchor: (p: { x: number; y: number } | null) => void;
+  // 直近の検収で流すパケット
+  traces: Trace[];
+  // 納品した直後の案件（結果を閉じるまでマップに表示する）
+  showcase: Project | null;
+  // 操作の種類と、色塗りで使う色
+  tool: Tool;
+  paintColor: number;
+  setTool: (tool: Tool) => void;
+  setPaintColor: (color: number) => void;
+  // 社員の吹き出しに出すヒント（言語キー）
+  hint: string | null;
   // 失敗した操作の理由を、失敗した地点（マップのタイル）に出す
   flash: { key: string; tx: number; ty: number; at: number } | null;
-  probe: (kind: 'ping' | 'http', src: string, dst: string, port: number) => void;
   setSelected: (uid: string | null) => void;
   setPlacing: (deviceId: string | null) => void;
   setWireCable: (cableId: string) => void;
@@ -86,10 +82,7 @@ export interface GameState {
   place: (deviceId: string, x: number, y: number) => string | null;
   connect: (aUid: string, bUid: string, cableId: string) => string | null;
   removeNode: (uid: string) => string | null;
-  setIface: (uid: string, port: number, ip: string) => string | null;
-  setGateway: (uid: string, gateway: string | null) => string | null;
-  addRoute: (uid: string, route: Route) => string | null;
-  removeRoute: (uid: string, index: number) => string | null;
+  paint: (uid: string, port: number) => string | null;
   requestBuild: () => string | null;
   abandon: () => string | null;
   load: (save: SaveData) => void;
@@ -135,6 +128,17 @@ const refresh = (s: GameState): Partial<GameState> => {
   return { offers: [...r.offers], nextOfferMinute: r.nextOfferMinute, offerSeq: r.offerSeq, rng: r.rng };
 };
 
+// 検収の結果を画面の状態に反映する（パケット・納品後の表示・ヒント）
+const reportState = (report: Report | undefined, s: GameState): Partial<GameState> => {
+  if (!report) return {};
+  return {
+    lastReport: report,
+    traces: report.traces,
+    showcase: report.passed ? s.active : null,
+    hint: report.passed ? null : (report.hint ?? null),
+  };
+};
+
 export const useGameStore = create<GameState>((set, get) => {
   // 案件の操作の結果を状態に反映する。失敗なら理由を返す
   // 機器の位置（失敗の吹き出しを出す場所）
@@ -158,7 +162,7 @@ export const useGameStore = create<GameState>((set, get) => {
       completed: c.completed,
       offers: c.offers,
       active: c.active,
-      lastReport: outcome.report ?? get().lastReport,
+      ...reportState(outcome.report, get()),
     });
     return null;
   };
@@ -177,23 +181,20 @@ export const useGameStore = create<GameState>((set, get) => {
     maps: {},
     lastReport: null,
     notice: null,
-    dismissReport: () => set({ lastReport: null }),
+    dismissReport: () => set({ lastReport: null, showcase: null, traces: [] }),
     dismissNotice: () => set({ notice: null }),
     lastError: null,
     selectedUid: null,
     placing: null,
     wireCable: 'utp_cat5e',
-    lastTrace: null,
-    anchor: null,
-    setAnchor: (p) => set({ anchor: p }),
+    traces: [],
+    showcase: null,
+    tool: 'build',
+    paintColor: 1,
+    setTool: (tool) => set({ tool, placing: null }),
+    setPaintColor: (color) => set({ paintColor: color, tool: 'paint', placing: null }),
+    hint: null,
     flash: null,
-    probe: (kind, src, dst, port) => {
-      const active = get().active;
-      if (!active) return;
-      const net = { nodes: active.nodes, links: active.links };
-      const result = kind === 'ping' ? pingProbe(net, gameEnv.engine, src, dst) : httpProbe(net, gameEnv.engine, src, dst, port);
-      set({ lastTrace: { kind, src, dst, result } });
-    },
     setSelected: (uid) => set({ selectedUid: uid }),
     setPlacing: (deviceId) => set({ placing: deviceId }),
     setWireCable: (cableId) => set({ wireCable: cableId }),
@@ -218,7 +219,7 @@ export const useGameStore = create<GameState>((set, get) => {
               reputation: r.core.reputation,
               completed: r.core.completed,
               active: r.core.active,
-              lastReport: r.report ?? s.lastReport,
+              ...reportState(r.report, withClock),
             };
           }
         }
@@ -242,20 +243,24 @@ export const useGameStore = create<GameState>((set, get) => {
       return true;
     },
     accept: (offerId) => apply(accept(coreOf(get()), offerId)),
+    // 在庫がなければ購入してから配置する
     place: (deviceId, x, y) => {
-      const s = get();
-      const map = s.active ? s.maps[s.active.contract.map] : undefined;
+      const map = get().active ? get().maps[get().active!.contract.map] : undefined;
       if (!map) return 'map';
-      return apply(placeDevice(coreOf(s), deviceId, x, y, map, gameEnv), { tx: x, ty: y });
+      if ((get().owned[deviceId] ?? 0) < 1 && !get().buy(deviceId)) {
+        set({ lastError: 'money', flash: { key: 'ui.error.money', tx: x, ty: y, at: Date.now() } });
+        return 'money';
+      }
+      return apply(placeDevice(coreOf(get()), deviceId, x, y, map, gameEnv), { tx: x, ty: y });
     },
     connect: (aUid, bUid, cableId) =>
       apply(connect(coreOf(get()), aUid, bUid, cableId, gameEnv), tileOf(bUid)),
     removeNode: (uid) => apply(removeNode(coreOf(get()), uid), tileOf(uid)),
-    setIface: (uid, port, ip) => apply(setInterface(coreOf(get()), uid, port, ip, 24), tileOf(uid)),
-    setGateway: (uid, gateway) => apply(setGateway(coreOf(get()), uid, gateway), tileOf(uid)),
-    addRoute: (uid, route) => apply(addRoute(coreOf(get()), uid, route), tileOf(uid)),
-    removeRoute: (uid, index) => apply(removeRoute(coreOf(get()), uid, index)),
-    requestBuild: () => apply(requestBuild(coreOf(get()), gameEnv)),
+    paint: (uid, port) => apply(setColor(coreOf(get()), uid, port, get().paintColor), tileOf(uid)),
+    requestBuild: () => {
+      set({ hint: null, traces: [] });
+      return apply(requestBuild(coreOf(get()), gameEnv));
+    },
     abandon: () => apply(abandon(coreOf(get()))),
     load: (save) =>
       set({
@@ -269,6 +274,9 @@ export const useGameStore = create<GameState>((set, get) => {
         rng: save.rng,
         active: save.active,
         lastReport: null,
+        showcase: null,
+        traces: [],
+        hint: null,
       }),
     newGame: () =>
       set((s) => {
@@ -284,7 +292,9 @@ export const useGameStore = create<GameState>((set, get) => {
           active: null,
           lastReport: null,
           lastError: null,
-          lastTrace: null,
+          traces: [],
+          showcase: null,
+          hint: null,
           selectedUid: null,
           placing: null,
           speed: 1,
