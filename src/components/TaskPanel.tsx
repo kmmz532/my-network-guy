@@ -16,10 +16,14 @@ export function TaskPanel() {
   const net = compiledNet(active, gameEnv).net;
   const goals = active.contract.goals.map((goal) => {
     const results = evaluateGoal(goal, net, gameEnv.engine);
-    const params: Record<string, string> =
+    const params: Record<string, string | number> =
       goal.type === 'ping_all'
-        ? { nodes: Array.isArray(goal.nodes) ? goal.nodes.join('・') : '' }
-        : { from: goal.from, to: goal.to };
+        ? { nodes: Array.isArray(goal.nodes) ? goal.nodes.join('・') : t('ui.task.allPcs') }
+        : goal.type === 'count'
+          ? { name: t(`category.${goal.category}` as LangKey), min: goal.min }
+          : goal.type === 'http_all'
+            ? {}
+            : { from: goal.from, to: goal.to };
     return { text: t(`goal.${goal.type}` as LangKey, params), ok: results.every((r) => r.ok) };
   });
 

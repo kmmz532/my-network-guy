@@ -1,0 +1,30 @@
+{
+  "id": "i001_office_lan",
+  "stage": 1,
+  "order": 15,
+  "requires": [
+    "c001_direct_link"
+  ],
+  "map": "hq",
+  "budget": 200000,
+  "placed": [],
+  "goals": [
+    {
+      "type": "count",
+      "category": "pc",
+      "min": 2
+    },
+    {
+      "type": "ping_all",
+      "nodes": "$all_pcs"
+    }
+  ],
+  "reward": {
+    "money": 0,
+    "reputation": 1
+  },
+  "inhouse": true,
+  "effect": {
+    "buildSpeed": 0.2
+  }
+}

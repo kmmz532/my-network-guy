@@ -27,6 +27,11 @@ export function OfferCards({ onClose }: { onClose: () => void }) {
           return (
             <div key={offer.id} style={{ background: '#25406f', borderRadius: 4, padding: 10, marginBottom: 8 }}>
               <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
+                {offer.contract.inhouse && (
+                  <span style={{ background: '#5aa860', borderRadius: 3, padding: '0 6px', marginRight: 6, fontSize: 12 }}>
+                    {t('ui.offer.inhouse')}
+                  </span>
+                )}
                 {t(`contract.${offer.baseId}.title` as LangKey, offer.params)}
               </div>
               <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>

@@ -25,6 +25,8 @@ export interface Project {
   rework: number;
   // 施工済みの機器・配線の uid（差分だけを施工するため）
   built: { nodes: string[]; links: string[] };
+  // 自社案件で、自社オフィスから引き継いだ機器の uid（取り消しても在庫に戻さない）
+  inherited?: string[];
   phase: 'design' | 'build';
   progress: number;
   total: number;
@@ -56,6 +58,21 @@ export interface Report {
   failures: ReportFailure[];
 }
 
+// 自社オフィスのネットワーク。自社案件の納品で更新され、ずっと残る
+export interface Office {
+  nodes: NetNode[];
+  links: NetLink[];
+  seq: number;
+}
+
+// 自社案件で得た効果の合計
+export interface Effects {
+  buildSpeed: number;
+}
+
+export const emptyOffice = (): Office => ({ nodes: [], links: [], seq: 0 });
+export const noEffects = (): Effects => ({ buildSpeed: 0 });
+
 export interface Core {
   clock: ClockState;
   reputation: number;
@@ -63,6 +80,8 @@ export interface Core {
   completed: string[];
   offers: Offer[];
   active: Project | null;
+  office: Office;
+  effects: Effects;
 }
 
 // 機材の性質（ゲームデータから作る）
@@ -118,7 +137,12 @@ export const accept = (core: Core, offerId: string): Outcome => {
   if (core.active) return fail('busy');
   const offer = core.offers.find((o) => o.id === offerId);
   if (!offer) return fail('none');
-  const nodes = colorsFromConfig(fixedNodes(offer.contract));
+  const inhouse = offer.contract.inhouse;
+  const office = core.office;
+  // 自社案件は、自社オフィスの機器と配線を引き継いで始める
+  const fixed = colorsFromConfig(fixedNodes(offer.contract)).filter((n) => !inhouse || !office.nodes.some((o) => o.uid === n.uid));
+  const nodes = inhouse ? [...office.nodes, ...fixed] : fixed;
+  const links = inhouse ? [...office.links] : [];
   const project: Project = {
     id: offer.id,
     kind: offer.kind,
@@ -126,12 +150,13 @@ export const accept = (core: Core, offerId: string): Outcome => {
     params: offer.params,
     contract: offer.contract,
     nodes,
-    links: [],
-    seq: 0,
+    links,
+    seq: inhouse ? office.seq : 0,
     cost: 0,
     rework: 0,
     // 既設の機器は施工済みとして扱う
-    built: { nodes: nodes.map((n) => n.uid), links: [] },
+    built: { nodes: nodes.map((n) => n.uid), links: links.map((l) => l.uid) },
+    inherited: inhouse ? office.nodes.map((n) => n.uid) : [],
     phase: 'design',
     progress: 0,
     total: 0,
@@ -146,7 +171,9 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
   if (!env.devices[deviceId]) return fail('none');
   if ((core.owned[deviceId] ?? 0) < 1) return fail('stock');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
-  if (map.legend[map.tiles[y][x]] !== 'floor') return fail('tile');
+  // 床に置く。PCは机の上にも置ける
+  const kind = map.legend[map.tiles[y][x]];
+  if (kind !== 'floor' && !(kind === 'desk' && env.devices[deviceId].category === 'pc')) return fail('tile');
   if (p.nodes.some((n) => n.x === x && n.y === y)) return fail('tile');
   const node: NetNode = {
     uid: `u${p.seq}`,
@@ -301,7 +328,7 @@ export const advanceBuild = (core: Core, env: Env, hour: number): Outcome => {
   const { workStartHour, workEndHour } = env.balance.build;
   let progress = p.progress;
   if (hour >= workStartHour && hour < workEndHour) {
-    progress += env.balance.time.gameMinutesPerTick * env.balance.staff.initialCount;
+    progress += env.balance.time.gameMinutesPerTick * env.balance.staff.initialCount * (1 + core.effects.buildSpeed);
   }
   if (progress < p.total) return { ok: true, core: withActive(core, { ...p, progress }) };
   const built = {
@@ -321,10 +348,15 @@ export const inspect = (core: Core, env: Env): Outcome => {
     const stars = rate(p.cost, p.contract.budget, p.rework, env.balance);
     const money = p.contract.reward.money;
     const reputation = core.reputation + p.contract.reward.reputation + stars * env.balance.reputationPerStar;
+    // 自社案件は、納品したネットワークを自社オフィスとして残し、効果を加える
+    const office = p.contract.inhouse ? { nodes: p.nodes, links: p.links, seq: p.seq } : core.office;
+    const effects = { buildSpeed: core.effects.buildSpeed + (p.contract.effect?.buildSpeed ?? 0) };
     return {
       ok: true,
       core: {
         ...core,
+        office,
+        effects,
         clock: { ...core.clock, money: core.clock.money + money },
         reputation,
         completed: p.kind === 'fixed' ? [...core.completed, p.baseId] : core.completed,
@@ -345,8 +377,10 @@ export const inspect = (core: Core, env: Env): Outcome => {
 export const abandon = (core: Core): Outcome => {
   const p = core.active;
   if (!p) return fail('none');
-  if (p.phase !== 'design' || p.built.nodes.length > p.contract.placed.length) return fail('locked');
+  const inherited = new Set(p.inherited ?? []);
+  const builtNew = p.built.nodes.filter((uid) => !inherited.has(uid));
+  if (p.phase !== 'design' || builtNew.length > p.contract.placed.length) return fail('locked');
   const owned = { ...core.owned };
-  for (const n of p.nodes) if (!n.locked) owned[n.device] = (owned[n.device] ?? 0) + 1;
+  for (const n of p.nodes) if (!n.locked && !inherited.has(n.uid)) owned[n.device] = (owned[n.device] ?? 0) + 1;
   return { ok: true, core: { ...core, owned, active: null } };
 };

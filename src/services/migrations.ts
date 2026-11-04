@@ -1,8 +1,8 @@
 // セーブデータのバージョン管理。形式を変えたら SAVE_VERSION を上げ、migrations[n]（n → n+1 の変換）を追加する。
-import type { Project } from '../sim/project';
+import type { Effects, Office, Project } from '../sim/project';
 import { colorsFromConfig } from '../network/compile';
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 export interface SaveData {
   clock: { minute: number; money: number; paidMonths: number; bankrupt: boolean };
@@ -19,6 +19,9 @@ export interface SaveData {
   rng: number;
   // 受注中の案件（なければ null）
   active: Project | null;
+  // 自社オフィスのネットワークと、自社案件で得た効果
+  office: Office;
+  effects: Effects;
 }
 
 type Migration = (data: unknown) => unknown;
@@ -37,6 +40,8 @@ export const migrations: Record<number, Migration> = {
     if (!d.active) return d;
     return { ...d, active: { ...d.active, nodes: colorsFromConfig(d.active.nodes) } };
   },
+  // v5 → v6: 自社オフィスと効果を追加する
+  5: (data) => ({ ...(data as object), office: { nodes: [], links: [], seq: 0 }, effects: { buildSpeed: 0 } }),
 };
 
 export const isSaveData = (value: unknown): value is SaveData => {

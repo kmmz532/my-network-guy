@@ -33,6 +33,8 @@ describe('セーブのバージョン移行', () => {
       offerSeq: 0,
       rng: 1,
       active: null,
+      office: { nodes: [], links: [], seq: 0 },
+      effects: { buildSpeed: 0 },
     });
   });
 

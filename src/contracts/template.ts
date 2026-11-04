@@ -61,6 +61,7 @@ export const instantiateTemplate = (
     budget: template.budget.base + template.budget.perPc * n,
     placed,
     goals,
+    inhouse: false,
     reward: {
       money: template.reward.base + template.reward.perPc * n,
       reputation: template.reward.reputation,

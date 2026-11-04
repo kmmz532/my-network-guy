@@ -1,0 +1,31 @@
+{
+  "id": "i002_office_server",
+  "stage": 1,
+  "order": 35,
+  "requires": [
+    "c003_departments",
+    "i001_office_lan"
+  ],
+  "map": "hq",
+  "budget": 400000,
+  "placed": [],
+  "goals": [
+    {
+      "type": "count",
+      "category": "server",
+      "min": 1
+    },
+    {
+      "type": "http_all",
+      "port": 80
+    }
+  ],
+  "reward": {
+    "money": 0,
+    "reputation": 1
+  },
+  "inhouse": true,
+  "effect": {
+    "buildSpeed": 0.3
+  }
+}

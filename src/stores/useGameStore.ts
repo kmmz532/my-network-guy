@@ -20,6 +20,10 @@ import {
   type Core,
   type Outcome,
   type Project,
+  type Office,
+  type Effects,
+  emptyOffice,
+  noEffects,
   type Report,
   type Trace,
 } from '../sim/project';
@@ -39,6 +43,9 @@ export interface GameState {
   offerSeq: number;
   rng: number;
   active: Project | null;
+  // 自社オフィスのネットワークと、自社案件で得た効果
+  office: Office;
+  effects: Effects;
   speed: Speed;
   // 読み込み済みのマップ（保存しない）
   maps: Record<string, GameMap>;
@@ -112,6 +119,8 @@ const coreOf = (s: GameState): Core => ({
   completed: s.completed,
   offers: s.offers,
   active: s.active,
+  office: s.office,
+  effects: s.effects,
 });
 
 // 依頼の追加を1回分進める。受注中の案件と同じ依頼は出さない
@@ -167,6 +176,8 @@ export const useGameStore = create<GameState>((set, get) => {
       completed: c.completed,
       offers: c.offers,
       active: c.active,
+      office: c.office,
+      effects: c.effects,
       ...reportState(outcome.report, get()),
     });
     return null;
@@ -182,6 +193,8 @@ export const useGameStore = create<GameState>((set, get) => {
     offerSeq: 0,
     rng: newRng(),
     active: null,
+    office: emptyOffice(),
+    effects: noEffects(),
     speed: 1,
     maps: {},
     lastReport: null,
@@ -228,6 +241,8 @@ export const useGameStore = create<GameState>((set, get) => {
               reputation: r.core.reputation,
               completed: r.core.completed,
               active: r.core.active,
+              office: r.core.office,
+              effects: r.core.effects,
               ...reportState(r.report, withClock),
             };
           }
@@ -278,6 +293,8 @@ export const useGameStore = create<GameState>((set, get) => {
         offerSeq: save.offerSeq,
         rng: save.rng,
         active: save.active,
+        office: save.office,
+        effects: save.effects,
         lastReport: null,
         showcase: null,
         traces: [],
@@ -295,6 +312,8 @@ export const useGameStore = create<GameState>((set, get) => {
           offerSeq: 0,
           rng: newRng(),
           active: null,
+          office: emptyOffice(),
+          effects: noEffects(),
           lastReport: null,
           lastError: null,
           traces: [],
@@ -319,6 +338,8 @@ export const useGameStore = create<GameState>((set, get) => {
         offerSeq: s.offerSeq,
         rng: s.rng,
         active: s.active,
+        office: s.office,
+        effects: s.effects,
       };
     },
   };

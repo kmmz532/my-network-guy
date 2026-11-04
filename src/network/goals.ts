@@ -16,6 +16,19 @@ export interface GoalResult {
 
 type Handler = (goal: Goal, net: Network, data: EngineData) => GoalResult[];
 
+const uidsOf = (net: Network, data: EngineData, category: string): string[] =>
+  net.nodes.filter((n) => data.categoryOf(n.device) === category).map((n) => n.uid);
+
+// 判定する機器がないときの不合格
+const none = (goal: Goal, kind: 'ping' | 'http'): GoalResult => ({
+  goal,
+  ok: false,
+  kind,
+  src: '',
+  dst: '',
+  result: { ok: false, path: [] },
+});
+
 // 案件の placed[].ref は配置した機器のuidとして扱う
 const handlers: { [K in Goal['type']]: Handler } = {
   ping: (goal, net, data) => {
@@ -24,12 +37,12 @@ const handlers: { [K in Goal['type']]: Handler } = {
     return [{ goal, ok: r.ok, failure: r.failure, kind: 'ping', src: goal.from, dst: goal.to, result: r }];
   },
   ping_all: (goal, net, data) => {
-    if (goal.type !== 'ping_all' || goal.nodes === '$all_pcs') {
-      throw new Error('ping_all の nodes は実体化されていなければならない');
-    }
+    if (goal.type !== 'ping_all') throw new Error('ping_all ハンドラに別の種類が渡された');
+    // $all_pcs は、判定の時点でネットワークにあるPCすべてとする（自社案件）
+    const nodes = goal.nodes === '$all_pcs' ? uidsOf(net, data, 'pc') : goal.nodes;
     // 疎通は往復で判定するため、組み合わせは順不同の全ペアで足りる
     const results: GoalResult[] = [];
-    const nodes = goal.nodes;
+    if (nodes.length < 2) return [none(goal, 'ping')];
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const r = ping(net, data, nodes[i], nodes[j]);
@@ -42,6 +55,23 @@ const handlers: { [K in Goal['type']]: Handler } = {
     if (goal.type !== 'http') throw new Error('http ハンドラに別の種類が渡された');
     const r = http(net, data, goal.from, goal.to, goal.port);
     return [{ goal, ok: r.ok, failure: r.failure, kind: 'http', src: goal.from, dst: goal.to, result: r }];
+  },
+  count: (goal, net, data) => {
+    if (goal.type !== 'count') throw new Error('count ハンドラに別の種類が渡された');
+    const ok = uidsOf(net, data, goal.category).length >= goal.min;
+    return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
+  },
+  http_all: (goal, net, data) => {
+    if (goal.type !== 'http_all') throw new Error('http_all ハンドラに別の種類が渡された');
+    const pcs = uidsOf(net, data, 'pc');
+    const servers = uidsOf(net, data, 'server');
+    if (!pcs.length || !servers.length) return [none(goal, 'http')];
+    return pcs.map((pc) => {
+      // 最初に閲覧できたサーバーの経路を使う。どこにも届かなければ最初のサーバーの結果を返す
+      const tries = servers.map((sv) => ({ sv, r: http(net, data, pc, sv, goal.port) }));
+      const hit = tries.find((x) => x.r.ok) ?? tries[0];
+      return { goal, ok: hit.r.ok, failure: hit.r.failure, kind: 'http' as const, src: pc, dst: hit.sv, result: hit.r };
+    });
   },
 };
 

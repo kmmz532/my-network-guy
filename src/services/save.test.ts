@@ -12,6 +12,8 @@ const sample: SaveData = {
   offerSeq: 0,
   rng: 1,
   active: null,
+  office: { nodes: [], links: [], seq: 0 },
+  effects: { buildSpeed: 0 },
 };
 
 describe('セーブデータ', () => {

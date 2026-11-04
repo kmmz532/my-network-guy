@@ -1,7 +1,7 @@
 {
   "id": "c003_departments",
   "stage": 1,
-  "order": 3,
+  "order": 30,
   "requires": [
     "c002_small_office"
   ],

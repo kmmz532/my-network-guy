@@ -1,7 +1,7 @@
 {
   "id": "c005_two_sites",
   "stage": 1,
-  "order": 5,
+  "order": 50,
   "requires": [
     "c004_web_server"
   ],

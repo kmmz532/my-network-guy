@@ -1,7 +1,7 @@
 {
   "id": "c001_direct_link",
   "stage": 1,
-  "order": 1,
+  "order": 10,
   "requires": [],
   "map": "office_small",
   "budget": 5000,

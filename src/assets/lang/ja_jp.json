@@ -78,5 +78,17 @@
   "ui.paint": "色",
   "ui.showIp": "名前とIPアドレスを表示",
   "ui.shop.title": "機材ショップ",
-  "ui.shop.buy": "購入"
+  "ui.shop.buy": "購入",
+  "contract.i001_office_lan.title": "自社LANの構築",
+  "contract.i001_office_lan.story": "自分たちの事務所にもネットワークを作る。",
+  "contract.i001_office_lan.hint": "PCを買って机に置こう",
+  "contract.i002_office_server.title": "自社サーバーの導入",
+  "contract.i002_office_server.story": "社内の資料をサーバーで共有する。",
+  "contract.i002_office_server.hint": "サーバーを買ってつなごう",
+  "goal.count": "{name}を{min}台以上置く",
+  "goal.http_all": "すべてのPCからサーバーを閲覧できる",
+  "category.pc": "PC",
+  "category.server": "サーバー",
+  "ui.task.allPcs": "すべてのPC",
+  "ui.offer.inhouse": "自社"
 }

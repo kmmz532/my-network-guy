@@ -102,10 +102,35 @@ export class Scene {
 
   private preventMenu = (e: Event): void => e.preventDefault();
 
-  // 表示する案件（受注中、または納品の結果を表示中）
+  // 表示する案件（受注中、または納品の結果を表示中）。なければ自社オフィスを表示する
   private project(): Project | null {
     const s = useGameStore.getState();
-    return s.active ?? s.showcase;
+    return s.active ?? s.showcase ?? this.officeView(s.office);
+  }
+
+  private officeCache: { office: unknown; view: Project } | null = null;
+
+  // 自社オフィスのネットワークを、表示用の案件として扱う
+  private officeView(office: ReturnType<typeof useGameStore.getState>['office']): Project {
+    if (this.officeCache?.office === office) return this.officeCache.view;
+    const view: Project = {
+      id: 'hq',
+      kind: 'fixed',
+      baseId: 'hq',
+      params: {},
+      contract: { id: 'hq', stage: 1, order: 0, requires: [], map: 'hq', budget: 0, placed: [], goals: [], reward: { money: 0, reputation: 0 }, inhouse: true },
+      nodes: office.nodes,
+      links: office.links,
+      seq: office.seq,
+      cost: 0,
+      rework: 0,
+      built: { nodes: office.nodes.map((n) => n.uid), links: office.links.map((l) => l.uid) },
+      phase: 'design',
+      progress: 0,
+      total: 0,
+    };
+    this.officeCache = { office, view };
+    return view;
   }
 
   // 表示するマップを選び、タイルを描き直す。マップが読み込まれていなければ何もしない
@@ -251,6 +276,7 @@ export class Scene {
 
     if (s.showIp) this.drawAddresses(project, ts);
     if (building) this.drawBuilding(project, ts);
+    else if (this.map?.id === 'hq' && !s.showcase) this.drawDeskStaff(ts, s.hint);
     else if (s.active) this.drawIdleStaff(ts, s.hint);
     for (const trace of this.traces) this.drawTrace(trace, ts);
     this.drawHover(project, ts);
@@ -263,7 +289,7 @@ export class Scene {
 
   // 設計時点の不備（色の未設定・混在・ゲートウェイなし）があれば「？」を出す
   private needsAttention(node: NetNode, project: Project): boolean {
-    if (project.phase !== 'design') return false;
+    if (project.phase !== 'design' || !useGameStore.getState().active) return false;
     return !!this.compiled?.issues[node.uid];
   }
 
@@ -312,6 +338,31 @@ export class Scene {
       this.bubbles.addChild(text);
     }
     void project;
+  }
+
+  // 自社オフィスでは、社員が机の前でキーボードを打つ
+  private drawDeskStaff(ts: number, hint: string | null): void {
+    const map = this.map!;
+    const desks: [number, number][] = [];
+    for (let y = 0; y < map.height; y++) {
+      for (let x = 0; x < map.width; x++) if (map.legend[map.tiles[y][x]] === 'desk') desks.push([x, y]);
+    }
+    const workers = Math.min(desks.length, gameEnv.balance.staff.initialCount);
+    for (let k = 0; k < workers; k++) {
+      const [dx, dy] = desks[k];
+      // 机の下の段に座り、打鍵に合わせて小さく揺れる
+      const tap = Math.floor(this.elapsed / (FRAME_MS * 2) + k) % 2;
+      this.drawStaff(dx * ts + (ts - 16) / 2, (dy + 1) * ts - 6 - tap, STAFF_SHIRT[k % STAFF_SHIRT.length]);
+    }
+    if (hint && desks.length) {
+      const text = new Text({
+        text: t(hint as LangKey),
+        style: { fontFamily: 'sans-serif', fontSize: 11, fill: 0xf4f1e6, stroke: { color: OUTLINE, width: 3 } },
+      });
+      text.anchor.set(0.5, 1);
+      text.position.set(desks[0][0] * ts + ts / 2, (desks[0][1] + 1) * ts - 10);
+      this.bubbles.addChild(text);
+    }
   }
 
   // 設計中は、社員がマップの左上で待機する。手戻りのときはヒントの吹き出しを出す

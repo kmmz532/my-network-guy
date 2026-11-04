@@ -10,6 +10,7 @@ import officeJson from '../assets/data/maps/office_small.json';
 import type { Balance, Contract, GameMap } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import {
+  abandon,
   accept,
   advanceBuild,
   checkConnect,
@@ -61,6 +62,8 @@ const start = (): Core => ({
   completed: [],
   offers: [offer],
   active: null,
+  office: { nodes: [], links: [], seq: 0 },
+  effects: { buildSpeed: 0 },
 });
 
 // 結果が成功していることを確認して、その状態を返す
@@ -172,5 +175,49 @@ describe('配線できるかの判定', () => {
     core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
     core = { ...core, owned: { l2_switch_8p: 1 } };
     expect(checkConnect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).toBe('port');
+  });
+});
+
+describe('自社案件', () => {
+  const inhouse: Contract = {
+    id: 'i001_office_lan',
+    stage: 1,
+    order: 15,
+    requires: [],
+    map: 'office_small',
+    budget: 200000,
+    placed: [],
+    goals: [
+      { type: 'count', category: 'pc', min: 2 },
+      { type: 'ping_all', nodes: '$all_pcs' },
+    ],
+    reward: { money: 0, reputation: 1 },
+    inhouse: true,
+    effect: { buildSpeed: 0.2 },
+  };
+  const inhouseOffer: Offer = { id: inhouse.id, kind: 'fixed', baseId: inhouse.id, params: {}, contract: inhouse };
+
+  it('納品したネットワークが自社オフィスに残り、次の自社案件に引き継がれる', () => {
+    let core: Core = { ...start(), offers: [inhouseOffer], owned: { pc_basic: 2 } };
+    core = ok(accept(core, inhouse.id)).core;
+    core = ok(placeDevice(core, 'pc_basic', 3, 4, map, env)).core;
+    core = ok(placeDevice(core, 'pc_basic', 8, 4, map, env)).core;
+    core = ok(setColor(core, 'u0', 0, 1)).core;
+    core = ok(setColor(core, 'u1', 0, 1)).core;
+    core = ok(connect(core, 'u0', 'u1', 'utp_cat5e', env)).core;
+    core = ok(requestBuild(core, env)).core;
+    let r = ok(advanceBuild(core, env, balance.build.workStartHour));
+    for (let i = 0; i < 20 && r.core.active; i++) r = ok(advanceBuild(r.core, env, balance.build.workStartHour));
+    expect(r.report?.passed).toBe(true);
+    expect(r.core.office.nodes.map((n) => n.uid)).toEqual(['u0', 'u1']);
+    expect(r.core.office.links).toHaveLength(1);
+    expect(r.core.effects.buildSpeed).toBeCloseTo(0.2);
+
+    // 次の自社案件は、残ったネットワークから始まり、uid は重ならない
+    const next = ok(accept({ ...r.core, offers: [{ ...inhouseOffer, id: 'again' }] }, 'again')).core;
+    expect(next.active?.nodes.map((n) => n.uid)).toEqual(['u0', 'u1']);
+    expect(next.active?.seq).toBe(r.core.office.seq);
+    // 取り消しても、引き継いだ機器は在庫に戻らない
+    expect(ok(abandon(next)).core.owned.pc_basic ?? 0).toBe(0);
   });
 });

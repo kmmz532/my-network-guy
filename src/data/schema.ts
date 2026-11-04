@@ -120,6 +120,10 @@ export const goalSchema = z.discriminatedUnion('type', [
     to: z.string().min(1),
     port: z.number().int().min(1).max(65535),
   }),
+  // 指定した種類の機器が一定数以上ある
+  z.object({ type: z.literal('count'), category: z.string().min(1), min: z.number().int().positive() }),
+  // すべてのPCから、いずれかのサーバーのWebページを閲覧できる
+  z.object({ type: z.literal('http_all'), port: z.number().int().min(1).max(65535) }),
 ]);
 
 export const contractSchema = z.object({
@@ -129,12 +133,16 @@ export const contractSchema = z.object({
   requires: z.array(z.string().min(1)).default([]),
   map: z.string().min(1),
   budget: nonNegativeInt,
-  placed: z.array(placedSchema).min(1),
+  placed: z.array(placedSchema),
   goals: z.array(goalSchema).min(1),
   reward: z.object({
     money: nonNegativeInt,
     reputation: int.default(0),
   }),
+  // 自社案件。自社オフィスで行い、納品後もネットワークが残る
+  inhouse: z.boolean().default(false),
+  // 自社案件の納品で得る効果（施工速度の上昇率など）
+  effect: z.object({ buildSpeed: z.number().min(0).default(0) }).optional(),
 });
 
 export const templateSchema = z.object({

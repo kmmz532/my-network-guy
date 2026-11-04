@@ -53,6 +53,7 @@ export function App() {
     setSpeed(0);
     loadLang('ja_jp').then(() => setReady(true));
     mapLoaders.office_small().then((m) => cacheMap(m.default));
+    mapLoaders.hq().then((m) => cacheMap(m.default));
   }, []);
 
   // 受注した案件のマップは、配置や描画のために読み込んでおく

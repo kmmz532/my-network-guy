@@ -1,7 +1,7 @@
 {
   "id": "c002_small_office",
   "stage": 1,
-  "order": 2,
+  "order": 20,
   "requires": [
     "c001_direct_link"
   ],
