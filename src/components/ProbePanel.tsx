@@ -4,15 +4,8 @@ import { t } from '../i18n/t';
 import { gameEnv } from '../sim/env';
 import { useGameStore } from '../stores/useGameStore';
 import type { Failure, NetNode } from '../network/types';
+import { panelStyle } from './panelStyle';
 
-const panelStyle = {
-  background: 'rgba(47, 79, 143, 0.9)',
-  color: '#f4f1e6',
-  padding: 12,
-  borderRadius: 4,
-  width: 280,
-  fontSize: 14,
-} as const;
 
 // 機器を「名前（ID）」の形で表す。同じ機材が複数あるとき、IDで区別する
 const labelOf = (nodes: NetNode[], uid: string): string => {
@@ -48,7 +41,7 @@ export function ProbePanel() {
 
   return (
     <section style={panelStyle}>
-      <h2 style={{ fontSize: 16, margin: '0 0 8px' }}>{t('ui.probe.title')}</h2>
+      <h2 style={{ fontSize: 14, margin: '0 0 6px' }}>{t('ui.probe.title')}</h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <label>
           {t('ui.probe.from')}{' '}

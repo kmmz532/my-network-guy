@@ -3,15 +3,8 @@ import { shop } from 'virtual:game-data';
 import { t } from '../i18n/t';
 import { isUnlocked } from '../sim/shop';
 import { useGameStore } from '../stores/useGameStore';
+import { panelStyle } from './panelStyle';
 
-const panelStyle = {
-  background: 'rgba(47, 79, 143, 0.9)',
-  color: '#f4f1e6',
-  padding: 12,
-  borderRadius: 4,
-  width: 280,
-  fontSize: 14,
-} as const;
 
 // 設計の操作: 在庫の機材を配置する、配線に使うケーブルを選ぶ、選んだ機器を撤去する
 export function DesignPanel() {
@@ -35,7 +28,7 @@ export function DesignPanel() {
 
   return (
     <section style={panelStyle}>
-      <h2 style={{ fontSize: 16, margin: '0 0 8px' }}>{t('ui.design.title')}</h2>
+      <h2 style={{ fontSize: 14, margin: '0 0 6px' }}>{t('ui.design.title')}</h2>
       {placing && (
         <div style={{ marginBottom: 8 }}>
           <div>

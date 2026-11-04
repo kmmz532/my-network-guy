@@ -2,15 +2,8 @@ import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { currentGuideStep, firstContractGuide, type GuideStep } from '../sim/guide';
 import { useGameStore } from '../stores/useGameStore';
+import { panelStyle } from './panelStyle';
 
-const panelStyle = {
-  background: 'rgba(47, 79, 143, 0.9)',
-  color: '#f4f1e6',
-  padding: 12,
-  borderRadius: 4,
-  width: 280,
-  fontSize: 14,
-} as const;
 
 const STEP_KEY: Record<GuideStep, LangKey> = {
   accept: 'ui.guide.accept',
@@ -31,7 +24,7 @@ export function GuidePanel() {
 
   return (
     <section style={panelStyle}>
-      <h2 style={{ fontSize: 16, margin: '0 0 8px' }}>{t('ui.guide.title')}</h2>
+      <h2 style={{ fontSize: 14, margin: '0 0 6px' }}>{t('ui.guide.title')}</h2>
       <ol style={{ margin: 0, paddingLeft: 0, listStyle: 'none' }}>
         {items.map((item) => (
           <li

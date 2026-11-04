@@ -7,7 +7,7 @@ import { useTickLoop } from './stores/useTickLoop';
 import { toDate } from './sim/clock';
 import { loadSlot, saveSlot } from './services/db';
 import { exportSave, importSave } from './services/saveFile';
-import { ShopPanel } from './components/ShopPanel';
+import { ShopScreen } from './components/ShopScreen';
 import { OfferPanel } from './components/OfferPanel';
 import { ProjectPanel } from './components/ProjectPanel';
 import { DesignPanel } from './components/DesignPanel';
@@ -27,6 +27,7 @@ export function App() {
   const [ready, setReady] = useState(false);
   const [screen, setScreen] = useState<Screen>('title');
   const [message, setMessage] = useState('');
+  const [shopOpen, setShopOpen] = useState(false);
   const clock = useGameStore((s) => s.clock);
   const reputation = useGameStore((s) => s.reputation);
   const speed = useGameStore((s) => s.speed);
@@ -145,8 +146,6 @@ export function App() {
         <DesignPanel />
       </div>
       <div style={{ position: 'absolute', top: 56, right: 16 }}>
-        <ShopPanel />
-        <div style={{ height: 8 }} />
         <OfferPanel />
         <div style={{ height: 8 }} />
         <ProjectPanel />
@@ -189,9 +188,11 @@ export function App() {
             onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])}
           />
         </label>
+        <button style={button} onClick={() => setShopOpen(true)}>{t('ui.shop.open')}</button>
         <button style={button} onClick={backToTitle}>{t('ui.title.back')}</button>
         <span>{message}</span>
       </footer>
+      {shopOpen && <ShopScreen onClose={() => setShopOpen(false)} />}
       <NoticeToast />
       <ReportModal />
       {anchor && selectedUid && active && (

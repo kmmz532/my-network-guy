@@ -4,15 +4,8 @@ import { t } from '../i18n/t';
 import { gameEnv } from '../sim/env';
 import { useGameStore } from '../stores/useGameStore';
 import type { NetNode } from '../network/types';
+import { panelStyle } from './panelStyle';
 
-const panelStyle = {
-  background: 'rgba(47, 79, 143, 0.9)',
-  color: '#f4f1e6',
-  padding: 12,
-  borderRadius: 4,
-  width: 280,
-  fontSize: 14,
-} as const;
 
 const inputStyle = { width: 140, marginRight: 4 } as const;
 

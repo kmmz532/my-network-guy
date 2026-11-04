@@ -4,15 +4,8 @@ import { gameEnv } from '../sim/env';
 import { goalStatus } from '../sim/status';
 import { useGameStore } from '../stores/useGameStore';
 import { ContractDetail } from './ContractDetail';
+import { panelStyle } from './panelStyle';
 
-const panelStyle = {
-  background: 'rgba(47, 79, 143, 0.9)',
-  color: '#f4f1e6',
-  padding: 12,
-  borderRadius: 4,
-  width: 280,
-  fontSize: 14,
-} as const;
 
 // 受注中の案件の状況（達成条件の判定・施工・検収の結果）と、施工の依頼・取り消し
 export function ProjectPanel() {
@@ -25,7 +18,7 @@ export function ProjectPanel() {
   if (!active && !report) {
     return (
       <section style={panelStyle}>
-        <h2 style={{ fontSize: 16, margin: '0 0 8px' }}>{t('ui.project.title')}</h2>
+        <h2 style={{ fontSize: 14, margin: '0 0 6px' }}>{t('ui.project.title')}</h2>
         <div>{t('ui.project.none')}</div>
       </section>
     );
@@ -33,7 +26,7 @@ export function ProjectPanel() {
 
   return (
     <section style={panelStyle}>
-      <h2 style={{ fontSize: 16, margin: '0 0 8px' }}>{t('ui.project.title')}</h2>
+      <h2 style={{ fontSize: 14, margin: '0 0 6px' }}>{t('ui.project.title')}</h2>
       {active && (
         <>
           <div style={{ fontWeight: 'bold' }}>{t(`contract.${active.baseId}.title` as LangKey, active.params)}</div>

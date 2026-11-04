@@ -2,15 +2,8 @@ import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { useGameStore } from '../stores/useGameStore';
 import { ContractDetail } from './ContractDetail';
+import { panelStyle } from './panelStyle';
 
-const panelStyle = {
-  background: 'rgba(47, 79, 143, 0.9)',
-  color: '#f4f1e6',
-  padding: 12,
-  borderRadius: 4,
-  width: 280,
-  fontSize: 14,
-} as const;
 
 // 届いている依頼を一覧にする。受注は1件まで。
 export function OfferPanel() {
@@ -19,7 +12,7 @@ export function OfferPanel() {
   const accept = useGameStore((s) => s.accept);
   return (
     <section style={panelStyle}>
-      <h2 style={{ fontSize: 16, margin: '0 0 8px' }}>{t('ui.offer.title')}</h2>
+      <h2 style={{ fontSize: 14, margin: '0 0 6px' }}>{t('ui.offer.title')}</h2>
       {offers.length === 0 && <div>{t('ui.offer.empty')}</div>}
       {offers.map((offer) => (
         <div key={offer.id} style={{ marginBottom: 10 }}>
