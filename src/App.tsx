@@ -13,6 +13,7 @@ import { ProjectPanel } from './components/ProjectPanel';
 import { DesignPanel } from './components/DesignPanel';
 import { ConfigPanel } from './components/ConfigPanel';
 import { ProbePanel } from './components/ProbePanel';
+import { GuidePanel } from './components/GuidePanel';
 import { TitleScreen } from './components/TitleScreen';
 import { mapLoaders } from 'virtual:loaders';
 
@@ -135,6 +136,8 @@ export function App() {
         <span>{t('ui.hud.reputation', { value: reputation })}</span>
       </header>
       <div style={{ position: 'absolute', top: 56, left: 16 }}>
+        <GuidePanel />
+        <div style={{ height: 8 }} />
         <DesignPanel />
         <div style={{ height: 8 }} />
         <ConfigPanel />

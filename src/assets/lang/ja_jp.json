@@ -130,5 +130,15 @@
   "ui.title.back": "タイトルへ",
   "ui.gameover.title": "倒産しました",
   "ui.gameover.body": "月末の給与を払えず、資金が尽きた。",
-  "ui.gameover.retry": "最初からやり直す"
+  "ui.gameover.retry": "最初からやり直す",
+  "ui.contract.goals": "達成条件",
+  "ui.contract.hint": "ヒント：{text}",
+  "ui.contract.ok": "満たしている",
+  "ui.contract.ng": "満たしていない",
+  "ui.guide.title": "はじめての案件",
+  "ui.guide.accept": "依頼一覧の「受注」を押す",
+  "ui.guide.ip": "2台のPCをクリックし、IPアドレスを設定する",
+  "ui.guide.wire": "PCをドラッグして、2台を配線する",
+  "ui.guide.probe": "疎通テストでPingを通す",
+  "ui.guide.build": "受注中の案件から「施工を依頼」を押す"
 }

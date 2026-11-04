@@ -24,3 +24,8 @@ export function t(key: LangKey, params: Params = {}): string {
   const template = dict[key] ?? key;
   return template.replace(/\{(\w+)\}/g, (match, name: string) => (name in params ? String(params[name]) : match));
 }
+
+// 翻訳キーがあるか（任意の文言がない案件などで使う）
+export function hasKey(key: string): boolean {
+  return key in dict;
+}

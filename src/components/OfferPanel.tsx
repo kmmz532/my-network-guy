@@ -1,6 +1,7 @@
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { useGameStore } from '../stores/useGameStore';
+import { ContractDetail } from './ContractDetail';
 
 const panelStyle = {
   background: 'rgba(47, 79, 143, 0.9)',
@@ -22,7 +23,8 @@ export function OfferPanel() {
       {offers.length === 0 && <div>{t('ui.offer.empty')}</div>}
       {offers.map((offer) => (
         <div key={offer.id} style={{ marginBottom: 10 }}>
-          <div>{t(`contract.${offer.baseId}.title` as LangKey, offer.params)}</div>
+          <div style={{ fontWeight: 'bold' }}>{t(`contract.${offer.baseId}.title` as LangKey, offer.params)}</div>
+          <ContractDetail contract={offer.contract} baseId={offer.baseId} params={offer.params} />
           <div>{t('ui.offer.budget', { amount: offer.contract.budget.toLocaleString('ja-JP') })}</div>
           <div>{t('ui.offer.reward', { amount: offer.contract.reward.money.toLocaleString('ja-JP') })}</div>
           <button disabled={busy} onClick={() => accept(offer.id)}>
