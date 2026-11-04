@@ -12,6 +12,7 @@ import { OfferPanel } from './components/OfferPanel';
 import { ProjectPanel } from './components/ProjectPanel';
 import { DesignPanel } from './components/DesignPanel';
 import { ConfigPanel } from './components/ConfigPanel';
+import { ProbePanel } from './components/ProbePanel';
 import { mapLoaders } from 'virtual:loaders';
 
 const SLOT = 1;
@@ -110,6 +111,8 @@ export function App() {
         <OfferPanel />
         <div style={{ height: 8 }} />
         <ProjectPanel />
+        <div style={{ height: 8 }} />
+        <ProbePanel />
       </div>
       <footer
         style={{

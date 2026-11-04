@@ -25,7 +25,16 @@ import {
   type Project,
   type Report,
 } from '../sim/project';
-import type { Route } from '../network/types';
+import type { PathResult, Route } from '../network/types';
+import { http as httpProbe, ping as pingProbe } from '../network/engine';
+
+// 疎通テストの結果（保存しない）
+export interface Trace {
+  kind: 'ping' | 'http';
+  src: string;
+  dst: string;
+  result: PathResult;
+}
 
 export type Speed = 0 | 1 | 2 | 4;
 
@@ -52,6 +61,9 @@ export interface GameState {
   placing: string | null;
   // 配線に使うケーブル
   wireCable: string;
+  // 直近の疎通テスト
+  lastTrace: Trace | null;
+  probe: (kind: 'ping' | 'http', src: string, dst: string, port: number) => void;
   setSelected: (uid: string | null) => void;
   setPlacing: (deviceId: string | null) => void;
   setWireCable: (cableId: string) => void;
@@ -150,6 +162,14 @@ export const useGameStore = create<GameState>((set, get) => {
     selectedUid: null,
     placing: null,
     wireCable: 'utp_cat5e',
+    lastTrace: null,
+    probe: (kind, src, dst, port) => {
+      const active = get().active;
+      if (!active) return;
+      const net = { nodes: active.nodes, links: active.links };
+      const result = kind === 'ping' ? pingProbe(net, gameEnv.engine, src, dst) : httpProbe(net, gameEnv.engine, src, dst, port);
+      set({ lastTrace: { kind, src, dst, result } });
+    },
     setSelected: (uid) => set({ selectedUid: uid }),
     setPlacing: (deviceId) => set({ placing: deviceId }),
     setWireCable: (cableId) => set({ wireCable: cableId }),

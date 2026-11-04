@@ -110,5 +110,17 @@
   "ui.config.remove": "削除",
   "ui.config.routeDest": "宛先ネットワーク（/24）",
   "ui.config.routeNext": "次の宛先（IPアドレス）",
-  "ui.config.addRoute": "ルートを追加"
+  "ui.config.addRoute": "ルートを追加",
+  "ui.probe.title": "疎通テスト",
+  "ui.probe.from": "送信元",
+  "ui.probe.to": "宛先",
+  "ui.probe.kind": "種類",
+  "ui.probe.kind.ping": "Ping",
+  "ui.probe.kind.http": "HTTP",
+  "ui.probe.port": "ポート",
+  "ui.probe.run": "実行",
+  "ui.probe.ok": "通過",
+  "ui.probe.failed": "失敗",
+  "ui.probe.path": "経路：{path}",
+  "ui.probe.at": "地点：{node}"
 }
