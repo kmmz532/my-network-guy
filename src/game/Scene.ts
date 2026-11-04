@@ -4,7 +4,9 @@ import { Application, Container, Graphics, Rectangle, Text, type FederatedPointe
 import type { GameMap } from '../data/schema';
 import { useGameStore, type Trace } from '../stores/useGameStore';
 import { gameEnv } from '../sim/env';
-import type { Project } from '../sim/project';
+import { checkConnect, type Project } from '../sim/project';
+import { t } from '../i18n/t';
+import type { LangKey } from '../generated/lang-keys';
 import type { NetLink, NetNode } from '../network/types';
 import { drawTileMap, layoutIntegerScale } from './TileMap';
 import { cumulativeLengths, pointAt, type Point } from './animation';
@@ -33,6 +35,8 @@ const PACKET_COLOR: Record<string, number> = {
 const STAFF_SHIRT = [0x4f7cc4, 0xe0644f];
 // 社員のコマ送りの間隔（ms）。ART.md の 4〜8 fps 相当
 const FRAME_MS = 150;
+// 失敗の吹き出しを出しておく時間（ms）
+const FLASH_MS = 2500;
 // パケットの速さ（タイル/秒）と、粒の間隔（タイル）。粒の数は3つまで
 const PACKET_TILES_PER_SEC = 3;
 const PACKET_SPACING_TILES = 0.5;
@@ -48,6 +52,8 @@ export class Scene {
   // 配線をドラッグ中の起点と現在位置（マップの座標）
   private wireFrom: string | null = null;
   private wireTo = { x: 0, y: 0 };
+  // 配線の到達先の判定（接続できるか、理由）
+  private hover: { uid: string; reason: string | null } | null = null;
   // 経過時間（ms）と、コマ送りの番号
   private elapsed = 0;
   private frame = -1;
@@ -105,7 +111,7 @@ export class Scene {
   private onTick = (ticker: Ticker): void => {
     this.elapsed += ticker.deltaMS;
     // パケットは滑らかに動かす。それ以外はコマ送り（ART.md）
-    if (this.trace && this.traceActive()) {
+    if ((this.trace && this.traceActive()) || this.flashActive()) {
       this.drawObjects();
       return;
     }
@@ -189,7 +195,7 @@ export class Scene {
 
     for (const node of project.nodes) {
       const dim = building && !isBuilt(node.uid, 'nodes');
-      this.drawNode(node, ts, s.selectedUid === node.uid, dim);
+      this.drawNode(node, ts, s.selectedUid === node.uid, dim, project);
       const blinkOn = onPath.has(node.uid) ? fastBlink : slowBlink;
       this.drawLed(node, ts, blinkOn);
       if (this.needsAttention(node, project)) this.drawBubble(node, ts, '?', WARN);
@@ -197,6 +203,8 @@ export class Scene {
 
     if (building) this.drawBuilding(project, ts);
     this.drawTrace(ts);
+    this.drawHover(project, ts);
+    this.drawFlash(ts);
   }
 
   private clearBubbles(): void {
@@ -211,7 +219,8 @@ export class Scene {
     return node.interfaces.length === 0;
   }
 
-  private drawNode(node: NetNode, ts: number, selected: boolean, dim: boolean): void {
+  // 機器をドット絵で描く。種類ごとに形を変え、ポートは下の辺に並べる（空きは白抜き、使用中は塗りつぶし）
+  private drawNode(node: NetNode, ts: number, selected: boolean, dim: boolean, project: Project): void {
     const g = this.g;
     const category = gameEnv.devices[node.device]?.category ?? 'unknown';
     const alpha = dim ? 0.5 : 1;
@@ -219,11 +228,55 @@ export class Scene {
     const x = node.x * ts + pad;
     const y = node.y * ts + pad;
     const size = ts - pad * 2;
+    const body = CATEGORY_COLOR[category] ?? 0xffffff;
     if (selected) {
       g.rect(x - 2, y - 2, size + 4, size + 4).stroke({ width: 2, color: SELECT, alpha });
     }
-    g.rect(x, y, size, size).fill({ color: CATEGORY_COLOR[category] ?? 0xffffff, alpha });
+    switch (category) {
+      case 'pc':
+        // モニターと台座
+        g.rect(x + 2, y + 1, size - 4, size - 8).fill({ color: body, alpha });
+        g.rect(x + 4, y + 3, size - 8, size - 12).fill({ color: 0x3b5f8a, alpha });
+        g.rect(x + size / 2 - 2, y + size - 7, 4, 3).fill({ color: body, alpha });
+        break;
+      case 'server':
+        // 縦長のラック。ドライブの線を入れる
+        g.rect(x + 3, y, size - 6, size).fill({ color: body, alpha });
+        for (const dy of [4, 10, 16]) g.rect(x + 5, y + dy, size - 10, 2).fill({ color: 0x5a6573, alpha });
+        break;
+      case 'l2_switch':
+        // 横長の箱にポートの列
+        g.rect(x, y + size * 0.3, size, size * 0.5).fill({ color: body, alpha });
+        for (let i = 0; i < 4; i++) g.rect(x + 3 + i * 4, y + size * 0.5, 2, 3).fill({ color: 0x3b2a33, alpha });
+        break;
+      case 'router':
+        // 箱とアンテナ
+        g.moveTo(x + 4, y + size * 0.35).lineTo(x + 4, y).stroke({ width: 1, color: OUTLINE, alpha });
+        g.moveTo(x + size - 4, y + size * 0.35).lineTo(x + size - 4, y).stroke({ width: 1, color: OUTLINE, alpha });
+        g.rect(x, y + size * 0.35, size, size * 0.55).fill({ color: body, alpha });
+        break;
+      default:
+        g.rect(x, y, size, size).fill({ color: body, alpha });
+    }
+    // 機器の枠（設置の位置を分かりやすくする）
     g.rect(x, y, size, size).stroke({ width: node.locked ? 2 : 1, color: OUTLINE, alpha });
+
+    // ポート（下の辺）。使用中は塗りつぶし、空きは白抜き
+    const count = gameEnv.devices[node.device]?.portCount ?? 0;
+    const used = new Set<number>();
+    for (const l of project.links) {
+      if (l.a.node === node.uid) used.add(l.a.port);
+      if (l.b.node === node.uid) used.add(l.b.port);
+    }
+    for (let port = 0; port < count; port++) {
+      const px = x + ((port + 0.5) * size) / count - 2;
+      const py = y + size + 1;
+      if (used.has(port)) {
+        g.rect(px, py, 4, 3).fill({ color: OUTLINE, alpha });
+      } else {
+        g.rect(px, py, 4, 3).stroke({ width: 1, color: OUTLINE, alpha });
+      }
+    }
   }
 
   // LED（ポートにIPアドレスがあれば緑、なければ黄色）。点滅で通信や待機を表す
@@ -328,6 +381,44 @@ export class Scene {
     }
   }
 
+  private tileSize(): number {
+    return this.map?.tileSize ?? 32;
+  }
+
+  private flashActive(): boolean {
+    const f = useGameStore.getState().flash;
+    return f !== null && Date.now() - f.at < FLASH_MS;
+  }
+
+  // 配線の到達先: 接続できれば緑、できなければ赤の枠と×
+  private drawHover(project: Project, ts: number): void {
+    if (!this.hover) return;
+    const node = project.nodes.find((n) => n.uid === this.hover!.uid);
+    if (!node) return;
+    const ok = this.hover.reason === null;
+    const color = ok ? 0x62d26f : FAIL;
+    const x = node.x * ts;
+    const y = node.y * ts;
+    this.g.rect(x + 1, y + 1, ts - 2, ts - 2).stroke({ width: 2, color });
+    if (!ok) {
+      this.g.moveTo(x + 8, y + 8).lineTo(x + ts - 8, y + ts - 8).moveTo(x + ts - 8, y + 8).lineTo(x + 8, y + ts - 8);
+      this.g.stroke({ width: 2, color: FAIL });
+    }
+  }
+
+  // 操作の失敗を、失敗した地点に吹き出しで出す
+  private drawFlash(ts: number): void {
+    const f = useGameStore.getState().flash;
+    if (!f || !this.flashActive()) return;
+    const text = new Text({
+      text: t(f.key as LangKey),
+      style: { fontFamily: 'sans-serif', fontSize: 12, fill: 0xffd866, stroke: { color: OUTLINE, width: 3 } },
+    });
+    text.anchor.set(0.5, 1);
+    text.position.set(f.tx * ts + ts / 2, f.ty * ts - 4);
+    this.bubbles.addChild(text);
+  }
+
   // マップの座標に変換する（拡大と配置の補正を除いた、タイルの座標系）
   private toMap(e: FederatedPointerEvent): { x: number; y: number } {
     return this.content.toLocal(e.global);
@@ -359,6 +450,9 @@ export class Scene {
     }
     if (node) {
       store.setSelected(node.uid);
+      // 機器の設定（IP設定）は、機器の右上に開く
+      const at = this.content.toGlobal({ x: node.x * this.tileSize() + this.tileSize(), y: node.y * this.tileSize() });
+      store.setAnchor({ x: at.x, y: at.y });
       if (store.active?.phase === 'design') {
         this.wireFrom = node.uid;
         this.wireTo = p;
@@ -366,11 +460,21 @@ export class Scene {
       return;
     }
     store.setSelected(null);
+    store.setAnchor(null);
   };
 
   private onMove = (e: FederatedPointerEvent): void => {
     if (!this.wireFrom) return;
     this.wireTo = this.toMap(e);
+    const tile = this.tileOf(this.wireTo);
+    const target = tile ? this.nodeAt(tile.tx, tile.ty) : undefined;
+    if (target && target.uid !== this.wireFrom) {
+      const store = useGameStore.getState();
+      const reason = checkConnect(store, this.wireFrom, target.uid, store.wireCable, gameEnv);
+      this.hover = { uid: target.uid, reason };
+    } else {
+      this.hover = null;
+    }
     this.drawObjects();
   };
 
@@ -378,6 +482,7 @@ export class Scene {
     if (!this.wireFrom) return;
     const from = this.wireFrom;
     this.wireFrom = null;
+    this.hover = null;
     const tile = this.tileOf(this.toMap(e));
     const target = tile ? this.nodeAt(tile.tx, tile.ty) : undefined;
     if (target && target.uid !== from) {
@@ -388,6 +493,7 @@ export class Scene {
 
   private cancelWire = (): void => {
     this.wireFrom = null;
+    this.hover = null;
     this.drawObjects();
   };
 }

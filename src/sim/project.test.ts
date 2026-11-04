@@ -12,6 +12,7 @@ import type { Offer } from '../contracts/template';
 import {
   accept,
   advanceBuild,
+  checkConnect,
   connect,
   placeDevice,
   requestBuild,
@@ -150,5 +151,24 @@ describe('機器の配置と配線', () => {
     // pc_a (3,4) と pc_b (10,4) は7タイル。上限を超えるケーブルがないため、距離だけ確かめる
     const short = { ...env, cables: { utp_cat5e: { pricePerLink: 0, pricePerTile: 0, maxLengthTiles: 3 } } };
     expect(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', short)).toEqual({ ok: false, reason: 'cable' });
+  });
+});
+
+describe('配線できるかの判定', () => {
+  it('自分自身には配線できない', () => {
+    const core = ok(accept(start(), 'c001_direct_link')).core;
+    expect(checkConnect(core, 'pc_a', 'pc_a', 'utp_cat5e', env)).toBe('none');
+  });
+
+  it('できる場合は理由を返さない', () => {
+    const core = ok(accept(start(), 'c001_direct_link')).core;
+    expect(checkConnect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).toBeNull();
+  });
+
+  it('PCのポートが埋まっていると配線できない', () => {
+    let core = ok(accept(start(), 'c001_direct_link')).core;
+    core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
+    core = { ...core, owned: { l2_switch_8p: 1 } };
+    expect(checkConnect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).toBe('port');
   });
 });

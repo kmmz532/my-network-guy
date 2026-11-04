@@ -140,5 +140,6 @@
   "ui.guide.ip": "2台のPCをクリックし、IPアドレスを設定する",
   "ui.guide.wire": "PCをドラッグして、2台を配線する",
   "ui.guide.probe": "疎通テストでPingを通す",
-  "ui.guide.build": "受注中の案件から「施工を依頼」を押す"
+  "ui.guide.build": "受注中の案件から「施工を依頼」を押す",
+  "ui.config.close": "閉じる"
 }

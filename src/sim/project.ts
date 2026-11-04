@@ -177,34 +177,55 @@ export const removeNode = (core: Core, uid: string): Outcome => {
   return { ok: true, core: { ...withActive(core, next), owned } };
 };
 
-// 2台の機器を配線する。ケーブル費用は配線の長さで決まる。空いているポートを順に使う。
-export const connect = (core: Core, aUid: string, bUid: string, cableId: string, env: Env): Outcome => {
+// 2台の機器を配線できるか判定する。できなければ理由を返す（配線中の表示と配線の実行で使う）
+export const checkConnect = (core: Core, aUid: string, bUid: string, cableId: string, env: Env): string | null => {
   const p = requireDesign(core);
-  if (typeof p === 'string') return fail(p);
+  if (typeof p === 'string') return p;
   const a = p.nodes.find((n) => n.uid === aUid);
   const b = p.nodes.find((n) => n.uid === bUid);
   const cable = env.cables[cableId];
-  if (!a || !b || aUid === bUid || !cable) return fail('none');
-
+  if (!a || !b || aUid === bUid || !cable) return 'none';
   const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-  if (length < 1 || length > cable.maxLengthTiles) return fail('cable');
+  if (length < 1 || length > cable.maxLengthTiles) return 'cable';
+  if (core.clock.money < cable.pricePerLink + cable.pricePerTile * length) return 'money';
+  if (freePort(p, a, env) === null || freePort(p, b, env) === null) return 'port';
+  return null;
+};
+
+// 機器の空いているポートのうち、最も小さい番号を返す
+const freePort = (p: Project, node: NetNode, env: Env): number | null => {
+  const used = new Set<number>();
+  for (const l of p.links) {
+    if (l.a.node === node.uid) used.add(l.a.port);
+    if (l.b.node === node.uid) used.add(l.b.port);
+  }
+  const count = env.devices[node.device].portCount;
+  for (let port = 0; port < count; port++) if (!used.has(port)) return port;
+  return null;
+};
+
+// 空いているポートの数（描画で使う）
+export const freePortCount = (p: Project, node: NetNode, env: Env): number => {
+  const used = new Set<number>();
+  for (const l of p.links) {
+    if (l.a.node === node.uid) used.add(l.a.port);
+    if (l.b.node === node.uid) used.add(l.b.port);
+  }
+  return env.devices[node.device].portCount - used.size;
+};
+
+// 2台の機器を配線する。ケーブル費用は配線の長さで決まる。空いているポートを順に使う。
+export const connect = (core: Core, aUid: string, bUid: string, cableId: string, env: Env): Outcome => {
+  const reason = checkConnect(core, aUid, bUid, cableId, env);
+  if (reason) return fail(reason);
+  const p = core.active as Project;
+  const a = p.nodes.find((n) => n.uid === aUid) as NetNode;
+  const b = p.nodes.find((n) => n.uid === bUid) as NetNode;
+  const cable = env.cables[cableId];
+  const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
   const cost = cable.pricePerLink + cable.pricePerTile * length;
-  if (core.clock.money < cost) return fail('money');
-
-  const freePort = (node: NetNode): number | null => {
-    const used = new Set<number>();
-    for (const l of p.links) {
-      if (l.a.node === node.uid) used.add(l.a.port);
-      if (l.b.node === node.uid) used.add(l.b.port);
-    }
-    const count = env.devices[node.device].portCount;
-    for (let port = 0; port < count; port++) if (!used.has(port)) return port;
-    return null;
-  };
-  const portA = freePort(a);
-  const portB = freePort(b);
-  if (portA === null || portB === null) return fail('port');
-
+  const portA = freePort(p, a, env) as number;
+  const portB = freePort(p, b, env) as number;
   const link: NetLink = {
     uid: `l${p.seq}`,
     cable: cableId,

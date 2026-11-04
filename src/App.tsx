@@ -33,6 +33,9 @@ export function App() {
   const load = useGameStore((s) => s.load);
   const snapshot = useGameStore((s) => s.snapshot);
   const newGame = useGameStore((s) => s.newGame);
+  const anchor = useGameStore((s) => s.anchor);
+  const selectedUid = useGameStore((s) => s.selectedUid);
+  const active = useGameStore((s) => s.active);
   const cacheMap = useGameStore((s) => s.cacheMap);
 
   useTickLoop();
@@ -139,8 +142,6 @@ export function App() {
         <GuidePanel />
         <div style={{ height: 8 }} />
         <DesignPanel />
-        <div style={{ height: 8 }} />
-        <ConfigPanel />
       </div>
       <div style={{ position: 'absolute', top: 56, right: 16 }}>
         <ShopPanel />
@@ -190,6 +191,12 @@ export function App() {
         <button style={button} onClick={backToTitle}>{t('ui.title.back')}</button>
         <span>{message}</span>
       </footer>
+      {anchor && selectedUid && active && (
+        // 機器をクリックすると、その機器の近くにIP設定を開く
+        <div style={{ position: 'absolute', left: Math.max(8, Math.min(anchor.x + 8, window.innerWidth - 300)), top: Math.max(56, anchor.y - 16), zIndex: 5 }}>
+          <ConfigPanel />
+        </div>
+      )}
       {clock.bankrupt && (
         <div
           style={{

@@ -63,6 +63,11 @@ export interface GameState {
   wireCable: string;
   // 直近の疎通テスト
   lastTrace: Trace | null;
+  // 機器の設定（IP設定）を出す位置（画面の座標）。選択中の機器に合わせる
+  anchor: { x: number; y: number } | null;
+  setAnchor: (p: { x: number; y: number } | null) => void;
+  // 失敗した操作の理由を、失敗した地点（マップのタイル）に出す
+  flash: { key: string; tx: number; ty: number; at: number } | null;
   probe: (kind: 'ping' | 'http', src: string, dst: string, port: number) => void;
   setSelected: (uid: string | null) => void;
   setPlacing: (deviceId: string | null) => void;
@@ -128,9 +133,16 @@ const refresh = (s: GameState): Partial<GameState> => {
 
 export const useGameStore = create<GameState>((set, get) => {
   // 案件の操作の結果を状態に反映する。失敗なら理由を返す
-  const apply = (outcome: Outcome): string | null => {
+  // 機器の位置（失敗の吹き出しを出す場所）
+  const tileOf = (uid: string) => {
+    const n = get().active?.nodes.find((x) => x.uid === uid);
+    return n ? { tx: n.x, ty: n.y } : undefined;
+  };
+
+  const apply = (outcome: Outcome, at?: { tx: number; ty: number }): string | null => {
     if (!outcome.ok) {
-      set({ lastError: outcome.reason });
+      const flash = at ? { key: `ui.error.${outcome.reason}`, ...at, at: Date.now() } : null;
+      set({ lastError: outcome.reason, ...(flash ? { flash } : {}) });
       return outcome.reason;
     }
     const c = outcome.core;
@@ -165,6 +177,9 @@ export const useGameStore = create<GameState>((set, get) => {
     placing: null,
     wireCable: 'utp_cat5e',
     lastTrace: null,
+    anchor: null,
+    setAnchor: (p) => set({ anchor: p }),
+    flash: null,
     probe: (kind, src, dst, port) => {
       const active = get().active;
       if (!active) return;
@@ -219,13 +234,14 @@ export const useGameStore = create<GameState>((set, get) => {
       const s = get();
       const map = s.active ? s.maps[s.active.contract.map] : undefined;
       if (!map) return 'map';
-      return apply(placeDevice(coreOf(s), deviceId, x, y, map, gameEnv));
+      return apply(placeDevice(coreOf(s), deviceId, x, y, map, gameEnv), { tx: x, ty: y });
     },
-    connect: (aUid, bUid, cableId) => apply(connect(coreOf(get()), aUid, bUid, cableId, gameEnv)),
-    removeNode: (uid) => apply(removeNode(coreOf(get()), uid)),
-    setIface: (uid, port, ip) => apply(setInterface(coreOf(get()), uid, port, ip, 24)),
-    setGateway: (uid, gateway) => apply(setGateway(coreOf(get()), uid, gateway)),
-    addRoute: (uid, route) => apply(addRoute(coreOf(get()), uid, route)),
+    connect: (aUid, bUid, cableId) =>
+      apply(connect(coreOf(get()), aUid, bUid, cableId, gameEnv), tileOf(bUid)),
+    removeNode: (uid) => apply(removeNode(coreOf(get()), uid), tileOf(uid)),
+    setIface: (uid, port, ip) => apply(setInterface(coreOf(get()), uid, port, ip, 24), tileOf(uid)),
+    setGateway: (uid, gateway) => apply(setGateway(coreOf(get()), uid, gateway), tileOf(uid)),
+    addRoute: (uid, route) => apply(addRoute(coreOf(get()), uid, route), tileOf(uid)),
     removeRoute: (uid, index) => apply(removeRoute(coreOf(get()), uid, index)),
     requestBuild: () => apply(requestBuild(coreOf(get()), gameEnv)),
     abandon: () => apply(abandon(coreOf(get()))),

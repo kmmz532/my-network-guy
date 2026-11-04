@@ -22,11 +22,23 @@ export function ConfigPanel() {
   const selectedUid = useGameStore((s) => s.selectedUid);
   const node = active?.nodes.find((n) => n.uid === selectedUid);
   const error = useGameStore((s) => s.lastError);
+  const setSelected = useGameStore((s) => s.setSelected);
+  const setAnchor = useGameStore((s) => s.setAnchor);
 
   if (!active) return null;
   return (
     <section style={panelStyle}>
-      <h2 style={{ fontSize: 16, margin: '0 0 8px' }}>{t('ui.config.title')}</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <h2 style={{ fontSize: 16, margin: 0 }}>{t('ui.config.title')}</h2>
+        <button
+          onClick={() => {
+            setSelected(null);
+            setAnchor(null);
+          }}
+        >
+          {t('ui.config.close')}
+        </button>
+      </div>
       {!node && <div>{t('ui.config.none')}</div>}
       {node && <NodeConfig key={node.uid} node={node} readOnly={active.phase !== 'design'} />}
       {error && <div style={{ color: '#ffd866', marginTop: 8 }}>{t(`ui.error.${error}` as LangKey)}</div>}
