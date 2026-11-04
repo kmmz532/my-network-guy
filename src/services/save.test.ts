@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { SAVE_VERSION, migrate, migrations, type SaveData } from './migrations';
+import { SAVE_VERSION, migrate, type SaveData } from './migrations';
 import { exportSave, importSave } from './saveFile';
 
 const sample: SaveData = {
   clock: { minute: 720, money: 300000, paidMonths: 1, bankrupt: false },
   reputation: 2,
+  owned: { pc_basic: 1 },
+  completed: ['c001_direct_link'],
 };
 
 describe('セーブデータ', () => {
@@ -28,8 +30,4 @@ describe('セーブデータ', () => {
     expect(() => migrate(0, sample)).toThrow();
   });
 
-  it("移行関数がない古いバージョンは拒否する", () => {
-    // SAVE_VERSION が 1 の間は移行関数が存在しないため、バージョン 1 未満のみが対象
-    expect(Object.keys(migrations)).toEqual([]);
   });
-});

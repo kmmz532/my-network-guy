@@ -55,5 +55,10 @@
   "ui.load.empty": "保存データがありません。",
   "ui.import.done": "読み込みました。",
   "ui.import.failed": "読み込めませんでした（{reason}）。",
-  "ui.bankrupt": "資金が尽きたため、倒産しました。"
+  "ui.bankrupt": "資金が尽きたため、倒産しました。",
+  "ui.shop.title": "機材ショップ",
+  "ui.shop.buy": "購入",
+  "ui.shop.owned": "在庫 {count}",
+  "ui.shop.cablePrice": "接続 {link} 円 ＋ 1タイル {tile} 円",
+  "ui.shop.nomoney": "資金が足りない"
 }

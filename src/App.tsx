@@ -7,6 +7,7 @@ import { useTickLoop } from './stores/useTickLoop';
 import { toDate } from './sim/clock';
 import { loadSlot, saveSlot } from './services/db';
 import { exportSave, importSave } from './services/saveFile';
+import { ShopPanel } from './components/ShopPanel';
 
 const SLOT = 1;
 const SPEEDS: Speed[] = [0, 1, 2, 4];
@@ -19,6 +20,7 @@ export function App() {
   const speed = useGameStore((s) => s.speed);
   const setSpeed = useGameStore((s) => s.setSpeed);
   const load = useGameStore((s) => s.load);
+  const snapshot = useGameStore((s) => s.snapshot);
 
   useTickLoop();
 
@@ -32,8 +34,7 @@ export function App() {
   const button = { padding: '4px 10px', cursor: 'pointer' } as const;
 
   const onSave = async () => {
-    const { clock: c, reputation: r } = useGameStore.getState();
-    await saveSlot(SLOT, { clock: c, reputation: r });
+    await saveSlot(SLOT, snapshot());
     setMessage(t('ui.save.done'));
   };
 
@@ -45,8 +46,7 @@ export function App() {
   };
 
   const onExport = () => {
-    const { clock: c, reputation: r } = useGameStore.getState();
-    const blob = new Blob([exportSave({ clock: c, reputation: r })], { type: 'application/json' });
+    const blob = new Blob([exportSave(snapshot())], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'network-ya-save.json';
@@ -84,6 +84,9 @@ export function App() {
         <span>{t('ui.hud.money', { amount: clock.money.toLocaleString('ja-JP') })}</span>
         <span>{t('ui.hud.reputation', { value: reputation })}</span>
       </header>
+      <div style={{ position: 'absolute', top: 56, right: 16 }}>
+        <ShopPanel />
+      </div>
       <footer
         style={{
           position: 'absolute',
