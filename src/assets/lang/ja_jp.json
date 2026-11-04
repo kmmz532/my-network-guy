@@ -41,5 +41,19 @@
   "error.route.none": "ルーターに宛先へのルートがない。",
   "error.route.loop": "ルーティングがループしている。",
   "error.return.failed": "応答が戻ってこない。",
-  "error.service.closed": "宛先でサービスが動いていない。"
+  "error.service.closed": "宛先でサービスが動いていない。",
+  "ui.hud.date": "{month}か月目 {day}日 {hour}時",
+  "ui.speed.0": "停止",
+  "ui.speed.1": "1倍",
+  "ui.speed.2": "2倍",
+  "ui.speed.4": "4倍",
+  "ui.save": "保存",
+  "ui.load": "読込",
+  "ui.export": "書き出し",
+  "ui.import": "読み込み",
+  "ui.save.done": "保存しました。",
+  "ui.load.empty": "保存データがありません。",
+  "ui.import.done": "読み込みました。",
+  "ui.import.failed": "読み込めませんでした（{reason}）。",
+  "ui.bankrupt": "資金が尽きたため、倒産しました。"
 }

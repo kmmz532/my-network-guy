@@ -23,7 +23,9 @@ export const initialClock = (balance: Balance): ClockState => ({
 export const advanceTick = (state: ClockState, balance: Balance): ClockState => {
   if (state.bankrupt) return state;
   const minute = state.minute + balance.time.gameMinutesPerTick;
-  let { money, paidMonths, bankrupt } = state;
+  let money = state.money;
+  let paidMonths = state.paidMonths;
+  let bankrupt: boolean = state.bankrupt;
   const monthLength = minutesPerMonth(balance);
   while ((paidMonths + 1) * monthLength <= minute) {
     paidMonths++;
