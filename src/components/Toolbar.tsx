@@ -78,31 +78,33 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
       <button style={slot(false)} title={t('ui.shop.title')} onClick={onShop}>
         <Icon name="icon/cart" />
       </button>
+      {/* 在庫は常に表示する。設計中のみ、選ぶと配置できる */}
+      {sep}
+      {deviceIds.map((id) => {
+        const d = devices[id as keyof typeof devices];
+        const stock = owned[id] ?? 0;
+        return (
+          <button
+            key={id}
+            style={{ ...slot(tool === 'build' && placing === id), opacity: stock > 0 ? 1 : 0.35 }}
+            title={`${t(`device.${id}.name` as LangKey)} ${yen(d.price)}`}
+            onClick={() => {
+              // 在庫がなければショップを開く。施工中は置けない
+              if (stock === 0) return onShop();
+              if (active && !design) return;
+              setTool('build');
+              setPlacing(placing === id ? null : id);
+            }}
+          >
+            <Icon name={d.sprite} scale={1.5} />
+            <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>
+              {stock}
+            </span>
+          </button>
+        );
+      })}
       {design && (
         <>
-          {sep}
-          {deviceIds.map((id) => {
-            const d = devices[id as keyof typeof devices];
-            const stock = owned[id] ?? 0;
-            return (
-              <button
-                key={id}
-                style={{ ...slot(tool === 'build' && placing === id), opacity: stock > 0 ? 1 : 0.35 }}
-                title={`${t(`device.${id}.name` as LangKey)} ${yen(d.price)}`}
-                onClick={() => {
-                  // 在庫がなければショップを開く
-                  if (stock === 0) return onShop();
-                  setTool('build');
-                  setPlacing(placing === id ? null : id);
-                }}
-              >
-                <Icon name={d.sprite} scale={1.5} />
-                <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>
-                  {stock}
-                </span>
-              </button>
-            );
-          })}
           {sep}
           {cableIds.map((id) => (
             <button

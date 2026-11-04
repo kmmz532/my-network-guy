@@ -195,6 +195,55 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
   };
 };
 
+// 案件がないときに、在庫の機材を自社オフィスへ置く。配線と色塗りは自社案件で行う
+export const placeInOffice = (core: Core, deviceId: string, x: number, y: number, map: GameMap, env: Env): Outcome => {
+  if (core.active) return fail('busy');
+  if (!env.devices[deviceId]) return fail('none');
+  if ((core.owned[deviceId] ?? 0) < 1) return fail('stock');
+  if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
+  const kind = map.legend[map.tiles[y][x]];
+  if (kind !== 'floor' && !(kind === 'desk' && env.devices[deviceId].category === 'pc')) return fail('tile');
+  const office = core.office;
+  if (office.nodes.some((n) => n.x === x && n.y === y)) return fail('tile');
+  const node: NetNode = {
+    uid: `u${office.seq}`,
+    device: deviceId,
+    x,
+    y,
+    locked: false,
+    configLocked: false,
+    interfaces: [],
+    gateway: null,
+    routes: [],
+    services: [],
+    colors: {},
+  };
+  return {
+    ok: true,
+    core: {
+      ...core,
+      office: { ...office, nodes: [...office.nodes, node], seq: office.seq + 1 },
+      owned: { ...core.owned, [deviceId]: core.owned[deviceId] - 1 },
+    },
+  };
+};
+
+// 自社オフィスの機器を在庫に戻す。配線のある機器は戻せない
+export const removeFromOffice = (core: Core, uid: string): Outcome => {
+  if (core.active) return fail('busy');
+  const node = core.office.nodes.find((n) => n.uid === uid);
+  if (!node) return fail('none');
+  if (core.office.links.some((l) => l.a.node === uid || l.b.node === uid)) return fail('locked');
+  return {
+    ok: true,
+    core: {
+      ...core,
+      office: { ...core.office, nodes: core.office.nodes.filter((n) => n.uid !== uid) },
+      owned: { ...core.owned, [node.device]: (core.owned[node.device] ?? 0) + 1 },
+    },
+  };
+};
+
 // 施工前の機器を撤去する（在庫に戻る）。施工済みや既設の機器は撤去できない。
 export const removeNode = (core: Core, uid: string): Outcome => {
   const p = requireDesign(core);

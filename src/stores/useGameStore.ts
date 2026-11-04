@@ -15,6 +15,8 @@ import {
   connect,
   placeDevice,
   removeNode,
+  placeInOffice,
+  removeFromOffice,
   requestBuild,
   setColor,
   type Core,
@@ -212,7 +214,7 @@ export const useGameStore = create<GameState>((set, get) => {
     setTool: (tool) => set({ tool, placing: null }),
     setPaintColor: (color) => set({ paintColor: color, tool: 'paint', placing: null }),
     hint: null,
-    showIp: false,
+    showIp: true,
     setShowIp: (on) => set({ showIp: on }),
     taskOpen: true,
     setTaskOpen: (open) => set({ taskOpen: open }),
@@ -267,15 +269,26 @@ export const useGameStore = create<GameState>((set, get) => {
       return true;
     },
     accept: (offerId) => apply(accept(coreOf(get()), offerId)),
-    // 在庫の機材を配置する（購入はショップで行う）
+    // 在庫の機材を配置する（購入はショップで行う）。案件がなければ自社オフィスに置く
     place: (deviceId, x, y) => {
-      const map = get().active ? get().maps[get().active!.contract.map] : undefined;
+      if (!get().active) {
+        const hq = get().maps.hq;
+        if (!hq) return 'map';
+        return apply(placeInOffice(coreOf(get()), deviceId, x, y, hq, gameEnv), { tx: x, ty: y });
+      }
+      const map = get().maps[get().active!.contract.map];
       if (!map) return 'map';
       return apply(placeDevice(coreOf(get()), deviceId, x, y, map, gameEnv), { tx: x, ty: y });
     },
     connect: (aUid, bUid, cableId) =>
       apply(connect(coreOf(get()), aUid, bUid, cableId, gameEnv), tileOf(bUid)),
-    removeNode: (uid) => apply(removeNode(coreOf(get()), uid), tileOf(uid)),
+    removeNode: (uid) => {
+      if (!get().active) {
+        const n = get().office.nodes.find((x) => x.uid === uid);
+        return apply(removeFromOffice(coreOf(get()), uid), n ? { tx: n.x, ty: n.y } : undefined);
+      }
+      return apply(removeNode(coreOf(get()), uid), tileOf(uid));
+    },
     paint: (uid, port) => apply(setColor(coreOf(get()), uid, port, get().paintColor), tileOf(uid)),
     requestBuild: () => {
       set({ hint: null, traces: [] });

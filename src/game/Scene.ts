@@ -618,6 +618,16 @@ export class Scene {
     if (!tile) return;
     const node = this.nodeAt(tile.tx, tile.ty);
 
+    // 案件がなく、納品の結果も出ていないときは、自社オフィスに機材を置ける
+    if (!store.active && !store.showcase) {
+      const officeNode = store.office.nodes.find((n) => n.x === tile.tx && n.y === tile.ty);
+      if (e.button === 2) {
+        if (officeNode) store.removeNode(officeNode.uid);
+      } else if (store.placing && !officeNode) {
+        store.place(store.placing, tile.tx, tile.ty);
+      }
+      return;
+    }
     if (store.active?.phase !== 'design') return;
 
     // 右クリックで撤去する
