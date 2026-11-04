@@ -86,5 +86,14 @@
   "ui.error.port": "空いているポートがない。",
   "ui.error.ip": "IPアドレスの形式が正しくない。",
   "ui.error.locked": "この機器は変更できない。",
-  "ui.error.map": "マップが読み込まれていない。"
+  "ui.error.map": "マップが読み込まれていない。",
+  "ui.design.title": "設計",
+  "ui.design.placeMode": "配置モード：{name}（床のマスをクリックして置く）",
+  "ui.design.cancel": "配置をやめる",
+  "ui.design.own": "{name}を置く（在庫 {count}）",
+  "ui.design.empty": "在庫の機材がない。ショップで購入する。",
+  "ui.design.cable": "配線のケーブル",
+  "ui.design.selected": "選択中：{name}",
+  "ui.design.remove": "撤去する",
+  "ui.design.hint": "機器をドラッグすると配線できる。機器をクリックすると選択できる。"
 }

@@ -10,6 +10,7 @@ import { exportSave, importSave } from './services/saveFile';
 import { ShopPanel } from './components/ShopPanel';
 import { OfferPanel } from './components/OfferPanel';
 import { ProjectPanel } from './components/ProjectPanel';
+import { DesignPanel } from './components/DesignPanel';
 import { mapLoaders } from 'virtual:loaders';
 
 const SLOT = 1;
@@ -32,6 +33,14 @@ export function App() {
     loadLang('ja_jp').then(() => setReady(true));
     mapLoaders.office_small().then((m) => cacheMap(m.default));
   }, []);
+
+  // 受注した案件のマップは、配置や描画のために読み込んでおく
+  const activeMap = useGameStore((s) => s.active?.contract.map);
+  useEffect(() => {
+    if (activeMap && !useGameStore.getState().maps[activeMap]) {
+      mapLoaders[activeMap as keyof typeof mapLoaders]().then((m) => cacheMap(m.default));
+    }
+  }, [activeMap]);
 
   if (!ready) return null;
 
@@ -70,7 +79,7 @@ export function App() {
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
-      <PixiStage mapId="office_small" />
+      <PixiStage />
       <header
         style={{
           position: 'absolute',
@@ -89,6 +98,9 @@ export function App() {
         <span>{t('ui.hud.money', { amount: clock.money.toLocaleString('ja-JP') })}</span>
         <span>{t('ui.hud.reputation', { value: reputation })}</span>
       </header>
+      <div style={{ position: 'absolute', top: 56, left: 16 }}>
+        <DesignPanel />
+      </div>
       <div style={{ position: 'absolute', top: 56, right: 16 }}>
         <ShopPanel />
         <div style={{ height: 8 }} />

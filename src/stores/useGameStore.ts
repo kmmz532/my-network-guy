@@ -45,6 +45,15 @@ export interface GameState {
   lastReport: Report | null;
   // 直近に失敗した操作の理由（保存しない）
   lastError: string | null;
+  // 操作の状態（保存しない）
+  selectedUid: string | null;
+  // 配置モードで置く機材（null なら配置しない）
+  placing: string | null;
+  // 配線に使うケーブル
+  wireCable: string;
+  setSelected: (uid: string | null) => void;
+  setPlacing: (deviceId: string | null) => void;
+  setWireCable: (cableId: string) => void;
   tick: () => void;
   setSpeed: (speed: Speed) => void;
   cacheMap: (map: GameMap) => void;
@@ -136,6 +145,12 @@ export const useGameStore = create<GameState>((set, get) => {
     maps: {},
     lastReport: null,
     lastError: null,
+    selectedUid: null,
+    placing: null,
+    wireCable: 'utp_cat5e',
+    setSelected: (uid) => set({ selectedUid: uid }),
+    setPlacing: (deviceId) => set({ placing: deviceId }),
+    setWireCable: (cableId) => set({ wireCable: cableId }),
     tick: () =>
       set((s) => {
         const clock = advanceTick(s.clock, balance);
