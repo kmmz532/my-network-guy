@@ -85,6 +85,8 @@ export interface GameState {
   abandon: () => string | null;
   load: (save: SaveData) => void;
   snapshot: () => SaveData;
+  // 最初から始める（資金・在庫・依頼などを初期状態に戻す）
+  newGame: () => void;
 }
 
 const offerEnv = (maps: Record<string, GameMap>): OfferEnv => ({
@@ -239,6 +241,28 @@ export const useGameStore = create<GameState>((set, get) => {
         rng: save.rng,
         active: save.active,
         lastReport: null,
+      }),
+    newGame: () =>
+      set((s) => {
+        const base: Partial<GameState> = {
+          clock: initialClock(balance),
+          reputation: 0,
+          owned: {},
+          completed: [],
+          offers: [],
+          nextOfferMinute: 0,
+          offerSeq: 0,
+          rng: newRng(),
+          active: null,
+          lastReport: null,
+          lastError: null,
+          lastTrace: null,
+          selectedUid: null,
+          placing: null,
+          speed: 1,
+        };
+        // 新しく始めたら、最初の依頼をすぐ届ける
+        return { ...base, ...refresh({ ...s, ...base } as GameState) };
       }),
     snapshot: () => {
       const s = get();

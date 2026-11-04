@@ -13,13 +13,17 @@ import { ProjectPanel } from './components/ProjectPanel';
 import { DesignPanel } from './components/DesignPanel';
 import { ConfigPanel } from './components/ConfigPanel';
 import { ProbePanel } from './components/ProbePanel';
+import { TitleScreen } from './components/TitleScreen';
 import { mapLoaders } from 'virtual:loaders';
 
 const SLOT = 1;
 const SPEEDS: Speed[] = [0, 1, 2, 4];
 
+type Screen = 'title' | 'game';
+
 export function App() {
   const [ready, setReady] = useState(false);
+  const [screen, setScreen] = useState<Screen>('title');
   const [message, setMessage] = useState('');
   const clock = useGameStore((s) => s.clock);
   const reputation = useGameStore((s) => s.reputation);
@@ -27,11 +31,14 @@ export function App() {
   const setSpeed = useGameStore((s) => s.setSpeed);
   const load = useGameStore((s) => s.load);
   const snapshot = useGameStore((s) => s.snapshot);
+  const newGame = useGameStore((s) => s.newGame);
   const cacheMap = useGameStore((s) => s.cacheMap);
 
   useTickLoop();
 
   useEffect(() => {
+    // タイトル画面の間は時間を止める
+    setSpeed(0);
     loadLang('ja_jp').then(() => setReady(true));
     mapLoaders.office_small().then((m) => cacheMap(m.default));
   }, []);
@@ -45,6 +52,33 @@ export function App() {
   }, [activeMap]);
 
   if (!ready) return null;
+
+  const startGame = () => {
+    setMessage('');
+    setSpeed(1);
+    setScreen('game');
+  };
+
+  const onNew = () => {
+    newGame();
+    startGame();
+  };
+
+  const onContinue = async () => {
+    const data = await loadSlot(SLOT);
+    if (!data) return setMessage(t('ui.title.none'));
+    load(data);
+    startGame();
+  };
+
+  const backToTitle = () => {
+    setSpeed(0);
+    setScreen('title');
+  };
+
+  if (screen === 'title') {
+    return <TitleScreen onNew={onNew} onContinue={onContinue} message={message} />;
+  }
 
   const date = toDate(clock.minute, balance);
   const button = { padding: '4px 10px', cursor: 'pointer' } as const;
@@ -150,9 +184,30 @@ export function App() {
             onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])}
           />
         </label>
+        <button style={button} onClick={backToTitle}>{t('ui.title.back')}</button>
         <span>{message}</span>
-        {clock.bankrupt && <strong>{t('ui.bankrupt')}</strong>}
       </footer>
+      {clock.bankrupt && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(20, 20, 30, 0.8)',
+            color: '#f4f1e6',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+          }}
+        >
+          <h2 style={{ fontSize: 28, margin: 0 }}>{t('ui.gameover.title')}</h2>
+          <p>{t('ui.gameover.body')}</p>
+          <button style={{ ...button, padding: '10px 24px', fontSize: 16 }} onClick={onNew}>
+            {t('ui.gameover.retry')}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
