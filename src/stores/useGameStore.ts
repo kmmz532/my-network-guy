@@ -67,6 +67,11 @@ export interface GameState {
   setPaintColor: (color: number) => void;
   // 社員の吹き出しに出すヒント（言語キー）
   hint: string | null;
+  // 機器の名前とIPアドレスを表示するか、案件の内容を開いているか（保存しない）
+  showIp: boolean;
+  setShowIp: (on: boolean) => void;
+  taskOpen: boolean;
+  setTaskOpen: (open: boolean) => void;
   // 失敗した操作の理由を、失敗した地点（マップのタイル）に出す
   flash: { key: string; tx: number; ty: number; at: number } | null;
   setSelected: (uid: string | null) => void;
@@ -194,6 +199,10 @@ export const useGameStore = create<GameState>((set, get) => {
     setTool: (tool) => set({ tool, placing: null }),
     setPaintColor: (color) => set({ paintColor: color, tool: 'paint', placing: null }),
     hint: null,
+    showIp: false,
+    setShowIp: (on) => set({ showIp: on }),
+    taskOpen: true,
+    setTaskOpen: (open) => set({ taskOpen: open }),
     flash: null,
     setSelected: (uid) => set({ selectedUid: uid }),
     setPlacing: (deviceId) => set({ placing: deviceId }),

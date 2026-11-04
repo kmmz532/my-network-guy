@@ -1,12 +1,14 @@
 // キャンバスの描画と操作。マップ・機器・配線・社員・パケットを描き、クリックで配置・選択、ドラッグで配線する。
 // 描画の状態は store から読むだけで、変更は store の操作を通して行う。
-import { Application, Container, Graphics, Rectangle, Text, type FederatedPointerEvent, type Ticker } from 'pixi.js';
+import { Application, Container, Graphics, Rectangle, Sprite, Text, type FederatedPointerEvent, type Ticker } from 'pixi.js';
 import type { GameMap } from '../data/schema';
 import { useGameStore, type Trace } from '../stores/useGameStore';
 import { gameEnv } from '../sim/env';
 import { checkConnect, compiledNet, type Project } from '../sim/project';
 import type { Compiled } from '../network/compile';
 import { subnetColor } from './palette';
+import { texture } from './sprites';
+import { devices as deviceData } from 'virtual:game-data';
 import { t } from '../i18n/t';
 import type { LangKey } from '../generated/lang-keys';
 import type { NetLink, NetNode } from '../network/types';
@@ -33,8 +35,8 @@ const PACKET_COLOR: Record<string, number> = {
   ping: 0xffffff,
   http: 0xff8fb0,
 };
-// 社員の服の色（2人を区別する）
-const STAFF_SHIRT = [0x4f7cc4, 0xe0644f];
+// 社員のスプライト（2人を服の色で区別する）
+const STAFF_SHIRT = ['blue', 'red'];
 // 社員のコマ送りの間隔（ms）。ART.md の 4〜8 fps 相当
 const FRAME_MS = 150;
 // 失敗の吹き出しを出しておく時間（ms）
@@ -49,6 +51,9 @@ export class Scene {
   private tiles: Container | null = null;
   private tilesId: string | null = null;
   private map: GameMap | null = null;
+  // 配線（機器の下）、機器と社員のスプライト、ポート・色・パケットなどの重ね描き（機器の上）
+  private bg = new Graphics();
+  private sprites = new Container();
   private g = new Graphics();
   private bubbles = new Container();
   // 配線をドラッグ中の起点と現在位置（マップの座標）
@@ -68,6 +73,8 @@ export class Scene {
 
   constructor(private app: Application) {
     app.stage.addChild(this.content);
+    this.content.addChild(this.bg);
+    this.content.addChild(this.sprites);
     this.content.addChild(this.g);
     this.content.addChild(this.bubbles);
     app.stage.eventMode = 'static';
@@ -197,9 +204,11 @@ export class Scene {
     const map = this.map;
     if (!map) return;
     const ts = map.tileSize;
-    const g = this.g;
+    const g = this.bg;
     g.clear();
+    this.g.clear();
     this.clearBubbles();
+    this.sprites.removeChildren().forEach((c) => c.destroy());
 
     const project = this.project();
     if (!project) return;
@@ -220,9 +229,9 @@ export class Scene {
     if (this.wireFrom) {
       const from = project.nodes.find((n) => n.uid === this.wireFrom);
       if (from) {
-        g.moveTo(from.x * ts + ts / 2, from.y * ts + ts / 2);
-        g.lineTo(this.wireTo.x, this.wireTo.y);
-        g.stroke({ width: 2, color: SELECT });
+        this.g.moveTo(from.x * ts + ts / 2, from.y * ts + ts / 2);
+        this.g.lineTo(this.wireTo.x, this.wireTo.y);
+        this.g.stroke({ width: 2, color: SELECT });
       }
     }
 
@@ -240,6 +249,7 @@ export class Scene {
       if (this.needsAttention(node, project)) this.drawBubble(node, ts, '?', WARN);
     }
 
+    if (s.showIp) this.drawAddresses(project, ts);
     if (building) this.drawBuilding(project, ts);
     else if (s.active) this.drawIdleStaff(ts, s.hint);
     for (const trace of this.traces) this.drawTrace(trace, ts);
@@ -286,6 +296,24 @@ export class Scene {
     }
   }
 
+  // 機器の名前と、色から割り当てたIPアドレスを機器の下に出す
+  private drawAddresses(project: Project, ts: number): void {
+    const compiled = this.compiled;
+    if (!compiled) return;
+    for (const node of compiled.net.nodes) {
+      const lines = [node.uid.startsWith('u') ? '' : node.uid, ...node.interfaces.map((i) => i.ip)].filter(Boolean);
+      if (!lines.length) continue;
+      const text = new Text({
+        text: lines.join('\n'),
+        style: { fontFamily: 'monospace', fontSize: 9, fill: 0xf4f1e6, align: 'center', stroke: { color: OUTLINE, width: 3 } },
+      });
+      text.anchor.set(0.5, 0);
+      text.position.set(node.x * ts + ts / 2, node.y * ts + ts + 2);
+      this.bubbles.addChild(text);
+    }
+    void project;
+  }
+
   // 設計中は、社員がマップの左上で待機する。手戻りのときはヒントの吹き出しを出す
   private drawIdleStaff(ts: number, hint: string | null): void {
     const bob = Math.floor(this.elapsed / (FRAME_MS * 3)) % 2;
@@ -315,7 +343,14 @@ export class Scene {
     if (selected) {
       g.rect(x - 2, y - 2, size + 4, size + 4).stroke({ width: 2, color: SELECT, alpha });
     }
-    switch (category) {
+    // 機器はスプライトで描く（24×24 をタイルの中央上寄せに置く）
+    const tex = texture(deviceData[node.device as keyof typeof deviceData]?.sprite ?? '');
+    if (tex) {
+      const sprite = new Sprite(tex);
+      sprite.position.set(node.x * ts + (ts - 24) / 2, node.y * ts + 1);
+      sprite.alpha = alpha;
+      this.sprites.addChild(sprite);
+    } else switch (category) {
       case 'pc':
         // モニターと台座
         g.rect(x + 2, y + 1, size - 4, size - 8).fill({ color: body, alpha });
@@ -341,8 +376,7 @@ export class Scene {
       default:
         g.rect(x, y, size, size).fill({ color: body, alpha });
     }
-    // 機器の枠（設置の位置を分かりやすくする）
-    g.rect(x, y, size, size).stroke({ width: node.locked ? 2 : 1, color: OUTLINE, alpha });
+    if (!tex) g.rect(x, y, size, size).stroke({ width: node.locked ? 2 : 1, color: OUTLINE, alpha });
 
     // ポート（下の辺）。使用中は塗りつぶし、空きは白抜き
     const count = gameEnv.devices[node.device]?.portCount ?? 0;
@@ -368,7 +402,7 @@ export class Scene {
     const size = ts - pad * 2;
     const x = node.x * ts + pad + size - 5;
     const y = node.y * ts + pad + 3;
-    const configured = node.interfaces.length > 0;
+    const configured = Object.keys(node.colors ?? {}).length > 0;
     const color = configured ? 0x62d26f : WARN;
     this.g.rect(x, y, 3, 3).fill({ color: on ? color : OUTLINE });
   }
@@ -411,15 +445,14 @@ export class Scene {
     g.rect(0, barY, barW * fraction, 3).fill({ color: SELECT });
   }
 
-  // 社員のドット絵（16×24 px）。頭・髪・服の3色で、輪郭は単色
-  private drawStaff(x: number, y: number, shirt: number): void {
-    const g = this.g;
-    g.rect(x + 4, y, 8, 8).fill(0xf6cfa8);
-    g.rect(x + 4, y, 8, 3).fill(0x4a3530);
-    g.rect(x + 2, y + 9, 12, 9).fill(shirt);
-    g.rect(x + 3, y + 18, 4, 6).fill(0x3b2a33);
-    g.rect(x + 9, y + 18, 4, 6).fill(0x3b2a33);
-    g.rect(x + 2, y + 9, 12, 15).stroke({ width: 1, color: OUTLINE });
+  // 社員のスプライト（16×24 px）。2コマで足踏みする
+  private drawStaff(x: number, y: number, shirt: string): void {
+    const frame = Math.floor(this.elapsed / (FRAME_MS * 2)) % 2;
+    const tex = texture(`staff/${shirt}_${frame}`);
+    if (!tex) return;
+    const sprite = new Sprite(tex);
+    sprite.position.set(Math.round(x), Math.round(y));
+    this.sprites.addChild(sprite);
   }
 
   // 疎通テストの経路と、パケットの粒。失敗した地点で止まり「×」を出す

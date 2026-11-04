@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Application } from 'pixi.js';
 import { Scene } from './Scene';
+import { loadTextures } from './sprites';
 
 // Pixi.js のキャンバスをReactに組み込む。描画と操作は Scene が行い、UIはReactのDOM層で描く。
 export function PixiStage() {
@@ -23,6 +24,7 @@ export function PixiStage() {
         antialias: false,
         roundPixels: true,
       });
+      await loadTextures();
       if (disposed) {
         instance.destroy(true, { children: true });
         return;

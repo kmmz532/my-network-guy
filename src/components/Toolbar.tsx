@@ -1,14 +1,12 @@
 // 画面下のツールバー。依頼・機材・ケーブル・色塗り・施工をアイコンで操作する
-import { cables, devices, shop } from 'virtual:game-data';
+import { devices, shop } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { isUnlocked } from '../sim/shop';
 import { COLOR_COUNT } from '../network/compile';
 import { subnetCss } from '../game/palette';
 import { useGameStore } from '../stores/useGameStore';
-import { DeviceIcon } from './DeviceIcon';
-
-const CABLE_CSS: Record<string, string> = { utp_cat5e: '#4a8fd6', fiber_sm: '#f0a030' };
+import { Icon } from './Icon';
 
 const bar = {
   position: 'absolute',
@@ -38,6 +36,7 @@ const slot = (active: boolean) =>
     justifyContent: 'center',
     color: '#f4f1e6',
     fontSize: 18,
+    position: 'relative',
   }) as const;
 
 const sep = <span style={{ width: 1, height: 36, background: '#3b2a33', margin: '0 4px' }} />;
@@ -57,6 +56,8 @@ export function Toolbar({ onOffers }: { onOffers: () => void }) {
   const setWireCable = useGameStore((s) => s.setWireCable);
   const requestBuild = useGameStore((s) => s.requestBuild);
   const abandon = useGameStore((s) => s.abandon);
+  const showIp = useGameStore((s) => s.showIp);
+  const setShowIp = useGameStore((s) => s.setShowIp);
 
   const unlocked = shop.filter((item) => isUnlocked(item, completed));
   const deviceIds = unlocked.filter((i) => i.device).map((i) => i.device!);
@@ -67,7 +68,7 @@ export function Toolbar({ onOffers }: { onOffers: () => void }) {
   return (
     <footer style={bar}>
       <button style={{ ...slot(false), position: 'relative' }} title={t('ui.offer.title')} onClick={onOffers}>
-        📨
+        <Icon name="icon/mail" />
         {offers.length > 0 && (
           <span style={{ position: 'absolute', top: -6, right: -6, background: '#e84a4a', borderRadius: 8, fontSize: 11, padding: '0 5px' }}>
             {offers.length}
@@ -90,7 +91,7 @@ export function Toolbar({ onOffers }: { onOffers: () => void }) {
                   setPlacing(placing === id ? null : id);
                 }}
               >
-                <DeviceIcon category={d.category} size={34} />
+                <Icon name={d.sprite} scale={1.5} />
                 {stock > 0 && <span style={{ position: 'absolute', fontSize: 10, marginTop: 30, marginLeft: 30 }}>{stock}</span>}
               </button>
             );
@@ -106,10 +107,7 @@ export function Toolbar({ onOffers }: { onOffers: () => void }) {
                 setWireCable(id);
               }}
             >
-              <svg width={30} height={30} viewBox="0 0 30 30">
-                <path d="M3 22 C10 4, 20 26, 27 8" stroke={CABLE_CSS[id] ?? '#9fe0ff'} strokeWidth={4} fill="none" />
-              </svg>
-              <span style={{ display: 'none' }}>{cables[id as keyof typeof cables]?.maxLengthTiles}</span>
+              <Icon name={`icon/cable_${id}`} />
             </button>
           ))}
           {sep}
@@ -117,26 +115,35 @@ export function Toolbar({ onOffers }: { onOffers: () => void }) {
             <button
               key={c}
               style={{ ...slot(tool === 'paint' && paintColor === c), width: 32 }}
-              title="🎨"
+              title={t('ui.paint')}
               onClick={() => setPaintColor(c)}
             >
               <span style={{ width: 20, height: 20, background: subnetCss(c), border: '2px solid #3b2a33', display: 'block' }} />
             </button>
           ))}
+          <button
+            style={{ ...slot(showIp), width: 'auto', padding: '0 8px', fontSize: 13, fontWeight: 'bold' }}
+            title={t('ui.showIp')}
+            onClick={() => setShowIp(!showIp)}
+          >
+            IP
+          </button>
           {sep}
           <button style={{ ...slot(false), width: 'auto', padding: '0 14px', background: '#5aa860', fontSize: 16 }} onClick={() => requestBuild()}>
-            🔨 {t('ui.build')}
+            <Icon name="icon/hammer" /> {t('ui.build')}
           </button>
-          <span style={{ marginLeft: 8 }}>💸 {yen(active.cost)} / {yen(active.contract.budget)}</span>
+          <span style={{ marginLeft: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Icon name="icon/budget" /> {yen(active.cost)} / {yen(active.contract.budget)}
+          </span>
           <button style={{ ...slot(false), width: 32, marginLeft: 'auto' }} title={t('ui.project.abandon')} onClick={() => abandon()}>
-            ✖
+            <Icon name="icon/close" />
           </button>
         </>
       )}
       {active?.phase === 'build' && (
         <>
           {sep}
-          <span>🔨</span>
+          <Icon name="icon/hammer" />
           <div style={{ width: 200, height: 10, background: '#3b2a33', borderRadius: 2 }}>
             <div
               style={{

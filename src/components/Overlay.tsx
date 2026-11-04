@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { useGameStore } from '../stores/useGameStore';
+import { Icon } from './Icon';
 
 const NOTICE_MS = 3000;
 // 納品の結果は、パケットが流れ切ってから出す
@@ -43,14 +44,21 @@ export function ReportModal() {
   return (
     <div style={modalBack} onClick={dismiss}>
       <div style={{ ...modalBox, textAlign: 'center', minWidth: 220 }}>
-        <div style={{ fontSize: 32, color: '#ffd866', letterSpacing: 4 }}>
-          {'★'.repeat(stars)}
-          <span style={{ opacity: 0.3 }}>{'★'.repeat(3 - stars)}</span>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 6 }}>
+          {[1, 2, 3].map((i) => (
+            <span key={i} style={{ opacity: i <= stars ? 1 : 0.25 }}>
+              <Icon name="icon/star" scale={3} />
+            </span>
+          ))}
         </div>
-        <div style={{ fontSize: 20, marginTop: 8 }}>💰 +{(report.money ?? 0).toLocaleString('ja-JP')}</div>
-        <div style={{ fontSize: 16, marginTop: 4 }}>⭐ +{report.reputationGain ?? 0}</div>
+        <div style={{ fontSize: 20, marginTop: 8 }}>
+          <Icon name="icon/money" /> +{(report.money ?? 0).toLocaleString('ja-JP')}
+        </div>
+        <div style={{ fontSize: 16, marginTop: 4 }}>
+          <Icon name="icon/star" /> +{report.reputationGain ?? 0}
+        </div>
         <button style={{ marginTop: 12, padding: '4px 16px', cursor: 'pointer' }} onClick={dismiss}>
-          OK
+          <Icon name="icon/ok" />
         </button>
       </div>
     </div>

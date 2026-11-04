@@ -10,16 +10,13 @@ import { exportSave, importSave } from './services/saveFile';
 import { modalBack, modalBox, NoticeToast, ReportModal } from './components/Overlay';
 import { OfferCards } from './components/OfferCards';
 import { Toolbar } from './components/Toolbar';
+import { TaskPanel } from './components/TaskPanel';
+import { Icon } from './components/Icon';
 import { TitleScreen } from './components/TitleScreen';
 import { mapLoaders } from 'virtual:loaders';
 
 const SLOT = 1;
-const SPEEDS: { speed: Speed; icon: string }[] = [
-  { speed: 0, icon: '⏸' },
-  { speed: 1, icon: '▶' },
-  { speed: 2, icon: '▶▶' },
-  { speed: 4, icon: '▶▶▶' },
-];
+const SPEEDS: Speed[] = [0, 1, 2, 4];
 
 type Screen = 'title' | 'game';
 type Popup = 'offers' | 'menu' | null;
@@ -134,20 +131,31 @@ export function App() {
           gap: 14,
         }}
       >
-        <span>💰 {clock.money.toLocaleString('ja-JP')}</span>
-        <span>⭐ {reputation}</span>
-        <span>📅 {t('ui.hud.date', { month: date.month, day: date.day, hour: date.hour })}</span>
+        <span>
+          <Icon name="icon/money" /> {clock.money.toLocaleString('ja-JP')}
+        </span>
+        <span>
+          <Icon name="icon/star" /> {reputation}
+        </span>
+        <span>
+          <Icon name="icon/calendar" /> {t('ui.hud.date', { month: date.month, day: date.day, hour: date.hour })}
+        </span>
         <span style={{ display: 'flex', gap: 4 }}>
-          {SPEEDS.map(({ speed: s, icon }) => (
-            <button key={s} style={hudButton(speed === s)} onClick={() => setSpeed(s)}>
-              {icon}
+          {SPEEDS.map((s) => (
+            <button key={s} style={hudButton(speed === s)} title={t(`ui.speed.${s}` as const)} onClick={() => setSpeed(s)}>
+              {s === 0 ? (
+                <Icon name="icon/pause" scale={1} />
+              ) : (
+                Array.from({ length: s === 4 ? 3 : s }, (_, i) => <Icon key={i} name="icon/play" scale={1} />)
+              )}
             </button>
           ))}
         </span>
         <button style={{ ...hudButton(false), marginLeft: 'auto' }} onClick={() => setPopup('menu')}>
-          ☰
+          <Icon name="icon/menu" scale={1} />
         </button>
       </header>
+      <TaskPanel />
       <Toolbar onOffers={() => setPopup('offers')} />
       {popup === 'offers' && <OfferCards onClose={() => setPopup(null)} />}
       {popup === 'menu' && (
