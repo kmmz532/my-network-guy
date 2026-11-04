@@ -1,0 +1,244 @@
+import { describe, expect, it } from 'vitest';
+import { http, linkLength, ping } from './engine';
+import type { EngineData, NetLink, NetNode, Network } from './types';
+
+const data: EngineData = {
+  categoryOf: (device) => ({ pc: 'pc', server: 'server', l2: 'l2_switch', router: 'router' })[device] ?? 'unknown',
+  maxLengthOf: () => 30,
+};
+
+const pc = (uid: string, ip: string | null, gateway: string | null = null): NetNode => ({
+  uid,
+  device: 'pc',
+  x: 0,
+  y: 0,
+  locked: false,
+  interfaces: ip ? [{ port: 0, ip, prefix: 24 }] : [],
+  gateway,
+  routes: [],
+  services: [],
+});
+
+const server = (uid: string, ip: string, services: NetNode['services']): NetNode => ({
+  ...pc(uid, ip),
+  device: 'server',
+  services,
+});
+
+const sw = (uid: string): NetNode => ({
+  uid,
+  device: 'l2',
+  x: 0,
+  y: 0,
+  locked: false,
+  interfaces: [],
+  gateway: null,
+  routes: [],
+  services: [],
+});
+
+const router = (uid: string, interfaces: NetNode['interfaces'], routes: NetNode['routes'] = []): NetNode => ({
+  uid,
+  device: 'router',
+  x: 0,
+  y: 0,
+  locked: false,
+  interfaces,
+  gateway: null,
+  routes,
+  services: [],
+});
+
+// 長さ length タイルの直線の配線
+const link = (uid: string, a: string, aPort: number, b: string, bPort: number, length = 5): NetLink => ({
+  uid,
+  cable: 'utp_cat5e',
+  a: { node: a, port: aPort },
+  b: { node: b, port: bPort },
+  path: [
+    [0, 0],
+    [length, 0],
+  ],
+});
+
+describe('linkLength', () => {
+  it('折れ点ごとの距離を合計する', () => {
+    expect(
+      linkLength([
+        [0, 0],
+        [3, 0],
+        [3, 4],
+      ]),
+    ).toBe(7);
+  });
+});
+
+describe('ping: L1 / L2 / L3', () => {
+  it('同じサブネットの2台を直結すると通る', () => {
+    const net: Network = {
+      nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11')],
+      links: [link('l1', 'a', 0, 'b', 0)],
+    };
+    const r = ping(net, data, 'a', 'b');
+    expect(r.ok).toBe(true);
+    expect(r.path).toEqual(['a', 'b']);
+  });
+
+  it('スイッチを経由して同じL2ドメインになると通る', () => {
+    const net: Network = {
+      nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), sw('s')],
+      links: [link('l1', 'a', 0, 's', 0), link('l2', 'b', 0, 's', 1)],
+    };
+    expect(ping(net, data, 'a', 'b').ok).toBe(true);
+  });
+
+  it('配線がないとlink.unplugged', () => {
+    const net: Network = { nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11')], links: [] };
+    expect(ping(net, data, 'a', 'b').failure).toMatchObject({ reason: 'link.unplugged', node: 'a' });
+  });
+
+  it('配線が上限長を超えるとlink.too_long', () => {
+    const net: Network = {
+      nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11')],
+      links: [link('l1', 'a', 0, 'b', 0, 31)],
+    };
+    expect(ping(net, data, 'a', 'b').failure?.reason).toBe('link.too_long');
+  });
+
+  it('IPアドレスが未設定ならip.unset', () => {
+    const net: Network = {
+      nodes: [pc('a', null), pc('b', '192.168.1.11')],
+      links: [link('l1', 'a', 0, 'b', 0)],
+    };
+    expect(ping(net, data, 'a', 'b').failure).toMatchObject({ reason: 'ip.unset', node: 'a' });
+  });
+
+  it('同じL2ドメインに同じIPがあるとip.duplicate', () => {
+    const net: Network = {
+      nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.10'), pc('c', '192.168.1.11'), sw('s')],
+      links: [link('l1', 'a', 0, 's', 0), link('l2', 'b', 0, 's', 1), link('l3', 'c', 0, 's', 2)],
+    };
+    expect(ping(net, data, 'c', 'a').failure?.reason).toBe('ip.duplicate');
+  });
+
+  it('同じサブネットでも別のL2ドメインならip.unreachable', () => {
+    const net: Network = {
+      nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), sw('s'), sw('t')],
+      links: [link('l1', 'a', 0, 's', 0), link('l2', 'b', 0, 't', 0)],
+    };
+    expect(ping(net, data, 'a', 'b').failure).toMatchObject({ reason: 'ip.unreachable', node: 'a' });
+  });
+
+  it('異なるサブネットでゲートウェイ未設定ならgateway.unset', () => {
+    const net: Network = {
+      nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.2.10')],
+      links: [link('l1', 'a', 0, 'b', 0)],
+    };
+    expect(ping(net, data, 'a', 'b').failure?.reason).toBe('gateway.unset');
+  });
+
+  it('ルーターを経由して異なるサブネットに通る', () => {
+    const net: Network = {
+      nodes: [
+        pc('a', '192.168.1.10', '192.168.1.1'),
+        pc('b', '192.168.2.10', '192.168.2.1'),
+        router('r', [
+          { port: 0, ip: '192.168.1.1', prefix: 24 },
+          { port: 1, ip: '192.168.2.1', prefix: 24 },
+        ]),
+      ],
+      links: [link('l1', 'a', 0, 'r', 0), link('l2', 'r', 1, 'b', 0)],
+    };
+    const r = ping(net, data, 'a', 'b');
+    expect(r.ok).toBe(true);
+    expect(r.path).toEqual(['a', 'r', 'b']);
+  });
+
+  it('ゲートウェイのアドレスに誰もいないとgateway.unreachable', () => {
+    const net: Network = {
+      nodes: [pc('a', '192.168.1.10', '192.168.1.1'), pc('b', '192.168.2.10', '192.168.2.1')],
+      links: [link('l1', 'a', 0, 'b', 0)],
+    };
+    expect(ping(net, data, 'a', 'b').failure?.reason).toBe('gateway.unreachable');
+  });
+
+  it('ルーターに宛先へのルートがないとroute.none', () => {
+    const net: Network = {
+      nodes: [
+        pc('a', '192.168.1.10', '192.168.1.1'),
+        pc('b', '192.168.3.10', '192.168.3.1'),
+        router('r', [
+          { port: 0, ip: '192.168.1.1', prefix: 24 },
+          { port: 1, ip: '192.168.2.1', prefix: 24 },
+        ]),
+      ],
+      links: [link('l1', 'a', 0, 'r', 0), link('l2', 'r', 1, 'b', 0)],
+    };
+    expect(ping(net, data, 'a', 'b').failure).toMatchObject({ reason: 'route.none', node: 'r' });
+  });
+
+  it('静的ルートが互いを指すとroute.loop', () => {
+    const net: Network = {
+      nodes: [
+        pc('a', '192.168.1.10', '192.168.1.1'),
+        router(
+          'r1',
+          [
+            { port: 0, ip: '192.168.1.1', prefix: 24 },
+            { port: 1, ip: '10.0.0.1', prefix: 30 },
+          ],
+          [{ dest: '192.168.9.0', prefix: 24, nextHop: '10.0.0.2' }],
+        ),
+        router(
+          'r2',
+          [
+            { port: 0, ip: '10.0.0.2', prefix: 30 },
+            { port: 1, ip: '10.0.1.1', prefix: 30 },
+          ],
+          [{ dest: '192.168.9.0', prefix: 24, nextHop: '10.0.0.1' }],
+        ),
+        pc('z', '192.168.9.5', '192.168.9.1'),
+      ],
+      links: [link('l1', 'a', 0, 'r1', 0), link('l2', 'r1', 1, 'r2', 0), link('l3', 'r2', 1, 'z', 0)],
+    };
+    expect(ping(net, data, 'a', 'z').failure?.reason).toBe('route.loop');
+  });
+});
+
+describe('ping: 復路', () => {
+  it('往路は通り、復路のゲートウェイ未設定でreturn.failed', () => {
+    const net: Network = {
+      nodes: [
+        pc('a', '192.168.1.10', '192.168.1.1'),
+        pc('b', '192.168.2.10'),
+        router('r', [
+          { port: 0, ip: '192.168.1.1', prefix: 24 },
+          { port: 1, ip: '192.168.2.1', prefix: 24 },
+        ]),
+      ],
+      links: [link('l1', 'a', 0, 'r', 0), link('l2', 'r', 1, 'b', 0)],
+    };
+    const r = ping(net, data, 'a', 'b');
+    expect(r.ok).toBe(false);
+    expect(r.failure).toMatchObject({ reason: 'return.failed', node: 'b' });
+    expect(r.failure?.cause).toMatchObject({ reason: 'gateway.unset', node: 'b' });
+  });
+});
+
+describe('http', () => {
+  it('ポートで待ち受けていれば通る', () => {
+    const net: Network = {
+      nodes: [pc('a', '192.168.1.10'), server('w', '192.168.1.20', [{ protocol: 'http', port: 80 }])],
+      links: [link('l1', 'a', 0, 'w', 0)],
+    };
+    expect(http(net, data, 'a', 'w', 80).ok).toBe(true);
+  });
+
+  it('待ち受けていないポートならservice.closed', () => {
+    const net: Network = {
+      nodes: [pc('a', '192.168.1.10'), server('w', '192.168.1.20', [{ protocol: 'http', port: 80 }])],
+      links: [link('l1', 'a', 0, 'w', 0)],
+    };
+    expect(http(net, data, 'a', 'w', 8080).failure).toMatchObject({ reason: 'service.closed', node: 'w' });
+  });
+});

@@ -1,0 +1,46 @@
+// 固定Tickの時間進行と、月末の給与・倒産判定。1 Tick は balance.time.gameMinutesPerTick 分進む。
+import type { Balance } from '../data/schema';
+
+export interface ClockState {
+  minute: number;
+  money: number;
+  paidMonths: number;
+  bankrupt: boolean;
+}
+
+export const minutesPerDay = 24 * 60;
+
+export const minutesPerMonth = (balance: Balance) => balance.time.daysPerMonth * minutesPerDay;
+
+export const initialClock = (balance: Balance): ClockState => ({
+  minute: 0,
+  money: balance.startMoney,
+  paidMonths: 0,
+  bankrupt: false,
+});
+
+// 1 Tick 進める。月の境界を越えたら給与を支払い、資金が0円未満なら倒産とする
+export const advanceTick = (state: ClockState, balance: Balance): ClockState => {
+  if (state.bankrupt) return state;
+  const minute = state.minute + balance.time.gameMinutesPerTick;
+  let { money, paidMonths, bankrupt } = state;
+  const monthLength = minutesPerMonth(balance);
+  while ((paidMonths + 1) * monthLength <= minute) {
+    paidMonths++;
+    money -= balance.staff.initialCount * balance.staff.monthlySalary;
+    if (money < 0) {
+      bankrupt = true;
+      break;
+    }
+  }
+  return { minute, money, paidMonths, bankrupt };
+};
+
+// ゲーム内の日時表示用
+export const toDate = (minute: number, balance: Balance) => {
+  const monthLength = minutesPerMonth(balance);
+  const month = Math.floor(minute / monthLength) + 1;
+  const day = Math.floor((minute % monthLength) / minutesPerDay) + 1;
+  const hour = Math.floor((minute % minutesPerDay) / 60);
+  return { month, day, hour };
+};
