@@ -7,6 +7,10 @@ const sample: SaveData = {
   reputation: 2,
   owned: { pc_basic: 1 },
   completed: ['c001_direct_link'],
+  offers: [],
+  nextOfferMinute: 0,
+  offerSeq: 0,
+  rng: 1,
 };
 
 describe('セーブデータ', () => {

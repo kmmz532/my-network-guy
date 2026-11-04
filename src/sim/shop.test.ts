@@ -22,9 +22,17 @@ describe('ショップ', () => {
 });
 
 describe('セーブのバージョン移行', () => {
-  it('v1 のセーブに在庫と完了案件を補って読み込める', () => {
+  it('v1 のセーブを現在の形式まで移行できる', () => {
     const v1 = { clock: { minute: 0, money: 500, paidMonths: 0, bankrupt: false }, reputation: 1 };
-    expect(migrate(1, v1)).toEqual({ ...v1, owned: {}, completed: [] });
+    expect(migrate(1, v1)).toEqual({
+      ...v1,
+      owned: {},
+      completed: [],
+      offers: [],
+      nextOfferMinute: 0,
+      offerSeq: 0,
+      rng: 1,
+    });
   });
 
   it('形式が不正な在庫は拒否する', () => {

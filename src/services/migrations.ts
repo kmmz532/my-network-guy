@@ -1,5 +1,5 @@
 // セーブデータのバージョン管理。形式を変えたら SAVE_VERSION を上げ、migrations[n]（n → n+1 の変換）を追加する。
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export interface SaveData {
   clock: { minute: number; money: number; paidMonths: number; bankrupt: boolean };
@@ -8,6 +8,12 @@ export interface SaveData {
   owned: Record<string, number>;
   // 完了した案件のID
   completed: string[];
+  // 依頼一覧（案件の内容を含む）
+  offers: unknown[];
+  nextOfferMinute: number;
+  offerSeq: number;
+  // 乱数の状態
+  rng: number;
 }
 
 type Migration = (data: unknown) => unknown;
@@ -15,6 +21,8 @@ type Migration = (data: unknown) => unknown;
 // v1 → v2: 在庫と完了案件を追加する
 export const migrations: Record<number, Migration> = {
   1: (data) => ({ ...(data as object), owned: {}, completed: [] }),
+  // v2 → v3: 依頼と乱数の状態を追加する
+  2: (data) => ({ ...(data as object), offers: [], nextOfferMinute: 0, offerSeq: 0, rng: 1 }),
 };
 
 export const isSaveData = (value: unknown): value is SaveData => {
@@ -34,7 +42,11 @@ export const isSaveData = (value: unknown): value is SaveData => {
     owned !== null &&
     Object.values(owned).every((n) => Number.isInteger(n) && (n as number) >= 0) &&
     Array.isArray(v.completed) &&
-    v.completed.every((id) => typeof id === 'string')
+    v.completed.every((id) => typeof id === 'string') &&
+    Array.isArray(v.offers) &&
+    Number.isInteger(v.nextOfferMinute) &&
+    Number.isInteger(v.offerSeq) &&
+    Number.isInteger(v.rng)
   );
 };
 

@@ -60,5 +60,9 @@
   "ui.shop.buy": "購入",
   "ui.shop.owned": "在庫 {count}",
   "ui.shop.cablePrice": "接続 {link} 円 ＋ 1タイル {tile} 円",
-  "ui.shop.nomoney": "資金が足りない"
+  "ui.shop.nomoney": "資金が足りない",
+  "ui.offer.title": "依頼",
+  "ui.offer.empty": "新しい依頼はまだ届いていない。",
+  "ui.offer.budget": "予算 {amount} 円",
+  "ui.offer.reward": "報酬 {amount} 円"
 }

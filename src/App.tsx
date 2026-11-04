@@ -8,6 +8,8 @@ import { toDate } from './sim/clock';
 import { loadSlot, saveSlot } from './services/db';
 import { exportSave, importSave } from './services/saveFile';
 import { ShopPanel } from './components/ShopPanel';
+import { OfferPanel } from './components/OfferPanel';
+import { mapLoaders } from 'virtual:loaders';
 
 const SLOT = 1;
 const SPEEDS: Speed[] = [0, 1, 2, 4];
@@ -21,11 +23,13 @@ export function App() {
   const setSpeed = useGameStore((s) => s.setSpeed);
   const load = useGameStore((s) => s.load);
   const snapshot = useGameStore((s) => s.snapshot);
+  const cacheMap = useGameStore((s) => s.cacheMap);
 
   useTickLoop();
 
   useEffect(() => {
     loadLang('ja_jp').then(() => setReady(true));
+    mapLoaders.office_small().then((m) => cacheMap(m.default));
   }, []);
 
   if (!ready) return null;
@@ -86,6 +90,8 @@ export function App() {
       </header>
       <div style={{ position: 'absolute', top: 56, right: 16 }}>
         <ShopPanel />
+        <div style={{ height: 8 }} />
+        <OfferPanel />
       </div>
       <footer
         style={{
