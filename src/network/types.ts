@@ -21,7 +21,10 @@ export interface NetNode {
   device: string;
   x: number;
   y: number;
+  // 配置を動かせない（案件で固定された機器）
   locked: boolean;
+  // 設定（IPアドレスなど）を変えられない
+  configLocked: boolean;
   interfaces: Iface[];
   gateway: string | null;
   routes: Route[];

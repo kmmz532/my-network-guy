@@ -9,6 +9,7 @@ import { loadSlot, saveSlot } from './services/db';
 import { exportSave, importSave } from './services/saveFile';
 import { ShopPanel } from './components/ShopPanel';
 import { OfferPanel } from './components/OfferPanel';
+import { ProjectPanel } from './components/ProjectPanel';
 import { mapLoaders } from 'virtual:loaders';
 
 const SLOT = 1;
@@ -92,6 +93,8 @@ export function App() {
         <ShopPanel />
         <div style={{ height: 8 }} />
         <OfferPanel />
+        <div style={{ height: 8 }} />
+        <ProjectPanel />
       </div>
       <footer
         style={{

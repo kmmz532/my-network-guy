@@ -41,7 +41,7 @@ export const refreshOffers = (state: OfferState, env: OfferEnv): OfferState => {
   if (fixed) {
     return {
       ...next,
-      offers: [...state.offers, { id: fixed.id, baseId: fixed.id, params: {}, contract: fixed }],
+      offers: [...state.offers, { id: fixed.id, kind: 'fixed', baseId: fixed.id, params: {}, contract: fixed }],
     };
   }
 

@@ -5,6 +5,8 @@ import { randInt, rand } from '../sim/rng';
 export interface Offer {
   // 依頼の一意なID（同じひな形から複数の依頼が生まれるため、連番を含む）
   id: string;
+  // 固定案件か定型案件か（完了の記録に使う）
+  kind: 'fixed' | 'template';
   // 文言キーに使う元のID（固定案件の ID、またはひな形の ID）
   baseId: string;
   // 文言の置換に使う値（例: pcCount）
@@ -65,7 +67,7 @@ export const instantiateTemplate = (
     },
   };
   return {
-    offer: { id: contract.id, baseId: template.id, params: { pcCount: n }, contract },
+    offer: { id: contract.id, kind: 'template', baseId: template.id, params: { pcCount: n }, contract },
     rng,
   };
 };

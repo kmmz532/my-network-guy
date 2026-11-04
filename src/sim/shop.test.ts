@@ -32,6 +32,7 @@ describe('セーブのバージョン移行', () => {
       nextOfferMinute: 0,
       offerSeq: 0,
       rng: 1,
+      active: null,
     });
   });
 
