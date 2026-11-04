@@ -11,6 +11,7 @@ import { ShopPanel } from './components/ShopPanel';
 import { OfferPanel } from './components/OfferPanel';
 import { ProjectPanel } from './components/ProjectPanel';
 import { DesignPanel } from './components/DesignPanel';
+import { ConfigPanel } from './components/ConfigPanel';
 import { mapLoaders } from 'virtual:loaders';
 
 const SLOT = 1;
@@ -100,6 +101,8 @@ export function App() {
       </header>
       <div style={{ position: 'absolute', top: 56, left: 16 }}>
         <DesignPanel />
+        <div style={{ height: 8 }} />
+        <ConfigPanel />
       </div>
       <div style={{ position: 'absolute', top: 56, right: 16 }}>
         <ShopPanel />

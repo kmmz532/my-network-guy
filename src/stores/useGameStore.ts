@@ -12,6 +12,7 @@ import {
   abandon,
   accept,
   addRoute,
+  removeRoute,
   advanceBuild,
   connect,
   placeDevice,
@@ -67,6 +68,7 @@ export interface GameState {
   setIface: (uid: string, port: number, ip: string) => string | null;
   setGateway: (uid: string, gateway: string | null) => string | null;
   addRoute: (uid: string, route: Route) => string | null;
+  removeRoute: (uid: string, index: number) => string | null;
   requestBuild: () => string | null;
   abandon: () => string | null;
   load: (save: SaveData) => void;
@@ -202,6 +204,7 @@ export const useGameStore = create<GameState>((set, get) => {
     setIface: (uid, port, ip) => apply(setInterface(coreOf(get()), uid, port, ip, 24)),
     setGateway: (uid, gateway) => apply(setGateway(coreOf(get()), uid, gateway)),
     addRoute: (uid, route) => apply(addRoute(coreOf(get()), uid, route)),
+    removeRoute: (uid, index) => apply(removeRoute(coreOf(get()), uid, index)),
     requestBuild: () => apply(requestBuild(coreOf(get()), gameEnv)),
     abandon: () => apply(abandon(coreOf(get()))),
     load: (save) =>

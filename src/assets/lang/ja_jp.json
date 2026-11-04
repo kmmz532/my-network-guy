@@ -95,5 +95,20 @@
   "ui.design.cable": "配線のケーブル",
   "ui.design.selected": "選択中：{name}",
   "ui.design.remove": "撤去する",
-  "ui.design.hint": "機器をドラッグすると配線できる。機器をクリックすると選択できる。"
+  "ui.design.hint": "機器をドラッグすると配線できる。機器をクリックすると選択できる。",
+  "ui.config.title": "機器の設定",
+  "ui.config.none": "機器を選ぶと設定できる。",
+  "ui.config.readOnly": "設計中のみ変更できる。",
+  "ui.config.locked": "この機器の設定は案件で固定されている。",
+  "ui.config.noIp": "スイッチにはIPアドレスを設定しない。",
+  "ui.config.port": "ポート{port}のIPアドレス（/24）",
+  "ui.config.gateway": "デフォルトゲートウェイ",
+  "ui.config.set": "設定",
+  "ui.config.routes": "静的ルート",
+  "ui.config.noRoute": "ルートはない。",
+  "ui.config.routeItem": "{dest}/24 → {next}",
+  "ui.config.remove": "削除",
+  "ui.config.routeDest": "宛先ネットワーク（/24）",
+  "ui.config.routeNext": "次の宛先（IPアドレス）",
+  "ui.config.addRoute": "ルートを追加"
 }
