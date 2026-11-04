@@ -92,6 +92,7 @@ describe('案件の流れ: c001 PC2台の直結', () => {
     expect(done.core.completed).toEqual(['c001_direct_link']);
     expect(done.core.clock.money).toBe(1_000_000 - 3100 + 30000);
     expect(done.core.reputation).toBe(1 + 3 * balance.reputationPerStar);
+    expect(done.report?.reputationGain).toBe(1 + 3 * balance.reputationPerStar);
   });
 
   it('IPが未設定のまま施工すると不合格になり、設計に戻る', () => {

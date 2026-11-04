@@ -39,6 +39,8 @@ export interface Report {
   passed: boolean;
   stars?: 1 | 2 | 3;
   money?: number;
+  // 評判の増え分（報酬の評判と★による評判の合計）
+  reputationGain?: number;
   failures: ReportFailure[];
 }
 
@@ -331,7 +333,7 @@ export const inspect = (core: Core, env: Env): Outcome => {
         completed: p.kind === 'fixed' ? [...core.completed, p.baseId] : core.completed,
         active: null,
       },
-      report: { passed: true, stars, money, failures: [] },
+      report: { passed: true, stars, money, reputationGain: reputation - core.reputation, failures: [] },
     };
   }
   const failures: ReportFailure[] = result.results

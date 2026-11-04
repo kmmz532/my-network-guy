@@ -53,6 +53,10 @@ export interface GameState {
   maps: Record<string, GameMap>;
   // 直近の検収結果（保存しない）
   lastReport: Report | null;
+  dismissReport: () => void;
+  // 画面に出す通知（給与の支払いなど）。保存しない
+  notice: { key: string; params: Record<string, number>; id: number } | null;
+  dismissNotice: () => void;
   // 直近に失敗した操作の理由（保存しない）
   lastError: string | null;
   // 操作の状態（保存しない）
@@ -172,6 +176,9 @@ export const useGameStore = create<GameState>((set, get) => {
     speed: 1,
     maps: {},
     lastReport: null,
+    notice: null,
+    dismissReport: () => set({ lastReport: null }),
+    dismissNotice: () => set({ notice: null }),
     lastError: null,
     selectedUid: null,
     placing: null,
@@ -194,6 +201,11 @@ export const useGameStore = create<GameState>((set, get) => {
       set((s) => {
         const clock = advanceTick(s.clock, balance);
         let next: Partial<GameState> = { clock };
+        // 月末に給与を払ったら知らせる
+        if (clock.paidMonths > s.clock.paidMonths) {
+          const amount = balance.staff.initialCount * balance.staff.monthlySalary;
+          next = { ...next, notice: { key: 'ui.notice.salary', params: { amount }, id: Date.now() } };
+        }
         const withClock = { ...s, ...next } as GameState;
         // 施工中なら、勤務時間内に作業を進める
         if (!clock.bankrupt && withClock.active?.phase === 'build') {

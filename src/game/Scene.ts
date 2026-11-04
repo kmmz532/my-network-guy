@@ -128,22 +128,41 @@ export class Scene {
   };
 
   private traceActive(): boolean {
-    const path = this.tracePath();
-    return path !== null && this.elapsed - this.traceStart < this.traceDuration(path);
+    const trace = this.tracePath();
+    return trace !== null && this.elapsed - this.traceStart < this.traceDuration(trace.pts);
   }
 
-  // 疎通テストの経路（機器の中心の座標）
-  private tracePath(): Point[] | null {
+  // 疎通テストの経路。ケーブルの折れ線に沿って点を並べ、各機器が点の何番目にあるかも返す
+  private tracePath(): { pts: Point[]; nodeAt: number[] } | null {
     const s = useGameStore.getState();
     const map = this.map;
     if (!this.trace || !s.active || !map) return null;
     const ts = map.tileSize;
+    const center = (x: number, y: number): Point => ({ x: x * ts + ts / 2, y: y * ts + ts / 2 });
     const pts: Point[] = [];
+    const nodeAt: number[] = [];
+    let prev: string | null = null;
     for (const uid of this.trace.result.path) {
       const n = s.active.nodes.find((x) => x.uid === uid);
-      if (n) pts.push({ x: n.x * ts + ts / 2, y: n.y * ts + ts / 2 });
+      if (!n) continue;
+      if (prev) {
+        const link = s.active.links.find(
+          (l) => (l.a.node === prev && l.b.node === uid) || (l.b.node === prev && l.a.node === uid),
+        );
+        if (link) {
+          const seg = link.path.map(([x, y]) => center(x, y));
+          const oriented = link.a.node === prev ? seg : [...seg].reverse();
+          pts.push(...oriented.slice(1));
+        } else {
+          pts.push(center(n.x, n.y));
+        }
+      } else {
+        pts.push(center(n.x, n.y));
+      }
+      nodeAt.push(pts.length - 1);
+      prev = uid;
     }
-    return pts.length >= 2 ? pts : null;
+    return pts.length >= 2 ? { pts, nodeAt } : null;
   }
 
   // 粒が経路を動き切るまでの時間（ms）
@@ -342,8 +361,9 @@ export class Scene {
   // 疎通テストの経路と、パケットの粒。失敗した地点で止まり「×」を出す
   private drawTrace(ts: number): void {
     const trace = this.trace;
-    const path = this.tracePath();
-    if (!trace || !path) return;
+    const route = this.tracePath();
+    if (!trace || !route) return;
+    const { pts: path, nodeAt } = route;
     const cumulative = cumulativeLengths(path);
     const total = cumulative[cumulative.length - 1];
 
@@ -354,9 +374,9 @@ export class Scene {
     if (failure) {
       const uids = trace.result.path;
       const idx = failure.reason === 'return.failed' ? uids.length - 1 : uids.indexOf(failure.node);
-      if (idx >= 0 && idx < path.length) {
-        stop = cumulative[idx];
-        failAt = path[idx];
+      if (idx >= 0 && idx < nodeAt.length) {
+        stop = cumulative[nodeAt[idx]];
+        failAt = path[nodeAt[idx]];
       } else {
         stop = 0;
         failAt = path[0];
@@ -367,9 +387,9 @@ export class Scene {
     const travelled = (elapsed / 1000) * PACKET_TILES_PER_SEC * ts;
     const color = PACKET_COLOR[trace.kind] ?? 0xffffff;
     for (let i = 0; i < PACKET_COUNT; i++) {
-      const d = Math.min(travelled - i * PACKET_SPACING_TILES * ts, stop);
-      if (travelled - i * PACKET_SPACING_TILES * ts < 0) continue;
-      const p = pointAt(path, cumulative, d);
+      const behind = travelled - i * PACKET_SPACING_TILES * ts;
+      if (behind < 0) continue;
+      const p = pointAt(path, cumulative, Math.min(behind, stop));
       this.g.rect(p.x - 1.5, p.y - 1.5, 3, 3).fill({ color });
     }
 

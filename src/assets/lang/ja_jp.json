@@ -141,5 +141,12 @@
   "ui.guide.wire": "PCをドラッグして、2台を配線する",
   "ui.guide.probe": "疎通テストでPingを通す",
   "ui.guide.build": "受注中の案件から「施工を依頼」を押す",
-  "ui.config.close": "閉じる"
+  "ui.config.close": "閉じる",
+  "ui.report.title": "検収結果",
+  "ui.report.stars": "評価 ★{stars}",
+  "ui.report.reward": "報酬 +{amount} 円",
+  "ui.report.reputation": "評判 +{amount}",
+  "ui.report.close": "閉じる",
+  "ui.report.failItem": "{text}",
+  "ui.notice.salary": "月末の給与を支払った：{amount} 円"
 }

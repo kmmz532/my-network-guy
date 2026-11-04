@@ -14,6 +14,7 @@ import { DesignPanel } from './components/DesignPanel';
 import { ConfigPanel } from './components/ConfigPanel';
 import { ProbePanel } from './components/ProbePanel';
 import { GuidePanel } from './components/GuidePanel';
+import { NoticeToast, ReportModal } from './components/Overlay';
 import { TitleScreen } from './components/TitleScreen';
 import { mapLoaders } from 'virtual:loaders';
 
@@ -191,6 +192,8 @@ export function App() {
         <button style={button} onClick={backToTitle}>{t('ui.title.back')}</button>
         <span>{message}</span>
       </footer>
+      <NoticeToast />
+      <ReportModal />
       {anchor && selectedUid && active && (
         // 機器をクリックすると、その機器の近くにIP設定を開く
         <div style={{ position: 'absolute', left: Math.max(8, Math.min(anchor.x + 8, window.innerWidth - 300)), top: Math.max(56, anchor.y - 16), zIndex: 5 }}>
