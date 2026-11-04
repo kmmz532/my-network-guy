@@ -1,0 +1,92 @@
+{
+  "id": "c004_web_server",
+  "stage": 1,
+  "order": 4,
+  "requires": [
+    "c003_departments"
+  ],
+  "map": "office_two_rooms",
+  "budget": 100000,
+  "placed": [
+    {
+      "ref": "web",
+      "device": "server_basic",
+      "x": 17,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.10.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.10.1",
+        "services": [
+          {
+            "protocol": "http",
+            "port": 80
+          }
+        ],
+        "locked": true
+      }
+    },
+    {
+      "ref": "staff_a",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      }
+    },
+    {
+      "ref": "staff_b",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "http",
+      "from": "staff_a",
+      "to": "web",
+      "port": 80
+    },
+    {
+      "type": "http",
+      "from": "staff_b",
+      "to": "web",
+      "port": 80
+    }
+  ],
+  "reward": {
+    "money": 220000,
+    "reputation": 1
+  }
+}

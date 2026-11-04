@@ -1,0 +1,35 @@
+{
+  "id": "c001_direct_link",
+  "stage": 1,
+  "order": 1,
+  "requires": [],
+  "map": "office_small",
+  "budget": 5000,
+  "placed": [
+    {
+      "ref": "pc_a",
+      "device": "pc_basic",
+      "x": 3,
+      "y": 4,
+      "locked": true
+    },
+    {
+      "ref": "pc_b",
+      "device": "pc_basic",
+      "x": 10,
+      "y": 4,
+      "locked": true
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping",
+      "from": "pc_a",
+      "to": "pc_b"
+    }
+  ],
+  "reward": {
+    "money": 30000,
+    "reputation": 1
+  }
+}

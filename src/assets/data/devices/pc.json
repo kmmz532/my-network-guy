@@ -1,0 +1,18 @@
+{
+  "devices": [
+    {
+      "id": "pc_basic",
+      "category": "pc",
+      "price": 80000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 1,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [],
+      "sprite": "device/pc_basic"
+    }
+  ]
+}

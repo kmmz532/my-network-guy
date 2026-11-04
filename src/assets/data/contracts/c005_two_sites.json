@@ -1,0 +1,103 @@
+{
+  "id": "c005_two_sites",
+  "stage": 1,
+  "order": 5,
+  "requires": [
+    "c004_web_server"
+  ],
+  "map": "office_two_sites",
+  "budget": 250000,
+  "placed": [
+    {
+      "ref": "hq_a",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      }
+    },
+    {
+      "ref": "hq_b",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      }
+    },
+    {
+      "ref": "br_a",
+      "device": "pc_basic",
+      "x": 37,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.20.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.20.1",
+        "services": [],
+        "locked": true
+      }
+    },
+    {
+      "ref": "br_b",
+      "device": "pc_basic",
+      "x": 37,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.20.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.20.1",
+        "services": [],
+        "locked": true
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": [
+        "hq_a",
+        "hq_b",
+        "br_a",
+        "br_b"
+      ]
+    }
+  ],
+  "reward": {
+    "money": 400000,
+    "reputation": 1
+  }
+}

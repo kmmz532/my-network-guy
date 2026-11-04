@@ -1,0 +1,37 @@
+{
+  "id": "t_small_lan",
+  "stage": 1,
+  "requires": [
+    "c002_small_office"
+  ],
+  "minReputation": 2,
+  "weight": 10,
+  "map": "office_small",
+  "params": {
+    "pcCount": {
+      "min": 3,
+      "max": 6
+    }
+  },
+  "spawnArea": {
+    "x": 2,
+    "y": 2,
+    "width": 10,
+    "height": 6
+  },
+  "budget": {
+    "base": 15000,
+    "perPc": 3000
+  },
+  "reward": {
+    "base": 30000,
+    "perPc": 8000,
+    "reputation": 1
+  },
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": "$all_pcs"
+    }
+  ]
+}

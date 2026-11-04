@@ -1,0 +1,26 @@
+{
+  "items": [
+    {
+      "cable": "utp_cat5e",
+      "unlock": null
+    },
+    {
+      "device": "l2_switch_8p",
+      "unlock": {
+        "contract": "c001_direct_link"
+      }
+    },
+    {
+      "device": "router_basic",
+      "unlock": {
+        "contract": "c002_small_office"
+      }
+    },
+    {
+      "cable": "fiber_sm",
+      "unlock": {
+        "contract": "c004_web_server"
+      }
+    }
+  ]
+}

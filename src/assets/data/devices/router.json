@@ -1,0 +1,20 @@
+{
+  "devices": [
+    {
+      "id": "router_basic",
+      "category": "router",
+      "price": 60000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 4,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [
+        "routing"
+      ],
+      "sprite": "device/router_basic"
+    }
+  ]
+}

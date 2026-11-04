@@ -1,0 +1,43 @@
+{
+  "time": {
+    "realMsPerTick": 1000,
+    "gameMinutesPerTick": 60,
+    "daysPerMonth": 30,
+    "speeds": [
+      0,
+      1,
+      2,
+      4
+    ]
+  },
+  "startMoney": 1000000,
+  "offerIntervalDays": 3,
+  "staff": {
+    "initialCount": 2,
+    "monthlySalary": 200000
+  },
+  "build": {
+    "workStartHour": 9,
+    "workEndHour": 18,
+    "minutesPerDevice": 240,
+    "minutesPerCableTile": 15
+  },
+  "rating": [
+    {
+      "stars": 3,
+      "maxCostRatio": 0.8,
+      "maxRework": 0
+    },
+    {
+      "stars": 2,
+      "maxCostRatio": 1.0,
+      "maxRework": 1
+    },
+    {
+      "stars": 1,
+      "maxCostRatio": null,
+      "maxRework": null
+    }
+  ],
+  "reputationPerStar": 1
+}

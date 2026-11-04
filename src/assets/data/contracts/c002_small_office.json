@@ -1,0 +1,47 @@
+{
+  "id": "c002_small_office",
+  "stage": 1,
+  "order": 2,
+  "requires": [
+    "c001_direct_link"
+  ],
+  "map": "office_small",
+  "budget": 25000,
+  "placed": [
+    {
+      "ref": "pc_a",
+      "device": "pc_basic",
+      "x": 3,
+      "y": 3,
+      "locked": true
+    },
+    {
+      "ref": "pc_b",
+      "device": "pc_basic",
+      "x": 10,
+      "y": 3,
+      "locked": true
+    },
+    {
+      "ref": "pc_c",
+      "device": "pc_basic",
+      "x": 10,
+      "y": 7,
+      "locked": true
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": [
+        "pc_a",
+        "pc_b",
+        "pc_c"
+      ]
+    }
+  ],
+  "reward": {
+    "money": 60000,
+    "reputation": 1
+  }
+}

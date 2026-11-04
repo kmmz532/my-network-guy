@@ -1,0 +1,18 @@
+{
+  "devices": [
+    {
+      "id": "l2_switch_8p",
+      "category": "l2_switch",
+      "price": 12000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 8,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [],
+      "sprite": "device/l2_switch_8p"
+    }
+  ]
+}

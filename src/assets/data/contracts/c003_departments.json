@@ -1,0 +1,103 @@
+{
+  "id": "c003_departments",
+  "stage": 1,
+  "order": 3,
+  "requires": [
+    "c002_small_office"
+  ],
+  "map": "office_two_rooms",
+  "budget": 110000,
+  "placed": [
+    {
+      "ref": "sales_a",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      }
+    },
+    {
+      "ref": "sales_b",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      }
+    },
+    {
+      "ref": "dev_a",
+      "device": "pc_basic",
+      "x": 17,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.2.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.2.1",
+        "services": [],
+        "locked": true
+      }
+    },
+    {
+      "ref": "dev_b",
+      "device": "pc_basic",
+      "x": 17,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.2.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.2.1",
+        "services": [],
+        "locked": true
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": [
+        "sales_a",
+        "sales_b",
+        "dev_a",
+        "dev_b"
+      ]
+    }
+  ],
+  "reward": {
+    "money": 200000,
+    "reputation": 1
+  }
+}
