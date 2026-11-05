@@ -31,11 +31,23 @@ export function TrimmedIcon({ name, height = 16 }: { name: string; height?: numb
     };
   }, [url, height]);
   if (!url) return null;
+  // 外側の span は高さと行の高さを固定し、絵がはみ出しても枠（height）を超えないようにする
+  const frame = { display: 'inline-block', flexShrink: 0, height, lineHeight: `${height}px`, overflow: 'hidden', verticalAlign: 'top' } as const;
   // 読み込み中は同じ高さの空き（ずれを防ぐ）
-  if (sprite === undefined) return <span style={{ display: 'inline-block', flexShrink: 0, width: height, height }} />;
+  if (sprite === undefined) return <span style={{ ...frame, width: height }} />;
   // 切り抜けなかったときは、元の画像を高さだけ縮めて出す
-  if (sprite === null) return <img draggable={false} src={url} alt="" height={height} style={{ imageRendering: 'pixelated', flexShrink: 0, height, width: 'auto' }} />;
-  return <img draggable={false} src={sprite.src} alt="" width={sprite.w} height={sprite.h} style={{ imageRendering: 'pixelated', flexShrink: 0, display: 'block' }} />;
+  if (sprite === null) {
+    return (
+      <span style={frame}>
+        <img draggable={false} src={url} alt="" height={height} style={{ imageRendering: 'pixelated', display: 'block', height, width: 'auto' }} />
+      </span>
+    );
+  }
+  return (
+    <span style={frame}>
+      <img draggable={false} src={sprite.src} alt="" width={sprite.w} height={sprite.h} style={{ imageRendering: 'pixelated', display: 'block', maxHeight: height, maxWidth: height * 1.5 }} />
+    </span>
+  );
 }
 
 export function Icon({ name, scale = 2 }: Props) {

@@ -45,7 +45,15 @@ const loadImage = (url: string): Promise<HTMLImageElement> =>
     img.src = url;
   });
 
-// 画像の不透明な部分を切り出し、高さが maxHeight に収まる最大の整数倍で拡大する（ドット絵のため、補間しない）
+// 表示の枠は高さ maxHeight、幅 maxHeight × 1.5。切り抜いた絵 w×h をこの枠に収める倍率を返す。
+// 1 以上なら枠に収まる最大の整数倍（拡大はドット絵のため整数倍に限る）。1 未満なら縮小用の倍率（枠に収まる最大の値、補間して縮小する）
+export function fitScale(w: number, h: number, maxW: number, maxH: number): number {
+  const ratio = Math.min(maxW / w, maxH / h);
+  if (ratio >= 1) return Math.floor(ratio);
+  return ratio;
+}
+
+// 画像の不透明な部分を切り出し、枠（高さ maxHeight、幅 maxHeight × 1.5）に収める。1 以上は整数倍で拡大し（補間しない）、1 未満は縮小する
 async function render(url: string, maxHeight: number): Promise<TrimmedSprite | null> {
   const img = await loadImage(url);
   const W = img.naturalWidth;
@@ -59,13 +67,14 @@ async function render(url: string, maxHeight: number): Promise<TrimmedSprite | n
   const bounds = opaqueBoundsOf(fctx.getImageData(0, 0, W, H).data, W, H);
   if (!bounds) return null;
 
-  const scale = Math.max(1, Math.floor(maxHeight / bounds.h));
+  const scale = fitScale(bounds.w, bounds.h, maxHeight * 1.5, maxHeight);
   const out = document.createElement('canvas');
-  out.width = bounds.w * scale;
-  out.height = bounds.h * scale;
+  out.width = Math.max(1, Math.round(bounds.w * scale));
+  out.height = Math.max(1, Math.round(bounds.h * scale));
   const octx = out.getContext('2d');
   if (!octx) return null;
-  octx.imageSmoothingEnabled = false;
+  // 拡大は補間しない（ドット絵）。縮小は補間して読めるようにする
+  octx.imageSmoothingEnabled = scale < 1;
   octx.drawImage(full, bounds.x, bounds.y, bounds.w, bounds.h, 0, 0, out.width, out.height);
   return { src: out.toDataURL('image/png'), w: out.width, h: out.height };
 }
