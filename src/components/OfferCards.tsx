@@ -9,18 +9,18 @@ import { gameEnv } from '../sim/env';
 import { staffPower } from '../sim/staff';
 import { useGameStore } from '../stores/useGameStore';
 import type { Offer } from '../contracts/template';
-import { Modal, primaryButton, secondaryButton, usePrimary } from './Modal';
+import { Modal, primaryButton, usePrimary } from './Modal';
 import { PixelCheck } from './PixelControls';
 import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
 
 // 依頼の一覧。Enter は一番上の依頼の受注（主のボタン）
-// 主でない受注ボタン。押せることが分かるよう、明るい青にして縁を明るくする（押せないときは薄く出る）
+// 主でない受注ボタン。主のボタンと同じ寸法・縁で、背景だけ明るい青にする（押せないときは薄く出る）
 const acceptButton = {
-  ...secondaryButton,
+  ...primaryButton,
   background: '#3a7bd0',
-  border: '1px solid #f4f1e6',
-  fontWeight: 'bold',
+  color: '#f4f1e6',
+  fontFamily: 'inherit',
 } as const;
 
 export function OfferCards({ onClose }: { onClose: () => void }) {
