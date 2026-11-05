@@ -14,21 +14,24 @@
       "device": "pc_basic",
       "x": 3,
       "y": 3,
-      "locked": true
+      "locked": true,
+      "name": "受付のPC"
     },
     {
       "ref": "pc_b",
       "device": "pc_basic",
       "x": 10,
       "y": 3,
-      "locked": true
+      "locked": true,
+      "name": "経理のPC"
     },
     {
       "ref": "pc_c",
       "device": "pc_basic",
       "x": 10,
       "y": 7,
-      "locked": true
+      "locked": true,
+      "name": "総務のPC"
     }
   ],
   "goals": [

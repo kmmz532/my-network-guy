@@ -26,7 +26,8 @@
         "gateway": "192.168.1.1",
         "services": [],
         "locked": true
-      }
+      },
+      "name": "本社のPC1"
     },
     {
       "ref": "hq_b",
@@ -45,7 +46,8 @@
         "gateway": "192.168.1.1",
         "services": [],
         "locked": true
-      }
+      },
+      "name": "本社のPC2"
     },
     {
       "ref": "br_a",
@@ -64,7 +66,8 @@
         "gateway": "192.168.20.1",
         "services": [],
         "locked": true
-      }
+      },
+      "name": "支社のPC1"
     },
     {
       "ref": "br_b",
@@ -83,7 +86,8 @@
         "gateway": "192.168.20.1",
         "services": [],
         "locked": true
-      }
+      },
+      "name": "支社のPC2"
     }
   ],
   "goals": [

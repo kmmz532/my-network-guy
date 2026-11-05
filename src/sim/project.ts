@@ -235,6 +235,7 @@ const fixedNodes = (contract: Contract): NetNode[] =>
   contract.placed.map((p) => ({
     uid: p.ref,
     device: p.device,
+    ...(p.name ? { name: p.name } : {}),
     x: p.x,
     y: p.y,
     locked: p.locked,

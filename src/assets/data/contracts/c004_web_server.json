@@ -31,7 +31,8 @@
           }
         ],
         "locked": true
-      }
+      },
+      "name": "社内Webサーバー"
     },
     {
       "ref": "staff_a",
@@ -50,7 +51,8 @@
         "gateway": "192.168.1.1",
         "services": [],
         "locked": true
-      }
+      },
+      "name": "社員のPC1"
     },
     {
       "ref": "staff_b",
@@ -69,7 +71,8 @@
         "gateway": "192.168.1.1",
         "services": [],
         "locked": true
-      }
+      },
+      "name": "社員のPC2"
     }
   ],
   "goals": [

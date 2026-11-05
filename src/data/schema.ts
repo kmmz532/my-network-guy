@@ -212,6 +212,8 @@ export const placedSchema = z.object({
   y: nonNegativeInt,
   locked: z.boolean(),
   config: placedConfigSchema.optional(),
+  // 場所の名前（「受付のPC」など。画面の機器の名前になる。なければ「PC-1」などの仮の名前）
+  name: z.string().min(1).max(24).optional(),
 });
 
 // 案件の達成条件。ハンドラの種類はここで列挙し、新しい種類を追加するときは本体のハンドラと合わせて追加する。

@@ -27,7 +27,8 @@
         "gateway": "192.168.1.1",
         "services": [],
         "locked": true
-      }
+      },
+      "name": "営業部のPC1"
     },
     {
       "ref": "sales_b",
@@ -46,7 +47,8 @@
         "gateway": "192.168.1.1",
         "services": [],
         "locked": true
-      }
+      },
+      "name": "営業部のPC2"
     },
     {
       "ref": "dev_a",
@@ -65,7 +67,8 @@
         "gateway": "192.168.2.1",
         "services": [],
         "locked": true
-      }
+      },
+      "name": "開発部のPC1"
     },
     {
       "ref": "dev_b",
@@ -84,7 +87,8 @@
         "gateway": "192.168.2.1",
         "services": [],
         "locked": true
-      }
+      },
+      "name": "開発部のPC2"
     }
   ],
   "goals": [

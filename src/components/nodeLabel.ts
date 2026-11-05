@@ -33,8 +33,8 @@ export const labelOfUid = (state: GameState, uid: string, nodes: readonly NetNod
 };
 
 // 依頼カード（まだ受注していない案件）の機器の名前。案件が最初から置く機器（placed）の並びから番号を付ける
-export const offerNodeName = (offer: { contract: { placed: { ref: string; device: string }[] } }, ref: string): string => {
-  const placed = offer.contract.placed.map((p) => ({ uid: p.ref, device: p.device, x: 0, y: 0, locked: true, configLocked: false, interfaces: [], gateway: null, routes: [], services: [] }) as NetNode);
+export const offerNodeName = (offer: { contract: { placed: { ref: string; device: string; name?: string }[] } }, ref: string): string => {
+  const placed = offer.contract.placed.map((p) => ({ uid: p.ref, device: p.device, ...(p.name ? { name: p.name } : {}), x: 0, y: 0, locked: true, configLocked: false, interfaces: [], gateway: null, routes: [], services: [] }) as NetNode);
   const node = placed.find((n) => n.uid === ref);
   if (!node) return ref;
   return nodeName(node, placed, {

@@ -13,14 +13,16 @@
       "device": "pc_basic",
       "x": 3,
       "y": 4,
-      "locked": true
+      "locked": true,
+      "name": "所長のPC"
     },
     {
       "ref": "pc_b",
       "device": "pc_basic",
       "x": 10,
       "y": 4,
-      "locked": true
+      "locked": true,
+      "name": "事務員のPC"
     }
   ],
   "goals": [
