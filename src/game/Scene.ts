@@ -367,17 +367,19 @@ export class Scene {
       const ts = map.tileSize;
       const mapW = map.width * ts;
       const mapH = map.height * ts;
-      const size = ts * EXPAND_BUTTON_RATIO;
+      // 画素の格子に合わせて、整数の大きさと位置にする（線がにじまないように）
+      const size = Math.round(ts * EXPAND_BUTTON_RATIO);
       // 壁の外側の線（TileMap は外側の壁のマスの、部屋側に寄った細い上面だけを描く）に、ボタンの端を接して置く。
       // 右と左は壁の中ほど、下は床の幅の中ほど
       const at =
         side === 'right' ? { x: mapW - ts + WALL_CAP, y: (mapH - size) / 2 }
         : side === 'left' ? { x: ts - WALL_CAP - size, y: (mapH - size) / 2 }
         : { x: (mapW - size) / 2, y: mapH - ts + WALL_CAP };
-      box.position.set(at.x, at.y);
+      box.position.set(Math.round(at.x), Math.round(at.y));
       const body = box.getChildAt(0) as Graphics;
       body.clear();
-      body.roundRect(0, 0, size, size, size * 0.2).fill(BUBBLE_FILL).stroke({ width: 1.5, color: OUTLINE });
+      // 角は丸めず、画素の枠として描く（ドット絵の部品と同じ、角を立てた線）
+      body.rect(0, 0, size, size).fill(BUBBLE_FILL).stroke({ width: 2, color: OUTLINE, alignment: 0 });
       const label = box.getChildAt(1) as Text;
       label.style.fontSize = size * EXPAND_LABEL_RATIO;
       label.position.set(size / 2, size / 2);
