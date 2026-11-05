@@ -179,17 +179,44 @@ export const accept = (core: Core, offerId: string): Outcome => {
   return { ok: true, core: { ...core, offers: core.offers.filter((o) => o.id !== offerId), active: project } };
 };
 
-// 在庫から機器を1台配置する。床のマスにだけ置ける。
+// 自社オフィスに機器を置けるかを判定する。置けなければ失敗の理由を返す
+// PCは机の家具があり、その上に機器がないマスだけ。PC以外は床で、家具も機器もないマスだけ
+const officePlaceReason = (
+  furniture: PlacedFurniture[],
+  nodes: NetNode[],
+  deviceId: string,
+  x: number,
+  y: number,
+  map: GameMap,
+  env: Env,
+): string | null => {
+  const hasNode = nodes.some((n) => n.x === x && n.y === y);
+  if (env.devices[deviceId].category === 'pc') {
+    const onDesk = furniture.some((f) => f.x === x && f.y === y && f.id === DESK_ID);
+    return !onDesk || hasNode ? 'desk' : null;
+  }
+  const kind = map.legend[map.tiles[y][x]];
+  if (kind !== 'floor') return 'tile';
+  if (hasNode || furniture.some((f) => f.x === x && f.y === y)) return 'tile';
+  return null;
+};
+
+// 在庫から機器を1台配置する。自社案件では自社オフィスと同じ規則に従い、ほかの案件では床（PCは机の上も可）に置ける。
 export const placeDevice = (core: Core, deviceId: string, x: number, y: number, map: GameMap, env: Env): Outcome => {
   const p = requireDesign(core);
   if (typeof p === 'string') return fail(p);
   if (!env.devices[deviceId]) return fail('none');
   if ((core.owned[deviceId] ?? 0) < 1) return fail('stock');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
-  // 床に置く。PCは机の上にも置ける
-  const kind = map.legend[map.tiles[y][x]];
-  if (kind !== 'floor' && !(kind === 'desk' && env.devices[deviceId].category === 'pc')) return fail('tile');
-  if (p.nodes.some((n) => n.x === x && n.y === y)) return fail('tile');
+  if (p.contract.inhouse) {
+    const reason = officePlaceReason(core.office.furniture, p.nodes, deviceId, x, y, map, env);
+    if (reason) return fail(reason);
+  } else {
+    // 床に置く。PCは机の上にも置ける
+    const kind = map.legend[map.tiles[y][x]];
+    if (kind !== 'floor' && !(kind === 'desk' && env.devices[deviceId].category === 'pc')) return fail('tile');
+    if (p.nodes.some((n) => n.x === x && n.y === y)) return fail('tile');
+  }
   const node: NetNode = {
     uid: `u${p.seq}`,
     device: deviceId,
@@ -217,17 +244,8 @@ export const placeInOffice = (core: Core, deviceId: string, x: number, y: number
   if ((core.owned[deviceId] ?? 0) < 1) return fail('stock');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
   const office = core.office;
-  const hasNode = office.nodes.some((n) => n.x === x && n.y === y);
-  if (env.devices[deviceId].category === 'pc') {
-    // PCは机の上にだけ置ける。机の上にほかの機材があれば置けない
-    const onDesk = office.furniture.some((f) => f.x === x && f.y === y && f.id === DESK_ID);
-    if (!onDesk || hasNode) return fail('desk');
-  } else {
-    // それ以外の機材は、家具のない床のマスにだけ置ける
-    const kind = map.legend[map.tiles[y][x]];
-    if (kind !== 'floor') return fail('tile');
-    if (hasNode || office.furniture.some((f) => f.x === x && f.y === y)) return fail('tile');
-  }
+  const reason = officePlaceReason(office.furniture, office.nodes, deviceId, x, y, map, env);
+  if (reason) return fail(reason);
   const node: NetNode = {
     uid: `u${office.seq}`,
     device: deviceId,

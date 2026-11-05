@@ -198,8 +198,50 @@ describe('自社案件', () => {
   };
   const inhouseOffer: Offer = { id: inhouse.id, kind: 'fixed', baseId: inhouse.id, params: {}, contract: inhouse };
 
+  const desk = (x: number, y: number) => ({ uid: `f${x}${y}`, id: 'desk', x, y });
+
+  it('自社案件では、机のない床にPCを置けない', () => {
+    const core: Core = { ...start(), offers: [inhouseOffer], owned: { pc_basic: 1 } };
+    const accepted = ok(accept(core, inhouse.id)).core;
+    expect(placeDevice(accepted, 'pc_basic', 6, 6, map, env)).toEqual({ ok: false, reason: 'desk' });
+  });
+
+  it('自社案件では、机の上にPCを置ける', () => {
+    const core: Core = {
+      ...start(),
+      offers: [inhouseOffer],
+      owned: { pc_basic: 1 },
+      office: { nodes: [], links: [], seq: 0, furniture: [desk(6, 6)], furnitureSeq: 1 },
+    };
+    const accepted = ok(accept(core, inhouse.id)).core;
+    expect(ok(placeDevice(accepted, 'pc_basic', 6, 6, map, env)).core.active?.nodes).toHaveLength(1);
+  });
+
+  it('自社案件では、家具のマスに機器を置けない', () => {
+    const core: Core = {
+      ...start(),
+      offers: [inhouseOffer],
+      owned: { l2_switch_8p: 1 },
+      office: { nodes: [], links: [], seq: 0, furniture: [{ uid: 'f0', id: 'plant', x: 6, y: 6 }], furnitureSeq: 1 },
+    };
+    const accepted = ok(accept(core, inhouse.id)).core;
+    expect(placeDevice(accepted, 'l2_switch_8p', 6, 6, map, env)).toEqual({ ok: false, reason: 'tile' });
+  });
+
+  it('自社案件でない案件では、床にPCを置ける', () => {
+    const core: Core = { ...start(), owned: { pc_basic: 1 } };
+    const accepted = ok(accept(core, offer.id)).core;
+    const before = accepted.active?.nodes.length ?? 0;
+    expect(ok(placeDevice(accepted, 'pc_basic', 6, 6, map, env)).core.active?.nodes).toHaveLength(before + 1);
+  });
+
   it('納品したネットワークが自社オフィスに残り、次の自社案件に引き継がれる', () => {
-    let core: Core = { ...start(), offers: [inhouseOffer], owned: { pc_basic: 2 } };
+    let core: Core = {
+      ...start(),
+      offers: [inhouseOffer],
+      owned: { pc_basic: 2 },
+      office: { nodes: [], links: [], seq: 0, furniture: [desk(3, 4), desk(8, 4)], furnitureSeq: 2 },
+    };
     core = ok(accept(core, inhouse.id)).core;
     core = ok(placeDevice(core, 'pc_basic', 3, 4, map, env)).core;
     core = ok(placeDevice(core, 'pc_basic', 8, 4, map, env)).core;
