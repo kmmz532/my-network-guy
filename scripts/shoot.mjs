@@ -92,6 +92,23 @@ const scenes = {
       g.getState().connect(nodes[0].uid, nodes[1].uid, 'utp_cat5e');
     });
   },
+  // つなぐのに失敗した直後（機器を自分につなぐ。失敗の吹き出しと、赤い輪・揺れを撮る）
+  fail: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      g.getState().buy('l2_switch_8p');
+      let placed = false;
+      for (let y = 1; y < 12 && !placed; y++) {
+        for (let x = 1; x < 12 && !placed; x++) {
+          if (g.getState().place('l2_switch_8p', x, y) === null) placed = true;
+        }
+      }
+      const node = g.getState().office.nodes.find((n) => n.device === 'l2_switch_8p');
+      if (!node) throw new Error('機器を置けなかった');
+      g.getState().connect(node.uid, node.uid, 'utp_cat5e');
+    });
+  },
   // PC の設定で「詳しく」を開き、ネットワークの一覧を開いた状態（選択の部品）
   select: async (page) => {
     await scenes.career(page);

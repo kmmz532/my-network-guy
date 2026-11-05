@@ -75,6 +75,8 @@ const FLASH_MS = 2500;
 const PULSE_MS = 450;
 // 機器を押した瞬間の輪が広がる時間（ms）
 const PRESS_MS = 220;
+// 失敗の瞬間の揺れと赤い輪の時間（ms）
+const SHAKE_MS = 320;
 // パケットの速さ（タイル/秒）と、粒の間隔（タイル）。粒の数は3つまで
 const PACKET_TILES_PER_SEC = 3;
 const PACKET_SPACING_TILES = 0.5;
@@ -1310,8 +1312,15 @@ export class Scene {
       resolution: this.textResolution(),
     });
     text.anchor.set(0.5, 1);
-    text.position.set(f.tx * ts + ts / 2, f.ty * ts - 4);
+    // 失敗の瞬間は、地点に赤い輪が広がり、吹き出しが左右に小さく揺れる（すぐ収まる）
+    const age = Date.now() - f.at;
+    const shake = age < SHAKE_MS ? Math.sin((age / SHAKE_MS) * Math.PI * 4) * 3 * (1 - age / SHAKE_MS) : 0;
+    text.position.set(f.tx * ts + ts / 2 + shake, f.ty * ts - 4);
     this.bubbles.addChild(text);
+    if (age < SHAKE_MS) {
+      const k = age / SHAKE_MS;
+      this.g.circle(f.tx * ts + ts / 2, f.ty * ts + ts / 2, ts * (0.35 + 0.3 * k)).stroke({ width: 2, color: FAIL, alpha: 1 - k });
+    }
   }
 
   // マップの座標に変換する（拡大と配置の補正を除いた、タイルの座標系）
