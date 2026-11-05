@@ -39,6 +39,9 @@ describe('セーブのバージョン移行', () => {
       office: {
         // 移行前の部屋は固定のマップ（14×8）の大きさ
         size: { w: 14, h: 8 },
+        innerWalls: [],
+        doors: [],
+        annexes: [],
         nodes: [],
         links: [],
         seq: 0,

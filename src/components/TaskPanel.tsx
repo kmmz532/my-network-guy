@@ -7,17 +7,25 @@ import { goalText } from './goalText';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
+import { usePhone } from '../ui/usePhone';
+import { useEffect } from 'react';
 
 // 最初の案件（c001）の手順。配線・疎通・施工依頼の順に、済んだものに印を付ける
 const FIRST_CONTRACT = 'c001_direct_link';
 
-export function TaskPanel() {
+// top は札の上端（ヘッダーの下）。狭い画面では、案件を受けたときに畳んだ状態（件名だけ）で出す
+export function TaskPanel({ top = 44 }: { top?: number }) {
   const active = useGameStore(focusedProject);
   const open = useGameStore((s) => s.taskOpen);
   const setOpen = useGameStore((s) => s.setTaskOpen);
   const check = useGameStore((s) => s.check);
   const openWindow = useGameStore((s) => s.openWindow);
   const setTool = useGameStore((s) => s.setTool);
+  const phone = usePhone();
+  const activeId = active?.id ?? null;
+  useEffect(() => {
+    if (phone && activeId !== null) setOpen(false);
+  }, [phone, activeId, setOpen]);
   if (!active) return null;
 
   // 最後のテスト（または検収）の結果。この案件のものだけを使う。結果がなければ ok は null（未判定）
@@ -42,9 +50,10 @@ export function TaskPanel() {
     <aside
       style={{
         position: 'absolute',
-        top: 44,
+        top,
         left: 8,
         width: open ? 260 : 'auto',
+        maxWidth: phone ? 'calc((100vw - 16px) / var(--ui-scale, 1))' : undefined,
         background: 'rgba(47, 79, 143, 0.92)',
         color: '#f4f1e6',
         border: '2px solid #3b2a33',
@@ -72,7 +81,12 @@ export function TaskPanel() {
       >
         <span style={{ width: 10 }}>{open ? '▾' : '▸'}</span>
         <Icon name="icon/mail" scale={1} />
-        {open && <span>{t(`contract.${active.baseId}.title` as LangKey, active.params)}</span>}
+        {/* 畳んだときは、狭い画面だけ件名を出す（PC は従来どおり開いたときだけ） */}
+        {(open || phone) && (
+          <span style={phone && !open ? { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : undefined}>
+            {t(`contract.${active.baseId}.title` as LangKey, active.params)}
+          </span>
+        )}
       </button>
       {open && (
         <div style={{ padding: '0 8px 8px' }}>

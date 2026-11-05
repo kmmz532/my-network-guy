@@ -96,7 +96,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
     const fromIface = iface ? { network: networkAddress(iface.ip, iface.prefix), prefix: iface.prefix } : null;
     const shown = cfg ?? pending[port] ?? fromIface ?? { network: PLANNED_NETWORK, prefix: PLANNED_PREFIX };
     const color = colorOfNetwork(colors, cfg?.network) ?? UNSET_COLOR;
-    // 候補は、読み取り専用でなければ一覧にする（設定がなければ、今のネットワークの .10 から並べる）
+    // 候補は、読み取り専用でなければ一覧にする。設定の前でも後でも同じ範囲（.1 からブロードキャストの1つ前まで）・同じ順で並べる
     const candidates: AddressCandidate[] = readOnly || unlinkedRouter
       ? []
       : cfg

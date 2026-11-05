@@ -49,8 +49,10 @@ export const drawTileMap = (map: GameMap): Container => {
     const k = kindAt(x, y);
     return k !== undefined && !isWall(k) && !isOutdoor(k);
   };
-  // 奥の壁の正面（真下が床の壁）と、手前の壁（真上が床の壁）
-  const faceAt = (x: number, y: number): boolean => isWall(kindAt(x, y)) && floorAt(x, y + 1);
+  // 奥の壁の正面（真下が床の壁）と、手前の壁（真上が床の壁）。
+  // 仕切りの壁（左右とも床）は正面にせず、上面で描く。上端の壁は、両隣が正面なら、その間をつないで隙間を作らない
+  const frontFaceAt = (x: number, y: number): boolean => isWall(kindAt(x, y)) && floorAt(x, y + 1) && !(floorAt(x - 1, y) && floorAt(x + 1, y));
+  const faceAt = (x: number, y: number): boolean => frontFaceAt(x, y) || (y === 0 && isWall(kindAt(x, y)) && frontFaceAt(x - 1, y) && frontFaceAt(x + 1, y));
   const frontAt = (x: number, y: number): boolean => isWall(kindAt(x, y)) && floorAt(x, y - 1);
 
   // 床と壁を先に敷き、家具は上の行から順に重ねる（手前の家具が奥の家具を隠す）
@@ -74,6 +76,8 @@ export const drawTileMap = (map: GameMap): Container => {
           if (!put(kind === 'wall' ? 'tile/wall_face' : `tile/${kind}`, x, y)) g.rect(x * ts, y * ts, ts, ts).fill(fallbackColor.wall);
           continue;
         }
+        // 仕切りの壁は、両側が床なので中を塗る（上面の帯だけだと、中が背景に抜けて見える）
+        if (floorAt(x - 1, y) && floorAt(x + 1, y)) g.rect(x * ts, y * ts, ts, ts).fill(CAP_COLOR);
         // 左右と手前の壁は、床に接する辺に上面を描く。外側は背景のまま
         const r = x * ts + ts; // 右端
         // 上面の内側の縁に1 pxの線を引く。奥の壁の横では、奥の壁の上面の帯より下だけに引き、上面どうしをL字につなげる
@@ -101,6 +105,11 @@ export const drawTileMap = (map: GameMap): Container => {
       }
       if (kind === 'road') {
         put('tile/road', x, y);
+        continue;
+      }
+      // ドアは通れる床。ドアのスプライトを床の上に描く（家具の対象にはしない）
+      if (kind === 'door') {
+        if (!put('tile/door', x, y)) g.rect(x * ts, y * ts, ts, ts).fill(fallbackColor.floor);
         continue;
       }
       if (!put(`tile/floor_${floorVariant(x, y)}`, x, y)) g.rect(x * ts, y * ts, ts, ts).fill(fallbackColor.floor);

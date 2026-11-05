@@ -12,7 +12,7 @@ import serverJson from '../assets/data/devices/server.json';
 import routerJson from '../assets/data/devices/router.json';
 import switchJson from '../assets/data/devices/l2_switch.json';
 
-export const SAVE_VERSION = 17;
+export const SAVE_VERSION = 18;
 
 // 移行前の部屋の床の大きさ（移行前の固定のマップ hq の内側）。移行後の部屋は、この大きさのまま続く
 const legacyOfficeSize = { w: 14, h: 8 };
@@ -162,6 +162,11 @@ export const migrations: Record<number, Migration> = {
     const d = data as { office: Office };
     return { ...d, office: { ...d.office, size: { ...legacyOfficeSize } } };
   },
+  // v17 → v18: 自社オフィスに、内側の壁・ドア・別室を追加する。移行前の部屋は、別室も内側の壁もドアもないものとする
+  17: (data) => {
+    const d = data as { office: Office };
+    return { ...d, office: { ...d.office, innerWalls: [], doors: [], annexes: [] } };
+  },
   // v10 → v11: 案件に担当の社員を追加する。移行前の案件は、全社員が担当だったものとする
   10: (data) => {
     const d = data as { active: Project[]; staff: Staff[] };
@@ -204,7 +209,10 @@ export const isSaveData = (value: unknown): value is SaveData => {
     Array.isArray(v.guidesDone) &&
     v.guidesDone.every((id) => typeof id === 'string') &&
     Array.isArray((v.office as { furniture?: unknown } | undefined)?.furniture) &&
-    isOfficeSize((v.office as { size?: unknown }).size)
+    isOfficeSize((v.office as { size?: unknown }).size) &&
+    Array.isArray((v.office as { innerWalls?: unknown }).innerWalls) &&
+    Array.isArray((v.office as { doors?: unknown }).doors) &&
+    Array.isArray((v.office as { annexes?: unknown }).annexes)
   );
 };
 

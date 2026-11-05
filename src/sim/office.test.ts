@@ -2,7 +2,18 @@ import { describe, expect, it } from 'vitest';
 import type { Balance, GameMap } from '../data/schema';
 import balanceJson from '../assets/data/balance.json';
 import type { NetLink, NetNode } from '../network/types';
-import { canExpand, expandCostOf, expandCountOf, expandOffice, officeMapOf, type ExpandSide } from './office';
+import {
+  canExpand,
+  expandActionOf,
+  expandCostOf,
+  expandCountOf,
+  expandOffice,
+  mainSizeOf,
+  mapOfOffice,
+  officeExpandCostOf,
+  officeMapOf,
+  type ExpandSide,
+} from './office';
 import { emptyOffice, noEffects, type Core, type Office, type Project } from './project';
 
 const config = (balanceJson as Balance).office;
@@ -101,19 +112,21 @@ describe('費用', () => {
 });
 
 describe('上限', () => {
-  it('床 15×11 までしか広げられない', () => {
+  it('床 15×15 までしか広げられない', () => {
     expect(canExpand({ w: 13, h: 8 }, 'right', config)).toBe(true);
     expect(canExpand({ w: 15, h: 5 }, 'right', config)).toBe(false);
     expect(canExpand({ w: 15, h: 5 }, 'left', config)).toBe(false);
-    // 5 から2マスずつ広げるため、11 が高さの上限
-    expect(canExpand({ w: 5, h: 9 }, 'bottom', config)).toBe(true);
-    expect(canExpand({ w: 5, h: 11 }, 'bottom', config)).toBe(false);
+    // 5 から2マスずつ広げるため、13 から 15 へ広がる
+    expect(canExpand({ w: 5, h: 13 }, 'bottom', config)).toBe(true);
+    expect(canExpand({ w: 5, h: 15 }, 'bottom', config)).toBe(false);
   });
 
-  it('上限の辺を広げると、理由 max で失敗し、部屋と資金は変わらない', () => {
-    const start = core(10_000_000, { size: { w: 15, h: 5 } });
-    const r = expandOffice(start, 'right', config);
-    expect(r).toEqual({ ok: false, reason: 'max' });
+  it('上限に達していない辺は、広げる操作になる', () => {
+    expect(expandActionOf(office(), 'right', config)).toBe('expand');
+  });
+
+  it('上限に達した辺は、別室を足す操作になる', () => {
+    expect(expandActionOf(office({ size: { w: 15, h: 5 } }), 'right', config)).toBe('annex');
   });
 });
 
@@ -198,3 +211,198 @@ describe('広げる', () => {
     ]);
   });
 });
+
+describe('別室', () => {
+  const at15 = (over: Partial<Office> = {}) => core(10_000_000, { size: { w: 15, h: 5 }, ...over });
+  const ok = (r: ReturnType<typeof expandOffice>) => {
+    if (!r.ok) throw new Error(`失敗: ${r.reason}`);
+    return r.core.office;
+  };
+
+  it('右の辺が上限なら、仕切りの壁1マスと奥行き5マスの床を足す（床の大きさは 21×5）', () => {
+    const o = ok(expandOffice(at15(), 'right', config));
+    expect(o.size).toEqual({ w: 21, h: 5 });
+    expect(o.annexes).toEqual(['right']);
+    // 仕切りは外壁だった列（x=16）の、床の高さ分（y=1〜5）。中央（y=3）はドア
+    expect(o.doors).toEqual([{ x: 16, y: 3 }]);
+    expect(o.innerWalls).toEqual([
+      { x: 16, y: 1 },
+      { x: 16, y: 2 },
+      { x: 16, y: 4 },
+      { x: 16, y: 5 },
+    ]);
+  });
+
+  it('別室のマップは、仕切りの壁とドアを含み、別室の床は通れる', () => {
+    const o = ok(expandOffice(at15(), 'right', config));
+    const map = mapOfOffice(o);
+    expect(map.width).toBe(23);
+    expect(map.tiles[1][16]).toBe('#');
+    expect(map.tiles[3][16]).toBe('D');
+    expect(map.legend[map.tiles[3][16]]).toBe('door');
+    expect(map.legend[map.tiles[3][20]]).toBe('floor');
+    expect(map.legend[map.tiles[0][22]]).toBe('wall');
+  });
+
+  it('下の辺が上限なら、下に別室を足す（横の長さは床の幅と同じ）', () => {
+    const start = core(10_000_000, { size: { w: 5, h: 15 } });
+    const o = ok(expandOffice(start, 'bottom', config));
+    expect(o.size).toEqual({ w: 5, h: 21 });
+    expect(o.doors).toEqual([{ x: 3, y: 16 }]);
+    expect(o.innerWalls).toHaveLength(4);
+    expect(o.innerWalls.every((c) => c.y === 16)).toBe(true);
+  });
+
+  it('同じ辺に2つ目の別室は足せず、理由 max で失敗する', () => {
+    const once = ok(expandOffice(at15(), 'right', config));
+    expect(expandOffice({ ...core(10_000_000), office: once }, 'right', config)).toEqual({ ok: false, reason: 'max' });
+  });
+
+  it('別室のある辺は、床を広げる操作もできない', () => {
+    const once = ok(expandOffice(at15(), 'right', config));
+    expect(expandActionOf(once, 'right', config)).toBeNull();
+  });
+
+  it('別室の床は広げられず、本体の大きさで上限を見る', () => {
+    const once = ok(expandOffice(at15(), 'right', config));
+    expect(mainSizeOf(once)).toEqual({ w: 15, h: 5 });
+    // 本体は左も上限のままなので、左は別室を足す操作になる
+    expect(expandActionOf(once, 'left', config)).toBe('annex');
+    expect(expandActionOf(once, 'bottom', config)).toBe('expand');
+  });
+
+  it('費用は本体の大きさで決まり、通常の拡張と同じ式で続く', () => {
+    expect(officeExpandCostOf(at15().office, config)).toBe(expandCostOf({ w: 15, h: 5 }, config));
+    const once = ok(expandOffice(at15(), 'right', config));
+    expect(officeExpandCostOf(once, config)).toBe(expandCostOf({ w: 15, h: 5 }, config));
+  });
+
+  it('資金が足りなければ、別室は理由 money で失敗する', () => {
+    const start = core(100, { size: { w: 15, h: 5 } });
+    expect(expandOffice(start, 'right', config)).toEqual({ ok: false, reason: 'money' });
+  });
+
+  it('左に別室を足すと、機器・家具・ケーブル・内側の壁・ドアを右へ6マスずらす', () => {
+    const withParts = office({
+      size: { w: 15, h: 5 },
+      innerWalls: [{ x: 6, y: 1 }],
+      doors: [{ x: 6, y: 3 }],
+    });
+    const o = ok(expandOffice({ ...core(10_000_000), office: withParts }, 'left', config));
+    expect(o.size).toEqual({ w: 21, h: 5 });
+    expect(o.nodes.map((n) => [n.x, n.y])).toEqual([
+      [8, 2],
+      [10, 3],
+    ]);
+    expect(o.furniture.map((f) => [f.x, f.y])).toEqual([[9, 3]]);
+    expect(o.links[0].path[0]).toEqual([8, 2]);
+    // 既存の内側の壁・ドアは右へ6マス。新しい仕切りは、ずらしたあとの左の外壁の次の列（x=6）
+    expect(o.innerWalls).toContainEqual({ x: 12, y: 1 });
+    expect(o.innerWalls).toContainEqual({ x: 6, y: 1 });
+    expect(o.doors).toContainEqual({ x: 12, y: 3 });
+    expect(o.doors).toContainEqual({ x: 6, y: 3 });
+    expect(o.annexes).toEqual(['left']);
+  });
+
+  it('左に別室を足したあとも、ずらした座標は床の中にある', () => {
+    const o = ok(expandOffice({ ...core(10_000_000), office: office({ size: { w: 15, h: 5 } }) }, 'left', config));
+    const map = mapOfOffice(o);
+    const floor = (x: number, y: number) => map.legend[map.tiles[y][x]] === 'floor';
+    expect(o.nodes.every((n) => floor(n.x, n.y))).toBe(true);
+    expect(o.furniture.every((f) => floor(f.x, f.y))).toBe(true);
+  });
+
+  it('内側の壁・ドアのマスは、マップの壁・ドアとして反映する', () => {
+    const map = officeMapOf({ w: 5, h: 5 }, [{ x: 3, y: 2 }], [{ x: 3, y: 4 }]);
+    expect(map.tiles[2][3]).toBe('#');
+    expect(map.tiles[4][3]).toBe('D');
+    expect(map.tiles[3][3]).toBe('.');
+  });
+});
+
+describe('別室の仕切りの壁を延ばす', () => {
+  const rich = (over: Partial<Office> = {}) => core(1_000_000_000, { size: { w: 15, h: 5 }, ...over });
+  const ok = (r: ReturnType<typeof expandOffice>) => {
+    if (!r.ok) throw new Error(`失敗: ${r.reason}`);
+    return r.core;
+  };
+  const grow = (c: Core, side: ExpandSide, times: number): Core => {
+    let cur = c;
+    for (let i = 0; i < times; i++) cur = ok(expandOffice(cur, side, config));
+    return cur;
+  };
+  // ドア（通れる床）を通らずに、from から届くマス
+  const reachWithoutDoors = (map: GameMap, from: [number, number]): Set<string> => {
+    const seen = new Set<string>([`${from[0]},${from[1]}`]);
+    const queue: [number, number][] = [from];
+    while (queue.length) {
+      const [x, y] = queue.shift()!;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (map.legend[map.tiles[ny]?.[nx]] !== 'floor') continue;
+        const key = `${nx},${ny}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        queue.push([nx, ny]);
+      }
+    }
+    return seen;
+  };
+
+  it('右の別室のあとに下へ広げると、仕切りの壁は新しい床の分だけ延び、ドアは動かない', () => {
+    const c = grow(rich(), 'right', 1);
+    const next = grow(c, 'bottom', 2);
+    expect(next.office.size).toEqual({ w: 21, h: 9 });
+    expect(next.office.doors).toEqual([{ x: 16, y: 3 }]);
+    const ys = next.office.innerWalls.filter((w) => w.x === 16).map((w) => w.y).sort((a, b) => a - b);
+    expect(ys).toEqual([1, 2, 4, 5, 6, 7, 8, 9]);
+    // 本体と別室は、ドアを除いてつながらない（新しい行の床も含む）
+    const map = mapOfOffice(next.office);
+    const fromMain = reachWithoutDoors(map, [2, 2]);
+    expect(fromMain.has('18,2')).toBe(false);
+    expect(fromMain.has('18,8')).toBe(false);
+  });
+
+  it('左の別室のあとに下へ広げると、左の仕切りの壁も延びる（ドアは動かない）', () => {
+    const c = grow(rich(), 'left', 1);
+    const next = grow(c, 'bottom', 1);
+    expect(next.office.doors).toEqual([{ x: 6, y: 3 }]);
+    const ys = next.office.innerWalls.filter((w) => w.x === 6).map((w) => w.y).sort((a, b) => a - b);
+    expect(ys).toEqual([1, 2, 4, 5, 6, 7]);
+  });
+
+  it('右の別室のあとに、下の別室を足しても、右の別室と本体は下の別室とつながらない', () => {
+    const c = grow(grow(rich(), 'right', 1), 'bottom', 5);
+    expect(c.office.size.h).toBe(15);
+    const next = ok(expandOffice(c, 'bottom', config));
+    const office = next.office;
+    expect(office.annexes).toEqual(['right', 'bottom']);
+    expect(office.size).toEqual({ w: 21, h: 21 });
+    expect(office.doors).toEqual([
+      { x: 16, y: 3 },
+      { x: 11, y: 16 },
+    ]);
+    const map = mapOfOffice(office);
+    const fromMain = reachWithoutDoors(map, [2, 2]);
+    // 右の別室（ドアを通らない）と、下の別室（ドアを通らない）は本体から届かない
+    expect(fromMain.has('18,2')).toBe(false);
+    expect(fromMain.has('2,18')).toBe(false);
+    // 右の別室の床と、下の別室の床は、角で通じない
+    expect(fromMain.has('18,18')).toBe(false);
+    expect(map.legend[map.tiles[16][18]]).toBe('wall');
+    // 下の別室の仕切りは、床の幅いっぱい（右の別室の下まで）
+    expect(map.legend[map.tiles[16][21]]).toBe('wall');
+  });
+
+  it('下の別室のあとに左右へ広げると、下の別室の仕切りも延びる（ドアは動かない）', () => {
+    const c = grow(rich({ size: { w: 5, h: 15 } }), 'bottom', 1);
+    expect(c.office.annexes).toEqual(['bottom']);
+    const next = grow(c, 'right', 2);
+    expect(next.office.size).toEqual({ w: 9, h: 21 });
+    expect(next.office.doors).toEqual([{ x: 3, y: 16 }]);
+    const xs = next.office.innerWalls.filter((w) => w.y === 16).map((w) => w.x).sort((a, b) => a - b);
+    expect(xs).toEqual([1, 2, 4, 5, 6, 7, 8, 9]);
+  });
+});
+

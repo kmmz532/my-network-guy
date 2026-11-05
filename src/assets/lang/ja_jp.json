@@ -406,5 +406,8 @@
   "ui.office.expand.right": "右に広げる",
   "ui.office.expand.bottom": "下に広げる",
   "ui.office.expand.left": "左に広げる",
+  "ui.office.annex.right": "右に別室を足す",
+  "ui.office.annex.bottom": "下に別室を足す",
+  "ui.office.annex.left": "左に別室を足す",
   "ui.office.cost": "費用 {cost}円"
 }

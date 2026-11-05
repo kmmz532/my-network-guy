@@ -73,7 +73,7 @@ const start = (owned: Record<string, number> = {}): Core => ({
   active: [],
   focus: null,
   office: {
-    size: { w: 5, h: 5 },
+    size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [],
     nodes: [],
     links: [],
     seq: 0,

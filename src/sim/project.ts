@@ -132,9 +132,24 @@ export interface OfficeSize {
   h: number;
 }
 
+// マップ上のマス（x, y）
+export interface OfficeCell {
+  x: number;
+  y: number;
+}
+
+// 部屋の辺（右・下・左）。上（奥の壁）には広げない
+export type OfficeSide = 'right' | 'bottom' | 'left';
+
 export interface Office {
-  // 部屋の床の大きさ。マップは大きさから作る
+  // 部屋の床の大きさ（別室を含む外側の床の大きさ）。マップは大きさから作る
   size: OfficeSize;
+  // 内側の壁のマス（床の内側。機器・家具は置けない）
+  innerWalls: OfficeCell[];
+  // ドアのマス（通れる床として扱う）
+  doors: OfficeCell[];
+  // 別室を足した辺（1辺に1つまで）
+  annexes: OfficeSide[];
   nodes: NetNode[];
   links: NetLink[];
   seq: number;
@@ -152,7 +167,17 @@ export interface Effects {
 // 社員の席になる家具（机）のID。PCはこの家具の上にだけ置ける
 export const DESK_ID = 'desk';
 
-export const emptyOffice = (size: OfficeSize): Office => ({ size, nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 });
+export const emptyOffice = (size: OfficeSize): Office => ({
+  size,
+  innerWalls: [],
+  doors: [],
+  annexes: [],
+  nodes: [],
+  links: [],
+  seq: 0,
+  furniture: [],
+  furnitureSeq: 0,
+});
 export const noEffects = (): Effects => ({ buildSpeed: 0 });
 
 export interface Core {
@@ -964,7 +989,23 @@ export interface AddressCandidate {
   usedBy: { node: string; port: number } | null;
 }
 
-// 機器のポートのセグメントで使えるアドレスの一覧（ネットワークアドレスとブロードキャストアドレスを除く）。
+// ネットワーク（先頭アドレスと prefix）で使えるアドレスの一覧。ネットワークアドレスとブロードキャストアドレスを除き、.1 から順に並べる。
+// 設定の前でも後でも同じ範囲・同じ順になる。使用中のアドレスには、使っている機器とポートを付ける（同じネットワーク内のすべての機器を見る）
+const addressRange = (
+  network: string,
+  prefix: number,
+  nodes: Array<{ uid: string; interfaces: Array<{ port: number; ip: string }> }>,
+): AddressCandidate[] => {
+  const base = ipToInt(network);
+  const size = 2 ** (32 - prefix);
+  const owners = new Map<number, { node: string; port: number }>();
+  for (const n of nodes) for (const i of n.interfaces) owners.set(ipToInt(i.ip), { node: n.uid, port: i.port });
+  const list: AddressCandidate[] = [];
+  for (let h = 1; h <= size - 2; h++) list.push({ ip: intToIp(base + h), usedBy: owners.get(base + h) ?? null });
+  return list;
+};
+
+// 機器のポートのセグメントで使えるアドレスの一覧（addressRange と同じ）。
 // セグメントに設定がなければ空の一覧
 export const addressCandidates = (core: Core, uid: string, port: number, env: Env, target: NetTarget = 'focus'): AddressCandidate[] => {
   const net = netOf(core, target);
@@ -973,35 +1014,19 @@ export const addressCandidates = (core: Core, uid: string, port: number, env: En
   if (!seg) return [];
   const cfg = segmentConfigOf(seg, new Map(net.nodes.map((n) => [n.uid, n])), net.segments);
   if (!cfg) return [];
-  const base = ipToInt(cfg.network);
-  const size = 2 ** (32 - cfg.prefix);
-  const owners = new Map<number, { node: string; port: number }>();
-  for (const n of net.nodes) for (const i of n.interfaces) owners.set(ipToInt(i.ip), { node: n.uid, port: i.port });
-  const list: AddressCandidate[] = [];
-  for (let h = 1; h <= size - 2; h++) list.push({ ip: intToIp(base + h), usedBy: owners.get(base + h) ?? null });
-  return list;
+  return addressRange(cfg.network, cfg.prefix, net.nodes);
 };
 
 // まだ配線していない機器（PC・サーバー）にIPアドレスを設定するときの既定のネットワーク。配線すると、入力したアドレスの /24 がセグメントの設定になる
 export const PLANNED_NETWORK = '192.168.1.0';
 export const PLANNED_PREFIX = 24;
-// 候補の開始位置（ホストの番号）。配線の前は .10 から空いているアドレスを並べる
-const PLANNED_FIRST_HOST = 10;
 
-// 配線の前に設定するときのアドレスの候補。ネットワークに設定がなくても、指定したネットワークの .10 から並べる。
+// 配線の前に設定するときのアドレスの候補。ネットワークに設定がなくても、指定したネットワークで addressCandidates と同じ範囲・同じ順になる（.1 から）。
 // 使用中のアドレスには、使っている機器とポートを付ける（同じ案件のほかの機器が使っている物も含む）
 export const plannedAddressCandidates = (core: Core, network: string, prefix: number, target: NetTarget = 'focus'): AddressCandidate[] => {
   const net = netOf(core, target);
   if (typeof net === 'string') return [];
-  const base = ipToInt(network);
-  const size = 2 ** (32 - prefix);
-  const owners = new Map<number, { node: string; port: number }>();
-  for (const n of net.nodes) for (const i of n.interfaces) owners.set(ipToInt(i.ip), { node: n.uid, port: i.port });
-  const list: AddressCandidate[] = [];
-  for (let h = Math.min(PLANNED_FIRST_HOST, size - 2); h <= size - 2; h++) {
-    list.push({ ip: intToIp(base + h), usedBy: owners.get(base + h) ?? null });
-  }
-  return list;
+  return addressRange(network, prefix, net.nodes);
 };
 
 // 色と配線から生成したネットワーク（判定・表示に使う）→ 配線とセグメントの設定から生成したネットワーク

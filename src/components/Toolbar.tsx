@@ -13,6 +13,7 @@ import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
 import { Warehouse } from './Warehouse';
 import { RADIUS } from '../ui/theme';
+import { usePhone } from '../ui/usePhone';
 
 const bar = {
   position: 'absolute',
@@ -28,6 +29,30 @@ const bar = {
   gap: 6,
   zoom: 'var(--ui-scale, 1)',
 } as const;
+
+// 狭い画面（スマホの縦持ち）では、ツールバーを1段のまま横にスクロールする。ケーブルの種類の欄は、スクロールで切れないように行の上に出す
+const barPhone = {
+  ...bar,
+  flexWrap: 'nowrap',
+  flexDirection: 'column',
+  alignItems: 'stretch',
+  padding: '6px 8px',
+  gap: 0,
+} as const;
+
+const scrollerPhone = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  minWidth: 0,
+  overflowX: 'auto',
+  overflowY: 'hidden',
+  flexWrap: 'nowrap',
+  scrollbarWidth: 'thin',
+} as const;
+
+// PC では行を作らず、子の部品を従来どおり footer の並びに置く
+const scrollerDesktop = { display: 'contents' } as const;
 
 const slot = (active: boolean) =>
   ({
@@ -146,6 +171,7 @@ export function Toolbar({
   const mode = warehouseMode(active?.phase ?? null, showcase !== null);
   const warehouseItemList = warehouseItems(mode, shop, completed, owned);
   const warehouseOpenable = mode !== 'closed';
+  const phone = usePhone();
 
   // 品目を選ぶと配置に入る。同じ品目をもう一度押すと配置を終えて欄を閉じる
   const pickWarehouseItem = (item: WarehouseItem) => {
@@ -158,54 +184,67 @@ export function Toolbar({
     }
   };
 
+  // 倉庫の欄を閉じる（配置の途中では閉じない。置き終わるまで欄を開けておく）
+  const closeWarehouse = () => {
+    if (placing === null) setWarehouseOpen(false);
+  };
+
+  // ケーブルの種類の欄。PC は配線のボタンの上に浮かせ、狭い画面は行の上に出す（スクロールで切れないように）
+  const cablePopup = (
+    <div
+      style={{
+        position: phone ? 'static' : 'absolute',
+        left: 0,
+        bottom: phone ? undefined : '100%',
+        marginBottom: 6,
+        alignSelf: 'flex-start',
+        display: 'flex',
+        gap: 4,
+        padding: 4,
+        background: 'rgba(47, 79, 143, 0.92)',
+        border: '1px solid #3b2a33',
+        borderRadius: RADIUS.chrome,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {cableIds.map((id) => {
+        const cable = cables[id as keyof typeof cables];
+        const name = t(`cable.${id}.name` as LangKey);
+        // 値段は、ボタンの文字には出さず、ツールチップの2行目に出す
+        const price = t('ui.cable.price', { link: yen(cable.pricePerLink), tile: yen(cable.pricePerTile) });
+        return (
+          <Tooltip text={`${name}\n${price}`} key={id}>
+            <button aria-label={name} style={{ ...slot(wireCable === id), width: 36, height: 36 }} onClick={() => setWireCable(id)}>
+              <Icon name={`icon/cable_${id}`} scale={1} />
+            </button>
+          </Tooltip>
+        );
+      })}
+    </div>
+  );
+  const showCables = tool === 'wire' && cableIds.length > 0;
+
   return (
     <>
-    <footer style={bar}>
+    <footer style={phone ? barPhone : bar} data-toolbar>
+      {/* 狭い画面では、ケーブルの欄を行の上に出す */}
+      {phone && showCables && cablePopup}
+      <div style={phone ? scrollerPhone : scrollerDesktop}>
       {/* 道具は自社オフィスでも案件の設計中でも常に出す。配線の道具を選んだときだけ、ケーブルの種類を配線のボタンの上に浮かせて出す（並びには場所を取らない） */}
       {TOOLS.map((item) => (
         <Fragment key={item.id}>
           <span style={{ position: 'relative', display: 'inline-flex' }}>
             <Tooltip text={tipText(item.name, item.action)}>
-              <button aria-label={t(item.name)} data-guide={`tool.${item.id}`} style={toolSlot(tool === item.id)} onClick={() => setTool(item.id)}>
+              <button aria-label={t(item.name)} data-guide={`tool.${item.id}`} style={toolSlot(tool === item.id)} onClick={() => { setTool(item.id); closeWarehouse(); }}>
                 <Icon name={item.icon} />
               </button>
             </Tooltip>
-            {item.id === 'wire' && tool === 'wire' && cableIds.length > 0 && (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  bottom: '100%',
-                  marginBottom: 6,
-                  display: 'flex',
-                  gap: 4,
-                  padding: 4,
-                  background: 'rgba(47, 79, 143, 0.92)',
-                  border: '1px solid #3b2a33',
-                  borderRadius: RADIUS.chrome,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {cableIds.map((id) => {
-                  const cable = cables[id as keyof typeof cables];
-                  const name = t(`cable.${id}.name` as LangKey);
-                  // 値段は、ボタンの文字には出さず、ツールチップの2行目に出す
-                  const price = t('ui.cable.price', { link: yen(cable.pricePerLink), tile: yen(cable.pricePerTile) });
-                  return (
-                    <Tooltip text={`${name}\n${price}`} key={id}>
-                      <button aria-label={name} style={{ ...slot(wireCable === id), width: 36, height: 36 }} onClick={() => setWireCable(id)}>
-                        <Icon name={`icon/cable_${id}`} scale={1} />
-                      </button>
-                    </Tooltip>
-                  );
-                })}
-              </div>
-            )}
+            {item.id === 'wire' && !phone && showCables && cablePopup}
           </span>
         </Fragment>
       ))}
       {sep}
-      <Tooltip text={tipText('ui.offer.title', 'offers')}><button aria-label={t('ui.offer.title')} style={{ ...slot(false), position: 'relative' }}  onClick={onOffers}>
+      <Tooltip text={tipText('ui.offer.title', 'offers')}><button aria-label={t('ui.offer.title')} style={{ ...slot(false), position: 'relative' }}  onClick={() => { closeWarehouse(); onOffers(); }}>
         <Icon name="icon/mail" />
         {offers.length > 0 && (
           <span style={{ position: 'absolute', top: -6, right: -6, background: '#e84a4a', borderRadius: RADIUS.chrome, fontSize: 11, padding: '0 5px' }}>
@@ -213,7 +252,7 @@ export function Toolbar({
           </span>
         )}
       </button></Tooltip>
-      <Tooltip text={tipText('ui.shop.title', 'shop')}><button aria-label={t('ui.shop.title')} data-guide="shop" style={slot(false)}  onClick={onShop}>
+      <Tooltip text={tipText('ui.shop.title', 'shop')}><button aria-label={t('ui.shop.title')} data-guide="shop" style={slot(false)}  onClick={() => { closeWarehouse(); onShop(); }}>
         <Icon name="icon/cart" />
       </button></Tooltip>
       {/* 在庫は倉庫のアイコンにまとめる。品目の一覧は倉庫の欄で開く */}
@@ -246,7 +285,7 @@ export function Toolbar({
                 color: testLit ? '#1d3664' : '#f4f1e6',
                 fontSize: 16,
               }}
-              onClick={() => test()}
+              onClick={() => { closeWarehouse(); test(); }}
             >
               <Icon name="icon/test" /> {t('ui.test')}
             </button>
@@ -263,7 +302,7 @@ export function Toolbar({
                 fontSize: 16,
                 opacity: active.testedOk ? 1 : 0.55,
               }}
-              onClick={() => requestBuild()}
+              onClick={() => { closeWarehouse(); requestBuild(); }}
             >
               <Icon name="icon/hammer" /> {t('ui.build')}
             </button>
@@ -271,7 +310,7 @@ export function Toolbar({
           <span style={{ marginLeft: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
             <Icon name="icon/budget" /> {yen(active.cost)} / {yen(active.contract.budget)}
           </span>
-          <Tooltip text={t('ui.project.abandon')} style={{ marginLeft: 'auto' }}><button aria-label={t('ui.project.abandon')} style={{ ...slot(false), width: 32 }}  onClick={() => abandon()}>
+          <Tooltip text={t('ui.project.abandon')} style={{ marginLeft: 'auto' }}><button aria-label={t('ui.project.abandon')} style={{ ...slot(false), width: 32 }}  onClick={() => { closeWarehouse(); abandon(); }}>
             <Icon name="icon/close" />
           </button></Tooltip>
         </>
@@ -302,6 +341,7 @@ export function Toolbar({
           )}
         </>
       )}
+      </div>
     </footer>
     {warehouseOpen && warehouseOpenable && (
       <Warehouse

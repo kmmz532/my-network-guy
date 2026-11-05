@@ -16,7 +16,7 @@ import { certs as certRecord, training as trainingRecord } from 'virtual:game-da
 import type { NetLink, NetNode, Route } from '../network/types';
 import type { SaveData } from '../services/migrations';
 import { gameEnv } from '../sim/env';
-import { type ExpandSide, expandOffice as expandOfficeOp, officeMapOf } from '../sim/office';
+import { type ExpandSide, expandOffice as expandOfficeOp, mapOfOffice } from '../sim/office';
 import {
   type DesignEntry,
   type History,
@@ -517,7 +517,7 @@ export const useGameStore = create<GameState>((set, get) => {
     speed: 1,
     nightSpeed: null,
     pausedPrompt: false,
-    maps: { hq: officeMapOf(balance.office.initialSize) },
+    maps: { hq: mapOfOffice(initialOffice(balance)) },
     lastReport: null,
     notice: null,
     dismissReport: () => set({ lastReport: null, showcase: null, traces: [] }),
@@ -753,7 +753,7 @@ export const useGameStore = create<GameState>((set, get) => {
       if (reason !== null) return reason;
       // 部屋の大きさが変わったので、マップを作り直す。広げる前の操作の取り消しは、座標が合わないため消す
       dropHistory(OFFICE_HISTORY_KEY);
-      set((s) => ({ maps: { ...s.maps, hq: officeMapOf(s.office.size) } }));
+      set((s) => ({ maps: { ...s.maps, hq: mapOfOffice(s.office) } }));
       return null;
     },
     placeFurniture: (id, x, y) => {
@@ -858,7 +858,7 @@ export const useGameStore = create<GameState>((set, get) => {
         staffSeq: save.staffSeq,
         candidates: save.candidates,
         guidesDone: save.guidesDone,
-        maps: { ...get().maps, hq: officeMapOf(save.office.size) },
+        maps: { ...get().maps, hq: mapOfOffice(save.office) },
         guideTarget: null,
         lastReport: null,
         showcase: null,
@@ -888,7 +888,7 @@ export const useGameStore = create<GameState>((set, get) => {
           office: initialOffice(balance),
           effects: noEffects(),
           guidesDone: [],
-          maps: { ...s.maps, hq: officeMapOf(initialOffice(balance).size) },
+          maps: { ...s.maps, hq: mapOfOffice(initialOffice(balance)) },
           guideTarget: null,
           lastReport: null,
           lastError: null,

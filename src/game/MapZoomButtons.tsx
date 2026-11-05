@@ -3,6 +3,7 @@
 import { t } from '../i18n/t';
 import { RADIUS } from '../ui/theme';
 import { Icon } from '../components/Icon';
+import { usePhone } from '../ui/usePhone';
 import { mapCommands } from './mapControl';
 
 // ツールバーの道具のボタンと同じ見た目
@@ -24,14 +25,17 @@ const buttonStyle = {
 // ツールバーの高さ（56 px）と、角からの余白（12 px）の分だけ上に置く
 const TOOLBAR_HEIGHT_PX = 56;
 const EDGE_PX = 12;
+// 狭い画面（スマホ）では、ツールバーが1段の横スクロールになり、高さが変わる（余白とスクロールバーを含む）
+const TOOLBAR_HEIGHT_PHONE_PX = 84;
 
 export function MapZoomButtons() {
+  const phone = usePhone();
   return (
     <div
       style={{
         position: 'absolute',
         right: EDGE_PX,
-        bottom: TOOLBAR_HEIGHT_PX + EDGE_PX,
+        bottom: (phone ? TOOLBAR_HEIGHT_PHONE_PX : TOOLBAR_HEIGHT_PX) + EDGE_PX,
         display: 'flex',
         flexDirection: 'column',
         gap: 6,

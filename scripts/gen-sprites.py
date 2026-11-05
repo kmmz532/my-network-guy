@@ -618,6 +618,18 @@ def wall_face():
     return img
 
 
+def door():
+    # 仕切りの壁の真ん中のドア。床の上に、枠と木の扉を描く
+    img = floor(0)
+    d = ImageDraw.Draw(img)
+    rect(d, 3, 0, 26, 2, 'W3')
+    rect(d, 3, 0, 3, 32, 'W3')
+    rect(d, 26, 0, 3, 32, 'W3')
+    rect(d, 6, 2, 20, 30, 'c', 'o')
+    px(d, 21, 17, 'y')
+    return img
+
+
 def wall_window():
     img = wall_face()
     d = ImageDraw.Draw(img)
@@ -905,6 +917,7 @@ if __name__ == '__main__':
         'clock': wall_clock(),
         'poster': wall_poster(),
         'whiteboard': wall_whiteboard(),
+        'door': door(),
     }
     for name, img in tiles.items():
         save(img, f'tile/{name}.png')

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { usePhone } from './ui/usePhone';
 import { balance, furniture } from 'virtual:game-data';
 import type { FurnitureId } from './generated/ids';
 import { seatCount } from './sim/furniture';
@@ -77,6 +78,23 @@ export function App() {
   const cacheMap = useGameStore((s) => s.cacheMap);
   // 倉庫の欄の開け閉め（ツールバーと W キーで使う）
   const [warehouseOpen, setWarehouseOpen] = useState(false);
+  // ヘッダーの下端（画面の座標）。狭い画面では案件の札と速さの表示を、ヘッダーの下に置く
+  const headerRef = useRef<HTMLElement>(null);
+  const [hudBottom, setHudBottom] = useState(0);
+  const phone = usePhone();
+  useLayoutEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const measure = () => setHudBottom(el.getBoundingClientRect().bottom);
+    measure();
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    ro?.observe(el);
+    window.addEventListener('resize', measure);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [ready, screen]);
 
   useTickLoop();
   useEffect(() => {
@@ -165,6 +183,7 @@ export function App() {
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       <PixiStage />
       <header
+        ref={headerRef}
         style={{
           position: 'absolute',
           top: 0,
@@ -222,7 +241,8 @@ export function App() {
           <Icon name="icon/menu" scale={1} />
         </button>
       </header>
-      <TaskPanel />
+      {/* 狭い画面では、札をヘッダーの下に置く（ヘッダーの高さは zoom を掛けた画面の座標なので、札の上端は倍率で割って渡す） */}
+      <TaskPanel top={phone ? (hudBottom + 6) / (loadSettings().uiScale) : 44} />
       <Windows
         onTraining={() => {
           setHiringTab('staff');
@@ -277,7 +297,7 @@ export function App() {
         <div
           style={{
             position: 'absolute',
-            top: 48,
+            top: phone ? (hudBottom + 6) / loadSettings().uiScale : 48,
             left: '50%',
             transform: 'translateX(-50%)',
             background: 'rgba(47, 79, 143, 0.95)',

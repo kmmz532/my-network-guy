@@ -1,6 +1,7 @@
 // 初めての概念の案内（P7）。案件を初めて開いたとき、画面の下に社員の吹き出しで次にやることを1行出し、操作する場所を光らせる。
 // 操作は縛らない。条件を満たしたら次の手順へ進み、最後まで行くか「飛ばす」で案件の案内を終える（guidesDone に入る）
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { usePhone } from '../ui/usePhone';
 import { devices, guides } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
@@ -19,6 +20,9 @@ interface Box {
 
 const sameBox = (a: Box | null, b: Box | null): boolean =>
   a === b || (a !== null && b !== null && a.left === b.left && a.top === b.top && a.width === b.width && a.height === b.height);
+
+// 光らせる枠の、ボタンの外側への出っ張り（画面の px）
+const GLOW_OUTSET_PX = 3;
 
 const categoryOf = (device: string): string =>
   (devices as Record<string, { category: string } | undefined>)[device]?.category ?? '';
@@ -39,6 +43,11 @@ export function Guide() {
   const [progress, setProgress] = useState<{ id: string; index: number }>({ id: '', index: 0 });
   // 光らせるツールバーのボタンの位置（画面の座標）
   const [glow, setGlow] = useState<Box | null>(null);
+  // 狭い画面では、ツールバーの上端の位置（画面の座標）の上に吹き出しを置く。ボタンを隠さないため
+  const [barTop, setBarTop] = useState(0);
+  const phone = usePhone();
+  // 横にスクロールするツールバーで、光らせるボタンを見える位置へ寄せたときの対象（同じ手順で何度も寄せないため）
+  const scrolledFor = useRef<string | null>(null);
 
   // 設計中の案件の、まだ終えていない案内だけを出す。案内を出さない設定のときは出さない
   const id = project?.phase === 'design' ? project.baseId : null;
@@ -83,21 +92,60 @@ export function Guide() {
 
   // 対象がツールバーのボタン（data-guide の名前）なら、その位置を測って枠を重ねる。画面の大きさが変わったら測り直す
   const glowName = step !== null && deviceTarget === null ? step.target : null;
+  // 対象のボタンの位置を測って枠に入れる（画面の px のまま。同じ位置なら状態を変えない）
+  const measureGlow = useCallback(() => {
+    if (glowName === null) return;
+    const el = document.querySelector(`[data-guide="${glowName}"]`);
+    const r = el ? el.getBoundingClientRect() : null;
+    const next = r && r.width > 0 ? { left: r.left, top: r.top, width: r.width, height: r.height } : null;
+    setGlow((prev) => (sameBox(prev, next) ? prev : next));
+  }, [glowName]);
+
   useLayoutEffect(() => {
+    const bar = document.querySelector('[data-toolbar]');
+    if (bar) {
+      const top = bar.getBoundingClientRect().top;
+      setBarTop((prev) => (prev === top ? prev : top));
+    }
     if (glowName === null) {
+      scrolledFor.current = null;
       setGlow(null);
       return;
     }
-    const measure = () => {
+    // 狭い画面で、横にスクロールする外に対象があるときは、一度だけ見える位置へ寄せる
+    if (phone && scrolledFor.current !== glowName) {
       const el = document.querySelector(`[data-guide="${glowName}"]`);
-      const r = el ? el.getBoundingClientRect() : null;
-      const next = r && r.width > 0 ? { left: r.left, top: r.top, width: r.width, height: r.height } : null;
-      setGlow((prev) => (sameBox(prev, next) ? prev : next));
-    };
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+      if (el) {
+        scrolledFor.current = glowName;
+        el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }
+    }
+    measureGlow();
   });
+
+  // 枠の位置は、ツールバーの並びや大きさが変わったとき・画面の大きさやスクロールが変わったときに測り直す（描画の前に1回にまとめる）
+  useEffect(() => {
+    if (glowName === null) return;
+    let frame = 0;
+    const schedule = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measureGlow);
+    };
+    const target = document.querySelector(`[data-guide="${glowName}"]`);
+    const bar = document.querySelector('[data-toolbar]');
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(schedule);
+    if (target) observer?.observe(target);
+    if (bar) observer?.observe(bar);
+    window.addEventListener('resize', schedule);
+    // 横にスクロールすると、枠の位置もずれるため、スクロールのたびに測り直す
+    window.addEventListener('scroll', schedule, true);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer?.disconnect();
+      window.removeEventListener('resize', schedule);
+      window.removeEventListener('scroll', schedule, true);
+    };
+  }, [glowName, measureGlow]);
 
   if (id === null || step === null) return null;
   const skip = () => markGuideDone(id);
@@ -109,12 +157,14 @@ export function Guide() {
         <div
           aria-hidden
           style={{
+            // ボタンの外側に 3 px（画面の px。この枠は UI の大きさの zoom の外にあるので換算しない）。枠は border-box で、枠の内側がボタンの外形に接する
             position: 'fixed',
-            left: glow.left - 4,
-            top: glow.top - 4,
-            width: glow.width + 8,
-            height: glow.height + 8,
-            border: '3px solid #ffd866',
+            boxSizing: 'border-box',
+            left: glow.left - GLOW_OUTSET_PX,
+            top: glow.top - GLOW_OUTSET_PX,
+            width: glow.width + GLOW_OUTSET_PX * 2,
+            height: glow.height + GLOW_OUTSET_PX * 2,
+            border: `${GLOW_OUTSET_PX}px solid #ffd866`,
             boxShadow: '0 0 0 2px #3b2a33',
             borderRadius: RADIUS.none,
             pointerEvents: 'none',
@@ -125,14 +175,27 @@ export function Guide() {
       )}
       <div
         role="status"
-        style={{
-          position: 'fixed',
-          left: '50%',
-          bottom: 'calc(72px * var(--ui-scale, 1))',
-          transform: 'translateX(-50%)',
-          zIndex: 800,
-          zoom: 'var(--ui-scale, 1)',
-        }}
+        style={
+          phone
+            ? {
+                // ツールバーの上端から少し上に置く（ツールバーのボタンを隠さない）。幅は画面に収める
+                position: 'fixed',
+                left: '50%',
+                bottom: barTop > 0 ? (window.innerHeight - barTop + 8) / loadSettings().uiScale : 72,
+                transform: 'translateX(-50%)',
+                maxWidth: 'calc((100vw - 16px) / var(--ui-scale, 1))',
+                zIndex: 800,
+                zoom: 'var(--ui-scale, 1)',
+              }
+            : {
+                position: 'fixed',
+                left: '50%',
+                bottom: 'calc(72px * var(--ui-scale, 1))',
+                transform: 'translateX(-50%)',
+                zIndex: 800,
+                zoom: 'var(--ui-scale, 1)',
+              }
+        }
       >
         <div
           style={{
@@ -146,7 +209,7 @@ export function Guide() {
             border: '3px solid #3b2a33',
             boxShadow: '0 0 0 2px #f4f1e6',
             borderRadius: RADIUS.none,
-            whiteSpace: 'nowrap',
+            whiteSpace: phone ? 'normal' : 'nowrap',
             fontSize: 14,
           }}
         >
@@ -155,6 +218,8 @@ export function Guide() {
           <button
             onClick={skip}
             style={{
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
               padding: '2px 8px',
               cursor: 'pointer',
               fontFamily: 'inherit',

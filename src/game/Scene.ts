@@ -11,7 +11,7 @@ import { rangeTiles } from './effectRange';
 import { setMapView } from './mapView';
 import { gameEnv } from '../sim/env';
 import { moveFurniture, placeFurniture } from '../sim/furniture';
-import { canExpand, expandCostOf, type ExpandSide } from '../sim/office';
+import { expandActionOf, officeExpandCostOf, type ExpandSide } from '../sim/office';
 import {
   checkConnect,
   compiledNet,
@@ -322,9 +322,10 @@ export class Scene {
     box.on('pointerover', (e) => {
       box.alpha = 1;
       this.resetTip();
-      const size = useGameStore.getState().office.size;
-      const name = t(`ui.office.expand.${side}` as LangKey);
-      const cost = t('ui.office.cost', { cost: expandCostOf(size, balance.office).toLocaleString('ja-JP') });
+      const office = useGameStore.getState().office;
+      const action = expandActionOf(office, side, balance.office);
+      const name = t(`ui.office.${action === 'annex' ? 'annex' : 'expand'}.${side}` as LangKey);
+      const cost = t('ui.office.cost', { cost: officeExpandCostOf(office, balance.office).toLocaleString('ja-JP') });
       this.tipTimer = window.setTimeout(() => this.showTip(`${name}\n${cost}`, e.clientX, e.clientY), balance.tooltip.hoverMs);
     });
     box.on('pointerout', () => {
@@ -347,7 +348,7 @@ export class Scene {
     for (const side of EXPAND_SIDES) {
       const box = this.expandButtons.get(side);
       if (!box) continue;
-      const visible = shown && canExpand(s.office.size, side, balance.office);
+      const visible = shown && expandActionOf(s.office, side, balance.office) !== null;
       box.visible = visible;
       if (!visible || !map) continue;
       const ts = map.tileSize;
@@ -371,11 +372,13 @@ export class Scene {
   }
 
   private onTick = (ticker: Ticker): void => {
-    this.elapsed += ticker.deltaMS;
+    // ゲームの速度（一時停止は 0）に合わせて、社員の移動・アニメーション・つぶやきの時間を進める
+    const dt = ticker.deltaMS * useGameStore.getState().speed;
+    this.elapsed += dt;
     // 画面の大きさが変わったら、マップの位置と倍率を合わせ直す（resize の順に関係なく、描画の時点で拾う）
     const view = this.viewSize();
     if (this.map && (view.w !== this.view.w || view.h !== this.view.h)) this.layout();
-    this.updateWanderers(ticker.deltaMS);
+    this.updateWanderers(dt);
     // パケットは滑らかに動かす。それ以外はコマ送り（ART.md）
     if (this.traceActive() || this.flashActive()) {
       this.drawObjects();
@@ -785,7 +788,10 @@ export class Scene {
     const count = Math.max(0, s.staff.length - seats);
     const floor: Point[] = [];
     for (let y = 0; y < map.height; y++) {
-      for (let x = 0; x < map.width; x++) if (map.legend[map.tiles[y][x]] === 'floor') floor.push({ x, y });
+      for (let x = 0; x < map.width; x++) {
+        const kind = map.legend[map.tiles[y][x]];
+        if (kind === 'floor' || kind === 'door') floor.push({ x, y });
+      }
     }
     while (this.wanderers.length < count) {
       const start = floor.length ? floor[Math.floor(Math.random() * floor.length)] : { x: 0, y: 0 };

@@ -27,7 +27,7 @@ const sample: SaveData = {
   rng: 1,
   active: [],
   focus: null,
-  office: { size: { w: 5, h: 5 }, nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 },
+  office: { size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 },
   effects: { buildSpeed: 0 },
   staff: [member('s0'), member('s1')],
   staffSeq: 2,
@@ -326,7 +326,7 @@ describe('v16 → v17', () => {
 
   it('部屋の大きさを足したほかは、そのまま残す', () => {
     const out = migrate(16, v16);
-    expect(out.office).toEqual({ ...v16.office, size: { w: 14, h: 8 } });
+    expect(out.office).toEqual({ ...v16.office, size: { w: 14, h: 8 }, innerWalls: [], doors: [], annexes: [] });
   });
 
   it('移行後の形式は、読み込んで書き出しても元に戻る', () => {
@@ -339,3 +339,27 @@ describe('v16 → v17', () => {
     expect(() => migrate(17, { ...sample, office: officeWithoutSize })).toThrow();
   });
 });
+
+describe('v17 → v18', () => {
+  const { office: _office, ...withoutOffice } = sample;
+  const v17 = { ...withoutOffice, office: { size: { w: 7, h: 5 }, nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 } };
+
+  it('内側の壁・ドア・別室は空で移行する（部屋の大きさはそのまま）', () => {
+    const out = migrate(17, v17);
+    expect(out.office.innerWalls).toEqual([]);
+    expect(out.office.doors).toEqual([]);
+    expect(out.office.annexes).toEqual([]);
+    expect(out.office.size).toEqual({ w: 7, h: 5 });
+  });
+
+  it('移行後の形式は、読み込んで書き出しても元に戻る', () => {
+    const out = migrate(17, v17);
+    expect(importSave(exportSave(out))).toEqual(out);
+  });
+
+  it('内側の壁などのない自社オフィスは、移行後も残りの形式を保つ', () => {
+    const out = migrate(17, v17);
+    expect(out.office).toEqual({ ...v17.office, innerWalls: [], doors: [], annexes: [] });
+  });
+});
+
