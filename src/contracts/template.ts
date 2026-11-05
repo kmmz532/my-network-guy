@@ -19,6 +19,21 @@ export interface InstantiateResult {
   rng: number;
 }
 
+// スイッチを1台置いて、全機器と配線するときの配線の長さ（タイル数の合計）が最も短い置き場所。床のマスで、機器のないマスから選ぶ
+export const starHubOf = (points: readonly { x: number; y: number }[], map: GameMap): { x: number; y: number; tiles: number } => {
+  let best: { x: number; y: number; tiles: number } | null = null;
+  for (let y = 0; y < map.height; y++) {
+    for (let x = 0; x < map.width; x++) {
+      if (map.legend[map.tiles[y][x]] !== 'floor') continue;
+      if (points.some((p) => p.x === x && p.y === y)) continue;
+      const tiles = points.reduce((sum, p) => sum + Math.abs(p.x - x) + Math.abs(p.y - y), 0);
+      if (best === null || tiles < best.tiles) best = { x, y, tiles };
+    }
+  }
+  if (best === null) throw new Error('床のマスがない');
+  return best;
+};
+
 export const instantiateTemplate = (
   template: ContractTemplate,
   map: GameMap,
@@ -59,7 +74,8 @@ export const instantiateTemplate = (
     deadlineDays: template.deadlineDays,
     requires: template.requires,
     map: template.map,
-    budget: template.budget.base + template.budget.perPc * n,
+    // 予算は、台数と、スイッチを中心に配線したときの配線の長さで決まる（模範の費用の約7割）
+    budget: template.budget.base + template.budget.perPc * n + template.budget.perTile * starHubOf(placed, map).tiles,
     placed,
     goals,
     inhouse: false,

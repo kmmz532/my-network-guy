@@ -7,7 +7,7 @@ import officeJson from '../assets/data/maps/office_small.json';
 import type { Balance, Contract, ContractTemplate, GameMap } from '../data/schema';
 import { minutesPerDay } from '../sim/clock';
 import { refreshOffers, type OfferEnv, type OfferState } from './offers';
-import { instantiateTemplate } from './template';
+import { instantiateTemplate, starHubOf } from './template';
 
 const balance = balanceJson as unknown as Balance;
 const map = officeJson as unknown as GameMap;
@@ -63,7 +63,9 @@ describe('定型案件の生成', () => {
     const { offer } = instantiateTemplate(template, map, 3, 5);
     const n = offer.params.pcCount;
     expect(offer.contract.goals).toEqual([{ type: 'ping_all', nodes: offer.contract.placed.map((p) => p.ref) }]);
-    expect(offer.contract.budget).toBe(template.budget.base + template.budget.perPc * n);
+    expect(offer.contract.budget).toBe(
+      template.budget.base + template.budget.perPc * n + template.budget.perTile * starHubOf(offer.contract.placed, map).tiles,
+    );
     expect(offer.contract.reward.money).toBe(template.reward.base + template.reward.perPc * n);
     expect(offer.id).toBe('t_small_lan_3');
   });

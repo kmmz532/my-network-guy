@@ -21,8 +21,9 @@
   },
   "deadlineDays": 7,
   "budget": {
-    "base": 15000,
-    "perPc": 3000
+    "base": 17000,
+    "perPc": 1500,
+    "perTile": 500
   },
   "reward": {
     "base": 30000,

@@ -271,7 +271,7 @@ export const templateSchema = z.object({
     width: int.positive(),
     height: int.positive(),
   }),
-  budget: z.object({ base: nonNegativeInt, perPc: nonNegativeInt }),
+  budget: z.object({ base: nonNegativeInt, perPc: nonNegativeInt, perTile: nonNegativeInt }),
   reward: z.object({
     base: nonNegativeInt,
     perPc: nonNegativeInt,
