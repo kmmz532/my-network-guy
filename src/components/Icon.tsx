@@ -18,15 +18,11 @@ const sizeOf = (name: string): [number, number] => {
 export function Icon({ name, scale = 2, title }: Props) {
   const url = spriteUrl(name);
   if (!url) return null;
+  const style = { imageRendering: 'pixelated', verticalAlign: 'middle', display: 'inline-block' } as const;
+  // 家具は高さがまちまちなので、幅だけ整数倍にして高さは画像の比率に任せる（拡大は整数倍のまま）
+  if (name.startsWith('furniture/')) {
+    return <img src={url} alt="" title={title} width={32 * scale} style={{ ...style, height: 'auto' }} />;
+  }
   const [w, h] = sizeOf(name);
-  return (
-    <img
-      src={url}
-      alt=""
-      title={title}
-      width={w * scale}
-      height={h * scale}
-      style={{ imageRendering: 'pixelated', verticalAlign: 'middle', display: 'inline-block' }}
-    />
-  );
+  return <img src={url} alt="" title={title} width={w * scale} height={h * scale} style={style} />;
 }

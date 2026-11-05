@@ -1,5 +1,5 @@
 // 画面下のツールバー。依頼・機材・ケーブル・色塗り・施工をアイコンで操作する
-import { devices, shop } from 'virtual:game-data';
+import { devices, furniture, shop } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { isUnlocked } from '../sim/shop';
@@ -61,6 +61,8 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
 
   const unlocked = shop.filter((item) => isUnlocked(item, completed));
   const deviceIds = unlocked.filter((i) => i.device).map((i) => i.device!);
+  const furnitureIds = unlocked.filter((i) => i.furniture).map((i) => i.furniture!);
+  const showcase = useGameStore((s) => s.showcase);
   const cableIds = unlocked.filter((i) => i.cable).map((i) => i.cable!);
   const design = active?.phase === 'design';
   const yen = (n: number) => n.toLocaleString('ja-JP');
@@ -97,6 +99,29 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
             }}
           >
             <Icon name={d.sprite} scale={1} />
+            <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>
+              {stock}
+            </span>
+          </button>
+        );
+      })}
+      {/* 家具は自社オフィスを表示しているときだけ選べる */}
+      {furnitureIds.map((id) => {
+        const stock = owned[id] ?? 0;
+        const office = !active && !showcase;
+        return (
+          <button
+            key={`furniture-${id}`}
+            style={{ ...slot(tool === 'build' && placing === id), opacity: stock > 0 ? 1 : 0.35 }}
+            title={`${t(`furniture.${id}.name` as LangKey)} ${yen(furniture[id as keyof typeof furniture].price)}`}
+            onClick={() => {
+              if (stock === 0) return onShop();
+              if (!office) return;
+              setTool('build');
+              setPlacing(placing === id ? null : id);
+            }}
+          >
+            <Icon name={`furniture/${id}`} scale={1} />
             <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>
               {stock}
             </span>

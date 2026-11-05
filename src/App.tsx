@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import { balance } from 'virtual:game-data';
+import { balance, furniture } from 'virtual:game-data';
+import type { FurnitureId } from './generated/ids';
+import type { LangKey } from './generated/lang-keys';
+import { seatCount } from './sim/furniture';
 import { loadLang, t } from './i18n/t';
 import { PixiStage } from './game/PixiStage';
 import { useGameStore, type Speed } from './stores/useGameStore';
@@ -45,6 +48,11 @@ export function App() {
   const load = useGameStore((s) => s.load);
   const snapshot = useGameStore((s) => s.snapshot);
   const newGame = useGameStore((s) => s.newGame);
+  // 社員の人数と席の数（席は自社オフィスの机の家具）。雇えなかった理由をHUDに出す
+  const staff = useGameStore((s) => s.staff);
+  const seats = useGameStore((s) => seatCount(s.office, (id) => furniture[id as FurnitureId]?.seat === true));
+  const hire = useGameStore((s) => s.hire);
+  const [hireMessage, setHireMessage] = useState('');
   const cacheMap = useGameStore((s) => s.cacheMap);
 
   useTickLoop();
@@ -141,6 +149,21 @@ export function App() {
         </span>
         <span>
           <Icon name="icon/calendar" /> {t('ui.hud.date', { month: date.month, day: date.day, hour: date.hour })}
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {t('ui.staff.label', { staff, seats })}
+          <button
+            style={hudButton(false)}
+            disabled={staff >= seats}
+            onClick={() => {
+              const reason = hire();
+              setHireMessage(reason ? t(`ui.error.${reason}` as LangKey) : '');
+            }}
+          >
+            {t('ui.staff.hire')}
+          </button>
+          {staff >= seats && <span style={{ color: '#ffd866' }}>{t('ui.error.seat')}</span>}
+          {hireMessage && staff < seats && <span style={{ color: '#ffd866' }}>{hireMessage}</span>}
         </span>
         <span style={{ display: 'flex', gap: 4 }}>
           {SPEEDS.map((s) => (
