@@ -1,7 +1,8 @@
 // 依頼カード。タイトル1行と、PC台数・予算・報酬のアイコンで表す
 import { devices } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
-import { t } from '../i18n/t';
+import { hasKey, t } from '../i18n/t';
+import { goalText } from './goalText';
 import { useGameStore } from '../stores/useGameStore';
 import { modalBack, modalBox } from './Overlay';
 import { Icon } from './Icon';
@@ -37,6 +38,16 @@ export function OfferCards({ onClose }: { onClose: () => void }) {
               <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 6 }}>
                 {t(`contract.${offer.baseId}.story` as LangKey, offer.params)}
               </div>
+              {offer.contract.goals.map((goal, i) => (
+                <div key={i} style={{ fontSize: 12, opacity: 0.85 }}>
+                  ・{goalText(goal)}
+                </div>
+              ))}
+              {hasKey(`contract.${offer.baseId}.hint`) && (
+                <div style={{ fontSize: 12, color: '#ffd866', marginTop: 4 }}>
+                  {t('ui.task.hint', { text: t(`contract.${offer.baseId}.hint` as LangKey) })}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
                 <span>
                   <Icon name="icon/pc_count" /> ×{hosts}

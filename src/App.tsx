@@ -11,6 +11,7 @@ import { modalBack, modalBox, NoticeToast, ReportModal } from './components/Over
 import { OfferCards } from './components/OfferCards';
 import { Toolbar } from './components/Toolbar';
 import { TaskPanel } from './components/TaskPanel';
+import { ConfigPanel } from './components/ConfigPanel';
 import { ShopCards } from './components/ShopCards';
 import { Icon } from './components/Icon';
 import { TitleScreen } from './components/TitleScreen';
@@ -158,6 +159,7 @@ export function App() {
         </button>
       </header>
       <TaskPanel />
+      <ConfigPanel />
       <Toolbar onOffers={() => setPopup('offers')} onShop={() => setPopup('shop')} />
       {popup === 'offers' && <OfferCards onClose={() => setPopup(null)} />}
       {popup === 'shop' && <ShopCards onClose={() => setPopup(null)} />}

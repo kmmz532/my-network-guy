@@ -5,7 +5,7 @@ import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
 import { linkLength } from '../network/engine';
 import { colorsFromConfig, compile, type Issue } from '../network/compile';
-import type { EngineData, NetLink, NetNode, PathResult } from '../network/types';
+import type { EngineData, Iface, NetLink, NetNode, PathResult, Route } from '../network/types';
 import type { ClockState } from './clock';
 import { rate } from './rating';
 
@@ -351,6 +351,36 @@ export const setColor = (core: Core, uid: string, port: number, color: number | 
     else colors[port] = color;
     return { ...node, colors };
   });
+
+// IPアドレスの書式（各区切りは 0〜255）
+const isIp = (s: string): boolean => /^\d{1,3}(\.\d{1,3}){3}$/.test(s) && s.split('.').every((n) => Number(n) <= 255);
+
+// ポートのIPアドレスを設定する。ip が空文字なら設定を外す（機器の IP は自動割り当てに戻る）
+export const setInterface = (core: Core, uid: string, port: number, ip: string, prefix: number): Outcome =>
+  editNode(core, uid, (node) => {
+    if (ip === '') return { ...node, interfaces: node.interfaces.filter((i) => i.port !== port) };
+    if (!isIp(ip)) return 'ip';
+    const iface: Iface = { port, ip, prefix };
+    return { ...node, interfaces: [...node.interfaces.filter((i) => i.port !== port), iface] };
+  });
+
+// デフォルトゲートウェイを設定する。null で外す
+export const setGateway = (core: Core, uid: string, gateway: string | null): Outcome =>
+  editNode(core, uid, (node) => {
+    if (gateway !== null && !isIp(gateway)) return 'ip';
+    return { ...node, gateway };
+  });
+
+// ルーターに静的ルートを追加する
+export const addRoute = (core: Core, uid: string, route: Route): Outcome =>
+  editNode(core, uid, (node) => {
+    if (!isIp(route.dest) || !isIp(route.nextHop)) return 'ip';
+    return { ...node, routes: [...node.routes, route] };
+  });
+
+// ルーターの静的ルートを削除する
+export const removeRoute = (core: Core, uid: string, index: number): Outcome =>
+  editNode(core, uid, (node) => ({ ...node, routes: node.routes.filter((_, i) => i !== index) }));
 
 // 色と配線から生成したネットワーク（判定・表示に使う）
 export const compiledNet = (p: Project, env: Env) => compile({ nodes: p.nodes, links: p.links }, env.engine);

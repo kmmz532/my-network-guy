@@ -96,5 +96,20 @@
   "ui.task.step.wire": "PCを置き、ケーブルでつなぐ",
   "ui.task.step.test": "同じ色にして、疎通を確かめる",
   "ui.task.step.build": "施工を依頼する",
-  "ui.shop.spec": "ポート {ports}・{speed} Mbps"
+  "ui.shop.spec": "ポート {ports}・{speed} Mbps",
+  "ui.config.close": "閉じる",
+  "ui.config.readOnly": "設計中のみ変更できる。",
+  "ui.config.locked": "この機器の設定は案件で固定されている。",
+  "ui.config.noIp": "スイッチにはIPアドレスを設定しない。",
+  "ui.config.port": "ポート{port}のIPアドレス（/24）",
+  "ui.config.gateway": "デフォルトゲートウェイ",
+  "ui.config.set": "設定",
+  "ui.config.routes": "静的ルート",
+  "ui.config.noRoute": "ルートはない。",
+  "ui.config.routeItem": "{dest}/24 → {next}",
+  "ui.config.remove": "削除",
+  "ui.config.routeDest": "宛先ネットワーク（/24）",
+  "ui.config.routeNext": "次の宛先（IPアドレス）",
+  "ui.config.addRoute": "ルートを追加",
+  "ui.error.ip": "IPアドレスの形式が正しくない。"
 }

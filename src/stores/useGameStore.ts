@@ -6,6 +6,7 @@ import { buyDevice } from '../sim/shop';
 import { refreshOffers, type OfferEnv } from '../contracts/offers';
 import type { Offer } from '../contracts/template';
 import type { GameMap } from '../data/schema';
+import type { Route } from '../network/types';
 import type { SaveData } from '../services/migrations';
 import { gameEnv } from '../sim/env';
 import {
@@ -19,6 +20,10 @@ import {
   removeFromOffice,
   requestBuild,
   setColor,
+  setInterface,
+  setGateway,
+  addRoute,
+  removeRoute,
   type Core,
   type Outcome,
   type Project,
@@ -97,6 +102,11 @@ export interface GameState {
   connect: (aUid: string, bUid: string, cableId: string) => string | null;
   removeNode: (uid: string) => string | null;
   paint: (uid: string, port: number) => string | null;
+  // 機器の設定（設計中のみ）。失敗したら理由を返す
+  setIface: (uid: string, port: number, ip: string) => string | null;
+  setGateway: (uid: string, gateway: string | null) => string | null;
+  addRoute: (uid: string, route: Route) => string | null;
+  removeRoute: (uid: string, index: number) => string | null;
   requestBuild: () => string | null;
   abandon: () => string | null;
   load: (save: SaveData) => void;
@@ -159,7 +169,7 @@ export const useGameStore = create<GameState>((set, get) => {
   // 案件の操作の結果を状態に反映する。失敗なら理由を返す
   // 機器の位置（失敗の吹き出しを出す場所）
   const tileOf = (uid: string) => {
-    const n = get().active?.nodes.find((x) => x.uid === uid);
+    const n = get().active?.nodes.find((x) => x.uid === uid) ?? get().office.nodes.find((x) => x.uid === uid);
     return n ? { tx: n.x, ty: n.y } : undefined;
   };
 
@@ -290,6 +300,10 @@ export const useGameStore = create<GameState>((set, get) => {
       return apply(removeNode(coreOf(get()), uid), tileOf(uid));
     },
     paint: (uid, port) => apply(setColor(coreOf(get()), uid, port, get().paintColor), tileOf(uid)),
+    setIface: (uid, port, ip) => apply(setInterface(coreOf(get()), uid, port, ip, 24), tileOf(uid)),
+    setGateway: (uid, gateway) => apply(setGateway(coreOf(get()), uid, gateway), tileOf(uid)),
+    addRoute: (uid, route) => apply(addRoute(coreOf(get()), uid, route), tileOf(uid)),
+    removeRoute: (uid, index) => apply(removeRoute(coreOf(get()), uid, index), tileOf(uid)),
     requestBuild: () => {
       set({ hint: null, traces: [] });
       return apply(requestBuild(coreOf(get()), gameEnv));

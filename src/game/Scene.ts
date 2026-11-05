@@ -640,6 +640,9 @@ export class Scene {
         if (officeNode) store.removeNode(officeNode.uid);
       } else if (store.placing && !officeNode) {
         store.place(store.placing, tile.tx, tile.ty);
+      } else {
+        // 機器を選ぶと、設定パネルを開く
+        store.setSelected(officeNode?.uid ?? null);
       }
       return;
     }
