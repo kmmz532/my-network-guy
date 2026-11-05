@@ -252,6 +252,51 @@ describe('配線できるかの判定', () => {
   });
 });
 
+describe('ポートを指定して配線する', () => {
+  // c001 の設計中に、在庫のスイッチを床に置く（8ポート）
+  const withSwitch = (): { core: Core; sw: string } => {
+    let core: Core = ok(take({ ...start(), owned: { l2_switch_8p: 1 } }, 'c001_direct_link')).core;
+    core = ok(placeDevice(core, 'l2_switch_8p', 6, 6, map, env)).core;
+    const sw = focusedOf(core)!.nodes.find((n) => n.device === 'l2_switch_8p')!.uid;
+    return { core, sw };
+  };
+
+  it('指定したポートにつながる', () => {
+    const { core, sw } = withSwitch();
+    const next = ok(connect(core, 'pc_a', sw, 'utp_cat5e', env, 'focus', { b: 3 })).core;
+    const link = focusedOf(next)!.links[0];
+    expect(link.b).toEqual({ node: sw, port: 3 });
+  });
+
+  it('指定がなければ空きの最小番号を使う', () => {
+    const { core, sw } = withSwitch();
+    const first = ok(connect(core, 'pc_a', sw, 'utp_cat5e', env)).core;
+    expect(focusedOf(first)!.links[0].b.port).toBe(0);
+    const second = ok(connect(first, 'pc_b', sw, 'utp_cat5e', env)).core;
+    expect(focusedOf(second)!.links[1].b.port).toBe(1);
+  });
+
+  it('埋まったポートには配線できない', () => {
+    const { core, sw } = withSwitch();
+    const once = ok(connect(core, 'pc_a', sw, 'utp_cat5e', env, 'focus', { b: 3 })).core;
+    expect(connect(once, 'pc_b', sw, 'utp_cat5e', env, 'focus', { b: 3 })).toEqual({ ok: false, reason: 'portUsed' });
+    expect(checkConnect(once, 'pc_b', sw, 'utp_cat5e', env, 'focus', { b: 3 })).toBe('portUsed');
+  });
+
+  it('機器のポートの数を超える番号は使えない', () => {
+    const { core, sw } = withSwitch();
+    expect(connect(core, 'pc_a', sw, 'utp_cat5e', env, 'focus', { b: 8 })).toEqual({ ok: false, reason: 'port' });
+    expect(connect(core, 'pc_a', sw, 'utp_cat5e', env, 'focus', { b: -1 })).toEqual({ ok: false, reason: 'port' });
+  });
+
+  it('PCの唯一のポートを指定して、埋まっていれば拒否する', () => {
+    const core = ok(take(start(), 'c001_direct_link')).core;
+    const once = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env, 'focus', { a: 0, b: 0 })).core;
+    expect(focusedOf(once)!.links[0]).toMatchObject({ a: { port: 0 }, b: { port: 0 } });
+    expect(checkConnect(once, 'pc_a', 'pc_b', 'utp_cat5e', env, 'focus', { a: 0 })).toBe('portUsed');
+  });
+});
+
 describe('施工後の撤去と配線のやり直し', () => {
   // 在庫のスイッチを床に置き、既設のPC（pc_a）と配線してから施工する。IPアドレスを設定しないので不合格になり、設計に戻る
   const failedDesign = (): Core => {

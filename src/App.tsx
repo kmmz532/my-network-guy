@@ -14,6 +14,7 @@ import { OfferCards } from './components/OfferCards';
 import { Toolbar } from './components/Toolbar';
 import { TaskPanel } from './components/TaskPanel';
 import { DevicePanel } from './components/DevicePanel';
+import { PortMenu } from './components/PortMenu';
 import { ShopCards } from './components/ShopCards';
 import { HiringPanel } from './components/HiringPanel';
 import { Tooltip, TooltipHost } from './components/Tooltip';
@@ -122,7 +123,8 @@ export function App() {
     }
   };
 
-  const menuButton = { display: 'block', width: '100%', margin: '4px 0', padding: '6px 12px', cursor: 'pointer' } as const;
+  // メニューの項目。ボタンとファイルを選ぶラベルで、文字の大きさと見た目をそろえる
+  const menuButton = { display: 'block', width: '100%', margin: '4px 0', padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.4, boxSizing: 'border-box', border: '1px solid #767676', borderRadius: 3, background: '#efefef', color: '#000' } as const;
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
@@ -179,6 +181,7 @@ export function App() {
       </header>
       <TaskPanel />
       <DevicePanel />
+      <PortMenu />
       <Toolbar onOffers={() => setPopup('offers')} onShop={() => setPopup('shop')} />
       {popup === 'offers' && <OfferCards onClose={() => setPopup(null)} />}
       {popup === 'shop' && <ShopCards onClose={() => setPopup(null)} />}
@@ -189,7 +192,7 @@ export function App() {
           <div style={{ ...modalBox, minWidth: 200 }} onClick={(e) => e.stopPropagation()}>
             <button style={menuButton} onClick={onSave}>{t('ui.save')}</button>
             <button style={menuButton} onClick={onExport}>{t('ui.export')}</button>
-            <label style={{ ...menuButton, textAlign: 'center', background: '#efefef', color: '#000', boxSizing: 'border-box' }}>
+            <label style={{ ...menuButton, textAlign: 'center' }}>
               {t('ui.import')}
               <input
                 type="file"

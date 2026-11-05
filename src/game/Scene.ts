@@ -2,8 +2,9 @@
 // 描画の状態は store から読むだけで、変更は store の操作を通して行う。
 import { Application, Container, Graphics, Rectangle, Sprite, Text, type FederatedPointerEvent, type Ticker } from 'pixi.js';
 import type { GameMap } from '../data/schema';
-import { focusedProject, netTargetOf, useGameStore, type Trace } from '../stores/useGameStore';
+import { editNetOf, focusedProject, netTargetOf, useGameStore, type Trace, type WireStart } from '../stores/useGameStore';
 import { linkAt } from './linkHit';
+import { portLabel } from '../components/devicePorts';
 import { rangeTiles } from './effectRange';
 import { gameEnv } from '../sim/env';
 import { checkConnect, compiledNet, DESK_ID, type PlacedFurniture, type Project } from '../sim/project';
@@ -51,6 +52,11 @@ const DEVICE_FOOT_INSET = 4;
 const DESK_TOP = 18;
 // 社員のスプライト（16×24）の足元（上端からの位置）
 const STAFF_FOOT = 23;
+// 機器の押す判定（画面上の一辺。マスが小さいときは、この大きさまで広げる）
+const NODE_HIT_SCREEN_PX = 44;
+// 撤去の道具で、マウスを乗せた対象を赤みがかった明るさにする
+const HOT_RED = 0xff6b6b;
+const REMOVE_TINT = 0xffb0b0;
 
 export class Scene {
   private content = new Container();
@@ -69,8 +75,10 @@ export class Scene {
   private wireTo = { x: 0, y: 0 };
   // 配線の到達先の判定（接続できるか、理由）
   private hover: { uid: string; reason: string | null } | null = null;
-  // マウスを乗せている配線（撤去できる配線だけ。太く明るく描く）
+  // マウスを乗せている配線（撤去できる配線だけ。太く明るく描く）、機器、家具（撤去の道具のとき）
   private hoverLinkUid: string | null = null;
+  private hoverNodeUid: string | null = null;
+  private hoverFurnUid: string | null = null;
   // 経過時間（ms）と、コマ送りの番号
   private elapsed = 0;
   private frame = -1;
@@ -97,7 +105,7 @@ export class Scene {
     app.stage.on('pointerdown', this.onDown);
     app.stage.on('pointermove', this.onMove);
     app.stage.on('pointerup', this.onUp);
-    app.stage.on('pointerupoutside', this.cancelWire);
+    app.stage.on('pointerupoutside', this.dropWire);
     app.canvas.addEventListener('pointerleave', this.onCanvasLeave);
     app.canvas.addEventListener('contextmenu', this.preventMenu);
     app.ticker.add(this.onTick);
@@ -113,7 +121,7 @@ export class Scene {
     this.app.stage.off('pointerdown', this.onDown);
     this.app.stage.off('pointermove', this.onMove);
     this.app.stage.off('pointerup', this.onUp);
-    this.app.stage.off('pointerupoutside', this.cancelWire);
+    this.app.stage.off('pointerupoutside', this.dropWire);
     this.app.canvas.removeEventListener('pointerleave', this.onCanvasLeave);
     this.resetTip();
     this.app.canvas.removeEventListener('contextmenu', this.preventMenu);
@@ -271,19 +279,21 @@ export class Scene {
       const pts = link.path.map(([x, y]) => [x * ts + ts / 2, y * ts + ts / 2]);
       // マウスを乗せた配線は太く明るく描く
       const hot = link.uid === this.hoverLinkUid;
+      // 撤去の道具では赤みがかった明るさにする
+      const hotColor = s.tool === 'remove' ? mixColor(color, HOT_RED, 0.5) : brighten(color);
       g.moveTo(pts[0][0], pts[0][1]);
       for (const [x, y] of pts.slice(1)) g.lineTo(x, y);
-      g.stroke({ width: hot ? 6 : 3, color: hot ? brighten(color) : color, alpha: hot ? 1 : alpha });
+      g.stroke({ width: hot ? 6 : 3, color: hot ? hotColor : color, alpha: hot ? 1 : alpha });
     }
 
-    // 配線のドラッグ中の線
-    if (this.wireFrom) {
-      const from = project.nodes.find((n) => n.uid === this.wireFrom);
-      if (from) {
-        this.g.moveTo(from.x * ts + ts / 2, from.y * ts + ts / 2);
-        this.g.lineTo(this.wireTo.x, this.wireTo.y);
-        this.g.stroke({ width: 2, color: SELECT });
-      }
+    // 配線の線。ドラッグ中、または起点を選んだあとは、起点の機器からカーソルまで伸ばす
+    const wireUid = this.wireFrom ?? s.wireStart?.uid ?? null;
+    const wireNode = wireUid ? project.nodes.find((n) => n.uid === wireUid) : undefined;
+    if (wireNode) {
+      this.g.moveTo(wireNode.x * ts + ts / 2, wireNode.y * ts + ts / 2);
+      this.g.lineTo(this.wireTo.x, this.wireTo.y);
+      this.g.stroke({ width: 2, color: SELECT });
+      this.drawWireCost(wireNode, ts);
     }
 
     // 疎通テスト中の機器は LED を速く点滅させる
@@ -296,7 +306,8 @@ export class Scene {
 
     for (const node of project.nodes) {
       const dim = building && !isBuilt(node.uid, 'nodes');
-      this.drawNode(node, ts, s.selectedUid === node.uid, dim, project);
+      // 配線の起点に選んだ機器は、光る枠で選ばれた状態にする
+      this.drawNode(node, ts, s.selectedUid === node.uid || s.wireStart?.uid === node.uid, dim, project, this.hoverNodeUid === node.uid);
       const blinkOn = onPath.has(node.uid) ? fastBlink : slowBlink;
       const issue = this.issueOf(node, project);
       this.drawLed(node, ts, blinkOn, issue?.reason === 'ip.unset');
@@ -304,7 +315,10 @@ export class Scene {
       if (issue && issue.reason !== 'ip.unset') this.drawBubble(node, ts, '?', WARN);
     }
 
-    if (s.showIp) this.drawAddresses(project, ts);
+    if (s.showIp) {
+      this.drawAddresses(project, ts);
+      this.drawPortNames(project, ts);
+    }
     if (building) this.drawBuilding(project, ts);
     else if (this.map?.id === 'hq' && !s.showcase) {
       this.drawDeskStaff(ts, s.hint);
@@ -452,8 +466,9 @@ export class Scene {
       if (!tex) continue;
       const sprite = new Sprite(tex);
       sprite.position.set(f.x * ts + Math.round((ts - tex.width) / 2), (f.y + 1) * ts - tex.height);
-      // 机の上に置いたPCより後ろに描く
+      // 机の上に置いたPCより後ろに描く。撤去の道具でマウスを乗せた家具は赤みがかった明るさにする
       sprite.zIndex = (f.y + 1) * ts - DEVICE_FOOT_INSET - 1;
+      sprite.tint = f.uid === this.hoverFurnUid ? REMOVE_TINT : 0xffffff;
       this.sprites.addChild(sprite);
     }
   }
@@ -467,7 +482,7 @@ export class Scene {
   }
 
   // 機器をドット絵で描く。種類ごとに形を変え、ポートは下の辺に並べる（空きは白抜き、使用中は塗りつぶし）
-  private drawNode(node: NetNode, ts: number, selected: boolean, dim: boolean, project: Project): void {
+  private drawNode(node: NetNode, ts: number, selected: boolean, dim: boolean, project: Project, hot: boolean): void {
     const g = this.g;
     const category = gameEnv.devices[node.device]?.category ?? 'unknown';
     const alpha = dim ? 0.5 : 1;
@@ -475,7 +490,9 @@ export class Scene {
     const x = node.x * ts + pad;
     const y = node.y * ts + pad;
     const size = ts - pad * 2;
-    const body = CATEGORY_COLOR[category] ?? 0xffffff;
+    const base = CATEGORY_COLOR[category] ?? 0xffffff;
+    // 撤去の道具でマウスを乗せた機器は、赤みがかった明るさにする
+    const body = hot ? mixColor(base, HOT_RED, 0.5) : base;
     if (selected) {
       g.rect(x - 2, y - 2, size + 4, size + 4).stroke({ width: 2, color: SELECT, alpha });
     }
@@ -499,6 +516,7 @@ export class Scene {
       const base = onDesk ? node.y * ts + DESK_TOP : foot;
       sprite.position.set(node.x * ts + (ts - 24) / 2, base - 38);
       sprite.alpha = alpha;
+      sprite.tint = hot ? REMOVE_TINT : 0xffffff;
       sprite.zIndex = foot;
       this.sprites.addChild(sprite);
       if (!onDesk) this.bg.ellipse(node.x * ts + ts / 2, foot, 10, 3).fill({ color: 0x000000, alpha: 0.25 * alpha });
@@ -714,8 +732,28 @@ export class Scene {
     return this.content.toLocal(e.global);
   }
 
-  private nodeAt(tx: number, ty: number): NetNode | undefined {
-    return focusedProject(useGameStore.getState())?.nodes.find((n) => n.x === tx && n.y === ty);
+  // 機器を編集できる対象の機器（自社オフィス、または設計中の案件）。編集できなければ null
+  private editNodes(): NetNode[] | null {
+    return editNetOf(useGameStore.getState())?.nodes ?? null;
+  }
+
+  // 機器を押したと見なす範囲（画面で一辺 44 px 以上）の中で、中心が最も近い機器。拡大率で割って、マップの座標で判定する
+  private nodeNear(p: { x: number; y: number }, nodes: readonly NetNode[]): NetNode | undefined {
+    const ts = this.tileSize();
+    const half = Math.max(ts / 2, NODE_HIT_SCREEN_PX / 2 / this.content.scale.x);
+    let found: NetNode | undefined;
+    let best = Infinity;
+    for (const n of nodes) {
+      const dx = Math.abs(p.x - (n.x * ts + ts / 2));
+      const dy = Math.abs(p.y - (n.y * ts + ts / 2));
+      if (dx > half || dy > half) continue;
+      const d = dx * dx + dy * dy;
+      if (d < best) {
+        best = d;
+        found = n;
+      }
+    }
+    return found;
   }
 
   private tileOf(p: { x: number; y: number }): { tx: number; ty: number } | null {
@@ -805,8 +843,10 @@ export class Scene {
 
   private onCanvasLeave = (): void => {
     this.resetTip();
-    if (this.hoverLinkUid !== null) {
+    if (this.hoverLinkUid !== null || this.hoverNodeUid !== null || this.hoverFurnUid !== null) {
       this.hoverLinkUid = null;
+      this.hoverNodeUid = null;
+      this.hoverFurnUid = null;
       this.drawObjects();
     }
   };
@@ -832,84 +872,133 @@ export class Scene {
     const p = this.toMap(e);
     const tile = this.tileOf(p);
     if (!tile) return;
-    const node = this.nodeAt(tile.tx, tile.ty);
-
-    // 案件がなく、納品の結果も出ていないときは、自社オフィスに機材を置ける
-    if (store.active.length === 0 && !store.showcase) {
-      const officeNode = store.office.nodes.find((n) => n.x === tile.tx && n.y === tile.ty);
-      if (e.button === 2) {
-        // 右クリックは、機材を先に撤去する。機材がなければ家具、配線の上なら配線を撤去する
-        const furnitureAt = store.office.furniture.find((f) => f.x === tile.tx && f.y === tile.ty);
-        const link = this.linkUnder(p);
-        if (officeNode) store.removeNode(officeNode.uid);
-        else if (furnitureAt) store.removeFurniture(furnitureAt.uid);
-        else if (link) store.removeLink(link.uid);
-      } else if (store.placing && !officeNode) {
-        store.place(store.placing, tile.tx, tile.ty);
-      } else if (store.tool === 'build' && officeNode && !store.placing) {
-        // 機器を押したまま別の機器へ動かすと、配線する（設計中と同じ操作）
-        store.setSelected(officeNode.uid);
-        this.wireFrom = officeNode.uid;
-        this.wireTo = p;
-      } else {
-        // 機器を選ぶと、設定パネルを開く
-        store.setSelected(officeNode?.uid ?? null);
-      }
-      return;
-    }
-    if (focusedProject(store)?.phase !== 'design') return;
-
-    // 右クリックで撤去する。機器の上なら機器（とつながるケーブル）、配線の上なら配線
+    // 機器を編集できないとき（納品の結果や施工中）は何もしない
+    const nodes = this.editNodes();
+    if (!nodes) return;
+    // 右クリックは、どの道具でも撤去する
     if (e.button === 2) {
-      if (node) {
-        store.removeNode(node.uid);
-        return;
-      }
-      const link = this.linkUnder(p);
-      if (link) store.removeLink(link.uid);
+      this.removeAt(p, nodes);
       return;
     }
+    const node = this.nodeNear(p, nodes);
+    // 機材を置く予定があり、機器でない場所を押したら置く（続けて置けるよう、配置モードはそのままにする）
     if (store.placing && !node) {
-      // 続けて置けるよう、配置モードはそのままにする
       store.place(store.placing, tile.tx, tile.ty);
       return;
     }
+    switch (store.tool) {
+      case 'select':
+        // 機器を押すと、機器の画面を開く。ドラッグしても配線しない
+        store.setSelected(node?.uid ?? null);
+        return;
+      case 'remove':
+        this.removeAt(p, nodes);
+        return;
+      case 'wire':
+        this.wireDown(p, node);
+        return;
+    }
+  };
+
+  // 撤去する。押した位置の機器（とつながるケーブル）、家具、配線の順に、1つだけ撤去する
+  private removeAt(p: { x: number; y: number }, nodes: readonly NetNode[]): void {
+    const store = useGameStore.getState();
+    const node = this.nodeNear(p, nodes);
     if (node) {
-      store.setSelected(node.uid);
-      this.wireFrom = node.uid;
-      this.wireTo = p;
+      store.removeNode(node.uid);
       return;
     }
-    store.setSelected(null);
-  };
+    const tile = this.tileOf(p);
+    const inOffice = store.active.length === 0 && !store.showcase;
+    const furniture =
+      inOffice && tile ? store.office.furniture.find((f) => f.x === tile.tx && f.y === tile.ty) : undefined;
+    if (furniture) {
+      store.removeFurniture(furniture.uid);
+      return;
+    }
+    const link = this.linkUnder(p);
+    if (link) store.removeLink(link.uid);
+  }
+
+  // 配線の道具で機器を押す。起点を選んだあとは、押した機器のポートの一覧を出す（相手の機器）。
+  // 起点がなければドラッグを始める（離した機器と配線する。同じ機器で離したら、ポートの一覧を出す）。空きマスを押すと取り消す
+  private wireDown(p: { x: number; y: number }, node: NetNode | undefined): void {
+    const store = useGameStore.getState();
+    if (!node) {
+      store.cancelWire();
+      this.wireFrom = null;
+      this.hover = null;
+      this.drawObjects();
+      return;
+    }
+    if (store.wireStart) {
+      this.openMenuAt(node);
+      return;
+    }
+    store.cancelWire();
+    this.wireFrom = node.uid;
+    this.wireTo = p;
+    this.hover = null;
+  }
+
+  // 機器の横にポートの一覧を出す。位置は画面の座標（マップの拡大率と配置を反映する）
+  private openMenuAt(node: NetNode): void {
+    const ts = this.tileSize();
+    const at = this.content.toGlobal({ x: node.x * ts + ts, y: node.y * ts + ts / 2 });
+    const rect = this.app.canvas.getBoundingClientRect();
+    useGameStore.getState().openPortMenu(node.uid, rect.left + at.x + 6, rect.top + at.y - 12);
+  }
 
   private onMove = (e: FederatedPointerEvent): void => {
     if (e.pointerType !== 'touch') this.updateTip(e);
-    this.cursorTile = this.tileOf(this.toMap(e));
-    if (!this.wireFrom) {
-      this.updateHoverLink(e);
-      if (useGameStore.getState().placing) this.drawObjects();
+    const p = this.toMap(e);
+    this.cursorTile = this.tileOf(p);
+    const store = useGameStore.getState();
+    // 配線の途中でなければ、マウスを乗せた対象を覚える
+    if (!this.wireFrom && !store.wireStart) {
+      this.updateHover(e);
+      if (store.placing) this.drawObjects();
       return;
     }
-    this.wireTo = this.toMap(e);
-    const tile = this.tileOf(this.wireTo);
-    const target = tile ? this.nodeAt(tile.tx, tile.ty) : undefined;
-    if (target && target.uid !== this.wireFrom) {
-      const store = useGameStore.getState();
-      const reason = checkConnect(store, this.wireFrom, target.uid, store.wireCable, gameEnv, netTargetOf(store));
-      this.hover = { uid: target.uid, reason };
-    } else {
-      this.hover = null;
-    }
+    this.wireTo = p;
+    this.aim();
     this.drawObjects();
   };
 
-  // マウスを乗せた配線を覚え、変わったときだけ描き直す（配置中は強調しない）
-  private updateHoverLink(e: FederatedPointerEvent): void {
-    const found = useGameStore.getState().placing ? undefined : this.linkUnder(this.toMap(e));
-    const uid = found?.uid ?? null;
-    if (uid === this.hoverLinkUid) return;
-    this.hoverLinkUid = uid;
+  // 配線の到達先を判定する。接続できれば緑、できなければ赤の枠と×（理由は配線の判定と同じ）
+  private aim(): void {
+    const store = useGameStore.getState();
+    const nodes = this.editNodes();
+    // ドラッグ中はおまかせのポート、起点を選んだあとは起点のポートを使う
+    const start: WireStart | null = this.wireFrom ? { uid: this.wireFrom, port: null } : store.wireStart;
+    const target = start && nodes ? this.nodeNear(this.wireTo, nodes) : undefined;
+    if (!start || !target || target.uid === start.uid) {
+      this.hover = null;
+      return;
+    }
+    const ports = this.wireFrom ? {} : { a: start.port ?? undefined };
+    const reason = checkConnect(store, start.uid, target.uid, store.wireCable, gameEnv, netTargetOf(store), ports);
+    this.hover = { uid: target.uid, reason };
+  }
+
+  // マウスを乗せた配線・機器・家具を覚え、変わったときだけ描き直す（配置中は強調しない）。
+  // 撤去の道具では、押すと消える機器・家具・配線を赤みがかった明るさで示す
+  private updateHover(e: FederatedPointerEvent): void {
+    const store = useGameStore.getState();
+    const p = this.toMap(e);
+    const tile = this.tileOf(p);
+    const removing = store.tool === 'remove' && !store.placing;
+    const nodes = removing ? this.editNodes() : null;
+    const node = nodes ? this.nodeNear(p, nodes) : undefined;
+    const inOffice = store.active.length === 0 && !store.showcase;
+    const furniture =
+      removing && inOffice && tile ? store.office.furniture.find((f) => f.x === tile.tx && f.y === tile.ty) : undefined;
+    const link = store.placing ? undefined : this.linkUnder(p);
+    const next = { node: node?.uid ?? null, furniture: furniture?.uid ?? null, link: link?.uid ?? null };
+    if (next.node === this.hoverNodeUid && next.furniture === this.hoverFurnUid && next.link === this.hoverLinkUid) return;
+    this.hoverNodeUid = next.node;
+    this.hoverFurnUid = next.furniture;
+    this.hoverLinkUid = next.link;
     this.drawObjects();
   }
 
@@ -919,29 +1008,93 @@ export class Scene {
     const from = this.wireFrom;
     this.wireFrom = null;
     this.hover = null;
-    const tile = this.tileOf(this.toMap(e));
-    const target = tile ? this.nodeAt(tile.tx, tile.ty) : undefined;
+    const store = useGameStore.getState();
+    const nodes = this.editNodes();
+    const target = nodes ? this.nodeNear(this.toMap(e), nodes) : undefined;
     if (target && target.uid !== from) {
-      useGameStore.getState().connect(from, target.uid, useGameStore.getState().wireCable);
+      // ドラッグで機器から機器へ離した場合は、両端とも「おまかせ」で配線する
+      store.connect(from, target.uid, store.wireCable);
+    } else if (target) {
+      // 押して離した場合は、起点のポートの一覧を出す
+      this.openMenuAt(target);
     }
     this.drawObjects();
   };
 
-  private cancelWire = (): void => {
+  private dropWire = (): void => {
     this.wireFrom = null;
     this.hover = null;
     this.drawObjects();
   };
+
+  // 配線中のカーソルの横に、ケーブルの長さと費用を出す。カーソルが機器の上なら、その機器までの長さ
+  private drawWireCost(from: NetNode, ts: number): void {
+    const store = useGameStore.getState();
+    const cable = gameEnv.cables[store.wireCable];
+    const nodes = this.editNodes();
+    const tile = this.tileOf(this.wireTo);
+    if (!cable || !tile || !nodes) return;
+    const end = this.nodeNear(this.wireTo, nodes);
+    const length = Math.abs(from.x - (end?.x ?? tile.tx)) + Math.abs(from.y - (end?.y ?? tile.ty));
+    if (length < 1) return;
+    const cost = cable.pricePerLink + cable.pricePerTile * length;
+    const scale = this.content.scale.x;
+    const text = new Text({
+      text: t('ui.wire.cost', { length, cost: cost.toLocaleString('ja-JP') }),
+      style: { fontFamily: 'sans-serif', fontSize: 12 / scale, fill: 0xf4f1e6, stroke: { color: OUTLINE, width: 2 / scale } },
+      resolution: Math.max(2, scale * (window.devicePixelRatio || 1)),
+    });
+    text.anchor.set(0, 1);
+    text.position.set(this.wireTo.x + ts * 0.25, this.wireTo.y - ts * 0.25);
+    this.bubbles.addChild(text);
+  }
+
+  // ケーブルの両端に、つないだポートの名前を小さく出す（IPの表示と同じく showIp のときだけ）
+  private drawPortNames(project: Project, ts: number): void {
+    const nodes = new Map(project.nodes.map((n) => [n.uid, n] as const));
+    for (const link of project.links) {
+      this.portName(nodes.get(link.a.node), link.a.port, link.path, ts);
+      this.portName(nodes.get(link.b.node), link.b.port, [...link.path].reverse(), ts);
+    }
+  }
+
+  // ポートの名前を1つ描く。path は、機器の点（先頭）から始まる折れ線。機器の中心から、ケーブルの向きへ少しずらして置く
+  private portName(
+    node: NetNode | undefined,
+    port: number,
+    path: readonly (readonly [number, number])[],
+    ts: number,
+  ): void {
+    const [ax, ay] = path[0];
+    const toward = path.find(([x, y]) => x !== ax || y !== ay);
+    if (!node || !toward) return;
+    const dx = toward[0] - ax;
+    const dy = toward[1] - ay;
+    const len = Math.hypot(dx, dy);
+    const scale = this.content.scale.x;
+    const text = new Text({
+      text: portLabel(gameEnv.devices[node.device]?.category, port),
+      style: { fontFamily: 'sans-serif', fontSize: 11 / scale, fill: 0xf4f1e6, stroke: { color: OUTLINE, width: 2 / scale } },
+      resolution: Math.max(2, scale * (window.devicePixelRatio || 1)),
+    });
+    text.anchor.set(0.5, 0.5);
+    text.position.set(ax * ts + ts / 2 + (dx / len) * ts * 0.3, ay * ts + ts / 2 + (dy / len) * ts * 0.3);
+    this.bubbles.addChild(text);
+  }
 }
 
-// 色を白に近づけて明るくする（マウスを乗せた配線に使う）
-const brighten = (color: number): number => {
+// 色を target へ amount（0〜1）の割合で混ぜる
+const mixColor = (color: number, target: number, amount: number): number => {
   const mix = (shift: number): number => {
     const c = (color >> shift) & 0xff;
-    return Math.round(c + (255 - c) * 0.5) << shift;
+    const d = (target >> shift) & 0xff;
+    return Math.round(c + (d - c) * amount) << shift;
   };
   return mix(16) | mix(8) | mix(0);
 };
+
+// 色を白に近づけて明るくする（マウスを乗せた配線に使う）
+const brighten = (color: number): number => mixColor(color, 0xffffff, 0.5);
 
 // 配線の中点（社員が作業する位置）
 const midpoint = (link: NetLink, ts: number): Point => {

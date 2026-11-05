@@ -12,7 +12,7 @@ import { hasKey } from '../i18n/t';
 import { rand } from '../sim/rng';
 import { finishTrainings, startTraining as startTrainingOp, takeExam as takeExamOp, type TrainingEnv } from '../sim/training';
 import { certs as certRecord, training as trainingRecord } from 'virtual:game-data';
-import type { Route } from '../network/types';
+import type { NetLink, NetNode, Route } from '../network/types';
 import type { SaveData } from '../services/migrations';
 import { gameEnv } from '../sim/env';
 import {
@@ -22,6 +22,7 @@ import {
   removeFurniture as removeFurnitureOp,
 } from '../sim/furniture';
 import {
+  type PortChoice,
   abandon,
   accept,
   advanceBuild,
@@ -52,7 +53,22 @@ import {
 } from '../sim/project';
 
 export type { Trace };
-export type Tool = 'build';
+// 道具: 選択（機器の画面を開く）・配線・撤去
+export type Tool = 'select' | 'wire' | 'remove';
+
+// 配線の起点（ポートを選んだ機器）。null は「おまかせ」
+export interface WireStart {
+  uid: string;
+  port: number | null;
+}
+
+// ポートの一覧の吹き出し。画面上の位置（ビューポートの座標）。role は起点を選ぶ（from）か、相手を選ぶ（to）
+export interface PortMenuState {
+  uid: string;
+  x: number;
+  y: number;
+  role: 'from' | 'to';
+}
 
 export type Speed = 0 | 1 | 2 | 4;
 
@@ -101,6 +117,15 @@ export interface GameState {
   // 操作の種類
   tool: Tool;
   setTool: (tool: Tool) => void;
+  // 配線の途中の起点（ポートを選んだ機器）と、ポートの一覧の吹き出し（保存しない）
+  wireStart: WireStart | null;
+  portMenu: PortMenuState | null;
+  // 配線の道具で機器を押したとき、ポートの一覧を開く（起点を選ぶか、相手を選ぶかは起点の有無で決まる）
+  openPortMenu: (uid: string, x: number, y: number) => void;
+  // ポートの一覧で選んだポート（null は「おまかせ」）。起点なら起点にし、相手なら配線する
+  pickPort: (port: number | null) => void;
+  // 配線の途中（起点と一覧）を取り消す
+  cancelWire: () => void;
   // 社員の吹き出しに出すヒント（言語キー）
   hint: string | null;
   // 機器の名前とIPアドレスを表示するか、案件の内容を開いているか（保存しない）
@@ -127,7 +152,7 @@ export interface GameState {
   hire: (candidateUid: string) => string | null;
   startTraining: (uid: string, courseId: string) => string | null;
   takeExam: (uid: string, certId: string) => string | null;
-  connect: (aUid: string, bUid: string, cableId: string) => string | null;
+  connect: (aUid: string, bUid: string, cableId: string, ports?: PortChoice) => string | null;
   removeLink: (uid: string) => string | null;
   removeNode: (uid: string) => string | null;
   // 機器の設定（設計中のみ）。失敗したら理由を返す
@@ -168,6 +193,13 @@ export const netTargetOf = (s: { active: Project[]; focus: string | null }): Net
 // いま設計・表示している案件（なければ null）
 export const focusedProject = (s: { active: Project[]; focus: string | null }): Project | null =>
   s.focus === null ? null : (s.active.find((p) => p.id === s.focus) ?? null);
+
+// 機器を編集できる対象の機器と配線（自社オフィス、または設計中の案件）。編集できなければ null
+export const editNetOf = (s: GameState): { nodes: NetNode[]; links: NetLink[] } | null => {
+  if (s.active.length === 0 && !s.showcase) return { nodes: s.office.nodes, links: s.office.links };
+  const p = focusedProject(s);
+  return p?.phase === 'design' ? { nodes: p.nodes, links: p.links } : null;
+};
 
 // 新しいゲームの乱数と初期の社員
 const newStart = () => {
@@ -291,8 +323,46 @@ export const useGameStore = create<GameState>((set, get) => {
     wireCable: 'utp_cat5e',
     traces: [],
     showcase: null,
-    tool: 'build',
-    setTool: (tool) => set({ tool, placing: null }),
+    tool: 'select',
+    // 道具を変えると、配線の途中・一覧・置く予定の機材を取り消す。選択の道具以外では機器の画面を閉じる
+    setTool: (tool) => {
+      const s = get();
+      if (s.tool === tool && !s.placing) return;
+      set({
+        tool,
+        placing: null,
+        wireStart: null,
+        portMenu: null,
+        ...(tool === 'select' ? {} : { selectedUid: null }),
+      });
+    },
+    wireStart: null,
+    portMenu: null,
+    openPortMenu: (uid, x, y) =>
+      set((s) => ({
+        portMenu: { uid, x, y, role: s.wireStart && s.wireStart.uid !== uid ? 'to' : 'from' },
+      })),
+    pickPort: (port) => {
+      const s = get();
+      const menu = s.portMenu;
+      if (!menu) return;
+      if (menu.role === 'from') {
+        set({ wireStart: { uid: menu.uid, port }, portMenu: null });
+        return;
+      }
+      const start = s.wireStart;
+      if (!start) {
+        set({ portMenu: null });
+        return;
+      }
+      // 配線できたら途中を終える。できなければ起点を残し、理由を出す
+      const reason = get().connect(start.uid, menu.uid, s.wireCable, {
+        a: start.port ?? undefined,
+        b: port ?? undefined,
+      });
+      set({ portMenu: null, wireStart: reason === null ? null : start });
+    },
+    cancelWire: () => set({ wireStart: null, portMenu: null }),
     hint: null,
     showIp: true,
     setShowIp: (on) => set({ showIp: on }),
@@ -390,8 +460,8 @@ export const useGameStore = create<GameState>((set, get) => {
       return apply(removeFurnitureOp(coreOf(get()), uid), f ? { tx: f.x, ty: f.y } : undefined);
     },
     hire: (candidateUid) => apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true)),
-    connect: (aUid, bUid, cableId) =>
-      apply(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get())), tileOf(bUid)),
+    connect: (aUid, bUid, cableId, ports = {}) =>
+      apply(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get()), ports), tileOf(bUid)),
     removeLink: (uid) => apply(removeLink(coreOf(get()), uid, netTargetOf(get()), gameEnv)),
     startTraining: (uid, courseId) => apply(startTrainingOp(coreOf(get()), uid, courseId, trainingEnv)),
     takeExam: (uid, certId) => {
@@ -444,6 +514,8 @@ export const useGameStore = create<GameState>((set, get) => {
         showcase: null,
         traces: [],
         hint: null,
+        wireStart: null,
+        portMenu: null,
       }),
     newGame: () =>
       set((s) => {
@@ -468,6 +540,8 @@ export const useGameStore = create<GameState>((set, get) => {
           hint: null,
           selectedUid: null,
           placing: null,
+          wireStart: null,
+          portMenu: null,
           speed: 1,
         };
         // 新しく始めたら、最初の依頼をすぐ届ける

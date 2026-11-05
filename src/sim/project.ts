@@ -437,19 +437,39 @@ const withNet = (core: Core, target: NetTarget, net: Net): Core => {
 const segmentAt = (net: Net, env: Env, uid: string, port: number): Segment | undefined =>
   segmentOf(segmentsOf(net, env.engine), uid, port);
 
-// 機器の空いているポートのうち、最も小さい番号を返す
-const freePort = (links: NetLink[], node: NetNode, env: Env): number | null => {
+// 機器のポートのうち、ケーブルがつながっている番号の集合
+const usedPorts = (links: NetLink[], node: NetNode): Set<number> => {
   const used = new Set<number>();
   for (const l of links) {
     if (l.a.node === node.uid) used.add(l.a.port);
     if (l.b.node === node.uid) used.add(l.b.port);
   }
+  return used;
+};
+
+// 機器の空いているポートのうち、最も小さい番号を返す
+const freePort = (links: NetLink[], node: NetNode, env: Env): number | null => {
+  const used = usedPorts(links, node);
   const count = env.devices[node.device].portCount;
   for (let port = 0; port < count; port++) if (!used.has(port)) return port;
   return null;
 };
 
-// 2台の機器を配線できるか判定する。できなければ理由を返す（配線中の表示と配線の実行で使う）
+// 配線で使うポートの指定。省略（undefined）なら空きの最小番号を使う
+export interface PortChoice {
+  a?: number;
+  b?: number;
+}
+
+// 機器のポートを決める。指定があればそのポートを確かめる（範囲外は port、使用中は portUsed）。指定がなければ空きの最小番号（空きがなければ port）
+const choosePort = (links: NetLink[], node: NetNode, env: Env, want: number | undefined): number | string => {
+  if (want === undefined) return freePort(links, node, env) ?? 'port';
+  const count = env.devices[node.device].portCount;
+  if (!Number.isInteger(want) || want < 0 || want >= count) return 'port';
+  return usedPorts(links, node).has(want) ? 'portUsed' : want;
+};
+
+// 2台の機器を配線できるか判定する。できなければ理由を返す（配線中の表示と配線の実行で使う）。ports を省略すると空きのポートを使う
 export const checkConnect = (
   core: Core,
   aUid: string,
@@ -457,6 +477,7 @@ export const checkConnect = (
   cableId: string,
   env: Env,
   target: NetTarget = 'focus',
+  ports: PortChoice = {},
 ): string | null => {
   const net = netOf(core, target);
   if (typeof net === 'string') return net;
@@ -467,7 +488,10 @@ export const checkConnect = (
   const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
   if (length < 1 || length > cable.maxLengthTiles) return 'cable';
   if (core.clock.money < cable.pricePerLink + cable.pricePerTile * length) return 'money';
-  if (freePort(net.links, a, env) === null || freePort(net.links, b, env) === null) return 'port';
+  const portA = choosePort(net.links, a, env, ports.a);
+  if (typeof portA === 'string') return portA;
+  const portB = choosePort(net.links, b, env, ports.b);
+  if (typeof portB === 'string') return portB;
   return null;
 };
 
@@ -484,7 +508,7 @@ export const freePortCount = (p: Project, node: NetNode, env: Env): number => {
 // ケーブル1本の費用（配線の長さで決まる）
 const cableCost = (cable: Env['cables'][string], length: number): number => cable.pricePerLink + cable.pricePerTile * length;
 
-// 2台の機器を配線する。ケーブル費用は配線の長さで決まる。空いているポートを順に使う。
+// 2台の機器を配線する。ケーブル費用は配線の長さで決まる。ポートの指定がなければ空いているポートを順に使う。
 // 自社オフィスへの配線は施工を待たずに反映する。案件への配線は案件の費用に加える
 export const connect = (
   core: Core,
@@ -493,8 +517,9 @@ export const connect = (
   cableId: string,
   env: Env,
   target: NetTarget = 'focus',
+  ports: PortChoice = {},
 ): Outcome => {
-  const reason = checkConnect(core, aUid, bUid, cableId, env, target);
+  const reason = checkConnect(core, aUid, bUid, cableId, env, target, ports);
   if (reason) return fail(reason);
   const net = netOf(core, target) as Net;
   const a = net.nodes.find((n) => n.uid === aUid) as NetNode;
@@ -502,8 +527,8 @@ export const connect = (
   const cable = env.cables[cableId];
   const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
   const cost = cableCost(cable, length);
-  const portA = freePort(net.links, a, env) as number;
-  const portB = freePort(net.links, b, env) as number;
+  const portA = choosePort(net.links, a, env, ports.a) as number;
+  const portB = choosePort(net.links, b, env, ports.b) as number;
   const link: NetLink = {
     uid: `l${net.seq}`,
     cable: cableId,

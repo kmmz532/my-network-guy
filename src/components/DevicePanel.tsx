@@ -1,6 +1,6 @@
 // 機器の画面。機器を押すと右側に開き（幅 300 px、マップに重ねる）、背面・設定・サービス（サーバーだけ）・ターミナル（押せない）のタブを持つ。
-// 空きマスを押すか Esc で閉じる。別の機器を押すと中身が替わる。
-import { useEffect, useState } from 'react';
+// 空きマスを押すか Esc（キーは Toolbar の useToolKeys が受け取る）で閉じる。別の機器を押すと中身が替わる。
+import { useState } from 'react';
 import { devices as deviceData } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
@@ -18,16 +18,6 @@ type Tab = 'rear' | 'config' | 'service';
 export function DevicePanel() {
   const selectedUid = useGameStore((s) => s.selectedUid);
   const state = useGameStore();
-
-  // Esc で閉じる
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const s = useGameStore.getState();
-      if (e.key === 'Escape' && s.selectedUid !== null) s.setSelected(null);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
 
   if (!selectedUid) return null;
   const active = focusedProject(state);
