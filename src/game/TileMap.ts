@@ -15,6 +15,7 @@ const CAP = 5;
 const CAP_COLOR = 0xcfc3aa;
 const FRONT_CAP_COLOR = 0xb0a088; // 手前の壁は少し暗くする
 const CAP_EDGE_COLOR = 0x3b2a33; // 上面の内側の縁（輪郭線の色）
+const WALL_TOP_BAND = 3; // 奥の壁の上面の帯の高さ（tile/wall_face.png の上端の帯に合わせる）
 // 光源は左上。左の壁と奥の壁の下の床に影を落とす
 const SHADOW = 6;
 const SHADOW_COLOR = 0x3b2a33;
@@ -61,14 +62,15 @@ export const drawTileMap = (map: GameMap): Container => {
         }
         // 左右と手前の壁は、床に接する辺に上面を描く。外側は背景のまま
         const r = x * ts + ts; // 右端
-        // 上面の内側の縁に1 pxの線を引く。床に接する辺と、奥の壁に接する辺の両方に引く
+        // 上面の内側の縁に1 pxの線を引く。奥の壁の横では、奥の壁の上面の帯より下だけに引き、上面どうしをL字につなげる
+        const edgeTop = (nx: number): number => (faceAt(nx, y) ? WALL_TOP_BAND : 0);
         if (floorAt(x + 1, y) || faceAt(x + 1, y)) {
           g.rect(r - CAP, y * ts, CAP, ts).fill(CAP_COLOR);
-          g.rect(r - 1, y * ts, 1, ts).fill(CAP_EDGE_COLOR);
+          g.rect(r - 1, y * ts + edgeTop(x + 1), 1, ts - edgeTop(x + 1)).fill(CAP_EDGE_COLOR);
         }
         if (floorAt(x - 1, y) || faceAt(x - 1, y)) {
           g.rect(x * ts, y * ts, CAP, ts).fill(CAP_COLOR);
-          g.rect(x * ts, y * ts, 1, ts).fill(CAP_EDGE_COLOR);
+          g.rect(x * ts, y * ts + edgeTop(x - 1), 1, ts - edgeTop(x - 1)).fill(CAP_EDGE_COLOR);
         }
         if (floorAt(x, y - 1)) {
           g.rect(x * ts, y * ts, ts, CAP).fill(FRONT_CAP_COLOR);
