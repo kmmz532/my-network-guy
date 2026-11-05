@@ -9,12 +9,20 @@ import { gameEnv } from '../sim/env';
 import { staffPower } from '../sim/staff';
 import { useGameStore } from '../stores/useGameStore';
 import type { Offer } from '../contracts/template';
-import { Modal, primaryButton, usePrimary } from './Modal';
+import { Modal, primaryButton, secondaryButton, usePrimary } from './Modal';
 import { PixelCheck } from './PixelControls';
 import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
 
 // 依頼の一覧。Enter は一番上の依頼の受注（主のボタン）
+// 主でない受注ボタン。押せることが分かるよう、明るい青にして縁を明るくする（押せないときは薄く出る）
+const acceptButton = {
+  ...secondaryButton,
+  background: '#3a7bd0',
+  border: '1px solid #f4f1e6',
+  fontWeight: 'bold',
+} as const;
+
 export function OfferCards({ onClose }: { onClose: () => void }) {
   const offers = useGameStore((s) => s.offers);
   // 案件の枠がいっぱいのときは受注できない
@@ -133,7 +141,7 @@ function OfferCard({
           <Icon name="icon/money" /> {yen(offer.contract.reward.money)}
         </span>
         <button
-          style={primary ? { ...primaryButton, marginLeft: 'auto' } : { marginLeft: 'auto', padding: '4px 12px', cursor: 'pointer' }}
+          style={primary ? { ...primaryButton, marginLeft: 'auto' } : { ...acceptButton, marginLeft: 'auto' }}
           disabled={!canAccept}
           onClick={() => onAccept(crew)}
         >
