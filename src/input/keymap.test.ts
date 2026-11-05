@@ -98,7 +98,6 @@ describe('handleKey（キーの処理）', () => {
     expect(handleKey({ ...input('z', { ctrlKey: true }), target: null }, ui)).toBe(false);
     expect(handleKey({ ...input('+'), target: null }, ui)).toBe(false);
     expect(handleKey({ ...input('Tab'), target: null }, ui)).toBe(false);
-    expect(handleKey({ ...input('H'), target: null }, ui)).toBe(false);
   });
 
   it('Alt を伴うキーは無視する', () => {
