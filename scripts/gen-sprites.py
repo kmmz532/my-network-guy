@@ -517,6 +517,28 @@ def icon_ok():
     return outline(img)
 
 
+def icon_device():
+    # 機器の区分（ショップの「機器」のタブ）。前面にポートの列とLEDのある箱
+    img, d = new(16, 16)
+    rect(d, 1, 4, 14, 8, 'b')
+    rect(d, 1, 4, 14, 2, 'bh')
+    for x in (3, 5, 7, 9):
+        rect(d, x, 8, 1, 2, 'd')
+    px(d, 12, 8, 'l')
+    px(d, 13, 8, 'l')
+    return outline(img)
+
+
+def icon_furniture():
+    # 家具の区分（ショップの「家具」のタブ）。木の天板と脚の机
+    img, d = new(16, 16)
+    rect(d, 1, 4, 14, 3, 'F1')
+    d.line([(1, 4), (14, 4)], fill=C['w'])
+    rect(d, 2, 7, 2, 7, 'F3')
+    rect(d, 12, 7, 2, 7, 'F3')
+    return outline(img)
+
+
 # ---- 床・壁（32×32） ----
 # 床は木の板。継ぎ目の位置を変えた3種類を、マップ上でばらして敷く
 
@@ -805,6 +827,8 @@ if __name__ == '__main__':
         'cable_fiber_sm': icon_cable('f'),
         'pc_count': icon_pc_count(),
         'ok': icon_ok(),
+        'device': icon_device(),
+        'furniture': icon_furniture(),
         'cart': icon_cart(),
         'warehouse': icon_warehouse(),
         'person': icon_person(),

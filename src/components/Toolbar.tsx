@@ -1,6 +1,6 @@
 // 画面下のツールバー。道具（選択・配線・撤去）・依頼・機材・施工をアイコンで操作する。キーは input/keymap.ts の表から受け取る
 import { Fragment, useEffect, useState } from 'react';
-import { shop } from 'virtual:game-data';
+import { cables, shop } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { isUnlocked } from '../sim/shop';
@@ -8,6 +8,7 @@ import { historyKeyOf } from '../sim/history';
 import { warehouseItems, warehouseMode, type WarehouseItem } from '../sim/warehouse';
 import { focusedProject, useGameStore, type Tool } from '../stores/useGameStore';
 import { tipText } from '../input/keymap';
+import { isNarrow } from '../ui/windows';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
 import { Warehouse } from './Warehouse';
@@ -104,6 +105,14 @@ export function Toolbar({
     return () => window.clearTimeout(id);
   }, [testNudge]);
 
+  // 幅が狭い画面では、ケーブルの値段をツールチップだけに出す
+  const [narrow, setNarrow] = useState(() => isNarrow({ w: window.innerWidth, h: window.innerHeight }));
+  useEffect(() => {
+    const onResize = () => setNarrow(isNarrow({ w: window.innerWidth, h: window.innerHeight }));
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const showcase = useGameStore((s) => s.showcase);
   const unlocked = shop.filter((item) => isUnlocked(item, completed));
   const cableIds = unlocked.filter((i) => i.cable).map((i) => i.cable!);
@@ -166,17 +175,24 @@ export function Toolbar({
           </Tooltip>
           {item.id === 'wire' &&
             tool === 'wire' &&
-            cableIds.map((id) => (
-              <Tooltip text={t(`cable.${id}.name` as LangKey)} key={id}>
-                <button
-                  aria-label={t(`cable.${id}.name` as LangKey)}
-                  style={{ ...slot(wireCable === id), width: 'auto', padding: '0 10px', fontSize: 13, fontWeight: 'bold' }}
-                  onClick={() => setWireCable(id)}
-                >
-                  {t(`cable.${id}.short` as LangKey)}
-                </button>
-              </Tooltip>
-            ))}
+            cableIds.map((id) => {
+              const cable = cables[id as keyof typeof cables];
+              const name = t(`cable.${id}.name` as LangKey);
+              const short = t(`cable.${id}.short` as LangKey);
+              // 値段は「UTP ¥1,000＋¥300/マス」の形。狭い画面では名前だけを出し、値段はツールチップに入れる
+              const price = t('ui.cable.price', { link: yen(cable.pricePerLink), tile: yen(cable.pricePerTile) });
+              return (
+                <Tooltip text={narrow ? `${name}\n${price}` : name} key={id}>
+                  <button
+                    aria-label={narrow ? name : undefined}
+                    style={{ ...slot(wireCable === id), width: 'auto', padding: '0 10px', fontSize: 13, fontWeight: 'bold', whiteSpace: 'nowrap' }}
+                    onClick={() => setWireCable(id)}
+                  >
+                    {narrow ? short : `${short} ${price}`}
+                  </button>
+                </Tooltip>
+              );
+            })}
         </Fragment>
       ))}
       {sep}
