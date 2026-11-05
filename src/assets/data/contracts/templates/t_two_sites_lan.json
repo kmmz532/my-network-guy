@@ -1,0 +1,39 @@
+{
+  "id": "t_two_sites_lan",
+  "stage": 1,
+  "requires": [
+    "c005_two_sites"
+  ],
+  "minReputation": 6,
+  "weight": 6,
+  "map": "office_two_sites",
+  "params": {
+    "pcCount": {
+      "min": 4,
+      "max": 6
+    }
+  },
+  "spawnArea": {
+    "x": 1,
+    "y": 1,
+    "width": 38,
+    "height": 8
+  },
+  "deadlineDays": 12,
+  "budget": {
+    "base": 40000,
+    "perPc": 3000,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 100000,
+    "perPc": 25000,
+    "reputation": 2
+  },
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": "$all_pcs"
+    }
+  ]
+}

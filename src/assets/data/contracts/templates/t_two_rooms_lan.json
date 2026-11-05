@@ -1,0 +1,39 @@
+{
+  "id": "t_two_rooms_lan",
+  "stage": 1,
+  "requires": [
+    "c003_departments"
+  ],
+  "minReputation": 4,
+  "weight": 8,
+  "map": "office_two_rooms",
+  "params": {
+    "pcCount": {
+      "min": 4,
+      "max": 6
+    }
+  },
+  "spawnArea": {
+    "x": 1,
+    "y": 1,
+    "width": 18,
+    "height": 8
+  },
+  "deadlineDays": 10,
+  "budget": {
+    "base": 30000,
+    "perPc": 2000,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 60000,
+    "perPc": 15000,
+    "reputation": 1
+  },
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": "$all_pcs"
+    }
+  ]
+}
