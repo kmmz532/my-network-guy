@@ -362,7 +362,6 @@
   "keys.moveMap": "マップを移動",
   "ui.map.zoomIn": "＋",
   "ui.map.zoomOut": "－",
-  "ui.map.fit": "全体",
   "ui.tip.key": "キー: {key}",
   "ui.help.title": "キー操作",
   "ui.help.key": "キー",

@@ -17,10 +17,12 @@ import { effectText } from './effectText';
 import { t } from '../i18n/t';
 import type { LangKey } from '../generated/lang-keys';
 import type { FailureReason, NetLink, NetNode } from '../network/types';
-import { drawTileMap, layoutIntegerScale } from './TileMap';
+import { drawTileMap } from './TileMap';
+import { fitCamera, panCamera, resizeCamera, stepZoom, zoomCamera, type Camera, type Size } from './camera';
+import { bindMapCommands } from './mapControl';
 import { cumulativeLengths, pointAt, type Point } from './animation';
 import { wanderStep, type Walker } from './wander';
-import { deskStaffPos, deskTap, staffAt, wanderStaffPos, type StaffHit } from './staffHit';
+import { deskStaffPos, deskTap, staffAt, STAFF_W, wanderStaffPos, type StaffHit } from './staffHit';
 
 const OUTLINE = 0x3b2a33;
 const SELECT = 0xffd866;
@@ -58,6 +60,15 @@ const NODE_HIT_SCREEN_PX = 44;
 // 撤去の道具で、マウスを乗せた対象を赤みがかった明るさにする
 const HOT_RED = 0xff6b6b;
 const REMOVE_TINT = 0xffb0b0;
+// 吹き出しの地（クリーム色）
+const BUBBLE_FILL = 0xf4f1e6;
+// 背景を長押ししてから動かせるようになるまで（ms）
+const PAN_LONG_PRESS_MS = 300;
+// ホイールの回転を、拡大・縮小1段階に換算する量（px。行単位のホイールは1行 16 px とする）
+const WHEEL_STEP_PX = 40;
+const WHEEL_LINE_PX = 16;
+// 2本指で、指の間の距離がこの倍率を超えたら1段階拡大・縮小する
+const PINCH_STEP_RATIO = 1.3;
 
 export class Scene {
   private content = new Container();
@@ -95,6 +106,19 @@ export class Scene {
   // 失敗の「？」の押せる範囲（機器の uid → マップの座標の矩形）。描き直すたびに作る
   private helpRects = new Map<string, { x: number; y: number; w: number; h: number }>();
   private unsubscribe: () => void;
+  // マップの拡大・移動の状態（画面上の位置と倍率）と、画面の大きさ（最後に合わせた値）
+  private camera: Camera | null = null;
+  private view: Size = { w: 0, h: 0 };
+  // ホイールの回転量の合計（拡大・縮小の1段階に達するまで溜める）
+  private wheelAcc = 0;
+  // 指の位置（canvas の座標）。2本になったらピンチ（拡大・2本指の移動）
+  private touches = new Map<number, Point>();
+  private pinch: { dist: number; mid: Point } | null = null;
+  // 背景のドラッグ（移動）。長押しのあとに動き出す、または選択の道具で即座に動き出す
+  private pan: { last: Point; active: boolean; timer: number | null } | null = null;
+  // 任意の道具で、マウスを乗せている機器と配線（ポートの名前を出すときに使う）
+  private hoverAnyNode: string | null = null;
+  private hoverAnyLink: string | null = null;
 
   constructor(private app: Application) {
     app.stage.addChild(this.content);
@@ -111,16 +135,37 @@ export class Scene {
     app.stage.on('pointerupoutside', this.dropWire);
     app.canvas.addEventListener('pointerleave', this.onCanvasLeave);
     app.canvas.addEventListener('contextmenu', this.preventMenu);
+    // ホイールはブラウザの拡大・スクロールを止めるため passive を外す（Ctrl＋ホイールとピンチも、マップの拡大にする）
+    app.canvas.addEventListener('wheel', this.onWheel, { passive: false });
+    app.canvas.addEventListener('mousedown', this.preventMiddleScroll);
+    // 指の操作は、Pixi の操作より先に受け取る（捕捉の段階）。2本目の指で、配線などの操作を取り消す
+    app.canvas.addEventListener('pointerdown', this.onCanvasPointerDown, true);
+    app.canvas.addEventListener('pointermove', this.onCanvasPointerMove, true);
+    app.canvas.addEventListener('pointerup', this.onCanvasPointerUp, true);
+    app.canvas.addEventListener('pointercancel', this.onCanvasPointerUp, true);
+    app.canvas.style.touchAction = 'none';
     app.ticker.add(this.onTick);
-    window.addEventListener('resize', this.layout);
     this.unsubscribe = useGameStore.subscribe(() => this.refresh());
+    bindMapCommands({
+      zoomIn: () => this.zoomBy(1),
+      zoomOut: () => this.zoomBy(-1),
+      fit: () => this.fit(),
+      pan: (dx, dy) => this.panBy(dx, dy),
+    });
     this.refresh();
   }
 
   destroy(): void {
     this.unsubscribe();
-    window.removeEventListener('resize', this.layout);
+    bindMapCommands(null);
+    this.endPan();
     this.app.ticker.remove(this.onTick);
+    this.app.canvas.removeEventListener('wheel', this.onWheel);
+    this.app.canvas.removeEventListener('mousedown', this.preventMiddleScroll);
+    this.app.canvas.removeEventListener('pointerdown', this.onCanvasPointerDown, true);
+    this.app.canvas.removeEventListener('pointermove', this.onCanvasPointerMove, true);
+    this.app.canvas.removeEventListener('pointerup', this.onCanvasPointerUp, true);
+    this.app.canvas.removeEventListener('pointercancel', this.onCanvasPointerUp, true);
     this.app.stage.off('pointerdown', this.onDown);
     this.app.stage.off('pointermove', this.onMove);
     this.app.stage.off('pointerup', this.onUp);
@@ -185,6 +230,8 @@ export class Scene {
       this.content.addChildAt(this.tiles, 0);
       this.tilesId = mapId;
       this.map = map;
+      // マップが変わったら全体に合わせる
+      this.camera = null;
       this.layout();
     }
     this.drawObjects();
@@ -192,6 +239,9 @@ export class Scene {
 
   private onTick = (ticker: Ticker): void => {
     this.elapsed += ticker.deltaMS;
+    // 画面の大きさが変わったら、マップの位置と倍率を合わせ直す（resize の順に関係なく、描画の時点で拾う）
+    const view = this.viewSize();
+    if (this.map && (view.w !== this.view.w || view.h !== this.view.h)) this.layout();
     this.updateWanderers(ticker.deltaMS);
     // パケットは滑らかに動かす。それ以外はコマ送り（ART.md）
     if (this.traceActive() || this.flashActive()) {
@@ -205,11 +255,175 @@ export class Scene {
     this.drawObjects();
   };
 
+  // マップの位置と倍率を、画面に合わせる。マップが変わったときは全体、画面の大きさが変わったときは倍率を保って合わせ直す（R1）
   private layout = (): void => {
     if (!this.map) return;
     this.app.stage.hitArea = new Rectangle(0, 0, this.app.screen.width, this.app.screen.height);
-    layoutIntegerScale(this.content, this.map, this.app.screen.width, this.app.screen.height);
+    const view = this.viewSize();
+    const map = this.mapSize();
+    this.camera = this.camera ? resizeCamera(this.camera, map, this.view, view) : fitCamera(map, view);
+    this.view = view;
+    this.applyCamera();
   };
+
+  private viewSize(): Size {
+    return { w: this.app.screen.width, h: this.app.screen.height };
+  }
+
+  // マップの大きさ（マップの座標の px。拡大率は含まない）
+  private mapSize(): Size {
+    const ts = this.tileSize();
+    return { w: (this.map?.width ?? 0) * ts, h: (this.map?.height ?? 0) * ts };
+  }
+
+  private viewCenter(): Point {
+    return { x: this.view.w / 2, y: this.view.h / 2 };
+  }
+
+  // 位置と倍率を描画に反映し、描き直す（文字の大きさは倍率で割るため、画面上では同じ大きさになる）
+  private applyCamera(): void {
+    const cam = this.camera;
+    if (!cam) return;
+    this.content.scale.set(cam.zoom);
+    this.content.position.set(cam.x, cam.y);
+    this.drawObjects();
+  }
+
+  private setCamera(next: Camera): void {
+    const cam = this.camera;
+    if (cam && next.zoom === cam.zoom && next.x === cam.x && next.y === cam.y && next.fit === cam.fit) return;
+    this.camera = next;
+    this.applyCamera();
+  }
+
+  // 拡大（1）・縮小（-1）を1段階。anchor（画面の座標）の下のマップの点は動かさない。省略時は画面の中央
+  private zoomBy(dir: 1 | -1, anchor: Point = this.viewCenter()): void {
+    const cam = this.camera;
+    if (!cam) return;
+    this.setCamera(zoomCamera(cam, this.mapSize(), this.view, stepZoom(cam.zoom, dir), anchor));
+  }
+
+  private fit(): void {
+    if (this.map) this.setCamera(fitCamera(this.mapSize(), this.view));
+  }
+
+  private panBy(dx: number, dy: number): void {
+    const cam = this.camera;
+    if (!cam) return;
+    this.setCamera(panCamera(cam, this.mapSize(), this.view, dx, dy));
+  }
+
+  // canvas の中の位置（CSS の px）
+  private canvasPoint(e: { clientX: number; clientY: number }): Point {
+    const rect = this.app.canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  private preventMiddleScroll = (e: MouseEvent): void => {
+    if (e.button === 1) e.preventDefault();
+  };
+
+  // ホイール・Ctrl＋ホイール・トラックパッドのピンチは、カーソルの位置を中心に拡大・縮小する。ブラウザの拡大は起こさない
+  private onWheel = (e: WheelEvent): void => {
+    e.preventDefault();
+    const dy = e.deltaMode === 1 ? e.deltaY * WHEEL_LINE_PX : e.deltaY;
+    this.wheelAcc += dy;
+    if (Math.abs(this.wheelAcc) < WHEEL_STEP_PX) return;
+    const dir = this.wheelAcc < 0 ? 1 : -1;
+    this.wheelAcc = 0;
+    this.zoomBy(dir, this.canvasPoint(e));
+  };
+
+  // 指の追跡。2本になったらピンチを始める（拡大・縮小と、2本指の移動）
+  private onCanvasPointerDown = (e: PointerEvent): void => {
+    if (e.pointerType !== 'touch') return;
+    this.touches.set(e.pointerId, this.canvasPoint(e));
+    if (this.touches.size === 2) this.startPinch();
+  };
+
+  private onCanvasPointerMove = (e: PointerEvent): void => {
+    if (e.pointerType !== 'touch' || !this.touches.has(e.pointerId)) return;
+    this.touches.set(e.pointerId, this.canvasPoint(e));
+    if (this.pinch && this.touches.size === 2) this.updatePinch();
+  };
+
+  private onCanvasPointerUp = (e: PointerEvent): void => {
+    if (e.pointerType !== 'touch') return;
+    this.touches.delete(e.pointerId);
+    if (this.touches.size < 2) this.pinch = null;
+  };
+
+  // 2本の指の距離と中点を覚え、配線などの途中の操作と背景のドラッグを取り消す
+  private startPinch(): void {
+    const [a, b] = [...this.touches.values()];
+    this.endPan();
+    this.resetTip();
+    this.wireFrom = null;
+    this.hover = null;
+    useGameStore.getState().cancelWire();
+    this.pinch = { dist: distOf(a, b), mid: midOf(a, b) };
+    this.drawObjects();
+  }
+
+  private updatePinch(): void {
+    const pinch = this.pinch;
+    if (!pinch) return;
+    const [a, b] = [...this.touches.values()];
+    const dist = distOf(a, b);
+    const mid = midOf(a, b);
+    if (dist >= 1 && dist > pinch.dist * PINCH_STEP_RATIO) {
+      this.zoomBy(1, mid);
+      pinch.dist = dist;
+    } else if (dist >= 1 && dist * PINCH_STEP_RATIO < pinch.dist) {
+      this.zoomBy(-1, mid);
+      pinch.dist = dist;
+    }
+    this.panBy(mid.x - pinch.mid.x, mid.y - pinch.mid.y);
+    pinch.mid = mid;
+  }
+
+  // 背景のドラッグを始める。immediate なら即座に動き出し、そうでなければ長押しのあとに動き出す
+  private beginPan(e: FederatedPointerEvent, immediate: boolean): void {
+    this.endPan();
+    const pan: { last: Point; active: boolean; timer: number | null } = {
+      last: { x: e.global.x, y: e.global.y },
+      active: immediate,
+      timer: null,
+    };
+    if (!immediate) {
+      pan.timer = window.setTimeout(() => {
+        pan.timer = null;
+        if (this.pan === pan) pan.active = true;
+      }, PAN_LONG_PRESS_MS);
+    }
+    this.pan = pan;
+  }
+
+  private endPan(): void {
+    if (this.pan?.timer != null) window.clearTimeout(this.pan.timer);
+    this.pan = null;
+  }
+
+  // 背景のドラッグ中は動かす。動き出す前は、基準の位置だけを更新する。動かしたときは true
+  private movePan(e: FederatedPointerEvent): boolean {
+    const pan = this.pan;
+    if (!pan) return false;
+    const p = { x: e.global.x, y: e.global.y };
+    if (pan.active) this.panBy(p.x - pan.last.x, p.y - pan.last.y);
+    pan.last = p;
+    return pan.active;
+  }
+
+  // 押した位置が背景か（機器・家具・ケーブル・社員のない場所。マップの外の余白を含む）
+  private isBackground(p: Point, tile: { tx: number; ty: number } | null): boolean {
+    if (!tile) return true;
+    const project = this.project();
+    if (project && (this.nodeNear(p, project.nodes) || linkAt(project.links, p.x, p.y, this.tileSize(), this.content.scale.x))) return false;
+    if (staffAt(this.officeStaffHits(), p)) return false;
+    const store = useGameStore.getState();
+    if (this.map?.id === 'hq' && store.office.furniture.some((f) => f.x === tile.tx && f.y === tile.ty)) return false;
+    return true;
+  }
 
   private traceActive(): boolean {
     return this.traces.some((trace) => {
@@ -319,8 +533,10 @@ export class Scene {
       if (issue && issue.reason !== 'ip.unset') this.drawBubble(node, ts, '?', WARN);
     }
 
+    // 失敗の表示があるときは、その機器のIPの表示を出さない（重なるため）
+    const failing = this.failureNodes(project);
     if (s.showIp) {
-      this.drawAddresses(project, ts);
+      this.drawAddresses(project, ts, failing);
       this.drawPortNames(project, ts);
     }
     if (building) this.drawBuilding(project, ts);
@@ -328,9 +544,8 @@ export class Scene {
       this.drawDeskStaff(ts);
       this.drawWanderers(ts);
     }
-    else if (focusedProject(s)) this.drawIdleStaff(ts);
     for (const trace of this.traces) this.drawTrace(trace, ts);
-    this.drawFailures(project, ts);
+    this.drawFailures(project, ts, failing);
     this.drawHover(project, ts);
     this.drawEffectRange(ts);
     this.drawFlash(ts);
@@ -353,7 +568,7 @@ export class Scene {
   }
 
   // IPアドレスとプレフィックス長を、機器のスプライトの上端に重ねて出す。画面上の高さが約11pxになるよう拡大率で割る
-  private drawAddresses(project: Project, ts: number): void {
+  private drawAddresses(project: Project, ts: number, failing: ReadonlyMap<string, FailureReason>): void {
     const compiled = this.compiled;
     if (!compiled) return;
     const scale = this.content.scale.x;
@@ -367,6 +582,8 @@ export class Scene {
       // IPアドレスのない機器は、未設定の印（灰色の「IP ---」）だけを出す
       const unset = ips.length === 0 && compiled.issues[node.uid]?.reason === 'ip.unset';
       if (ips.length === 0 && !unset) continue;
+      // 失敗の表示が出ている機器は、IPの表示を出さない
+      if (failing.has(node.uid)) continue;
       // 3行を超えるときは2行に抑え、残りを「ほか n件」にまとめる
       const lines = unset ? [t('ui.ip.blank')] : ips.length > 3 ? [...ips.slice(0, 2), t('ui.ip.more', { count: ips.length - 2 })] : ips;
       const text = new Text({
@@ -401,13 +618,7 @@ export class Scene {
       // 口癖は、社員ごとにずらした周期で、60秒に3秒だけ頭上に出す（平均60秒に1回）
       const seconds = this.elapsed / 1000 + k * 23;
       if (seconds % 60 < 3) {
-        const quirk = new Text({
-          text: t(`staff.quirk.${staffList[k].quirk}` as LangKey),
-          style: { fontFamily: 'sans-serif', fontSize: 11, fill: 0xf4f1e6, stroke: { color: OUTLINE, width: 3 } },
-        });
-        quirk.anchor.set(0.5, 1);
-        quirk.position.set(dx * ts + ts / 2, dy * ts - 4);
-        this.bubbles.addChild(quirk);
+        this.drawSpeech(t(`staff.quirk.${staffList[k].quirk}` as LangKey), at.x + STAFF_W / 2, at.y);
       }
     }
   }
@@ -459,15 +670,6 @@ export class Scene {
       if (member) hits.push({ uid: member.uid, ...wanderStaffPos(w.x, w.y, ts) });
     });
     return hits;
-  }
-
-  // 設計中は、社員がマップの左上で待機する。失敗の内容は機器の上の印で示す
-  private drawIdleStaff(ts: number): void {
-    const bob = Math.floor(this.elapsed / (FRAME_MS * 3)) % 2;
-    const workers = Math.min(2, useGameStore.getState().staff.length);
-    for (let k = 0; k < workers; k++) {
-      this.drawStaff(ts + k * 18, ts - 8 - (k === 0 ? bob : 1 - bob), STAFF_SHIRT[k % STAFF_SHIRT.length]);
-    }
   }
 
   // 自社オフィスの家具。スプライトの下端をマスの下端に揃え、1マスより高い分は上へはみ出させる
@@ -595,9 +797,12 @@ export class Scene {
   }
 
   private drawBubble(node: NetNode, ts: number, mark: string, color: number): void {
+    const scale = this.content.scale.x;
+    // 文字は倍率で割り、画面上で 12 px にする
     const text = new Text({
       text: mark,
-      style: { fontFamily: 'sans-serif', fontSize: 12, fontWeight: 'bold', fill: color, stroke: { color: OUTLINE, width: 3 } },
+      style: { fontFamily: 'sans-serif', fontSize: 12 / scale, fontWeight: 'bold', fill: color, stroke: { color: OUTLINE, width: 3 / scale } },
+      resolution: this.textResolution(),
     });
     text.anchor.set(0.5, 1);
     text.position.set(node.x * ts + ts / 2, node.y * ts - 2);
@@ -678,17 +883,24 @@ export class Scene {
 
   // テストと検収の失敗を、失敗した機器の上に「×」と理由の文で出す。「？」を押すと直し方を出す。
   // 機器ごとに最初の失敗だけを出す（経路が描けない失敗も出す）
-  private drawFailures(project: Project, ts: number): void {
-    this.helpRects.clear();
+  // 失敗の表示を出す機器（uid → 理由）。設計中の案件の検査結果だけ。機器ごとに最初の失敗
+  private failureNodes(project: Project): Map<string, FailureReason> {
+    const byNode = new Map<string, FailureReason>();
     const s = useGameStore.getState();
     const check = s.check;
-    if (!check || check.projectId !== project.id || project.phase !== 'design' || !focusedProject(s)) return;
-    const byNode = new Map<string, FailureReason>();
+    if (!check || check.projectId !== project.id || project.phase !== 'design' || !focusedProject(s)) return byNode;
     for (const goal of check.goals) {
       for (const f of goal.failures) if (!byNode.has(f.node)) byNode.set(f.node, f.reason);
     }
+    return byNode;
+  }
+
+  private drawFailures(project: Project, ts: number, byNode: ReadonlyMap<string, FailureReason>): void {
+    this.helpRects.clear();
+    const s = useGameStore.getState();
+    if (byNode.size === 0) return;
     const scale = this.content.scale.x;
-    const resolution = Math.max(2, scale * (window.devicePixelRatio || 1));
+    const resolution = this.textResolution();
     // 画面上で 12 px の文字。縁取りは細く、背景は付けない
     const style = (fill: number, bold: boolean) => ({
       fontFamily: 'sans-serif',
@@ -706,9 +918,8 @@ export class Scene {
       const help = new Text({ text: t('ui.fail.help'), style: style(SELECT, true), resolution });
       const parts = [mark, message, help];
       const width = parts.reduce((sum, part) => sum + part.width, 0) + gap * (parts.length - 1);
-      // IPアドレスの表示（機器の上端に重なる）の上に置く
-      const labelLines = Math.min(3, Math.max(1, node.interfaces.length));
-      const bottom = this.spriteTopOf(node, ts) + 4 - (labelLines * 13) / scale - gap;
+      // 機器の上端に置く（IPアドレスの表示は出さない）
+      const bottom = this.spriteTopOf(node, ts) + 4 - gap;
       const cx = node.x * ts + ts / 2;
       let x = cx - width / 2;
       for (const part of parts) {
@@ -752,6 +963,44 @@ export class Scene {
     return this.map?.tileSize ?? 32;
   }
 
+  // 文字の解像度（拡大率と画面の密度に合わせ、にじませない）
+  private textResolution(): number {
+    return Math.max(2, this.content.scale.x * (window.devicePixelRatio || 1));
+  }
+
+  // ドット絵の吹き出し（角丸は使わない）。頭（headTop）の上に置き、マップの中に収める。文字は 12 px、最大幅 160 px で折り返す。
+  // 枠と尾は画面の 1 px 単位で描き、倍率にかかわらず画面上で同じ大きさにする
+  private drawSpeech(message: string, cx: number, headTop: number): void {
+    const map = this.mapSize();
+    const u = 1 / this.content.scale.x;
+    const pad = 4 * u;
+    const text = new Text({
+      text: message,
+      style: { fontFamily: 'sans-serif', fontSize: 12 * u, fill: OUTLINE, align: 'center', wordWrap: true, wordWrapWidth: 160 * u },
+      resolution: this.textResolution(),
+    });
+    const w = text.width + pad * 2;
+    const h = text.height + pad * 2;
+    // 地（尾の先端は頭の少し上）。マップの外に出るときは内側へずらす
+    const left = Math.min(Math.max(cx - w / 2, 0), Math.max(0, map.w - w));
+    const top = Math.max(0, headTop - 4 * u - h);
+    const tailX = Math.min(Math.max(cx, left + 4 * u), left + w - 4 * u);
+    const tailY = top + h + u;
+    const box = new Graphics();
+    // 外枠は角を1 px欠いた形（角の先を立てない）。中の面も同じく角を欠く
+    box.rect(left - u, top, w + 2 * u, h).fill(OUTLINE);
+    box.rect(left, top - u, w, h + 2 * u).fill(OUTLINE);
+    box.rect(left, top + u, w, h - 2 * u).fill(BUBBLE_FILL);
+    box.rect(left + u, top, w - 2 * u, h).fill(BUBBLE_FILL);
+    // 尾（下へ細くなる）
+    box.rect(tailX - 2 * u, tailY, 4 * u, u).fill(OUTLINE);
+    box.rect(tailX - u, tailY + u, 2 * u, u).fill(OUTLINE);
+    this.bubbles.addChild(box);
+    text.anchor.set(0, 0);
+    text.position.set(left + pad, top + pad);
+    this.bubbles.addChild(text);
+  }
+
   private flashActive(): boolean {
     const f = useGameStore.getState().flash;
     return f !== null && Date.now() - f.at < FLASH_MS;
@@ -788,9 +1037,11 @@ export class Scene {
   private drawFlash(ts: number): void {
     const f = useGameStore.getState().flash;
     if (!f || !this.flashActive()) return;
+    const scale = this.content.scale.x;
     const text = new Text({
       text: t(f.key as LangKey),
-      style: { fontFamily: 'sans-serif', fontSize: 12, fill: 0xffd866, stroke: { color: OUTLINE, width: 3 } },
+      style: { fontFamily: 'sans-serif', fontSize: 12 / scale, fill: 0xffd866, stroke: { color: OUTLINE, width: 3 / scale } },
+      resolution: this.textResolution(),
     });
     text.anchor.set(0.5, 1);
     text.position.set(f.tx * ts + ts / 2, f.ty * ts - 4);
@@ -799,7 +1050,9 @@ export class Scene {
 
   // マップの座標に変換する（拡大と配置の補正を除いた、タイルの座標系）
   private toMap(e: FederatedPointerEvent): { x: number; y: number } {
-    return this.content.toLocal(e.global);
+    const cam = this.camera;
+    if (!cam) return { x: 0, y: 0 };
+    return { x: (e.global.x - cam.x) / cam.zoom, y: (e.global.y - cam.y) / cam.zoom };
   }
 
   // 機器を編集できる対象の機器（自社オフィス、または設計中の案件）。編集できなければ null
@@ -912,12 +1165,13 @@ export class Scene {
 
   private onCanvasLeave = (): void => {
     this.resetTip();
-    if (this.hoverLinkUid !== null || this.hoverNodeUid !== null || this.hoverFurnUid !== null) {
-      this.hoverLinkUid = null;
-      this.hoverNodeUid = null;
-      this.hoverFurnUid = null;
-      this.drawObjects();
-    }
+    const hovering = this.hoverLinkUid !== null || this.hoverNodeUid !== null || this.hoverFurnUid !== null || this.hoverAnyNode !== null || this.hoverAnyLink !== null;
+    this.hoverLinkUid = null;
+    this.hoverNodeUid = null;
+    this.hoverFurnUid = null;
+    this.hoverAnyNode = null;
+    this.hoverAnyLink = null;
+    if (hovering) this.drawObjects();
   };
 
   // 右クリックで撤去できる配線: 自社オフィス、または案件の設計中の配線。なければ null
@@ -936,7 +1190,14 @@ export class Scene {
   }
 
   private onDown = (e: FederatedPointerEvent): void => {
+    // 指が2本のときはピンチが扱う
+    if (this.touches.size >= 2) return;
     if (e.pointerType === 'touch') this.startTouchTip(e);
+    // 中ボタンのドラッグは、どの道具でも動かす
+    if (e.button === 1) {
+      this.beginPan(e, true);
+      return;
+    }
     const store = useGameStore.getState();
     const p = this.toMap(e);
     // 失敗の「？」を押すと直し方を開く（もう一度押すと閉じる）。ほかを押すと閉じる
@@ -949,6 +1210,8 @@ export class Scene {
       if (store.helpUid) store.setHelpUid(null);
     }
     const tile = this.tileOf(p);
+    // 背景は、長押しのあとにドラッグで動かす。選択の道具では、そのままドラッグで動かす
+    if (e.button === 0 && !store.placing && this.isBackground(p, tile)) this.beginPan(e, store.tool === 'select');
     if (!tile) return;
     // 選択の道具で社員を押すと、社員の札を開く（機器を編集できない状態でも開ける）
     const staffUid = store.tool === 'select' && e.button !== 2 && !store.placing ? staffAt(this.officeStaffHits(), p) : undefined;
@@ -1028,12 +1291,16 @@ export class Scene {
   // 機器の横にポートの一覧を出す。位置は画面の座標（マップの拡大率と配置を反映する）
   private openMenuAt(node: NetNode): void {
     const ts = this.tileSize();
-    const at = this.content.toGlobal({ x: node.x * ts + ts, y: node.y * ts + ts / 2 });
+    const cam = this.camera;
+    if (!cam) return;
+    const at = { x: cam.x + (node.x * ts + ts) * cam.zoom, y: cam.y + (node.y * ts + ts / 2) * cam.zoom };
     const rect = this.app.canvas.getBoundingClientRect();
     useGameStore.getState().openPortMenu(node.uid, rect.left + at.x + 6, rect.top + at.y - 12);
   }
 
   private onMove = (e: FederatedPointerEvent): void => {
+    if (this.touches.size >= 2) return;
+    if (this.movePan(e)) return;
     if (e.pointerType !== 'touch') this.updateTip(e);
     const p = this.toMap(e);
     this.cursorTile = this.tileOf(p);
@@ -1071,6 +1338,13 @@ export class Scene {
     const store = useGameStore.getState();
     const p = this.toMap(e);
     const tile = this.tileOf(p);
+    // ポートの名前を出すための、任意の道具でマウスを乗せた機器と配線
+    const project = this.project();
+    const anyNode = project ? this.nodeNear(p, project.nodes)?.uid ?? null : null;
+    const anyLink = project ? linkAt(project.links, p.x, p.y, this.tileSize(), this.content.scale.x)?.uid ?? null : null;
+    const anyChanged = anyNode !== this.hoverAnyNode || anyLink !== this.hoverAnyLink;
+    this.hoverAnyNode = anyNode;
+    this.hoverAnyLink = anyLink;
     const removing = store.tool === 'remove' && !store.placing;
     const nodes = removing ? this.editNodes() : null;
     const node = nodes ? this.nodeNear(p, nodes) : undefined;
@@ -1079,7 +1353,10 @@ export class Scene {
       removing && inOffice && tile ? store.office.furniture.find((f) => f.x === tile.tx && f.y === tile.ty) : undefined;
     const link = store.placing ? undefined : this.linkUnder(p);
     const next = { node: node?.uid ?? null, furniture: furniture?.uid ?? null, link: link?.uid ?? null };
-    if (next.node === this.hoverNodeUid && next.furniture === this.hoverFurnUid && next.link === this.hoverLinkUid) return;
+    if (next.node === this.hoverNodeUid && next.furniture === this.hoverFurnUid && next.link === this.hoverLinkUid) {
+      if (anyChanged) this.drawObjects();
+      return;
+    }
     this.hoverNodeUid = next.node;
     this.hoverFurnUid = next.furniture;
     this.hoverLinkUid = next.link;
@@ -1088,6 +1365,7 @@ export class Scene {
 
   private onUp = (e: FederatedPointerEvent): void => {
     if (e.pointerType === 'touch') this.endTouchTip();
+    this.endPan();
     if (!this.wireFrom) return;
     const from = this.wireFrom;
     this.wireFrom = null;
@@ -1106,6 +1384,7 @@ export class Scene {
   };
 
   private dropWire = (): void => {
+    this.endPan();
     this.wireFrom = null;
     this.hover = null;
     this.drawObjects();
@@ -1133,36 +1412,35 @@ export class Scene {
     this.bubbles.addChild(text);
   }
 
-  // ケーブルの両端に、つないだポートの名前を小さく出す（IPの表示と同じく showIp のときだけ）
+  // ケーブルの両端に、つないだポートの名前を出す（IPの表示と同じく showIp のときだけ）。
+  // 配線の道具を選んでいるとき、またはケーブルか機器にマウスを乗せたときだけ出す
   private drawPortNames(project: Project, ts: number): void {
+    const s = useGameStore.getState();
     const nodes = new Map(project.nodes.map((n) => [n.uid, n] as const));
     for (const link of project.links) {
-      this.portName(nodes.get(link.a.node), link.a.port, link.path, ts);
-      this.portName(nodes.get(link.b.node), link.b.port, [...link.path].reverse(), ts);
+      const relevant = s.tool === 'wire' || link.uid === this.hoverAnyLink || link.a.node === this.hoverAnyNode || link.b.node === this.hoverAnyNode;
+      if (!relevant) continue;
+      // マス単位の折れ線を、画面の中心（マップの座標）に直す。a の機器から始まる
+      const pts: Point[] = link.path.map(([x, y]) => ({ x: x * ts + ts / 2, y: y * ts + ts / 2 }));
+      this.portName(nodes.get(link.a.node), link.a.port, pts, ts);
+      this.portName(nodes.get(link.b.node), link.b.port, [...pts].reverse(), ts);
     }
   }
 
-  // ポートの名前を1つ描く。path は、機器の点（先頭）から始まる折れ線。機器の中心から、ケーブルの向きへ少しずらして置く
-  private portName(
-    node: NetNode | undefined,
-    port: number,
-    path: readonly (readonly [number, number])[],
-    ts: number,
-  ): void {
-    const [ax, ay] = path[0];
-    const toward = path.find(([x, y]) => x !== ax || y !== ay);
-    if (!node || !toward) return;
-    const dx = toward[0] - ax;
-    const dy = toward[1] - ay;
-    const len = Math.hypot(dx, dy);
+  // ポートの名前を1つ描く。pts は、機器の中心（先頭）から始まる折れ線（マップの座標）。
+  // ポートが1つの機器には出さない。線の上で、機器から1マス先に置く
+  private portName(node: NetNode | undefined, port: number, pts: readonly Point[], ts: number): void {
+    if (!node || pts.length < 2) return;
+    if ((gameEnv.devices[node.device]?.portCount ?? 0) <= 1) return;
+    const at = pointAt(pts, cumulativeLengths(pts), ts);
     const scale = this.content.scale.x;
     const text = new Text({
       text: portLabel(gameEnv.devices[node.device]?.category, port),
       style: { fontFamily: 'sans-serif', fontSize: 11 / scale, fill: 0xf4f1e6, stroke: { color: OUTLINE, width: 2 / scale } },
-      resolution: Math.max(2, scale * (window.devicePixelRatio || 1)),
+      resolution: this.textResolution(),
     });
     text.anchor.set(0.5, 0.5);
-    text.position.set(ax * ts + ts / 2 + (dx / len) * ts * 0.3, ay * ts + ts / 2 + (dy / len) * ts * 0.3);
+    text.position.set(at.x, at.y);
     this.bubbles.addChild(text);
   }
 }
@@ -1179,6 +1457,10 @@ const mixColor = (color: number, target: number, amount: number): number => {
 
 // 色を白に近づけて明るくする（マウスを乗せた配線に使う）
 const brighten = (color: number): number => mixColor(color, 0xffffff, 0.5);
+
+// 2点の距離（ピンチ）と中点（canvas の座標）
+const distOf = (a: Point, b: Point): number => Math.hypot(a.x - b.x, a.y - b.y);
+const midOf = (a: Point, b: Point): Point => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 
 // 配線の中点（社員が作業する位置）
 const midpoint = (link: NetLink, ts: number): Point => {

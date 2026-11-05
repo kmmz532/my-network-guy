@@ -103,12 +103,3 @@ export const drawTileMap = (map: GameMap): Container => {
   for (const [kind, x, y] of furniture) put(`furniture/${kind}`, x, y);
   return container;
 };
-
-// 整数倍だけで拡大し、表示領域の中央に置く（補間を行わないためドット絵が崩れない）
-export const layoutIntegerScale = (content: Container, map: GameMap, viewW: number, viewH: number): void => {
-  const mapW = map.width * map.tileSize;
-  const mapH = map.height * map.tileSize;
-  const scale = Math.max(1, Math.floor(Math.min(viewW / mapW, viewH / mapH)));
-  content.scale.set(scale);
-  content.position.set(Math.round((viewW - mapW * scale) / 2), Math.round((viewH - mapH * scale) / 2));
-};

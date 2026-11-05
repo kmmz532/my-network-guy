@@ -7,6 +7,7 @@ import { frontWindow } from '../ui/windows';
 import { focusedProject, frontDeviceUid, useGameStore } from '../stores/useGameStore';
 import type { Speed } from '../stores/useGameStore';
 import { topPopup } from './popupStack';
+import { mapCommands, PAN_KEY_PX } from '../game/mapControl';
 
 // 画面の上のポップアップ・欄を開け閉めする操作（App が渡す）
 export interface UiActions {
@@ -151,14 +152,15 @@ export const KEYMAP: KeyBinding[] = [
   { key: 'S', id: 'shop', name: 'ui.shop.title', run: (ui) => (ui.togglePopup('shop'), true) },
   { key: 'W', id: 'warehouse', name: 'ui.warehouse.title', run: (ui) => (ui.toggleWarehouse(), true) },
   { key: 'H', id: 'staffList', name: 'keys.staffList', run: () => { useGameStore.getState().openWindow('staffList', ''); return true; } },
-  // マップの拡大・縮小と移動は、マップの担当が動作を入れる
-  { key: '+', id: 'zoomIn', name: 'keys.zoomIn' },
-  { key: '-', id: 'zoomOut', name: 'keys.zoomOut' },
-  { key: '0', id: 'zoomReset', name: 'keys.zoomReset' },
-  { key: '↑', id: 'moveMap', name: 'keys.moveMap' },
-  { key: '↓', id: 'moveMap', name: 'keys.moveMap' },
-  { key: '←', id: 'moveMap', name: 'keys.moveMap' },
-  { key: '→', id: 'moveMap', name: 'keys.moveMap' },
+  // マップの拡大・縮小と移動（mapControl.ts の命令を呼ぶ）
+  { key: '+', id: 'zoomIn', name: 'keys.zoomIn', run: () => (mapCommands.zoomIn(), true) },
+  { key: '-', id: 'zoomOut', name: 'keys.zoomOut', run: () => (mapCommands.zoomOut(), true) },
+  { key: '0', id: 'zoomReset', name: 'keys.zoomReset', run: () => (mapCommands.fit(), true) },
+  // 矢印キーは、見える向きに動かす（上を押すと上の方が見える）
+  { key: '↑', id: 'moveMap', name: 'keys.moveMap', run: () => (mapCommands.pan(0, PAN_KEY_PX), true) },
+  { key: '↓', id: 'moveMap', name: 'keys.moveMap', run: () => (mapCommands.pan(0, -PAN_KEY_PX), true) },
+  { key: '←', id: 'moveMap', name: 'keys.moveMap', run: () => (mapCommands.pan(PAN_KEY_PX, 0), true) },
+  { key: '→', id: 'moveMap', name: 'keys.moveMap', run: () => (mapCommands.pan(-PAN_KEY_PX, 0), true) },
   { key: '?', id: 'help', name: 'keys.help', run: (ui) => (ui.togglePopup('help'), true) },
 ];
 
@@ -190,6 +192,9 @@ export function tipText(name: LangKey, id: string): string {
   return key ? `${t(name)}\n${t('ui.tip.key', { key })}` : t(name);
 }
 
+// Ctrl と組み合わさったときや = でも、マップの拡大・縮小として扱うキー
+const ZOOM_KEYS = new Map<string, string>([['+', '+'], ['=', '+'], ['-', '-'], ['0', '0']]);
+
 // 入力欄にいるときも効くキー
 const INPUT_KEYS = ['Enter', 'Esc', 'Tab', 'Shift+Tab'];
 
@@ -198,7 +203,10 @@ export function handleKey(e: KeyInput & { target: EventTarget | null }, ui: UiAc
   if (e.altKey) return false;
   const pressed = keyName(e);
   // Ctrl+Shift+Z は Ctrl+Y と同じ（やり直す）
-  const name = pressed === 'Ctrl+Z' && e.shiftKey ? 'Ctrl+Y' : pressed;
+  const undoRedo = pressed === 'Ctrl+Z' && e.shiftKey ? 'Ctrl+Y' : pressed;
+  // Ctrl と + - 0 は、ブラウザの拡大・縮小ではなくマップの拡大・縮小に使う（= は + と同じ）
+  const zoomKey = ZOOM_KEYS.get(e.key);
+  const name = zoomKey && (e.ctrlKey || e.metaKey || e.key === '=') ? zoomKey : undoRedo;
   const target = e.target as HTMLElement | null;
   const editing = !!target && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
   if (editing && !INPUT_KEYS.includes(name)) return false;

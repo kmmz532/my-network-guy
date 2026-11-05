@@ -531,6 +531,16 @@ def icon_redo():
     return outline(img)
 
 
+def icon_fit():
+    # 全体（四隅の印と中央の四角。画面に収めることを表す）
+    img, d = new(16, 16)
+    for x, y, w, h in ((1, 1, 5, 2), (1, 1, 2, 5), (10, 1, 5, 2), (13, 1, 2, 5),
+                       (1, 13, 5, 2), (1, 10, 2, 5), (10, 13, 5, 2), (13, 10, 2, 5)):
+        rect(d, x, y, w, h, 'e')
+    rect(d, 6, 6, 4, 4, 'e')
+    return outline(img)
+
+
 def icon_ok():
     img, d = new(16, 16)
     d.line([(3, 8), (6, 11), (12, 4)], fill=C['G'], width=3)
@@ -858,6 +868,7 @@ if __name__ == '__main__':
         'test': icon_test(),
         'undo': icon_undo(),
         'redo': icon_redo(),
+        'fit': icon_fit(),
     }
     for name, img in icons.items():
         save(img, f'icon/{name}.png')

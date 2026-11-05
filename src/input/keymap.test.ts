@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { bindMapCommands, PAN_KEY_PX } from '../game/mapControl';
 import { KEYMAP, handleKey, keyName, keyOfAction, tipText, type KeyInput, type UiActions } from './keymap';
 
 const LANG = JSON.parse(readFileSync(`${process.cwd()}/src/assets/lang/ja_jp.json`, 'utf-8')) as Record<string, string>;
@@ -93,10 +94,37 @@ describe('handleKey（キーの処理）', () => {
     expect(calls).toEqual([]);
   });
 
-  it('動作がない行（空の動作・マップの拡大など）は処理しない（既定の動作に任せる）', () => {
+  it('動作がない行（Tab など）は処理しない（既定の動作に任せる）', () => {
     const { ui } = fakeUi();
-    expect(handleKey({ ...input('+'), target: null }, ui)).toBe(false);
     expect(handleKey({ ...input('Tab'), target: null }, ui)).toBe(false);
+  });
+
+  it('+ - 0 と矢印キーは、マップの命令を呼ぶ（Ctrl と組み合わせても同じ）', () => {
+    const { ui } = fakeUi();
+    const calls: string[] = [];
+    bindMapCommands({
+      zoomIn: () => calls.push('in'),
+      zoomOut: () => calls.push('out'),
+      fit: () => calls.push('fit'),
+      pan: (dx, dy) => calls.push(`pan:${dx},${dy}`),
+    });
+    try {
+      expect(handleKey({ ...input('+'), target: null }, ui)).toBe(true);
+      expect(handleKey({ ...input('-'), target: null }, ui)).toBe(true);
+      expect(handleKey({ ...input('0'), target: null }, ui)).toBe(true);
+      expect(handleKey({ ...input('='), target: null }, ui)).toBe(true);
+      expect(handleKey({ ...input('-', { ctrlKey: true }), target: null }, ui)).toBe(true);
+      expect(handleKey({ ...input('0', { ctrlKey: true }), target: null }, ui)).toBe(true);
+      expect(handleKey({ ...input('ArrowLeft'), target: null }, ui)).toBe(true);
+      expect(calls).toEqual(['in', 'out', 'fit', 'in', 'out', 'fit', `pan:${PAN_KEY_PX},0`]);
+    } finally {
+      bindMapCommands(null);
+    }
+  });
+
+  it('入力欄では Ctrl+- などを奪わない', () => {
+    const { ui } = fakeUi();
+    expect(handleKey({ ...input('-', { ctrlKey: true }), target: target('INPUT') }, ui)).toBe(false);
   });
 
   it('Alt を伴うキーは無視する', () => {
