@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { runTerminal, type TerminalLine } from '../network/terminal';
+import { parseConfig, type ConfigAction } from '../network/terminalConfig';
 import type { NetLink, NetNode } from '../network/types';
 import { gameEnv } from '../sim/env';
 import { useGameStore } from '../stores/useGameStore';
@@ -10,14 +11,47 @@ import { nodeLabel } from './nodeLabel';
 import { secondaryButton } from './Modal';
 import { warnColor } from './devicePorts';
 
-export function TerminalTab({ node, nodes, links }: { node: NetNode; nodes: NetNode[]; links: NetLink[] }) {
+export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; nodes: NetNode[]; links: NetLink[]; readOnly: boolean }) {
   const state = useGameStore();
+  const setIface = useGameStore((s) => s.setIface);
+  const setGateway = useGameStore((s) => s.setGateway);
+  const addRoute = useGameStore((s) => s.addRoute);
+  const removeRoute = useGameStore((s) => s.removeRoute);
+  // 設定のコマンドを、画面の操作に当てる。失敗したら理由のキーを返す（成功なら null）
+  const applyConfig = (action: ConfigAction): string | null => {
+    switch (action.kind) {
+      case 'iface':
+        return setIface(node.uid, action.port, action.ip, action.prefix);
+      case 'gateway':
+        return setGateway(node.uid, action.gateway);
+      case 'addRoute':
+        return addRoute(node.uid, action.route);
+      case 'removeRoute': {
+        const index = node.routes.findIndex((r) => r.dest === action.dest && r.prefix === action.prefix);
+        return index < 0 ? 'ui.terminal.noRouteToRemove' : removeRoute(node.uid, index);
+      }
+    }
+  };
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<TerminalLine[]>([]);
   const run = () => {
     const line = input.trim();
     if (line === '') return;
-    const out = runTerminal(line, { node, nodes, links, data: gameEnv.engine, nameOf: (n) => nodeLabel(state, n, nodes) }, (key, params) => t(key as LangKey, params));
+    const tr = (key: string, params?: Record<string, string | number>) => t(key as LangKey, params);
+    const parsed = parseConfig(line, tr);
+    let out: TerminalLine[];
+    if (parsed.kind === 'action') {
+      if (readOnly) {
+        out = [{ text: t('ui.terminal.readOnly'), kind: 'err' }];
+      } else {
+        const reason = applyConfig(parsed.action);
+        out = reason === null ? [{ text: t('ui.terminal.done'), kind: 'out' }] : [{ text: reason.startsWith('ui.') ? tr(reason) : tr(`ui.error.${reason}`), kind: 'err' }];
+      }
+    } else if (parsed.kind === 'error') {
+      out = [{ text: parsed.text, kind: 'err' }];
+    } else {
+      out = runTerminal(line, { node, nodes, links, data: gameEnv.engine, nameOf: (n) => nodeLabel(state, n, nodes) }, tr);
+    }
     setHistory((h) => [...h, { text: `> ${line}`, kind: 'out' }, ...out]);
     setInput('');
   };

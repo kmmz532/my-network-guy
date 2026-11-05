@@ -122,7 +122,7 @@ function DeviceView({
           <DeviceSettings node={node} compiled={compiled} readOnly={readOnly} detailOpen={detailOpen} onToggleDetail={onToggleDetail} onError={setError} />
         )}
         {tab === 'service' && isServer && <ServiceTab node={node} readOnly={readOnly} onError={setError} />}
-        {tab === 'terminal' && <TerminalTab node={node} nodes={nodes} links={links} />}
+        {tab === 'terminal' && <TerminalTab node={node} nodes={nodes} links={links} readOnly={readOnly} />}
       </div>
     </div>
   );

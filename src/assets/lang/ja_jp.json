@@ -483,5 +483,15 @@
   "ui.terminal.cfgEmpty": "設定はない",
   "ui.terminal.usageTrace": "使い方: traceroute <IPアドレス>",
   "ui.terminal.hop": "{n}  {ip}  {name}",
-  "ui.terminal.traceNg": "ここで止まった。理由:"
+  "ui.terminal.traceNg": "ここで止まった。理由:",
+  "ui.terminal.usageIpAddress": "使い方: ip address <ポート> <IP> <マスク>",
+  "ui.terminal.usageGateway": "使い方: ip default-gateway <IP>",
+  "ui.terminal.usageRoute": "使い方: ip route <宛先> <マスク> <次ホップ>",
+  "ui.terminal.usageNoRoute": "使い方: no ip route <宛先> <マスク>",
+  "ui.terminal.errPort": "ポートは番号で指定する（例: 0）",
+  "ui.terminal.errIp": "IPアドレスの形が違う（例: 192.168.1.10）",
+  "ui.terminal.errMask": "マスクの形が違う（例: 255.255.255.0）",
+  "ui.terminal.noRouteToRemove": "その経路はない",
+  "ui.terminal.readOnly": "今は設定を変えられない（設計中の案件、または自社オフィスの納品の結果）",
+  "ui.terminal.done": "設定した"
 }
