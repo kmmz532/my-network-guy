@@ -114,40 +114,145 @@ def server():
     return img
 
 
+# 機器の色の決まり: スイッチは青、ルーターは赤、無線は白、サーバーは灰。
+# 複数の役割を持つ機器は、主の色の筐体に、副の役割の部品（アンテナ・ポートの列）を足して表す
+
+def base(d):
+    # 床に接地する低い台（x 1〜22、y 35〜37）
+    rect(d, 1, 35, 22, 3, 'd', 'o')
+
+
+def switch_unit(d, y, ports=8, color='b', light='bh', shade='B'):
+    # 横長のスイッチ1台（高さ7）。上の縁を明るく、下の縁を暗く、ポートとLEDを並べる
+    rect(d, 1, y, 22, 7, color, 'o')
+    d.line([(2, y + 1), (21, y + 1)], fill=C[light])
+    d.line([(2, y + 5), (21, y + 5)], fill=C[shade])
+    for i in range(ports):
+        x = 4 + i * 2
+        rect(d, x, y + 2, 1, 2, 'o')
+        if i % 2 == 0:
+            px(d, x, y + 1, 'l')
+
+
 def l2_switch():
-    # 床に置く小型のラックに、スイッチ1台を収めた形
+    # 青いスイッチを2段に重ね、低い台に載せる
     img, d = new(24, 40)
-    # ラック: 濃い灰色の箱。上面の縁と、下部の通気口
-    rect(d, 2, 12, 20, 26, 'd', 'o')
-    rect(d, 3, 12, 18, 1, 'g')
-    for y in (31, 33, 35):
-        d.line([(5, y), (18, y)], fill=C['o'])
-    # スイッチ: ラックの上部に収めた青灰色の機器
-    rect(d, 3, 14, 18, 6, 'bg', 'o')
-    for i in range(8):
-        x = 5 + i * 2
-        px(d, x, 15, 'l')
-        px(d, x, 17, 'o')
-    # 左端の電源のLED
-    px(d, 4, 15, 'y')
+    switch_unit(d, 19)
+    switch_unit(d, 27)
+    base(d)
     return img
 
 
-def router():
-    # アンテナ付きの箱と、足
+def l3_switch():
+    # L2スイッチと同じ2段の筐体に、左端の黄色の帯（ルーティングできる印）を付ける
     img, d = new(24, 40)
-    for x in (5, 18):
-        d.line([(x, 1), (x, 16)], fill=C['o'])
-        px(d, x, 1, 'r')
-    rect(d, 1, 16, 22, 14, 'r', 'o')
-    d.line([(2, 17), (21, 17)], fill=C['rh'])
-    d.line([(2, 28), (21, 28)], fill=C['R'])
-    for x in (4, 6, 8):
-        px(d, x, 21, 'l')
+    switch_unit(d, 19)
+    switch_unit(d, 27)
+    for y in (19, 27):
+        rect(d, 1, y, 3, 7, 'y', 'o')
+        d.line([(2, y + 1), (2, y + 5)], fill=C['Y'])
+    base(d)
+    return img
+
+
+def router_box(d, y=20, h=14):
+    # 赤い箱のルーター。前面に電源のLEDとポートを並べる
+    rect(d, 1, y, 22, h, 'r', 'o')
+    d.line([(2, y + 1), (21, y + 1)], fill=C['rh'])
+    d.line([(2, y + h - 2), (21, y + h - 2)], fill=C['R'])
+    for x in (4, 6):
+        px(d, x, y + 5, 'l')
     for i in range(4):
-        rect(d, 12 + i * 3, 21, 2, 2, 'o')
-    rect(d, 3, 30, 3, 6, 'd', 'o')
-    rect(d, 18, 30, 3, 6, 'd', 'o')
+        rect(d, 11 + i * 3, y + 5, 2, 2, 'o')
+
+
+def router():
+    # アンテナのない赤い箱を、低い台に載せる
+    img, d = new(24, 40)
+    router_box(d, 21, 14)
+    base(d)
+    return img
+
+
+def antennas(d, top, bottom):
+    for x in (5, 18):
+        d.line([(x, top), (x, bottom)], fill=C['o'])
+        px(d, x, top, 'e')
+
+
+def wifi_router():
+    # アクセスポイント付きのルーター: 赤い箱に2本のアンテナ
+    img, d = new(24, 40)
+    antennas(d, 7, 21)
+    router_box(d, 21, 14)
+    base(d)
+    return img
+
+
+def vpn_router():
+    # VPNルーター: 赤い箱の前面に、黄色の錠前の印
+    img, d = new(24, 40)
+    router_box(d, 21, 14)
+    # 錠前: 上のつる（輪郭だけの四角）と、黄色の胴
+    d.rectangle([4, 15, 8, 20], outline=C['o'] + (255,))
+    d.rectangle([5, 16, 7, 20], outline=C['g'] + (255,))
+    rect(d, 3, 20, 7, 6, 'y', 'o')
+    px(d, 6, 22, 'o')
+    px(d, 6, 23, 'o')
+    base(d)
+    return img
+
+
+def router_switch():
+    # L2スイッチ付きルーター: 上が赤いルーター、下に青いポートの列
+    img, d = new(24, 40)
+    router_box(d, 15, 12)
+    switch_unit(d, 27)
+    base(d)
+    return img
+
+
+def access_point():
+    # 天井や壁に付ける白い円盤のアクセスポイントを、細い支柱で立てる。上に電波の弧
+    img, d = new(24, 40)
+    for r in (3, 6):
+        d.arc([12 - r * 2, 12 - r, 12 + r * 2 - 1, 12 + r], 200, 340, fill=C['S'] + (255,))
+    d.ellipse([3, 14, 20, 21], fill=C['w'] + (255,), outline=C['o'] + (255,))
+    d.line([(5, 16), (18, 16)], fill=C['e'] + (255,))
+    px(d, 11, 18, 'l')
+    px(d, 12, 18, 'l')
+    rect(d, 11, 22, 2, 13, 'g', 'o')
+    rect(d, 6, 35, 12, 3, 'd', 'o')
+    return img
+
+
+def laptop():
+    # 開いたノートPC。画面を後ろに傾け、手前にキーボードの面
+    img, d = new(24, 40)
+    rect(d, 4, 19, 16, 12, 'g', 'o')
+    rect(d, 6, 21, 12, 8, 's')
+    rect(d, 6, 21, 12, 2, 'S')
+    d.line([(8, 25), (13, 25)], fill=C['S'])
+    d.polygon([(3, 31), (20, 31), (22, 36), (1, 36)], fill=C['w'] + (255,), outline=C['o'] + (255,))
+    for x in range(4, 20, 2):
+        px(d, x, 33, 'g')
+    rect(d, 9, 35, 6, 1, 'g')
+    px(d, 18, 34, 'l')
+    return img
+
+
+def gpu_server():
+    # GPUサーバー: 幅の広い暗い筐体に、緑に光るGPUの段と冷却ファン
+    img, d = new(24, 40)
+    rect(d, 1, 4, 22, 34, 'd', 'o')
+    d.line([(2, 5), (21, 5)], fill=C['g'])
+    for y in (8, 15, 22):
+        rect(d, 3, y, 18, 5, 'o')
+        d.line([(4, y + 2), (13, y + 2)], fill=C['G'])
+        px(d, 18, y + 2, 'l')
+    for x in (4, 13):
+        d.ellipse([x, 29, x + 6, 35], fill=C['o'] + (255,))
+        px(d, x + 3, 32, 'g')
     return img
 
 
@@ -571,6 +676,14 @@ if __name__ == '__main__':
     save(server(), 'device/server_basic.png')
     save(l2_switch(), 'device/l2_switch_8p.png')
     save(router(), 'device/router_basic.png')
+    # これから機材に加える候補（データはまだない）
+    save(l3_switch(), 'device/l3_switch.png')
+    save(wifi_router(), 'device/wifi_router.png')
+    save(vpn_router(), 'device/vpn_router.png')
+    save(router_switch(), 'device/router_switch.png')
+    save(access_point(), 'device/access_point.png')
+    save(laptop(), 'device/laptop.png')
+    save(gpu_server(), 'device/gpu_server.png')
     for name, shirt, shade in (('blue', 'b', 'B'), ('red', 'r', 'R')):
         for frame in (0, 1):
             save(staff(shirt, shade, frame), f'staff/{name}_{frame}.png')
