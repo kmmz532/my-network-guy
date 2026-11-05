@@ -37,8 +37,11 @@ export const networkColors = (net: Network, data: EngineData): NetworkColors => 
 
   const linkNetwork = new Map<string, string | null>();
   for (const link of net.links) {
-    const seg = segOf.get(epKey(link.a.node, link.a.port));
-    const cfg = seg ? cfgOf.get(seg.key) : undefined;
+    // スイッチ側の端は members に入らないため、両端のうち設定のあるセグメントを使う（a を優先する）
+    const cfg = [link.a, link.b]
+      .map((ep) => segOf.get(epKey(ep.node, ep.port)))
+      .map((seg) => (seg ? cfgOf.get(seg.key) : undefined))
+      .find((c) => c !== undefined);
     if (!cfg) {
       linkNetwork.set(link.uid, null);
       continue;

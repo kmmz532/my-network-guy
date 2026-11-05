@@ -89,6 +89,48 @@ describe('ネットワークごとの色', () => {
     expect(colorOfLink(colors, 'l0')).toBe(NET_PALETTE[0]);
     expect(colorOfLink(colors, 'l1')).toBe(NET_PALETTE[0]);
   });
+
+  it('ルーター–スイッチ–PCで、ケーブルの a がスイッチ側でも色が付く', () => {
+    // a がスイッチ側（sw:0 → rt:0、sw:1 → pc_a:0）と、a がルーター・PC側の両方を並べる
+    const nodes = [
+      node('pc_a', 'pc', [{ port: 0, ip: '192.168.1.11', prefix: 24 }]),
+      node('rt', 'rt', [{ port: 0, ip: '192.168.1.1', prefix: 24 }]),
+      node('sw', 'sw'),
+    ];
+    const segments = { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } };
+    const swSideA: Network = {
+      nodes,
+      links: [link('l0', ['sw', 0], ['rt', 0]), link('l1', ['sw', 1], ['pc_a', 0])],
+      segments,
+    };
+    const routerSideA: Network = {
+      nodes,
+      links: [link('l0', ['rt', 0], ['sw', 0]), link('l1', ['pc_a', 0], ['sw', 1])],
+      segments,
+    };
+    for (const net of [swSideA, routerSideA]) {
+      const colors = networkColors(net, data);
+      expect(colorOfLink(colors, 'l0')).toBe(NET_PALETTE[0]);
+      expect(colorOfLink(colors, 'l1')).toBe(NET_PALETTE[0]);
+      expect(colors.linkNetwork.get('l0')).toBe('192.168.1.0');
+      expect(colors.linkNetwork.get('l1')).toBe('192.168.1.0');
+    }
+  });
+
+  it('PC–スイッチで、ケーブルの a がスイッチ側でも色が付く', () => {
+    const net: Network = {
+      nodes: [
+        node('pc_a', 'pc', [{ port: 0, ip: '192.168.1.11', prefix: 24 }]),
+        node('pc_b', 'pc', [{ port: 0, ip: '192.168.1.12', prefix: 24 }]),
+        node('sw', 'sw'),
+      ],
+      links: [link('l0', ['sw', 0], ['pc_a', 0]), link('l1', ['sw', 1], ['pc_b', 0])],
+      segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
+    };
+    const colors = networkColors(net, data);
+    expect(colorOfLink(colors, 'l0')).toBe(NET_PALETTE[0]);
+    expect(colorOfLink(colors, 'l1')).toBe(NET_PALETTE[0]);
+  });
 });
 
 describe('ルーターのアドレスの候補', () => {
