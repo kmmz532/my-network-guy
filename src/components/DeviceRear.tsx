@@ -212,7 +212,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
           overflowX: 'auto',
         }}
       >
-        <img src={spriteUrl('rear/power')} width={12 * SCALE} height={10 * SCALE} alt="" style={{ imageRendering: 'pixelated', display: 'block' }} />
+        <img draggable={false} src={spriteUrl('rear/power')} width={12 * SCALE} height={10 * SCALE} alt="" style={{ imageRendering: 'pixelated', display: 'block' }} />
         <div style={{ display: 'flex', gap: 4 }}>
           {ports.map((p) => {
             const link = linkAt(p);
@@ -276,7 +276,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
             );
           })}
         </div>
-        {fan && <img src={spriteUrl('rear/fan')} width={16 * SCALE} height={16 * SCALE} alt="" style={{ imageRendering: 'pixelated', display: 'block' }} />}
+        {fan && <img draggable={false} src={spriteUrl('rear/fan')} width={16 * SCALE} height={16 * SCALE} alt="" style={{ imageRendering: 'pixelated', display: 'block' }} />}
       </div>
 
       {/* ドラッグ中のプラグ。指やカーソルに付いて動く（画面の上に出し、ポインターの動きを邪魔しない） */}

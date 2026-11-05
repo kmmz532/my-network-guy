@@ -161,29 +161,47 @@ export function Toolbar({
   return (
     <>
     <footer style={bar}>
-      {/* 道具は自社オフィスでも案件の設計中でも常に出す。配線の道具を選んだときだけ、ケーブルの種類を右に出す */}
+      {/* 道具は自社オフィスでも案件の設計中でも常に出す。配線の道具を選んだときだけ、ケーブルの種類を配線のボタンの上に浮かせて出す（並びには場所を取らない） */}
       {TOOLS.map((item) => (
         <Fragment key={item.id}>
-          <Tooltip text={tipText(item.name, item.action)}>
-            <button aria-label={t(item.name)} data-guide={`tool.${item.id}`} style={toolSlot(tool === item.id)} onClick={() => setTool(item.id)}>
-              <Icon name={item.icon} />
-            </button>
-          </Tooltip>
-          {item.id === 'wire' &&
-            tool === 'wire' &&
-            cableIds.map((id) => {
-              const cable = cables[id as keyof typeof cables];
-              const name = t(`cable.${id}.name` as LangKey);
-              // 値段は、ボタンの文字には出さず、ツールチップの2行目に出す
-              const price = t('ui.cable.price', { link: yen(cable.pricePerLink), tile: yen(cable.pricePerTile) });
-              return (
-                <Tooltip text={`${name}\n${price}`} key={id}>
-                  <button aria-label={name} style={slot(wireCable === id)} onClick={() => setWireCable(id)}>
-                    <Icon name={`icon/cable_${id}`} scale={1} />
-                  </button>
-                </Tooltip>
-              );
-            })}
+          <span style={{ position: 'relative', display: 'inline-flex' }}>
+            <Tooltip text={tipText(item.name, item.action)}>
+              <button aria-label={t(item.name)} data-guide={`tool.${item.id}`} style={toolSlot(tool === item.id)} onClick={() => setTool(item.id)}>
+                <Icon name={item.icon} />
+              </button>
+            </Tooltip>
+            {item.id === 'wire' && tool === 'wire' && cableIds.length > 0 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  bottom: '100%',
+                  marginBottom: 6,
+                  display: 'flex',
+                  gap: 4,
+                  padding: 4,
+                  background: 'rgba(47, 79, 143, 0.92)',
+                  border: '1px solid #3b2a33',
+                  borderRadius: RADIUS.chrome,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {cableIds.map((id) => {
+                  const cable = cables[id as keyof typeof cables];
+                  const name = t(`cable.${id}.name` as LangKey);
+                  // 値段は、ボタンの文字には出さず、ツールチップの2行目に出す
+                  const price = t('ui.cable.price', { link: yen(cable.pricePerLink), tile: yen(cable.pricePerTile) });
+                  return (
+                    <Tooltip text={`${name}\n${price}`} key={id}>
+                      <button aria-label={name} style={{ ...slot(wireCable === id), width: 36, height: 36 }} onClick={() => setWireCable(id)}>
+                        <Icon name={`icon/cable_${id}`} scale={1} />
+                      </button>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            )}
+          </span>
         </Fragment>
       ))}
       {sep}

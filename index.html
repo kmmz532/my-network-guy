@@ -37,6 +37,12 @@
       #root {
         height: 100%;
       }
+      /* UI の画像（アイコン・スプライト）は選択も、ブラウザのドラッグ（画像のドラッグ）もさせない */
+      img {
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-user-drag: none;
+      }
     </style>
   </head>
   <body>

@@ -302,8 +302,8 @@ function Backdrop() {
 function Typist({ base }: { base: string }) {
   return (
     <div className="ts-typist">
-      <img className="ts-frame-a" src={spriteUrl(`staff/${base}_0`)} alt="" />
-      <img className="ts-frame-b" src={spriteUrl(`staff/${base}_1`)} alt="" />
+      <img draggable={false} className="ts-frame-a" src={spriteUrl(`staff/${base}_0`)} alt="" />
+      <img draggable={false} className="ts-frame-b" src={spriteUrl(`staff/${base}_1`)} alt="" />
     </div>
   );
 }

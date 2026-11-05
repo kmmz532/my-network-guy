@@ -33,7 +33,7 @@ import { effectText } from './effectText';
 import { t } from '../i18n/t';
 import type { LangKey } from '../generated/lang-keys';
 import type { FailureReason, NetLink, NetNode } from '../network/types';
-import { drawTileMap } from './TileMap';
+import { CAP as WALL_CAP, drawTileMap } from './TileMap';
 import { fitCamera, panCamera, resizeCamera, stepZoom, zoomCamera, type Camera, type Size } from './camera';
 import { bindMapCommands } from './mapControl';
 import { cumulativeLengths, pointAt, type Point } from './animation';
@@ -78,12 +78,16 @@ const HOT_RED = 0xff6b6b;
 const REMOVE_TINT = 0xffb0b0;
 // 吹き出しの地（クリーム色）
 const BUBBLE_FILL = 0xf4f1e6;
-// 部屋を広げるボタン（「+」）の大きさ（マップの座標の px。1マス＝32 px の 0.75 倍）と、文字の大きさ
-const EXPAND_BUTTON_PX = 24;
-const EXPAND_LABEL_PX = 20;
+// 部屋を広げるボタン（「+」）の大きさは1マスの半分、文字は同じマスの0.75倍。通常は半透明で、マウスを乗せたときだけはっきり出す
+const EXPAND_BUTTON_RATIO = 0.5;
+const EXPAND_LABEL_RATIO = 0.75;
+const EXPAND_IDLE_ALPHA = 0.45;
 const EXPAND_SIDES: readonly ExpandSide[] = ['right', 'bottom', 'left'];
 // 背景を長押ししてから動かせるようになるまで（ms）
 const PAN_LONG_PRESS_MS = 300;
+// 指で置いた機器・家具を持ち上げるまでの長押し（ms）。その前に TOUCH_PAN_PX 以上動けば、マップを移動する
+const TOUCH_HOLD_MS = 400;
+const TOUCH_PAN_PX = 8;
 // ホイールの回転を、拡大・縮小1段階に換算する量（px。行単位のホイールは1行 16 px とする）
 const WHEEL_STEP_PX = 40;
 const WHEEL_LINE_PX = 16;
@@ -102,6 +106,12 @@ interface Press {
   // 動き出したか。動いたあとは、マップの座標の位置（at）を覚える
   dragging: boolean;
   at: Point | null;
+  // 押した位置と最後の位置（画面の座標。pixi の global）。背景のドラッグに切り替えるときに使う
+  g0: Point;
+  last: Point;
+  // 指で長押しするまで動かさない（機器・家具を指で押したとき）。timer は長押しの計時
+  hold: boolean;
+  timer: number | null;
 }
 
 export class Scene {
@@ -162,6 +172,7 @@ export class Scene {
     // 倉庫の欄（DOM）から、マスの判定と品目を置けるかを使えるようにする
     setMapView({ tileAtClient: (x, y) => this.tileAtClient(x, y), canPlace: (id, tx, ty) => this.canPlace(id, tx, ty) });
     window.addEventListener('keydown', this.onPressKey, true);
+    window.addEventListener('pointermove', this.onWindowPointerMove);
     app.stage.addChild(this.content);
     this.content.addChild(this.bg);
     // 機器と社員は、足元のY座標（zIndex）の昇順に重ねる
@@ -201,8 +212,10 @@ export class Scene {
     this.unsubscribe();
     setMapView(null);
     window.removeEventListener('keydown', this.onPressKey, true);
+    window.removeEventListener('pointermove', this.onWindowPointerMove);
     bindMapCommands(null);
     this.endPan();
+    this.clearPress();
     this.app.ticker.remove(this.onTick);
     this.app.canvas.removeEventListener('wheel', this.onWheel);
     this.app.canvas.removeEventListener('mousedown', this.preventMiddleScroll);
@@ -291,14 +304,15 @@ export class Scene {
     const body = new Graphics();
     const label = new Text({
       text: '+',
-      style: { fontFamily: 'sans-serif', fontSize: EXPAND_LABEL_PX, fontWeight: 'bold', fill: OUTLINE },
+      style: { fontFamily: 'sans-serif', fontWeight: 'bold', fill: OUTLINE },
       resolution: this.textResolution(),
     });
     label.anchor.set(0.5);
-    label.position.set(EXPAND_BUTTON_PX / 2, EXPAND_BUTTON_PX / 2);
     box.addChild(body, label);
     // 位置を決めるまでは出さない（マップの読み込み後に updateExpandButtons で表示する）
     box.visible = false;
+    // 普段は半透明にして、マウスを乗せたときだけはっきり出す
+    box.alpha = EXPAND_IDLE_ALPHA;
     // 押したときは、マップの操作（背景のドラッグなど）にしない
     box.on('pointerdown', (e) => {
       e.stopPropagation();
@@ -306,13 +320,17 @@ export class Scene {
       useGameStore.getState().expandOffice(side);
     });
     box.on('pointerover', (e) => {
+      box.alpha = 1;
       this.resetTip();
       const size = useGameStore.getState().office.size;
       const name = t(`ui.office.expand.${side}` as LangKey);
       const cost = t('ui.office.cost', { cost: expandCostOf(size, balance.office).toLocaleString('ja-JP') });
       this.tipTimer = window.setTimeout(() => this.showTip(`${name}\n${cost}`, e.clientX, e.clientY), balance.tooltip.hoverMs);
     });
-    box.on('pointerout', () => this.resetTip());
+    box.on('pointerout', () => {
+      box.alpha = EXPAND_IDLE_ALPHA;
+      this.resetTip();
+    });
     // 乗っている間も、マップの移動や配線の操作は続ける。ボタン上の移動では、説明を消さないよう伝えない
     box.on('pointermove', (e) => {
       if (!this.wireFrom && !this.pan && !this.press) e.stopPropagation();
@@ -335,16 +353,20 @@ export class Scene {
       const ts = map.tileSize;
       const mapW = map.width * ts;
       const mapH = map.height * ts;
-      const inset = (ts - EXPAND_BUTTON_PX) / 2;
-      // 右と左は手前の壁の中ほど、下は床の幅の中ほどの、壁の外側のマス
+      const size = ts * EXPAND_BUTTON_RATIO;
+      // 壁の外側の線（TileMap は外側の壁のマスの、部屋側に寄った細い上面だけを描く）に、ボタンの端を接して置く。
+      // 右と左は壁の中ほど、下は床の幅の中ほど
       const at =
-        side === 'right' ? { x: mapW + inset, y: (mapH - EXPAND_BUTTON_PX) / 2 }
-        : side === 'left' ? { x: -ts + inset, y: (mapH - EXPAND_BUTTON_PX) / 2 }
-        : { x: (mapW - EXPAND_BUTTON_PX) / 2, y: mapH + inset };
+        side === 'right' ? { x: mapW - ts + WALL_CAP, y: (mapH - size) / 2 }
+        : side === 'left' ? { x: ts - WALL_CAP - size, y: (mapH - size) / 2 }
+        : { x: (mapW - size) / 2, y: mapH - ts + WALL_CAP };
       box.position.set(at.x, at.y);
       const body = box.getChildAt(0) as Graphics;
       body.clear();
-      body.roundRect(0, 0, EXPAND_BUTTON_PX, EXPAND_BUTTON_PX, EXPAND_BUTTON_PX * 0.2).fill(BUBBLE_FILL).stroke({ width: 2, color: OUTLINE });
+      body.roundRect(0, 0, size, size, size * 0.2).fill(BUBBLE_FILL).stroke({ width: 1.5, color: OUTLINE });
+      const label = box.getChildAt(1) as Text;
+      label.style.fontSize = size * EXPAND_LABEL_RATIO;
+      label.position.set(size / 2, size / 2);
     }
   }
 
@@ -476,7 +498,7 @@ export class Scene {
   private startPinch(): void {
     const [a, b] = [...this.touches.values()];
     this.endPan();
-    this.press = null;
+    this.clearPress();
     this.resetTip();
     this.wireFrom = null;
     this.hover = null;
@@ -504,9 +526,14 @@ export class Scene {
 
   // 背景のドラッグを始める。immediate なら即座に動き出し、そうでなければ長押しのあとに動き出す
   private beginPan(e: FederatedPointerEvent, immediate: boolean): void {
+    this.beginPanAt({ x: e.global.x, y: e.global.y }, immediate);
+  }
+
+  // 画面の座標の位置（at）から背景のドラッグを始める
+  private beginPanAt(at: Point, immediate: boolean): void {
     this.endPan();
     const pan: { last: Point; active: boolean; timer: number | null } = {
-      last: { x: e.global.x, y: e.global.y },
+      last: at,
       active: immediate,
       timer: null,
     };
@@ -1173,9 +1200,13 @@ export class Scene {
 
   // マップの座標に変換する（拡大と配置の補正を除いた、タイルの座標系）
   private toMap(e: FederatedPointerEvent): { x: number; y: number } {
+    return this.toMapAt(e.global);
+  }
+
+  private toMapAt(global: Point): { x: number; y: number } {
     const cam = this.camera;
     if (!cam) return { x: 0, y: 0 };
-    return { x: (e.global.x - cam.x) / cam.zoom, y: (e.global.y - cam.y) / cam.zoom };
+    return { x: (global.x - cam.x) / cam.zoom, y: (global.y - cam.y) / cam.zoom };
   }
 
   // 機器を編集できる対象の機器（自社オフィス、または設計中の案件）。編集できなければ null
@@ -1286,7 +1317,16 @@ export class Scene {
     if (this.tipShown) this.tipHideTimer = window.setTimeout(() => this.resetTip(), balance.tooltip.touchHideMs);
   }
 
-  private onCanvasLeave = (): void => {
+  private onCanvasLeave = (): void => this.clearMapHover();
+
+  // ポインタの下が canvas でないとき（DOM のウィンドウなどが覆っているとき）は、マップの説明と乗せた対象を消す
+  private onWindowPointerMove = (e: PointerEvent): void => {
+    if (document.elementFromPoint(e.clientX, e.clientY) === this.app.canvas) return;
+    this.clearMapHover();
+  };
+
+  // マップの説明と、マウスを乗せた対象（機器・配線・家具）を消す
+  private clearMapHover(): void {
     this.resetTip();
     const hovering = this.hoverLinkUid !== null || this.hoverNodeUid !== null || this.hoverFurnUid !== null || this.hoverAnyNode !== null || this.hoverAnyLink !== null;
     this.hoverLinkUid = null;
@@ -1295,7 +1335,7 @@ export class Scene {
     this.hoverAnyNode = null;
     this.hoverAnyLink = null;
     if (hovering) this.drawObjects();
-  };
+  }
 
   // 右クリックで撤去できる配線: 自社オフィス、または案件の設計中の配線。なければ null
   private removableLinks(): readonly NetLink[] | null {
@@ -1370,12 +1410,14 @@ export class Scene {
     switch (store.tool) {
       case 'select': {
         // 機器・家具は、離すまで押したか動かしたかを決めない。動かさずに離したら、機器の画面を開く（家具は何もしない）
+        // 指で押したときは、長押しのあとに持ち上げる（それまでに大きく動けばマップを移動する）
+        const hold = e.pointerType === 'touch';
         if (node) {
-          this.startPress(e, { kind: 'node', uid: node.uid }, () => store.toggleWindow('device', node.uid));
+          this.startPress(e, { kind: 'node', uid: node.uid }, () => store.toggleWindow('device', node.uid), hold);
           return;
         }
         const furniture = this.furnitureAt(tile);
-        if (furniture) this.startPress(e, { kind: 'furniture', uid: furniture.uid }, () => undefined);
+        if (furniture) this.startPress(e, { kind: 'furniture', uid: furniture.uid }, () => undefined, hold);
         return;
       }
       case 'remove':
@@ -1441,20 +1483,50 @@ export class Scene {
   // ---- 機器・家具の移動、ケーブルの端の挿し替え（押してから動かす）----
 
   // 押したあとの操作を覚える。動かさずに離せば click、動かせばドラッグ
-  private startPress(e: FederatedPointerEvent, target: PressTarget, click: () => void): void {
-    this.press = { x0: e.clientX, y0: e.clientY, target, click, dragging: false, at: null };
+  // hold のとき（指で機器・家具を押したとき）は、TOUCH_HOLD_MS の長押しのあとに動かせるようにする
+  private startPress(e: FederatedPointerEvent, target: PressTarget, click: () => void, hold = false): void {
+    this.clearPress();
+    const at = { x: e.global.x, y: e.global.y };
+    const press: Press = { x0: e.clientX, y0: e.clientY, target, click, dragging: false, at: null, g0: at, last: at, hold, timer: null };
+    if (hold) {
+      press.timer = window.setTimeout(() => {
+        press.timer = null;
+        if (this.press !== press) return;
+        press.dragging = true;
+        press.at = this.toMapAt(press.last);
+        this.resetTip();
+        this.drawObjects();
+      }, TOUCH_HOLD_MS);
+    }
+    this.press = press;
+  }
+
+  // 押している操作を消す（長押しの計時も止める）
+  private clearPress(): void {
+    const press = this.press;
+    if (press?.timer != null) window.clearTimeout(press.timer);
+    this.press = null;
   }
 
   // 押した位置から一定以上動いたら、ドラッグを始める。動いている間は、マップの座標の位置を覚えて描き直す。押している間は true
+  // 指で長押しの前に TOUCH_PAN_PX 以上動いたときは、機器をつかまず、背景のドラッグ（マップの移動）に切り替える
   private pressMove(e: FederatedPointerEvent): boolean {
     const press = this.press;
     if (!press) return false;
+    press.last = { x: e.global.x, y: e.global.y };
     if (!press.dragging) {
+      if (press.hold) {
+        if (Math.hypot(e.clientX - press.x0, e.clientY - press.y0) < TOUCH_PAN_PX) return true;
+        this.clearPress();
+        this.beginPanAt(press.g0, true);
+        this.movePan(e);
+        return true;
+      }
       if (!isDragMove(press.x0, press.y0, e.clientX, e.clientY)) return true;
       press.dragging = true;
       this.resetTip();
     }
-    press.at = this.toMap(e);
+    press.at = this.toMapAt(press.last);
     this.drawObjects();
     return true;
   }
@@ -1462,7 +1534,7 @@ export class Scene {
   // 離したとき。動かさずに離したら押した扱い、動かしていたら離した位置で動かす・挿し替える（置けなければ何もしない）
   private finishPress(): void {
     const press = this.press;
-    this.press = null;
+    this.clearPress();
     if (!press) return;
     if (!press.dragging) press.click();
     else if (press.at) this.dropPress(press.target, press.at);
@@ -1474,7 +1546,7 @@ export class Scene {
     if (e.key !== 'Escape' || !this.press?.dragging) return;
     e.preventDefault();
     e.stopImmediatePropagation();
-    this.press = null;
+    this.clearPress();
     this.drawObjects();
   };
 
@@ -1696,7 +1768,7 @@ export class Scene {
 
   private dropWire = (): void => {
     this.endPan();
-    this.press = null;
+    this.clearPress();
     this.wireFrom = null;
     this.hover = null;
     this.drawObjects();

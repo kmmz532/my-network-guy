@@ -34,8 +34,8 @@ export function TrimmedIcon({ name, height = 16 }: { name: string; height?: numb
   // 読み込み中は同じ高さの空き（ずれを防ぐ）
   if (sprite === undefined) return <span style={{ display: 'inline-block', flexShrink: 0, width: height, height }} />;
   // 切り抜けなかったときは、元の画像を高さだけ縮めて出す
-  if (sprite === null) return <img src={url} alt="" height={height} style={{ imageRendering: 'pixelated', flexShrink: 0, height, width: 'auto' }} />;
-  return <img src={sprite.src} alt="" width={sprite.w} height={sprite.h} style={{ imageRendering: 'pixelated', flexShrink: 0, display: 'block' }} />;
+  if (sprite === null) return <img draggable={false} src={url} alt="" height={height} style={{ imageRendering: 'pixelated', flexShrink: 0, height, width: 'auto' }} />;
+  return <img draggable={false} src={sprite.src} alt="" width={sprite.w} height={sprite.h} style={{ imageRendering: 'pixelated', flexShrink: 0, display: 'block' }} />;
 }
 
 export function Icon({ name, scale = 2 }: Props) {
@@ -44,8 +44,8 @@ export function Icon({ name, scale = 2 }: Props) {
   const style = { imageRendering: 'pixelated', verticalAlign: 'middle', display: 'inline-block' } as const;
   // 家具は高さがまちまちなので、幅だけ整数倍にして高さは画像の比率に任せる（拡大は整数倍のまま）
   if (name.startsWith('furniture/')) {
-    return <img src={url} alt="" width={32 * scale} style={{ ...style, height: 'auto' }} />;
+    return <img draggable={false} src={url} alt="" width={32 * scale} style={{ ...style, height: 'auto' }} />;
   }
   const [w, h] = sizeOf(name);
-  return <img src={url} alt="" width={w * scale} height={h * scale} style={style} />;
+  return <img draggable={false} src={url} alt="" width={w * scale} height={h * scale} style={style} />;
 }

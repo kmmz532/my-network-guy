@@ -11,7 +11,7 @@ const isWall = (kind: string | undefined): boolean => kind === 'wall' || (kind !
 const fallbackColor: Record<string, number> = { floor: 0xe0b77c, wall: 0xcfc3aa };
 
 // 左右・手前の壁は上面（厚み）だけが見える（ART.md「視点」）
-const CAP = 5;
+export const CAP = 5;
 const CAP_COLOR = 0xcfc3aa;
 const FRONT_CAP_COLOR = 0xb0a088; // 手前の壁は少し暗くする
 const CAP_EDGE_COLOR = 0x3b2a33; // 上面の内側の縁（輪郭線の色）
