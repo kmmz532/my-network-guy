@@ -46,6 +46,8 @@
   "contract.t_two_rooms_lan.story": "両側の部屋にあるPCを、ルーターを介して互いに行き来できるようにする。",
   "contract.t_two_sites_lan.title": "2拠点のPC接続（{pcCount}台）",
   "contract.t_two_sites_lan.story": "本社と支社のPCを、拠点をまたいで互いに行き来できるようにする。",
+  "contract.t_l3_two_rooms.title": "部署をまたぐ通信（{pcCount}台）",
+  "contract.t_l3_two_rooms.story": "ルーターは使わず、社内のスイッチ1台で、部署をまたいだ通信を通してほしい。",
   "goal.ping": "{from} から {to} へ Ping が通る",
   "goal.ping_all": "{nodes} が相互に Ping で通信できる",
   "goal.http": "{from} から {to} のWebページを閲覧できる",
