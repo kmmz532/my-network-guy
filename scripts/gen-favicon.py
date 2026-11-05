@@ -100,4 +100,10 @@ i192.save(os.path.join(out, 'icon-192.png'))
 # OGP（SNS のカード）に出すサイトのロゴ。512 px の正方形
 i512 = compose(512, content32().resize((28 * 16, 28 * 16), Image.NEAREST))
 i512.save(os.path.join(out, 'icon-512.png'))
+# マスク可能なアイコン（Android が円・角丸に切り抜く）。枠は付けず、背景を全面に塗る。
+# 絵は円の安全域（直径の 80%）に収まるよう、512 px の 55% にする
+m = Image.new('RGBA', (512, 512), FILL)
+mc = content32().resize((28 * 10, 28 * 10), Image.NEAREST)
+m.alpha_composite(mc, ((512 - mc.width) // 2, (512 - mc.height) // 2))
+m.convert('RGB').save(os.path.join(out, 'icon-maskable-512.png'))
 print('ok')
