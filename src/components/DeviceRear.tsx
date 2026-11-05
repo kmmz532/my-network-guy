@@ -1,18 +1,46 @@
 // 機器の画面の「背面」タブ。ポートを番号つきで並べ、各ポートのLED・相手の機器とポート・ケーブルの種類を出す。
 // つながったポートを押すと「外す」「挿し替える」を出す。挿し替えでは、空いているポートを押すと、そこへ挿し替える。
-import { useState } from 'react';
+// つながったポートのプラグをドラッグすると、同じ背面の空きポートへ挿し替える（4 px 未満の動きは押したものとして扱う）。
+import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { spriteUrl } from '../game/sprites';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import type { End } from '../sim/project';
 import { gameEnv } from '../sim/env';
 import type { NetLink, NetNode } from '../network/types';
+import { loadSettings } from '../settings/settings';
 import { useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, portLabel } from './devicePorts';
+import { isDragMove, portHoverAt, replugTargetAt, type PortBox, type PortHover } from './rearDrag';
 
 // 背面の部品のスプライトを拡大する倍率（ドット絵を整数倍で描く）
 // 背面の部品の拡大率。ポートが多い機器は、板の幅に収まるよう2倍にする
 const scaleFor = (ports: number): number => (ports > 4 ? 2 : 3);
+
+// プラグの絵（つながっていれば UTP か光、空いていれば空の差し込み口）
+const plugSlot = (link: NetLink | undefined): string => (!link ? 'rear/port_empty' : link.cable.startsWith('fiber') ? 'rear/port_fiber' : 'rear/port_utp');
+
+// ドラッグの途中の記録（押した位置・つかんだプラグ）。動いたかどうかは moved で分かる
+interface Grab {
+  port: number;
+  linkUid: string;
+  end: End;
+  slot: string;
+  pointerId: number;
+  startX: number;
+  startY: number;
+  moved: boolean;
+}
+
+// 画面に出すドラッグの途中の状態（プラグの絵の位置・いま重なっているポート）
+interface Carry {
+  port: number;
+  slot: string;
+  x: number;
+  y: number;
+  over: PortHover;
+}
 
 interface Props {
   node: NetNode;
@@ -30,6 +58,13 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
   const [replugging, setReplugging] = useState<{ linkUid: string; end: End } | null>(null);
   // マウスを乗せているポート（明るく描く）
   const [hover, setHover] = useState<number | null>(null);
+  // ドラッグ中の記録と、画面に出すプラグの状態
+  const grab = useRef<Grab | null>(null);
+  const [carry, setCarry] = useState<Carry | null>(null);
+  // ドラッグの直後に出る click は無視する（ドラッグしたのに「押した」扱いにしない）
+  const ignoreClick = useRef(false);
+  // 板の上の各ポートの要素（ドラッグの判定に使う位置を取る）
+  const portRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const category = gameEnv.devices[node.device]?.category;
   const portCount = gameEnv.devices[node.device]?.portCount ?? 0;
@@ -40,6 +75,33 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
     links.find((l) => (l.a.node === node.uid && l.a.port === port) || (l.b.node === node.uid && l.b.port === port));
   // 挿し替え中のケーブルが、まだあるか
   const active = replugging && links.some((l) => l.uid === replugging.linkUid) ? replugging : null;
+  // 読み取り専用（施工中・案件の既設の機器など）や挿し替え中は、プラグをドラッグできない
+  const grabbable = !readOnly && !active;
+  const isUsedPort = (port: number) => linkAt(port) !== undefined;
+  const dragging = carry !== null;
+
+  // ドラッグのあとに続く click を1回だけ無視する（click が来なかった場合に備えて、次の処理の後に戻す）
+  const skipNextClick = () => {
+    ignoreClick.current = true;
+    window.setTimeout(() => {
+      ignoreClick.current = false;
+    }, 0);
+  };
+
+  // ドラッグの途中で Esc が押されたら、ドラッグだけを取り消す（ウィンドウを閉じるなどの Esc の処理には渡さない）
+  useEffect(() => {
+    if (!dragging) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      grab.current = null;
+      setCarry(null);
+      skipNextClick();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [dragging]);
 
   const press = (port: number) => {
     if (active) {
@@ -56,6 +118,70 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
     setSelected(selected === port ? null : port);
   };
 
+  // 板の上の各ポートの枠（画面の座標）
+  const portBoxes = (): PortBox[] =>
+    ports.flatMap((p) => {
+      const el = portRefs.current[p];
+      if (!el) return [];
+      const r = el.getBoundingClientRect();
+      return [{ port: p, left: r.left, top: r.top, right: r.right, bottom: r.bottom }];
+    });
+
+  const onPlugDown = (p: number) => (e: PointerEvent<HTMLButtonElement>) => {
+    const link = linkAt(p);
+    if (!grabbable || !link) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    grab.current = {
+      port: p,
+      linkUid: link.uid,
+      end: link.a.node === node.uid ? 'a' : 'b',
+      slot: plugSlot(link),
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      moved: false,
+    };
+  };
+
+  const onPlugMove = (e: PointerEvent<HTMLButtonElement>) => {
+    const g = grab.current;
+    if (!g || e.pointerId !== g.pointerId) return;
+    if (!g.moved) {
+      if (!isDragMove(g.startX, g.startY, e.clientX, e.clientY)) return;
+      g.moved = true;
+    }
+    const over = portHoverAt(e.clientX, e.clientY, portBoxes(), isUsedPort);
+    setCarry({ port: g.port, slot: g.slot, x: e.clientX, y: e.clientY, over });
+  };
+
+  const onPlugUp = (e: PointerEvent<HTMLButtonElement>) => {
+    const g = grab.current;
+    if (!g || e.pointerId !== g.pointerId) return;
+    grab.current = null;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+    // 動かさずに離したのは「押した」なので、click に任せる
+    if (!g.moved) return;
+    skipNextClick();
+    setCarry(null);
+    // 空いているポートの上で離したときだけ挿し替える。それ以外は何もせず元に戻す
+    const target = replugTargetAt(e.clientX, e.clientY, portBoxes(), isUsedPort);
+    if (target === null) return;
+    const reason = replug(g.linkUid, g.end, target);
+    onError(reason);
+    if (reason === null) setSelected(target);
+  };
+
+  const onPlugCancel = (e: PointerEvent<HTMLButtonElement>) => {
+    const g = grab.current;
+    if (!g || e.pointerId !== g.pointerId) return;
+    grab.current = null;
+    if (g.moved) {
+      skipNextClick();
+      setCarry(null);
+    }
+  };
+
   const selectedLink = selected === null ? undefined : linkAt(selected);
   const peerOf = (link: NetLink) => {
     const end = link.a.node === node.uid ? link.b : link.a;
@@ -65,6 +191,10 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
 
   // 背面の板: 左から電源・ポート群・ファン（PC とサーバーだけ）。スプライトは3倍に拡大して、ドット絵のまま描く
   const fan = category === 'pc' || category === 'server';
+  // 画面の倍率（UI の大きさ）。位置は倍率で割って指定する（PortMenu と同じ考え方）
+  const uiScale = loadSettings().uiScale;
+  const plugW = 12 * SCALE;
+  const plugH = 10 * SCALE;
   return (
     <div>
       <div
@@ -84,12 +214,36 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
         <div style={{ display: 'flex', gap: 4 }}>
           {ports.map((p) => {
             const link = linkAt(p);
-            const slot = !link ? 'rear/port_empty' : link.cable.startsWith('fiber') ? 'rear/port_fiber' : 'rear/port_utp';
+            // ドラッグ中のプラグは、元の差し込み口を空の絵で見せる（LED も消す）
+            const lifted = carry?.port === p;
+            const slot = lifted ? 'rear/port_empty' : plugSlot(link);
+            const lit = !lifted && link !== undefined;
+            // ドラッグ中は、重なっているポートを明るく（空き）・暗く（埋まり）示す。それ以外は押しているポートを明るくする
+            const filter = carry
+              ? carry.over?.port === p
+                ? carry.over.state === 'free'
+                  ? 'brightness(1.35)'
+                  : 'brightness(0.55)'
+                : undefined
+              : hover === p
+                ? 'brightness(1.35)'
+                : undefined;
             return (
               <button
                 key={p}
+                ref={(el) => {
+                  portRefs.current[p] = el;
+                }}
                 aria-label={portLabel(category, p)}
-                onClick={() => press(p)}
+                onClick={() => {
+                  if (ignoreClick.current) return;
+                  press(p);
+                }}
+                onPointerDown={onPlugDown(p)}
+                onPointerMove={onPlugMove}
+                onPointerUp={onPlugUp}
+                onPointerCancel={onPlugCancel}
+                onDragStart={(e) => e.preventDefault()}
                 onMouseEnter={() => setHover(p)}
                 onMouseLeave={() => setHover(null)}
                 style={{
@@ -97,17 +251,20 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
                   border: selected === p ? '2px solid #ffd866' : '2px solid transparent',
                   borderRadius: 2,
                   padding: 0,
-                  cursor: 'pointer',
+                  cursor: link && grabbable ? 'grab' : 'pointer',
+                  // スマートフォンでもプラグをドラッグできるよう、ブラウザのスクロールに渡さない
+                  touchAction: 'none',
+                  userSelect: 'none',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: 2,
-                  filter: hover === p ? 'brightness(1.35)' : undefined,
+                  filter,
                 }}
               >
                 {/* LED（つながっていれば緑）。2×2 の点を3倍にする */}
-                <span style={{ width: 2 * SCALE, height: 2 * SCALE, background: link ? '#62d26f' : '#2a2f36' }} />
-                <img src={spriteUrl(slot)} width={12 * SCALE} height={10 * SCALE} alt="" style={{ imageRendering: 'pixelated', display: 'block' }} />
+                <span style={{ width: 2 * SCALE, height: 2 * SCALE, background: lit ? '#62d26f' : '#2a2f36' }} />
+                <img src={spriteUrl(slot)} width={12 * SCALE} height={10 * SCALE} alt="" draggable={false} style={{ imageRendering: 'pixelated', display: 'block' }} />
                 <span style={{ color: '#f4f1e6', fontSize: 11, lineHeight: 1 }}>{portLabel(category, p)}</span>
               </button>
             );
@@ -115,6 +272,28 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
         </div>
         {fan && <img src={spriteUrl('rear/fan')} width={16 * SCALE} height={16 * SCALE} alt="" style={{ imageRendering: 'pixelated', display: 'block' }} />}
       </div>
+
+      {/* ドラッグ中のプラグ。指やカーソルに付いて動く（画面の上に出し、ポインターの動きを邪魔しない） */}
+      {carry &&
+        createPortal(
+          <img
+            src={spriteUrl(carry.slot)}
+            alt=""
+            draggable={false}
+            style={{
+              position: 'fixed',
+              left: carry.x / uiScale - plugW / 2,
+              top: carry.y / uiScale - plugH / 2,
+              width: plugW,
+              height: plugH,
+              imageRendering: 'pixelated',
+              pointerEvents: 'none',
+              zIndex: 1000,
+              zoom: 'var(--ui-scale, 1)',
+            }}
+          />,
+          document.body,
+        )}
 
       {/* ポートの一覧: 相手の機器名とポート、ケーブルの種類 */}
       {ports.map((p) => {
