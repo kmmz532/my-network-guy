@@ -16,6 +16,7 @@ W = (248, 246, 238, 255)
 L = (214, 222, 234, 255)
 FILL = (28, 38, 66, 255)
 EDGE = (70, 92, 140, 255)
+RIM = (16, 22, 40, 255)
 SS = 8
 
 
@@ -26,10 +27,12 @@ def R(d, x, y, w, h, c):
 def frame(n):
     big = Image.new('RGBA', (n * SS, n * SS), (0, 0, 0, 0))
     d = ImageDraw.Draw(big)
-    r = int(n * SS * 0.2)
-    d.rounded_rectangle([0, 0, n * SS - 1, n * SS - 1], radius=r, fill=EDGE)
+    r = int(n * SS * 0.09)
     e = max(SS, int(n * SS / 32))
-    d.rounded_rectangle([e, e, n * SS - 1 - e, n * SS - 1 - e], radius=r - e, fill=FILL)
+    # 外側の明るめの縁、暗い縁、塗りの順に重ねる（32 px でそれぞれ 1 px）
+    d.rounded_rectangle([0, 0, n * SS - 1, n * SS - 1], radius=r, fill=EDGE)
+    d.rounded_rectangle([e, e, n * SS - 1 - e, n * SS - 1 - e], radius=max(1, r - e), fill=RIM)
+    d.rounded_rectangle([2 * e, 2 * e, n * SS - 1 - 2 * e, n * SS - 1 - 2 * e], radius=max(1, r - 2 * e), fill=FILL)
     return big.resize((n, n), Image.LANCZOS)
 
 
