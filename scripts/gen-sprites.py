@@ -737,7 +737,34 @@ def rear_power():
     return img
 
 
+# ---- ファビコン（タブとホーム画面のアイコン） ----
+# 32×32。角の丸い青い板に、3台の機器（白）と、それを結ぶケーブル（緑）を描く
+
+def favicon():
+    img, d = new(32, 32)
+    d.rounded_rectangle([0, 0, 31, 31], radius=6, fill=C['b'] + (255,), outline=C['o'] + (255,))
+    d.rounded_rectangle([1, 1, 30, 4], radius=3, fill=C['bh'] + (255,))
+    # ケーブル: 上の機器から左下と右下へ
+    for x0, y0, x1, y1 in ((15, 12, 8, 21), (16, 12, 23, 21), (11, 24, 20, 24)):
+        d.line([(x0, y0), (x1, y1)], fill=C['l'] + (255,), width=2)
+    # 機器: 上に1台、下に2台
+    for x, y in ((11, 6), (4, 19), (19, 19)):
+        rect(d, x, y, 9, 7, 'e', 'o')
+        px(d, x + 2, y + 2, 'l')
+        rect(d, x + 4, y + 4, 3, 1, 'g')
+    return img
+
+
+def save_public(img, name):
+    path = os.path.join(os.path.dirname(__file__), '..', 'public', name)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    img.save(path)
+
+
 if __name__ == '__main__':
+    fav = favicon()
+    save_public(fav, 'favicon.png')
+    save_public(fav.resize((192, 192), Image.NEAREST), 'icon-192.png')
     rear = {
         'port_empty': rear_port_empty(),
         'port_utp': rear_port_plugged('b', 'B'),
