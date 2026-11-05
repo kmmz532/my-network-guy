@@ -31,6 +31,8 @@ export interface Settings {
   autoIp: boolean;
   // 案件を受注して設計に入ったとき、時間を止めるか（既定はオン。配線の作業を時間に追われずに進められる）
   designPause: boolean;
+  // 効果音を鳴らすか（既定はオン）
+  sound: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -42,6 +44,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoSave: 'daily',
   autoIp: true,
   designPause: true,
+  sound: true,
 };
 
 export const SETTINGS_KEY = 'network-ya.settings.v1';
@@ -72,6 +75,7 @@ export function parseSettings(raw: string | null): Settings {
       : DEFAULT_SETTINGS.autoSave,
     autoIp: typeof d.autoIp === 'boolean' ? d.autoIp : DEFAULT_SETTINGS.autoIp,
     designPause: typeof d.designPause === 'boolean' ? d.designPause : DEFAULT_SETTINGS.designPause,
+    sound: typeof d.sound === 'boolean' ? d.sound : DEFAULT_SETTINGS.sound,
   };
 }
 

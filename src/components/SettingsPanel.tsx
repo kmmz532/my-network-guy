@@ -70,7 +70,7 @@ export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; on
   };
 
   return (
-    <Modal onClose={onClose} primary={onClose} boxStyle={{ width: 'min(380px, calc(100% - 32px))' }}>
+    <Modal onClose={onClose} primary={onClose} boxStyle={{ width: 'min(380px, calc(100% - 32px))', maxHeight: 'calc(100% - 32px)', overflowY: 'auto' }}>
       <div style={{ fontWeight: 'bold' }}>{t('ui.settings.title')}</div>
       <Row label={t('ui.settings.uiScale')}>
         <Choice
@@ -131,6 +131,16 @@ export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; on
           ]}
           value={settings.designPause}
           onChange={(v) => update({ designPause: v })}
+        />
+      </Row>
+      <Row label={t('ui.settings.sound')}>
+        <Choice
+          options={[
+            { value: true, label: t('ui.settings.sound.on') },
+            { value: false, label: t('ui.settings.sound.off') },
+          ]}
+          value={settings.sound}
+          onChange={(v) => update({ sound: v })}
         />
       </Row>
       <Row label={t('ui.settings.autoSave')}>

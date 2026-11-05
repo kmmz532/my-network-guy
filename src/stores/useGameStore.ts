@@ -1,5 +1,6 @@
 // ゲーム全体の状態。時間・資金・評判・在庫・完了案件・依頼・受注中の案件・速度を持ち、Tick ごとに進める。
 import { loadSettings, saveSettings } from '../settings/settings';
+import { playConnect, playDeliver, playFail } from '../audio/sfx';
 import { create } from 'zustand';
 import { balance, contracts, contractTemplates, devices, furniture } from 'virtual:game-data';
 import type { FurnitureId } from '../generated/ids';
@@ -822,8 +823,13 @@ export const useGameStore = create<GameState>((set, get) => {
       return recorded(() => apply(removeFurnitureOp(coreOf(get()), uid), f ? { tx: f.x, ty: f.y } : undefined));
     },
     hire: (candidateUid) => apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true)),
-    connect: (aUid, bUid, cableId, ports = {}) =>
-      recorded(() => apply(withAutoIp(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get()), ports), netTargetOf(get())), tileOf(bUid))),
+    connect: (aUid, bUid, cableId, ports = {}) => {
+      const reason = recorded(() => apply(withAutoIp(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get()), ports), netTargetOf(get())), tileOf(bUid)));
+      // つながった音と、つなげなかった音（効果音の設定がオフのときは鳴らない）
+      if (reason === null) playConnect();
+      else playFail();
+      return reason;
+    },
     removeLink: (uid) => recorded(() => apply(removeLink(coreOf(get()), uid, netTargetOf(get()), gameEnv))),
     startTraining: (uid, courseId) => apply(startTrainingOp(coreOf(get()), uid, courseId, trainingEnv)),
     takeExam: (uid, certId) => {
@@ -1044,4 +1050,9 @@ export const useGameStore = create<GameState>((set, get) => {
       };
     },
   };
+});
+
+// 検収に合格して納品したら、ジングルを鳴らす（状態の変化を見て鳴らすので、計算の部分は音を知らない）
+useGameStore.subscribe((s, prev) => {
+  if (s.lastReport && s.lastReport !== prev.lastReport && s.lastReport.passed) playDeliver();
 });
