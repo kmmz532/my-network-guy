@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Balance } from '../data/schema';
-import { advanceTick, initialClock, minutesPerMonth, toDate } from './clock';
+import { advanceTick, initialClock, isWorkingHour, minutesPerMonth, toDate } from './clock';
 import { rate } from './rating';
 
 const balance = {
@@ -37,7 +37,21 @@ describe('clock', () => {
   });
 
   it('ゲーム内の日時を求める', () => {
-    expect(toDate(60 * 25, balance)).toEqual({ month: 1, day: 2, hour: 1 });
+    expect(toDate(60 * 25, balance)).toEqual({ year: 1, month: 1, day: 2, hour: 1 });
+  });
+
+  it('12か月で1年目から2年目へ進み、月は年の中の月に戻る', () => {
+    const monthLength = minutesPerMonth(balance);
+    expect(toDate(monthLength * 11, balance)).toMatchObject({ year: 1, month: 12, day: 1 });
+    expect(toDate(monthLength * 12, balance)).toMatchObject({ year: 2, month: 1, day: 1 });
+    expect(toDate(monthLength * 12 + 60 * 24 * 4 + 60 * 9, balance)).toEqual({ year: 2, month: 1, day: 5, hour: 9 });
+  });
+
+  it('勤務時間は9時以上18時未満', () => {
+    expect(isWorkingHour(8, balance)).toBe(false);
+    expect(isWorkingHour(9, balance)).toBe(true);
+    expect(isWorkingHour(17, balance)).toBe(true);
+    expect(isWorkingHour(18, balance)).toBe(false);
   });
 });
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { balance, furniture } from 'virtual:game-data';
 import type { FurnitureId } from './generated/ids';
 import { seatCount } from './sim/furniture';
@@ -23,7 +23,8 @@ import { Windows } from './components/Windows';
 import { PortMenu } from './components/PortMenu';
 import { ShopCards } from './components/ShopCards';
 import { HiringPanel, type HiringTab } from './components/HiringPanel';
-import { Tooltip, TooltipHost } from './components/Tooltip';
+import { Tooltip, TooltipHost, hideTip } from './components/Tooltip';
+import { PausedBuildPrompt } from './components/PausedBuildPrompt';
 import { Icon } from './components/Icon';
 import { TitleScreen } from './components/TitleScreen';
 import { mapLoaders } from 'virtual:loaders';
@@ -31,6 +32,8 @@ import { RADIUS } from './ui/theme';
 
 const SLOT = 1;
 const SPEEDS: Speed[] = [0, 1, 2, 4];
+// 速さを変えたときに画面上部に出す表示は、この時間で消す
+const SPEED_NOTE_MS = 1000;
 
 type Screen = 'title' | 'game';
 type Popup = 'offers' | 'shop' | 'menu' | 'help' | 'settings' | null;
@@ -54,6 +57,12 @@ export function App() {
   const reputation = useGameStore((s) => s.reputation);
   const speed = useGameStore((s) => s.speed);
   const setSpeed = useGameStore((s) => s.setSpeed);
+  // 勤務時間外に自動で早送りしている間の、元の速さ（「夜は早送り」と出す）
+  const nightSpeed = useGameStore((s) => s.nightSpeed);
+  const pausedPrompt = useGameStore((s) => s.pausedPrompt);
+  // 速さを変えたときの短い表示（1秒で消す）
+  const [speedNote, setSpeedNote] = useState<{ speed: Speed; id: number } | null>(null);
+  const lastSpeed = useRef(speed);
   const load = useGameStore((s) => s.load);
   const snapshot = useGameStore((s) => s.snapshot);
   const newGame = useGameStore((s) => s.newGame);
@@ -69,6 +78,14 @@ export function App() {
   const [warehouseOpen, setWarehouseOpen] = useState(false);
 
   useTickLoop();
+  useEffect(() => {
+    if (lastSpeed.current === speed) return;
+    lastSpeed.current = speed;
+    const id = Date.now();
+    setSpeedNote({ speed, id });
+    const timer = window.setTimeout(() => setSpeedNote((n) => (n?.id === id ? null : n)), SPEED_NOTE_MS);
+    return () => window.clearTimeout(timer);
+  }, [speed]);
   // キーの表は、ゲームの画面が開いている間だけ効く。M・S・? はポップアップを、W は倉庫の欄を開け閉めする
   useKeymap(screen === 'game', {
     togglePopup: (name) => setPopup((p) => (p === name ? null : name)),
@@ -170,7 +187,7 @@ export function App() {
           <Icon name="icon/star" /> {reputation}
         </span>
         <span>
-          <Icon name="icon/calendar" /> {t('ui.hud.date', { month: date.month, day: date.day, hour: date.hour })}
+          <Icon name="icon/calendar" /> {t('ui.hud.date', { year: date.year, month: date.month, day: date.day, hour: date.hour })}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {/* 押すと、社員の一覧を開く */}
@@ -191,7 +208,7 @@ export function App() {
         </span>
         <span style={{ display: 'flex', gap: 4 }}>
           {SPEEDS.map((s) => (
-            <Tooltip text={s === 0 ? tipText('ui.speed.0', 'pause') : t(`ui.speed.${s}` as const)} key={s}><button aria-label={t(`ui.speed.${s}` as const)} style={hudButton(speed === s)}  onClick={() => setSpeed(s)}>
+            <Tooltip text={s === 0 ? tipText('ui.speed.0', 'pause') : t(`ui.speed.${s}` as const)} key={s}><button aria-label={t(`ui.speed.${s}` as const)} style={hudButton(speed === s)}  onClick={() => { hideTip(); setSpeed(s); }}>
               {s === 0 ? (
                 <Icon name="icon/pause" scale={1} />
               ) : (
@@ -199,6 +216,7 @@ export function App() {
               )}
             </button></Tooltip>
           ))}
+          {nightSpeed !== null && <span style={{ fontSize: 12, alignSelf: 'center' }}>{t('ui.night.fast')}</span>}
         </span>
         <button style={{ ...hudButton(false), marginLeft: 'auto' }} onClick={() => setPopup('menu')}>
           <Icon name="icon/menu" scale={1} />
@@ -254,6 +272,26 @@ export function App() {
       {popup === 'help' && <KeyHelp onClose={() => setPopup(null)} />}
       {popup === 'settings' && <SettingsPanel onClose={() => setPopup(null)} onOpenKeys={() => setPopup('help')} />}
       <NoticeToast />
+      {speedNote && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 48,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(47, 79, 143, 0.95)',
+            color: '#ffd866',
+            padding: '6px 14px',
+            borderRadius: RADIUS.chrome,
+            pointerEvents: 'none',
+            zIndex: 9,
+            zoom: 'var(--ui-scale, 1)',
+          }}
+        >
+          {t(`ui.speed.${speedNote.speed}` as const)}
+        </div>
+      )}
+      {pausedPrompt && <PausedBuildPrompt />}
       <ReportModal />
       {clock.bankrupt && (
         <Modal

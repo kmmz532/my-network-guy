@@ -38,11 +38,20 @@ export const advanceTick = (state: ClockState, balance: Balance, monthlyPay: num
   return { minute, money, paidMonths, bankrupt };
 };
 
-// ゲーム内の日時表示用
+// 1年の月数（ゲーム内の暦）
+export const monthsPerYear = 12;
+
+// ゲーム内の日時表示用。年・月は1から始まり、月は年の中の月（1〜12）
 export const toDate = (minute: number, balance: Balance) => {
   const monthLength = minutesPerMonth(balance);
-  const month = Math.floor(minute / monthLength) + 1;
+  const monthCount = Math.floor(minute / monthLength);
+  const year = Math.floor(monthCount / monthsPerYear) + 1;
+  const month = (monthCount % monthsPerYear) + 1;
   const day = Math.floor((minute % monthLength) / minutesPerDay) + 1;
   const hour = Math.floor((minute % minutesPerDay) / 60);
-  return { month, day, hour };
+  return { year, month, day, hour };
 };
+
+// 勤務時間内か（施工は勤務時間内にしか進まない）
+export const isWorkingHour = (hour: number, balance: Balance): boolean =>
+  hour >= balance.build.workStartHour && hour < balance.build.workEndHour;

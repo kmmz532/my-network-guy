@@ -7,6 +7,10 @@ export type UiScale = (typeof UI_SCALES)[number];
 export const START_SPEEDS = [1, 2, 4] as const;
 export type StartSpeed = (typeof START_SPEEDS)[number];
 
+// 時間が止まっているときに施工を依頼したときの扱い。ask は確認を出す、play は1倍で進める、stay は止めたまま施工を依頼する
+export const PAUSED_BUILD_MODES = ['ask', 'play', 'stay'] as const;
+export type PausedBuildMode = (typeof PAUSED_BUILD_MODES)[number];
+
 export interface Settings {
   uiScale: UiScale;
   // 初めての概念の案内を出すか（P7 で使う。今は保存するだけ）
@@ -15,6 +19,8 @@ export interface Settings {
   showIp: boolean;
   // 時間を進める初期の速さ（案件を始めたとき・新しいゲームを始めたとき）
   startSpeed: StartSpeed;
+  // 時間が止まっているときの施工の扱い（「今後この確認を出さない」で変える）
+  pausedBuild: PausedBuildMode;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -22,6 +28,7 @@ export const DEFAULT_SETTINGS: Settings = {
   guide: true,
   showIp: true,
   startSpeed: 1,
+  pausedBuild: 'ask',
 };
 
 export const SETTINGS_KEY = 'network-ya.settings.v1';
@@ -44,6 +51,9 @@ export function parseSettings(raw: string | null): Settings {
     startSpeed: (START_SPEEDS as readonly unknown[]).includes(d.startSpeed)
       ? (d.startSpeed as StartSpeed)
       : DEFAULT_SETTINGS.startSpeed,
+    pausedBuild: (PAUSED_BUILD_MODES as readonly unknown[]).includes(d.pausedBuild)
+      ? (d.pausedBuild as PausedBuildMode)
+      : DEFAULT_SETTINGS.pausedBuild,
   };
 }
 

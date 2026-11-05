@@ -1,6 +1,6 @@
 // 案件の流れ（受注・設計・施工・検収・納品）。状態を受け取り、新しい状態を返す純粋関数で書く。
 // 設計は機器の配置・配線・IP設定、施工は社員が作業時間をかけて行い、検収で達成条件を判定する。
-import type { Balance, Contract, Furniture, GameMap, Staff } from '../data/schema';
+import type { Balance, Contract, Furniture, GameMap, JobId, Staff } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
 import { inSubnet, ipToInt, linkLength } from '../network/engine';
@@ -876,10 +876,13 @@ export const advanceBuild = (core: Core, env: Env, hour: number): Outcome => {
       };
     }
   }
+  // 全案件の進みを反映してから検収する（1つの案件を検収しても、同じTickのほかの案件の進みを捨てない）
+  let finished: string | null = null;
   for (const p of core.active) {
     if (p.phase !== 'build') continue;
-    // 施工の進みは、担当の社員の施工力の合計に比例する
-    const power = crewOf(p).reduce((sum, s) => sum + staffPower(s, undefined, core.office, bonusEnv), 0);
+    // 施工の進みは、担当の社員の施工力の合計に比例する。案件の求める職種の社員は1.5倍
+    const requires = p.contract.requires as JobId[];
+    const power = crewOf(p).reduce((sum, s) => sum + staffPower(s, requires, core.office, bonusEnv), 0);
     let progress = p.progress;
     if (working) progress += env.balance.time.gameMinutesPerTick * power * (1 + core.effects.buildSpeed);
     if (progress < p.total) {
@@ -890,8 +893,11 @@ export const advanceBuild = (core: Core, env: Env, hour: number): Outcome => {
       nodes: p.nodes.map((n) => n.uid),
       links: p.links.map((l) => l.uid),
     };
-    return inspect(withProject(state, { ...p, progress, built }), env, p.id);
+    state = withProject(state, { ...p, progress, built });
+    finished ??= p.id;
   }
+  // 検収の結果が出たら止める（残りの施工を終えた案件は次のTickで検収する）
+  if (finished !== null) return inspect(state, env, finished);
   return { ok: true, core: state };
 };
 

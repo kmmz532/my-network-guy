@@ -1,14 +1,14 @@
 // 画面下のツールバー。道具（選択・配線・撤去）・依頼・機材・施工をアイコンで操作する。キーは input/keymap.ts の表から受け取る
 import { Fragment, useEffect, useState } from 'react';
-import { cables, shop } from 'virtual:game-data';
+import { balance, cables, shop } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
+import { isWorkingHour, toDate } from '../sim/clock';
 import { isUnlocked } from '../sim/shop';
 import { historyKeyOf } from '../sim/history';
 import { warehouseItems, warehouseMode, type WarehouseItem } from '../sim/warehouse';
 import { focusedProject, useGameStore, type Tool } from '../stores/useGameStore';
 import { tipText } from '../input/keymap';
-import { isNarrow } from '../ui/windows';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
 import { Warehouse } from './Warehouse';
@@ -76,6 +76,9 @@ export function Toolbar({
 }) {
   const offers = useGameStore((s) => s.offers);
   const active = useGameStore(focusedProject);
+  // 施工は勤務時間内にしか進まない。勤務時間外は棒を灰色にして、再開の時刻を出す
+  const clockMinute = useGameStore((s) => s.clock.minute);
+  const workingNow = isWorkingHour(toDate(clockMinute, balance).hour, balance);
   const completed = useGameStore((s) => s.completed);
   const owned = useGameStore((s) => s.owned);
   const placing = useGameStore((s) => s.placing);
@@ -105,14 +108,6 @@ export function Toolbar({
     const id = window.setTimeout(() => setTestLit(false), 1000);
     return () => window.clearTimeout(id);
   }, [testNudge]);
-
-  // 幅が狭い画面では、ケーブルの値段をツールチップだけに出す
-  const [narrow, setNarrow] = useState(() => isNarrow({ w: window.innerWidth, h: window.innerHeight }));
-  useEffect(() => {
-    const onResize = () => setNarrow(isNarrow({ w: window.innerWidth, h: window.innerHeight }));
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
 
   const showcase = useGameStore((s) => s.showcase);
   const unlocked = shop.filter((item) => isUnlocked(item, completed));
@@ -179,17 +174,12 @@ export function Toolbar({
             cableIds.map((id) => {
               const cable = cables[id as keyof typeof cables];
               const name = t(`cable.${id}.name` as LangKey);
-              const short = t(`cable.${id}.short` as LangKey);
-              // 値段は「UTP ¥1,000＋¥300/マス」の形。狭い画面では名前だけを出し、値段はツールチップに入れる
+              // 値段は、ボタンの文字には出さず、ツールチップの2行目に出す
               const price = t('ui.cable.price', { link: yen(cable.pricePerLink), tile: yen(cable.pricePerTile) });
               return (
-                <Tooltip text={narrow ? `${name}\n${price}` : name} key={id}>
-                  <button
-                    aria-label={narrow ? name : undefined}
-                    style={{ ...slot(wireCable === id), width: 'auto', padding: '0 10px', fontSize: 13, fontWeight: 'bold', whiteSpace: 'nowrap' }}
-                    onClick={() => setWireCable(id)}
-                  >
-                    {narrow ? short : `${short} ${price}`}
+                <Tooltip text={`${name}\n${price}`} key={id}>
+                  <button aria-label={name} style={slot(wireCable === id)} onClick={() => setWireCable(id)}>
+                    <Icon name={`icon/cable_${id}`} scale={1} />
                   </button>
                 </Tooltip>
               );
@@ -282,10 +272,15 @@ export function Toolbar({
               style={{
                 width: `${active.total ? Math.min(100, (active.progress / active.total) * 100) : 0}%`,
                 height: '100%',
-                background: '#ffd866',
+                background: workingNow ? '#ffd866' : '#8a8a8a',
               }}
             />
           </div>
+          {!workingNow && (
+            <span style={{ fontSize: 13, whiteSpace: 'nowrap' }}>
+              {t('ui.build.offHours', { hour: balance.build.workStartHour })}
+            </span>
+          )}
         </>
       )}
     </footer>

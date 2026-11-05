@@ -774,3 +774,49 @@ describe('配線の前のIPアドレス（PC・サーバー）', () => {
     expect(cur(core)?.nodes.find((n) => n.uid === 'pc_a')?.interfaces[0]).toEqual({ port: 0, ip: '10.20.30.40', prefix: 24 });
   });
 });
+
+describe('施工の進み（advanceBuild）', () => {
+  // c001 の2台を配線し、テストに合格させて施工を依頼した状態（担当は2人）
+  const building = (): Core => {
+    let core = ok(take(start(), 'c001_direct_link')).core;
+    core = ok(setInterface(core, 'pc_a', 0, '192.168.1.10', 24, env)).core;
+    core = ok(setInterface(core, 'pc_b', 0, '192.168.1.11', 24, env)).core;
+    core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
+    return ok(requestBuild(passTest(core), env)).core;
+  };
+  const withTotal = (core: Core, total: number): Core => ({
+    ...core,
+    active: core.active.map((p) => ({ ...p, total, progress: 0 })),
+  });
+  const progressOf = (core: Core, id: string) => core.active.find((p) => p.id === id)?.progress ?? 0;
+
+  it('案件の求める職種の社員は、施工力が職種の一致の倍率（1.5倍）になる', () => {
+    const base = withTotal(building(), 1e9);
+    const id = cur(base)!.id;
+    // 2人とも同じ職種にして、案件の求める職種だけを変える
+    const staff = base.staff.map((s) => ({ ...s, job: 'network' as const }));
+    const withRequires = (core: Core, requires: string[]): Core => ({
+      ...core,
+      staff,
+      active: core.active.map((p) => ({ ...p, contract: { ...p.contract, requires } })),
+    });
+    const plain = ok(advanceBuild(withRequires(base, []), env, balance.build.workStartHour)).core;
+    const matched = ok(advanceBuild(withRequires(base, ['network']), env, balance.build.workStartHour)).core;
+    expect(progressOf(plain, id)).toBeGreaterThan(0);
+    expect(progressOf(matched, id) / progressOf(plain, id)).toBeCloseTo(balance.staff.power.jobMatch);
+  });
+
+  it('1つの案件が検収されても、同じTickのほかの案件の進みを捨てない', () => {
+    const core = withTotal(building(), 1);
+    const first = cur(core)!;
+    const second = { ...first, id: 'other' };
+    const both: Core = { ...core, active: [first, second] };
+    const r = ok(advanceBuild(both, env, balance.build.workStartHour));
+    // 先の案件は検収されて納品される
+    expect(r.report?.passed).toBe(true);
+    expect(r.core.active.map((p) => p.id)).toEqual(['other']);
+    // あとの案件も、この Tick の進みを反映している（検収はまだ次の Tick）
+    expect(progressOf(r.core, 'other')).toBeGreaterThanOrEqual(1);
+    expect(r.core.active[0]?.built.nodes.length).toBeGreaterThan(0);
+  });
+});

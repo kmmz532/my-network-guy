@@ -3,7 +3,8 @@ import { loadSettings, saveSettings } from '../settings/settings';
 import { create } from 'zustand';
 import { balance, contracts, contractTemplates, devices, furniture } from 'virtual:game-data';
 import type { FurnitureId } from '../generated/ids';
-import { advanceTick, initialClock, toDate, type ClockState } from '../sim/clock';
+import { advanceTick, initialClock, isWorkingHour, toDate, type ClockState } from '../sim/clock';
+import { nightSpeedStep } from '../sim/nightSpeed';
 import { buyDevice } from '../sim/shop';
 import { refreshOffers, type OfferEnv } from '../contracts/offers';
 import type { Offer } from '../contracts/template';
@@ -146,6 +147,12 @@ export interface GameState {
   // 採用の候補
   candidates: Staff[];
   speed: Speed;
+  // 勤務時間外の早送りで、自動で変える前の速さ（自動で変えていなければ null。保存しない）
+  nightSpeed: Speed | null;
+  // 時間が止まっているときの施工の確認を開いているか（保存しない）
+  pausedPrompt: boolean;
+  // 確認の答え。mode は 1倍で進める（play）か止めたまま（stay）。remember なら設定に残す
+  answerPausedBuild: (mode: 'play' | 'stay', remember: boolean) => void;
   // 読み込み済みのマップ（保存しない）
   maps: Record<string, GameMap>;
   // 直近の検収結果（保存しない）
@@ -244,6 +251,7 @@ export interface GameState {
   setService: (uid: string, protocol: 'http', on: boolean) => string | null;
   addRoute: (uid: string, route: Route) => string | null;
   removeRoute: (uid: string, index: number) => string | null;
+  // 施工を依頼する。時間が止まっていて設定が「確認する」なら、確認を開いて null を返す
   requestBuild: () => string | null;
   abandon: () => string | null;
   load: (save: SaveData) => void;
@@ -439,6 +447,23 @@ export const useGameStore = create<GameState>((set, get) => {
     return null;
   };
 
+  // 施工を依頼する（確認を通したあとの処理）
+  const buildNow = (): string | null => {
+    const focusId = focusedProject(get())?.id;
+    const r = requestBuild(coreOf(get()), gameEnv);
+    // テストに合格していないと施工を依頼できない。案内を出し、テストのボタンを光らせる
+    if (!r.ok && r.reason === 'untested') {
+      const at = Date.now();
+      set({ lastError: r.reason, testNudge: at, notice: { key: 'ui.error.untested', params: {}, id: at } });
+      return r.reason;
+    }
+    set({ traces: [] });
+    const reason = apply(r);
+    // 施工を依頼したら、その案件の履歴は消す（施工後は戻せない）
+    if (reason === null && focusId) dropHistory(projectHistoryKey(focusId));
+    return reason;
+  };
+
   return {
     clock: initialClock(balance),
     reputation: 0,
@@ -454,6 +479,8 @@ export const useGameStore = create<GameState>((set, get) => {
     office: initialOffice(balance),
     effects: noEffects(),
     speed: 1,
+    nightSpeed: null,
+    pausedPrompt: false,
     maps: {},
     lastReport: null,
     notice: null,
@@ -619,10 +646,23 @@ export const useGameStore = create<GameState>((set, get) => {
             };
           }
         }
+        // 勤務時間外に施工中なら最速にし、勤務時間になるか施工が終わったら元の速さへ戻す
+        const activeNow = next.active ?? s.active;
+        const night = nightSpeedStep({
+          working: isWorkingHour(toDate(clock.minute, balance).hour, balance),
+          building: activeNow.some((p) => p.phase === 'build'),
+          speed: s.speed,
+          saved: s.nightSpeed,
+          fastest: Math.max(...balance.time.speeds),
+        });
+        if (night.speed !== s.speed || night.saved !== s.nightSpeed) {
+          next = { ...next, speed: night.speed as Speed, nightSpeed: night.saved as Speed | null };
+        }
         const merged = { ...s, ...next } as GameState;
         return { ...next, ...refresh(merged) };
       }),
-    setSpeed: (speed) => set({ speed }),
+    // 速さを人が変えたら、勤務時間外の自動の早送りは取り消す（覚えた速さには戻さない）
+    setSpeed: (speed) => set({ speed, nightSpeed: null }),
     cacheMap: (map) =>
       set((s) => {
         const maps = { ...s.maps, [map.id]: map };
@@ -710,19 +750,23 @@ export const useGameStore = create<GameState>((set, get) => {
     addRoute: (uid, route) => recorded(() => apply(addRoute(coreOf(get()), uid, route, netTargetOf(get())), tileOf(uid))),
     removeRoute: (uid, index) => recorded(() => apply(removeRoute(coreOf(get()), uid, index, netTargetOf(get())), tileOf(uid))),
     requestBuild: () => {
-      const focusId = focusedProject(get())?.id;
-      const r = requestBuild(coreOf(get()), gameEnv);
-      // テストに合格していないと施工を依頼できない。案内を出し、テストのボタンを光らせる
-      if (!r.ok && r.reason === 'untested') {
-        const at = Date.now();
-        set({ lastError: r.reason, testNudge: at, notice: { key: 'ui.error.untested', params: {}, id: at } });
-        return r.reason;
+      const s = get();
+      // 時間が止まっているときは、設定に従って確認を出すか、速さを決めてから施工を依頼する
+      if (s.speed === 0 && requestBuild(coreOf(s), gameEnv).ok) {
+        const mode = loadSettings().pausedBuild;
+        if (mode === 'ask') {
+          set({ pausedPrompt: true });
+          return null;
+        }
+        if (mode === 'play') get().setSpeed(1);
       }
-      set({ traces: [] });
-      const reason = apply(r);
-      // 施工を依頼したら、その案件の履歴は消す（施工後は戻せない）
-      if (reason === null && focusId) dropHistory(projectHistoryKey(focusId));
-      return reason;
+      return buildNow();
+    },
+    answerPausedBuild: (mode, remember) => {
+      set({ pausedPrompt: false });
+      if (remember) saveSettings({ pausedBuild: mode });
+      if (mode === 'play') get().setSpeed(1);
+      buildNow();
     },
     abandon: () => {
       const focusId = focusedProject(get())?.id;
@@ -787,6 +831,8 @@ export const useGameStore = create<GameState>((set, get) => {
           wireStart: null,
           portMenu: null,
           speed: 1,
+          nightSpeed: null,
+          pausedPrompt: false,
         };
         // 新しく始めたら、最初の依頼をすぐ届ける
         return { ...base, ...refresh({ ...s, ...base } as GameState) };
