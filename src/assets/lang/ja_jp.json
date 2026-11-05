@@ -460,7 +460,7 @@
   "ui.office.cost": "費用 {cost}円",
   "ui.terminal.input": "コマンドを入力",
   "ui.terminal.run": "実行",
-  "ui.terminal.help": "使えるコマンド: help、show ip、show ip route、show interfaces、show running-config、ping <IPアドレス>、traceroute <IPアドレス>",
+  "ui.terminal.help": "使えるコマンド: help、show ip、show ip route、show interfaces、show running-config、ping <IPアドレス>、traceroute <IPアドレス>、hostname <名前>、clear",
   "ui.terminal.unknown": "不明なコマンド: {cmd}（help で一覧を見られます）",
   "ui.terminal.noIp": "IPアドレスが設定されていない",
   "ui.terminal.ifLine": "ポート{port}: {ip}/{prefix}",
@@ -493,5 +493,7 @@
   "ui.terminal.errMask": "マスクの形が違う（例: 255.255.255.0）",
   "ui.terminal.noRouteToRemove": "その経路はない",
   "ui.terminal.readOnly": "今は設定を変えられない（設計中の案件、または自社オフィスの納品の結果）",
-  "ui.terminal.done": "設定した"
+  "ui.terminal.done": "設定した",
+  "ui.terminal.usageHostname": "使い方: hostname <名前>",
+  "ui.terminal.errHostname": "名前は英数字とハイフンで、16文字まで"
 }

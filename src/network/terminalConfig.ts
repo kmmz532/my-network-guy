@@ -5,6 +5,7 @@
 //   ip route <宛先> <マスク> <次ホップ>
 //   no ip default-gateway
 //   no ip route <宛先> <マスク>
+//   hostname <名前>   /   no hostname   （名前は英数字とハイフン、16文字まで）
 import type { Tr } from './terminal';
 import type { Route } from './types';
 
@@ -12,7 +13,8 @@ export type ConfigAction =
   | { kind: 'iface'; port: number; ip: string; prefix: number }
   | { kind: 'gateway'; gateway: string | null }
   | { kind: 'addRoute'; route: Route }
-  | { kind: 'removeRoute'; dest: string; prefix: number };
+  | { kind: 'removeRoute'; dest: string; prefix: number }
+  | { kind: 'name'; name: string | null };
 
 export type ConfigParse = { kind: 'action'; action: ConfigAction } | { kind: 'error'; text: string } | { kind: 'none' };
 
@@ -34,12 +36,14 @@ export const maskToPrefix = (mask: string): number | null => {
   return bits.indexOf('0') === -1 ? 32 : bits.indexOf('0');
 };
 
+const NAME_RE = /^[A-Za-z0-9-]{1,16}$/;
+
 const port = (s: string): number | null => (/^\d+$/.test(s) ? Number(s) : null);
 
 export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   const words = line.trim().split(/\s+/).filter((w) => w !== '');
   const [first, ...rest] = words;
-  if (first !== 'ip' && first !== 'no') return { kind: 'none' };
+  if (first !== 'ip' && first !== 'no' && first !== 'hostname') return { kind: 'none' };
   const error = (key: string) => ({ kind: 'error' as const, text: tr(key) });
 
   if (first === 'ip' && rest[0] === 'address') {
@@ -64,6 +68,16 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     const prefix = maskToPrefix(rest[2]);
     if (prefix === null) return error('ui.terminal.errMask');
     return { kind: 'action', action: { kind: 'addRoute', route: { dest: rest[1], prefix, nextHop: rest[3] } } };
+  }
+
+  if (first === 'hostname') {
+    if (rest.length !== 1) return error('ui.terminal.usageHostname');
+    if (!NAME_RE.test(rest[0])) return error('ui.terminal.errHostname');
+    return { kind: 'action', action: { kind: 'name', name: rest[0] } };
+  }
+
+  if (first === 'no' && rest[0] === 'hostname' && rest.length === 1) {
+    return { kind: 'action', action: { kind: 'name', name: null } };
   }
 
   if (first === 'no' && rest[0] === 'ip' && rest[1] === 'default-gateway' && rest.length === 2) {

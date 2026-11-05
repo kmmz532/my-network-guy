@@ -1,5 +1,6 @@
 // 機器のターミナルのコマンド。入力の行を受け取り、出力の行を返す（画面には出さない純粋な関数）。
 // 確認のコマンド: help・show ip・show ip route・show interfaces・show running-config・ping・traceroute。
+// 補完（Tab）と、clear・hostname は、それぞれ別の関数で扱う（ここでは help の文言だけ）。
 // 文言は tr（言語ファイルの引き当て）で作る。モードは持たない。
 import { ping } from './engine';
 import { networkAddress } from './segments';
@@ -104,4 +105,36 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
   }
 
   return [err(tr('ui.terminal.unknown', { cmd }))];
+};
+
+// 入力の補完の候補。先頭の語・show の下位・ip の下位の順に、今の入力の続きを探す
+const WORDS: Record<string, string[]> = {
+  '': ['help', 'show', 'ping', 'traceroute', 'ip', 'no', 'hostname', 'clear'],
+  show: ['ip', 'interfaces', 'running-config'],
+  'show ip': ['route'],
+  ip: ['address', 'default-gateway', 'route'],
+  no: ['ip', 'hostname'],
+  'no ip': ['default-gateway', 'route'],
+};
+
+// 入力の行を補完する。候補が1つなら続きを書き足して末尾に空白を付け、複数なら共通の続きまで書き足す。候補がなければ変えない
+export const completeLine = (line: string): string => {
+  const trimmedStart = line.replace(/^\s+/, '');
+  const endsWithSpace = /\s$/.test(trimmedStart);
+  const words = trimmedStart.trim().split(/\s+/).filter((w) => w !== '');
+  const typed = endsWithSpace || words.length === 0 ? '' : words[words.length - 1];
+  const context = (endsWithSpace || words.length === 0 ? words : words.slice(0, -1)).join(' ');
+  const candidates = (WORDS[context] ?? []).filter((w) => w.startsWith(typed));
+  if (candidates.length === 0) return line;
+  const common = candidates.reduce((a, b) => {
+    let i = 0;
+    while (i < a.length && i < b.length && a[i] === b[i]) i++;
+    return a.slice(0, i);
+  });
+  if (candidates.length === 1) {
+    const base = endsWithSpace || words.length === 0 ? trimmedStart : trimmedStart.slice(0, trimmedStart.length - typed.length);
+    return `${base}${candidates[0]} `;
+  }
+  if (common.length > typed.length) return `${trimmedStart.slice(0, trimmedStart.length - typed.length)}${common}`;
+  return line;
 };

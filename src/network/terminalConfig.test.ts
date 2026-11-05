@@ -57,3 +57,16 @@ describe('設定のコマンド（段階3）', () => {
     expect(parseConfig('ping 192.168.1.11', tr)).toEqual({ kind: 'none' });
   });
 });
+
+describe('hostname', () => {
+  it('hostname は名前を付け、no hostname は既定の名前に戻す', () => {
+    expect(parseConfig('hostname R1', tr)).toEqual({ kind: 'action', action: { kind: 'name', name: 'R1' } });
+    expect(parseConfig('no hostname', tr)).toEqual({ kind: 'action', action: { kind: 'name', name: null } });
+  });
+
+  it('使えない名前は理由のキーを出す', () => {
+    expect(parseConfig('hostname 日本語', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
+    expect(parseConfig('hostname abcdefghijklmnopq', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
+    expect(parseConfig('hostname', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageHostname' });
+  });
+});

@@ -1,13 +1,14 @@
-// 機器のターミナルのタブ。コマンドを1行ずつ入力し、結果を履歴に積む（コマンドは network/terminal.ts）。
-import { useState } from 'react';
+// 機器のターミナルのタブ。コマンドを1行ずつ入力し、結果を履歴に積む（コマンドは network/terminal.ts と terminalConfig.ts）。
+// ↑↓で過去の入力を呼び出し、Tab で補完する。clear は表示の履歴を消す（入力の履歴は残す）。
+import { useState, type KeyboardEvent } from 'react';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
-import { runTerminal, type TerminalLine } from '../network/terminal';
+import { completeLine, runTerminal, type TerminalLine } from '../network/terminal';
 import { parseConfig, type ConfigAction } from '../network/terminalConfig';
 import type { NetLink, NetNode } from '../network/types';
 import { gameEnv } from '../sim/env';
-import { useGameStore } from '../stores/useGameStore';
 import { nodeLabel } from './nodeLabel';
+import { useGameStore } from '../stores/useGameStore';
 import { secondaryButton } from './Modal';
 import { warnColor } from './devicePorts';
 
@@ -17,6 +18,7 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
   const setGateway = useGameStore((s) => s.setGateway);
   const addRoute = useGameStore((s) => s.addRoute);
   const removeRoute = useGameStore((s) => s.removeRoute);
+  const setName = useGameStore((s) => s.setName);
   // 設定のコマンドを、画面の操作に当てる。失敗したら理由のキーを返す（成功なら null）
   const applyConfig = (action: ConfigAction): string | null => {
     switch (action.kind) {
@@ -30,13 +32,27 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
         const index = node.routes.findIndex((r) => r.dest === action.dest && r.prefix === action.prefix);
         return index < 0 ? 'ui.terminal.noRouteToRemove' : removeRoute(node.uid, index);
       }
+      case 'name':
+        return setName(node.uid, action.name ?? '');
     }
   };
+
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<TerminalLine[]>([]);
+  // 入力した行の履歴と、↑↓で今指している位置（null は新しい入力）
+  const [commands, setCommands] = useState<string[]>([]);
+  const [recall, setRecall] = useState<number | null>(null);
+
   const run = () => {
     const line = input.trim();
     if (line === '') return;
+    setCommands((c) => (c[c.length - 1] === line ? c : [...c, line]));
+    setRecall(null);
+    setInput('');
+    if (line === 'clear') {
+      setHistory([]);
+      return;
+    }
     const tr = (key: string, params?: Record<string, string | number>) => t(key as LangKey, params);
     const parsed = parseConfig(line, tr);
     let out: TerminalLine[];
@@ -53,8 +69,34 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
       out = runTerminal(line, { node, nodes, links, data: gameEnv.engine, nameOf: (n) => nodeLabel(state, n, nodes) }, tr);
     }
     setHistory((h) => [...h, { text: `> ${line}`, kind: 'out' }, ...out]);
-    setInput('');
   };
+
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (commands.length === 0) return;
+      if (e.key === 'ArrowUp') {
+        const next = recall === null ? commands.length - 1 : Math.max(0, recall - 1);
+        setRecall(next);
+        setInput(commands[next]);
+      } else if (recall !== null) {
+        const next = recall + 1;
+        if (next >= commands.length) {
+          setRecall(null);
+          setInput('');
+        } else {
+          setRecall(next);
+          setInput(commands[next]);
+        }
+      }
+    } else if (e.key === 'Tab') {
+      // ゲーム全体の「次の入力へ」に渡さず、補完だけに使う
+      e.preventDefault();
+      e.stopPropagation();
+      setInput(completeLine(input));
+    }
+  };
+
   return (
     <div>
       <div
@@ -77,7 +119,11 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
         <input
           aria-label={t('ui.terminal.input')}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => {
+            setInput(e.target.value);
+            setRecall(null);
+          }}
+          onKeyDown={onKeyDown}
           placeholder="help"
           style={{ flex: 1, minWidth: 0, fontFamily: 'monospace', fontSize: 13, background: '#0f1d33', color: 'inherit', border: 'none', padding: 4 }}
         />

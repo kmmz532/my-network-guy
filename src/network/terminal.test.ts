@@ -123,3 +123,20 @@ describe('確認のコマンド（段階2）', () => {
     expect(runTerminal('show foo', { node: nodes[0], nodes, links, data }, tr)[0].kind).toBe('err');
   });
 });
+
+import { completeLine } from './terminal';
+
+describe('補完（Tab）', () => {
+  it('候補が1つなら、続きを書き足して空白を付ける', () => {
+    expect(completeLine('sh')).toBe('show ');
+    expect(completeLine('show ip r')).toBe('show ip route ');
+    expect(completeLine('ip add')).toBe('ip address ');
+  });
+
+  it('候補が複数なら、共通の続きまで書き足す。候補がなければ変えない', () => {
+    expect(completeLine('show i')).toBe('show i');
+    expect(completeLine('no ip ')).toBe('no ip ');
+    expect(completeLine('xyz')).toBe('xyz');
+    expect(completeLine('ip ')).toBe('ip ');
+  });
+});
