@@ -143,6 +143,16 @@ export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; on
           onChange={(v) => update({ sound: v })}
         />
       </Row>
+      <Row label={t('ui.settings.payPause')}>
+        <Choice
+          options={[
+            { value: true, label: t('ui.settings.payPause.on') },
+            { value: false, label: t('ui.settings.payPause.off') },
+          ]}
+          value={settings.payPause}
+          onChange={(v) => update({ payPause: v })}
+        />
+      </Row>
       <Row label={t('ui.settings.autoSave')}>
         <Choice
           options={AUTO_SAVE_MODES.map((v) => ({ value: v, label: t(`ui.settings.autoSave.${v}` as const) }))}

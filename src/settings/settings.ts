@@ -33,6 +33,8 @@ export interface Settings {
   designPause: boolean;
   // 効果音を鳴らすか（既定はオン）
   sound: boolean;
+  // 給与を払えない月は、給与の前に一度時間を止めるか（既定はオン。放置による倒産を防ぐ）
+  payPause: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -45,6 +47,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoIp: true,
   designPause: true,
   sound: true,
+  payPause: true,
 };
 
 export const SETTINGS_KEY = 'network-ya.settings.v1';
@@ -76,6 +79,7 @@ export function parseSettings(raw: string | null): Settings {
     autoIp: typeof d.autoIp === 'boolean' ? d.autoIp : DEFAULT_SETTINGS.autoIp,
     designPause: typeof d.designPause === 'boolean' ? d.designPause : DEFAULT_SETTINGS.designPause,
     sound: typeof d.sound === 'boolean' ? d.sound : DEFAULT_SETTINGS.sound,
+    payPause: typeof d.payPause === 'boolean' ? d.payPause : DEFAULT_SETTINGS.payPause,
   };
 }
 

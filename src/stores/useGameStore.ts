@@ -4,7 +4,7 @@ import { playConnect, playDeliver, playFail } from '../audio/sfx';
 import { create } from 'zustand';
 import { balance, contracts, contractTemplates, devices, furniture } from 'virtual:game-data';
 import type { FurnitureId } from '../generated/ids';
-import { advanceTick, initialClock, isWorkingHour, toDate, type ClockState } from '../sim/clock';
+import { advanceTick, initialClock, isWorkingHour, minutesPerMonth, toDate, type ClockState } from '../sim/clock';
 import { nightSpeedStep } from '../sim/nightSpeed';
 import { buyDevice, sellDevice } from '../sim/shop';
 import { refreshOffers, type OfferEnv } from '../contracts/offers';
@@ -250,6 +250,8 @@ export interface GameState {
   flash: { key: string; tx: number; ty: number; at: number } | null;
   // 直近につないだ2つの機器と時刻。つながった瞬間に、ケーブルの上を光が走らせる（画面だけの表示）
   linkPulse: { a: string; b: string; at: number } | null;
+  // 給与を払えない月に、払う前に時間を止めた月（paidMonths の値）。同じ月は、もう止めない（保存しない）
+  payWarned: number | null;
   setPlacing: (deviceId: string | null) => void;
   // 倉庫の欄から品目をドラッグしている間の位置（保存しない）
   itemDrag: ItemDrag | null;
@@ -642,6 +644,7 @@ export const useGameStore = create<GameState>((set, get) => {
     setTaskOpen: (open) => set({ taskOpen: open }),
     flash: null,
     linkPulse: null,
+    payWarned: null,
     openWindow: (kind, ref) => {
       const s = get();
       const list = openWindowOp({ windows: s.windows, seq: s.windowSeq }, kind, ref, viewportNow(), s.windowMemory);
@@ -693,6 +696,18 @@ export const useGameStore = create<GameState>((set, get) => {
     setWireCable: (cableId) => set({ wireCable: cableId }),
     tick: () =>
       set((s) => {
+        // 給与を払えない月は、給与が払われる直前に一度だけ時間を止める（設定でオフにできる）。止めた後の再開では止めず、そのまま払う
+        const payday = (s.clock.paidMonths + 1) * minutesPerMonth(balance);
+        if (
+          s.speed > 0 &&
+          !s.clock.bankrupt &&
+          loadSettings().payPause &&
+          s.payWarned !== s.clock.paidMonths &&
+          s.clock.minute + balance.time.gameMinutesPerTick >= payday &&
+          s.clock.money < totalSalary(s.staff)
+        ) {
+          return { speed: 0, payWarned: s.clock.paidMonths, notice: { key: 'ui.notice.payPause', params: {}, id: Date.now() } };
+        }
         const clock = advanceTick(s.clock, balance, totalSalary(s.staff));
         let next: Partial<GameState> = { clock };
         // 月末に給与を払ったら知らせる
