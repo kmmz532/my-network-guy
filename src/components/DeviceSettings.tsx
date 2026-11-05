@@ -1,8 +1,10 @@
 // 機器の画面の「設定」タブ。ポートごとのネットワークとIPアドレス、ホストのデフォルトゲートウェイ、ルーターの静的ルートを置く。
-// 候補の一覧（select）は選んだ時点で反映する。直接入力の欄は、フォーカスを外したとき・Enter で確定し、形が正しくなければ理由を出して直前の値に戻す。
-import { useEffect, useState } from 'react';
+// IPアドレスとゲートウェイの欄は、候補から選べる1つの入力欄（AddressInput）にする。確定は候補を選んだとき・Enter・欄を離れたとき。
+import { useState } from 'react';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
+import { AddressInput } from './AddressInput';
+import type { ComboOption } from './addressCombo';
 import type { Compiled } from '../network/compile';
 import { colorOfNetwork, networkColors, UNSET_COLOR } from '../network/netColor';
 import { intToIp, neighborRouterAddresses, routerAddressesOn, segmentConfigOf, segmentOf, segmentsOf } from '../network/segments';
@@ -11,7 +13,7 @@ import type { NetNode, SegmentConfig } from '../network/types';
 import { gameEnv } from '../sim/env';
 import { addressCandidates, type AddressCandidate } from '../sim/project';
 import { coreOf, netTargetOf, useGameStore } from '../stores/useGameStore';
-import { buttonStyle, greyColor, hexColor, inputStyle, isIpText, portLabel, sectionStyle, selectStyle, unsetColor } from './devicePorts';
+import { buttonStyle, greyColor, hexColor, isIpText, portLabel, sectionStyle, selectStyle, unsetColor } from './devicePorts';
 
 // ネットワークアドレスの候補（sim-3: 192.168.<n>.0）と、プレフィックス長の候補（/24〜/30）
 const NETWORK_CHOICES = Array.from({ length: 16 }, (_, i) => `192.168.${i + 1}.0`);
@@ -117,13 +119,11 @@ export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
       : cfg
         ? addressCandidates(coreOf(state), node.uid, port, gameEnv, netTargetOf(state))
         : pendingCandidates(pick.network, pick.prefix);
-    const options = candidates.map((c) => {
+    // 使用中の候補は、使っている機器の名前を添えて選べないように出す（自分のポートの使用は選べる）
+    const options: ComboOption[] = candidates.map((c) => {
       const other = c.usedBy && !(c.usedBy.node === node.uid && c.usedBy.port === port) ? c.usedBy : null;
-      return { ip: c.ip, label: other ? `${c.ip}  ${t('ui.config.inUse', { name: usedName(other) })}` : c.ip };
+      return { value: c.ip, usedBy: other ? usedName(other) : null };
     });
-    if (iface && !options.some((o) => o.ip === iface.ip)) {
-      options.unshift({ ip: iface.ip, label: `${iface.ip}  ${t('ui.config.outOfNetwork')}` });
-    }
     const networks = cfg && !NETWORK_CHOICES.includes(cfg.network) ? [...NETWORK_CHOICES, cfg.network] : NETWORK_CHOICES;
     return (
       <div key={port} style={sectionStyle}>
@@ -171,24 +171,15 @@ export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
           {t('ui.config.ip')}: {iface ? <b>{iface.ip}</b> : <span style={{ color: unsetColor }}>{t('ui.config.unset')}</span>}
         </div>
         <div style={row}>
-          <select
-            aria-label={t('ui.config.pick')}
-            style={selectStyle}
+          <AddressInput
+            label={t('ui.config.ip')}
             value={iface?.ip ?? ''}
+            options={options}
             disabled={locked}
-            onChange={(e) => e.target.value && onError(commitIp(port, e.target.value))}
-          >
-            <option value="">{t('ui.config.pick')}</option>
-            {options.map((o) => (
-              <option key={o.ip} value={o.ip}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div style={row}>
-          <span>{t('ui.config.direct')}</span>
-          <DirectInput current={iface?.ip ?? ''} disabled={locked} onCommit={(ip) => commitIp(port, ip)} />
+            isValid={isIpText}
+            formatError={t('ui.config.ipFormat')}
+            onCommit={(ip) => commitIp(port, ip)}
+          />
         </div>
       </div>
     );
@@ -197,6 +188,9 @@ export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
   // ホストのデフォルトゲートウェイ（同じネットワークのルーターのアドレスを候補にする）
   const renderGateway = () => {
     const routers = routerAddressesOn(net, engine, node.uid, 0);
+    // 現在のゲートウェイが候補にない場合も、一覧に残す
+    const extra = node.gateway && !routers.includes(node.gateway) ? [node.gateway] : [];
+    const gatewayOptions: ComboOption[] = [...routers, ...extra].map((ip) => ({ value: ip, usedBy: null }));
     return (
       <div style={sectionStyle}>
         <div>{t('ui.config.gateway')}</div>
@@ -205,26 +199,17 @@ export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
         ) : (
           <>
             <div style={row}>
-              <select
-                aria-label={t('ui.config.gateway')}
-                style={selectStyle}
+              <AddressInput
+                label={t('ui.config.gateway')}
                 value={node.gateway ?? ''}
+                options={gatewayOptions}
                 disabled={locked}
-                onChange={(e) => onError(setGateway(node.uid, e.target.value || null))}
-              >
-                <option value="">{t('ui.config.gatewayNone')}</option>
-                {routers.map((ip) => (
-                  <option key={ip} value={ip}>
-                    {ip}
-                  </option>
-                ))}
-                {node.gateway && !routers.includes(node.gateway) && <option value={node.gateway}>{node.gateway}</option>}
-              </select>
+                isValid={isIpText}
+                formatError={t('ui.config.ipFormat')}
+                allowEmpty
+                onCommit={(ip) => setGateway(node.uid, ip || null)}
+              />
               {!node.gateway && <span style={{ color: unsetColor }}>{t('ui.config.unset')}</span>}
-            </div>
-            <div style={row}>
-              <span>{t('ui.config.direct')}</span>
-              <DirectInput current={node.gateway ?? ''} disabled={locked} onCommit={(ip) => setGateway(node.uid, ip)} />
             </div>
           </>
         )}
@@ -278,53 +263,6 @@ export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
       {ports.map(renderPort)}
       {category !== 'router' && renderGateway()}
       {category === 'router' && renderRoutes()}
-    </div>
-  );
-}
-
-// IPアドレスの直接入力。フォーカスを外したとき・Enter で確定する。形が正しくなければ理由を出し、直前の値に戻す
-function DirectInput({ current, disabled, onCommit }: { current: string; disabled: boolean; onCommit: (ip: string) => string | null }) {
-  const [text, setText] = useState(current);
-  const [error, setError] = useState<string | null>(null);
-  // 外から値が変わったとき（候補から選んだときなど）は欄を揃える
-  useEffect(() => {
-    setText(current);
-    setError(null);
-  }, [current]);
-
-  const commit = () => {
-    const v = text.trim();
-    if (v === current) {
-      setText(current);
-      return;
-    }
-    if (!isIpText(v)) {
-      setError(t('ui.config.ipFormat'));
-      setText(current);
-      return;
-    }
-    const reason = onCommit(v);
-    if (reason) {
-      setError(t(`ui.error.${reason}` as LangKey));
-      setText(current);
-    } else {
-      setError(null);
-    }
-  };
-
-  return (
-    <div>
-      <input
-        style={inputStyle}
-        value={text}
-        disabled={disabled}
-        onChange={(e) => setText(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') commit();
-        }}
-      />
-      {error && <div style={{ color: unsetColor }}>{error}</div>}
     </div>
   );
 }
