@@ -50,7 +50,7 @@ const rows = [];
 const paySalaries = () => {
   while ((paidMonths + 1) * minutesPerMonth <= now) {
     paidMonths++;
-    money -= staff.initialCount * staff.monthlySalary;
+    money -= staff.initial.reduce((sum, s) => sum + s.salary, 0);
     rows.push({ event: `${paidMonths}か月目の給与`, day: (paidMonths * time.daysPerMonth).toFixed(1), money });
     if (money < 0) {
       rows.push({ event: '倒産', day: '', money });
