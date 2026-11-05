@@ -85,9 +85,8 @@ export function App() {
     startGame();
   };
 
-  if (screen === 'title') {
+  if (screen === 'title') 
     return <TitleScreen onNew={onNew} onContinue={onContinue} message={message} />;
-  }
 
   const date = toDate(clock.minute, balance);
 
