@@ -90,5 +90,11 @@
   "category.pc": "PC",
   "category.server": "サーバー",
   "ui.task.allPcs": "すべてのPC",
-  "ui.offer.inhouse": "自社"
+  "ui.offer.inhouse": "自社",
+  "ui.task.hint": "ヒント：{text}",
+  "ui.task.steps": "手順",
+  "ui.task.step.wire": "PCを置き、ケーブルでつなぐ",
+  "ui.task.step.test": "同じ色にして、疎通を確かめる",
+  "ui.task.step.build": "施工を依頼する",
+  "ui.shop.spec": "ポート {ports}・{speed} Mbps"
 }

@@ -31,6 +31,10 @@ export function ShopCards({ onClose }: { onClose: () => void }) {
               <Icon name={d.sprite} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 'bold' }}>{t(`device.${id}.name` as LangKey)}</div>
+                <div style={{ fontSize: 12, opacity: 0.85 }}>{t(`device.${id}.desc` as LangKey)}</div>
+                <div style={{ fontSize: 12 }}>
+                  {t('ui.shop.spec', { ports: d.ports.reduce((sum, p) => sum + p.count, 0), speed: d.ports[0]?.speedMbps ?? 0 })}
+                </div>
                 <div style={{ fontSize: 13 }}>
                   <Icon name="icon/money" scale={1} /> {yen(d.price)}　×{owned[id] ?? 0}
                 </div>

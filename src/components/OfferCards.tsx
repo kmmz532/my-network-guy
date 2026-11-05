@@ -34,6 +34,9 @@ export function OfferCards({ onClose }: { onClose: () => void }) {
                 )}
                 {t(`contract.${offer.baseId}.title` as LangKey, offer.params)}
               </div>
+              <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 6 }}>
+                {t(`contract.${offer.baseId}.story` as LangKey, offer.params)}
+              </div>
               <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
                 <span>
                   <Icon name="icon/pc_count" /> ×{hosts}
