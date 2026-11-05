@@ -63,18 +63,22 @@ export interface EngineData {
   maxLengthOf: (cable: string) => number;
 }
 
-export type FailureReason =
-  | 'link.unplugged'
-  | 'link.too_long'
-  | 'ip.unset'
-  | 'ip.duplicate'
-  | 'ip.unreachable'
-  | 'gateway.unset'
-  | 'gateway.unreachable'
-  | 'route.none'
-  | 'route.loop'
-  | 'return.failed'
-  | 'service.closed';
+// 疎通の失敗の理由。文言は言語ファイルの error.<理由> と error.<理由>.fix に置く
+export const FAILURE_REASONS = [
+  'link.unplugged',
+  'link.too_long',
+  'ip.unset',
+  'ip.duplicate',
+  'ip.unreachable',
+  'gateway.unset',
+  'gateway.unreachable',
+  'route.none',
+  'route.loop',
+  'return.failed',
+  'service.closed',
+] as const;
+
+export type FailureReason = (typeof FAILURE_REASONS)[number];
 
 export interface Failure {
   reason: FailureReason;

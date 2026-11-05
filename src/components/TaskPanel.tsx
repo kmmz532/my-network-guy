@@ -1,10 +1,8 @@
-// 受注中の案件の内容（タイトル・依頼文・達成条件・ヒント・最初の案件の手順）。左上に重ねて表示し、折りたためる
+// 受注中の案件の内容（タイトル・依頼文・達成条件・ヒント・最初の案件の手順）。左上に重ねて表示し、折りたためる。
+// 達成条件は最後のテスト（または検収）の結果で ✓／× を出す。× は失敗した機器を選んで機器の画面を開く
 import type { LangKey } from '../generated/lang-keys';
 import { hasKey, t } from '../i18n/t';
-import { evaluateGoal } from '../network/goals';
 import { goalText } from './goalText';
-import { gameEnv } from '../sim/env';
-import { compiledNet } from '../sim/project';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 
@@ -15,12 +13,16 @@ export function TaskPanel() {
   const active = useGameStore(focusedProject);
   const open = useGameStore((s) => s.taskOpen);
   const setOpen = useGameStore((s) => s.setTaskOpen);
+  const check = useGameStore((s) => s.check);
+  const setSelected = useGameStore((s) => s.setSelected);
+  const setTool = useGameStore((s) => s.setTool);
   if (!active) return null;
 
-  const net = compiledNet(active, gameEnv).net;
-  const goals = active.contract.goals.map((goal) => {
-    const results = evaluateGoal(goal, net, gameEnv.engine);
-    return { text: goalText(goal), ok: results.every((r) => r.ok) };
+  // 最後のテスト（または検収）の結果。この案件のものだけを使う。結果がなければ ok は null（未判定）
+  const result = check && check.projectId === active.id ? check.goals : null;
+  const goals = active.contract.goals.map((goal, i) => {
+    const g = result?.[i];
+    return { text: goalText(goal), ok: g ? g.ok : null, node: g?.failures[0]?.node ?? null };
   });
 
   const hintKey = `contract.${active.baseId}.hint`;
@@ -29,7 +31,7 @@ export function TaskPanel() {
     active.baseId === FIRST_CONTRACT
       ? [
           { text: t('ui.task.step.wire'), done: active.links.length > 0 },
-          { text: t('ui.task.step.test'), done: goals.every((g) => g.ok) },
+          { text: t('ui.task.step.test'), done: active.testedOk },
           { text: t('ui.task.step.build'), done: active.phase === 'build' },
         ]
       : [];
@@ -80,14 +82,30 @@ export function TaskPanel() {
             </div>
           )}
           <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>
-            {goals.map((g, i) => (
-              <li key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginTop: 4 }}>
-                <span style={{ opacity: g.ok ? 1 : 0.25, flexShrink: 0 }}>
-                  <Icon name="icon/ok" scale={1} />
-                </span>
-                <span style={{ opacity: g.ok ? 0.7 : 1 }}>{g.text}</span>
-              </li>
-            ))}
+            {goals.map((g, i) => {
+              // × は失敗した機器を選び、機器の画面を開く（失敗の機器がないものは押せない）
+              const icon = <Icon name={g.ok === false ? 'icon/close' : 'icon/ok'} scale={1} />;
+              return (
+                <li key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginTop: 4 }}>
+                  {g.ok === false && g.node ? (
+                    <button
+                      aria-label={t('ui.check.open')}
+                      title={t('ui.check.open')}
+                      onClick={() => {
+                        setTool('select');
+                        setSelected(g.node);
+                      }}
+                      style={{ flexShrink: 0, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit' }}
+                    >
+                      {icon}
+                    </button>
+                  ) : (
+                    <span style={{ opacity: g.ok === null ? 0.25 : 1, flexShrink: 0 }}>{icon}</span>
+                  )}
+                  <span style={{ opacity: g.ok === true ? 0.7 : 1 }}>{g.text}</span>
+                </li>
+              );
+            })}
           </ul>
           {steps.length > 0 && (
             <>

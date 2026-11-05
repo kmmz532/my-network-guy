@@ -29,6 +29,7 @@ import {
   setInterface,
   setService,
   setSegment,
+  testDesign,
   type Core,
   type Env,
 } from './project';
@@ -199,7 +200,9 @@ describe('サーバーを置いて配線しIPを設定すると HTTP に合格�
     core = ok(setInterface(core, 'u1', 0, '192.168.1.10', 24, env)).core;
     core = ok(setInterface(core, 'u0', 0, '192.168.1.11', 24, env)).core;
     expect(compile({ nodes: cur(core).nodes, links: cur(core).links, segments: cur(core).segments }, env.engine).issues).toEqual({});
-    core = ok(requestBuild(core, env)).core;
+    const tested = testDesign(core, env);
+    if (!tested.ok || !tested.result.passed) throw new Error('テストに合格しない');
+    core = ok(requestBuild(tested.core, env)).core;
     let r = ok(advanceBuild(core, env, balance.build.workStartHour));
     for (let i = 0; i < 40 && !r.report; i++) r = ok(advanceBuild(r.core, env, balance.build.workStartHour));
     expect(r.report?.passed).toBe(true);

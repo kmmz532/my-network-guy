@@ -118,7 +118,7 @@ describe('v8 → v9', () => {
   it('単独の案件は一覧にし、その案件を設計の対象にする', () => {
     const project = { id: 'c001_direct_link', nodes: [] };
     const out = migrate(8, { ...withoutActive, active: project });
-    expect(out.active).toEqual([{ ...project, due: null, crew: ['s0', 's1'] }]);
+    expect(out.active).toEqual([{ ...project, due: null, crew: ['s0', 's1'], testedOk: false }]);
     expect(out.focus).toBe('c001_direct_link');
   });
 
@@ -135,7 +135,7 @@ describe('v9 → v10', () => {
   it('受注中の案件に期日がなければ、期日のない案件として扱う', () => {
     const project = { id: 'c001_direct_link', nodes: [] };
     const out = migrate(9, { ...withoutActive, active: [project], focus: 'c001_direct_link' });
-    expect(out.active[0]).toEqual({ id: 'c001_direct_link', nodes: [], due: null, crew: ['s0', 's1'] });
+    expect(out.active[0]).toEqual({ id: 'c001_direct_link', nodes: [], due: null, crew: ['s0', 's1'], testedOk: false });
   });
 });
 
@@ -228,7 +228,23 @@ describe('v12 → v13', () => {
 
   it('色を持たない案件は、そのまま残す', () => {
     const v12 = { ...sample, active: [{ id: 'x', nodes: [], links: [] }] };
-    expect(migrate(12, v12).active[0]).toEqual({ id: 'x', nodes: [], links: [] });
+    expect(migrate(12, v12).active[0]).toEqual({ id: 'x', nodes: [], links: [], testedOk: false });
+  });
+});
+
+describe('v14 → v15', () => {
+  const { active: _active, focus: _focus, ...withoutActive } = sample;
+
+  it('受注中の案件は、テストに合格していないものとして扱う（testedOk: false）', () => {
+    const project = { id: 'c001_direct_link', nodes: [], links: [] };
+    const out = migrate(14, { ...withoutActive, active: [project], focus: 'c001_direct_link' });
+    expect(out.active).toEqual([{ ...project, testedOk: false }]);
+    expect(out.focus).toBe('c001_direct_link');
+  });
+
+  it('案件がなければ、そのまま残す', () => {
+    const out = migrate(14, { ...withoutActive, active: [], focus: null });
+    expect(out.active).toEqual([]);
   });
 });
 

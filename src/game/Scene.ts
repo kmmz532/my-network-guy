@@ -16,7 +16,7 @@ import { hideTip, showTipAt } from '../components/Tooltip';
 import { effectText } from './effectText';
 import { t } from '../i18n/t';
 import type { LangKey } from '../generated/lang-keys';
-import type { NetLink, NetNode } from '../network/types';
+import type { FailureReason, NetLink, NetNode } from '../network/types';
 import { drawTileMap, layoutIntegerScale } from './TileMap';
 import { cumulativeLengths, pointAt, type Point } from './animation';
 import { wanderStep, type Walker } from './wander';
@@ -91,6 +91,8 @@ export class Scene {
   private netColors: NetworkColors | null = null;
   // 席のない社員（自社オフィスを歩き回る）。位置は保存しない
   private wanderers: Walker[] = [];
+  // 失敗の「？」の押せる範囲（機器の uid → マップの座標の矩形）。描き直すたびに作る
+  private helpRects = new Map<string, { x: number; y: number; w: number; h: number }>();
   private unsubscribe: () => void;
 
   constructor(private app: Application) {
@@ -155,6 +157,7 @@ export class Scene {
       phase: 'design',
       progress: 0,
       total: 0,
+      testedOk: false,
       due: null,
       crew: [],
     };
@@ -321,11 +324,12 @@ export class Scene {
     }
     if (building) this.drawBuilding(project, ts);
     else if (this.map?.id === 'hq' && !s.showcase) {
-      this.drawDeskStaff(ts, s.hint);
+      this.drawDeskStaff(ts);
       this.drawWanderers(ts);
     }
-    else if (focusedProject(s)) this.drawIdleStaff(ts, s.hint);
+    else if (focusedProject(s)) this.drawIdleStaff(ts);
     for (const trace of this.traces) this.drawTrace(trace, ts);
+    this.drawFailures(project, ts);
     this.drawHover(project, ts);
     this.drawEffectRange(ts);
     this.drawFlash(ts);
@@ -339,6 +343,12 @@ export class Scene {
   private issueOf(node: NetNode, project: Project): IssueDetail | undefined {
     if (project.phase !== 'design' || !focusedProject(useGameStore.getState())) return undefined;
     return this.compiled?.issues[node.uid];
+  }
+
+  // 機器のスプライトの上端（マップの座標）。机の上（PCや机の家具のマス）は天板の高さ、床に置いた機器は足元から
+  private spriteTopOf(node: NetNode, ts: number): number {
+    const onDesk = this.deskAt(node.x, node.y) || gameEnv.devices[node.device]?.category === 'pc';
+    return (onDesk ? node.y * ts + DESK_TOP : node.y * ts + ts - DEVICE_FOOT_INSET) - 38;
   }
 
   // IPアドレスとプレフィックス長を、機器のスプライトの上端に重ねて出す。画面上の高さが約11pxになるよう拡大率で割る
@@ -365,12 +375,7 @@ export class Scene {
         resolution: Math.max(2, scale * dpr),
       });
       text.anchor.set(0.5, 1);
-      // スプライトの上端: 机の上（PCなど）は天板の高さ、床に置いた機器は足元から
-      const device = deviceData[node.device as keyof typeof deviceData];
-      const onDesk = this.deskAt(node.x, node.y) !== undefined || device?.category === 'pc';
-      const foot = node.y * ts + ts - DEVICE_FOOT_INSET;
-      const spriteTop = (onDesk ? node.y * ts + DESK_TOP : foot) - 38;
-      const bottom = spriteTop + 4;
+      const bottom = this.spriteTopOf(node, ts) + 4;
       const cx = node.x * ts + ts / 2;
       text.position.set(cx, bottom);
       this.bubbles.addChild(text);
@@ -379,7 +384,7 @@ export class Scene {
   }
 
   // 自社オフィスでは、社員が机の前でキーボードを打つ
-  private drawDeskStaff(ts: number, hint: string | null): void {
+  private drawDeskStaff(ts: number): void {
     // 席は、自社オフィスの机の家具を並び順に使う
     const desks = useGameStore
       .getState()
@@ -403,15 +408,6 @@ export class Scene {
         quirk.position.set(dx * ts + ts / 2, dy * ts - 4);
         this.bubbles.addChild(quirk);
       }
-    }
-    if (hint && desks.length) {
-      const text = new Text({
-        text: t(hint as LangKey),
-        style: { fontFamily: 'sans-serif', fontSize: 11, fill: 0xf4f1e6, stroke: { color: OUTLINE, width: 3 } },
-      });
-      text.anchor.set(0.5, 1);
-      text.position.set(desks[0][0] * ts + ts / 2, (desks[0][1] + 1) * ts - 10);
-      this.bubbles.addChild(text);
     }
   }
 
@@ -443,20 +439,13 @@ export class Scene {
     });
   }
 
-  // 設計中は、社員がマップの左上で待機する。手戻りのときはヒントの吹き出しを出す
-  private drawIdleStaff(ts: number, hint: string | null): void {
+  // 設計中は、社員がマップの左上で待機する。失敗の内容は機器の上の印で示す
+  private drawIdleStaff(ts: number): void {
     const bob = Math.floor(this.elapsed / (FRAME_MS * 3)) % 2;
     const workers = Math.min(2, useGameStore.getState().staff.length);
     for (let k = 0; k < workers; k++) {
       this.drawStaff(ts + k * 18, ts - 8 - (k === 0 ? bob : 1 - bob), STAFF_SHIRT[k % STAFF_SHIRT.length]);
     }
-    const text = new Text({
-      text: hint ? t(hint as LangKey) : '…',
-      style: { fontFamily: 'sans-serif', fontSize: 11, fill: 0xf4f1e6, stroke: { color: OUTLINE, width: 3 } },
-    });
-    text.anchor.set(0, 1);
-    text.position.set(ts, ts - 10);
-    this.bubbles.addChild(text);
   }
 
   // 自社オフィスの家具。スプライトの下端をマスの下端に揃え、1マスより高い分は上へはみ出させる
@@ -644,20 +633,13 @@ export class Scene {
     const cumulative = cumulativeLengths(path);
     const total = cumulative[cumulative.length - 1];
 
-    // 失敗した地点までの道のり。復路の失敗は往路の終点で止まる
+    // 失敗した地点までの道のり。復路の失敗は往路の終点で止まる（失敗の印は drawFailures で機器の上に出す）
     const failure = trace.result.failure;
     let stop = total;
-    let failAt: Point | null = null;
     if (failure) {
       const uids = trace.result.path;
       const idx = failure.reason === 'return.failed' ? uids.length - 1 : uids.indexOf(failure.node);
-      if (idx >= 0 && idx < nodeAt.length) {
-        stop = cumulative[nodeAt[idx]];
-        failAt = path[nodeAt[idx]];
-      } else {
-        stop = 0;
-        failAt = path[0];
-      }
+      stop = idx >= 0 && idx < nodeAt.length ? cumulative[nodeAt[idx]] : 0;
     }
 
     const elapsed = this.elapsed - this.traceStart;
@@ -670,12 +652,78 @@ export class Scene {
       this.g.rect(p.x - 1.5, p.y - 1.5, 3, 3).fill({ color });
     }
 
-    // 粒が失敗の地点に着いたら「×」を出す
-    if (failAt && travelled >= stop) {
-      const { x, y } = failAt;
-      this.g.moveTo(x - 6, y - 6).lineTo(x + 6, y + 6).moveTo(x + 6, y - 6).lineTo(x - 6, y + 6);
-      this.g.stroke({ width: 3, color: FAIL });
+  }
+
+  // テストと検収の失敗を、失敗した機器の上に「×」と理由の文で出す。「？」を押すと直し方を出す。
+  // 機器ごとに最初の失敗だけを出す（経路が描けない失敗も出す）
+  private drawFailures(project: Project, ts: number): void {
+    this.helpRects.clear();
+    const s = useGameStore.getState();
+    const check = s.check;
+    if (!check || check.projectId !== project.id || project.phase !== 'design' || !focusedProject(s)) return;
+    const byNode = new Map<string, FailureReason>();
+    for (const goal of check.goals) {
+      for (const f of goal.failures) if (!byNode.has(f.node)) byNode.set(f.node, f.reason);
     }
+    const scale = this.content.scale.x;
+    const resolution = Math.max(2, scale * (window.devicePixelRatio || 1));
+    // 画面上で 12 px の文字。縁取りは細く、背景は付けない
+    const style = (fill: number, bold: boolean) => ({
+      fontFamily: 'sans-serif',
+      fontSize: 12 / scale,
+      fontWeight: bold ? ('bold' as const) : ('normal' as const),
+      fill,
+      stroke: { color: OUTLINE, width: 2 / scale },
+    });
+    const gap = 3 / scale;
+    for (const [uid, reason] of byNode) {
+      const node = project.nodes.find((n) => n.uid === uid);
+      if (!node) continue;
+      const mark = new Text({ text: '×', style: style(FAIL, true), resolution });
+      const message = new Text({ text: t(`error.${reason}` as LangKey), style: style(0xf4f1e6, false), resolution });
+      const help = new Text({ text: t('ui.fail.help'), style: style(SELECT, true), resolution });
+      const parts = [mark, message, help];
+      const width = parts.reduce((sum, part) => sum + part.width, 0) + gap * (parts.length - 1);
+      // IPアドレスの表示（機器の上端に重なる）の上に置く
+      const labelLines = Math.min(3, Math.max(1, node.interfaces.length));
+      const bottom = this.spriteTopOf(node, ts) + 4 - (labelLines * 13) / scale - gap;
+      const cx = node.x * ts + ts / 2;
+      let x = cx - width / 2;
+      for (const part of parts) {
+        part.anchor.set(0, 1);
+        part.position.set(x, bottom);
+        this.bubbles.addChild(part);
+        x += part.width + gap;
+      }
+      this.helpRects.set(uid, {
+        x: help.x - gap,
+        y: bottom - help.height - gap,
+        w: help.width + gap * 2,
+        h: help.height + gap * 2,
+      });
+      // 「？」を押して開いたときは、直し方を機器の上に出す（2〜3行）
+      if (s.helpUid === uid) {
+        const fix = new Text({ text: t(`error.${reason}.fix` as LangKey), style: style(0xf4f1e6, false), resolution });
+        const pad = 4 / scale;
+        const boxW = fix.width + pad * 2;
+        const boxH = fix.height + pad * 2;
+        const boxX = cx - boxW / 2;
+        const boxY = bottom - help.height - gap * 2 - boxH;
+        const box = new Graphics().roundRect(boxX, boxY, boxW, boxH, 3 / scale).fill({ color: OUTLINE, alpha: 0.92 });
+        this.bubbles.addChild(box);
+        fix.anchor.set(0, 0);
+        fix.position.set(boxX + pad, boxY + pad);
+        this.bubbles.addChild(fix);
+      }
+    }
+  }
+
+  // 押した位置が失敗の「？」なら、その機器の uid を返す（マップの座標）
+  private helpAt(p: { x: number; y: number }): string | undefined {
+    for (const [uid, r] of this.helpRects) {
+      if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h) return uid;
+    }
+    return undefined;
   }
 
   private tileSize(): number {
@@ -870,6 +918,15 @@ export class Scene {
     if (e.pointerType === 'touch') this.startTouchTip(e);
     const store = useGameStore.getState();
     const p = this.toMap(e);
+    // 失敗の「？」を押すと直し方を開く（もう一度押すと閉じる）。ほかを押すと閉じる
+    if (e.button !== 2) {
+      const helpUid = this.helpAt(p);
+      if (helpUid) {
+        store.setHelpUid(store.helpUid === helpUid ? null : helpUid);
+        return;
+      }
+      if (store.helpUid) store.setHelpUid(null);
+    }
     const tile = this.tileOf(p);
     if (!tile) return;
     // 機器を編集できないとき（納品の結果や施工中）は何もしない

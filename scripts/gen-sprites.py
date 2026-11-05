@@ -475,6 +475,16 @@ def icon_trash():
     return outline(img)
 
 
+def icon_test():
+    # テストの道具（虫めがねの中に、合格の印）
+    img, d = new(16, 16)
+    d.ellipse([2, 2, 11, 11], fill=C['e'] + (255,))
+    d.ellipse([2, 2, 11, 11], outline=C['b'] + (255,), width=2)
+    d.line([(4, 7), (6, 9), (9, 5)], fill=C['G'], width=2)
+    d.line([(10, 10), (14, 14)], fill=C['d'], width=3)
+    return outline(img)
+
+
 def icon_ok():
     img, d = new(16, 16)
     d.line([(3, 8), (6, 11), (12, 4)], fill=C['G'], width=3)
@@ -773,6 +783,7 @@ if __name__ == '__main__':
         'cursor': icon_cursor(),
         'wire': icon_wire(),
         'trash': icon_trash(),
+        'test': icon_test(),
     }
     for name, img in icons.items():
         save(img, f'icon/{name}.png')

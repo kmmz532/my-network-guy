@@ -12,7 +12,7 @@ import serverJson from '../assets/data/devices/server.json';
 import routerJson from '../assets/data/devices/router.json';
 import switchJson from '../assets/data/devices/l2_switch.json';
 
-export const SAVE_VERSION = 14;
+export const SAVE_VERSION = 15;
 
 // 移行で使う機器の種類（色の時代の規則で IPアドレスを作るときに使う）
 const migrationCategories: Record<string, string> = {};
@@ -144,6 +144,11 @@ export const migrations: Record<number, Migration> = {
     const d = data as { active: Project[]; office: Office };
     const fill = <T extends { nodes: NetNode[] }>(x: T): T => ({ ...x, nodes: x.nodes.map(withDefaultServices) });
     return { ...d, active: d.active.map(fill), office: fill(d.office) };
+  },
+  // v14 → v15: 案件にテストの合格の状態（testedOk）を追加する。移行前の案件は、テストに合格していないものとする
+  14: (data) => {
+    const d = data as { active: Project[] };
+    return { ...d, active: d.active.map((p) => ({ ...p, testedOk: false })) };
   },
   // v10 → v11: 案件に担当の社員を追加する。移行前の案件は、全社員が担当だったものとする
   10: (data) => {

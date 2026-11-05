@@ -18,7 +18,18 @@ import {
   epKey,
   type Segment,
 } from '../network/segments';
-import type { EngineData, Endpoint, Iface, NetLink, NetNode, PathResult, Route, SegmentConfig, Service } from '../network/types';
+import type {
+  EngineData,
+  Endpoint,
+  FailureReason,
+  Iface,
+  NetLink,
+  NetNode,
+  PathResult,
+  Route,
+  SegmentConfig,
+  Service,
+} from '../network/types';
 import type { ClockState } from './clock';
 import { rate, rewardRateOf } from './rating';
 import { dueDayOf, lateDaysOf, lateFactor } from './deadline';
@@ -54,12 +65,27 @@ export interface Project {
   crew: string[];
   // セグメントの設定（代表端点の鍵 "uid:port" → ネットワークアドレスとプレフィックス長）
   segments?: Record<string, SegmentConfig>;
+  // 最後のテストに合格したか。設計を変えると false に戻る。施工は true のときだけ依頼できる
+  testedOk: boolean;
 }
 
 export interface ReportFailure {
   reason: string;
   node: string;
   goal: string;
+}
+
+// 達成条件ごとの判定（テストと検収で共通）。失敗した機器と理由を持つ。機器のない失敗（件数の不足など）は node を持たない
+export interface GoalCheck {
+  ok: boolean;
+  failures: { node: string; reason: FailureReason }[];
+}
+
+// テストの結果（画面に流すパケットと、達成条件ごとの判定）
+export interface TestResult {
+  passed: boolean;
+  goals: GoalCheck[];
+  traces: Trace[];
 }
 
 // 検収で判定した経路（画面にパケットとして流す）
@@ -81,8 +107,8 @@ export interface Report {
   budget?: number;
   rework?: number;
   traces: Trace[];
-  // 手戻りのときに社員が出すヒント（言語キー）
-  hint?: string;
+  // 不合格のとき、達成条件ごとの判定（マップの「×」と案件の欄で使う）
+  check?: { projectId: string; goals: GoalCheck[] };
   stars?: 1 | 2 | 3;
   money?: number;
   // 評判の増え分（報酬の評判と★による評判の合計）
@@ -246,6 +272,7 @@ export const accept = (core: Core, offerId: string, slots: number, crew: string[
     phase: 'design',
     progress: 0,
     total: 0,
+    testedOk: false,
     due: dueDayOf(core.clock.minute, offer.contract.deadlineDays),
     crew,
     // 自社案件は、自社オフィスのセグメントの設定を引き継ぐ
@@ -315,7 +342,7 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
     routes: [],
     services: servicesOf(env, deviceId),
   };
-  const next: Project = { ...p, nodes: [...p.nodes, node], seq: p.seq + 1 };
+  const next: Project = { ...p, nodes: [...p.nodes, node], seq: p.seq + 1, testedOk: false };
   return {
     ok: true,
     core: { ...withProject(core, next), owned: { ...core.owned, [deviceId]: core.owned[deviceId] - 1 } },
@@ -388,6 +415,7 @@ export const removeNode = (core: Core, uid: string, env: Env): Outcome => {
     ...p,
     nodes,
     links,
+    testedOk: false,
     segments: fillSegments({ nodes, links, segments: p.segments }, env.engine),
     built: {
       nodes: p.built.nodes.filter((x) => x !== uid),
@@ -430,7 +458,8 @@ const withNet = (core: Core, target: NetTarget, net: Net): Core => {
     return { ...core, office: { ...core.office, nodes: net.nodes, links: net.links, seq: net.seq, segments: net.segments } };
   }
   const p = focusedOf(core) as Project;
-  return withProject(core, { ...p, nodes: net.nodes, links: net.links, seq: net.seq, segments: net.segments });
+  // 設計を変えたので、最後のテストの結果は無効になる
+  return withProject(core, { ...p, nodes: net.nodes, links: net.links, seq: net.seq, segments: net.segments, testedOk: false });
 };
 
 // 機器のポートが属するセグメント（配線がなければ undefined）
@@ -789,10 +818,11 @@ export const compiledNet = (p: Project, env: Env) => compile({ nodes: p.nodes, l
 // 設計時点の不備（機器の uid -> 不備の内容）
 export const designIssues = (p: Project, env: Env): Record<string, IssueDetail> => compiledNet(p, env).issues;
 
-// 施工を依頼する。施工時間は、まだ施工していない機器と配線の分だけかかる。
+// 施工を依頼する。施工時間は、まだ施工していない機器と配線の分だけかかる。テストに合格していなければ依頼できない（untested）。
 export const requestBuild = (core: Core, env: Env): Outcome => {
   const p = requireDesign(core);
   if (typeof p === 'string') return fail(p);
+  if (!p.testedOk) return fail('untested');
   const newNodes = p.nodes.filter((n) => !p.built.nodes.includes(n.uid));
   const newLinks = p.links.filter((l) => !p.built.links.includes(l.uid));
   const total =
@@ -843,13 +873,44 @@ export const advanceBuild = (core: Core, env: Env, hour: number): Outcome => {
   return { ok: true, core: state };
 };
 
-// 検収: 達成条件を判定する。合格なら納品して報酬と評判を得る。不合格なら設計に戻す。
+// 設計を判定する（テストと検収で同じ判定を使う）。達成条件ごとに、失敗した機器と理由をまとめる
+const judge = (p: Project, env: Env) => {
+  const result = evaluateContract(p.contract, compiledNet(p, env).net, env.engine);
+  const traces: Trace[] = result.results.map((r) => ({ kind: r.kind, src: r.src, dst: r.dst, result: r.result }));
+  const goals: GoalCheck[] = p.contract.goals.map((goal) => {
+    const rs = result.results.filter((r) => r.goal === goal);
+    const seen = new Set<string>();
+    const failures: GoalCheck['failures'] = [];
+    for (const r of rs) {
+      if (r.ok || !r.failure) continue;
+      const key = `${r.failure.node}:${r.failure.reason}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      failures.push({ node: r.failure.node, reason: r.failure.reason });
+    }
+    return { ok: rs.length > 0 && rs.every((r) => r.ok), failures };
+  });
+  return { passed: result.passed, results: result.results, traces, goals };
+};
+
+export type TestOutcome = { ok: true; core: Core; result: TestResult } | { ok: false; reason: string };
+
+// テストを押す。設計を判定し、合格なら施工を依頼できるようにする（testedOk）。時間も費用もかからない。何度でも押せる
+export const testDesign = (core: Core, env: Env): TestOutcome => {
+  const p = requireDesign(core);
+  if (typeof p === 'string') return { ok: false, reason: p };
+  const j = judge(p, env);
+  const result: TestResult = { passed: j.passed, goals: j.goals, traces: j.traces };
+  return { ok: true, core: withProject(core, { ...p, testedOk: j.passed }), result };
+};
+
+// 検収: 達成条件を判定する。合格なら納品して報酬と評判を得る。不合格なら設計に戻す（テストの結果を画面に残す）。
 export const inspect = (core: Core, env: Env, id: string): Outcome => {
   const p = core.active.find((x) => x.id === id);
   if (!p) return fail('none');
-  const result = evaluateContract(p.contract, compiledNet(p, env).net, env.engine);
-  const traces: Trace[] = result.results.map((r) => ({ kind: r.kind, src: r.src, dst: r.dst, result: r.result }));
-  if (result.passed) {
+  const j = judge(p, env);
+  const traces = j.traces;
+  if (j.passed) {
     // 期日に遅れたら、遅れた日数に応じて報酬が減り、★は2が上限になる
     const lateDays = lateDaysOf(p.due, core.clock.minute);
     const stars = rate(p.cost, p.contract.budget, p.rework, lateDays > 0, env.balance);
@@ -887,12 +948,15 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
       },
     };
   }
-  const failures: ReportFailure[] = result.results
+  const failures: ReportFailure[] = j.results
     .filter((r) => !r.ok && r.failure)
     .map((r) => ({ reason: r.failure!.reason, node: r.failure!.node, goal: r.goal.type }));
-  const next: Project = { ...p, rework: p.rework + 1, phase: 'design', progress: 0, total: 0 };
-  const hint = p.kind === 'fixed' ? `contract.${p.baseId}.hint` : undefined;
-  return { ok: true, core: withProject(core, next), report: { passed: false, traces, failures, hint } };
+  const next: Project = { ...p, rework: p.rework + 1, phase: 'design', progress: 0, total: 0, testedOk: false };
+  return {
+    ok: true,
+    core: withProject(core, next),
+    report: { passed: false, traces, failures, check: { projectId: p.id, goals: j.goals } },
+  };
 };
 
 // 受注中の案件を取り消す（施工前のみ）。配置した機器は在庫に戻す。

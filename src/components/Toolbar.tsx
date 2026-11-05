@@ -70,11 +70,20 @@ export function useToolKeys(): void {
       if (tool) {
         s.setTool(tool.id);
       } else if (e.key === 'Escape') {
-        // 配線の途中 → 機器の画面 → 選択の道具（この順に1つずつ）
+        // 配線の途中 → 失敗の直し方 → 機器の画面 → 選択の道具（この順に1つずつ）
         if (s.wireStart || s.portMenu) s.cancelWire();
+        else if (s.helpUid) s.setHelpUid(null);
         else if (s.selectedUid) s.setSelected(null);
         else if (s.tool !== 'select' || s.placing) s.setTool('select');
         else return;
+      } else if (e.key === 't' || e.key === 'T') {
+        // 疎通テスト（設計中だけ）
+        if (focusedProject(s)?.phase !== 'design') return;
+        s.test();
+      } else if (e.key === 'b' || e.key === 'B') {
+        // 施工の依頼（設計中だけ。テストに合格していなければ案内を出す）
+        if (focusedProject(s)?.phase !== 'design') return;
+        s.requestBuild();
       } else if (e.key === 'Delete') {
         // 選んでいる機器を撤去する
         if (!s.selectedUid || s.removeNode(s.selectedUid) !== null) return;
@@ -106,6 +115,16 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
   const abandon = useGameStore((s) => s.abandon);
   const showIp = useGameStore((s) => s.showIp);
   const setShowIp = useGameStore((s) => s.setShowIp);
+  const test = useGameStore((s) => s.test);
+  const testNudge = useGameStore((s) => s.testNudge);
+  // テストのボタンは、施工を断られたときに1秒光らせる
+  const [testLit, setTestLit] = useState(false);
+  useEffect(() => {
+    if (!testNudge) return;
+    setTestLit(true);
+    const id = window.setTimeout(() => setTestLit(false), 1000);
+    return () => window.clearTimeout(id);
+  }, [testNudge]);
 
   const showcase = useGameStore((s) => s.showcase);
   const unlocked = shop.filter((item) => isUnlocked(item, completed));
@@ -193,9 +212,39 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
           {sep}
           {ipButton}
           {sep}
-          <button style={{ ...slot(false), width: 'auto', padding: '0 14px', background: '#5aa860', fontSize: 16 }} onClick={() => requestBuild()}>
-            <Icon name="icon/hammer" /> {t('ui.build')}
-          </button>
+          {/* テストは何度でも押せ、時間も費用もかからない。施工は、テストに合格してからだけ依頼できる（押すと案内を出す） */}
+          <Tooltip text={`${t('ui.test')}（T）`}>
+            <button
+              aria-label={t('ui.test')}
+              style={{
+                ...slot(false),
+                width: 'auto',
+                padding: '0 14px',
+                background: testLit ? '#ffd866' : '#3a7bd0',
+                color: testLit ? '#1d3664' : '#f4f1e6',
+                fontSize: 16,
+              }}
+              onClick={() => test()}
+            >
+              <Icon name="icon/test" /> {t('ui.test')}
+            </button>
+          </Tooltip>
+          <Tooltip text={`${t('ui.build')}（B）`}>
+            <button
+              aria-label={t('ui.build')}
+              style={{
+                ...slot(false),
+                width: 'auto',
+                padding: '0 14px',
+                background: '#5aa860',
+                fontSize: 16,
+                opacity: active.testedOk ? 1 : 0.55,
+              }}
+              onClick={() => requestBuild()}
+            >
+              <Icon name="icon/hammer" /> {t('ui.build')}
+            </button>
+          </Tooltip>
           <span style={{ marginLeft: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
             <Icon name="icon/budget" /> {yen(active.cost)} / {yen(active.contract.budget)}
           </span>

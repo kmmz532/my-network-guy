@@ -28,6 +28,9 @@ import {
   addressCandidates,
   designIssues,
   requestBuild,
+  setGateway,
+  setService,
+  testDesign,
   type Core,
   type Env,
 } from './project';
@@ -95,6 +98,19 @@ const start = (): Core => ({
 const take = (core: Core, id: string) => accept(core, id, balance.office.projectSlots, core.staff.map((s) => s.uid));
 // 設計の対象の案件
 const cur = (core: Core) => focusedOf(core);
+// テストに合格させる（施工は、テストに合格してからでないと依頼できない）
+const passTest = (core: Core): Core => {
+  const r = testDesign(core, env);
+  if (!r.ok) throw new Error(`テストできない: ${r.reason}`);
+  if (!r.result.passed) throw new Error('テストに不合格');
+  return r.core;
+};
+// テストに合格した状態にする。テストと検収は同じ判定を使うため、通常の操作では検収で落ちない。
+// 検収の不合格のあとの操作を試すために、判定の結果を直接書き換える
+const forceTested = (core: Core): Core => ({
+  ...core,
+  active: core.active.map((p) => (p.id === core.focus ? { ...p, testedOk: true } : p)),
+});
 
 // 結果が成功していることを確認して、その状態を返す
 const ok = (r: ReturnType<typeof accept>) => {
@@ -114,7 +130,7 @@ describe('案件の流れ: c001 PC2台の直結', () => {
     // 配線費用: 1000 + 300 × 7タイル
     expect(core.clock.money).toBe(1_000_000 - 3100);
 
-    core = ok(requestBuild(core, env)).core;
+    core = ok(requestBuild(passTest(core), env)).core;
     expect(cur(core)?.total).toBe(7 * balance.build.minutesPerCableTile);
 
     // 勤務時間内の1Tickで施工が終わり、検収に合格する
@@ -129,22 +145,39 @@ describe('案件の流れ: c001 PC2台の直結', () => {
     expect(done.report?.reputationGain).toBe(1 + 3 * balance.reputationPerStar);
   });
 
-  it('IPアドレスを設定せずに施工すると不合格になり、設計に戻る', () => {
+  it('IPアドレスを設定せずにテストすると不合格になり、施工を依頼できない（untested）', () => {
     let core = ok(take(start(), 'c001_direct_link')).core;
     core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
-    core = ok(requestBuild(core, env)).core;
+    const r = testDesign(core, env);
+    if (!r.ok) throw new Error(r.reason);
+    expect(r.result.passed).toBe(false);
+    expect(r.result.goals[0].ok).toBe(false);
+    expect(r.result.goals[0].failures.map((f) => f.reason)).toContain('ip.unset');
+    expect(cur(r.core)?.testedOk).toBe(false);
+    expect(requestBuild(r.core, env)).toEqual({ ok: false, reason: 'untested' });
+  });
+
+  it('検収で不合格になると設計に戻り、失敗した機器と理由を残す', () => {
+    let core = ok(take(start(), 'c001_direct_link')).core;
+    core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
+    core = ok(requestBuild(forceTested(core), env)).core;
     const r = ok(advanceBuild(core, env, balance.build.workStartHour));
     expect(r.report?.passed).toBe(false);
     expect(r.report?.failures.map((f) => f.reason)).toContain('ip.unset');
+    expect(r.report?.check?.goals[0].ok).toBe(false);
+    expect(r.report?.check?.goals[0].failures.map((f) => f.reason)).toContain('ip.unset');
     expect(cur(r.core)?.phase).toBe('design');
     expect(cur(r.core)?.rework).toBe(1);
+    expect(cur(r.core)?.testedOk).toBe(false);
     expect(r.core.completed).toEqual([]);
   });
 
   it('勤務時間外は施工が進まない', () => {
     let core = ok(take(start(), 'c001_direct_link')).core;
+    core = ok(setInterface(core, 'pc_a', 0, '192.168.1.10', 24, env)).core;
+    core = ok(setInterface(core, 'pc_b', 0, '192.168.1.11', 24, env)).core;
     core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
-    core = ok(requestBuild(core, env)).core;
+    core = ok(requestBuild(passTest(core), env)).core;
     const r = ok(advanceBuild(core, env, 3));
     expect(cur(r.core)?.progress).toBe(0);
     expect(r.report).toBeUndefined();
@@ -303,7 +336,7 @@ describe('施工後の撤去と配線のやり直し', () => {
     let core: Core = { ...ok(take({ ...start(), owned: { l2_switch_8p: 1 } }, 'c001_direct_link')).core };
     core = ok(placeDevice(core, 'l2_switch_8p', 6, 6, map, env)).core;
     core = ok(connect(core, 'pc_a', 'u0', 'utp_cat5e', env)).core;
-    core = ok(requestBuild(core, env)).core;
+    core = ok(requestBuild(forceTested(core), env)).core;
     // 施工が終わるまで勤務時間の Tick を進める（検収で不合格になり、設計に戻る）
     let r = ok(advanceBuild(core, env, balance.build.workStartHour));
     for (let i = 0; i < 20 && !r.report; i++) r = ok(advanceBuild(r.core, env, balance.build.workStartHour));
@@ -520,7 +553,7 @@ describe('自社案件', () => {
     core = ok(setInterface(core, 'u0', 0, '192.168.1.10', 24, env)).core;
     core = ok(setInterface(core, 'u1', 0, '192.168.1.11', 24, env)).core;
     core = ok(connect(core, 'u0', 'u1', 'utp_cat5e', env)).core;
-    core = ok(requestBuild(core, env)).core;
+    core = ok(requestBuild(passTest(core), env)).core;
     let r = ok(advanceBuild(core, env, balance.build.workStartHour));
     for (let i = 0; i < 20 && r.core.active.length > 0; i++) r = ok(advanceBuild(r.core, env, balance.build.workStartHour));
     expect(r.report?.passed).toBe(true);
@@ -628,5 +661,72 @@ describe('IPアドレスとセグメントの設定', () => {
     const core: Core = { ...start(), office };
     expect(setSegment(core, 'a', 0, '192.168.9.0', 30, env, 'office')).toEqual({ ok: false, reason: 'segment.too_small' });
     expect(setSegment(core, 'a', 0, '192.168.9.0', 24, env, 'office').ok).toBe(true);
+  });
+});
+
+describe('テストと施工の依頼', () => {
+  // IPアドレスを設定し、配線した c001 の設計（テストに合格する）
+  const designed = (): Core => {
+    let core = ok(take(start(), 'c001_direct_link')).core;
+    core = ok(setInterface(core, 'pc_a', 0, '192.168.1.10', 24, env)).core;
+    core = ok(setInterface(core, 'pc_b', 0, '192.168.1.11', 24, env)).core;
+    return ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
+  };
+
+  it('テストに合格すると testedOk が true になり、パケットの経路を返す。時間も費用もかからない', () => {
+    const before = designed();
+    const r = testDesign(before, env);
+    if (!r.ok) throw new Error(r.reason);
+    expect(r.result.passed).toBe(true);
+    expect(r.result.goals.every((g) => g.ok)).toBe(true);
+    expect(r.result.traces.length).toBeGreaterThan(0);
+    expect(cur(r.core)?.testedOk).toBe(true);
+    expect(r.core.clock).toEqual(before.clock);
+    expect(r.core.clock.minute).toBe(before.clock.minute);
+  });
+
+  it('テストは何度でも押せる', () => {
+    const again = testDesign(passTest(designed()), env);
+    if (!again.ok) throw new Error(again.reason);
+    expect(again.result.passed).toBe(true);
+  });
+
+  it('テストは設計中だけ押せる', () => {
+    const building = ok(requestBuild(passTest(designed()), env)).core;
+    expect(testDesign(building, env)).toEqual({ ok: false, reason: 'phase' });
+  });
+
+  it('テストに合格していれば、施工を依頼できる', () => {
+    const r = ok(requestBuild(passTest(designed()), env)).core;
+    expect(cur(r)?.phase).toBe('build');
+  });
+
+  it('テストに合格していなければ、施工を依頼できない（untested）', () => {
+    expect(requestBuild(designed(), env)).toEqual({ ok: false, reason: 'untested' });
+  });
+
+  it.each([
+    ['IPアドレスを変える', (c: Core) => setInterface(c, 'pc_a', 0, '192.168.1.20', 24, env)],
+    ['ゲートウェイを変える', (c: Core) => setGateway(c, 'pc_a', '192.168.1.1')],
+    ['サービスを変える', (c: Core) => setService(c, 'pc_a', 'http', true)],
+    ['配線を撤去する', (c: Core) => removeLink(c, cur(c)!.links[0].uid, 'focus', env)],
+    ['機器を置く', (c: Core) => placeDevice({ ...c, owned: { pc_basic: 1 } }, 'pc_basic', 6, 6, map, env)],
+  ])('設計を変えると（%s）testedOk が false に戻り、施工を依頼できない', (_name, change) => {
+    const after = change(passTest(designed()));
+    if (!after.ok) throw new Error(after.reason);
+    expect(cur(after.core)?.testedOk).toBe(false);
+    expect(requestBuild(after.core, env)).toEqual({ ok: false, reason: 'untested' });
+  });
+
+  it('不合格の結果が残っていても、設計を変えたあとに再テストで合格すれば施工できる', () => {
+    let core = ok(take(start(), 'c001_direct_link')).core;
+    core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
+    const failed = testDesign(core, env);
+    if (!failed.ok) throw new Error(failed.reason);
+    expect(failed.result.passed).toBe(false);
+    const fixed = ok(setInterface(failed.core, 'pc_a', 0, '192.168.1.10', 24, env)).core;
+    const fixed2 = ok(setInterface(fixed, 'pc_b', 0, '192.168.1.11', 24, env)).core;
+    expect(cur(fixed2)?.testedOk).toBe(false);
+    expect(ok(requestBuild(passTest(fixed2), env)).core.active[0].phase).toBe('build');
   });
 });

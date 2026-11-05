@@ -7,8 +7,7 @@ import { buyDevice } from '../sim/shop';
 import { refreshOffers, type OfferEnv } from '../contracts/offers';
 import type { Offer } from '../contracts/template';
 import type { GameMap, Staff } from '../data/schema';
-import { hintTier, initialStaff, rollCandidates, totalSalary } from '../sim/staff';
-import { hasKey } from '../i18n/t';
+import { initialStaff, rollCandidates, totalSalary } from '../sim/staff';
 import { rand } from '../sim/rng';
 import { finishTrainings, startTraining as startTrainingOp, takeExam as takeExamOp, type TrainingEnv } from '../sim/training';
 import { certs as certRecord, training as trainingRecord } from 'virtual:game-data';
@@ -48,8 +47,10 @@ import {
   type Office,
   type Effects,
   noEffects,
+  type GoalCheck,
   type Report,
   type Trace,
+  testDesign,
 } from '../sim/project';
 
 export type { Trace };
@@ -126,8 +127,15 @@ export interface GameState {
   pickPort: (port: number | null) => void;
   // 配線の途中（起点と一覧）を取り消す
   cancelWire: () => void;
-  // 社員の吹き出しに出すヒント（言語キー）
-  hint: string | null;
+  // 最後のテストまたは検収の判定（案件ごと）。設計を変えると消える（保存しない）
+  check: { projectId: string; goals: GoalCheck[] } | null;
+  // 失敗の直し方を開いている機器（保存しない）
+  helpUid: string | null;
+  setHelpUid: (uid: string | null) => void;
+  // 施工を断られた回数。テストのボタンを1秒光らせるために使う（保存しない）
+  testNudge: number;
+  // テストを押す。失敗したら理由を返す
+  test: () => string | null;
   // 機器の名前とIPアドレスを表示するか、案件の内容を開いているか（保存しない）
   showIp: boolean;
   setShowIp: (on: boolean) => void;
@@ -241,26 +249,16 @@ const refresh = (s: GameState): Partial<GameState> => {
   return { offers: [...r.offers], nextOfferMinute: r.nextOfferMinute, offerSeq: r.offerSeq, rng: r.rng };
 };
 
-// 検収の結果を画面の状態に反映する（パケット・納品後の表示・ヒント）
-const reportState = (report: Report | undefined, s: GameState): Partial<GameState> => {
+// 検収の結果を画面の状態に反映する（パケット・納品後の表示・失敗の印）
+const reportState = (report: Report | undefined): Partial<GameState> => {
   if (!report) return {};
   return {
     lastReport: report,
     traces: report.traces,
     showcase: report.passed ? (report.delivered ?? null) : null,
-    hint: report.passed ? null : hintKeyOf(report, s),
+    check: report.passed ? null : (report.check ?? null),
+    helpUid: null,
   };
-};
-
-// 疎通テストに失敗したときのヒント。担当の level の段階で、段階1は「どこかおかしい」、段階2は失敗の分類、段階3は案件のヒント
-const hintKeyOf = (report: Report, s: GameState): string | null => {
-  const project = focusedProject(s);
-  const crew = s.staff.filter((m) => project?.crew.includes(m.uid) ?? false);
-  const tier = hintTier(crew, undefined, balance.staff.hintLevels);
-  const reason = report.failures[0]?.reason;
-  if (tier === 1) return 'ui.hint.tier1';
-  if (tier === 2 && reason && hasKey(`error.${reason}`)) return `error.${reason}`;
-  return report.hint ?? null;
 };
 
 export const useGameStore = create<GameState>((set, get) => {
@@ -278,8 +276,17 @@ export const useGameStore = create<GameState>((set, get) => {
       return outcome.reason;
     }
     const c = outcome.core;
+    // 設計（機器・配線・セグメント）を変えたら、最後のテストの結果は無効になる
+    const before = focusedProject(get());
+    const after = focusedProject(c);
+    const redesigned =
+      before !== null &&
+      after !== null &&
+      before.id === after.id &&
+      (before.nodes !== after.nodes || before.links !== after.links || before.segments !== after.segments);
     set({
       lastError: null,
+      ...(redesigned ? { check: null, helpUid: null } : {}),
       clock: c.clock,
       reputation: c.reputation,
       owned: c.owned,
@@ -292,7 +299,7 @@ export const useGameStore = create<GameState>((set, get) => {
       staff: c.staff,
       staffSeq: c.staffSeq,
       candidates: c.candidates,
-      ...reportState(outcome.report, get()),
+      ...reportState(outcome.report),
     });
     return null;
   };
@@ -323,6 +330,25 @@ export const useGameStore = create<GameState>((set, get) => {
     wireCable: 'utp_cat5e',
     traces: [],
     showcase: null,
+    check: null,
+    helpUid: null,
+    setHelpUid: (uid) => set({ helpUid: uid }),
+    testNudge: 0,
+    test: () => {
+      const r = testDesign(coreOf(get()), gameEnv);
+      if (!r.ok) {
+        set({ lastError: r.reason });
+        return r.reason;
+      }
+      set({
+        lastError: null,
+        active: r.core.active,
+        traces: r.result.traces,
+        check: { projectId: r.core.focus ?? '', goals: r.result.goals },
+        helpUid: null,
+      });
+      return null;
+    },
     tool: 'select',
     // 道具を変えると、配線の途中・一覧・置く予定の機材を取り消す。選択の道具以外では機器の画面を閉じる
     setTool: (tool) => {
@@ -363,7 +389,6 @@ export const useGameStore = create<GameState>((set, get) => {
       set({ portMenu: null, wireStart: reason === null ? null : start });
     },
     cancelWire: () => set({ wireStart: null, portMenu: null }),
-    hint: null,
     showIp: true,
     setShowIp: (on) => set({ showIp: on }),
     taskOpen: true,
@@ -407,7 +432,7 @@ export const useGameStore = create<GameState>((set, get) => {
               staff: r.core.staff,
               office: r.core.office,
               effects: r.core.effects,
-              ...reportState(r.report, withClock),
+              ...reportState(r.report),
             };
           }
         }
@@ -489,8 +514,15 @@ export const useGameStore = create<GameState>((set, get) => {
     addRoute: (uid, route) => apply(addRoute(coreOf(get()), uid, route, netTargetOf(get())), tileOf(uid)),
     removeRoute: (uid, index) => apply(removeRoute(coreOf(get()), uid, index, netTargetOf(get())), tileOf(uid)),
     requestBuild: () => {
-      set({ hint: null, traces: [] });
-      return apply(requestBuild(coreOf(get()), gameEnv));
+      const r = requestBuild(coreOf(get()), gameEnv);
+      // テストに合格していないと施工を依頼できない。案内を出し、テストのボタンを光らせる
+      if (!r.ok && r.reason === 'untested') {
+        const at = Date.now();
+        set({ lastError: r.reason, testNudge: at, notice: { key: 'ui.error.untested', params: {}, id: at } });
+        return r.reason;
+      }
+      set({ traces: [] });
+      return apply(r);
     },
     abandon: () => apply(abandon(coreOf(get()))),
     load: (save) =>
@@ -513,9 +545,10 @@ export const useGameStore = create<GameState>((set, get) => {
         lastReport: null,
         showcase: null,
         traces: [],
-        hint: null,
         wireStart: null,
         portMenu: null,
+        check: null,
+        helpUid: null,
       }),
     newGame: () =>
       set((s) => {
@@ -537,7 +570,8 @@ export const useGameStore = create<GameState>((set, get) => {
           lastError: null,
           traces: [],
           showcase: null,
-          hint: null,
+          check: null,
+          helpUid: null,
           selectedUid: null,
           placing: null,
           wireStart: null,
