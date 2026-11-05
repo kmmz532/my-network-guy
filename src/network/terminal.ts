@@ -4,6 +4,7 @@
 // 文言は tr（言語ファイルの引き当て）で作る。モードは持たない。
 import { ping } from './engine';
 import { networkAddress } from './segments';
+import { isIp } from './terminalConfig';
 import type { EngineData, NetLink, NetNode } from './types';
 
 export interface TerminalContext {
@@ -72,8 +73,13 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
         return out(tr('ui.terminal.ifLinked', { port, peer: name(peer) }));
       });
     }
+    if (sub === 'hosts') {
+      const hosts = node.hosts ?? [];
+      return hosts.length > 0 ? hosts.map((h) => out(tr('ui.terminal.hostLine', { name: h.name, ip: h.ip }))) : [out(tr('ui.terminal.noHosts'))];
+    }
     if (sub === 'running-config') {
       const lines: TerminalLine[] = node.interfaces.map((i) => out(tr('ui.terminal.cfgInterface', { port: i.port })));
+      for (const h of node.hosts ?? []) lines.push(out(tr('ui.terminal.cfgHost', { name: h.name, ip: h.ip })));
       for (const i of node.interfaces) lines.push(out(tr('ui.terminal.cfgAddress', { ip: i.ip, prefix: i.prefix })));
       if (node.gateway) lines.push(out(tr('ui.terminal.cfgGateway', { gateway: node.gateway })));
       for (const r of node.routes) lines.push(out(tr('ui.terminal.cfgRoute', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop })));
@@ -84,12 +90,14 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
 
   if (cmd === 'ping' || cmd === 'traceroute') {
     if (args.length !== 1) return [err(tr(cmd === 'ping' ? 'ui.terminal.usagePing' : 'ui.terminal.usageTrace'))];
-    const ip = args[0];
+    // 宛先は IPアドレスか、対応表の名前。名前は、この機器の対応表で IPアドレスに直す
+    const given = args[0];
+    const ip = isIp(given) ? given : (node.hosts ?? []).find((h) => h.name === given)?.ip ?? given;
     const target = ctx.nodes.find((n) => n.interfaces.some((i) => i.ip === ip));
-    if (!target) return [err(tr('ui.terminal.noHost', { ip }))];
+    if (!target) return [err(tr('ui.terminal.noHost', { ip: given }))];
     const result = ping({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid, target.uid);
     if (cmd === 'ping') {
-      if (result.ok) return [out(tr('ui.terminal.pingOk', { ip }))];
+      if (result.ok) return [out(tr('ui.terminal.pingOk', { ip: given }))];
       const reason = result.failure?.reason ?? 'route.none';
       return [err(tr('ui.terminal.pingNg')), err(tr(`error.${reason}`))];
     }

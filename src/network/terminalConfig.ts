@@ -6,6 +6,7 @@
 //   no ip default-gateway
 //   no ip route <宛先> <マスク>
 //   hostname <名前>   /   no hostname   （名前は英数字とハイフン、16文字まで）
+//   ip host <名前> <IP>   /   no ip host <名前>   （対応表。ping・traceroute の宛先の名前を引く）
 import type { Tr } from './terminal';
 import type { Route } from './types';
 
@@ -14,7 +15,9 @@ export type ConfigAction =
   | { kind: 'gateway'; gateway: string | null }
   | { kind: 'addRoute'; route: Route }
   | { kind: 'removeRoute'; dest: string; prefix: number }
-  | { kind: 'name'; name: string | null };
+  | { kind: 'name'; name: string | null }
+  | { kind: 'host'; name: string; ip: string }
+  | { kind: 'noHost'; name: string };
 
 export type ConfigParse = { kind: 'action'; action: ConfigAction } | { kind: 'error'; text: string } | { kind: 'none' };
 
@@ -38,6 +41,9 @@ export const maskToPrefix = (mask: string): number | null => {
 
 const NAME_RE = /^[A-Za-z0-9-]{1,16}$/;
 
+// 名前（hostname・対応表）の形。英数字とハイフンで16文字まで
+export const isHostName = (s: string): boolean => NAME_RE.test(s);
+
 const port = (s: string): number | null => (/^\d+$/.test(s) ? Number(s) : null);
 
 export const parseConfig = (line: string, tr: Tr): ConfigParse => {
@@ -54,6 +60,19 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     const prefix = maskToPrefix(rest[3]);
     if (prefix === null) return error('ui.terminal.errMask');
     return { kind: 'action', action: { kind: 'iface', port: p, ip: rest[2], prefix } };
+  }
+
+  if (first === 'ip' && rest[0] === 'host') {
+    if (rest.length !== 3) return error('ui.terminal.usageHost');
+    if (!isHostName(rest[1])) return error('ui.terminal.errHostname');
+    if (!isIp(rest[2])) return error('ui.terminal.errIp');
+    return { kind: 'action', action: { kind: 'host', name: rest[1], ip: rest[2] } };
+  }
+
+  if (first === 'no' && rest[0] === 'ip' && rest[1] === 'host') {
+    if (rest.length !== 3) return error('ui.terminal.usageNoHost');
+    if (!isHostName(rest[2])) return error('ui.terminal.errHostname');
+    return { kind: 'action', action: { kind: 'noHost', name: rest[2] } };
   }
 
   if (first === 'ip' && rest[0] === 'default-gateway') {

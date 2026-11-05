@@ -19,6 +19,8 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
   const addRoute = useGameStore((s) => s.addRoute);
   const removeRoute = useGameStore((s) => s.removeRoute);
   const setName = useGameStore((s) => s.setName);
+  const setHost = useGameStore((s) => s.setHost);
+  const removeHost = useGameStore((s) => s.removeHost);
   // 設定のコマンドを、画面の操作に当てる。失敗したら理由のキーを返す（成功なら null）
   const applyConfig = (action: ConfigAction): string | null => {
     switch (action.kind) {
@@ -34,6 +36,10 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
       }
       case 'name':
         return setName(node.uid, action.name ?? '');
+      case 'host':
+        return setHost(node.uid, action.name, action.ip);
+      case 'noHost':
+        return removeHost(node.uid, action.name);
     }
   };
 

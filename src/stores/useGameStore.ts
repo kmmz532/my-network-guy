@@ -74,6 +74,8 @@ import {
   setSegment,
   setService,
   setName as setNameOp,
+  setHost as setHostOp,
+  removeHost as removeHostOp,
   replug,
   moveNode,
   replugTo,
@@ -289,6 +291,9 @@ export interface GameState {
   // サービスを起動（on）・停止する
   setService: (uid: string, protocol: 'http', on: boolean) => string | null;
   setName: (uid: string, name: string) => string | null;
+  // 対応表（名前と IPアドレス）の登録と削除。失敗したら理由を返す
+  setHost: (uid: string, name: string, ip: string) => string | null;
+  removeHost: (uid: string, name: string) => string | null;
   addRoute: (uid: string, route: Route) => string | null;
   removeRoute: (uid: string, index: number) => string | null;
   // 施工を依頼する。時間が止まっていて設定が「確認する」なら、確認を開いて null を返す
@@ -884,6 +889,8 @@ export const useGameStore = create<GameState>((set, get) => {
     setService: (uid, protocol, on) =>
       recorded(() => apply(setService(coreOf(get()), uid, protocol, on, netTargetOf(get())), tileOf(uid))),
     setName: (uid, name) => recorded(() => apply(setNameOp(coreOf(get()), uid, name, netTargetOf(get())), tileOf(uid))),
+    setHost: (uid, name, ip) => recorded(() => apply(setHostOp(coreOf(get()), uid, name, ip, netTargetOf(get())), tileOf(uid))),
+    removeHost: (uid, name) => recorded(() => apply(removeHostOp(coreOf(get()), uid, name, netTargetOf(get())), tileOf(uid))),
     addRoute: (uid, route) => recorded(() => apply(addRoute(coreOf(get()), uid, route, netTargetOf(get())), tileOf(uid))),
     removeRoute: (uid, index) => recorded(() => apply(removeRoute(coreOf(get()), uid, index, netTargetOf(get())), tileOf(uid))),
     requestBuild: () => {

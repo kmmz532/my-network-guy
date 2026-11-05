@@ -140,3 +140,26 @@ describe('補完（Tab）', () => {
     expect(completeLine('ip ')).toBe('ip ');
   });
 });
+
+describe('対応表による名前の解決（段階5の準備）', () => {
+  const withHosts = (hosts: { name: string; ip: string }[]) => ({ ...nodes[0], hosts });
+
+  it('ping は対応表の名前を IPアドレスに直して届ける', () => {
+    const src = withHosts([{ name: 'PC-B', ip: '192.168.1.11' }]);
+    const ctx = { node: src, nodes: [src, ...nodes.slice(1)], links, data };
+    expect(runTerminal('ping PC-B', ctx, tr)).toEqual([{ text: 'ui.terminal.pingOk {"ip":"PC-B"}', kind: 'out' }]);
+  });
+
+  it('対応表にない名前は、宛先が見つからないと出す', () => {
+    const ctx = { node: nodes[0], nodes, links, data };
+    expect(runTerminal('ping R9', ctx, tr)[0].text).toBe('ui.terminal.noHost {"ip":"R9"}');
+  });
+
+  it('show hosts と running-config は対応表を出す（空なら空の旨）', () => {
+    const src = withHosts([{ name: 'R1', ip: '192.168.1.1' }]);
+    const ctx = { node: src, nodes: [src], links, data };
+    expect(runTerminal('show hosts', ctx, tr)).toEqual([{ text: 'ui.terminal.hostLine {"name":"R1","ip":"192.168.1.1"}', kind: 'out' }]);
+    expect(runTerminal('show hosts', { node: nodes[0], nodes, links, data }, tr)).toEqual([{ text: 'ui.terminal.noHosts', kind: 'out' }]);
+    expect(runTerminal('show running-config', ctx, tr).some((l) => l.text === 'ui.terminal.cfgHost {"name":"R1","ip":"192.168.1.1"}')).toBe(true);
+  });
+});
