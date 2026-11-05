@@ -3,6 +3,7 @@
 // ケーブルは、両端の機器のアドレスがそのセグメントのネットワークに入っているときだけ色を付け、未設定・食い違いは灰色にする。
 import { inSubnet, ipToInt } from './engine';
 import { epKey, segmentConfigOf, segmentsOf, type Segment } from './segments';
+import { isL2Category, isRelayPort } from './category';
 import type { EngineData, Network, SegmentConfig } from './types';
 
 // サブネットの色（旧の6色のパレット）
@@ -49,7 +50,7 @@ export const networkColors = (net: Network, data: EngineData): NetworkColors => 
     // 両端の機器（スイッチを除く）のアドレスが、このネットワークに入っていること
     const agrees = [link.a, link.b].every((ep) => {
       const node = byUid.get(ep.node);
-      if (!node || data.categoryOf(node.device) === 'l2_switch') return true;
+      if (!node || isL2Category(data.categoryOf(node.device)) || isRelayPort(data.categoryOf(node.device), ep.port)) return true;
       const iface = node.interfaces.find((i) => i.port === ep.port);
       return iface !== undefined && inSubnet(iface.ip, cfg.network, cfg.prefix);
     });

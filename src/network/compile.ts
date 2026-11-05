@@ -2,6 +2,7 @@
 // IPアドレスの未設定や設定の不備は、機器ごとの issues として返す。判定エンジンは生成したネットワークをそのまま使う。
 // 仕様は memo/sim-3.md を参照する。
 import { inSubnet, ipToInt } from './engine';
+import { isL2Category, isRelayPort, isRoutingCategory } from './category';
 import { epKey, hostCapacity, segmentConfigOf, segmentsOf, type Segment } from './segments';
 import type { EngineData, Iface, NetNode, Network, SegmentConfig } from './types';
 
@@ -107,13 +108,13 @@ export const compile = (input: Network, data: EngineData): Compiled => {
   // PC・サーバーは、配線の有無にかかわらず IPアドレスが必要
   for (const n of input.nodes) {
     const c = cat(n);
-    if (c !== 'l2_switch' && c !== 'router' && n.interfaces.length === 0) flag(n.uid, { reason: 'ip.unset' });
+    if (!isL2Category(c) && !isRoutingCategory(c) && n.interfaces.length === 0) flag(n.uid, { reason: 'ip.unset' });
   }
 
   // ホストのデフォルトゲートウェイは、同じセグメントにあるルーターのポートのアドレス（最も小さいもの）
   const routerIpsOf = (seg: Segment): string[] =>
     seg.members
-      .filter((m) => cat(byUid.get(m.node)!) === 'router')
+      .filter((m) => isRoutingCategory(cat(byUid.get(m.node)!)))
       .map((m) => ifaceOf(byUid.get(m.node)!, m.port)?.ip)
       .filter((ip): ip is string => !!ip)
       .sort((a, b) => ipToInt(a) - ipToInt(b));
@@ -121,7 +122,7 @@ export const compile = (input: Network, data: EngineData): Compiled => {
   const gatewayOf = new Map<string, string | null>();
   for (const n of input.nodes) {
     const c = cat(n);
-    if (c === 'l2_switch' || c === 'router') continue;
+    if (isL2Category(c) || isRoutingCategory(c)) continue;
     const iface = n.interfaces[0];
     const seg = iface ? segOf.get(epKey(n.uid, iface.port)) : undefined;
     const gw = seg ? (routerIpsOf(seg)[0] ?? null) : null;
@@ -137,14 +138,17 @@ export const compile = (input: Network, data: EngineData): Compiled => {
 
   const nodes: NetNode[] = input.nodes.map((n) => {
     const c = cat(n);
-    if (c === 'l2_switch') return { ...n, interfaces: [], gateway: null, routes: [] };
+    if (isL2Category(c)) return { ...n, interfaces: [], gateway: null, routes: [] };
+    // 中継だけの口（スイッチ付きルーターの2つ目以降の LAN 口）はアドレスを持たない
     // ポートのプレフィックス長は、そのセグメントの設定に従う
-    const interfaces = n.interfaces.map((i) => {
-      const seg = segOf.get(epKey(n.uid, i.port));
-      const cfg = seg ? cfgOf.get(seg.key) : undefined;
-      return cfg ? { ...i, prefix: cfg.prefix } : { ...i };
-    });
-    if (c === 'router') return { ...n, interfaces, gateway: null, routes: n.routes };
+    const interfaces = n.interfaces
+      .filter((i) => !isRelayPort(c, i.port))
+      .map((i) => {
+        const seg = segOf.get(epKey(n.uid, i.port));
+        const cfg = seg ? cfgOf.get(seg.key) : undefined;
+        return cfg ? { ...i, prefix: cfg.prefix } : { ...i };
+      });
+    if (isRoutingCategory(c)) return { ...n, interfaces, gateway: null, routes: n.routes };
     return { ...n, interfaces, gateway: gatewayOf.get(n.uid) ?? null, routes: n.routes };
   });
 

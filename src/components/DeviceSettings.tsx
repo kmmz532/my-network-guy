@@ -7,6 +7,7 @@ import { t } from '../i18n/t';
 import { AddressInput } from './AddressInput';
 import type { ComboOption } from './addressCombo';
 import type { Compiled } from '../network/compile';
+import { isRelayPort, isRoutingCategory } from '../network/category';
 import { colorOfNetwork, networkColors, UNSET_COLOR } from '../network/netColor';
 import { networkAddress, neighborRouterAddresses, routerAddressesOn, segmentConfigOf, segmentOf, segmentsOf } from '../network/segments';
 import type { NetNode, SegmentConfig } from '../network/types';
@@ -50,9 +51,10 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   const colors = networkColors(net, engine);
   const locked = readOnly || node.configLocked;
   const portCount = gameEnv.devices[node.device]?.portCount ?? 0;
-  const ports = Array.from({ length: portCount }, (_, p) => p);
+  // IPアドレスを持つ口（スイッチ付きルーターの2つ目以降の LAN 口は中継だけなので欄を出さない）
+  const ports = Array.from({ length: portCount }, (_, p) => p).filter((p) => !isRelayPort(category ?? '', p));
 
-  const linked = (port: number) => net.links.some((l) => (l.a.node === node.uid && l.a.port === port) || (l.b.node === node.uid && l.b.port === port));
+  const linked =(port: number) => net.links.some((l) => (l.a.node === node.uid && l.a.port === port) || (l.b.node === node.uid && l.b.port === port));
   // ポートのセグメントの設定（配線がなければ undefined）
   const cfgOf = (port: number): SegmentConfig | undefined => {
     const seg = segmentOf(segmentsOf(net, engine), node.uid, port);
@@ -89,7 +91,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
       </div>
     ) : null;
     // ルーターは、ケーブルでつないでから設定する。つなぐ前は欄を薄く出し、操作できないようにする
-    const unlinkedRouter = category === 'router' && !linked(port);
+    const unlinkedRouter = isRoutingCategory(category ?? '') && !linked(port);
     const cfg = cfgOf(port);
     const iface = node.interfaces.find((i) => i.port === port);
     // 今のネットワーク: 設定があればそれ。なければ詳しくで選んだ値、IPアドレスがあればその /24、どちらもなければ既定
@@ -256,8 +258,8 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
       <NameField key={node.uid} node={node} nodes={net.nodes} readOnly={readOnly} onError={onError} />
       {node.configLocked && <div style={{ marginBottom: 6 }}>{t('ui.config.locked')}</div>}
       {ports.map(renderPort)}
-      {category !== 'router' && renderGateway()}
-      {category === 'router' && renderRoutes()}
+      {!isRoutingCategory(category ?? '') && renderGateway()}
+      {isRoutingCategory(category ?? '') && renderRoutes()}
     </div>
   );
 }

@@ -16,7 +16,7 @@ import { initialStaff } from './staff';
 import { initialOffice } from './furniture';
 import { entryOf, stepDesign } from './history';
 import { autoAssign } from './autoAssign';
-import { accept, connect, focusedOf, placeDevice, setGateway, setInterface, type Core, type Env } from './project';
+import { accept, connect, focusedOf, placeDevice, placeInOffice, setGateway, setInterface, setSegment, type Core, type Env } from './project';
 import { buyDevice } from './shop';
 
 const balance = balanceJson as unknown as Balance;
@@ -201,5 +201,52 @@ describe('IPアドレスの自動割り当て（autoAssign）', () => {
     expect(focusedOf(undone.core)!.links).toEqual(focusedOf(before)!.links);
     expect(focusedOf(undone.core)!.nodes).toEqual(focusedOf(before)!.nodes);
     expect(nodeOf(undone.core, 'pc_b').interfaces).toEqual([]);
+  });
+});
+
+
+// 自社オフィス（案件なし・サンドボックス）の対象。案件の focus を使わず、target 'office' で振る
+describe('IPアドレスの自動割り当て（自社オフィス・サンドボックスの対象）', () => {
+  const PC_DEVICE = 'pc_basic';
+  const emptyOffice = (core: Core): Core => ({ ...core, active: [], focus: null, owned: { [SWITCH]: 1, [PC_DEVICE]: 2 } });
+  // 自社オフィスの床に機器を置き、置いた機器の uid を返す
+  const putOffice = (core: Core, dev: string, x: number, y: number): { core: Core; uid: string } => {
+    const next = ok(placeInOffice(core, dev, x, y, map, env, true)).core;
+    return { core: next, uid: next.office.nodes[next.office.nodes.length - 1].uid };
+  };
+  // PC 2台をスイッチへつないだ床を作る（ネットワークはまだ決めていない）
+  const sandboxWired = (): { core: Core; a: string; b: string } => {
+    let core = emptyOffice(startCore([]));
+    const sw = putOffice(core, SWITCH, 4, 6);
+    const a = putOffice(sw.core, PC_DEVICE, 3, 3);
+    const b = putOffice(a.core, PC_DEVICE, 5, 3);
+    core = ok(connect(b.core, a.uid, sw.uid, UTP, env, 'office')).core;
+    core = ok(connect(core, b.uid, sw.uid, UTP, env, 'office')).core;
+    return { core, a: a.uid, b: b.uid };
+  };
+  const officeNode = (core: Core, uid: string) => core.office.nodes.find((n) => n.uid === uid)!;
+
+  it('サンドボックス: ネットワークを設定すると、つないだ PC に .10 から順に振る（ゲートウェイは未設定のまま）', () => {
+    const { core: base, a, b } = sandboxWired();
+    const set = ok(setSegment(base, a, 0, '192.168.7.0', 24, env, 'office')).core;
+    const core = autoAssign(set, env, 'office', true);
+    expect(officeNode(core, a).interfaces).toEqual([{ port: 0, ip: '192.168.7.10', prefix: 24 }]);
+    expect(officeNode(core, b).interfaces).toEqual([{ port: 0, ip: '192.168.7.11', prefix: 24 }]);
+    expect(officeNode(core, a).gateway).toBeNull();
+  });
+
+  it('自社オフィス（案件なし）: 設定がオンなら、ネットワークの決まったセグメントの PC に振る', () => {
+    const { core: base, a, b } = sandboxWired();
+    const set = ok(setSegment(base, b, 0, '10.0.0.0', 24, env, 'office')).core;
+    const on = autoAssign(set, env, 'office', true);
+    expect(officeNode(on, a).interfaces).toEqual([{ port: 0, ip: '10.0.0.10', prefix: 24 }]);
+    expect(officeNode(on, b).interfaces).toEqual([{ port: 0, ip: '10.0.0.11', prefix: 24 }]);
+  });
+
+  it('設定がオフなら、サンドボックスでも振らない', () => {
+    const { core: base, a } = sandboxWired();
+    const set = ok(setSegment(base, a, 0, '192.168.7.0', 24, env, 'office')).core;
+    expect(autoAssign(set, env, 'office', false)).toBe(set);
+    expect(officeNode(set, a).interfaces).toEqual([]);
   });
 });

@@ -19,6 +19,8 @@ import { RADIUS } from '../ui/theme';
 // 背面の部品のスプライトを拡大する倍率（ドット絵を整数倍で描く）
 // 背面の部品の拡大率。ポートが多い機器は、板の幅に収まるよう2倍にする
 const scaleFor = (ports: number): number => (ports > 4 ? 2 : 3);
+// 背面の板で1段に並べるポートの数（9口以上の機器は板の幅に収めるため6口ずつ）
+const portsPerRowFor = (ports: number): number => (ports > 8 ? 6 : 8);
 
 // プラグの絵（つながっていれば UTP か光、空いていれば空の差し込み口）
 const plugSlot = (link: NetLink | undefined): string => (!link ? 'rear/port_empty' : link.cable.startsWith('fiber') ? 'rear/port_fiber' : 'rear/port_utp');
@@ -72,6 +74,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
   const portCount = gameEnv.devices[node.device]?.portCount ?? 0;
   const ports = Array.from({ length: portCount }, (_, p) => p);
   const SCALE = scaleFor(portCount);
+  const portsPerRow = portsPerRowFor(portCount);
   const byUid = new Map(nodes.map((n) => [n.uid, n]));
   const linkAt = (port: number) =>
     links.find((l) => (l.a.node === node.uid && l.a.port === port) || (l.b.node === node.uid && l.b.port === port));
@@ -213,7 +216,8 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
         }}
       >
         <img draggable={false} src={spriteUrl('rear/power')} width={12 * SCALE} height={10 * SCALE} alt="" style={{ imageRendering: 'pixelated', display: 'block' }} />
-        <div style={{ display: 'flex', gap: 4 }}>
+        {/* ポートは板の幅に収まるよう、1段の口数を決めて段を分ける（9口以上は1段6口） */}
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(Math.max(portCount, 1), portsPerRow)}, auto)`, gap: 4 }}>
           {ports.map((p) => {
             const link = linkAt(p);
             // ドラッグ中のプラグは、元の差し込み口を空の絵で見せる（LED も消す）

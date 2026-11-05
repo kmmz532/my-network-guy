@@ -42,7 +42,7 @@ const SPEED_NOTE_MS = 1000;
 const SAVE_MARK_MS = 1000;
 
 type Screen = 'title' | 'game';
-type Popup = 'offers' | 'shop' | 'menu' | 'help' | 'settings' | 'sandboxResize' | 'sandboxReset' | null;
+type Popup = 'offers' | 'shop' | 'menu' | 'help' | 'settings' | 'sandboxResize' | 'sandboxReset' | 'sandboxResetConfirm' | null;
 
 const hudButton = (on: boolean) =>
   ({
@@ -398,7 +398,7 @@ export function App() {
               <button style={menuButton} onClick={() => setPopup('sandboxResize')}>
                 {t('ui.sandbox.size.change')}
               </button>
-              <button style={menuButton} onClick={() => setPopup('sandboxReset')}>
+              <button style={menuButton} onClick={() => setPopup('sandboxResetConfirm')}>
                 {t('ui.sandbox.size.reset')}
               </button>
             </>
@@ -417,6 +417,27 @@ export function App() {
             return reason === null ? null : t('ui.sandbox.size.blocked');
           }}
         />
+      )}
+      {popup === 'sandboxResetConfirm' && (
+        // Enter で作り直しの広さを選ぶ画面へ進み、Esc で取り消す
+        <Modal
+          onClose={() => setPopup(null)}
+          primary={() => setPopup('sandboxReset')}
+          boxStyle={{ minWidth: 240 }}
+        >
+          <div style={{ fontWeight: 'bold', marginBottom: 12 }}>{t('ui.sandbox.size.resetConfirm')}</div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <button
+              style={{ padding: '4px 12px', cursor: 'pointer', background: 'transparent', color: '#f4f1e6', border: '1px solid #f4f1e6', borderRadius: RADIUS.none }}
+              onClick={() => setPopup(null)}
+            >
+              {t('ui.sandbox.size.cancel')}
+            </button>
+            <button style={primaryButton} onClick={() => setPopup('sandboxReset')}>
+              {t('ui.sandbox.size.recreate')}
+            </button>
+          </div>
+        </Modal>
       )}
       {popup === 'sandboxReset' && (
         <SandboxSizePanel

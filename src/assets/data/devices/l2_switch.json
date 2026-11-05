@@ -13,6 +13,34 @@
       ],
       "features": [],
       "sprite": "device/l2_switch_8p"
+    },
+    {
+      "id": "l2_switch_16p",
+      "category": "l2_switch",
+      "price": 26000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 16,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [],
+      "sprite": "device/l2_switch_8p"
+    },
+    {
+      "id": "l2_switch_24p",
+      "category": "l2_switch",
+      "price": 42000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 24,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [],
+      "sprite": "device/l2_switch_8p"
     }
   ]
 }

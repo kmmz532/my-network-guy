@@ -1,10 +1,12 @@
 // 機器の画面（DevicePanel・DeviceRear・DeviceSettings）で共通に使う、ポートの名前と見た目の部品。
 import { t } from '../i18n/t';
 import { RADIUS } from '../ui/theme';
+import { ROUTER_SWITCH_WAN_PORT } from '../network/category';
 
-// ポートの名前。スイッチは 1 から、ルーターは G0/0 の形、PC・サーバーは LAN（ポートの番号は 0 から数える）
+// ポートの名前。スイッチは 1 から、ルーターは G0/0 の形、スイッチ付きルーターは WAN と LAN1〜4、PC・サーバーは LAN（ポートの番号は 0 から数える）
 export const portLabel = (category: string | undefined, port: number): string => {
-  if (category === 'router') return t('ui.rear.routerPort', { port });
+  if (category === 'router' || category === 'l3_switch') return t('ui.rear.routerPort', { port });
+  if (category === 'router_switch') return port === ROUTER_SWITCH_WAN_PORT ? t('ui.rear.wan') : t('ui.rear.switchLan', { port });
   if (category === 'l2_switch') return String(port + 1);
   return t('ui.rear.lan');
 };

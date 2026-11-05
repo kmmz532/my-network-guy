@@ -57,6 +57,8 @@ const CATEGORY_COLOR: Record<string, number> = {
   server: 0xa3acb8,
   l2_switch: 0x4f7cc4,
   router: 0xe0644f,
+  l3_switch: 0x4f7cc4,
+  router_switch: 0xe0644f,
 };
 // プロトコルごとのパケットの色（ART.md）
 const PACKET_COLOR: Record<string, number> = {
@@ -962,6 +964,8 @@ export class Scene {
         for (let i = 0; i < 4; i++) g.rect(x + 3 + i * 4, y + size * 0.5, 2, 3).fill({ color: 0x3b2a33, alpha });
         break;
       case 'router':
+      case 'l3_switch':
+      case 'router_switch':
         // 箱とアンテナ
         g.moveTo(x + 4, y + size * 0.35).lineTo(x + 4, y).stroke({ width: 1, color: OUTLINE, alpha });
         g.moveTo(x + size - 4, y + size * 0.35).lineTo(x + size - 4, y).stroke({ width: 1, color: OUTLINE, alpha });

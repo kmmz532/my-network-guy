@@ -1,6 +1,7 @@
 // 疎通判定（Ping / HTTP）
 // L1（配線）→ L2（スイッチによるL2ドメイン）→ L3（IPアドレスとルーティング）の順に確認する。
 // 失敗理由は ID で返し、文言は言語ファイルで表示する。
+import { isFabricPort, isRelayPort, isRoutingCategory, ROUTER_SWITCH_LAN_HOST_PORT } from './category';
 import type { EngineData, Endpoint, Failure, FailureReason, NetLink, NetNode, Network, PathResult } from './types';
 
 const MAX_HOPS = 16;
@@ -33,7 +34,8 @@ interface DomainResult {
 class Topology {
   private nodes = new Map<string, NetNode>();
   private linkByEndpoint = new Map<string, { link: NetLink; peer: Endpoint }>();
-  private portsBySwitch = new Map<string, number[]>();
+  // 機器の内部のスイッチ（中継の口）でつながる口。スイッチ付きルーターは代表の LAN 口を必ず含める
+  private fabricBy = new Map<string, number[]>();
 
   constructor(
     net: Network,
@@ -46,11 +48,15 @@ class Topology {
     }
     for (const ep of this.linkByEndpoint.keys()) {
       const [node, port] = ep.split(':');
-      if (this.isSwitch(node)) {
-        const ports = this.portsBySwitch.get(node) ?? [];
+      if (this.isFabric(node, Number(port))) {
+        const ports = this.fabricBy.get(node) ?? [];
         ports.push(Number(port));
-        this.portsBySwitch.set(node, ports);
+        this.fabricBy.set(node, ports);
       }
+    }
+    for (const [uid, ports] of this.fabricBy) {
+      if (this.categoryOf(uid) === 'router_switch' && !ports.includes(ROUTER_SWITCH_LAN_HOST_PORT)) ports.push(ROUTER_SWITCH_LAN_HOST_PORT);
+      this.fabricBy.set(uid, ports);
     }
   }
 
@@ -58,14 +64,23 @@ class Topology {
     return this.nodes.get(uid);
   }
 
-  isSwitch(uid: string): boolean {
+  categoryOf(uid: string): string {
     const node = this.nodes.get(uid);
-    return !!node && this.data.categoryOf(node.device) === 'l2_switch';
+    return node ? this.data.categoryOf(node.device) : '';
+  }
+
+  // 口が機器の内部のスイッチにつながるか（その口から同じL2ドメインへ中継される）
+  isFabric(uid: string, port: number): boolean {
+    return isFabricPort(this.categoryOf(uid), port);
+  }
+
+  // 口が機器の一員として数えられないか（中継だけの口）
+  isRelay(uid: string, port: number): boolean {
+    return isRelayPort(this.categoryOf(uid), port);
   }
 
   isRouter(uid: string): boolean {
-    const node = this.nodes.get(uid);
-    return !!node && this.data.categoryOf(node.device) === 'router';
+    return isRoutingCategory(this.categoryOf(uid));
   }
 
   // 端点に配線があるか（L1）
@@ -90,7 +105,7 @@ class Topology {
       if (visited.has(k)) continue;
       visited.add(k);
 
-      if (!this.isSwitch(ep.node)) {
+      if (!this.isRelay(ep.node, ep.port)) {
         members.push(ep);
       }
       const linked = this.linkAt(ep);
@@ -101,8 +116,9 @@ class Topology {
         }
         queue.push(peer);
       }
-      if (this.isSwitch(ep.node)) {
-        for (const port of this.portsBySwitch.get(ep.node) ?? []) {
+      // 機器の内部のスイッチに入ったら、同じスイッチにつながる口をすべてたどる
+      if (this.isFabric(ep.node, ep.port)) {
+        for (const port of this.fabricBy.get(ep.node) ?? []) {
           queue.push({ node: ep.node, port });
         }
       }

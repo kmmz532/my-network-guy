@@ -138,7 +138,7 @@ const serviceSchema = z.object({
 
 export const deviceSchema = z.object({
   id: z.string().min(1),
-  category: z.enum(['pc', 'server', 'l2_switch', 'router']),
+  category: z.enum(['pc', 'server', 'l2_switch', 'router', 'l3_switch', 'router_switch']),
   price: nonNegativeInt,
   ports: z
     .array(

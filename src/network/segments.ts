@@ -1,6 +1,7 @@
 // セグメント（配線とスイッチでつながった機器の集まり）の算出と、セグメントの設定の参照。
 // セグメントは代表端点（セグメント内で最も小さい機器のUIDとポート）の鍵 "uid:port" で設定を持つ。仕様は memo/sim-3.md を参照する。
 import { ipToInt } from './engine';
+import { isFabricPort, isRelayPort, isRoutingCategory, ROUTER_SWITCH_LAN_HOST_PORT } from './category';
 import type { EngineData, Endpoint, NetNode, Network, SegmentConfig } from './types';
 
 // 設定できるプレフィックス長（sim-3 の候補）
@@ -43,7 +44,7 @@ export const segmentsOf = (net: Pick<Network, 'nodes' | 'links'>, data: EngineDa
     if (ra !== rb) parent.set(ra, rb);
   };
   const categoryOf = new Map(net.nodes.map((n) => [n.uid, data.categoryOf(n.device)]));
-  const isSwitch = (uid: string) => categoryOf.get(uid) === 'l2_switch';
+  const cat = (uid: string) => categoryOf.get(uid) ?? '';
 
   const endpoints = new Map<string, Endpoint>();
   for (const link of net.links) {
@@ -53,14 +54,20 @@ export const segmentsOf = (net: Pick<Network, 'nodes' | 'links'>, data: EngineDa
     endpoints.set(b, link.b);
     union(a, b);
   }
-  // スイッチのポートはすべて同じセグメントにする
-  const switchFirst = new Map<string, string>();
+  // スイッチ付きルーターは、LAN の口につながっていれば代表の LAN 口もセグメントに含める（アドレスを持つ口）
+  for (const ep of [...endpoints.values()]) {
+    if (!isFabricPort(cat(ep.node), ep.port) || cat(ep.node) !== 'router_switch') continue;
+    const host = { node: ep.node, port: ROUTER_SWITCH_LAN_HOST_PORT };
+    endpoints.set(epKey(host.node, host.port), host);
+  }
+  // 機器の内部のスイッチにつながる口は、同じ機器のものすべてを同じセグメントにする
+  const fabricFirst = new Map<string, string>();
   for (const ep of endpoints.values()) {
-    if (!isSwitch(ep.node)) continue;
+    if (!isFabricPort(cat(ep.node), ep.port)) continue;
     const k = epKey(ep.node, ep.port);
-    const first = switchFirst.get(ep.node);
+    const first = fabricFirst.get(ep.node);
     if (first) union(k, first);
-    else switchFirst.set(ep.node, k);
+    else fabricFirst.set(ep.node, k);
   }
 
   const groups = new Map<string, Endpoint[]>();
@@ -70,7 +77,7 @@ export const segmentsOf = (net: Pick<Network, 'nodes' | 'links'>, data: EngineDa
   }
   const segments: Segment[] = [];
   for (const eps of groups.values()) {
-    const members = eps.filter((ep) => !isSwitch(ep.node)).sort(byEndpoint);
+    const members = eps.filter((ep) => !isRelayPort(cat(ep.node), ep.port)).sort(byEndpoint);
     if (members.length === 0) continue;
     segments.push({ key: epKey(members[0].node, members[0].port), members });
   }
@@ -122,7 +129,7 @@ const routerIpsOf = (members: Endpoint[], net: Pick<Network, 'nodes'>, data: Eng
   for (const m of members) {
     if (m.node === self) continue;
     const node = byUid.get(m.node);
-    if (!node || data.categoryOf(node.device) !== 'router') continue;
+    if (!node || !isRoutingCategory(data.categoryOf(node.device))) continue;
     const iface = node.interfaces.find((i) => i.port === m.port);
     if (iface) ips.add(iface.ip);
   }

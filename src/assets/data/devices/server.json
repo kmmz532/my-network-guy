@@ -21,6 +21,28 @@
         }
       ],
       "sprite": "device/server_basic"
+    },
+    {
+      "id": "gpu_server",
+      "category": "server",
+      "price": 1200000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 1,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [
+        "service"
+      ],
+      "defaultServices": [
+        {
+          "protocol": "http",
+          "port": 80
+        }
+      ],
+      "sprite": "device/gpu_server"
     }
   ]
 }

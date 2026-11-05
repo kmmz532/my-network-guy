@@ -13,6 +13,20 @@
       ],
       "features": [],
       "sprite": "device/pc_basic"
+    },
+    {
+      "id": "laptop",
+      "category": "pc",
+      "price": 120000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 1,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [],
+      "sprite": "device/laptop"
     }
   ]
 }

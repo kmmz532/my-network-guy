@@ -1,0 +1,20 @@
+{
+  "devices": [
+    {
+      "id": "l3_switch",
+      "category": "l3_switch",
+      "price": 150000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 8,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [
+        "routing"
+      ],
+      "sprite": "device/l3_switch"
+    }
+  ]
+}

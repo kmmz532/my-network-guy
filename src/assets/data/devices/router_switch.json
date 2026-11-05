@@ -1,0 +1,26 @@
+{
+  "devices": [
+    {
+      "id": "router_switch",
+      "category": "router_switch",
+      "price": 80000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 1,
+          "speedMbps": 1000
+        },
+        {
+          "type": "rj45",
+          "count": 4,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [
+        "routing",
+        "switch"
+      ],
+      "sprite": "device/router_switch"
+    }
+  ]
+}

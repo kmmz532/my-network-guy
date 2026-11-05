@@ -4,9 +4,9 @@
 import type { NetNode } from './types';
 
 export interface NameContext {
-  // 機器の種類（pc・server・l2_switch・router など）
+  // 機器の種類（pc・server・l2_switch・router・l3_switch・router_switch）。ノートPCは pc の種類
   categoryOf: (device: string) => string;
-  // 種類の短い呼び名（「PC」「サーバー」など）
+  // 種類の短い呼び名（「PC」「サーバー」「L3スイッチ」など）。種類ごとに番号を振る
   categoryLabel: (category: string) => string;
   // 「{name}のPC」の文言
   ownedPc: (owner: string) => string;
@@ -14,13 +14,11 @@ export interface NameContext {
   ownerAt?: (x: number, y: number) => string | null;
 }
 
-const PC_CATEGORIES = new Set(['pc', 'laptop']);
-
 export const nodeName = (node: NetNode, nodes: readonly NetNode[], ctx: NameContext): string => {
   const custom = node.name?.trim();
   if (custom) return custom;
   const category = ctx.categoryOf(node.device);
-  if (PC_CATEGORIES.has(category)) {
+  if (category === 'pc') {
     const owner = ctx.ownerAt?.(node.x, node.y) ?? null;
     if (owner) return ctx.ownedPc(owner);
   }
