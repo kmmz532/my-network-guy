@@ -263,8 +263,9 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
     for (const req of contract.requires) {
       ensure(contractIdSet.has(req), `${owner}: requires の案件 ${req} が未定義`);
     }
+    // 自社オフィスのマップは大きさで決まるため、位置の検証は行わない（置く機器の指定がない）
     const map = mapsById.get(contract.map);
-    ensure(!!map, `${owner}: 未定義のマップ ${contract.map}`);
+    ensure(!!map || contract.map === OFFICE_MAP_ID, `${owner}: 未定義のマップ ${contract.map}`);
     const refs = checkPlacement(owner, contract.placed, map);
     checkGoals(owner, contract.goals, refs);
   }
@@ -274,7 +275,7 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
     for (const req of template.requires) {
       ensure(contractIdSet.has(req), `${owner}: requires の案件 ${req} が未定義`);
     }
-    ensure(mapsById.has(template.map), `${owner}: 未定義のマップ ${template.map}`);
+    ensure(mapsById.has(template.map) || template.map === OFFICE_MAP_ID, `${owner}: 未定義のマップ ${template.map}`);
     // テンプレートの機器は実行時に生成されるため、goals の参照は ping_all の $all_pcs 以外を検証しない
   }
 
@@ -362,7 +363,7 @@ const writeGenerated = (generatedDir: string, data: GameData): void => {
     `export type CableId = ${toTypeUnion(data.cables.map((c) => c.id))};`,
     `export type ContractId = ${toTypeUnion(data.contracts.map((c) => c.id))};`,
     `export type TemplateId = ${toTypeUnion(data.templates.map((t) => t.id))};`,
-    `export type MapId = ${toTypeUnion(data.maps.map((m) => m.id))};`,
+    `export type MapId = ${toTypeUnion([...data.maps.map((m) => m.id), OFFICE_MAP_ID])};`,
     `export type LangCode = ${toTypeUnion(Object.keys(data.langs))};`,
     '',
   ].join('\n');
@@ -416,6 +417,8 @@ const loadersModule = (data: GameData): string => {
 const PREFIX = '\0';
 const VIRTUAL_GAME_DATA = 'virtual:game-data';
 const VIRTUAL_LOADERS = 'virtual:loaders';
+// 自社オフィスの部屋のマップ。ファイルはなく、床の大きさ（office.size）からゲームの実行時に作る
+const OFFICE_MAP_ID = 'hq';
 
 export default function gameData(): Plugin {
   let config: ResolvedConfig;

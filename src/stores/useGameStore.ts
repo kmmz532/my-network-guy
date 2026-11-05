@@ -16,6 +16,7 @@ import { certs as certRecord, training as trainingRecord } from 'virtual:game-da
 import type { NetLink, NetNode, Route } from '../network/types';
 import type { SaveData } from '../services/migrations';
 import { gameEnv } from '../sim/env';
+import { type ExpandSide, expandOffice as expandOfficeOp, officeMapOf } from '../sim/office';
 import {
   type DesignEntry,
   type History,
@@ -254,6 +255,8 @@ export interface GameState {
   place: (deviceId: string, x: number, y: number) => string | null;
   // 自社オフィスの家具と社員。失敗したら理由を返す
   placeFurniture: (id: string, x: number, y: number) => string | null;
+  // 自社オフィスの部屋の辺を買って2マス広げる（確認なし。取り消しの対象外）。失敗したら理由を返す
+  expandOffice: (side: ExpandSide) => string | null;
   removeFurniture: (uid: string) => string | null;
   hire: (candidateUid: string) => string | null;
   startTraining: (uid: string, courseId: string) => string | null;
@@ -514,7 +517,7 @@ export const useGameStore = create<GameState>((set, get) => {
     speed: 1,
     nightSpeed: null,
     pausedPrompt: false,
-    maps: {},
+    maps: { hq: officeMapOf(balance.office.initialSize) },
     lastReport: null,
     notice: null,
     dismissReport: () => set({ lastReport: null, showcase: null, traces: [] }),
@@ -739,6 +742,20 @@ export const useGameStore = create<GameState>((set, get) => {
       if (!map) return 'map';
       return recorded(() => apply(placeDevice(coreOf(get()), deviceId, x, y, map, gameEnv), { tx: x, ty: y }));
     },
+    expandOffice: (side) => {
+      const office = get().office;
+      // 失敗の吹き出しは、広げる辺の内側の壁のマスに出す（広げる前の大きさで決める）
+      const at = {
+        tx: side === 'right' ? office.size.w + 1 : side === 'left' ? 0 : Math.floor((office.size.w + 2) / 2),
+        ty: side === 'bottom' ? office.size.h + 1 : Math.floor((office.size.h + 2) / 2),
+      };
+      const reason = apply(expandOfficeOp(coreOf(get()), side, balance.office), at);
+      if (reason !== null) return reason;
+      // 部屋の大きさが変わったので、マップを作り直す。広げる前の操作の取り消しは、座標が合わないため消す
+      dropHistory(OFFICE_HISTORY_KEY);
+      set((s) => ({ maps: { ...s.maps, hq: officeMapOf(s.office.size) } }));
+      return null;
+    },
     placeFurniture: (id, x, y) => {
       const hq = get().maps.hq;
       if (!hq) return 'map';
@@ -841,6 +858,7 @@ export const useGameStore = create<GameState>((set, get) => {
         staffSeq: save.staffSeq,
         candidates: save.candidates,
         guidesDone: save.guidesDone,
+        maps: { ...get().maps, hq: officeMapOf(save.office.size) },
         guideTarget: null,
         lastReport: null,
         showcase: null,
@@ -870,6 +888,7 @@ export const useGameStore = create<GameState>((set, get) => {
           office: initialOffice(balance),
           effects: noEffects(),
           guidesDone: [],
+          maps: { ...s.maps, hq: officeMapOf(initialOffice(balance).size) },
           guideTarget: null,
           lastReport: null,
           lastError: null,

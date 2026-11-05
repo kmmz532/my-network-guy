@@ -118,7 +118,6 @@ export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; on
           {t('ui.settings.keys')}
         </button>
       </div>
-      <div style={{ marginTop: 12, fontSize: 12, opacity: 0.85 }}>{t('ui.settings.note')}</div>
       <button style={{ ...primaryButton, display: 'block', marginTop: 10, marginLeft: 'auto' }} onClick={onClose}>
         {t('ui.panel.close')}
       </button>

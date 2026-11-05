@@ -4,10 +4,10 @@ import { DESK_ID, emptyOffice, officeLocked, type Core, type Office, type Outcom
 
 const fail = (reason: string): Outcome => ({ ok: false, reason });
 
-// 自社オフィスの初期状態。バランス値の初期の机の位置に、机を置く
+// 自社オフィスの初期状態。バランス値の初期の大きさの部屋に、バランス値の初期の机の位置に机を置く
 export const initialOffice = (balance: Balance): Office => {
   const furniture = balance.staff.initialDesks.map((p, i) => ({ uid: `f${i}`, id: DESK_ID, x: p.x, y: p.y }));
-  return { ...emptyOffice(), furniture, furnitureSeq: furniture.length };
+  return { ...emptyOffice(balance.office.initialSize), furniture, furnitureSeq: furniture.length };
 };
 
 // 自社オフィスの家具を置く。在庫があり、家具のない床のマスで、機材もないときだけ置ける

@@ -37,12 +37,14 @@ describe('セーブのバージョン移行', () => {
       active: [],
       focus: null,
       office: {
+        // 移行前の部屋は固定のマップ（14×8）の大きさ
+        size: { w: 14, h: 8 },
         nodes: [],
         links: [],
         seq: 0,
         furniture: [
-          { uid: 'f0', id: 'desk', x: 3, y: 3 },
-          { uid: 'f1', id: 'desk', x: 6, y: 3 },
+          { uid: 'f0', id: 'desk', x: 2, y: 3 },
+          { uid: 'f1', id: 'desk', x: 4, y: 3 },
         ],
         furnitureSeq: 2,
       },

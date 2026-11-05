@@ -64,7 +64,7 @@ describe('施工力', () => {
     training: null,
   });
   const desk = { uid: 'd', id: 'desk', x: 5, y: 5 };
-  const seated = { ...emptyOffice(), furniture: [desk], furnitureSeq: 1 };
+  const seated = { ...emptyOffice({ w: 5, h: 5 }), furniture: [desk], furnitureSeq: 1 };
 
   it('職種が一致すると 1.5 倍（席あり・家具なし）', () => {
     expect(staffPower(worker(2), ['network'], seated, env)).toBeCloseTo(3);
@@ -76,16 +76,16 @@ describe('施工力', () => {
   });
 
   it('席がなければ、席の係数（既定 0.5）を掛ける', () => {
-    expect(staffPower(worker(2), undefined, emptyOffice(), env)).toBeCloseTo(1);
+    expect(staffPower(worker(2), undefined, emptyOffice({ w: 5, h: 5 }), env)).toBeCloseTo(1);
   });
 
   it('席がなくても、ソファがあれば係数は 0.7', () => {
-    const office = { ...emptyOffice(), furniture: [{ uid: 'f', id: 'sofa', x: 0, y: 0 }], furnitureSeq: 1 };
+    const office = { ...emptyOffice({ w: 5, h: 5 }), furniture: [{ uid: 'f', id: 'sofa', x: 0, y: 0 }], furnitureSeq: 1 };
     expect(staffPower(worker(2), undefined, office, env)).toBeCloseTo(1.4);
   });
 
   it('席にいて植物が範囲内なら、家具の施工力 +10% を掛ける', () => {
-    const office = { ...emptyOffice(), furniture: [desk, { uid: 'p', id: 'plant', x: 6, y: 5 }], furnitureSeq: 2 };
+    const office = { ...emptyOffice({ w: 5, h: 5 }), furniture: [desk, { uid: 'p', id: 'plant', x: 6, y: 5 }], furnitureSeq: 2 };
     expect(staffPower(worker(2), ['network'], office, env)).toBeCloseTo(2 * 1.5 * 1.1);
   });
 });

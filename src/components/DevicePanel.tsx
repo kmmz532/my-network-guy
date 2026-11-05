@@ -11,7 +11,7 @@ import { gameEnv } from '../sim/env';
 import { focusedProject, useGameStore, type GameState } from '../stores/useGameStore';
 import { RearTab as DeviceRear } from './DeviceRear';
 import { DeviceSettings } from './DeviceSettings';
-import { Icon } from './Icon';
+import { TrimmedIcon } from './Icon';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { buttonStyle, greyColor, warnColor } from './devicePorts';
 
@@ -41,11 +41,12 @@ export function DeviceTitle({ uid }: { uid: string }) {
   const found = findDevice(state, uid);
   if (!found) return null;
   const device = deviceData[found.node.device as keyof typeof deviceData];
+  // 絵と名前は1行に収める。長い名前は省略する（タブの高さをショップのタブと同じにするため、絵は文字の高さに収まる大きさにする）
   return (
-    <>
-      {device && <Icon name={device.sprite} scale={1} />}
-      <b>{nodeLabel(state, found.node, found.source.nodes)}</b>
-    </>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0, maxWidth: '100%', whiteSpace: 'nowrap' }}>
+      {device && <TrimmedIcon name={device.sprite} height={16} />}
+      <b style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{nodeLabel(state, found.node, found.source.nodes)}</b>
+    </span>
   );
 }
 

@@ -4,6 +4,8 @@ import { parseCondition } from '../sim/guide';
 
 const int = z.number().int();
 const nonNegativeInt = z.number().int().nonnegative();
+// 床の大きさ（床の内側のマス数）
+const sizeSchema = z.object({ w: int.positive(), h: int.positive() });
 
 // 社員の職種（STAFF.md「1. 社員のデータ」）
 export const JOB_IDS = ['network', 'infra', 'security'] as const;
@@ -100,6 +102,15 @@ export const balanceSchema = z.object({
   office: z.object({
     // 同時に受注できる案件の数（案件の枠）
     projectSlots: int.positive(),
+    // 新しく始めたときの部屋の床の大きさ（マス）
+    initialSize: sizeSchema,
+    // 部屋を広げる費用と上限。費用は baseCost から、買うたびに growth 倍になる。step マスずつ広がる
+    expand: z.object({
+      baseCost: nonNegativeInt,
+      growth: z.number().min(1),
+      step: int.positive(),
+      maxSize: sizeSchema,
+    }),
   }),
   // 納品が遅れたときの報酬の割合。1日ごとに lateRatePerDay ぶん減り、lateFloor より下がらない
   deadline: z.object({

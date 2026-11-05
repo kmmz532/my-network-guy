@@ -16,11 +16,11 @@
     "initialCount": 2,
     "initialDesks": [
       {
-        "x": 3,
+        "x": 2,
         "y": 3
       },
       {
-        "x": 6,
+        "x": 4,
         "y": 3
       }
     ],
@@ -48,7 +48,20 @@
     }
   },
   "office": {
-    "projectSlots": 1
+    "projectSlots": 1,
+    "initialSize": {
+      "w": 5,
+      "h": 5
+    },
+    "expand": {
+      "baseCost": 200000,
+      "growth": 1.5,
+      "step": 2,
+      "maxSize": {
+        "w": 15,
+        "h": 11
+      }
+    }
   },
   "deadline": {
     "lateRatePerDay": 0.1,

@@ -25,7 +25,7 @@ const statusText = (status: StaffStatus): string => {
 export function StaffTitle({ uid }: { uid: string }) {
   const member = useGameStore((s) => s.staff.find((m) => m.uid === uid));
   if (!member) return null;
-  return <b>{t(member.name as LangKey)}</b>;
+  return <b style={{ display: 'inline-block', maxWidth: '100%', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t(member.name as LangKey)}</b>;
 }
 
 // 社員の札。見た目・名前・職種・level・経験値・月給・資格・状態・口癖と、研修・資格へのボタン

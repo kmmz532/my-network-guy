@@ -46,7 +46,7 @@ const core = (over: Partial<Core> = {}): Core => ({
   offers: [],
   active: [],
   focus: null,
-  office: { ...emptyOffice(), furniture: [{ uid: 'f0', id: 'desk', x: 1, y: 0 }], furnitureSeq: 1 },
+  office: { ...emptyOffice({ w: 5, h: 5 }), furniture: [{ uid: 'f0', id: 'desk', x: 1, y: 0 }], furnitureSeq: 1 },
   effects: noEffects(),
   staff: [createStaff({ job: 'network', level: 1, salary: 200000 }, 1, 0).staff],
   staffSeq: 1,
@@ -141,7 +141,7 @@ describe('社員を雇う', () => {
   });
 
   const candidate = { ...createStaff({ job: 'infra', level: 1, salary: 200000 }, 1, 9).staff, uid: 'c1_0' };
-  const twoDesks = { ...emptyOffice(), furniture: [{ uid: 'f0', id: 'desk', x: 1, y: 0 }, { uid: 'f1', id: 'desk', x: 2, y: 0 }], furnitureSeq: 2 };
+  const twoDesks = { ...emptyOffice({ w: 5, h: 5 }), furniture: [{ uid: 'f0', id: 'desk', x: 1, y: 0 }, { uid: 'f1', id: 'desk', x: 2, y: 0 }], furnitureSeq: 2 };
 
   it('席が足りなければ採用できない（seat）', () => {
     expect(reasonOf(hire(core({ candidates: [candidate] }), 'c1_0', isSeat))).toBe('seat');
@@ -165,7 +165,7 @@ describe('家具の補正', () => {
   const defs = Object.fromEntries(furnitureJson.furniture.map((f) => [f.id, f as unknown as Furniture]));
   const env: BonusEnv = { defs, balance: balanceJson as unknown as Balance, staffUids: ['s0'] };
   const withFurniture = (items: { id: string; x: number; y: number }[]) => ({
-    ...emptyOffice(),
+    ...emptyOffice({ w: 5, h: 5 }),
     furniture: [{ uid: 'desk', id: 'desk', x: 5, y: 5 }, ...items.map((f, i) => ({ uid: `f${i}`, ...f }))],
     furnitureSeq: items.length + 1,
   });

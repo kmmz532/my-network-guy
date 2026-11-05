@@ -88,15 +88,8 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
         <b>{label}</b>
       </div>
     ) : null;
-    // ルーターは、ケーブルでつないでから設定する
-    if (!linked(port) && category === 'router') {
-      return (
-        <div key={port} style={sectionStyle}>
-          {heading}
-          <div style={{ color: greyColor }}>{t('ui.config.noCable')}</div>
-        </div>
-      );
-    }
+    // ルーターは、ケーブルでつないでから設定する。つなぐ前は欄を薄く出し、操作できないようにする
+    const unlinkedRouter = category === 'router' && !linked(port);
     const cfg = cfgOf(port);
     const iface = node.interfaces.find((i) => i.port === port);
     // 今のネットワーク: 設定があればそれ。なければ詳しくで選んだ値、IPアドレスがあればその /24、どちらもなければ既定
@@ -104,7 +97,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
     const shown = cfg ?? pending[port] ?? fromIface ?? { network: PLANNED_NETWORK, prefix: PLANNED_PREFIX };
     const color = colorOfNetwork(colors, cfg?.network) ?? UNSET_COLOR;
     // 候補は、読み取り専用でなければ一覧にする（設定がなければ、今のネットワークの .10 から並べる）
-    const candidates: AddressCandidate[] = readOnly
+    const candidates: AddressCandidate[] = readOnly || unlinkedRouter
       ? []
       : cfg
         ? addressCandidates(coreOf(state), node.uid, port, gameEnv, netTargetOf(state))
@@ -121,7 +114,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
     };
     const networks = cfg && !NETWORK_CHOICES.includes(cfg.network) ? [...NETWORK_CHOICES, cfg.network] : NETWORK_CHOICES;
     return (
-      <div key={port} style={sectionStyle}>
+      <div key={port} style={unlinkedRouter ? { ...sectionStyle, opacity: 0.45 } : sectionStyle}>
         {heading}
         <div>
           {t('ui.config.ip')}: {iface ? <b>{iface.ip}</b> : <span style={{ color: unsetColor }}>{t('ui.config.unset')}</span>}
@@ -131,9 +124,9 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
             label={t('ui.config.ip')}
             value={iface?.ip ?? ''}
             options={options}
-            disabled={locked}
+            disabled={locked || unlinkedRouter}
             isValid={isIpText}
-            formatError={t('ui.config.ipFormat')}
+            formatError={t('ui.error.ip')}
             onCommit={(ip) => commitIp(port, ip)}
           />
         </div>
@@ -142,7 +135,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
             <span style={{ display: 'inline-block', width: 10, height: 10, background: hexColor(color), border: '1px solid #3b2a33' }} />
             {t('ui.config.networkLine', { network: shown.network, prefix: shown.prefix })}
           </span>
-          <button style={buttonStyle} onClick={onToggleDetail}>
+          <button style={buttonStyle} disabled={unlinkedRouter} onClick={onToggleDetail}>
             {detailOpen ? t('ui.config.detailClose') : t('ui.config.detail')}
           </button>
         </div>
@@ -152,7 +145,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
               aria-label={t('ui.config.network')}
               style={selectStyle}
               value={shown.network}
-              disabled={locked}
+              disabled={locked || unlinkedRouter}
               onChange={(e) => {
                 // 設定があれば、セグメントのネットワークを変える。なければ、詳しくで選んだ値として覚える
                 if (cfg) onError(setSegment(node.uid, port, e.target.value, cfg.prefix));
@@ -169,7 +162,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
               aria-label={t('ui.config.prefix')}
               style={selectStyle}
               value={shown.prefix}
-              disabled={locked}
+              disabled={locked || unlinkedRouter}
               onChange={(e) => {
                 const prefix = Number(e.target.value);
                 if (cfg) onError(setSegment(node.uid, port, cfg.network, prefix));
@@ -208,7 +201,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
                 options={gatewayOptions}
                 disabled={locked}
                 isValid={isIpText}
-                formatError={t('ui.config.ipFormat')}
+                formatError={t('ui.error.ip')}
                 allowEmpty
                 onCommit={(ip) => setGateway(node.uid, ip || null)}
               />
@@ -245,9 +238,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
           </div>
         ))}
         {!locked &&
-          (dests.size === 0 ? (
-            <div style={{ color: greyColor }}>{t('ui.config.noDest')}</div>
-          ) : hops.length === 0 ? (
+          (hops.length === 0 ? (
             <div style={{ color: greyColor }}>{t('ui.config.noNextHop')}</div>
           ) : (
             <RouteAdd
@@ -296,7 +287,13 @@ function RouteAdd({
   };
   return (
     <div style={row}>
-      <select aria-label={t('ui.config.routeDest')} style={selectStyle} value={dest} onChange={(e) => pick(e.target.value, next)}>
+      <select
+        aria-label={t('ui.config.routeDest')}
+        style={dests.length === 0 ? { ...selectStyle, opacity: 0.4 } : selectStyle}
+        value={dest}
+        disabled={dests.length === 0}
+        onChange={(e) => pick(e.target.value, next)}
+      >
         <option value="">{t('ui.config.routeDest')}</option>
         {dests.map((d) => (
           <option key={d.value} value={d.value}>

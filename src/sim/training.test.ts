@@ -24,7 +24,7 @@ const core = (): Core => ({
   offers: [],
   active: [],
   focus: null,
-  office: emptyOffice(),
+  office: emptyOffice({ w: 5, h: 5 }),
   effects: noEffects(),
   staff: initialStaff(balance, 1).staff,
   staffSeq: 2,

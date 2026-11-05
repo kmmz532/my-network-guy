@@ -220,6 +220,8 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
             const lifted = carry?.port === p;
             const slot = lifted ? 'rear/port_empty' : plugSlot(link);
             const lit = !lifted && link !== undefined;
+            // 挿し替え中は、空いているポートを光らせて挿し替え先を示す
+            const replugFree = active !== null && link === undefined;
             // ドラッグ中は、重なっているポートを明るく（空き）・暗く（埋まり）示す。それ以外は押しているポートを明るくする
             const filter = carry
               ? carry.over?.port === p
@@ -227,9 +229,11 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
                   ? 'brightness(1.35)'
                   : 'brightness(0.55)'
                 : undefined
-              : hover === p
-                ? 'brightness(1.35)'
-                : undefined;
+              : replugFree
+                ? 'brightness(1.35) drop-shadow(0 0 4px #ffd866)'
+                : hover === p
+                  ? 'brightness(1.35)'
+                  : undefined;
             return (
               <button
                 key={p}
@@ -250,7 +254,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
                 onMouseLeave={() => setHover(null)}
                 style={{
                   background: 'none',
-                  border: selected === p ? '2px solid #ffd866' : '2px solid transparent',
+                  border: selected === p ? '2px solid #ffd866' : replugFree ? '2px dashed #ffd866' : '2px solid transparent',
                   borderRadius: RADIUS.none,
                   padding: 0,
                   cursor: link && grabbable ? 'grab' : 'pointer',
@@ -329,8 +333,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
 
       {active && (
         <div style={{ marginTop: 6 }}>
-          <div>{t('ui.rear.replugHint')}</div>
-          <button style={{ ...buttonStyle, marginTop: 4 }} onClick={() => setReplugging(null)}>
+          <button style={buttonStyle} onClick={() => setReplugging(null)}>
             {t('ui.rear.cancel')}
           </button>
         </div>

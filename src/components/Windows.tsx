@@ -1,5 +1,5 @@
 // 開いているウィンドウを描く。種類ごとに中身を選ぶ（機器の画面は DevicePanel、社員の札と一覧は StaffCard）。
-// 機器・社員のウィンドウは、開いているタブをタイトルの帯の下に並べる（タブが1つのときは出さない）。
+// 機器・社員のウィンドウは、開いているタブをタイトルの帯の下に並べる（タブが1つのときは出さない）。タブが2つ以上あるときは、タイトルの帯に種類の名前（機器のプロパティ・社員のプロパティ）を出す。
 // 幅 768 px 未満では、一番手前の1つだけを画面の下に出し、動かさない。
 import { useEffect, useState, type ReactNode } from 'react';
 import { t } from '../i18n/t';
@@ -25,7 +25,7 @@ function useViewport(): Viewport {
 const tabLabel = (kind: WindowKind, ref: string): ReactNode => {
   if (kind === 'device') return <DeviceTitle uid={ref} />;
   if (kind === 'staff') return <StaffTitle uid={ref} />;
-  return <b>{t('ui.staff.list.title')}</b>;
+  return <b style={{ whiteSpace: 'nowrap' }}>{t('ui.staff.list.title')}</b>;
 };
 
 // タブの帯。選ぶのはクリック、閉じるのは小さな×か中ボタンのクリック（Tabs が受け持つ）
@@ -73,7 +73,7 @@ export function Windows({ onTraining }: { onTraining: () => void }) {
       {shown.map((w) => (
         <Window
           key={w.id}
-          title={tabLabel(w.kind, w.active)}
+          title={w.tabs.length > 1 && w.kind !== 'staffList' ? <b>{t(w.kind === 'device' ? 'ui.window.deviceProps' : 'ui.window.staffProps')}</b> : tabLabel(w.kind, w.active)}
           tabs={
             w.tabs.length > 1 ? (
               <TabStrip

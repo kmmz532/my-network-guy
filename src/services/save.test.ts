@@ -27,7 +27,7 @@ const sample: SaveData = {
   rng: 1,
   active: [],
   focus: null,
-  office: { nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 },
+  office: { size: { w: 5, h: 5 }, nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 },
   effects: { buildSpeed: 0 },
   staff: [member('s0'), member('s1')],
   staffSeq: 2,
@@ -59,7 +59,7 @@ describe('セーブデータ', () => {
   });
 
 describe('v6 → v7', () => {
-  // 旧マップの机の位置（x=9, y=3）に置いたPCは、机がないので机を足す。初期の机（3,3）と（6,3）は初期の机のまま
+  // 旧マップの机の位置（x=9, y=3）に置いたPCは、机がないので机を足す（2,3 の PC は初期の机の上）。初期の机（2,3）と（4,3）は初期の机のまま
   const pc = (uid: string, x: number, y: number) => ({
     uid,
     device: 'pc_basic',
@@ -77,15 +77,15 @@ describe('v6 → v7', () => {
     ...withoutStaff,
     // 旧い形式の案件（単独）
     active: null,
-    office: { nodes: [pc('u0', 3, 3), pc('u1', 9, 3)], links: [], seq: 2 },
+    office: { size: { w: 5, h: 5 }, nodes: [pc('u0', 2, 3), pc('u1', 9, 3)], links: [], seq: 2 },
   };
 
   it('社員の人数と初期の机を追加する', () => {
     const out = migrate(6, v6);
     expect(out.staff).toHaveLength(2);
     expect(out.office.furniture.map((f) => [f.id, f.x, f.y])).toEqual([
-      ['desk', 3, 3],
-      ['desk', 6, 3],
+      ['desk', 2, 3],
+      ['desk', 4, 3],
       ['desk', 9, 3],
     ]);
   });
@@ -312,5 +312,30 @@ describe('v13 → v14', () => {
     const out = migrate(13, v13);
     expect(out.office.nodes[0]).toEqual(pc);
     expect(out.office.nodes[1].services).toEqual([{ protocol: 'http', port: 8080 }]);
+  });
+});
+
+describe('v16 → v17', () => {
+  const { office: _office, ...withoutOffice } = sample;
+  const v16 = { ...withoutOffice, office: { nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 } };
+
+  it('自社オフィスの部屋の大きさは、移行前の固定のマップ（14×8）とする', () => {
+    const out = migrate(16, v16);
+    expect(out.office.size).toEqual({ w: 14, h: 8 });
+  });
+
+  it('部屋の大きさを足したほかは、そのまま残す', () => {
+    const out = migrate(16, v16);
+    expect(out.office).toEqual({ ...v16.office, size: { w: 14, h: 8 } });
+  });
+
+  it('移行後の形式は、読み込んで書き出しても元に戻る', () => {
+    const out = migrate(16, v16);
+    expect(importSave(exportSave(out))).toEqual(out);
+  });
+
+  it('部屋の大きさがない自社オフィスは拒否する', () => {
+    const { size: _size, ...officeWithoutSize } = sample.office;
+    expect(() => migrate(17, { ...sample, office: officeWithoutSize })).toThrow();
   });
 });

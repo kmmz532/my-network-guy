@@ -12,7 +12,10 @@ import serverJson from '../assets/data/devices/server.json';
 import routerJson from '../assets/data/devices/router.json';
 import switchJson from '../assets/data/devices/l2_switch.json';
 
-export const SAVE_VERSION = 16;
+export const SAVE_VERSION = 17;
+
+// 移行前の部屋の床の大きさ（移行前の固定のマップ hq の内側）。移行後の部屋は、この大きさのまま続く
+const legacyOfficeSize = { w: 14, h: 8 };
 
 // 移行で使う機器の種類（色の時代の規則で IPアドレスを作るときに使う）
 const migrationCategories: Record<string, string> = {};
@@ -154,11 +157,21 @@ export const migrations: Record<number, Migration> = {
   },
   // v15 → v16: 初めての概念の案内を終えた案件を追加する。移行前は、どの案件の案内も終えていないものとする
   15: (data) => ({ ...(data as object), guidesDone: [] }),
+  // v16 → v17: 自社オフィスの部屋の大きさを追加する。移行前の部屋は、固定のマップ hq の大きさ（14×8）とする
+  16: (data) => {
+    const d = data as { office: Office };
+    return { ...d, office: { ...d.office, size: { ...legacyOfficeSize } } };
+  },
   // v10 → v11: 案件に担当の社員を追加する。移行前の案件は、全社員が担当だったものとする
   10: (data) => {
     const d = data as { active: Project[]; staff: Staff[] };
     return { ...d, active: d.active.map((p) => ({ ...p, crew: d.staff.map((s) => s.uid) })) };
   },
+};
+
+const isOfficeSize = (value: unknown): boolean => {
+  const s = value as { w?: unknown; h?: unknown } | null;
+  return typeof s === 'object' && s !== null && Number.isInteger(s.w) && Number.isInteger(s.h);
 };
 
 export const isSaveData = (value: unknown): value is SaveData => {
@@ -190,7 +203,8 @@ export const isSaveData = (value: unknown): value is SaveData => {
     Array.isArray(v.candidates) &&
     Array.isArray(v.guidesDone) &&
     v.guidesDone.every((id) => typeof id === 'string') &&
-    Array.isArray((v.office as { furniture?: unknown } | undefined)?.furniture)
+    Array.isArray((v.office as { furniture?: unknown } | undefined)?.furniture) &&
+    isOfficeSize((v.office as { size?: unknown }).size)
   );
 };
 

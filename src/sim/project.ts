@@ -126,7 +126,15 @@ export interface PlacedFurniture {
   y: number;
 }
 
+// 床の大きさ（床の内側のマス数。壁は含まない）
+export interface OfficeSize {
+  w: number;
+  h: number;
+}
+
 export interface Office {
+  // 部屋の床の大きさ。マップは大きさから作る
+  size: OfficeSize;
   nodes: NetNode[];
   links: NetLink[];
   seq: number;
@@ -144,7 +152,7 @@ export interface Effects {
 // 社員の席になる家具（机）のID。PCはこの家具の上にだけ置ける
 export const DESK_ID = 'desk';
 
-export const emptyOffice = (): Office => ({ nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 });
+export const emptyOffice = (size: OfficeSize): Office => ({ size, nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 });
 export const noEffects = (): Effects => ({ buildSpeed: 0 });
 
 export interface Core {

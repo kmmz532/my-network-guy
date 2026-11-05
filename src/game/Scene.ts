@@ -11,6 +11,7 @@ import { rangeTiles } from './effectRange';
 import { setMapView } from './mapView';
 import { gameEnv } from '../sim/env';
 import { moveFurniture, placeFurniture } from '../sim/furniture';
+import { canExpand, expandCostOf, type ExpandSide } from '../sim/office';
 import {
   checkConnect,
   compiledNet,
@@ -77,6 +78,10 @@ const HOT_RED = 0xff6b6b;
 const REMOVE_TINT = 0xffb0b0;
 // 吹き出しの地（クリーム色）
 const BUBBLE_FILL = 0xf4f1e6;
+// 部屋を広げるボタン（「+」）の大きさ（マップの座標の px。1マス＝32 px の 0.75 倍）と、文字の大きさ
+const EXPAND_BUTTON_PX = 24;
+const EXPAND_LABEL_PX = 20;
+const EXPAND_SIDES: readonly ExpandSide[] = ['right', 'bottom', 'left'];
 // 背景を長押ししてから動かせるようになるまで（ms）
 const PAN_LONG_PRESS_MS = 300;
 // ホイールの回転を、拡大・縮小1段階に換算する量（px。行単位のホイールは1行 16 px とする）
@@ -150,6 +155,8 @@ export class Scene {
   private hoverAnyLink: string | null = null;
   // 機器・家具・ケーブルの端を押している間の操作（動かすか、押して離すか）
   private press: Press | null = null;
+  // 自社オフィスの部屋を広げるボタン（右・下・左の辺の外側）。描き直さず、位置と表示だけを更新する
+  private expandButtons = new Map<ExpandSide, Container>();
 
   constructor(private app: Application) {
     // 倉庫の欄（DOM）から、マスの判定と品目を置けるかを使えるようにする
@@ -162,6 +169,7 @@ export class Scene {
     this.content.addChild(this.sprites);
     this.content.addChild(this.g);
     this.content.addChild(this.bubbles);
+    for (const side of EXPAND_SIDES) this.expandButtons.set(side, this.makeExpandButton(side));
     app.stage.eventMode = 'static';
     app.stage.on('pointerdown', this.onDown);
     app.stage.on('pointermove', this.onMove);
@@ -260,7 +268,8 @@ export class Scene {
     const mapId = shown?.contract.map ?? 'office_small';
     const map = s.maps[mapId];
     if (!map) return;
-    if (this.tilesId !== mapId) {
+    // 自社オフィスの部屋は広げると作り直すため、同じIDでもマップが変わったら描き直す
+    if (this.tilesId !== mapId || this.map !== map) {
       if (this.tiles) this.tiles.destroy({ children: true });
       this.tiles = drawTileMap(map);
       this.content.addChildAt(this.tiles, 0);
@@ -271,6 +280,72 @@ export class Scene {
       this.layout();
     }
     this.drawObjects();
+    this.updateExpandButtons();
+  }
+
+  // 部屋を広げるボタン。部屋の外側に、広げられる辺だけ出す（受注中・納品の表示のときは出さない）
+  private makeExpandButton(side: ExpandSide): Container {
+    const box = new Container();
+    box.eventMode = 'static';
+    box.cursor = 'pointer';
+    const body = new Graphics();
+    const label = new Text({
+      text: '+',
+      style: { fontFamily: 'sans-serif', fontSize: EXPAND_LABEL_PX, fontWeight: 'bold', fill: OUTLINE },
+      resolution: this.textResolution(),
+    });
+    label.anchor.set(0.5);
+    label.position.set(EXPAND_BUTTON_PX / 2, EXPAND_BUTTON_PX / 2);
+    box.addChild(body, label);
+    // 位置を決めるまでは出さない（マップの読み込み後に updateExpandButtons で表示する）
+    box.visible = false;
+    // 押したときは、マップの操作（背景のドラッグなど）にしない
+    box.on('pointerdown', (e) => {
+      e.stopPropagation();
+      this.resetTip();
+      useGameStore.getState().expandOffice(side);
+    });
+    box.on('pointerover', (e) => {
+      this.resetTip();
+      const size = useGameStore.getState().office.size;
+      const name = t(`ui.office.expand.${side}` as LangKey);
+      const cost = t('ui.office.cost', { cost: expandCostOf(size, balance.office).toLocaleString('ja-JP') });
+      this.tipTimer = window.setTimeout(() => this.showTip(`${name}\n${cost}`, e.clientX, e.clientY), balance.tooltip.hoverMs);
+    });
+    box.on('pointerout', () => this.resetTip());
+    // 乗っている間も、マップの移動や配線の操作は続ける。ボタン上の移動では、説明を消さないよう伝えない
+    box.on('pointermove', (e) => {
+      if (!this.wireFrom && !this.pan && !this.press) e.stopPropagation();
+    });
+    this.content.addChild(box);
+    return box;
+  }
+
+  // 部屋を広げるボタンの位置と表示を、いまの部屋の大きさに合わせる（マップの座標）
+  private updateExpandButtons(): void {
+    const map = this.map;
+    const s = useGameStore.getState();
+    const shown = s.active.length === 0 && !s.showcase && map?.id === 'hq';
+    for (const side of EXPAND_SIDES) {
+      const box = this.expandButtons.get(side);
+      if (!box) continue;
+      const visible = shown && canExpand(s.office.size, side, balance.office);
+      box.visible = visible;
+      if (!visible || !map) continue;
+      const ts = map.tileSize;
+      const mapW = map.width * ts;
+      const mapH = map.height * ts;
+      const inset = (ts - EXPAND_BUTTON_PX) / 2;
+      // 右と左は手前の壁の中ほど、下は床の幅の中ほどの、壁の外側のマス
+      const at =
+        side === 'right' ? { x: mapW + inset, y: (mapH - EXPAND_BUTTON_PX) / 2 }
+        : side === 'left' ? { x: -ts + inset, y: (mapH - EXPAND_BUTTON_PX) / 2 }
+        : { x: (mapW - EXPAND_BUTTON_PX) / 2, y: mapH + inset };
+      box.position.set(at.x, at.y);
+      const body = box.getChildAt(0) as Graphics;
+      body.clear();
+      body.roundRect(0, 0, EXPAND_BUTTON_PX, EXPAND_BUTTON_PX, EXPAND_BUTTON_PX * 0.2).fill(BUBBLE_FILL).stroke({ width: 2, color: OUTLINE });
+    }
   }
 
   private onTick = (ticker: Ticker): void => {
@@ -297,7 +372,7 @@ export class Scene {
     this.app.stage.hitArea = new Rectangle(0, 0, this.app.screen.width, this.app.screen.height);
     const view = this.viewSize();
     const map = this.mapSize();
-    this.camera = this.camera ? resizeCamera(this.camera, map, this.view, view) : fitCamera(map, view);
+    this.camera = this.camera ? resizeCamera(this.camera, map, this.view, view) : this.fitCameraOf(view);
     this.view = view;
     this.applyCamera();
   };
@@ -340,7 +415,15 @@ export class Scene {
   }
 
   private fit(): void {
-    if (this.map) this.setCamera(fitCamera(this.mapSize(), this.view));
+    if (this.map) this.setCamera(this.fitCameraOf(this.view));
+  }
+
+  // 全体に合わせた位置と倍率。自社オフィスは、辺の外側の「+」ボタンが画面に収まるよう、周りを1マス分あける（マップは中央に置く）
+  private fitCameraOf(view: Size): Camera {
+    const pad = this.map?.id === 'hq' ? this.tileSize() : 0;
+    const map = this.mapSize();
+    const fit = fitCamera({ w: map.w + pad * 2, h: map.h + pad * 2 }, view);
+    return { ...fit, x: fit.x + pad * fit.zoom, y: fit.y + pad * fit.zoom };
   }
 
   private panBy(dx: number, dy: number): void {
