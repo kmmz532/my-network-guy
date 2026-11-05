@@ -13,7 +13,7 @@ import { SAVE_SLOT, slotOf } from './services/slots';
 import { createSaveQueue, isAutoSaveDue } from './services/autoSave';
 import { exportSave, importSave } from './services/saveFile';
 import { NoticeToast, ReportModal } from './components/Overlay';
-import { Modal, primaryButton } from './components/Modal';
+import { Modal, primaryButton, secondaryButton } from './components/Modal';
 import { KeyHelp } from './components/KeyHelp';
 import { SettingsPanel } from './components/SettingsPanel';
 import { SandboxSizePanel } from './components/SandboxSizePanel';
@@ -271,7 +271,7 @@ export function App() {
   };
 
   // メニューの項目。ボタンとファイルを選ぶラベルで、文字の大きさと見た目をそろえる
-  const menuButton = { display: 'block', width: '100%', margin: '4px 0', padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.4, boxSizing: 'border-box', border: '1px solid #767676', borderRadius: RADIUS.none, background: '#efefef', color: '#000' } as const;
+  const menuButton = { ...secondaryButton, display: 'block', width: '100%', margin: '4px 0', padding: '6px 12px', fontSize: 13, lineHeight: 1.4, boxSizing: 'border-box' } as const;
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>

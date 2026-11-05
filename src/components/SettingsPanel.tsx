@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react';
 import { t } from '../i18n/t';
 import { applyUiScale, AUTO_SAVE_MODES, loadSettings, PAUSED_BUILD_MODES, saveSettings, START_SPEEDS, UI_SCALES, type Settings } from '../settings/settings';
 import { useGameStore } from '../stores/useGameStore';
-import { Modal, primaryButton } from './Modal';
+import { Modal, primaryButton, secondaryButton } from './Modal';
 import { RADIUS } from '../ui/theme';
 
 interface Option<T> {
@@ -131,7 +131,7 @@ export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; on
         />
       </Row>
       <div style={{ marginTop: 14 }}>
-        <button style={{ padding: '4px 12px', cursor: 'pointer' }} onClick={onOpenKeys}>
+        <button style={secondaryButton} onClick={onOpenKeys}>
           {t('ui.settings.keys')}
         </button>
       </div>

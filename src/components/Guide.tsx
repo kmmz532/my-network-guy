@@ -10,6 +10,7 @@ import { currentGuideStep, type GuideState, type GuideStep } from '../sim/guide'
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { RADIUS } from '../ui/theme';
 import { Icon } from './Icon';
+import { secondaryButton } from './Modal';
 
 interface Box {
   left: number;
@@ -226,16 +227,11 @@ export function Guide() {
           <button
             onClick={skip}
             style={{
+              ...secondaryButton,
               flexShrink: 0,
               whiteSpace: 'nowrap',
               padding: '2px 8px',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
               fontSize: 13,
-              border: '2px solid #3b2a33',
-              borderRadius: RADIUS.none,
-              background: '#efefef',
-              color: '#3b2a33',
             }}
           >
             {t('ui.guide.skip')}

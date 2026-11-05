@@ -10,6 +10,7 @@ import { useGameStore } from '../stores/useGameStore';
 import { isDragMove } from './rearDrag';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
+import { secondaryButton } from './Modal';
 import { RADIUS } from '../ui/theme';
 
 const strip = {
@@ -149,7 +150,7 @@ export function Warehouse({
     return (
       <div style={{ ...strip, justifyContent: 'center', overflowX: 'visible' }}>
         <span>{t('ui.warehouse.empty')}</span>
-        <button style={{ padding: '4px 12px', cursor: 'pointer' }} onClick={onShop}>
+        <button style={secondaryButton} onClick={onShop}>
           {t('ui.warehouse.openShop')}
         </button>
       </div>

@@ -7,7 +7,7 @@ import { isUnlocked } from '../sim/shop';
 import { effectText } from '../game/effectText';
 import { useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
-import { Modal, primaryButton } from './Modal';
+import { Modal, primaryButton, secondaryButton } from './Modal';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { RADIUS } from '../ui/theme';
 
@@ -64,7 +64,7 @@ export function ShopCards({ onClose }: { onClose: () => void }) {
                       <Icon name="icon/money" scale={1} /> {yen(cost(d.price))}　×{owned[id] ?? 0}
                     </div>
                   </div>
-                  <button style={{ padding: '4px 12px', cursor: 'pointer' }} disabled={money < cost(d.price)} onClick={() => buy(id)}>
+                  <button style={{ ...secondaryButton, opacity: money < cost(d.price) ? 0.4 : 1 }} disabled={money < cost(d.price)} onClick={() => buy(id)}>
                     {t('ui.shop.buy')}
                   </button>
                 </div>
@@ -89,7 +89,7 @@ export function ShopCards({ onClose }: { onClose: () => void }) {
                       <Icon name="icon/money" scale={1} /> {yen(cost(f.price))}　×{owned[id] ?? 0}
                     </div>
                   </div>
-                  <button style={{ padding: '4px 12px', cursor: 'pointer' }} disabled={money < cost(f.price)} onClick={() => buy(id)}>
+                  <button style={{ ...secondaryButton, opacity: money < cost(f.price) ? 0.4 : 1 }} disabled={money < cost(f.price)} onClick={() => buy(id)}>
                     {t('ui.shop.buy')}
                   </button>
                 </div>

@@ -3,17 +3,7 @@
 import { useState } from 'react';
 import { t } from '../i18n/t';
 import { useGameStore } from '../stores/useGameStore';
-import { Modal, primaryButton } from './Modal';
-import { RADIUS } from '../ui/theme';
-
-const secondaryButton = {
-  padding: '4px 16px',
-  cursor: 'pointer',
-  background: '#efefef',
-  color: '#000',
-  border: '1px solid #767676',
-  borderRadius: RADIUS.none,
-} as const;
+import { Modal, primaryButton, secondaryButton } from './Modal';
 
 export function PausedBuildPrompt() {
   const answer = useGameStore((s) => s.answerPausedBuild);

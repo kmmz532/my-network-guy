@@ -36,6 +36,17 @@ export const primaryButton = {
   fontWeight: 'bold',
 } as const;
 
+// 普通のボタン（主のボタンの次に使う）。ブラウザ標準の白い部品の代わりに、画面と同じ紺の箱にする
+export const secondaryButton = {
+  padding: '4px 12px',
+  cursor: 'pointer',
+  background: '#25406f',
+  color: '#f4f1e6',
+  border: '1px solid #3b2a33',
+  borderRadius: RADIUS.none,
+  fontFamily: 'inherit',
+} as const;
+
 type SetPrimary = (run: (() => void) | undefined) => void;
 const PopupContext = createContext<SetPrimary | null>(null);
 
