@@ -49,6 +49,7 @@ export function TaskPanel() {
         borderRadius: 4,
         fontSize: 13,
         zIndex: 4,
+        zoom: 'var(--ui-scale, 1)',
       }}
     >
       <button

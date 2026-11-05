@@ -115,7 +115,7 @@ export const migrations: Record<number, Migration> = {
     let rng = d.rng;
     const staff: Staff[] = [];
     for (let i = 0; i < d.staff; i++) {
-      const made = createStaff(specAt(balance, i), rng, i);
+      const made = createStaff(specAt(balance, i), rng, i, staff.map((s) => s.name));
       rng = made.rng;
       staff.push(made.staff);
     }

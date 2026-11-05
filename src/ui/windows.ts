@@ -1,8 +1,8 @@
 // 開いているウィンドウの一覧を操作する純粋関数。画面の大きさ（vp）と、種類ごとに覚えた位置・大きさ（memory）は引数で受け取る。
 // 押したときの描き方（ポインターの処理）は components/Window.tsx、保存と読み込みは stores/useGameStore.ts が受け持つ。
 
-// ウィンドウの種類。機器の画面と社員の札（P6 で使う）
-export type WindowKind = 'device' | 'staff';
+// ウィンドウの種類。機器の画面・社員の札・社員の一覧
+export type WindowKind = 'device' | 'staff' | 'staffList';
 
 export interface Rect {
   x: number;
@@ -48,6 +48,7 @@ export const NARROW_BOTTOM_RESERVE = 64;
 const DEFAULT_SIZE: Record<WindowKind, { w: number; h: number }> = {
   device: { w: 300, h: 360 },
   staff: { w: 300, h: 360 },
+  staffList: { w: 420, h: 360 },
 };
 // 初めて開くときの位置（右上。上端は画面の上の欄の下）
 const DEFAULT_TOP = 44;
@@ -172,7 +173,7 @@ export function parseMemory(raw: string | null): WindowMemory {
   }
   if (typeof data !== 'object' || data === null) return {};
   const out: WindowMemory = {};
-  for (const kind of ['device', 'staff'] as const) {
+  for (const kind of ['device', 'staff', 'staffList'] as const) {
     const r = (data as Record<string, unknown>)[kind];
     if (typeof r !== 'object' || r === null) continue;
     const { x, y, w, h } = r as Record<string, unknown>;

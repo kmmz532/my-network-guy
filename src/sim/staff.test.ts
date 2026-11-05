@@ -5,7 +5,9 @@ import furnitureJson from '../assets/data/furniture.json';
 import type { Furniture, Staff } from '../data/schema';
 import { emptyOffice } from './project';
 import type { BonusEnv } from './furniture';
-import { NAME_COUNT, QUIRK_IDS, createStaff, gainExp, hintTier, initialStaff, rollCandidates, specAt, staffPower, totalSalary } from './staff';
+import { readFileSync } from 'node:fs';
+import { NAME_COUNT, QUIRK_IDS, createStaff, gainExp, hintTier, initialStaff, pickName, rollCandidates, specAt, staffPower, staffStatus, totalSalary } from './staff';
+import type { Project } from './project';
 
 const balance = balanceJson as unknown as Balance;
 
@@ -145,5 +147,68 @@ describe('ヒントの段階', () => {
     const crew = [member(6, 'infra'), member(1, 'network')];
     expect(hintTier(crew, ['network'], levels)).toBe(1);
     expect(hintTier(crew, ['security'], levels)).toBe(3);
+  });
+});
+
+describe('社員の名前が重ならない', () => {
+  const spec = { job: 'network' as const, level: 1, salary: 1 };
+
+  it('候補が足りる間は、30人を続けて作っても名前が重ならない', () => {
+    let rng = 2024;
+    const names: string[] = [];
+    for (let i = 0; i < 30; i++) {
+      const made = createStaff(spec, rng, i, names);
+      rng = made.rng;
+      names.push(made.staff.name);
+    }
+    expect(new Set(names).size).toBe(30);
+  });
+
+  it('在籍中の名前は避ける（候補が残っている間）', () => {
+    const taken = Array.from({ length: NAME_COUNT - 1 }, (_, i) => `staff.name.${i}`);
+    for (let seed = 1; seed < 50; seed++) {
+      expect(pickName(seed, taken).name).toBe(`staff.name.${NAME_COUNT - 1}`);
+    }
+  });
+
+  it('使っていない名前がなくなったときだけ、重なりを許す', () => {
+    const all = Array.from({ length: NAME_COUNT }, (_, i) => `staff.name.${i}`);
+    expect(all).toContain(pickName(7, all).name);
+  });
+
+  it('採用の候補は、在籍中の社員と候補どうしで名前が重ならない', () => {
+    const taken = Array.from({ length: 10 }, (_, i) => `staff.name.${i}`);
+    for (let seed = 1; seed < 40; seed++) {
+      const names = rollCandidates(0, 1, seed, balance, taken).candidates.map((c) => c.name);
+      expect(new Set(names).size).toBe(names.length);
+      expect(names.some((n) => taken.includes(n))).toBe(false);
+    }
+  });
+
+  it('名前の候補は言語ファイルに NAME_COUNT 個ある', () => {
+    const lang = JSON.parse(readFileSync(new URL('../assets/lang/ja_jp.json', import.meta.url), 'utf8')) as Record<string, string>;
+    for (let i = 0; i < NAME_COUNT; i++) expect(lang[`staff.name.${i}`]).toBeTruthy();
+    expect(lang[`staff.name.${NAME_COUNT}`]).toBeUndefined();
+    expect(new Set(Array.from({ length: NAME_COUNT }, (_, i) => lang[`staff.name.${i}`])).size).toBe(NAME_COUNT);
+  });
+});
+
+describe('社員の状態', () => {
+  const base: Staff = { uid: 's1', name: 'staff.name.0', look: 'blue', quirk: 'q1', job: 'network', level: 1, exp: 0, salary: 1, certs: [], training: null };
+  const project = { id: 'p1', baseId: 'c001', params: { n: 2 }, crew: ['s1'] } as unknown as Project;
+
+  it('研修中は残りの日数（1日未満は1日）を出す', () => {
+    const staff = { ...base, training: { course: 'basic', untilMinute: 5 * 24 * 60 } };
+    expect(staffStatus(staff, [], 0)).toEqual({ kind: 'training', days: 5 });
+    expect(staffStatus(staff, [], 5 * 24 * 60 - 1)).toEqual({ kind: 'training', days: 1 });
+    expect(staffStatus(staff, [], 2 * 24 * 60 + 1)).toEqual({ kind: 'training', days: 3 });
+  });
+
+  it('担当している案件があれば、その案件の名前を出す', () => {
+    expect(staffStatus(base, [project], 0)).toEqual({ kind: 'project', baseId: 'c001', params: { n: 2 } });
+  });
+
+  it('どちらでもなければ待機中', () => {
+    expect(staffStatus(base, [], 0)).toEqual({ kind: 'idle' });
   });
 });

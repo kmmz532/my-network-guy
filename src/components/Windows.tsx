@@ -1,9 +1,10 @@
-// 開いているウィンドウを描く。種類ごとに中身を選ぶ（機器の画面は DevicePanel、社員の札は P6 で作る）。
+// 開いているウィンドウを描く。種類ごとに中身を選ぶ（機器の画面は DevicePanel、社員の札と一覧は StaffCard）。
 // 幅 768 px 未満では、一番手前の1つだけを画面の下に出し、動かさない。
 import { useEffect, useState } from 'react';
 import { t } from '../i18n/t';
 import { frontWindow, clampRect, isNarrow, narrowRect, type Viewport } from '../ui/windows';
 import { findDevice, DeviceBody, DeviceTitle } from './DevicePanel';
+import { StaffBody, StaffListBody, StaffTitle } from './StaffCard';
 import { Window } from './Window';
 import { useGameStore, viewportNow } from '../stores/useGameStore';
 
@@ -18,15 +19,16 @@ function useViewport(): Viewport {
   return vp;
 }
 
-export function Windows() {
+export function Windows({ onTraining }: { onTraining: () => void }) {
   const state = useGameStore();
   const vp = useViewport();
   const narrow = isNarrow(vp);
 
-  // 開いている機器が撤去や案件の切り替えでなくなったら、そのウィンドウを閉じる
+  // 開いている機器・社員が撤去などでなくなったら、そのウィンドウを閉じる
   useEffect(() => {
     for (const w of state.windows) {
       if (w.kind === 'device' && !findDevice(state, w.ref)) state.closeWindow(w.id);
+      if (w.kind === 'staff' && !state.staff.some((m) => m.uid === w.ref)) state.closeWindow(w.id);
     }
   }, [state]);
 
@@ -38,7 +40,9 @@ export function Windows() {
       {shown.map((w) => (
         <Window
           key={w.id}
-          title={w.kind === 'device' ? <DeviceTitle uid={w.ref} /> : null}
+          title={
+            w.kind === 'device' ? <DeviceTitle uid={w.ref} /> : w.kind === 'staff' ? <StaffTitle uid={w.ref} /> : <b>{t('ui.staff.list.title')}</b>
+          }
           rect={narrow ? narrowRect(vp) : clampRect(w, vp)}
           movable={!narrow}
           closeLabel={t('ui.panel.close')}
@@ -48,6 +52,8 @@ export function Windows() {
           onClose={() => state.closeWindow(w.id)}
         >
           {w.kind === 'device' && <DeviceBody uid={w.ref} />}
+          {w.kind === 'staff' && <StaffBody uid={w.ref} onTraining={onTraining} />}
+          {w.kind === 'staffList' && <StaffListBody />}
         </Window>
       ))}
     </>

@@ -20,6 +20,7 @@ import type { FailureReason, NetLink, NetNode } from '../network/types';
 import { drawTileMap, layoutIntegerScale } from './TileMap';
 import { cumulativeLengths, pointAt, type Point } from './animation';
 import { wanderStep, type Walker } from './wander';
+import { deskStaffPos, deskTap, staffAt, wanderStaffPos, type StaffHit } from './staffHit';
 
 const OUTLINE = 0x3b2a33;
 const SELECT = 0xffd866;
@@ -395,8 +396,8 @@ export class Scene {
     for (let k = 0; k < workers; k++) {
       const [dx, dy] = desks[k];
       // 机の下の段に座り、打鍵に合わせて小さく揺れる
-      const tap = Math.floor(this.elapsed / (FRAME_MS * 2) + k) % 2;
-      this.drawStaff(dx * ts + (ts - 16) / 2, (dy + 1) * ts - 6 - tap, STAFF_SHIRT[k % STAFF_SHIRT.length]);
+      const at = deskStaffPos(dx, dy, ts, deskTap(this.elapsed, k));
+      this.drawStaff(at.x, at.y, STAFF_SHIRT[k % STAFF_SHIRT.length]);
       // 口癖は、社員ごとにずらした周期で、60秒に3秒だけ頭上に出す（平均60秒に1回）
       const seconds = this.elapsed / 1000 + k * 23;
       if (seconds % 60 < 3) {
@@ -435,8 +436,29 @@ export class Scene {
 
   private drawWanderers(ts: number): void {
     this.wanderers.forEach((w, k) => {
-      this.drawStaff(w.x * ts + (ts - 16) / 2, w.y * ts + ts - 26, STAFF_SHIRT[k % STAFF_SHIRT.length]);
+      const at = wanderStaffPos(w.x, w.y, ts);
+      this.drawStaff(at.x, at.y, STAFF_SHIRT[k % STAFF_SHIRT.length]);
     });
+  }
+
+  // 自社オフィスに描いている社員の位置と uid。席の社員は席の順（雇用の順）、歩き回る社員は席の数の後の社員
+  // 描いていないとき（納品の結果、施工中、ほかのマップ）は空
+  private officeStaffHits(): StaffHit[] {
+    const s = useGameStore.getState();
+    if (this.map?.id !== 'hq' || s.showcase || focusedProject(s)?.phase === 'build') return [];
+    const ts = this.tileSize();
+    const desks = s.office.furniture.filter((f) => f.id === DESK_ID);
+    const hits: StaffHit[] = [];
+    desks.forEach((f, k) => {
+      const member = s.staff[k];
+      if (!member) return;
+      hits.push({ uid: member.uid, ...deskStaffPos(f.x, f.y, ts, deskTap(this.elapsed, k)) });
+    });
+    this.wanderers.forEach((w, k) => {
+      const member = s.staff[desks.length + k];
+      if (member) hits.push({ uid: member.uid, ...wanderStaffPos(w.x, w.y, ts) });
+    });
+    return hits;
   }
 
   // 設計中は、社員がマップの左上で待機する。失敗の内容は機器の上の印で示す
@@ -818,23 +840,24 @@ export class Scene {
   private tipHideTimer: number | null = null;
   private tipShown = false;
 
-  // 機器・家具・社員の説明（マス単位）。なければ null
-  private mapTipAt(tx: number, ty: number): { key: string; text: string } | null {
+  // 機器・家具・社員の説明。社員は、描いている社員のスプライトの範囲で判定する（机のマスでは机の説明）。なければ null
+  private mapTipAt(p: { x: number; y: number }): { key: string; text: string } | null {
     const store = useGameStore.getState();
+    const staffUid = staffAt(this.officeStaffHits(), p);
+    const member = staffUid ? store.staff.find((m) => m.uid === staffUid) : undefined;
+    if (member) {
+      const lines = [t(member.name as LangKey), t(`staff.job.${member.job}` as LangKey), t('ui.staff.level', { level: member.level })];
+      return { key: `s:${member.uid}`, text: lines.join('\n') };
+    }
+    const tile = this.tileOf(p);
+    if (!tile) return null;
+    const { tx, ty } = tile;
     const node = this.project()?.nodes.find((n) => n.x === tx && n.y === ty);
     if (node) {
       const ips = this.compiled?.net.nodes.find((n) => n.uid === node.uid)?.interfaces.map((i) => `${i.ip}/${i.prefix}`) ?? [];
       return { key: `n:${node.uid}`, text: [t(`device.${node.device}.name` as LangKey), ...ips].join('\n') };
     }
     if (!focusedProject(store) && !store.showcase) {
-      // 席に座っている社員（机の並び順に、雇用の順で座る）
-      const desks = store.office.furniture.filter((f) => f.id === DESK_ID);
-      const k = desks.findIndex((f) => f.x === tx && f.y === ty);
-      const member = k >= 0 ? store.staff[k] : undefined;
-      if (member) {
-        const lines = [t(member.name as LangKey), t(`staff.job.${member.job}` as LangKey), t('ui.staff.level', { level: member.level })];
-        return { key: `s:${member.uid}`, text: lines.join('\n') };
-      }
       const f = store.office.furniture.find((x) => x.x === tx && x.y === ty);
       if (f) {
         const lines = [t(`furniture.${f.id}.name` as LangKey), effectText(gameEnv.furniture?.[f.id]?.effect)];
@@ -862,8 +885,7 @@ export class Scene {
 
   // マウス: 乗った機器が変わったら、説明を予約する（hoverMs のあとに出す）
   private updateTip(e: FederatedPointerEvent): void {
-    const tile = this.tileOf(this.toMap(e));
-    const hit = tile ? this.mapTipAt(tile.tx, tile.ty) : null;
+    const hit = this.mapTipAt(this.toMap(e));
     const key = hit?.key ?? null;
     if (key === this.tipKey) return;
     this.resetTip();
@@ -874,8 +896,7 @@ export class Scene {
 
   // タッチ: 押した機器の説明を、長押しのあとに出す
   private startTouchTip(e: FederatedPointerEvent): void {
-    const tile = this.tileOf(this.toMap(e));
-    const hit = tile ? this.mapTipAt(tile.tx, tile.ty) : null;
+    const hit = this.mapTipAt(this.toMap(e));
     this.resetTip();
     this.tipKey = hit?.key ?? null;
     if (!hit) return;
@@ -929,6 +950,12 @@ export class Scene {
     }
     const tile = this.tileOf(p);
     if (!tile) return;
+    // 選択の道具で社員を押すと、社員の札を開く（機器を編集できない状態でも開ける）
+    const staffUid = store.tool === 'select' && e.button !== 2 && !store.placing ? staffAt(this.officeStaffHits(), p) : undefined;
+    if (staffUid) {
+      store.openWindow('staff', staffUid);
+      return;
+    }
     // 機器を編集できないとき（納品の結果や施工中）は何もしない
     const nodes = this.editNodes();
     if (!nodes) return;

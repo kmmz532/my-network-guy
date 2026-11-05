@@ -20,6 +20,7 @@ const strip = {
   color: '#f4f1e6',
   border: '2px solid #3b2a33',
   borderRadius: 6,
+  zoom: 'var(--ui-scale, 1)',
 } as const;
 
 const itemStyle = (active: boolean) =>

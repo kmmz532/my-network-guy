@@ -1,12 +1,12 @@
-// 画面下のツールバー。道具（選択・配線・撤去）・依頼・機材・施工をアイコンで操作する。道具のキー（1・2・3・Esc・Delete）もここで受け取る
+// 画面下のツールバー。道具（選択・配線・撤去）・依頼・機材・施工をアイコンで操作する。キーは input/keymap.ts の表から受け取る
 import { Fragment, useEffect, useState } from 'react';
 import { shop } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { isUnlocked } from '../sim/shop';
 import { warehouseItems, warehouseMode, type WarehouseItem } from '../sim/warehouse';
-import { focusedProject, frontDeviceUid, useGameStore, type Tool } from '../stores/useGameStore';
-import { frontWindow } from '../ui/windows';
+import { focusedProject, useGameStore, type Tool } from '../stores/useGameStore';
+import { tipText } from '../input/keymap';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
 import { Warehouse } from './Warehouse';
@@ -23,6 +23,7 @@ const bar = {
   flexWrap: 'wrap',
   alignItems: 'center',
   gap: 6,
+  zoom: 'var(--ui-scale, 1)',
 } as const;
 
 const slot = (active: boolean) =>
@@ -52,61 +53,28 @@ const toolSlot = (active: boolean) =>
     boxShadow: active ? 'inset 2px 2px 0 rgba(20, 30, 50, 0.7)' : 'none',
   }) as const;
 
-// 道具の一覧（左端に並べる順）。key は押すキー
-const TOOLS: { id: Tool; name: LangKey; key: string; icon: string }[] = [
-  { id: 'select', name: 'ui.tool.select', key: '1', icon: 'icon/cursor' },
-  { id: 'wire', name: 'ui.tool.wire', key: '2', icon: 'icon/wire' },
-  { id: 'remove', name: 'ui.tool.remove', key: '3', icon: 'icon/trash' },
+// 道具の一覧（左端に並べる順）。action は input/keymap.ts の動作の識別子（押すキーの表示に使う）
+const TOOLS: { id: Tool; name: LangKey; action: string; icon: string }[] = [
+  { id: 'select', name: 'ui.tool.select', action: 'tool.select', icon: 'icon/cursor' },
+  { id: 'wire', name: 'ui.tool.wire', action: 'tool.wire', icon: 'icon/wire' },
+  { id: 'remove', name: 'ui.tool.remove', action: 'tool.remove', icon: 'icon/trash' },
 ];
 
-// 道具のキー（1・2・3）、Esc、Delete を受け取る。入力欄にフォーカスがあるときは無視する
-export function useToolKeys(): void {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      const target = e.target as HTMLElement | null;
-      if (target && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) return;
-      const s = useGameStore.getState();
-      const tool = TOOLS.find((item) => item.key === e.key);
-      if (tool) {
-        s.setTool(tool.id);
-      } else if (e.key === 'Escape') {
-        // 配線の途中 → 失敗の直し方 → 一番手前のウィンドウ → 選択の道具（この順に1つずつ）
-        const front = frontWindow(s.windows);
-        if (s.wireStart || s.portMenu) s.cancelWire();
-        else if (s.helpUid) s.setHelpUid(null);
-        else if (front) s.closeWindow(front.id);
-        else if (s.tool !== 'select' || s.placing) s.setTool('select');
-        else return;
-      } else if (e.key === 't' || e.key === 'T') {
-        // 疎通テスト（設計中だけ）
-        if (focusedProject(s)?.phase !== 'design') return;
-        s.test();
-      } else if (e.key === 'b' || e.key === 'B') {
-        // 施工の依頼（設計中だけ。テストに合格していなければ案内を出す）
-        if (focusedProject(s)?.phase !== 'design') return;
-        s.requestBuild();
-      } else if (e.key === 'Delete') {
-        // 一番手前のウィンドウの機器を撤去する（撤去できたらその画面も閉じる）
-        const uid = frontDeviceUid(s);
-        if (uid) s.removeNode(uid);
-      } else {
-        return;
-      }
-      e.preventDefault();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-}
-
-export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: () => void }) {
-  useToolKeys();
+export function Toolbar({
+  onOffers,
+  onShop,
+  warehouseOpen,
+  setWarehouseOpen,
+}: {
+  onOffers: () => void;
+  onShop: () => void;
+  warehouseOpen: boolean;
+  setWarehouseOpen: (open: boolean) => void;
+}) {
   const offers = useGameStore((s) => s.offers);
   const active = useGameStore(focusedProject);
   const completed = useGameStore((s) => s.completed);
   const owned = useGameStore((s) => s.owned);
-  const [warehouseOpen, setWarehouseOpen] = useState(false);
   const placing = useGameStore((s) => s.placing);
   const tool = useGameStore((s) => s.tool);
   const wireCable = useGameStore((s) => s.wireCable);
@@ -135,7 +103,7 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
   const yen = (n: number) => n.toLocaleString('ja-JP');
   // IPアドレスの表示の切り替え。設計中は施工のボタンの左、それ以外は右端に出す
   const ipButton = (
-    <Tooltip text={t('ui.showIp')}><button aria-label={t('ui.showIp')} style={{ ...slot(showIp), width: 'auto', padding: '0 8px', fontSize: 13, fontWeight: 'bold' }}
+    <Tooltip text={tipText('ui.showIp', 'showIp')}><button aria-label={t('ui.showIp')} style={{ ...slot(showIp), width: 'auto', padding: '0 8px', fontSize: 13, fontWeight: 'bold' }}
       
       onClick={() => setShowIp(!showIp)}
     >
@@ -165,7 +133,7 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
       {/* 道具は自社オフィスでも案件の設計中でも常に出す。配線の道具を選んだときだけ、ケーブルの種類を右に出す */}
       {TOOLS.map((item) => (
         <Fragment key={item.id}>
-          <Tooltip text={`${t(item.name)}（${item.key}）`}>
+          <Tooltip text={tipText(item.name, item.action)}>
             <button aria-label={t(item.name)} style={toolSlot(tool === item.id)} onClick={() => setTool(item.id)}>
               <Icon name={item.icon} />
             </button>
@@ -186,7 +154,7 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
         </Fragment>
       ))}
       {sep}
-      <Tooltip text={t('ui.offer.title')}><button aria-label={t('ui.offer.title')} style={{ ...slot(false), position: 'relative' }}  onClick={onOffers}>
+      <Tooltip text={tipText('ui.offer.title', 'offers')}><button aria-label={t('ui.offer.title')} style={{ ...slot(false), position: 'relative' }}  onClick={onOffers}>
         <Icon name="icon/mail" />
         {offers.length > 0 && (
           <span style={{ position: 'absolute', top: -6, right: -6, background: '#e84a4a', borderRadius: 8, fontSize: 11, padding: '0 5px' }}>
@@ -194,12 +162,12 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
           </span>
         )}
       </button></Tooltip>
-      <Tooltip text={t('ui.shop.title')}><button aria-label={t('ui.shop.title')} style={slot(false)}  onClick={onShop}>
+      <Tooltip text={tipText('ui.shop.title', 'shop')}><button aria-label={t('ui.shop.title')} style={slot(false)}  onClick={onShop}>
         <Icon name="icon/cart" />
       </button></Tooltip>
       {/* 在庫は倉庫のアイコンにまとめる。品目の一覧は倉庫の欄で開く */}
       {sep}
-      <Tooltip text={t('ui.warehouse.title')}><button aria-label={t('ui.warehouse.title')} style={{ ...slot(warehouseOpen && warehouseOpenable), opacity: warehouseOpenable ? 1 : 0.35 }}
+      <Tooltip text={tipText('ui.warehouse.title', 'warehouse')}><button aria-label={t('ui.warehouse.title')} style={{ ...slot(warehouseOpen && warehouseOpenable), opacity: warehouseOpenable ? 1 : 0.35 }}
         
         disabled={!warehouseOpenable}
         onClick={() => setWarehouseOpen(!warehouseOpen)}
@@ -215,7 +183,7 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
           {ipButton}
           {sep}
           {/* テストは何度でも押せ、時間も費用もかからない。施工は、テストに合格してからだけ依頼できる（押すと案内を出す） */}
-          <Tooltip text={`${t('ui.test')}（T）`}>
+          <Tooltip text={tipText('ui.test', 'test')}>
             <button
               aria-label={t('ui.test')}
               style={{
@@ -231,7 +199,7 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
               <Icon name="icon/test" /> {t('ui.test')}
             </button>
           </Tooltip>
-          <Tooltip text={`${t('ui.build')}（B）`}>
+          <Tooltip text={tipText('ui.build', 'build')}>
             <button
               aria-label={t('ui.build')}
               style={{

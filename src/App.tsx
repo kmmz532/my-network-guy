@@ -9,14 +9,20 @@ import { useTickLoop } from './stores/useTickLoop';
 import { toDate } from './sim/clock';
 import { loadSlot, saveSlot } from './services/db';
 import { exportSave, importSave } from './services/saveFile';
-import { modalBack, modalBox, NoticeToast, ReportModal } from './components/Overlay';
+import { NoticeToast, ReportModal } from './components/Overlay';
+import { Modal, primaryButton } from './components/Modal';
+import { KeyHelp } from './components/KeyHelp';
+import { SettingsPanel } from './components/SettingsPanel';
+import { useKeymap } from './input/useKeymap';
+import { tipText } from './input/keymap';
+import { applyUiScale, loadSettings } from './settings/settings';
 import { OfferCards } from './components/OfferCards';
 import { Toolbar } from './components/Toolbar';
 import { TaskPanel } from './components/TaskPanel';
 import { Windows } from './components/Windows';
 import { PortMenu } from './components/PortMenu';
 import { ShopCards } from './components/ShopCards';
-import { HiringPanel } from './components/HiringPanel';
+import { HiringPanel, type HiringTab } from './components/HiringPanel';
 import { Tooltip, TooltipHost } from './components/Tooltip';
 import { Icon } from './components/Icon';
 import { TitleScreen } from './components/TitleScreen';
@@ -26,7 +32,7 @@ const SLOT = 1;
 const SPEEDS: Speed[] = [0, 1, 2, 4];
 
 type Screen = 'title' | 'game';
-type Popup = 'offers' | 'shop' | 'menu' | null;
+type Popup = 'offers' | 'shop' | 'menu' | 'help' | 'settings' | null;
 
 const hudButton = (on: boolean) =>
   ({
@@ -55,13 +61,23 @@ export function App() {
   const seats = useGameStore((s) => seatCount(s.office, (id) => furniture[id as FurnitureId]?.seat === true));
   const candidates = useGameStore((s) => s.candidates);
   const [hiring, setHiring] = useState(false);
+  const [hiringTab, setHiringTab] = useState<HiringTab>('hiring');
+  const openWindow = useGameStore((s) => s.openWindow);
   const cacheMap = useGameStore((s) => s.cacheMap);
+  // 倉庫の欄の開け閉め（ツールバーと W キーで使う）
+  const [warehouseOpen, setWarehouseOpen] = useState(false);
 
   useTickLoop();
+  // キーの表は、ゲームの画面が開いている間だけ効く。M・S・? はポップアップを、W は倉庫の欄を開け閉めする
+  useKeymap(screen === 'game', {
+    togglePopup: (name) => setPopup((p) => (p === name ? null : name)),
+    toggleWarehouse: () => setWarehouseOpen((v) => !v),
+  });
 
   useEffect(() => {
-    // タイトル画面の間は時間を止める
+    // タイトル画面の間は時間を止める。端末の UI の大きさを反映する
     setSpeed(0);
+    applyUiScale(loadSettings().uiScale);
     loadLang('ja_jp').then(() => setReady(true));
     mapLoaders.office_small().then((m) => cacheMap(m.default));
     mapLoaders.hq().then((m) => cacheMap(m.default));
@@ -79,7 +95,8 @@ export function App() {
 
   const startGame = () => {
     setMessage('');
-    setSpeed(1);
+    // 時間を進める初期の速さは設定で決める
+    setSpeed(loadSettings().startSpeed);
     setScreen('game');
   };
 
@@ -142,6 +159,7 @@ export function App() {
           flexWrap: 'wrap',
           alignItems: 'center',
           gap: 14,
+          zoom: 'var(--ui-scale, 1)',
         }}
       >
         <span>
@@ -154,19 +172,25 @@ export function App() {
           <Icon name="icon/calendar" /> {t('ui.hud.date', { month: date.month, day: date.day, hour: date.hour })}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {t('ui.staff.label', { staff, seats })}
+          {/* 押すと、社員の一覧を開く */}
+          <button onClick={() => openWindow('staffList', '')} style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer' }}>
+            {t('ui.staff.label', { staff, seats })}
+          </button>
           {/* 候補が0人のときは押せない（半透明） */}
           <Tooltip text={t('ui.staff.hire')}><button aria-label={t('ui.staff.hire')} style={{ ...hudButton(hiring), opacity: candidates.length > 0 ? 1 : 0.4 }}
-            
+
             disabled={candidates.length === 0}
-            onClick={() => setHiring(!hiring)}
+            onClick={() => {
+              setHiringTab('hiring');
+              setHiring(!hiring);
+            }}
           >
             <Icon name="icon/person" scale={1} />
           </button></Tooltip>
         </span>
         <span style={{ display: 'flex', gap: 4 }}>
           {SPEEDS.map((s) => (
-            <Tooltip text={t(`ui.speed.${s}` as const)} key={s}><button aria-label={t(`ui.speed.${s}` as const)} style={hudButton(speed === s)}  onClick={() => setSpeed(s)}>
+            <Tooltip text={s === 0 ? tipText('ui.speed.0', 'pause') : t(`ui.speed.${s}` as const)} key={s}><button aria-label={t(`ui.speed.${s}` as const)} style={hudButton(speed === s)}  onClick={() => setSpeed(s)}>
               {s === 0 ? (
                 <Icon name="icon/pause" scale={1} />
               ) : (
@@ -180,50 +204,67 @@ export function App() {
         </button>
       </header>
       <TaskPanel />
-      <Windows />
+      <Windows
+        onTraining={() => {
+          setHiringTab('staff');
+          setHiring(true);
+        }}
+      />
       <PortMenu />
-      <Toolbar onOffers={() => setPopup('offers')} onShop={() => setPopup('shop')} />
+      <Toolbar
+        onOffers={() => setPopup('offers')}
+        onShop={() => setPopup('shop')}
+        warehouseOpen={warehouseOpen}
+        setWarehouseOpen={setWarehouseOpen}
+      />
       {popup === 'offers' && <OfferCards onClose={() => setPopup(null)} />}
       {popup === 'shop' && <ShopCards onClose={() => setPopup(null)} />}
-      {hiring && <HiringPanel onClose={() => setHiring(false)} />}
+      {hiring && <HiringPanel tab={hiringTab} onTab={setHiringTab} onClose={() => setHiring(false)} />}
       <TooltipHost />
       {popup === 'menu' && (
-        <div style={modalBack} onClick={() => setPopup(null)}>
-          <div style={{ ...modalBox, minWidth: 200 }} onClick={(e) => e.stopPropagation()}>
-            <button style={menuButton} onClick={onSave}>{t('ui.save')}</button>
-            <button style={menuButton} onClick={onExport}>{t('ui.export')}</button>
-            <label style={{ ...menuButton, textAlign: 'center' }}>
-              {t('ui.import')}
-              <input
-                type="file"
-                accept="application/json"
-                style={{ display: 'none' }}
-                onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])}
-              />
-            </label>
-            <button
-              style={menuButton}
-              onClick={() => {
-                setPopup(null);
-                setSpeed(0);
-                setScreen('title');
-              }}
-            >
-              {t('ui.title.back')}
-            </button>
-            {message && <div style={{ marginTop: 6, fontSize: 13 }}>{message}</div>}
-          </div>
-        </div>
+        <Modal onClose={() => setPopup(null)} boxStyle={{ minWidth: 200 }}>
+          <button style={menuButton} onClick={onSave}>{t('ui.save')}</button>
+          <button style={menuButton} onClick={onExport}>{t('ui.export')}</button>
+          <label style={{ ...menuButton, textAlign: 'center' }}>
+            {t('ui.import')}
+            <input
+              type="file"
+              accept="application/json"
+              style={{ display: 'none' }}
+              onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])}
+            />
+          </label>
+          <button style={menuButton} onClick={() => setPopup('settings')}>
+            {t('ui.menu.settings')}
+          </button>
+          <button
+            style={menuButton}
+            onClick={() => {
+              setPopup(null);
+              setSpeed(0);
+              setScreen('title');
+            }}
+          >
+            {t('ui.title.back')}
+          </button>
+          {message && <div style={{ marginTop: 6, fontSize: 13 }}>{message}</div>}
+        </Modal>
       )}
+      {popup === 'help' && <KeyHelp onClose={() => setPopup(null)} />}
+      {popup === 'settings' && <SettingsPanel onClose={() => setPopup(null)} onOpenKeys={() => setPopup('help')} />}
       <NoticeToast />
       <ReportModal />
       {clock.bankrupt && (
-        <div style={{ ...modalBack, background: 'rgba(20, 20, 30, 0.8)', flexDirection: 'column', gap: 12, color: '#f4f1e6' }}>
+        <Modal
+          primary={onNew}
+          backStyle={{ background: 'rgba(20, 20, 30, 0.8)', flexDirection: 'column', gap: 12, color: '#f4f1e6' }}
+          boxStyle={{ background: 'none', border: 'none', padding: 0, maxWidth: 'none', alignItems: 'center', display: 'flex', flexDirection: 'column', gap: 12 }}
+        >
           <h2 style={{ fontSize: 28, margin: 0 }}>{t('ui.gameover.title')}</h2>
-          <button style={{ padding: '10px 24px', fontSize: 16, cursor: 'pointer' }} onClick={onNew}>
+          <button style={{ ...primaryButton, padding: '10px 24px', fontSize: 16 }} onClick={onNew}>
             {t('ui.gameover.retry')}
           </button>
-        </div>
+        </Modal>
       )}
     </div>
   );

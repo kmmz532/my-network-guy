@@ -8,9 +8,10 @@ import { gameEnv } from '../sim/env';
 import { staffPower } from '../sim/staff';
 import { useGameStore } from '../stores/useGameStore';
 import type { Offer } from '../contracts/template';
-import { modalBack, modalBox } from './Overlay';
+import { Modal, primaryButton, usePrimary } from './Modal';
 import { Icon } from './Icon';
 
+// 依頼の一覧。Enter は一番上の依頼の受注（主のボタン）
 export function OfferCards({ onClose }: { onClose: () => void }) {
   const offers = useGameStore((s) => s.offers);
   // 案件の枠がいっぱいのときは受注できない
@@ -19,17 +20,22 @@ export function OfferCards({ onClose }: { onClose: () => void }) {
   const yen = (n: number) => n.toLocaleString('ja-JP');
 
   return (
-    <div style={modalBack} onClick={onClose}>
-      <div style={{ ...modalBox, minWidth: 320 }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ marginBottom: 8 }}>
-          <Icon name="icon/mail" />
-        </div>
-        {offers.length === 0 && <div style={{ opacity: 0.7 }}>…</div>}
-        {offers.map((offer) => (
-          <OfferCard key={offer.id} offer={offer} full={full} yen={yen} onAccept={(crew) => accept(offer.id, crew) === null && onClose()} />
-        ))}
+    <Modal onClose={onClose} boxStyle={{ minWidth: 320 }}>
+      <div style={{ marginBottom: 8 }}>
+        <Icon name="icon/mail" />
       </div>
-    </div>
+      {offers.length === 0 && <div style={{ opacity: 0.7 }}>…</div>}
+      {offers.map((offer, i) => (
+        <OfferCard
+          key={offer.id}
+          offer={offer}
+          full={full}
+          yen={yen}
+          primary={i === 0}
+          onAccept={(crew) => accept(offer.id, crew) === null && onClose()}
+        />
+      ))}
+    </Modal>
   );
 }
 
@@ -68,11 +74,14 @@ function OfferCard({
   offer,
   full,
   yen,
+  primary,
   onAccept,
 }: {
   offer: Offer;
   full: boolean;
   yen: (n: number) => string;
+  // 一番上の依頼だけ、Enter で受注する主のボタンになる
+  primary: boolean;
   onAccept: (crew: string[]) => void;
 }) {
   const staff = useGameStore((s) => s.staff);
@@ -81,6 +90,8 @@ function OfferCard({
   const [crew, setCrew] = useState<string[]>(() =>
     staff.filter((s) => !busy.includes(s.uid) && s.training === null).map((s) => s.uid),
   );
+  const canAccept = !full && crew.length > 0;
+  usePrimary(primary ? () => canAccept && onAccept(crew) : undefined);
   const hosts = offer.contract.placed.filter((p) => {
     const c = devices[p.device as keyof typeof devices]?.category;
     return c === 'pc' || c === 'server';
@@ -120,8 +131,8 @@ function OfferCard({
           <Icon name="icon/money" /> {yen(offer.contract.reward.money)}
         </span>
         <button
-          style={{ marginLeft: 'auto', padding: '4px 12px', cursor: 'pointer' }}
-          disabled={full || crew.length === 0}
+          style={primary ? { ...primaryButton, marginLeft: 'auto' } : { marginLeft: 'auto', padding: '4px 12px', cursor: 'pointer' }}
+          disabled={!canAccept}
           onClick={() => onAccept(crew)}
         >
           {t('ui.accept')}

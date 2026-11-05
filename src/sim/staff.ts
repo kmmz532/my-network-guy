@@ -1,12 +1,13 @@
 // 社員の生成（STAFF.md「1. 社員のデータ」）。名前・見た目・口癖は乱数の状態から選ぶ。能力の計算は後の段階で加える
 import type { Balance, JobId, Staff } from '../data/schema';
 import { JOB_IDS, STAFF_LOOKS } from '../data/schema';
-import type { Office } from './project';
+import type { Office, Project } from './project';
+import { minutesPerDay } from './clock';
 import { furnitureBonus, seatOf, type BonusEnv } from './furniture';
 import { randInt } from './rng';
 
-// 名前の候補（言語ファイルの staff.name.0 〜 staff.name.29）の数
-export const NAME_COUNT = 30;
+// 名前の候補（言語ファイルの staff.name.0 〜 staff.name.59）の数
+export const NAME_COUNT = 60;
 // 口癖の候補（言語ファイルの staff.quirk.<id>）
 export const QUIRK_IDS = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8'] as const;
 
@@ -16,14 +17,25 @@ export interface StaffSpec {
   salary: number;
 }
 
-// 社員を1人作る。rng は乱数の状態で、更新後の状態も返す。seq は uid の連番（"s" + seq）
-export const createStaff = (spec: StaffSpec, rng: number, seq: number): { staff: Staff; rng: number } => {
-  const name = randInt(rng, 0, NAME_COUNT - 1);
-  const look = randInt(name.state, 0, STAFF_LOOKS.length - 1);
+// 名前を1つ選ぶ。taken（在籍中の社員と、同じ回に作る候補の名前）と重ならない名前から選ぶ。
+// 使っていない名前がなくなったときだけ、重なりを許して全体から選ぶ
+export const pickName = (rng: number, taken: readonly string[]): { name: string; rng: number } => {
+  const used = new Set(taken);
+  const free: number[] = [];
+  for (let i = 0; i < NAME_COUNT; i++) if (!used.has(`staff.name.${i}`)) free.push(i);
+  const pool = free.length > 0 ? free : Array.from({ length: NAME_COUNT }, (_, i) => i);
+  const pick = randInt(rng, 0, pool.length - 1);
+  return { name: `staff.name.${pool[pick.value]}`, rng: pick.state };
+};
+
+// 社員を1人作る。rng は乱数の状態で、更新後の状態も返す。seq は uid の連番（"s" + seq）。taken は重ねたくない名前（言語ファイルのキー）
+export const createStaff = (spec: StaffSpec, rng: number, seq: number, taken: readonly string[] = []): { staff: Staff; rng: number } => {
+  const picked = pickName(rng, taken);
+  const look = randInt(picked.rng, 0, STAFF_LOOKS.length - 1);
   const quirk = randInt(look.state, 0, QUIRK_IDS.length - 1);
   const staff: Staff = {
     uid: `s${seq}`,
-    name: `staff.name.${name.value}`,
+    name: picked.name,
     look: STAFF_LOOKS[look.value],
     quirk: QUIRK_IDS[quirk.value],
     job: spec.job,
@@ -48,7 +60,7 @@ export const initialStaff = (balance: Balance, rng: number): { staff: Staff[]; s
   let state = rng;
   const staff: Staff[] = [];
   balance.staff.initial.forEach((_, i) => {
-    const made = createStaff(specAt(balance, i), state, i);
+    const made = createStaff(specAt(balance, i), state, i, staff.map((s) => s.name));
     state = made.rng;
     staff.push(made.staff);
   });
@@ -79,17 +91,20 @@ export const gainExp = (staff: Staff, amount: number, expPerLevel: number): Staf
 export const totalSalary = (staff: readonly Staff[]): number => staff.reduce((sum, s) => sum + s.salary, 0);
 
 // 採用の候補を毎月作り直す（0人〜maxCandidates人）。level は評判と乱数で決まり、月給は level で決まる
-// 候補の uid は "c" + 月 + "_" + 順番。採用するときに社員の uid へ付け替える
+// 候補の uid は "c" + 月 + "_" + 順番。採用するときに社員の uid へ付け替える。
+// taken は在籍中の社員の名前。候補どうしも名前が重ならない
 export const rollCandidates = (
   reputation: number,
   month: number,
   rng: number,
   balance: Balance,
+  taken: readonly string[] = [],
 ): { candidates: Staff[]; rng: number } => {
   const h = balance.hiring;
   const count = randInt(rng, 0, h.maxCandidates);
   let state = count.state;
   const candidates: Staff[] = [];
+  const names = [...taken];
   for (let i = 0; i < count.value; i++) {
     const bonus = randInt(state, 0, 1);
     const job = randInt(bonus.state, 0, JOB_IDS.length - 1);
@@ -98,11 +113,30 @@ export const rollCandidates = (
       { job: JOB_IDS[job.value], level, salary: h.baseSalary + h.salaryPerLevel * level },
       job.state,
       0,
+      names,
     );
     state = made.rng;
+    names.push(made.staff.name);
     candidates.push({ ...made.staff, uid: `c${month}_${i}` });
   }
   return { candidates, rng: state };
+};
+
+// 社員の状態（札と一覧に出す）。研修中、担当中（案件の名前）、待機中の順に決まる
+export type StaffStatus =
+  | { kind: 'training'; days: number }
+  | { kind: 'project'; baseId: string; params: Project['params'] }
+  | { kind: 'idle' };
+
+// 研修の残りは、今の時刻から期日までの日数（1日未満は1日と数える）
+export const staffStatus = (staff: Staff, active: readonly Project[], minute: number): StaffStatus => {
+  if (staff.training) {
+    const days = Math.max(1, Math.ceil((staff.training.untilMinute - minute) / minutesPerDay));
+    return { kind: 'training', days };
+  }
+  const project = active.find((p) => p.crew.includes(staff.uid));
+  if (project) return { kind: 'project', baseId: project.baseId, params: project.params };
+  return { kind: 'idle' };
 };
 
 // ヒントの段階（1〜3）。担当のうち案件の職種と一致する者の最高 level（いなければ担当全体の最高 level）で決まる。

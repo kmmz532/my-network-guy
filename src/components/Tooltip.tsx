@@ -34,7 +34,7 @@ const boxStyle: CSSProperties = {
   borderRadius: 4,
   padding: '4px 8px',
   fontSize: 12,
-  maxWidth: 220,
+  maxWidth: 'calc(220px * var(--ui-scale, 1))',
   whiteSpace: 'pre-line',
   lineHeight: 1.4,
 };
@@ -58,8 +58,11 @@ export function TooltipHost() {
   const [name, ...rest] = tip.text.split('\n');
   return createPortal(
     <div ref={ref} style={{ ...boxStyle, left: pos?.left ?? -9999, top: pos?.top ?? -9999, visibility: pos ? 'visible' : 'hidden' }}>
-      <div style={{ fontWeight: 'bold' }}>{name}</div>
-      {rest.length > 0 && <div>{rest.join('\n')}</div>}
+      {/* 文字は UI の大きさの倍率を受ける。箱の位置は画面の座標のまま（箱には掛けない） */}
+      <div style={{ zoom: 'var(--ui-scale, 1)' }}>
+        <div style={{ fontWeight: 'bold' }}>{name}</div>
+        {rest.length > 0 && <div>{rest.join('\n')}</div>}
+      </div>
     </div>,
     document.body,
   );

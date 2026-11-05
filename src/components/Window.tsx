@@ -88,18 +88,23 @@ export function Window({ title, rect, movable, closeLabel, onFocus, onMove, onRe
           userSelect: 'none',
         }}
       >
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap' }}>{title}</span>
-        <button
-          aria-label={closeLabel}
-          // 帯の移動を始めないよう、押した位置の処理を止める（止めないと、ボタンの上で移動が始まる）
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={onClose}
-          style={{ flexShrink: 0, width: 22, height: 22, padding: 0, cursor: 'pointer', background: '#25406f', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: 3, lineHeight: '20px' }}
-        >
-          ×
-        </button>
+        {/* 文字と余白は UI の大きさの倍率を受ける（枠の大きさは、動かしたり大きさを変えたりした値のまま） */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, minWidth: 0, width: '100%', zoom: 'var(--ui-scale, 1)' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap' }}>{title}</span>
+          <button
+            aria-label={closeLabel}
+            // 帯の移動を始めないよう、押した位置の処理を止める（止めないと、ボタンの上で移動が始まる）
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={onClose}
+            style={{ flexShrink: 0, width: 22, height: 22, padding: 0, cursor: 'pointer', background: '#25406f', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: 3, lineHeight: '20px' }}
+          >
+            ×
+          </button>
+        </div>
       </div>
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 8 }}>{children}</div>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 8 }}>
+        <div style={{ width: '100%', zoom: 'var(--ui-scale, 1)' }}>{children}</div>
+      </div>
       {movable && (
         <div
           onPointerDown={begin('resize')}

@@ -5,6 +5,7 @@ import type { LangKey } from '../generated/lang-keys';
 import { editNetOf, useGameStore } from '../stores/useGameStore';
 import type { NetLink, NetNode } from '../network/types';
 import { buttonStyle, panelStyle, portLabel } from './devicePorts';
+import { loadSettings } from '../settings/settings';
 
 // 吹き出しの高さの見積もり（行の数で画面からはみ出さないように置く）
 const ROW_PX = 24;
@@ -42,9 +43,10 @@ export function PortMenu() {
   const node = net.nodes.find((n) => n.uid === menu.uid);
   if (!node) return null;
   const rows = rowsOf(node, net.nodes, net.links);
-  // 画面からはみ出さないよう、右端と下端に寄せる
-  const left = Math.max(8, Math.min(menu.x, window.innerWidth - 280));
-  const top = Math.max(8, Math.min(menu.y, window.innerHeight - (rows.length + 1) * ROW_PX - 24));
+  // 画面からはみ出さないよう、右端と下端に寄せる。中身は UI の大きさの倍率で拡大されるため、位置は倍率で割って指定する
+  const k = loadSettings().uiScale;
+  const left = Math.max(8, Math.min(menu.x, window.innerWidth - 280 * k)) / k;
+  const top = Math.max(8, Math.min(menu.y, window.innerHeight - ((rows.length + 1) * ROW_PX + 24) * k)) / k;
   const rowStyle = {
     ...buttonStyle,
     display: 'flex',
@@ -57,7 +59,7 @@ export function PortMenu() {
     fontSize: 12,
   } as const;
   return (
-    <div style={{ ...panelStyle, position: 'fixed', top, left, right: 'auto', width: 260, maxHeight: 'none', padding: 4, fontSize: 12, zIndex: 6 }}>
+    <div style={{ ...panelStyle, position: 'fixed', top, left, right: 'auto', width: 260, maxHeight: 'none', padding: 4, fontSize: 12, zIndex: 6, zoom: 'var(--ui-scale, 1)' }}>
       <button style={rowStyle} onClick={() => state.pickPort(null)}>
         {t('ui.wire.auto')}
       </button>

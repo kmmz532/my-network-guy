@@ -5,29 +5,14 @@ import { balance } from 'virtual:game-data';
 import { useGameStore } from '../stores/useGameStore';
 import type { Report } from '../sim/project';
 import { Icon } from './Icon';
+import { Modal, primaryButton } from './Modal';
+
+// 既存の import 先（modalBack・modalBox）を保つため、部品の定義は Modal.tsx にあり、ここから出す
+export { modalBack, modalBox } from './Modal';
 
 const NOTICE_MS = 3000;
 // 納品の結果は、パケットが流れ切ってから出す
 const REPORT_DELAY_MS = 1500;
-
-export const modalBack = {
-  position: 'absolute',
-  inset: 0,
-  background: 'rgba(20, 20, 30, 0.45)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 10,
-} as const;
-
-export const modalBox = {
-  background: '#2f4f8f',
-  color: '#f4f1e6',
-  padding: 16,
-  borderRadius: 6,
-  border: '2px solid #f4f1e6',
-  maxWidth: 'calc(100vw - 32px)',
-} as const;
 
 // 結果の3項目（費用の割合・失敗回数・納期）。基準は★3の条件、実績は今回の数字。達成の印を付ける
 function EvaluationRows({ report }: { report: Report }) {
@@ -84,27 +69,25 @@ export function ReportModal() {
 
   const stars = report.stars ?? 1;
   return (
-    <div style={modalBack} onClick={dismiss}>
-      <div style={{ ...modalBox, textAlign: 'center', minWidth: 220 }}>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 6 }}>
-          {[1, 2, 3].map((i) => (
-            <span key={i} style={{ opacity: i <= stars ? 1 : 0.25 }}>
-              <Icon name="icon/star" scale={3} />
-            </span>
-          ))}
-        </div>
-        <div style={{ fontSize: 20, marginTop: 8 }}>
-          <Icon name="icon/money" /> +{(report.money ?? 0).toLocaleString('ja-JP')}
-        </div>
-        <div style={{ fontSize: 16, marginTop: 4 }}>
-          <Icon name="icon/star" /> +{report.reputationGain ?? 0}
-        </div>
-        <EvaluationRows report={report} />
-        <button style={{ marginTop: 12, padding: '4px 16px', cursor: 'pointer' }} onClick={dismiss}>
-          <Icon name="icon/ok" />
-        </button>
+    <Modal onClose={dismiss} primary={dismiss} boxStyle={{ textAlign: 'center', minWidth: 220 }}>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 6 }}>
+        {[1, 2, 3].map((i) => (
+          <span key={i} style={{ opacity: i <= stars ? 1 : 0.25 }}>
+            <Icon name="icon/star" scale={3} />
+          </span>
+        ))}
       </div>
-    </div>
+      <div style={{ fontSize: 20, marginTop: 8 }}>
+        <Icon name="icon/money" /> +{(report.money ?? 0).toLocaleString('ja-JP')}
+      </div>
+      <div style={{ fontSize: 16, marginTop: 4 }}>
+        <Icon name="icon/star" /> +{report.reputationGain ?? 0}
+      </div>
+      <EvaluationRows report={report} />
+      <button style={{ ...primaryButton, marginTop: 12 }} onClick={dismiss}>
+        <Icon name="icon/ok" />
+      </button>
+    </Modal>
   );
 }
 
@@ -130,6 +113,7 @@ export function NoticeToast() {
         padding: '6px 14px',
         borderRadius: 4,
         zIndex: 9,
+        zoom: 'var(--ui-scale, 1)',
       }}
     >
       {t(notice.key as LangKey, notice.params)}

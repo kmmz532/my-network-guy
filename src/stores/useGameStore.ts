@@ -1,4 +1,5 @@
 // ゲーム全体の状態。時間・資金・評判・在庫・完了案件・依頼・受注中の案件・速度を持ち、Tick ごとに進める。
+import { loadSettings, saveSettings } from '../settings/settings';
 import { create } from 'zustand';
 import { balance, contracts, contractTemplates, devices, furniture } from 'virtual:game-data';
 import type { FurnitureId } from '../generated/ids';
@@ -440,8 +441,12 @@ export const useGameStore = create<GameState>((set, get) => {
       set({ portMenu: null, wireStart: reason === null ? null : start });
     },
     cancelWire: () => set({ wireStart: null, portMenu: null }),
-    showIp: true,
-    setShowIp: (on) => set({ showIp: on }),
+    // 名前とIPアドレスの表示は端末ごとの設定に保存する（設定の画面と同じ値）
+    showIp: loadSettings().showIp,
+    setShowIp: (on) => {
+      set({ showIp: on });
+      saveSettings({ showIp: on });
+    },
     taskOpen: true,
     setTaskOpen: (open) => set({ taskOpen: open }),
     flash: null,
@@ -482,7 +487,7 @@ export const useGameStore = create<GameState>((set, get) => {
         if (clock.paidMonths > s.clock.paidMonths) {
           const amount = totalSalary(s.staff);
           // 毎月1日に、採用の候補を作り直す
-          const rolled = rollCandidates(s.reputation, clock.paidMonths, s.rng, balance);
+          const rolled = rollCandidates(s.reputation, clock.paidMonths, s.rng, balance, s.staff.map((m) => m.name));
           next = {
             ...next,
             notice: { key: 'ui.notice.salary', params: { amount }, id: Date.now() },

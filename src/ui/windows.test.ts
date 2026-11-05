@@ -222,3 +222,18 @@ describe('覚える位置と大きさ', () => {
     expect(parseMemory(JSON.stringify({ device: { x: 'a', y: 0, w: 1, h: 1 } }))).toEqual({});
   });
 });
+
+describe('社員の一覧のウィンドウ', () => {
+  it('社員の一覧は、開く位置と大きさを種類ごとに覚えて読み直せる', () => {
+    const memory = parseMemory(JSON.stringify({ staffList: { x: 10, y: 20, w: 400, h: 300 } }));
+    expect(memory.staffList).toEqual({ x: 10, y: 20, w: 400, h: 300 });
+    const list = openWindow(empty, 'staffList', '', WIDE, memory);
+    expect(list.windows[0]).toMatchObject({ kind: 'staffList', x: 10, y: 20, w: 400, h: 300 });
+  });
+
+  it('同じ一覧をもう一度開くと、新しく開かずに手前に出す', () => {
+    const first = openWindow(empty, 'staffList', '', WIDE, NONE);
+    const second = openWindow(first, 'staffList', '', WIDE, NONE);
+    expect(second.windows).toHaveLength(1);
+  });
+});
