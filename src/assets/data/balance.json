@@ -17,6 +17,10 @@
     "plant": 1
   },
   "offerIntervalDays": 3,
+  "offerBurst": {
+    "chance": 0.2,
+    "count": 3
+  },
   "staff": {
     "initialCount": 2,
     "initialDesks": [

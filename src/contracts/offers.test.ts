@@ -14,8 +14,9 @@ const map = officeJson as unknown as GameMap;
 const template = templateJson as unknown as ContractTemplate;
 const fixed = [c001, c002] as unknown as Contract[];
 
+// 既存のテストは、1回の追加で1件だけ届く前提（まとめて届く設定は下のテストで確かめる）
 const env: OfferEnv = {
-  balance,
+  balance: { ...balance, offerBurst: undefined },
   fixed,
   templates: [template],
   mapOf: (id) => (id === map.id ? map : undefined),
@@ -100,6 +101,21 @@ describe('依頼の追加', () => {
     expect(next.offers).toHaveLength(1);
     expect(next.offers[0].baseId).toBe('t_small_lan');
     expect(next.offerSeq).toBe(1);
+  });
+
+  it('まとめて届く設定で確率が1なら、2件以上が一度に届き、件数の上限を超えない', () => {
+    const always: OfferEnv = { ...env, balance: { ...balance, offerBurst: { chance: 1, count: 3 } } as Balance };
+    // 固定案件を出し終えた状態（定型案件だけが候補になる）
+    const done = { ...start, reputation: 5, completed: ['c001_direct_link', 'c002_small_office'] };
+    const next = refreshOffers(done, always);
+    expect(next.offers.length).toBeGreaterThanOrEqual(2);
+    expect(next.offers.length).toBeLessThanOrEqual(3);
+  });
+
+  it('まとめて届く確率が0なら、毎回1件だけ届く', () => {
+    const never: OfferEnv = { ...env, balance: { ...balance, offerBurst: { chance: 0, count: 3 } } as Balance };
+    const done = { ...start, reputation: 5, completed: ['c001_direct_link', 'c002_small_office'] };
+    expect(refreshOffers(done, never).offers).toHaveLength(1);
   });
 
   it('受注中の案件は依頼に出さない', () => {

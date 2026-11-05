@@ -42,6 +42,8 @@ export const balanceSchema = z.object({
   // ゲーム開始時の在庫（機器・家具の id と台数）
   initialStock: z.record(z.string(), nonNegativeInt),
   offerIntervalDays: int.positive(),
+  // 依頼がまとめて届く確率（間隔ごと）と、まとめて届くときの件数の上限（2件以上）。省略すると、毎回1件ずつ届く
+  offerBurst: z.object({ chance: z.number().min(0).max(1), count: int.min(2) }).optional(),
   staff: z.object({
     initialCount: int.positive(),
     // ゲーム開始時に置く机の位置（自社オフィスのマス）
