@@ -76,7 +76,17 @@ def outline(img):
     return out
 
 
+# 手で描き直したスプライト。このスクリプトでは上書きしない（描き直すときは一覧から外す）
+MANUAL = {
+    'device/pc_basic.png',
+    'device/server_basic.png',
+    'device/access_point.png',
+}
+
+
 def save(img, path):
+    if path in MANUAL:
+        return
     full = os.path.join(ROOT, path)
     os.makedirs(os.path.dirname(full), exist_ok=True)
     img.save(full)
@@ -741,30 +751,20 @@ def rear_power():
 # 32×32。角の丸い青い板に、3台の機器（白）と、それを結ぶケーブル（緑）を描く
 
 def favicon():
-    # 32×32。黄色の丸い板に、社員（ネットワーク屋）の顔。手にLANケーブルのプラグを持ち、
-    # ケーブルが板の外へ伸びる。プラグの先の緑のLEDが「つながった」を表す
+    # 32×32。ゲームのスイッチのスプライトをそのまま使い、前面のポートから3本のケーブルを下へ伸ばす。
+    # 先に device/l2_switch_8p.png を保存しておく必要がある
+    switch = Image.open(os.path.join(ROOT, 'device', 'l2_switch_8p.png')).convert('RGBA')
+    body = switch.crop(switch.getbbox())
     img, d = new(32, 32)
-    d.ellipse([0, 0, 31, 31], fill=C['y'] + (255,), outline=C['o'] + (255,))
-    d.arc([2, 2, 29, 29], 200, 300, fill=C['e'] + (255,), width=2)
-    # 顔: 肌・髪・耳の影・目・口・ほお
-    d.rounded_rectangle([7, 7, 22, 22], radius=4, fill=C['k'] + (255,), outline=C['o'] + (255,))
-    d.rounded_rectangle([7, 5, 22, 11], radius=3, fill=C['h'] + (255,), outline=C['o'] + (255,))
-    rect(d, 8, 11, 2, 3, 'h')
-    rect(d, 20, 11, 2, 3, 'h')
-    rect(d, 11, 14, 2, 2, 'o')
-    rect(d, 17, 14, 2, 2, 'o')
-    d.line([(13, 19), (16, 19)], fill=C['o'] + (255,))
-    px(d, 12, 18, 'o')
-    px(d, 17, 18, 'o')
-    px(d, 10, 17, 'r')
-    px(d, 19, 17, 'r')
-    # 青いLANケーブルが右下から伸び、透明なプラグの先に緑のLED
-    d.line([(31, 31), (27, 27), (25, 23)], fill=C['b'] + (255,), width=2)
-    rect(d, 21, 18, 6, 6, 'e', 'o')
-    rect(d, 22, 19, 4, 2, 'Y')
-    rect(d, 23, 22, 2, 1, 'g')
-    px(d, 26, 17, 'l')
-    px(d, 27, 16, 'l')
+    d.rounded_rectangle([0, 0, 31, 31], radius=6, fill=C['F2'] + (255,), outline=C['o'] + (255,))
+    d.rounded_rectangle([1, 1, 30, 9], radius=5, fill=C['W1'] + (255,))
+    d.line([(1, 9), (30, 9)], fill=C['W3'] + (255,))
+    x0 = (32 - body.width) // 2
+    y0 = 6
+    # ケーブル: スイッチの下から床へ、青・緑・黄
+    for x, color in ((x0 + 5, 'b'), (x0 + 11, 'l'), (x0 + 17, 'y')):
+        d.line([(x, y0 + body.height - 2), (x, 30)], fill=C[color] + (255,), width=2)
+    img.alpha_composite(body, (x0, y0))
     return img
 
 
@@ -775,9 +775,6 @@ def save_public(img, name):
 
 
 if __name__ == '__main__':
-    fav = favicon()
-    save_public(fav, 'favicon.png')
-    save_public(fav.resize((192, 192), Image.NEAREST), 'icon-192.png')
     rear = {
         'port_empty': rear_port_empty(),
         'port_utp': rear_port_plugged('b', 'B'),
@@ -852,3 +849,6 @@ if __name__ == '__main__':
     for name, img in furniture.items():
         save(img, f'furniture/{name}.png')
     print('ok')
+    fav = favicon()
+    save_public(fav, 'favicon.png')
+    save_public(fav.resize((192, 192), Image.NEAREST), 'icon-192.png')
