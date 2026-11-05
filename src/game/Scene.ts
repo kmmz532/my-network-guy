@@ -4,7 +4,7 @@ import { Application, Container, Graphics, Rectangle, Sprite, Text, type Federat
 import type { GameMap } from '../data/schema';
 import { useGameStore, type Trace } from '../stores/useGameStore';
 import { gameEnv } from '../sim/env';
-import { checkConnect, compiledNet, type Project } from '../sim/project';
+import { checkConnect, compiledNet, DESK_ID, type PlacedFurniture, type Project } from '../sim/project';
 import type { Compiled } from '../network/compile';
 import { subnetColor } from './palette';
 import { texture } from './sprites';
@@ -273,6 +273,9 @@ export class Scene {
     const fastBlink = Math.floor(this.elapsed / 120) % 2 === 0;
     const slowBlink = Math.floor(this.elapsed / 600) % 2 === 0;
 
+    // 自社オフィスの家具は、機材と同じ層で足元のY座標の順に重ねる
+    if (map.id === 'hq') this.drawFurniture(s.office.furniture, ts);
+
     for (const node of project.nodes) {
       const dim = building && !isBuilt(node.uid, 'nodes');
       this.drawNode(node, ts, s.selectedUid === node.uid, dim, project);
@@ -350,11 +353,11 @@ export class Scene {
 
   // 自社オフィスでは、社員が机の前でキーボードを打つ
   private drawDeskStaff(ts: number, hint: string | null): void {
-    const map = this.map!;
-    const desks: [number, number][] = [];
-    for (let y = 0; y < map.height; y++) {
-      for (let x = 0; x < map.width; x++) if (map.legend[map.tiles[y][x]] === 'desk') desks.push([x, y]);
-    }
+    // 席は、自社オフィスの机の家具を並び順に使う
+    const desks = useGameStore
+      .getState()
+      .office.furniture.filter((f) => f.id === DESK_ID)
+      .map((f): [number, number] => [f.x, f.y]);
     const workers = Math.min(desks.length, useGameStore.getState().staff);
     for (let k = 0; k < workers; k++) {
       const [dx, dy] = desks[k];
@@ -389,6 +392,27 @@ export class Scene {
     this.bubbles.addChild(text);
   }
 
+  // 自社オフィスの家具。スプライトの下端をマスの下端に揃え、1マスより高い分は上へはみ出させる
+  private drawFurniture(furniture: PlacedFurniture[], ts: number): void {
+    for (const f of furniture) {
+      const tex = texture(`furniture/${f.id}`);
+      if (!tex) continue;
+      const sprite = new Sprite(tex);
+      sprite.position.set(f.x * ts + Math.round((ts - tex.width) / 2), (f.y + 1) * ts - tex.height);
+      // 机の上に置いたPCより後ろに描く
+      sprite.zIndex = (f.y + 1) * ts - DEVICE_FOOT_INSET - 1;
+      this.sprites.addChild(sprite);
+    }
+  }
+
+  // 自社オフィスで、そのマスに机の家具があるか
+  private deskAt(x: number, y: number): boolean {
+    return (
+      this.map?.id === 'hq' &&
+      useGameStore.getState().office.furniture.some((f) => f.x === x && f.y === y && f.id === DESK_ID)
+    );
+  }
+
   // 機器をドット絵で描く。種類ごとに形を変え、ポートは下の辺に並べる（空きは白抜き、使用中は塗りつぶし）
   private drawNode(node: NetNode, ts: number, selected: boolean, dim: boolean, project: Project): void {
     const g = this.g;
@@ -408,7 +432,7 @@ export class Scene {
     if (tex) {
       const sprite = new Sprite(tex);
       // スプライトの底面の行（y=37）が足元に来る位置。PCは机の天板に載せ、影は付けない
-      const deskTile = this.map?.legend[this.map.tiles[node.y]?.[node.x]] === 'desk';
+      const deskTile = this.deskAt(node.x, node.y);
       const onDesk = deskTile || category === 'pc';
       // 机のないマスに置いたPCには、机も一緒に描く
       const deskTex = !deskTile && category === 'pc' ? texture('furniture/desk') : undefined;
