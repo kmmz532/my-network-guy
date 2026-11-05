@@ -450,6 +450,17 @@ def icon_pc_count():
     return outline(img)
 
 
+def icon_save():
+    # フロッピーディスク。自動保存の印として使う
+    img, d = new(16, 16)
+    rect(d, 2, 2, 12, 12, 'b')
+    rect(d, 4, 2, 8, 4, 'g')
+    rect(d, 9, 3, 2, 2, 'd')
+    rect(d, 4, 9, 8, 5, 'e')
+    d.line([(5, 11), (10, 11)], fill=C['g'])
+    return outline(img)
+
+
 def icon_cart():
     img, d = new(16, 16)
     d.line([(1, 2), (3, 2), (5, 10), (13, 10)], fill=C['g'], width=2)
@@ -894,6 +905,7 @@ if __name__ == '__main__':
         'device': icon_device(),
         'furniture': icon_furniture(),
         'cart': icon_cart(),
+        'save': icon_save(),
         'warehouse': icon_warehouse(),
         'person': icon_person(),
         'cursor': icon_cursor(),

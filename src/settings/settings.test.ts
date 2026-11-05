@@ -19,8 +19,8 @@ describe('parseSettings（端末の設定の読み込み）', () => {
   });
 
   it('正しい値はそのまま読む', () => {
-    const s = parseSettings(JSON.stringify({ uiScale: 1.25, guide: false, showIp: false, startSpeed: 4, pausedBuild: 'stay' }));
-    expect(s).toEqual({ uiScale: 1.25, guide: false, showIp: false, startSpeed: 4, pausedBuild: 'stay' });
+    const s = parseSettings(JSON.stringify({ uiScale: 1.25, guide: false, showIp: false, startSpeed: 4, pausedBuild: 'stay', autoSave: 'weekly' }));
+    expect(s).toEqual({ uiScale: 1.25, guide: false, showIp: false, startSpeed: 4, pausedBuild: 'stay', autoSave: 'weekly' });
   });
 
   it('UIの大きさは 80・100・125・150% の4つだけ', () => {
@@ -28,6 +28,28 @@ describe('parseSettings（端末の設定の読み込み）', () => {
       expect(parseSettings(JSON.stringify({ uiScale: v })).uiScale).toBe(v);
     }
     expect(parseSettings(JSON.stringify({ uiScale: 1.1 })).uiScale).toBe(1);
+  });
+});
+
+describe('自動保存の間隔', () => {
+  it('既定は毎日', () => {
+    expect(DEFAULT_SETTINGS.autoSave).toBe('daily');
+  });
+
+  it('キーがない古い設定は既定の毎日になる（他の項目はそのまま読む）', () => {
+    const s = parseSettings(JSON.stringify({ uiScale: 1.25, showIp: false }));
+    expect(s.autoSave).toBe('daily');
+    expect(s.uiScale).toBe(1.25);
+    expect(s.showIp).toBe(false);
+  });
+
+  it('しない・毎日・毎週の3つを読み、それ以外は既定に戻す', () => {
+    for (const v of ['off', 'daily', 'weekly']) {
+      expect(parseSettings(JSON.stringify({ autoSave: v })).autoSave).toBe(v);
+    }
+    for (const v of ['hourly', true, 1, null]) {
+      expect(parseSettings(JSON.stringify({ autoSave: v })).autoSave).toBe('daily');
+    }
   });
 });
 

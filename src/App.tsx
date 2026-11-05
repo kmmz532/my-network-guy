@@ -9,6 +9,7 @@ import { focusedProject, useGameStore, type Speed } from './stores/useGameStore'
 import { useTickLoop } from './stores/useTickLoop';
 import { toDate } from './sim/clock';
 import { loadSlot, saveSlot } from './services/db';
+import { createSaveQueue, isAutoSaveDue } from './services/autoSave';
 import { exportSave, importSave } from './services/saveFile';
 import { NoticeToast, ReportModal } from './components/Overlay';
 import { Modal, primaryButton } from './components/Modal';
@@ -36,6 +37,8 @@ const SLOT = 1;
 const SPEEDS: Speed[] = [0, 1, 2, 4];
 // 速さを変えたときに画面上部に出す表示は、この時間で消す
 const SPEED_NOTE_MS = 1000;
+// 自動保存の印（ヘッダーの小さなアイコン）は、この時間で消す
+const SAVE_MARK_MS = 1000;
 
 type Screen = 'title' | 'game';
 type Popup = 'offers' | 'shop' | 'menu' | 'help' | 'settings' | null;
@@ -65,6 +68,19 @@ export function App() {
   // 速さを変えたときの短い表示（1秒で消す）
   const [speedNote, setSpeedNote] = useState<{ speed: Speed; id: number } | null>(null);
   const lastSpeed = useRef(speed);
+  // 自動保存の印を出している間だけ値を持つ（自動保存が終わった時刻）
+  const [saveMark, setSaveMark] = useState<number | null>(null);
+  // 自動保存の直列化。実行中に次の要求が来たら、終わってから1回だけ書く（書く内容は実行時点の状態）
+  const [autoSaver] = useState(() =>
+    createSaveQueue(async () => {
+      try {
+        await saveSlot(SLOT, useGameStore.getState().snapshot());
+        setSaveMark(Date.now());
+      } catch {
+        // 保存できなかったときは印を出さない
+      }
+    }),
+  );
   const load = useGameStore((s) => s.load);
   const snapshot = useGameStore((s) => s.snapshot);
   const newGame = useGameStore((s) => s.newGame);
@@ -126,6 +142,46 @@ export function App() {
       mapLoaders[activeMap as keyof typeof mapLoaders]().then((m) => cacheMap(m.default));
     }
   }, [activeMap]);
+
+  useEffect(() => {
+    if (!saveMark) return;
+    const timer = window.setTimeout(() => setSaveMark(null), SAVE_MARK_MS);
+    return () => window.clearTimeout(timer);
+  }, [saveMark]);
+
+  // 設定が「しない」のときは保存しない。保存の判定は、その時点の設定で行う
+  const autoSaveNow = () => {
+    if (loadSettings().autoSave !== 'off') void autoSaver();
+  };
+
+  // 設定の間隔で、ゲーム内の朝0時を越えたら保存する（時間が戻った読み込みでは保存しない）
+  const lastMinute = useRef(clock.minute);
+  useEffect(() => {
+    const prev = lastMinute.current;
+    lastMinute.current = clock.minute;
+    if (screen === 'game' && isAutoSaveDue(loadSettings().autoSave, prev, clock.minute)) autoSaveNow();
+  }, [clock.minute]);
+
+  // 案件を納品したとき（検収に通った報告が届いたとき）に保存する
+  const lastReport = useGameStore((s) => s.lastReport);
+  useEffect(() => {
+    if (screen === 'game' && lastReport?.passed) autoSaveNow();
+  }, [lastReport]);
+
+  // ページを隠すとき・閉じるときに保存する
+  useEffect(() => {
+    if (screen !== 'game') return;
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') autoSaveNow();
+    };
+    const onPageHide = () => autoSaveNow();
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', onPageHide);
+    };
+  }, [screen]);
 
   if (!ready) return null;
 
@@ -237,7 +293,15 @@ export function App() {
           ))}
           {nightSpeed !== null && <span style={{ fontSize: 12, alignSelf: 'center' }}>{t('ui.night.fast')}</span>}
         </span>
-        <button style={{ ...hudButton(false), marginLeft: 'auto' }} onClick={() => setPopup('menu')}>
+        {/* 自動保存の印。文字は出さず、ツールチップだけ */}
+        {saveMark !== null && (
+          <Tooltip text={t('ui.autosave.mark')}>
+            <span role="status" aria-label={t('ui.autosave.mark')} style={{ display: 'inline-flex', marginLeft: 'auto' }}>
+              <Icon name="icon/save" scale={1} />
+            </span>
+          </Tooltip>
+        )}
+        <button style={{ ...hudButton(false), marginLeft: saveMark !== null ? 0 : 'auto' }} onClick={() => setPopup('menu')}>
           <Icon name="icon/menu" scale={1} />
         </button>
       </header>

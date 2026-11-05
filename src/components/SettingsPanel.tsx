@@ -2,7 +2,7 @@
 // 名前とIPアドレスの表示は、ツールバーの「IP」ボタンと同じ値（ストアの showIp）を使う。
 import { useState, type ReactNode } from 'react';
 import { t } from '../i18n/t';
-import { applyUiScale, loadSettings, PAUSED_BUILD_MODES, saveSettings, START_SPEEDS, UI_SCALES, type Settings } from '../settings/settings';
+import { applyUiScale, AUTO_SAVE_MODES, loadSettings, PAUSED_BUILD_MODES, saveSettings, START_SPEEDS, UI_SCALES, type Settings } from '../settings/settings';
 import { useGameStore } from '../stores/useGameStore';
 import { Modal, primaryButton } from './Modal';
 import { RADIUS } from '../ui/theme';
@@ -111,6 +111,13 @@ export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; on
           options={PAUSED_BUILD_MODES.map((v) => ({ value: v, label: t(`ui.settings.pausedBuild.${v}` as const) }))}
           value={settings.pausedBuild}
           onChange={(v) => update({ pausedBuild: v })}
+        />
+      </Row>
+      <Row label={t('ui.settings.autoSave')}>
+        <Choice
+          options={AUTO_SAVE_MODES.map((v) => ({ value: v, label: t(`ui.settings.autoSave.${v}` as const) }))}
+          value={settings.autoSave}
+          onChange={(v) => update({ autoSave: v })}
         />
       </Row>
       <div style={{ marginTop: 14 }}>

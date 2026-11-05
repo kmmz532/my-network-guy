@@ -11,6 +11,10 @@ export type StartSpeed = (typeof START_SPEEDS)[number];
 export const PAUSED_BUILD_MODES = ['ask', 'play', 'stay'] as const;
 export type PausedBuildMode = (typeof PAUSED_BUILD_MODES)[number];
 
+// 自動保存の間隔。off はしない、daily はゲーム内の毎日の朝0時、weekly は7日ごと（開始日から数えて7の倍数の日の朝0時）
+export const AUTO_SAVE_MODES = ['off', 'daily', 'weekly'] as const;
+export type AutoSaveMode = (typeof AUTO_SAVE_MODES)[number];
+
 export interface Settings {
   uiScale: UiScale;
   // 初めての概念の案内を出すか（P7 で使う。今は保存するだけ）
@@ -21,6 +25,8 @@ export interface Settings {
   startSpeed: StartSpeed;
   // 時間が止まっているときの施工の扱い（「今後この確認を出さない」で変える）
   pausedBuild: PausedBuildMode;
+  // 自動保存の間隔（既定は毎日。セーブデータのスロットへ書く）
+  autoSave: AutoSaveMode;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -29,6 +35,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showIp: true,
   startSpeed: 1,
   pausedBuild: 'ask',
+  autoSave: 'daily',
 };
 
 export const SETTINGS_KEY = 'network-ya.settings.v1';
@@ -54,6 +61,9 @@ export function parseSettings(raw: string | null): Settings {
     pausedBuild: (PAUSED_BUILD_MODES as readonly unknown[]).includes(d.pausedBuild)
       ? (d.pausedBuild as PausedBuildMode)
       : DEFAULT_SETTINGS.pausedBuild,
+    autoSave: (AUTO_SAVE_MODES as readonly unknown[]).includes(d.autoSave)
+      ? (d.autoSave as AutoSaveMode)
+      : DEFAULT_SETTINGS.autoSave,
   };
 }
 
