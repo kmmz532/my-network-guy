@@ -11,6 +11,7 @@ import officeJson from '../assets/data/maps/office_small.json';
 import type { Balance, Contract, Furniture, GameMap } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { initialStaff } from './staff';
+import { autoAssign } from './autoAssign';
 import {
   abandon,
   accept,
@@ -573,6 +574,15 @@ describe('自社案件', () => {
   });
 });
 
+// 案件の manualIp を外す（自動割り当てを確かめるため。c001 は manualIp を持つ）
+const autoIpOn = (core: Core): Core =>
+  autoAssign(
+    { ...core, active: core.active.map((p) => ({ ...p, contract: { ...p.contract, manualIp: false } })) },
+    env,
+    'focus',
+    true,
+  );
+
 describe('IPアドレスとセグメントの設定', () => {
   // 2台を配線した c001 の設計中の状態
   const wired = (): Core => ok(connect(ok(take(start(), 'c001_direct_link')).core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
@@ -591,28 +601,35 @@ describe('IPアドレスとセグメントの設定', () => {
     expect(designIssues(cur(core)!, env).pc_b).toEqual({ reason: 'ip.out_of_segment', ip: '10.0.0.1', segment: '192.168.7.0/24' });
   });
 
-  it('ネットワークを設定すると、ホストに空いているアドレスを .11 から順に割り当てる', () => {
+  it('setSegment はネットワークの設定だけを行い、機器のアドレスは振らない（振るのは autoAssign）', () => {
     const core = ok(setSegment(wired(), 'pc_a', 0, '192.168.5.0', 24, env)).core;
     expect(cur(core)?.segments).toEqual({ 'pc_a:0': { network: '192.168.5.0', prefix: 24 } });
     const ips = Object.fromEntries(cur(core)!.nodes.map((n) => [n.uid, n.interfaces[0]?.ip]));
-    expect(ips).toEqual({ pc_a: '192.168.5.11', pc_b: '192.168.5.12' });
+    expect(ips).toEqual({ pc_a: undefined, pc_b: undefined });
+    expect(designIssues(cur(core)!, env)).toMatchObject({ pc_a: { reason: 'ip.unset' } });
+  });
+
+  it('ネットワークを設定してから autoAssign を呼ぶと、ホストに空いているアドレスを .10 から順に割り当てる', () => {
+    const core = autoIpOn(ok(setSegment(wired(), 'pc_a', 0, '192.168.5.0', 24, env)).core);
+    const ips = Object.fromEntries(cur(core)!.nodes.map((n) => [n.uid, n.interfaces[0]?.ip]));
+    expect(ips).toEqual({ pc_a: '192.168.5.10', pc_b: '192.168.5.11' });
     expect(designIssues(cur(core)!, env)).toEqual({});
   });
 
-  it('変更したネットワークの範囲外になったアドレスは、割り当て直す', () => {
-    let core = ok(setSegment(wired(), 'pc_a', 0, '192.168.5.0', 24, env)).core;
+  it('setSegment は範囲外になった既存のアドレスを変えない（そのまま残り、設計の不備になる）', () => {
+    let core = ok(setInterface(wired(), 'pc_a', 0, '192.168.5.11', 24, env)).core;
     core = ok(setSegment(core, 'pc_a', 0, '10.1.0.0', 24, env)).core;
     const ips = Object.fromEntries(cur(core)!.nodes.map((n) => [n.uid, n.interfaces[0]?.ip]));
-    expect(ips).toEqual({ pc_a: '10.1.0.11', pc_b: '10.1.0.12' });
+    expect(ips).toEqual({ pc_a: '192.168.5.11', pc_b: undefined });
   });
 
   it('アドレスの候補は、使用中のアドレスに使っている機器を付けて一覧にする', () => {
-    const core = ok(setSegment(wired(), 'pc_a', 0, '192.168.5.0', 24, env)).core;
+    const core = autoIpOn(ok(setSegment(wired(), 'pc_a', 0, '192.168.5.0', 24, env)).core);
     const list = addressCandidates(core, 'pc_a', 0, env);
     expect(list).toHaveLength(254);
     expect(list[0]).toEqual({ ip: '192.168.5.1', usedBy: null });
     expect(list[list.length - 1].ip).toBe('192.168.5.254');
-    expect(list.find((c) => c.ip === '192.168.5.11')?.usedBy).toEqual({ node: 'pc_a', port: 0 });
+    expect(list.find((c) => c.ip === '192.168.5.10')?.usedBy).toEqual({ node: 'pc_a', port: 0 });
   });
 
   it('設定のないセグメントの候補は空の一覧になる', () => {

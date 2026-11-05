@@ -27,6 +27,8 @@ export interface Settings {
   pausedBuild: PausedBuildMode;
   // 自動保存の間隔（既定は毎日。セーブデータのスロットへ書く）
   autoSave: AutoSaveMode;
+  // PC・サーバーのIPアドレスを、つないだセグメントの空いているアドレスから自動で振るか（既定はオン）
+  autoIp: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -36,6 +38,7 @@ export const DEFAULT_SETTINGS: Settings = {
   startSpeed: 1,
   pausedBuild: 'ask',
   autoSave: 'daily',
+  autoIp: true,
 };
 
 export const SETTINGS_KEY = 'network-ya.settings.v1';
@@ -64,6 +67,7 @@ export function parseSettings(raw: string | null): Settings {
     autoSave: (AUTO_SAVE_MODES as readonly unknown[]).includes(d.autoSave)
       ? (d.autoSave as AutoSaveMode)
       : DEFAULT_SETTINGS.autoSave,
+    autoIp: typeof d.autoIp === 'boolean' ? d.autoIp : DEFAULT_SETTINGS.autoIp,
   };
 }
 

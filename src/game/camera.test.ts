@@ -5,16 +5,29 @@ import { clampCamera, fitCamera, fitZoom, panCamera, resizeCamera, stepZoom, zoo
 const MAP = { w: 512, h: 384 };
 const VIEW = { w: 1000, h: 700 };
 
-describe('fitZoom（画面に収まる最大の整数倍。1〜4倍）', () => {
-  it('画面に収まる最大の整数倍にする', () => {
+describe('fitZoom（全体表示の倍率。収まる最大の倍率、0.5〜4倍）', () => {
+  it('整数倍で収まる倍率が、収まる最大の値の 85% 以上なら整数倍にする', () => {
+    // 2.083 倍が収まる。整数の 2 倍は 2.083 の 96% なので 2 倍
     expect(fitZoom(MAP, { w: 1100, h: 800 })).toBe(2);
-    expect(fitZoom(MAP, { w: 1000, h: 700 })).toBe(1);
+    // 1.823 倍が収まる。整数の 1 倍は 55% なので小数倍
+    expect(fitZoom(MAP, { w: 1000, h: 700 })).toBe(1.75);
     expect(fitZoom({ w: 100, h: 100 }, { w: 1000, h: 1000 })).toBe(4);
   });
 
-  it('収まらないときは 1 倍（4倍を超えない）', () => {
-    expect(fitZoom(MAP, { w: 300, h: 200 })).toBe(1);
+  it('整数倍が 85% に届かないときは、0.25 刻みに切り下げる', () => {
+    // 収まる最大は 1.455 倍。1 倍は 69% なので 1.25 倍
+    expect(fitZoom({ w: 224, h: 256 }, { w: 326, h: 670 })).toBe(1.25);
+    // 収まる最大は 1.99 倍。2 倍は収まらないので 1.75 倍（1.99 は 0.25 刻みで 1.75）
+    expect(fitZoom({ w: 100, h: 100 }, { w: 199, h: 1000 })).toBe(1.75);
+  });
+
+  it('画面に収まる最大の倍率は 4 倍を超えない', () => {
     expect(fitZoom({ w: 10, h: 10 }, { w: 2000, h: 2000 })).toBe(4);
+  });
+
+  it('収まらないときも 0.5 倍を下限にする（これより小さくはしない）', () => {
+    expect(fitZoom(MAP, { w: 300, h: 200 })).toBe(0.5);
+    expect(fitZoom({ w: 1000, h: 1000 }, { w: 100, h: 100 })).toBe(0.5);
   });
 });
 
@@ -29,15 +42,23 @@ describe('stepZoom（段階の移動）', () => {
     expect(stepZoom(4, 1)).toBe(4);
     expect(stepZoom(1, -1)).toBe(1);
   });
+
+  it('全体表示の小数倍からは、拡大は次の整数倍、縮小は前の整数倍へ移る', () => {
+    expect(stepZoom(1.25, 1)).toBe(2);
+    expect(stepZoom(1.75, -1)).toBe(1);
+    expect(stepZoom(3.5, 1)).toBe(4);
+    // 1 倍より小さいときは縮小しない
+    expect(stepZoom(0.5, -1)).toBe(0.5);
+  });
 });
 
 describe('fitCamera（全体）', () => {
   it('画面に収まる倍率で中央に置き、全体の状態にする', () => {
     const cam = fitCamera(MAP, VIEW);
-    expect(cam.zoom).toBe(1);
+    expect(cam.zoom).toBe(1.75);
     expect(cam.fit).toBe(true);
-    expect(cam.x).toBe(Math.round((1000 - 512) / 2));
-    expect(cam.y).toBe(Math.round((700 - 384) / 2));
+    expect(cam.x).toBe(Math.round((1000 - 512 * 1.75) / 2));
+    expect(cam.y).toBe(Math.round((700 - 384 * 1.75) / 2));
   });
 });
 

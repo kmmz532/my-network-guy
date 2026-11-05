@@ -16,6 +16,7 @@ import type { Service } from '../network/types';
 import { evaluateContract } from '../network/goals';
 import { compile } from '../network/compile';
 import { initialStaff } from './staff';
+import { autoAssign } from './autoAssign';
 import {
   accept,
   advanceBuild,
@@ -174,6 +175,7 @@ describe('サービスの起動と停止（setService）', () => {
     let core = officeServer();
     core = ok(connect(core, 'u0', 'u1', 'utp_cat5e', env)).core;
     core = ok(setSegment(core, 'u0', 0, '192.168.1.0', 24, env)).core;
+    core = autoAssign(core, env, 'focus', true);
     const contract = i002 as unknown as Contract;
     const passed = (c: Core) => evaluateContract(contract, compiledNet(cur(c), env).net, env.engine).passed;
     expect(passed(core)).toBe(true);

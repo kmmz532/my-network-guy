@@ -4,7 +4,7 @@ import type { Balance, Contract, Furniture, GameMap, JobId, Staff } from '../dat
 import { renameNode } from '../network/nodeName';
 import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
-import { inSubnet, ipToInt, linkLength } from '../network/engine';
+import { ipToInt, linkLength } from '../network/engine';
 import { compile, type IssueDetail } from '../network/compile';
 import {
   PREFIX_MAX,
@@ -16,12 +16,10 @@ import {
   segmentConfigOf,
   segmentOf,
   segmentsOf,
-  epKey,
   type Segment,
 } from '../network/segments';
 import type {
   EngineData,
-  Endpoint,
   FailureReason,
   Iface,
   NetLink,
@@ -107,6 +105,8 @@ export interface Report {
   cost?: number;
   budget?: number;
   rework?: number;
+  // 設計の不備の件数（0件なら★の上限に影響しない）
+  designIssues?: number;
   traces: Trace[];
   // 不合格のとき、達成条件ごとの判定（マップの「×」と案件の欄で使う）
   check?: { projectId: string; goals: GoalCheck[] };
@@ -329,7 +329,8 @@ export const accept = (core: Core, offerId: string, slots: number, crew: string[
 const servicesOf = (env: Env, deviceId: string): Service[] => (env.devices[deviceId]?.defaultServices ?? []).map((s) => ({ ...s }));
 
 // 自社オフィスに機器を置けるかを判定する。置けなければ失敗の理由を返す
-// PCは机の家具があり、その上に機器がないマスだけ。PC以外は床で、家具も機器もないマスだけ
+// PCは机の家具があり、その上に機器がないマスだけ。PC以外は床で、家具も機器もないマスだけ。
+// anyFloor（サンドボックス）のときは、PCも机なしで床に置ける
 const officePlaceReason = (
   furniture: PlacedFurniture[],
   nodes: NetNode[],
@@ -338,9 +339,10 @@ const officePlaceReason = (
   y: number,
   map: GameMap,
   env: Env,
+  anyFloor = false,
 ): string | null => {
   const hasNode = nodes.some((n) => n.x === x && n.y === y);
-  if (env.devices[deviceId].category === 'pc') {
+  if (env.devices[deviceId].category === 'pc' && !anyFloor) {
     const onDesk = furniture.some((f) => f.x === x && f.y === y && f.id === DESK_ID);
     return !onDesk || hasNode ? 'desk' : null;
   }
@@ -360,8 +362,9 @@ const placeReason = (
   y: number,
   map: GameMap,
   env: Env,
+  anyFloor = false,
 ): string | null => {
-  if (inhouse) return officePlaceReason(furniture, nodes, deviceId, x, y, map, env);
+  if (inhouse) return officePlaceReason(furniture, nodes, deviceId, x, y, map, env, anyFloor);
   const kind = map.legend[map.tiles[y][x]];
   if (kind !== 'floor' && !(kind === 'desk' && env.devices[deviceId].category === 'pc')) return 'tile';
   if (nodes.some((n) => n.x === x && n.y === y)) return 'tile';
@@ -397,13 +400,13 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
 };
 
 // 案件がないときに、在庫の機材を自社オフィスへ置く。配線は自社案件と同じ規則で行う
-export const placeInOffice = (core: Core, deviceId: string, x: number, y: number, map: GameMap, env: Env): Outcome => {
+export const placeInOffice = (core: Core, deviceId: string, x: number, y: number, map: GameMap, env: Env, anyFloor = false): Outcome => {
   if (officeLocked(core)) return fail('inhouse');
   if (!env.devices[deviceId]) return fail('none');
   if ((core.owned[deviceId] ?? 0) < 1) return fail('stock');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
   const office = core.office;
-  const reason = officePlaceReason(office.furniture, office.nodes, deviceId, x, y, map, env);
+  const reason = officePlaceReason(office.furniture, office.nodes, deviceId, x, y, map, env, anyFloor);
   if (reason) return fail(reason);
   const node: NetNode = {
     uid: `u${office.seq}`,
@@ -480,7 +483,7 @@ export const officeLocked = (core: Core): boolean => core.active.some((p) => p.c
 export type NetTarget = 'focus' | 'office';
 
 // 対象のネットワーク（機器・配線・採番・セグメントの設定）。案件・自社オフィスのどちらも同じ形で扱う
-interface Net {
+export interface Net {
   nodes: NetNode[];
   links: NetLink[];
   seq: number;
@@ -488,7 +491,7 @@ interface Net {
 }
 
 // 対象のネットワークを取り出す。設計中の案件でない、または自社オフィスが案件に使われていれば理由を返す
-const netOf = (core: Core, target: NetTarget): Net | string => {
+export const netOf = (core: Core, target: NetTarget): Net | string => {
   if (target === 'office') {
     if (officeLocked(core)) return 'inhouse';
     const o = core.office;
@@ -500,7 +503,7 @@ const netOf = (core: Core, target: NetTarget): Net | string => {
 };
 
 // 対象のネットワークを書き戻す
-const withNet = (core: Core, target: NetTarget, net: Net): Core => {
+export const withNet = (core: Core, target: NetTarget, net: Net): Core => {
   if (target === 'office') {
     return { ...core, office: { ...core.office, nodes: net.nodes, links: net.links, seq: net.seq, segments: net.segments } };
   }
@@ -783,7 +786,7 @@ const payCable = (core: Core, target: NetTarget, delta: number): Core => {
 // 機器を別のマスへ動かす。置ける条件は配置と同じ（自社オフィスの規則、または床）。
 // つながるケーブルは新しい位置に合わせて経路と長さを引き直し、費用の差額を払う（返す）。
 // 施工済みの機器を動かすと、その機器とつながるケーブルは施工前に戻る。既設（locked）の機器と、既設のケーブルにつながる機器は動かせない
-export const moveNode = (core: Core, uid: string, x: number, y: number, env: Env, target: NetTarget, map: GameMap): Outcome => {
+export const moveNode = (core: Core, uid: string, x: number, y: number, env: Env, target: NetTarget, map: GameMap, anyFloor = false): Outcome => {
   const net = netOf(core, target);
   if (typeof net === 'string') return fail(net);
   const node = net.nodes.find((n) => n.uid === uid);
@@ -795,7 +798,7 @@ export const moveNode = (core: Core, uid: string, x: number, y: number, env: Env
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
   const inhouse = project === null || project.contract.inhouse;
   const others = net.nodes.filter((n) => n.uid !== uid);
-  const reason = placeReason(inhouse, core.office.furniture, others, node.device, x, y, map, env);
+  const reason = placeReason(inhouse, core.office.furniture, others, node.device, x, y, map, env, anyFloor);
   if (reason) return fail(reason);
 
   const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, x, y } : n));
@@ -925,8 +928,8 @@ export const setService = (
     target,
   );
 
-// セグメントのネットワークを設定する。ホストの初期値は .11 から、ルーターの初期値は .1 から、空いているアドレスを割り当てる。
-// 設定の変更で範囲外になったアドレスは、割り当て直す。案件で設定が固定された機器を含むセグメントは変えられない。
+// セグメントのネットワークを設定する。設定だけを行い、機器のアドレスは変えない（未設定のアドレスは IPアドレスの自動割り当て autoAssign が振る）。
+// 案件で設定が固定された機器を含むセグメントは変えられない。
 // 対象は、機器のポートが属するセグメント（配線がなければ none）
 export const setSegment = (
   core: Core,
@@ -945,42 +948,8 @@ export const setSegment = (
   if (seg.members.some((m) => byUid.get(m.node)?.configLocked)) return fail('locked');
   if (!isIp(network) || prefix < PREFIX_MIN || prefix > PREFIX_MAX || networkAddress(network, prefix) !== network) return fail('ip');
   if (seg.members.length > hostCapacity(prefix)) return fail('segment.too_small');
-
-  const base = ipToInt(network);
-  const size = 2 ** (32 - prefix);
-  const ifaceOf = (m: Endpoint) => byUid.get(m.node)?.interfaces.find((i) => i.port === m.port);
-  // 割り当てし直す端点: 機器がないか、範囲外のアドレスの端点
-  const todo = seg.members.filter((m) => {
-    const i = ifaceOf(m);
-    return !i || !inSubnet(i.ip, network, prefix);
-  });
-  const todoKeys = new Set(todo.map((m) => epKey(m.node, m.port)));
-  const used = new Set<number>();
-  for (const n of net.nodes) for (const i of n.interfaces) if (!todoKeys.has(epKey(n.uid, i.port))) used.add(ipToInt(i.ip));
-  const pickFree = (from: number): number | undefined => {
-    for (let h = from; h <= size - 2; h++) if (!used.has(base + h)) return h;
-    return undefined;
-  };
-  const assigned = new Map<string, string>();
-  for (const m of todo) {
-    const isRouter = env.engine.categoryOf(byUid.get(m.node)!.device) === 'router';
-    const h = pickFree(isRouter ? 1 : 11) ?? pickFree(1);
-    if (h === undefined) continue;
-    used.add(base + h);
-    assigned.set(epKey(m.node, m.port), intToIp(base + h));
-  }
-
-  const nodes = net.nodes.map((n) => {
-    let interfaces = n.interfaces;
-    for (const m of todo) {
-      if (m.node !== n.uid) continue;
-      const ip = assigned.get(epKey(m.node, m.port));
-      if (ip) interfaces = [...interfaces.filter((i) => i.port !== m.port), { port: m.port, ip, prefix }];
-    }
-    return interfaces === n.interfaces ? n : { ...n, interfaces };
-  });
   const segments = { ...net.segments, [seg.key]: { network, prefix } };
-  return { ok: true, core: withNet(core, target, { ...net, nodes, segments }) };
+  return { ok: true, core: withNet(core, target, { ...net, segments }) };
 };
 
 // アドレスの候補（セグメントで使えるアドレスの一覧）。使用中のアドレスには、使っている機器とポートを付ける
@@ -1134,9 +1103,10 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
   const j = judge(p, env);
   const traces = j.traces;
   if (j.passed) {
-    // 期日に遅れたら、遅れた日数に応じて報酬が減り、★は2が上限になる
+    // 期日に遅れたら、遅れた日数に応じて報酬が減る。遅れた案件と設計の不備がある案件は、★は2が上限になる
     const lateDays = lateDaysOf(p.due, core.clock.minute);
-    const stars = rate(p.cost, p.contract.budget, p.rework, lateDays > 0, env.balance);
+    const issues = Object.keys(designIssues(p, env)).length;
+    const stars = rate(p.cost, p.contract.budget, p.rework, lateDays > 0, issues, env.balance);
     // 報酬は、期日の割合と★ごとの倍率を掛けた額
     const money = Math.round(p.contract.reward.money * lateFactor(lateDays, env.balance) * rewardRateOf(stars, env.balance));
     const reputation = core.reputation + p.contract.reward.reputation + stars * env.balance.reputationPerStar;
@@ -1166,6 +1136,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
         cost: p.cost,
         budget: p.contract.budget,
         rework: p.rework,
+        designIssues: issues,
         reputationGain: reputation - core.reputation,
         failures: [],
       },

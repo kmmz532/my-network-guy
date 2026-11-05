@@ -1,9 +1,18 @@
 // マップの拡大・縮小と移動の計算（純粋関数）。描画と操作は Scene.ts が行い、ここでは位置と倍率だけを求める。
-// 拡大率は整数倍（1〜4倍）だけにする。小数倍だとドット絵がにじむため。
+// 拡大率は、マウス・キーでの拡大縮小では整数倍（1〜4倍）だけにする。
+// 全体表示（fit）だけ小数倍を許す（0.5〜4倍、0.25 刻み）。ドット絵のテクスチャは nearest で描くため、にじまない。
 // 位置（x・y）は画面の座標（px）で、マップの左上の点が画面のどこにあるかを表す。整数に丸める。
 
 export const ZOOM_LEVELS = [1, 2, 3, 4] as const;
-export type Zoom = (typeof ZOOM_LEVELS)[number];
+// 拡大率。段階の移動は ZOOM_LEVELS の整数倍、全体表示だけ小数倍を取る
+export type Zoom = number;
+
+// 全体表示の拡大率の範囲と刻み
+const FIT_MIN = 0.5;
+const FIT_MAX = 4;
+const FIT_STEP = 0.25;
+// 整数倍で収まる倍率が、収まる最大の値のこの割合以上なら、整数倍を使う（にじみを避ける）
+const INTEGER_KEEP_RATIO = 0.85;
 
 export interface Size {
   w: number;
@@ -22,14 +31,26 @@ export interface Camera {
 // 段階の番号（0始まり）を、範囲の中に収めて拡大率にする
 const zoomAtIndex = (i: number): Zoom => ZOOM_LEVELS[Math.min(ZOOM_LEVELS.length - 1, Math.max(0, i))];
 
-// 画面に収まる最大の整数倍（1〜4倍の範囲）。収まらなければ 1 倍
+// 全体表示の拡大率。画面に収まる最大の倍率を求め、整数倍で収まるならそれを、収まらなければ 0.25 刻みに切り下げる（0.5〜4倍）。
+// 整数倍は、収まる最大の値の 85% 以上のときだけ使う（例：1.9 倍が収まるなら 1 倍より 1.75 倍を選ぶ）
 export const fitZoom = (map: Size, view: Size): Zoom => {
-  const k = Math.floor(Math.min(view.w / map.w, view.h / map.h));
-  return zoomAtIndex((Number.isFinite(k) ? k : 1) - 1);
+  const s = Math.min(view.w / map.w, view.h / map.h);
+  if (!Number.isFinite(s)) return 1;
+  if (s >= FIT_MAX) return FIT_MAX;
+  const k = Math.floor(s);
+  if (k >= 1 && k >= INTEGER_KEEP_RATIO * s) return k;
+  return Math.min(FIT_MAX, Math.max(FIT_MIN, Math.floor(s / FIT_STEP) * FIT_STEP));
 };
 
-// 拡大（dir = 1）か縮小（dir = -1）の段階へ進める。端では変わらない
-export const stepZoom = (zoom: Zoom, dir: 1 | -1): Zoom => zoomAtIndex(ZOOM_LEVELS.indexOf(zoom) + dir);
+// 拡大（dir = 1）か縮小（dir = -1）の段階へ進める。端では変わらない。
+// 全体表示の小数倍からは、拡大は次の整数倍、縮小は前の整数倍へ移る（1倍より小さいときは縮小しない）
+export const stepZoom = (zoom: Zoom, dir: 1 | -1): Zoom => {
+  const i = ZOOM_LEVELS.indexOf(zoom as (typeof ZOOM_LEVELS)[number]);
+  if (i >= 0) return zoomAtIndex(i + dir);
+  if (dir === 1) return ZOOM_LEVELS.find((level) => level > zoom) ?? ZOOM_LEVELS[ZOOM_LEVELS.length - 1];
+  const below = [...ZOOM_LEVELS].reverse().find((level) => level < zoom);
+  return below ?? zoom;
+};
 
 // 軸ごとの位置の範囲。マップの端より外へは、画面の半分まで動かせる。
 // 左端は画面の中央より右へ行かず、右端は画面の中央より左へ行かない

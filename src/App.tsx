@@ -9,6 +9,7 @@ import { focusedProject, useGameStore, type Speed } from './stores/useGameStore'
 import { useTickLoop } from './stores/useTickLoop';
 import { toDate } from './sim/clock';
 import { loadSlot, saveSlot } from './services/db';
+import { SAVE_SLOT, slotOf } from './services/slots';
 import { createSaveQueue, isAutoSaveDue } from './services/autoSave';
 import { exportSave, importSave } from './services/saveFile';
 import { NoticeToast, ReportModal } from './components/Overlay';
@@ -33,7 +34,6 @@ import { TitleScreen } from './components/TitleScreen';
 import { mapLoaders } from 'virtual:loaders';
 import { RADIUS } from './ui/theme';
 
-const SLOT = 1;
 const SPEEDS: Speed[] = [0, 1, 2, 4];
 // 速さを変えたときに画面上部に出す表示は、この時間で消す
 const SPEED_NOTE_MS = 1000;
@@ -74,7 +74,9 @@ export function App() {
   const [autoSaver] = useState(() =>
     createSaveQueue(async () => {
       try {
-        await saveSlot(SLOT, useGameStore.getState().snapshot());
+        const data = useGameStore.getState().snapshot();
+        // 遊び方ごとの枠に保存する（サンドボックスの自動保存で案件の枠を壊さない）
+        await saveSlot(slotOf(data.mode), data);
         setSaveMark(Date.now());
       } catch {
         // 保存できなかったときは印を出さない
@@ -84,6 +86,9 @@ export function App() {
   const load = useGameStore((s) => s.load);
   const snapshot = useGameStore((s) => s.snapshot);
   const newGame = useGameStore((s) => s.newGame);
+  const newSandbox = useGameStore((s) => s.newSandbox);
+  // サンドボックスの画面。速度のボタン・社員・依頼は出さない
+  const sandbox = useGameStore((s) => s.mode) === 'sandbox';
   // 社員の人数と席の数（席は自社オフィスの机の家具）。雇えなかった理由をHUDに出す
   const staff = useGameStore((s) => s.staff.length);
   const seats = useGameStore((s) => seatCount(s.office, (id) => furniture[id as FurnitureId]?.seat === true));
@@ -198,19 +203,28 @@ export function App() {
   };
 
   const onContinue = async () => {
-    const data = await loadSlot(SLOT);
+    const data = await loadSlot(SAVE_SLOT.career);
     if (!data) return setMessage(t('ui.title.none'));
     load(data);
     startGame();
   };
 
+  // サンドボックスは、その枠に保存があれば続きから、なければ新しく始める
+  const onSandbox = async () => {
+    const data = await loadSlot(SAVE_SLOT.sandbox);
+    if (data) load(data);
+    else newSandbox();
+    startGame();
+  };
+
   if (screen === 'title') 
-    return <TitleScreen onNew={onNew} onContinue={onContinue} message={message} />;
+    return <TitleScreen onNew={onNew} onContinue={onContinue} onSandbox={onSandbox} message={message} />;
 
   const date = toDate(clock.minute, balance);
 
   const onSave = async () => {
-    await saveSlot(SLOT, snapshot());
+    const data = snapshot();
+    await saveSlot(slotOf(data.mode), data);
     setMessage(t('ui.save.done'));
   };
 
@@ -256,7 +270,7 @@ export function App() {
         }}
       >
         <span>
-          <Icon name="icon/money" /> {clock.money.toLocaleString('ja-JP')}
+          <Icon name="icon/money" /> {sandbox ? '∞' : clock.money.toLocaleString('ja-JP')}
         </span>
         <span>
           <Icon name="icon/star" /> {reputation}
@@ -264,6 +278,7 @@ export function App() {
         <span>
           <Icon name="icon/calendar" /> {t('ui.hud.date', { year: date.year, month: date.month, day: date.day, hour: date.hour })}
         </span>
+        {!sandbox && (
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {/* 押すと、社員の一覧を開く */}
           <button onClick={() => openWindow('staffList', '')} style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer' }}>
@@ -281,6 +296,8 @@ export function App() {
             <Icon name="icon/person" scale={1} />
           </button></Tooltip>
         </span>
+        )}
+        {!sandbox && (
         <span style={{ display: 'flex', gap: 4 }}>
           {SPEEDS.map((s) => (
             <Tooltip text={s === 0 ? tipText('ui.speed.0', 'pause') : t(`ui.speed.${s}` as const)} key={s}><button aria-label={t(`ui.speed.${s}` as const)} style={hudButton(speed === s)}  onClick={() => { hideTip(); setSpeed(s); }}>
@@ -293,6 +310,7 @@ export function App() {
           ))}
           {nightSpeed !== null && <span style={{ fontSize: 12, alignSelf: 'center' }}>{t('ui.night.fast')}</span>}
         </span>
+        )}
         {/* 自動保存の印。文字は出さず、ツールチップだけ */}
         {saveMark !== null && (
           <Tooltip text={t('ui.autosave.mark')}>

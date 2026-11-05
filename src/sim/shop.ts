@@ -1,8 +1,9 @@
 // ショップの陳列と購入の判定。解禁条件は案件の完了で判断する。
 import type { ShopItem } from '../data/schema';
 
-export const isUnlocked = (item: ShopItem, completed: readonly string[]): boolean =>
-  !item.unlock || completed.includes(item.unlock.contract);
+// サンドボックスでは解禁の条件を無視し、すべての品目を買える
+export const isUnlocked = (item: ShopItem, completed: readonly string[], sandbox = false): boolean =>
+  sandbox || !item.unlock || completed.includes(item.unlock.contract);
 
 export type BuyResult = { ok: true; money: number; owned: Record<string, number> } | { ok: false; reason: 'money' };
 

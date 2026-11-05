@@ -145,13 +145,25 @@ export const KEYMAP: KeyBinding[] = [
   { key: 'Space', id: 'pause', name: 'keys.pause', run: pause },
   { key: '[', id: 'slower', name: 'keys.slower', run: () => changeSpeed(-1) },
   { key: ']', id: 'faster', name: 'keys.faster', run: () => changeSpeed(1) },
-  { key: 'T', id: 'test', name: 'ui.test', run: onlyWhileDesigning(() => useGameStore.getState().test()) },
+  // テストは設計中の案件と、サンドボックスで使える
+  {
+    key: 'T',
+    id: 'test',
+    name: 'ui.test',
+    run: () => {
+      const s = useGameStore.getState();
+      if (s.mode !== 'sandbox' && focusedProject(s)?.phase !== 'design') return false;
+      s.test();
+      return true;
+    },
+  },
   { key: 'B', id: 'build', name: 'ui.build', run: onlyWhileDesigning(() => useGameStore.getState().requestBuild()) },
   { key: 'I', id: 'showIp', name: 'ui.showIp', run: act((s) => s.setShowIp(!s.showIp)) },
-  { key: 'M', id: 'offers', name: 'ui.offer.title', run: (ui) => (ui.togglePopup('offers'), true) },
+  // 依頼と社員の一覧は、サンドボックスでは出さない
+  { key: 'M', id: 'offers', name: 'ui.offer.title', run: (ui) => (useGameStore.getState().mode === 'sandbox' ? false : (ui.togglePopup('offers'), true)) },
   { key: 'S', id: 'shop', name: 'ui.shop.title', run: (ui) => (ui.togglePopup('shop'), true) },
   { key: 'W', id: 'warehouse', name: 'ui.warehouse.title', run: (ui) => (ui.toggleWarehouse(), true) },
-  { key: 'H', id: 'staffList', name: 'keys.staffList', run: () => { useGameStore.getState().openWindow('staffList', ''); return true; } },
+  { key: 'H', id: 'staffList', name: 'keys.staffList', run: () => { const s = useGameStore.getState(); if (s.mode === 'sandbox') return false; s.openWindow('staffList', ''); return true; } },
   // マップの拡大・縮小と移動（mapControl.ts の命令を呼ぶ）
   { key: '+', id: 'zoomIn', name: 'keys.zoomIn', run: () => (mapCommands.zoomIn(), true) },
   { key: '-', id: 'zoomOut', name: 'keys.zoomOut', run: () => (mapCommands.zoomOut(), true) },

@@ -4,16 +4,16 @@ import pkg from '../../package.json';
 import { spriteUrl } from '../game/sprites';
 import { t } from '../i18n/t';
 import { loadSlot } from '../services/db';
+import { SAVE_SLOT } from '../services/slots';
 import { RADIUS } from '../ui/theme';
 
 interface Props {
   onNew: () => void;
   onContinue: () => void;
+  // サンドボックス。その枠に保存があれば続きから、なければ新しく始める
+  onSandbox: () => void;
   message: string;
 }
-
-// App.tsx の SLOT と同じ保存枠（App.tsx の定数は公開されていないため、ここで合わせて持つ）
-const SLOT = 1;
 
 // 32px のタイルを 3 倍で描く
 const TILE = 96;
@@ -334,7 +334,7 @@ function Rack() {
 }
 
 // タイトル画面。新しく始めるか、保存データから続けるかを選ぶ
-export function TitleScreen({ onNew, onContinue, message }: Props) {
+export function TitleScreen({ onNew, onContinue, onSandbox, message }: Props) {
   // null は保存データを確認中
   const [hasSave, setHasSave] = useState<boolean | null>(null);
   // 矢印キーで選んだボタン。未操作のときは主のボタン（保存データがあれば「続きから」）
@@ -342,7 +342,7 @@ export function TitleScreen({ onNew, onContinue, message }: Props) {
 
   useEffect(() => {
     let alive = true;
-    loadSlot(SLOT)
+    loadSlot(SAVE_SLOT.career)
       .then((data) => alive && setHasSave(data !== null))
       .catch(() => alive && setHasSave(false));
     return () => {
@@ -353,6 +353,7 @@ export function TitleScreen({ onNew, onContinue, message }: Props) {
   const items = [
     { label: t('ui.title.new'), enabled: true, run: onNew },
     { label: t('ui.title.continue'), enabled: hasSave === true, run: onContinue },
+    { label: t('ui.title.sandbox'), enabled: true, run: onSandbox },
   ];
   const primary = hasSave === true ? 1 : 0;
   const selected = picked ?? primary;
@@ -376,7 +377,7 @@ export function TitleScreen({ onNew, onContinue, message }: Props) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selected, hasSave, onNew, onContinue]);
+  }, [selected, hasSave, onNew, onContinue, onSandbox]);
 
   return (
     <div className="ts-root">

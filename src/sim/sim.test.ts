@@ -57,9 +57,9 @@ describe('clock', () => {
 
 describe('rating', () => {
   it('費用の割合と手戻りで★を決める', () => {
-    expect(rate(70, 100, 0, false, balance)).toBe(3);
-    expect(rate(90, 100, 0, false, balance)).toBe(2);
-    expect(rate(90, 100, 2, false, balance)).toBe(1);
-    expect(rate(150, 100, 0, false, balance)).toBe(1);
+    expect(rate(70, 100, 0, false, 0, balance)).toBe(3);
+    expect(rate(90, 100, 0, false, 0, balance)).toBe(2);
+    expect(rate(90, 100, 2, false, 0, balance)).toBe(1);
+    expect(rate(150, 100, 0, false, 0, balance)).toBe(1);
   });
 });

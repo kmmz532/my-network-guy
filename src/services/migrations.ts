@@ -12,7 +12,10 @@ import serverJson from '../assets/data/devices/server.json';
 import routerJson from '../assets/data/devices/router.json';
 import switchJson from '../assets/data/devices/l2_switch.json';
 
-export const SAVE_VERSION = 18;
+export const SAVE_VERSION = 19;
+
+// 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
+export type GameMode = 'career' | 'sandbox';
 
 // 移行前の部屋の床の大きさ（移行前の固定のマップ hq の内側）。移行後の部屋は、この大きさのまま続く
 const legacyOfficeSize = { w: 14, h: 8 };
@@ -51,6 +54,8 @@ const withDefaultServices = (n: NetNode): NetNode => {
 };
 
 export interface SaveData {
+  // 遊び方（移行前のセーブデータは career）
+  mode: GameMode;
   clock: { minute: number; money: number; paidMonths: number; bankrupt: boolean };
   reputation: number;
   // 在庫の機材（機材ID → 個数）
@@ -167,6 +172,8 @@ export const migrations: Record<number, Migration> = {
     const d = data as { office: Office };
     return { ...d, office: { ...d.office, innerWalls: [], doors: [], annexes: [] } };
   },
+  // v18 → v19: 遊び方を追加する。移行前のセーブデータは、すべて案件の経営ゲーム（career）とする
+  18: (data) => ({ ...(data as object), mode: 'career' }),
   // v10 → v11: 案件に担当の社員を追加する。移行前の案件は、全社員が担当だったものとする
   10: (data) => {
     const d = data as { active: Project[]; staff: Staff[] };
@@ -185,6 +192,7 @@ export const isSaveData = (value: unknown): value is SaveData => {
   const clock = v.clock as Record<string, unknown> | undefined;
   const owned = v.owned as Record<string, unknown> | undefined;
   return (
+    (v.mode === 'career' || v.mode === 'sandbox') &&
     typeof clock === 'object' &&
     clock !== null &&
     Number.isInteger(clock.minute) &&

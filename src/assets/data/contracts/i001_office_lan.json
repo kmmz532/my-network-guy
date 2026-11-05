@@ -6,6 +6,7 @@
     "c001_direct_link"
   ],
   "map": "hq",
+  "manualIp": true,
   "budget": 250000,
   "placed": [],
   "goals": [

@@ -24,6 +24,7 @@ import type { Balance, Contract, ContractTemplate, Furniture, GameMap } from '..
 import type { Offer } from '../contracts/template';
 import { instantiateTemplate, starHubOf } from '../contracts/template';
 import { initialOffice } from './furniture';
+import { rate } from './rating';
 import { mapOfOffice } from './office';
 import { buyDevice } from './shop';
 import { initialStaff } from './staff';
@@ -140,11 +141,11 @@ const wire = (core: Core, a: string, b: string, cable = UTP, ports: { a?: number
 
 const addr = (core: Core, uid: string, ip: string, port = 0): Core => ok(setInterface(core, uid, port, ip, 24, env)).core;
 
-// 検収まで進める。テストに合格し、設計に不備がなく、施工を終えて検収されるまで時間を進める
-const finish = (core: Core): { core: Core; report: Report } => {
+// 検収まで進める。テストに合格し、施工を終えて検収されるまで時間を進める。設計に不備がないことを確かめる（allowIssues が true なら確かめない）
+const finish = (core: Core, allowIssues = false): { core: Core; report: Report } => {
   const tested = ok(testDesign(core, env));
   if (!tested.result.passed) throw new Error('テストに不合格');
-  expect(designIssues(focusedOf(tested.core)!, env)).toEqual({});
+  if (!allowIssues) expect(designIssues(focusedOf(tested.core)!, env)).toEqual({});
   let state = ok(requestBuild(tested.core, env)).core;
   for (let i = 0; i < 5000; i++) {
     const hour = Math.floor((state.clock.minute % (24 * 60)) / 60);
@@ -209,6 +210,29 @@ describe('模範解答: 固定案件', () => {
     core = addr(core, router.uid, '192.168.1.1');
     core = addr(core, router.uid, '192.168.2.1', 1);
     expectReference(finish(core).report);
+  });
+
+  it('c003 の誤り: 部署をスイッチ1台にまとめると、設計の不備があり★2が上限になる', () => {
+    let core = take(startCore([fixedOffer(c003)]), 'c003_departments');
+    core = buy(core, ROUTER);
+    core = buy(core, SWITCH);
+    const router = place(core, ROUTER, 9, 5, roomsMap);
+    core = router.core;
+    const sw = place(core, SWITCH, 12, 5, roomsMap);
+    core = sw.core;
+    for (const ref of ['sales_a', 'sales_b', 'dev_a', 'dev_b']) core = wire(core, ref, sw.uid);
+    core = wire(core, sw.uid, router.uid, UTP, { b: 0 });
+    core = wire(core, sw.uid, router.uid, UTP, { b: 1 });
+    core = addr(core, router.uid, '192.168.1.1');
+    core = addr(core, router.uid, '192.168.2.1', 1);
+    // テストには合格するが、設計に不備がある（別の部署を同じネットワークにまとめ、サブネット外になる）
+    expect(Object.keys(designIssues(focusedOf(core)!, env)).length).toBeGreaterThan(0);
+    const report = finish(core, true).report;
+    expect(report.passed).toBe(true);
+    expect(report.designIssues).toBeGreaterThan(0);
+    // 費用と失敗回数だけなら★3だが、設計の不備により★2が上限になる
+    expect(rate(report.cost ?? 0, report.budget ?? 1, report.rework ?? 0, false, 0, balance)).toBe(3);
+    expect(report.stars).toBe(2);
   });
 
   it('c004 Webサーバー: 社員側だけスイッチを置き、ルーターからサーバーへ直接つなぐ', () => {

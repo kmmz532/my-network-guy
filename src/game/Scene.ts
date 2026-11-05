@@ -1,6 +1,7 @@
 // キャンバスの描画と操作。マップ・機器・配線・社員・パケットを描き、クリックで配置・選択、ドラッグで配線する。
 // 描画の状態は store から読むだけで、変更は store の操作を通して行う。
 import { nodeLabel } from '../components/nodeLabel';
+import { isPhoneNow } from '../ui/usePhone';
 import { Application, Container, Graphics, Rectangle, Sprite, Text, type FederatedPointerEvent, type Ticker } from 'pixi.js';
 import type { GameMap } from '../data/schema';
 import { coreOf, editNetOf, focusedProject, frontDeviceUid, netTargetOf, useGameStore, type Trace, type WireStart } from '../stores/useGameStore';
@@ -34,11 +35,18 @@ import { t } from '../i18n/t';
 import type { LangKey } from '../generated/lang-keys';
 import type { FailureReason, NetLink, NetNode } from '../network/types';
 import { CAP as WALL_CAP, drawTileMap } from './TileMap';
-import { fitCamera, panCamera, resizeCamera, stepZoom, zoomCamera, type Camera, type Size } from './camera';
+import { fitCamera, fitZoom, panCamera, resizeCamera, stepZoom, zoomCamera, type Camera, type Size } from './camera';
 import { bindMapCommands } from './mapControl';
 import { cumulativeLengths, pointAt, type Point } from './animation';
 import { wanderStep, type Walker } from './wander';
 import { deskStaffPos, deskTap, staffAt, STAFF_W, wanderStaffPos, type StaffHit } from './staffHit';
+
+// 拡大・縮小ボタンの列は、ツールバーの上の右下の角にある（MapZoomButtons.tsx と同じ寸法。画面の px）
+const ZOOM_BUTTON_W = 44;
+const ZOOM_BUTTONS_H = 3 * 44 + 2 * 6;
+const ZOOM_EDGE = 12;
+const TOOLBAR_H = 56;
+const TOOLBAR_H_PHONE = 84;
 
 const OUTLINE = 0x3b2a33;
 const SELECT = 0xffd866;
@@ -344,7 +352,8 @@ export class Scene {
   private updateExpandButtons(): void {
     const map = this.map;
     const s = useGameStore.getState();
-    const shown = s.active.length === 0 && !s.showcase && map?.id === 'hq';
+    // サンドボックスは部屋を広げないので、広げるボタンは出さない
+    const shown = s.active.length === 0 && !s.showcase && map?.id === 'hq' && s.mode !== 'sandbox';
     for (const side of EXPAND_SIDES) {
       const box = this.expandButtons.get(side);
       if (!box) continue;
@@ -397,7 +406,8 @@ export class Scene {
     this.app.stage.hitArea = new Rectangle(0, 0, this.app.screen.width, this.app.screen.height);
     const view = this.viewSize();
     const map = this.mapSize();
-    this.camera = this.camera ? resizeCamera(this.camera, map, this.view, view) : this.fitCameraOf(view);
+    // 全体表示のときは、画面の大きさに合わせて測り直す（ヘッダーとツールバーの分を除く）
+    this.camera = this.camera && !this.camera.fit ? resizeCamera(this.camera, map, this.view, view) : this.fitCameraOf(view);
     this.view = view;
     this.applyCamera();
   };
@@ -443,12 +453,52 @@ export class Scene {
     if (this.map) this.setCamera(this.fitCameraOf(this.view));
   }
 
-  // 全体に合わせた位置と倍率。自社オフィスは、辺の外側の「+」ボタンが画面に収まるよう、周りを1マス分あける（マップは中央に置く）
+  // 全体表示で避ける画面の端の分（画面の px）。上はヘッダー、下はツールバー
+  private fitInsets(): { top: number; bottom: number } {
+    const canvas = this.app.canvas.getBoundingClientRect();
+    const header = document.querySelector('header')?.getBoundingClientRect();
+    const bar = document.querySelector('[data-toolbar]')?.getBoundingClientRect();
+    const top = header && header.height > 0 ? Math.max(0, header.bottom - canvas.top) : 0;
+    const bottom = bar && bar.height > 0 ? Math.max(0, canvas.bottom - bar.top) : 0;
+    return { top, bottom };
+  }
+
+  // 拡大・縮小ボタンの列の位置（画面の px）。右下の角で、ツールバーの上に置く
+  private zoomButtonsRect(view: Size): { left: number; top: number; right: number; bottom: number } {
+    const toolbar = isPhoneNow() ? TOOLBAR_H_PHONE : TOOLBAR_H;
+    const right = view.w - ZOOM_EDGE;
+    const bottom = view.h - toolbar - ZOOM_EDGE;
+    return { left: right - ZOOM_BUTTON_W, top: bottom - ZOOM_BUTTONS_H, right, bottom };
+  }
+
+  // 全体に合わせた位置と倍率。自社オフィスは、辺の外側の「+」ボタンが画面に収まるよう、周りを1マス分あける（マップは中央に置く）。
+  // 自社オフィスは、ヘッダーとツールバーの分を除いた範囲に、余白を含めて収まる最大の倍率にする。
+  // 拡大・縮小ボタンの列と重なるときだけ、上へずらし、それでも重なるなら左へずらす
   private fitCameraOf(view: Size): Camera {
-    const pad = this.map?.id === 'hq' ? this.tileSize() : 0;
     const map = this.mapSize();
-    const fit = fitCamera({ w: map.w + pad * 2, h: map.h + pad * 2 }, view);
-    return { ...fit, x: fit.x + pad * fit.zoom, y: fit.y + pad * fit.zoom };
+    if (this.map?.id !== 'hq') return fitCamera(map, view);
+    const pad = this.tileSize();
+    const padded = { w: map.w + pad * 2, h: map.h + pad * 2 };
+    const insets = this.fitInsets();
+    const area = { w: view.w, h: Math.max(0, view.h - insets.top - insets.bottom) };
+    const zoom = fitZoom(padded, area);
+    const boxW = padded.w * zoom;
+    const boxH = padded.h * zoom;
+    let left = (area.w - boxW) / 2;
+    let top = insets.top + (area.h - boxH) / 2;
+    const col = this.zoomButtonsRect(view);
+    const overlaps = left < col.right && left + boxW > col.left && top < col.bottom && top + boxH > col.top;
+    if (overlaps) {
+      const up = col.top - boxH;
+      if (up >= insets.top) top = up;
+      else if (col.left - boxW >= 0) left = col.left - boxW;
+    }
+    return {
+      zoom,
+      x: Math.round(left + pad * zoom),
+      y: Math.round(top + pad * zoom),
+      fit: true,
+    };
   }
 
   private panBy(dx: number, dy: number): void {
@@ -716,7 +766,8 @@ export class Scene {
 
   // 機器のスプライトの上端（マップの座標）。机の上（PCや机の家具のマス）は天板の高さ、床に置いた機器は足元から
   private spriteTopOf(node: NetNode, ts: number): number {
-    const onDesk = this.deskAt(node.x, node.y) || gameEnv.devices[node.device]?.category === 'pc';
+    // サンドボックスでは、PC は机の上に限らず床に置ける（天板の高さに上げない）
+    const onDesk = this.deskAt(node.x, node.y) || (gameEnv.devices[node.device]?.category === 'pc' && useGameStore.getState().mode !== 'sandbox');
     return (onDesk ? node.y * ts + DESK_TOP : node.y * ts + ts - DEVICE_FOOT_INSET) - 38;
   }
 
@@ -767,7 +818,7 @@ export class Scene {
       const [dx, dy] = desks[k];
       // 机の下の段に座り、打鍵に合わせて小さく揺れる
       const at = deskStaffPos(dx, dy, ts, deskTap(this.elapsed, k));
-      this.drawStaff(at.x, at.y, STAFF_SHIRT[k % STAFF_SHIRT.length]);
+      this.drawStaff(at.x, at.y, staffList[k]?.look ?? STAFF_SHIRT[k % STAFF_SHIRT.length]);
       // 口癖は、社員ごとにずらした周期で、60秒に3秒だけ頭上に出す（平均60秒に1回）
       const seconds = this.elapsed / 1000 + k * 23;
       if (seconds % 60 < 3) {
@@ -802,9 +853,12 @@ export class Scene {
   }
 
   private drawWanderers(ts: number): void {
+    // 歩き手は、officeStaffHits と同じく席の数の後の社員を描く
+    const s = useGameStore.getState();
+    const seats = s.office.furniture.filter((f) => f.id === DESK_ID).length;
     this.wanderers.forEach((w, k) => {
       const at = wanderStaffPos(w.x, w.y, ts);
-      this.drawStaff(at.x, at.y, STAFF_SHIRT[k % STAFF_SHIRT.length]);
+      this.drawStaff(at.x, at.y, s.staff[seats + k]?.look ?? STAFF_SHIRT[k % STAFF_SHIRT.length]);
     });
   }
 
@@ -872,9 +926,10 @@ export class Scene {
       const sprite = new Sprite(tex);
       // スプライトの底面の行（y=37）が足元に来る位置。PCは机の天板に載せ、影は付けない
       const deskTile = this.deskAt(node.x, node.y);
-      const onDesk = deskTile || category === 'pc';
+      const anyFloor = useGameStore.getState().mode === 'sandbox';
+      const onDesk = deskTile || (category === 'pc' && !anyFloor);
       // 机のないマスに置いたPCには、机も一緒に描く
-      const deskTex = !deskTile && category === 'pc' ? texture('furniture/desk') : undefined;
+      const deskTex = !deskTile && category === 'pc' && !anyFloor ? texture('furniture/desk') : undefined;
       if (deskTex) {
         const desk = new Sprite(deskTex);
         desk.position.set(node.x * ts, node.y * ts);
@@ -983,7 +1038,7 @@ export class Scene {
     for (let k = 0; k < workers && pending.length > 0; k++) {
       const at = pending[Math.min(pending.length - 1, index + k)];
       // 1人目は作業場所の左、2人目は右に立つ
-      this.drawStaff(at.x + (k === 0 ? -18 : 2), at.y - 24 - bob, STAFF_SHIRT[k % STAFF_SHIRT.length]);
+      this.drawStaff(at.x + (k === 0 ? -18 : 2), at.y - 24 - bob, useGameStore.getState().staff[k]?.look ?? STAFF_SHIRT[k % STAFF_SHIRT.length]);
     }
 
     // 施工の進捗バー（マップの下端）
@@ -1044,7 +1099,8 @@ export class Scene {
     const byNode = new Map<string, FailureReason>();
     const s = useGameStore.getState();
     const check = s.check;
-    if (!check || check.projectId !== project.id || project.phase !== 'design' || !focusedProject(s)) return byNode;
+    // 案件の設計中、またはサンドボックスの自社オフィス（projectId は hq）の結果を出す
+    if (!check || check.projectId !== project.id || project.phase !== 'design' || (!focusedProject(s) && s.mode !== 'sandbox')) return byNode;
     for (const goal of check.goals) {
       for (const f of goal.failures) if (!byNode.has(f.node)) byNode.set(f.node, f.reason);
     }
@@ -1600,7 +1656,7 @@ export class Scene {
     const hq = s.maps.hq;
     if (!hq) return false;
     if (id in furnitureData) return placeFurniture(core, id, tx, ty, hq).ok;
-    if (s.active.length === 0) return placeInOffice(core, id, tx, ty, hq, gameEnv).ok;
+    if (s.active.length === 0) return placeInOffice(core, id, tx, ty, hq, gameEnv, s.mode === 'sandbox').ok;
     return this.map !== null && placeDevice(core, id, tx, ty, this.map, gameEnv).ok;
   }
 

@@ -19,8 +19,8 @@ describe('parseSettings（端末の設定の読み込み）', () => {
   });
 
   it('正しい値はそのまま読む', () => {
-    const s = parseSettings(JSON.stringify({ uiScale: 1.25, guide: false, showIp: false, startSpeed: 4, pausedBuild: 'stay', autoSave: 'weekly' }));
-    expect(s).toEqual({ uiScale: 1.25, guide: false, showIp: false, startSpeed: 4, pausedBuild: 'stay', autoSave: 'weekly' });
+    const s = parseSettings(JSON.stringify({ uiScale: 1.25, guide: false, showIp: false, startSpeed: 4, pausedBuild: 'stay', autoSave: 'weekly', autoIp: false }));
+    expect(s).toEqual({ uiScale: 1.25, guide: false, showIp: false, startSpeed: 4, pausedBuild: 'stay', autoSave: 'weekly', autoIp: false });
   });
 
   it('UIの大きさは 80・100・125・150% の4つだけ', () => {
@@ -57,5 +57,23 @@ describe('一時停止中の施工の扱い', () => {
   it('既定は確認を出す', () => {
     expect(DEFAULT_SETTINGS.pausedBuild).toBe('ask');
     expect(parseSettings(JSON.stringify({ pausedBuild: 'play' })).pausedBuild).toBe('play');
+  });
+});
+
+describe('IPアドレスの自動割り当て', () => {
+  it('既定はオン。キーがない古い設定も既定のオンになる（他の項目はそのまま読む）', () => {
+    expect(DEFAULT_SETTINGS.autoIp).toBe(true);
+    const s = parseSettings(JSON.stringify({ uiScale: 1.25, autoSave: 'weekly' }));
+    expect(s.autoIp).toBe(true);
+    expect(s.uiScale).toBe(1.25);
+    expect(s.autoSave).toBe('weekly');
+  });
+
+  it('true と false はそのまま読み、それ以外の値は既定のオンに戻す', () => {
+    expect(parseSettings(JSON.stringify({ autoIp: false })).autoIp).toBe(false);
+    expect(parseSettings(JSON.stringify({ autoIp: true })).autoIp).toBe(true);
+    for (const v of ['off', 0, null, 'false']) {
+      expect(parseSettings(JSON.stringify({ autoIp: v })).autoIp).toBe(true);
+    }
   });
 });

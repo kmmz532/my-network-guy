@@ -17,6 +17,7 @@ const member = (uid: string): Staff => ({
 });
 
 const sample: SaveData = {
+  mode: 'career',
   clock: { minute: 720, money: 300000, paidMonths: 1, bankrupt: false },
   reputation: 2,
   owned: { pc_basic: 1 },
@@ -363,3 +364,20 @@ describe('v17 → v18', () => {
   });
 });
 
+
+describe('v18 → v19', () => {
+  const { mode: _mode, ...v18 } = sample;
+
+  it('遊び方のない移行前のセーブデータは、案件の経営ゲーム（career）になる', () => {
+    expect(migrate(18, v18).mode).toBe('career');
+  });
+
+  it('サンドボックスのセーブデータは、書き出しと読み込みで遊び方が残る', () => {
+    const sandbox: SaveData = { ...sample, mode: 'sandbox' };
+    expect(importSave(exportSave(sandbox))).toEqual(sandbox);
+  });
+
+  it('遊び方が career・sandbox 以外のセーブデータは拒否する', () => {
+    expect(() => migrate(SAVE_VERSION, { ...sample, mode: 'other' })).toThrow();
+  });
+});

@@ -183,7 +183,8 @@ export function Guide() {
                 left: '50%',
                 bottom: barTop > 0 ? (window.innerHeight - barTop + 8) / loadSettings().uiScale : 72,
                 transform: 'translateX(-50%)',
-                maxWidth: 'calc((100vw - 16px) / var(--ui-scale, 1))',
+                // 幅は画面の左右に 12 px ずつ余白を残す（吹き出しの中の文字が細かく折り返さないため）
+                width: 'calc((100vw - 24px) / var(--ui-scale, 1))',
                 zIndex: 800,
                 zoom: 'var(--ui-scale, 1)',
               }
@@ -213,8 +214,15 @@ export function Guide() {
             fontSize: 14,
           }}
         >
-          <Icon name={`staff/${staffLook}_0`} scale={2} />
-          <span>{t(step.key as LangKey)}</span>
+          {/* 狭い画面では、社員の絵と「飛ばす」は縮めず、文字の欄が残りの幅を使う */}
+          {phone ? (
+            <span style={{ flexShrink: 0, display: 'flex' }}>
+              <Icon name={`staff/${staffLook}_0`} scale={2} />
+            </span>
+          ) : (
+            <Icon name={`staff/${staffLook}_0`} scale={2} />
+          )}
+          <span style={phone ? { flex: 1, minWidth: 0 } : undefined}>{t(step.key as LangKey)}</span>
           <button
             onClick={skip}
             style={{

@@ -4,6 +4,7 @@
   "order": 10,
   "requires": [],
   "map": "office_small",
+  "manualIp": true,
   "budget": 5000,
   "deadlineDays": 3,
   "placed": [

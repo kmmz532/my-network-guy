@@ -251,6 +251,8 @@ export const contractSchema = z.object({
   inhouse: z.boolean().default(false),
   // 自社案件の納品で得る効果（施工速度の上昇率など）
   effect: z.object({ buildSpeed: z.number().min(0).default(0) }).optional(),
+  // true なら、IPアドレスの自動割り当て（設定がオンでも）を使わず、IPアドレスを自分で入れる
+  manualIp: z.boolean().optional(),
 });
 
 export const templateSchema = z.object({

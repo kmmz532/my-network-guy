@@ -14,8 +14,10 @@ import { rand } from '../sim/rng';
 import { finishTrainings, startTraining as startTrainingOp, takeExam as takeExamOp, type TrainingEnv } from '../sim/training';
 import { certs as certRecord, training as trainingRecord } from 'virtual:game-data';
 import type { NetLink, NetNode, Route } from '../network/types';
-import type { SaveData } from '../services/migrations';
+import type { GameMode, SaveData } from '../services/migrations';
+import { sandboxClock, sandboxOffice, sandboxTest } from '../sim/sandbox';
 import { gameEnv } from '../sim/env';
+import { autoAssign } from '../sim/autoAssign';
 import { type ExpandSide, expandOffice as expandOfficeOp, mapOfOffice } from '../sim/office';
 import {
   type DesignEntry,
@@ -138,6 +140,8 @@ const writeMemory = (memory: WindowMemory): void => {
 export const viewportNow = (): { w: number; h: number } => ({ w: window.innerWidth, h: window.innerHeight });
 
 export interface GameState {
+  // 遊び方（career は案件の経営ゲーム、sandbox は自由に設計する練習場）。セーブデータに入る
+  mode: GameMode;
   clock: ClockState;
   reputation: number;
   owned: Record<string, number>;
@@ -288,6 +292,8 @@ export interface GameState {
   snapshot: () => SaveData;
   // 最初から始める（資金・在庫・依頼などを初期状態に戻す）
   newGame: () => void;
+  // サンドボックスを新しく始める（案件・依頼・社員はなく、時間は止めたまま）
+  newSandbox: () => void;
 }
 
 const offerEnv = (maps: Record<string, GameMap>): OfferEnv => ({
@@ -347,7 +353,8 @@ export const coreOf = (s: GameState): Core => ({
 
 // 依頼の追加を1回分進める。受注中の案件と同じ依頼は出さない
 const refresh = (s: GameState): Partial<GameState> => {
-  if (s.clock.bankrupt) return {};
+  // 依頼はサンドボックスには出さない
+  if (s.clock.bankrupt || s.mode === 'sandbox') return {};
   const r = refreshOffers(
     {
       minute: s.clock.minute,
@@ -386,6 +393,10 @@ const rememberWin = (memory: WindowMemory, windows: WindowItem[], id: number): W
 };
 
 export const useGameStore = create<GameState>((set, get) => {
+  // 配線・セグメントの設定の後に、IPアドレスの自動割り当てをかける（設定がオフなら何もしない）。同じ操作として取り消しに残る
+  const withAutoIp = (o: Outcome, target: NetTarget): Outcome =>
+    o.ok ? { ...o, core: autoAssign(o.core, gameEnv, target, loadSettings().autoIp) } : o;
+
   // 案件の操作の結果を状態に反映する。失敗なら理由を返す
   // 機器の位置（失敗の吹き出しを出す場所）
   const tileOf = (uid: string) => {
@@ -450,6 +461,8 @@ export const useGameStore = create<GameState>((set, get) => {
       return outcome.reason;
     }
     const c = outcome.core;
+    // サンドボックスは資金を減らさない（費用は差し引かない）。床の機器・配線を変えたら、テストの結果は無効になる
+    const sandbox = get().mode === 'sandbox';
     // 設計（機器・配線・セグメント）を変えたら、最後のテストの結果は無効になる
     const before = focusedProject(get());
     const after = focusedProject(c);
@@ -460,8 +473,8 @@ export const useGameStore = create<GameState>((set, get) => {
       (before.nodes !== after.nodes || before.links !== after.links || before.segments !== after.segments);
     set({
       lastError: null,
-      ...(redesigned ? { check: null, helpUid: null } : {}),
-      clock: c.clock,
+      ...(redesigned || (sandbox && c.office !== get().office) ? { check: null, helpUid: null } : {}),
+      clock: sandbox ? get().clock : c.clock,
       reputation: c.reputation,
       owned: c.owned,
       completed: c.completed,
@@ -496,6 +509,7 @@ export const useGameStore = create<GameState>((set, get) => {
   };
 
   return {
+    mode: 'career',
     clock: initialClock(balance),
     reputation: 0,
     owned: {},
@@ -539,6 +553,23 @@ export const useGameStore = create<GameState>((set, get) => {
     setHelpUid: (uid) => set({ helpUid: uid }),
     testNudge: 0,
     test: () => {
+      const s = get();
+      // サンドボックスは、案件の達成条件なしで、PC とサーバーの疎通を判定する
+      if (s.mode === 'sandbox') {
+        const sr = sandboxTest(s.office, gameEnv);
+        if (!sr) {
+          set({ lastError: 'none' });
+          return 'none';
+        }
+        set({
+          lastError: null,
+          traces: sr.traces,
+          check: { projectId: 'hq', goals: sr.goals },
+          helpUid: null,
+          notice: { key: sr.passed ? 'ui.sandbox.testOk' : 'ui.sandbox.testNg', params: {}, id: Date.now() },
+        });
+        return null;
+      }
       const r = testDesign(coreOf(get()), gameEnv);
       if (!r.ok) {
         set({ lastError: r.reason });
@@ -700,7 +731,8 @@ export const useGameStore = create<GameState>((set, get) => {
         return { ...next, ...refresh(merged) };
       }),
     // 速さを人が変えたら、勤務時間外の自動の早送りは取り消す（覚えた速さには戻さない）
-    setSpeed: (speed) => set({ speed, nightSpeed: null }),
+    // サンドボックスは時間を止めたままにする
+    setSpeed: (speed) => set({ speed: get().mode === 'sandbox' ? 0 : speed, nightSpeed: null }),
     cacheMap: (map) =>
       set((s) => {
         const maps = { ...s.maps, [map.id]: map };
@@ -709,9 +741,13 @@ export const useGameStore = create<GameState>((set, get) => {
     buy: (deviceId) => {
       const s = get();
       const isFurniture = deviceId in furniture;
-      const price = isFurniture
-        ? furniture[deviceId as FurnitureId].price
-        : devices[deviceId as keyof typeof devices].price;
+      // サンドボックスは購入の費用を 0 とする（在庫は増える）
+      const price =
+        s.mode === 'sandbox'
+          ? 0
+          : isFurniture
+            ? furniture[deviceId as FurnitureId].price
+            : devices[deviceId as keyof typeof devices].price;
       const result = buyDevice(s.clock.money, s.owned, deviceId, price);
       if (!result.ok) return false;
       // 受注中の案件に対する機材の購入は、案件の費用に含める（家具は自社オフィスのものなので含めない）
@@ -736,13 +772,15 @@ export const useGameStore = create<GameState>((set, get) => {
       if (get().active.length === 0) {
         const hq = get().maps.hq;
         if (!hq) return 'map';
-        return recorded(() => apply(placeInOffice(coreOf(get()), deviceId, x, y, hq, gameEnv), { tx: x, ty: y }));
+        return recorded(() => apply(placeInOffice(coreOf(get()), deviceId, x, y, hq, gameEnv, get().mode === 'sandbox'), { tx: x, ty: y }));
       }
       const map = get().maps[focusedProject(get())!.contract.map];
       if (!map) return 'map';
       return recorded(() => apply(placeDevice(coreOf(get()), deviceId, x, y, map, gameEnv), { tx: x, ty: y }));
     },
     expandOffice: (side) => {
+      // サンドボックスは床の大きさを変えない（部屋は 30 × 20 の1部屋）
+      if (get().mode === 'sandbox') return 'none';
       const office = get().office;
       // 失敗の吹き出しは、広げる辺の内側の壁のマスに出す（広げる前の大きさで決める）
       const at = {
@@ -767,7 +805,7 @@ export const useGameStore = create<GameState>((set, get) => {
     },
     hire: (candidateUid) => apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true)),
     connect: (aUid, bUid, cableId, ports = {}) =>
-      recorded(() => apply(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get()), ports), tileOf(bUid))),
+      recorded(() => apply(withAutoIp(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get()), ports), netTargetOf(get())), tileOf(bUid))),
     removeLink: (uid) => recorded(() => apply(removeLink(coreOf(get()), uid, netTargetOf(get()), gameEnv))),
     startTraining: (uid, courseId) => apply(startTrainingOp(coreOf(get()), uid, courseId, trainingEnv)),
     takeExam: (uid, certId) => {
@@ -794,14 +832,16 @@ export const useGameStore = create<GameState>((set, get) => {
       recorded(() => apply(setInterface(coreOf(get()), uid, port, ip, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
     setGateway: (uid, gateway) => recorded(() => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid))),
     setSegment: (uid, port, network, prefix) =>
-      recorded(() => apply(setSegment(coreOf(get()), uid, port, network, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
+      recorded(() =>
+        apply(withAutoIp(setSegment(coreOf(get()), uid, port, network, prefix, gameEnv, netTargetOf(get())), netTargetOf(get())), tileOf(uid)),
+      ),
     replug: (linkUid, end, port) =>
       recorded(() => apply(replug(coreOf(get()), linkUid, end, port, gameEnv, netTargetOf(get())))),
     // 移動の地図は、設計中の案件のマップ（なければ自社オフィスの hq）
     moveNode: (uid, x, y) => {
       const map = get().maps[focusedProject(get())?.contract.map ?? 'hq'];
       if (!map) return 'map';
-      return recorded(() => apply(moveNode(coreOf(get()), uid, x, y, gameEnv, netTargetOf(get()), map), tileOf(uid)));
+      return recorded(() => apply(moveNode(coreOf(get()), uid, x, y, gameEnv, netTargetOf(get()), map, get().mode === 'sandbox'), tileOf(uid)));
     },
     moveFurniture: (uid, x, y) => {
       const hq = get().maps.hq;
@@ -842,6 +882,7 @@ export const useGameStore = create<GameState>((set, get) => {
     },
     load: (save) =>
       set({
+        mode: save.mode,
         clock: save.clock,
         reputation: save.reputation,
         owned: save.owned,
@@ -874,6 +915,7 @@ export const useGameStore = create<GameState>((set, get) => {
     newGame: () =>
       set((s) => {
         const base: Partial<GameState> = {
+          mode: 'career',
           clock: initialClock(balance),
           reputation: 0,
           owned: {},
@@ -909,9 +951,52 @@ export const useGameStore = create<GameState>((set, get) => {
         // 新しく始めたら、最初の依頼をすぐ届ける
         return { ...base, ...refresh({ ...s, ...base } as GameState) };
       }),
+    newSandbox: () =>
+      set((s) => {
+        const office = sandboxOffice();
+        return {
+          mode: 'sandbox',
+          clock: sandboxClock(initialClock(balance)),
+          reputation: 0,
+          owned: {},
+          completed: [],
+          offers: [],
+          nextOfferMinute: 0,
+          offerSeq: 0,
+          rng: newRng(),
+          staff: [],
+          staffSeq: 0,
+          candidates: [],
+          active: [],
+          focus: null,
+          office,
+          effects: noEffects(),
+          guidesDone: [],
+          guideTarget: null,
+          maps: { ...s.maps, hq: mapOfOffice(office) },
+          speed: 0,
+          nightSpeed: null,
+          pausedPrompt: false,
+          lastReport: null,
+          lastError: null,
+          notice: null,
+          flash: null,
+          traces: [],
+          showcase: null,
+          check: null,
+          helpUid: null,
+          histories: {},
+          historyError: null,
+          windows: [],
+          placing: null,
+          wireStart: null,
+          portMenu: null,
+        };
+      }),
     snapshot: () => {
       const s = get();
       return {
+        mode: s.mode,
         clock: s.clock,
         reputation: s.reputation,
         owned: s.owned,

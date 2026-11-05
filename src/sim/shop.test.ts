@@ -26,6 +26,8 @@ describe('セーブのバージョン移行', () => {
     const v1 = { clock: { minute: 0, money: 500, paidMonths: 0, bankrupt: false }, reputation: 1 };
     expect(migrate(1, v1)).toEqual({
       ...v1,
+      // 遊び方は移行で案件の経営ゲーム（career）になる
+      mode: 'career',
       owned: {},
       completed: [],
       guidesDone: [],

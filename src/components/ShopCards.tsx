@@ -17,13 +17,16 @@ const SECTIONS: readonly Section[] = ['device', 'furniture'];
 
 export function ShopCards({ onClose }: { onClose: () => void }) {
   const completed = useGameStore((s) => s.completed);
+  // サンドボックスは解禁の条件を無視し、費用は 0
+  const sandbox = useGameStore((s) => s.mode) === 'sandbox';
   const owned = useGameStore((s) => s.owned);
   const money = useGameStore((s) => s.clock.money);
   const buy = useGameStore((s) => s.buy);
   const [section, setSection] = useState<Section>('device');
-  const ids = shop.filter((i) => i.device && isUnlocked(i, completed)).map((i) => i.device!);
-  const furnitureIds = shop.filter((i) => i.furniture && isUnlocked(i, completed)).map((i) => i.furniture!);
+  const ids = shop.filter((i) => i.device && isUnlocked(i, completed, sandbox)).map((i) => i.device!);
+  const furnitureIds = shop.filter((i) => i.furniture && isUnlocked(i, completed, sandbox)).map((i) => i.furniture!);
   const yen = (n: number) => n.toLocaleString('ja-JP');
+  const cost = (n: number) => (sandbox ? 0 : n);
 
   // Enter は閉じる（主のボタン）
   return (
@@ -58,10 +61,10 @@ export function ShopCards({ onClose }: { onClose: () => void }) {
                       {t('ui.shop.spec', { ports: d.ports.reduce((sum, p) => sum + p.count, 0), speed: d.ports[0]?.speedMbps ?? 0 })}
                     </div>
                     <div style={{ fontSize: 13 }}>
-                      <Icon name="icon/money" scale={1} /> {yen(d.price)}　×{owned[id] ?? 0}
+                      <Icon name="icon/money" scale={1} /> {yen(cost(d.price))}　×{owned[id] ?? 0}
                     </div>
                   </div>
-                  <button style={{ padding: '4px 12px', cursor: 'pointer' }} disabled={money < d.price} onClick={() => buy(id)}>
+                  <button style={{ padding: '4px 12px', cursor: 'pointer' }} disabled={money < cost(d.price)} onClick={() => buy(id)}>
                     {t('ui.shop.buy')}
                   </button>
                 </div>
@@ -83,10 +86,10 @@ export function ShopCards({ onClose }: { onClose: () => void }) {
                     <div style={{ fontSize: 12, opacity: 0.85 }}>{t(`furniture.${id}.desc` as LangKey)}</div>
                     {effectText(f.effect) && <div style={{ fontSize: 12, color: '#ffd866' }}>{effectText(f.effect)}</div>}
                     <div style={{ fontSize: 13 }}>
-                      <Icon name="icon/money" scale={1} /> {yen(f.price)}　×{owned[id] ?? 0}
+                      <Icon name="icon/money" scale={1} /> {yen(cost(f.price))}　×{owned[id] ?? 0}
                     </div>
                   </div>
-                  <button style={{ padding: '4px 12px', cursor: 'pointer' }} disabled={money < f.price} onClick={() => buy(id)}>
+                  <button style={{ padding: '4px 12px', cursor: 'pointer' }} disabled={money < cost(f.price)} onClick={() => buy(id)}>
                     {t('ui.shop.buy')}
                   </button>
                 </div>

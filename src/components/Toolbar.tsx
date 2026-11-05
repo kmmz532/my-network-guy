@@ -100,6 +100,8 @@ export function Toolbar({
   setWarehouseOpen: (open: boolean) => void;
 }) {
   const offers = useGameStore((s) => s.offers);
+  // サンドボックスは案件・依頼がなく、テストと設計の操作だけを出す
+  const sandbox = useGameStore((s) => s.mode) === 'sandbox';
   const active = useGameStore(focusedProject);
   // 施工は勤務時間内にしか進まない。勤務時間外は棒を灰色にして、再開の時刻を出す
   const clockMinute = useGameStore((s) => s.clock.minute);
@@ -135,7 +137,7 @@ export function Toolbar({
   }, [testNudge]);
 
   const showcase = useGameStore((s) => s.showcase);
-  const unlocked = shop.filter((item) => isUnlocked(item, completed));
+  const unlocked = shop.filter((item) => isUnlocked(item, completed, sandbox));
   const cableIds = unlocked.filter((i) => i.cable).map((i) => i.cable!);
   const design = active?.phase === 'design';
   const yen = (n: number) => n.toLocaleString('ja-JP');
@@ -169,7 +171,7 @@ export function Toolbar({
   // 倉庫の在庫の合計（機材と家具の個数の和）
   const stockTotal = Object.values(owned).reduce((sum, n) => sum + n, 0);
   const mode = warehouseMode(active?.phase ?? null, showcase !== null);
-  const warehouseItemList = warehouseItems(mode, shop, completed, owned);
+  const warehouseItemList = warehouseItems(mode, shop, completed, owned, sandbox);
   const warehouseOpenable = mode !== 'closed';
   const phone = usePhone();
 
@@ -213,7 +215,7 @@ export function Toolbar({
         // 値段は、ボタンの文字には出さず、ツールチップの2行目に出す
         const price = t('ui.cable.price', { link: yen(cable.pricePerLink), tile: yen(cable.pricePerTile) });
         return (
-          <Tooltip text={`${name}\n${price}`} key={id}>
+          <Tooltip text={sandbox ? name : `${name}\n${price}`} key={id}>
             <button aria-label={name} style={{ ...slot(wireCable === id), width: 36, height: 36 }} onClick={() => setWireCable(id)}>
               <Icon name={`icon/cable_${id}`} scale={1} />
             </button>
@@ -244,6 +246,7 @@ export function Toolbar({
         </Fragment>
       ))}
       {sep}
+      {!sandbox && (
       <Tooltip text={tipText('ui.offer.title', 'offers')}><button aria-label={t('ui.offer.title')} style={{ ...slot(false), position: 'relative' }}  onClick={() => { closeWarehouse(); onOffers(); }}>
         <Icon name="icon/mail" />
         {offers.length > 0 && (
@@ -252,6 +255,7 @@ export function Toolbar({
           </span>
         )}
       </button></Tooltip>
+      )}
       <Tooltip text={tipText('ui.shop.title', 'shop')}><button aria-label={t('ui.shop.title')} data-guide="shop" style={slot(false)}  onClick={() => { closeWarehouse(); onShop(); }}>
         <Icon name="icon/cart" />
       </button></Tooltip>
@@ -267,7 +271,7 @@ export function Toolbar({
           {stockTotal}
         </span>
       </button></Tooltip>
-      {design && (
+      {(design || sandbox) && (
         <>
           {sep}
           {ipButton}
@@ -291,6 +295,8 @@ export function Toolbar({
             </button>
           </Tooltip>
           {historyButtons}
+          {design && (
+          <>
           <Tooltip text={tipText('ui.build', 'build')}>
             <button
               aria-label={t('ui.build')}
@@ -313,9 +319,11 @@ export function Toolbar({
           <Tooltip text={t('ui.project.abandon')} style={{ marginLeft: 'auto' }}><button aria-label={t('ui.project.abandon')} style={{ ...slot(false), width: 32 }}  onClick={() => { closeWarehouse(); abandon(); }}>
             <Icon name="icon/close" />
           </button></Tooltip>
+          </>
+          )}
         </>
       )}
-      {!design && (
+      {!design && !sandbox && (
         <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
           {historyButtons}
           {ipButton}

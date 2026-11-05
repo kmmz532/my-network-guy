@@ -23,9 +23,10 @@ export const warehouseItems = (
   shop: readonly ShopItem[],
   completed: readonly string[],
   owned: Record<string, number>,
+  sandbox = false,
 ): WarehouseItem[] => {
   if (mode === 'closed') return [];
-  const unlocked = shop.filter((item) => isUnlocked(item, completed));
+  const unlocked = shop.filter((item) => isUnlocked(item, completed, sandbox));
   const devices: WarehouseItem[] = unlocked.filter((i) => i.device).map((i) => ({ kind: 'device', id: i.device! }));
   const furniture: WarehouseItem[] =
     mode === 'office' ? unlocked.filter((i) => i.furniture).map((i) => ({ kind: 'furniture', id: i.furniture! })) : [];

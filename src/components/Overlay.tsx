@@ -15,7 +15,7 @@ const NOTICE_MS = 3000;
 // 納品の結果は、パケットが流れ切ってから出す
 const REPORT_DELAY_MS = 1500;
 
-// 結果の3項目（費用の割合・失敗回数・納期）。基準は★3の条件、実績は今回の数字。達成の印を付ける
+// 結果の4項目（費用の割合・失敗回数・納期・設計の不備）。基準は★3の条件、実績は今回の数字。達成の印を付ける
 function EvaluationRows({ report }: { report: Report }) {
   const star3 = balance.rating.find((r) => r.stars === 3);
   const costRatio = report.budget && report.budget > 0 ? (report.cost ?? 0) / report.budget : 0;
@@ -39,6 +39,12 @@ function EvaluationRows({ report }: { report: Report }) {
       target: t('report.onTime'),
       actual: late > 0 ? t('report.lateActual', { days: late }) : t('report.onTime'),
       ok: late === 0,
+    },
+    {
+      label: t('report.design'),
+      target: t('report.designTarget', { count: 0 }),
+      actual: t('report.designActual', { count: report.designIssues ?? 0 }),
+      ok: (report.designIssues ?? 0) === 0,
     },
   ];
   return (

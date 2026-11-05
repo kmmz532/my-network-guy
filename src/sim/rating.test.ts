@@ -7,15 +7,34 @@ const balance = balanceJson as unknown as Balance;
 
 describe('遅れた案件の★', () => {
   it('期日内の★3相当の案件は★3のまま', () => {
-    expect(rate(70, 100, 0, false, balance)).toBe(3);
+    expect(rate(70, 100, 0, false, 0, balance)).toBe(3);
   });
 
   it('遅れた★3相当の案件は★2になる', () => {
-    expect(rate(70, 100, 0, true, balance)).toBe(2);
+    expect(rate(70, 100, 0, true, 0, balance)).toBe(2);
   });
 
   it('遅れても★1の案件は★1のまま', () => {
-    expect(rate(150, 100, 0, true, balance)).toBe(1);
+    expect(rate(150, 100, 0, true, 0, balance)).toBe(1);
+  });
+});
+
+describe('設計の不備がある案件の★', () => {
+  it('設計の不備がなければ★3のまま', () => {
+    expect(rate(70, 100, 0, false, 0, balance)).toBe(3);
+  });
+
+  it('設計の不備が1つでもあれば★3相当でも★2になる', () => {
+    expect(rate(70, 100, 0, false, 1, balance)).toBe(2);
+    expect(rate(70, 100, 0, false, 3, balance)).toBe(2);
+  });
+
+  it('設計の不備があっても★1の案件は★1のまま', () => {
+    expect(rate(150, 100, 0, false, 2, balance)).toBe(1);
+  });
+
+  it('遅れと設計の不備が両方あっても★2が上限', () => {
+    expect(rate(70, 100, 0, true, 1, balance)).toBe(2);
   });
 });
 
