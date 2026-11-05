@@ -80,6 +80,9 @@ export interface Effects {
   buildSpeed: number;
 }
 
+// 社員の席になる家具（机）のID。PCはこの家具の上にだけ置ける
+export const DESK_ID = 'desk';
+
 export const emptyOffice = (): Office => ({ nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 });
 export const noEffects = (): Effects => ({ buildSpeed: 0 });
 
@@ -213,10 +216,18 @@ export const placeInOffice = (core: Core, deviceId: string, x: number, y: number
   if (!env.devices[deviceId]) return fail('none');
   if ((core.owned[deviceId] ?? 0) < 1) return fail('stock');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
-  const kind = map.legend[map.tiles[y][x]];
-  if (kind !== 'floor' && !(kind === 'desk' && env.devices[deviceId].category === 'pc')) return fail('tile');
   const office = core.office;
-  if (office.nodes.some((n) => n.x === x && n.y === y)) return fail('tile');
+  const hasNode = office.nodes.some((n) => n.x === x && n.y === y);
+  if (env.devices[deviceId].category === 'pc') {
+    // PCは机の上にだけ置ける。机の上にほかの機材があれば置けない
+    const onDesk = office.furniture.some((f) => f.x === x && f.y === y && f.id === DESK_ID);
+    if (!onDesk || hasNode) return fail('desk');
+  } else {
+    // それ以外の機材は、家具のない床のマスにだけ置ける
+    const kind = map.legend[map.tiles[y][x]];
+    if (kind !== 'floor') return fail('tile');
+    if (hasNode || office.furniture.some((f) => f.x === x && f.y === y)) return fail('tile');
+  }
   const node: NetNode = {
     uid: `u${office.seq}`,
     device: deviceId,
