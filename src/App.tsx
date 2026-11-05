@@ -77,6 +77,8 @@ export function App() {
   // 自動保存の直列化。実行中に次の要求が来たら、終わってから1回だけ書く（書く内容は実行時点の状態）
   const [autoSaver] = useState(() =>
     createSaveQueue(async () => {
+      // 倒産した後の状態は保存しない（倒産の前の保存を残し、読み込みで倒産の前からやり直せるようにする）
+      if (useGameStore.getState().clock.bankrupt) return;
       try {
         const data = useGameStore.getState().snapshot();
         // 遊び方ごとの枠に保存する（サンドボックスの自動保存で案件の枠を壊さない）
@@ -248,12 +250,16 @@ export function App() {
   const date = toDate(clock.minute, balance);
 
   const onSave = async () => {
+    // 倒産した後は保存しない（倒産の前の保存を上書きしない）
+    if (useGameStore.getState().clock.bankrupt) return;
     const data = snapshot();
     await saveSlot(slotOf(data.mode), data);
     setMessage(t('ui.save.done'));
   };
 
   const onExport = () => {
+    // 倒産した後の状態は書き出さない
+    if (useGameStore.getState().clock.bankrupt) return;
     const blob = new Blob([exportSave(snapshot())], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
