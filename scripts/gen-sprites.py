@@ -741,17 +741,30 @@ def rear_power():
 # 32×32。角の丸い青い板に、3台の機器（白）と、それを結ぶケーブル（緑）を描く
 
 def favicon():
+    # 32×32。黄色の丸い板に、社員（ネットワーク屋）の顔。手にLANケーブルのプラグを持ち、
+    # ケーブルが板の外へ伸びる。プラグの先の緑のLEDが「つながった」を表す
     img, d = new(32, 32)
-    d.rounded_rectangle([0, 0, 31, 31], radius=6, fill=C['b'] + (255,), outline=C['o'] + (255,))
-    d.rounded_rectangle([1, 1, 30, 4], radius=3, fill=C['bh'] + (255,))
-    # ケーブル: 上の機器から左下と右下へ
-    for x0, y0, x1, y1 in ((15, 12, 8, 21), (16, 12, 23, 21), (11, 24, 20, 24)):
-        d.line([(x0, y0), (x1, y1)], fill=C['l'] + (255,), width=2)
-    # 機器: 上に1台、下に2台
-    for x, y in ((11, 6), (4, 19), (19, 19)):
-        rect(d, x, y, 9, 7, 'e', 'o')
-        px(d, x + 2, y + 2, 'l')
-        rect(d, x + 4, y + 4, 3, 1, 'g')
+    d.ellipse([0, 0, 31, 31], fill=C['y'] + (255,), outline=C['o'] + (255,))
+    d.arc([2, 2, 29, 29], 200, 300, fill=C['e'] + (255,), width=2)
+    # 顔: 肌・髪・耳の影・目・口・ほお
+    d.rounded_rectangle([7, 7, 22, 22], radius=4, fill=C['k'] + (255,), outline=C['o'] + (255,))
+    d.rounded_rectangle([7, 5, 22, 11], radius=3, fill=C['h'] + (255,), outline=C['o'] + (255,))
+    rect(d, 8, 11, 2, 3, 'h')
+    rect(d, 20, 11, 2, 3, 'h')
+    rect(d, 11, 14, 2, 2, 'o')
+    rect(d, 17, 14, 2, 2, 'o')
+    d.line([(13, 19), (16, 19)], fill=C['o'] + (255,))
+    px(d, 12, 18, 'o')
+    px(d, 17, 18, 'o')
+    px(d, 10, 17, 'r')
+    px(d, 19, 17, 'r')
+    # 青いLANケーブルが右下から伸び、透明なプラグの先に緑のLED
+    d.line([(31, 31), (27, 27), (25, 23)], fill=C['b'] + (255,), width=2)
+    rect(d, 21, 18, 6, 6, 'e', 'o')
+    rect(d, 22, 19, 4, 2, 'Y')
+    rect(d, 23, 22, 2, 1, 'g')
+    px(d, 26, 17, 'l')
+    px(d, 27, 16, 'l')
     return img
 
 
