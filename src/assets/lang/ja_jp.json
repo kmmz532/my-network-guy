@@ -457,5 +457,16 @@
   "ui.office.annex.right": "右に別室を足す",
   "ui.office.annex.bottom": "下に別室を足す",
   "ui.office.annex.left": "左に別室を足す",
-  "ui.office.cost": "費用 {cost}円"
+  "ui.office.cost": "費用 {cost}円",
+  "ui.terminal.input": "コマンドを入力",
+  "ui.terminal.run": "実行",
+  "ui.terminal.help": "使えるコマンド: help、show ip、ping <IPアドレス>",
+  "ui.terminal.unknown": "不明なコマンド: {cmd}（help で一覧を見られます）",
+  "ui.terminal.noIp": "IPアドレスが設定されていない",
+  "ui.terminal.ifLine": "ポート{port}: {ip}/{prefix}",
+  "ui.terminal.gateway": "既定のゲートウェイ: {gateway}",
+  "ui.terminal.usagePing": "使い方: ping <IPアドレス>",
+  "ui.terminal.noHost": "{ip} という宛先が見つからない",
+  "ui.terminal.pingOk": "{ip} から応答があった",
+  "ui.terminal.pingNg": "届かなかった。理由:"
 }

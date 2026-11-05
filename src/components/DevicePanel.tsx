@@ -1,5 +1,5 @@
 // 機器の画面の中身。ウィンドウ（Window.tsx）の中に出し、タイトルの帯・×・大きさは Windows.tsx が受け持つ。
-// 背面・設定・サービス（サーバーだけ）・ターミナル（押せない）のタブを持つ。閉じるのは、ウィンドウの×か Esc（キーは input/keymap.ts が受け取る）。
+// 背面・設定・サービス（サーバーだけ）・ターミナルのタブを持つ。閉じるのは、ウィンドウの×か Esc（キーは input/keymap.ts が受け取る）。
 import { nodeLabel } from './nodeLabel';
 import { useState } from 'react';
 import { devices as deviceData } from 'virtual:game-data';
@@ -12,12 +12,11 @@ import { focusedProject, useGameStore, type GameState } from '../stores/useGameS
 import { RearTab as DeviceRear } from './DeviceRear';
 import { DeviceSettings } from './DeviceSettings';
 import { TrimmedIcon } from './Icon';
+import { TerminalTab } from './TerminalTab';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { buttonStyle, greyColor, warnColor } from './devicePorts';
 
-type Tab = 'rear' | 'config' | 'service';
-// タブの並び（ターミナルは押せない表示だけのタブ）
-type TabId = Tab | 'terminal';
+type Tab = 'rear' | 'config' | 'service' | 'terminal';
 
 // uid の機器を探す。表示中の案件（設計中、または納品の結果）を優先し、なければ自社オフィス。見つからなければ null
 export function findDevice(state: GameState, uid: string) {
@@ -102,17 +101,15 @@ function DeviceView({
     <div>
       {issue && <div style={{ color: warnColor, marginBottom: 6 }}>{t(`issue.${issue.reason}` as LangKey, { ip: issue.ip ?? '', segment: issue.segment ?? '', gateway: issue.gateway ?? '' })}</div>}
       {readOnly && <div style={{ marginBottom: 6 }}>{t('ui.config.readOnly')}</div>}
-      <Tabs<TabId>
+      <Tabs<Tab>
         items={[
           { id: 'rear', label: t('ui.panel.tab.rear') },
           ...(hasConfig ? [{ id: 'config' as const, label: t('ui.panel.tab.config') }] : []),
           ...(isServer ? [{ id: 'service' as const, label: t('ui.panel.tab.service') }] : []),
-          { id: 'terminal', label: t('ui.panel.tab.terminal'), disabled: true },
+          { id: 'terminal', label: t('ui.panel.tab.terminal') },
         ]}
         selected={tab}
         onSelect={(id) => {
-          // ターミナルは押せない（表示だけ）
-          if (id === 'terminal') return;
           setTab(id);
           setError(null);
         }}
@@ -125,6 +122,7 @@ function DeviceView({
           <DeviceSettings node={node} compiled={compiled} readOnly={readOnly} detailOpen={detailOpen} onToggleDetail={onToggleDetail} onError={setError} />
         )}
         {tab === 'service' && isServer && <ServiceTab node={node} readOnly={readOnly} onError={setError} />}
+        {tab === 'terminal' && <TerminalTab node={node} nodes={nodes} links={links} />}
       </div>
     </div>
   );
