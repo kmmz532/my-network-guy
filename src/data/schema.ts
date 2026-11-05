@@ -37,6 +37,8 @@ export const balanceSchema = z.object({
     speeds: z.array(z.number().nonnegative()).min(1),
   }),
   startMoney: int,
+  // ゲーム開始時の在庫（機器・家具の id と台数）
+  initialStock: z.record(z.string(), nonNegativeInt),
   offerIntervalDays: int.positive(),
   staff: z.object({
     initialCount: int.positive(),

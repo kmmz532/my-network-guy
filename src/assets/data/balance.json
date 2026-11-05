@@ -11,6 +11,10 @@
     ]
   },
   "startMoney": 1000000,
+  "initialStock": {
+    "pc_basic": 2,
+    "plant": 1
+  },
   "offerIntervalDays": 3,
   "staff": {
     "initialCount": 2,
