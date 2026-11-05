@@ -55,7 +55,64 @@ const scenes = {
     await page.locator('header button').last().click();
     await page.waitForTimeout(500);
   },
+  // メニューの設定（画面の設定タブ）
+  settings: async (page) => {
+    await scenes.menu(page);
+    await page.getByRole('button', { name: '設定' }).click();
+    await page.waitForTimeout(500);
+  },
+  // 社員の一覧（キー H）
+  staff: async (page) => {
+    await scenes.career(page);
+    await page.keyboard.press('h');
+    await page.waitForTimeout(500);
+  },
+  // スイッチの機器の画面（設定タブ）。空いている場所に置いて開く
+  switch: async (page) => {
+    await scenes.career(page);
+    await openDevice(page, 'l2_switch_8p');
+    await page.getByText('設定', { exact: true }).click();
+    await page.waitForTimeout(500);
+  },
+  // PC の設定で「詳しく」を開き、ネットワークの一覧を開いた状態（選択の部品）
+  select: async (page) => {
+    await scenes.career(page);
+    await openDevice(page, 'pc_basic');
+    await page.getByText('設定', { exact: true }).click();
+    await page.waitForTimeout(300);
+    await page.getByRole('button', { name: '詳しく', exact: true }).first().click();
+    await page.waitForTimeout(300);
+    await page.getByRole('button', { name: 'ネットワーク', exact: true }).click();
+    await page.waitForTimeout(500);
+  },
+  // ルーターの機器の画面（設定タブ・経路の追加を含む）
+  router: async (page) => {
+    await scenes.career(page);
+    await openDevice(page, 'router_basic');
+    await page.getByText('設定', { exact: true }).click();
+    await page.waitForTimeout(500);
+  },
 };
+
+// 機器を空いている場所に置き、その機器の画面を開く（撮影用の window.__game を使う）
+// place は、成功なら null、失敗なら理由のキー（例: stock）を返す
+async function openDevice(page, deviceId) {
+  await page.evaluate((id) => {
+    // 倉庫に在庫がなければ、先に買う（撮影の場面では資金は十分にある）
+    window.__game.getState().buy(id);
+    for (let y = 1; y < 12; y++) {
+      for (let x = 1; x < 12; x++) {
+        if (window.__game.getState().place(id, x, y) === null) {
+          const node = window.__game.getState().office.nodes.find((n) => n.device === id && n.x === x && n.y === y);
+          window.__game.getState().openWindow('device', node.uid);
+          return;
+        }
+      }
+    }
+    throw new Error('機器を置ける場所がない');
+  }, deviceId);
+  await page.waitForTimeout(800);
+}
 scenes.all = null;
 
 if (names.length === 0) {
@@ -73,7 +130,12 @@ for (const n of targets) {
 // 開発サーバーは初回に依存の読み込みで失敗することがあるため、ビルドしてから配信する（dist-shoot は撮影専用で、コミットしない）
 const DIST = 'dist-shoot';
 await new Promise((resolve, reject) => {
-  const build = spawn('npx', ['vite', 'build', '--outDir', DIST, '--emptyOutDir'], { shell: true, stdio: 'ignore' });
+  // VITE_SHOOT で、画面の状態を操作するための window.__game を撮影用のビルドに入れる
+  const build = spawn('npx', ['vite', 'build', '--outDir', DIST, '--emptyOutDir'], {
+    shell: true,
+    stdio: 'ignore',
+    env: { ...process.env, VITE_SHOOT: '1' },
+  });
   build.on('exit', (code) => (code === 0 ? resolve() : reject(new Error('ビルドに失敗しました'))));
 });
 const server = spawn('npx', ['vite', 'preview', '--outDir', DIST, '--port', String(PORT), '--strictPort'], { shell: true, stdio: 'pipe' });
