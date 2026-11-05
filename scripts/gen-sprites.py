@@ -86,17 +86,25 @@ def save(img, path):
 # 描画の基準: 足元（底面）は y=37 の行。y=38〜39 は床に重なる余白
 
 def pc():
-    # モニターとキーボード。本体は机の下にある想定で描かない。下端（y=37）を置き場所に揃える
+    # モニターとキーボードを斜め上から見る。モニターは上の縁の厚み（天面）を見せ、
+    # 台座とキーボードは天面を広く見せる。下端（y=37）を置き場所に揃える
     img, d = new(24, 40)
-    rect(d, 2, 16, 20, 15, 'w', 'o')
+    # モニターの上の縁（天面）と画面の枠
+    rect(d, 2, 14, 20, 3, 'e', 'o')
+    rect(d, 2, 16, 20, 14, 'w', 'o')
     rect(d, 4, 18, 16, 10, 's')
     rect(d, 4, 18, 16, 3, 'S')
     d.line([(6, 23), (12, 23)], fill=C['S'])
     d.line([(6, 25), (10, 25)], fill=C['S'])
     px(d, 19, 29, 'l')
-    rect(d, 10, 31, 4, 3, 'g', 'o')
-    rect(d, 3, 34, 18, 4, 'g', 'o')
-    d.line([(5, 35), (18, 35)], fill=C['w'])
+    # 首と台座
+    rect(d, 10, 30, 4, 2, 'g', 'o')
+    # キーボード: 天面（キーの並び）と手前の縁
+    rect(d, 2, 32, 20, 5, 'e', 'o')
+    for x in range(4, 20, 2):
+        px(d, x, 33, 'g')
+        px(d, x + 1, 35, 'g')
+    d.line([(3, 36), (20, 36)], fill=C['g'] + (255,))
     return img
 
 
@@ -150,23 +158,29 @@ def switch_unit(d, y, ports=8, color='b', light='bh', shade='B', top=False):
 
 
 def l2_switch():
-    # 青いスイッチを2段に重ね、低い台に載せる。上の段は天面を見せる
+    # 8ポートのスイッチ1台を斜め上から見る。広い天面（通気の線とロゴの帯）と、前面のポートとLED
     img, d = new(24, 40)
-    switch_unit(d, 26)
-    switch_unit(d, 19, top=True)
-    base(d)
+    box3q(d, 1, 22, 22, 7, 8, 'bh', 'b', edge='e', shade='B')
+    for x in range(4, 20, 3):
+        d.line([(x, 24), (x + 1, 24)], fill=C['b'] + (255,))
+    rect(d, 4, 26, 6, 1, 'e')
+    for i in range(8):
+        x = 4 + i * 2
+        px(d, x, 31, 'l' if i % 2 == 0 else 'B')
+        rect(d, x, 32, 1, 2, 'o')
+    px(d, 20, 31, 'y')
+    rect(d, 3, 37, 3, 1, 'o')
+    rect(d, 18, 37, 3, 1, 'o')
     return img
 
 
 def l3_switch():
-    # L2スイッチと同じ2段の筐体に、左端の黄色の帯（ルーティングできる印）を付ける
-    img, d = new(24, 40)
-    switch_unit(d, 26)
-    switch_unit(d, 19, top=True)
-    for y in (19, 26):
-        rect(d, 1, y, 3, 7, 'y', 'o')
-        d.line([(2, y + 1), (2, y + 5)], fill=C['Y'])
-    base(d)
+    # L3スイッチ: L2スイッチと同じ1台の形に、天面と前面の左端の黄色の帯（ルーティングできる印）
+    img = l2_switch()
+    d = ImageDraw.Draw(img)
+    rect(d, 2, 23, 3, 6, 'y')
+    rect(d, 2, 30, 1, 6, 'y')
+    d.line([(2, 29), (4, 29)], fill=C['e'] + (255,))
     return img
 
 
