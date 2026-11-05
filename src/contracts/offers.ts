@@ -5,7 +5,7 @@ import { minutesPerDay } from '../sim/clock';
 import { rand } from '../sim/rng';
 import { instantiateTemplate, pickByWeight, type Offer } from './template';
 
-export const MAX_OFFERS = 3;
+export const MAX_OFFERS = 30;
 
 export interface OfferState {
   minute: number;

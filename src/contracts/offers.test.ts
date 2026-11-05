@@ -6,7 +6,7 @@ import templateJson from '../assets/data/contracts/templates/t_small_lan.json';
 import officeJson from '../assets/data/maps/office_small.json';
 import type { Balance, Contract, ContractTemplate, GameMap } from '../data/schema';
 import { minutesPerDay } from '../sim/clock';
-import { refreshOffers, type OfferEnv, type OfferState } from './offers';
+import { MAX_OFFERS, refreshOffers, type OfferEnv, type OfferState } from './offers';
 import { instantiateTemplate, starHubOf } from './template';
 
 const balance = balanceJson as unknown as Balance;
@@ -109,7 +109,7 @@ describe('依頼の追加', () => {
     const done = { ...start, reputation: 5, completed: ['c001_direct_link', 'c002_small_office'] };
     const next = refreshOffers(done, always);
     expect(next.offers.length).toBeGreaterThanOrEqual(2);
-    expect(next.offers.length).toBeLessThanOrEqual(3);
+    expect(next.offers.length).toBeLessThanOrEqual(MAX_OFFERS);
   });
 
   it('まとめて届く確率が0なら、毎回1件だけ届く', () => {

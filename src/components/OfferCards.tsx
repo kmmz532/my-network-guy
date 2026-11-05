@@ -36,16 +36,19 @@ export function OfferCards({ onClose }: { onClose: () => void }) {
         <Icon name="icon/mail" />
       </div>
       {offers.length === 0 && <div style={{ opacity: 0.7 }}>…</div>}
-      {offers.map((offer, i) => (
-        <OfferCard
-          key={offer.id}
-          offer={offer}
-          full={full}
-          yen={yen}
-          primary={i === 0}
-          onAccept={(crew) => accept(offer.id, crew) === null && onClose()}
-        />
-      ))}
+      {/* 新しい依頼を上に並べる。件数が多いときは、この中だけスクロールする */}
+      <div style={{ maxHeight: 'min(60vh, 520px)', overflowY: 'auto', paddingRight: 4 }}>
+        {[...offers].reverse().map((offer, i) => (
+          <OfferCard
+            key={offer.id}
+            offer={offer}
+            full={full}
+            yen={yen}
+            primary={i === 0}
+            onAccept={(crew) => accept(offer.id, crew) === null && onClose()}
+          />
+        ))}
+      </div>
     </Modal>
   );
 }
