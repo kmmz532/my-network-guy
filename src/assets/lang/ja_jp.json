@@ -287,7 +287,7 @@
   "furniture.sofa.desc": "来客や休憩に使う。",
   "furniture.boxes.name": "段ボール",
   "furniture.boxes.desc": "引っ越しの荷物。",
-  "ui.offer.crew": "担当（施工する社員）",
+  "ui.offer.crew": "担当",
   "ui.staff.level": "Lv {level}",
   "ui.staff.power": "施工力 {power}",
   "ui.staff.card.exp": "経験値 {exp} / {next}",
