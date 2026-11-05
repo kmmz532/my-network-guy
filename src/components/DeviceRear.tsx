@@ -1,6 +1,7 @@
 // 機器の画面の「背面」タブ。ポートを番号つきで並べ、各ポートのLED・相手の機器とポート・ケーブルの種類を出す。
 // つながったポートを押すと「外す」「挿し替える」を出す。挿し替えでは、空いているポートを押すと、そこへ挿し替える。
 import { useState } from 'react';
+import { spriteUrl } from '../game/sprites';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import type { End } from '../sim/project';
@@ -8,6 +9,10 @@ import { gameEnv } from '../sim/env';
 import type { NetLink, NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, portLabel } from './devicePorts';
+
+// 背面の部品のスプライトを拡大する倍率（ドット絵を整数倍で描く）
+// 背面の部品の拡大率。ポートが多い機器は、板の幅に収まるよう2倍にする
+const scaleFor = (ports: number): number => (ports > 4 ? 2 : 3);
 
 interface Props {
   node: NetNode;
@@ -23,10 +28,13 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
   const replug = useGameStore((s) => s.replug);
   const [selected, setSelected] = useState<number | null>(null);
   const [replugging, setReplugging] = useState<{ linkUid: string; end: End } | null>(null);
+  // マウスを乗せているポート（明るく描く）
+  const [hover, setHover] = useState<number | null>(null);
 
   const category = gameEnv.devices[node.device]?.category;
   const portCount = gameEnv.devices[node.device]?.portCount ?? 0;
   const ports = Array.from({ length: portCount }, (_, p) => p);
+  const SCALE = scaleFor(portCount);
   const byUid = new Map(nodes.map((n) => [n.uid, n]));
   const linkAt = (port: number) =>
     links.find((l) => (l.a.node === node.uid && l.a.port === port) || (l.b.node === node.uid && l.b.port === port));
@@ -55,48 +63,57 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
     return { end, peer };
   };
 
+  // 背面の板: 左から電源・ポート群・ファン（PC とサーバーだけ）。スプライトは3倍に拡大して、ドット絵のまま描く
+  const fan = category === 'pc' || category === 'server';
   return (
     <div>
-      {/* 背面の絵: 番号つきのポートを横に並べ、LED（つながっていれば緑）を付ける */}
-      <div style={{ border: '2px solid #3b2a33', borderRadius: 4, background: '#2a4a80', padding: '8px 6px', display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
-        {ports.map((p) => {
-          const linked = linkAt(p) !== undefined;
-          return (
-            <button
-              key={p}
-              aria-label={portLabel(category, p)}
-              onClick={() => press(p)}
-              style={{
-                width: 34,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 2,
-                padding: 2,
-                cursor: 'pointer',
-                background: 'none',
-                color: '#f4f1e6',
-                border: selected === p ? '2px solid #ffd866' : '2px solid transparent',
-                fontSize: 11,
-              }}
-            >
-              <span>{portLabel(category, p)}</span>
-              <span
+      <div
+        style={{
+          background: '#3d434b',
+          border: '2px solid #3b2a33',
+          borderRadius: 4,
+          padding: '8px 6px',
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: 10,
+          marginBottom: 8,
+          overflowX: 'auto',
+        }}
+      >
+        <img src={spriteUrl('rear/power')} width={12 * SCALE} height={10 * SCALE} alt="" style={{ imageRendering: 'pixelated', display: 'block' }} />
+        <div style={{ display: 'flex', gap: 4 }}>
+          {ports.map((p) => {
+            const link = linkAt(p);
+            const slot = !link ? 'rear/port_empty' : link.cable.startsWith('fiber') ? 'rear/port_fiber' : 'rear/port_utp';
+            return (
+              <button
+                key={p}
+                aria-label={portLabel(category, p)}
+                onClick={() => press(p)}
+                onMouseEnter={() => setHover(p)}
+                onMouseLeave={() => setHover(null)}
                 style={{
-                  width: 16,
-                  height: 10,
-                  background: '#25406f',
-                  border: '1px solid #3b2a33',
+                  background: 'none',
+                  border: selected === p ? '2px solid #ffd866' : '2px solid transparent',
+                  borderRadius: 2,
+                  padding: 0,
+                  cursor: 'pointer',
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  justifyContent: 'center',
+                  gap: 2,
+                  filter: hover === p ? 'brightness(1.35)' : undefined,
                 }}
               >
-                <span style={{ width: 5, height: 5, background: linked ? '#62d26f' : '#3b2a33' }} />
-              </span>
-            </button>
-          );
-        })}
+                {/* LED（つながっていれば緑）。2×2 の点を3倍にする */}
+                <span style={{ width: 2 * SCALE, height: 2 * SCALE, background: link ? '#62d26f' : '#2a2f36' }} />
+                <img src={spriteUrl(slot)} width={12 * SCALE} height={10 * SCALE} alt="" style={{ imageRendering: 'pixelated', display: 'block' }} />
+                <span style={{ color: '#f4f1e6', fontSize: 11, lineHeight: 1 }}>{portLabel(category, p)}</span>
+              </button>
+            );
+          })}
+        </div>
+        {fan && <img src={spriteUrl('rear/fan')} width={16 * SCALE} height={16 * SCALE} alt="" style={{ imageRendering: 'pixelated', display: 'block' }} />}
       </div>
 
       {/* ポートの一覧: 相手の機器名とポート、ケーブルの種類 */}

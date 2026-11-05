@@ -5,10 +5,11 @@ import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import type { Compiled } from '../network/compile';
 import { colorOfNetwork, networkColors, UNSET_COLOR } from '../network/netColor';
-import { neighborRouterAddresses, routerAddressesOn, segmentConfigOf, segmentOf, segmentsOf } from '../network/segments';
+import { intToIp, neighborRouterAddresses, routerAddressesOn, segmentConfigOf, segmentOf, segmentsOf } from '../network/segments';
+import { ipToInt } from '../network/engine';
 import type { NetNode, SegmentConfig } from '../network/types';
 import { gameEnv } from '../sim/env';
-import { addressCandidates } from '../sim/project';
+import { addressCandidates, type AddressCandidate } from '../sim/project';
 import { coreOf, netTargetOf, useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, hexColor, inputStyle, isIpText, portLabel, sectionStyle, selectStyle, unsetColor } from './devicePorts';
 
@@ -32,6 +33,8 @@ export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
   const setSegment = useGameStore((s) => s.setSegment);
   const addRoute = useGameStore((s) => s.addRoute);
   const removeRoute = useGameStore((s) => s.removeRoute);
+  // ネットワークをまだ確定していないポートの選択（IPアドレスを選んだときに確定する）
+  const [pending, setPending] = useState<Record<number, { network: string; prefix: number }>>({});
 
   const net = compiled.net;
   const engine = gameEnv.engine;
@@ -57,6 +60,37 @@ export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
     return `${t(`device.${n.device}.name` as LangKey)} ${portLabel(gameEnv.devices[n.device]?.category, usedBy.port)}`;
   };
 
+  // 未使用の 192.168.n.0/24 のうち最初のもの（どのセグメントにも使われていなければ）
+  const usedNetworks = new Set<string>();
+  for (const seg of segmentsOf(net, engine)) {
+    const cfg = segmentConfigOf(seg, byUid, net.segments);
+    if (cfg) usedNetworks.add(cfg.network);
+  }
+  const defaultNetwork = NETWORK_CHOICES.find((n) => !usedNetworks.has(n)) ?? NETWORK_CHOICES[0];
+  // 設定のないネットワークのアドレス候補（まだ確定していないネットワークから作る）
+  const pendingCandidates = (network: string, prefix: number): AddressCandidate[] => {
+    const owners = new Map<number, { node: string; port: number }>();
+    for (const n of net.nodes) for (const i of n.interfaces) owners.set(ipToInt(i.ip), { node: n.uid, port: i.port });
+    const base = ipToInt(network);
+    const list: AddressCandidate[] = [];
+    for (let h = 1; h <= 2 ** (32 - prefix) - 2; h++) list.push({ ip: intToIp(base + h), usedBy: owners.get(base + h) ?? null });
+    return list;
+  };
+  // IPアドレスを設定する。設定のないポートは、選んでいるネットワークを先に確定する
+  const commitIp = (port: number, ip: string): string | null => {
+    if (!cfgOf(port)) {
+      const pick = pending[port] ?? { network: defaultNetwork, prefix: 24 };
+      const reason = setSegment(node.uid, port, pick.network, pick.prefix);
+      if (reason) return reason;
+      setPending((p0) => {
+        const next = { ...p0 };
+        delete next[port];
+        return next;
+      });
+    }
+    return setIface(node.uid, port, ip);
+  };
+
   const renderPort = (port: number) => {
     const label = portLabel(category, port);
     const heading = ports.length > 1 ? (
@@ -74,9 +108,15 @@ export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
     }
     const cfg = cfgOf(port);
     const iface = node.interfaces.find((i) => i.port === port);
+    // 設定がなければ、未確定の選択（初期値は未使用の 192.168.n.0/24）を使う
+    const pick = cfg ? { network: cfg.network, prefix: cfg.prefix } : (pending[port] ?? { network: defaultNetwork, prefix: 24 });
     const color = colorOfNetwork(colors, cfg?.network) ?? UNSET_COLOR;
-    // 候補は、設定があり、操作できるときだけ一覧にする
-    const candidates = cfg && !readOnly ? addressCandidates(coreOf(state), node.uid, port, gameEnv, netTargetOf(state)) : [];
+    // 候補は、読み取り専用でなければ一覧にする（設定がなければ、選んでいるネットワークから作る）
+    const candidates: AddressCandidate[] = readOnly
+      ? []
+      : cfg
+        ? addressCandidates(coreOf(state), node.uid, port, gameEnv, netTargetOf(state))
+        : pendingCandidates(pick.network, pick.prefix);
     const options = candidates.map((c) => {
       const other = c.usedBy && !(c.usedBy.node === node.uid && c.usedBy.port === port) ? c.usedBy : null;
       return { ip: c.ip, label: other ? `${c.ip}  ${t('ui.config.inUse', { name: usedName(other) })}` : c.ip };
@@ -94,9 +134,13 @@ export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
           <select
             aria-label={t('ui.config.network')}
             style={selectStyle}
-            value={cfg?.network ?? ''}
+            value={pick.network}
             disabled={locked}
-            onChange={(e) => e.target.value && onError(setSegment(node.uid, port, e.target.value, cfg?.prefix ?? 24))}
+            onChange={(e) => {
+              // 設定がなければ、確定はIPアドレスを選ぶまで待つ
+              if (cfg) onError(setSegment(node.uid, port, e.target.value, cfg.prefix));
+              else setPending((p0) => ({ ...p0, [port]: { ...pick, network: e.target.value } }));
+            }}
           >
             <option value="">{t('ui.config.networkPick')}</option>
             {networks.map((n) => (
@@ -108,9 +152,13 @@ export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
           <select
             aria-label={t('ui.config.network')}
             style={selectStyle}
-            value={cfg?.prefix ?? 24}
-            disabled={locked || !cfg}
-            onChange={(e) => cfg && onError(setSegment(node.uid, port, cfg.network, Number(e.target.value)))}
+            value={pick.prefix}
+            disabled={locked}
+            onChange={(e) => {
+              const prefix = Number(e.target.value);
+              if (cfg) onError(setSegment(node.uid, port, cfg.network, prefix));
+              else setPending((p0) => ({ ...p0, [port]: { ...pick, prefix } }));
+            }}
           >
             {PREFIX_CHOICES.map((p) => (
               <option key={p} value={p}>
@@ -119,7 +167,6 @@ export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
             ))}
           </select>
         </div>
-        {!cfg && <div style={{ color: greyColor }}>{t('ui.config.networkNeeded')}</div>}
         <div>
           {t('ui.config.ip')}: {iface ? <b>{iface.ip}</b> : <span style={{ color: unsetColor }}>{t('ui.config.unset')}</span>}
         </div>
@@ -128,8 +175,8 @@ export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
             aria-label={t('ui.config.pick')}
             style={selectStyle}
             value={iface?.ip ?? ''}
-            disabled={locked || !cfg}
-            onChange={(e) => e.target.value && onError(setIface(node.uid, port, e.target.value))}
+            disabled={locked}
+            onChange={(e) => e.target.value && onError(commitIp(port, e.target.value))}
           >
             <option value="">{t('ui.config.pick')}</option>
             {options.map((o) => (
@@ -141,7 +188,7 @@ export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
         </div>
         <div style={row}>
           <span>{t('ui.config.direct')}</span>
-          <DirectInput current={iface?.ip ?? ''} disabled={locked} onCommit={(ip) => setIface(node.uid, port, ip)} />
+          <DirectInput current={iface?.ip ?? ''} disabled={locked} onCommit={(ip) => commitIp(port, ip)} />
         </div>
       </div>
     );
