@@ -10,6 +10,10 @@ const isWall = (kind: string | undefined): boolean => kind === 'wall' || (kind !
 // スプライトがないときの塗り色（ART.md のパレット）
 const fallbackColor: Record<string, number> = { floor: 0xe0b77c, wall: 0xcfc3aa };
 
+// 左右・手前の壁の断面（厚みと色）
+const EDGE = 4;
+const EDGE_COLOR = 0xcfc3aa;
+
 // 床の板の継ぎ目が揃わないよう、座標から種類を決める
 const floorVariant = (x: number, y: number): number => (x * 7 + y * 13 + ((x * y) % 5)) % 3;
 
@@ -35,10 +39,20 @@ export const drawTileMap = (map: GameMap): Container => {
     for (let x = 0; x < map.width; x++) {
       const kind = kindAt(x, y);
       if (isWall(kind)) {
-        // 真下が床なら奥の壁の正面、それ以外は壁の上面
+        // 真下が床なら奥の壁の正面として描く
         const face = !isWall(kindAt(x, y + 1)) && y + 1 < map.height;
-        const name = face ? (kind === 'wall' ? 'tile/wall_face' : `tile/${kind}`) : 'tile/wall_top';
-        if (!put(name, x, y)) g.rect(x * ts, y * ts, ts, ts).fill(fallbackColor.wall);
+        if (face) {
+          if (!put(kind === 'wall' ? 'tile/wall_face' : `tile/${kind}`, x, y)) g.rect(x * ts, y * ts, ts, ts).fill(fallbackColor.wall);
+          continue;
+        }
+        // 左右と手前の壁は断面として扱い、床に接する辺に壁の厚みだけを描く（外側は背景のまま）
+        const floorAt = (nx: number, ny: number): boolean => {
+          const k = kindAt(nx, ny);
+          return k !== undefined && !isWall(k);
+        };
+        if (floorAt(x + 1, y)) g.rect((x + 1) * ts - EDGE, y * ts, EDGE, ts).fill(EDGE_COLOR);
+        if (floorAt(x - 1, y)) g.rect(x * ts, y * ts, EDGE, ts).fill(EDGE_COLOR);
+        if (floorAt(x, y - 1)) g.rect(x * ts, y * ts, ts, EDGE).fill(EDGE_COLOR);
         continue;
       }
       if (!put(`tile/floor_${floorVariant(x, y)}`, x, y)) g.rect(x * ts, y * ts, ts, ts).fill(fallbackColor.floor);
