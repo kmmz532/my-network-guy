@@ -24,7 +24,6 @@ import type { Balance, Contract, ContractTemplate, Furniture, GameMap } from '..
 import type { Offer } from '../contracts/template';
 import { instantiateTemplate, starHubOf } from '../contracts/template';
 import { initialOffice } from './furniture';
-import { rate } from './rating';
 import { mapOfOffice } from './office';
 import { buyDevice } from './shop';
 import { initialStaff } from './staff';
@@ -212,7 +211,7 @@ describe('模範解答: 固定案件', () => {
     expectReference(finish(core).report);
   });
 
-  it('c003 の誤り: 部署をスイッチ1台にまとめると、設計の不備があり★2が上限になる', () => {
+  it('c003 の誤り: 部署をスイッチ1台にまとめ、ルーターの2つの口をそのスイッチにつなぐと、ループして不合格', () => {
     let core = take(startCore([fixedOffer(c003)]), 'c003_departments');
     core = buy(core, ROUTER);
     core = buy(core, SWITCH);
@@ -225,14 +224,10 @@ describe('模範解答: 固定案件', () => {
     core = wire(core, sw.uid, router.uid, UTP, { b: 1 });
     core = addr(core, router.uid, '192.168.1.1');
     core = addr(core, router.uid, '192.168.2.1', 1);
-    // テストには合格するが、設計に不備がある（別の部署を同じネットワークにまとめ、サブネット外になる）
-    expect(Object.keys(designIssues(focusedOf(core)!, env)).length).toBeGreaterThan(0);
-    const report = finish(core, true).report;
-    expect(report.passed).toBe(true);
-    expect(report.designIssues).toBeGreaterThan(0);
-    // 費用と失敗回数だけなら★3だが、設計の不備により★2が上限になる
-    expect(rate(report.cost ?? 0, report.budget ?? 1, report.rework ?? 0, false, 0, balance)).toBe(3);
-    expect(report.stars).toBe(2);
+    // 2つの口が同じスイッチにつながると、配線がぐるっと輪になり、ブロードキャストが回り続けて不合格
+    const tested = ok(testDesign(core, env));
+    expect(tested.result.passed).toBe(false);
+    expect(JSON.stringify(tested.result.goals)).toContain('link.loop');
   });
 
   it('c004 Webサーバー: 社員側だけスイッチを置き、ルーターからサーバーへ直接つなぐ', () => {

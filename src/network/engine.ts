@@ -29,6 +29,8 @@ interface DomainResult {
   members: Endpoint[];
   // 配線が上限長を超えていた場合、その配線の端点
   tooLong?: Endpoint;
+  // 配線がループしている場合（同じL2ドメインに、来た道以外の配線で既にたどった口がつながる）、そのループの端点
+  loop?: Endpoint;
 }
 
 class Topology {
@@ -97,6 +99,10 @@ class Topology {
     const members: Endpoint[] = [];
     const visited = new Set<string>();
     const queue: Endpoint[] = [start];
+    // 同じL2ドメインの配線の数と機器の数。機器を頂点、配線を辺と見て、辺が頂点以上あれば輪になっている
+    const cables = new Set<string>();
+    const devices = new Set<string>();
+    let relay: Endpoint | undefined;
     let tooLong: Endpoint | undefined;
 
     while (queue.length) {
@@ -104,13 +110,16 @@ class Topology {
       const k = key(ep);
       if (visited.has(k)) continue;
       visited.add(k);
+      devices.add(ep.node);
 
       if (!this.isRelay(ep.node, ep.port)) {
         members.push(ep);
       }
+      if (this.isFabric(ep.node, ep.port)) relay ??= ep;
       const linked = this.linkAt(ep);
       if (linked) {
         const { link, peer } = linked;
+        cables.add(link.uid);
         if (!tooLong && linkLength(link.path) > this.data.maxLengthOf(link.cable)) {
           tooLong = ep;
         }
@@ -123,7 +132,9 @@ class Topology {
         }
       }
     }
-    return { members, tooLong };
+    // 輪になっていれば、輪の中のスイッチ（なければ始点）を示す
+    const loop = cables.size >= devices.size ? (relay ?? start) : undefined;
+    return { members, tooLong, loop };
   }
 }
 
@@ -152,6 +163,7 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string): PathResult => 
 
   const srcDomain = topo.domainOf(srcEp);
   if (srcDomain.tooLong) return err(fail('link.too_long', srcDomain.tooLong.node));
+  if (srcDomain.loop) return err(fail('link.loop', srcDomain.loop.node));
   const sameIp = srcDomain.members.filter((m) => topo.ifaceAt(m.node, m.port)?.ip === srcIface.ip);
   if (sameIp.length > 1) return err(fail('ip.duplicate', src.uid));
 
@@ -192,6 +204,7 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string): PathResult => 
     if (connected) {
       const domain = topo.domainOf({ node: cur.uid, port: connected.port });
       if (domain.tooLong) return err(fail('link.too_long', domain.tooLong.node));
+      if (domain.loop) return err(fail('link.loop', domain.loop.node));
       if (inDomain(domain, dstEp)) {
         path.push(dst.uid);
         return { ok: true, path };
@@ -208,6 +221,7 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string): PathResult => 
     if (!egress) return err(fail('route.none', cur.uid));
     const egressDomain = topo.domainOf({ node: cur.uid, port: egress.port });
     if (egressDomain.tooLong) return err(fail('link.too_long', egressDomain.tooLong.node));
+    if (egressDomain.loop) return err(fail('link.loop', egressDomain.loop.node));
     const next = egressDomain.members.find((m) => topo.ifaceAt(m.node, m.port)?.ip === route.nextHop);
     if (!next) return err(fail('route.none', cur.uid));
     current = next;

@@ -69,6 +69,7 @@ export interface EngineData {
 export const FAILURE_REASONS = [
   'link.unplugged',
   'link.too_long',
+  'link.loop',
   'ip.unset',
   'ip.duplicate',
   'ip.unreachable',

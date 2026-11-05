@@ -49,6 +49,8 @@
   "error.link.unplugged.fix": "配線の道具で機器を押し、ポートを選んでから、相手の機器を押します。",
   "error.link.too_long": "ケーブルが長すぎる。",
   "error.link.too_long.fix": "機器を近くに置き直すか、スイッチを経由させてください。",
+  "error.link.loop": "配線がぐるっと輪になっている。ブロードキャストが回り続けて、通信が止まっている。",
+  "error.link.loop.fix": "輪の中のケーブルを1本外してください。",
   "error.ip.unset": "IPアドレスが設定されていない。",
   "error.ip.unset.fix": "PCを選び、設定タブでIPアドレスを選んでください。",
   "error.ip.duplicate": "IPアドレスが重複している。",

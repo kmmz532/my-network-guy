@@ -108,6 +108,43 @@ describe('ping: L1 / L2 / L3', () => {
     expect(ping(net, data, 'a', 'b').failure?.reason).toBe('link.too_long');
   });
 
+  it('スイッチどうしを2本の配線で二重につなぐと、ループして link.loop', () => {
+    const base: Network = {
+      nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), sw('s1'), sw('s2')],
+      links: [link('l1', 'a', 0, 's1', 2), link('l2', 'b', 0, 's2', 2), link('l3', 's1', 0, 's2', 0)],
+    };
+    expect(ping(base, data, 'a', 'b').ok).toBe(true);
+    const looped: Network = { ...base, links: [...base.links, link('l4', 's1', 1, 's2', 1)] };
+    expect(ping(looped, data, 'a', 'b').failure?.reason).toBe('link.loop');
+  });
+
+  it('スイッチが3台で輪になっても link.loop', () => {
+    const net: Network = {
+      nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), sw('s1'), sw('s2'), sw('s3')],
+      links: [
+        link('l1', 'a', 0, 's1', 2),
+        link('l2', 'b', 0, 's2', 2),
+        link('l3', 's1', 0, 's2', 0),
+        link('l4', 's2', 1, 's3', 0),
+        link('l5', 's3', 1, 's1', 1),
+      ],
+    };
+    expect(ping(net, data, 'a', 'b').failure?.reason).toBe('link.loop');
+  });
+
+  it('輪になっていない木の形（スイッチを一列に並べる）は loop にならない', () => {
+    const net: Network = {
+      nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), sw('s1'), sw('s2'), sw('s3')],
+      links: [
+        link('l1', 'a', 0, 's1', 2),
+        link('l2', 'b', 0, 's3', 2),
+        link('l3', 's1', 0, 's2', 0),
+        link('l4', 's2', 1, 's3', 0),
+      ],
+    };
+    expect(ping(net, data, 'a', 'b').ok).toBe(true);
+  });
+
   it('IPアドレスが未設定ならip.unset', () => {
     const net: Network = {
       nodes: [pc('a', null), pc('b', '192.168.1.11')],
