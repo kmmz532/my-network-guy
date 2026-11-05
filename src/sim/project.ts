@@ -18,7 +18,7 @@ import {
   epKey,
   type Segment,
 } from '../network/segments';
-import type { EngineData, Endpoint, Iface, NetLink, NetNode, PathResult, Route, SegmentConfig } from '../network/types';
+import type { EngineData, Endpoint, Iface, NetLink, NetNode, PathResult, Route, SegmentConfig, Service } from '../network/types';
 import type { ClockState } from './clock';
 import { rate, rewardRateOf } from './rating';
 import { dueDayOf, lateDaysOf, lateFactor } from './deadline';
@@ -145,6 +145,8 @@ export interface DeviceInfo {
   category: string;
   price: number;
   portCount: number;
+  // 置いたときから動いているサービス（サーバーの HTTP など）。省略すると動いていない
+  defaultServices?: Service[];
 }
 
 export interface CableInfo {
@@ -260,6 +262,9 @@ export const accept = (core: Core, offerId: string, slots: number, crew: string[
   };
 };
 
+// 機材を置いたときに動いているサービス（ゲームデータの defaultServices を写す）
+const servicesOf = (env: Env, deviceId: string): Service[] => (env.devices[deviceId]?.defaultServices ?? []).map((s) => ({ ...s }));
+
 // 自社オフィスに機器を置けるかを判定する。置けなければ失敗の理由を返す
 // PCは机の家具があり、その上に機器がないマスだけ。PC以外は床で、家具も機器もないマスだけ
 const officePlaceReason = (
@@ -308,7 +313,7 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
     interfaces: [],
     gateway: null,
     routes: [],
-    services: [],
+    services: servicesOf(env, deviceId),
   };
   const next: Project = { ...p, nodes: [...p.nodes, node], seq: p.seq + 1 };
   return {
@@ -336,7 +341,7 @@ export const placeInOffice = (core: Core, deviceId: string, x: number, y: number
     interfaces: [],
     gateway: null,
     routes: [],
-    services: [],
+    services: servicesOf(env, deviceId),
   };
   return {
     ok: true,
@@ -622,6 +627,54 @@ export const addRoute = (core: Core, uid: string, route: Route, target: NetTarge
 // ルーターの静的ルートを削除する
 export const removeRoute = (core: Core, uid: string, index: number, target: NetTarget = 'focus'): Outcome =>
   editNode(core, uid, (node) => ({ ...node, routes: node.routes.filter((_, i) => i !== index) }), target);
+
+// 配線の片方の端（a か b）を、同じ機器の別のポートへ挿し替える。埋まったポートには挿せない。
+// ケーブルの長さは変わらないため費用は変えない。ポートのIPアドレスは、ポートの番号に付いたまま残す。
+export type End = 'a' | 'b';
+export const replug = (core: Core, linkUid: string, end: End, port: number, env: Env, target: NetTarget = 'focus'): Outcome => {
+  const net = netOf(core, target);
+  if (typeof net === 'string') return fail(net);
+  const link = net.links.find((l) => l.uid === linkUid);
+  if (!link) return fail('none');
+  if (target === 'focus' && (focusedOf(core)?.inheritedLinks ?? []).includes(linkUid)) return fail('locked');
+  const endpoint = end === 'a' ? link.a : link.b;
+  const node = net.nodes.find((n) => n.uid === endpoint.node);
+  if (!node) return fail('none');
+  const count = env.devices[node.device]?.portCount ?? 0;
+  if (!Number.isInteger(port) || port < 0 || port >= count) return fail('port');
+  if (port === endpoint.port) return fail('portUsed');
+  const used = net.links.some(
+    (l) => l.uid !== linkUid && ((l.a.node === node.uid && l.a.port === port) || (l.b.node === node.uid && l.b.port === port)),
+  );
+  if (used) return fail('portUsed');
+  const moved: NetLink = { ...link, [end]: { node: node.uid, port } };
+  const links = net.links.map((l) => (l.uid === linkUid ? moved : l));
+  const segments = fillSegments({ nodes: net.nodes, links, segments: net.segments }, env.engine);
+  return { ok: true, core: withNet(core, target, { ...net, links, segments }) };
+};
+
+// サービスの既定の待ち受けポート（プロトコルごと）。起動するときに使う
+const DEFAULT_SERVICE_PORT: Record<Service['protocol'], number> = { http: 80 };
+
+// サービスを起動する（on）または停止する（off）。配線の設定が固定された機器は変えられない
+export const setService = (
+  core: Core,
+  uid: string,
+  protocol: Service['protocol'],
+  on: boolean,
+  target: NetTarget = 'focus',
+): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      const others = node.services.filter((s) => s.protocol !== protocol);
+      if (!on) return { ...node, services: others };
+      const current = node.services.find((s) => s.protocol === protocol);
+      return { ...node, services: [...others, current ?? { protocol, port: DEFAULT_SERVICE_PORT[protocol] }] };
+    },
+    target,
+  );
 
 // セグメントのネットワークを設定する。ホストの初期値は .11 から、ルーターの初期値は .1 から、空いているアドレスを割り当てる。
 // 設定の変更で範囲外になったアドレスは、割り当て直す。案件で設定が固定された機器を含むセグメントは変えられない。

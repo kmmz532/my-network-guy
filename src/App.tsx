@@ -13,7 +13,7 @@ import { modalBack, modalBox, NoticeToast, ReportModal } from './components/Over
 import { OfferCards } from './components/OfferCards';
 import { Toolbar } from './components/Toolbar';
 import { TaskPanel } from './components/TaskPanel';
-import { ConfigPanel } from './components/ConfigPanel';
+import { DevicePanel } from './components/DevicePanel';
 import { ShopCards } from './components/ShopCards';
 import { HiringPanel } from './components/HiringPanel';
 import { Tooltip, TooltipHost } from './components/Tooltip';
@@ -178,7 +178,7 @@ export function App() {
         </button>
       </header>
       <TaskPanel />
-      <ConfigPanel />
+      <DevicePanel />
       <Toolbar onOffers={() => setPopup('offers')} onShop={() => setPopup('shop')} />
       {popup === 'offers' && <OfferCards onClose={() => setPopup(null)} />}
       {popup === 'shop' && <ShopCards onClose={() => setPopup(null)} />}

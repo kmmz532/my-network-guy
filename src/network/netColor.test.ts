@@ -1,0 +1,117 @@
+import { describe, expect, it } from 'vitest';
+import { NET_PALETTE, UNSET_COLOR, colorOfLink, colorOfNetwork, networkColors } from './netColor';
+import { neighborRouterAddresses, routerAddressesOn } from './segments';
+import type { EngineData, NetLink, NetNode, Network } from './types';
+
+const data: EngineData = {
+  categoryOf: (device) => ({ pc: 'pc', sw: 'l2_switch', rt: 'router' })[device] ?? 'unknown',
+  maxLengthOf: () => 100,
+};
+
+const node = (uid: string, device: string, ifaces: { port: number; ip: string; prefix: number }[] = []): NetNode => ({
+  uid,
+  device,
+  x: 0,
+  y: 0,
+  locked: false,
+  configLocked: false,
+  interfaces: ifaces,
+  gateway: null,
+  routes: [],
+  services: [],
+});
+
+const link = (uid: string, a: [string, number], b: [string, number]): NetLink => ({
+  uid,
+  cable: 'utp_cat5e',
+  a: { node: a[0], port: a[1] },
+  b: { node: b[0], port: b[1] },
+  path: [],
+});
+
+describe('ネットワークごとの色', () => {
+  it('設定されたネットワークを、アドレスの小さい順にパレットの色で割り当てる', () => {
+    const net: Network = {
+      nodes: [
+        node('pc_a', 'pc', [{ port: 0, ip: '192.168.1.11', prefix: 24 }]),
+        node('pc_b', 'pc', [{ port: 0, ip: '192.168.1.12', prefix: 24 }]),
+        node('pc_c', 'pc', [{ port: 0, ip: '10.0.0.5', prefix: 24 }]),
+        node('pc_d', 'pc', [{ port: 0, ip: '10.0.0.6', prefix: 24 }]),
+      ],
+      links: [link('l0', ['pc_a', 0], ['pc_b', 0]), link('l1', ['pc_c', 0], ['pc_d', 0])],
+      segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 }, 'pc_c:0': { network: '10.0.0.0', prefix: 24 } },
+    };
+    const colors = networkColors(net, data);
+    expect(colors.index.get('10.0.0.0')).toBe(0);
+    expect(colors.index.get('192.168.1.0')).toBe(1);
+    expect(colorOfLink(colors, 'l0')).toBe(NET_PALETTE[1]);
+    expect(colorOfLink(colors, 'l1')).toBe(NET_PALETTE[0]);
+  });
+
+  it('パレットを使い切ったら、番号を循環させる', () => {
+    expect(colorOfNetwork({ index: new Map([['x', 6]]), linkNetwork: new Map() }, 'x')).toBe(NET_PALETTE[0]);
+  });
+
+  it('アドレスの未設定の機器がつながるケーブルは灰色になる', () => {
+    const net: Network = {
+      nodes: [node('pc_a', 'pc', [{ port: 0, ip: '192.168.1.11', prefix: 24 }]), node('pc_b', 'pc')],
+      links: [link('l0', ['pc_a', 0], ['pc_b', 0])],
+      segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
+    };
+    const colors = networkColors(net, data);
+    expect(colors.linkNetwork.get('l0')).toBeNull();
+    expect(colorOfLink(colors, 'l0')).toBe(UNSET_COLOR);
+  });
+
+  it('両端の機器のアドレスが食い違うケーブルは灰色になる', () => {
+    const net: Network = {
+      nodes: [
+        node('pc_a', 'pc', [{ port: 0, ip: '192.168.1.11', prefix: 24 }]),
+        node('pc_b', 'pc', [{ port: 0, ip: '10.0.0.12', prefix: 24 }]),
+      ],
+      links: [link('l0', ['pc_a', 0], ['pc_b', 0])],
+      segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
+    };
+    expect(colorOfLink(networkColors(net, data), 'l0')).toBe(UNSET_COLOR);
+  });
+
+  it('スイッチを挟んでも、ホストのアドレスで色が決まる', () => {
+    const net: Network = {
+      nodes: [
+        node('pc_a', 'pc', [{ port: 0, ip: '192.168.1.11', prefix: 24 }]),
+        node('pc_b', 'pc', [{ port: 0, ip: '192.168.1.12', prefix: 24 }]),
+        node('sw', 'sw'),
+      ],
+      links: [link('l0', ['pc_a', 0], ['sw', 0]), link('l1', ['pc_b', 0], ['sw', 1])],
+      segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
+    };
+    const colors = networkColors(net, data);
+    expect(colorOfLink(colors, 'l0')).toBe(NET_PALETTE[0]);
+    expect(colorOfLink(colors, 'l1')).toBe(NET_PALETTE[0]);
+  });
+});
+
+describe('ルーターのアドレスの候補', () => {
+  // PC（pc_a）のセグメントに、ルーターのポート（rt:0）と、もう1台のルーター（rt2:0）がある
+  const net: Network = {
+    nodes: [
+      node('pc_a', 'pc', [{ port: 0, ip: '192.168.1.11', prefix: 24 }]),
+      node('rt', 'rt', [{ port: 0, ip: '192.168.1.1', prefix: 24 }, { port: 1, ip: '10.0.0.1', prefix: 24 }]),
+      node('rt2', 'rt', [{ port: 0, ip: '10.0.0.2', prefix: 24 }]),
+    ],
+    links: [link('l0', ['pc_a', 0], ['rt', 0]), link('l1', ['rt', 1], ['rt2', 0])],
+  };
+
+  it('ホストと同じセグメントのルーターのアドレスを候補にする', () => {
+    expect(routerAddressesOn(net, data, 'pc_a', 0)).toEqual(['192.168.1.1']);
+  });
+
+  it('ルーターがいないセグメントの候補は空になる', () => {
+    const noRouter: Network = { nodes: [node('pc_a', 'pc', [{ port: 0, ip: '192.168.9.11', prefix: 24 }]), node('pc_b', 'pc')], links: [link('l0', ['pc_a', 0], ['pc_b', 0])] };
+    expect(routerAddressesOn(noRouter, data, 'pc_a', 0)).toEqual([]);
+  });
+
+  it('ネクストホップは、つながるセグメントにいるほかのルーターのアドレス', () => {
+    expect(neighborRouterAddresses(net, data, 'rt')).toEqual(['10.0.0.2']);
+  });
+});

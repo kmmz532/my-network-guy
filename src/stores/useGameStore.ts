@@ -33,9 +33,13 @@ import {
   requestBuild,
   setInterface,
   setGateway,
+  setSegment,
+  setService,
+  replug,
   addRoute,
   removeRoute,
   removeLink,
+  type End,
   type NetTarget,
   type Core,
   type Outcome,
@@ -129,6 +133,12 @@ export interface GameState {
   // 機器の設定（設計中のみ）。失敗したら理由を返す
   setIface: (uid: string, port: number, ip: string) => string | null;
   setGateway: (uid: string, gateway: string | null) => string | null;
+  // セグメント（ポートが属するネットワーク）のアドレスを設定する
+  setSegment: (uid: string, port: number, network: string, prefix: number) => string | null;
+  // 配線の片方の端を、同じ機器の別のポートへ挿し替える
+  replug: (linkUid: string, end: End, port: number) => string | null;
+  // サービスを起動（on）・停止する
+  setService: (uid: string, protocol: 'http', on: boolean) => string | null;
   addRoute: (uid: string, route: Route) => string | null;
   removeRoute: (uid: string, index: number) => string | null;
   requestBuild: () => string | null;
@@ -165,7 +175,7 @@ const newStart = () => {
   return { rng: init.rng, staff: init.staff, staffSeq: init.staffSeq };
 };
 
-const coreOf = (s: GameState): Core => ({
+export const coreOf = (s: GameState): Core => ({
   clock: s.clock,
   reputation: s.reputation,
   owned: s.owned,
@@ -402,6 +412,10 @@ export const useGameStore = create<GameState>((set, get) => {
     setIface: (uid, port, ip) =>
       apply(setInterface(coreOf(get()), uid, port, ip, 24, gameEnv, netTargetOf(get())), tileOf(uid)),
     setGateway: (uid, gateway) => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid)),
+    setSegment: (uid, port, network, prefix) =>
+      apply(setSegment(coreOf(get()), uid, port, network, prefix, gameEnv, netTargetOf(get())), tileOf(uid)),
+    replug: (linkUid, end, port) => apply(replug(coreOf(get()), linkUid, end, port, gameEnv, netTargetOf(get()))),
+    setService: (uid, protocol, on) => apply(setService(coreOf(get()), uid, protocol, on, netTargetOf(get())), tileOf(uid)),
     addRoute: (uid, route) => apply(addRoute(coreOf(get()), uid, route, netTargetOf(get())), tileOf(uid)),
     removeRoute: (uid, index) => apply(removeRoute(coreOf(get()), uid, index, netTargetOf(get())), tileOf(uid)),
     requestBuild: () => {

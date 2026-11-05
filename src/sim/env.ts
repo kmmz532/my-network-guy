@@ -5,7 +5,12 @@ import type { Env } from './project';
 const devices: Env['devices'] = Object.fromEntries(
   Object.values(deviceRecord).map((d) => [
     d.id,
-    { category: d.category, price: d.price, portCount: d.ports.reduce((sum, p) => sum + p.count, 0) },
+    {
+      category: d.category,
+      price: d.price,
+      portCount: d.ports.reduce((sum, p) => sum + p.count, 0),
+      defaultServices: d.defaultServices,
+    },
   ]),
 );
 

@@ -118,6 +118,12 @@ export const cableSchema = z.object({
 
 export const cablesFileSchema = z.object({ cables: z.array(cableSchema) });
 
+// 機材が初期に動かすサービス（待ち受けるプロトコルとポート）。サーバーは置いたときに起動する
+const serviceSchema = z.object({
+  protocol: z.enum(['http']),
+  port: z.number().int().min(1).max(65535),
+});
+
 export const deviceSchema = z.object({
   id: z.string().min(1),
   category: z.enum(['pc', 'server', 'l2_switch', 'router']),
@@ -132,6 +138,7 @@ export const deviceSchema = z.object({
     )
     .min(1),
   features: z.array(z.string()).default([]),
+  defaultServices: z.array(serviceSchema).default([]),
   sprite: z.string().min(1),
 });
 
@@ -173,11 +180,6 @@ const interfaceSchema = z.object({
   port: nonNegativeInt,
   ip: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/),
   prefix: z.number().int().min(0).max(32),
-});
-
-const serviceSchema = z.object({
-  protocol: z.enum(['http']),
-  port: z.number().int().min(1).max(65535),
 });
 
 const placedConfigSchema = z.object({

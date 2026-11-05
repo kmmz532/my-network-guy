@@ -7,6 +7,7 @@ import { linkAt } from './linkHit';
 import { rangeTiles } from './effectRange';
 import { gameEnv } from '../sim/env';
 import { checkConnect, compiledNet, DESK_ID, type PlacedFurniture, type Project } from '../sim/project';
+import { colorOfLink, networkColors, type NetworkColors } from '../network/netColor';
 import type { Compiled, IssueDetail } from '../network/compile';
 import { texture } from './sprites';
 import { balance, devices as deviceData } from 'virtual:game-data';
@@ -29,11 +30,6 @@ const CATEGORY_COLOR: Record<string, number> = {
   l2_switch: 0x4f7cc4,
   router: 0xe0644f,
 };
-const CABLE_COLOR: Record<string, number> = {
-  utp_cat5e: 0x4a8fd6,
-  fiber_sm: 0xf0a030,
-};
-const DEFAULT_CABLE_COLOR = 0x9fe0ff;
 // プロトコルごとのパケットの色（ART.md）
 const PACKET_COLOR: Record<string, number> = {
   ping: 0xffffff,
@@ -83,6 +79,8 @@ export class Scene {
   private traceStart = 0;
   // 配線と設定から生成したネットワーク（不備の表示に使う）
   private compiled: Compiled | null = null;
+  // ケーブルの色（ネットワークアドレスごと）。表示だけに使う
+  private netColors: NetworkColors | null = null;
   // 席のない社員（自社オフィスを歩き回る）。位置は保存しない
   private wanderers: Walker[] = [];
   private unsubscribe: () => void;
@@ -165,6 +163,7 @@ export class Scene {
     }
     const shown = this.project();
     this.compiled = shown ? compiledNet(shown, gameEnv) : null;
+    this.netColors = this.compiled ? networkColors(this.compiled.net, gameEnv.engine) : null;
     const mapId = shown?.contract.map ?? 'office_small';
     const map = s.maps[mapId];
     if (!map) return;
@@ -266,7 +265,8 @@ export class Scene {
 
     // 配線（機器の中心を結ぶ折れ線）。施工前の配線は半透明にする
     for (const link of project.links) {
-      const color = CABLE_COLOR[link.cable] ?? DEFAULT_CABLE_COLOR;
+      // ケーブルはネットワークアドレスの色で描く（未設定・食い違いは灰色）
+      const color = this.netColors ? colorOfLink(this.netColors, link.uid) : 0x9a9a9a;
       const alpha = building && !isBuilt(link.uid, 'links') ? 0.5 : 1;
       const pts = link.path.map(([x, y]) => [x * ts + ts / 2, y * ts + ts / 2]);
       // マウスを乗せた配線は太く明るく描く
@@ -327,12 +327,14 @@ export class Scene {
     return this.compiled?.issues[node.uid];
   }
 
-  // IPアドレスとプレフィックス長を、機器のスプライトの上端に重ねて出す。画面上の高さが約8pxになるよう拡大率で割る
+  // IPアドレスとプレフィックス長を、機器のスプライトの上端に重ねて出す。画面上の高さが約11pxになるよう拡大率で割る
   private drawAddresses(project: Project, ts: number): void {
     const compiled = this.compiled;
     if (!compiled) return;
     const scale = this.content.scale.x;
-    const fontPx = 8 / scale;
+    // 画面上で 11 px の文字にする。拡大率で割り、解像度を拡大率と画面の密度に合わせて、にじませない
+    const fontPx = 11 / scale;
+    const dpr = window.devicePixelRatio || 1;
     // 上の段（Y座標の小さい機器）のラベルを前面に出すため、Y座標の大きい順に描く
     const nodes = [...compiled.net.nodes].sort((a, b) => b.y - a.y);
     for (const node of nodes) {
@@ -346,7 +348,7 @@ export class Scene {
         text: lines.join('\n'),
         // 背景は付けず、縁取りで文字を読めるようにする
         style: { fontFamily: 'monospace', fontSize: fontPx, fill: unset ? 0x9a9a9a : 0xf4f1e6, align: 'center', stroke: { color: OUTLINE, width: 2 / scale } },
-        resolution: Math.max(2, scale),
+        resolution: Math.max(2, scale * dpr),
       });
       text.anchor.set(0.5, 1);
       // スプライトの上端: 机の上（PCなど）は天板の高さ、床に置いた機器は足元から

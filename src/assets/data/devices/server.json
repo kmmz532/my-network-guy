@@ -14,6 +14,12 @@
       "features": [
         "service"
       ],
+      "defaultServices": [
+        {
+          "protocol": "http",
+          "port": 80
+        }
+      ],
       "sprite": "device/server_basic"
     }
   ]

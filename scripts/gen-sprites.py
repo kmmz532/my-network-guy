@@ -512,7 +512,61 @@ def sofa():
     return outline(img)
 
 
+# ---- 機器の背面（機器の画面の「背面」タブで、拡大して並べる部品） ----
+# ポートの差し込み口は 12×10。上に爪の切り欠き、下に金色の端子を描く
+
+def rear_port_empty():
+    img, d = new(12, 10)
+    rect(d, 0, 0, 12, 10, 'g', 'o')
+    rect(d, 2, 2, 8, 7, 'o')
+    rect(d, 4, 8, 4, 1, 'g')  # 爪の切り欠き（下側）
+    for x in range(3, 9, 2):
+        px(d, x, 3, 'Y')      # 端子
+    return img
+
+
+def rear_port_plugged(body, shade):
+    # 差し込み口にプラグが刺さった状態。プラグの胴とケーブルの根元を手前に描く
+    img = rear_port_empty()
+    d = ImageDraw.Draw(img)
+    rect(d, 2, 2, 8, 7, body)
+    d.line([(2, 2), (9, 2)], fill=C['e'] + (255,))  # 透明なプラグの上縁
+    rect(d, 3, 4, 6, 2, shade)
+    rect(d, 4, 8, 4, 2, shade)                     # 爪
+    return img
+
+
+def rear_fan():
+    # 冷却ファンの格子（16×16）
+    img, d = new(16, 16)
+    rect(d, 0, 0, 16, 16, 'd', 'o')
+    d.ellipse([2, 2, 13, 13], fill=C['o'] + (255,))
+    for i in range(3, 13, 3):
+        d.line([(i, 3), (i, 12)], fill=C['g'] + (255,))
+    rect(d, 7, 7, 2, 2, 'g')
+    return img
+
+
+def rear_power():
+    # 電源の差し込み口（12×10）
+    img, d = new(12, 10)
+    rect(d, 0, 0, 12, 10, 'g', 'o')
+    rect(d, 2, 2, 8, 6, 'o')
+    for x in (4, 7):
+        rect(d, x, 4, 1, 2, 'g')
+    return img
+
+
 if __name__ == '__main__':
+    rear = {
+        'port_empty': rear_port_empty(),
+        'port_utp': rear_port_plugged('b', 'B'),
+        'port_fiber': rear_port_plugged('f', 'Y'),
+        'fan': rear_fan(),
+        'power': rear_power(),
+    }
+    for name, img in rear.items():
+        save(img, f'rear/{name}.png')
     save(pc(), 'device/pc_basic.png')
     save(server(), 'device/server_basic.png')
     save(l2_switch(), 'device/l2_switch_8p.png')

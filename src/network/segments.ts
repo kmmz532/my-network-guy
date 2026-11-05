@@ -114,3 +114,31 @@ export const fillSegments = (net: Network, data: EngineData): Record<string, Seg
   }
   return out;
 };
+
+// セグメントの中のルーターのポートのアドレス（自分の機器を除き、昇順）
+const routerIpsOf = (members: Endpoint[], net: Pick<Network, 'nodes'>, data: EngineData, self: string): string[] => {
+  const byUid = new Map(net.nodes.map((n) => [n.uid, n]));
+  const ips = new Set<string>();
+  for (const m of members) {
+    if (m.node === self) continue;
+    const node = byUid.get(m.node);
+    if (!node || data.categoryOf(node.device) !== 'router') continue;
+    const iface = node.interfaces.find((i) => i.port === m.port);
+    if (iface) ips.add(iface.ip);
+  }
+  return [...ips].sort((a, b) => ipToInt(a) - ipToInt(b));
+};
+
+// 機器のポートと同じセグメントにあるルーターのアドレス。ホストのデフォルトゲートウェイの候補に使う
+export const routerAddressesOn = (net: Network, data: EngineData, uid: string, port: number): string[] => {
+  const seg = segmentOf(segmentsOf(net, data), uid, port);
+  return seg ? routerIpsOf(seg.members, net, data, uid) : [];
+};
+
+// 機器がつながるセグメントにあるルーターのアドレス（自分を除く）。静的ルートのネクストホップの候補に使う
+export const neighborRouterAddresses = (net: Network, data: EngineData, uid: string): string[] => {
+  const members = segmentsOf(net, data)
+    .filter((seg) => seg.members.some((m) => m.node === uid))
+    .flatMap((seg) => seg.members);
+  return routerIpsOf(members, net, data, uid);
+};
