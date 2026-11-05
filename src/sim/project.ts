@@ -1,6 +1,7 @@
 // 案件の流れ（受注・設計・施工・検収・納品）。状態を受け取り、新しい状態を返す純粋関数で書く。
 // 設計は機器の配置・配線・IP設定、施工は社員が作業時間をかけて行い、検収で達成条件を判定する。
 import type { Balance, Contract, Furniture, GameMap, JobId, Staff } from '../data/schema';
+import { renameNode } from '../network/nodeName';
 import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
 import { inSubnet, ipToInt, linkLength } from '../network/engine';
@@ -623,6 +624,17 @@ const editNode = (core: Core, uid: string, edit: (n: NetNode) => NetNode | strin
   const result = edit(node);
   if (typeof result === 'string') return fail(result);
   return { ok: true, core: withNet(core, target, { ...net, nodes: net.nodes.map((n) => (n.uid === uid ? result : n)) }) };
+};
+
+// 機器の名前を付け直す。名前は見た目だけなので、設定が固定された機器でも変えられる。空なら既定の名前に戻す
+export const setName = (core: Core, uid: string, name: string, target: NetTarget = 'focus'): Outcome => {
+  const net = netOf(core, target);
+  if (typeof net === 'string') return fail(net);
+  const node = net.nodes.find((n) => n.uid === uid);
+  if (!node) return fail('none');
+  const renamed = renameNode(node, name);
+  if ((renamed.name ?? '') === (node.name ?? '')) return { ok: true, core };
+  return { ok: true, core: withNet(core, target, { ...net, nodes: net.nodes.map((n) => (n.uid === uid ? renamed : n)) }) };
 };
 
 // IPアドレスの書式（各区切りは 0〜255）

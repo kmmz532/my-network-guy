@@ -1,5 +1,6 @@
 // 受注中の案件の内容（タイトル・依頼文・達成条件・ヒント・最初の案件の手順）。左上に重ねて表示し、折りたためる。
 // 達成条件は最後のテスト（または検収）の結果で ✓／× を出す。× は失敗した機器を選んで機器の画面を開く
+import { labelOfUid } from './nodeLabel';
 import type { LangKey } from '../generated/lang-keys';
 import { hasKey, t } from '../i18n/t';
 import { goalText } from './goalText';
@@ -23,7 +24,7 @@ export function TaskPanel() {
   const result = check && check.projectId === active.id ? check.goals : null;
   const goals = active.contract.goals.map((goal, i) => {
     const g = result?.[i];
-    return { text: goalText(goal), ok: g ? g.ok : null, node: g?.failures[0]?.node ?? null };
+    return { text: goalText(goal, (id) => labelOfUid(useGameStore.getState(), id, active.nodes)), ok: g ? g.ok : null, node: g?.failures[0]?.node ?? null };
   });
 
   const hintKey = `contract.${active.baseId}.hint`;

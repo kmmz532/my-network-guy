@@ -68,6 +68,7 @@ import {
   setGateway,
   setSegment,
   setService,
+  setName as setNameOp,
   replug,
   addRoute,
   removeRoute,
@@ -249,6 +250,7 @@ export interface GameState {
   replug: (linkUid: string, end: End, port: number) => string | null;
   // サービスを起動（on）・停止する
   setService: (uid: string, protocol: 'http', on: boolean) => string | null;
+  setName: (uid: string, name: string) => string | null;
   addRoute: (uid: string, route: Route) => string | null;
   removeRoute: (uid: string, index: number) => string | null;
   // 施工を依頼する。時間が止まっていて設定が「確認する」なら、確認を開いて null を返す
@@ -747,6 +749,7 @@ export const useGameStore = create<GameState>((set, get) => {
       recorded(() => apply(replug(coreOf(get()), linkUid, end, port, gameEnv, netTargetOf(get())))),
     setService: (uid, protocol, on) =>
       recorded(() => apply(setService(coreOf(get()), uid, protocol, on, netTargetOf(get())), tileOf(uid))),
+    setName: (uid, name) => recorded(() => apply(setNameOp(coreOf(get()), uid, name, netTargetOf(get())), tileOf(uid))),
     addRoute: (uid, route) => recorded(() => apply(addRoute(coreOf(get()), uid, route, netTargetOf(get())), tileOf(uid))),
     removeRoute: (uid, index) => recorded(() => apply(removeRoute(coreOf(get()), uid, index, netTargetOf(get())), tileOf(uid))),
     requestBuild: () => {

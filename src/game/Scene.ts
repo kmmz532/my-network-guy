@@ -1,5 +1,6 @@
 // キャンバスの描画と操作。マップ・機器・配線・社員・パケットを描き、クリックで配置・選択、ドラッグで配線する。
 // 描画の状態は store から読むだけで、変更は store の操作を通して行う。
+import { nodeLabel } from '../components/nodeLabel';
 import { Application, Container, Graphics, Rectangle, Sprite, Text, type FederatedPointerEvent, type Ticker } from 'pixi.js';
 import type { GameMap } from '../data/schema';
 import { editNetOf, focusedProject, frontDeviceUid, netTargetOf, useGameStore, type Trace, type WireStart } from '../stores/useGameStore';
@@ -1108,7 +1109,7 @@ export class Scene {
     const node = this.project()?.nodes.find((n) => n.x === tx && n.y === ty);
     if (node) {
       const ips = this.compiled?.net.nodes.find((n) => n.uid === node.uid)?.interfaces.map((i) => `${i.ip}/${i.prefix}`) ?? [];
-      return { key: `n:${node.uid}`, text: [t(`device.${node.device}.name` as LangKey), ...ips].join('\n') };
+      return { key: `n:${node.uid}`, text: [nodeLabel(store, node, this.project()?.nodes ?? []), ...ips].join('\n') };
     }
     if (!focusedProject(store) && !store.showcase) {
       const f = store.office.furniture.find((x) => x.x === tx && x.y === ty);

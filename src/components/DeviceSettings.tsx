@@ -1,8 +1,8 @@
 // 機器の画面の「設定」タブ。ポートごとのIPアドレス（ネットワークは「詳しく」を開いたときだけ出す）、ホストのデフォルトゲートウェイ、ルーターの静的ルートを置く。
 // IPアドレスとゲートウェイの欄は、候補から選べる1つの入力欄（AddressInput）にする。確定は候補を選んだとき・Enter・欄を離れたとき。
 // PC・サーバーは、ケーブルでつなぐ前でもIPアドレスを設定できる。ルーターのポートはつないでから設定する。
+import { nodeLabel } from './nodeLabel';
 import { useState } from 'react';
-import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { AddressInput } from './AddressInput';
 import type { ComboOption } from './addressCombo';
@@ -13,7 +13,7 @@ import type { NetNode, SegmentConfig } from '../network/types';
 import { gameEnv } from '../sim/env';
 import { addressCandidates, PLANNED_NETWORK, PLANNED_PREFIX, plannedAddressCandidates, type AddressCandidate } from '../sim/project';
 import { coreOf, netTargetOf, useGameStore } from '../stores/useGameStore';
-import { buttonStyle, greyColor, hexColor, isIpText, portLabel, sectionStyle, selectStyle, unsetColor } from './devicePorts';
+import { buttonStyle, greyColor, hexColor, inputStyle, isIpText, portLabel, sectionStyle, selectStyle, unsetColor } from './devicePorts';
 
 // ネットワークアドレスの候補（sim-3: 192.168.<n>.0）と、プレフィックス長の候補（/24〜/30）
 const NETWORK_CHOICES = Array.from({ length: 16 }, (_, i) => `192.168.${i + 1}.0`);
@@ -62,7 +62,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   const usedName = (usedBy: { node: string; port: number }): string => {
     const n = byUid.get(usedBy.node);
     if (!n) return '';
-    return `${t(`device.${n.device}.name` as LangKey)} ${portLabel(gameEnv.devices[n.device]?.category, usedBy.port)}`;
+    return `${nodeLabel(useGameStore.getState(), n, net.nodes)} ${portLabel(gameEnv.devices[n.device]?.category, usedBy.port)}`;
   };
 
   // IPアドレスを設定する。設定のないポートは、詳しくで選んだプレフィックス長（なければ /24）で設定する。
@@ -262,6 +262,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
 
   return (
     <div>
+      <NameField key={node.uid} node={node} nodes={net.nodes} readOnly={readOnly} onError={onError} />
       {node.configLocked && <div style={{ marginBottom: 6 }}>{t('ui.config.locked')}</div>}
       {ports.map(renderPort)}
       {category !== 'router' && renderGateway()}
@@ -311,6 +312,36 @@ function RouteAdd({
           </option>
         ))}
       </select>
+    </div>
+  );
+}
+
+// 機器の名前の欄。欄を離れたとき・Enter で確定する。空にすると既定の名前に戻る
+function NameField({ node, nodes, readOnly, onError }: { node: NetNode; nodes: readonly NetNode[]; readOnly: boolean; onError: (reason: string | null) => void }) {
+  const setName = useGameStore((s) => s.setName);
+  const current = nodeLabel(useGameStore.getState(), node, nodes);
+  const [text, setText] = useState(node.name ?? '');
+  const commit = () => {
+    if ((node.name ?? '') === text.trim()) return;
+    onError(setName(node.uid, text));
+  };
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 2 }}>{t('ui.config.name')}</label>
+      <input
+        aria-label={t('ui.config.name')}
+        style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }}
+        value={text}
+        placeholder={current}
+        disabled={readOnly}
+        maxLength={24}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          if (e.key === 'Escape') setText(node.name ?? '');
+        }}
+      />
     </div>
   );
 }

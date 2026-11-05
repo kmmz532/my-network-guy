@@ -1,7 +1,7 @@
 // ポートの一覧の吹き出し。配線の道具で機器を押したときに、機器の横に出す。先頭は「おまかせ」、続けて各ポート（埋まったポートは選べない）
+import { labelOfUid } from './nodeLabel';
 import { gameEnv } from '../sim/env';
 import { t } from '../i18n/t';
-import type { LangKey } from '../generated/lang-keys';
 import { editNetOf, useGameStore } from '../stores/useGameStore';
 import type { NetLink, NetNode } from '../network/types';
 import { buttonStyle, panelStyle, portLabel } from './devicePorts';
@@ -72,7 +72,7 @@ export function PortMenu() {
         >
           <span>{row.label}</span>
           <span>
-            {row.partner ? t(`device.${row.partner.device}.name` as LangKey) : t('ui.port.free')}
+            {row.partner ? labelOfUid(state, row.partner.uid, net.nodes) : t('ui.port.free')}
           </span>
         </button>
       ))}

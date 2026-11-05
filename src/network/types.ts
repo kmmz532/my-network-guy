@@ -19,6 +19,8 @@ export interface Service {
 export interface NetNode {
   uid: string;
   device: string;
+  // 手で付けた名前（なければ既定の名前で呼ぶ。nodeName.ts）
+  name?: string;
   x: number;
   y: number;
   // 配置を動かせない（案件で固定された機器）

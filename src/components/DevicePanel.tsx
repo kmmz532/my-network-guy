@@ -1,5 +1,6 @@
 // 機器の画面の中身。ウィンドウ（Window.tsx）の中に出し、タイトルの帯・×・大きさは Windows.tsx が受け持つ。
 // 背面・設定・サービス（サーバーだけ）・ターミナル（押せない）のタブを持つ。閉じるのは、ウィンドウの×か Esc（キーは input/keymap.ts が受け取る）。
+import { nodeLabel } from './nodeLabel';
 import { useState } from 'react';
 import { devices as deviceData } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
@@ -43,7 +44,7 @@ export function DeviceTitle({ uid }: { uid: string }) {
   return (
     <>
       {device && <Icon name={device.sprite} scale={1} />}
-      <b>{t(`device.${found.node.device}.name` as LangKey)}</b>
+      <b>{nodeLabel(state, found.node, found.source.nodes)}</b>
     </>
   );
 }

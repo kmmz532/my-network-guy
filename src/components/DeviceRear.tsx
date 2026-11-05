@@ -1,6 +1,7 @@
 // 機器の画面の「背面」タブ。ポートを番号つきで並べ、各ポートのLED・相手の機器とポート・ケーブルの種類を出す。
 // つながったポートを押すと「外す」「挿し替える」を出す。挿し替えでは、空いているポートを押すと、そこへ挿し替える。
 // つながったポートのプラグをドラッグすると、同じ背面の空きポートへ挿し替える（4 px 未満の動きは押したものとして扱う）。
+import { nodeLabel } from './nodeLabel';
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { spriteUrl } from '../game/sprites';
@@ -300,7 +301,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
       {ports.map((p) => {
         const link = linkAt(p);
         const peer = link ? peerOf(link) : undefined;
-        const peerName = peer?.peer ? `${t(`device.${peer.peer.device}.name` as LangKey)} ${portLabel(gameEnv.devices[peer.peer.device]?.category, peer.end.port)}` : '';
+        const peerName = peer?.peer ? `${nodeLabel(useGameStore.getState(), peer.peer, nodes)} ${portLabel(gameEnv.devices[peer.peer.device]?.category, peer.end.port)}` : '';
         return (
           <button
             key={p}

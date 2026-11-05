@@ -1,4 +1,5 @@
 // 依頼カード。タイトル1行と、PC台数・予算・報酬のアイコンで表す。受注するときに担当の社員を選ぶ
+import { offerNodeName } from './nodeLabel';
 import { useState } from 'react';
 import { balance, devices } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
@@ -112,7 +113,7 @@ function OfferCard({
       </div>
       {offer.contract.goals.map((goal, i) => (
         <div key={i} style={{ fontSize: 12, opacity: 0.85 }}>
-          ・{goalText(goal)}
+          ・{goalText(goal, (id) => offerNodeName(offer, id))}
         </div>
       ))}
       {hasKey(`contract.${offer.baseId}.hint`) && (
