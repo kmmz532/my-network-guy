@@ -7,8 +7,7 @@ import { linkAt } from './linkHit';
 import { rangeTiles } from './effectRange';
 import { gameEnv } from '../sim/env';
 import { checkConnect, compiledNet, DESK_ID, type PlacedFurniture, type Project } from '../sim/project';
-import type { Compiled } from '../network/compile';
-import { subnetColor } from './palette';
+import type { Compiled, IssueDetail } from '../network/compile';
 import { texture } from './sprites';
 import { balance, devices as deviceData } from 'virtual:game-data';
 import { hideTip, showTipAt } from '../components/Tooltip';
@@ -82,7 +81,7 @@ export class Scene {
   // 検収のパケット。新しい結果が来たら、その時刻からすべての経路に同時に流す
   private traces: Trace[] = [];
   private traceStart = 0;
-  // 色と配線から生成したネットワーク（不備と色の表示に使う）
+  // 配線と設定から生成したネットワーク（不備の表示に使う）
   private compiled: Compiled | null = null;
   // 席のない社員（自社オフィスを歩き回る）。位置は保存しない
   private wanderers: Walker[] = [];
@@ -299,9 +298,10 @@ export class Scene {
       const dim = building && !isBuilt(node.uid, 'nodes');
       this.drawNode(node, ts, s.selectedUid === node.uid, dim, project);
       const blinkOn = onPath.has(node.uid) ? fastBlink : slowBlink;
-      this.drawLed(node, ts, blinkOn);
-      this.drawColors(node, ts, dim);
-      if (this.needsAttention(node, project)) this.drawBubble(node, ts, '?', WARN);
+      const issue = this.issueOf(node, project);
+      this.drawLed(node, ts, blinkOn, issue?.reason === 'ip.unset');
+      // IPアドレスのない機器の表示は drawAddresses で出す。そのほかの不備には「？」を出す
+      if (issue && issue.reason !== 'ip.unset') this.drawBubble(node, ts, '?', WARN);
     }
 
     if (s.showIp) this.drawAddresses(project, ts);
@@ -321,42 +321,12 @@ export class Scene {
     for (const child of this.bubbles.removeChildren()) child.destroy();
   }
 
-  // 設計時点の不備（色の未設定・混在・ゲートウェイなし）があれば「？」を出す
-  private needsAttention(node: NetNode, project: Project): boolean {
-    if (project.phase !== 'design' || !focusedProject(useGameStore.getState())) return false;
-    return !!this.compiled?.issues[node.uid];
+  // 設計中の案件の機器の不備（機器の uid で引く）。設計中でなければ undefined
+  private issueOf(node: NetNode, project: Project): IssueDetail | undefined {
+    if (project.phase !== 'design' || !focusedProject(useGameStore.getState())) return undefined;
+    return this.compiled?.issues[node.uid];
   }
 
-  // サブネットの色。PC・サーバーは左上の札、ルーターはポート、スイッチはつながった色の帯
-  private drawColors(node: NetNode, ts: number, dim: boolean): void {
-    const g = this.g;
-    const alpha = dim ? 0.5 : 1;
-    const category = gameEnv.devices[node.device]?.category;
-    const pad = ts * 0.18;
-    const x = node.x * ts + pad;
-    const y = node.y * ts + pad;
-    const size = ts - pad * 2;
-    const colors = node.colors ?? {};
-    if (category === 'router') {
-      const count = gameEnv.devices[node.device]?.portCount ?? 0;
-      for (let port = 0; port < count; port++) {
-        const c = colors[port];
-        if (!c) continue;
-        const px = x + ((port + 0.5) * size) / count - 3;
-        g.rect(px, y + size + 4, 6, 4).fill({ color: subnetColor(c), alpha }).stroke({ width: 1, color: OUTLINE, alpha });
-      }
-      return;
-    }
-    const c = category === 'l2_switch' ? this.compiled?.switchColors[node.uid] : colors[0];
-    if (!c) return;
-    if (category === 'l2_switch') {
-      g.rect(x, y + size * 0.3 - 3, size, 3).fill({ color: subnetColor(c), alpha });
-    } else {
-      g.rect(x - 3, y - 3, 7, 7).fill({ color: subnetColor(c), alpha }).stroke({ width: 1, color: OUTLINE, alpha });
-    }
-  }
-
-  // 機器の名前と、色から割り当てたIPアドレスを機器の下に出す
   // IPアドレスとプレフィックス長を、機器のスプライトの上端に重ねて出す。画面上の高さが約8pxになるよう拡大率で割る
   private drawAddresses(project: Project, ts: number): void {
     const compiled = this.compiled;
@@ -367,13 +337,15 @@ export class Scene {
     const nodes = [...compiled.net.nodes].sort((a, b) => b.y - a.y);
     for (const node of nodes) {
       const ips = node.interfaces.map((i) => `${i.ip}/${i.prefix}`);
-      if (ips.length === 0) continue;
+      // IPアドレスのない機器は、未設定の印（灰色の「IP ---」）だけを出す
+      const unset = ips.length === 0 && compiled.issues[node.uid]?.reason === 'ip.unset';
+      if (ips.length === 0 && !unset) continue;
       // 3行を超えるときは2行に抑え、残りを「ほか n件」にまとめる
-      const lines = ips.length > 3 ? [...ips.slice(0, 2), t('ui.ip.more', { count: ips.length - 2 })] : ips;
+      const lines = unset ? [t('ui.ip.blank')] : ips.length > 3 ? [...ips.slice(0, 2), t('ui.ip.more', { count: ips.length - 2 })] : ips;
       const text = new Text({
         text: lines.join('\n'),
         // 背景は付けず、縁取りで文字を読めるようにする
-        style: { fontFamily: 'monospace', fontSize: fontPx, fill: 0xf4f1e6, align: 'center', stroke: { color: OUTLINE, width: 2 / scale } },
+        style: { fontFamily: 'monospace', fontSize: fontPx, fill: unset ? 0x9a9a9a : 0xf4f1e6, align: 'center', stroke: { color: OUTLINE, width: 2 / scale } },
         resolution: Math.max(2, scale),
       });
       text.anchor.set(0.5, 1);
@@ -574,15 +546,21 @@ export class Scene {
     }
   }
 
-  // LED（ポートにIPアドレスがあれば緑、なければ黄色）。点滅で通信や待機を表す
-  private drawLed(node: NetNode, ts: number, on: boolean): void {
+  // 状態LED（小さな点）。IPアドレスが未設定の機器は橙色の点を1秒周期でゆっくり点滅させ、設定済みの機器は緑の点を点灯させる。
+  // そのほかの機器は、通信・待機を表す点滅（黄色）
+  private drawLed(node: NetNode, ts: number, blinkOn: boolean, unset: boolean): void {
     const pad = ts * 0.18;
     const size = ts - pad * 2;
     const x = node.x * ts + pad + size - 5;
     const y = node.y * ts + pad + 3;
-    const configured = Object.keys(node.colors ?? {}).length > 0;
-    const color = configured ? 0x62d26f : WARN;
-    this.g.rect(x, y, 3, 3).fill({ color: on ? color : OUTLINE });
+    if (unset) {
+      const lit = Math.floor(this.elapsed / 500) % 2 === 0;
+      this.g.rect(x, y, 2, 2).fill({ color: lit ? 0xff8c2a : OUTLINE });
+    } else if (node.interfaces.length > 0) {
+      this.g.rect(x, y, 2, 2).fill({ color: 0x62d26f });
+    } else {
+      this.g.rect(x, y, 2, 2).fill({ color: blinkOn ? WARN : OUTLINE });
+    }
   }
 
   private drawBubble(node: NetNode, ts: number, mark: string, color: number): void {
@@ -738,14 +716,6 @@ export class Scene {
     return focusedProject(useGameStore.getState())?.nodes.find((n) => n.x === tx && n.y === ty);
   }
 
-  // ルーターのどのポートを指したか（機器の幅をポート数で等分する）
-  private portAt(node: NetNode, p: { x: number; y: number }): number {
-    const count = gameEnv.devices[node.device]?.portCount ?? 1;
-    const ts = this.tileSize();
-    const rel = (p.x - node.x * ts) / ts;
-    return Math.max(0, Math.min(count - 1, Math.floor(rel * count)));
-  }
-
   private tileOf(p: { x: number; y: number }): { tx: number; ty: number } | null {
     if (!this.map) return null;
     const tx = Math.floor(p.x / this.map.tileSize);
@@ -895,13 +865,6 @@ export class Scene {
       }
       const link = this.linkUnder(p);
       if (link) store.removeLink(link.uid);
-      return;
-    }
-    if (store.tool === 'paint') {
-      if (!node) return;
-      const category = gameEnv.devices[node.device]?.category;
-      if (category === 'l2_switch') return;
-      store.paint(node.uid, category === 'router' ? this.portAt(node, p) : 0);
       return;
     }
     if (store.placing && !node) {

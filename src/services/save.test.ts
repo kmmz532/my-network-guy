@@ -139,8 +139,8 @@ describe('v9 → v10', () => {
   });
 });
 
-describe('v4 → v5', () => {
-  it('手入力のIPアドレスを色に置き換える', () => {
+describe('v4 → v5 → v13', () => {
+  it('手入力のIPアドレスは、色の時代の規則を経て、色を外したIPアドレスになる', () => {
     const node = (uid: string, ip: string) => ({
       uid,
       device: 'pc_basic',
@@ -158,8 +158,76 @@ describe('v4 → v5', () => {
       active: { nodes: [node('a', '192.168.1.10'), node('b', '192.168.1.11'), node('c', '192.168.2.10')] },
     };
     const out = migrate(4, v4);
-    const colors = out.active[0].nodes.map((n) => n.colors?.[0]);
-    expect(colors[0]).toBe(colors[1]);
-    expect(colors[2]).not.toBe(colors[0]);
+    const nodes = out.active[0].nodes;
+    // 同じネットワークだった2台は同じ色になり、同じネットワークのアドレスを持つ。色は残らない
+    expect(nodes.map((n) => n.interfaces[0].ip)).toEqual(['192.168.101.11', '192.168.101.12', '192.168.102.11']);
+    expect(nodes.every((n) => !('colors' in n))).toBe(true);
+  });
+});
+
+describe('v12 → v13', () => {
+  const pc = (uid: string, x: number, color: number) => ({
+    uid,
+    device: 'pc_basic',
+    x,
+    y: 0,
+    locked: false,
+    configLocked: false,
+    interfaces: [],
+    gateway: null,
+    routes: [],
+    services: [],
+    colors: { 0: color },
+  });
+  const router = {
+    uid: 'r',
+    device: 'router_basic',
+    x: 5,
+    y: 0,
+    locked: false,
+    configLocked: false,
+    interfaces: [],
+    gateway: null,
+    routes: [],
+    services: [],
+    colors: { 0: 1 },
+  };
+
+  it('色を持つ機器に、色の時代の規則でIPアドレス・ゲートウェイ・セグメントを作り、色を外す', () => {
+    const v12 = {
+      ...sample,
+      active: [
+        {
+          id: 'x',
+          nodes: [pc('pc_a', 0, 1), pc('pc_b', 1, 1), router],
+          links: [
+            {
+              uid: 'l0',
+              cable: 'utp_cat5e',
+              a: { node: 'pc_a', port: 0 },
+              b: { node: 'r', port: 0 },
+              path: [
+                [0, 0],
+                [5, 0],
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const out = migrate(12, v12);
+    const [a, b, r] = out.active[0].nodes;
+    expect(a.interfaces).toEqual([{ port: 0, ip: '192.168.101.11', prefix: 24 }]);
+    expect(a.gateway).toBe('192.168.101.1');
+    expect(b.interfaces).toEqual([{ port: 0, ip: '192.168.101.12', prefix: 24 }]);
+    expect(b.gateway).toBeNull();
+    expect(r.interfaces).toEqual([{ port: 0, ip: '192.168.101.1', prefix: 24 }]);
+    expect(out.active[0].segments).toEqual({ 'pc_a:0': { network: '192.168.101.0', prefix: 24 } });
+    expect([a, b, r].some((n) => 'colors' in n)).toBe(false);
+  });
+
+  it('色を持たない案件は、そのまま残す', () => {
+    const v12 = { ...sample, active: [{ id: 'x', nodes: [], links: [] }] };
+    expect(migrate(12, v12).active[0]).toEqual({ id: 'x', nodes: [], links: [] });
   });
 });

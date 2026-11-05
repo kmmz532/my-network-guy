@@ -31,7 +31,6 @@ import {
   placeInOffice,
   removeFromOffice,
   requestBuild,
-  setColor,
   setInterface,
   setGateway,
   addRoute,
@@ -49,7 +48,7 @@ import {
 } from '../sim/project';
 
 export type { Trace };
-export type Tool = 'build' | 'paint';
+export type Tool = 'build';
 
 export type Speed = 0 | 1 | 2 | 4;
 
@@ -95,11 +94,9 @@ export interface GameState {
   traces: Trace[];
   // 納品した直後の案件（結果を閉じるまでマップに表示する）
   showcase: Project | null;
-  // 操作の種類と、色塗りで使う色
+  // 操作の種類
   tool: Tool;
-  paintColor: number;
   setTool: (tool: Tool) => void;
-  setPaintColor: (color: number) => void;
   // 社員の吹き出しに出すヒント（言語キー）
   hint: string | null;
   // 機器の名前とIPアドレスを表示するか、案件の内容を開いているか（保存しない）
@@ -129,7 +126,6 @@ export interface GameState {
   connect: (aUid: string, bUid: string, cableId: string) => string | null;
   removeLink: (uid: string) => string | null;
   removeNode: (uid: string) => string | null;
-  paint: (uid: string, port: number) => string | null;
   // 機器の設定（設計中のみ）。失敗したら理由を返す
   setIface: (uid: string, port: number, ip: string) => string | null;
   setGateway: (uid: string, gateway: string | null) => string | null;
@@ -286,9 +282,7 @@ export const useGameStore = create<GameState>((set, get) => {
     traces: [],
     showcase: null,
     tool: 'build',
-    paintColor: 1,
     setTool: (tool) => set({ tool, placing: null }),
-    setPaintColor: (color) => set({ paintColor: color, tool: 'paint', placing: null }),
     hint: null,
     showIp: true,
     setShowIp: (on) => set({ showIp: on }),
@@ -401,13 +395,12 @@ export const useGameStore = create<GameState>((set, get) => {
     removeNode: (uid) => {
       if (get().active.length === 0) {
         const n = get().office.nodes.find((x) => x.uid === uid);
-        return apply(removeFromOffice(coreOf(get()), uid), n ? { tx: n.x, ty: n.y } : undefined);
+        return apply(removeFromOffice(coreOf(get()), uid, gameEnv), n ? { tx: n.x, ty: n.y } : undefined);
       }
-      return apply(removeNode(coreOf(get()), uid), tileOf(uid));
+      return apply(removeNode(coreOf(get()), uid, gameEnv), tileOf(uid));
     },
-    paint: (uid, port) => apply(setColor(coreOf(get()), uid, port, get().paintColor), tileOf(uid)),
     setIface: (uid, port, ip) =>
-      apply(setInterface(coreOf(get()), uid, port, ip, 24, netTargetOf(get())), tileOf(uid)),
+      apply(setInterface(coreOf(get()), uid, port, ip, 24, gameEnv, netTargetOf(get())), tileOf(uid)),
     setGateway: (uid, gateway) => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid)),
     addRoute: (uid, route) => apply(addRoute(coreOf(get()), uid, route, netTargetOf(get())), tileOf(uid)),
     removeRoute: (uid, index) => apply(removeRoute(coreOf(get()), uid, index, netTargetOf(get())), tileOf(uid)),

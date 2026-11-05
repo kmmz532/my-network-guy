@@ -1,12 +1,10 @@
-// 画面下のツールバー。依頼・機材・ケーブル・色塗り・施工をアイコンで操作する
+// 画面下のツールバー。依頼・機材・ケーブル・施工をアイコンで操作する
 import { useState } from 'react';
 import { shop } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { isUnlocked } from '../sim/shop';
 import { warehouseItems, warehouseMode, type WarehouseItem } from '../sim/warehouse';
-import { COLOR_COUNT } from '../network/compile';
-import { subnetCss } from '../game/palette';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
@@ -53,11 +51,9 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
   const [warehouseOpen, setWarehouseOpen] = useState(false);
   const placing = useGameStore((s) => s.placing);
   const tool = useGameStore((s) => s.tool);
-  const paintColor = useGameStore((s) => s.paintColor);
   const wireCable = useGameStore((s) => s.wireCable);
   const setTool = useGameStore((s) => s.setTool);
   const setPlacing = useGameStore((s) => s.setPlacing);
-  const setPaintColor = useGameStore((s) => s.setPaintColor);
   const setWireCable = useGameStore((s) => s.setWireCable);
   const requestBuild = useGameStore((s) => s.requestBuild);
   const abandon = useGameStore((s) => s.abandon);
@@ -134,18 +130,6 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
               }}
             >
               <Icon name={`icon/cable_${id}`} />
-            </button></Tooltip>
-          ))}
-          {sep}
-          {Array.from({ length: COLOR_COUNT }, (_, i) => i + 1).map((c) => (
-            <Tooltip text={t('ui.paint')} key={c}><button aria-label={t('ui.paint')} style={{ ...slot(tool === 'paint' && paintColor === c), width: 32 }}
-              
-              onClick={() => {
-                setPaintColor(c);
-                setWarehouseOpen(false);
-              }}
-            >
-              <span style={{ width: 20, height: 20, background: subnetCss(c), border: '2px solid #3b2a33', display: 'block' }} />
             </button></Tooltip>
           ))}
           {ipButton}

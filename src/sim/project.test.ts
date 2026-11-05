@@ -24,8 +24,10 @@ import {
   removeLink,
   removeNode,
   setInterface,
+  setSegment,
+  addressCandidates,
+  designIssues,
   requestBuild,
-  setColor,
   type Core,
   type Env,
 } from './project';
@@ -101,13 +103,13 @@ const ok = (r: ReturnType<typeof accept>) => {
 };
 
 describe('案件の流れ: c001 PC2台の直結', () => {
-  it('色を塗って配線し、施工すると検収に合格して納品される', () => {
+  it('IPアドレスを設定して配線し、施工すると検収に合格して納品される', () => {
     let core = ok(take(start(), 'c001_direct_link')).core;
     expect(cur(core)?.phase).toBe('design');
     expect(core.offers).toEqual([]);
 
-    core = ok(setColor(core, 'pc_a', 0, 1)).core;
-    core = ok(setColor(core, 'pc_b', 0, 1)).core;
+    core = ok(setInterface(core, 'pc_a', 0, '192.168.1.10', 24, env)).core;
+    core = ok(setInterface(core, 'pc_b', 0, '192.168.1.11', 24, env)).core;
     core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
     // 配線費用: 1000 + 300 × 7タイル
     expect(core.clock.money).toBe(1_000_000 - 3100);
@@ -127,7 +129,7 @@ describe('案件の流れ: c001 PC2台の直結', () => {
     expect(done.report?.reputationGain).toBe(1 + 3 * balance.reputationPerStar);
   });
 
-  it('色を塗らずに施工すると不合格になり、設計に戻る', () => {
+  it('IPアドレスを設定せずに施工すると不合格になり、設計に戻る', () => {
     let core = ok(take(start(), 'c001_direct_link')).core;
     core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
     core = ok(requestBuild(core, env)).core;
@@ -214,13 +216,13 @@ describe('機器の配置と配線', () => {
     expect(cur(r.core)?.nodes.some((n) => n.uid === 'u0' && n.x === 6)).toBe(true);
   });
 
-  it('設定が固定された機器の色は変えられない', () => {
+  it('設定が固定された機器のIPアドレスは変えられない', () => {
     const core = ok(take(start(), 'c001_direct_link')).core;
     const locked = {
       ...core,
       active: core.active.map((p) => ({ ...p, nodes: p.nodes.map((n) => ({ ...n, configLocked: true })) })),
     };
-    expect(setColor(locked, 'pc_a', 0, 2)).toEqual({ ok: false, reason: 'locked' });
+    expect(setInterface(locked, 'pc_a', 0, '192.168.1.20', 24, env)).toEqual({ ok: false, reason: 'locked' });
   });
 
   it('ケーブルの上限長を超える配線はできない', () => {
@@ -251,7 +253,7 @@ describe('配線できるかの判定', () => {
 });
 
 describe('施工後の撤去と配線のやり直し', () => {
-  // 在庫のスイッチを床に置き、既設のPC（pc_a）と配線してから施工する。色を塗らないので不合格になり、設計に戻る
+  // 在庫のスイッチを床に置き、既設のPC（pc_a）と配線してから施工する。IPアドレスを設定しないので不合格になり、設計に戻る
   const failedDesign = (): Core => {
     let core: Core = { ...ok(take({ ...start(), owned: { l2_switch_8p: 1 } }, 'c001_direct_link')).core };
     core = ok(placeDevice(core, 'l2_switch_8p', 6, 6, map, env)).core;
@@ -268,28 +270,29 @@ describe('施工後の撤去と配線のやり直し', () => {
     const core = failedDesign();
     const before = core.owned.l2_switch_8p ?? 0;
     const cableBefore = core.owned.utp_cat5e ?? 0;
-    const after = ok(removeNode(core, 'u0')).core;
+    const after = ok(removeNode(core, 'u0', env)).core;
     expect(cur(after)?.nodes.some((n) => n.uid === 'u0')).toBe(false);
     expect(cur(after)?.links).toEqual([]);
     expect(cur(after)?.built.nodes.includes('u0')).toBe(false);
     expect(after.owned.l2_switch_8p).toBe(before + 1);
-    expect(after.owned.utp_cat5e).toBe(cableBefore + 1);
+    // ケーブルは在庫を持たないため、在庫は増えない
+    expect(after.owned.utp_cat5e ?? 0).toBe(cableBefore);
   });
 
-  it('案件の中で、配線だけを撤去できる（ケーブルは在庫に戻る）', () => {
+  it('案件の中で、配線だけを撤去できる（ケーブルは在庫に入らない）', () => {
     const core = failedDesign();
     const linkUid = cur(core)!.links[0].uid;
     const after = ok(removeLink(core, linkUid, 'focus', env)).core;
     expect(cur(after)?.links).toEqual([]);
     expect(cur(after)?.nodes.length).toBe(cur(core)?.nodes.length);
-    expect(after.owned.utp_cat5e).toBe((core.owned.utp_cat5e ?? 0) + 1);
+    expect(after.owned.utp_cat5e ?? 0).toBe(core.owned.utp_cat5e ?? 0);
   });
 
   it('既設の機器は撤去できない', () => {
     const core = failedDesign();
     const locked = cur(core)!.nodes.find((n) => n.locked);
     if (!locked) throw new Error('既設の機器がない');
-    expect(removeNode(core, locked.uid)).toEqual({ ok: false, reason: 'locked' });
+    expect(removeNode(core, locked.uid, env)).toEqual({ ok: false, reason: 'locked' });
   });
 });
 
@@ -303,7 +306,7 @@ describe('案件の設計中の配線の撤去（費用の戻し）', () => {
     expect(cur(after)?.links).toEqual([]);
     expect(cur(after)?.cost).toBe(0);
     expect(after.clock.money).toBe(1_000_000);
-    expect(after.owned.utp_cat5e).toBe((core.owned.utp_cat5e ?? 0) + 1);
+    expect(after.owned.utp_cat5e ?? 0).toBe(core.owned.utp_cat5e ?? 0);
   });
 
   it('施工済みの配線は撤去しても費用が戻らない', () => {
@@ -329,14 +332,14 @@ describe('案件の設計中の配線の撤去（費用の戻し）', () => {
 });
 
 describe('自社オフィスのケーブル', () => {
-  it('ケーブルのつながったPCを撤去すると、ケーブルも在庫に戻る', () => {
+  it('ケーブルのつながったPCを撤去すると、ケーブルも一緒に撤去され、在庫には入らない', () => {
     let core: Core = { ...start(), owned: { pc_basic: 2, l2_switch_8p: 1 }, office: { nodes: [], links: [], seq: 0, furniture: [{ uid: 'a', id: 'desk', x: 3, y: 4 }, { uid: 'b', id: 'desk', x: 8, y: 4 }], furnitureSeq: 2 } };
     core = ok(placeInOffice(core, 'pc_basic', 3, 4, map, env)).core;
     core = ok(placeInOffice(core, 'pc_basic', 8, 4, map, env)).core;
     core = ok(connect(core, 'u0', 'u1', 'utp_cat5e', env, 'office')).core;
-    const after = ok(removeFromOffice(core, 'u0')).core;
+    const after = ok(removeFromOffice(core, 'u0', env)).core;
     expect(after.office.links).toEqual([]);
-    expect(after.owned.utp_cat5e).toBe(1);
+    expect(after.owned.utp_cat5e ?? 0).toBe(0);
     expect(after.owned.pc_basic).toBe(1);
   });
 });
@@ -357,7 +360,7 @@ describe('自社オフィスの編集', () => {
     core = ok(connect(core, 'u0', 'u2', 'utp_cat5e', env, 'office')).core;
     core = ok(connect(core, 'u1', 'u2', 'utp_cat5e', env, 'office')).core;
     expect(core.office.links).toHaveLength(2);
-    core = ok(setInterface(core, 'u0', 0, '192.168.1.10', 24, 'office')).core;
+    core = ok(setInterface(core, 'u0', 0, '192.168.1.10', 24, env, 'office')).core;
     expect(core.office.nodes.find((n) => n.uid === 'u0')?.interfaces).toEqual([{ port: 0, ip: '192.168.1.10', prefix: 24 }]);
   });
 
@@ -370,7 +373,7 @@ describe('自社オフィスの編集', () => {
     expect(core.active).toEqual([]);
   });
 
-  it('配線を撤去すると、ケーブルは在庫に戻る', () => {
+  it('配線を撤去しても、ケーブルは在庫には入らない', () => {
     let core = officeStart();
     core = ok(placeInOffice(core, 'pc_basic', 3, 4, map, env)).core;
     core = ok(placeInOffice(core, 'pc_basic', 8, 4, map, env)).core;
@@ -378,7 +381,7 @@ describe('自社オフィスの編集', () => {
     const linkUid = core.office.links[0].uid;
     const removed = ok(removeLink(core, linkUid, 'office', env)).core;
     expect(removed.office.links).toEqual([]);
-    expect(removed.owned.utp_cat5e).toBe(1);
+    expect(removed.owned.utp_cat5e ?? 0).toBe(0);
   });
 
   it('自社案件を受注中は、自社オフィスの直接編集が理由 inhouse で失敗する', () => {
@@ -398,7 +401,7 @@ describe('自社オフィスの編集', () => {
     const offerIn: Offer = { id: inhouse.id, kind: 'fixed', baseId: inhouse.id, params: {}, contract: inhouse };
     const core = { ...officeStart(), offers: [offerIn] };
     const accepted = ok(take(core, inhouse.id)).core;
-    expect(setInterface(accepted, 'u0', 0, '192.168.1.10', 24, 'office')).toEqual({ ok: false, reason: 'inhouse' });
+    expect(setInterface(accepted, 'u0', 0, '192.168.1.10', 24, env, 'office')).toEqual({ ok: false, reason: 'inhouse' });
     expect(removeLink(accepted, 'l0', 'office', env)).toEqual({ ok: false, reason: 'inhouse' });
   });
 });
@@ -469,8 +472,8 @@ describe('自社案件', () => {
     core = ok(take(core, inhouse.id)).core;
     core = ok(placeDevice(core, 'pc_basic', 3, 4, map, env)).core;
     core = ok(placeDevice(core, 'pc_basic', 8, 4, map, env)).core;
-    core = ok(setColor(core, 'u0', 0, 1)).core;
-    core = ok(setColor(core, 'u1', 0, 1)).core;
+    core = ok(setInterface(core, 'u0', 0, '192.168.1.10', 24, env)).core;
+    core = ok(setInterface(core, 'u1', 0, '192.168.1.11', 24, env)).core;
     core = ok(connect(core, 'u0', 'u1', 'utp_cat5e', env)).core;
     core = ok(requestBuild(core, env)).core;
     let r = ok(advanceBuild(core, env, balance.build.workStartHour));
@@ -486,5 +489,99 @@ describe('自社案件', () => {
     expect(cur(next)?.seq).toBe(r.core.office.seq);
     // 取り消しても、引き継いだ機器は在庫に戻らない
     expect(ok(abandon(next)).core.owned.pc_basic ?? 0).toBe(0);
+  });
+});
+
+describe('IPアドレスとセグメントの設定', () => {
+  // 2台を配線した c001 の設計中の状態
+  const wired = (): Core => ok(connect(ok(take(start(), 'c001_direct_link')).core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
+
+  it('配線の後にIPアドレスを入力すると、そのネットワークがセグメントの設定になる', () => {
+    let core = wired();
+    expect(designIssues(cur(core)!, env)).toEqual({ pc_a: { reason: 'ip.unset' }, pc_b: { reason: 'ip.unset' } });
+    core = ok(setInterface(core, 'pc_a', 0, '192.168.7.10', 24, env)).core;
+    expect(cur(core)?.segments).toEqual({ 'pc_a:0': { network: '192.168.7.0', prefix: 24 } });
+    expect(designIssues(cur(core)!, env)).toEqual({ pc_b: { reason: 'ip.unset' } });
+  });
+
+  it('セグメントの範囲外のアドレスは、設計の不備（ip.out_of_segment）になる', () => {
+    let core = ok(setInterface(wired(), 'pc_a', 0, '192.168.7.10', 24, env)).core;
+    core = ok(setInterface(core, 'pc_b', 0, '10.0.0.1', 24, env)).core;
+    expect(designIssues(cur(core)!, env).pc_b).toEqual({ reason: 'ip.out_of_segment', ip: '10.0.0.1', segment: '192.168.7.0/24' });
+  });
+
+  it('ネットワークを設定すると、ホストに空いているアドレスを .11 から順に割り当てる', () => {
+    const core = ok(setSegment(wired(), 'pc_a', 0, '192.168.5.0', 24, env)).core;
+    expect(cur(core)?.segments).toEqual({ 'pc_a:0': { network: '192.168.5.0', prefix: 24 } });
+    const ips = Object.fromEntries(cur(core)!.nodes.map((n) => [n.uid, n.interfaces[0]?.ip]));
+    expect(ips).toEqual({ pc_a: '192.168.5.11', pc_b: '192.168.5.12' });
+    expect(designIssues(cur(core)!, env)).toEqual({});
+  });
+
+  it('変更したネットワークの範囲外になったアドレスは、割り当て直す', () => {
+    let core = ok(setSegment(wired(), 'pc_a', 0, '192.168.5.0', 24, env)).core;
+    core = ok(setSegment(core, 'pc_a', 0, '10.1.0.0', 24, env)).core;
+    const ips = Object.fromEntries(cur(core)!.nodes.map((n) => [n.uid, n.interfaces[0]?.ip]));
+    expect(ips).toEqual({ pc_a: '10.1.0.11', pc_b: '10.1.0.12' });
+  });
+
+  it('アドレスの候補は、使用中のアドレスに使っている機器を付けて一覧にする', () => {
+    const core = ok(setSegment(wired(), 'pc_a', 0, '192.168.5.0', 24, env)).core;
+    const list = addressCandidates(core, 'pc_a', 0, env);
+    expect(list).toHaveLength(254);
+    expect(list[0]).toEqual({ ip: '192.168.5.1', usedBy: null });
+    expect(list[list.length - 1].ip).toBe('192.168.5.254');
+    expect(list.find((c) => c.ip === '192.168.5.11')?.usedBy).toEqual({ node: 'pc_a', port: 0 });
+  });
+
+  it('設定のないセグメントの候補は空の一覧になる', () => {
+    expect(addressCandidates(wired(), 'pc_a', 0, env)).toEqual([]);
+  });
+
+  it('ネットワークの形式が正しくない、またはプレフィックス長が候補の外なら設定できない', () => {
+    expect(setSegment(wired(), 'pc_a', 0, '192.168.5.1', 24, env)).toEqual({ ok: false, reason: 'ip' });
+    expect(setSegment(wired(), 'pc_a', 0, '192.168.5.0', 16, env)).toEqual({ ok: false, reason: 'ip' });
+  });
+
+  it('案件で設定が固定された機器を含むセグメントは、ネットワークを変えられない', () => {
+    const core = wired();
+    const locked = { ...core, active: core.active.map((p) => ({ ...p, nodes: p.nodes.map((n) => ({ ...n, configLocked: true })) })) };
+    expect(setSegment(locked, 'pc_a', 0, '192.168.5.0', 24, env)).toEqual({ ok: false, reason: 'locked' });
+  });
+
+  it('ホスト数に対してアドレスが足りないネットワークは設定できない（segment.too_small）', () => {
+    const pcNode = (uid: string, x: number) => ({
+      uid,
+      device: 'pc_basic',
+      x,
+      y: 0,
+      locked: false,
+      configLocked: false,
+      interfaces: [],
+      gateway: null,
+      routes: [],
+      services: [],
+    });
+    const cable = (uid: string, a: string, port: number) => ({
+      uid,
+      cable: 'utp_cat5e',
+      a: { node: a, port },
+      b: { node: 's', port: 0 },
+      path: [
+        [0, 0],
+        [1, 0],
+      ] as [number, number][],
+    });
+    // 3台のPCをスイッチでつないだ自社オフィス。/30 には3台分のアドレスがない
+    const office = {
+      nodes: [pcNode('a', 1), pcNode('b', 2), pcNode('c', 3), { ...pcNode('s', 4), device: 'l2_switch_8p' }],
+      links: [cable('l0', 'a', 0), { ...cable('l1', 'b', 0), b: { node: 's', port: 1 } }, { ...cable('l2', 'c', 0), b: { node: 's', port: 2 } }],
+      seq: 4,
+      furniture: [],
+      furnitureSeq: 0,
+    };
+    const core: Core = { ...start(), office };
+    expect(setSegment(core, 'a', 0, '192.168.9.0', 30, env, 'office')).toEqual({ ok: false, reason: 'segment.too_small' });
+    expect(setSegment(core, 'a', 0, '192.168.9.0', 24, env, 'office').ok).toBe(true);
   });
 });

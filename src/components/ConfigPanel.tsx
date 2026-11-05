@@ -1,9 +1,12 @@
-// 選んだ機器の IP アドレス・ゲートウェイ・静的ルートを設定する。機器をクリックすると右上に開く。設計中の案件、または自社オフィス（納品の結果を表示していないとき）で変更できる
+// 選んだ機器の IP アドレス・ゲートウェイ・静的ルートを設定する。機器をクリックすると右上に開く。設計中の案件、または自社オフィス（納品の結果を表示していないとき）で変更できる。
+// 候補からの選択は P3 で作る。今は直接入力だけを置く
 import { useState } from 'react';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
+import { compile, type IssueDetail } from '../network/compile';
 import type { NetNode } from '../network/types';
 import { gameEnv } from '../sim/env';
+import { designIssues } from '../sim/project';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 
 const inputStyle = { width: 140, marginRight: 4 } as const;
@@ -21,6 +24,11 @@ export function ConfigPanel() {
   if (!node) return null;
   // 案件を表示しているときは設計中だけ変更できる。自社オフィスは、納品の結果を表示していなければ変更できる
   const readOnly = active ? active.phase !== 'design' : showcase !== null;
+  // この機器の不備（案件の機器なら設計中の案件、自社オフィスの機器なら自社オフィスから求める）
+  const issues = active?.nodes.some((n) => n.uid === node.uid)
+    ? designIssues(active, gameEnv)
+    : compile({ nodes: office.nodes, links: office.links, segments: office.segments }, gameEnv.engine).issues;
+  const issue = issues[node.uid];
 
   return (
     <section
@@ -44,12 +52,12 @@ export function ConfigPanel() {
           {t('ui.config.close')}
         </button>
       </div>
-      <NodeConfig key={node.uid} node={node} readOnly={readOnly} />
+      <NodeConfig key={node.uid} node={node} readOnly={readOnly} issue={issue} />
     </section>
   );
 }
 
-function NodeConfig({ node, readOnly }: { node: NetNode; readOnly: boolean }) {
+function NodeConfig({ node, readOnly, issue }: { node: NetNode; readOnly: boolean; issue: IssueDetail | undefined }) {
   const setIface = useGameStore((s) => s.setIface);
   const setGateway = useGameStore((s) => s.setGateway);
   const addRoute = useGameStore((s) => s.addRoute);
@@ -65,6 +73,11 @@ function NodeConfig({ node, readOnly }: { node: NetNode; readOnly: boolean }) {
   return (
     <div>
       {readOnly && <div style={{ marginBottom: 6 }}>{t('ui.config.readOnly')}</div>}
+      {issue && (
+        <div style={{ color: '#ffd866', marginBottom: 6 }}>
+          {t(`issue.${issue.reason}` as LangKey, { ip: issue.ip ?? '', segment: issue.segment ?? '', gateway: issue.gateway ?? '' })}
+        </div>
+      )}
       {!readOnly && node.configLocked && <div style={{ marginBottom: 6 }}>{t('ui.config.locked')}</div>}
       {isSwitch && <div>{t('ui.config.noIp')}</div>}
       {!isSwitch &&
@@ -125,13 +138,8 @@ function IpField({
   return (
     <div style={{ marginBottom: 6 }}>
       <div>{label}</div>
-      <input
-        style={inputStyle}
-        value={text}
-        disabled={disabled}
-        placeholder="192.168.1.10"
-        onChange={(e) => setText(e.target.value)}
-      />
+      <input style={inputStyle} value={text} disabled={disabled} onChange={(e) => setText(e.target.value)} />
+      {value === '' && <span style={{ color: '#ff6b6b', marginRight: 4 }}>{t('ui.ip.unset')}</span>}
       <button style={{ cursor: 'pointer' }} disabled={disabled} onClick={() => onSave(text.trim())}>
         {t('ui.config.set')}
       </button>
@@ -145,9 +153,9 @@ function RouteForm({ onAdd }: { onAdd: (dest: string, nextHop: string) => void }
   return (
     <div style={{ marginTop: 6 }}>
       <div>{t('ui.config.routeDest')}</div>
-      <input style={inputStyle} value={dest} onChange={(e) => setDest(e.target.value)} placeholder="192.168.9.0" />
+      <input style={inputStyle} value={dest} onChange={(e) => setDest(e.target.value)} />
       <div>{t('ui.config.routeNext')}</div>
-      <input style={inputStyle} value={next} onChange={(e) => setNext(e.target.value)} placeholder="10.0.0.2" />
+      <input style={inputStyle} value={next} onChange={(e) => setNext(e.target.value)} />
       <button style={{ cursor: 'pointer' }} onClick={() => onAdd(dest.trim(), next.trim())}>
         {t('ui.config.addRoute')}
       </button>

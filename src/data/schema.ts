@@ -224,6 +224,9 @@ export const contractSchema = z.object({
   budget: nonNegativeInt,
   // 受注日からの期日（日数）。自社案件のように期日のない案件は省く
   deadlineDays: int.positive().optional(),
+  // 扱う論点（sim-3 の段階の ID）と、割り当てに使えるアドレスブロック（任意）
+  topics: z.array(z.string().min(1)).optional(),
+  addressBlock: z.object({ network: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/), prefix: int.min(8).max(30) }).optional(),
   placed: z.array(placedSchema),
   goals: z.array(goalSchema).min(1),
   reward: z.object({

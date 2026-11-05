@@ -29,8 +29,6 @@ export interface NetNode {
   gateway: string | null;
   routes: Route[];
   services: Service[];
-  // サブネットの色（ポート番号 -> 色番号）。IPアドレスなどは network/compile.ts で生成する
-  colors?: Record<number, number>;
 }
 
 export interface Endpoint {
@@ -46,9 +44,17 @@ export interface NetLink {
   path: [number, number][];
 }
 
+// セグメントの設定（ネットワークアドレスとプレフィックス長）
+export interface SegmentConfig {
+  network: string;
+  prefix: number;
+}
+
 export interface Network {
   nodes: NetNode[];
   links: NetLink[];
+  // セグメントの設定（代表端点の鍵 "uid:port" → 設定）。省略すると設定はない
+  segments?: Record<string, SegmentConfig>;
 }
 
 // 判定に必要なデータ（機材の種類と、ケーブルの上限長）

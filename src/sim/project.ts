@@ -3,9 +3,22 @@
 import type { Balance, Contract, Furniture, GameMap, Staff } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
-import { linkLength } from '../network/engine';
-import { colorsFromConfig, compile, type Issue } from '../network/compile';
-import type { EngineData, Iface, NetLink, NetNode, PathResult, Route } from '../network/types';
+import { inSubnet, ipToInt, linkLength } from '../network/engine';
+import { compile, type IssueDetail } from '../network/compile';
+import {
+  PREFIX_MAX,
+  PREFIX_MIN,
+  fillSegments,
+  hostCapacity,
+  intToIp,
+  networkAddress,
+  segmentConfigOf,
+  segmentOf,
+  segmentsOf,
+  epKey,
+  type Segment,
+} from '../network/segments';
+import type { EngineData, Endpoint, Iface, NetLink, NetNode, PathResult, Route, SegmentConfig } from '../network/types';
 import type { ClockState } from './clock';
 import { rate, rewardRateOf } from './rating';
 import { dueDayOf, lateDaysOf, lateFactor } from './deadline';
@@ -39,6 +52,8 @@ export interface Project {
   due: number | null;
   // 担当の社員（uid）。施工の進みと経験値は担当の社員だけに効く
   crew: string[];
+  // セグメントの設定（代表端点の鍵 "uid:port" → ネットワークアドレスとプレフィックス長）
+  segments?: Record<string, SegmentConfig>;
 }
 
 export interface ReportFailure {
@@ -90,6 +105,8 @@ export interface Office {
   seq: number;
   furniture: PlacedFurniture[];
   furnitureSeq: number;
+  // セグメントの設定（代表端点の鍵 "uid:port" → 設定）
+  segments?: Record<string, SegmentConfig>;
 }
 
 // 自社案件で得た効果の合計
@@ -206,7 +223,7 @@ export const accept = (core: Core, offerId: string, slots: number, crew: string[
   if (inhouse && core.active.some((p) => p.contract.inhouse)) return fail('busy');
   const office = core.office;
   // 自社案件は、自社オフィスの機器と配線を引き継いで始める
-  const fixed = colorsFromConfig(fixedNodes(offer.contract)).filter((n) => !inhouse || !office.nodes.some((o) => o.uid === n.uid));
+  const fixed = fixedNodes(offer.contract).filter((n) => !inhouse || !office.nodes.some((o) => o.uid === n.uid));
   const nodes = inhouse ? [...office.nodes, ...fixed] : fixed;
   const links = inhouse ? [...office.links] : [];
   const project: Project = {
@@ -229,6 +246,8 @@ export const accept = (core: Core, offerId: string, slots: number, crew: string[
     total: 0,
     due: dueDayOf(core.clock.minute, offer.contract.deadlineDays),
     crew,
+    // 自社案件は、自社オフィスのセグメントの設定を引き継ぐ
+    segments: inhouse ? { ...(office.segments ?? {}) } : {},
   };
   return {
     ok: true,
@@ -290,7 +309,6 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
     gateway: null,
     routes: [],
     services: [],
-    colors: {},
   };
   const next: Project = { ...p, nodes: [...p.nodes, node], seq: p.seq + 1 };
   return {
@@ -299,7 +317,7 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
   };
 };
 
-// 案件がないときに、在庫の機材を自社オフィスへ置く。配線と色塗りは自社案件で行う
+// 案件がないときに、在庫の機材を自社オフィスへ置く。配線は自社案件と同じ規則で行う
 export const placeInOffice = (core: Core, deviceId: string, x: number, y: number, map: GameMap, env: Env): Outcome => {
   if (officeLocked(core)) return fail('inhouse');
   if (!env.devices[deviceId]) return fail('none');
@@ -319,7 +337,6 @@ export const placeInOffice = (core: Core, deviceId: string, x: number, y: number
     gateway: null,
     routes: [],
     services: [],
-    colors: {},
   };
   return {
     ok: true,
@@ -331,31 +348,28 @@ export const placeInOffice = (core: Core, deviceId: string, x: number, y: number
   };
 };
 
-// 自社オフィスの機器を在庫に戻す。つながるケーブルも一緒に撤去し、在庫に戻す
-export const removeFromOffice = (core: Core, uid: string): Outcome => {
+// 自社オフィスの機器を在庫に戻す。つながるケーブルも一緒に撤去する（ケーブルは在庫を持たない）
+export const removeFromOffice = (core: Core, uid: string, env: Env): Outcome => {
   if (officeLocked(core)) return fail('inhouse');
   const node = core.office.nodes.find((n) => n.uid === uid);
   if (!node) return fail('none');
   const removed = core.office.links.filter((l) => l.a.node === uid || l.b.node === uid);
-  const owned = { ...core.owned, [node.device]: (core.owned[node.device] ?? 0) + 1 };
-  for (const l of removed) owned[l.cable] = (owned[l.cable] ?? 0) + 1;
+  const nodes = core.office.nodes.filter((n) => n.uid !== uid);
+  const links = core.office.links.filter((l) => !removed.includes(l));
+  const segments = fillSegments({ nodes, links, segments: core.office.segments }, env.engine);
   return {
     ok: true,
     core: {
       ...core,
-      office: {
-        ...core.office,
-        nodes: core.office.nodes.filter((n) => n.uid !== uid),
-        links: core.office.links.filter((l) => !removed.includes(l)),
-      },
-      owned,
+      office: { ...core.office, nodes, links, segments },
+      owned: { ...core.owned, [node.device]: (core.owned[node.device] ?? 0) + 1 },
     },
   };
 };
 
 // 機器を撤去する（在庫に戻す）。既設の機器（node.locked）以外は、施工済みでも撤去できる。
-// つながるケーブルも一緒に撤去し、在庫に戻す（費用は返さない）
-export const removeNode = (core: Core, uid: string): Outcome => {
+// つながるケーブルも一緒に撤去する（ケーブルは在庫を持たず、費用も返さない）
+export const removeNode = (core: Core, uid: string, env: Env): Outcome => {
   const p = requireDesign(core);
   if (typeof p === 'string') return fail(p);
   const node = p.nodes.find((n) => n.uid === uid);
@@ -363,17 +377,19 @@ export const removeNode = (core: Core, uid: string): Outcome => {
   if (node.locked) return fail('locked');
   const removed = p.links.filter((l) => l.a.node === uid || l.b.node === uid);
   const removedUids = removed.map((l) => l.uid);
+  const nodes = p.nodes.filter((n) => n.uid !== uid);
+  const links = p.links.filter((l) => !removed.includes(l));
   const next: Project = {
     ...p,
-    nodes: p.nodes.filter((n) => n.uid !== uid),
-    links: p.links.filter((l) => !removed.includes(l)),
+    nodes,
+    links,
+    segments: fillSegments({ nodes, links, segments: p.segments }, env.engine),
     built: {
       nodes: p.built.nodes.filter((x) => x !== uid),
       links: p.built.links.filter((x) => !removedUids.includes(x)),
     },
   };
   const owned = { ...core.owned, [node.device]: (core.owned[node.device] ?? 0) + 1 };
-  for (const l of removed) owned[l.cable] = (owned[l.cable] ?? 0) + 1;
   return { ok: true, core: { ...withProject(core, next), owned } };
 };
 
@@ -383,27 +399,38 @@ export const officeLocked = (core: Core): boolean => core.active.some((p) => p.c
 // 編集する対象。focus の案件（設計中）か、自社オフィス
 export type NetTarget = 'focus' | 'office';
 
-// 対象のネットワーク（機器・配線・採番）。案件・自社オフィスのどちらも同じ形で扱う
+// 対象のネットワーク（機器・配線・採番・セグメントの設定）。案件・自社オフィスのどちらも同じ形で扱う
 interface Net {
   nodes: NetNode[];
   links: NetLink[];
   seq: number;
+  segments: Record<string, SegmentConfig>;
 }
 
 // 対象のネットワークを取り出す。設計中の案件でない、または自社オフィスが案件に使われていれば理由を返す
 const netOf = (core: Core, target: NetTarget): Net | string => {
-  if (target === 'office') return officeLocked(core) ? 'inhouse' : core.office;
-  return requireDesign(core);
+  if (target === 'office') {
+    if (officeLocked(core)) return 'inhouse';
+    const o = core.office;
+    return { nodes: o.nodes, links: o.links, seq: o.seq, segments: o.segments ?? {} };
+  }
+  const p = requireDesign(core);
+  if (typeof p === 'string') return p;
+  return { nodes: p.nodes, links: p.links, seq: p.seq, segments: p.segments ?? {} };
 };
 
 // 対象のネットワークを書き戻す
 const withNet = (core: Core, target: NetTarget, net: Net): Core => {
   if (target === 'office') {
-    return { ...core, office: { ...core.office, nodes: net.nodes, links: net.links, seq: net.seq } };
+    return { ...core, office: { ...core.office, nodes: net.nodes, links: net.links, seq: net.seq, segments: net.segments } };
   }
   const p = focusedOf(core) as Project;
-  return withProject(core, { ...p, nodes: net.nodes, links: net.links, seq: net.seq });
+  return withProject(core, { ...p, nodes: net.nodes, links: net.links, seq: net.seq, segments: net.segments });
 };
+
+// 機器のポートが属するセグメント（配線がなければ undefined）
+const segmentAt = (net: Net, env: Env, uid: string, port: number): Segment | undefined =>
+  segmentOf(segmentsOf(net, env.engine), uid, port);
 
 // 機器の空いているポートのうち、最も小さい番号を返す
 const freePort = (links: NetLink[], node: NetNode, env: Env): number | null => {
@@ -484,7 +511,9 @@ export const connect = (
       [b.x, b.y],
     ],
   };
-  let next = withNet(core, target, { nodes: net.nodes, links: [...net.links, link], seq: net.seq + 1 });
+  const links = [...net.links, link];
+  const segments = fillSegments({ nodes: net.nodes, links, segments: net.segments }, env.engine);
+  let next = withNet(core, target, { nodes: net.nodes, links, seq: net.seq + 1, segments });
   if (target === 'focus') {
     const p = focusedOf(next) as Project;
     next = withProject(next, { ...p, cost: p.cost + cost });
@@ -492,7 +521,7 @@ export const connect = (
   return { ok: true, core: { ...next, clock: { ...next.clock, money: next.clock.money - cost } } };
 };
 
-// 配線を撤去する。ケーブルは在庫に戻す。案件では、施工前の配線の費用を案件と所持金に戻す（施工済みは戻さない）。
+// 配線を撤去する。ケーブルは在庫を持たないため戻さない。案件では、施工前の配線の費用を案件と所持金に戻す（施工済みは戻さない）。
 // 案件の既設の配線（自社案件の引き継ぎ分）は撤去できない
 export const removeLink = (core: Core, uid: string, target: NetTarget, env: Env): Outcome => {
   const net = netOf(core, target);
@@ -510,7 +539,8 @@ export const removeLink = (core: Core, uid: string, target: NetTarget, env: Env)
       refund = cableCost(cable, Math.abs(a.x - b.x) + Math.abs(a.y - b.y));
     }
   }
-  let next = withNet(core, target, { ...net, links: net.links.filter((l) => l.uid !== uid) });
+  const links = net.links.filter((l) => l.uid !== uid);
+  let next = withNet(core, target, { ...net, links, segments: fillSegments({ nodes: net.nodes, links, segments: net.segments }, env.engine) });
   if (target === 'focus') {
     const p = focusedOf(next) as Project;
     next = withProject(next, { ...p, cost: p.cost - refund, built: { ...p.built, links: p.built.links.filter((x) => x !== uid) } });
@@ -520,7 +550,6 @@ export const removeLink = (core: Core, uid: string, target: NetTarget, env: Env)
     core: {
       ...next,
       clock: { ...next.clock, money: next.clock.money + refund },
-      owned: { ...core.owned, [link.cable]: (core.owned[link.cable] ?? 0) + 1 },
     },
   };
 };
@@ -537,31 +566,34 @@ const editNode = (core: Core, uid: string, edit: (n: NetNode) => NetNode | strin
   return { ok: true, core: withNet(core, target, { ...net, nodes: net.nodes.map((n) => (n.uid === uid ? result : n)) }) };
 };
 
-// ポートにサブネットの色を塗る。color が null なら色を外す。PC・サーバーはポート0のみ
-export const setColor = (core: Core, uid: string, port: number, color: number | null): Outcome =>
-  editNode(core, uid, (node) => {
-    const colors = { ...(node.colors ?? {}) };
-    if (color === null) delete colors[port];
-    else colors[port] = color;
-    return { ...node, colors };
-  });
-
 // IPアドレスの書式（各区切りは 0〜255）
 const isIp = (s: string): boolean => /^\d{1,3}(\.\d{1,3}){3}$/.test(s) && s.split('.').every((n) => Number(n) <= 255);
 
-// ポートのIPアドレスを設定する。ip が空文字なら設定を外す（機器の IP は自動割り当てに戻る）
-export const setInterface = (core: Core, uid: string, port: number, ip: string, prefix: number, target: NetTarget = 'focus'): Outcome =>
-  editNode(
-    core,
-    uid,
-    (node) => {
-      if (ip === '') return { ...node, interfaces: node.interfaces.filter((i) => i.port !== port) };
-      if (!isIp(ip)) return 'ip';
-      const iface: Iface = { port, ip, prefix };
-      return { ...node, interfaces: [...node.interfaces.filter((i) => i.port !== port), iface] };
-    },
-    target,
-  );
+// ポートのIPアドレスを設定する。ip が空文字なら設定を外す（機器の IP は未設定に戻る）。
+// そのポートのセグメントに設定がなければ、入力したアドレスのネットワークを設定にする（配線の後に入力した場合など）
+export const setInterface = (
+  core: Core,
+  uid: string,
+  port: number,
+  ip: string,
+  prefix: number,
+  env: Env,
+  target: NetTarget = 'focus',
+): Outcome => {
+  const net = netOf(core, target);
+  if (typeof net === 'string') return fail(net);
+  const node = net.nodes.find((n) => n.uid === uid);
+  if (!node) return fail('none');
+  if (node.configLocked) return fail('locked');
+  if (ip !== '' && !isIp(ip)) return fail('ip');
+  const interfaces: Iface[] =
+    ip === ''
+      ? node.interfaces.filter((i) => i.port !== port)
+      : [...node.interfaces.filter((i) => i.port !== port), { port, ip, prefix }];
+  const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, interfaces } : n));
+  const segments = fillSegments({ nodes, links: net.links, segments: net.segments }, env.engine);
+  return { ok: true, core: withNet(core, target, { ...net, nodes, segments }) };
+};
 
 // デフォルトゲートウェイを設定する。null で外す
 export const setGateway = (core: Core, uid: string, gateway: string | null, target: NetTarget = 'focus'): Outcome =>
@@ -591,11 +623,93 @@ export const addRoute = (core: Core, uid: string, route: Route, target: NetTarge
 export const removeRoute = (core: Core, uid: string, index: number, target: NetTarget = 'focus'): Outcome =>
   editNode(core, uid, (node) => ({ ...node, routes: node.routes.filter((_, i) => i !== index) }), target);
 
-// 色と配線から生成したネットワーク（判定・表示に使う）
-export const compiledNet = (p: Project, env: Env) => compile({ nodes: p.nodes, links: p.links }, env.engine);
+// セグメントのネットワークを設定する。ホストの初期値は .11 から、ルーターの初期値は .1 から、空いているアドレスを割り当てる。
+// 設定の変更で範囲外になったアドレスは、割り当て直す。案件で設定が固定された機器を含むセグメントは変えられない。
+// 対象は、機器のポートが属するセグメント（配線がなければ none）
+export const setSegment = (
+  core: Core,
+  uid: string,
+  port: number,
+  network: string,
+  prefix: number,
+  env: Env,
+  target: NetTarget = 'focus',
+): Outcome => {
+  const net = netOf(core, target);
+  if (typeof net === 'string') return fail(net);
+  const seg = segmentAt(net, env, uid, port);
+  if (!seg) return fail('none');
+  const byUid = new Map(net.nodes.map((n) => [n.uid, n]));
+  if (seg.members.some((m) => byUid.get(m.node)?.configLocked)) return fail('locked');
+  if (!isIp(network) || prefix < PREFIX_MIN || prefix > PREFIX_MAX || networkAddress(network, prefix) !== network) return fail('ip');
+  if (seg.members.length > hostCapacity(prefix)) return fail('segment.too_small');
 
-// 設計時点の不備（機器の uid -> 不備の種類）
-export const designIssues = (p: Project, env: Env): Record<string, Issue> => compiledNet(p, env).issues;
+  const base = ipToInt(network);
+  const size = 2 ** (32 - prefix);
+  const ifaceOf = (m: Endpoint) => byUid.get(m.node)?.interfaces.find((i) => i.port === m.port);
+  // 割り当てし直す端点: 機器がないか、範囲外のアドレスの端点
+  const todo = seg.members.filter((m) => {
+    const i = ifaceOf(m);
+    return !i || !inSubnet(i.ip, network, prefix);
+  });
+  const todoKeys = new Set(todo.map((m) => epKey(m.node, m.port)));
+  const used = new Set<number>();
+  for (const n of net.nodes) for (const i of n.interfaces) if (!todoKeys.has(epKey(n.uid, i.port))) used.add(ipToInt(i.ip));
+  const pickFree = (from: number): number | undefined => {
+    for (let h = from; h <= size - 2; h++) if (!used.has(base + h)) return h;
+    return undefined;
+  };
+  const assigned = new Map<string, string>();
+  for (const m of todo) {
+    const isRouter = env.engine.categoryOf(byUid.get(m.node)!.device) === 'router';
+    const h = pickFree(isRouter ? 1 : 11) ?? pickFree(1);
+    if (h === undefined) continue;
+    used.add(base + h);
+    assigned.set(epKey(m.node, m.port), intToIp(base + h));
+  }
+
+  const nodes = net.nodes.map((n) => {
+    let interfaces = n.interfaces;
+    for (const m of todo) {
+      if (m.node !== n.uid) continue;
+      const ip = assigned.get(epKey(m.node, m.port));
+      if (ip) interfaces = [...interfaces.filter((i) => i.port !== m.port), { port: m.port, ip, prefix }];
+    }
+    return interfaces === n.interfaces ? n : { ...n, interfaces };
+  });
+  const segments = { ...net.segments, [seg.key]: { network, prefix } };
+  return { ok: true, core: withNet(core, target, { ...net, nodes, segments }) };
+};
+
+// アドレスの候補（セグメントで使えるアドレスの一覧）。使用中のアドレスには、使っている機器とポートを付ける
+export interface AddressCandidate {
+  ip: string;
+  usedBy: { node: string; port: number } | null;
+}
+
+// 機器のポートのセグメントで使えるアドレスの一覧（ネットワークアドレスとブロードキャストアドレスを除く）。
+// セグメントに設定がなければ空の一覧
+export const addressCandidates = (core: Core, uid: string, port: number, env: Env, target: NetTarget = 'focus'): AddressCandidate[] => {
+  const net = netOf(core, target);
+  if (typeof net === 'string') return [];
+  const seg = segmentAt(net, env, uid, port);
+  if (!seg) return [];
+  const cfg = segmentConfigOf(seg, new Map(net.nodes.map((n) => [n.uid, n])), net.segments);
+  if (!cfg) return [];
+  const base = ipToInt(cfg.network);
+  const size = 2 ** (32 - cfg.prefix);
+  const owners = new Map<number, { node: string; port: number }>();
+  for (const n of net.nodes) for (const i of n.interfaces) owners.set(ipToInt(i.ip), { node: n.uid, port: i.port });
+  const list: AddressCandidate[] = [];
+  for (let h = 1; h <= size - 2; h++) list.push({ ip: intToIp(base + h), usedBy: owners.get(base + h) ?? null });
+  return list;
+};
+
+// 色と配線から生成したネットワーク（判定・表示に使う）→ 配線とセグメントの設定から生成したネットワーク
+export const compiledNet = (p: Project, env: Env) => compile({ nodes: p.nodes, links: p.links, segments: p.segments }, env.engine);
+
+// 設計時点の不備（機器の uid -> 不備の内容）
+export const designIssues = (p: Project, env: Env): Record<string, IssueDetail> => compiledNet(p, env).issues;
 
 // 施工を依頼する。施工時間は、まだ施工していない機器と配線の分だけかかる。
 export const requestBuild = (core: Core, env: Env): Outcome => {
@@ -665,7 +779,9 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
     const money = Math.round(p.contract.reward.money * lateFactor(lateDays, env.balance) * rewardRateOf(stars, env.balance));
     const reputation = core.reputation + p.contract.reward.reputation + stars * env.balance.reputationPerStar;
     // 自社案件は、納品したネットワークを自社オフィスとして残し、効果を加える
-    const office: Office = p.contract.inhouse ? { ...core.office, nodes: p.nodes, links: p.links, seq: p.seq } : core.office;
+    const office: Office = p.contract.inhouse
+      ? { ...core.office, nodes: p.nodes, links: p.links, seq: p.seq, segments: p.segments ?? {} }
+      : core.office;
     const effects = { buildSpeed: core.effects.buildSpeed + (p.contract.effect?.buildSpeed ?? 0) };
     return {
       ok: true,

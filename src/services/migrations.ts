@@ -1,13 +1,40 @@
 // セーブデータのバージョン管理。形式を変えたら SAVE_VERSION を上げ、migrations[n]（n → n+1 の変換）を追加する。
 import type { Effects, Office, Project } from '../sim/project';
-import { colorsFromConfig } from '../network/compile';
+import type { EngineData, NetLink, NetNode } from '../network/types';
+import { fillSegments } from '../network/segments';
+import { colorsFromConfig, legacyInterfaces } from './legacyColors';
 import { initialOffice } from '../sim/furniture';
 import type { Balance, Staff } from '../data/schema';
 import { createStaff, specAt } from '../sim/staff';
 import balanceJson from '../assets/data/balance.json';
 import pcJson from '../assets/data/devices/pc.json';
+import serverJson from '../assets/data/devices/server.json';
+import routerJson from '../assets/data/devices/router.json';
+import switchJson from '../assets/data/devices/l2_switch.json';
 
-export const SAVE_VERSION = 12;
+export const SAVE_VERSION = 13;
+
+// 移行で使う機器の種類（色の時代の規則で IPアドレスを作るときに使う）
+const migrationCategories: Record<string, string> = {};
+for (const d of [...pcJson.devices, ...serverJson.devices, ...routerJson.devices, ...switchJson.devices]) {
+  migrationCategories[d.id] = d.category;
+}
+const migrationEngine: EngineData = {
+  categoryOf: (device) => migrationCategories[device] ?? 'unknown',
+  maxLengthOf: () => 0,
+};
+
+// 色を持つ機器のネットワーク（案件・自社オフィス）を、セグメントの設定と機器のIPアドレス・ルートに置き換える。色を持たないものはそのまま
+const colorsToSegments = <T extends { nodes: NetNode[]; links?: NetLink[] }>(x: T): T => {
+  if (!x.nodes.some((n) => (n as NetNode & { colors?: unknown }).colors !== undefined)) return x;
+  const links = x.links ?? [];
+  const nodes = legacyInterfaces(x.nodes, links, migrationEngine).map((n) => {
+    const copy = { ...n };
+    delete (copy as { colors?: unknown }).colors;
+    return copy;
+  });
+  return { ...x, nodes, links, segments: fillSegments({ nodes, links }, migrationEngine) };
+};
 
 export interface SaveData {
   clock: { minute: number; money: number; paidMonths: number; bankrupt: boolean };
@@ -96,6 +123,11 @@ export const migrations: Record<number, Migration> = {
   },
   // v11 → v12: 採用の候補を追加する。移行直後は候補がいない（次の月に作られる）
   11: (data) => ({ ...(data as object), candidates: [] }),
+  // v12 → v13: 色（サブネット）をやめ、セグメントの設定と機器のIPアドレス・ルートにする。色の時代の規則で、IPアドレスとルートを作る
+  12: (data) => {
+    const d = data as { active: Project[]; office: Office };
+    return { ...d, active: d.active.map(colorsToSegments), office: colorsToSegments(d.office) };
+  },
   // v10 → v11: 案件に担当の社員を追加する。移行前の案件は、全社員が担当だったものとする
   10: (data) => {
     const d = data as { active: Project[]; staff: Staff[] };
