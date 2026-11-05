@@ -20,12 +20,11 @@ describe('失敗の理由の文言', () => {
     for (const key of messages) expect(keys).toContain(`${key}.fix`);
   });
 
-  it('直し方は2〜3行で、空でない', () => {
+  it('直し方は1行で、空でない', () => {
     for (const reason of FAILURE_REASONS) {
-      const lines = dict[`error.${reason}.fix`].split('\n');
-      expect(lines.length, reason).toBeGreaterThanOrEqual(2);
-      expect(lines.length, reason).toBeLessThanOrEqual(3);
-      expect(lines.every((line) => line.trim() !== ''), reason).toBe(true);
+      const text = dict[`error.${reason}.fix`];
+      expect(text.includes('\n'), reason).toBe(false);
+      expect(text.trim() !== '', reason).toBe(true);
     }
   });
 
