@@ -36,6 +36,18 @@ export const primaryButton = {
   fontWeight: 'bold',
 } as const;
 
+// 危ないボタン（消す・作り直す・取り消す）。主のボタンと見分けがつくよう、赤茶の箱にする
+export const dangerButton = {
+  padding: '4px 16px',
+  cursor: 'pointer',
+  background: '#b5473b',
+  color: '#f4f1e6',
+  border: '1px solid #3b2a33',
+  borderRadius: RADIUS.none,
+  fontWeight: 'bold',
+  fontFamily: 'inherit',
+} as const;
+
 // 普通のボタン（主のボタンの次に使う）。ブラウザ標準の白い部品の代わりに、画面と同じ紺の箱にする
 export const secondaryButton = {
   padding: '4px 12px',

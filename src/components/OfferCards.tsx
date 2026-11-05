@@ -10,6 +10,7 @@ import { staffPower } from '../sim/staff';
 import { useGameStore } from '../stores/useGameStore';
 import type { Offer } from '../contracts/template';
 import { Modal, primaryButton, usePrimary } from './Modal';
+import { PixelCheck } from './PixelControls';
 import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
 
@@ -54,18 +55,17 @@ function CrewPicker({ selected, onChange }: { selected: string[]; onChange: (cre
         const unavailable = busy.includes(s.uid) || s.training !== null;
         const power = staffPower(s, undefined, office, bonusEnv);
         return (
-          <label key={s.uid} style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: unavailable ? 0.5 : 1 }}>
-            <input
-              type="checkbox"
-              disabled={unavailable}
-              checked={selected.includes(s.uid)}
-              onChange={(e) => onChange(e.target.checked ? [...selected, s.uid] : selected.filter((u) => u !== s.uid))}
-            />
+          <PixelCheck
+            key={s.uid}
+            disabled={unavailable}
+            checked={selected.includes(s.uid)}
+            onChange={(checked) => onChange(checked ? [...selected, s.uid] : selected.filter((u) => u !== s.uid))}
+          >
             <span>{t(s.name as LangKey)}</span>
             <span>{t(`staff.job.${s.job}` as LangKey)}</span>
             <span>{t('ui.staff.level', { level: s.level })}</span>
             <span>{t('ui.staff.power', { power: power.toFixed(2) })}</span>
-          </label>
+          </PixelCheck>
         );
       })}
     </div>

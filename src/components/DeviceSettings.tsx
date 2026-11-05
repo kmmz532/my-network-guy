@@ -5,6 +5,8 @@ import { nodeLabel } from './nodeLabel';
 import { useState } from 'react';
 import { t } from '../i18n/t';
 import { AddressInput } from './AddressInput';
+import { PixelSelect } from './PixelControls';
+import { dangerButton } from './Modal';
 import type { ComboOption } from './addressCombo';
 import type { Compiled } from '../network/compile';
 import { isRelayPort, isRoutingCategory } from '../network/category';
@@ -14,7 +16,7 @@ import type { NetNode, SegmentConfig } from '../network/types';
 import { gameEnv } from '../sim/env';
 import { addressCandidates, PLANNED_NETWORK, PLANNED_PREFIX, plannedAddressCandidates, type AddressCandidate } from '../sim/project';
 import { coreOf, netTargetOf, useGameStore } from '../stores/useGameStore';
-import { buttonStyle, greyColor, hexColor, inputStyle, isIpText, portLabel, sectionStyle, selectStyle, unsetColor } from './devicePorts';
+import { buttonStyle, greyColor, hexColor, inputStyle, isIpText, portLabel, sectionStyle, unsetColor } from './devicePorts';
 
 // ネットワークアドレスの候補（sim-3: 192.168.<n>.0）と、プレフィックス長の候補（/24〜/30）
 const NETWORK_CHOICES = Array.from({ length: 16 }, (_, i) => `192.168.${i + 1}.0`);
@@ -143,40 +145,27 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
         </div>
         {detailOpen && (
           <div style={row}>
-            <select
-              aria-label={t('ui.config.network')}
-              style={selectStyle}
+            <PixelSelect<string>
+              ariaLabel={t('ui.config.network')}
               value={shown.network}
               disabled={locked || unlinkedRouter}
-              onChange={(e) => {
+              options={networks.map((n) => ({ value: n, label: n }))}
+              onChange={(v) => {
                 // 設定があれば、セグメントのネットワークを変える。なければ、詳しくで選んだ値として覚える
-                if (cfg) onError(setSegment(node.uid, port, e.target.value, cfg.prefix));
-                else changePlanned({ ...shown, network: e.target.value });
+                if (cfg) onError(setSegment(node.uid, port, v, cfg.prefix));
+                else changePlanned({ ...shown, network: v });
               }}
-            >
-              {networks.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-            <select
-              aria-label={t('ui.config.prefix')}
-              style={selectStyle}
+            />
+            <PixelSelect<number>
+              ariaLabel={t('ui.config.prefix')}
               value={shown.prefix}
               disabled={locked || unlinkedRouter}
-              onChange={(e) => {
-                const prefix = Number(e.target.value);
+              options={PREFIX_CHOICES.map((p) => ({ value: p, label: `/${p}` }))}
+              onChange={(prefix) => {
                 if (cfg) onError(setSegment(node.uid, port, cfg.network, prefix));
                 else changePlanned({ ...shown, prefix });
               }}
-            >
-              {PREFIX_CHOICES.map((p) => (
-                <option key={p} value={p}>
-                  /{p}
-                </option>
-              ))}
-            </select>
+            />
           </div>
         )}
       </div>
@@ -233,7 +222,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
           <div key={`${r.dest}-${r.prefix}-${r.nextHop}-${i}`} style={row}>
             <span>{t('ui.config.routeItem', { dest: r.dest, prefix: r.prefix, next: r.nextHop })}</span>
             {!locked && (
-              <button style={buttonStyle} onClick={() => onError(removeRoute(node.uid, i))}>
+              <button style={dangerButton} onClick={() => onError(removeRoute(node.uid, i))}>
                 {t('ui.config.remove')}
               </button>
             )}
@@ -289,28 +278,19 @@ function RouteAdd({
   };
   return (
     <div style={row}>
-      <select
-        aria-label={t('ui.config.routeDest')}
-        style={dests.length === 0 ? { ...selectStyle, opacity: 0.4 } : selectStyle}
+      <PixelSelect<string>
+        ariaLabel={t('ui.config.routeDest')}
         value={dest}
         disabled={dests.length === 0}
-        onChange={(e) => pick(e.target.value, next)}
-      >
-        <option value="">{t('ui.config.routeDest')}</option>
-        {dests.map((d) => (
-          <option key={d.value} value={d.value}>
-            {d.value}
-          </option>
-        ))}
-      </select>
-      <select aria-label={t('ui.config.routeNext')} style={selectStyle} value={next} onChange={(e) => pick(dest, e.target.value)}>
-        <option value="">{t('ui.config.routeNext')}</option>
-        {hops.map((ip) => (
-          <option key={ip} value={ip}>
-            {ip}
-          </option>
-        ))}
-      </select>
+        options={[{ value: '', label: t('ui.config.routeDest') }, ...dests.map((d) => ({ value: d.value, label: d.value }))]}
+        onChange={(v) => pick(v, next)}
+      />
+      <PixelSelect<string>
+        ariaLabel={t('ui.config.routeNext')}
+        value={next}
+        options={[{ value: '', label: t('ui.config.routeNext') }, ...hops.map((ip) => ({ value: ip, label: ip }))]}
+        onChange={(v) => pick(dest, v)}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { t } from '../i18n/t';
 import { useGameStore } from '../stores/useGameStore';
 import { Modal, primaryButton, secondaryButton } from './Modal';
+import { PixelCheck } from './PixelControls';
 
 export function PausedBuildPrompt() {
   const answer = useGameStore((s) => s.answerPausedBuild);
@@ -15,10 +16,11 @@ export function PausedBuildPrompt() {
       boxStyle={{ minWidth: 240 }}
     >
       <div style={{ fontWeight: 'bold', marginBottom: 12 }}>{t('ui.paused.build.title')}</div>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 12, cursor: 'pointer' }}>
-        <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-        {t('ui.paused.build.remember')}
-      </label>
+      <div style={{ fontSize: 13, marginBottom: 12 }}>
+        <PixelCheck checked={remember} onChange={setRemember}>
+          {t('ui.paused.build.remember')}
+        </PixelCheck>
+      </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
         <button style={secondaryButton} onClick={() => answer('stay', remember)}>
           {t('ui.paused.build.stay')}
