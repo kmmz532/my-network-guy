@@ -77,3 +77,49 @@ describe('ターミナルのコマンド', () => {
     expect(runTerminal('reboot', ctx, tr)).toEqual([{ text: 'ui.terminal.unknown {"cmd":"reboot"}', kind: 'err' }]);
   });
 });
+
+describe('確認のコマンド（段階2）', () => {
+  const ctx = (node: NetNode, extra: Partial<NetNode> = {}) => ({
+    node: { ...node, ...extra },
+    nodes: nodes.map((n) => (n.uid === node.uid ? { ...n, ...extra } : n)),
+    links,
+    data,
+  });
+
+  it('show interfaces は、ポートごとの接続先とIPを出す', () => {
+    const lines = runTerminal('show interfaces', ctx(nodes[0]), tr);
+    expect(lines.map((l) => l.text)).toEqual(['ui.terminal.ifLinkedIp {"port":0,"ip":"192.168.1.10","prefix":24,"peer":"s"}']);
+  });
+
+  it('show ip route は、直結の経路と既定のゲートウェイを出す', () => {
+    const lines = runTerminal('show ip route', ctx(nodes[0]), tr);
+    expect(lines.map((l) => l.text)).toEqual([
+      'ui.terminal.routeConnected {"net":"192.168.1.0","prefix":24,"port":0}',
+      'ui.terminal.routeStatic {"dest":"0.0.0.0","prefix":0,"nextHop":"192.168.1.1"}',
+    ]);
+  });
+
+  it('show running-config は、設定を並べて出す（設定がなければその旨）', () => {
+    const lines = runTerminal('show running-config', ctx(nodes[0]), tr);
+    expect(lines[0].text).toBe('ui.terminal.cfgInterface {"port":0}');
+    expect(lines[1].text).toBe('ui.terminal.cfgAddress {"ip":"192.168.1.10","prefix":24}');
+    expect(runTerminal('show running-config', ctx(sw('s')), tr)).toEqual([{ text: 'ui.terminal.cfgEmpty', kind: 'out' }]);
+  });
+
+  it('traceroute は、通った機器（L2スイッチを除く）を1台ずつ出す（送信元は含めない）', () => {
+    const lines = runTerminal('traceroute 192.168.1.11', { node: nodes[0], nodes, links, data }, tr);
+    // L2スイッチは経路に含めないため、宛先の1行だけになる
+    expect(lines).toEqual([{ text: 'ui.terminal.hop {"n":1,"ip":"192.168.1.11","name":"b"}', kind: 'out' }]);
+  });
+
+  it('traceroute は、届かないと止まった場所の理由を出す', () => {
+    const far = { node: nodes[0], nodes: [nodes[0], pc('c', '192.168.2.10')], links: [], data };
+    const lines = runTerminal('traceroute 192.168.2.10', far, tr);
+    expect(lines.map((l) => l.text)).toEqual(['ui.terminal.traceNg', 'error.link.unplugged']);
+    expect(lines[0].kind).toBe('err');
+  });
+
+  it('未知の show の下位コマンドは unknown を出す', () => {
+    expect(runTerminal('show foo', { node: nodes[0], nodes, links, data }, tr)[0].kind).toBe('err');
+  });
+});

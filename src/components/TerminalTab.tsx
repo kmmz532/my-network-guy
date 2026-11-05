@@ -5,16 +5,19 @@ import { t } from '../i18n/t';
 import { runTerminal, type TerminalLine } from '../network/terminal';
 import type { NetLink, NetNode } from '../network/types';
 import { gameEnv } from '../sim/env';
+import { useGameStore } from '../stores/useGameStore';
+import { nodeLabel } from './nodeLabel';
 import { secondaryButton } from './Modal';
 import { warnColor } from './devicePorts';
 
 export function TerminalTab({ node, nodes, links }: { node: NetNode; nodes: NetNode[]; links: NetLink[] }) {
+  const state = useGameStore();
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<TerminalLine[]>([]);
   const run = () => {
     const line = input.trim();
     if (line === '') return;
-    const out = runTerminal(line, { node, nodes, links, data: gameEnv.engine }, (key, params) => t(key as LangKey, params));
+    const out = runTerminal(line, { node, nodes, links, data: gameEnv.engine, nameOf: (n) => nodeLabel(state, n, nodes) }, (key, params) => t(key as LangKey, params));
     setHistory((h) => [...h, { text: `> ${line}`, kind: 'out' }, ...out]);
     setInput('');
   };
