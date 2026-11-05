@@ -97,4 +97,7 @@ i192 = compose(192, c192)
 i16.save(os.path.join(out, 'favicon-16.png'))
 i32.save(os.path.join(out, 'favicon.png'))
 i192.save(os.path.join(out, 'icon-192.png'))
+# OGP（SNS のカード）に出すサイトのロゴ。512 px の正方形
+i512 = compose(512, content32().resize((28 * 16, 28 * 16), Image.NEAREST))
+i512.save(os.path.join(out, 'icon-512.png'))
 print('ok')
