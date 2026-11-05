@@ -1,5 +1,5 @@
 // 自社オフィスの家具と社員の規則（純粋関数）。配置と撤去、社員の席の数と雇用を扱う。
-import type { Balance, GameMap } from '../data/schema';
+import type { Balance, GameMap, Staff } from '../data/schema';
 import { DESK_ID, emptyOffice, type Core, type Office, type Outcome } from './project';
 
 const fail = (reason: string): Outcome => ({ ok: false, reason });
@@ -54,7 +54,7 @@ export const seatCount = (office: Office, isSeat: (id: string) => boolean): numb
   office.furniture.filter((f) => isSeat(f.id)).length;
 
 // 社員を1人雇う。席の数を超えては雇えない。雇用に費用はかからない
-export const hire = (core: Core, isSeat: (id: string) => boolean): Outcome => {
-  if (core.staff >= seatCount(core.office, isSeat)) return fail('seat');
-  return { ok: true, core: { ...core, staff: core.staff + 1 } };
+export const hire = (core: Core, isSeat: (id: string) => boolean, staff: Staff): Outcome => {
+  if (core.staff.length >= seatCount(core.office, isSeat)) return fail('seat');
+  return { ok: true, core: { ...core, staff: [...core.staff, staff], staffSeq: core.staffSeq + 1 } };
 };

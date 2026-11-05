@@ -2,11 +2,12 @@
 import type { Effects, Office, Project } from '../sim/project';
 import { colorsFromConfig } from '../network/compile';
 import { initialOffice } from '../sim/furniture';
-import type { Balance } from '../data/schema';
+import type { Balance, Staff } from '../data/schema';
+import { createStaff, specAt } from '../sim/staff';
 import balanceJson from '../assets/data/balance.json';
 import pcJson from '../assets/data/devices/pc.json';
 
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 
 export interface SaveData {
   clock: { minute: number; money: number; paidMonths: number; bankrupt: boolean };
@@ -26,8 +27,9 @@ export interface SaveData {
   // 自社オフィスのネットワークと、自社案件で得た効果
   office: Office;
   effects: Effects;
-  // 雇用中の社員の人数
-  staff: number;
+  // 雇用中の社員と、社員の uid の連番
+  staff: Staff[];
+  staffSeq: number;
 }
 
 type Migration = (data: unknown) => unknown;
@@ -64,6 +66,19 @@ export const migrations: Record<number, Migration> = {
     }
     return { ...d, staff: balance.staff.initialCount, office: { ...d.office, furniture, furnitureSeq: seq } };
   },
+  // v7 → v8: 人数の社員を、社員のデータとして作る。1人目と2人目は初期の職種、3人目以降は network・level 1
+  7: (data) => {
+    const d = data as { staff: number; rng: number };
+    const balance = balanceJson as Balance;
+    let rng = d.rng;
+    const staff: Staff[] = [];
+    for (let i = 0; i < d.staff; i++) {
+      const made = createStaff(specAt(balance, i), rng, i);
+      rng = made.rng;
+      staff.push(made.staff);
+    }
+    return { ...d, staff, staffSeq: staff.length, rng };
+  },
 };
 
 export const isSaveData = (value: unknown): value is SaveData => {
@@ -89,7 +104,8 @@ export const isSaveData = (value: unknown): value is SaveData => {
     Number.isInteger(v.offerSeq) &&
     Number.isInteger(v.rng) &&
     (v.active === null || (typeof v.active === 'object' && v.active !== null)) &&
-    Number.isInteger(v.staff) &&
+    Array.isArray(v.staff) &&
+    Number.isInteger(v.staffSeq) &&
     Array.isArray((v.office as { furniture?: unknown } | undefined)?.furniture)
   );
 };

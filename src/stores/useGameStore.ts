@@ -6,7 +6,8 @@ import { advanceTick, initialClock, toDate, type ClockState } from '../sim/clock
 import { buyDevice } from '../sim/shop';
 import { refreshOffers, type OfferEnv } from '../contracts/offers';
 import type { Offer } from '../contracts/template';
-import type { GameMap } from '../data/schema';
+import type { GameMap, Staff } from '../data/schema';
+import { createStaff, initialStaff } from '../sim/staff';
 import type { Route } from '../network/types';
 import type { SaveData } from '../services/migrations';
 import { gameEnv } from '../sim/env';
@@ -59,8 +60,9 @@ export interface GameState {
   // 自社オフィスのネットワークと、自社案件で得た効果
   office: Office;
   effects: Effects;
-  // 雇用中の社員の人数
-  staff: number;
+  // 雇用中の社員と、社員の uid の連番
+  staff: Staff[];
+  staffSeq: number;
   speed: Speed;
   // 読み込み済みのマップ（保存しない）
   maps: Record<string, GameMap>;
@@ -136,6 +138,12 @@ const offerEnv = (maps: Record<string, GameMap>): OfferEnv => ({
 
 const newRng = () => Math.floor(Math.random() * 0x7fffffff) + 1;
 
+// 新しいゲームの乱数と初期の社員
+const newStart = () => {
+  const init = initialStaff(balance, newRng());
+  return { rng: init.rng, staff: init.staff, staffSeq: init.staffSeq };
+};
+
 const coreOf = (s: GameState): Core => ({
   clock: s.clock,
   reputation: s.reputation,
@@ -146,6 +154,7 @@ const coreOf = (s: GameState): Core => ({
   office: s.office,
   effects: s.effects,
   staff: s.staff,
+  staffSeq: s.staffSeq,
 });
 
 // 依頼の追加を1回分進める。受注中の案件と同じ依頼は出さない
@@ -204,6 +213,7 @@ export const useGameStore = create<GameState>((set, get) => {
       office: c.office,
       effects: c.effects,
       staff: c.staff,
+      staffSeq: c.staffSeq,
       ...reportState(outcome.report, get()),
     });
     return null;
@@ -217,11 +227,10 @@ export const useGameStore = create<GameState>((set, get) => {
     offers: [],
     nextOfferMinute: 0,
     offerSeq: 0,
-    rng: newRng(),
+    ...newStart(),
     active: null,
     office: initialOffice(balance),
     effects: noEffects(),
-    staff: balance.staff.initialCount,
     speed: 1,
     maps: {},
     lastReport: null,
@@ -249,11 +258,11 @@ export const useGameStore = create<GameState>((set, get) => {
     setWireCable: (cableId) => set({ wireCable: cableId }),
     tick: () =>
       set((s) => {
-        const clock = advanceTick(s.clock, balance, s.staff);
+        const clock = advanceTick(s.clock, balance, s.staff.length);
         let next: Partial<GameState> = { clock };
         // 月末に給与を払ったら知らせる
         if (clock.paidMonths > s.clock.paidMonths) {
-          const amount = s.staff * balance.staff.monthlySalary;
+          const amount = s.staff.length * balance.staff.monthlySalary;
           next = { ...next, notice: { key: 'ui.notice.salary', params: { amount }, id: Date.now() } };
         }
         const withClock = { ...s, ...next } as GameState;
@@ -318,7 +327,18 @@ export const useGameStore = create<GameState>((set, get) => {
       const f = get().office.furniture.find((x) => x.uid === uid);
       return apply(removeFurnitureOp(coreOf(get()), uid), f ? { tx: f.x, ty: f.y } : undefined);
     },
-    hire: () => apply(hireOp(coreOf(get()), (id) => furniture[id as FurnitureId]?.seat === true)),
+    hire: () => {
+      // 採用の候補は E7 で作る。ここでは初期の職種（network・level 1）の社員を作る
+      const s = get();
+      const made = createStaff(
+        { job: 'network', level: 1, salary: balance.staff.monthlySalary },
+        s.rng,
+        s.staffSeq,
+      );
+      const reason = apply(hireOp(coreOf(s), (id) => furniture[id as FurnitureId]?.seat === true, made.staff));
+      if (reason === null) set({ rng: made.rng });
+      return reason;
+    },
     connect: (aUid, bUid, cableId) =>
       apply(connect(coreOf(get()), aUid, bUid, cableId, gameEnv), tileOf(bUid)),
     removeNode: (uid) => {
@@ -352,6 +372,7 @@ export const useGameStore = create<GameState>((set, get) => {
         office: save.office,
         effects: save.effects,
         staff: save.staff,
+        staffSeq: save.staffSeq,
         lastReport: null,
         showcase: null,
         traces: [],
@@ -367,11 +388,10 @@ export const useGameStore = create<GameState>((set, get) => {
           offers: [],
           nextOfferMinute: 0,
           offerSeq: 0,
-          rng: newRng(),
+          ...newStart(),
           active: null,
           office: initialOffice(balance),
           effects: noEffects(),
-          staff: balance.staff.initialCount,
           lastReport: null,
           lastError: null,
           traces: [],
@@ -399,6 +419,7 @@ export const useGameStore = create<GameState>((set, get) => {
         office: s.office,
         effects: s.effects,
         staff: s.staff,
+        staffSeq: s.staffSeq,
       };
     },
   };

@@ -365,7 +365,7 @@ export class Scene {
       .getState()
       .office.furniture.filter((f) => f.id === DESK_ID)
       .map((f): [number, number] => [f.x, f.y]);
-    const workers = Math.min(desks.length, useGameStore.getState().staff);
+    const workers = Math.min(desks.length, useGameStore.getState().staff.length);
     for (let k = 0; k < workers; k++) {
       const [dx, dy] = desks[k];
       // 机の下の段に座り、打鍵に合わせて小さく揺れる
@@ -392,7 +392,7 @@ export class Scene {
     }
     const s = useGameStore.getState();
     const seats = s.office.furniture.filter((f) => f.id === DESK_ID).length;
-    const count = Math.max(0, s.staff - seats);
+    const count = Math.max(0, s.staff.length - seats);
     const floor: Point[] = [];
     for (let y = 0; y < map.height; y++) {
       for (let x = 0; x < map.width; x++) if (map.legend[map.tiles[y][x]] === 'floor') floor.push({ x, y });
@@ -414,7 +414,7 @@ export class Scene {
   // 設計中は、社員がマップの左上で待機する。手戻りのときはヒントの吹き出しを出す
   private drawIdleStaff(ts: number, hint: string | null): void {
     const bob = Math.floor(this.elapsed / (FRAME_MS * 3)) % 2;
-    const workers = Math.min(2, useGameStore.getState().staff);
+    const workers = Math.min(2, useGameStore.getState().staff.length);
     for (let k = 0; k < workers; k++) {
       this.drawStaff(ts + k * 18, ts - 8 - (k === 0 ? bob : 1 - bob), STAFF_SHIRT[k % STAFF_SHIRT.length]);
     }
@@ -565,7 +565,7 @@ export class Scene {
     const index = pending.length === 0 ? 0 : Math.min(pending.length - 1, Math.floor(fraction * pending.length));
     // 2人の社員は並んで作業する。足踏みのコマで上下に揺れる
     const bob = Math.floor(this.elapsed / FRAME_MS) % 2;
-    const workers = Math.min(2, useGameStore.getState().staff);
+    const workers = Math.min(2, useGameStore.getState().staff.length);
     for (let k = 0; k < workers && pending.length > 0; k++) {
       const at = pending[Math.min(pending.length - 1, index + k)];
       // 1人目は作業場所の左、2人目は右に立つ

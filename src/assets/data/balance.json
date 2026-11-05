@@ -18,7 +18,14 @@
     "initialDesks": [
       { "x": 3, "y": 3 },
       { "x": 6, "y": 3 }
-    ]
+    ],
+    "initial": [
+      { "job": "network", "level": 1, "salary": 200000 },
+      { "job": "infra", "level": 1, "salary": 200000 }
+    ],
+    "hintLevels": [1, 3, 6],
+    "expPerLevel": 100,
+    "power": { "jobMatch": 1.5, "seatless": 0.5 }
   },
   "build": {
     "workStartHour": 9,

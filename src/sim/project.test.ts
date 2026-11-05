@@ -9,6 +9,7 @@ import c001 from '../assets/data/contracts/c001_direct_link.json';
 import officeJson from '../assets/data/maps/office_small.json';
 import type { Balance, Contract, GameMap } from '../data/schema';
 import type { Offer } from '../contracts/template';
+import { initialStaff } from './staff';
 import {
   abandon,
   accept,
@@ -64,7 +65,8 @@ const start = (): Core => ({
   active: null,
   office: { nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 },
   effects: { buildSpeed: 0 },
-  staff: 2,
+  staff: initialStaff(balance, 1).staff,
+  staffSeq: 2,
 });
 
 // 結果が成功していることを確認して、その状態を返す

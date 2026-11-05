@@ -1,6 +1,6 @@
 // 案件の流れ（受注・設計・施工・検収・納品）。状態を受け取り、新しい状態を返す純粋関数で書く。
 // 設計は機器の配置・配線・IP設定、施工は社員が作業時間をかけて行い、検収で達成条件を判定する。
-import type { Balance, Contract, GameMap } from '../data/schema';
+import type { Balance, Contract, GameMap, Staff } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
 import { linkLength } from '../network/engine';
@@ -95,8 +95,10 @@ export interface Core {
   active: Project | null;
   office: Office;
   effects: Effects;
-  // 雇用中の社員の人数
-  staff: number;
+  // 雇用中の社員
+  staff: Staff[];
+  // 社員の uid の連番
+  staffSeq: number;
 }
 
 // 機材の性質（ゲームデータから作る）
@@ -448,7 +450,7 @@ export const advanceBuild = (core: Core, env: Env, hour: number): Outcome => {
   const { workStartHour, workEndHour } = env.balance.build;
   let progress = p.progress;
   if (hour >= workStartHour && hour < workEndHour) {
-    progress += env.balance.time.gameMinutesPerTick * core.staff * (1 + core.effects.buildSpeed);
+    progress += env.balance.time.gameMinutesPerTick * core.staff.length * (1 + core.effects.buildSpeed);
   }
   if (progress < p.total) return { ok: true, core: withActive(core, { ...p, progress }) };
   const built = {

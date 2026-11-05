@@ -4,6 +4,28 @@ import { z } from 'zod';
 const int = z.number().int();
 const nonNegativeInt = z.number().int().nonnegative();
 
+// 社員の職種（STAFF.md「1. 社員のデータ」）
+export const JOB_IDS = ['network', 'infra', 'security'] as const;
+export type JobId = (typeof JOB_IDS)[number];
+const jobIdSchema = z.enum(JOB_IDS);
+
+// 社員のデータ。ゲームの状態に保存する
+export interface Staff {
+  uid: string; // "s" + 連番
+  name: string; // 名前（言語ファイルの名前の候補のキー）
+  look: string; // 見た目（STAFF_LOOKS のいずれか）
+  quirk: string; // 口癖（言語ファイルの口癖の候補のID）
+  job: JobId;
+  level: number; // 総合能力（1〜）
+  exp: number; // 次のレベルまでの経験値
+  salary: number; // 月給（採用時に決まり、変わらない）
+  certs: string[]; // 取得した資格のID
+  training: { course: string; untilMinute: number } | null; // 受講中の研修
+}
+
+// 見た目の候補（src/assets/sprites/staff/ のスプライト名）
+export const STAFF_LOOKS = ['blue', 'red'] as const;
+
 export const balanceSchema = z.object({
   time: z.object({
     realMsPerTick: int.positive(),
@@ -18,6 +40,24 @@ export const balanceSchema = z.object({
     monthlySalary: nonNegativeInt,
     // ゲーム開始時に置く机の位置（自社オフィスのマス）
     initialDesks: z.array(z.object({ x: nonNegativeInt, y: nonNegativeInt })),
+    // ゲーム開始時の社員の職種・level・月給（先頭から順に作る）
+    initial: z.array(
+      z.object({
+        job: jobIdSchema,
+        level: int.positive(),
+        salary: nonNegativeInt,
+      }),
+    ),
+    // ヒントの段階が上がる level の境目（段階1・2・3の順）
+    hintLevels: z.array(int.positive()).length(3),
+    // level n から n+1 に上がるのに必要な経験値は expPerLevel × n
+    expPerLevel: int.positive(),
+    power: z.object({
+      // 案件の求める職種と一致したときの係数
+      jobMatch: z.number().positive(),
+      // 席のない社員の係数（ソファがないとき）
+      seatless: z.number().min(0).max(1),
+    }),
   }),
   build: z.object({
     workStartHour: z.number().min(0).max(24),

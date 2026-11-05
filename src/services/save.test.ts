@@ -1,6 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { SAVE_VERSION, migrate, type SaveData } from './migrations';
+import type { Staff } from '../data/schema';
 import { exportSave, importSave } from './saveFile';
+
+const member = (uid: string): Staff => ({
+  uid,
+  name: 'staff.name.0',
+  look: 'blue',
+  quirk: 'q1',
+  job: 'network',
+  level: 1,
+  exp: 0,
+  salary: 200000,
+  certs: [],
+  training: null,
+});
 
 const sample: SaveData = {
   clock: { minute: 720, money: 300000, paidMonths: 1, bankrupt: false },
@@ -14,7 +28,8 @@ const sample: SaveData = {
   active: null,
   office: { nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 },
   effects: { buildSpeed: 0 },
-  staff: 2,
+  staff: [member('s0'), member('s1')],
+  staffSeq: 2,
 };
 
 describe('セーブデータ', () => {
@@ -54,7 +69,7 @@ describe('v6 → v7', () => {
     routes: [],
     services: [],
   });
-  const { staff: _staff, ...withoutStaff } = sample;
+  const { staff: _staff, staffSeq: _seq, ...withoutStaff } = sample;
   const v6 = {
     ...withoutStaff,
     office: { nodes: [pc('u0', 3, 3), pc('u1', 9, 3)], links: [], seq: 2 },
@@ -62,7 +77,7 @@ describe('v6 → v7', () => {
 
   it('社員の人数と初期の机を追加する', () => {
     const out = migrate(6, v6);
-    expect(out.staff).toBe(2);
+    expect(out.staff).toHaveLength(2);
     expect(out.office.furniture.map((f) => [f.id, f.x, f.y])).toEqual([
       ['desk', 3, 3],
       ['desk', 6, 3],
@@ -74,6 +89,22 @@ describe('v6 → v7', () => {
     const out = migrate(6, v6);
     expect(out.office.furniture.map((f) => f.uid)).toEqual(['f0', 'f1', 'f2']);
     expect(out.office.furnitureSeq).toBe(3);
+  });
+});
+
+describe('v7 → v8', () => {
+  // 人数の社員を作る。1人目と2人目は初期の職種（network・infra）、3人目は network
+  const { staff: _staff, staffSeq: _seq, ...withoutStaff } = sample;
+  const v7 = { ...withoutStaff, staff: 3 };
+
+  it('人数ぶんの社員を、初期の職種の順に作る', () => {
+    const out = migrate(7, v7);
+    expect(out.staff.map((s) => [s.uid, s.job, s.level])).toEqual([
+      ['s0', 'network', 1],
+      ['s1', 'infra', 1],
+      ['s2', 'network', 1],
+    ]);
+    expect(out.staffSeq).toBe(3);
   });
 });
 

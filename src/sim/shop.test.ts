@@ -31,7 +31,8 @@ describe('セーブのバージョン移行', () => {
       offers: [],
       nextOfferMinute: 0,
       offerSeq: 0,
-      rng: 1,
+      // 社員を作るときに乱数を進める
+      rng: expect.any(Number),
       active: null,
       office: {
         nodes: [],
@@ -44,7 +45,8 @@ describe('セーブのバージョン移行', () => {
         furnitureSeq: 2,
       },
       effects: { buildSpeed: 0 },
-      staff: 2,
+      staff: expect.any(Array),
+      staffSeq: 2,
     });
   });
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { GameMap } from '../data/schema';
 import type { NetNode } from '../network/types';
 import { hire, placeFurniture, removeFurniture, seatCount } from './furniture';
+import { createStaff } from './staff';
 import { emptyOffice, noEffects, placeInOffice, type Core, type Env } from './project';
 
 // 1行目は床・2行目の(1,1)は壁。机は(1,0)に置いておく
@@ -43,7 +44,8 @@ const core = (over: Partial<Core> = {}): Core => ({
   active: null,
   office: { ...emptyOffice(), furniture: [{ uid: 'f0', id: 'desk', x: 1, y: 0 }], furnitureSeq: 1 },
   effects: noEffects(),
-  staff: 1,
+  staff: [createStaff({ job: 'network', level: 1, salary: 200000 }, 1, 0).staff],
+  staffSeq: 1,
   ...over,
 });
 
@@ -132,14 +134,17 @@ describe('社員を雇う', () => {
     expect(seatCount(office, isSeat)).toBe(1);
   });
 
+  const newcomer = createStaff({ job: 'infra', level: 1, salary: 200000 }, 1, 9).staff;
+
   it('席が足りなければ雇えない（seat）', () => {
-    expect(reasonOf(hire(core({ staff: 1 }), isSeat))).toBe('seat');
+    expect(reasonOf(hire(core(), isSeat, newcomer))).toBe('seat');
   });
 
   it('席が空いていれば雇える', () => {
-    const out = hire(core({ staff: 0 }), isSeat);
+    const out = hire(core({ staff: [], staffSeq: 0, office: { ...emptyOffice(), furniture: [{ uid: 'f0', id: 'desk', x: 1, y: 0 }, { uid: 'f1', id: 'desk', x: 2, y: 0 }], furnitureSeq: 2 } }), isSeat, newcomer);
     expect(out.ok).toBe(true);
     if (!out.ok) return;
-    expect(out.core.staff).toBe(1);
+    expect(out.core.staff).toEqual([newcomer]);
+    expect(out.core.staffSeq).toBe(1);
   });
 });

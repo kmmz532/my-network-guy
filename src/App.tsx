@@ -49,7 +49,7 @@ export function App() {
   const snapshot = useGameStore((s) => s.snapshot);
   const newGame = useGameStore((s) => s.newGame);
   // 社員の人数と席の数（席は自社オフィスの机の家具）。雇えなかった理由をHUDに出す
-  const staff = useGameStore((s) => s.staff);
+  const staff = useGameStore((s) => s.staff.length);
   const seats = useGameStore((s) => seatCount(s.office, (id) => furniture[id as FurnitureId]?.seat === true));
   const hire = useGameStore((s) => s.hire);
   const [hireMessage, setHireMessage] = useState('');
