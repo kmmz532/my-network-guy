@@ -953,7 +953,7 @@ export class Scene {
     // 選択の道具で社員を押すと、社員の札を開く（機器を編集できない状態でも開ける）
     const staffUid = store.tool === 'select' && e.button !== 2 && !store.placing ? staffAt(this.officeStaffHits(), p) : undefined;
     if (staffUid) {
-      store.openWindow('staff', staffUid);
+      store.toggleWindow('staff', staffUid);
       return;
     }
     // 機器を編集できないとき（納品の結果や施工中）は何もしない
@@ -973,7 +973,7 @@ export class Scene {
     switch (store.tool) {
       case 'select':
         // 機器を押すと、機器の画面を開く。ドラッグしても配線しない。空きマスでは何もしない（ウィンドウは×か Esc で閉じる）
-        if (node) store.openWindow('device', node.uid);
+        if (node) store.toggleWindow('device', node.uid);
         return;
       case 'remove':
         this.removeAt(p, nodes);

@@ -16,6 +16,7 @@ import {
   parseMemory,
   remember,
   resizeWindow,
+  toggleWindow,
   type WindowList,
   type WindowMemory,
 } from './windows';
@@ -235,5 +236,23 @@ describe('社員の一覧のウィンドウ', () => {
     const first = openWindow(empty, 'staffList', '', WIDE, NONE);
     const second = openWindow(first, 'staffList', '', WIDE, NONE);
     expect(second.windows).toHaveLength(1);
+  });
+});
+
+describe('同じ機器をもう一度押す（toggleWindow）', () => {
+  const toggle = (list: WindowList, ref: string) => toggleWindow(list, 'device', ref, WIDE, NONE);
+  it('開いていなければ開く', () => {
+    expect(toggle(empty, 'pc_a').windows).toHaveLength(1);
+  });
+  it('一番手前に開いていれば閉じる', () => {
+    const list = toggle(empty, 'pc_a');
+    expect(toggle(list, 'pc_a').windows).toHaveLength(0);
+  });
+  it('奥に開いていれば閉じずに手前に出す', () => {
+    let list = toggle(empty, 'pc_a');
+    list = toggle(list, 'pc_b');
+    list = toggle(list, 'pc_a');
+    expect(list.windows).toHaveLength(2);
+    expect(frontWindow(list.windows)?.ref).toBe('pc_a');
   });
 });

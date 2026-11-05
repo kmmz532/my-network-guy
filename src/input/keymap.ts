@@ -137,9 +137,9 @@ export const KEYMAP: KeyBinding[] = [
       return true;
     },
   },
-  // 元に戻す・やり直しは P8 で作る
-  { key: 'Ctrl+Z', id: 'undo', name: 'keys.undo' },
-  { key: 'Ctrl+Y', id: 'redo', name: 'keys.redo' },
+  { key: 'Ctrl+Z', id: 'undo', name: 'keys.undo', run: act((s) => s.undo()) },
+  // Ctrl+Shift+Z は、この行（Ctrl+Y）と同じ「やり直す」として handleKey で扱う
+  { key: 'Ctrl+Y', id: 'redo', name: 'keys.redo', run: act((s) => s.redo()) },
   { key: 'Space', id: 'pause', name: 'keys.pause', run: pause },
   { key: '[', id: 'slower', name: 'keys.slower', run: () => changeSpeed(-1) },
   { key: ']', id: 'faster', name: 'keys.faster', run: () => changeSpeed(1) },
@@ -195,7 +195,9 @@ const INPUT_KEYS = ['Enter', 'Esc', 'Tab', 'Shift+Tab'];
 // キーを処理する。処理したら true（呼び出し側で既定の動作を止める）
 export function handleKey(e: KeyInput & { target: EventTarget | null }, ui: UiActions): boolean {
   if (e.altKey) return false;
-  const name = keyName(e);
+  const pressed = keyName(e);
+  // Ctrl+Shift+Z は Ctrl+Y と同じ（やり直す）
+  const name = pressed === 'Ctrl+Z' && e.shiftKey ? 'Ctrl+Y' : pressed;
   const target = e.target as HTMLElement | null;
   const editing = !!target && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
   if (editing && !INPUT_KEYS.includes(name)) return false;

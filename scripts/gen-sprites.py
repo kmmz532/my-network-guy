@@ -495,6 +495,22 @@ def icon_test():
     return outline(img)
 
 
+def icon_undo():
+    # 元に戻す（上を回って左に下りる矢印）
+    img, d = new(16, 16)
+    d.arc([3, 4, 13, 14], 180, 360, fill=C['e'] + (255,), width=2)
+    d.polygon([(0, 8), (6, 8), (3, 12)], fill=C['e'] + (255,))
+    return outline(img)
+
+
+def icon_redo():
+    # やり直す（上を回って右に下りる矢印）
+    img, d = new(16, 16)
+    d.arc([3, 4, 13, 14], 180, 360, fill=C['e'] + (255,), width=2)
+    d.polygon([(10, 8), (15, 8), (12, 12)], fill=C['e'] + (255,))
+    return outline(img)
+
+
 def icon_ok():
     img, d = new(16, 16)
     d.line([(3, 8), (6, 11), (12, 4)], fill=C['G'], width=3)
@@ -796,6 +812,8 @@ if __name__ == '__main__':
         'wire': icon_wire(),
         'trash': icon_trash(),
         'test': icon_test(),
+        'undo': icon_undo(),
+        'redo': icon_redo(),
     }
     for name, img in icons.items():
         save(img, f'icon/{name}.png')

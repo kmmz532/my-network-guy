@@ -125,6 +125,13 @@ export function openWindow(list: WindowList, kind: WindowKind, ref: string, vp: 
   return { windows: [...windows, { id, kind, ref, ...rect, z: maxZ(windows) + 1 }], seq: id };
 }
 
+// マップで同じ機器・社員をもう一度押したとき: 一番手前に開いていれば閉じ、奥にあれば手前に出し、なければ開く
+export function toggleWindow(list: WindowList, kind: WindowKind, ref: string, vp: Viewport, memory: WindowMemory): WindowList {
+  const existing = list.windows.find((w) => w.kind === kind && w.ref === ref);
+  if (existing && existing.z === maxZ(list.windows)) return closeWindow(list, existing.id);
+  return openWindow(list, kind, ref, vp, memory);
+}
+
 // ウィンドウを閉じる
 export function closeWindow(list: WindowList, id: number): WindowList {
   if (!list.windows.some((w) => w.id === id)) return list;

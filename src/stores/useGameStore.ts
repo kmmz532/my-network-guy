@@ -16,6 +16,19 @@ import type { NetLink, NetNode, Route } from '../network/types';
 import type { SaveData } from '../services/migrations';
 import { gameEnv } from '../sim/env';
 import {
+  type DesignEntry,
+  type History,
+  OFFICE_HISTORY_KEY,
+  emptyHistory,
+  entryOf,
+  historyKeyOf,
+  projectHistoryKey,
+  push as pushHistory,
+  redo as redoHistory,
+  stepDesign,
+  undo as undoHistory,
+} from '../sim/history';
+import {
   type WindowItem,
   type WindowKind,
   type WindowMemory,
@@ -25,6 +38,7 @@ import {
   frontWindow,
   moveWindow as moveWindowOp,
   openWindow as openWindowOp,
+  toggleWindow as toggleWindowOp,
   parseMemory,
   remember,
   resizeWindow as resizeWindowOp,
@@ -137,6 +151,13 @@ export interface GameState {
   // 画面に出す通知（給与の支払いなど）。保存しない
   notice: { key: string; params: Record<string, number>; id: number } | null;
   dismissNotice: () => void;
+  // 設計の取り消しの履歴（案件ごと・自社オフィスごと）。保存しない
+  histories: Record<string, History<DesignEntry>>;
+  // 設計の操作を1つ元に戻す・やり直す（戻せなければ何もしない）
+  undo: () => void;
+  redo: () => void;
+  // 資金か在庫が足りず、元に戻せなかった・やり直せなかったとき、その種類（保存しない）
+  historyError: 'undo' | 'redo' | null;
   // 直近に失敗した操作の理由（保存しない）
   lastError: string | null;
   // 開いているウィンドウ（機器の画面・社員の札）。保存しない。手前ほど z が大きい
@@ -145,6 +166,7 @@ export interface GameState {
   // 種類ごとに最後に置いた位置と大きさ（localStorage に保存する）
   windowMemory: WindowMemory;
   openWindow: (kind: WindowKind, ref: string) => void;
+  toggleWindow: (kind: WindowKind, ref: string) => void;
   closeWindow: (id: number) => void;
   focusWindow: (id: number) => void;
   moveWindow: (id: number, x: number, y: number) => void;
@@ -325,6 +347,56 @@ export const useGameStore = create<GameState>((set, get) => {
     return n ? { tx: n.x, ty: n.y } : undefined;
   };
 
+  // 設計の操作を履歴に積む。操作の前後の状態から、資金・在庫・費用の差分を取って積む。操作が成功したときだけ積む
+  const recorded = (run: () => string | null): string | null => {
+    const key = historyKeyOf(focusedProject(get()));
+    const before = coreOf(get());
+    const reason = run();
+    if (reason === null) {
+      const entry = entryOf(before, coreOf(get()));
+      set((s) => ({
+        histories: { ...s.histories, [key]: pushHistory(s.histories[key] ?? emptyHistory(), entry) },
+        historyError: null,
+      }));
+    }
+    return reason;
+  };
+
+  // 履歴を消す（施工の依頼・取り消し・自社案件の受注）
+  const dropHistory = (key: string) =>
+    set((s) => ({ histories: Object.fromEntries(Object.entries(s.histories).filter(([k]) => k !== key)) }));
+
+  // 元に戻す・やり直す。いまの設計の対象の履歴を1つ動かし、差分を反映する。資金か在庫が足りなければ戻さず、理由を残す
+  const stepHistory = (dir: 'undo' | 'redo') => {
+    const s = get();
+    const core = coreOf(s);
+    const key = historyKeyOf(focusedProject(s));
+    const h = s.histories[key];
+    if (!h) return;
+    const r = dir === 'undo' ? undoHistory(h) : redoHistory(h);
+    if (!r) return;
+    const res = stepDesign(core, r.entry, dir);
+    if (!res.ok) {
+      if (res.reason === dir) set({ historyError: dir });
+      return;
+    }
+    const next = res.core;
+    // テストの結果と、選んでいる途中の配線・ポップアップは、戻した設計では無効になる
+    set({
+      clock: next.clock,
+      owned: next.owned,
+      active: next.active,
+      office: next.office,
+      histories: { ...s.histories, [key]: r.history },
+      historyError: null,
+      check: null,
+      helpUid: null,
+      lastError: null,
+      wireStart: null,
+      portMenu: null,
+    });
+  };
+
   const apply = (outcome: Outcome, at?: { tx: number; ty: number }): string | null => {
     if (!outcome.ok) {
       const flash = at ? { key: `ui.error.${outcome.reason}`, ...at, at: Date.now() } : null;
@@ -380,6 +452,10 @@ export const useGameStore = create<GameState>((set, get) => {
     notice: null,
     dismissReport: () => set({ lastReport: null, showcase: null, traces: [] }),
     dismissNotice: () => set({ notice: null }),
+    histories: {},
+    undo: () => stepHistory('undo'),
+    redo: () => stepHistory('redo'),
+    historyError: null,
     lastError: null,
     windows: [],
     windowSeq: 0,
@@ -453,6 +529,11 @@ export const useGameStore = create<GameState>((set, get) => {
     openWindow: (kind, ref) => {
       const s = get();
       const list = openWindowOp({ windows: s.windows, seq: s.windowSeq }, kind, ref, viewportNow(), s.windowMemory);
+      set({ windows: list.windows, windowSeq: list.seq });
+    },
+    toggleWindow: (kind, ref) => {
+      const s = get();
+      const list = toggleWindowOp({ windows: s.windows, seq: s.windowSeq }, kind, ref, viewportNow(), s.windowMemory);
       set({ windows: list.windows, windowSeq: list.seq });
     },
     closeWindow: (id) => {
@@ -544,32 +625,38 @@ export const useGameStore = create<GameState>((set, get) => {
       set({ clock: { ...s.clock, money: result.money }, owned: result.owned, active });
       return true;
     },
-    accept: (offerId, crew) => apply(accept(coreOf(get()), offerId, balance.office.projectSlots, crew)),
+    accept: (offerId, crew) => {
+      const inhouse = get().offers.find((o) => o.id === offerId)?.contract.inhouse === true;
+      const reason = apply(accept(coreOf(get()), offerId, balance.office.projectSlots, crew));
+      // 自社案件は自社オフィスを引き継ぐ。取り消しで自社オフィスを戻すと引き継いだ内容が壊れるため、自社オフィスの履歴は消す
+      if (reason === null && inhouse) dropHistory(OFFICE_HISTORY_KEY);
+      return reason;
+    },
     // 在庫の機材・家具を配置する（購入はショップで行う）。案件がなければ自社オフィスに置く
     place: (deviceId, x, y) => {
       if (deviceId in furniture) return get().placeFurniture(deviceId, x, y);
       if (get().active.length === 0) {
         const hq = get().maps.hq;
         if (!hq) return 'map';
-        return apply(placeInOffice(coreOf(get()), deviceId, x, y, hq, gameEnv), { tx: x, ty: y });
+        return recorded(() => apply(placeInOffice(coreOf(get()), deviceId, x, y, hq, gameEnv), { tx: x, ty: y }));
       }
       const map = get().maps[focusedProject(get())!.contract.map];
       if (!map) return 'map';
-      return apply(placeDevice(coreOf(get()), deviceId, x, y, map, gameEnv), { tx: x, ty: y });
+      return recorded(() => apply(placeDevice(coreOf(get()), deviceId, x, y, map, gameEnv), { tx: x, ty: y }));
     },
     placeFurniture: (id, x, y) => {
       const hq = get().maps.hq;
       if (!hq) return 'map';
-      return apply(placeFurnitureOp(coreOf(get()), id, x, y, hq), { tx: x, ty: y });
+      return recorded(() => apply(placeFurnitureOp(coreOf(get()), id, x, y, hq), { tx: x, ty: y }));
     },
     removeFurniture: (uid) => {
       const f = get().office.furniture.find((x) => x.uid === uid);
-      return apply(removeFurnitureOp(coreOf(get()), uid), f ? { tx: f.x, ty: f.y } : undefined);
+      return recorded(() => apply(removeFurnitureOp(coreOf(get()), uid), f ? { tx: f.x, ty: f.y } : undefined));
     },
     hire: (candidateUid) => apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true)),
     connect: (aUid, bUid, cableId, ports = {}) =>
-      apply(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get()), ports), tileOf(bUid)),
-    removeLink: (uid) => apply(removeLink(coreOf(get()), uid, netTargetOf(get()), gameEnv)),
+      recorded(() => apply(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get()), ports), tileOf(bUid))),
+    removeLink: (uid) => recorded(() => apply(removeLink(coreOf(get()), uid, netTargetOf(get()), gameEnv))),
     startTraining: (uid, courseId) => apply(startTrainingOp(coreOf(get()), uid, courseId, trainingEnv)),
     takeExam: (uid, certId) => {
       // 合否は乱数で決める。乱数は受験のときだけ進める
@@ -580,27 +667,30 @@ export const useGameStore = create<GameState>((set, get) => {
       return reason;
     },
     removeNode: (uid) => {
-      let reason: string | null;
-      if (get().active.length === 0) {
-        const n = get().office.nodes.find((x) => x.uid === uid);
-        reason = apply(removeFromOffice(coreOf(get()), uid, gameEnv), n ? { tx: n.x, ty: n.y } : undefined);
-      } else {
-        reason = apply(removeNode(coreOf(get()), uid, gameEnv), tileOf(uid));
-      }
+      const reason = recorded(() => {
+        if (get().active.length === 0) {
+          const n = get().office.nodes.find((x) => x.uid === uid);
+          return apply(removeFromOffice(coreOf(get()), uid, gameEnv), n ? { tx: n.x, ty: n.y } : undefined);
+        }
+        return apply(removeNode(coreOf(get()), uid, gameEnv), tileOf(uid));
+      });
       // 撤去した機器の画面は閉じる
       if (reason === null) set((s) => ({ windows: closeRef({ windows: s.windows, seq: s.windowSeq }, 'device', uid).windows }));
       return reason;
     },
     setIface: (uid, port, ip) =>
-      apply(setInterface(coreOf(get()), uid, port, ip, 24, gameEnv, netTargetOf(get())), tileOf(uid)),
-    setGateway: (uid, gateway) => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid)),
+      recorded(() => apply(setInterface(coreOf(get()), uid, port, ip, 24, gameEnv, netTargetOf(get())), tileOf(uid))),
+    setGateway: (uid, gateway) => recorded(() => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid))),
     setSegment: (uid, port, network, prefix) =>
-      apply(setSegment(coreOf(get()), uid, port, network, prefix, gameEnv, netTargetOf(get())), tileOf(uid)),
-    replug: (linkUid, end, port) => apply(replug(coreOf(get()), linkUid, end, port, gameEnv, netTargetOf(get()))),
-    setService: (uid, protocol, on) => apply(setService(coreOf(get()), uid, protocol, on, netTargetOf(get())), tileOf(uid)),
-    addRoute: (uid, route) => apply(addRoute(coreOf(get()), uid, route, netTargetOf(get())), tileOf(uid)),
-    removeRoute: (uid, index) => apply(removeRoute(coreOf(get()), uid, index, netTargetOf(get())), tileOf(uid)),
+      recorded(() => apply(setSegment(coreOf(get()), uid, port, network, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
+    replug: (linkUid, end, port) =>
+      recorded(() => apply(replug(coreOf(get()), linkUid, end, port, gameEnv, netTargetOf(get())))),
+    setService: (uid, protocol, on) =>
+      recorded(() => apply(setService(coreOf(get()), uid, protocol, on, netTargetOf(get())), tileOf(uid))),
+    addRoute: (uid, route) => recorded(() => apply(addRoute(coreOf(get()), uid, route, netTargetOf(get())), tileOf(uid))),
+    removeRoute: (uid, index) => recorded(() => apply(removeRoute(coreOf(get()), uid, index, netTargetOf(get())), tileOf(uid))),
     requestBuild: () => {
+      const focusId = focusedProject(get())?.id;
       const r = requestBuild(coreOf(get()), gameEnv);
       // テストに合格していないと施工を依頼できない。案内を出し、テストのボタンを光らせる
       if (!r.ok && r.reason === 'untested') {
@@ -609,9 +699,17 @@ export const useGameStore = create<GameState>((set, get) => {
         return r.reason;
       }
       set({ traces: [] });
-      return apply(r);
+      const reason = apply(r);
+      // 施工を依頼したら、その案件の履歴は消す（施工後は戻せない）
+      if (reason === null && focusId) dropHistory(projectHistoryKey(focusId));
+      return reason;
     },
-    abandon: () => apply(abandon(coreOf(get()))),
+    abandon: () => {
+      const focusId = focusedProject(get())?.id;
+      const reason = apply(abandon(coreOf(get())));
+      if (reason === null && focusId) dropHistory(projectHistoryKey(focusId));
+      return reason;
+    },
     load: (save) =>
       set({
         clock: save.clock,
@@ -636,6 +734,8 @@ export const useGameStore = create<GameState>((set, get) => {
         portMenu: null,
         check: null,
         helpUid: null,
+        histories: {},
+        historyError: null,
         windows: [],
       }),
     newGame: () =>
@@ -660,6 +760,8 @@ export const useGameStore = create<GameState>((set, get) => {
           showcase: null,
           check: null,
           helpUid: null,
+          histories: {},
+          historyError: null,
           windows: [],
           placing: null,
           wireStart: null,

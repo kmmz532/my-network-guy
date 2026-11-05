@@ -93,9 +93,8 @@ describe('handleKey（キーの処理）', () => {
     expect(calls).toEqual([]);
   });
 
-  it('動作がない行（空の動作・Ctrl+Z など）は処理しない（既定の動作に任せる）', () => {
+  it('動作がない行（空の動作・マップの拡大など）は処理しない（既定の動作に任せる）', () => {
     const { ui } = fakeUi();
-    expect(handleKey({ ...input('z', { ctrlKey: true }), target: null }, ui)).toBe(false);
     expect(handleKey({ ...input('+'), target: null }, ui)).toBe(false);
     expect(handleKey({ ...input('Tab'), target: null }, ui)).toBe(false);
   });

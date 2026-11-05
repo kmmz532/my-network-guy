@@ -4,6 +4,7 @@ import { shop } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { isUnlocked } from '../sim/shop';
+import { historyKeyOf } from '../sim/history';
 import { warehouseItems, warehouseMode, type WarehouseItem } from '../sim/warehouse';
 import { focusedProject, useGameStore, type Tool } from '../stores/useGameStore';
 import { tipText } from '../input/keymap';
@@ -87,6 +88,13 @@ export function Toolbar({
   const setShowIp = useGameStore((s) => s.setShowIp);
   const test = useGameStore((s) => s.test);
   const testNudge = useGameStore((s) => s.testNudge);
+  const undo = useGameStore((s) => s.undo);
+  const redo = useGameStore((s) => s.redo);
+  // 戻せる・やり直せる操作があるか（ないときは薄く出す）
+  const canUndo = useGameStore((s) => (s.histories[historyKeyOf(focusedProject(s))]?.past.length ?? 0) > 0);
+  const canRedo = useGameStore((s) => (s.histories[historyKeyOf(focusedProject(s))]?.future.length ?? 0) > 0);
+  // 資金か在庫が足りず戻せなかったときの理由（次に成功する操作まで出す）
+  const historyError = useGameStore((s) => s.historyError);
   // テストのボタンは、施工を断られたときに1秒光らせる
   const [testLit, setTestLit] = useState(false);
   useEffect(() => {
@@ -109,6 +117,24 @@ export function Toolbar({
     >
       IP
     </button></Tooltip>
+  );
+  // 元に戻す・やり直す。設計中は施工のボタンの左、自社オフィスでは IP の表示の左に出す
+  const historyButtons = (
+    <>
+      {historyError && (
+        <span style={{ fontSize: 13, color: '#ffd3c9', maxWidth: 320 }}>{t(`ui.error.${historyError}` as LangKey)}</span>
+      )}
+      <Tooltip text={tipText('keys.undo', 'undo')}>
+        <button aria-label={t('keys.undo')} style={{ ...slot(false), opacity: canUndo ? 1 : 0.35 }} disabled={!canUndo} onClick={() => undo()}>
+          <Icon name="icon/undo" />
+        </button>
+      </Tooltip>
+      <Tooltip text={tipText('keys.redo', 'redo')}>
+        <button aria-label={t('keys.redo')} style={{ ...slot(false), opacity: canRedo ? 1 : 0.35 }} disabled={!canRedo} onClick={() => redo()}>
+          <Icon name="icon/redo" />
+        </button>
+      </Tooltip>
+    </>
   );
   // 倉庫の在庫の合計（機材と家具の個数の和）
   const stockTotal = Object.values(owned).reduce((sum, n) => sum + n, 0);
@@ -199,6 +225,7 @@ export function Toolbar({
               <Icon name="icon/test" /> {t('ui.test')}
             </button>
           </Tooltip>
+          {historyButtons}
           <Tooltip text={tipText('ui.build', 'build')}>
             <button
               aria-label={t('ui.build')}
@@ -223,7 +250,12 @@ export function Toolbar({
           </button></Tooltip>
         </>
       )}
-      {!design && <span style={{ marginLeft: 'auto' }}>{ipButton}</span>}
+      {!design && (
+        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+          {historyButtons}
+          {ipButton}
+        </span>
+      )}
       {active?.phase === 'build' && (
         <>
           {sep}
