@@ -190,7 +190,7 @@ const CSS = `
   background: #f4f1e6;
   border: 2px solid #3b2a33;
   border-radius: 0;
-  box-shadow: inset -3px -3px 0 #cfc3aa, inset 3px 3px 0 #ffffff, 0 4px 0 #3b2a33;
+  box-shadow: inset -3px -3px 0 #cfc3aa, inset 3px 3px 0 #ffffff;
   cursor: pointer;
   transition: transform 60ms;
 }
@@ -206,19 +206,18 @@ const CSS = `
 }
 .ts-btn-selected {
   background: #ffd866;
-  box-shadow: inset -3px -3px 0 #c9962e, inset 3px 3px 0 #fff3c4, 0 4px 0 #3b2a33;
+  box-shadow: inset -3px -3px 0 #c9962e, inset 3px 3px 0 #fff3c4;
 }
 .ts-btn-selected::before {
   border-left-color: #3b2a33;
 }
 .ts-btn:active:not(:disabled) {
-  transform: translateY(4px);
-  box-shadow: inset -3px -3px 0 #c9962e, inset 3px 3px 0 #fff3c4, 0 0 0 #3b2a33;
+  transform: translateY(1px);
+  box-shadow: inset -3px -3px 0 #c9962e, inset 3px 3px 0 #fff3c4;
 }
 .ts-btn:disabled {
   color: #8a7f86;
   background: #d9d2c3;
-  box-shadow: 0 4px 0 #3b2a33;
   cursor: not-allowed;
 }
 .ts-note {
