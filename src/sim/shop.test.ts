@@ -33,8 +33,18 @@ describe('セーブのバージョン移行', () => {
       offerSeq: 0,
       rng: 1,
       active: null,
-      office: { nodes: [], links: [], seq: 0 },
+      office: {
+        nodes: [],
+        links: [],
+        seq: 0,
+        furniture: [
+          { uid: 'f0', id: 'desk', x: 3, y: 3 },
+          { uid: 'f1', id: 'desk', x: 6, y: 3 },
+        ],
+        furnitureSeq: 2,
+      },
       effects: { buildSpeed: 0 },
+      staff: 2,
     });
   });
 

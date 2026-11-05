@@ -59,10 +59,20 @@ export interface Report {
 }
 
 // 自社オフィスのネットワーク。自社案件の納品で更新され、ずっと残る
+// 自社オフィスに置いた家具（机・植木鉢など）
+export interface PlacedFurniture {
+  uid: string; // "f" + 連番
+  id: string; // 家具ID
+  x: number;
+  y: number;
+}
+
 export interface Office {
   nodes: NetNode[];
   links: NetLink[];
   seq: number;
+  furniture: PlacedFurniture[];
+  furnitureSeq: number;
 }
 
 // 自社案件で得た効果の合計
@@ -70,7 +80,7 @@ export interface Effects {
   buildSpeed: number;
 }
 
-export const emptyOffice = (): Office => ({ nodes: [], links: [], seq: 0 });
+export const emptyOffice = (): Office => ({ nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 });
 export const noEffects = (): Effects => ({ buildSpeed: 0 });
 
 export interface Core {
@@ -82,6 +92,8 @@ export interface Core {
   active: Project | null;
   office: Office;
   effects: Effects;
+  // 雇用中の社員の人数
+  staff: number;
 }
 
 // 機材の性質（ゲームデータから作る）
@@ -428,7 +440,7 @@ export const inspect = (core: Core, env: Env): Outcome => {
     const money = p.contract.reward.money;
     const reputation = core.reputation + p.contract.reward.reputation + stars * env.balance.reputationPerStar;
     // 自社案件は、納品したネットワークを自社オフィスとして残し、効果を加える
-    const office = p.contract.inhouse ? { nodes: p.nodes, links: p.links, seq: p.seq } : core.office;
+    const office: Office = p.contract.inhouse ? { ...core.office, nodes: p.nodes, links: p.links, seq: p.seq } : core.office;
     const effects = { buildSpeed: core.effects.buildSpeed + (p.contract.effect?.buildSpeed ?? 0) };
     return {
       ok: true,

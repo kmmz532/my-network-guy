@@ -12,8 +12,9 @@ const sample: SaveData = {
   offerSeq: 0,
   rng: 1,
   active: null,
-  office: { nodes: [], links: [], seq: 0 },
+  office: { nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 },
   effects: { buildSpeed: 0 },
+  staff: 2,
 };
 
 describe('セーブデータ', () => {
@@ -38,6 +39,43 @@ describe('セーブデータ', () => {
   });
 
   });
+
+describe('v6 → v7', () => {
+  // 旧マップの机の位置（x=9, y=3）に置いたPCは、机がないので机を足す。初期の机（3,3）と（6,3）は初期の机のまま
+  const pc = (uid: string, x: number, y: number) => ({
+    uid,
+    device: 'pc_basic',
+    x,
+    y,
+    locked: false,
+    configLocked: false,
+    interfaces: [],
+    gateway: null,
+    routes: [],
+    services: [],
+  });
+  const { staff: _staff, ...withoutStaff } = sample;
+  const v6 = {
+    ...withoutStaff,
+    office: { nodes: [pc('u0', 3, 3), pc('u1', 9, 3)], links: [], seq: 2 },
+  };
+
+  it('社員の人数と初期の机を追加する', () => {
+    const out = migrate(6, v6);
+    expect(out.staff).toBe(2);
+    expect(out.office.furniture.map((f) => [f.id, f.x, f.y])).toEqual([
+      ['desk', 3, 3],
+      ['desk', 6, 3],
+      ['desk', 9, 3],
+    ]);
+  });
+
+  it('机のないマスに置いたPCには机を足し、家具の連番を進める', () => {
+    const out = migrate(6, v6);
+    expect(out.office.furniture.map((f) => f.uid)).toEqual(['f0', 'f1', 'f2']);
+    expect(out.office.furnitureSeq).toBe(3);
+  });
+});
 
 describe('v4 → v5', () => {
   it('手入力のIPアドレスを色に置き換える', () => {

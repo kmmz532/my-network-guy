@@ -62,8 +62,9 @@ const start = (): Core => ({
   completed: [],
   offers: [offer],
   active: null,
-  office: { nodes: [], links: [], seq: 0 },
+  office: { nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 },
   effects: { buildSpeed: 0 },
+  staff: 2,
 });
 
 // 結果が成功していることを確認して、その状態を返す

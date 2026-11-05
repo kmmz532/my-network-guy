@@ -1,8 +1,12 @@
 // セーブデータのバージョン管理。形式を変えたら SAVE_VERSION を上げ、migrations[n]（n → n+1 の変換）を追加する。
 import type { Effects, Office, Project } from '../sim/project';
 import { colorsFromConfig } from '../network/compile';
+import { initialOffice } from '../sim/furniture';
+import type { Balance } from '../data/schema';
+import balanceJson from '../assets/data/balance.json';
+import pcJson from '../assets/data/devices/pc.json';
 
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 
 export interface SaveData {
   clock: { minute: number; money: number; paidMonths: number; bankrupt: boolean };
@@ -22,6 +26,8 @@ export interface SaveData {
   // 自社オフィスのネットワークと、自社案件で得た効果
   office: Office;
   effects: Effects;
+  // 雇用中の社員の人数
+  staff: number;
 }
 
 type Migration = (data: unknown) => unknown;
@@ -42,6 +48,22 @@ export const migrations: Record<number, Migration> = {
   },
   // v5 → v6: 自社オフィスと効果を追加する
   5: (data) => ({ ...(data as object), office: { nodes: [], links: [], seq: 0 }, effects: { buildSpeed: 0 } }),
+  // v6 → v7: 社員の人数と家具を追加する。初期の机を置き、旧マップの机のマスに置いたPCで机がないものには机を足す
+  6: (data) => {
+    const d = data as { office: Office };
+    const balance = balanceJson as Balance;
+    const pcIds = new Set(pcJson.devices.map((p) => p.id));
+    const init = initialOffice(balance);
+    const furniture = [...init.furniture];
+    let seq = furniture.length;
+    for (const n of d.office.nodes) {
+      if (!pcIds.has(n.device)) continue;
+      if (furniture.some((f) => f.x === n.x && f.y === n.y)) continue;
+      furniture.push({ uid: `f${seq}`, id: 'desk', x: n.x, y: n.y });
+      seq++;
+    }
+    return { ...d, staff: balance.staff.initialCount, office: { ...d.office, furniture, furnitureSeq: seq } };
+  },
 };
 
 export const isSaveData = (value: unknown): value is SaveData => {
@@ -66,7 +88,9 @@ export const isSaveData = (value: unknown): value is SaveData => {
     Number.isInteger(v.nextOfferMinute) &&
     Number.isInteger(v.offerSeq) &&
     Number.isInteger(v.rng) &&
-    (v.active === null || (typeof v.active === 'object' && v.active !== null))
+    (v.active === null || (typeof v.active === 'object' && v.active !== null)) &&
+    Number.isInteger(v.staff) &&
+    Array.isArray((v.office as { furniture?: unknown } | undefined)?.furniture)
   );
 };
 

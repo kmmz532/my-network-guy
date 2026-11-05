@@ -9,6 +9,7 @@ import type { GameMap } from '../data/schema';
 import type { Route } from '../network/types';
 import type { SaveData } from '../services/migrations';
 import { gameEnv } from '../sim/env';
+import { initialOffice } from '../sim/furniture';
 import {
   abandon,
   accept,
@@ -29,7 +30,6 @@ import {
   type Project,
   type Office,
   type Effects,
-  emptyOffice,
   noEffects,
   type Report,
   type Trace,
@@ -53,6 +53,8 @@ export interface GameState {
   // 自社オフィスのネットワークと、自社案件で得た効果
   office: Office;
   effects: Effects;
+  // 雇用中の社員の人数
+  staff: number;
   speed: Speed;
   // 読み込み済みのマップ（保存しない）
   maps: Record<string, GameMap>;
@@ -133,6 +135,7 @@ const coreOf = (s: GameState): Core => ({
   active: s.active,
   office: s.office,
   effects: s.effects,
+  staff: s.staff,
 });
 
 // 依頼の追加を1回分進める。受注中の案件と同じ依頼は出さない
@@ -190,6 +193,7 @@ export const useGameStore = create<GameState>((set, get) => {
       active: c.active,
       office: c.office,
       effects: c.effects,
+      staff: c.staff,
       ...reportState(outcome.report, get()),
     });
     return null;
@@ -205,8 +209,9 @@ export const useGameStore = create<GameState>((set, get) => {
     offerSeq: 0,
     rng: newRng(),
     active: null,
-    office: emptyOffice(),
+    office: initialOffice(balance),
     effects: noEffects(),
+    staff: balance.staff.initialCount,
     speed: 1,
     maps: {},
     lastReport: null,
@@ -322,6 +327,7 @@ export const useGameStore = create<GameState>((set, get) => {
         active: save.active,
         office: save.office,
         effects: save.effects,
+        staff: save.staff,
         lastReport: null,
         showcase: null,
         traces: [],
@@ -339,8 +345,9 @@ export const useGameStore = create<GameState>((set, get) => {
           offerSeq: 0,
           rng: newRng(),
           active: null,
-          office: emptyOffice(),
+          office: initialOffice(balance),
           effects: noEffects(),
+          staff: balance.staff.initialCount,
           lastReport: null,
           lastError: null,
           traces: [],
@@ -367,6 +374,7 @@ export const useGameStore = create<GameState>((set, get) => {
         active: s.active,
         office: s.office,
         effects: s.effects,
+        staff: s.staff,
       };
     },
   };
