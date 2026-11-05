@@ -9,6 +9,7 @@ import {
   cablesFileSchema,
   contractSchema,
   devicesFileSchema,
+  furnitureFileSchema,
   langSchema,
   mapSchema,
   shopFileSchema,
@@ -18,6 +19,7 @@ import {
   type Contract,
   type ContractTemplate,
   type Device,
+  type Furniture,
   type Goal,
   type GameMap,
   type Lang,
@@ -47,6 +49,7 @@ interface GameData {
   balance: Balance;
   cables: Cable[];
   devices: Device[];
+  furniture: Furniture[];
   shop: ShopItem[];
   contracts: Contract[];
   templates: ContractTemplate[];
@@ -86,12 +89,13 @@ const jsonFiles = (dir: string): string[] => {
     .map((f) => join(dir, f));
 };
 
-const loadData = (dataDir: string, langDir: string): GameData => {
+const loadData = (dataDir: string, langDir: string, spriteDir: string): GameData => {
   const balance = parseWith(balanceSchema, readJson(join(dataDir, 'balance.json')), 'balance.json');
   const cables = parseWith(cablesFileSchema, readJson(join(dataDir, 'cables.json')), 'cables.json').cables;
   const devices = jsonFiles(join(dataDir, 'devices')).flatMap((file) =>
     parseWith(devicesFileSchema, readJson(file), file).devices,
   );
+  const furniture = parseWith(furnitureFileSchema, readJson(join(dataDir, 'furniture.json')), 'furniture.json').furniture;
   const shop = parseWith(shopFileSchema, readJson(join(dataDir, 'shop.json')), 'shop.json').items;
 
   const contractsDir = join(dataDir, 'contracts');
@@ -129,6 +133,7 @@ const loadData = (dataDir: string, langDir: string): GameData => {
     balance,
     cables,
     devices,
+    furniture,
     shop,
     contracts,
     templates,
@@ -136,7 +141,7 @@ const loadData = (dataDir: string, langDir: string): GameData => {
     langs,
     missingFilled: {},
   };
-  validateReferences(data);
+  validateReferences(data, spriteDir);
   data.contracts = sortContracts(contracts);
   fillLanguages(data);
   return data;
@@ -167,10 +172,11 @@ const goalRefs = (goal: Goal): string[] => {
   }
 };
 
-const validateReferences = (data: GameData): void => {
+const validateReferences = (data: GameData, spriteDir: string): void => {
   const errors: string[] = [];
   const cableIds = unique(data.cables, (c) => c.id, 'cables.json');
   const deviceIds = unique(data.devices, (d) => d.id, 'devices/');
+  const furnitureIds = unique(data.furniture, (f) => f.id, 'furniture.json');
   const mapsById = new Map(data.maps.map((m) => [m.id, m]));
   unique(data.maps, (m) => m.id, 'maps/');
   // 案件とテンプレートはどちらも requires や解禁条件から参照されるため、ID の集合を共通で作る
@@ -180,9 +186,16 @@ const validateReferences = (data: GameData): void => {
     if (!ok) errors.push(message);
   };
 
+  // 家具のIDは機材・ケーブルのIDと重複させない（在庫の表を共通で使うため）
+  for (const f of data.furniture) {
+    ensure(!deviceIds.has(f.id) && !cableIds.has(f.id), `furniture.json: ID ${f.id} が機材かケーブルと重複している`);
+    ensure(existsSync(join(spriteDir, `${f.sprite}.png`)), `furniture.json: ${f.id} のスプライト ${f.sprite} がない`);
+  }
+
   for (const item of data.shop) {
     if (item.device !== undefined) ensure(deviceIds.has(item.device), `shop.json: 未定義の機材 ${item.device}`);
     if (item.cable !== undefined) ensure(cableIds.has(item.cable), `shop.json: 未定義のケーブル ${item.cable}`);
+    if (item.furniture !== undefined) ensure(furnitureIds.has(item.furniture), `shop.json: 未定義の家具 ${item.furniture}`);
     if (item.unlock) {
       ensure(contractIdSet.has(item.unlock.contract), `shop.json: 解禁条件の案件 ${item.unlock.contract} が未定義`);
     }
@@ -267,6 +280,10 @@ const fillLanguages = (data: GameData): void => {
     required.add(`device.${d.id}.desc`);
   }
   for (const c of data.cables) required.add(`cable.${c.id}.name`);
+  for (const f of data.furniture) {
+    required.add(`furniture.${f.id}.name`);
+    required.add(`furniture.${f.id}.desc`);
+  }
   for (const c of [...data.contracts, ...data.templates]) {
     required.add(`contract.${c.id}.title`);
     required.add(`contract.${c.id}.story`);
@@ -304,6 +321,7 @@ const writeGenerated = (generatedDir: string, data: GameData): void => {
   const ids = [
     `// このファイルはビルド時に game-data プラグインが生成する。編集しない。`,
     `export type DeviceId = ${toTypeUnion(data.devices.map((d) => d.id))};`,
+    `export type FurnitureId = ${toTypeUnion(data.furniture.map((f) => f.id))};`,
     `export type CableId = ${toTypeUnion(data.cables.map((c) => c.id))};`,
     `export type ContractId = ${toTypeUnion(data.contracts.map((c) => c.id))};`,
     `export type TemplateId = ${toTypeUnion(data.templates.map((t) => t.id))};`,
@@ -323,9 +341,11 @@ const writeGenerated = (generatedDir: string, data: GameData): void => {
 const gameDataModule = (data: GameData): string => {
   const devices = Object.fromEntries(data.devices.map((d) => [d.id, d]));
   const cables = Object.fromEntries(data.cables.map((c) => [c.id, c]));
+  const furniture = Object.fromEntries(data.furniture.map((f) => [f.id, f]));
   return [
     `export const balance = ${JSON.stringify(data.balance)};`,
     `export const devices = ${JSON.stringify(devices)};`,
+    `export const furniture = ${JSON.stringify(furniture)};`,
     `export const cables = ${JSON.stringify(cables)};`,
     `export const shop = ${JSON.stringify(data.shop)};`,
     `export const contracts = ${JSON.stringify(data.contracts)};`,
@@ -356,9 +376,10 @@ export default function gameData(): Plugin {
   let dataDir = '';
   let langDir = '';
   let generatedDir = '';
+  let spriteDir = '';
 
   const generate = (): void => {
-    data = loadData(dataDir, langDir);
+    data = loadData(dataDir, langDir, spriteDir);
     writeGenerated(generatedDir, data);
     for (const [code, count] of Object.entries(data.missingFilled)) {
       if (count > 0) config.logger.info(`[game-data] ${code}.json: ${count} 件の翻訳キーを ${BASE_LANG} の値で補完した`);
@@ -374,6 +395,7 @@ export default function gameData(): Plugin {
       dataDir = resolve(resolved.root, 'src/assets/data');
       langDir = resolve(resolved.root, 'src/assets/lang');
       generatedDir = resolve(resolved.root, 'src/generated');
+      spriteDir = resolve(resolved.root, 'src/assets/sprites');
       generate();
     },
 

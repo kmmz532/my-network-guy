@@ -16,6 +16,8 @@ export const balanceSchema = z.object({
   staff: z.object({
     initialCount: int.positive(),
     monthlySalary: nonNegativeInt,
+    // ゲーム開始時に置く机の位置（自社オフィスのマス）
+    initialDesks: z.array(z.object({ x: nonNegativeInt, y: nonNegativeInt })),
   }),
   build: z.object({
     workStartHour: z.number().min(0).max(24),
@@ -65,6 +67,16 @@ export const deviceSchema = z.object({
 
 export const devicesFileSchema = z.object({ devices: z.array(deviceSchema) });
 
+// 家具。自社オフィスに置く。seat が true の家具は社員の席になる
+export const furnitureSchema = z.object({
+  id: z.string().min(1),
+  price: nonNegativeInt,
+  sprite: z.string().min(1),
+  seat: z.boolean(),
+});
+
+export const furnitureFileSchema = z.object({ furniture: z.array(furnitureSchema) });
+
 export const shopFileSchema = z.object({
   items: z
     .array(
@@ -72,10 +84,11 @@ export const shopFileSchema = z.object({
         .object({
           device: z.string().min(1).optional(),
           cable: z.string().min(1).optional(),
+          furniture: z.string().min(1).optional(),
           unlock: z.object({ contract: z.string().min(1) }).nullable(),
         })
-        .refine((item) => (item.device !== undefined) !== (item.cable !== undefined), {
-          message: 'device と cable のどちらか一方だけを指定する',
+        .refine((item) => [item.device, item.cable, item.furniture].filter((v) => v !== undefined).length === 1, {
+          message: 'device・cable・furniture のどれか1つだけを指定する',
         }),
     ),
 });
@@ -200,6 +213,7 @@ export const langSchema = z.record(z.string(), z.string());
 export type Balance = z.infer<typeof balanceSchema>;
 export type Cable = z.infer<typeof cableSchema>;
 export type Device = z.infer<typeof deviceSchema>;
+export type Furniture = z.infer<typeof furnitureSchema>;
 export type ShopItem = z.infer<typeof shopFileSchema>['items'][number];
 export type Placed = z.infer<typeof placedSchema>;
 export type Goal = z.infer<typeof goalSchema>;

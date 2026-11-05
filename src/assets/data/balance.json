@@ -14,7 +14,11 @@
   "offerIntervalDays": 3,
   "staff": {
     "initialCount": 2,
-    "monthlySalary": 200000
+    "monthlySalary": 200000,
+    "initialDesks": [
+      { "x": 3, "y": 3 },
+      { "x": 6, "y": 3 }
+    ]
   },
   "build": {
     "workStartHour": 9,

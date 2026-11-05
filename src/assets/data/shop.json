@@ -31,6 +31,14 @@
       "unlock": {
         "contract": "c003_departments"
       }
-    }
+    },
+    { "furniture": "desk", "unlock": null },
+    { "furniture": "plant", "unlock": null },
+    { "furniture": "bookshelf", "unlock": null },
+    { "furniture": "cabinet", "unlock": null },
+    { "furniture": "coffee", "unlock": null },
+    { "furniture": "water", "unlock": null },
+    { "furniture": "trash", "unlock": null },
+    { "furniture": "sofa", "unlock": null }
   ]
 }
