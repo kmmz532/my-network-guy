@@ -10,15 +10,7 @@ import { useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
 import { Modal, primaryButton } from './Modal';
-
-const tabStyle = (on: boolean) => ({
-  padding: '2px 10px',
-  cursor: 'pointer',
-  background: on ? '#f4f1e6' : 'transparent',
-  color: on ? '#2f4f8f' : '#f4f1e6',
-  border: '1px solid #f4f1e6',
-  borderRadius: 4,
-});
+import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 
 export type HiringTab = 'hiring' | 'staff';
 
@@ -28,18 +20,21 @@ export function HiringPanel({ tab, onTab, onClose }: { tab: HiringTab; onTab: (t
   // Enter は閉じる（主のボタン）
   return (
     <Modal onClose={onClose} primary={onClose} boxStyle={{ width: 'min(420px, calc(100% - 32px))' }}>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-        <button style={tabStyle(tab === 'hiring')} onClick={() => onTab('hiring')}>
-          {t('ui.hiring.tab.hiring')}
-        </button>
-        <button style={tabStyle(tab === 'staff')} onClick={() => onTab('staff')}>
-          {t('ui.hiring.tab.staff')}
-        </button>
+      <Tabs
+        items={[
+          { id: 'hiring', label: t('ui.hiring.tab.hiring') },
+          { id: 'staff', label: t('ui.hiring.tab.staff') },
+        ]}
+        selected={tab}
+        onSelect={onTab}
+        colors={TAB_COLORS.window}
+      />
+      <div style={tabPanelStyle(TAB_COLORS.window.selected)}>
+        <div style={{ maxHeight: 'min(60vh, 480px)', overflowY: 'auto' }}>
+          {tab === 'hiring' ? <Candidates onMessage={setMessage} /> : <StaffList onMessage={setMessage} />}
+        </div>
+        {message && <div style={{ color: '#ffd866', fontSize: 13, marginTop: 6 }}>{message}</div>}
       </div>
-      <div style={{ maxHeight: 'min(60vh, 480px)', overflowY: 'auto' }}>
-        {tab === 'hiring' ? <Candidates onMessage={setMessage} /> : <StaffList onMessage={setMessage} />}
-      </div>
-      {message && <div style={{ color: '#ffd866', fontSize: 13, marginTop: 6 }}>{message}</div>}
       <button style={{ ...primaryButton, display: 'block', marginTop: 8, marginLeft: 'auto' }} onClick={onClose}>
         {t('ui.panel.close')}
       </button>

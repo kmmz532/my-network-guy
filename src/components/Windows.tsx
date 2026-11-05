@@ -7,6 +7,7 @@ import { frontWindow, clampRect, isNarrow, narrowRect, type Viewport, type Windo
 import { findDevice, DeviceBody, DeviceTitle } from './DevicePanel';
 import { StaffBody, StaffListBody, StaffTitle } from './StaffCard';
 import { Window } from './Window';
+import { Tabs, TAB_COLORS } from './Tabs';
 import { useGameStore, viewportNow } from '../stores/useGameStore';
 
 // 画面の大きさ。変わったら描き直す
@@ -27,58 +28,18 @@ const tabLabel = (kind: WindowKind, ref: string): ReactNode => {
   return <b>{t('ui.staff.list.title')}</b>;
 };
 
-// タブの帯。選ぶのはクリック、閉じるのは小さな×か中ボタンのクリック
+// タブの帯。選ぶのはクリック、閉じるのは小さな×か中ボタンのクリック（Tabs が受け持つ）
 function TabStrip({ win, closeLabel, onSelect, onClose }: { win: WindowItem; closeLabel: string; onSelect: (ref: string) => void; onClose: (ref: string) => void }) {
   return (
-    <div style={{ flexShrink: 0, background: '#1d3157', borderBottom: '1px solid #3b2a33', padding: '3px 4px' }}>
-      <div role="tablist" style={{ display: 'flex', gap: 3, overflowX: 'auto', width: '100%', zoom: 'var(--ui-scale, 1)' }}>
-        {win.tabs.map((ref) => {
-          const selected = ref === win.active;
-          return (
-            <div
-              key={ref}
-              role="tab"
-              aria-selected={selected}
-              onClick={() => onSelect(ref)}
-              // 中ボタンで閉じる。既定の自動スクロールは Window の mousedown で止める
-              onAuxClick={(e) => {
-                if (e.button !== 1) return;
-                e.preventDefault();
-                onClose(ref);
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                flexShrink: 0,
-                maxWidth: 180,
-                padding: '2px 3px 2px 8px',
-                cursor: 'pointer',
-                userSelect: 'none',
-                whiteSpace: 'nowrap',
-                background: selected ? '#2f4f8f' : '#25406f',
-                color: '#f4f1e6',
-                border: `1px solid ${selected ? '#f4f1e6' : '#3b2a33'}`,
-                borderRadius: 3,
-              }}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0, overflow: 'hidden' }}>{tabLabel(win.kind, ref)}</span>
-              <button
-                aria-label={closeLabel}
-                // タブを選ぶ処理を始めないよう、押した位置の処理を止める
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClose(ref);
-                }}
-                style={{ flexShrink: 0, width: 18, height: 18, padding: 0, cursor: 'pointer', background: 'transparent', color: '#f4f1e6', border: 'none', lineHeight: '16px' }}
-              >
-                ×
-              </button>
-            </div>
-          );
-        })}
-      </div>
+    <div style={{ flexShrink: 0, padding: '4px 4px 0' }}>
+      <Tabs
+        items={win.tabs.map((ref) => ({ id: ref, label: tabLabel(win.kind, ref), closeLabel }))}
+        selected={win.active}
+        onSelect={onSelect}
+        onClose={onClose}
+        colors={TAB_COLORS.window}
+        style={{ zoom: 'var(--ui-scale, 1)' }}
+      />
     </div>
   );
 }

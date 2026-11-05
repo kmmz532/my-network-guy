@@ -11,9 +11,12 @@ import { focusedProject, useGameStore, type GameState } from '../stores/useGameS
 import { RearTab as DeviceRear } from './DeviceRear';
 import { DeviceSettings } from './DeviceSettings';
 import { Icon } from './Icon';
+import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { buttonStyle, greyColor, warnColor } from './devicePorts';
 
 type Tab = 'rear' | 'config' | 'service';
+// タブの並び（ターミナルは押せない表示だけのタブ）
+type TabId = Tab | 'terminal';
 
 // uid の機器を探す。表示中の案件（設計中、または納品の結果）を優先し、なければ自社オフィス。見つからなければ null
 export function findDevice(state: GameState, uid: string) {
@@ -91,44 +94,34 @@ function DeviceView({
   const isServer = info?.category === 'server';
   const issue = compiled.issues[node.uid];
 
-  const tabButton = (id: Tab, label: string) => (
-    <button
-      key={id}
-      onClick={() => {
-        setTab(id);
-        setError(null);
-      }}
-      style={{
-        padding: '2px 8px',
-        cursor: 'pointer',
-        background: tab === id ? warnColor : '#25406f',
-        color: tab === id ? '#3b2a33' : '#f4f1e6',
-        border: '1px solid #3b2a33',
-        borderRadius: 3,
-      }}
-    >
-      {label}
-    </button>
-  );
-
   return (
     <div>
       {issue && <div style={{ color: warnColor, marginBottom: 6 }}>{t(`issue.${issue.reason}` as LangKey, { ip: issue.ip ?? '', segment: issue.segment ?? '', gateway: issue.gateway ?? '' })}</div>}
       {readOnly && <div style={{ marginBottom: 6 }}>{t('ui.config.readOnly')}</div>}
-      <nav style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
-        {tabButton('rear', t('ui.panel.tab.rear'))}
-        {tabButton('config', t('ui.panel.tab.config'))}
-        {isServer && tabButton('service', t('ui.panel.tab.service'))}
-        <span aria-disabled="true" style={{ padding: '2px 8px', color: greyColor, opacity: 0.4, border: '1px solid transparent' }}>
-          {t('ui.panel.tab.terminal')}
-        </span>
-      </nav>
-      {error && <div style={{ color: warnColor, marginBottom: 6 }}>{t(`ui.error.${error}` as LangKey)}</div>}
-      {tab === 'rear' && <DeviceRear node={node} nodes={nodes} links={links} readOnly={readOnly} onError={setError} />}
-      {tab === 'config' && (
-        <DeviceSettings node={node} compiled={compiled} readOnly={readOnly} detailOpen={detailOpen} onToggleDetail={onToggleDetail} onError={setError} />
-      )}
-      {tab === 'service' && isServer && <ServiceTab node={node} readOnly={readOnly} onError={setError} />}
+      <Tabs<TabId>
+        items={[
+          { id: 'rear', label: t('ui.panel.tab.rear') },
+          { id: 'config', label: t('ui.panel.tab.config') },
+          ...(isServer ? [{ id: 'service' as const, label: t('ui.panel.tab.service') }] : []),
+          { id: 'terminal', label: t('ui.panel.tab.terminal'), disabled: true },
+        ]}
+        selected={tab}
+        onSelect={(id) => {
+          // ターミナルは押せない（表示だけ）
+          if (id === 'terminal') return;
+          setTab(id);
+          setError(null);
+        }}
+        colors={TAB_COLORS.window}
+      />
+      <div style={tabPanelStyle(TAB_COLORS.window.selected)}>
+        {error && <div style={{ color: warnColor, marginBottom: 6 }}>{t(`ui.error.${error}` as LangKey)}</div>}
+        {tab === 'rear' && <DeviceRear node={node} nodes={nodes} links={links} readOnly={readOnly} onError={setError} />}
+        {tab === 'config' && (
+          <DeviceSettings node={node} compiled={compiled} readOnly={readOnly} detailOpen={detailOpen} onToggleDetail={onToggleDetail} onError={setError} />
+        )}
+        {tab === 'service' && isServer && <ServiceTab node={node} readOnly={readOnly} onError={setError} />}
+      </div>
     </div>
   );
 }
