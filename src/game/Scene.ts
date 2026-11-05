@@ -14,6 +14,7 @@ import type { LangKey } from '../generated/lang-keys';
 import type { NetLink, NetNode } from '../network/types';
 import { drawTileMap, layoutIntegerScale } from './TileMap';
 import { cumulativeLengths, pointAt, type Point } from './animation';
+import { wanderStep, type Walker } from './wander';
 
 const OUTLINE = 0x3b2a33;
 const SELECT = 0xffd866;
@@ -75,6 +76,8 @@ export class Scene {
   private traceStart = 0;
   // 色と配線から生成したネットワーク（不備と色の表示に使う）
   private compiled: Compiled | null = null;
+  // 席のない社員（自社オフィスを歩き回る）。位置は保存しない
+  private wanderers: Walker[] = [];
   private unsubscribe: () => void;
 
   constructor(private app: Application) {
@@ -166,6 +169,7 @@ export class Scene {
 
   private onTick = (ticker: Ticker): void => {
     this.elapsed += ticker.deltaMS;
+    this.updateWanderers(ticker.deltaMS);
     // パケットは滑らかに動かす。それ以外はコマ送り（ART.md）
     if (this.traceActive() || this.flashActive()) {
       this.drawObjects();
@@ -287,7 +291,10 @@ export class Scene {
 
     if (s.showIp) this.drawAddresses(project, ts);
     if (building) this.drawBuilding(project, ts);
-    else if (this.map?.id === 'hq' && !s.showcase) this.drawDeskStaff(ts, s.hint);
+    else if (this.map?.id === 'hq' && !s.showcase) {
+      this.drawDeskStaff(ts, s.hint);
+      this.drawWanderers(ts);
+    }
     else if (s.active) this.drawIdleStaff(ts, s.hint);
     for (const trace of this.traces) this.drawTrace(trace, ts);
     this.drawHover(project, ts);
@@ -374,6 +381,34 @@ export class Scene {
       text.position.set(desks[0][0] * ts + ts / 2, (desks[0][1] + 1) * ts - 10);
       this.bubbles.addChild(text);
     }
+  }
+
+  // 席の数を超えた社員は、歩き回る。人数に合わせて歩き手を増減し、床の上を歩かせる（自社オフィスのみ）
+  private updateWanderers(dt: number): void {
+    const map = this.map;
+    if (!map || map.id !== 'hq') {
+      this.wanderers = [];
+      return;
+    }
+    const s = useGameStore.getState();
+    const seats = s.office.furniture.filter((f) => f.id === DESK_ID).length;
+    const count = Math.max(0, s.staff - seats);
+    const floor: Point[] = [];
+    for (let y = 0; y < map.height; y++) {
+      for (let x = 0; x < map.width; x++) if (map.legend[map.tiles[y][x]] === 'floor') floor.push({ x, y });
+    }
+    while (this.wanderers.length < count) {
+      const start = floor.length ? floor[Math.floor(Math.random() * floor.length)] : { x: 0, y: 0 };
+      this.wanderers.push({ x: start.x, y: start.y, path: [], pause: 0 });
+    }
+    this.wanderers.length = count;
+    this.wanderers = this.wanderers.map((w) => wanderStep(w, dt, floor, Math.random));
+  }
+
+  private drawWanderers(ts: number): void {
+    this.wanderers.forEach((w, k) => {
+      this.drawStaff(w.x * ts + (ts - 16) / 2, w.y * ts + ts - 26, STAFF_SHIRT[k % STAFF_SHIRT.length]);
+    });
   }
 
   // 設計中は、社員がマップの左上で待機する。手戻りのときはヒントの吹き出しを出す
