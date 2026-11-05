@@ -72,6 +72,33 @@ const scenes = {
     await scenes.career(page);
     await openDevice(page, 'l2_switch_8p');
   },
+  // 疎通テストの流れ（パケット）。2台をつないでテストを押し、流れの途中を撮る（時間は止めたまま）
+  trace: async (page) => {
+    await scenes.connect(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      g.getState().setSpeed(0);
+      g.getState().test();
+    });
+    // 流れの途中で撮る（2台のあいだを粒が走る時間の半分ほど）
+    await page.waitForTimeout(350);
+  },
+  // 設計中の案件で、PC どうしをつないでIPを付け、テストを押した直後（時間は設計で止まっている）
+  pctest: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      const s = g.getState();
+      const reason = s.accept('c001_direct_link', [s.staff[0].uid, s.staff[1].uid]);
+      if (reason) throw new Error(`受注できない: ${reason}`);
+      const st = g.getState();
+      st.connect('pc_a', 'pc_b', 'utp_cat5e');
+      st.setIface('pc_a', 0, '192.168.1.10', 24);
+      st.setIface('pc_b', 0, '192.168.1.11', 24);
+      g.getState().test();
+    });
+    await page.waitForTimeout(350);
+  },
   // 2台のPCをつないだ直後（つながった瞬間の光は 450ms なので、操作の直後に撮る）
   connect: async (page) => {
     await scenes.career(page);

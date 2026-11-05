@@ -157,6 +157,8 @@ export class Scene {
   // 検収のパケット。新しい結果が来たら、その時刻からすべての経路に同時に流す
   private traces: Trace[] = [];
   private traceStart = 0;
+  // 実時間の経過（ms）。ゲームの速度に関係なく進む（疎通テストの流れに使う。時間を止めていても流れが動く）
+  private realElapsed = 0;
   // 配線と設定から生成したネットワーク（不備の表示に使う）
   private compiled: Compiled | null = null;
   // ケーブルの色（ネットワークアドレスごと）。表示だけに使う
@@ -291,7 +293,7 @@ export class Scene {
     const s = useGameStore.getState();
     if (s.traces !== this.traces) {
       this.traces = s.traces;
-      this.traceStart = this.elapsed;
+      this.traceStart = this.realElapsed;
     }
     const shown = this.project();
     this.compiled = shown ? compiledNet(shown, gameEnv) : null;
@@ -394,6 +396,8 @@ export class Scene {
   }
 
   private onTick = (ticker: Ticker): void => {
+    // 疎通テストの流れ（粒）は実時間で進める。時間を止めていても（設計中など）流れが動く
+    this.realElapsed += ticker.deltaMS;
     // ゲームの速度（一時停止は 0）に合わせて、社員の移動・アニメーション・つぶやきの時間を進める
     const dt = ticker.deltaMS * useGameStore.getState().speed;
     this.elapsed += dt;
@@ -641,7 +645,7 @@ export class Scene {
   private traceActive(): boolean {
     return this.traces.some((trace) => {
       const route = this.tracePath(trace);
-      return route !== null && this.elapsed - this.traceStart < this.traceDuration(route.pts);
+      return route !== null && this.realElapsed - this.traceStart < this.traceDuration(route.pts);
     });
   }
 
@@ -1100,7 +1104,7 @@ export class Scene {
       stop = idx >= 0 && idx < nodeAt.length ? cumulative[nodeAt[idx]] : 0;
     }
 
-    const elapsed = this.elapsed - this.traceStart;
+    const elapsed = this.realElapsed - this.traceStart;
     const travelled = (elapsed / 1000) * PACKET_TILES_PER_SEC * ts;
     const color = PACKET_COLOR[trace.kind] ?? 0xffffff;
     for (let i = 0; i < PACKET_COUNT; i++) {
