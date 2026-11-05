@@ -47,6 +47,8 @@ const PACKET_SPACING_TILES = 0.5;
 const PACKET_COUNT = 3;
 // 機器のスプライト（24×40）の足元は、タイルの下端から何 px 上か。足元のY座標で前後を決める
 const DEVICE_FOOT_INSET = 4;
+// 机の天板の手前の縁（タイル上端からの距離。furniture/desk.png に合わせる）
+const DESK_TOP = 15;
 // 社員のスプライト（16×24）の足元（上端からの位置）
 const STAFF_FOOT = 23;
 
@@ -405,12 +407,24 @@ export class Scene {
     const foot = node.y * ts + ts - DEVICE_FOOT_INSET;
     if (tex) {
       const sprite = new Sprite(tex);
-      // スプライトの底面の行（y=37）が足元に来る位置
-      sprite.position.set(node.x * ts + (ts - 24) / 2, foot - 38);
+      // スプライトの底面の行（y=37）が足元に来る位置。PCは机の天板（タイル上端から15 px）に載せ、影は付けない
+      const deskTile = this.map?.legend[this.map.tiles[node.y]?.[node.x]] === 'desk';
+      const onDesk = deskTile || category === 'pc';
+      // 机のないマスに置いたPCには、机も一緒に描く
+      const deskTex = !deskTile && category === 'pc' ? texture('furniture/desk') : undefined;
+      if (deskTex) {
+        const desk = new Sprite(deskTex);
+        desk.position.set(node.x * ts, node.y * ts);
+        desk.alpha = alpha;
+        desk.zIndex = foot - 1;
+        this.sprites.addChild(desk);
+      }
+      const base = onDesk ? node.y * ts + DESK_TOP : foot;
+      sprite.position.set(node.x * ts + (ts - 24) / 2, base - 38);
       sprite.alpha = alpha;
       sprite.zIndex = foot;
       this.sprites.addChild(sprite);
-      this.bg.ellipse(node.x * ts + ts / 2, foot, 10, 3).fill({ color: 0x000000, alpha: 0.25 * alpha });
+      if (!onDesk) this.bg.ellipse(node.x * ts + ts / 2, foot, 10, 3).fill({ color: 0x000000, alpha: 0.25 * alpha });
     } else switch (category) {
       case 'pc':
         // モニターと台座

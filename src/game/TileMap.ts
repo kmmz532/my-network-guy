@@ -11,12 +11,12 @@ const isWall = (kind: string | undefined): boolean => kind === 'wall' || (kind !
 const fallbackColor: Record<string, number> = { floor: 0xe0b77c, wall: 0xcfc3aa };
 
 // 左右・手前の壁は上面（厚み）だけが見える（ART.md「視点」）
-const CAP = 10;
+const CAP = 5;
 const CAP_COLOR = 0xcfc3aa;
 const FRONT_CAP_COLOR = 0xb0a088; // 手前の壁は少し暗くする
 const LINE_COLOR = 0x3b2a33; // 上面の床側の縁（壁の段差）
 // 光源は左上。左の壁と奥の壁の下の床に影を落とす
-const SHADOW = 4;
+const SHADOW = 6;
 const SHADOW_COLOR = 0x3b2a33;
 const SHADOW_ALPHA = 0.18;
 
@@ -63,11 +63,11 @@ export const drawTileMap = (map: GameMap): Container => {
         const r = x * ts + ts; // 右端
         if (floorAt(x + 1, y) || faceAt(x + 1, y)) {
           g.rect(r - CAP, y * ts, CAP, ts).fill(CAP_COLOR);
-          if (floorAt(x + 1, y)) g.rect(r - 1, y * ts, 1, ts).fill(LINE_COLOR);
+          g.rect(r - 1, y * ts, 1, ts).fill(LINE_COLOR);
         }
         if (floorAt(x - 1, y) || faceAt(x - 1, y)) {
           g.rect(x * ts, y * ts, CAP, ts).fill(CAP_COLOR);
-          if (floorAt(x - 1, y)) g.rect(x * ts, y * ts, 1, ts).fill(LINE_COLOR);
+          g.rect(x * ts, y * ts, 1, ts).fill(LINE_COLOR);
         }
         if (floorAt(x, y - 1)) {
           g.rect(x * ts, y * ts, ts, CAP).fill(FRONT_CAP_COLOR);

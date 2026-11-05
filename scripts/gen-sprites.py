@@ -1,6 +1,6 @@
 # ドット絵のスプライトを生成する。色は memo/ART.md のパレットに従う。
 # 使い方: python scripts/gen-sprites.py
-# 出力先: src/assets/sprites/（device/・staff/・icon/）
+# 出力先: src/assets/sprites/（device/・staff/・icon/・tile/・furniture/）
 import os
 from PIL import Image, ImageDraw
 
@@ -31,6 +31,16 @@ C = {
     'G': (90, 168, 96),     # 緑
     'GG': (62, 128, 70),    # 緑（影）
     'f': (240, 160, 48),    # 橙
+    'F1': (224, 183, 124),  # 床（木・明）
+    'F2': (200, 148, 90),   # 床（木・中）
+    'F3': (160, 106, 69),   # 床（木・暗）
+    'W1': (239, 231, 214),  # 壁（明）
+    'W2': (207, 195, 170),  # 壁（暗）
+    'W3': (176, 160, 136),  # 壁（巾木）
+    'sky': (159, 224, 255),  # 窓の空
+    'sky2': (198, 238, 255),  # 窓の空（明）
+    'pot': (196, 112, 76),  # 植木鉢
+    'POT': (150, 80, 60),   # 植木鉢（影）
 }
 
 
@@ -75,17 +85,17 @@ def save(img, path):
 # 描画の基準: 足元（底面）は y=37 の行。y=38〜39 は床に重なる余白
 
 def pc():
-    # 正面から見たタワー型PC
+    # モニターとキーボード。本体は机の下にある想定で描かない。下端（y=37）を置き場所に揃える
     img, d = new(24, 40)
-    rect(d, 5, 2, 14, 34, 'w', 'o')
-    d.line([(6, 3), (6, 34)], fill=C['e'])
-    rect(d, 7, 6, 10, 3, 'g', 'o')
-    d.line([(8, 12), (15, 12)], fill=C['d'])
-    for y in (16, 20, 24):
-        d.line([(8, y), (15, y)], fill=C['d'])
-    px(d, 16, 30, 'l')
-    rect(d, 4, 36, 4, 2, 'd', 'o')
-    rect(d, 16, 36, 4, 2, 'd', 'o')
+    rect(d, 2, 16, 20, 15, 'w', 'o')
+    rect(d, 4, 18, 16, 10, 's')
+    rect(d, 4, 18, 16, 3, 'S')
+    d.line([(6, 23), (12, 23)], fill=C['S'])
+    d.line([(6, 25), (10, 25)], fill=C['S'])
+    px(d, 19, 29, 'l')
+    rect(d, 10, 31, 4, 3, 'g', 'o')
+    rect(d, 3, 34, 18, 4, 'g', 'o')
+    d.line([(5, 35), (18, 35)], fill=C['w'])
     return img
 
 
@@ -280,6 +290,204 @@ def icon_ok():
     return outline(img)
 
 
+# ---- 床・壁（32×32） ----
+# 床は木の板。継ぎ目の位置を変えた3種類を、マップ上でばらして敷く
+
+def floor(variant):
+    img, d = new(32, 32)
+    rect(d, 0, 0, 32, 32, 'F1')
+    for row in range(4):
+        y = row * 8
+        d.line([(0, y + 7), (31, y + 7)], fill=C['F2'])
+        seam = (row * 11 + variant * 7) % 32
+        d.line([(seam, y), (seam, y + 6)], fill=C['F2'])
+    for x, y in (((5 + variant * 9) % 32, 3), ((19 + variant * 5) % 32, 19), ((27 - variant * 6) % 32, 27)):
+        px(d, x, y, 'F2')
+    return img
+
+
+def wall_face():
+    # 奥の壁の正面。下端に巾木を引いて床との境界を示す
+    img, d = new(32, 32)
+    rect(d, 0, 0, 32, 32, 'W1')
+    rect(d, 0, 0, 32, 3, 'W2')
+    rect(d, 0, 26, 32, 6, 'W3')
+    d.line([(0, 26), (31, 26)], fill=C['o'])
+    d.line([(0, 31), (31, 31)], fill=C['F3'])
+    return img
+
+
+def wall_window():
+    img = wall_face()
+    d = ImageDraw.Draw(img)
+    rect(d, 5, 5, 22, 18, 'w', 'o')
+    rect(d, 7, 7, 18, 14, 'sky')
+    rect(d, 7, 7, 18, 5, 'sky2')
+    d.line([(16, 7), (16, 20)], fill=C['w'])
+    d.line([(7, 14), (24, 14)], fill=C['w'])
+    for x, y in ((10, 17), (11, 17), (19, 10)):
+        px(d, x, y, 'e')
+    return img
+
+
+def wall_clock():
+    img = wall_face()
+    d = ImageDraw.Draw(img)
+    d.ellipse([10, 6, 21, 17], fill=C['e'], outline=C['o'])
+    d.line([(15, 8), (15, 12)], fill=C['o'])
+    d.line([(15, 12), (18, 12)], fill=C['o'])
+    return img
+
+
+def wall_poster():
+    img = wall_face()
+    d = ImageDraw.Draw(img)
+    rect(d, 9, 4, 14, 18, 'e', 'o')
+    rect(d, 11, 6, 10, 7, 'b')
+    d.polygon([(11, 12), (15, 8), (20, 12)], fill=C['G'])
+    d.line([(11, 16), (20, 16)], fill=C['g'])
+    d.line([(11, 18), (17, 18)], fill=C['g'])
+    return img
+
+
+def wall_whiteboard():
+    img = wall_face()
+    d = ImageDraw.Draw(img)
+    rect(d, 2, 4, 28, 19, 'e', 'g')
+    # ネットワーク図の落書き
+    rect(d, 6, 8, 4, 3, 'b')
+    rect(d, 21, 8, 4, 3, 'b')
+    rect(d, 13, 15, 5, 3, 'r')
+    d.line([(8, 11), (15, 15)], fill=C['b'])
+    d.line([(23, 11), (16, 15)], fill=C['b'])
+    d.line([(4, 23), (27, 23)], fill=C['d'])
+    px(d, 24, 22, 'r')
+    return img
+
+
+# ---- 家具（幅32。下端をマスの下端に揃え、1マスを超える分は上へはみ出す） ----
+
+def desk():
+    img, d = new(32, 32)
+    rect(d, 1, 10, 30, 6, 'F2')
+    d.line([(1, 10), (30, 10)], fill=C['F1'])
+    rect(d, 1, 16, 30, 3, 'F3')
+    rect(d, 3, 19, 3, 11, 'F3')
+    rect(d, 26, 19, 3, 11, 'F3')
+    rect(d, 18, 19, 8, 9, 'F2')
+    d.line([(20, 23), (23, 23)], fill=C['F3'])
+    return outline(img)
+
+
+def plant():
+    img, d = new(32, 44)
+    d.ellipse([7, 2, 24, 18], fill=C['G'])
+    d.ellipse([3, 10, 17, 26], fill=C['G'])
+    d.ellipse([15, 10, 29, 26], fill=C['GG'])
+    d.ellipse([9, 14, 22, 28], fill=C['G'])
+    for x, y in ((11, 6), (6, 15), (13, 18), (20, 9)):
+        px(d, x, y, 'GG')
+    d.line([(16, 26), (16, 31)], fill=C['GG'])
+    d.polygon([(9, 31), (23, 31), (21, 42), (11, 42)], fill=C['pot'])
+    d.line([(9, 31), (23, 31)], fill=C['POT'])
+    d.line([(20, 33), (19, 41)], fill=C['POT'])
+    return outline(img)
+
+
+def bookshelf():
+    img, d = new(32, 52)
+    rect(d, 2, 2, 28, 48, 'F3')
+    rect(d, 4, 4, 24, 44, 'F2')
+    colors = ['b', 'r', 'G', 'y', 'w', 'B', 'f']
+    for shelf in range(3):
+        top = 4 + shelf * 15
+        x = 5
+        i = shelf * 2
+        while x < 26:
+            w = 2 + (i % 3 == 0)
+            h = 10 + (i % 4 == 1) - (i % 5 == 2) * 2
+            rect(d, x, top + 13 - h, min(w, 27 - x), h, colors[i % len(colors)])
+            x += w + (i % 4 == 3)
+            i += 1
+        rect(d, 4, top + 13, 24, 2, 'F3')
+    return outline(img)
+
+
+def cabinet():
+    img, d = new(32, 40)
+    rect(d, 4, 2, 24, 37, 'g')
+    rect(d, 4, 2, 24, 2, 'w')
+    for k in range(3):
+        y = 5 + k * 11
+        rect(d, 6, y, 20, 10, 'w')
+        d.line([(6, y + 9), (25, y + 9)], fill=C['d'])
+        rect(d, 13, y + 3, 6, 2, 'd')
+    return outline(img)
+
+
+def coffee():
+    # 台の上のコーヒーメーカーとカップ
+    img, d = new(32, 36)
+    rect(d, 2, 18, 28, 17, 'F2')
+    rect(d, 2, 18, 28, 2, 'F1')
+    d.line([(16, 21), (16, 34)], fill=C['F3'])
+    rect(d, 6, 3, 13, 15, 'd')
+    rect(d, 6, 3, 13, 4, 'o')
+    rect(d, 8, 10, 8, 6, 's')
+    rect(d, 9, 11, 6, 4, 'h')
+    px(d, 16, 5, 'r')
+    rect(d, 22, 12, 5, 6, 'e')
+    px(d, 27, 14, 'e')
+    return outline(img)
+
+
+def water():
+    img, d = new(32, 48)
+    rect(d, 10, 2, 12, 15, 'sky')
+    rect(d, 10, 2, 12, 4, 'sky2')
+    rect(d, 13, 0, 6, 2, 'bh')
+    rect(d, 8, 17, 16, 30, 'w')
+    rect(d, 8, 17, 16, 2, 'e')
+    rect(d, 11, 24, 3, 3, 'b')
+    rect(d, 18, 24, 3, 3, 'r')
+    rect(d, 10, 30, 12, 8, 'g')
+    return outline(img)
+
+
+def trash():
+    img, d = new(32, 32)
+    d.polygon([(10, 16), (22, 16), (21, 30), (11, 30)], fill=C['g'])
+    rect(d, 9, 15, 14, 2, 'w')
+    d.line([(14, 19), (14, 28)], fill=C['d'])
+    d.line([(18, 19), (18, 28)], fill=C['d'])
+    rect(d, 13, 12, 4, 3, 'e')
+    return outline(img)
+
+
+def boxes():
+    img, d = new(32, 36)
+    rect(d, 2, 18, 18, 16, 'c')
+    rect(d, 2, 18, 18, 3, 'F1')
+    d.line([(11, 18), (11, 26)], fill=C['F3'])
+    rect(d, 16, 6, 14, 12, 'c')
+    rect(d, 16, 6, 14, 2, 'F1')
+    rect(d, 20, 22, 11, 12, 'F2')
+    rect(d, 22, 26, 7, 3, 'e')
+    return outline(img)
+
+
+def sofa():
+    img, d = new(32, 32)
+    rect(d, 2, 8, 28, 12, 'b')
+    rect(d, 2, 8, 28, 3, 'bh')
+    rect(d, 1, 14, 5, 14, 'B')
+    rect(d, 26, 14, 5, 14, 'B')
+    rect(d, 6, 18, 20, 8, 'b')
+    d.line([(16, 18), (16, 25)], fill=C['B'])
+    rect(d, 6, 26, 20, 3, 'B')
+    return outline(img)
+
+
 if __name__ == '__main__':
     save(pc(), 'device/pc_basic.png')
     save(server(), 'device/server_basic.png')
@@ -307,4 +515,28 @@ if __name__ == '__main__':
     }
     for name, img in icons.items():
         save(img, f'icon/{name}.png')
+    for v in range(3):
+        save(floor(v), f'tile/floor_{v}.png')
+    tiles = {
+        'wall_face': wall_face(),
+        'window': wall_window(),
+        'clock': wall_clock(),
+        'poster': wall_poster(),
+        'whiteboard': wall_whiteboard(),
+    }
+    for name, img in tiles.items():
+        save(img, f'tile/{name}.png')
+    furniture = {
+        'desk': desk(),
+        'plant': plant(),
+        'bookshelf': bookshelf(),
+        'cabinet': cabinet(),
+        'coffee': coffee(),
+        'water': water(),
+        'trash': trash(),
+        'boxes': boxes(),
+        'sofa': sofa(),
+    }
+    for name, img in furniture.items():
+        save(img, f'furniture/{name}.png')
     print('ok')
