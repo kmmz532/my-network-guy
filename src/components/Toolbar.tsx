@@ -1,12 +1,15 @@
 // 画面下のツールバー。依頼・機材・ケーブル・色塗り・施工をアイコンで操作する
-import { devices, furniture, shop } from 'virtual:game-data';
+import { useState } from 'react';
+import { shop } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { isUnlocked } from '../sim/shop';
+import { warehouseItems, warehouseMode, type WarehouseItem } from '../sim/warehouse';
 import { COLOR_COUNT } from '../network/compile';
 import { subnetCss } from '../game/palette';
 import { useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
+import { Warehouse } from './Warehouse';
 
 const bar = {
   position: 'absolute',
@@ -46,12 +49,13 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
   const active = useGameStore((s) => s.active);
   const completed = useGameStore((s) => s.completed);
   const owned = useGameStore((s) => s.owned);
+  const [warehouseOpen, setWarehouseOpen] = useState(false);
   const placing = useGameStore((s) => s.placing);
   const tool = useGameStore((s) => s.tool);
   const paintColor = useGameStore((s) => s.paintColor);
   const wireCable = useGameStore((s) => s.wireCable);
-  const setPlacing = useGameStore((s) => s.setPlacing);
   const setTool = useGameStore((s) => s.setTool);
+  const setPlacing = useGameStore((s) => s.setPlacing);
   const setPaintColor = useGameStore((s) => s.setPaintColor);
   const setWireCable = useGameStore((s) => s.setWireCable);
   const requestBuild = useGameStore((s) => s.requestBuild);
@@ -59,15 +63,30 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
   const showIp = useGameStore((s) => s.showIp);
   const setShowIp = useGameStore((s) => s.setShowIp);
 
-  const unlocked = shop.filter((item) => isUnlocked(item, completed));
-  const deviceIds = unlocked.filter((i) => i.device).map((i) => i.device!);
-  const furnitureIds = unlocked.filter((i) => i.furniture).map((i) => i.furniture!);
   const showcase = useGameStore((s) => s.showcase);
+  const unlocked = shop.filter((item) => isUnlocked(item, completed));
   const cableIds = unlocked.filter((i) => i.cable).map((i) => i.cable!);
   const design = active?.phase === 'design';
   const yen = (n: number) => n.toLocaleString('ja-JP');
+  // 倉庫の在庫の合計（機材と家具の個数の和）
+  const stockTotal = Object.values(owned).reduce((sum, n) => sum + n, 0);
+  const mode = warehouseMode(active?.phase ?? null, showcase !== null);
+  const warehouseItemList = warehouseItems(mode, shop, completed, owned);
+  const warehouseOpenable = mode !== 'closed';
+
+  // 品目を選ぶと配置に入る。同じ品目をもう一度押すと配置を終えて欄を閉じる
+  const pickWarehouseItem = (item: WarehouseItem) => {
+    setTool('build');
+    if (placing === item.id) {
+      setPlacing(null);
+      setWarehouseOpen(false);
+    } else {
+      setPlacing(item.id);
+    }
+  };
 
   return (
+    <>
     <footer style={bar}>
       <button style={{ ...slot(false), position: 'relative' }} title={t('ui.offer.title')} onClick={onOffers}>
         <Icon name="icon/mail" />
@@ -80,54 +99,19 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
       <button style={slot(false)} title={t('ui.shop.title')} onClick={onShop}>
         <Icon name="icon/cart" />
       </button>
-      {/* 在庫は常に表示する。設計中のみ、選ぶと配置できる */}
+      {/* 在庫は倉庫のアイコンにまとめる。品目の一覧は倉庫の欄で開く */}
       {sep}
-      {deviceIds.map((id) => {
-        const d = devices[id as keyof typeof devices];
-        const stock = owned[id] ?? 0;
-        return (
-          <button
-            key={id}
-            style={{ ...slot(tool === 'build' && placing === id), opacity: stock > 0 ? 1 : 0.35 }}
-            title={`${t(`device.${id}.name` as LangKey)} ${yen(d.price)}`}
-            onClick={() => {
-              // 在庫がなければショップを開く。施工中は置けない
-              if (stock === 0) return onShop();
-              if (active && !design) return;
-              setTool('build');
-              setPlacing(placing === id ? null : id);
-            }}
-          >
-            <Icon name={d.sprite} scale={1} />
-            <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>
-              {stock}
-            </span>
-          </button>
-        );
-      })}
-      {/* 家具は自社オフィスを表示しているときだけ選べる */}
-      {furnitureIds.map((id) => {
-        const stock = owned[id] ?? 0;
-        const office = !active && !showcase;
-        return (
-          <button
-            key={`furniture-${id}`}
-            style={{ ...slot(tool === 'build' && placing === id), opacity: stock > 0 ? 1 : 0.35 }}
-            title={`${t(`furniture.${id}.name` as LangKey)} ${yen(furniture[id as keyof typeof furniture].price)}`}
-            onClick={() => {
-              if (stock === 0) return onShop();
-              if (!office) return;
-              setTool('build');
-              setPlacing(placing === id ? null : id);
-            }}
-          >
-            <Icon name={`furniture/${id}`} scale={1} />
-            <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>
-              {stock}
-            </span>
-          </button>
-        );
-      })}
+      <button
+        style={{ ...slot(warehouseOpen && warehouseOpenable), opacity: warehouseOpenable ? 1 : 0.35 }}
+        title={t('ui.warehouse.title')}
+        disabled={!warehouseOpenable}
+        onClick={() => setWarehouseOpen(!warehouseOpen)}
+      >
+        <Icon name="icon/warehouse" scale={1} />
+        <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>
+          {stockTotal}
+        </span>
+      </button>
       {design && (
         <>
           {sep}
@@ -139,6 +123,7 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
               onClick={() => {
                 setTool('build');
                 setWireCable(id);
+                setWarehouseOpen(false);
               }}
             >
               <Icon name={`icon/cable_${id}`} />
@@ -150,7 +135,10 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
               key={c}
               style={{ ...slot(tool === 'paint' && paintColor === c), width: 32 }}
               title={t('ui.paint')}
-              onClick={() => setPaintColor(c)}
+              onClick={() => {
+                setPaintColor(c);
+                setWarehouseOpen(false);
+              }}
             >
               <span style={{ width: 20, height: 20, background: subnetCss(c), border: '2px solid #3b2a33', display: 'block' }} />
             </button>
@@ -190,5 +178,15 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
         </>
       )}
     </footer>
+    {warehouseOpen && warehouseOpenable && (
+      <Warehouse
+        items={warehouseItemList}
+        owned={owned}
+        placing={placing}
+        onPick={pickWarehouseItem}
+        onShop={onShop}
+      />
+    )}
+    </>
   );
 }

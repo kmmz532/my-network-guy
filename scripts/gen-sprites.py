@@ -284,6 +284,15 @@ def icon_cart():
     return outline(img)
 
 
+def icon_warehouse():
+    # 段ボール箱。倉庫の印として使う
+    img, d = new(16, 16)
+    rect(d, 2, 6, 12, 9, 'c')
+    rect(d, 1, 3, 14, 4, 'F1')
+    rect(d, 7, 3, 2, 12, 'F3')
+    return outline(img)
+
+
 def icon_ok():
     img, d = new(16, 16)
     d.line([(3, 8), (6, 11), (12, 4)], fill=C['G'], width=3)
@@ -515,6 +524,7 @@ if __name__ == '__main__':
         'pc_count': icon_pc_count(),
         'ok': icon_ok(),
         'cart': icon_cart(),
+        'warehouse': icon_warehouse(),
     }
     for name, img in icons.items():
         save(img, f'icon/{name}.png')
