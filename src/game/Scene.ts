@@ -378,8 +378,9 @@ export class Scene {
       box.position.set(Math.round(at.x), Math.round(at.y));
       const body = box.getChildAt(0) as Graphics;
       body.clear();
-      // 角は丸めず、画素の枠として描く（ドット絵の部品と同じ、角を立てた線）
-      body.rect(0, 0, size, size).fill(BUBBLE_FILL).stroke({ width: 2, color: OUTLINE, alignment: 0 });
+      // 角は少しだけ丸める。半径と線の太さは整数にして、角の丸みが歪んで見えないようにする
+      const radius = Math.round(size / 8);
+      body.roundRect(0, 0, size, size, radius).fill(BUBBLE_FILL).stroke({ width: 2, color: OUTLINE, alignment: 0 });
       const label = box.getChildAt(1) as Text;
       label.style.fontSize = size * EXPAND_LABEL_RATIO;
       label.position.set(size / 2, size / 2);
