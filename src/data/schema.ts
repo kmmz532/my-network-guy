@@ -1,5 +1,6 @@
 // ゲームデータのzodスキーマ。ビルド時（game-data プラグイン）でのみ使用し、実行時のjsには含めない。
 import { z } from 'zod';
+import { parseCondition } from '../sim/guide';
 
 const int = z.number().int();
 const nonNegativeInt = z.number().int().nonnegative();
@@ -295,6 +296,23 @@ export const mapSchema = z
 
 export const langSchema = z.record(z.string(), z.string());
 
+// 初めての概念の案内（P7）。手順の光らせる対象と、完了の条件（書式は sim/guide.ts の parseCondition）。文言は言語ファイルの guide.<案件>.<n>
+export const guidesFileSchema = z.object({
+  guides: z.array(
+    z.object({
+      contract: z.string().min(1),
+      steps: z
+        .array(
+          z.object({
+            target: z.string().min(1),
+            done: z.string().refine((v) => parseCondition(v) !== null, '完了の条件の書式が正しくない'),
+          }),
+        )
+        .min(1),
+    }),
+  ),
+});
+
 // 研修の課程（STAFF.md「4. 育成」）。受講中は担当に選べず、期日に経験値を得る
 export const trainingFileSchema = z.object({
   courses: z.array(
@@ -332,3 +350,4 @@ export type Contract = z.infer<typeof contractSchema>;
 export type ContractTemplate = z.infer<typeof templateSchema>;
 export type GameMap = z.infer<typeof mapSchema>;
 export type Lang = z.infer<typeof langSchema>;
+export type GuideFile = z.infer<typeof guidesFileSchema>['guides'][number];

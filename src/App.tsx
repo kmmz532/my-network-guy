@@ -18,6 +18,7 @@ import { tipText } from './input/keymap';
 import { applyUiScale, loadSettings } from './settings/settings';
 import { OfferCards } from './components/OfferCards';
 import { Toolbar } from './components/Toolbar';
+import { Guide } from './components/Guide';
 import { TaskPanel } from './components/TaskPanel';
 import { Windows } from './components/Windows';
 import { PortMenu } from './components/PortMenu';
@@ -236,6 +237,7 @@ export function App() {
         warehouseOpen={warehouseOpen}
         setWarehouseOpen={setWarehouseOpen}
       />
+      <Guide />
       {popup === 'offers' && <OfferCards onClose={() => setPopup(null)} />}
       {popup === 'shop' && <ShopCards onClose={() => setPopup(null)} />}
       {hiring && <HiringPanel tab={hiringTab} onTab={setHiringTab} onClose={() => setHiring(false)} />}

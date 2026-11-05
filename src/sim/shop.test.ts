@@ -28,6 +28,7 @@ describe('セーブのバージョン移行', () => {
       ...v1,
       owned: {},
       completed: [],
+      guidesDone: [],
       offers: [],
       nextOfferMinute: 0,
       offerSeq: 0,

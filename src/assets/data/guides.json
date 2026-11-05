@@ -1,0 +1,47 @@
+{
+  "guides": [
+    {
+      "contract": "c001_direct_link",
+      "steps": [
+        { "target": "tool.wire", "done": "tool:wire" },
+        { "target": "pc_a", "done": "links:>=1" },
+        { "target": "pc_a", "done": "ip:pc_a" },
+        { "target": "pc_b", "done": "ip:pc_b" },
+        { "target": "test", "done": "test:pass" }
+      ]
+    },
+    {
+      "contract": "c002_small_office",
+      "steps": [
+        { "target": "shop", "done": "owned:l2_switch_8p" },
+        { "target": "warehouse", "done": "placed:l2_switch" },
+        { "target": "tool.wire", "done": "links:>=3" }
+      ]
+    },
+    {
+      "contract": "i001_office_lan",
+      "steps": [
+        { "target": "warehouse", "done": "placed:pc" },
+        { "target": "tool.wire", "done": "links:>=1" },
+        { "target": "tool.select", "done": "ips:pc" },
+        { "target": "test", "done": "test:pass" }
+      ]
+    },
+    {
+      "contract": "c003_departments",
+      "steps": [
+        { "target": "warehouse", "done": "placed:router" },
+        { "target": "tool.wire", "done": "links:>=2" },
+        { "target": "tool.select", "done": "ips:router" },
+        { "target": "sales_a", "done": "gateway:sales_a" }
+      ]
+    },
+    {
+      "contract": "c004_web_server",
+      "steps": [
+        { "target": "web", "done": "open:web" },
+        { "target": "test", "done": "test:pass" }
+      ]
+    }
+  ]
+}

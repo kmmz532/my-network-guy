@@ -9,6 +9,8 @@ declare module 'virtual:game-data' {
   export const shop: ShopItem[];
   export const contracts: Contract[];
   export const contractTemplates: ContractTemplate[];
+  // 初めての概念の案内。固定案件のID → 手順の列（sim/guide.ts の GuideStep）
+  export const guides: Record<string, import('./sim/guide').GuideStep[]>;
   export const training: Record<string, TrainingCourse>;
   export const certs: Record<string, CertDef>;
 }

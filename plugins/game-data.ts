@@ -12,6 +12,7 @@ import {
   contractSchema,
   devicesFileSchema,
   furnitureFileSchema,
+  guidesFileSchema,
   langSchema,
   mapSchema,
   shopFileSchema,
@@ -22,6 +23,7 @@ import {
   type ContractTemplate,
   type Device,
   type Furniture,
+  type GuideFile,
   type Goal,
   type GameMap,
   type Lang,
@@ -31,6 +33,10 @@ import {
 } from '../src/data/schema';
 
 const BASE_LANG = 'ja_jp';
+// 案内の1手順の文言の最大の文字数（CORE.md「4. 最初の20分の流れ」）
+const GUIDE_TEXT_MAX = 20;
+// 案内の文言のキー（案件ごとの i 番目の手順。0から数える）
+const guideKey = (contract: string, index: number): string => `guide.${contract}.${index + 1}`;
 
 // 実行時に存在が必要な翻訳キー（ID以外から導出されない固定のもの）
 const REQUIRED_UI_KEYS = ['ui.hud.money', 'ui.hud.reputation'];
@@ -59,6 +65,7 @@ interface GameData {
   shop: ShopItem[];
   contracts: Contract[];
   templates: ContractTemplate[];
+  guides: GuideFile[];
   maps: GameMap[];
   langs: Record<string, Lang>;
   missingFilled: Record<string, number>;
@@ -105,6 +112,7 @@ const loadData = (dataDir: string, langDir: string, spriteDir: string): GameData
   const shop = parseWith(shopFileSchema, readJson(join(dataDir, 'shop.json')), 'shop.json').items;
   const training = parseWith(trainingFileSchema, readJson(join(dataDir, 'training.json')), 'training.json').courses;
   const certs = parseWith(certFileSchema, readJson(join(dataDir, 'certs.json')), 'certs.json').certs;
+  const guides = parseWith(guidesFileSchema, readJson(join(dataDir, 'guides.json')), 'guides.json').guides;
 
   const contractsDir = join(dataDir, 'contracts');
   const contracts = jsonFiles(contractsDir).map((file) => {
@@ -147,6 +155,7 @@ const loadData = (dataDir: string, langDir: string, spriteDir: string): GameData
     shop,
     contracts,
     templates,
+    guides,
     maps,
     langs,
     missingFilled: {},
@@ -195,6 +204,15 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
   const ensure = (ok: boolean, message: string) => {
     if (!ok) errors.push(message);
   };
+
+  // 案内は固定案件ごとに1つ。案件のIDは固定案件のものだけ
+  unique(data.guides, (g) => g.contract, 'guides.json');
+  for (const g of data.guides) {
+    ensure(
+      data.contracts.some((c) => c.id === g.contract),
+      `guides.json: 固定案件 ${g.contract} がない`,
+    );
+  }
 
   // 家具のIDは機材・ケーブルのIDと重複させない（在庫の表を共通で使うため）
   for (const f of data.furniture) {
@@ -299,6 +317,10 @@ const fillLanguages = (data: GameData): void => {
     required.add(`contract.${c.id}.story`);
   }
   for (const c of data.contracts) required.add(`contract.${c.id}.hint`);
+  // 案内の文言は guide.<案件>.<n>（n は1から）。1手順20文字以内
+  for (const g of data.guides) {
+    g.steps.forEach((_, i) => required.add(guideKey(g.contract, i)));
+  }
   for (const g of [...data.contracts.flatMap((c) => c.goals), ...data.templates.flatMap((t) => t.goals)]) {
     required.add(`goal.${g.type}`);
   }
@@ -320,6 +342,11 @@ const fillLanguages = (data: GameData): void => {
       }
     }
     data.missingFilled[code] = filled;
+  }
+  for (const key of required) {
+    if (key.startsWith('guide.') && key in base && [...base[key]].length > GUIDE_TEXT_MAX) {
+      errors.push(`${BASE_LANG}.json: ${key} は${GUIDE_TEXT_MAX}文字以内にする`);
+    }
   }
   if (errors.length) throw new GameDataError(errors);
 };
@@ -362,6 +389,14 @@ const gameDataModule = (data: GameData): string => {
     `export const certs = ${JSON.stringify(Object.fromEntries(data.certs.map((c) => [c.id, c])))};`,
     `export const contracts = ${JSON.stringify(data.contracts)};`,
     `export const contractTemplates = ${JSON.stringify(data.templates)};`,
+    `export const guides = ${JSON.stringify(
+      Object.fromEntries(
+        data.guides.map((g) => [
+          g.contract,
+          g.steps.map((s, i) => ({ key: guideKey(g.contract, i), target: s.target, done: s.done })),
+        ]),
+      ),
+    )};`,
   ].join('\n');
 };
 

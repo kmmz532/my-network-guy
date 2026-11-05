@@ -12,7 +12,7 @@ import serverJson from '../assets/data/devices/server.json';
 import routerJson from '../assets/data/devices/router.json';
 import switchJson from '../assets/data/devices/l2_switch.json';
 
-export const SAVE_VERSION = 15;
+export const SAVE_VERSION = 16;
 
 // 移行で使う機器の種類（色の時代の規則で IPアドレスを作るときに使う）
 const migrationCategories: Record<string, string> = {};
@@ -72,6 +72,8 @@ export interface SaveData {
   staffSeq: number;
   // 採用の候補
   candidates: Staff[];
+  // 初めての概念の案内を終えた（または飛ばした）固定案件のID
+  guidesDone: string[];
 }
 
 type Migration = (data: unknown) => unknown;
@@ -150,6 +152,8 @@ export const migrations: Record<number, Migration> = {
     const d = data as { active: Project[] };
     return { ...d, active: d.active.map((p) => ({ ...p, testedOk: false })) };
   },
+  // v15 → v16: 初めての概念の案内を終えた案件を追加する。移行前は、どの案件の案内も終えていないものとする
+  15: (data) => ({ ...(data as object), guidesDone: [] }),
   // v10 → v11: 案件に担当の社員を追加する。移行前の案件は、全社員が担当だったものとする
   10: (data) => {
     const d = data as { active: Project[]; staff: Staff[] };
@@ -184,6 +188,8 @@ export const isSaveData = (value: unknown): value is SaveData => {
     Array.isArray(v.staff) &&
     Number.isInteger(v.staffSeq) &&
     Array.isArray(v.candidates) &&
+    Array.isArray(v.guidesDone) &&
+    v.guidesDone.every((id) => typeof id === 'string') &&
     Array.isArray((v.office as { furniture?: unknown } | undefined)?.furniture)
   );
 };

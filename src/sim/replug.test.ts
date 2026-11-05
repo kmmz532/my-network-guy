@@ -92,6 +92,7 @@ const start = (): Core => ({
   staff: initialStaff(balance, 1).staff,
   staffSeq: 2,
   candidates: [],
+  guidesDone: [],
 });
 
 const ok = <T extends { ok: boolean }>(r: T): T & { ok: true } => {

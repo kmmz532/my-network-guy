@@ -51,6 +51,7 @@ const core = (over: Partial<Core> = {}): Core => ({
   staff: [createStaff({ job: 'network', level: 1, salary: 200000 }, 1, 0).staff],
   staffSeq: 1,
   candidates: [],
+  guidesDone: [],
   ...over,
 });
 

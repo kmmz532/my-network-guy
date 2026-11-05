@@ -165,7 +165,7 @@ export function Toolbar({
       {TOOLS.map((item) => (
         <Fragment key={item.id}>
           <Tooltip text={tipText(item.name, item.action)}>
-            <button aria-label={t(item.name)} style={toolSlot(tool === item.id)} onClick={() => setTool(item.id)}>
+            <button aria-label={t(item.name)} data-guide={`tool.${item.id}`} style={toolSlot(tool === item.id)} onClick={() => setTool(item.id)}>
               <Icon name={item.icon} />
             </button>
           </Tooltip>
@@ -195,12 +195,12 @@ export function Toolbar({
           </span>
         )}
       </button></Tooltip>
-      <Tooltip text={tipText('ui.shop.title', 'shop')}><button aria-label={t('ui.shop.title')} style={slot(false)}  onClick={onShop}>
+      <Tooltip text={tipText('ui.shop.title', 'shop')}><button aria-label={t('ui.shop.title')} data-guide="shop" style={slot(false)}  onClick={onShop}>
         <Icon name="icon/cart" />
       </button></Tooltip>
       {/* 在庫は倉庫のアイコンにまとめる。品目の一覧は倉庫の欄で開く */}
       {sep}
-      <Tooltip text={tipText('ui.warehouse.title', 'warehouse')}><button aria-label={t('ui.warehouse.title')} style={{ ...slot(warehouseOpen && warehouseOpenable), opacity: warehouseOpenable ? 1 : 0.35 }}
+      <Tooltip text={tipText('ui.warehouse.title', 'warehouse')}><button aria-label={t('ui.warehouse.title')} data-guide="warehouse" style={{ ...slot(warehouseOpen && warehouseOpenable), opacity: warehouseOpenable ? 1 : 0.35 }}
         
         disabled={!warehouseOpenable}
         onClick={() => setWarehouseOpen(!warehouseOpen)}
@@ -219,6 +219,7 @@ export function Toolbar({
           <Tooltip text={tipText('ui.test', 'test')}>
             <button
               aria-label={t('ui.test')}
+              data-guide="test"
               style={{
                 ...slot(false),
                 width: 'auto',

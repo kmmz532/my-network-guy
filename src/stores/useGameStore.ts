@@ -51,6 +51,7 @@ import {
   hire as hireOp,
   initialOffice,
   placeFurniture as placeFurnitureOp,
+  moveFurniture as moveFurnitureOp,
   removeFurniture as removeFurnitureOp,
 } from '../sim/furniture';
 import {
@@ -70,6 +71,8 @@ import {
   setService,
   setName as setNameOp,
   replug,
+  moveNode,
+  replugTo,
   addRoute,
   removeRoute,
   removeLink,
@@ -103,6 +106,13 @@ export interface PortMenuState {
   x: number;
   y: number;
   role: 'from' | 'to';
+}
+
+// 倉庫の欄からドラッグ中の品目と、画面の位置（クライアントの座標）。保存しない
+export interface ItemDrag {
+  id: string;
+  x: number;
+  y: number;
 }
 
 export type Speed = 0 | 1 | 2 | 4;
@@ -147,6 +157,13 @@ export interface GameState {
   staffSeq: number;
   // 採用の候補
   candidates: Staff[];
+  // 初めての概念の案内を終えた（または飛ばした）固定案件のID（セーブデータに入る）
+  guidesDone: string[];
+  // 案内が光らせている機器の uid（マップの描画は別の担当。保存しない）
+  guideTarget: string | null;
+  setGuideTarget: (uid: string | null) => void;
+  // 案内を終えた案件として記録する
+  markGuideDone: (contractId: string) => void;
   speed: Speed;
   // 勤務時間外の早送りで、自動で変える前の速さ（自動で変えていなければ null。保存しない）
   nightSpeed: Speed | null;
@@ -223,6 +240,9 @@ export interface GameState {
   // 失敗した操作の理由を、失敗した地点（マップのタイル）に出す
   flash: { key: string; tx: number; ty: number; at: number } | null;
   setPlacing: (deviceId: string | null) => void;
+  // 倉庫の欄から品目をドラッグしている間の位置（保存しない）
+  itemDrag: ItemDrag | null;
+  setItemDrag: (drag: ItemDrag | null) => void;
   setWireCable: (cableId: string) => void;
   tick: () => void;
   setSpeed: (speed: Speed) => void;
@@ -248,6 +268,11 @@ export interface GameState {
   setSegment: (uid: string, port: number, network: string, prefix: number) => string | null;
   // 配線の片方の端を、同じ機器の別のポートへ挿し替える
   replug: (linkUid: string, end: End, port: number) => string | null;
+  // 機器・家具を別のマスへ動かす（配置と同じ判定。ケーブルは付いたまま、費用の差額を払う）。失敗したら理由を返す
+  moveNode: (uid: string, x: number, y: number) => string | null;
+  moveFurniture: (uid: string, x: number, y: number) => string | null;
+  // ケーブルの端を、別の機器の空いているポートへ挿す（port が null なら空いている最小の番号）
+  replugTo: (linkUid: string, end: End, nodeUid: string, port: number | null) => string | null;
   // サービスを起動（on）・停止する
   setService: (uid: string, protocol: 'http', on: boolean) => string | null;
   setName: (uid: string, name: string) => string | null;
@@ -314,6 +339,7 @@ export const coreOf = (s: GameState): Core => ({
   staffSeq: s.staffSeq,
   candidates: s.candidates,
   focus: s.focus,
+  guidesDone: s.guidesDone,
 });
 
 // 依頼の追加を1回分進める。受注中の案件と同じ依頼は出さない
@@ -480,6 +506,11 @@ export const useGameStore = create<GameState>((set, get) => {
     focus: null,
     office: initialOffice(balance),
     effects: noEffects(),
+    guidesDone: [],
+    guideTarget: null,
+    setGuideTarget: (uid) => set({ guideTarget: uid }),
+    markGuideDone: (contractId) =>
+      set((s) => (s.guidesDone.includes(contractId) ? {} : { guidesDone: [...s.guidesDone, contractId] })),
     speed: 1,
     nightSpeed: null,
     pausedPrompt: false,
@@ -608,6 +639,8 @@ export const useGameStore = create<GameState>((set, get) => {
       set({ windows: list.windows, windowMemory: rememberWin(s.windowMemory, list.windows, id) });
     },
     setPlacing: (deviceId) => set({ placing: deviceId }),
+    itemDrag: null,
+    setItemDrag: (itemDrag) => set({ itemDrag }),
     setWireCable: (cableId) => set({ wireCable: cableId }),
     tick: () =>
       set((s) => {
@@ -747,6 +780,19 @@ export const useGameStore = create<GameState>((set, get) => {
       recorded(() => apply(setSegment(coreOf(get()), uid, port, network, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
     replug: (linkUid, end, port) =>
       recorded(() => apply(replug(coreOf(get()), linkUid, end, port, gameEnv, netTargetOf(get())))),
+    // 移動の地図は、設計中の案件のマップ（なければ自社オフィスの hq）
+    moveNode: (uid, x, y) => {
+      const map = get().maps[focusedProject(get())?.contract.map ?? 'hq'];
+      if (!map) return 'map';
+      return recorded(() => apply(moveNode(coreOf(get()), uid, x, y, gameEnv, netTargetOf(get()), map), tileOf(uid)));
+    },
+    moveFurniture: (uid, x, y) => {
+      const hq = get().maps.hq;
+      if (!hq) return 'map';
+      return recorded(() => apply(moveFurnitureOp(coreOf(get()), uid, x, y, hq), { tx: x, ty: y }));
+    },
+    replugTo: (linkUid, end, nodeUid, port) =>
+      recorded(() => apply(replugTo(coreOf(get()), linkUid, end, nodeUid, port, gameEnv, netTargetOf(get())), tileOf(nodeUid))),
     setService: (uid, protocol, on) =>
       recorded(() => apply(setService(coreOf(get()), uid, protocol, on, netTargetOf(get())), tileOf(uid))),
     setName: (uid, name) => recorded(() => apply(setNameOp(coreOf(get()), uid, name, netTargetOf(get())), tileOf(uid))),
@@ -794,6 +840,8 @@ export const useGameStore = create<GameState>((set, get) => {
         staff: save.staff,
         staffSeq: save.staffSeq,
         candidates: save.candidates,
+        guidesDone: save.guidesDone,
+        guideTarget: null,
         lastReport: null,
         showcase: null,
         traces: [],
@@ -821,6 +869,8 @@ export const useGameStore = create<GameState>((set, get) => {
           focus: null,
           office: initialOffice(balance),
           effects: noEffects(),
+          guidesDone: [],
+          guideTarget: null,
           lastReport: null,
           lastError: null,
           traces: [],
@@ -858,6 +908,7 @@ export const useGameStore = create<GameState>((set, get) => {
         staff: s.staff,
         staffSeq: s.staffSeq,
         candidates: s.candidates,
+        guidesDone: s.guidesDone,
       };
     },
   };

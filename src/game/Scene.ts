@@ -3,16 +3,30 @@
 import { nodeLabel } from '../components/nodeLabel';
 import { Application, Container, Graphics, Rectangle, Sprite, Text, type FederatedPointerEvent, type Ticker } from 'pixi.js';
 import type { GameMap } from '../data/schema';
-import { editNetOf, focusedProject, frontDeviceUid, netTargetOf, useGameStore, type Trace, type WireStart } from '../stores/useGameStore';
-import { linkAt } from './linkHit';
+import { coreOf, editNetOf, focusedProject, frontDeviceUid, netTargetOf, useGameStore, type Trace, type WireStart } from '../stores/useGameStore';
+import { cableEndAt, linkAt, plugPoints } from './linkHit';
 import { portLabel } from '../components/devicePorts';
+import { isDragMove } from '../components/rearDrag';
 import { rangeTiles } from './effectRange';
+import { setMapView } from './mapView';
 import { gameEnv } from '../sim/env';
-import { checkConnect, compiledNet, DESK_ID, type PlacedFurniture, type Project } from '../sim/project';
+import { moveFurniture, placeFurniture } from '../sim/furniture';
+import {
+  checkConnect,
+  compiledNet,
+  DESK_ID,
+  moveNode,
+  placeDevice,
+  placeInOffice,
+  replugTo,
+  type End,
+  type PlacedFurniture,
+  type Project,
+} from '../sim/project';
 import { colorOfLink, networkColors, type NetworkColors } from '../network/netColor';
 import type { Compiled, IssueDetail } from '../network/compile';
 import { texture } from './sprites';
-import { balance, devices as deviceData } from 'virtual:game-data';
+import { balance, devices as deviceData, furniture as furnitureData } from 'virtual:game-data';
 import { hideTip, showTipAt } from '../components/Tooltip';
 import { effectText } from './effectText';
 import { t } from '../i18n/t';
@@ -71,6 +85,20 @@ const WHEEL_LINE_PX = 16;
 // 2本指で、指の間の距離がこの倍率を超えたら1段階拡大・縮小する
 const PINCH_STEP_RATIO = 1.3;
 
+// 機器・家具・ケーブルの端を押したあとの対象。動かさずに離せば押した扱い（click）、動かせばドラッグ
+type PressTarget = { kind: 'node'; uid: string } | { kind: 'furniture'; uid: string } | { kind: 'end'; linkUid: string; end: End };
+interface Press {
+  // 押した位置（画面の座標）
+  x0: number;
+  y0: number;
+  target: PressTarget;
+  // 動かさずに離したときの処理
+  click: () => void;
+  // 動き出したか。動いたあとは、マップの座標の位置（at）を覚える
+  dragging: boolean;
+  at: Point | null;
+}
+
 export class Scene {
   private content = new Container();
   private tiles: Container | null = null;
@@ -120,8 +148,13 @@ export class Scene {
   // 任意の道具で、マウスを乗せている機器と配線（ポートの名前を出すときに使う）
   private hoverAnyNode: string | null = null;
   private hoverAnyLink: string | null = null;
+  // 機器・家具・ケーブルの端を押している間の操作（動かすか、押して離すか）
+  private press: Press | null = null;
 
   constructor(private app: Application) {
+    // 倉庫の欄（DOM）から、マスの判定と品目を置けるかを使えるようにする
+    setMapView({ tileAtClient: (x, y) => this.tileAtClient(x, y), canPlace: (id, tx, ty) => this.canPlace(id, tx, ty) });
+    window.addEventListener('keydown', this.onPressKey, true);
     app.stage.addChild(this.content);
     this.content.addChild(this.bg);
     // 機器と社員は、足元のY座標（zIndex）の昇順に重ねる
@@ -158,6 +191,8 @@ export class Scene {
 
   destroy(): void {
     this.unsubscribe();
+    setMapView(null);
+    window.removeEventListener('keydown', this.onPressKey, true);
     bindMapCommands(null);
     this.endPan();
     this.app.ticker.remove(this.onTick);
@@ -358,6 +393,7 @@ export class Scene {
   private startPinch(): void {
     const [a, b] = [...this.touches.values()];
     this.endPan();
+    this.press = null;
     this.resetTip();
     this.wireFrom = null;
     this.hover = null;
@@ -547,8 +583,11 @@ export class Scene {
     }
     for (const trace of this.traces) this.drawTrace(trace, ts);
     this.drawFailures(project, ts, failing);
+    this.drawPlugMarks(ts);
     this.drawHover(project, ts);
     this.drawEffectRange(ts);
+    this.drawPlacePreview(ts);
+    this.drawDrag(ts);
     this.drawFlash(ts);
   }
 
@@ -1229,16 +1268,33 @@ export class Scene {
       return;
     }
     const node = this.nodeNear(p, nodes);
+    // ケーブルの端は、離すまで挿し替えか押したかを決めない（配置中は、置く操作を優先する）
+    if (e.button === 0 && !store.placing && (store.tool === 'select' || store.tool === 'wire')) {
+      const end = cableEndAt(this.editLinks() ?? [], p.x, p.y, this.tileSize(), this.content.scale.x);
+      if (end) {
+        const wire = store.tool === 'wire';
+        this.startPress(e, { kind: 'end', linkUid: end.linkUid, end: end.end }, () => {
+          if (wire) this.wireDown(p, node);
+        });
+        return;
+      }
+    }
     // 機材を置く予定があり、機器でない場所を押したら置く（続けて置けるよう、配置モードはそのままにする）
     if (store.placing && !node) {
       store.place(store.placing, tile.tx, tile.ty);
       return;
     }
     switch (store.tool) {
-      case 'select':
-        // 機器を押すと、機器の画面を開く。ドラッグしても配線しない。空きマスでは何もしない（ウィンドウは×か Esc で閉じる）
-        if (node) store.toggleWindow('device', node.uid);
+      case 'select': {
+        // 機器・家具は、離すまで押したか動かしたかを決めない。動かさずに離したら、機器の画面を開く（家具は何もしない）
+        if (node) {
+          this.startPress(e, { kind: 'node', uid: node.uid }, () => store.toggleWindow('device', node.uid));
+          return;
+        }
+        const furniture = this.furnitureAt(tile);
+        if (furniture) this.startPress(e, { kind: 'furniture', uid: furniture.uid }, () => undefined);
         return;
+      }
       case 'remove':
         this.removeAt(p, nodes);
         return;
@@ -1299,9 +1355,176 @@ export class Scene {
     useGameStore.getState().openPortMenu(node.uid, rect.left + at.x + 6, rect.top + at.y - 12);
   }
 
+  // ---- 機器・家具の移動、ケーブルの端の挿し替え（押してから動かす）----
+
+  // 押したあとの操作を覚える。動かさずに離せば click、動かせばドラッグ
+  private startPress(e: FederatedPointerEvent, target: PressTarget, click: () => void): void {
+    this.press = { x0: e.clientX, y0: e.clientY, target, click, dragging: false, at: null };
+  }
+
+  // 押した位置から一定以上動いたら、ドラッグを始める。動いている間は、マップの座標の位置を覚えて描き直す。押している間は true
+  private pressMove(e: FederatedPointerEvent): boolean {
+    const press = this.press;
+    if (!press) return false;
+    if (!press.dragging) {
+      if (!isDragMove(press.x0, press.y0, e.clientX, e.clientY)) return true;
+      press.dragging = true;
+      this.resetTip();
+    }
+    press.at = this.toMap(e);
+    this.drawObjects();
+    return true;
+  }
+
+  // 離したとき。動かさずに離したら押した扱い、動かしていたら離した位置で動かす・挿し替える（置けなければ何もしない）
+  private finishPress(): void {
+    const press = this.press;
+    this.press = null;
+    if (!press) return;
+    if (!press.dragging) press.click();
+    else if (press.at) this.dropPress(press.target, press.at);
+    this.drawObjects();
+  }
+
+  // ドラッグの途中の Esc は、ドラッグだけを取り消す（ほかの Esc の処理には渡さない）
+  private onPressKey = (e: KeyboardEvent): void => {
+    if (e.key !== 'Escape' || !this.press?.dragging) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    this.press = null;
+    this.drawObjects();
+  };
+
+  // 離した位置で、機器・家具を移す、またはケーブルの端を別の機器へ挿す。判定は sim の純粋関数と同じ
+  private dropPress(target: PressTarget, at: Point): void {
+    const store = useGameStore.getState();
+    if (target.kind === 'end') {
+      const node = this.nodeNear(at, this.editNodes() ?? []);
+      if (node && this.canReplug(target.linkUid, target.end, node.uid)) store.replugTo(target.linkUid, target.end, node.uid, null);
+      return;
+    }
+    const tile = this.tileOf(at);
+    if (!tile) return;
+    if (target.kind === 'node') {
+      const node = this.editNodes()?.find((n) => n.uid === target.uid);
+      if (!node || (node.x === tile.tx && node.y === tile.ty)) return;
+      if (this.canMoveNode(target.uid, tile.tx, tile.ty)) store.moveNode(target.uid, tile.tx, tile.ty);
+      return;
+    }
+    const furniture = store.office.furniture.find((f) => f.uid === target.uid);
+    if (!furniture || (furniture.x === tile.tx && furniture.y === tile.ty)) return;
+    if (this.canMoveFurniture(target.uid, tile.tx, tile.ty)) store.moveFurniture(target.uid, tile.tx, tile.ty);
+  }
+
+  // 機器・家具・配線の端の判定（store の操作と同じ条件で、sim の純粋関数を試す）
+  private canMoveNode(uid: string, tx: number, ty: number): boolean {
+    const s = useGameStore.getState();
+    return this.map !== null && moveNode(coreOf(s), uid, tx, ty, gameEnv, netTargetOf(s), this.map).ok;
+  }
+
+  private canMoveFurniture(uid: string, tx: number, ty: number): boolean {
+    const s = useGameStore.getState();
+    return s.maps.hq !== undefined && moveFurniture(coreOf(s), uid, tx, ty, s.maps.hq).ok;
+  }
+
+  private canReplug(linkUid: string, end: End, nodeUid: string): boolean {
+    const s = useGameStore.getState();
+    return replugTo(coreOf(s), linkUid, end, nodeUid, null, gameEnv, netTargetOf(s)).ok;
+  }
+
+  // 品目（機材・家具）を、マスに置けるか（倉庫の欄からのドラッグと、配置の表示で使う）
+  private canPlace(id: string, tx: number, ty: number): boolean {
+    const s = useGameStore.getState();
+    const core = coreOf(s);
+    const hq = s.maps.hq;
+    if (!hq) return false;
+    if (id in furnitureData) return placeFurniture(core, id, tx, ty, hq).ok;
+    if (s.active.length === 0) return placeInOffice(core, id, tx, ty, hq, gameEnv).ok;
+    return this.map !== null && placeDevice(core, id, tx, ty, this.map, gameEnv).ok;
+  }
+
+  // 画面の座標（クライアントの座標）のマス。マップの外なら null
+  private tileAtClient(clientX: number, clientY: number): { tx: number; ty: number } | null {
+    const cam = this.camera;
+    if (!cam) return null;
+    const rect = this.app.canvas.getBoundingClientRect();
+    return this.tileOf({ x: (clientX - rect.left - cam.x) / cam.zoom, y: (clientY - rect.top - cam.y) / cam.zoom });
+  }
+
+  // 編集できるケーブル（自社オフィス、または設計中の案件）
+  private editLinks(): readonly NetLink[] | null {
+    return editNetOf(useGameStore.getState())?.links ?? null;
+  }
+
+  // 自社オフィスで動かせる家具（押した位置のマス）。案件の受注中や納品の結果の表示では動かせない
+  private furnitureAt(tile: { tx: number; ty: number }): PlacedFurniture | undefined {
+    const s = useGameStore.getState();
+    if (this.map?.id !== 'hq' || s.active.length > 0 || s.showcase) return undefined;
+    return s.office.furniture.find((f) => f.x === tile.tx && f.y === tile.ty);
+  }
+
+  // マスの枠。置ける（明るく・緑の枠）か、置けない（暗く・赤の枠）かを示す
+  private drawTileState(tx: number, ty: number, ts: number, ok: boolean): void {
+    const x = tx * ts;
+    const y = ty * ts;
+    this.g.rect(x, y, ts, ts).fill({ color: ok ? 0xffffff : 0x000000, alpha: ok ? 0.3 : 0.45 });
+    this.g.rect(x + 1, y + 1, ts - 2, ts - 2).stroke({ width: 2, color: ok ? 0x62d26f : FAIL });
+  }
+
+  // 倉庫の欄からドラッグ中、または配置中は、カーソルのマスを置けるかで示す
+  private drawPlacePreview(ts: number): void {
+    const s = useGameStore.getState();
+    const id = s.itemDrag?.id ?? s.placing;
+    if (!id) return;
+    const tile = s.itemDrag ? this.tileAtClient(s.itemDrag.x, s.itemDrag.y) : this.cursorTile;
+    if (!tile) return;
+    this.drawTileState(tile.tx, tile.ty, ts, this.canPlace(id, tile.tx, tile.ty));
+  }
+
+  // ドラッグ中の表示。機器・家具は移す先のマスを示し、ケーブルの端は挿し替える先の機器を示して、仮の線を引く
+  private drawDrag(ts: number): void {
+    const press = this.press;
+    if (!press?.dragging || !press.at) return;
+    const at = press.at;
+    const target = press.target;
+    if (target.kind === 'node' || target.kind === 'furniture') {
+      const tile = this.tileOf(at);
+      if (!tile) return;
+      const ok = target.kind === 'node' ? this.canMoveNode(target.uid, tile.tx, tile.ty) : this.canMoveFurniture(target.uid, tile.tx, tile.ty);
+      this.drawTileState(tile.tx, tile.ty, ts, ok);
+      return;
+    }
+    const link = this.editLinks()?.find((l) => l.uid === target.linkUid);
+    if (!link) return;
+    const other = this.editNodes()?.find((n) => n.uid === (target.end === 'a' ? link.b.node : link.a.node));
+    const node = this.nodeNear(at, this.editNodes() ?? []);
+    const ok = node !== undefined && this.canReplug(target.linkUid, target.end, node.uid);
+    if (node) this.drawTileState(node.x, node.y, ts, ok);
+    if (other) {
+      this.g.moveTo(other.x * ts + ts / 2, other.y * ts + ts / 2);
+      this.g.lineTo(at.x, at.y);
+      this.g.stroke({ width: 2, color: ok ? SELECT : FAIL });
+    }
+  }
+
+  // マウスを乗せたケーブルの両端に、つかめる差し込み口の印を出す（選択と配線の道具で、押していないとき）
+  private drawPlugMarks(ts: number): void {
+    const s = useGameStore.getState();
+    if (this.press || s.placing || (s.tool !== 'select' && s.tool !== 'wire')) return;
+    const link = this.editLinks()?.find((l) => l.uid === this.hoverAnyLink);
+    if (!link) return;
+    const size = 6 / this.content.scale.x;
+    const plugs = plugPoints(link, ts);
+    for (const plug of [plugs.a, plugs.b]) {
+      this.g.rect(plug.x - size / 2, plug.y - size / 2, size, size).fill({ color: SELECT });
+      this.g.rect(plug.x - size / 2, plug.y - size / 2, size, size).stroke({ width: 1 / this.content.scale.x, color: OUTLINE });
+    }
+  }
+
   private onMove = (e: FederatedPointerEvent): void => {
     if (this.touches.size >= 2) return;
     if (this.movePan(e)) return;
+    if (this.pressMove(e)) return;
     if (e.pointerType !== 'touch') this.updateTip(e);
     const p = this.toMap(e);
     this.cursorTile = this.tileOf(p);
@@ -1367,6 +1590,10 @@ export class Scene {
   private onUp = (e: FederatedPointerEvent): void => {
     if (e.pointerType === 'touch') this.endTouchTip();
     this.endPan();
+    if (this.press) {
+      this.finishPress();
+      return;
+    }
     if (!this.wireFrom) return;
     const from = this.wireFrom;
     this.wireFrom = null;
@@ -1386,6 +1613,7 @@ export class Scene {
 
   private dropWire = (): void => {
     this.endPan();
+    this.press = null;
     this.wireFrom = null;
     this.hover = null;
     this.drawObjects();

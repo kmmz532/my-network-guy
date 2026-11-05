@@ -93,6 +93,7 @@ const start = (): Core => ({
   staff: initialStaff(balance, 1).staff,
   staffSeq: 2,
   candidates: [],
+  guidesDone: [],
 });
 
 // 案件の受注は枠（balance.office.projectSlots）を渡す

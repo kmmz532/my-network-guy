@@ -165,6 +165,8 @@ export interface Core {
   staffSeq: number;
   // 採用の候補（毎月作り直す）
   candidates: Staff[];
+  // 初めての概念の案内を終えた（または飛ばした）固定案件のID
+  guidesDone: string[];
 }
 
 // 機材の性質（ゲームデータから作る）
@@ -315,6 +317,24 @@ const officePlaceReason = (
   return null;
 };
 
+// 機材を置けるマスか（配置と移動で共通）。自社案件は自社オフィスの規則、それ以外は床（PCは机の上も可）。置けなければ理由を返す
+const placeReason = (
+  inhouse: boolean,
+  furniture: PlacedFurniture[],
+  nodes: NetNode[],
+  deviceId: string,
+  x: number,
+  y: number,
+  map: GameMap,
+  env: Env,
+): string | null => {
+  if (inhouse) return officePlaceReason(furniture, nodes, deviceId, x, y, map, env);
+  const kind = map.legend[map.tiles[y][x]];
+  if (kind !== 'floor' && !(kind === 'desk' && env.devices[deviceId].category === 'pc')) return 'tile';
+  if (nodes.some((n) => n.x === x && n.y === y)) return 'tile';
+  return null;
+};
+
 // 在庫から機器を1台配置する。自社案件では自社オフィスと同じ規則に従い、ほかの案件では床（PCは机の上も可）に置ける。
 export const placeDevice = (core: Core, deviceId: string, x: number, y: number, map: GameMap, env: Env): Outcome => {
   const p = requireDesign(core);
@@ -322,15 +342,8 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
   if (!env.devices[deviceId]) return fail('none');
   if ((core.owned[deviceId] ?? 0) < 1) return fail('stock');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
-  if (p.contract.inhouse) {
-    const reason = officePlaceReason(core.office.furniture, p.nodes, deviceId, x, y, map, env);
-    if (reason) return fail(reason);
-  } else {
-    // 床に置く。PCは机の上にも置ける
-    const kind = map.legend[map.tiles[y][x]];
-    if (kind !== 'floor' && !(kind === 'desk' && env.devices[deviceId].category === 'pc')) return fail('tile');
-    if (p.nodes.some((n) => n.x === x && n.y === y)) return fail('tile');
-  }
+  const reason = placeReason(p.contract.inhouse, core.office.furniture, p.nodes, deviceId, x, y, map, env);
+  if (reason) return fail(reason);
   const node: NetNode = {
     uid: `u${p.seq}`,
     device: deviceId,
@@ -717,6 +730,143 @@ export const replug = (core: Core, linkUid: string, end: End, port: number, env:
   const links = net.links.map((l) => (l.uid === linkUid ? moved : l));
   const segments = fillSegments({ nodes: net.nodes, links, segments: net.segments }, env.engine);
   return { ok: true, core: withNet(core, target, { ...net, links, segments }) };
+};
+
+// 2つの機器の位置をつなぐ配線の経路（折れ点を1つ入れたL字。connect と同じ形）
+const cablePath = (a: NetNode, b: NetNode): NetLink['path'] => [
+  [a.x, a.y],
+  [b.x, a.y],
+  [b.x, b.y],
+];
+
+// 配線の費用を払う（正）か返す（負）。案件では案件の費用も増減する。自社オフィスの費用は案件の費用に入れない
+const payCable = (core: Core, target: NetTarget, delta: number): Core => {
+  const next = { ...core, clock: { ...core.clock, money: core.clock.money - delta } };
+  if (target !== 'focus') return next;
+  const p = focusedOf(next) as Project;
+  return withProject(next, { ...p, cost: p.cost + delta });
+};
+
+// 機器を別のマスへ動かす。置ける条件は配置と同じ（自社オフィスの規則、または床）。
+// つながるケーブルは新しい位置に合わせて経路と長さを引き直し、費用の差額を払う（返す）。
+// 施工済みの機器を動かすと、その機器とつながるケーブルは施工前に戻る。既設（locked）の機器と、既設のケーブルにつながる機器は動かせない
+export const moveNode = (core: Core, uid: string, x: number, y: number, env: Env, target: NetTarget, map: GameMap): Outcome => {
+  const net = netOf(core, target);
+  if (typeof net === 'string') return fail(net);
+  const node = net.nodes.find((n) => n.uid === uid);
+  if (!node) return fail('none');
+  const project = target === 'focus' ? (focusedOf(core) as Project) : null;
+  const attached = net.links.filter((l) => l.a.node === uid || l.b.node === uid);
+  if (node.locked || attached.some((l) => (project?.inheritedLinks ?? []).includes(l.uid))) return fail('locked');
+  if (x === node.x && y === node.y) return { ok: true, core };
+  if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
+  const inhouse = project === null || project.contract.inhouse;
+  const others = net.nodes.filter((n) => n.uid !== uid);
+  const reason = placeReason(inhouse, core.office.furniture, others, node.device, x, y, map, env);
+  if (reason) return fail(reason);
+
+  const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, x, y } : n));
+  const after = new Map(nodes.map((n) => [n.uid, n] as const));
+  const before = new Map(net.nodes.map((n) => [n.uid, n] as const));
+  let delta = 0;
+  const links: NetLink[] = [];
+  for (const l of net.links) {
+    if (l.a.node !== uid && l.b.node !== uid) {
+      links.push(l);
+      continue;
+    }
+    const cable = env.cables[l.cable];
+    const a = after.get(l.a.node)!;
+    const b = after.get(l.b.node)!;
+    const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+    if (!cable || length < 1 || length > cable.maxLengthTiles) return fail('cable');
+    const oldA = before.get(l.a.node)!;
+    const oldB = before.get(l.b.node)!;
+    const oldLength = Math.abs(oldA.x - oldB.x) + Math.abs(oldA.y - oldB.y);
+    delta += cableCost(cable, length) - cableCost(cable, oldLength);
+    links.push({ ...l, path: cablePath(a, b) });
+  }
+  if (delta > 0 && core.clock.money < delta) return fail('money');
+
+  const segments = fillSegments({ nodes, links, segments: net.segments }, env.engine);
+  let next = withNet(core, target, { nodes, links, seq: net.seq, segments });
+  if (project) {
+    // 動かした機器とつながるケーブルは、施工前に戻す
+    const p = focusedOf(next) as Project;
+    const attachedUids = attached.map((l) => l.uid);
+    next = withProject(next, {
+      ...p,
+      built: {
+        nodes: p.built.nodes.filter((x) => x !== uid),
+        links: p.built.links.filter((x) => !attachedUids.includes(x)),
+      },
+    });
+  }
+  return { ok: true, core: payCable(next, target, delta) };
+};
+
+// 配線の片方の端（end）を、ほかの機器（nodeUid）の空いているポートへ挿し替える。相手の機器を変えられる。
+// port が null なら、相手の機器の空いている最小の番号を使う。空きがなければ失敗する（port。番号を指定して埋まっていれば portUsed）。
+// ケーブルは新しい長さで経路と費用を引き直し、差額を払う（返す）。挿し替えたケーブルは施工前に戻す。既設のケーブルは挿し替えられない
+export const replugTo = (
+  core: Core,
+  linkUid: string,
+  end: End,
+  nodeUid: string,
+  port: number | null,
+  env: Env,
+  target: NetTarget = 'focus',
+): Outcome => {
+  const net = netOf(core, target);
+  if (typeof net === 'string') return fail(net);
+  const link = net.links.find((l) => l.uid === linkUid);
+  if (!link) return fail('none');
+  const project = target === 'focus' ? (focusedOf(core) as Project) : null;
+  if ((project?.inheritedLinks ?? []).includes(linkUid)) return fail('locked');
+  const endpoint = end === 'a' ? link.a : link.b;
+  const other = end === 'a' ? link.b : link.a;
+  const node = net.nodes.find((n) => n.uid === nodeUid);
+  if (!node || nodeUid === other.node) return fail('none');
+  const count = env.devices[node.device]?.portCount ?? 0;
+  // 相手の機器のポートが埋まっているか（同じ機器なら、この端が今つないでいるポートも埋まっている）
+  const taken = (p: number): boolean =>
+    (nodeUid === endpoint.node && p === endpoint.port) ||
+    net.links.some(
+      (l) => l.uid !== linkUid && ((l.a.node === nodeUid && l.a.port === p) || (l.b.node === nodeUid && l.b.port === p)),
+    );
+  let to: number;
+  if (port === null) {
+    let free: number | undefined;
+    for (let p = 0; p < count && free === undefined; p++) if (!taken(p)) free = p;
+    if (free === undefined) return fail('port');
+    to = free;
+  } else {
+    if (!Number.isInteger(port) || port < 0 || port >= count) return fail('port');
+    if (taken(port)) return fail('portUsed');
+    to = port;
+  }
+
+  const before = new Map(net.nodes.map((n) => [n.uid, n] as const));
+  const a = end === 'a' ? node : before.get(link.a.node)!;
+  const b = end === 'b' ? node : before.get(link.b.node)!;
+  const cable = env.cables[link.cable];
+  const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+  if (!cable || length < 1 || length > cable.maxLengthTiles) return fail('cable');
+  const oldA = before.get(link.a.node)!;
+  const oldB = before.get(link.b.node)!;
+  const delta = cableCost(cable, length) - cableCost(cable, Math.abs(oldA.x - oldB.x) + Math.abs(oldA.y - oldB.y));
+  if (delta > 0 && core.clock.money < delta) return fail('money');
+
+  const moved: NetLink = { ...link, [end]: { node: nodeUid, port: to }, path: cablePath(a, b) };
+  const links = net.links.map((l) => (l.uid === linkUid ? moved : l));
+  const segments = fillSegments({ nodes: net.nodes, links, segments: net.segments }, env.engine);
+  let next = withNet(core, target, { ...net, links, segments });
+  if (project) {
+    // 挿し替えたケーブルは、施工前に戻す
+    const p = focusedOf(next) as Project;
+    next = withProject(next, { ...p, built: { ...p.built, links: p.built.links.filter((x) => x !== linkUid) } });
+  }
+  return { ok: true, core: payCable(next, target, delta) };
 };
 
 // サービスの既定の待ち受けポート（プロトコルごと）。起動するときに使う

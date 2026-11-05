@@ -29,6 +29,7 @@ const core = (): Core => ({
   staff: initialStaff(balance, 1).staff,
   staffSeq: 2,
   candidates: [],
+  guidesDone: [],
 });
 
 // 社員 s0 を、職種 network・level 3 にする

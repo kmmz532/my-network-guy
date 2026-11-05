@@ -32,6 +32,7 @@ const sample: SaveData = {
   staff: [member('s0'), member('s1')],
   staffSeq: 2,
   candidates: [],
+  guidesDone: ['c001_direct_link'],
 };
 
 describe('セーブデータ', () => {
@@ -229,6 +230,24 @@ describe('v12 → v13', () => {
   it('色を持たない案件は、そのまま残す', () => {
     const v12 = { ...sample, active: [{ id: 'x', nodes: [], links: [] }] };
     expect(migrate(12, v12).active[0]).toEqual({ id: 'x', nodes: [], links: [], testedOk: false });
+  });
+});
+
+describe('v15 → v16', () => {
+  const { guidesDone: _guidesDone, ...v15 } = sample;
+
+  it('初めての概念の案内を終えた案件は、移行前は空のまま（どの案件の案内も終えていない）', () => {
+    const out = migrate(15, v15);
+    expect(out.guidesDone).toEqual([]);
+  });
+
+  it('移行後の形式は、読み込んで書き出しても元に戻る', () => {
+    const out = migrate(15, v15);
+    expect(importSave(exportSave(out))).toEqual(out);
+  });
+
+  it('guidesDone が文字列の配列でなければ拒否する', () => {
+    expect(() => migrate(16, { ...sample, guidesDone: [1] })).toThrow();
   });
 });
 

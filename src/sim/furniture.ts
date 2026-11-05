@@ -33,6 +33,28 @@ export const placeFurniture = (core: Core, id: string, x: number, y: number, map
   };
 };
 
+// 自社オフィスの家具を別のマスへ動かす。置ける条件は配置と同じ（床で、家具も機材もないマス）。
+// 家具の上に機材があるときは動かせない（機材が床に取り残されるため）
+export const moveFurniture = (core: Core, uid: string, x: number, y: number, map: GameMap): Outcome => {
+  if (officeLocked(core)) return fail('inhouse');
+  const office = core.office;
+  const target = office.furniture.find((f) => f.uid === uid);
+  if (!target) return fail('none');
+  if (x === target.x && y === target.y) return { ok: true, core };
+  if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
+  if (map.legend[map.tiles[y][x]] !== 'floor') return fail('tile');
+  if (office.furniture.some((f) => f.uid !== uid && f.x === x && f.y === y)) return fail('tile');
+  if (office.nodes.some((n) => n.x === x && n.y === y)) return fail('tile');
+  if (office.nodes.some((n) => n.x === target.x && n.y === target.y)) return fail('occupied');
+  return {
+    ok: true,
+    core: {
+      ...core,
+      office: { ...office, furniture: office.furniture.map((f) => (f.uid === uid ? { ...f, x, y } : f)) },
+    },
+  };
+};
+
 // 自社オフィスの家具を撤去する（在庫に戻る）。机の上にPCがあるときは撤去できない
 export const removeFurniture = (core: Core, uid: string): Outcome => {
   if (officeLocked(core)) return fail('inhouse');
