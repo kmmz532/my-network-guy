@@ -135,11 +135,41 @@ describe('IPアドレスの自動割り当て（autoAssign）', () => {
     expect(ipsOf(core)).toMatchObject({ pc_a: '192.168.1.11', pc_b: '192.168.1.10', pc_c: '192.168.1.12' });
   });
 
-  it('ネットワークが決まっていなければ何もしない（同じ core をそのまま返す）', () => {
+  it('ネットワークが決まっていないセグメントには、ほかと重ならない 192.168.N.0/24 を既定として決め、つないだ PC に .10 から振る', () => {
     let core = take(startCore([fixedOffer(c002)]), 'c002_small_office');
     core = ok(connect(core, 'pc_a', 'pc_b', UTP, env, 'focus')).core;
-    expect(autoAssign(core, env, 'focus', true)).toBe(core);
-    expect(ipsOf(core)).toEqual({ pc_a: undefined, pc_b: undefined, pc_c: undefined });
+    core = autoAssign(core, env, 'focus', true);
+    expect(ipsOf(core)).toMatchObject({ pc_a: '192.168.1.10', pc_b: '192.168.1.11', pc_c: undefined });
+    expect(focusedOf(core)!.segments).toEqual({ 'pc_a:0': { network: '192.168.1.0', prefix: 24 } });
+  });
+
+  it('振る相手がいないセグメント（ルーターだけ）には、ネットワークを決めない', () => {
+    const { core: base, sw } = officeWithSwitch();
+    const router = place(buy(base, ROUTER), ROUTER, 6, 6);
+    const core = wireAuto(router.core, router.uid, sw);
+    expect(focusedOf(core)!.segments).toEqual({});
+    expect(nodeOf(core, router.uid).interfaces).toEqual([]);
+  });
+
+  it('既定のネットワークは、ほかのセグメントと重ならない N を選ぶ（2つ目のセグメントは 192.168.2.0/24）', () => {
+    let core = take(startCore([fixedOffer(c002)]), 'c002_small_office');
+    core = ok(connect(core, 'pc_a', 'pc_b', UTP, env, 'focus')).core;
+    core = autoAssign(core, env, 'focus', true);
+    core = buy(core, SWITCH);
+    const sw = place(core, SWITCH, 10, 4);
+    core = ok(connect(sw.core, 'pc_c', sw.uid, UTP, env, 'focus')).core;
+    core = autoAssign(core, env, 'focus', true);
+    expect(nodeOf(core, 'pc_c')).toMatchObject({ interfaces: [{ port: 0, ip: '192.168.2.10', prefix: 24 }] });
+    expect(nodeOf(core, 'pc_a').interfaces[0].ip).toBe('192.168.1.10');
+  });
+
+  it('既定のネットワークでは、ルーターのポートに .1 を振り、ホストのゲートウェイも .1 にする', () => {
+    const { core: base, sw } = officeWithSwitch();
+    let core = ok(connect(base, 'pc_a', sw, UTP, env, 'focus')).core;
+    const router = place(buy(core, ROUTER), ROUTER, 6, 6);
+    core = wireAuto(router.core, router.uid, sw);
+    expect(nodeOf(core, router.uid).interfaces).toEqual([{ port: 0, ip: '192.168.1.1', prefix: 24 }]);
+    expect(nodeOf(core, 'pc_a')).toMatchObject({ gateway: '192.168.1.1', interfaces: [{ port: 0, ip: '192.168.1.10', prefix: 24 }] });
   });
 
   it('ゲートウェイ: 未設定で、同じセグメントにルーターのアドレスがあれば、それを使う。ルーターのポートは振らない', () => {
