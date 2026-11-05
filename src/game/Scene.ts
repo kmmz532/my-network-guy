@@ -47,8 +47,8 @@ const PACKET_SPACING_TILES = 0.5;
 const PACKET_COUNT = 3;
 // 機器のスプライト（24×40）の足元は、タイルの下端から何 px 上か。足元のY座標で前後を決める
 const DEVICE_FOOT_INSET = 4;
-// 机の天板の手前の縁（タイル上端からの距離。furniture/desk.png に合わせる）
-const DESK_TOP = 15;
+// PCを載せる位置（天板の中ほど。タイル上端からの距離。furniture/desk.png に合わせる）
+const DESK_TOP = 18;
 // 社員のスプライト（16×24）の足元（上端からの位置）
 const STAFF_FOOT = 23;
 
@@ -407,7 +407,7 @@ export class Scene {
     const foot = node.y * ts + ts - DEVICE_FOOT_INSET;
     if (tex) {
       const sprite = new Sprite(tex);
-      // スプライトの底面の行（y=37）が足元に来る位置。PCは机の天板（タイル上端から15 px）に載せ、影は付けない
+      // スプライトの底面の行（y=37）が足元に来る位置。PCは机の天板に載せ、影は付けない
       const deskTile = this.map?.legend[this.map.tiles[node.y]?.[node.x]] === 'desk';
       const onDesk = deskTile || category === 'pc';
       // 机のないマスに置いたPCには、机も一緒に描く
