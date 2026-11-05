@@ -175,6 +175,8 @@ describe('案件の取り消し・やり直し', () => {
     st().setIface('pc_b', 0, '192.168.1.11');
     st().connect('pc_a', 'pc_b', 'utp_cat5e');
     expect(st().test()).toBeNull();
+    // 受注で設計に入ると時間が止まる（既定の設定）。施工は時間が進んでいるときに依頼する
+    st().setSpeed(1);
     expect(st().requestBuild()).toBeNull();
     expect(st().active[0].phase).toBe('build');
     expect(st().histories[projectHistoryKey('c001_direct_link')]).toBeUndefined();

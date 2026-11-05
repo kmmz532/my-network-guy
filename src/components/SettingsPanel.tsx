@@ -123,6 +123,16 @@ export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; on
           onChange={(v) => update({ autoIp: v })}
         />
       </Row>
+      <Row label={t('ui.settings.designPause')}>
+        <Choice
+          options={[
+            { value: true, label: t('ui.settings.designPause.on') },
+            { value: false, label: t('ui.settings.designPause.off') },
+          ]}
+          value={settings.designPause}
+          onChange={(v) => update({ designPause: v })}
+        />
+      </Row>
       <Row label={t('ui.settings.autoSave')}>
         <Choice
           options={AUTO_SAVE_MODES.map((v) => ({ value: v, label: t(`ui.settings.autoSave.${v}` as const) }))}

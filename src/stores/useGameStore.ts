@@ -768,6 +768,8 @@ export const useGameStore = create<GameState>((set, get) => {
       const reason = apply(accept(coreOf(get()), offerId, balance.office.projectSlots, crew));
       // 自社案件は自社オフィスを引き継ぐ。取り消しで自社オフィスを戻すと引き継いだ内容が壊れるため、自社オフィスの履歴は消す
       if (reason === null && inhouse) dropHistory(OFFICE_HISTORY_KEY);
+      // 設定がオンなら、受注して設計に入ったときに時間を止める（配線は時間に追われずに進める）
+      if (reason === null && get().speed !== 0 && loadSettings().designPause) get().setSpeed(0);
       return reason;
     },
     // 在庫の機材・家具を配置する（購入はショップで行う）。案件がなければ自社オフィスに置く

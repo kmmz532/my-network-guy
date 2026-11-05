@@ -29,6 +29,8 @@ export interface Settings {
   autoSave: AutoSaveMode;
   // PC・サーバーのIPアドレスを、つないだセグメントの空いているアドレスから自動で振るか（既定はオン）
   autoIp: boolean;
+  // 案件を受注して設計に入ったとき、時間を止めるか（既定はオン。配線の作業を時間に追われずに進められる）
+  designPause: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -39,6 +41,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pausedBuild: 'ask',
   autoSave: 'daily',
   autoIp: true,
+  designPause: true,
 };
 
 export const SETTINGS_KEY = 'network-ya.settings.v1';
@@ -68,6 +71,7 @@ export function parseSettings(raw: string | null): Settings {
       ? (d.autoSave as AutoSaveMode)
       : DEFAULT_SETTINGS.autoSave,
     autoIp: typeof d.autoIp === 'boolean' ? d.autoIp : DEFAULT_SETTINGS.autoIp,
+    designPause: typeof d.designPause === 'boolean' ? d.designPause : DEFAULT_SETTINGS.designPause,
   };
 }
 
