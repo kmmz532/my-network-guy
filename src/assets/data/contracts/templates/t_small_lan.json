@@ -5,7 +5,7 @@
     "c002_small_office"
   ],
   "minReputation": 2,
-  "weight": 10,
+  "weight": 20,
   "map": "office_small",
   "params": {
     "pcCount": {

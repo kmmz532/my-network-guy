@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import l3TwoRoomsJson from '../assets/data/contracts/templates/t_l3_two_rooms.json';
+import rareExpoJson from '../assets/data/contracts/templates/t_rare_expo_lan.json';
 import twoRoomsJson from '../assets/data/contracts/templates/t_two_rooms_lan.json';
 import twoSitesJson from '../assets/data/contracts/templates/t_two_sites_lan.json';
 import officeTwoRoomsJson from '../assets/data/maps/office_two_rooms.json';
@@ -12,6 +13,7 @@ const cases: { template: ContractTemplate; map: GameMap }[] = [
   { template: twoRoomsJson as unknown as ContractTemplate, map: officeTwoRoomsJson as unknown as GameMap },
   { template: twoSitesJson as unknown as ContractTemplate, map: officeTwoSitesJson as unknown as GameMap },
   { template: l3TwoRoomsJson as unknown as ContractTemplate, map: officeTwoRoomsJson as unknown as GameMap },
+  { template: rareExpoJson as unknown as ContractTemplate, map: officeTwoRoomsJson as unknown as GameMap },
 ];
 
 describe.each(cases)('定型案件 $template.id', ({ template, map }) => {

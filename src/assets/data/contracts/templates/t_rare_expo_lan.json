@@ -1,0 +1,39 @@
+{
+  "id": "t_rare_expo_lan",
+  "stage": 1,
+  "requires": [
+    "c005_two_sites"
+  ],
+  "minReputation": 10,
+  "weight": 3,
+  "map": "office_two_rooms",
+  "params": {
+    "pcCount": {
+      "min": 6,
+      "max": 8
+    }
+  },
+  "spawnArea": {
+    "x": 1,
+    "y": 1,
+    "width": 18,
+    "height": 8
+  },
+  "deadlineDays": 3,
+  "budget": {
+    "base": 40000,
+    "perPc": 3000,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 400000,
+    "perPc": 50000,
+    "reputation": 3
+  },
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": "$all_pcs"
+    }
+  ]
+}

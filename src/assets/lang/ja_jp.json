@@ -48,6 +48,8 @@
   "contract.t_two_sites_lan.story": "本社と支社のPCを、拠点をまたいで互いに行き来できるようにする。",
   "contract.t_l3_two_rooms.title": "部署をまたぐ通信（{pcCount}台）",
   "contract.t_l3_two_rooms.story": "ルーターは使わず、社内のスイッチ1台で、部署をまたいだ通信を通してほしい。",
+  "contract.t_rare_expo_lan.title": "展示会の臨時回線（{pcCount}台）",
+  "contract.t_rare_expo_lan.story": "明日の朝から展示会が始まる。来場者の受付に使うPCを、今日中につないでほしい。",
   "goal.ping": "{from} から {to} へ Ping が通る",
   "goal.ping_all": "{nodes} が相互に Ping で通信できる",
   "goal.http": "{from} から {to} のWebページを閲覧できる",
