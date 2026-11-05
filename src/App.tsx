@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { balance, furniture } from 'virtual:game-data';
 import type { FurnitureId } from './generated/ids';
-import type { LangKey } from './generated/lang-keys';
 import { seatCount } from './sim/furniture';
 import { loadLang, t } from './i18n/t';
 import { PixiStage } from './game/PixiStage';
@@ -16,6 +15,7 @@ import { Toolbar } from './components/Toolbar';
 import { TaskPanel } from './components/TaskPanel';
 import { ConfigPanel } from './components/ConfigPanel';
 import { ShopCards } from './components/ShopCards';
+import { HiringPanel } from './components/HiringPanel';
 import { Icon } from './components/Icon';
 import { TitleScreen } from './components/TitleScreen';
 import { mapLoaders } from 'virtual:loaders';
@@ -51,8 +51,8 @@ export function App() {
   // 社員の人数と席の数（席は自社オフィスの机の家具）。雇えなかった理由をHUDに出す
   const staff = useGameStore((s) => s.staff.length);
   const seats = useGameStore((s) => seatCount(s.office, (id) => furniture[id as FurnitureId]?.seat === true));
-  const hire = useGameStore((s) => s.hire);
-  const [hireMessage, setHireMessage] = useState('');
+  const candidates = useGameStore((s) => s.candidates);
+  const [hiring, setHiring] = useState(false);
   const cacheMap = useGameStore((s) => s.cacheMap);
 
   useTickLoop();
@@ -107,7 +107,7 @@ export function App() {
     const blob = new Blob([exportSave(snapshot())], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'network-ya-save.json';
+    a.download = 'my-network-guy-save.json';
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -152,18 +152,15 @@ export function App() {
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {t('ui.staff.label', { staff, seats })}
+          {/* 候補が0人のときは押せない（半透明） */}
           <button
-            style={hudButton(false)}
-            disabled={staff >= seats}
-            onClick={() => {
-              const reason = hire();
-              setHireMessage(reason ? t(`ui.error.${reason}` as LangKey) : '');
-            }}
+            style={{ ...hudButton(hiring), opacity: candidates.length > 0 ? 1 : 0.4 }}
+            title={t('ui.staff.hire')}
+            disabled={candidates.length === 0}
+            onClick={() => setHiring(!hiring)}
           >
-            {t('ui.staff.hire')}
+            <Icon name="icon/person" scale={1} />
           </button>
-          {staff >= seats && <span style={{ color: '#ffd866' }}>{t('ui.error.seat')}</span>}
-          {hireMessage && staff < seats && <span style={{ color: '#ffd866' }}>{hireMessage}</span>}
         </span>
         <span style={{ display: 'flex', gap: 4 }}>
           {SPEEDS.map((s) => (
@@ -185,6 +182,7 @@ export function App() {
       <Toolbar onOffers={() => setPopup('offers')} onShop={() => setPopup('shop')} />
       {popup === 'offers' && <OfferCards onClose={() => setPopup(null)} />}
       {popup === 'shop' && <ShopCards onClose={() => setPopup(null)} />}
+      {hiring && <HiringPanel onClose={() => setHiring(false)} />}
       {popup === 'menu' && (
         <div style={modalBack} onClick={() => setPopup(null)}>
           <div style={{ ...modalBox, minWidth: 200 }} onClick={(e) => e.stopPropagation()}>

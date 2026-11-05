@@ -13,7 +13,7 @@ class GameDb extends Dexie {
   saves!: Table<SaveRecord, number>;
 
   constructor() {
-    super('network-ya');
+    super('my-network-guy');
     this.version(1).stores({ saves: 'slot' });
   }
 }
