@@ -101,11 +101,11 @@ def pc():
 
 
 def server():
-    # 縦長のラックサーバー
+    # 縦長のタワーサーバー。天面（奥行き4）と、前面にドライブの段
     img, d = new(24, 40)
-    rect(d, 4, 0, 16, 38, 'w', 'o')
-    d.line([(17, 1), (17, 36)], fill=C['g'])
-    for y in (3, 10, 17, 24):
+    box3q(d, 4, 0, 16, 4, 34, 'e', 'w', edge='e')
+    d.line([(17, 5), (17, 36)], fill=C['g'])
+    for y in (7, 13, 19, 25):
         rect(d, 6, y, 10, 4, 'd')
         px(d, 7, y + 1, 'g')
         px(d, 8, y + 1, 'g')
@@ -114,16 +114,31 @@ def server():
     return img
 
 
+# ---- 3/4視点の箱 ----
+# 斜め上から見下ろす（ART.md の視点）。箱は、上に明るい天面、下に前面を描く。
+# 天面の奥行きは depth、前面の高さは h。輪郭線で囲み、天面と前面の境に明るい線を引く
+
+def box3q(d, x, y, w, depth, h, top, front, edge=None, shade=None):
+    rect(d, x, y, w, depth + h, front, 'o')
+    rect(d, x + 1, y + 1, w - 2, depth - 1, top)
+    d.line([(x + 1, y + depth), (x + w - 2, y + depth)], fill=C[edge or 'e'] + (255,))
+    if shade:
+        d.line([(x + 1, y + depth + h - 2), (x + w - 2, y + depth + h - 2)], fill=C[shade] + (255,))
+
+
 # 機器の色の決まり: スイッチは青、ルーターは赤、無線は白、サーバーは灰。
 # 複数の役割を持つ機器は、主の色の筐体に、副の役割の部品（アンテナ・ポートの列）を足して表す
 
 def base(d):
-    # 床に接地する低い台（x 1〜22、y 35〜37）
-    rect(d, 1, 35, 22, 3, 'd', 'o')
+    # 床に接地する低い台。天面を見せる（x 1〜22、y 33〜37）
+    box3q(d, 1, 33, 22, 2, 3, 'g', 'd', edge='w')
 
 
-def switch_unit(d, y, ports=8, color='b', light='bh', shade='B'):
-    # 横長のスイッチ1台（高さ7）。上の縁を明るく、下の縁を暗く、ポートとLEDを並べる
+def switch_unit(d, y, ports=8, color='b', light='bh', shade='B', top=False):
+    # 横長のスイッチ1台（前面の高さ7）。top=True なら天面（奥行き3）も描く
+    if top:
+        rect(d, 1, y - 3, 22, 4, light, 'o')
+        d.line([(2, y - 2), (21, y - 2)], fill=C['e'] + (255,))
     rect(d, 1, y, 22, 7, color, 'o')
     d.line([(2, y + 1), (21, y + 1)], fill=C[light])
     d.line([(2, y + 5), (21, y + 5)], fill=C[shade])
@@ -135,10 +150,10 @@ def switch_unit(d, y, ports=8, color='b', light='bh', shade='B'):
 
 
 def l2_switch():
-    # 青いスイッチを2段に重ね、低い台に載せる
+    # 青いスイッチを2段に重ね、低い台に載せる。上の段は天面を見せる
     img, d = new(24, 40)
-    switch_unit(d, 19)
-    switch_unit(d, 27)
+    switch_unit(d, 26)
+    switch_unit(d, 19, top=True)
     base(d)
     return img
 
@@ -146,9 +161,9 @@ def l2_switch():
 def l3_switch():
     # L2スイッチと同じ2段の筐体に、左端の黄色の帯（ルーティングできる印）を付ける
     img, d = new(24, 40)
-    switch_unit(d, 19)
-    switch_unit(d, 27)
-    for y in (19, 27):
+    switch_unit(d, 26)
+    switch_unit(d, 19, top=True)
+    for y in (19, 26):
         rect(d, 1, y, 3, 7, 'y', 'o')
         d.line([(2, y + 1), (2, y + 5)], fill=C['Y'])
     base(d)
@@ -156,20 +171,19 @@ def l3_switch():
 
 
 def router_box(d, y=20, h=14):
-    # 赤い箱のルーター。前面に電源のLEDとポートを並べる
-    rect(d, 1, y, 22, h, 'r', 'o')
-    d.line([(2, y + 1), (21, y + 1)], fill=C['rh'])
-    d.line([(2, y + h - 2), (21, y + h - 2)], fill=C['R'])
+    # 赤い箱のルーター。天面（奥行き4）と、前面に電源のLEDとポート
+    box3q(d, 1, y, 22, 4, h - 4, 'rh', 'r', shade='R')
+    fy = y + 4
     for x in (4, 6):
-        px(d, x, y + 5, 'l')
+        px(d, x, fy + 3, 'l')
     for i in range(4):
-        rect(d, 11 + i * 3, y + 5, 2, 2, 'o')
+        rect(d, 11 + i * 3, fy + 3, 2, 2, 'o')
 
 
 def router():
     # アンテナのない赤い箱を、低い台に載せる
     img, d = new(24, 40)
-    router_box(d, 21, 14)
+    router_box(d, 19, 14)
     base(d)
     return img
 
@@ -181,10 +195,10 @@ def antennas(d, top, bottom):
 
 
 def wifi_router():
-    # アクセスポイント付きのルーター: 赤い箱に2本のアンテナ
+    # アクセスポイント付きのルーター: 赤い箱の天面の奥から2本のアンテナ
     img, d = new(24, 40)
-    antennas(d, 7, 21)
-    router_box(d, 21, 14)
+    antennas(d, 6, 21)
+    router_box(d, 19, 14)
     base(d)
     return img
 
@@ -192,13 +206,12 @@ def wifi_router():
 def vpn_router():
     # VPNルーター: 赤い箱の前面に、黄色の錠前の印
     img, d = new(24, 40)
-    router_box(d, 21, 14)
-    # 錠前: 上のつる（輪郭だけの四角）と、黄色の胴
-    d.rectangle([4, 15, 8, 20], outline=C['o'] + (255,))
-    d.rectangle([5, 16, 7, 20], outline=C['g'] + (255,))
-    rect(d, 3, 20, 7, 6, 'y', 'o')
+    router_box(d, 19, 14)
+    d.rectangle([4, 14, 8, 19], outline=C['o'] + (255,))
+    d.rectangle([5, 15, 7, 19], outline=C['g'] + (255,))
+    rect(d, 3, 19, 7, 6, 'y', 'o')
+    px(d, 6, 21, 'o')
     px(d, 6, 22, 'o')
-    px(d, 6, 23, 'o')
     base(d)
     return img
 
@@ -206,8 +219,8 @@ def vpn_router():
 def router_switch():
     # L2スイッチ付きルーター: 上が赤いルーター、下に青いポートの列
     img, d = new(24, 40)
-    router_box(d, 15, 12)
-    switch_unit(d, 27)
+    router_box(d, 13, 13)
+    switch_unit(d, 26)
     base(d)
     return img
 
@@ -252,17 +265,18 @@ def laptop():
 
 
 def gpu_server():
-    # GPUサーバー: 幅の広い暗い筐体に、緑に光るGPUの段と冷却ファン
+    # GPUサーバー: 幅の広い暗い筐体。天面に通気の格子、前面に緑に光るGPUの段と冷却ファン
     img, d = new(24, 40)
-    rect(d, 1, 4, 22, 34, 'd', 'o')
-    d.line([(2, 5), (21, 5)], fill=C['g'])
-    for y in (8, 15, 22):
+    box3q(d, 1, 2, 22, 5, 31, 'g', 'd', edge='w')
+    for x in range(3, 21, 2):
+        d.line([(x, 3), (x, 6)], fill=C['d'] + (255,))
+    for y in (10, 16, 22):
         rect(d, 3, y, 18, 5, 'o')
         d.line([(4, y + 2), (13, y + 2)], fill=C['G'])
         px(d, 18, y + 2, 'l')
     for x in (4, 13):
-        d.ellipse([x, 29, x + 6, 35], fill=C['o'] + (255,))
-        px(d, x + 3, 32, 'g')
+        d.ellipse([x, 28, x + 6, 34], fill=C['o'] + (255,))
+        px(d, x + 3, 31, 'g')
     return img
 
 
@@ -420,6 +434,33 @@ def icon_person():
     return outline(img)
 
 
+def icon_cursor():
+    # 選択の道具（矢印のカーソル）
+    img, d = new(16, 16)
+    d.polygon([(3, 1), (3, 12), (6, 9), (8, 14), (10, 13), (8, 8), (12, 8)], fill=C['e'] + (255,))
+    return outline(img)
+
+
+def icon_wire():
+    # 配線の道具（ケーブルの先のジャック）
+    img, d = new(16, 16)
+    d.line([(7, 9), (13, 3)], fill=C['b'], width=2)
+    rect(d, 1, 6, 7, 7, 'g')
+    rect(d, 3, 8, 3, 3, 'd')
+    return outline(img)
+
+
+def icon_trash():
+    # 撤去の道具（ごみ箱）
+    img, d = new(16, 16)
+    rect(d, 3, 3, 10, 2, 'd')
+    rect(d, 6, 1, 4, 2, 'd')
+    rect(d, 4, 5, 8, 10, 'g')
+    for x in (6, 8, 10):
+        d.line([(x, 7), (x, 13)], fill=C['d'])
+    return outline(img)
+
+
 def icon_ok():
     img, d = new(16, 16)
     d.line([(3, 8), (6, 11), (12, 4)], fill=C['G'], width=3)
@@ -534,96 +575,96 @@ def plant():
 
 
 def bookshelf():
+    # 本棚: 天板（奥行き4）と、3段の棚
     img, d = new(32, 52)
-    rect(d, 2, 2, 28, 48, 'F3')
-    rect(d, 4, 4, 24, 44, 'F2')
+    box3q(d, 2, 1, 28, 4, 45, 'F1', 'F3', edge='F1')
+    rect(d, 4, 7, 24, 41, 'F2')
     colors = ['b', 'r', 'G', 'y', 'w', 'B', 'f']
     for shelf in range(3):
-        top = 4 + shelf * 15
+        top = 7 + shelf * 14
         x = 5
         i = shelf * 2
         while x < 26:
             w = 2 + (i % 3 == 0)
-            h = 10 + (i % 4 == 1) - (i % 5 == 2) * 2
-            rect(d, x, top + 13 - h, min(w, 27 - x), h, colors[i % len(colors)])
+            h = 9 + (i % 4 == 1) - (i % 5 == 2) * 2
+            rect(d, x, top + 12 - h, min(w, 27 - x), h, colors[i % len(colors)])
             x += w + (i % 4 == 3)
             i += 1
-        rect(d, 4, top + 13, 24, 2, 'F3')
+        rect(d, 4, top + 12, 24, 2, 'F3')
     return outline(img)
 
 
 def cabinet():
+    # 書類の棚: 天面（奥行き5）と、引き出し3段の前面
     img, d = new(32, 40)
-    rect(d, 4, 2, 24, 37, 'g')
-    rect(d, 4, 2, 24, 2, 'w')
+    box3q(d, 4, 1, 24, 5, 32, 'e', 'g', edge='e')
     for k in range(3):
-        y = 5 + k * 11
-        rect(d, 6, y, 20, 10, 'w')
-        d.line([(6, y + 9), (25, y + 9)], fill=C['d'])
+        y = 8 + k * 10
+        rect(d, 6, y, 20, 9, 'w')
+        d.line([(6, y + 8), (25, y + 8)], fill=C['d'])
         rect(d, 13, y + 3, 6, 2, 'd')
     return outline(img)
 
 
 def coffee():
-    # 台の上のコーヒーメーカーとカップ
+    # 台の上のコーヒーメーカーとカップ。台とメーカーは天面を見せる
     img, d = new(32, 36)
-    rect(d, 2, 18, 28, 17, 'F2')
-    rect(d, 2, 18, 28, 2, 'F1')
-    d.line([(16, 21), (16, 34)], fill=C['F3'])
-    rect(d, 6, 3, 13, 15, 'd')
-    rect(d, 6, 3, 13, 4, 'o')
-    rect(d, 8, 10, 8, 6, 's')
-    rect(d, 9, 11, 6, 4, 'h')
-    px(d, 16, 5, 'r')
-    rect(d, 22, 12, 5, 6, 'e')
-    px(d, 27, 14, 'e')
+    box3q(d, 2, 16, 28, 5, 14, 'F1', 'F2', edge='e')
+    d.line([(16, 23), (16, 33)], fill=C['F3'])
+    box3q(d, 6, 3, 13, 3, 13, 'g', 'd', edge='w')
+    rect(d, 8, 9, 8, 6, 's')
+    rect(d, 9, 10, 6, 4, 'h')
+    px(d, 16, 7, 'r')
+    rect(d, 22, 13, 5, 6, 'e', 'o')
+    rect(d, 23, 14, 3, 1, 'h')
     return outline(img)
 
 
 def water():
+    # ウォーターサーバー: 上にボトル、本体は天面を見せる
     img, d = new(32, 48)
-    rect(d, 10, 2, 12, 15, 'sky')
+    rect(d, 10, 2, 12, 14, 'sky')
     rect(d, 10, 2, 12, 4, 'sky2')
     rect(d, 13, 0, 6, 2, 'bh')
-    rect(d, 8, 17, 16, 30, 'w')
-    rect(d, 8, 17, 16, 2, 'e')
-    rect(d, 11, 24, 3, 3, 'b')
-    rect(d, 18, 24, 3, 3, 'r')
-    rect(d, 10, 30, 12, 8, 'g')
+    box3q(d, 8, 16, 16, 4, 27, 'e', 'w', edge='e')
+    rect(d, 11, 25, 3, 3, 'b')
+    rect(d, 18, 25, 3, 3, 'r')
+    rect(d, 10, 31, 12, 8, 'g')
     return outline(img)
 
 
 def trash():
+    # ごみ箱: 上から口の中が見える
     img, d = new(32, 32)
-    d.polygon([(10, 16), (22, 16), (21, 30), (11, 30)], fill=C['g'])
-    rect(d, 9, 15, 14, 2, 'w')
-    d.line([(14, 19), (14, 28)], fill=C['d'])
-    d.line([(18, 19), (18, 28)], fill=C['d'])
-    rect(d, 13, 12, 4, 3, 'e')
+    d.polygon([(9, 17), (22, 17), (21, 30), (10, 30)], fill=C['g'])
+    d.ellipse([9, 13, 22, 19], fill=C['w'] + (255,))
+    d.ellipse([11, 14, 20, 18], fill=C['d'] + (255,))
+    d.line([(13, 21), (13, 28)], fill=C['d'])
+    d.line([(18, 21), (18, 28)], fill=C['d'])
     return outline(img)
 
 
 def boxes():
+    # 段ボール: 天面にガムテープの線
     img, d = new(32, 36)
-    rect(d, 2, 18, 18, 16, 'c')
-    rect(d, 2, 18, 18, 3, 'F1')
-    d.line([(11, 18), (11, 26)], fill=C['F3'])
-    rect(d, 16, 6, 14, 12, 'c')
-    rect(d, 16, 6, 14, 2, 'F1')
-    rect(d, 20, 22, 11, 12, 'F2')
-    rect(d, 22, 26, 7, 3, 'e')
+    box3q(d, 2, 16, 18, 5, 13, 'F1', 'c', edge='e')
+    d.line([(11, 17), (11, 20)], fill=C['F3'])
+    box3q(d, 16, 4, 14, 4, 10, 'F1', 'c', edge='e')
+    d.line([(23, 5), (23, 7)], fill=C['F3'])
+    box3q(d, 19, 21, 12, 4, 10, 'F1', 'F2', edge='e')
+    rect(d, 22, 28, 7, 3, 'e')
     return outline(img)
 
 
 def sofa():
+    # ソファ: 背もたれの天面、座面（広く見せる）、ひじ掛けの天面
     img, d = new(32, 32)
-    rect(d, 2, 8, 28, 12, 'b')
-    rect(d, 2, 8, 28, 3, 'bh')
-    rect(d, 1, 14, 5, 14, 'B')
-    rect(d, 26, 14, 5, 14, 'B')
-    rect(d, 6, 18, 20, 8, 'b')
-    d.line([(16, 18), (16, 25)], fill=C['B'])
-    rect(d, 6, 26, 20, 3, 'B')
+    box3q(d, 2, 6, 28, 3, 8, 'bh', 'b', edge='e')
+    rect(d, 6, 16, 20, 7, 'bh', 'o')
+    d.line([(16, 17), (16, 22)], fill=C['b'])
+    rect(d, 6, 23, 20, 5, 'b', 'o')
+    for x in (1, 26):
+        box3q(d, x, 12, 5, 3, 14, 'bh', 'B', edge='e')
     return outline(img)
 
 
@@ -715,6 +756,9 @@ if __name__ == '__main__':
         'cart': icon_cart(),
         'warehouse': icon_warehouse(),
         'person': icon_person(),
+        'cursor': icon_cursor(),
+        'wire': icon_wire(),
+        'trash': icon_trash(),
     }
     for name, img in icons.items():
         save(img, f'icon/{name}.png')
