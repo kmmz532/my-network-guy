@@ -311,7 +311,8 @@ describe('v13 → v14', () => {
     const busy = node('o_srv', 'server_basic', { services: [{ protocol: 'http', port: 8080 }] });
     const v13 = { ...withoutNet, office: { ...sample.office, nodes: [pc, busy] }, active: [] };
     const out = migrate(13, v13);
-    expect(out.office.nodes[0]).toEqual(pc);
+    // 対応表（hosts）は v19 → v20 で空の配列が入る
+    expect(out.office.nodes[0]).toEqual({ ...pc, hosts: [] });
     expect(out.office.nodes[1].services).toEqual([{ protocol: 'http', port: 8080 }]);
   });
 });
@@ -379,5 +380,15 @@ describe('v18 → v19', () => {
 
   it('遊び方が career・sandbox 以外のセーブデータは拒否する', () => {
     expect(() => migrate(SAVE_VERSION, { ...sample, mode: 'other' })).toThrow();
+  });
+});
+
+describe('v19 → v20: 機器の対応表（hosts）', () => {
+  it('既存の機器には空の対応表を入れる（自社オフィスと案件の両方）', () => {
+    const node = { uid: 'n1', device: 'pc_basic', x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [] };
+    const v19 = { ...sample, office: { ...sample.office, nodes: [node] }, active: [{ ...sample.active[0], nodes: [node] }] } as unknown;
+    const out = migrate(19, v19);
+    expect(out.office.nodes[0]).toMatchObject({ uid: 'n1', hosts: [] });
+    expect(out.active[0].nodes[0]).toMatchObject({ uid: 'n1', hosts: [] });
   });
 });

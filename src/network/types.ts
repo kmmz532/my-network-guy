@@ -16,6 +16,12 @@ export interface Service {
   port: number;
 }
 
+// 機器ごとの対応表の1行（名前 → IPアドレス）。Debian の /etc/hosts と同じ考え方で、ping・traceroute の宛先の名前を引くのに使う
+export interface HostEntry {
+  name: string;
+  ip: string;
+}
+
 export interface NetNode {
   uid: string;
   device: string;
@@ -31,6 +37,8 @@ export interface NetNode {
   gateway: string | null;
   routes: Route[];
   services: Service[];
+  // 名前と IPアドレスの対応表（ping・traceroute の宛先の名前を引く）。移行前のセーブは空
+  hosts?: HostEntry[];
 }
 
 export interface Endpoint {
