@@ -32,6 +32,8 @@ import {
   setGateway,
   addRoute,
   removeRoute,
+  removeLink,
+  type NetTarget,
   type Core,
   type Outcome,
   type Project,
@@ -117,6 +119,7 @@ export interface GameState {
   removeFurniture: (uid: string) => string | null;
   hire: () => string | null;
   connect: (aUid: string, bUid: string, cableId: string) => string | null;
+  removeLink: (uid: string) => string | null;
   removeNode: (uid: string) => string | null;
   paint: (uid: string, port: number) => string | null;
   // 機器の設定（設計中のみ）。失敗したら理由を返す
@@ -140,6 +143,10 @@ const offerEnv = (maps: Record<string, GameMap>): OfferEnv => ({
 });
 
 const newRng = () => Math.floor(Math.random() * 0x7fffffff) + 1;
+
+// 配線・設定の対象。設計・表示している案件があればその案件、なければ自社オフィス
+export const netTargetOf = (s: { active: Project[]; focus: string | null }): NetTarget =>
+  focusedProject(s) ? 'focus' : 'office';
 
 // いま設計・表示している案件（なければ null）
 export const focusedProject = (s: { active: Project[]; focus: string | null }): Project | null =>
@@ -355,7 +362,8 @@ export const useGameStore = create<GameState>((set, get) => {
       return reason;
     },
     connect: (aUid, bUid, cableId) =>
-      apply(connect(coreOf(get()), aUid, bUid, cableId, gameEnv), tileOf(bUid)),
+      apply(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get())), tileOf(bUid)),
+    removeLink: (uid) => apply(removeLink(coreOf(get()), uid)),
     removeNode: (uid) => {
       if (get().active.length === 0) {
         const n = get().office.nodes.find((x) => x.uid === uid);
@@ -364,10 +372,11 @@ export const useGameStore = create<GameState>((set, get) => {
       return apply(removeNode(coreOf(get()), uid), tileOf(uid));
     },
     paint: (uid, port) => apply(setColor(coreOf(get()), uid, port, get().paintColor), tileOf(uid)),
-    setIface: (uid, port, ip) => apply(setInterface(coreOf(get()), uid, port, ip, 24), tileOf(uid)),
-    setGateway: (uid, gateway) => apply(setGateway(coreOf(get()), uid, gateway), tileOf(uid)),
-    addRoute: (uid, route) => apply(addRoute(coreOf(get()), uid, route), tileOf(uid)),
-    removeRoute: (uid, index) => apply(removeRoute(coreOf(get()), uid, index), tileOf(uid)),
+    setIface: (uid, port, ip) =>
+      apply(setInterface(coreOf(get()), uid, port, ip, 24, netTargetOf(get())), tileOf(uid)),
+    setGateway: (uid, gateway) => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid)),
+    addRoute: (uid, route) => apply(addRoute(coreOf(get()), uid, route, netTargetOf(get())), tileOf(uid)),
+    removeRoute: (uid, index) => apply(removeRoute(coreOf(get()), uid, index, netTargetOf(get())), tileOf(uid)),
     requestBuild: () => {
       set({ hint: null, traces: [] });
       return apply(requestBuild(coreOf(get()), gameEnv));

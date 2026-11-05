@@ -18,6 +18,9 @@ import {
   checkConnect,
   connect,
   placeDevice,
+  placeInOffice,
+  removeLink,
+  setInterface,
   requestBuild,
   setColor,
   type Core,
@@ -212,6 +215,68 @@ describe('配線できるかの判定', () => {
     core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
     core = { ...core, owned: { l2_switch_8p: 1 } };
     expect(checkConnect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).toBe('port');
+  });
+});
+
+describe('自社オフィスの編集', () => {
+  const desk = (x: number, y: number) => ({ uid: `f${x}${y}`, id: 'desk', x, y });
+  const officeStart = (): Core => ({
+    ...start(),
+    owned: { pc_basic: 2, l2_switch_8p: 1 },
+    office: { nodes: [], links: [], seq: 0, furniture: [desk(3, 4), desk(8, 4)], furnitureSeq: 2 },
+  });
+
+  it('自社オフィスでPC2台とスイッチを配線し、IPアドレスを設定できる', () => {
+    let core = officeStart();
+    core = ok(placeInOffice(core, 'pc_basic', 3, 4, map, env)).core;
+    core = ok(placeInOffice(core, 'pc_basic', 8, 4, map, env)).core;
+    core = ok(placeInOffice(core, 'l2_switch_8p', 6, 6, map, env)).core;
+    core = ok(connect(core, 'u0', 'u2', 'utp_cat5e', env, 'office')).core;
+    core = ok(connect(core, 'u1', 'u2', 'utp_cat5e', env, 'office')).core;
+    expect(core.office.links).toHaveLength(2);
+    core = ok(setInterface(core, 'u0', 0, '192.168.1.10', 24, 'office')).core;
+    expect(core.office.nodes.find((n) => n.uid === 'u0')?.interfaces).toEqual([{ port: 0, ip: '192.168.1.10', prefix: 24 }]);
+  });
+
+  it('配線は施工を待たず、すぐに自社オフィスに反映される', () => {
+    let core = officeStart();
+    core = ok(placeInOffice(core, 'pc_basic', 3, 4, map, env)).core;
+    core = ok(placeInOffice(core, 'pc_basic', 8, 4, map, env)).core;
+    core = ok(connect(core, 'u0', 'u1', 'utp_cat5e', env, 'office')).core;
+    expect(core.office.links).toHaveLength(1);
+    expect(core.active).toEqual([]);
+  });
+
+  it('配線を撤去すると、ケーブルは在庫に戻る', () => {
+    let core = officeStart();
+    core = ok(placeInOffice(core, 'pc_basic', 3, 4, map, env)).core;
+    core = ok(placeInOffice(core, 'pc_basic', 8, 4, map, env)).core;
+    core = ok(connect(core, 'u0', 'u1', 'utp_cat5e', env, 'office')).core;
+    const linkUid = core.office.links[0].uid;
+    const removed = ok(removeLink(core, linkUid)).core;
+    expect(removed.office.links).toEqual([]);
+    expect(removed.owned.utp_cat5e).toBe(1);
+  });
+
+  it('自社案件を受注中は、自社オフィスの直接編集が理由 inhouse で失敗する', () => {
+    const inhouse: Contract = {
+      id: 'i001_office_lan',
+      stage: 1,
+      order: 15,
+      requires: [],
+      map: 'office_small',
+      budget: 200000,
+      placed: [],
+      goals: [{ type: 'count', category: 'pc', min: 2 }],
+      reward: { money: 0, reputation: 1 },
+      inhouse: true,
+      effect: { buildSpeed: 0 },
+    };
+    const offerIn: Offer = { id: inhouse.id, kind: 'fixed', baseId: inhouse.id, params: {}, contract: inhouse };
+    const core = { ...officeStart(), offers: [offerIn] };
+    const accepted = ok(take(core, inhouse.id)).core;
+    expect(setInterface(accepted, 'u0', 0, '192.168.1.10', 24, 'office')).toEqual({ ok: false, reason: 'inhouse' });
+    expect(removeLink(accepted, 'l0')).toEqual({ ok: false, reason: 'inhouse' });
   });
 });
 

@@ -2,7 +2,8 @@
 // 描画の状態は store から読むだけで、変更は store の操作を通して行う。
 import { Application, Container, Graphics, Rectangle, Sprite, Text, type FederatedPointerEvent, type Ticker } from 'pixi.js';
 import type { GameMap } from '../data/schema';
-import { focusedProject, useGameStore, type Trace } from '../stores/useGameStore';
+import { focusedProject, netTargetOf, useGameStore, type Trace } from '../stores/useGameStore';
+import { linkAt } from './linkHit';
 import { gameEnv } from '../sim/env';
 import { checkConnect, compiledNet, DESK_ID, type PlacedFurniture, type Project } from '../sim/project';
 import type { Compiled } from '../network/compile';
@@ -711,12 +712,19 @@ export class Scene {
     if (store.active.length === 0 && !store.showcase) {
       const officeNode = store.office.nodes.find((n) => n.x === tile.tx && n.y === tile.ty);
       if (e.button === 2) {
-        // 右クリックは、機材を先に撤去する。機材がなければ家具を撤去する
+        // 右クリックは、機材を先に撤去する。機材がなければ家具、配線の上なら配線を撤去する
         const furnitureAt = store.office.furniture.find((f) => f.x === tile.tx && f.y === tile.ty);
+        const link = linkAt(store.office.links, p.x / this.tileSize(), p.y / this.tileSize(), 0.25);
         if (officeNode) store.removeNode(officeNode.uid);
         else if (furnitureAt) store.removeFurniture(furnitureAt.uid);
+        else if (link) store.removeLink(link.uid);
       } else if (store.placing && !officeNode) {
         store.place(store.placing, tile.tx, tile.ty);
+      } else if (store.tool === 'build' && officeNode && !store.placing) {
+        // 機器を押したまま別の機器へ動かすと、配線する（設計中と同じ操作）
+        store.setSelected(officeNode.uid);
+        this.wireFrom = officeNode.uid;
+        this.wireTo = p;
       } else {
         // 機器を選ぶと、設定パネルを開く
         store.setSelected(officeNode?.uid ?? null);
@@ -758,7 +766,7 @@ export class Scene {
     const target = tile ? this.nodeAt(tile.tx, tile.ty) : undefined;
     if (target && target.uid !== this.wireFrom) {
       const store = useGameStore.getState();
-      const reason = checkConnect(store, this.wireFrom, target.uid, store.wireCable, gameEnv);
+      const reason = checkConnect(store, this.wireFrom, target.uid, store.wireCable, gameEnv, netTargetOf(store));
       this.hover = { uid: target.uid, reason };
     } else {
       this.hover = null;

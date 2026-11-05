@@ -1,4 +1,4 @@
-// 選んだ機器の IP アドレス・ゲートウェイ・静的ルートを設定する。機器をクリックすると右上に開く（設計中のみ変更できる）
+// 選んだ機器の IP アドレス・ゲートウェイ・静的ルートを設定する。機器をクリックすると右上に開く。設計中の案件、または自社オフィス（納品の結果を表示していないとき）で変更できる
 import { useState } from 'react';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
@@ -12,13 +12,15 @@ export function ConfigPanel() {
   const active = useGameStore(focusedProject);
   const office = useGameStore((s) => s.office);
   const selectedUid = useGameStore((s) => s.selectedUid);
+  const showcase = useGameStore((s) => s.showcase);
   const setSelected = useGameStore((s) => s.setSelected);
   if (!selectedUid) return null;
 
   // 設計中の案件の機器、または自社オフィスの機器
   const node = active?.nodes.find((n) => n.uid === selectedUid) ?? office.nodes.find((n) => n.uid === selectedUid);
   if (!node) return null;
-  const readOnly = !active || active.phase !== 'design';
+  // 案件を表示しているときは設計中だけ変更できる。自社オフィスは、納品の結果を表示していなければ変更できる
+  const readOnly = active ? active.phase !== 'design' : showcase !== null;
 
   return (
     <section

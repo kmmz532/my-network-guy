@@ -281,7 +281,7 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
 
 // 案件がないときに、在庫の機材を自社オフィスへ置く。配線と色塗りは自社案件で行う
 export const placeInOffice = (core: Core, deviceId: string, x: number, y: number, map: GameMap, env: Env): Outcome => {
-  if (core.active.length > 0) return fail('busy');
+  if (officeLocked(core)) return fail('inhouse');
   if (!env.devices[deviceId]) return fail('none');
   if ((core.owned[deviceId] ?? 0) < 1) return fail('stock');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
@@ -313,7 +313,7 @@ export const placeInOffice = (core: Core, deviceId: string, x: number, y: number
 
 // 自社オフィスの機器を在庫に戻す。配線のある機器は戻せない
 export const removeFromOffice = (core: Core, uid: string): Outcome => {
-  if (core.active.length > 0) return fail('busy');
+  if (officeLocked(core)) return fail('inhouse');
   const node = core.office.nodes.find((n) => n.uid === uid);
   if (!node) return fail('none');
   if (core.office.links.some((l) => l.a.node === uid || l.b.node === uid)) return fail('locked');
@@ -345,30 +345,65 @@ export const removeNode = (core: Core, uid: string): Outcome => {
   return { ok: true, core: { ...withProject(core, next), owned } };
 };
 
-// 2台の機器を配線できるか判定する。できなければ理由を返す（配線中の表示と配線の実行で使う）
-export const checkConnect = (core: Core, aUid: string, bUid: string, cableId: string, env: Env): string | null => {
-  const p = requireDesign(core);
-  if (typeof p === 'string') return p;
-  const a = p.nodes.find((n) => n.uid === aUid);
-  const b = p.nodes.find((n) => n.uid === bUid);
-  const cable = env.cables[cableId];
-  if (!a || !b || aUid === bUid || !cable) return 'none';
-  const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-  if (length < 1 || length > cable.maxLengthTiles) return 'cable';
-  if (core.clock.money < cable.pricePerLink + cable.pricePerTile * length) return 'money';
-  if (freePort(p, a, env) === null || freePort(p, b, env) === null) return 'port';
-  return null;
+// 自社オフィスの編集を止めているか。自社案件を受注中は、自社オフィスの機器と配線を案件が使うため、直接編集しない
+export const officeLocked = (core: Core): boolean => core.active.some((p) => p.contract.inhouse);
+
+// 編集する対象。focus の案件（設計中）か、自社オフィス
+export type NetTarget = 'focus' | 'office';
+
+// 対象のネットワーク（機器・配線・採番）。案件・自社オフィスのどちらも同じ形で扱う
+interface Net {
+  nodes: NetNode[];
+  links: NetLink[];
+  seq: number;
+}
+
+// 対象のネットワークを取り出す。設計中の案件でない、または自社オフィスが案件に使われていれば理由を返す
+const netOf = (core: Core, target: NetTarget): Net | string => {
+  if (target === 'office') return officeLocked(core) ? 'inhouse' : core.office;
+  return requireDesign(core);
+};
+
+// 対象のネットワークを書き戻す
+const withNet = (core: Core, target: NetTarget, net: Net): Core => {
+  if (target === 'office') {
+    return { ...core, office: { ...core.office, nodes: net.nodes, links: net.links, seq: net.seq } };
+  }
+  const p = focusedOf(core) as Project;
+  return withProject(core, { ...p, nodes: net.nodes, links: net.links, seq: net.seq });
 };
 
 // 機器の空いているポートのうち、最も小さい番号を返す
-const freePort = (p: Project, node: NetNode, env: Env): number | null => {
+const freePort = (links: NetLink[], node: NetNode, env: Env): number | null => {
   const used = new Set<number>();
-  for (const l of p.links) {
+  for (const l of links) {
     if (l.a.node === node.uid) used.add(l.a.port);
     if (l.b.node === node.uid) used.add(l.b.port);
   }
   const count = env.devices[node.device].portCount;
   for (let port = 0; port < count; port++) if (!used.has(port)) return port;
+  return null;
+};
+
+// 2台の機器を配線できるか判定する。できなければ理由を返す（配線中の表示と配線の実行で使う）
+export const checkConnect = (
+  core: Core,
+  aUid: string,
+  bUid: string,
+  cableId: string,
+  env: Env,
+  target: NetTarget = 'focus',
+): string | null => {
+  const net = netOf(core, target);
+  if (typeof net === 'string') return net;
+  const a = net.nodes.find((n) => n.uid === aUid);
+  const b = net.nodes.find((n) => n.uid === bUid);
+  const cable = env.cables[cableId];
+  if (!a || !b || aUid === bUid || !cable) return 'none';
+  const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+  if (length < 1 || length > cable.maxLengthTiles) return 'cable';
+  if (core.clock.money < cable.pricePerLink + cable.pricePerTile * length) return 'money';
+  if (freePort(net.links, a, env) === null || freePort(net.links, b, env) === null) return 'port';
   return null;
 };
 
@@ -383,19 +418,27 @@ export const freePortCount = (p: Project, node: NetNode, env: Env): number => {
 };
 
 // 2台の機器を配線する。ケーブル費用は配線の長さで決まる。空いているポートを順に使う。
-export const connect = (core: Core, aUid: string, bUid: string, cableId: string, env: Env): Outcome => {
-  const reason = checkConnect(core, aUid, bUid, cableId, env);
+// 自社オフィスへの配線は施工を待たずに反映する。案件への配線は案件の費用に加える
+export const connect = (
+  core: Core,
+  aUid: string,
+  bUid: string,
+  cableId: string,
+  env: Env,
+  target: NetTarget = 'focus',
+): Outcome => {
+  const reason = checkConnect(core, aUid, bUid, cableId, env, target);
   if (reason) return fail(reason);
-  const p = focusedOf(core) as Project;
-  const a = p.nodes.find((n) => n.uid === aUid) as NetNode;
-  const b = p.nodes.find((n) => n.uid === bUid) as NetNode;
+  const net = netOf(core, target) as Net;
+  const a = net.nodes.find((n) => n.uid === aUid) as NetNode;
+  const b = net.nodes.find((n) => n.uid === bUid) as NetNode;
   const cable = env.cables[cableId];
   const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
   const cost = cable.pricePerLink + cable.pricePerTile * length;
-  const portA = freePort(p, a, env) as number;
-  const portB = freePort(p, b, env) as number;
+  const portA = freePort(net.links, a, env) as number;
+  const portB = freePort(net.links, b, env) as number;
   const link: NetLink = {
-    uid: `l${p.seq}`,
+    uid: `l${net.seq}`,
     cable: cableId,
     a: { node: a.uid, port: portA },
     b: { node: b.uid, port: portB },
@@ -406,24 +449,34 @@ export const connect = (core: Core, aUid: string, bUid: string, cableId: string,
       [b.x, b.y],
     ],
   };
-  const next: Project = { ...p, links: [...p.links, link], seq: p.seq + 1, cost: p.cost + cost };
-  return {
-    ok: true,
-    core: { ...withProject(core, next), clock: { ...core.clock, money: core.clock.money - cost } },
-  };
+  let next = withNet(core, target, { nodes: net.nodes, links: [...net.links, link], seq: net.seq + 1 });
+  if (target === 'focus') {
+    const p = focusedOf(next) as Project;
+    next = withProject(next, { ...p, cost: p.cost + cost });
+  }
+  return { ok: true, core: { ...next, clock: { ...next.clock, money: next.clock.money - cost } } };
+};
+
+// 配線を撤去する。自社オフィスの配線だけ撤去でき、ケーブルは在庫に戻す
+export const removeLink = (core: Core, uid: string): Outcome => {
+  const net = netOf(core, 'office');
+  if (typeof net === 'string') return fail(net);
+  const link = net.links.find((l) => l.uid === uid);
+  if (!link) return fail('none');
+  const next = withNet(core, 'office', { ...net, links: net.links.filter((l) => l.uid !== uid) });
+  return { ok: true, core: { ...next, owned: { ...core.owned, [link.cable]: (core.owned[link.cable] ?? 0) + 1 } } };
 };
 
 // 機器の設定を書き換える。配線の設定が固定された機器は変えられない。
-const editNode = (core: Core, uid: string, edit: (n: NetNode) => NetNode | string): Outcome => {
-  const p = requireDesign(core);
-  if (typeof p === 'string') return fail(p);
-  const node = p.nodes.find((n) => n.uid === uid);
+const editNode = (core: Core, uid: string, edit: (n: NetNode) => NetNode | string, target: NetTarget = 'focus'): Outcome => {
+  const net = netOf(core, target);
+  if (typeof net === 'string') return fail(net);
+  const node = net.nodes.find((n) => n.uid === uid);
   if (!node) return fail('none');
   if (node.configLocked) return fail('locked');
   const result = edit(node);
   if (typeof result === 'string') return fail(result);
-  const next: Project = { ...p, nodes: p.nodes.map((n) => (n.uid === uid ? result : n)) };
-  return { ok: true, core: withProject(core, next) };
+  return { ok: true, core: withNet(core, target, { ...net, nodes: net.nodes.map((n) => (n.uid === uid ? result : n)) }) };
 };
 
 // ポートにサブネットの色を塗る。color が null なら色を外す。PC・サーバーはポート0のみ
@@ -439,31 +492,46 @@ export const setColor = (core: Core, uid: string, port: number, color: number | 
 const isIp = (s: string): boolean => /^\d{1,3}(\.\d{1,3}){3}$/.test(s) && s.split('.').every((n) => Number(n) <= 255);
 
 // ポートのIPアドレスを設定する。ip が空文字なら設定を外す（機器の IP は自動割り当てに戻る）
-export const setInterface = (core: Core, uid: string, port: number, ip: string, prefix: number): Outcome =>
-  editNode(core, uid, (node) => {
-    if (ip === '') return { ...node, interfaces: node.interfaces.filter((i) => i.port !== port) };
-    if (!isIp(ip)) return 'ip';
-    const iface: Iface = { port, ip, prefix };
-    return { ...node, interfaces: [...node.interfaces.filter((i) => i.port !== port), iface] };
-  });
+export const setInterface = (core: Core, uid: string, port: number, ip: string, prefix: number, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      if (ip === '') return { ...node, interfaces: node.interfaces.filter((i) => i.port !== port) };
+      if (!isIp(ip)) return 'ip';
+      const iface: Iface = { port, ip, prefix };
+      return { ...node, interfaces: [...node.interfaces.filter((i) => i.port !== port), iface] };
+    },
+    target,
+  );
 
 // デフォルトゲートウェイを設定する。null で外す
-export const setGateway = (core: Core, uid: string, gateway: string | null): Outcome =>
-  editNode(core, uid, (node) => {
-    if (gateway !== null && !isIp(gateway)) return 'ip';
-    return { ...node, gateway };
-  });
+export const setGateway = (core: Core, uid: string, gateway: string | null, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      if (gateway !== null && !isIp(gateway)) return 'ip';
+      return { ...node, gateway };
+    },
+    target,
+  );
 
 // ルーターに静的ルートを追加する
-export const addRoute = (core: Core, uid: string, route: Route): Outcome =>
-  editNode(core, uid, (node) => {
-    if (!isIp(route.dest) || !isIp(route.nextHop)) return 'ip';
-    return { ...node, routes: [...node.routes, route] };
-  });
+export const addRoute = (core: Core, uid: string, route: Route, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      if (!isIp(route.dest) || !isIp(route.nextHop)) return 'ip';
+      return { ...node, routes: [...node.routes, route] };
+    },
+    target,
+  );
 
 // ルーターの静的ルートを削除する
-export const removeRoute = (core: Core, uid: string, index: number): Outcome =>
-  editNode(core, uid, (node) => ({ ...node, routes: node.routes.filter((_, i) => i !== index) }));
+export const removeRoute = (core: Core, uid: string, index: number, target: NetTarget = 'focus'): Outcome =>
+  editNode(core, uid, (node) => ({ ...node, routes: node.routes.filter((_, i) => i !== index) }), target);
 
 // 色と配線から生成したネットワーク（判定・表示に使う）
 export const compiledNet = (p: Project, env: Env) => compile({ nodes: p.nodes, links: p.links }, env.engine);
