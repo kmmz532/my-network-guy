@@ -246,6 +246,8 @@ export interface GameState {
   setTaskOpen: (open: boolean) => void;
   // 失敗した操作の理由を、失敗した地点（マップのタイル）に出す
   flash: { key: string; tx: number; ty: number; at: number } | null;
+  // 直近につないだ2つの機器と時刻。つながった瞬間に、ケーブルの上を光が走らせる（画面だけの表示）
+  linkPulse: { a: string; b: string; at: number } | null;
   setPlacing: (deviceId: string | null) => void;
   // 倉庫の欄から品目をドラッグしている間の位置（保存しない）
   itemDrag: ItemDrag | null;
@@ -634,6 +636,7 @@ export const useGameStore = create<GameState>((set, get) => {
     taskOpen: true,
     setTaskOpen: (open) => set({ taskOpen: open }),
     flash: null,
+    linkPulse: null,
     openWindow: (kind, ref) => {
       const s = get();
       const list = openWindowOp({ windows: s.windows, seq: s.windowSeq }, kind, ref, viewportNow(), s.windowMemory);
@@ -826,8 +829,12 @@ export const useGameStore = create<GameState>((set, get) => {
     connect: (aUid, bUid, cableId, ports = {}) => {
       const reason = recorded(() => apply(withAutoIp(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get()), ports), netTargetOf(get())), tileOf(bUid)));
       // つながった音と、つなげなかった音（効果音の設定がオフのときは鳴らない）
-      if (reason === null) playConnect();
-      else playFail();
+      if (reason === null) {
+        playConnect();
+        set({ linkPulse: { a: aUid, b: bUid, at: Date.now() } });
+      } else {
+        playFail();
+      }
       return reason;
     },
     removeLink: (uid) => recorded(() => apply(removeLink(coreOf(get()), uid, netTargetOf(get()), gameEnv))),

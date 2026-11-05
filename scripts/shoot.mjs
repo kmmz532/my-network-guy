@@ -72,6 +72,26 @@ const scenes = {
     await scenes.career(page);
     await openDevice(page, 'l2_switch_8p');
   },
+  // 2台のPCをつないだ直後（つながった瞬間の光は 450ms なので、操作の直後に撮る）
+  connect: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      // PC は机の上にしか置けないので、置き場所に制限のないスイッチを2台つなぐ
+      g.getState().buy('l2_switch_8p');
+      g.getState().buy('l2_switch_8p');
+      // 空いている場所を探して2台置く（place は成功なら null）
+      let placed = 0;
+      for (let y = 1; y < 12 && placed < 2; y++) {
+        for (let x = 1; x < 12 && placed < 2; x++) {
+          if (g.getState().place('l2_switch_8p', x, y) === null) placed++;
+        }
+      }
+      const nodes = g.getState().office.nodes.filter((n) => n.device === 'l2_switch_8p');
+      if (nodes.length < 2) throw new Error('機器を2台置けなかった');
+      g.getState().connect(nodes[0].uid, nodes[1].uid, 'utp_cat5e');
+    });
+  },
   // PC の設定で「詳しく」を開き、ネットワークの一覧を開いた状態（選択の部品）
   select: async (page) => {
     await scenes.career(page);

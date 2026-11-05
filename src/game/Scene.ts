@@ -71,6 +71,8 @@ const STAFF_SHIRT = ['blue', 'red'];
 const FRAME_MS = 150;
 // 失敗の吹き出しを出しておく時間（ms）
 const FLASH_MS = 2500;
+// つながった瞬間に、ケーブルの上を光が走る時間（ms）
+const PULSE_MS = 450;
 // パケットの速さ（タイル/秒）と、粒の間隔（タイル）。粒の数は3つまで
 const PACKET_TILES_PER_SEC = 3;
 const PACKET_SPACING_TILES = 0.5;
@@ -396,7 +398,7 @@ export class Scene {
     if (this.map && (view.w !== this.view.w || view.h !== this.view.h)) this.layout();
     this.updateWanderers(dt);
     // パケットは滑らかに動かす。それ以外はコマ送り（ART.md）
-    if (this.traceActive() || this.flashActive()) {
+    if (this.traceActive() || this.flashActive() || this.pulseActive()) {
       this.drawObjects();
       return;
     }
@@ -710,6 +712,9 @@ export class Scene {
       for (const [x, y] of pts.slice(1)) g.lineTo(x, y);
       g.stroke({ width: hot ? 6 : 3, color: hot ? hotColor : color, alpha: hot ? 1 : alpha });
     }
+
+    // つながった瞬間の光（配線の上に描く）
+    this.drawLinkPulse(project, ts);
 
     // 配線の線。ドラッグ中、または起点を選んだあとは、起点の機器からカーソルまで伸ばす
     const wireUid = this.wireFrom ?? s.wireStart?.uid ?? null;
@@ -1225,6 +1230,42 @@ export class Scene {
   private flashActive(): boolean {
     const f = useGameStore.getState().flash;
     return f !== null && Date.now() - f.at < FLASH_MS;
+  }
+
+  private pulseActive(): boolean {
+    const p = useGameStore.getState().linkPulse;
+    return p !== null && Date.now() - p.at < PULSE_MS;
+  }
+
+  // つながった瞬間: 新しいケーブルの上を、明るい光の粒が端から端へ走る。両端の機器は、一瞬だけ光の輪で囲む
+  private drawLinkPulse(project: Project, ts: number): void {
+    const p = useGameStore.getState().linkPulse;
+    if (!p || !this.pulseActive()) return;
+    const link = project.links.find(
+      (l) => (l.a.node === p.a && l.b.node === p.b) || (l.a.node === p.b && l.b.node === p.a),
+    );
+    if (!link || link.path.length < 2) return;
+    const pts = link.path.map(([x, y]) => ({ x: x * ts + ts / 2, y: y * ts + ts / 2 }));
+    // 折れ線の全長に対して、いまの位置を求める
+    const seg: number[] = [0];
+    for (let i = 1; i < pts.length; i++) {
+      seg.push(seg[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+    }
+    const total = seg[seg.length - 1];
+    const k = Math.min(1, (Date.now() - p.at) / PULSE_MS);
+    const target = total * k;
+    let i = 1;
+    while (i < seg.length - 1 && seg[i] < target) i++;
+    const span = seg[i] - seg[i - 1] || 1;
+    const r = (target - seg[i - 1]) / span;
+    const x = pts[i - 1].x + (pts[i].x - pts[i - 1].x) * r;
+    const y = pts[i - 1].y + (pts[i].y - pts[i - 1].y) * r;
+    this.g.circle(x, y, ts / 5).fill({ color: 0xffd866, alpha: 0.9 });
+    this.g.circle(x, y, ts / 5 + 3).stroke({ width: 2, color: 0xffd866, alpha: 0.5 });
+    // 両端の機器の周りに、光の輪が広がって消える
+    for (const end of [pts[0], pts[pts.length - 1]]) {
+      this.g.circle(end.x, end.y, ts * (0.4 + 0.4 * k)).stroke({ width: 2, color: 0xffd866, alpha: 1 - k });
+    }
   }
 
   // 配線の到達先: 接続できれば緑、できなければ赤の枠と×
