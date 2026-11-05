@@ -388,7 +388,7 @@ export const useGameStore = create<GameState>((set, get) => {
     hire: (candidateUid) => apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true)),
     connect: (aUid, bUid, cableId) =>
       apply(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get())), tileOf(bUid)),
-    removeLink: (uid) => apply(removeLink(coreOf(get()), uid, netTargetOf(get()))),
+    removeLink: (uid) => apply(removeLink(coreOf(get()), uid, netTargetOf(get()), gameEnv)),
     startTraining: (uid, courseId) => apply(startTrainingOp(coreOf(get()), uid, courseId, trainingEnv)),
     takeExam: (uid, certId) => {
       // 合否は乱数で決める。乱数は受験のときだけ進める

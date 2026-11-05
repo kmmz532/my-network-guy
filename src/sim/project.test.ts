@@ -279,7 +279,7 @@ describe('施工後の撤去と配線のやり直し', () => {
   it('案件の中で、配線だけを撤去できる（ケーブルは在庫に戻る）', () => {
     const core = failedDesign();
     const linkUid = cur(core)!.links[0].uid;
-    const after = ok(removeLink(core, linkUid, 'focus')).core;
+    const after = ok(removeLink(core, linkUid, 'focus', env)).core;
     expect(cur(after)?.links).toEqual([]);
     expect(cur(after)?.nodes.length).toBe(cur(core)?.nodes.length);
     expect(after.owned.utp_cat5e).toBe((core.owned.utp_cat5e ?? 0) + 1);
@@ -290,6 +290,41 @@ describe('施工後の撤去と配線のやり直し', () => {
     const locked = cur(core)!.nodes.find((n) => n.locked);
     if (!locked) throw new Error('既設の機器がない');
     expect(removeNode(core, locked.uid)).toEqual({ ok: false, reason: 'locked' });
+  });
+});
+
+describe('案件の設計中の配線の撤去（費用の戻し）', () => {
+  it('固定の機器どうしを結んだ配線は撤去でき、施工前の費用が戻る', () => {
+    let core = ok(take(start(), 'c001_direct_link')).core;
+    core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
+    expect(cur(core)?.cost).toBe(3100);
+    const linkUid = cur(core)!.links[0].uid;
+    const after = ok(removeLink(core, linkUid, 'focus', env)).core;
+    expect(cur(after)?.links).toEqual([]);
+    expect(cur(after)?.cost).toBe(0);
+    expect(after.clock.money).toBe(1_000_000);
+    expect(after.owned.utp_cat5e).toBe((core.owned.utp_cat5e ?? 0) + 1);
+  });
+
+  it('施工済みの配線は撤去しても費用が戻らない', () => {
+    let core = ok(take(start(), 'c001_direct_link')).core;
+    core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
+    const p = cur(core)!;
+    const link = p.links[0];
+    // 施工済みの状態にする（配線の uid を built に入れる）
+    const built: Core = { ...core, active: core.active.map((x) => (x.id === p.id ? { ...x, built: { ...x.built, links: [link.uid] } } : x)) };
+    const after = ok(removeLink(built, link.uid, 'focus', env)).core;
+    expect(cur(after)?.cost).toBe(3100);
+    expect(after.clock.money).toBe(1_000_000 - 3100);
+  });
+
+  it('自社案件から引き継いだ配線は撤去できない', () => {
+    let core = ok(take(start(), 'c001_direct_link')).core;
+    core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
+    const p = cur(core)!;
+    const link = p.links[0];
+    const marked: Core = { ...core, active: core.active.map((x) => (x.id === p.id ? { ...x, inheritedLinks: [link.uid] } : x)) };
+    expect(removeLink(marked, link.uid, 'focus', env)).toEqual({ ok: false, reason: 'locked' });
   });
 });
 
@@ -341,7 +376,7 @@ describe('自社オフィスの編集', () => {
     core = ok(placeInOffice(core, 'pc_basic', 8, 4, map, env)).core;
     core = ok(connect(core, 'u0', 'u1', 'utp_cat5e', env, 'office')).core;
     const linkUid = core.office.links[0].uid;
-    const removed = ok(removeLink(core, linkUid)).core;
+    const removed = ok(removeLink(core, linkUid, 'office', env)).core;
     expect(removed.office.links).toEqual([]);
     expect(removed.owned.utp_cat5e).toBe(1);
   });
@@ -364,7 +399,7 @@ describe('自社オフィスの編集', () => {
     const core = { ...officeStart(), offers: [offerIn] };
     const accepted = ok(take(core, inhouse.id)).core;
     expect(setInterface(accepted, 'u0', 0, '192.168.1.10', 24, 'office')).toEqual({ ok: false, reason: 'inhouse' });
-    expect(removeLink(accepted, 'l0')).toEqual({ ok: false, reason: 'inhouse' });
+    expect(removeLink(accepted, 'l0', 'office', env)).toEqual({ ok: false, reason: 'inhouse' });
   });
 });
 

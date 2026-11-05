@@ -74,6 +74,8 @@ export class Scene {
   private wireTo = { x: 0, y: 0 };
   // 配線の到達先の判定（接続できるか、理由）
   private hover: { uid: string; reason: string | null } | null = null;
+  // マウスを乗せている配線（撤去できる配線だけ。太く明るく描く）
+  private hoverLinkUid: string | null = null;
   // 経過時間（ms）と、コマ送りの番号
   private elapsed = 0;
   private frame = -1;
@@ -268,9 +270,11 @@ export class Scene {
       const color = CABLE_COLOR[link.cable] ?? DEFAULT_CABLE_COLOR;
       const alpha = building && !isBuilt(link.uid, 'links') ? 0.5 : 1;
       const pts = link.path.map(([x, y]) => [x * ts + ts / 2, y * ts + ts / 2]);
+      // マウスを乗せた配線は太く明るく描く
+      const hot = link.uid === this.hoverLinkUid;
       g.moveTo(pts[0][0], pts[0][1]);
       for (const [x, y] of pts.slice(1)) g.lineTo(x, y);
-      g.stroke({ width: 3, color, alpha });
+      g.stroke({ width: hot ? 6 : 3, color: hot ? brighten(color) : color, alpha: hot ? 1 : alpha });
     }
 
     // 配線のドラッグ中の線
@@ -827,7 +831,28 @@ export class Scene {
     if (this.tipShown) this.tipHideTimer = window.setTimeout(() => this.resetTip(), balance.tooltip.touchHideMs);
   }
 
-  private onCanvasLeave = (): void => this.resetTip();
+  private onCanvasLeave = (): void => {
+    this.resetTip();
+    if (this.hoverLinkUid !== null) {
+      this.hoverLinkUid = null;
+      this.drawObjects();
+    }
+  };
+
+  // 右クリックで撤去できる配線: 自社オフィス、または案件の設計中の配線。なければ null
+  private removableLinks(): readonly NetLink[] | null {
+    const s = useGameStore.getState();
+    if (s.active.length === 0 && !s.showcase) return s.office.links;
+    const project = focusedProject(s);
+    return project?.phase === 'design' ? project.links : null;
+  }
+
+  // マウスの位置にある撤去できる配線（マップの座標で判定し、拡大率を考慮する）
+  private linkUnder(p: { x: number; y: number }): NetLink | undefined {
+    const links = this.removableLinks();
+    if (!links) return undefined;
+    return linkAt(links, p.x, p.y, this.tileSize(), this.content.scale.x);
+  }
 
   private onDown = (e: FederatedPointerEvent): void => {
     if (e.pointerType === 'touch') this.startTouchTip(e);
@@ -843,7 +868,7 @@ export class Scene {
       if (e.button === 2) {
         // 右クリックは、機材を先に撤去する。機材がなければ家具、配線の上なら配線を撤去する
         const furnitureAt = store.office.furniture.find((f) => f.x === tile.tx && f.y === tile.ty);
-        const link = linkAt(store.office.links, p.x / this.tileSize(), p.y / this.tileSize(), 0.25);
+        const link = this.linkUnder(p);
         if (officeNode) store.removeNode(officeNode.uid);
         else if (furnitureAt) store.removeFurniture(furnitureAt.uid);
         else if (link) store.removeLink(link.uid);
@@ -868,7 +893,7 @@ export class Scene {
         store.removeNode(node.uid);
         return;
       }
-      const link = linkAt(focusedProject(store)?.links ?? [], p.x / this.tileSize(), p.y / this.tileSize(), 0.25);
+      const link = this.linkUnder(p);
       if (link) store.removeLink(link.uid);
       return;
     }
@@ -897,6 +922,7 @@ export class Scene {
     if (e.pointerType !== 'touch') this.updateTip(e);
     this.cursorTile = this.tileOf(this.toMap(e));
     if (!this.wireFrom) {
+      this.updateHoverLink(e);
       if (useGameStore.getState().placing) this.drawObjects();
       return;
     }
@@ -912,6 +938,15 @@ export class Scene {
     }
     this.drawObjects();
   };
+
+  // マウスを乗せた配線を覚え、変わったときだけ描き直す（配置中は強調しない）
+  private updateHoverLink(e: FederatedPointerEvent): void {
+    const found = useGameStore.getState().placing ? undefined : this.linkUnder(this.toMap(e));
+    const uid = found?.uid ?? null;
+    if (uid === this.hoverLinkUid) return;
+    this.hoverLinkUid = uid;
+    this.drawObjects();
+  }
 
   private onUp = (e: FederatedPointerEvent): void => {
     if (e.pointerType === 'touch') this.endTouchTip();
@@ -933,6 +968,15 @@ export class Scene {
     this.drawObjects();
   };
 }
+
+// 色を白に近づけて明るくする（マウスを乗せた配線に使う）
+const brighten = (color: number): number => {
+  const mix = (shift: number): number => {
+    const c = (color >> shift) & 0xff;
+    return Math.round(c + (255 - c) * 0.5) << shift;
+  };
+  return mix(16) | mix(8) | mix(0);
+};
 
 // 配線の中点（社員が作業する位置）
 const midpoint = (link: NetLink, ts: number): Point => {

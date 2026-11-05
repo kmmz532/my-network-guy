@@ -30,6 +30,8 @@ export interface Project {
   built: { nodes: string[]; links: string[] };
   // 自社案件で、自社オフィスから引き継いだ機器の uid（取り消しても在庫に戻さない）
   inherited?: string[];
+  // 自社案件で、自社オフィスから引き継いだ配線の uid（撤去できない）
+  inheritedLinks?: string[];
   phase: 'design' | 'build';
   progress: number;
   total: number;
@@ -221,6 +223,7 @@ export const accept = (core: Core, offerId: string, slots: number, crew: string[
     // 既設の機器は施工済みとして扱う
     built: { nodes: nodes.map((n) => n.uid), links: links.map((l) => l.uid) },
     inherited: inhouse ? office.nodes.map((n) => n.uid) : [],
+    inheritedLinks: inhouse ? office.links.map((l) => l.uid) : [],
     phase: 'design',
     progress: 0,
     total: 0,
@@ -446,6 +449,9 @@ export const freePortCount = (p: Project, node: NetNode, env: Env): number => {
   return env.devices[node.device].portCount - used.size;
 };
 
+// ケーブル1本の費用（配線の長さで決まる）
+const cableCost = (cable: Env['cables'][string], length: number): number => cable.pricePerLink + cable.pricePerTile * length;
+
 // 2台の機器を配線する。ケーブル費用は配線の長さで決まる。空いているポートを順に使う。
 // 自社オフィスへの配線は施工を待たずに反映する。案件への配線は案件の費用に加える
 export const connect = (
@@ -463,7 +469,7 @@ export const connect = (
   const b = net.nodes.find((n) => n.uid === bUid) as NetNode;
   const cable = env.cables[cableId];
   const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-  const cost = cable.pricePerLink + cable.pricePerTile * length;
+  const cost = cableCost(cable, length);
   const portA = freePort(net.links, a, env) as number;
   const portB = freePort(net.links, b, env) as number;
   const link: NetLink = {
@@ -486,23 +492,37 @@ export const connect = (
   return { ok: true, core: { ...next, clock: { ...next.clock, money: next.clock.money - cost } } };
 };
 
-// 配線を撤去する。ケーブルは在庫に戻す（費用は返さない）。案件の既設の配線（両端が既設の機器）は撤去できない
-export const removeLink = (core: Core, uid: string, target: NetTarget = 'office'): Outcome => {
+// 配線を撤去する。ケーブルは在庫に戻す。案件では、施工前の配線の費用を案件と所持金に戻す（施工済みは戻さない）。
+// 案件の既設の配線（自社案件の引き継ぎ分）は撤去できない
+export const removeLink = (core: Core, uid: string, target: NetTarget, env: Env): Outcome => {
   const net = netOf(core, target);
   if (typeof net === 'string') return fail(net);
   const link = net.links.find((l) => l.uid === uid);
   if (!link) return fail('none');
+  let refund = 0;
   if (target === 'focus') {
     const p = focusedOf(core) as Project;
-    const fixed = new Set([...(p.inherited ?? []), ...p.nodes.filter((n) => n.locked).map((n) => n.uid)]);
-    if (fixed.has(link.a.node) && fixed.has(link.b.node)) return fail('locked');
+    if ((p.inheritedLinks ?? []).includes(uid)) return fail('locked');
+    const a = net.nodes.find((n) => n.uid === link.a.node);
+    const b = net.nodes.find((n) => n.uid === link.b.node);
+    const cable = env.cables[link.cable];
+    if (!p.built.links.includes(uid) && a && b && cable) {
+      refund = cableCost(cable, Math.abs(a.x - b.x) + Math.abs(a.y - b.y));
+    }
   }
   let next = withNet(core, target, { ...net, links: net.links.filter((l) => l.uid !== uid) });
   if (target === 'focus') {
     const p = focusedOf(next) as Project;
-    next = withProject(next, { ...p, built: { ...p.built, links: p.built.links.filter((x) => x !== uid) } });
+    next = withProject(next, { ...p, cost: p.cost - refund, built: { ...p.built, links: p.built.links.filter((x) => x !== uid) } });
   }
-  return { ok: true, core: { ...next, owned: { ...core.owned, [link.cable]: (core.owned[link.cable] ?? 0) + 1 } } };
+  return {
+    ok: true,
+    core: {
+      ...next,
+      clock: { ...next.clock, money: next.clock.money + refund },
+      owned: { ...core.owned, [link.cable]: (core.owned[link.cable] ?? 0) + 1 },
+    },
+  };
 };
 
 // 機器の設定を書き換える。配線の設定が固定された機器は変えられない。
