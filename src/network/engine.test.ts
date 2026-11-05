@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { http, linkLength, ping } from './engine';
+import { http, linkLength, loopNodeOf, ping } from './engine';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
 const data: EngineData = {
@@ -280,5 +280,14 @@ describe('http', () => {
       links: [link('l1', 'a', 0, 'w', 0)],
     };
     expect(http(net, data, 'a', 'w', 8080).failure).toMatchObject({ reason: 'service.closed', node: 'w' });
+  });
+});
+
+describe('輪の検出（社内の表示に使う）', () => {
+  it('輪がなければ null、輪があれば輪の中のスイッチの uid を返す', () => {
+    const tree: Network = { nodes: [sw('s1'), sw('s2'), pc('a', null)], links: [link('l1', 'a', 0, 's1', 2), link('l2', 's1', 0, 's2', 0)] };
+    expect(loopNodeOf(tree, data)).toBeNull();
+    const looped: Network = { ...tree, links: [...tree.links, link('l3', 's1', 1, 's2', 1)] };
+    expect(['s1', 's2']).toContain(loopNodeOf(looped, data));
   });
 });

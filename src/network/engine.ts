@@ -256,3 +256,15 @@ export const http = (net: Network, data: EngineData, srcUid: string, dstUid: str
   }
   return forward;
 };
+
+// ネットワーク全体の中で、輪になっているL2ドメインがあれば、その輪の機器（スイッチ）の uid を返す。なければ null（社内のネットワークの障害の表示に使う）
+export const loopNodeOf = (net: Network, data: EngineData): string | null => {
+  const topo = new Topology(net, data);
+  for (const link of net.links) {
+    for (const ep of [link.a, link.b]) {
+      const loop = topo.domainOf(ep).loop;
+      if (loop) return loop.node;
+    }
+  }
+  return null;
+};

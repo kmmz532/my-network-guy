@@ -30,6 +30,7 @@ import { ShopCards } from './components/ShopCards';
 import { HiringPanel, type HiringTab } from './components/HiringPanel';
 import { Tooltip, TooltipHost, hideTip } from './components/Tooltip';
 import { PausedBuildPrompt } from './components/PausedBuildPrompt';
+import { LoopBanner } from './components/LoopBanner';
 import { Icon } from './components/Icon';
 import { TitleScreen } from './components/TitleScreen';
 import { mapLoaders } from 'virtual:loaders';
@@ -476,6 +477,7 @@ export function App() {
           {t(`ui.speed.${speedNote.speed}` as const)}
         </div>
       )}
+      <LoopBanner />
       {pausedPrompt && <PausedBuildPrompt />}
       <ReportModal />
       {clock.bankrupt && (
