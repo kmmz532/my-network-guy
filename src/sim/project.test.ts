@@ -143,8 +143,8 @@ describe('案件の流れ: c001 PC2台の直結', () => {
     expect(done.report?.stars).toBe(3);
     expect(done.core.active).toEqual([]);
     expect(done.core.completed).toEqual(['c001_direct_link']);
-    // 報酬は 30000 × ★3 の倍率 1.25
-    expect(done.core.clock.money).toBe(1_000_000 - 3100 + 37500);
+    // 報酬は 45000 × ★3 の倍率 1.25
+    expect(done.core.clock.money).toBe(1_000_000 - 3100 + 56250);
     expect(done.core.reputation).toBe(1 + 3 * balance.reputationPerStar);
     expect(done.report?.reputationGain).toBe(1 + 3 * balance.reputationPerStar);
   });
