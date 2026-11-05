@@ -26,6 +26,9 @@ const floorVariant = (x: number, y: number): number => (x * 7 + y * 13 + ((x * y
 
 export const drawTileMap = (map: GameMap): Container => {
   const container = new Container();
+  // 地面（屋外の芝）は壁の上面より下に描く。壁の上面と線は g（地面の上）に描く
+  const groundLayer = new Container();
+  container.addChild(groundLayer);
   const g = new Graphics();
   container.addChild(g);
   const ts = map.tileSize;
@@ -40,9 +43,11 @@ export const drawTileMap = (map: GameMap): Container => {
     return true;
   };
 
+  // 屋外（芝・道路）は部屋の床ではないので、壁の上面や奥の壁の正面を作らない
+  const isOutdoor = (k: string | undefined): boolean => k === 'ground' || k === 'road';
   const floorAt = (x: number, y: number): boolean => {
     const k = kindAt(x, y);
-    return k !== undefined && !isWall(k);
+    return k !== undefined && !isWall(k) && !isOutdoor(k);
   };
   // 奥の壁の正面（真下が床の壁）と、手前の壁（真上が床の壁）
   const faceAt = (x: number, y: number): boolean => isWall(kindAt(x, y)) && floorAt(x, y + 1);
@@ -54,6 +59,15 @@ export const drawTileMap = (map: GameMap): Container => {
     for (let x = 0; x < map.width; x++) {
       const kind = kindAt(x, y);
       if (isWall(kind)) {
+        // 屋外に接する外壁の下には芝を敷く。部屋の側には、ほかの壁と同じ細い上面を描く
+        if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => isOutdoor(kindAt(x + dx, y + dy)))) {
+          const tex = texture(`tile/ground_${(x * 7 + y * 3) % 2}`);
+          if (tex) {
+            const sprite = new Sprite(tex);
+            sprite.position.set(x * ts, y * ts);
+            groundLayer.addChild(sprite);
+          }
+        }
         // 真下が床なら奥の壁の正面として描く
         const face = faceAt(x, y);
         if (face) {
@@ -79,6 +93,14 @@ export const drawTileMap = (map: GameMap): Container => {
         // 手前の角は、左右の上面と手前の上面をつなぐ
         if (!floorAt(x, y - 1) && frontAt(x + 1, y)) g.rect(r - CAP, y * ts, CAP, CAP).fill(FRONT_CAP_COLOR);
         if (!floorAt(x, y - 1) && frontAt(x - 1, y)) g.rect(x * ts, y * ts, CAP, CAP).fill(FRONT_CAP_COLOR);
+        continue;
+      }
+      if (kind === 'ground') {
+        put(`tile/ground_${(x * 7 + y * 3) % 2}`, x, y);
+        continue;
+      }
+      if (kind === 'road') {
+        put('tile/road', x, y);
         continue;
       }
       if (!put(`tile/floor_${floorVariant(x, y)}`, x, y)) g.rect(x * ts, y * ts, ts, ts).fill(fallbackColor.floor);

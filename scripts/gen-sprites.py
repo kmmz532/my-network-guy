@@ -585,6 +585,28 @@ def floor(variant):
     return img
 
 
+def ground(variant):
+    # 屋外の芝。ところどころに濃い草の束
+    img, d = new(32, 32)
+    rect(d, 0, 0, 32, 32, 'G')
+    for x, y in (((3 + variant * 11) % 32, 5), ((17 + variant * 7) % 32, 12), ((9 + variant * 5) % 32, 22), ((25 - variant * 9) % 32, 27)):
+        px(d, x, y, 'GG')
+        px(d, x + 1, y - 1, 'GG')
+        px(d, x + 2, y, 'GG')
+    return img
+
+
+def road():
+    # 屋外の道路。灰色の舗装と、中央の白い破線
+    img, d = new(32, 32)
+    rect(d, 0, 0, 32, 32, 'd')
+    d.line([(0, 0), (31, 0)], fill=C['g'] + (255,))
+    d.line([(0, 31), (31, 31)], fill=C['g'] + (255,))
+    for x in (2, 18):
+        rect(d, x, 15, 10, 2, 'e')
+    return img
+
+
 def wall_face():
     # 奥の壁の正面。下端に巾木を引いて床との境界を示す
     img, d = new(32, 32)
@@ -874,6 +896,9 @@ if __name__ == '__main__':
         save(img, f'icon/{name}.png')
     for v in range(3):
         save(floor(v), f'tile/floor_{v}.png')
+    for v in range(2):
+        save(ground(v), f'tile/ground_{v}.png')
+    save(road(), 'tile/road.png')
     tiles = {
         'wall_face': wall_face(),
         'window': wall_window(),
