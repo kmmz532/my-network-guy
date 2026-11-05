@@ -1442,7 +1442,7 @@ export class Scene {
     }
     const tile = this.tileOf(p);
     // 背景は、長押しのあとにドラッグで動かす。選択の道具では、そのままドラッグで動かす
-    if (e.button === 0 && !store.placing && this.isBackground(p, tile)) this.beginPan(e, store.tool === 'select');
+    if (e.button === 0 && !store.placing && this.isBackground(p, tile)) this.beginPan(e, store.tool === 'select' || e.pointerType === 'touch');
     if (!tile) return;
     // 選択の道具で社員を押すと、社員の札を開く（機器を編集できない状態でも開ける）
     const staffUid = store.tool === 'select' && e.button !== 2 && !store.placing ? staffAt(this.officeStaffHits(), p) : undefined;

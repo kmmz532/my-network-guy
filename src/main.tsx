@@ -11,3 +11,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <App />
   </React.StrictMode>,
 );
+
+// iOS Safari はピンチをページの拡大にするため、ここで止める（マップの拡大・縮小は Scene が行う）
+for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
+  document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
+}

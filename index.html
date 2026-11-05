@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
     <title>わたしのネットワーク屋</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -33,9 +33,30 @@
         height: 100%;
         overflow: hidden;
         background: #2f4f8f;
+        /* スマホ: 引っ張っての再読み込み・ダブルタップ拡大・長押しの文字選択と呼び出しメニューを止める */
+        overscroll-behavior: none;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
       }
+      /* スマホのブラウザは、100vh がアドレスバーの裏まで含む。ツールバーが隠れないよう、見えている範囲に固定する */
       #root {
+        position: fixed;
+        inset: 0;
         height: 100%;
+      }
+      @supports (height: 100dvh) {
+        #root {
+          height: 100dvh;
+        }
+      }
+      /* 入力欄では文字の選択を許す */
+      input,
+      textarea {
+        -webkit-user-select: text;
+        user-select: text;
       }
       /* UI の画像（アイコン・スプライト）は選択も、ブラウザのドラッグ（画像のドラッグ）もさせない */
       img {

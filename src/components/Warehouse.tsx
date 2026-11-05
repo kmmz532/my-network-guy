@@ -16,7 +16,7 @@ const strip = {
   position: 'absolute',
   left: 12,
   right: 12,
-  bottom: 64,
+  bottom: 72,
   display: 'flex',
   alignItems: 'center',
   gap: 6,
@@ -38,6 +38,7 @@ const itemStyle = (active: boolean) =>
     border: `2px solid ${active ? '#ffd866' : '#3b2a33'}`,
     background: active ? '#3a5fa8' : '#25406f',
     borderRadius: RADIUS.none,
+    touchAction: 'pan-x',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -89,7 +90,8 @@ export function Warehouse({
   // 押した品目を、動かしたらドラッグとして扱う。動かさずに離したときは click（押して配置）に任せる。
   // 指の操作は欄のスクロールに使うため、ドラッグはマウスとペンだけにする
   const onItemPointerDown = (item: WarehouseItem) => (e: ReactPointerEvent<HTMLButtonElement>) => {
-    if (e.pointerType === 'touch' || e.button !== 0) return;
+    if (e.button !== 0) return;
+    const touch = e.pointerType === 'touch';
     stopRef.current?.();
     const startX = e.clientX;
     const startY = e.clientY;
@@ -106,6 +108,11 @@ export function Warehouse({
     const onMove = (ev: globalThis.PointerEvent) => {
       if (!moved) {
         if (!isDragMove(startX, startY, ev.clientX, ev.clientY)) return;
+        // 指では、横に動かしたら欄のスクロール、上に引き出したらドラッグとして扱う
+        if (touch && Math.abs(ev.clientX - startX) > Math.abs(ev.clientY - startY)) {
+          stop();
+          return;
+        }
         moved = true;
       }
       setItemDrag({ id: item.id, x: ev.clientX, y: ev.clientY });
