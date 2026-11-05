@@ -21,7 +21,7 @@ describe('clock', () => {
   it('1 Tick で60分進み、1か月ごとに給与を払う', () => {
     let state = initialClock(balance);
     const ticksPerMonth = minutesPerMonth(balance) / 60;
-    for (let i = 0; i < ticksPerMonth; i++) state = advanceTick(state, balance);
+    for (let i = 0; i < ticksPerMonth; i++) state = advanceTick(state, balance, 2);
     expect(state.minute).toBe(minutesPerMonth(balance));
     expect(state.paidMonths).toBe(1);
     expect(state.money).toBe(1000 - 2 * 200);
@@ -30,9 +30,9 @@ describe('clock', () => {
   it('月末に資金が0円未満なら倒産し、以後は進まない', () => {
     let state = { ...initialClock(balance), money: 100 };
     const ticksPerMonth = minutesPerMonth(balance) / 60;
-    for (let i = 0; i < ticksPerMonth; i++) state = advanceTick(state, balance);
+    for (let i = 0; i < ticksPerMonth; i++) state = advanceTick(state, balance, 2);
     expect(state.bankrupt).toBe(true);
-    const frozen = advanceTick(state, balance);
+    const frozen = advanceTick(state, balance, 2);
     expect(frozen).toBe(state);
   });
 

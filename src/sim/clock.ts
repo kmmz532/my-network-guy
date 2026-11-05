@@ -19,8 +19,8 @@ export const initialClock = (balance: Balance): ClockState => ({
   bankrupt: false,
 });
 
-// 1 Tick 進める。月の境界を越えたら給与を支払い、資金が0円未満なら倒産とする
-export const advanceTick = (state: ClockState, balance: Balance): ClockState => {
+// 1 Tick 進める。月の境界を越えたら、雇用中の社員（staff 人）の給与を支払い、資金が0円未満なら倒産とする
+export const advanceTick = (state: ClockState, balance: Balance, staff: number): ClockState => {
   if (state.bankrupt) return state;
   const minute = state.minute + balance.time.gameMinutesPerTick;
   let money = state.money;
@@ -29,7 +29,7 @@ export const advanceTick = (state: ClockState, balance: Balance): ClockState => 
   const monthLength = minutesPerMonth(balance);
   while ((paidMonths + 1) * monthLength <= minute) {
     paidMonths++;
-    money -= balance.staff.initialCount * balance.staff.monthlySalary;
+    money -= staff * balance.staff.monthlySalary;
     if (money < 0) {
       bankrupt = true;
       break;

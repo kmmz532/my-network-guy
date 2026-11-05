@@ -239,11 +239,11 @@ export const useGameStore = create<GameState>((set, get) => {
     setWireCable: (cableId) => set({ wireCable: cableId }),
     tick: () =>
       set((s) => {
-        const clock = advanceTick(s.clock, balance);
+        const clock = advanceTick(s.clock, balance, s.staff);
         let next: Partial<GameState> = { clock };
         // 月末に給与を払ったら知らせる
         if (clock.paidMonths > s.clock.paidMonths) {
-          const amount = balance.staff.initialCount * balance.staff.monthlySalary;
+          const amount = s.staff * balance.staff.monthlySalary;
           next = { ...next, notice: { key: 'ui.notice.salary', params: { amount }, id: Date.now() } };
         }
         const withClock = { ...s, ...next } as GameState;

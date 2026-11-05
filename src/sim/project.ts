@@ -419,7 +419,7 @@ export const advanceBuild = (core: Core, env: Env, hour: number): Outcome => {
   const { workStartHour, workEndHour } = env.balance.build;
   let progress = p.progress;
   if (hour >= workStartHour && hour < workEndHour) {
-    progress += env.balance.time.gameMinutesPerTick * env.balance.staff.initialCount * (1 + core.effects.buildSpeed);
+    progress += env.balance.time.gameMinutesPerTick * core.staff * (1 + core.effects.buildSpeed);
   }
   if (progress < p.total) return { ok: true, core: withActive(core, { ...p, progress }) };
   const built = {
