@@ -651,7 +651,10 @@ export class Scene {
     if (!store.active && !store.showcase) {
       const officeNode = store.office.nodes.find((n) => n.x === tile.tx && n.y === tile.ty);
       if (e.button === 2) {
+        // 右クリックは、機材を先に撤去する。機材がなければ家具を撤去する
+        const furnitureAt = store.office.furniture.find((f) => f.x === tile.tx && f.y === tile.ty);
         if (officeNode) store.removeNode(officeNode.uid);
+        else if (furnitureAt) store.removeFurniture(furnitureAt.uid);
       } else if (store.placing && !officeNode) {
         store.place(store.placing, tile.tx, tile.ty);
       } else {

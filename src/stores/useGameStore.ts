@@ -1,6 +1,7 @@
 // ゲーム全体の状態。時間・資金・評判・在庫・完了案件・依頼・受注中の案件・速度を持ち、Tick ごとに進める。
 import { create } from 'zustand';
-import { balance, contracts, contractTemplates, devices } from 'virtual:game-data';
+import { balance, contracts, contractTemplates, devices, furniture } from 'virtual:game-data';
+import type { FurnitureId } from '../generated/ids';
 import { advanceTick, initialClock, toDate, type ClockState } from '../sim/clock';
 import { buyDevice } from '../sim/shop';
 import { refreshOffers, type OfferEnv } from '../contracts/offers';
@@ -9,7 +10,12 @@ import type { GameMap } from '../data/schema';
 import type { Route } from '../network/types';
 import type { SaveData } from '../services/migrations';
 import { gameEnv } from '../sim/env';
-import { initialOffice } from '../sim/furniture';
+import {
+  hire as hireOp,
+  initialOffice,
+  placeFurniture as placeFurnitureOp,
+  removeFurniture as removeFurnitureOp,
+} from '../sim/furniture';
 import {
   abandon,
   accept,
@@ -101,6 +107,10 @@ export interface GameState {
   // 案件の流れの操作。失敗したら理由を返す（成功なら null）
   accept: (offerId: string) => string | null;
   place: (deviceId: string, x: number, y: number) => string | null;
+  // 自社オフィスの家具と社員。失敗したら理由を返す
+  placeFurniture: (id: string, x: number, y: number) => string | null;
+  removeFurniture: (uid: string) => string | null;
+  hire: () => string | null;
   connect: (aUid: string, bUid: string, cableId: string) => string | null;
   removeNode: (uid: string) => string | null;
   paint: (uid: string, port: number) => string | null;
@@ -275,17 +285,21 @@ export const useGameStore = create<GameState>((set, get) => {
       }),
     buy: (deviceId) => {
       const s = get();
-      const price = devices[deviceId as keyof typeof devices].price;
+      const isFurniture = deviceId in furniture;
+      const price = isFurniture
+        ? furniture[deviceId as FurnitureId].price
+        : devices[deviceId as keyof typeof devices].price;
       const result = buyDevice(s.clock.money, s.owned, deviceId, price);
       if (!result.ok) return false;
-      // 受注中の案件に対する購入は、案件の費用に含める
-      const active = s.active ? { ...s.active, cost: s.active.cost + price } : null;
+      // 受注中の案件に対する機材の購入は、案件の費用に含める（家具は自社オフィスのものなので含めない）
+      const active = isFurniture ? s.active : s.active ? { ...s.active, cost: s.active.cost + price } : null;
       set({ clock: { ...s.clock, money: result.money }, owned: result.owned, active });
       return true;
     },
     accept: (offerId) => apply(accept(coreOf(get()), offerId)),
-    // 在庫の機材を配置する（購入はショップで行う）。案件がなければ自社オフィスに置く
+    // 在庫の機材・家具を配置する（購入はショップで行う）。案件がなければ自社オフィスに置く
     place: (deviceId, x, y) => {
+      if (deviceId in furniture) return get().placeFurniture(deviceId, x, y);
       if (!get().active) {
         const hq = get().maps.hq;
         if (!hq) return 'map';
@@ -295,6 +309,16 @@ export const useGameStore = create<GameState>((set, get) => {
       if (!map) return 'map';
       return apply(placeDevice(coreOf(get()), deviceId, x, y, map, gameEnv), { tx: x, ty: y });
     },
+    placeFurniture: (id, x, y) => {
+      const hq = get().maps.hq;
+      if (!hq) return 'map';
+      return apply(placeFurnitureOp(coreOf(get()), id, x, y, hq), { tx: x, ty: y });
+    },
+    removeFurniture: (uid) => {
+      const f = get().office.furniture.find((x) => x.uid === uid);
+      return apply(removeFurnitureOp(coreOf(get()), uid), f ? { tx: f.x, ty: f.y } : undefined);
+    },
+    hire: () => apply(hireOp(coreOf(get()), (id) => furniture[id as FurnitureId]?.seat === true)),
     connect: (aUid, bUid, cableId) =>
       apply(connect(coreOf(get()), aUid, bUid, cableId, gameEnv), tileOf(bUid)),
     removeNode: (uid) => {

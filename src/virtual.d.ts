@@ -1,9 +1,10 @@
 // game-data プラグインが出力する仮想モジュールの型
 declare module 'virtual:game-data' {
-  import type { Balance, Cable, ContractTemplate, Contract, Device, ShopItem } from './data/schema';
-  import type { CableId, DeviceId } from './generated/ids';
+  import type { Balance, Cable, ContractTemplate, Contract, Device, Furniture, ShopItem } from './data/schema';
+  import type { CableId, DeviceId, FurnitureId } from './generated/ids';
   export const balance: Balance;
   export const devices: Record<DeviceId, Device>;
+  export const furniture: Record<FurnitureId, Furniture>;
   export const cables: Record<CableId, Cable>;
   export const shop: ShopItem[];
   export const contracts: Contract[];
