@@ -414,10 +414,30 @@ def icon_menu():
 
 
 def icon_cable(color):
+    # 旧: 両端に四角の付いた斜めの線。下の icon_utp・icon_fiber に置き換えた（呼び出しが残っていれば同じ絵を返す）
+    return icon_utp() if color == 'b' else icon_fiber()
+
+
+def icon_utp():
+    # UTPケーブル: 青いケーブルが巻かれて、先に透明なプラグ（金色の端子と爪）
     img, d = new(16, 16)
-    d.line([(3, 12), (12, 3)], fill=C[color], width=2)
-    rect(d, 1, 11, 4, 4, 'g')
-    rect(d, 11, 1, 4, 4, 'g')
+    d.arc([1, 3, 11, 13], 90, 360, fill=C['b'] + (255,), width=2)
+    d.line([(6, 12), (9, 12)], fill=C['b'] + (255,), width=2)
+    rect(d, 9, 9, 6, 6, 'e', 'o')
+    for x in (10, 12):
+        px(d, x, 10, 'y')
+    rect(d, 11, 14, 2, 1, 'o')
+    return outline(img)
+
+
+def icon_fiber():
+    # 光ファイバー: 橙のケーブルが巻かれて、先に青い差し込み（LCの形）と光る先端
+    img, d = new(16, 16)
+    d.arc([1, 3, 11, 13], 90, 360, fill=C['f'] + (255,), width=2)
+    d.line([(6, 12), (9, 12)], fill=C['f'] + (255,), width=2)
+    rect(d, 9, 9, 5, 6, 'b', 'o')
+    rect(d, 14, 11, 2, 2, 'g', 'o')
+    px(d, 15, 11, 'S')
     return outline(img)
 
 
