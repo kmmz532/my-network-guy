@@ -1,5 +1,5 @@
 // 依頼カード。タイトル1行と、PC台数・予算・報酬のアイコンで表す
-import { devices } from 'virtual:game-data';
+import { balance, devices } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { hasKey, t } from '../i18n/t';
 import { goalText } from './goalText';
@@ -9,7 +9,8 @@ import { Icon } from './Icon';
 
 export function OfferCards({ onClose }: { onClose: () => void }) {
   const offers = useGameStore((s) => s.offers);
-  const busy = useGameStore((s) => s.active !== null);
+  // 案件の枠がいっぱいのときは受注できない
+  const full = useGameStore((s) => s.active.length >= balance.office.projectSlots);
   const accept = useGameStore((s) => s.accept);
   const yen = (n: number) => n.toLocaleString('ja-JP');
 
@@ -55,12 +56,15 @@ export function OfferCards({ onClose }: { onClose: () => void }) {
                 <span>
                   <Icon name="icon/budget" /> {yen(offer.contract.budget)}
                 </span>
+                {offer.contract.deadlineDays !== undefined && (
+                  <span>{t('ui.offer.deadline', { days: offer.contract.deadlineDays })}</span>
+                )}
                 <span style={{ color: '#ffd866' }}>
                   <Icon name="icon/money" /> {yen(offer.contract.reward.money)}
                 </span>
                 <button
                   style={{ marginLeft: 'auto', padding: '4px 12px', cursor: 'pointer' }}
-                  disabled={busy}
+                  disabled={full}
                   onClick={() => {
                     if (accept(offer.id) === null) onClose();
                   }}

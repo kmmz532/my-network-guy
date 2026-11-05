@@ -19,6 +19,7 @@
     "width": 10,
     "height": 6
   },
+  "deadlineDays": 7,
   "budget": {
     "base": 15000,
     "perPc": 3000

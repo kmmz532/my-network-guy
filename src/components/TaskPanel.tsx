@@ -5,14 +5,14 @@ import { evaluateGoal } from '../network/goals';
 import { goalText } from './goalText';
 import { gameEnv } from '../sim/env';
 import { compiledNet } from '../sim/project';
-import { useGameStore } from '../stores/useGameStore';
+import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 
 // 最初の案件（c001）の手順。配線・疎通・施工依頼の順に、済んだものに印を付ける
 const FIRST_CONTRACT = 'c001_direct_link';
 
 export function TaskPanel() {
-  const active = useGameStore((s) => s.active);
+  const active = useGameStore(focusedProject);
   const open = useGameStore((s) => s.taskOpen);
   const setOpen = useGameStore((s) => s.setTaskOpen);
   if (!active) return null;

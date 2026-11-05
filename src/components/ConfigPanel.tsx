@@ -4,12 +4,12 @@ import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import type { NetNode } from '../network/types';
 import { gameEnv } from '../sim/env';
-import { useGameStore } from '../stores/useGameStore';
+import { focusedProject, useGameStore } from '../stores/useGameStore';
 
 const inputStyle = { width: 140, marginRight: 4 } as const;
 
 export function ConfigPanel() {
-  const active = useGameStore((s) => s.active);
+  const active = useGameStore(focusedProject);
   const office = useGameStore((s) => s.office);
   const selectedUid = useGameStore((s) => s.selectedUid);
   const setSelected = useGameStore((s) => s.setSelected);

@@ -7,6 +7,7 @@
   ],
   "map": "office_two_rooms",
   "budget": 110000,
+  "deadlineDays": 7,
   "placed": [
     {
       "ref": "sales_a",

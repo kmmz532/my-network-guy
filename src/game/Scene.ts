@@ -2,7 +2,7 @@
 // 描画の状態は store から読むだけで、変更は store の操作を通して行う。
 import { Application, Container, Graphics, Rectangle, Sprite, Text, type FederatedPointerEvent, type Ticker } from 'pixi.js';
 import type { GameMap } from '../data/schema';
-import { useGameStore, type Trace } from '../stores/useGameStore';
+import { focusedProject, useGameStore, type Trace } from '../stores/useGameStore';
 import { gameEnv } from '../sim/env';
 import { checkConnect, compiledNet, DESK_ID, type PlacedFurniture, type Project } from '../sim/project';
 import type { Compiled } from '../network/compile';
@@ -116,7 +116,7 @@ export class Scene {
   // 表示する案件（受注中、または納品の結果を表示中）。なければ自社オフィスを表示する
   private project(): Project | null {
     const s = useGameStore.getState();
-    return s.active ?? s.showcase ?? this.officeView(s.office);
+    return focusedProject(s) ?? s.showcase ?? this.officeView(s.office);
   }
 
   private officeCache: { office: unknown; view: Project } | null = null;
@@ -139,6 +139,7 @@ export class Scene {
       phase: 'design',
       progress: 0,
       total: 0,
+      due: null,
     };
     this.officeCache = { office, view };
     return view;
@@ -295,7 +296,7 @@ export class Scene {
       this.drawDeskStaff(ts, s.hint);
       this.drawWanderers(ts);
     }
-    else if (s.active) this.drawIdleStaff(ts, s.hint);
+    else if (focusedProject(s)) this.drawIdleStaff(ts, s.hint);
     for (const trace of this.traces) this.drawTrace(trace, ts);
     this.drawHover(project, ts);
     this.drawFlash(ts);
@@ -307,7 +308,7 @@ export class Scene {
 
   // 設計時点の不備（色の未設定・混在・ゲートウェイなし）があれば「？」を出す
   private needsAttention(node: NetNode, project: Project): boolean {
-    if (project.phase !== 'design' || !useGameStore.getState().active) return false;
+    if (project.phase !== 'design' || !focusedProject(useGameStore.getState())) return false;
     return !!this.compiled?.issues[node.uid];
   }
 
@@ -680,7 +681,7 @@ export class Scene {
   }
 
   private nodeAt(tx: number, ty: number): NetNode | undefined {
-    return useGameStore.getState().active?.nodes.find((n) => n.x === tx && n.y === ty);
+    return focusedProject(useGameStore.getState())?.nodes.find((n) => n.x === tx && n.y === ty);
   }
 
   // ルーターのどのポートを指したか（機器の幅をポート数で等分する）
@@ -707,7 +708,7 @@ export class Scene {
     const node = this.nodeAt(tile.tx, tile.ty);
 
     // 案件がなく、納品の結果も出ていないときは、自社オフィスに機材を置ける
-    if (!store.active && !store.showcase) {
+    if (store.active.length === 0 && !store.showcase) {
       const officeNode = store.office.nodes.find((n) => n.x === tile.tx && n.y === tile.ty);
       if (e.button === 2) {
         // 右クリックは、機材を先に撤去する。機材がなければ家具を撤去する
@@ -722,7 +723,7 @@ export class Scene {
       }
       return;
     }
-    if (store.active?.phase !== 'design') return;
+    if (focusedProject(store)?.phase !== 'design') return;
 
     // 右クリックで撤去する
     if (e.button === 2) {

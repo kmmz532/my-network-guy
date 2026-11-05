@@ -7,7 +7,7 @@ import { isUnlocked } from '../sim/shop';
 import { warehouseItems, warehouseMode, type WarehouseItem } from '../sim/warehouse';
 import { COLOR_COUNT } from '../network/compile';
 import { subnetCss } from '../game/palette';
-import { useGameStore } from '../stores/useGameStore';
+import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 import { Warehouse } from './Warehouse';
 
@@ -46,7 +46,7 @@ const sep = <span style={{ width: 1, height: 36, background: '#3b2a33', margin: 
 
 export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: () => void }) {
   const offers = useGameStore((s) => s.offers);
-  const active = useGameStore((s) => s.active);
+  const active = useGameStore(focusedProject);
   const completed = useGameStore((s) => s.completed);
   const owned = useGameStore((s) => s.owned);
   const [warehouseOpen, setWarehouseOpen] = useState(false);

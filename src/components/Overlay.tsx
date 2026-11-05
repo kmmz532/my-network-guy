@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
+import { balance } from 'virtual:game-data';
 import { useGameStore } from '../stores/useGameStore';
+import type { Report } from '../sim/project';
 import { Icon } from './Icon';
 
 const NOTICE_MS = 3000;
@@ -26,6 +28,46 @@ export const modalBox = {
   border: '2px solid #f4f1e6',
   maxWidth: 'calc(100vw - 32px)',
 } as const;
+
+// 結果の3項目（費用の割合・失敗回数・納期）。基準は★3の条件、実績は今回の数字。達成の印を付ける
+function EvaluationRows({ report }: { report: Report }) {
+  const star3 = balance.rating.find((r) => r.stars === 3);
+  const costRatio = report.budget && report.budget > 0 ? (report.cost ?? 0) / report.budget : 0;
+  const pct = (ratio: number) => `${Math.round(ratio * 100)}%`;
+  const late = report.lateDays ?? 0;
+  const rows = [
+    {
+      label: t('report.cost'),
+      target: t('report.costTarget', { ratio: pct(star3?.maxCostRatio ?? 0) }),
+      actual: t('report.costActual', { ratio: pct(costRatio) }),
+      ok: star3?.maxCostRatio == null || costRatio <= star3.maxCostRatio,
+    },
+    {
+      label: t('report.rework'),
+      target: t('report.reworkTarget', { count: star3?.maxRework ?? 0 }),
+      actual: t('report.reworkActual', { count: report.rework ?? 0 }),
+      ok: star3?.maxRework == null || (report.rework ?? 0) <= star3.maxRework,
+    },
+    {
+      label: t('report.late'),
+      target: t('report.onTime'),
+      actual: late > 0 ? t('report.lateActual', { days: late }) : t('report.onTime'),
+      ok: late === 0,
+    },
+  ];
+  return (
+    <div style={{ marginTop: 10, fontSize: 13, textAlign: 'left' }}>
+      {rows.map((row) => (
+        <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0' }}>
+          <span style={{ width: 72 }}>{row.label}</span>
+          <span style={{ width: 96, opacity: 0.85 }}>{t('report.target')} {row.target}</span>
+          <span style={{ width: 96 }}>{t('report.actual')} {row.actual}</span>
+          <Icon name={row.ok ? 'icon/ok' : 'icon/close'} scale={1} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // 納品の結果。★・報酬・評判の数字のみ。不合格はマップ上の「×」と吹き出しで示すため出さない
 export function ReportModal() {
@@ -57,6 +99,7 @@ export function ReportModal() {
         <div style={{ fontSize: 16, marginTop: 4 }}>
           <Icon name="icon/star" /> +{report.reputationGain ?? 0}
         </div>
+        <EvaluationRows report={report} />
         <button style={{ marginTop: 12, padding: '4px 16px', cursor: 'pointer' }} onClick={dismiss}>
           <Icon name="icon/ok" />
         </button>

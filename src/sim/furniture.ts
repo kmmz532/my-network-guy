@@ -12,7 +12,7 @@ export const initialOffice = (balance: Balance): Office => {
 
 // 自社オフィスの家具を置く。在庫があり、家具のない床のマスで、機材もないときだけ置ける
 export const placeFurniture = (core: Core, id: string, x: number, y: number, map: GameMap): Outcome => {
-  if (core.active) return fail('busy');
+  if (core.active.length > 0) return fail('busy');
   if ((core.owned[id] ?? 0) < 1) return fail('stock');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
   if (map.legend[map.tiles[y][x]] !== 'floor') return fail('tile');
@@ -35,7 +35,7 @@ export const placeFurniture = (core: Core, id: string, x: number, y: number, map
 
 // 自社オフィスの家具を撤去する（在庫に戻る）。机の上にPCがあるときは撤去できない
 export const removeFurniture = (core: Core, uid: string): Outcome => {
-  if (core.active) return fail('busy');
+  if (core.active.length > 0) return fail('busy');
   const target = core.office.furniture.find((f) => f.uid === uid);
   if (!target) return fail('none');
   if (core.office.nodes.some((n) => n.x === target.x && n.y === target.y)) return fail('occupied');

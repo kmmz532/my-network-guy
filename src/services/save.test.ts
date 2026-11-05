@@ -25,7 +25,8 @@ const sample: SaveData = {
   nextOfferMinute: 0,
   offerSeq: 0,
   rng: 1,
-  active: null,
+  active: [],
+  focus: null,
   office: { nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 },
   effects: { buildSpeed: 0 },
   staff: [member('s0'), member('s1')],
@@ -72,6 +73,8 @@ describe('v6 → v7', () => {
   const { staff: _staff, staffSeq: _seq, ...withoutStaff } = sample;
   const v6 = {
     ...withoutStaff,
+    // 旧い形式の案件（単独）
+    active: null,
     office: { nodes: [pc('u0', 3, 3), pc('u1', 9, 3)], links: [], seq: 2 },
   };
 
@@ -95,7 +98,7 @@ describe('v6 → v7', () => {
 describe('v7 → v8', () => {
   // 人数の社員を作る。1人目と2人目は初期の職種（network・infra）、3人目は network
   const { staff: _staff, staffSeq: _seq, ...withoutStaff } = sample;
-  const v7 = { ...withoutStaff, staff: 3 };
+  const v7 = { ...withoutStaff, active: null, staff: 3 };
 
   it('人数ぶんの社員を、初期の職種の順に作る', () => {
     const out = migrate(7, v7);
@@ -105,6 +108,33 @@ describe('v7 → v8', () => {
       ['s2', 'network', 1],
     ]);
     expect(out.staffSeq).toBe(3);
+  });
+});
+
+describe('v8 → v9', () => {
+  const { active: _active, focus: _focus, ...withoutActive } = sample;
+
+  it('単独の案件は一覧にし、その案件を設計の対象にする', () => {
+    const project = { id: 'c001_direct_link', nodes: [] };
+    const out = migrate(8, { ...withoutActive, active: project });
+    expect(out.active).toEqual([{ ...project, due: null }]);
+    expect(out.focus).toBe('c001_direct_link');
+  });
+
+  it('案件がなければ一覧は空で、設計の対象もない', () => {
+    const out = migrate(8, { ...withoutActive, active: null });
+    expect(out.active).toEqual([]);
+    expect(out.focus).toBeNull();
+  });
+});
+
+describe('v9 → v10', () => {
+  const { active: _active, focus: _focus, ...withoutActive } = sample;
+
+  it('受注中の案件に期日がなければ、期日のない案件として扱う', () => {
+    const project = { id: 'c001_direct_link', nodes: [] };
+    const out = migrate(9, { ...withoutActive, active: [project], focus: 'c001_direct_link' });
+    expect(out.active[0]).toEqual({ id: 'c001_direct_link', nodes: [], due: null });
   });
 });
 
@@ -127,7 +157,7 @@ describe('v4 → v5', () => {
       active: { nodes: [node('a', '192.168.1.10'), node('b', '192.168.1.11'), node('c', '192.168.2.10')] },
     };
     const out = migrate(4, v4);
-    const colors = out.active!.nodes.map((n) => n.colors?.[0]);
+    const colors = out.active[0].nodes.map((n) => n.colors?.[0]);
     expect(colors[0]).toBe(colors[1]);
     expect(colors[2]).not.toBe(colors[0]);
   });

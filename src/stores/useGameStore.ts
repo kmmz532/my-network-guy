@@ -56,7 +56,10 @@ export interface GameState {
   nextOfferMinute: number;
   offerSeq: number;
   rng: number;
-  active: Project | null;
+  // 受注中の案件（複数）
+  active: Project[];
+  // いま設計・表示している案件のID
+  focus: string | null;
   // 自社オフィスのネットワークと、自社案件で得た効果
   office: Office;
   effects: Effects;
@@ -138,6 +141,10 @@ const offerEnv = (maps: Record<string, GameMap>): OfferEnv => ({
 
 const newRng = () => Math.floor(Math.random() * 0x7fffffff) + 1;
 
+// いま設計・表示している案件（なければ null）
+export const focusedProject = (s: { active: Project[]; focus: string | null }): Project | null =>
+  s.focus === null ? null : (s.active.find((p) => p.id === s.focus) ?? null);
+
 // 新しいゲームの乱数と初期の社員
 const newStart = () => {
   const init = initialStaff(balance, newRng());
@@ -155,6 +162,7 @@ const coreOf = (s: GameState): Core => ({
   effects: s.effects,
   staff: s.staff,
   staffSeq: s.staffSeq,
+  focus: s.focus,
 });
 
 // 依頼の追加を1回分進める。受注中の案件と同じ依頼は出さない
@@ -166,7 +174,7 @@ const refresh = (s: GameState): Partial<GameState> => {
       reputation: s.reputation,
       completed: s.completed,
       offers: s.offers,
-      excluded: s.active ? [s.active.baseId] : [],
+      excluded: s.active.map((p) => p.baseId),
       nextOfferMinute: s.nextOfferMinute,
       offerSeq: s.offerSeq,
       rng: s.rng,
@@ -177,12 +185,12 @@ const refresh = (s: GameState): Partial<GameState> => {
 };
 
 // 検収の結果を画面の状態に反映する（パケット・納品後の表示・ヒント）
-const reportState = (report: Report | undefined, s: GameState): Partial<GameState> => {
+const reportState = (report: Report | undefined): Partial<GameState> => {
   if (!report) return {};
   return {
     lastReport: report,
     traces: report.traces,
-    showcase: report.passed ? s.active : null,
+    showcase: report.passed ? (report.delivered ?? null) : null,
     hint: report.passed ? null : (report.hint ?? null),
   };
 };
@@ -191,7 +199,7 @@ export const useGameStore = create<GameState>((set, get) => {
   // 案件の操作の結果を状態に反映する。失敗なら理由を返す
   // 機器の位置（失敗の吹き出しを出す場所）
   const tileOf = (uid: string) => {
-    const n = get().active?.nodes.find((x) => x.uid === uid) ?? get().office.nodes.find((x) => x.uid === uid);
+    const n = focusedProject(get())?.nodes.find((x) => x.uid === uid) ?? get().office.nodes.find((x) => x.uid === uid);
     return n ? { tx: n.x, ty: n.y } : undefined;
   };
 
@@ -210,11 +218,12 @@ export const useGameStore = create<GameState>((set, get) => {
       completed: c.completed,
       offers: c.offers,
       active: c.active,
+      focus: c.focus,
       office: c.office,
       effects: c.effects,
       staff: c.staff,
       staffSeq: c.staffSeq,
-      ...reportState(outcome.report, get()),
+      ...reportState(outcome.report),
     });
     return null;
   };
@@ -228,7 +237,8 @@ export const useGameStore = create<GameState>((set, get) => {
     nextOfferMinute: 0,
     offerSeq: 0,
     ...newStart(),
-    active: null,
+    active: [],
+    focus: null,
     office: initialOffice(balance),
     effects: noEffects(),
     speed: 1,
@@ -267,7 +277,7 @@ export const useGameStore = create<GameState>((set, get) => {
         }
         const withClock = { ...s, ...next } as GameState;
         // 施工中なら、勤務時間内に作業を進める
-        if (!clock.bankrupt && withClock.active?.phase === 'build') {
+        if (!clock.bankrupt && withClock.active.some((p) => p.phase === 'build')) {
           const hour = toDate(clock.minute, balance).hour;
           const r = advanceBuild(coreOf(withClock), gameEnv, hour);
           if (r.ok) {
@@ -277,9 +287,10 @@ export const useGameStore = create<GameState>((set, get) => {
               reputation: r.core.reputation,
               completed: r.core.completed,
               active: r.core.active,
+              focus: r.core.focus,
               office: r.core.office,
               effects: r.core.effects,
-              ...reportState(r.report, withClock),
+              ...reportState(r.report),
             };
           }
         }
@@ -301,20 +312,24 @@ export const useGameStore = create<GameState>((set, get) => {
       const result = buyDevice(s.clock.money, s.owned, deviceId, price);
       if (!result.ok) return false;
       // 受注中の案件に対する機材の購入は、案件の費用に含める（家具は自社オフィスのものなので含めない）
-      const active = isFurniture ? s.active : s.active ? { ...s.active, cost: s.active.cost + price } : null;
+      const focused = focusedProject(s);
+      const active =
+        !isFurniture && focused
+          ? s.active.map((p) => (p.id === focused.id ? { ...p, cost: p.cost + price } : p))
+          : s.active;
       set({ clock: { ...s.clock, money: result.money }, owned: result.owned, active });
       return true;
     },
-    accept: (offerId) => apply(accept(coreOf(get()), offerId)),
+    accept: (offerId) => apply(accept(coreOf(get()), offerId, balance.office.projectSlots)),
     // 在庫の機材・家具を配置する（購入はショップで行う）。案件がなければ自社オフィスに置く
     place: (deviceId, x, y) => {
       if (deviceId in furniture) return get().placeFurniture(deviceId, x, y);
-      if (!get().active) {
+      if (get().active.length === 0) {
         const hq = get().maps.hq;
         if (!hq) return 'map';
         return apply(placeInOffice(coreOf(get()), deviceId, x, y, hq, gameEnv), { tx: x, ty: y });
       }
-      const map = get().maps[get().active!.contract.map];
+      const map = get().maps[focusedProject(get())!.contract.map];
       if (!map) return 'map';
       return apply(placeDevice(coreOf(get()), deviceId, x, y, map, gameEnv), { tx: x, ty: y });
     },
@@ -342,7 +357,7 @@ export const useGameStore = create<GameState>((set, get) => {
     connect: (aUid, bUid, cableId) =>
       apply(connect(coreOf(get()), aUid, bUid, cableId, gameEnv), tileOf(bUid)),
     removeNode: (uid) => {
-      if (!get().active) {
+      if (get().active.length === 0) {
         const n = get().office.nodes.find((x) => x.uid === uid);
         return apply(removeFromOffice(coreOf(get()), uid), n ? { tx: n.x, ty: n.y } : undefined);
       }
@@ -369,6 +384,7 @@ export const useGameStore = create<GameState>((set, get) => {
         offerSeq: save.offerSeq,
         rng: save.rng,
         active: save.active,
+        focus: save.focus,
         office: save.office,
         effects: save.effects,
         staff: save.staff,
@@ -389,7 +405,8 @@ export const useGameStore = create<GameState>((set, get) => {
           nextOfferMinute: 0,
           offerSeq: 0,
           ...newStart(),
-          active: null,
+          active: [],
+          focus: null,
           office: initialOffice(balance),
           effects: noEffects(),
           lastReport: null,
@@ -416,6 +433,7 @@ export const useGameStore = create<GameState>((set, get) => {
         offerSeq: s.offerSeq,
         rng: s.rng,
         active: s.active,
+        focus: s.focus,
         office: s.office,
         effects: s.effects,
         staff: s.staff,

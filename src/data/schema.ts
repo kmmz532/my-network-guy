@@ -71,10 +71,21 @@ export const balanceSchema = z.object({
         stars: z.union([z.literal(1), z.literal(2), z.literal(3)]),
         maxCostRatio: z.number().nonnegative().nullable(),
         maxRework: nonNegativeInt.nullable(),
+        // 報酬に掛ける倍率
+        rewardRate: z.number().positive(),
       }),
     )
     .min(1),
   reputationPerStar: nonNegativeInt,
+  office: z.object({
+    // 同時に受注できる案件の数（案件の枠）
+    projectSlots: int.positive(),
+  }),
+  // 納品が遅れたときの報酬の割合。1日ごとに lateRatePerDay ぶん減り、lateFloor より下がらない
+  deadline: z.object({
+    lateRatePerDay: z.number().min(0),
+    lateFloor: z.number().min(0).max(1),
+  }),
 });
 
 export const cableSchema = z.object({
@@ -186,6 +197,8 @@ export const contractSchema = z.object({
   requires: z.array(z.string().min(1)).default([]),
   map: z.string().min(1),
   budget: nonNegativeInt,
+  // 受注日からの期日（日数）。自社案件のように期日のない案件は省く
+  deadlineDays: int.positive().optional(),
   placed: z.array(placedSchema),
   goals: z.array(goalSchema).min(1),
   reward: z.object({
@@ -204,6 +217,8 @@ export const templateSchema = z.object({
   requires: z.array(z.string().min(1)).default([]),
   minReputation: nonNegativeInt,
   weight: nonNegativeInt,
+  // 受注日からの期日（日数）
+  deadlineDays: int.positive(),
   map: z.string().min(1),
   params: z.object({
     pcCount: z.object({ min: int.positive(), max: int.positive() }),

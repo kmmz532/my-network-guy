@@ -13,6 +13,7 @@ import { initialStaff } from './staff';
 import {
   abandon,
   accept,
+  focusedOf,
   advanceBuild,
   checkConnect,
   connect,
@@ -62,12 +63,18 @@ const start = (): Core => ({
   owned: {},
   completed: [],
   offers: [offer],
-  active: null,
+  active: [],
+  focus: null,
   office: { nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 },
   effects: { buildSpeed: 0 },
   staff: initialStaff(balance, 1).staff,
   staffSeq: 2,
 });
+
+// 案件の受注は枠（balance.office.projectSlots）を渡す
+const take = (core: Core, id: string) => accept(core, id, balance.office.projectSlots);
+// 設計の対象の案件
+const cur = (core: Core) => focusedOf(core);
 
 // 結果が成功していることを確認して、その状態を返す
 const ok = (r: ReturnType<typeof accept>) => {
@@ -77,8 +84,8 @@ const ok = (r: ReturnType<typeof accept>) => {
 
 describe('案件の流れ: c001 PC2台の直結', () => {
   it('色を塗って配線し、施工すると検収に合格して納品される', () => {
-    let core = ok(accept(start(), 'c001_direct_link')).core;
-    expect(core.active?.phase).toBe('design');
+    let core = ok(take(start(), 'c001_direct_link')).core;
+    expect(cur(core)?.phase).toBe('design');
     expect(core.offers).toEqual([]);
 
     core = ok(setColor(core, 'pc_a', 0, 1)).core;
@@ -88,74 +95,101 @@ describe('案件の流れ: c001 PC2台の直結', () => {
     expect(core.clock.money).toBe(1_000_000 - 3100);
 
     core = ok(requestBuild(core, env)).core;
-    expect(core.active?.total).toBe(7 * balance.build.minutesPerCableTile);
+    expect(cur(core)?.total).toBe(7 * balance.build.minutesPerCableTile);
 
     // 勤務時間内の1Tickで施工が終わり、検収に合格する
     const done = ok(advanceBuild(core, env, balance.build.workStartHour));
     expect(done.report?.passed).toBe(true);
     expect(done.report?.stars).toBe(3);
-    expect(done.core.active).toBeNull();
+    expect(done.core.active).toEqual([]);
     expect(done.core.completed).toEqual(['c001_direct_link']);
-    expect(done.core.clock.money).toBe(1_000_000 - 3100 + 30000);
+    // 報酬は 30000 × ★3 の倍率 1.25
+    expect(done.core.clock.money).toBe(1_000_000 - 3100 + 37500);
     expect(done.core.reputation).toBe(1 + 3 * balance.reputationPerStar);
     expect(done.report?.reputationGain).toBe(1 + 3 * balance.reputationPerStar);
   });
 
   it('色を塗らずに施工すると不合格になり、設計に戻る', () => {
-    let core = ok(accept(start(), 'c001_direct_link')).core;
+    let core = ok(take(start(), 'c001_direct_link')).core;
     core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
     core = ok(requestBuild(core, env)).core;
     const r = ok(advanceBuild(core, env, balance.build.workStartHour));
     expect(r.report?.passed).toBe(false);
     expect(r.report?.failures.map((f) => f.reason)).toContain('ip.unset');
-    expect(r.core.active?.phase).toBe('design');
-    expect(r.core.active?.rework).toBe(1);
+    expect(cur(r.core)?.phase).toBe('design');
+    expect(cur(r.core)?.rework).toBe(1);
     expect(r.core.completed).toEqual([]);
   });
 
   it('勤務時間外は施工が進まない', () => {
-    let core = ok(accept(start(), 'c001_direct_link')).core;
+    let core = ok(take(start(), 'c001_direct_link')).core;
     core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
     core = ok(requestBuild(core, env)).core;
     const r = ok(advanceBuild(core, env, 3));
-    expect(r.core.active?.progress).toBe(0);
+    expect(cur(r.core)?.progress).toBe(0);
     expect(r.report).toBeUndefined();
   });
 
-  it('受注は1件まで', () => {
-    const core = ok(accept(start(), 'c001_direct_link')).core;
-    expect(accept(core, 'c001_direct_link')).toEqual({ ok: false, reason: 'busy' });
+  it('受注は案件の枠の数まで', () => {
+    const core = ok(take(start(), 'c001_direct_link')).core;
+    expect(take(core, 'c001_direct_link')).toEqual({ ok: false, reason: 'slots' });
+  });
+});
+
+describe('複数の案件', () => {
+  const second: Offer = { ...offer, id: 'c001_again' };
+
+  it('枠が2つなら2件を受注でき、受注した案件が設計の対象になる', () => {
+    const base: Core = { ...start(), offers: [offer, second] };
+    const one = ok(accept(base, offer.id, 2)).core;
+    const two = ok(accept(one, second.id, 2)).core;
+    expect(two.active.map((p) => p.id)).toEqual([offer.id, second.id]);
+    expect(two.focus).toBe(second.id);
+  });
+
+  it('施工中の案件はどちらも進み、対象の案件に関係なく施工の時間が進む', () => {
+    const base: Core = { ...start(), offers: [offer, second] };
+    let core = ok(accept(ok(accept(base, offer.id, 2)).core, second.id, 2)).core;
+    core = {
+      ...core,
+      active: core.active.map((p) => ({ ...p, phase: 'build' as const, progress: 0, total: 100000 })),
+    };
+    const r = ok(advanceBuild(core, env, balance.build.workStartHour));
+    expect(r.core.active.map((p) => p.progress)).toEqual([balance.time.gameMinutesPerTick * 2, balance.time.gameMinutesPerTick * 2]);
   });
 });
 
 describe('機器の配置と配線', () => {
   it('在庫がないと配置できない', () => {
-    const core = ok(accept(start(), 'c001_direct_link')).core;
+    const core = ok(take(start(), 'c001_direct_link')).core;
     expect(placeDevice(core, 'l2_switch_8p', 5, 5, map, env)).toEqual({ ok: false, reason: 'stock' });
   });
 
   it('壁のマスには置けない', () => {
-    let core = ok(accept(start(), 'c001_direct_link')).core;
+    let core = ok(take(start(), 'c001_direct_link')).core;
     core = { ...core, owned: { l2_switch_8p: 1 } };
     expect(placeDevice(core, 'l2_switch_8p', 0, 0, map, env)).toEqual({ ok: false, reason: 'tile' });
   });
 
   it('配置すると在庫が減る', () => {
-    let core = ok(accept(start(), 'c001_direct_link')).core;
+    let core = ok(take(start(), 'c001_direct_link')).core;
     core = { ...core, owned: { l2_switch_8p: 1 } };
     const r = ok(placeDevice(core, 'l2_switch_8p', 6, 6, map, env));
     expect(r.core.owned.l2_switch_8p).toBe(0);
-    expect(r.core.active?.nodes.some((n) => n.uid === 'u0' && n.x === 6)).toBe(true);
+    expect(cur(r.core)?.nodes.some((n) => n.uid === 'u0' && n.x === 6)).toBe(true);
   });
 
   it('設定が固定された機器の色は変えられない', () => {
-    const core = ok(accept(start(), 'c001_direct_link')).core;
-    const locked = { ...core, active: { ...core.active!, nodes: core.active!.nodes.map((n) => ({ ...n, configLocked: true })) } };
+    const core = ok(take(start(), 'c001_direct_link')).core;
+    const locked = {
+      ...core,
+      active: core.active.map((p) => ({ ...p, nodes: p.nodes.map((n) => ({ ...n, configLocked: true })) })),
+    };
     expect(setColor(locked, 'pc_a', 0, 2)).toEqual({ ok: false, reason: 'locked' });
   });
 
   it('ケーブルの上限長を超える配線はできない', () => {
-    const core = ok(accept(start(), 'c001_direct_link')).core;
+    const core = ok(take(start(), 'c001_direct_link')).core;
     // pc_a (3,4) と pc_b (10,4) は7タイル。上限を超えるケーブルがないため、距離だけ確かめる
     const short = { ...env, cables: { utp_cat5e: { pricePerLink: 0, pricePerTile: 0, maxLengthTiles: 3 } } };
     expect(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', short)).toEqual({ ok: false, reason: 'cable' });
@@ -164,17 +198,17 @@ describe('機器の配置と配線', () => {
 
 describe('配線できるかの判定', () => {
   it('自分自身には配線できない', () => {
-    const core = ok(accept(start(), 'c001_direct_link')).core;
+    const core = ok(take(start(), 'c001_direct_link')).core;
     expect(checkConnect(core, 'pc_a', 'pc_a', 'utp_cat5e', env)).toBe('none');
   });
 
   it('できる場合は理由を返さない', () => {
-    const core = ok(accept(start(), 'c001_direct_link')).core;
+    const core = ok(take(start(), 'c001_direct_link')).core;
     expect(checkConnect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).toBeNull();
   });
 
   it('PCのポートが埋まっていると配線できない', () => {
-    let core = ok(accept(start(), 'c001_direct_link')).core;
+    let core = ok(take(start(), 'c001_direct_link')).core;
     core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
     core = { ...core, owned: { l2_switch_8p: 1 } };
     expect(checkConnect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).toBe('port');
@@ -204,7 +238,7 @@ describe('自社案件', () => {
 
   it('自社案件では、机のない床にPCを置けない', () => {
     const core: Core = { ...start(), offers: [inhouseOffer], owned: { pc_basic: 1 } };
-    const accepted = ok(accept(core, inhouse.id)).core;
+    const accepted = ok(take(core, inhouse.id)).core;
     expect(placeDevice(accepted, 'pc_basic', 6, 6, map, env)).toEqual({ ok: false, reason: 'desk' });
   });
 
@@ -215,8 +249,8 @@ describe('自社案件', () => {
       owned: { pc_basic: 1 },
       office: { nodes: [], links: [], seq: 0, furniture: [desk(6, 6)], furnitureSeq: 1 },
     };
-    const accepted = ok(accept(core, inhouse.id)).core;
-    expect(ok(placeDevice(accepted, 'pc_basic', 6, 6, map, env)).core.active?.nodes).toHaveLength(1);
+    const accepted = ok(take(core, inhouse.id)).core;
+    expect(cur(ok(placeDevice(accepted, 'pc_basic', 6, 6, map, env)).core)?.nodes).toHaveLength(1);
   });
 
   it('自社案件では、家具のマスに機器を置けない', () => {
@@ -226,15 +260,15 @@ describe('自社案件', () => {
       owned: { l2_switch_8p: 1 },
       office: { nodes: [], links: [], seq: 0, furniture: [{ uid: 'f0', id: 'plant', x: 6, y: 6 }], furnitureSeq: 1 },
     };
-    const accepted = ok(accept(core, inhouse.id)).core;
+    const accepted = ok(take(core, inhouse.id)).core;
     expect(placeDevice(accepted, 'l2_switch_8p', 6, 6, map, env)).toEqual({ ok: false, reason: 'tile' });
   });
 
   it('自社案件でない案件では、床にPCを置ける', () => {
     const core: Core = { ...start(), owned: { pc_basic: 1 } };
-    const accepted = ok(accept(core, offer.id)).core;
-    const before = accepted.active?.nodes.length ?? 0;
-    expect(ok(placeDevice(accepted, 'pc_basic', 6, 6, map, env)).core.active?.nodes).toHaveLength(before + 1);
+    const accepted = ok(take(core, offer.id)).core;
+    const before = cur(accepted)?.nodes.length ?? 0;
+    expect(cur(ok(placeDevice(accepted, 'pc_basic', 6, 6, map, env)).core)?.nodes).toHaveLength(before + 1);
   });
 
   it('納品したネットワークが自社オフィスに残り、次の自社案件に引き継がれる', () => {
@@ -244,7 +278,7 @@ describe('自社案件', () => {
       owned: { pc_basic: 2 },
       office: { nodes: [], links: [], seq: 0, furniture: [desk(3, 4), desk(8, 4)], furnitureSeq: 2 },
     };
-    core = ok(accept(core, inhouse.id)).core;
+    core = ok(take(core, inhouse.id)).core;
     core = ok(placeDevice(core, 'pc_basic', 3, 4, map, env)).core;
     core = ok(placeDevice(core, 'pc_basic', 8, 4, map, env)).core;
     core = ok(setColor(core, 'u0', 0, 1)).core;
@@ -252,16 +286,16 @@ describe('自社案件', () => {
     core = ok(connect(core, 'u0', 'u1', 'utp_cat5e', env)).core;
     core = ok(requestBuild(core, env)).core;
     let r = ok(advanceBuild(core, env, balance.build.workStartHour));
-    for (let i = 0; i < 20 && r.core.active; i++) r = ok(advanceBuild(r.core, env, balance.build.workStartHour));
+    for (let i = 0; i < 20 && r.core.active.length > 0; i++) r = ok(advanceBuild(r.core, env, balance.build.workStartHour));
     expect(r.report?.passed).toBe(true);
     expect(r.core.office.nodes.map((n) => n.uid)).toEqual(['u0', 'u1']);
     expect(r.core.office.links).toHaveLength(1);
     expect(r.core.effects.buildSpeed).toBeCloseTo(0.2);
 
     // 次の自社案件は、残ったネットワークから始まり、uid は重ならない
-    const next = ok(accept({ ...r.core, offers: [{ ...inhouseOffer, id: 'again' }] }, 'again')).core;
-    expect(next.active?.nodes.map((n) => n.uid)).toEqual(['u0', 'u1']);
-    expect(next.active?.seq).toBe(r.core.office.seq);
+    const next = ok(take({ ...r.core, offers: [{ ...inhouseOffer, id: 'again' }] }, 'again')).core;
+    expect(cur(next)?.nodes.map((n) => n.uid)).toEqual(['u0', 'u1']);
+    expect(cur(next)?.seq).toBe(r.core.office.seq);
     // 取り消しても、引き継いだ機器は在庫に戻らない
     expect(ok(abandon(next)).core.owned.pc_basic ?? 0).toBe(0);
   });

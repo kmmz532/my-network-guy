@@ -5,7 +5,7 @@ import type { LangKey } from './generated/lang-keys';
 import { seatCount } from './sim/furniture';
 import { loadLang, t } from './i18n/t';
 import { PixiStage } from './game/PixiStage';
-import { useGameStore, type Speed } from './stores/useGameStore';
+import { focusedProject, useGameStore, type Speed } from './stores/useGameStore';
 import { useTickLoop } from './stores/useTickLoop';
 import { toDate } from './sim/clock';
 import { loadSlot, saveSlot } from './services/db';
@@ -66,7 +66,7 @@ export function App() {
   }, []);
 
   // 受注した案件のマップは、配置や描画のために読み込んでおく
-  const activeMap = useGameStore((s) => s.active?.contract.map);
+  const activeMap = useGameStore((s) => focusedProject(s)?.contract.map);
   useEffect(() => {
     if (activeMap && !useGameStore.getState().maps[activeMap]) {
       mapLoaders[activeMap as keyof typeof mapLoaders]().then((m) => cacheMap(m.default));

@@ -33,7 +33,8 @@ describe('セーブのバージョン移行', () => {
       offerSeq: 0,
       // 社員を作るときに乱数を進める
       rng: expect.any(Number),
-      active: null,
+      active: [],
+      focus: null,
       office: {
         nodes: [],
         links: [],

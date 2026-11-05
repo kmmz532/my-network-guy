@@ -7,7 +7,7 @@ import { createStaff, specAt } from '../sim/staff';
 import balanceJson from '../assets/data/balance.json';
 import pcJson from '../assets/data/devices/pc.json';
 
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 10;
 
 export interface SaveData {
   clock: { minute: number; money: number; paidMonths: number; bankrupt: boolean };
@@ -23,7 +23,9 @@ export interface SaveData {
   // 乱数の状態
   rng: number;
   // 受注中の案件（なければ null）
-  active: Project | null;
+  active: Project[];
+  // いま設計・表示している案件のID
+  focus: string | null;
   // 自社オフィスのネットワークと、自社案件で得た効果
   office: Office;
   effects: Effects;
@@ -79,6 +81,17 @@ export const migrations: Record<number, Migration> = {
     }
     return { ...d, staff, staffSeq: staff.length, rng };
   },
+  // v8 → v9: 受注中の案件を複数にする。単独の案件は一覧にし、設計の対象にする
+  8: (data) => {
+    const d = data as { active: Project | null };
+    const active = d.active ? [d.active] : [];
+    return { ...d, active, focus: d.active?.id ?? null };
+  },
+  // v9 → v10: 案件に期日を追加する。移行前に受注した案件は期日がないものとする
+  9: (data) => {
+    const d = data as { active: Project[] };
+    return { ...d, active: d.active.map((p) => ({ ...p, due: null })) };
+  },
 };
 
 export const isSaveData = (value: unknown): value is SaveData => {
@@ -103,7 +116,8 @@ export const isSaveData = (value: unknown): value is SaveData => {
     Number.isInteger(v.nextOfferMinute) &&
     Number.isInteger(v.offerSeq) &&
     Number.isInteger(v.rng) &&
-    (v.active === null || (typeof v.active === 'object' && v.active !== null)) &&
+    Array.isArray(v.active) &&
+    (v.focus === null || typeof v.focus === 'string') &&
     Array.isArray(v.staff) &&
     Number.isInteger(v.staffSeq) &&
     Array.isArray((v.office as { furniture?: unknown } | undefined)?.furniture)

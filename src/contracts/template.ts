@@ -56,6 +56,7 @@ export const instantiateTemplate = (
     id: `${template.id}_${seq}`,
     stage: template.stage,
     order: 0,
+    deadlineDays: template.deadlineDays,
     requires: template.requires,
     map: template.map,
     budget: template.budget.base + template.budget.perPc * n,

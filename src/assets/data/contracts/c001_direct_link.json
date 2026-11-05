@@ -5,6 +5,7 @@
   "requires": [],
   "map": "office_small",
   "budget": 5000,
+  "deadlineDays": 3,
   "placed": [
     {
       "ref": "pc_a",
