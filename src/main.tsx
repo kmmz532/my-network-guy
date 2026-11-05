@@ -16,3 +16,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
   document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
 }
+
+// オフラインでも起動できるよう、本番のビルドだけサービスワーカーを登録する
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => undefined);
+  });
+}
