@@ -2,7 +2,7 @@
 // 位置と大きさの計算は ui/windows.ts が受け持ち、ここはポインターの処理と見た目だけを扱う（マウス・タッチ・ペンは同じ処理）。
 import { useRef, type PointerEvent, type ReactNode } from 'react';
 import type { Rect } from '../ui/windows';
-import { RADIUS } from '../ui/theme';
+import { RADIUS, WINDOW_BAR_HEIGHT, uiScaled } from '../ui/theme';
 
 interface Props {
   title: ReactNode;
@@ -92,7 +92,11 @@ export function Window({ title, rect, movable, closeLabel, onFocus, onMove, onRe
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 6,
-          padding: '4px 6px',
+          // 高さは固定する（中身の絵や文字の大きさで帯が高くならないように、はみ出しは切る）
+          height: uiScaled(WINDOW_BAR_HEIGHT),
+          boxSizing: 'border-box',
+          overflow: 'hidden',
+          padding: '0 6px',
           flexShrink: 0,
           background: '#25406f',
           borderBottom: '1px solid #3b2a33',

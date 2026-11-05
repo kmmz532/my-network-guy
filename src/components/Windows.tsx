@@ -9,6 +9,7 @@ import { StaffBody, StaffListBody, StaffTitle } from './StaffCard';
 import { Window } from './Window';
 import { Tabs, TAB_COLORS } from './Tabs';
 import { useGameStore, viewportNow } from '../stores/useGameStore';
+import { WINDOW_TAB_GAP, WINDOW_TAB_HEIGHT, uiScaled } from '../ui/theme';
 
 // 画面の大きさ。変わったら描き直す
 function useViewport(): Viewport {
@@ -31,13 +32,15 @@ const tabLabel = (kind: WindowKind, ref: string): ReactNode => {
 // タブの帯。選ぶのはクリック、閉じるのは小さな×か中ボタンのクリック（Tabs が受け持つ）
 function TabStrip({ win, closeLabel, onSelect, onClose }: { win: WindowItem; closeLabel: string; onSelect: (ref: string) => void; onClose: (ref: string) => void }) {
   return (
-    <div style={{ flexShrink: 0, padding: '4px 4px 0' }}>
+    // 帯の高さは固定（タブの中身の大きさに関係なく、同じ高さ）。はみ出しは切る
+    <div style={{ flexShrink: 0, boxSizing: 'border-box', height: uiScaled(WINDOW_TAB_GAP + WINDOW_TAB_HEIGHT), padding: `${uiScaled(WINDOW_TAB_GAP)} 4px 0`, overflow: 'hidden' }}>
       <Tabs
         items={win.tabs.map((ref) => ({ id: ref, label: tabLabel(win.kind, ref), closeLabel }))}
         selected={win.active}
         onSelect={onSelect}
         onClose={onClose}
         colors={TAB_COLORS.window}
+        tabHeight={WINDOW_TAB_HEIGHT}
         style={{ zoom: 'var(--ui-scale, 1)' }}
       />
     </div>

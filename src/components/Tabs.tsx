@@ -52,9 +52,11 @@ interface Props<T extends string> {
   idPrefix?: string;
   ariaLabel?: string;
   style?: CSSProperties;
+  // 指定すると、タブの高さをこの px に固定する（中身が大きくても高さは変わらず、はみ出しは切る）
+  tabHeight?: number;
 }
 
-const boxStyle = (active: boolean, disabled: boolean | undefined, closable: boolean, colors: TabColors): CSSProperties => ({
+const boxStyle = (active: boolean, disabled: boolean | undefined, closable: boolean, colors: TabColors, tabHeight: number | undefined): CSSProperties => ({
   display: 'inline-flex',
   alignItems: 'center',
   flexShrink: 0,
@@ -68,15 +70,19 @@ const boxStyle = (active: boolean, disabled: boolean | undefined, closable: bool
   background: active ? colors.selected : colors.idle,
   color: TEXT,
   opacity: disabled ? 0.4 : 1,
+  ...(tabHeight !== undefined ? { height: tabHeight, boxSizing: 'border-box' as const, overflow: 'hidden' } : {}),
 });
 
 // 上の余白は、選んでいるタブ（下の縁なし）と選んでいないタブ（下の縁あり）の高さが揃うように決める
-const labelStyle = (active: boolean, closable: boolean, disabled: boolean | undefined): CSSProperties => ({
+// 高さを固定したとき（tabHeight）は、ボタンを箱の高さいっぱいに広げ、中身は縦の中央に置く（中身が高くても箱からはみ出さない）
+const labelStyle = (active: boolean, closable: boolean, disabled: boolean | undefined, fixed: boolean): CSSProperties => ({
   display: 'flex',
   alignItems: 'center',
   gap: 6,
   minWidth: 0,
-  padding: `${active ? 5 : 4}px ${closable ? 6 : 10}px 4px 10px`,
+  ...(fixed
+    ? { height: '100%', boxSizing: 'border-box', lineHeight: '20px', padding: `0 ${closable ? 6 : 10}px 0 10px` }
+    : { padding: `${active ? 5 : 4}px ${closable ? 6 : 10}px 4px 10px` }),
   background: 'transparent',
   color: 'inherit',
   border: 'none',
@@ -100,7 +106,7 @@ const closeStyle: CSSProperties = {
   lineHeight: '16px',
 };
 
-export function Tabs<T extends string>({ items, selected, onSelect, onClose, colors, idPrefix, ariaLabel, style }: Props<T>) {
+export function Tabs<T extends string>({ items, selected, onSelect, onClose, colors, idPrefix, ariaLabel, style, tabHeight }: Props<T>) {
   const refs = useRef<Partial<Record<T, HTMLButtonElement | null>>>({});
   const enabled = items.filter((i) => !i.disabled).map((i) => i.id);
 
@@ -122,7 +128,7 @@ export function Tabs<T extends string>({ items, selected, onSelect, onClose, col
         return (
           <div
             key={item.id}
-            style={boxStyle(active, item.disabled, close !== undefined, colors)}
+            style={boxStyle(active, item.disabled, close !== undefined, colors, tabHeight)}
             // 中ボタンで閉じる（閉じられるタブだけ）。既定の自動スクロールは Window の mousedown で止める
             onAuxClick={
               close
@@ -145,7 +151,7 @@ export function Tabs<T extends string>({ items, selected, onSelect, onClose, col
               aria-disabled={item.disabled || undefined}
               disabled={item.disabled}
               tabIndex={active ? 0 : -1}
-              style={labelStyle(active, close !== undefined, item.disabled)}
+              style={labelStyle(active, close !== undefined, item.disabled, tabHeight !== undefined)}
               onClick={() => onSelect(item.id)}
               onKeyDown={onKeyDown}
             >
