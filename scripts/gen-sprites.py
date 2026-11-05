@@ -747,31 +747,6 @@ def rear_power():
     return img
 
 
-# ---- ファビコン（タブとホーム画面のアイコン） ----
-# 32×32。角の丸い青い板に、3台の機器（白）と、それを結ぶケーブル（緑）を描く
-
-def favicon():
-    # 32×32。ゲームのスイッチのスプライトをそのまま使い、前面のポートから3本のケーブルを下へ伸ばす。
-    # 先に device/l2_switch_8p.png を保存しておく必要がある
-    switch = Image.open(os.path.join(ROOT, 'device', 'l2_switch_8p.png')).convert('RGBA')
-    body = switch.crop(switch.getbbox())
-    img, d = new(32, 32)
-    d.rounded_rectangle([0, 0, 31, 31], radius=6, fill=C['F2'] + (255,), outline=C['o'] + (255,))
-    d.rounded_rectangle([1, 1, 30, 9], radius=5, fill=C['W1'] + (255,))
-    d.line([(1, 9), (30, 9)], fill=C['W3'] + (255,))
-    x0 = (32 - body.width) // 2
-    y0 = 6
-    # ケーブル: スイッチの下から床へ、青・緑・黄
-    for x, color in ((x0 + 5, 'b'), (x0 + 11, 'l'), (x0 + 17, 'y')):
-        d.line([(x, y0 + body.height - 2), (x, 30)], fill=C[color] + (255,), width=2)
-    img.alpha_composite(body, (x0, y0))
-    return img
-
-
-def save_public(img, name):
-    path = os.path.join(os.path.dirname(__file__), '..', 'public', name)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    img.save(path)
 
 
 if __name__ == '__main__':
@@ -849,6 +824,3 @@ if __name__ == '__main__':
     for name, img in furniture.items():
         save(img, f'furniture/{name}.png')
     print('ok')
-    fav = favicon()
-    save_public(fav, 'favicon.png')
-    save_public(fav.resize((192, 192), Image.NEAREST), 'icon-192.png')
