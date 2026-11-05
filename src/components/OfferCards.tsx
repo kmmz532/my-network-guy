@@ -10,6 +10,7 @@ import { useGameStore } from '../stores/useGameStore';
 import type { Offer } from '../contracts/template';
 import { Modal, primaryButton, usePrimary } from './Modal';
 import { Icon } from './Icon';
+import { RADIUS } from '../ui/theme';
 
 // 依頼の一覧。Enter は一番上の依頼の受注（主のボタン）
 export function OfferCards({ onClose }: { onClose: () => void }) {
@@ -97,10 +98,10 @@ function OfferCard({
     return c === 'pc' || c === 'server';
   }).length;
   return (
-    <div style={{ background: '#25406f', borderRadius: 4, padding: 10, marginBottom: 8 }}>
+    <div style={{ background: '#25406f', borderRadius: RADIUS.none, padding: 10, marginBottom: 8 }}>
       <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
         {offer.contract.inhouse && (
-          <span style={{ background: '#5aa860', borderRadius: 3, padding: '0 6px', marginRight: 6, fontSize: 12 }}>
+          <span style={{ background: '#5aa860', borderRadius: RADIUS.none, padding: '0 6px', marginRight: 6, fontSize: 12 }}>
             {t('ui.offer.inhouse')}
           </span>
         )}

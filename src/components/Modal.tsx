@@ -2,6 +2,7 @@
 // 主のボタンは、子の部品が usePrimary で指定する（一番上のポップアップの主のボタンになる）。
 import { createContext, useCallback, useContext, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { pushPopup, type PopupEntry } from '../input/popupStack';
+import { RADIUS } from '../ui/theme';
 
 export const modalBack = {
   position: 'absolute',
@@ -18,7 +19,7 @@ export const modalBox = {
   background: '#2f4f8f',
   color: '#f4f1e6',
   padding: 16,
-  borderRadius: 6,
+  borderRadius: RADIUS.chrome,
   border: '2px solid #f4f1e6',
   // 画面の幅は、背景（modalBack）の幅に対する割合で決める（vw は UI の大きさの倍率を受けるため使わない）
   maxWidth: 'calc(100% - 32px)',
@@ -31,7 +32,7 @@ export const primaryButton = {
   background: '#ffd866',
   color: '#3b2a33',
   border: '1px solid #3b2a33',
-  borderRadius: 3,
+  borderRadius: RADIUS.none,
   fontWeight: 'bold',
 } as const;
 

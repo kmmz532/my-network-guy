@@ -13,6 +13,7 @@ import { loadSettings } from '../settings/settings';
 import { useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, portLabel } from './devicePorts';
 import { isDragMove, portHoverAt, replugTargetAt, type PortBox, type PortHover } from './rearDrag';
+import { RADIUS } from '../ui/theme';
 
 // 背面の部品のスプライトを拡大する倍率（ドット絵を整数倍で描く）
 // 背面の部品の拡大率。ポートが多い機器は、板の幅に収まるよう2倍にする
@@ -201,7 +202,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
         style={{
           background: '#3d434b',
           border: '2px solid #3b2a33',
-          borderRadius: 4,
+          borderRadius: RADIUS.none,
           padding: '8px 6px',
           display: 'flex',
           alignItems: 'flex-end',
@@ -249,7 +250,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
                 style={{
                   background: 'none',
                   border: selected === p ? '2px solid #ffd866' : '2px solid transparent',
-                  borderRadius: 2,
+                  borderRadius: RADIUS.none,
                   padding: 0,
                   cursor: link && grabbable ? 'grab' : 'pointer',
                   // スマートフォンでもプラグをドラッグできるよう、ブラウザのスクロールに渡さない
@@ -314,7 +315,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
               background: selected === p ? '#3a5fa8' : 'none',
               color: '#f4f1e6',
               border: '1px solid #3b2a33',
-              borderRadius: 3,
+              borderRadius: RADIUS.none,
               fontSize: 12,
             }}
           >

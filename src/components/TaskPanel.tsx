@@ -5,6 +5,7 @@ import { hasKey, t } from '../i18n/t';
 import { goalText } from './goalText';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
+import { RADIUS } from '../ui/theme';
 
 // 最初の案件（c001）の手順。配線・疎通・施工依頼の順に、済んだものに印を付ける
 const FIRST_CONTRACT = 'c001_direct_link';
@@ -46,7 +47,7 @@ export function TaskPanel() {
         background: 'rgba(47, 79, 143, 0.92)',
         color: '#f4f1e6',
         border: '2px solid #3b2a33',
-        borderRadius: 4,
+        borderRadius: RADIUS.chrome,
         fontSize: 13,
         zIndex: 4,
         zoom: 'var(--ui-scale, 1)',

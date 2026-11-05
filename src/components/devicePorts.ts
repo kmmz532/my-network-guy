@@ -1,5 +1,6 @@
 // 機器の画面（DevicePanel・DeviceRear・DeviceSettings）で共通に使う、ポートの名前と見た目の部品。
 import { t } from '../i18n/t';
+import { RADIUS } from '../ui/theme';
 
 // ポートの名前。スイッチは 1 から、ルーターは G0/0 の形、PC・サーバーは LAN（ポートの番号は 0 から数える）
 export const portLabel = (category: string | undefined, port: number): string => {
@@ -22,7 +23,7 @@ export const panelStyle = {
   background: 'rgba(47, 79, 143, 0.95)',
   color: '#f4f1e6',
   border: '2px solid #3b2a33',
-  borderRadius: 4,
+  borderRadius: RADIUS.chrome,
   padding: 8,
   fontSize: 13,
   zIndex: 4,
@@ -32,7 +33,7 @@ export const inputStyle = { width: 120, background: '#f4f1e6', color: '#3b2a33',
 
 export const selectStyle = { background: '#f4f1e6', color: '#3b2a33', border: '1px solid #3b2a33', padding: '1px 2px', maxWidth: 150 } as const;
 
-export const buttonStyle = { cursor: 'pointer', padding: '2px 8px', background: '#25406f', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: 3 } as const;
+export const buttonStyle = { cursor: 'pointer', padding: '2px 8px', background: '#25406f', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: RADIUS.none } as const;
 
 export const sectionStyle = { marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #3b2a33' } as const;
 

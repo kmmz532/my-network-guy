@@ -27,6 +27,7 @@ import { Tooltip, TooltipHost } from './components/Tooltip';
 import { Icon } from './components/Icon';
 import { TitleScreen } from './components/TitleScreen';
 import { mapLoaders } from 'virtual:loaders';
+import { RADIUS } from './ui/theme';
 
 const SLOT = 1;
 const SPEEDS: Speed[] = [0, 1, 2, 4];
@@ -41,7 +42,7 @@ const hudButton = (on: boolean) =>
     background: on ? '#ffd866' : '#25406f',
     color: on ? '#3b2a33' : '#f4f1e6',
     border: '1px solid #3b2a33',
-    borderRadius: 3,
+    borderRadius: RADIUS.chrome,
   }) as const;
 
 export function App() {
@@ -141,7 +142,7 @@ export function App() {
   };
 
   // メニューの項目。ボタンとファイルを選ぶラベルで、文字の大きさと見た目をそろえる
-  const menuButton = { display: 'block', width: '100%', margin: '4px 0', padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.4, boxSizing: 'border-box', border: '1px solid #767676', borderRadius: 3, background: '#efefef', color: '#000' } as const;
+  const menuButton = { display: 'block', width: '100%', margin: '4px 0', padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.4, boxSizing: 'border-box', border: '1px solid #767676', borderRadius: RADIUS.none, background: '#efefef', color: '#000' } as const;
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>

@@ -5,6 +5,7 @@ import { t } from '../i18n/t';
 import type { WarehouseItem } from '../sim/warehouse';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
+import { RADIUS } from '../ui/theme';
 
 const strip = {
   position: 'absolute',
@@ -19,7 +20,7 @@ const strip = {
   background: 'rgba(47, 79, 143, 0.95)',
   color: '#f4f1e6',
   border: '2px solid #3b2a33',
-  borderRadius: 6,
+  borderRadius: RADIUS.chrome,
   zoom: 'var(--ui-scale, 1)',
 } as const;
 
@@ -31,7 +32,7 @@ const itemStyle = (active: boolean) =>
     padding: 2,
     border: `2px solid ${active ? '#ffd866' : '#3b2a33'}`,
     background: active ? '#3a5fa8' : '#25406f',
-    borderRadius: 4,
+    borderRadius: RADIUS.none,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',

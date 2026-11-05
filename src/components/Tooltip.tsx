@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProper
 import { createPortal } from 'react-dom';
 import { balance } from 'virtual:game-data';
 import { placeTip, type Anchor } from '../game/tipLayout';
+import { RADIUS } from '../ui/theme';
 
 interface Tip extends Anchor {
   text: string;
@@ -31,7 +32,7 @@ const boxStyle: CSSProperties = {
   background: 'rgba(47, 79, 143, 0.78)',
   color: '#f4f1e6',
   border: '1px solid rgba(59, 42, 51, 0.8)',
-  borderRadius: 4,
+  borderRadius: RADIUS.chrome,
   padding: '4px 8px',
   fontSize: 12,
   maxWidth: 'calc(220px * var(--ui-scale, 1))',

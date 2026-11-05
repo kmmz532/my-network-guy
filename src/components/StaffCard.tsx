@@ -6,6 +6,7 @@ import { t } from '../i18n/t';
 import { staffStatus, totalSalary, type StaffStatus } from '../sim/staff';
 import { useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
+import { RADIUS } from '../ui/theme';
 
 const yen = (n: number) => n.toLocaleString('ja-JP');
 // 社員の一覧の列の幅（名前・職種と level・月給・状態）
@@ -50,7 +51,7 @@ export function StaffBody({ uid, onTraining }: { uid: string; onTraining: () => 
       </div>
       <div>
         <div style={label}>{t('ui.staff.card.exp', { exp: member.exp, next })}</div>
-        <div style={{ height: 6, marginTop: 2, background: '#1b2f57', border: '1px solid #3b2a33', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ height: 6, marginTop: 2, background: '#1b2f57', border: '1px solid #3b2a33', borderRadius: RADIUS.none, overflow: 'hidden' }}>
           <div style={{ width: `${ratio * 100}%`, height: '100%', background: '#ffd866' }} />
         </div>
       </div>
@@ -103,7 +104,7 @@ export function StaffListBody() {
               background: '#25406f',
               color: 'inherit',
               border: '1px solid #3b2a33',
-              borderRadius: 3,
+              borderRadius: RADIUS.none,
               cursor: 'pointer',
               font: 'inherit',
               fontSize: 12,

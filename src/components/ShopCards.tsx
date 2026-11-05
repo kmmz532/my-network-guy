@@ -9,6 +9,7 @@ import { useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 import { Modal, primaryButton } from './Modal';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
+import { RADIUS } from '../ui/theme';
 
 // 区分のタブ（並びの順）
 type Section = 'device' | 'furniture';
@@ -47,7 +48,7 @@ export function ShopCards({ onClose }: { onClose: () => void }) {
               return (
                 <div
                   key={id}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#25406f', borderRadius: 4, padding: 8, marginBottom: 6 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}
                 >
                   <Icon name={d.sprite} />
                   <div style={{ flex: 1 }}>
@@ -72,7 +73,7 @@ export function ShopCards({ onClose }: { onClose: () => void }) {
               return (
                 <div
                   key={`furniture-${id}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#25406f', borderRadius: 4, padding: 8, marginBottom: 6 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}
                 >
                   <div style={{ width: 64, display: 'flex', justifyContent: 'center' }}>
                     <Icon name={`furniture/${id}`} />

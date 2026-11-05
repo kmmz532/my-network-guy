@@ -5,6 +5,7 @@ import { t } from '../i18n/t';
 import { applyUiScale, loadSettings, saveSettings, START_SPEEDS, UI_SCALES, type Settings } from '../settings/settings';
 import { useGameStore } from '../stores/useGameStore';
 import { Modal, primaryButton } from './Modal';
+import { RADIUS } from '../ui/theme';
 
 interface Option<T> {
   value: T;
@@ -33,7 +34,7 @@ function Choice<T extends string | number | boolean>({
             style={{
               padding: '4px 10px',
               cursor: 'pointer',
-              borderRadius: 4,
+              borderRadius: RADIUS.none,
               border: '1px solid #f4f1e6',
               background: on ? '#f4f1e6' : 'transparent',
               color: on ? '#2f4f8f' : '#f4f1e6',

@@ -11,6 +11,7 @@ import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
 import { Modal, primaryButton } from './Modal';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
+import { RADIUS } from '../ui/theme';
 
 export type HiringTab = 'hiring' | 'staff';
 
@@ -59,7 +60,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
       {candidates.map((c) => (
         <div
           key={c.uid}
-          style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#25406f', borderRadius: 4, padding: 8, marginBottom: 6 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}
         >
           <Icon name={`staff/${c.look}_0`} scale={2} />
           <div style={{ flex: 1 }}>
@@ -102,7 +103,7 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
         const onProject = busy.includes(s.uid);
         const locked = s.training !== null || onProject;
         return (
-          <div key={s.uid} style={{ background: '#25406f', borderRadius: 4, padding: 8, marginBottom: 6 }}>
+          <div key={s.uid} style={{ background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}>
             <div style={{ fontWeight: 'bold' }}>
               {t(s.name as LangKey)}{' '}
               <span style={{ fontWeight: 'normal', fontSize: 12 }}>

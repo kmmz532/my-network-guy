@@ -12,6 +12,7 @@ import { isNarrow } from '../ui/windows';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
 import { Warehouse } from './Warehouse';
+import { RADIUS } from '../ui/theme';
 
 const bar = {
   position: 'absolute',
@@ -35,7 +36,7 @@ const slot = (active: boolean) =>
     padding: 2,
     border: `2px solid ${active ? '#ffd866' : '#3b2a33'}`,
     background: active ? '#3a5fa8' : '#25406f',
-    borderRadius: 4,
+    borderRadius: RADIUS.chrome,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -199,7 +200,7 @@ export function Toolbar({
       <Tooltip text={tipText('ui.offer.title', 'offers')}><button aria-label={t('ui.offer.title')} style={{ ...slot(false), position: 'relative' }}  onClick={onOffers}>
         <Icon name="icon/mail" />
         {offers.length > 0 && (
-          <span style={{ position: 'absolute', top: -6, right: -6, background: '#e84a4a', borderRadius: 8, fontSize: 11, padding: '0 5px' }}>
+          <span style={{ position: 'absolute', top: -6, right: -6, background: '#e84a4a', borderRadius: RADIUS.chrome, fontSize: 11, padding: '0 5px' }}>
             {offers.length}
           </span>
         )}
@@ -276,7 +277,7 @@ export function Toolbar({
         <>
           {sep}
           <Icon name="icon/hammer" />
-          <div style={{ width: 200, height: 10, background: '#3b2a33', borderRadius: 2 }}>
+          <div style={{ width: 200, height: 10, background: '#3b2a33', borderRadius: RADIUS.none }}>
             <div
               style={{
                 width: `${active.total ? Math.min(100, (active.progress / active.total) * 100) : 0}%`,

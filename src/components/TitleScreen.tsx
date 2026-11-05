@@ -4,6 +4,7 @@ import pkg from '../../package.json';
 import { spriteUrl } from '../game/sprites';
 import { t } from '../i18n/t';
 import { loadSlot } from '../services/db';
+import { RADIUS } from '../ui/theme';
 
 interface Props {
   onNew: () => void;
@@ -189,7 +190,7 @@ const CSS = `
   color: #3b2a33;
   background: #f4f1e6;
   border: 2px solid #3b2a33;
-  border-radius: 0;
+  border-radius: ${RADIUS.none}px;
   box-shadow: inset -3px -3px 0 #cfc3aa, inset 3px 3px 0 #ffffff;
   cursor: pointer;
   transition: transform 60ms;

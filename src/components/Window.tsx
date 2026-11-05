@@ -2,6 +2,7 @@
 // 位置と大きさの計算は ui/windows.ts が受け持ち、ここはポインターの処理と見た目だけを扱う（マウス・タッチ・ペンは同じ処理）。
 import { useRef, type PointerEvent, type ReactNode } from 'react';
 import type { Rect } from '../ui/windows';
+import { RADIUS } from '../ui/theme';
 
 interface Props {
   title: ReactNode;
@@ -35,7 +36,7 @@ const frame = {
   background: 'rgba(47, 79, 143, 0.95)',
   color: '#f4f1e6',
   border: '1px solid #3b2a33',
-  borderRadius: 4,
+  borderRadius: RADIUS.chrome,
   fontSize: 13,
   overflow: 'hidden',
 } as const;
@@ -108,7 +109,7 @@ export function Window({ title, rect, movable, closeLabel, onFocus, onMove, onRe
             // 帯の移動を始めないよう、押した位置の処理を止める（止めないと、ボタンの上で移動が始まる）
             onPointerDown={(e) => e.stopPropagation()}
             onClick={onClose}
-            style={{ flexShrink: 0, width: 22, height: 22, padding: 0, cursor: 'pointer', background: '#25406f', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: 3, lineHeight: '20px' }}
+            style={{ flexShrink: 0, width: 22, height: 22, padding: 0, cursor: 'pointer', background: '#25406f', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: RADIUS.none, lineHeight: '20px' }}
           >
             ×
           </button>

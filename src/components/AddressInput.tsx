@@ -7,6 +7,7 @@ import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { filterOptions, isSelectable, listHeight, moveActive, pickOnCommit, placeAbove, type ComboOption } from './addressCombo';
 import { inputStyle, unsetColor } from './devicePorts';
+import { RADIUS } from '../ui/theme';
 
 const LIST_MAX = 220;
 const ROW_PX = 22;
@@ -197,7 +198,7 @@ export function AddressInput({ label, value, options, disabled, isValid, formatE
               background: '#f4f1e6',
               color: '#3b2a33',
               border: '1px solid #3b2a33',
-              borderRadius: 3,
+              borderRadius: RADIUS.none,
               fontSize: 13,
               zIndex: 50,
             }}

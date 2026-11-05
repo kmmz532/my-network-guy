@@ -6,6 +6,7 @@ import { useGameStore } from '../stores/useGameStore';
 import type { Report } from '../sim/project';
 import { Icon } from './Icon';
 import { Modal, primaryButton } from './Modal';
+import { RADIUS } from '../ui/theme';
 
 // 既存の import 先（modalBack・modalBox）を保つため、部品の定義は Modal.tsx にあり、ここから出す
 export { modalBack, modalBox } from './Modal';
@@ -111,7 +112,7 @@ export function NoticeToast() {
         background: 'rgba(47, 79, 143, 0.95)',
         color: '#ffd866',
         padding: '6px 14px',
-        borderRadius: 4,
+        borderRadius: RADIUS.chrome,
         zIndex: 9,
         zoom: 'var(--ui-scale, 1)',
       }}

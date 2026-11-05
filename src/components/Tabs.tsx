@@ -4,6 +4,7 @@
 // 押せないタブ（disabled）は薄く出し、選べず、キー操作の対象にもしない。
 import { useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { nextTab } from './tabNav';
+import { RADIUS } from '../ui/theme';
 
 const BORDER = '#3b2a33';
 const TEXT = '#f4f1e6';
@@ -25,7 +26,7 @@ export const TAB_COLORS: Record<'shop' | 'window', TabColors> = {
 export const tabPanelStyle = (bg: string): CSSProperties => ({
   background: bg,
   border: `1px solid ${BORDER}`,
-  borderRadius: '0 2px 2px 2px',
+  borderRadius: RADIUS.none,
   padding: 8,
   marginTop: -1,
 });
@@ -63,7 +64,7 @@ const boxStyle = (active: boolean, disabled: boolean | undefined, closable: bool
   paddingRight: closable ? 2 : 0,
   border: `1px solid ${BORDER}`,
   borderBottom: active ? 'none' : `1px solid ${BORDER}`,
-  borderRadius: '2px 2px 0 0',
+  borderRadius: `${RADIUS.tab}px ${RADIUS.tab}px 0 0`,
   background: active ? colors.selected : colors.idle,
   color: TEXT,
   opacity: disabled ? 0.4 : 1,
