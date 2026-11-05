@@ -5,7 +5,6 @@ interface Props {
   // スプライトの名前（例: icon/money、device/pc_basic）
   name: string;
   scale?: number;
-  title?: string;
 }
 
 // スプライトの元の大きさ（gen-sprites.py と合わせる）
@@ -15,14 +14,14 @@ const sizeOf = (name: string): [number, number] => {
   return [16, 16];
 };
 
-export function Icon({ name, scale = 2, title }: Props) {
+export function Icon({ name, scale = 2 }: Props) {
   const url = spriteUrl(name);
   if (!url) return null;
   const style = { imageRendering: 'pixelated', verticalAlign: 'middle', display: 'inline-block' } as const;
   // 家具は高さがまちまちなので、幅だけ整数倍にして高さは画像の比率に任せる（拡大は整数倍のまま）
   if (name.startsWith('furniture/')) {
-    return <img src={url} alt="" title={title} width={32 * scale} style={{ ...style, height: 'auto' }} />;
+    return <img src={url} alt="" width={32 * scale} style={{ ...style, height: 'auto' }} />;
   }
   const [w, h] = sizeOf(name);
-  return <img src={url} alt="" title={title} width={w * scale} height={h * scale} style={style} />;
+  return <img src={url} alt="" width={w * scale} height={h * scale} style={style} />;
 }

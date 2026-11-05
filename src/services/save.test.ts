@@ -31,6 +31,7 @@ const sample: SaveData = {
   effects: { buildSpeed: 0 },
   staff: [member('s0'), member('s1')],
   staffSeq: 2,
+  candidates: [],
 };
 
 describe('セーブデータ', () => {
@@ -117,7 +118,7 @@ describe('v8 → v9', () => {
   it('単独の案件は一覧にし、その案件を設計の対象にする', () => {
     const project = { id: 'c001_direct_link', nodes: [] };
     const out = migrate(8, { ...withoutActive, active: project });
-    expect(out.active).toEqual([{ ...project, due: null }]);
+    expect(out.active).toEqual([{ ...project, due: null, crew: ['s0', 's1'] }]);
     expect(out.focus).toBe('c001_direct_link');
   });
 
@@ -134,7 +135,7 @@ describe('v9 → v10', () => {
   it('受注中の案件に期日がなければ、期日のない案件として扱う', () => {
     const project = { id: 'c001_direct_link', nodes: [] };
     const out = migrate(9, { ...withoutActive, active: [project], focus: 'c001_direct_link' });
-    expect(out.active[0]).toEqual({ id: 'c001_direct_link', nodes: [], due: null });
+    expect(out.active[0]).toEqual({ id: 'c001_direct_link', nodes: [], due: null, crew: ['s0', 's1'] });
   });
 });
 

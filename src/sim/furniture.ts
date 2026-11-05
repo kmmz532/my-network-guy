@@ -1,5 +1,5 @@
 // 自社オフィスの家具と社員の規則（純粋関数）。配置と撤去、社員の席の数と雇用を扱う。
-import type { Balance, GameMap, Staff } from '../data/schema';
+import type { Balance, Furniture, GameMap, Staff } from '../data/schema';
 import { DESK_ID, emptyOffice, officeLocked, type Core, type Office, type Outcome } from './project';
 
 const fail = (reason: string): Outcome => ({ ok: false, reason });
@@ -53,8 +53,73 @@ export const removeFurniture = (core: Core, uid: string): Outcome => {
 export const seatCount = (office: Office, isSeat: (id: string) => boolean): number =>
   office.furniture.filter((f) => isSeat(f.id)).length;
 
-// 社員を1人雇う。席の数を超えては雇えない。雇用に費用はかからない
-export const hire = (core: Core, isSeat: (id: string) => boolean, staff: Staff): Outcome => {
+// 候補の社員を採用する。席の数を超えては採用できない。採用に費用はかからない
+export const hire = (core: Core, candidateUid: string, isSeat: (id: string) => boolean): Outcome => {
+  const candidate = core.candidates.find((c) => c.uid === candidateUid);
+  if (!candidate) return fail('none');
   if (core.staff.length >= seatCount(core.office, isSeat)) return fail('seat');
-  return { ok: true, core: { ...core, staff: [...core.staff, staff], staffSeq: core.staffSeq + 1 } };
+  const staff: Staff = { ...candidate, uid: `s${core.staffSeq}` };
+  return {
+    ok: true,
+    core: {
+      ...core,
+      staff: [...core.staff, staff],
+      staffSeq: core.staffSeq + 1,
+      candidates: core.candidates.filter((c) => c.uid !== candidateUid),
+    },
+  };
+};
+
+// 社員が座る机（雇用の順に、並び順の机から1つずつ）。席がなければ null
+export const seatOf = (
+  office: Office,
+  staffUids: readonly string[],
+  uid: string,
+  defs: Record<string, Furniture>,
+): { x: number; y: number } | null => {
+  const desks = office.furniture.filter((f) => defs[f.id]?.seat === true);
+  const index = staffUids.indexOf(uid);
+  return index >= 0 && index < desks.length ? desks[index] : null;
+};
+
+// 社員の家具の補正。power（施工力）・exp（経験値）は着席している社員だけに効く。seatless は席のない社員の係数
+export interface StaffBonus {
+  power: number;
+  exp: number;
+  seatless: number;
+}
+
+// 補正の計算に必要な情報。defs は家具IDから家具の定義、staffUids は雇用の順（先頭から机に座る）
+export interface BonusEnv {
+  defs: Record<string, Furniture>;
+  balance: Balance;
+  staffUids: readonly string[];
+}
+
+// 社員1人の家具の補正。机の位置から範囲（チェビシェフ距離）を測る。同じ家具IDは1つ分だけ数える
+export const furnitureBonus = (office: Office, staffUid: string, env: BonusEnv): StaffBonus => {
+  // 席のない社員の係数: ソファがあればその値、なければ既定の係数（効果は重ねない）
+  const seatlessValues = office.furniture
+    .map((f) => env.defs[f.id]?.effect)
+    .filter((e) => e?.stat === 'seatless')
+    .map((e) => e!.value);
+  const seatless = seatlessValues.length > 0 ? Math.max(...seatlessValues) : env.balance.staff.power.seatless;
+
+  const desk = seatOf(office, env.staffUids, staffUid, env.defs);
+  if (!desk) return { power: 0, exp: 0, seatless };
+
+  let power = 0;
+  let exp = 0;
+  const counted = new Set<string>();
+  for (const f of office.furniture) {
+    const effect = env.defs[f.id]?.effect;
+    if (!effect || effect.stat === 'seatless' || counted.has(f.id)) continue;
+    const inRange =
+      effect.range === undefined || Math.max(Math.abs(f.x - desk.x), Math.abs(f.y - desk.y)) <= effect.range;
+    if (!inRange) continue;
+    counted.add(f.id);
+    if (effect.stat === 'power') power += effect.value;
+    else exp += effect.value;
+  }
+  return { power, exp, seatless };
 };

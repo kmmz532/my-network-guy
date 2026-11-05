@@ -296,6 +296,15 @@ def icon_warehouse():
     return outline(img)
 
 
+def icon_person():
+    # 採用の画面を開く人物のアイコン
+    img, d = new(16, 16)
+    rect(d, 5, 2, 6, 5, 'k')
+    rect(d, 5, 1, 6, 2, 'h')
+    rect(d, 3, 8, 10, 7, 'b')
+    return outline(img)
+
+
 def icon_ok():
     img, d = new(16, 16)
     d.line([(3, 8), (6, 11), (12, 4)], fill=C['G'], width=3)
@@ -528,6 +537,7 @@ if __name__ == '__main__':
         'ok': icon_ok(),
         'cart': icon_cart(),
         'warehouse': icon_warehouse(),
+        'person': icon_person(),
     }
     for name, img in icons.items():
         save(img, f'icon/{name}.png')

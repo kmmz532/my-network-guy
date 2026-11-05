@@ -7,7 +7,7 @@ import { createStaff, specAt } from '../sim/staff';
 import balanceJson from '../assets/data/balance.json';
 import pcJson from '../assets/data/devices/pc.json';
 
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 12;
 
 export interface SaveData {
   clock: { minute: number; money: number; paidMonths: number; bankrupt: boolean };
@@ -32,6 +32,8 @@ export interface SaveData {
   // 雇用中の社員と、社員の uid の連番
   staff: Staff[];
   staffSeq: number;
+  // 採用の候補
+  candidates: Staff[];
 }
 
 type Migration = (data: unknown) => unknown;
@@ -92,6 +94,13 @@ export const migrations: Record<number, Migration> = {
     const d = data as { active: Project[] };
     return { ...d, active: d.active.map((p) => ({ ...p, due: null })) };
   },
+  // v11 → v12: 採用の候補を追加する。移行直後は候補がいない（次の月に作られる）
+  11: (data) => ({ ...(data as object), candidates: [] }),
+  // v10 → v11: 案件に担当の社員を追加する。移行前の案件は、全社員が担当だったものとする
+  10: (data) => {
+    const d = data as { active: Project[]; staff: Staff[] };
+    return { ...d, active: d.active.map((p) => ({ ...p, crew: d.staff.map((s) => s.uid) })) };
+  },
 };
 
 export const isSaveData = (value: unknown): value is SaveData => {
@@ -120,6 +129,7 @@ export const isSaveData = (value: unknown): value is SaveData => {
     (v.focus === null || typeof v.focus === 'string') &&
     Array.isArray(v.staff) &&
     Number.isInteger(v.staffSeq) &&
+    Array.isArray(v.candidates) &&
     Array.isArray((v.office as { furniture?: unknown } | undefined)?.furniture)
   );
 };

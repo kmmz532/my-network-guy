@@ -1,6 +1,6 @@
 // 案件の流れ（受注・設計・施工・検収・納品）。状態を受け取り、新しい状態を返す純粋関数で書く。
 // 設計は機器の配置・配線・IP設定、施工は社員が作業時間をかけて行い、検収で達成条件を判定する。
-import type { Balance, Contract, GameMap, Staff } from '../data/schema';
+import type { Balance, Contract, Furniture, GameMap, Staff } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
 import { linkLength } from '../network/engine';
@@ -9,6 +9,8 @@ import type { EngineData, Iface, NetLink, NetNode, PathResult, Route } from '../
 import type { ClockState } from './clock';
 import { rate, rewardRateOf } from './rating';
 import { dueDayOf, lateDaysOf, lateFactor } from './deadline';
+import { furnitureBonus, type BonusEnv } from './furniture';
+import { gainExp, staffPower } from './staff';
 
 export interface Project {
   id: string;
@@ -33,6 +35,8 @@ export interface Project {
   total: number;
   // 期日（ゲーム内の日の番号）。期日のない案件は null
   due: number | null;
+  // 担当の社員（uid）。施工の進みと経験値は担当の社員だけに効く
+  crew: string[];
 }
 
 export interface ReportFailure {
@@ -113,6 +117,8 @@ export interface Core {
   staff: Staff[];
   // 社員の uid の連番
   staffSeq: number;
+  // 採用の候補（毎月作り直す）
+  candidates: Staff[];
 }
 
 // 機材の性質（ゲームデータから作る）
@@ -130,6 +136,8 @@ export interface CableInfo {
 
 export interface Env {
   balance: Balance;
+  // 家具の定義（家具の補正に使う）。省略すると補正はない
+  furniture?: Record<string, Furniture>;
   devices: Record<string, DeviceInfo>;
   cables: Record<string, CableInfo>;
   engine: EngineData;
@@ -180,10 +188,18 @@ const requireDesign = (core: Core): Project | string => {
 
 // 依頼を受注する。受注できるのは案件の枠（slots）の数まで。受注した案件を設計の対象にする。
 // 自社案件は自社オフィスを引き継ぐため、同時に1件まで
-export const accept = (core: Core, offerId: string, slots: number): Outcome => {
+export const accept = (core: Core, offerId: string, slots: number, crew: string[]): Outcome => {
   if (core.active.length >= slots) return fail('slots');
   const offer = core.offers.find((o) => o.id === offerId);
   if (!offer) return fail('none');
+  // 担当は1人以上。ほかの案件の担当・研修中の社員は選べない
+  if (crew.length === 0) return fail('crew');
+  const busy = new Set(core.active.flatMap((p) => p.crew));
+  const free = (uid: string) => {
+    const member = core.staff.find((s) => s.uid === uid);
+    return member !== undefined && member.training === null && !busy.has(uid);
+  };
+  if (!crew.every(free)) return fail('crew');
   const inhouse = offer.contract.inhouse;
   if (inhouse && core.active.some((p) => p.contract.inhouse)) return fail('busy');
   const office = core.office;
@@ -209,6 +225,7 @@ export const accept = (core: Core, offerId: string, slots: number): Outcome => {
     progress: 0,
     total: 0,
     due: dueDayOf(core.clock.minute, offer.contract.deadlineDays),
+    crew,
   };
   return {
     ok: true,
@@ -311,37 +328,49 @@ export const placeInOffice = (core: Core, deviceId: string, x: number, y: number
   };
 };
 
-// 自社オフィスの機器を在庫に戻す。配線のある機器は戻せない
+// 自社オフィスの機器を在庫に戻す。つながるケーブルも一緒に撤去し、在庫に戻す
 export const removeFromOffice = (core: Core, uid: string): Outcome => {
   if (officeLocked(core)) return fail('inhouse');
   const node = core.office.nodes.find((n) => n.uid === uid);
   if (!node) return fail('none');
-  if (core.office.links.some((l) => l.a.node === uid || l.b.node === uid)) return fail('locked');
+  const removed = core.office.links.filter((l) => l.a.node === uid || l.b.node === uid);
+  const owned = { ...core.owned, [node.device]: (core.owned[node.device] ?? 0) + 1 };
+  for (const l of removed) owned[l.cable] = (owned[l.cable] ?? 0) + 1;
   return {
     ok: true,
     core: {
       ...core,
-      office: { ...core.office, nodes: core.office.nodes.filter((n) => n.uid !== uid) },
-      owned: { ...core.owned, [node.device]: (core.owned[node.device] ?? 0) + 1 },
+      office: {
+        ...core.office,
+        nodes: core.office.nodes.filter((n) => n.uid !== uid),
+        links: core.office.links.filter((l) => !removed.includes(l)),
+      },
+      owned,
     },
   };
 };
 
-// 施工前の機器を撤去する（在庫に戻る）。施工済みや既設の機器は撤去できない。
+// 機器を撤去する（在庫に戻す）。既設の機器（node.locked）以外は、施工済みでも撤去できる。
+// つながるケーブルも一緒に撤去し、在庫に戻す（費用は返さない）
 export const removeNode = (core: Core, uid: string): Outcome => {
   const p = requireDesign(core);
   if (typeof p === 'string') return fail(p);
   const node = p.nodes.find((n) => n.uid === uid);
   if (!node) return fail('none');
-  if (node.locked || p.built.nodes.includes(uid)) return fail('locked');
+  if (node.locked) return fail('locked');
   const removed = p.links.filter((l) => l.a.node === uid || l.b.node === uid);
-  if (removed.some((l) => p.built.links.includes(l.uid))) return fail('locked');
+  const removedUids = removed.map((l) => l.uid);
   const next: Project = {
     ...p,
     nodes: p.nodes.filter((n) => n.uid !== uid),
     links: p.links.filter((l) => !removed.includes(l)),
+    built: {
+      nodes: p.built.nodes.filter((x) => x !== uid),
+      links: p.built.links.filter((x) => !removedUids.includes(x)),
+    },
   };
   const owned = { ...core.owned, [node.device]: (core.owned[node.device] ?? 0) + 1 };
+  for (const l of removed) owned[l.cable] = (owned[l.cable] ?? 0) + 1;
   return { ok: true, core: { ...withProject(core, next), owned } };
 };
 
@@ -457,13 +486,22 @@ export const connect = (
   return { ok: true, core: { ...next, clock: { ...next.clock, money: next.clock.money - cost } } };
 };
 
-// 配線を撤去する。自社オフィスの配線だけ撤去でき、ケーブルは在庫に戻す
-export const removeLink = (core: Core, uid: string): Outcome => {
-  const net = netOf(core, 'office');
+// 配線を撤去する。ケーブルは在庫に戻す（費用は返さない）。案件の既設の配線（両端が既設の機器）は撤去できない
+export const removeLink = (core: Core, uid: string, target: NetTarget = 'office'): Outcome => {
+  const net = netOf(core, target);
   if (typeof net === 'string') return fail(net);
   const link = net.links.find((l) => l.uid === uid);
   if (!link) return fail('none');
-  const next = withNet(core, 'office', { ...net, links: net.links.filter((l) => l.uid !== uid) });
+  if (target === 'focus') {
+    const p = focusedOf(core) as Project;
+    const fixed = new Set([...(p.inherited ?? []), ...p.nodes.filter((n) => n.locked).map((n) => n.uid)]);
+    if (fixed.has(link.a.node) && fixed.has(link.b.node)) return fail('locked');
+  }
+  let next = withNet(core, target, { ...net, links: net.links.filter((l) => l.uid !== uid) });
+  if (target === 'focus') {
+    const p = focusedOf(next) as Project;
+    next = withProject(next, { ...p, built: { ...p.built, links: p.built.links.filter((x) => x !== uid) } });
+  }
   return { ok: true, core: { ...next, owned: { ...core.owned, [link.cable]: (core.owned[link.cable] ?? 0) + 1 } } };
 };
 
@@ -551,16 +589,35 @@ export const requestBuild = (core: Core, env: Env): Outcome => {
   return { ok: true, core: withProject(core, { ...p, phase: 'build', progress: 0, total }) };
 };
 
-// 施工を1Tick分進める。勤務時間内のみ、社員が並行して作業する。施工中の案件をすべて進め、終わった案件は検収する。
+// 施工を1Tick分進める。勤務時間内のみ、担当の社員が並行して作業する。施工中の案件をすべて進め、終わった案件は検収する。
 // 検収の結果が出たら止める（残りの案件は次のTickで進める）
 export const advanceBuild = (core: Core, env: Env, hour: number): Outcome => {
   const { workStartHour, workEndHour } = env.balance.build;
   const working = hour >= workStartHour && hour < workEndHour;
-  let state = core;
+  const bonusEnv: BonusEnv = { defs: env.furniture ?? {}, balance: env.balance, staffUids: core.staff.map((s) => s.uid) };
+  const crewOf = (p: Project) => core.staff.filter((s) => p.crew.includes(s.uid));
+  // 施工中の案件の担当は、勤務時間内に1ゲーム時間ぶんの経験値を得る（着席の社員は家具の補正を受ける）
+  let state: Core = core;
+  if (working) {
+    const building = new Set(core.active.filter((p) => p.phase === 'build').flatMap((p) => p.crew));
+    if (building.size > 0) {
+      const hours = env.balance.time.gameMinutesPerTick / 60;
+      state = {
+        ...core,
+        staff: core.staff.map((s) =>
+          building.has(s.uid)
+            ? gainExp(s, hours * (1 + furnitureBonus(core.office, s.uid, bonusEnv).exp), env.balance.staff.expPerLevel)
+            : s,
+        ),
+      };
+    }
+  }
   for (const p of core.active) {
     if (p.phase !== 'build') continue;
+    // 施工の進みは、担当の社員の施工力の合計に比例する
+    const power = crewOf(p).reduce((sum, s) => sum + staffPower(s, undefined, core.office, bonusEnv), 0);
     let progress = p.progress;
-    if (working) progress += env.balance.time.gameMinutesPerTick * core.staff.length * (1 + core.effects.buildSpeed);
+    if (working) progress += env.balance.time.gameMinutesPerTick * power * (1 + core.effects.buildSpeed);
     if (progress < p.total) {
       state = withProject(state, { ...p, progress });
       continue;

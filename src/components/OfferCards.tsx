@@ -1,9 +1,13 @@
-// 依頼カード。タイトル1行と、PC台数・予算・報酬のアイコンで表す
+// 依頼カード。タイトル1行と、PC台数・予算・報酬のアイコンで表す。受注するときに担当の社員を選ぶ
+import { useState } from 'react';
 import { balance, devices } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { hasKey, t } from '../i18n/t';
 import { goalText } from './goalText';
+import { gameEnv } from '../sim/env';
+import { staffPower } from '../sim/staff';
 import { useGameStore } from '../stores/useGameStore';
+import type { Offer } from '../contracts/template';
 import { modalBack, modalBox } from './Overlay';
 import { Icon } from './Icon';
 
@@ -21,61 +25,109 @@ export function OfferCards({ onClose }: { onClose: () => void }) {
           <Icon name="icon/mail" />
         </div>
         {offers.length === 0 && <div style={{ opacity: 0.7 }}>…</div>}
-        {offers.map((offer) => {
-          const hosts = offer.contract.placed.filter((p) => {
-            const c = devices[p.device as keyof typeof devices]?.category;
-            return c === 'pc' || c === 'server';
-          }).length;
-          return (
-            <div key={offer.id} style={{ background: '#25406f', borderRadius: 4, padding: 10, marginBottom: 8 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
-                {offer.contract.inhouse && (
-                  <span style={{ background: '#5aa860', borderRadius: 3, padding: '0 6px', marginRight: 6, fontSize: 12 }}>
-                    {t('ui.offer.inhouse')}
-                  </span>
-                )}
-                {t(`contract.${offer.baseId}.title` as LangKey, offer.params)}
-              </div>
-              <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 6 }}>
-                {t(`contract.${offer.baseId}.story` as LangKey, offer.params)}
-              </div>
-              {offer.contract.goals.map((goal, i) => (
-                <div key={i} style={{ fontSize: 12, opacity: 0.85 }}>
-                  ・{goalText(goal)}
-                </div>
-              ))}
-              {hasKey(`contract.${offer.baseId}.hint`) && (
-                <div style={{ fontSize: 12, color: '#ffd866', marginTop: 4 }}>
-                  {t('ui.task.hint', { text: t(`contract.${offer.baseId}.hint` as LangKey) })}
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                <span>
-                  <Icon name="icon/pc_count" /> ×{hosts}
-                </span>
-                <span>
-                  <Icon name="icon/budget" /> {yen(offer.contract.budget)}
-                </span>
-                {offer.contract.deadlineDays !== undefined && (
-                  <span>{t('ui.offer.deadline', { days: offer.contract.deadlineDays })}</span>
-                )}
-                <span style={{ color: '#ffd866' }}>
-                  <Icon name="icon/money" /> {yen(offer.contract.reward.money)}
-                </span>
-                <button
-                  style={{ marginLeft: 'auto', padding: '4px 12px', cursor: 'pointer' }}
-                  disabled={full}
-                  onClick={() => {
-                    if (accept(offer.id) === null) onClose();
-                  }}
-                >
-                  {t('ui.accept')}
-                </button>
-              </div>
-            </div>
-          );
-        })}
+        {offers.map((offer) => (
+          <OfferCard key={offer.id} offer={offer} full={full} yen={yen} onAccept={(crew) => accept(offer.id, crew) === null && onClose()} />
+        ))}
       </div>
+    </div>
+  );
+}
+
+// 担当の社員の一覧。初期値は、ほかの案件の担当でも研修中でもない社員全員
+function CrewPicker({ selected, onChange }: { selected: string[]; onChange: (crew: string[]) => void }) {
+  const staff = useGameStore((s) => s.staff);
+  const office = useGameStore((s) => s.office);
+  const busy = useGameStore((s) => s.active.flatMap((p) => p.crew));
+  const bonusEnv = { defs: gameEnv.furniture ?? {}, balance, staffUids: staff.map((s) => s.uid) };
+  return (
+    <div style={{ marginTop: 6, fontSize: 13 }}>
+      <div style={{ marginBottom: 2 }}>{t('ui.offer.crew')}</div>
+      {staff.map((s) => {
+        const unavailable = busy.includes(s.uid) || s.training !== null;
+        const power = staffPower(s, undefined, office, bonusEnv);
+        return (
+          <label key={s.uid} style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: unavailable ? 0.5 : 1 }}>
+            <input
+              type="checkbox"
+              disabled={unavailable}
+              checked={selected.includes(s.uid)}
+              onChange={(e) => onChange(e.target.checked ? [...selected, s.uid] : selected.filter((u) => u !== s.uid))}
+            />
+            <span>{t(s.name as LangKey)}</span>
+            <span>{t(`staff.job.${s.job}` as LangKey)}</span>
+            <span>{t('ui.staff.level', { level: s.level })}</span>
+            <span>{t('ui.staff.power', { power: power.toFixed(2) })}</span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
+function OfferCard({
+  offer,
+  full,
+  yen,
+  onAccept,
+}: {
+  offer: Offer;
+  full: boolean;
+  yen: (n: number) => string;
+  onAccept: (crew: string[]) => void;
+}) {
+  const staff = useGameStore((s) => s.staff);
+  const busy = useGameStore((s) => s.active.flatMap((p) => p.crew));
+  // 受注の画面を開いたときの担当（空いている社員全員）
+  const [crew, setCrew] = useState<string[]>(() =>
+    staff.filter((s) => !busy.includes(s.uid) && s.training === null).map((s) => s.uid),
+  );
+  const hosts = offer.contract.placed.filter((p) => {
+    const c = devices[p.device as keyof typeof devices]?.category;
+    return c === 'pc' || c === 'server';
+  }).length;
+  return (
+    <div style={{ background: '#25406f', borderRadius: 4, padding: 10, marginBottom: 8 }}>
+      <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
+        {offer.contract.inhouse && (
+          <span style={{ background: '#5aa860', borderRadius: 3, padding: '0 6px', marginRight: 6, fontSize: 12 }}>
+            {t('ui.offer.inhouse')}
+          </span>
+        )}
+        {t(`contract.${offer.baseId}.title` as LangKey, offer.params)}
+      </div>
+      <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 6 }}>
+        {t(`contract.${offer.baseId}.story` as LangKey, offer.params)}
+      </div>
+      {offer.contract.goals.map((goal, i) => (
+        <div key={i} style={{ fontSize: 12, opacity: 0.85 }}>
+          ・{goalText(goal)}
+        </div>
+      ))}
+      {hasKey(`contract.${offer.baseId}.hint`) && (
+        <div style={{ fontSize: 12, color: '#ffd866', marginTop: 4 }}>
+          {t('ui.task.hint', { text: t(`contract.${offer.baseId}.hint` as LangKey) })}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+        <span>
+          <Icon name="icon/pc_count" /> ×{hosts}
+        </span>
+        <span>
+          <Icon name="icon/budget" /> {yen(offer.contract.budget)}
+        </span>
+        {offer.contract.deadlineDays !== undefined && <span>{t('ui.offer.deadline', { days: offer.contract.deadlineDays })}</span>}
+        <span style={{ color: '#ffd866' }}>
+          <Icon name="icon/money" /> {yen(offer.contract.reward.money)}
+        </span>
+        <button
+          style={{ marginLeft: 'auto', padding: '4px 12px', cursor: 'pointer' }}
+          disabled={full || crew.length === 0}
+          onClick={() => onAccept(crew)}
+        >
+          {t('ui.accept')}
+        </button>
+      </div>
+      <CrewPicker selected={crew} onChange={setCrew} />
     </div>
   );
 }

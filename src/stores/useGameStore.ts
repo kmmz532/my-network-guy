@@ -7,7 +7,11 @@ import { buyDevice } from '../sim/shop';
 import { refreshOffers, type OfferEnv } from '../contracts/offers';
 import type { Offer } from '../contracts/template';
 import type { GameMap, Staff } from '../data/schema';
-import { createStaff, initialStaff } from '../sim/staff';
+import { hintTier, initialStaff, rollCandidates, totalSalary } from '../sim/staff';
+import { hasKey } from '../i18n/t';
+import { rand } from '../sim/rng';
+import { finishTrainings, startTraining as startTrainingOp, takeExam as takeExamOp, type TrainingEnv } from '../sim/training';
+import { certs as certRecord, training as trainingRecord } from 'virtual:game-data';
 import type { Route } from '../network/types';
 import type { SaveData } from '../services/migrations';
 import { gameEnv } from '../sim/env';
@@ -68,6 +72,8 @@ export interface GameState {
   // 雇用中の社員と、社員の uid の連番
   staff: Staff[];
   staffSeq: number;
+  // 採用の候補
+  candidates: Staff[];
   speed: Speed;
   // 読み込み済みのマップ（保存しない）
   maps: Record<string, GameMap>;
@@ -112,12 +118,14 @@ export interface GameState {
   // 購入に成功したら true
   buy: (deviceId: string) => boolean;
   // 案件の流れの操作。失敗したら理由を返す（成功なら null）
-  accept: (offerId: string) => string | null;
+  accept: (offerId: string, crew: string[]) => string | null;
   place: (deviceId: string, x: number, y: number) => string | null;
   // 自社オフィスの家具と社員。失敗したら理由を返す
   placeFurniture: (id: string, x: number, y: number) => string | null;
   removeFurniture: (uid: string) => string | null;
-  hire: () => string | null;
+  hire: (candidateUid: string) => string | null;
+  startTraining: (uid: string, courseId: string) => string | null;
+  takeExam: (uid: string, certId: string) => string | null;
   connect: (aUid: string, bUid: string, cableId: string) => string | null;
   removeLink: (uid: string) => string | null;
   removeNode: (uid: string) => string | null;
@@ -144,6 +152,9 @@ const offerEnv = (maps: Record<string, GameMap>): OfferEnv => ({
 
 const newRng = () => Math.floor(Math.random() * 0x7fffffff) + 1;
 
+// 研修と資格の定義（ゲームデータ）
+const trainingEnv: TrainingEnv = { courses: trainingRecord, certs: certRecord, balance };
+
 // 配線・設定の対象。設計・表示している案件があればその案件、なければ自社オフィス
 export const netTargetOf = (s: { active: Project[]; focus: string | null }): NetTarget =>
   focusedProject(s) ? 'focus' : 'office';
@@ -169,6 +180,7 @@ const coreOf = (s: GameState): Core => ({
   effects: s.effects,
   staff: s.staff,
   staffSeq: s.staffSeq,
+  candidates: s.candidates,
   focus: s.focus,
 });
 
@@ -192,14 +204,25 @@ const refresh = (s: GameState): Partial<GameState> => {
 };
 
 // 検収の結果を画面の状態に反映する（パケット・納品後の表示・ヒント）
-const reportState = (report: Report | undefined): Partial<GameState> => {
+const reportState = (report: Report | undefined, s: GameState): Partial<GameState> => {
   if (!report) return {};
   return {
     lastReport: report,
     traces: report.traces,
     showcase: report.passed ? (report.delivered ?? null) : null,
-    hint: report.passed ? null : (report.hint ?? null),
+    hint: report.passed ? null : hintKeyOf(report, s),
   };
+};
+
+// 疎通テストに失敗したときのヒント。担当の level の段階で、段階1は「どこかおかしい」、段階2は失敗の分類、段階3は案件のヒント
+const hintKeyOf = (report: Report, s: GameState): string | null => {
+  const project = focusedProject(s);
+  const crew = s.staff.filter((m) => project?.crew.includes(m.uid) ?? false);
+  const tier = hintTier(crew, undefined, balance.staff.hintLevels);
+  const reason = report.failures[0]?.reason;
+  if (tier === 1) return 'ui.hint.tier1';
+  if (tier === 2 && reason && hasKey(`error.${reason}`)) return `error.${reason}`;
+  return report.hint ?? null;
 };
 
 export const useGameStore = create<GameState>((set, get) => {
@@ -230,7 +253,8 @@ export const useGameStore = create<GameState>((set, get) => {
       effects: c.effects,
       staff: c.staff,
       staffSeq: c.staffSeq,
-      ...reportState(outcome.report),
+      candidates: c.candidates,
+      ...reportState(outcome.report, get()),
     });
     return null;
   };
@@ -244,6 +268,7 @@ export const useGameStore = create<GameState>((set, get) => {
     nextOfferMinute: 0,
     offerSeq: 0,
     ...newStart(),
+    candidates: [],
     active: [],
     focus: null,
     office: initialOffice(balance),
@@ -275,13 +300,23 @@ export const useGameStore = create<GameState>((set, get) => {
     setWireCable: (cableId) => set({ wireCable: cableId }),
     tick: () =>
       set((s) => {
-        const clock = advanceTick(s.clock, balance, s.staff.length);
+        const clock = advanceTick(s.clock, balance, totalSalary(s.staff));
         let next: Partial<GameState> = { clock };
         // 月末に給与を払ったら知らせる
         if (clock.paidMonths > s.clock.paidMonths) {
-          const amount = s.staff.length * balance.staff.monthlySalary;
-          next = { ...next, notice: { key: 'ui.notice.salary', params: { amount }, id: Date.now() } };
+          const amount = totalSalary(s.staff);
+          // 毎月1日に、採用の候補を作り直す
+          const rolled = rollCandidates(s.reputation, clock.paidMonths, s.rng, balance);
+          next = {
+            ...next,
+            notice: { key: 'ui.notice.salary', params: { amount }, id: Date.now() },
+            candidates: rolled.candidates,
+            rng: rolled.rng,
+          };
         }
+        // 研修の期日が来た社員は、経験値を得て研修を終える
+        const trainedStaff = finishTrainings(coreOf({ ...s, ...next } as GameState), trainingEnv).staff;
+        if (trainedStaff !== s.staff) next = { ...next, staff: trainedStaff };
         const withClock = { ...s, ...next } as GameState;
         // 施工中なら、勤務時間内に作業を進める
         if (!clock.bankrupt && withClock.active.some((p) => p.phase === 'build')) {
@@ -295,9 +330,10 @@ export const useGameStore = create<GameState>((set, get) => {
               completed: r.core.completed,
               active: r.core.active,
               focus: r.core.focus,
+              staff: r.core.staff,
               office: r.core.office,
               effects: r.core.effects,
-              ...reportState(r.report),
+              ...reportState(r.report, withClock),
             };
           }
         }
@@ -327,7 +363,7 @@ export const useGameStore = create<GameState>((set, get) => {
       set({ clock: { ...s.clock, money: result.money }, owned: result.owned, active });
       return true;
     },
-    accept: (offerId) => apply(accept(coreOf(get()), offerId, balance.office.projectSlots)),
+    accept: (offerId, crew) => apply(accept(coreOf(get()), offerId, balance.office.projectSlots, crew)),
     // 在庫の機材・家具を配置する（購入はショップで行う）。案件がなければ自社オフィスに置く
     place: (deviceId, x, y) => {
       if (deviceId in furniture) return get().placeFurniture(deviceId, x, y);
@@ -349,21 +385,19 @@ export const useGameStore = create<GameState>((set, get) => {
       const f = get().office.furniture.find((x) => x.uid === uid);
       return apply(removeFurnitureOp(coreOf(get()), uid), f ? { tx: f.x, ty: f.y } : undefined);
     },
-    hire: () => {
-      // 採用の候補は E7 で作る。ここでは初期の職種（network・level 1）の社員を作る
-      const s = get();
-      const made = createStaff(
-        { job: 'network', level: 1, salary: balance.staff.monthlySalary },
-        s.rng,
-        s.staffSeq,
-      );
-      const reason = apply(hireOp(coreOf(s), (id) => furniture[id as FurnitureId]?.seat === true, made.staff));
-      if (reason === null) set({ rng: made.rng });
-      return reason;
-    },
+    hire: (candidateUid) => apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true)),
     connect: (aUid, bUid, cableId) =>
       apply(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get())), tileOf(bUid)),
-    removeLink: (uid) => apply(removeLink(coreOf(get()), uid)),
+    removeLink: (uid) => apply(removeLink(coreOf(get()), uid, netTargetOf(get()))),
+    startTraining: (uid, courseId) => apply(startTrainingOp(coreOf(get()), uid, courseId, trainingEnv)),
+    takeExam: (uid, certId) => {
+      // 合否は乱数で決める。乱数は受験のときだけ進める
+      const s = get();
+      const roll = rand(s.rng);
+      const reason = apply(takeExamOp(coreOf(s), uid, certId, roll.value, trainingEnv));
+      if (reason === null) set({ rng: roll.state });
+      return reason;
+    },
     removeNode: (uid) => {
       if (get().active.length === 0) {
         const n = get().office.nodes.find((x) => x.uid === uid);
@@ -398,6 +432,7 @@ export const useGameStore = create<GameState>((set, get) => {
         effects: save.effects,
         staff: save.staff,
         staffSeq: save.staffSeq,
+        candidates: save.candidates,
         lastReport: null,
         showcase: null,
         traces: [],
@@ -414,6 +449,7 @@ export const useGameStore = create<GameState>((set, get) => {
           nextOfferMinute: 0,
           offerSeq: 0,
           ...newStart(),
+          candidates: [],
           active: [],
           focus: null,
           office: initialOffice(balance),
@@ -447,6 +483,7 @@ export const useGameStore = create<GameState>((set, get) => {
         effects: s.effects,
         staff: s.staff,
         staffSeq: s.staffSeq,
+        candidates: s.candidates,
       };
     },
   };

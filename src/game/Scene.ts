@@ -4,12 +4,15 @@ import { Application, Container, Graphics, Rectangle, Sprite, Text, type Federat
 import type { GameMap } from '../data/schema';
 import { focusedProject, netTargetOf, useGameStore, type Trace } from '../stores/useGameStore';
 import { linkAt } from './linkHit';
+import { rangeTiles } from './effectRange';
 import { gameEnv } from '../sim/env';
 import { checkConnect, compiledNet, DESK_ID, type PlacedFurniture, type Project } from '../sim/project';
 import type { Compiled } from '../network/compile';
 import { subnetColor } from './palette';
 import { texture } from './sprites';
-import { devices as deviceData } from 'virtual:game-data';
+import { balance, devices as deviceData } from 'virtual:game-data';
+import { hideTip, showTipAt } from '../components/Tooltip';
+import { effectText } from './effectText';
 import { t } from '../i18n/t';
 import type { LangKey } from '../generated/lang-keys';
 import type { NetLink, NetNode } from '../network/types';
@@ -66,6 +69,8 @@ export class Scene {
   private bubbles = new Container();
   // 配線をドラッグ中の起点と現在位置（マップの座標）
   private wireFrom: string | null = null;
+  // カーソルのあるマス（配置の範囲の表示に使う）
+  private cursorTile: { tx: number; ty: number } | null = null;
   private wireTo = { x: 0, y: 0 };
   // 配線の到達先の判定（接続できるか、理由）
   private hover: { uid: string; reason: string | null } | null = null;
@@ -94,6 +99,7 @@ export class Scene {
     app.stage.on('pointermove', this.onMove);
     app.stage.on('pointerup', this.onUp);
     app.stage.on('pointerupoutside', this.cancelWire);
+    app.canvas.addEventListener('pointerleave', this.onCanvasLeave);
     app.canvas.addEventListener('contextmenu', this.preventMenu);
     app.ticker.add(this.onTick);
     window.addEventListener('resize', this.layout);
@@ -109,6 +115,8 @@ export class Scene {
     this.app.stage.off('pointermove', this.onMove);
     this.app.stage.off('pointerup', this.onUp);
     this.app.stage.off('pointerupoutside', this.cancelWire);
+    this.app.canvas.removeEventListener('pointerleave', this.onCanvasLeave);
+    this.resetTip();
     this.app.canvas.removeEventListener('contextmenu', this.preventMenu);
   }
 
@@ -141,6 +149,7 @@ export class Scene {
       progress: 0,
       total: 0,
       due: null,
+      crew: [],
     };
     this.officeCache = { office, view };
     return view;
@@ -300,6 +309,7 @@ export class Scene {
     else if (focusedProject(s)) this.drawIdleStaff(ts, s.hint);
     for (const trace of this.traces) this.drawTrace(trace, ts);
     this.drawHover(project, ts);
+    this.drawEffectRange(ts);
     this.drawFlash(ts);
   }
 
@@ -343,18 +353,34 @@ export class Scene {
   }
 
   // 機器の名前と、色から割り当てたIPアドレスを機器の下に出す
+  // IPアドレスとプレフィックス長を、機器のスプライトの上端に重ねて出す。画面上の高さが約8pxになるよう拡大率で割る
   private drawAddresses(project: Project, ts: number): void {
     const compiled = this.compiled;
     if (!compiled) return;
-    for (const node of compiled.net.nodes) {
-      const lines = [node.uid.startsWith('u') ? '' : node.uid, ...node.interfaces.map((i) => i.ip)].filter(Boolean);
-      if (!lines.length) continue;
+    const scale = this.content.scale.x;
+    const fontPx = 8 / scale;
+    // 上の段（Y座標の小さい機器）のラベルを前面に出すため、Y座標の大きい順に描く
+    const nodes = [...compiled.net.nodes].sort((a, b) => b.y - a.y);
+    for (const node of nodes) {
+      const ips = node.interfaces.map((i) => `${i.ip}/${i.prefix}`);
+      if (ips.length === 0) continue;
+      // 3行を超えるときは2行に抑え、残りを「ほか n件」にまとめる
+      const lines = ips.length > 3 ? [...ips.slice(0, 2), t('ui.ip.more', { count: ips.length - 2 })] : ips;
       const text = new Text({
         text: lines.join('\n'),
-        style: { fontFamily: 'monospace', fontSize: 9, fill: 0xf4f1e6, align: 'center', stroke: { color: OUTLINE, width: 3 } },
+        // 背景は付けず、縁取りで文字を読めるようにする
+        style: { fontFamily: 'monospace', fontSize: fontPx, fill: 0xf4f1e6, align: 'center', stroke: { color: OUTLINE, width: 2 / scale } },
+        resolution: Math.max(2, scale),
       });
-      text.anchor.set(0.5, 0);
-      text.position.set(node.x * ts + ts / 2, node.y * ts + ts + 2);
+      text.anchor.set(0.5, 1);
+      // スプライトの上端: 机の上（PCなど）は天板の高さ、床に置いた機器は足元から
+      const device = deviceData[node.device as keyof typeof deviceData];
+      const onDesk = this.deskAt(node.x, node.y) !== undefined || device?.category === 'pc';
+      const foot = node.y * ts + ts - DEVICE_FOOT_INSET;
+      const spriteTop = (onDesk ? node.y * ts + DESK_TOP : foot) - 38;
+      const bottom = spriteTop + 4;
+      const cx = node.x * ts + ts / 2;
+      text.position.set(cx, bottom);
       this.bubbles.addChild(text);
     }
     void project;
@@ -367,12 +393,24 @@ export class Scene {
       .getState()
       .office.furniture.filter((f) => f.id === DESK_ID)
       .map((f): [number, number] => [f.x, f.y]);
-    const workers = Math.min(desks.length, useGameStore.getState().staff.length);
+    const staffList = useGameStore.getState().staff;
+    const workers = Math.min(desks.length, staffList.length);
     for (let k = 0; k < workers; k++) {
       const [dx, dy] = desks[k];
       // 机の下の段に座り、打鍵に合わせて小さく揺れる
       const tap = Math.floor(this.elapsed / (FRAME_MS * 2) + k) % 2;
       this.drawStaff(dx * ts + (ts - 16) / 2, (dy + 1) * ts - 6 - tap, STAFF_SHIRT[k % STAFF_SHIRT.length]);
+      // 口癖は、社員ごとにずらした周期で、60秒に3秒だけ頭上に出す（平均60秒に1回）
+      const seconds = this.elapsed / 1000 + k * 23;
+      if (seconds % 60 < 3) {
+        const quirk = new Text({
+          text: t(`staff.quirk.${staffList[k].quirk}` as LangKey),
+          style: { fontFamily: 'sans-serif', fontSize: 11, fill: 0xf4f1e6, stroke: { color: OUTLINE, width: 3 } },
+        });
+        quirk.anchor.set(0.5, 1);
+        quirk.position.set(dx * ts + ts / 2, dy * ts - 4);
+        this.bubbles.addChild(quirk);
+      }
     }
     if (hint && desks.length) {
       const text = new Text({
@@ -648,6 +686,17 @@ export class Scene {
   }
 
   // 配線の到達先: 接続できれば緑、できなければ赤の枠と×
+  // 効果のある家具を配置中は、カーソルの位置から効果の範囲を半透明の緑で塗る（範囲のない家具は塗らない）
+  private drawEffectRange(ts: number): void {
+    const store = useGameStore.getState();
+    if (!store.placing || focusedProject(store) || !this.cursorTile) return;
+    const range = gameEnv.furniture?.[store.placing]?.effect?.range;
+    if (range === undefined || !this.map) return;
+    for (const { tx, ty } of rangeTiles(this.cursorTile.tx, this.cursorTile.ty, range, this.map.width, this.map.height)) {
+      this.g.rect(tx * ts, ty * ts, ts, ts).fill({ color: 0x62d26f, alpha: 0.35 });
+    }
+  }
+
   private drawHover(project: Project, ts: number): void {
     if (!this.hover) return;
     const node = project.nodes.find((n) => n.uid === this.hover!.uid);
@@ -701,7 +750,87 @@ export class Scene {
     return { tx, ty };
   }
 
+  // マップ上の説明。マウスは乗せてから、タッチは長押ししてから出す。説明の中身は、その時点の状態から作る
+  private tipKey: string | null = null;
+  private tipTimer: number | null = null;
+  private tipHideTimer: number | null = null;
+  private tipShown = false;
+
+  // 機器・家具・社員の説明（マス単位）。なければ null
+  private mapTipAt(tx: number, ty: number): { key: string; text: string } | null {
+    const store = useGameStore.getState();
+    const node = this.project()?.nodes.find((n) => n.x === tx && n.y === ty);
+    if (node) {
+      const ips = this.compiled?.net.nodes.find((n) => n.uid === node.uid)?.interfaces.map((i) => `${i.ip}/${i.prefix}`) ?? [];
+      return { key: `n:${node.uid}`, text: [t(`device.${node.device}.name` as LangKey), ...ips].join('\n') };
+    }
+    if (!focusedProject(store) && !store.showcase) {
+      // 席に座っている社員（机の並び順に、雇用の順で座る）
+      const desks = store.office.furniture.filter((f) => f.id === DESK_ID);
+      const k = desks.findIndex((f) => f.x === tx && f.y === ty);
+      const member = k >= 0 ? store.staff[k] : undefined;
+      if (member) {
+        const lines = [t(member.name as LangKey), t(`staff.job.${member.job}` as LangKey), t('ui.staff.level', { level: member.level })];
+        return { key: `s:${member.uid}`, text: lines.join('\n') };
+      }
+      const f = store.office.furniture.find((x) => x.x === tx && x.y === ty);
+      if (f) {
+        const lines = [t(`furniture.${f.id}.name` as LangKey), effectText(gameEnv.furniture?.[f.id]?.effect)];
+        return { key: `f:${f.uid}`, text: lines.filter((l): l is string => l !== null).join('\n') };
+      }
+    }
+    return null;
+  }
+
+  private showTip(text: string, x: number, y: number): void {
+    this.tipShown = true;
+    showTipAt({ x: x - 8, y: y - 8, w: 16, h: 16 }, text);
+  }
+
+  // 説明を消して、予約をやめる
+  private resetTip(): void {
+    if (this.tipTimer !== null) window.clearTimeout(this.tipTimer);
+    if (this.tipHideTimer !== null) window.clearTimeout(this.tipHideTimer);
+    this.tipTimer = null;
+    this.tipHideTimer = null;
+    if (this.tipShown) hideTip();
+    this.tipShown = false;
+    this.tipKey = null;
+  }
+
+  // マウス: 乗った機器が変わったら、説明を予約する（hoverMs のあとに出す）
+  private updateTip(e: FederatedPointerEvent): void {
+    const tile = this.tileOf(this.toMap(e));
+    const hit = tile ? this.mapTipAt(tile.tx, tile.ty) : null;
+    const key = hit?.key ?? null;
+    if (key === this.tipKey) return;
+    this.resetTip();
+    this.tipKey = key;
+    if (!hit) return;
+    this.tipTimer = window.setTimeout(() => this.showTip(hit.text, e.clientX, e.clientY), balance.tooltip.hoverMs);
+  }
+
+  // タッチ: 押した機器の説明を、長押しのあとに出す
+  private startTouchTip(e: FederatedPointerEvent): void {
+    const tile = this.tileOf(this.toMap(e));
+    const hit = tile ? this.mapTipAt(tile.tx, tile.ty) : null;
+    this.resetTip();
+    this.tipKey = hit?.key ?? null;
+    if (!hit) return;
+    this.tipTimer = window.setTimeout(() => this.showTip(hit.text, e.clientX, e.clientY), balance.tooltip.longPressMs);
+  }
+
+  // タッチを離したら、説明を少し残して消す
+  private endTouchTip(): void {
+    if (this.tipTimer !== null) window.clearTimeout(this.tipTimer);
+    this.tipTimer = null;
+    if (this.tipShown) this.tipHideTimer = window.setTimeout(() => this.resetTip(), balance.tooltip.touchHideMs);
+  }
+
+  private onCanvasLeave = (): void => this.resetTip();
+
   private onDown = (e: FederatedPointerEvent): void => {
+    if (e.pointerType === 'touch') this.startTouchTip(e);
     const store = useGameStore.getState();
     const p = this.toMap(e);
     const tile = this.tileOf(p);
@@ -733,9 +862,14 @@ export class Scene {
     }
     if (focusedProject(store)?.phase !== 'design') return;
 
-    // 右クリックで撤去する
+    // 右クリックで撤去する。機器の上なら機器（とつながるケーブル）、配線の上なら配線
     if (e.button === 2) {
-      if (node) store.removeNode(node.uid);
+      if (node) {
+        store.removeNode(node.uid);
+        return;
+      }
+      const link = linkAt(focusedProject(store)?.links ?? [], p.x / this.tileSize(), p.y / this.tileSize(), 0.25);
+      if (link) store.removeLink(link.uid);
       return;
     }
     if (store.tool === 'paint') {
@@ -760,7 +894,12 @@ export class Scene {
   };
 
   private onMove = (e: FederatedPointerEvent): void => {
-    if (!this.wireFrom) return;
+    if (e.pointerType !== 'touch') this.updateTip(e);
+    this.cursorTile = this.tileOf(this.toMap(e));
+    if (!this.wireFrom) {
+      if (useGameStore.getState().placing) this.drawObjects();
+      return;
+    }
     this.wireTo = this.toMap(e);
     const tile = this.tileOf(this.wireTo);
     const target = tile ? this.nodeAt(tile.tx, tile.ty) : undefined;
@@ -775,6 +914,7 @@ export class Scene {
   };
 
   private onUp = (e: FederatedPointerEvent): void => {
+    if (e.pointerType === 'touch') this.endTouchTip();
     if (!this.wireFrom) return;
     const from = this.wireFrom;
     this.wireFrom = null;

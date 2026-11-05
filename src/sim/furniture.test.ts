@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { GameMap } from '../data/schema';
 import type { NetNode } from '../network/types';
-import { hire, placeFurniture, removeFurniture, seatCount } from './furniture';
+import { furnitureBonus, hire, placeFurniture, removeFurniture, seatCount, type BonusEnv } from './furniture';
+import balanceJson from '../assets/data/balance.json';
+import furnitureJson from '../assets/data/furniture.json';
+import type { Balance, Furniture } from '../data/schema';
 import { createStaff } from './staff';
 import { emptyOffice, noEffects, placeInOffice, type Core, type Env } from './project';
 
@@ -47,6 +50,7 @@ const core = (over: Partial<Core> = {}): Core => ({
   effects: noEffects(),
   staff: [createStaff({ job: 'network', level: 1, salary: 200000 }, 1, 0).staff],
   staffSeq: 1,
+  candidates: [],
   ...over,
 });
 
@@ -135,17 +139,65 @@ describe('社員を雇う', () => {
     expect(seatCount(office, isSeat)).toBe(1);
   });
 
-  const newcomer = createStaff({ job: 'infra', level: 1, salary: 200000 }, 1, 9).staff;
+  const candidate = { ...createStaff({ job: 'infra', level: 1, salary: 200000 }, 1, 9).staff, uid: 'c1_0' };
+  const twoDesks = { ...emptyOffice(), furniture: [{ uid: 'f0', id: 'desk', x: 1, y: 0 }, { uid: 'f1', id: 'desk', x: 2, y: 0 }], furnitureSeq: 2 };
 
-  it('席が足りなければ雇えない（seat）', () => {
-    expect(reasonOf(hire(core(), isSeat, newcomer))).toBe('seat');
+  it('席が足りなければ採用できない（seat）', () => {
+    expect(reasonOf(hire(core({ candidates: [candidate] }), 'c1_0', isSeat))).toBe('seat');
   });
 
-  it('席が空いていれば雇える', () => {
-    const out = hire(core({ staff: [], staffSeq: 0, office: { ...emptyOffice(), furniture: [{ uid: 'f0', id: 'desk', x: 1, y: 0 }, { uid: 'f1', id: 'desk', x: 2, y: 0 }], furnitureSeq: 2 } }), isSeat, newcomer);
+  it('席が空いていれば採用でき、候補から社員に移る', () => {
+    const out = hire(core({ staff: [], staffSeq: 0, office: twoDesks, candidates: [candidate] }), 'c1_0', isSeat);
     expect(out.ok).toBe(true);
     if (!out.ok) return;
-    expect(out.core.staff).toEqual([newcomer]);
+    expect(out.core.staff.map((s) => [s.uid, s.job])).toEqual([['s0', 'infra']]);
     expect(out.core.staffSeq).toBe(1);
+    expect(out.core.candidates).toEqual([]);
+  });
+
+  it('候補にいない uid は採用できない（none）', () => {
+    expect(reasonOf(hire(core({ staff: [], office: twoDesks }), 'nobody', isSeat))).toBe('none');
+  });
+});
+
+describe('家具の補正', () => {
+  const defs = Object.fromEntries(furnitureJson.furniture.map((f) => [f.id, f as unknown as Furniture]));
+  const env: BonusEnv = { defs, balance: balanceJson as unknown as Balance, staffUids: ['s0'] };
+  const withFurniture = (items: { id: string; x: number; y: number }[]) => ({
+    ...emptyOffice(),
+    furniture: [{ uid: 'desk', id: 'desk', x: 5, y: 5 }, ...items.map((f, i) => ({ uid: `f${i}`, ...f }))],
+    furnitureSeq: items.length + 1,
+  });
+
+  it('範囲内の植物が2つあっても、施工力は +0.1 だけ', () => {
+    const office = withFurniture([
+      { id: 'plant', x: 7, y: 5 },
+      { id: 'plant', x: 5, y: 7 },
+    ]);
+    expect(furnitureBonus(office, 's0', env).power).toBeCloseTo(0.1);
+  });
+
+  it('範囲外（机から3マス以上）の植物は効かない', () => {
+    expect(furnitureBonus(withFurniture([{ id: 'plant', x: 8, y: 5 }]), 's0', env).power).toBe(0);
+  });
+
+  it('植物とコーヒーの施工力は足し合わせる（+0.15）', () => {
+    const office = withFurniture([
+      { id: 'plant', x: 7, y: 5 },
+      { id: 'coffee', x: 0, y: 0 },
+    ]);
+    expect(furnitureBonus(office, 's0', env).power).toBeCloseTo(0.15);
+  });
+
+  it('席のない社員には、施工力も経験値も効かない', () => {
+    const office = withFurniture([
+      { id: 'plant', x: 7, y: 5 },
+      { id: 'bookshelf', x: 5, y: 7 },
+    ]);
+    expect(furnitureBonus(office, 'nobody', env)).toEqual({ power: 0, exp: 0, seatless: 0.5 });
+  });
+
+  it('ソファがあれば、席のない社員の係数は 0.7 になる', () => {
+    expect(furnitureBonus(withFurniture([{ id: 'sofa', x: 0, y: 0 }]), 'nobody', env).seatless).toBe(0.7);
   });
 });

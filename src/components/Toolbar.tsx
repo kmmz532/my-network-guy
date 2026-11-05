@@ -9,6 +9,7 @@ import { COLOR_COUNT } from '../network/compile';
 import { subnetCss } from '../game/palette';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
+import { Tooltip } from './Tooltip';
 import { Warehouse } from './Warehouse';
 
 const bar = {
@@ -68,6 +69,15 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
   const cableIds = unlocked.filter((i) => i.cable).map((i) => i.cable!);
   const design = active?.phase === 'design';
   const yen = (n: number) => n.toLocaleString('ja-JP');
+  // IPアドレスの表示の切り替え。設計中は施工のボタンの左、それ以外は右端に出す
+  const ipButton = (
+    <Tooltip text={t('ui.showIp')}><button aria-label={t('ui.showIp')} style={{ ...slot(showIp), width: 'auto', padding: '0 8px', fontSize: 13, fontWeight: 'bold' }}
+      
+      onClick={() => setShowIp(!showIp)}
+    >
+      IP
+    </button></Tooltip>
+  );
   // 倉庫の在庫の合計（機材と家具の個数の和）
   const stockTotal = Object.values(owned).reduce((sum, n) => sum + n, 0);
   const mode = warehouseMode(active?.phase ?? null, showcase !== null);
@@ -88,22 +98,21 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
   return (
     <>
     <footer style={bar}>
-      <button style={{ ...slot(false), position: 'relative' }} title={t('ui.offer.title')} onClick={onOffers}>
+      <Tooltip text={t('ui.offer.title')}><button aria-label={t('ui.offer.title')} style={{ ...slot(false), position: 'relative' }}  onClick={onOffers}>
         <Icon name="icon/mail" />
         {offers.length > 0 && (
           <span style={{ position: 'absolute', top: -6, right: -6, background: '#e84a4a', borderRadius: 8, fontSize: 11, padding: '0 5px' }}>
             {offers.length}
           </span>
         )}
-      </button>
-      <button style={slot(false)} title={t('ui.shop.title')} onClick={onShop}>
+      </button></Tooltip>
+      <Tooltip text={t('ui.shop.title')}><button aria-label={t('ui.shop.title')} style={slot(false)}  onClick={onShop}>
         <Icon name="icon/cart" />
-      </button>
+      </button></Tooltip>
       {/* 在庫は倉庫のアイコンにまとめる。品目の一覧は倉庫の欄で開く */}
       {sep}
-      <button
-        style={{ ...slot(warehouseOpen && warehouseOpenable), opacity: warehouseOpenable ? 1 : 0.35 }}
-        title={t('ui.warehouse.title')}
+      <Tooltip text={t('ui.warehouse.title')}><button aria-label={t('ui.warehouse.title')} style={{ ...slot(warehouseOpen && warehouseOpenable), opacity: warehouseOpenable ? 1 : 0.35 }}
+        
         disabled={!warehouseOpenable}
         onClick={() => setWarehouseOpen(!warehouseOpen)}
       >
@@ -111,15 +120,13 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
         <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>
           {stockTotal}
         </span>
-      </button>
+      </button></Tooltip>
       {design && (
         <>
           {sep}
           {cableIds.map((id) => (
-            <button
-              key={id}
-              style={slot(tool === 'build' && !placing && wireCable === id)}
-              title={t(`cable.${id}.name` as LangKey)}
+            <Tooltip text={t(`cable.${id}.name` as LangKey)} key={id}><button aria-label={t(`cable.${id}.name` as LangKey)} style={slot(tool === 'build' && !placing && wireCable === id)}
+              
               onClick={() => {
                 setTool('build');
                 setWireCable(id);
@@ -127,29 +134,21 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
               }}
             >
               <Icon name={`icon/cable_${id}`} />
-            </button>
+            </button></Tooltip>
           ))}
           {sep}
           {Array.from({ length: COLOR_COUNT }, (_, i) => i + 1).map((c) => (
-            <button
-              key={c}
-              style={{ ...slot(tool === 'paint' && paintColor === c), width: 32 }}
-              title={t('ui.paint')}
+            <Tooltip text={t('ui.paint')} key={c}><button aria-label={t('ui.paint')} style={{ ...slot(tool === 'paint' && paintColor === c), width: 32 }}
+              
               onClick={() => {
                 setPaintColor(c);
                 setWarehouseOpen(false);
               }}
             >
               <span style={{ width: 20, height: 20, background: subnetCss(c), border: '2px solid #3b2a33', display: 'block' }} />
-            </button>
+            </button></Tooltip>
           ))}
-          <button
-            style={{ ...slot(showIp), width: 'auto', padding: '0 8px', fontSize: 13, fontWeight: 'bold' }}
-            title={t('ui.showIp')}
-            onClick={() => setShowIp(!showIp)}
-          >
-            IP
-          </button>
+          {ipButton}
           {sep}
           <button style={{ ...slot(false), width: 'auto', padding: '0 14px', background: '#5aa860', fontSize: 16 }} onClick={() => requestBuild()}>
             <Icon name="icon/hammer" /> {t('ui.build')}
@@ -157,11 +156,12 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
           <span style={{ marginLeft: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
             <Icon name="icon/budget" /> {yen(active.cost)} / {yen(active.contract.budget)}
           </span>
-          <button style={{ ...slot(false), width: 32, marginLeft: 'auto' }} title={t('ui.project.abandon')} onClick={() => abandon()}>
+          <Tooltip text={t('ui.project.abandon')} style={{ marginLeft: 'auto' }}><button aria-label={t('ui.project.abandon')} style={{ ...slot(false), width: 32 }}  onClick={() => abandon()}>
             <Icon name="icon/close" />
-          </button>
+          </button></Tooltip>
         </>
       )}
+      {!design && <span style={{ marginLeft: 'auto' }}>{ipButton}</span>}
       {active?.phase === 'build' && (
         <>
           {sep}

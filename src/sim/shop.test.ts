@@ -48,6 +48,7 @@ describe('セーブのバージョン移行', () => {
       effects: { buildSpeed: 0 },
       staff: expect.any(Array),
       staffSeq: 2,
+      candidates: [],
     });
   });
 

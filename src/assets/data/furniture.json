@@ -1,13 +1,80 @@
 {
   "furniture": [
-    { "id": "desk", "price": 30000, "sprite": "furniture/desk", "seat": true },
-    { "id": "plant", "price": 8000, "sprite": "furniture/plant", "seat": false },
-    { "id": "bookshelf", "price": 20000, "sprite": "furniture/bookshelf", "seat": false },
-    { "id": "cabinet", "price": 15000, "sprite": "furniture/cabinet", "seat": false },
-    { "id": "coffee", "price": 12000, "sprite": "furniture/coffee", "seat": false },
-    { "id": "water", "price": 10000, "sprite": "furniture/water", "seat": false },
-    { "id": "trash", "price": 2000, "sprite": "furniture/trash", "seat": false },
-    { "id": "sofa", "price": 25000, "sprite": "furniture/sofa", "seat": false },
-    { "id": "boxes", "price": 2000, "sprite": "furniture/boxes", "seat": false }
+    {
+      "id": "desk",
+      "price": 30000,
+      "sprite": "furniture/desk",
+      "seat": true
+    },
+    {
+      "id": "plant",
+      "price": 8000,
+      "sprite": "furniture/plant",
+      "seat": false,
+      "effect": {
+        "stat": "power",
+        "value": 0.1,
+        "range": 2
+      }
+    },
+    {
+      "id": "bookshelf",
+      "price": 20000,
+      "sprite": "furniture/bookshelf",
+      "seat": false,
+      "effect": {
+        "stat": "exp",
+        "value": 0.1,
+        "range": 2
+      }
+    },
+    {
+      "id": "cabinet",
+      "price": 15000,
+      "sprite": "furniture/cabinet",
+      "seat": false
+    },
+    {
+      "id": "coffee",
+      "price": 12000,
+      "sprite": "furniture/coffee",
+      "seat": false,
+      "effect": {
+        "stat": "power",
+        "value": 0.05
+      }
+    },
+    {
+      "id": "water",
+      "price": 10000,
+      "sprite": "furniture/water",
+      "seat": false,
+      "effect": {
+        "stat": "power",
+        "value": 0.05
+      }
+    },
+    {
+      "id": "trash",
+      "price": 2000,
+      "sprite": "furniture/trash",
+      "seat": false
+    },
+    {
+      "id": "sofa",
+      "price": 25000,
+      "sprite": "furniture/sofa",
+      "seat": false,
+      "effect": {
+        "stat": "seatless",
+        "value": 0.7
+      }
+    },
+    {
+      "id": "boxes",
+      "price": 2000,
+      "sprite": "furniture/boxes",
+      "seat": false
+    }
   ]
 }

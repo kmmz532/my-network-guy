@@ -4,6 +4,7 @@ import { cables, devices, furniture, shop } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { isUnlocked } from '../sim/shop';
+import { effectText } from '../game/effectText';
 import { useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 import { modalBack, modalBox } from './Overlay';
@@ -109,6 +110,7 @@ export function ShopCards({ onClose }: { onClose: () => void }) {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 'bold' }}>{t(`furniture.${id}.name` as LangKey)}</div>
                     <div style={{ fontSize: 12, opacity: 0.85 }}>{t(`furniture.${id}.desc` as LangKey)}</div>
+                {effectText(f.effect) && <div style={{ fontSize: 12, color: '#ffd866' }}>{effectText(f.effect)}</div>}
                     <div style={{ fontSize: 13 }}>
                       <Icon name="icon/money" scale={1} /> {yen(f.price)}　×{owned[id] ?? 0}
                     </div>

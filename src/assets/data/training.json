@@ -1,0 +1,16 @@
+{
+  "courses": [
+    {
+      "id": "basic",
+      "cost": 100000,
+      "days": 5,
+      "exp": 150
+    },
+    {
+      "id": "advanced",
+      "cost": 300000,
+      "days": 10,
+      "exp": 400
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "certs": [
+    {
+      "id": "net1",
+      "job": "network",
+      "minLevel": 3,
+      "fee": 50000
+    },
+    {
+      "id": "sec1",
+      "job": "security",
+      "minLevel": 3,
+      "fee": 50000
+    }
+  ]
+}

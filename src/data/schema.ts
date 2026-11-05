@@ -37,7 +37,6 @@ export const balanceSchema = z.object({
   offerIntervalDays: int.positive(),
   staff: z.object({
     initialCount: int.positive(),
-    monthlySalary: nonNegativeInt,
     // ゲーム開始時に置く机の位置（自社オフィスのマス）
     initialDesks: z.array(z.object({ x: nonNegativeInt, y: nonNegativeInt })),
     // ゲーム開始時の社員の職種・level・月給（先頭から順に作る）
@@ -77,6 +76,26 @@ export const balanceSchema = z.object({
     )
     .min(1),
   reputationPerStar: nonNegativeInt,
+  // ツールチップの出し方（ミリ秒）
+  tooltip: z.object({
+    hoverMs: nonNegativeInt,
+    longPressMs: nonNegativeInt,
+    touchHideMs: nonNegativeInt,
+  }),
+  // 試験の合格率: min(maxRate, baseRate + perLevel × (level − 資格の minLevel))
+  exam: z.object({
+    baseRate: z.number().min(0).max(1),
+    perLevel: z.number().min(0),
+    maxRate: z.number().min(0).max(1),
+  }),
+  // 採用の候補（毎月1日に作り直す）
+  hiring: z.object({
+    maxCandidates: nonNegativeInt,
+    // 評判の何点ごとに候補の level が1上がるか
+    reputationPerLevel: int.positive(),
+    baseSalary: nonNegativeInt,
+    salaryPerLevel: nonNegativeInt,
+  }),
   office: z.object({
     // 同時に受注できる案件の数（案件の枠）
     projectSlots: int.positive(),
@@ -124,6 +143,12 @@ export const furnitureSchema = z.object({
   price: nonNegativeInt,
   sprite: z.string().min(1),
   seat: z.boolean(),
+  // 家具の効果（OFFICE.md「家具の効果」）。range を省略するとオフィス全体に効く
+  effect: z.object({
+    stat: z.enum(['power', 'exp', 'seatless']),
+    value: z.number(),
+    range: nonNegativeInt.optional(),
+  }).optional(),
 });
 
 export const furnitureFileSchema = z.object({ furniture: z.array(furnitureSchema) });
@@ -265,7 +290,33 @@ export const mapSchema = z
 
 export const langSchema = z.record(z.string(), z.string());
 
+// 研修の課程（STAFF.md「4. 育成」）。受講中は担当に選べず、期日に経験値を得る
+export const trainingFileSchema = z.object({
+  courses: z.array(
+    z.object({
+      id: z.string().min(1),
+      cost: nonNegativeInt,
+      days: int.positive(),
+      exp: nonNegativeInt,
+    }),
+  ),
+});
+
+// 資格（架空の名前。言語ファイルの cert.<id>.name）。受験には職種と level が必要
+export const certFileSchema = z.object({
+  certs: z.array(
+    z.object({
+      id: z.string().min(1),
+      job: jobIdSchema,
+      minLevel: int.positive(),
+      fee: nonNegativeInt,
+    }),
+  ),
+});
+
 export type Balance = z.infer<typeof balanceSchema>;
+export type TrainingCourse = z.infer<typeof trainingFileSchema>['courses'][number];
+export type CertDef = z.infer<typeof certFileSchema>['certs'][number];
 export type Cable = z.infer<typeof cableSchema>;
 export type Device = z.infer<typeof deviceSchema>;
 export type Furniture = z.infer<typeof furnitureSchema>;

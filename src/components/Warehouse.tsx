@@ -4,6 +4,7 @@ import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import type { WarehouseItem } from '../sim/warehouse';
 import { Icon } from './Icon';
+import { Tooltip } from './Tooltip';
 
 const strip = {
   position: 'absolute',
@@ -69,12 +70,12 @@ export function Warehouse({
           item.kind === 'device' ? t(`device.${item.id}.name` as LangKey) : t(`furniture.${item.id}.name` as LangKey);
         const sprite = item.kind === 'device' ? devices[item.id as keyof typeof devices].sprite : `furniture/${item.id}`;
         return (
-          <button key={key} title={name} style={itemStyle(placing === item.id)} onClick={() => onPick(item)}>
+          <Tooltip text={name} key={key}><button aria-label={name} style={itemStyle(placing === item.id)} onClick={() => onPick(item)}>
             <Icon name={sprite} scale={1} />
             <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>
               {owned[item.id] ?? 0}
             </span>
-          </button>
+          </button></Tooltip>
         );
       })}
     </div>

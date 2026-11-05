@@ -16,6 +16,7 @@ import { TaskPanel } from './components/TaskPanel';
 import { ConfigPanel } from './components/ConfigPanel';
 import { ShopCards } from './components/ShopCards';
 import { HiringPanel } from './components/HiringPanel';
+import { Tooltip, TooltipHost } from './components/Tooltip';
 import { Icon } from './components/Icon';
 import { TitleScreen } from './components/TitleScreen';
 import { mapLoaders } from 'virtual:loaders';
@@ -153,24 +154,23 @@ export function App() {
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {t('ui.staff.label', { staff, seats })}
           {/* 候補が0人のときは押せない（半透明） */}
-          <button
-            style={{ ...hudButton(hiring), opacity: candidates.length > 0 ? 1 : 0.4 }}
-            title={t('ui.staff.hire')}
+          <Tooltip text={t('ui.staff.hire')}><button aria-label={t('ui.staff.hire')} style={{ ...hudButton(hiring), opacity: candidates.length > 0 ? 1 : 0.4 }}
+            
             disabled={candidates.length === 0}
             onClick={() => setHiring(!hiring)}
           >
             <Icon name="icon/person" scale={1} />
-          </button>
+          </button></Tooltip>
         </span>
         <span style={{ display: 'flex', gap: 4 }}>
           {SPEEDS.map((s) => (
-            <button key={s} style={hudButton(speed === s)} title={t(`ui.speed.${s}` as const)} onClick={() => setSpeed(s)}>
+            <Tooltip text={t(`ui.speed.${s}` as const)} key={s}><button aria-label={t(`ui.speed.${s}` as const)} style={hudButton(speed === s)}  onClick={() => setSpeed(s)}>
               {s === 0 ? (
                 <Icon name="icon/pause" scale={1} />
               ) : (
                 Array.from({ length: s === 4 ? 3 : s }, (_, i) => <Icon key={i} name="icon/play" scale={1} />)
               )}
-            </button>
+            </button></Tooltip>
           ))}
         </span>
         <button style={{ ...hudButton(false), marginLeft: 'auto' }} onClick={() => setPopup('menu')}>
@@ -183,6 +183,7 @@ export function App() {
       {popup === 'offers' && <OfferCards onClose={() => setPopup(null)} />}
       {popup === 'shop' && <ShopCards onClose={() => setPopup(null)} />}
       {hiring && <HiringPanel onClose={() => setHiring(false)} />}
+      <TooltipHost />
       {popup === 'menu' && (
         <div style={modalBack} onClick={() => setPopup(null)}>
           <div style={{ ...modalBox, minWidth: 200 }} onClick={(e) => e.stopPropagation()}>

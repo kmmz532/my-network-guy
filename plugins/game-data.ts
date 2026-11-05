@@ -6,6 +6,8 @@ import type { Plugin, ResolvedConfig, ViteDevServer } from 'vite';
 import type { ZodTypeAny } from 'zod';
 import {
   balanceSchema,
+  certFileSchema,
+  trainingFileSchema,
   cablesFileSchema,
   contractSchema,
   devicesFileSchema,
@@ -24,6 +26,8 @@ import {
   type GameMap,
   type Lang,
   type ShopItem,
+  type TrainingCourse,
+  type CertDef,
 } from '../src/data/schema';
 
 const BASE_LANG = 'ja_jp';
@@ -47,6 +51,8 @@ const ERROR_IDS = [
 
 interface GameData {
   balance: Balance;
+  training: TrainingCourse[];
+  certs: CertDef[];
   cables: Cable[];
   devices: Device[];
   furniture: Furniture[];
@@ -97,6 +103,8 @@ const loadData = (dataDir: string, langDir: string, spriteDir: string): GameData
   );
   const furniture = parseWith(furnitureFileSchema, readJson(join(dataDir, 'furniture.json')), 'furniture.json').furniture;
   const shop = parseWith(shopFileSchema, readJson(join(dataDir, 'shop.json')), 'shop.json').items;
+  const training = parseWith(trainingFileSchema, readJson(join(dataDir, 'training.json')), 'training.json').courses;
+  const certs = parseWith(certFileSchema, readJson(join(dataDir, 'certs.json')), 'certs.json').certs;
 
   const contractsDir = join(dataDir, 'contracts');
   const contracts = jsonFiles(contractsDir).map((file) => {
@@ -131,6 +139,8 @@ const loadData = (dataDir: string, langDir: string, spriteDir: string): GameData
 
   const data: GameData = {
     balance,
+    training,
+    certs,
     cables,
     devices,
     furniture,
@@ -348,6 +358,8 @@ const gameDataModule = (data: GameData): string => {
     `export const furniture = ${JSON.stringify(furniture)};`,
     `export const cables = ${JSON.stringify(cables)};`,
     `export const shop = ${JSON.stringify(data.shop)};`,
+    `export const training = ${JSON.stringify(Object.fromEntries(data.training.map((c) => [c.id, c])))};`,
+    `export const certs = ${JSON.stringify(Object.fromEntries(data.certs.map((c) => [c.id, c])))};`,
     `export const contracts = ${JSON.stringify(data.contracts)};`,
     `export const contractTemplates = ${JSON.stringify(data.templates)};`,
   ].join('\n');
