@@ -13,7 +13,7 @@ import { SAVE_SLOT, slotOf } from './services/slots';
 import { createSaveQueue, isAutoSaveDue } from './services/autoSave';
 import { exportSave, importSave } from './services/saveFile';
 import { NoticeToast, ReportModal } from './components/Overlay';
-import { Modal, primaryButton, secondaryButton } from './components/Modal';
+import { dangerButton, Modal, primaryButton, secondaryButton } from './components/Modal';
 import { KeyHelp } from './components/KeyHelp';
 import { SettingsPanel } from './components/SettingsPanel';
 import { SandboxSizePanel } from './components/SandboxSizePanel';
@@ -284,7 +284,7 @@ export function App() {
           left: 0,
           right: 0,
           padding: '6px 12px',
-          background: 'rgba(47, 79, 143, 0.92)',
+          background: 'rgba(47, 79, 143, 0.75)',
           color: '#f4f1e6',
           display: 'flex',
           flexWrap: 'wrap',
@@ -294,13 +294,13 @@ export function App() {
         }}
       >
         <span>
-          <Icon name="icon/money" /> {sandbox ? '∞' : clock.money.toLocaleString('ja-JP')}
+          <Icon name="icon/money" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} /> {sandbox ? '∞' : clock.money.toLocaleString('ja-JP')}
         </span>
         <span>
-          <Icon name="icon/star" /> {reputation}
+          <Icon name="icon/star" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} /> {reputation}
         </span>
         <span>
-          <Icon name="icon/calendar" /> {t('ui.hud.date', { year: date.year, month: date.month, day: date.day, hour: date.hour })}
+          <Icon name="icon/calendar" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} /> {t('ui.hud.date', { year: date.year, month: date.month, day: date.day, hour: date.hour })}
         </span>
         {!sandbox && (
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -336,14 +336,18 @@ export function App() {
         </span>
         )}
         {/* 自動保存の印。文字は出さず、ツールチップだけ */}
-        {saveMark !== null && (
-          <Tooltip text={t('ui.autosave.mark')}>
-            <span role="status" aria-label={t('ui.autosave.mark')} style={{ display: 'inline-flex', marginLeft: 'auto' }}>
-              <Icon name="icon/save" scale={1} />
-            </span>
-          </Tooltip>
-        )}
-        <button style={{ ...hudButton(false), marginLeft: saveMark !== null ? 0 : 'auto' }} onClick={() => setPopup('menu')}>
+        {/* 印を出していないときも場所を空けておく（出し入れでメニューボタンが動かないように） */}
+        <Tooltip text={t('ui.autosave.mark')}>
+          <span
+            role={saveMark !== null ? 'status' : undefined}
+            aria-label={saveMark !== null ? t('ui.autosave.mark') : undefined}
+            aria-hidden={saveMark === null}
+            style={{ display: 'inline-flex', marginLeft: 'auto', visibility: saveMark !== null ? 'visible' : 'hidden' }}
+          >
+            <Icon name="icon/save" scale={1} />
+          </span>
+        </Tooltip>
+        <button style={hudButton(false)} onClick={() => setPopup('menu')}>
           <Icon name="icon/menu" scale={1} />
         </button>
       </header>
@@ -433,7 +437,7 @@ export function App() {
             >
               {t('ui.sandbox.size.cancel')}
             </button>
-            <button style={primaryButton} onClick={() => setPopup('sandboxReset')}>
+            <button style={dangerButton} onClick={() => setPopup('sandboxReset')}>
               {t('ui.sandbox.size.recreate')}
             </button>
           </div>
