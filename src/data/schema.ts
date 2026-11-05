@@ -106,10 +106,10 @@ export const balanceSchema = z.object({
     projectSlots: int.positive(),
     // 新しく始めたときの部屋の床の大きさ（マス）
     initialSize: sizeSchema,
-    // 部屋を広げる費用と上限。費用は baseCost から、買うたびに growth 倍になる。step マスずつ広がる
+    // 部屋を広げる費用と上限。費用は baseCost から、買うたびに baseCost の increase 倍ずつ増える（直線）。step マスずつ広がる
     expand: z.object({
       baseCost: nonNegativeInt,
-      growth: z.number().min(1),
+      increase: z.number().min(0),
       step: int.positive(),
       maxSize: sizeSchema,
     }),

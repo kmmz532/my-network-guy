@@ -59,7 +59,7 @@
     },
     "expand": {
       "baseCost": 200000,
-      "growth": 1.5,
+      "increase": 0.3,
       "step": 2,
       "maxSize": {
         "w": 15,

@@ -99,10 +99,14 @@ describe('費用', () => {
     expect(expandCostOf(SMALL, config)).toBe(200000);
   });
 
-  it('買うたびに1.5倍になる', () => {
-    expect(expandCostOf({ w: 7, h: 5 }, config)).toBe(300000);
-    expect(expandCostOf({ w: 7, h: 7 }, config)).toBe(450000);
-    expect(expandCostOf({ w: 9, h: 7 }, config)).toBe(675000);
+  it('買うたびに 60,000円ずつ増える（直線）', () => {
+    expect(expandCostOf({ w: 7, h: 5 }, config)).toBe(260000);
+    expect(expandCostOf({ w: 7, h: 7 }, config)).toBe(320000);
+    expect(expandCostOf({ w: 9, h: 7 }, config)).toBe(380000);
+  });
+
+  it('上限の大きさの費用は、増え続けず 800,000円に収まる', () => {
+    expect(expandCostOf({ w: 15, h: 15 }, config)).toBe(800000);
   });
 
   it('大きさから、広げた回数を数える（右・下・左のどの順でも同じ）', () => {

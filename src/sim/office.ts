@@ -52,9 +52,9 @@ export const mapOfOffice = (office: Office): GameMap => officeMapOf(office.size,
 export const expandCountOf = (size: OfficeSize, initial: OfficeSize, step: number): number =>
   Math.max(0, Math.floor((size.w - initial.w + (size.h - initial.h)) / step));
 
-// 次に広げる費用（円）。baseCost から、広げた回数ごとに growth 倍になる
+// 次に広げる費用（円）。広げた回数ごとに baseCost の increase 倍ずつ増える（直線。上限の大きさで頭打ちになる）
 export const expandCostOf = (size: OfficeSize, config: OfficeConfig): number =>
-  Math.round(config.expand.baseCost * config.expand.growth ** expandCountOf(size, config.initialSize, config.expand.step));
+  Math.round(config.expand.baseCost * (1 + config.expand.increase * expandCountOf(size, config.initialSize, config.expand.step)));
 
 // 本体の部屋の床の大きさ（別室の床を除く）。上限と費用は本体で数える
 export const mainSizeOf = (office: Office): OfficeSize => {
