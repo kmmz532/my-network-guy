@@ -14,7 +14,7 @@ export function TaskPanel() {
   const open = useGameStore((s) => s.taskOpen);
   const setOpen = useGameStore((s) => s.setTaskOpen);
   const check = useGameStore((s) => s.check);
-  const setSelected = useGameStore((s) => s.setSelected);
+  const openWindow = useGameStore((s) => s.openWindow);
   const setTool = useGameStore((s) => s.setTool);
   if (!active) return null;
 
@@ -93,7 +93,7 @@ export function TaskPanel() {
                       title={t('ui.check.open')}
                       onClick={() => {
                         setTool('select');
-                        setSelected(g.node);
+                        if (g.node) openWindow('device', g.node);
                       }}
                       style={{ flexShrink: 0, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit' }}
                     >

@@ -1,5 +1,5 @@
-// 機器の画面。機器を押すと右側に開き（幅 300 px、マップに重ねる）、背面・設定・サービス（サーバーだけ）・ターミナル（押せない）のタブを持つ。
-// 空きマスを押すか Esc（キーは Toolbar の useToolKeys が受け取る）で閉じる。別の機器を押すと中身が替わる。
+// 機器の画面の中身。ウィンドウ（Window.tsx）の中に出し、タイトルの帯・×・大きさは Windows.tsx が受け持つ。
+// 背面・設定・サービス（サーバーだけ）・ターミナル（押せない）のタブを持つ。閉じるのは、ウィンドウの×か Esc（キーは Toolbar の useToolKeys が受け取る）。
 import { useState } from 'react';
 import { devices as deviceData } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
@@ -7,40 +7,58 @@ import { t } from '../i18n/t';
 import { compile, type Compiled } from '../network/compile';
 import type { NetLink, NetNode } from '../network/types';
 import { gameEnv } from '../sim/env';
-import { focusedProject, useGameStore } from '../stores/useGameStore';
+import { focusedProject, useGameStore, type GameState } from '../stores/useGameStore';
 import { RearTab as DeviceRear } from './DeviceRear';
 import { DeviceSettings } from './DeviceSettings';
 import { Icon } from './Icon';
-import { buttonStyle, greyColor, panelStyle, warnColor } from './devicePorts';
+import { buttonStyle, greyColor, warnColor } from './devicePorts';
 
 type Tab = 'rear' | 'config' | 'service';
 
-export function DevicePanel() {
-  const selectedUid = useGameStore((s) => s.selectedUid);
-  const state = useGameStore();
-
-  if (!selectedUid) return null;
+// uid の機器を探す。表示中の案件（設計中、または納品の結果）を優先し、なければ自社オフィス。見つからなければ null
+export function findDevice(state: GameState, uid: string) {
   const active = focusedProject(state);
-  // 表示中の案件（設計中、または納品の結果）の機器を優先し、なければ自社オフィスの機器
   const project = active ?? state.showcase;
-  const inProject = project?.nodes.find((n) => n.uid === selectedUid);
+  const inProject = project?.nodes.find((n) => n.uid === uid);
   if (!inProject && active) return null;
   const source = inProject && project
     ? { nodes: project.nodes, links: project.links, segments: project.segments }
     : { nodes: state.office.nodes, links: state.office.links, segments: state.office.segments };
-  const node = source.nodes.find((n) => n.uid === selectedUid);
+  const node = source.nodes.find((n) => n.uid === uid);
   if (!node) return null;
   // 案件を表示しているときは設計中だけ変更できる。自社オフィスは、納品の結果を表示していなければ変更できる
   const readOnly = active ? active.phase !== 'design' : state.showcase !== null;
-  const compiled = compile(source, gameEnv.engine);
+  return { node, source, readOnly };
+}
+
+// ウィンドウのタイトル（機器の絵と名前）
+export function DeviceTitle({ uid }: { uid: string }) {
+  const state = useGameStore();
+  const found = findDevice(state, uid);
+  if (!found) return null;
+  const device = deviceData[found.node.device as keyof typeof deviceData];
+  return (
+    <>
+      {device && <Icon name={device.sprite} scale={1} />}
+      <b>{t(`device.${found.node.device}.name` as LangKey)}</b>
+    </>
+  );
+}
+
+// ウィンドウの中身（機器の画面）。機器が見つからなければ何も出さない
+export function DeviceBody({ uid }: { uid: string }) {
+  const state = useGameStore();
+  const found = findDevice(state, uid);
+  if (!found) return null;
+  const compiled = compile(found.source, gameEnv.engine);
   return (
     <DeviceView
-      key={node.uid}
-      node={node}
-      nodes={source.nodes}
-      links={source.links as NetLink[]}
+      key={found.node.uid}
+      node={found.node}
+      nodes={found.source.nodes}
+      links={found.source.links as NetLink[]}
       compiled={compiled}
-      readOnly={readOnly}
+      readOnly={found.readOnly}
     />
   );
 }
@@ -58,13 +76,11 @@ function DeviceView({
   compiled: Compiled;
   readOnly: boolean;
 }) {
-  const setSelected = useGameStore((s) => s.setSelected);
   const [tab, setTab] = useState<Tab>('rear');
   const [error, setError] = useState<string | null>(null);
 
   const info = gameEnv.devices[node.device];
   const isServer = info?.category === 'server';
-  const device = deviceData[node.device as keyof typeof deviceData];
   const issue = compiled.issues[node.uid];
 
   const tabButton = (id: Tab, label: string) => (
@@ -88,16 +104,7 @@ function DeviceView({
   );
 
   return (
-    <section style={panelStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 6 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {device && <Icon name={device.sprite} scale={1} />}
-          <b>{t(`device.${node.device}.name` as LangKey)}</b>
-        </span>
-        <button style={buttonStyle} aria-label={t('ui.panel.close')} onClick={() => setSelected(null)}>
-          {t('ui.panel.close')}
-        </button>
-      </div>
+    <div>
       {issue && <div style={{ color: warnColor, marginBottom: 6 }}>{t(`issue.${issue.reason}` as LangKey, { ip: issue.ip ?? '', segment: issue.segment ?? '', gateway: issue.gateway ?? '' })}</div>}
       {readOnly && <div style={{ marginBottom: 6 }}>{t('ui.config.readOnly')}</div>}
       <nav style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -112,7 +119,7 @@ function DeviceView({
       {tab === 'rear' && <DeviceRear node={node} nodes={nodes} links={links} readOnly={readOnly} onError={setError} />}
       {tab === 'config' && <DeviceSettings node={node} compiled={compiled} readOnly={readOnly} onError={setError} />}
       {tab === 'service' && isServer && <ServiceTab node={node} readOnly={readOnly} onError={setError} />}
-    </section>
+    </div>
   );
 }
 

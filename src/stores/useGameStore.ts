@@ -15,6 +15,20 @@ import type { NetLink, NetNode, Route } from '../network/types';
 import type { SaveData } from '../services/migrations';
 import { gameEnv } from '../sim/env';
 import {
+  type WindowItem,
+  type WindowKind,
+  type WindowMemory,
+  closeRef,
+  closeWindow as closeWindowOp,
+  focusWindow as focusWindowOp,
+  frontWindow,
+  moveWindow as moveWindowOp,
+  openWindow as openWindowOp,
+  parseMemory,
+  remember,
+  resizeWindow as resizeWindowOp,
+} from '../ui/windows';
+import {
   hire as hireOp,
   initialOffice,
   placeFurniture as placeFurnitureOp,
@@ -73,6 +87,25 @@ export interface PortMenuState {
 
 export type Speed = 0 | 1 | 2 | 4;
 
+// 覚えた位置と大きさを保存する場所（端末ごと。セーブデータには入れない）
+const MEMORY_KEY = 'network-ya.windows.v1';
+const readMemory = (): WindowMemory => {
+  try {
+    return parseMemory(window.localStorage.getItem(MEMORY_KEY));
+  } catch {
+    return {};
+  }
+};
+const writeMemory = (memory: WindowMemory): void => {
+  try {
+    window.localStorage.setItem(MEMORY_KEY, JSON.stringify(memory));
+  } catch {
+    // 保存できなくても、画面の操作は続けられる
+  }
+};
+
+export const viewportNow = (): { w: number; h: number } => ({ w: window.innerWidth, h: window.innerHeight });
+
 export interface GameState {
   clock: ClockState;
   reputation: number;
@@ -105,8 +138,16 @@ export interface GameState {
   dismissNotice: () => void;
   // 直近に失敗した操作の理由（保存しない）
   lastError: string | null;
-  // 操作の状態（保存しない）
-  selectedUid: string | null;
+  // 開いているウィンドウ（機器の画面・社員の札）。保存しない。手前ほど z が大きい
+  windows: WindowItem[];
+  windowSeq: number;
+  // 種類ごとに最後に置いた位置と大きさ（localStorage に保存する）
+  windowMemory: WindowMemory;
+  openWindow: (kind: WindowKind, ref: string) => void;
+  closeWindow: (id: number) => void;
+  focusWindow: (id: number) => void;
+  moveWindow: (id: number, x: number, y: number) => void;
+  resizeWindow: (id: number, w: number, h: number) => void;
   // 配置モードで置く機材（null なら配置しない）
   placing: string | null;
   // 配線に使うケーブル
@@ -143,7 +184,6 @@ export interface GameState {
   setTaskOpen: (open: boolean) => void;
   // 失敗した操作の理由を、失敗した地点（マップのタイル）に出す
   flash: { key: string; tx: number; ty: number; at: number } | null;
-  setSelected: (uid: string | null) => void;
   setPlacing: (deviceId: string | null) => void;
   setWireCable: (cableId: string) => void;
   tick: () => void;
@@ -193,6 +233,12 @@ const newRng = () => Math.floor(Math.random() * 0x7fffffff) + 1;
 
 // 研修と資格の定義（ゲームデータ）
 const trainingEnv: TrainingEnv = { courses: trainingRecord, certs: certRecord, balance };
+
+// 一番手前のウィンドウが機器の画面なら、その機器の uid（マップの選択の枠に使う）
+export const frontDeviceUid = (s: { windows: WindowItem[] }): string | null => {
+  const front = frontWindow(s.windows);
+  return front?.kind === 'device' ? front.ref : null;
+};
 
 // 配線・設定の対象。設計・表示している案件があればその案件、なければ自社オフィス
 export const netTargetOf = (s: { active: Project[]; focus: string | null }): NetTarget =>
@@ -261,6 +307,15 @@ const reportState = (report: Report | undefined): Partial<GameState> => {
   };
 };
 
+// 動かした・大きさを変えたウィンドウの位置を覚え、端末に保存する
+const rememberWin = (memory: WindowMemory, windows: WindowItem[], id: number): WindowMemory => {
+  const win = windows.find((w) => w.id === id);
+  if (!win) return memory;
+  const next = remember(memory, win);
+  writeMemory(next);
+  return next;
+};
+
 export const useGameStore = create<GameState>((set, get) => {
   // 案件の操作の結果を状態に反映する。失敗なら理由を返す
   // 機器の位置（失敗の吹き出しを出す場所）
@@ -325,7 +380,9 @@ export const useGameStore = create<GameState>((set, get) => {
     dismissReport: () => set({ lastReport: null, showcase: null, traces: [] }),
     dismissNotice: () => set({ notice: null }),
     lastError: null,
-    selectedUid: null,
+    windows: [],
+    windowSeq: 0,
+    windowMemory: readMemory(),
     placing: null,
     wireCable: 'utp_cat5e',
     traces: [],
@@ -354,13 +411,7 @@ export const useGameStore = create<GameState>((set, get) => {
     setTool: (tool) => {
       const s = get();
       if (s.tool === tool && !s.placing) return;
-      set({
-        tool,
-        placing: null,
-        wireStart: null,
-        portMenu: null,
-        ...(tool === 'select' ? {} : { selectedUid: null }),
-      });
+      set({ tool, placing: null, wireStart: null, portMenu: null });
     },
     wireStart: null,
     portMenu: null,
@@ -394,7 +445,33 @@ export const useGameStore = create<GameState>((set, get) => {
     taskOpen: true,
     setTaskOpen: (open) => set({ taskOpen: open }),
     flash: null,
-    setSelected: (uid) => set({ selectedUid: uid }),
+    openWindow: (kind, ref) => {
+      const s = get();
+      const list = openWindowOp({ windows: s.windows, seq: s.windowSeq }, kind, ref, viewportNow(), s.windowMemory);
+      set({ windows: list.windows, windowSeq: list.seq });
+    },
+    closeWindow: (id) => {
+      const list = closeWindowOp({ windows: get().windows, seq: get().windowSeq }, id);
+      set({ windows: list.windows });
+    },
+    focusWindow: (id) => {
+      const list = focusWindowOp({ windows: get().windows, seq: get().windowSeq }, id);
+      set({ windows: list.windows });
+    },
+    moveWindow: (id, x, y) => {
+      const s = get();
+      const vp = viewportNow();
+      const list = moveWindowOp({ windows: s.windows, seq: s.windowSeq }, id, x, y, vp);
+      if (list.windows === s.windows) return;
+      set({ windows: list.windows, windowMemory: rememberWin(s.windowMemory, list.windows, id) });
+    },
+    resizeWindow: (id, w, h) => {
+      const s = get();
+      const vp = viewportNow();
+      const list = resizeWindowOp({ windows: s.windows, seq: s.windowSeq }, id, w, h, vp);
+      if (list.windows === s.windows) return;
+      set({ windows: list.windows, windowMemory: rememberWin(s.windowMemory, list.windows, id) });
+    },
     setPlacing: (deviceId) => set({ placing: deviceId }),
     setWireCable: (cableId) => set({ wireCable: cableId }),
     tick: () =>
@@ -498,11 +575,16 @@ export const useGameStore = create<GameState>((set, get) => {
       return reason;
     },
     removeNode: (uid) => {
+      let reason: string | null;
       if (get().active.length === 0) {
         const n = get().office.nodes.find((x) => x.uid === uid);
-        return apply(removeFromOffice(coreOf(get()), uid, gameEnv), n ? { tx: n.x, ty: n.y } : undefined);
+        reason = apply(removeFromOffice(coreOf(get()), uid, gameEnv), n ? { tx: n.x, ty: n.y } : undefined);
+      } else {
+        reason = apply(removeNode(coreOf(get()), uid, gameEnv), tileOf(uid));
       }
-      return apply(removeNode(coreOf(get()), uid, gameEnv), tileOf(uid));
+      // 撤去した機器の画面は閉じる
+      if (reason === null) set((s) => ({ windows: closeRef({ windows: s.windows, seq: s.windowSeq }, 'device', uid).windows }));
+      return reason;
     },
     setIface: (uid, port, ip) =>
       apply(setInterface(coreOf(get()), uid, port, ip, 24, gameEnv, netTargetOf(get())), tileOf(uid)),
@@ -549,6 +631,7 @@ export const useGameStore = create<GameState>((set, get) => {
         portMenu: null,
         check: null,
         helpUid: null,
+        windows: [],
       }),
     newGame: () =>
       set((s) => {
@@ -572,7 +655,7 @@ export const useGameStore = create<GameState>((set, get) => {
           showcase: null,
           check: null,
           helpUid: null,
-          selectedUid: null,
+          windows: [],
           placing: null,
           wireStart: null,
           portMenu: null,

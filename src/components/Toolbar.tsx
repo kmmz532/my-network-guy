@@ -5,7 +5,8 @@ import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { isUnlocked } from '../sim/shop';
 import { warehouseItems, warehouseMode, type WarehouseItem } from '../sim/warehouse';
-import { focusedProject, useGameStore, type Tool } from '../stores/useGameStore';
+import { focusedProject, frontDeviceUid, useGameStore, type Tool } from '../stores/useGameStore';
+import { frontWindow } from '../ui/windows';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
 import { Warehouse } from './Warehouse';
@@ -70,10 +71,11 @@ export function useToolKeys(): void {
       if (tool) {
         s.setTool(tool.id);
       } else if (e.key === 'Escape') {
-        // 配線の途中 → 失敗の直し方 → 機器の画面 → 選択の道具（この順に1つずつ）
+        // 配線の途中 → 失敗の直し方 → 一番手前のウィンドウ → 選択の道具（この順に1つずつ）
+        const front = frontWindow(s.windows);
         if (s.wireStart || s.portMenu) s.cancelWire();
         else if (s.helpUid) s.setHelpUid(null);
-        else if (s.selectedUid) s.setSelected(null);
+        else if (front) s.closeWindow(front.id);
         else if (s.tool !== 'select' || s.placing) s.setTool('select');
         else return;
       } else if (e.key === 't' || e.key === 'T') {
@@ -85,9 +87,9 @@ export function useToolKeys(): void {
         if (focusedProject(s)?.phase !== 'design') return;
         s.requestBuild();
       } else if (e.key === 'Delete') {
-        // 選んでいる機器を撤去する
-        if (!s.selectedUid || s.removeNode(s.selectedUid) !== null) return;
-        s.setSelected(null);
+        // 一番手前のウィンドウの機器を撤去する（撤去できたらその画面も閉じる）
+        const uid = frontDeviceUid(s);
+        if (uid) s.removeNode(uid);
       } else {
         return;
       }

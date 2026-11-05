@@ -2,7 +2,7 @@
 // 描画の状態は store から読むだけで、変更は store の操作を通して行う。
 import { Application, Container, Graphics, Rectangle, Sprite, Text, type FederatedPointerEvent, type Ticker } from 'pixi.js';
 import type { GameMap } from '../data/schema';
-import { editNetOf, focusedProject, netTargetOf, useGameStore, type Trace, type WireStart } from '../stores/useGameStore';
+import { editNetOf, focusedProject, frontDeviceUid, netTargetOf, useGameStore, type Trace, type WireStart } from '../stores/useGameStore';
 import { linkAt } from './linkHit';
 import { portLabel } from '../components/devicePorts';
 import { rangeTiles } from './effectRange';
@@ -310,7 +310,7 @@ export class Scene {
     for (const node of project.nodes) {
       const dim = building && !isBuilt(node.uid, 'nodes');
       // 配線の起点に選んだ機器は、光る枠で選ばれた状態にする
-      this.drawNode(node, ts, s.selectedUid === node.uid || s.wireStart?.uid === node.uid, dim, project, this.hoverNodeUid === node.uid);
+      this.drawNode(node, ts, frontDeviceUid(s) === node.uid || s.wireStart?.uid === node.uid, dim, project, this.hoverNodeUid === node.uid);
       const blinkOn = onPath.has(node.uid) ? fastBlink : slowBlink;
       const issue = this.issueOf(node, project);
       this.drawLed(node, ts, blinkOn, issue?.reason === 'ip.unset');
@@ -945,8 +945,8 @@ export class Scene {
     }
     switch (store.tool) {
       case 'select':
-        // 機器を押すと、機器の画面を開く。ドラッグしても配線しない
-        store.setSelected(node?.uid ?? null);
+        // 機器を押すと、機器の画面を開く。ドラッグしても配線しない。空きマスでは何もしない（ウィンドウは×か Esc で閉じる）
+        if (node) store.openWindow('device', node.uid);
         return;
       case 'remove':
         this.removeAt(p, nodes);
