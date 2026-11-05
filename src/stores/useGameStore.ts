@@ -15,7 +15,7 @@ import { finishTrainings, startTraining as startTrainingOp, takeExam as takeExam
 import { certs as certRecord, training as trainingRecord } from 'virtual:game-data';
 import type { NetLink, NetNode, Route } from '../network/types';
 import type { GameMode, SaveData } from '../services/migrations';
-import { sandboxClock, sandboxOffice, sandboxTest } from '../sim/sandbox';
+import { resizeSandboxOffice, sandboxClock, sandboxOffice, sandboxTest } from '../sim/sandbox';
 import { gameEnv } from '../sim/env';
 import { autoAssign } from '../sim/autoAssign';
 import { type ExpandSide, expandOffice as expandOfficeOp, mapOfOffice } from '../sim/office';
@@ -85,6 +85,7 @@ import {
   type Outcome,
   type Project,
   type Office,
+  type OfficeSize,
   type Effects,
   noEffects,
   type GoalCheck,
@@ -293,7 +294,10 @@ export interface GameState {
   // 最初から始める（資金・在庫・依頼などを初期状態に戻す）
   newGame: () => void;
   // サンドボックスを新しく始める（案件・依頼・社員はなく、時間は止めたまま）
-  newSandbox: () => void;
+  // サンドボックスを新しく始める（大きさを省くと既定の大きさ）。資金・機器は捨てる
+  newSandbox: (size?: OfficeSize) => void;
+  // サンドボックスの床の大きさを変える。狭めてはみ出す機器・家具があれば理由を返す
+  resizeSandbox: (size: OfficeSize) => string | null;
 }
 
 const offerEnv = (maps: Record<string, GameMap>): OfferEnv => ({
@@ -951,9 +955,9 @@ export const useGameStore = create<GameState>((set, get) => {
         // 新しく始めたら、最初の依頼をすぐ届ける
         return { ...base, ...refresh({ ...s, ...base } as GameState) };
       }),
-    newSandbox: () =>
+    newSandbox: (size) =>
       set((s) => {
-        const office = sandboxOffice();
+        const office = sandboxOffice(size);
         return {
           mode: 'sandbox',
           clock: sandboxClock(initialClock(balance)),
@@ -993,6 +997,16 @@ export const useGameStore = create<GameState>((set, get) => {
           portMenu: null,
         };
       }),
+    resizeSandbox: (size) => {
+      if (get().mode !== 'sandbox') return 'none';
+      const office = get().office;
+      const result = resizeSandboxOffice(office, size);
+      if (!result.ok) return result.reason;
+      // 床の大きさが変わったので、マップを作り直す。広げる前の操作の取り消しは、座標が合わないため消す
+      dropHistory(OFFICE_HISTORY_KEY);
+      set({ office: result.office, maps: { ...get().maps, hq: mapOfOffice(result.office) } });
+      return null;
+    },
     snapshot: () => {
       const s = get();
       return {

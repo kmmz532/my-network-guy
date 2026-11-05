@@ -16,6 +16,7 @@ import { NoticeToast, ReportModal } from './components/Overlay';
 import { Modal, primaryButton } from './components/Modal';
 import { KeyHelp } from './components/KeyHelp';
 import { SettingsPanel } from './components/SettingsPanel';
+import { SandboxSizePanel } from './components/SandboxSizePanel';
 import { useKeymap } from './input/useKeymap';
 import { tipText } from './input/keymap';
 import { applyUiScale, loadSettings } from './settings/settings';
@@ -41,7 +42,7 @@ const SPEED_NOTE_MS = 1000;
 const SAVE_MARK_MS = 1000;
 
 type Screen = 'title' | 'game';
-type Popup = 'offers' | 'shop' | 'menu' | 'help' | 'settings' | null;
+type Popup = 'offers' | 'shop' | 'menu' | 'help' | 'settings' | 'sandboxResize' | 'sandboxReset' | null;
 
 const hudButton = (on: boolean) =>
   ({
@@ -58,6 +59,8 @@ export function App() {
   const [screen, setScreen] = useState<Screen>('title');
   const [popup, setPopup] = useState<Popup>(null);
   const [message, setMessage] = useState('');
+  // タイトルから新しく始めるサンドボックスの広さを選ぶ画面
+  const [sandboxPick, setSandboxPick] = useState(false);
   const clock = useGameStore((s) => s.clock);
   const reputation = useGameStore((s) => s.reputation);
   const speed = useGameStore((s) => s.speed);
@@ -87,8 +90,10 @@ export function App() {
   const snapshot = useGameStore((s) => s.snapshot);
   const newGame = useGameStore((s) => s.newGame);
   const newSandbox = useGameStore((s) => s.newSandbox);
+  const resizeSandbox = useGameStore((s) => s.resizeSandbox);
   // サンドボックスの画面。速度のボタン・社員・依頼は出さない
   const sandbox = useGameStore((s) => s.mode) === 'sandbox';
+  const office = useGameStore((s) => s.office);
   // 社員の人数と席の数（席は自社オフィスの机の家具）。雇えなかった理由をHUDに出す
   const staff = useGameStore((s) => s.staff.length);
   const seats = useGameStore((s) => seatCount(s.office, (id) => furniture[id as FurnitureId]?.seat === true));
@@ -209,16 +214,35 @@ export function App() {
     startGame();
   };
 
-  // サンドボックスは、その枠に保存があれば続きから、なければ新しく始める
+  // サンドボックスは、その枠に保存があれば続きから、なければ広さを選んで新しく始める
   const onSandbox = async () => {
     const data = await loadSlot(SAVE_SLOT.sandbox);
-    if (data) load(data);
-    else newSandbox();
-    startGame();
+    if (data) {
+      load(data);
+      startGame();
+    } else {
+      setSandboxPick(true);
+    }
   };
 
-  if (screen === 'title') 
-    return <TitleScreen onNew={onNew} onContinue={onContinue} onSandbox={onSandbox} message={message} />;
+  if (screen === 'title')
+    return (
+      <>
+        {sandboxPick && (
+          <SandboxSizePanel
+            title={t('ui.sandbox.size.title')}
+            start={t('ui.sandbox.size.start')}
+            onClose={() => setSandboxPick(false)}
+            submit={(size) => {
+              newSandbox(size);
+              startGame();
+              return null;
+            }}
+          />
+        )}
+        <TitleScreen onNew={onNew} onContinue={onContinue} onSandbox={onSandbox} message={message} />
+      </>
+    );
 
   const date = toDate(clock.minute, balance);
 
@@ -369,8 +393,41 @@ export function App() {
           >
             {t('ui.title.back')}
           </button>
+          {sandbox && (
+            <>
+              <button style={menuButton} onClick={() => setPopup('sandboxResize')}>
+                {t('ui.sandbox.size.change')}
+              </button>
+              <button style={menuButton} onClick={() => setPopup('sandboxReset')}>
+                {t('ui.sandbox.size.reset')}
+              </button>
+            </>
+          )}
           {message && <div style={{ marginTop: 6, fontSize: 13 }}>{message}</div>}
         </Modal>
+      )}
+      {popup === 'sandboxResize' && (
+        <SandboxSizePanel
+          title={t('ui.sandbox.size.change')}
+          start={t('ui.sandbox.size.apply')}
+          current={office.size}
+          onClose={() => setPopup(null)}
+          submit={(size) => {
+            const reason = resizeSandbox(size);
+            return reason === null ? null : t('ui.sandbox.size.blocked');
+          }}
+        />
+      )}
+      {popup === 'sandboxReset' && (
+        <SandboxSizePanel
+          title={t('ui.sandbox.size.reset')}
+          start={t('ui.sandbox.size.start')}
+          onClose={() => setPopup(null)}
+          submit={(size) => {
+            newSandbox(size);
+            return null;
+          }}
+        />
       )}
       {popup === 'help' && <KeyHelp onClose={() => setPopup(null)} />}
       {popup === 'settings' && <SettingsPanel onClose={() => setPopup(null)} onOpenKeys={() => setPopup('help')} />}

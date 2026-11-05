@@ -28,6 +28,12 @@ export interface Camera {
   fit: boolean;
 }
 
+// 画面の座標（canvas の中の px）を、マップの座標（拡大率を含まない px）に換算する。整数倍でも小数倍でも同じ式を使う
+export const screenToMap = (p: { x: number; y: number }, cam: Camera): { x: number; y: number } => ({
+  x: (p.x - cam.x) / cam.zoom,
+  y: (p.y - cam.y) / cam.zoom,
+});
+
 // 段階の番号（0始まり）を、範囲の中に収めて拡大率にする
 const zoomAtIndex = (i: number): Zoom => ZOOM_LEVELS[Math.min(ZOOM_LEVELS.length - 1, Math.max(0, i))];
 

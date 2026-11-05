@@ -10,9 +10,10 @@ import type { Balance, GameMap, ShopItem } from '../data/schema';
 import { isUnlocked } from './shop';
 import { warehouseItems } from './warehouse';
 import { mapOfOffice } from './office';
-import { SANDBOX_MONEY, SANDBOX_SIZE, sandboxClock, sandboxOffice, sandboxTest } from './sandbox';
+import { SANDBOX_DEFAULT_SIZE, SANDBOX_MONEY, SANDBOX_SIZES, resizeSandboxOffice, sandboxClock, sandboxOffice, sandboxTest } from './sandbox';
 import { connect, placeInOffice, setInterface, noEffects, type Core, type Env, type Office } from './project';
 import { initialClock } from './clock';
+import { placeFurniture } from './furniture';
 
 const balance = balanceJson as Balance;
 
@@ -64,10 +65,10 @@ const place = (c: Core, device: string, x: number, y: number, floor = true): Cor
 };
 
 describe('サンドボックスの床', () => {
-  it('床は 30 × 20 の1部屋で、機器も家具もない', () => {
+  it('床は既定の 15 × 10 の1部屋で、機器も家具もない', () => {
     const office = sandboxOffice();
-    expect(SANDBOX_SIZE).toEqual({ w: 30, h: 20 });
-    expect(office.size).toEqual({ w: 30, h: 20 });
+    expect(SANDBOX_DEFAULT_SIZE).toEqual({ w: 15, h: 10 });
+    expect(office.size).toEqual({ w: 15, h: 10 });
     expect(office.nodes).toEqual([]);
     expect(office.furniture).toEqual([]);
     expect(office.annexes).toEqual([]);
@@ -77,6 +78,49 @@ describe('サンドボックスの床', () => {
     const clock = sandboxClock(initialClock(balance));
     expect(clock.money).toBe(SANDBOX_MONEY);
     expect(clock.bankrupt).toBe(false);
+  });
+});
+
+describe('サンドボックスの広さ', () => {
+  it('選べる広さは 10×8・15×10・20×15・30×20', () => {
+    expect(SANDBOX_SIZES).toEqual([
+      { w: 10, h: 8 },
+      { w: 15, h: 10 },
+      { w: 20, h: 15 },
+      { w: 30, h: 20 },
+    ]);
+  });
+
+  it('指定した広さで床を作る', () => {
+    expect(sandboxOffice({ w: 20, h: 15 }).size).toEqual({ w: 20, h: 15 });
+    expect(mapOf(sandboxOffice({ w: 10, h: 8 })).width).toBe(12);
+  });
+
+  it('広げるのは、機器があってもできる', () => {
+    const c = place(core(), 'pc_basic', 9, 7);
+    const r = resizeSandboxOffice(c.office, { w: 30, h: 20 });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.office.size).toEqual({ w: 30, h: 20 });
+  });
+
+  it('狭めるとき、はみ出す機器があれば変えられない', () => {
+    const c = place(core(), 'pc_basic', 12, 3);
+    expect(resizeSandboxOffice(c.office, { w: 10, h: 8 })).toEqual({ ok: false, reason: 'shrink' });
+  });
+
+  it('狭めるとき、はみ出す家具があれば変えられない', () => {
+    const c = core(sandboxOffice(), { pc_basic: 4, plant: 1 });
+    const withPlant = placeFurniture(c, 'plant', 1, 8, mapOf(c.office));
+    if (!withPlant.ok) throw new Error(withPlant.reason);
+    expect(resizeSandboxOffice(withPlant.core.office, { w: 10, h: 7 })).toEqual({ ok: false, reason: 'shrink' });
+    expect(resizeSandboxOffice(withPlant.core.office, { w: 10, h: 8 }).ok).toBe(true);
+  });
+
+  it('はみ出さなければ狭められる', () => {
+    const c = place(core(), 'pc_basic', 3, 3);
+    const r = resizeSandboxOffice(c.office, { w: 10, h: 8 });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.office.size).toEqual({ w: 10, h: 8 });
   });
 });
 
@@ -96,6 +140,31 @@ describe('サンドボックスの配置', () => {
     const c = place(core(), 'pc_basic', 3, 3);
     const r = placeInOffice(c, 'server_basic', 3, 3, mapOf(c.office), env, true);
     expect(r).toEqual({ ok: false, reason: 'tile' });
+  });
+
+  it('サンドボックスでは、PC を机の上に置ける', () => {
+    const c0 = core(sandboxOffice(), { pc_basic: 4, desk: 1 });
+    const map = mapOf(c0.office);
+    const withDesk = placeFurniture(c0, 'desk', 2, 3, map);
+    if (!withDesk.ok) throw new Error(withDesk.reason);
+    expect(placeInOffice(withDesk.core, 'pc_basic', 2, 3, map, env, true).ok).toBe(true);
+  });
+
+  it('サンドボックスでも、机以外の家具の上には PC を置けない', () => {
+    const c0 = core(sandboxOffice(), { pc_basic: 4, plant: 1 });
+    const map = mapOf(c0.office);
+    const withPlant = placeFurniture(c0, 'plant', 3, 3, map);
+    if (!withPlant.ok) throw new Error(withPlant.reason);
+    expect(placeInOffice(withPlant.core, 'pc_basic', 3, 3, map, env, true)).toEqual({ ok: false, reason: 'tile' });
+  });
+
+  it('サンドボックスでも、机の上に機器があれば PC は置けない', () => {
+    const c0 = core(sandboxOffice(), { pc_basic: 4, desk: 1 });
+    const map = mapOf(c0.office);
+    const withDesk = placeFurniture(c0, 'desk', 2, 3, map);
+    if (!withDesk.ok) throw new Error(withDesk.reason);
+    const c = place(withDesk.core, 'pc_basic', 2, 3);
+    expect(placeInOffice(c, 'pc_basic', 2, 3, map, env, true)).toEqual({ ok: false, reason: 'tile' });
   });
 
   it('サンドボックスの床の外には置けない', () => {

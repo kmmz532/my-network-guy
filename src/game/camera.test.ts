@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampCamera, fitCamera, fitZoom, panCamera, resizeCamera, stepZoom, zoomCamera, type Camera } from './camera';
+import { clampCamera, fitCamera, fitZoom, panCamera, resizeCamera, screenToMap, stepZoom, zoomCamera, type Camera } from './camera';
 
 // 16×12 マス、1マス 32 px のマップ（512×384）
 const MAP = { w: 512, h: 384 };
@@ -146,5 +146,38 @@ describe('resizeCamera（画面の大きさが変わったとき）', () => {
     expect(next.x).toBeLessThanOrEqual(150);
     expect(next.y).toBeGreaterThanOrEqual(100 - 1536);
     expect(next.y).toBeLessThanOrEqual(100);
+  });
+});
+
+describe('screenToMap（画面の座標からマップの座標。小数倍でも整数倍でも同じ）', () => {
+  const TS = 32;
+  const tileOf = (p: { x: number; y: number }) => ({ tx: Math.floor(p.x / TS), ty: Math.floor(p.y / TS) });
+  // 画面のマップ（マスの中心）の座標
+  const screenOf = (cam: Camera, tx: number, ty: number) => ({
+    x: cam.x + (tx * TS + TS / 2) * cam.zoom,
+    y: cam.y + (ty * TS + TS / 2) * cam.zoom,
+  });
+
+  it('整数倍では、マスの中心の画面の座標が同じマスに戻る', () => {
+    const cam: Camera = { zoom: 2, x: 40, y: 30, fit: false };
+    expect(tileOf(screenToMap(screenOf(cam, 2, 3), cam))).toEqual({ tx: 2, ty: 3 });
+  });
+
+  it('全体表示の小数倍（2.25 倍）でも、マスの中心が同じマスに戻る', () => {
+    const map = { w: 9 * TS, h: 9 * TS };
+    const cam = fitCamera(map, { w: 1000, h: 700 });
+    expect(cam.zoom).toBe(2.25);
+    for (let ty = 0; ty < 9; ty++) {
+      for (let tx = 0; tx < 9; tx++) {
+        expect(tileOf(screenToMap(screenOf(cam, tx, ty), cam))).toEqual({ tx, ty });
+      }
+    }
+  });
+
+  it('小数倍のマスの境目の内側（1px 手前と先）は、そのマスの中に入る', () => {
+    const cam: Camera = { zoom: 1.25, x: 100, y: 50, fit: true };
+    const edgeX = cam.x + 3 * TS * cam.zoom;
+    expect(tileOf(screenToMap({ x: edgeX + 0.5, y: cam.y }, cam)).tx).toBe(3);
+    expect(tileOf(screenToMap({ x: edgeX - 0.5, y: cam.y }, cam)).tx).toBe(2);
   });
 });

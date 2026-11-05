@@ -7,14 +7,30 @@ import type { NetNode } from '../network/types';
 import type { ClockState } from './clock';
 import { emptyOffice, type Env, type GoalCheck, type Office, type OfficeSize, type TestResult } from './project';
 
-// 床の大きさ（床の内側のマス数）。仕様の例の 30 × 20
-export const SANDBOX_SIZE: OfficeSize = { w: 30, h: 20 };
+// 床の大きさの選択肢（床の内側のマス数）。新しく始めるとき、と後で広さを変えるときに選ぶ
+export const SANDBOX_SIZES: OfficeSize[] = [
+  { w: 10, h: 8 },
+  { w: 15, h: 10 },
+  { w: 20, h: 15 },
+  { w: 30, h: 20 },
+];
+
+// 既定の大きさ
+export const SANDBOX_DEFAULT_SIZE: OfficeSize = { w: 15, h: 10 };
 
 // 資金の初期値。費用は資金から差し引かず（apply で戻す）、表示は ∞ にする。ケーブルの費用の判定で足りなくならないように大きく持つ
 export const SANDBOX_MONEY = 1_000_000_000_000;
 
-// サンドボックスの床（機器・家具のない、広い1部屋）
-export const sandboxOffice = (): Office => emptyOffice(SANDBOX_SIZE);
+// サンドボックスの床（機器・家具のない1部屋）。大きさを省くと既定の大きさ
+export const sandboxOffice = (size: OfficeSize = SANDBOX_DEFAULT_SIZE): Office => emptyOffice({ ...size });
+
+// 床の大きさを変える。広げるのは自由。狭めるときは、新しい床からはみ出す機器・家具があれば変えない
+export const resizeSandboxOffice = (office: Office, size: OfficeSize): { ok: true; office: Office } | { ok: false; reason: 'shrink' } => {
+  const fits = (x: number, y: number) => x <= size.w && y <= size.h;
+  const outside = office.nodes.some((n) => !fits(n.x, n.y)) || office.furniture.some((f) => !fits(f.x, f.y));
+  if (outside) return { ok: false, reason: 'shrink' };
+  return { ok: true, office: { ...office, size: { ...size } } };
+};
 
 // 初期の時計（時間は止めたまま。給与の月の区切りは使わない）。資金は SANDBOX_MONEY
 export const sandboxClock = (base: ClockState): ClockState => ({ ...base, money: SANDBOX_MONEY });

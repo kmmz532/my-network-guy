@@ -330,7 +330,7 @@ const servicesOf = (env: Env, deviceId: string): Service[] => (env.devices[devic
 
 // 自社オフィスに機器を置けるかを判定する。置けなければ失敗の理由を返す
 // PCは机の家具があり、その上に機器がないマスだけ。PC以外は床で、家具も機器もないマスだけ。
-// anyFloor（サンドボックス）のときは、PCも机なしで床に置ける
+// anyFloor（サンドボックス）のときは、PCは床（家具も機器もないマス）か机の上（機器がないマス）に置ける。机以外の家具の上は置けない
 const officePlaceReason = (
   furniture: PlacedFurniture[],
   nodes: NetNode[],
@@ -342,14 +342,17 @@ const officePlaceReason = (
   anyFloor = false,
 ): string | null => {
   const hasNode = nodes.some((n) => n.x === x && n.y === y);
-  if (env.devices[deviceId].category === 'pc' && !anyFloor) {
+  const isPc = env.devices[deviceId].category === 'pc';
+  if (isPc && !anyFloor) {
     const onDesk = furniture.some((f) => f.x === x && f.y === y && f.id === DESK_ID);
     return !onDesk || hasNode ? 'desk' : null;
   }
   const kind = map.legend[map.tiles[y][x]];
   if (kind !== 'floor') return 'tile';
-  if (hasNode || furniture.some((f) => f.x === x && f.y === y)) return 'tile';
-  return null;
+  if (hasNode) return 'tile';
+  const here = furniture.filter((f) => f.x === x && f.y === y);
+  if (isPc) return here.some((f) => f.id !== DESK_ID) ? 'tile' : null;
+  return here.length > 0 ? 'tile' : null;
 };
 
 // 機材を置けるマスか（配置と移動で共通）。自社案件は自社オフィスの規則、それ以外は床（PCは机の上も可）。置けなければ理由を返す

@@ -35,7 +35,7 @@ import { t } from '../i18n/t';
 import type { LangKey } from '../generated/lang-keys';
 import type { FailureReason, NetLink, NetNode } from '../network/types';
 import { CAP as WALL_CAP, drawTileMap } from './TileMap';
-import { fitCamera, fitZoom, panCamera, resizeCamera, stepZoom, zoomCamera, type Camera, type Size } from './camera';
+import { fitCamera, fitZoom, panCamera, resizeCamera, screenToMap, stepZoom, zoomCamera, type Camera, type Size } from './camera';
 import { bindMapCommands } from './mapControl';
 import { cumulativeLengths, pointAt, type Point } from './animation';
 import { wanderStep, type Walker } from './wander';
@@ -1268,7 +1268,7 @@ export class Scene {
   private toMapAt(global: Point): { x: number; y: number } {
     const cam = this.camera;
     if (!cam) return { x: 0, y: 0 };
-    return { x: (global.x - cam.x) / cam.zoom, y: (global.y - cam.y) / cam.zoom };
+    return screenToMap(global, cam);
   }
 
   // 機器を編集できる対象の機器（自社オフィス、または設計中の案件）。編集できなければ null
@@ -1665,7 +1665,7 @@ export class Scene {
     const cam = this.camera;
     if (!cam) return null;
     const rect = this.app.canvas.getBoundingClientRect();
-    return this.tileOf({ x: (clientX - rect.left - cam.x) / cam.zoom, y: (clientY - rect.top - cam.y) / cam.zoom });
+    return this.tileOf(screenToMap({ x: clientX - rect.left, y: clientY - rect.top }, cam));
   }
 
   // 編集できるケーブル（自社オフィス、または設計中の案件）
