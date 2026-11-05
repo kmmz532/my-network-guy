@@ -73,6 +73,8 @@ const FRAME_MS = 150;
 const FLASH_MS = 2500;
 // つながった瞬間に、ケーブルの上を光が走る時間（ms）
 const PULSE_MS = 450;
+// 機器を押した瞬間の輪が広がる時間（ms）
+const PRESS_MS = 220;
 // パケットの速さ（タイル/秒）と、粒の間隔（タイル）。粒の数は3つまで
 const PACKET_TILES_PER_SEC = 3;
 const PACKET_SPACING_TILES = 0.5;
@@ -398,7 +400,7 @@ export class Scene {
     if (this.map && (view.w !== this.view.w || view.h !== this.view.h)) this.layout();
     this.updateWanderers(dt);
     // パケットは滑らかに動かす。それ以外はコマ送り（ART.md）
-    if (this.traceActive() || this.flashActive() || this.pulseActive()) {
+    if (this.traceActive() || this.flashActive() || this.pulseActive() || this.pressActive()) {
       this.drawObjects();
       return;
     }
@@ -715,6 +717,8 @@ export class Scene {
 
     // つながった瞬間の光（配線の上に描く）
     this.drawLinkPulse(project, ts);
+    // 押した機器の輪
+    this.drawPressFx(project, ts);
 
     // 配線の線。ドラッグ中、または起点を選んだあとは、起点の機器からカーソルまで伸ばす
     const wireUid = this.wireFrom ?? s.wireStart?.uid ?? null;
@@ -1464,6 +1468,23 @@ export class Scene {
     return linkAt(links, p.x, p.y, this.tileSize(), this.content.scale.x);
   }
 
+  // 機器を押した瞬間の反応（機器の uid と押した時刻）
+  private pressFx: { uid: string; at: number } | null = null;
+
+  private pressActive(): boolean {
+    return this.pressFx !== null && Date.now() - this.pressFx.at < PRESS_MS;
+  }
+
+  // 押した機器の周りに、小さな輪が広がって消える（ボタンを押したのが分かるように）
+  private drawPressFx(project: Project, ts: number): void {
+    const fx = this.pressFx;
+    if (!fx || !this.pressActive()) return;
+    const node = project.nodes.find((n) => n.uid === fx.uid);
+    if (!node) return;
+    const k = (Date.now() - fx.at) / PRESS_MS;
+    this.g.circle(node.x * ts + ts / 2, node.y * ts + ts / 2, ts * (0.35 + 0.3 * k)).stroke({ width: 2, color: 0xffd866, alpha: 1 - k });
+  }
+
   private onDown = (e: FederatedPointerEvent): void => {
     // 指が2本のときはピンチが扱う
     if (this.touches.size >= 2) return;
@@ -1503,6 +1524,8 @@ export class Scene {
       return;
     }
     const node = this.nodeNear(p, nodes);
+    // 機器を押した瞬間の反応（短い輪を出す）
+    if (node && e.button === 0) this.pressFx = { uid: node.uid, at: Date.now() };
     // ケーブルの端は、離すまで挿し替えか押したかを決めない（配置中は、置く操作を優先する）
     if (e.button === 0 && !store.placing && (store.tool === 'select' || store.tool === 'wire')) {
       const end = cableEndAt(this.editLinks() ?? [], p.x, p.y, this.tileSize(), this.content.scale.x);
