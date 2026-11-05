@@ -26,6 +26,7 @@ import {
   setInterface,
   setSegment,
   addressCandidates,
+  plannedAddressCandidates,
   designIssues,
   requestBuild,
   setGateway,
@@ -728,5 +729,48 @@ describe('テストと施工の依頼', () => {
     const fixed2 = ok(setInterface(fixed, 'pc_b', 0, '192.168.1.11', 24, env)).core;
     expect(cur(fixed2)?.testedOk).toBe(false);
     expect(ok(requestBuild(passTest(fixed2), env)).core.active[0].phase).toBe('build');
+  });
+});
+
+describe('配線の前のIPアドレス（PC・サーバー）', () => {
+  // 2台のPCを置いた c001 の設計中の状態（配線はしていない）
+  const unwired = (): Core => ok(take(start(), 'c001_direct_link')).core;
+
+  it('配線していないPCにIPアドレスを設定でき、セグメントはまだ作られない', () => {
+    const core = ok(setInterface(unwired(), 'pc_a', 0, '192.168.1.10', 24, env)).core;
+    expect(cur(core)?.nodes.find((n) => n.uid === 'pc_a')?.interfaces).toEqual([{ port: 0, ip: '192.168.1.10', prefix: 24 }]);
+    expect(cur(core)?.segments ?? {}).toEqual({});
+  });
+
+  it('配線すると、入力したアドレスの /24 がセグメントの設定になる', () => {
+    let core = ok(setInterface(unwired(), 'pc_a', 0, '192.168.1.10', 24, env)).core;
+    core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
+    expect(cur(core)?.segments).toEqual({ 'pc_a:0': { network: '192.168.1.0', prefix: 24 } });
+    expect(designIssues(cur(core)!, env)).toEqual({ pc_b: { reason: 'ip.unset' } });
+  });
+
+  it('別々に設定した2台を配線すると、疎通テストに合格する', () => {
+    let core = ok(setInterface(unwired(), 'pc_a', 0, '192.168.1.10', 24, env)).core;
+    core = ok(setInterface(core, 'pc_b', 0, '192.168.1.11', 24, env)).core;
+    core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
+    expect(cur(core)?.segments).toEqual({ 'pc_a:0': { network: '192.168.1.0', prefix: 24 } });
+    expect(designIssues(cur(core)!, env)).toEqual({});
+    const r = testDesign(core, env);
+    if (!r.ok) throw new Error(r.reason);
+    expect(r.result.passed).toBe(true);
+  });
+
+  it('配線の前の候補は 192.168.1.10 から並び、ほかの機器が使っているアドレスには使っている機器を付ける', () => {
+    const core = ok(setInterface(unwired(), 'pc_a', 0, '192.168.1.10', 24, env)).core;
+    const list = plannedAddressCandidates(core, '192.168.1.0', 24);
+    expect(list[0]).toEqual({ ip: '192.168.1.10', usedBy: { node: 'pc_a', port: 0 } });
+    expect(list[1]).toEqual({ ip: '192.168.1.11', usedBy: null });
+    expect(list[list.length - 1].ip).toBe('192.168.1.254');
+    expect(list).toHaveLength(245);
+  });
+
+  it('配線の前に設定したアドレスは、入力した値のまま残る', () => {
+    const core = ok(setInterface(unwired(), 'pc_a', 0, '10.20.30.40', 24, env)).core;
+    expect(cur(core)?.nodes.find((n) => n.uid === 'pc_a')?.interfaces[0]).toEqual({ port: 0, ip: '10.20.30.40', prefix: 24 });
   });
 });

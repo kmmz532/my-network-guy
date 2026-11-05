@@ -13,6 +13,8 @@ interface Props {
   onMove: (x: number, y: number) => void;
   onResize: (w: number, h: number) => void;
   onClose: () => void;
+  // タイトルの帯の下に出すタブの帯（タブが1つのときは null）
+  tabs?: ReactNode;
   children: ReactNode;
 }
 
@@ -38,7 +40,7 @@ const frame = {
   overflow: 'hidden',
 } as const;
 
-export function Window({ title, rect, movable, closeLabel, onFocus, onMove, onResize, onClose, children }: Props) {
+export function Window({ title, rect, movable, closeLabel, onFocus, onMove, onResize, onClose, tabs, children }: Props) {
   const drag = useRef<Drag | null>(null);
 
   // 押したら、そのウィンドウを手前に出し、つかんだ位置を覚える。左ボタン以外のマウスは無視する
@@ -67,6 +69,10 @@ export function Window({ title, rect, movable, closeLabel, onFocus, onMove, onRe
     <div
       role="dialog"
       onPointerDownCapture={onFocus}
+      // 中ボタンの既定の動き（自動スクロール）を止める
+      onMouseDown={(e) => {
+        if (e.button === 1) e.preventDefault();
+      }}
       style={{ ...frame, left: rect.x, top: rect.y, width: rect.w, height: rect.h }}
     >
       <div
@@ -74,6 +80,12 @@ export function Window({ title, rect, movable, closeLabel, onFocus, onMove, onRe
         onPointerMove={move}
         onPointerUp={end}
         onPointerCancel={end}
+        // 帯を中ボタンで押すと、ウィンドウごと閉じる
+        onAuxClick={(e) => {
+          if (e.button !== 1) return;
+          e.preventDefault();
+          onClose();
+        }}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -102,6 +114,7 @@ export function Window({ title, rect, movable, closeLabel, onFocus, onMove, onRe
           </button>
         </div>
       </div>
+      {tabs}
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 8 }}>
         <div style={{ width: '100%', zoom: 'var(--ui-scale, 1)' }}>{children}</div>
       </div>

@@ -812,6 +812,28 @@ export const addressCandidates = (core: Core, uid: string, port: number, env: En
   return list;
 };
 
+// まだ配線していない機器（PC・サーバー）にIPアドレスを設定するときの既定のネットワーク。配線すると、入力したアドレスの /24 がセグメントの設定になる
+export const PLANNED_NETWORK = '192.168.1.0';
+export const PLANNED_PREFIX = 24;
+// 候補の開始位置（ホストの番号）。配線の前は .10 から空いているアドレスを並べる
+const PLANNED_FIRST_HOST = 10;
+
+// 配線の前に設定するときのアドレスの候補。ネットワークに設定がなくても、指定したネットワークの .10 から並べる。
+// 使用中のアドレスには、使っている機器とポートを付ける（同じ案件のほかの機器が使っている物も含む）
+export const plannedAddressCandidates = (core: Core, network: string, prefix: number, target: NetTarget = 'focus'): AddressCandidate[] => {
+  const net = netOf(core, target);
+  if (typeof net === 'string') return [];
+  const base = ipToInt(network);
+  const size = 2 ** (32 - prefix);
+  const owners = new Map<number, { node: string; port: number }>();
+  for (const n of net.nodes) for (const i of n.interfaces) owners.set(ipToInt(i.ip), { node: n.uid, port: i.port });
+  const list: AddressCandidate[] = [];
+  for (let h = Math.min(PLANNED_FIRST_HOST, size - 2); h <= size - 2; h++) {
+    list.push({ ip: intToIp(base + h), usedBy: owners.get(base + h) ?? null });
+  }
+  return list;
+};
+
 // 色と配線から生成したネットワーク（判定・表示に使う）→ 配線とセグメントの設定から生成したネットワーク
 export const compiledNet = (p: Project, env: Env) => compile({ nodes: p.nodes, links: p.links, segments: p.segments }, env.engine);
 

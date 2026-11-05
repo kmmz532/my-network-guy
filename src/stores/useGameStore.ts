@@ -39,6 +39,9 @@ import {
   moveWindow as moveWindowOp,
   openWindow as openWindowOp,
   toggleWindow as toggleWindowOp,
+  closeTab as closeTabOp,
+  fitWindows as fitWindowsOp,
+  selectTab as selectTabOp,
   parseMemory,
   remember,
   resizeWindow as resizeWindowOp,
@@ -168,6 +171,10 @@ export interface GameState {
   openWindow: (kind: WindowKind, ref: string) => void;
   toggleWindow: (kind: WindowKind, ref: string) => void;
   closeWindow: (id: number) => void;
+  closeTab: (id: number, ref: string) => void;
+  // 画面の大きさが変わったとき、開いているウィンドウを画面の中に収める（覚える位置は変えない）
+  fitWindows: () => void;
+  selectTab: (id: number, ref: string) => void;
   focusWindow: (id: number) => void;
   moveWindow: (id: number, x: number, y: number) => void;
   resizeWindow: (id: number, w: number, h: number) => void;
@@ -227,7 +234,7 @@ export interface GameState {
   removeLink: (uid: string) => string | null;
   removeNode: (uid: string) => string | null;
   // 機器の設定（設計中のみ）。失敗したら理由を返す
-  setIface: (uid: string, port: number, ip: string) => string | null;
+  setIface: (uid: string, port: number, ip: string, prefix?: number) => string | null;
   setGateway: (uid: string, gateway: string | null) => string | null;
   // セグメント（ポートが属するネットワーク）のアドレスを設定する
   setSegment: (uid: string, port: number, network: string, prefix: number) => string | null;
@@ -257,10 +264,10 @@ const newRng = () => Math.floor(Math.random() * 0x7fffffff) + 1;
 // 研修と資格の定義（ゲームデータ）
 const trainingEnv: TrainingEnv = { courses: trainingRecord, certs: certRecord, balance };
 
-// 一番手前のウィンドウが機器の画面なら、その機器の uid（マップの選択の枠に使う）
+// 一番手前のウィンドウが機器の画面なら、その選ばれているタブの機器の uid（マップの選択の枠に使う）
 export const frontDeviceUid = (s: { windows: WindowItem[] }): string | null => {
   const front = frontWindow(s.windows);
-  return front?.kind === 'device' ? front.ref : null;
+  return front?.kind === 'device' ? front.active : null;
 };
 
 // 配線・設定の対象。設計・表示している案件があればその案件、なければ自社オフィス
@@ -540,6 +547,19 @@ export const useGameStore = create<GameState>((set, get) => {
       const list = closeWindowOp({ windows: get().windows, seq: get().windowSeq }, id);
       set({ windows: list.windows });
     },
+    fitWindows: () => {
+      const s = get();
+      const list = fitWindowsOp({ windows: s.windows, seq: s.windowSeq }, viewportNow());
+      if (list.windows !== s.windows) set({ windows: list.windows });
+    },
+    closeTab: (id, ref) => {
+      const list = closeTabOp({ windows: get().windows, seq: get().windowSeq }, id, ref);
+      set({ windows: list.windows });
+    },
+    selectTab: (id, ref) => {
+      const list = selectTabOp({ windows: get().windows, seq: get().windowSeq }, id, ref);
+      set({ windows: list.windows });
+    },
     focusWindow: (id) => {
       const list = focusWindowOp({ windows: get().windows, seq: get().windowSeq }, id);
       set({ windows: list.windows });
@@ -674,12 +694,12 @@ export const useGameStore = create<GameState>((set, get) => {
         }
         return apply(removeNode(coreOf(get()), uid, gameEnv), tileOf(uid));
       });
-      // 撤去した機器の画面は閉じる
+      // 撤去した機器のタブは閉じる（最後のタブならウィンドウも閉じる）
       if (reason === null) set((s) => ({ windows: closeRef({ windows: s.windows, seq: s.windowSeq }, 'device', uid).windows }));
       return reason;
     },
-    setIface: (uid, port, ip) =>
-      recorded(() => apply(setInterface(coreOf(get()), uid, port, ip, 24, gameEnv, netTargetOf(get())), tileOf(uid))),
+    setIface: (uid, port, ip, prefix = 24) =>
+      recorded(() => apply(setInterface(coreOf(get()), uid, port, ip, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
     setGateway: (uid, gateway) => recorded(() => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid))),
     setSegment: (uid, port, network, prefix) =>
       recorded(() => apply(setSegment(coreOf(get()), uid, port, network, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),

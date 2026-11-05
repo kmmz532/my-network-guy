@@ -48,6 +48,8 @@ export function DeviceTitle({ uid }: { uid: string }) {
 // ウィンドウの中身（機器の画面）。機器が見つからなければ何も出さない
 export function DeviceBody({ uid }: { uid: string }) {
   const state = useGameStore();
+  // 設定タブの「詳しく」を開いているか。機器の画面を閉じるまで覚える（別の機器を押しても変えない）
+  const [detailOpen, setDetailOpen] = useState(false);
   const found = findDevice(state, uid);
   if (!found) return null;
   const compiled = compile(found.source, gameEnv.engine);
@@ -59,6 +61,8 @@ export function DeviceBody({ uid }: { uid: string }) {
       links={found.source.links as NetLink[]}
       compiled={compiled}
       readOnly={found.readOnly}
+      detailOpen={detailOpen}
+      onToggleDetail={() => setDetailOpen((v) => !v)}
     />
   );
 }
@@ -69,12 +73,16 @@ function DeviceView({
   links,
   compiled,
   readOnly,
+  detailOpen,
+  onToggleDetail,
 }: {
   node: NetNode;
   nodes: NetNode[];
   links: NetLink[];
   compiled: Compiled;
   readOnly: boolean;
+  detailOpen: boolean;
+  onToggleDetail: () => void;
 }) {
   const [tab, setTab] = useState<Tab>('rear');
   const [error, setError] = useState<string | null>(null);
@@ -117,7 +125,9 @@ function DeviceView({
       </nav>
       {error && <div style={{ color: warnColor, marginBottom: 6 }}>{t(`ui.error.${error}` as LangKey)}</div>}
       {tab === 'rear' && <DeviceRear node={node} nodes={nodes} links={links} readOnly={readOnly} onError={setError} />}
-      {tab === 'config' && <DeviceSettings node={node} compiled={compiled} readOnly={readOnly} onError={setError} />}
+      {tab === 'config' && (
+        <DeviceSettings node={node} compiled={compiled} readOnly={readOnly} detailOpen={detailOpen} onToggleDetail={onToggleDetail} onError={setError} />
+      )}
       {tab === 'service' && isServer && <ServiceTab node={node} readOnly={readOnly} onError={setError} />}
     </div>
   );

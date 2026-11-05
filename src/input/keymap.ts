@@ -66,9 +66,10 @@ const escape = (): boolean => {
     s.setHelpUid(null);
     return true;
   }
+  // 一番手前のウィンドウの、選ばれているタブを閉じる（最後のタブならウィンドウも閉じる）
   const front = frontWindow(s.windows);
   if (front) {
-    s.closeWindow(front.id);
+    s.closeTab(front.id, front.active);
     return true;
   }
   if (s.tool !== 'select' || s.placing) {

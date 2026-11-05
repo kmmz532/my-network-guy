@@ -1,4 +1,5 @@
 // 開いているウィンドウの一覧を操作する純粋関数。画面の大きさ（vp）と、種類ごとに覚えた位置・大きさ（memory）は引数で受け取る。
+// ウィンドウは種類ごとに1つだけ。機器・社員のウィンドウは、開いたものをタブとして持つ（選んでいるタブが中身を決める）。
 // 押したときの描き方（ポインターの処理）は components/Window.tsx、保存と読み込みは stores/useGameStore.ts が受け持つ。
 
 // ウィンドウの種類。機器の画面・社員の札・社員の一覧
@@ -14,8 +15,10 @@ export interface Rect {
 export interface WindowItem extends Rect {
   id: number;
   kind: WindowKind;
-  // 機器なら機器の uid、社員なら社員の uid
-  ref: string;
+  // 開いているタブ。機器なら機器の uid、社員なら社員の uid、社員の一覧は ''（開いた順）
+  tabs: string[];
+  // 選んでいるタブ（tabs のどれか）
+  active: string;
   // 重なりの順（大きいほど手前）
   z: number;
 }
@@ -34,7 +37,8 @@ export interface WindowList {
   seq: number;
 }
 
-export const MAX_WINDOWS = 6;
+// 1つのウィンドウが持つタブの最大数。超えたら一番古いタブを閉じる
+export const MAX_TABS = 8;
 export const MIN_W = 240;
 export const MIN_H = 160;
 // 新しいウィンドウを前のものからずらす量
@@ -99,49 +103,90 @@ export function frontWindow(windows: WindowItem[]): WindowItem | null {
   return windows.reduce<WindowItem | null>((a, w) => (a === null || w.z > a.z ? w : a), null);
 }
 
+// 種類のウィンドウ（なければ undefined）。種類ごとに1つだけ
+const windowOf = (list: WindowList, kind: WindowKind): WindowItem | undefined => list.windows.find((w) => w.kind === kind);
+
+// 指定のウィンドウだけを書き換える
+const patch = (list: WindowList, id: number, change: Partial<WindowItem>): WindowList => ({
+  ...list,
+  windows: list.windows.map((w) => (w.id === id ? { ...w, ...change } : w)),
+});
+
 // ウィンドウを手前に出す。すでに一番手前なら同じ一覧を返す
 export function focusWindow(list: WindowList, id: number): WindowList {
   const target = list.windows.find((w) => w.id === id);
   if (!target || target.z === maxZ(list.windows)) return list;
   const z = maxZ(list.windows) + 1;
-  return { ...list, windows: list.windows.map((w) => (w.id === id ? { ...w, z } : w)) };
+  return patch(list, id, { z });
 }
 
-// ウィンドウを開く。同じ種類と ref が開いていれば、新しく開かずに手前に出す。
-// 最大数を超えるときは、一番古い（id の小さい）ウィンドウを閉じる。狭い画面では、ほかを閉じて1つだけ出す
+// タブを選んで、そのウィンドウを手前に出す。タブがなければ加える（最大 MAX_TABS を超えたら、一番古いタブを外す）
+function showTab(list: WindowList, id: number, ref: string): WindowList {
+  const target = list.windows.find((w) => w.id === id);
+  if (!target) return list;
+  let tabs = target.tabs;
+  if (!tabs.includes(ref)) {
+    tabs = [...tabs, ref];
+    if (tabs.length > MAX_TABS) tabs = tabs.slice(tabs.length - MAX_TABS);
+  }
+  return focusWindow(patch(list, id, { tabs, active: ref }), id);
+}
+
+// 機器・社員を開く。その種類のウィンドウが開いていれば、タブを加えて選ぶ（すでにあれば選ぶだけ）。
+// なければ新しいウィンドウを開く。狭い画面では、ほかを閉じて1つだけ出す
 export function openWindow(list: WindowList, kind: WindowKind, ref: string, vp: Viewport, memory: WindowMemory): WindowList {
-  const existing = list.windows.find((w) => w.kind === kind && w.ref === ref);
-  if (existing) return focusWindow(list, existing.id);
+  const existing = windowOf(list, kind);
+  if (existing) return showTab(list, existing.id, ref);
   const id = list.seq + 1;
   if (isNarrow(vp)) {
-    return { windows: [{ id, kind, ref, ...narrowRect(vp), z: 1 }], seq: id };
+    return { windows: [{ id, kind, tabs: [ref], active: ref, ...narrowRect(vp), z: 1 }], seq: id };
   }
-  let windows = list.windows;
-  if (windows.length >= MAX_WINDOWS) {
-    const oldest = windows.reduce((a, w) => (w.id < a.id ? w : a));
-    windows = windows.filter((w) => w.id !== oldest.id);
-  }
-  const rect = placeNew(windows, kind, vp, memory);
-  return { windows: [...windows, { id, kind, ref, ...rect, z: maxZ(windows) + 1 }], seq: id };
+  const rect = placeNew(list.windows, kind, vp, memory);
+  return { windows: [...list.windows, { id, kind, tabs: [ref], active: ref, ...rect, z: maxZ(list.windows) + 1 }], seq: id };
 }
 
-// マップで同じ機器・社員をもう一度押したとき: 一番手前に開いていれば閉じ、奥にあれば手前に出し、なければ開く
+// マップで同じ機器・社員をもう一度押したとき。そのタブが選ばれていて一番手前なら閉じ、選ばれていなければ選ぶ。
+// タブがなければ開く
 export function toggleWindow(list: WindowList, kind: WindowKind, ref: string, vp: Viewport, memory: WindowMemory): WindowList {
-  const existing = list.windows.find((w) => w.kind === kind && w.ref === ref);
-  if (existing && existing.z === maxZ(list.windows)) return closeWindow(list, existing.id);
+  const existing = windowOf(list, kind);
+  if (existing && existing.tabs.includes(ref)) {
+    const front = frontWindow(list.windows);
+    if (front?.id === existing.id && existing.active === ref) return closeTab(list, existing.id, ref);
+    return showTab(list, existing.id, ref);
+  }
   return openWindow(list, kind, ref, vp, memory);
 }
 
-// ウィンドウを閉じる
+// タブを選ぶ（ウィンドウは手前に出す）。そのタブがなければ何もしない
+export function selectTab(list: WindowList, id: number, ref: string): WindowList {
+  const target = list.windows.find((w) => w.id === id);
+  if (!target || !target.tabs.includes(ref)) return list;
+  return showTab(list, id, ref);
+}
+
+// タブを閉じる。選んでいたタブを閉じたら、右隣（なければ左隣）を選ぶ。最後のタブを閉じたらウィンドウも閉じる
+export function closeTab(list: WindowList, id: number, ref: string): WindowList {
+  const target = list.windows.find((w) => w.id === id);
+  if (!target) return list;
+  const idx = target.tabs.indexOf(ref);
+  if (idx < 0) return list;
+  const tabs = target.tabs.filter((_, i) => i !== idx);
+  if (tabs.length === 0) return closeWindow(list, id);
+  const active = target.active !== ref ? target.active : tabs[Math.min(idx, tabs.length - 1)];
+  return patch(list, id, { tabs, active });
+}
+
+// ウィンドウを閉じる（タブもすべて閉じる）
 export function closeWindow(list: WindowList, id: number): WindowList {
   if (!list.windows.some((w) => w.id === id)) return list;
   return { ...list, windows: list.windows.filter((w) => w.id !== id) };
 }
 
-// 指定の種類と ref のウィンドウを閉じる（機器を撤去したときなど）
+// 指定の種類のウィンドウから、指定のタブを閉じる（機器を撤去したときなど）
 export function closeRef(list: WindowList, kind: WindowKind, ref: string): WindowList {
-  if (!list.windows.some((w) => w.kind === kind && w.ref === ref)) return list;
-  return { ...list, windows: list.windows.filter((w) => !(w.kind === kind && w.ref === ref)) };
+  const existing = windowOf(list, kind);
+  if (!existing) return list;
+  return closeTab(list, existing.id, ref);
 }
 
 // ウィンドウを動かす。画面の外には出さない。狭い画面では動かさない
@@ -150,7 +195,7 @@ export function moveWindow(list: WindowList, id: number, x: number, y: number, v
   const target = list.windows.find((w) => w.id === id);
   if (!target) return list;
   const rect = clampRect({ x, y, w: target.w, h: target.h }, vp);
-  return { ...list, windows: list.windows.map((w) => (w.id === id ? { ...w, ...rect } : w)) };
+  return patch(list, id, rect);
 }
 
 // ウィンドウの大きさを変える。最小 240×160、画面の外には出さない。狭い画面では変えない
@@ -161,7 +206,19 @@ export function resizeWindow(list: WindowList, id: number, w: number, h: number,
   const nw = clamp(w, MIN_W, Math.max(MIN_W, vp.w - target.x));
   const nh = clamp(h, MIN_H, Math.max(MIN_H, vp.h - target.y));
   const rect = clampRect({ x: target.x, y: target.y, w: nw, h: nh }, vp);
-  return { ...list, windows: list.windows.map((t) => (t.id === id ? { ...t, ...rect } : t)) };
+  return patch(list, id, rect);
+}
+
+// 画面の大きさが変わったとき、開いているすべてのウィンドウを画面の中に収める（大きさは最小から画面まで）。変わらなければ同じ一覧を返す
+export function fitWindows(list: WindowList, vp: Viewport): WindowList {
+  let changed = false;
+  const windows = list.windows.map((w) => {
+    const r = clampRect(w, vp);
+    if (r.x === w.x && r.y === w.y && r.w === w.w && r.h === w.h) return w;
+    changed = true;
+    return { ...w, ...r };
+  });
+  return changed ? { ...list, windows } : list;
 }
 
 // 種類ごとの覚えた位置と大きさを、今のウィンドウの位置で更新する

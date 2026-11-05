@@ -1,5 +1,6 @@
-// 機器の画面の「設定」タブ。ポートごとのネットワークとIPアドレス、ホストのデフォルトゲートウェイ、ルーターの静的ルートを置く。
+// 機器の画面の「設定」タブ。ポートごとのIPアドレス（ネットワークは「詳しく」を開いたときだけ出す）、ホストのデフォルトゲートウェイ、ルーターの静的ルートを置く。
 // IPアドレスとゲートウェイの欄は、候補から選べる1つの入力欄（AddressInput）にする。確定は候補を選んだとき・Enter・欄を離れたとき。
+// PC・サーバーは、ケーブルでつなぐ前でもIPアドレスを設定できる。ルーターのポートはつないでから設定する。
 import { useState } from 'react';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
@@ -7,11 +8,10 @@ import { AddressInput } from './AddressInput';
 import type { ComboOption } from './addressCombo';
 import type { Compiled } from '../network/compile';
 import { colorOfNetwork, networkColors, UNSET_COLOR } from '../network/netColor';
-import { intToIp, neighborRouterAddresses, routerAddressesOn, segmentConfigOf, segmentOf, segmentsOf } from '../network/segments';
-import { ipToInt } from '../network/engine';
+import { networkAddress, neighborRouterAddresses, routerAddressesOn, segmentConfigOf, segmentOf, segmentsOf } from '../network/segments';
 import type { NetNode, SegmentConfig } from '../network/types';
 import { gameEnv } from '../sim/env';
-import { addressCandidates, type AddressCandidate } from '../sim/project';
+import { addressCandidates, PLANNED_NETWORK, PLANNED_PREFIX, plannedAddressCandidates, type AddressCandidate } from '../sim/project';
 import { coreOf, netTargetOf, useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, hexColor, isIpText, portLabel, sectionStyle, selectStyle, unsetColor } from './devicePorts';
 
@@ -25,17 +25,20 @@ interface Props {
   node: NetNode;
   compiled: Compiled;
   readOnly: boolean;
+  // 「詳しく」を開いているか。機器の画面を閉じるまで親が覚える
+  detailOpen: boolean;
+  onToggleDetail: () => void;
   onError: (reason: string | null) => void;
 }
 
-export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
+export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleDetail, onError }: Props) {
   const state = useGameStore();
   const setIface = useGameStore((s) => s.setIface);
   const setGateway = useGameStore((s) => s.setGateway);
   const setSegment = useGameStore((s) => s.setSegment);
   const addRoute = useGameStore((s) => s.addRoute);
   const removeRoute = useGameStore((s) => s.removeRoute);
-  // ネットワークをまだ確定していないポートの選択（IPアドレスを選んだときに確定する）
+  // 詳しくで選んだ、まだ設定のないポートのネットワーク（IPアドレスを設定したら消す）
   const [pending, setPending] = useState<Record<number, { network: string; prefix: number }>>({});
 
   const net = compiled.net;
@@ -62,35 +65,20 @@ export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
     return `${t(`device.${n.device}.name` as LangKey)} ${portLabel(gameEnv.devices[n.device]?.category, usedBy.port)}`;
   };
 
-  // 未使用の 192.168.n.0/24 のうち最初のもの（どのセグメントにも使われていなければ）
-  const usedNetworks = new Set<string>();
-  for (const seg of segmentsOf(net, engine)) {
-    const cfg = segmentConfigOf(seg, byUid, net.segments);
-    if (cfg) usedNetworks.add(cfg.network);
-  }
-  const defaultNetwork = NETWORK_CHOICES.find((n) => !usedNetworks.has(n)) ?? NETWORK_CHOICES[0];
-  // 設定のないネットワークのアドレス候補（まだ確定していないネットワークから作る）
-  const pendingCandidates = (network: string, prefix: number): AddressCandidate[] => {
-    const owners = new Map<number, { node: string; port: number }>();
-    for (const n of net.nodes) for (const i of n.interfaces) owners.set(ipToInt(i.ip), { node: n.uid, port: i.port });
-    const base = ipToInt(network);
-    const list: AddressCandidate[] = [];
-    for (let h = 1; h <= 2 ** (32 - prefix) - 2; h++) list.push({ ip: intToIp(base + h), usedBy: owners.get(base + h) ?? null });
-    return list;
-  };
-  // IPアドレスを設定する。設定のないポートは、選んでいるネットワークを先に確定する
+  // IPアドレスを設定する。設定のないポートは、詳しくで選んだプレフィックス長（なければ /24）で設定する。
+  // セグメントの設定は、配線のときと同じく IPアドレスから補う（fillSegments）
   const commitIp = (port: number, ip: string): string | null => {
-    if (!cfgOf(port)) {
-      const pick = pending[port] ?? { network: defaultNetwork, prefix: 24 };
-      const reason = setSegment(node.uid, port, pick.network, pick.prefix);
-      if (reason) return reason;
+    const cfg = cfgOf(port);
+    const prefix = cfg ? cfg.prefix : (pending[port]?.prefix ?? PLANNED_PREFIX);
+    const reason = setIface(node.uid, port, ip, prefix);
+    if (!reason) {
       setPending((p0) => {
         const next = { ...p0 };
         delete next[port];
         return next;
       });
     }
-    return setIface(node.uid, port, ip);
+    return reason;
   };
 
   const renderPort = (port: number) => {
@@ -100,7 +88,8 @@ export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
         <b>{label}</b>
       </div>
     ) : null;
-    if (!linked(port)) {
+    // ルーターは、ケーブルでつないでから設定する
+    if (!linked(port) && category === 'router') {
       return (
         <div key={port} style={sectionStyle}>
           {heading}
@@ -110,63 +99,30 @@ export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
     }
     const cfg = cfgOf(port);
     const iface = node.interfaces.find((i) => i.port === port);
-    // 設定がなければ、未確定の選択（初期値は未使用の 192.168.n.0/24）を使う
-    const pick = cfg ? { network: cfg.network, prefix: cfg.prefix } : (pending[port] ?? { network: defaultNetwork, prefix: 24 });
+    // 今のネットワーク: 設定があればそれ。なければ詳しくで選んだ値、IPアドレスがあればその /24、どちらもなければ既定
+    const fromIface = iface ? { network: networkAddress(iface.ip, iface.prefix), prefix: iface.prefix } : null;
+    const shown = cfg ?? pending[port] ?? fromIface ?? { network: PLANNED_NETWORK, prefix: PLANNED_PREFIX };
     const color = colorOfNetwork(colors, cfg?.network) ?? UNSET_COLOR;
-    // 候補は、読み取り専用でなければ一覧にする（設定がなければ、選んでいるネットワークから作る）
+    // 候補は、読み取り専用でなければ一覧にする（設定がなければ、今のネットワークの .10 から並べる）
     const candidates: AddressCandidate[] = readOnly
       ? []
       : cfg
         ? addressCandidates(coreOf(state), node.uid, port, gameEnv, netTargetOf(state))
-        : pendingCandidates(pick.network, pick.prefix);
+        : plannedAddressCandidates(coreOf(state), shown.network, shown.prefix, netTargetOf(state));
     // 使用中の候補は、使っている機器の名前を添えて選べないように出す（自分のポートの使用は選べる）
     const options: ComboOption[] = candidates.map((c) => {
       const other = c.usedBy && !(c.usedBy.node === node.uid && c.usedBy.port === port) ? c.usedBy : null;
       return { value: c.ip, usedBy: other ? usedName(other) : null };
     });
+    // 設定のないポートのネットワークを変えるとき、入っているIPアドレスは外す（新しいネットワークのアドレスを選び直す）
+    const changePlanned = (next: { network: string; prefix: number }) => {
+      setPending((p0) => ({ ...p0, [port]: next }));
+      if (iface) onError(setIface(node.uid, port, ''));
+    };
     const networks = cfg && !NETWORK_CHOICES.includes(cfg.network) ? [...NETWORK_CHOICES, cfg.network] : NETWORK_CHOICES;
     return (
       <div key={port} style={sectionStyle}>
         {heading}
-        <div>{t('ui.config.network')}</div>
-        <div style={row}>
-          <span style={{ display: 'inline-block', width: 10, height: 10, background: hexColor(color), border: '1px solid #3b2a33' }} />
-          <select
-            aria-label={t('ui.config.network')}
-            style={selectStyle}
-            value={pick.network}
-            disabled={locked}
-            onChange={(e) => {
-              // 設定がなければ、確定はIPアドレスを選ぶまで待つ
-              if (cfg) onError(setSegment(node.uid, port, e.target.value, cfg.prefix));
-              else setPending((p0) => ({ ...p0, [port]: { ...pick, network: e.target.value } }));
-            }}
-          >
-            <option value="">{t('ui.config.networkPick')}</option>
-            {networks.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label={t('ui.config.network')}
-            style={selectStyle}
-            value={pick.prefix}
-            disabled={locked}
-            onChange={(e) => {
-              const prefix = Number(e.target.value);
-              if (cfg) onError(setSegment(node.uid, port, cfg.network, prefix));
-              else setPending((p0) => ({ ...p0, [port]: { ...pick, prefix } }));
-            }}
-          >
-            {PREFIX_CHOICES.map((p) => (
-              <option key={p} value={p}>
-                /{p}
-              </option>
-            ))}
-          </select>
-        </div>
         <div>
           {t('ui.config.ip')}: {iface ? <b>{iface.ip}</b> : <span style={{ color: unsetColor }}>{t('ui.config.unset')}</span>}
         </div>
@@ -181,6 +137,53 @@ export function DeviceSettings({ node, compiled, readOnly, onError }: Props) {
             onCommit={(ip) => commitIp(port, ip)}
           />
         </div>
+        <div style={{ ...row, fontSize: 12 }}>
+          <span style={{ color: greyColor, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ display: 'inline-block', width: 10, height: 10, background: hexColor(color), border: '1px solid #3b2a33' }} />
+            {t('ui.config.networkLine', { network: shown.network, prefix: shown.prefix })}
+          </span>
+          <button style={buttonStyle} onClick={onToggleDetail}>
+            {detailOpen ? t('ui.config.detailClose') : t('ui.config.detail')}
+          </button>
+        </div>
+        {detailOpen && (
+          <div style={row}>
+            <select
+              aria-label={t('ui.config.network')}
+              style={selectStyle}
+              value={shown.network}
+              disabled={locked}
+              onChange={(e) => {
+                // 設定があれば、セグメントのネットワークを変える。なければ、詳しくで選んだ値として覚える
+                if (cfg) onError(setSegment(node.uid, port, e.target.value, cfg.prefix));
+                else changePlanned({ ...shown, network: e.target.value });
+              }}
+            >
+              {networks.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label={t('ui.config.prefix')}
+              style={selectStyle}
+              value={shown.prefix}
+              disabled={locked}
+              onChange={(e) => {
+                const prefix = Number(e.target.value);
+                if (cfg) onError(setSegment(node.uid, port, cfg.network, prefix));
+                else changePlanned({ ...shown, prefix });
+              }}
+            >
+              {PREFIX_CHOICES.map((p) => (
+                <option key={p} value={p}>
+                  /{p}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
     );
   };
