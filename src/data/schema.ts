@@ -37,6 +37,8 @@ export const balanceSchema = z.object({
     speeds: z.array(z.number().nonnegative()).min(1),
   }),
   startMoney: int,
+  // 在庫を売るときの値段（購入時の値段に掛ける割合）
+  sellRate: z.number().min(0).max(1),
   // ゲーム開始時の在庫（機器・家具の id と台数）
   initialStock: z.record(z.string(), nonNegativeInt),
   offerIntervalDays: int.positive(),

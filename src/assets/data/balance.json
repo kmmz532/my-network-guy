@@ -11,6 +11,7 @@
     ]
   },
   "startMoney": 1000000,
+  "sellRate": 0.8,
   "initialStock": {
     "pc_basic": 2,
     "plant": 1

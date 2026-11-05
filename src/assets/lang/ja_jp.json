@@ -156,6 +156,7 @@
   "ui.warehouse.empty": "倉庫は空です",
   "ui.warehouse.openShop": "ショップを開く",
   "ui.shop.buy": "購入",
+  "ui.shop.sell": "売る（{price}円）",
   "contract.i001_office_lan.title": "自社LANの構築",
   "contract.i001_office_lan.story": "自分たちの事務所にもネットワークを作る。",
   "contract.i001_office_lan.hint": "PCを買って机に置こう",

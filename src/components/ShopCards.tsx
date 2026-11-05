@@ -1,6 +1,6 @@
 // 機材ショップ。解禁済みの機材と家具を購入して在庫にする。区分ごとのタブで並べ替える。ケーブルは在庫を持たず、配線のときに費用を払うため、ここには出さない
 import { useState } from 'react';
-import { devices, furniture, shop } from 'virtual:game-data';
+import { balance, devices, furniture, shop } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { isUnlocked } from '../sim/shop';
@@ -22,6 +22,7 @@ export function ShopCards({ onClose }: { onClose: () => void }) {
   const owned = useGameStore((s) => s.owned);
   const money = useGameStore((s) => s.clock.money);
   const buy = useGameStore((s) => s.buy);
+  const sell = useGameStore((s) => s.sell);
   const [section, setSection] = useState<Section>('device');
   const ids = shop.filter((i) => i.device && isUnlocked(i, completed, sandbox)).map((i) => i.device!);
   const furnitureIds = shop.filter((i) => i.furniture && isUnlocked(i, completed, sandbox)).map((i) => i.furniture!);
@@ -64,9 +65,16 @@ export function ShopCards({ onClose }: { onClose: () => void }) {
                       <Icon name="icon/money" scale={1} /> {yen(cost(d.price))}　×{owned[id] ?? 0}
                     </div>
                   </div>
-                  <button style={{ ...secondaryButton, opacity: money < cost(d.price) ? 0.4 : 1 }} disabled={money < cost(d.price)} onClick={() => buy(id)}>
-                    {t('ui.shop.buy')}
-                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <button style={{ ...secondaryButton, opacity: money < cost(d.price) ? 0.4 : 1 }} disabled={money < cost(d.price)} onClick={() => buy(id)}>
+                      {t('ui.shop.buy')}
+                    </button>
+                    {!sandbox && (
+                      <button style={{ ...secondaryButton, opacity: (owned[id] ?? 0) > 0 ? 1 : 0.4 }} disabled={(owned[id] ?? 0) <= 0} onClick={() => sell(id)}>
+                        {t('ui.shop.sell', { price: yen(Math.floor(d.price * balance.sellRate)) })}
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -89,9 +97,16 @@ export function ShopCards({ onClose }: { onClose: () => void }) {
                       <Icon name="icon/money" scale={1} /> {yen(cost(f.price))}　×{owned[id] ?? 0}
                     </div>
                   </div>
-                  <button style={{ ...secondaryButton, opacity: money < cost(f.price) ? 0.4 : 1 }} disabled={money < cost(f.price)} onClick={() => buy(id)}>
-                    {t('ui.shop.buy')}
-                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <button style={{ ...secondaryButton, opacity: money < cost(f.price) ? 0.4 : 1 }} disabled={money < cost(f.price)} onClick={() => buy(id)}>
+                      {t('ui.shop.buy')}
+                    </button>
+                    {!sandbox && (
+                      <button style={{ ...secondaryButton, opacity: (owned[id] ?? 0) > 0 ? 1 : 0.4 }} disabled={(owned[id] ?? 0) <= 0} onClick={() => sell(id)}>
+                        {t('ui.shop.sell', { price: yen(Math.floor(f.price * balance.sellRate)) })}
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}

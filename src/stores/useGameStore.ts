@@ -5,7 +5,7 @@ import { balance, contracts, contractTemplates, devices, furniture } from 'virtu
 import type { FurnitureId } from '../generated/ids';
 import { advanceTick, initialClock, isWorkingHour, toDate, type ClockState } from '../sim/clock';
 import { nightSpeedStep } from '../sim/nightSpeed';
-import { buyDevice } from '../sim/shop';
+import { buyDevice, sellDevice } from '../sim/shop';
 import { refreshOffers, type OfferEnv } from '../contracts/offers';
 import type { Offer } from '../contracts/template';
 import type { GameMap, Staff } from '../data/schema';
@@ -255,6 +255,8 @@ export interface GameState {
   cacheMap: (map: GameMap) => void;
   // 購入に成功したら true
   buy: (deviceId: string) => boolean;
+  // 在庫を1台売ったら true（サンドボックスでは売らない）
+  sell: (deviceId: string) => boolean;
   // 案件の流れの操作。失敗したら理由を返す（成功なら null）
   accept: (offerId: string, crew: string[]) => string | null;
   place: (deviceId: string, x: number, y: number) => string | null;
@@ -761,6 +763,16 @@ export const useGameStore = create<GameState>((set, get) => {
           ? s.active.map((p) => (p.id === focused.id ? { ...p, cost: p.cost + price } : p))
           : s.active;
       set({ clock: { ...s.clock, money: result.money }, owned: result.owned, active });
+      return true;
+    },
+    sell: (deviceId) => {
+      const s = get();
+      if (s.mode === 'sandbox') return false;
+      const isFurniture = deviceId in furniture;
+      const price = isFurniture ? furniture[deviceId as FurnitureId].price : devices[deviceId as keyof typeof devices].price;
+      const result = sellDevice(s.clock.money, s.owned, deviceId, price, balance.sellRate);
+      if (!result.ok) return false;
+      set({ clock: { ...s.clock, money: result.money }, owned: result.owned });
       return true;
     },
     accept: (offerId, crew) => {

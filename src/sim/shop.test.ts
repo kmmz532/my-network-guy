@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buyDevice, isUnlocked } from './shop';
+import { buyDevice, isUnlocked, sellDevice } from './shop';
 import { isSaveData, migrate } from '../services/migrations';
 
 describe('ショップ', () => {
@@ -62,5 +62,17 @@ describe('セーブのバージョン移行', () => {
 
   it('形式が不正な在庫は拒否する', () => {
     expect(isSaveData({ clock: { minute: 0, money: 0, paidMonths: 0, bankrupt: false }, reputation: 0, owned: { a: -1 }, completed: [] })).toBe(false);
+  });
+});
+
+describe('在庫の売却', () => {
+  it('購入時の値段に売値の割合を掛けた額で売れ、在庫が1つ減る（円未満は切り捨て）', () => {
+    const r = sellDevice(1000, { pc_basic: 2 }, 'pc_basic', 65000, 0.8);
+    expect(r).toEqual({ ok: true, money: 1000 + 52000, owned: { pc_basic: 1 } });
+  });
+
+  it('在庫がなければ売れず、何も変えない', () => {
+    expect(sellDevice(1000, {}, 'pc_basic', 65000, 0.8)).toEqual({ ok: false, reason: 'stock' });
+    expect(sellDevice(1000, { pc_basic: 0 }, 'pc_basic', 65000, 0.8)).toEqual({ ok: false, reason: 'stock' });
   });
 });
