@@ -67,12 +67,10 @@ const scenes = {
     await page.keyboard.press('h');
     await page.waitForTimeout(500);
   },
-  // スイッチの機器の画面（設定タブ）。空いている場所に置いて開く
+  // スイッチの機器の画面（設定タブは出ない。背面だけ）。空いている場所に置いて開く
   switch: async (page) => {
     await scenes.career(page);
     await openDevice(page, 'l2_switch_8p');
-    await page.getByText('設定', { exact: true }).click();
-    await page.waitForTimeout(500);
   },
   // PC の設定で「詳しく」を開き、ネットワークの一覧を開いた状態（選択の部品）
   select: async (page) => {

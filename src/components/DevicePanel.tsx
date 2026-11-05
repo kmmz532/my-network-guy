@@ -94,6 +94,8 @@ function DeviceView({
 
   const info = gameEnv.devices[node.device];
   const isServer = info?.category === 'server';
+  // 設定できるもの（IPアドレスなど）がない機器（L2 スイッチ）は、設定タブを出さない
+  const hasConfig = info?.category !== 'l2_switch';
   const issue = compiled.issues[node.uid];
 
   return (
@@ -103,7 +105,7 @@ function DeviceView({
       <Tabs<TabId>
         items={[
           { id: 'rear', label: t('ui.panel.tab.rear') },
-          { id: 'config', label: t('ui.panel.tab.config') },
+          ...(hasConfig ? [{ id: 'config' as const, label: t('ui.panel.tab.config') }] : []),
           ...(isServer ? [{ id: 'service' as const, label: t('ui.panel.tab.service') }] : []),
           { id: 'terminal', label: t('ui.panel.tab.terminal'), disabled: true },
         ]}
@@ -119,7 +121,7 @@ function DeviceView({
       <div style={tabPanelStyle(TAB_COLORS.window.selected)}>
         {error && <div style={{ color: warnColor, marginBottom: 6 }}>{t(`ui.error.${error}` as LangKey)}</div>}
         {tab === 'rear' && <DeviceRear node={node} nodes={nodes} links={links} readOnly={readOnly} onError={setError} />}
-        {tab === 'config' && (
+        {tab === 'config' && hasConfig && (
           <DeviceSettings node={node} compiled={compiled} readOnly={readOnly} detailOpen={detailOpen} onToggleDetail={onToggleDetail} onError={setError} />
         )}
         {tab === 'service' && isServer && <ServiceTab node={node} readOnly={readOnly} onError={setError} />}

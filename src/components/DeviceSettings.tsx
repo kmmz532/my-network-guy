@@ -47,7 +47,6 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   const net = compiled.net;
   const engine = gameEnv.engine;
   const category = gameEnv.devices[node.device]?.category;
-  if (category === 'l2_switch') return <div>{t('ui.config.noIp')}</div>;
 
   const byUid = new Map(net.nodes.map((n) => [n.uid, n]));
   const colors = networkColors(net, engine);
