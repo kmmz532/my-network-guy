@@ -231,3 +231,51 @@ describe('v12 → v13', () => {
     expect(migrate(12, v12).active[0]).toEqual({ id: 'x', nodes: [], links: [] });
   });
 });
+
+describe('v13 → v14', () => {
+  const node = (uid: string, device: string, extra: Record<string, unknown> = {}) => ({
+    uid,
+    device,
+    x: 0,
+    y: 0,
+    locked: false,
+    configLocked: false,
+    interfaces: [],
+    gateway: null,
+    routes: [],
+    services: [],
+    ...extra,
+  });
+  const { active: _active, office: _office, ...withoutNet } = sample;
+
+  it('サービスが空のサーバーに、機材の既定のサービス（HTTP 80）を入れる。自社オフィスと受注中の案件の両方', () => {
+    const v13 = {
+      ...withoutNet,
+      office: { ...sample.office, nodes: [node('o_srv', 'server_basic')] },
+      active: [{ id: 'x', nodes: [node('a_srv', 'server_basic')], links: [] }],
+    };
+    const out = migrate(13, v13);
+    expect(out.office.nodes[0].services).toEqual([{ protocol: 'http', port: 80 }]);
+    expect(out.active[0].nodes[0].services).toEqual([{ protocol: 'http', port: 80 }]);
+  });
+
+  it('設定を変えられない（configLocked）サーバーは変えない', () => {
+    const v13 = {
+      ...withoutNet,
+      office: { ...sample.office, nodes: [node('o_srv', 'server_basic', { configLocked: true })] },
+      active: [{ id: 'x', nodes: [node('a_srv', 'server_basic', { configLocked: true })], links: [] }],
+    };
+    const out = migrate(13, v13);
+    expect(out.office.nodes[0].services).toEqual([]);
+    expect(out.active[0].nodes[0].services).toEqual([]);
+  });
+
+  it('サーバー以外の機器や、サービスが既にあるサーバーは変えない', () => {
+    const pc = node('o_pc', 'pc_basic');
+    const busy = node('o_srv', 'server_basic', { services: [{ protocol: 'http', port: 8080 }] });
+    const v13 = { ...withoutNet, office: { ...sample.office, nodes: [pc, busy] }, active: [] };
+    const out = migrate(13, v13);
+    expect(out.office.nodes[0]).toEqual(pc);
+    expect(out.office.nodes[1].services).toEqual([{ protocol: 'http', port: 8080 }]);
+  });
+});

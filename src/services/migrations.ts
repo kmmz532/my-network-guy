@@ -1,6 +1,6 @@
 // セーブデータのバージョン管理。形式を変えたら SAVE_VERSION を上げ、migrations[n]（n → n+1 の変換）を追加する。
 import type { Effects, Office, Project } from '../sim/project';
-import type { EngineData, NetLink, NetNode } from '../network/types';
+import type { EngineData, NetLink, NetNode, Service } from '../network/types';
 import { fillSegments } from '../network/segments';
 import { colorsFromConfig, legacyInterfaces } from './legacyColors';
 import { initialOffice } from '../sim/furniture';
@@ -12,12 +12,15 @@ import serverJson from '../assets/data/devices/server.json';
 import routerJson from '../assets/data/devices/router.json';
 import switchJson from '../assets/data/devices/l2_switch.json';
 
-export const SAVE_VERSION = 13;
+export const SAVE_VERSION = 14;
 
 // 移行で使う機器の種類（色の時代の規則で IPアドレスを作るときに使う）
 const migrationCategories: Record<string, string> = {};
+// 移行で使う機器の既定のサービス（defaultServices）
+const migrationDefaultServices: Record<string, Service[]> = {};
 for (const d of [...pcJson.devices, ...serverJson.devices, ...routerJson.devices, ...switchJson.devices]) {
   migrationCategories[d.id] = d.category;
+  migrationDefaultServices[d.id] = (d as { defaultServices?: Service[] }).defaultServices ?? [];
 }
 const migrationEngine: EngineData = {
   categoryOf: (device) => migrationCategories[device] ?? 'unknown',
@@ -34,6 +37,14 @@ const colorsToSegments = <T extends { nodes: NetNode[]; links?: NetLink[] }>(x: 
     return copy;
   });
   return { ...x, nodes, links, segments: fillSegments({ nodes, links }, migrationEngine) };
+};
+
+// サービスが空のサーバーに、機材の既定のサービスを入れる。設定を変えられない機器は変えない
+const withDefaultServices = (n: NetNode): NetNode => {
+  if (migrationCategories[n.device] !== 'server' || n.configLocked || n.services.length > 0) return n;
+  const services = migrationDefaultServices[n.device] ?? [];
+  if (services.length === 0) return n;
+  return { ...n, services: services.map((s) => ({ ...s })) };
 };
 
 export interface SaveData {
@@ -127,6 +138,12 @@ export const migrations: Record<number, Migration> = {
   12: (data) => {
     const d = data as { active: Project[]; office: Office };
     return { ...d, active: d.active.map(colorsToSegments), office: colorsToSegments(d.office) };
+  },
+  // v13 → v14: サーバーに機材の既定のサービスを入れる。移行前に置いたサーバーは services が空のため、受注中の案件と自社オフィスのものを補う
+  13: (data) => {
+    const d = data as { active: Project[]; office: Office };
+    const fill = <T extends { nodes: NetNode[] }>(x: T): T => ({ ...x, nodes: x.nodes.map(withDefaultServices) });
+    return { ...d, active: d.active.map(fill), office: fill(d.office) };
   },
   // v10 → v11: 案件に担当の社員を追加する。移行前の案件は、全社員が担当だったものとする
   10: (data) => {
