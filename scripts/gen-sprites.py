@@ -71,63 +71,70 @@ def save(img, path):
     img.save(full)
 
 
-# ---- 機器（24×24） ----
+# ---- 機器（24×40。床の1マスより高く、足元は下から 4 px 上に揃える） ----
+# 描画の基準: 足元（底面）は y=37 の行。y=38〜39 は床に重なる余白
 
 def pc():
-    img, d = new(24, 24)
-    rect(d, 3, 1, 18, 13, 'w', 'o')
-    d.line([(19, 2), (19, 12)], fill=C['g'])
-    d.line([(4, 12), (19, 12)], fill=C['g'])
-    rect(d, 5, 3, 14, 8, 's')
-    for x, y in ((6, 4), (7, 4), (6, 5)):
-        px(d, x, y, 'S')
-    px(d, 17, 12, 'l')
-    rect(d, 10, 14, 4, 2, 'g', 'o')
-    rect(d, 7, 16, 10, 2, 'w', 'o')
-    rect(d, 2, 19, 20, 4, 'w', 'o')
-    for x in range(4, 20, 2):
-        px(d, x, 20, 'd')
-        px(d, x + 1, 21, 'd')
+    # 正面から見たタワー型PC
+    img, d = new(24, 40)
+    rect(d, 5, 2, 14, 34, 'w', 'o')
+    d.line([(6, 3), (6, 34)], fill=C['e'])
+    rect(d, 7, 6, 10, 3, 'g', 'o')
+    d.line([(8, 12), (15, 12)], fill=C['d'])
+    for y in (16, 20, 24):
+        d.line([(8, y), (15, y)], fill=C['d'])
+    px(d, 16, 30, 'l')
+    rect(d, 4, 36, 4, 2, 'd', 'o')
+    rect(d, 16, 36, 4, 2, 'd', 'o')
     return img
 
 
 def server():
-    img, d = new(24, 24)
-    rect(d, 6, 0, 12, 24, 'w', 'o')
-    d.line([(16, 1), (16, 22)], fill=C['g'])
-    for y in (3, 8, 13):
-        rect(d, 8, y, 7, 3, 'd')
-        px(d, 9, y + 1, 'g')
+    # 縦長のラックサーバー
+    img, d = new(24, 40)
+    rect(d, 4, 0, 16, 38, 'w', 'o')
+    d.line([(17, 1), (17, 36)], fill=C['g'])
+    for y in (3, 10, 17, 24):
+        rect(d, 6, y, 10, 4, 'd')
+        px(d, 7, y + 1, 'g')
+        px(d, 8, y + 1, 'g')
         px(d, 13, y + 1, 'l')
-    rect(d, 8, 18, 7, 3, 'g')
+    rect(d, 6, 31, 10, 3, 'g')
     return img
 
 
 def l2_switch():
-    img, d = new(24, 24)
-    rect(d, 1, 8, 22, 9, 'b', 'o')
-    d.line([(2, 9), (21, 9)], fill=C['bh'])
-    d.line([(2, 15), (21, 15)], fill=C['B'])
-    for i in range(8):
-        x = 4 + i * 2
-        rect(d, x, 12, 1, 2, 'o')
-        if i % 2 == 0:
-            px(d, x, 10, 'l')
+    # 2段に積んだスイッチと、足
+    img, d = new(24, 40)
+    for y in (6, 14):
+        rect(d, 1, y, 22, 7, 'b', 'o')
+        d.line([(2, y + 1), (21, y + 1)], fill=C['bh'])
+        d.line([(2, y + 5), (21, y + 5)], fill=C['B'])
+        for i in range(8):
+            x = 4 + i * 2
+            rect(d, x, y + 2, 1, 2, 'o')
+            if i % 2 == 0:
+                px(d, x, y + 1, 'l')
+    rect(d, 3, 24, 3, 12, 'd', 'o')
+    rect(d, 18, 24, 3, 12, 'd', 'o')
     return img
 
 
 def router():
-    img, d = new(24, 24)
+    # アンテナ付きの箱と、足
+    img, d = new(24, 40)
     for x in (5, 18):
-        d.line([(x, 1), (x, 9)], fill=C['o'])
+        d.line([(x, 1), (x, 16)], fill=C['o'])
         px(d, x, 1, 'r')
-    rect(d, 1, 9, 22, 10, 'r', 'o')
-    d.line([(2, 10), (21, 10)], fill=C['rh'])
-    d.line([(2, 17), (21, 17)], fill=C['R'])
+    rect(d, 1, 16, 22, 14, 'r', 'o')
+    d.line([(2, 17), (21, 17)], fill=C['rh'])
+    d.line([(2, 28), (21, 28)], fill=C['R'])
     for x in (4, 6, 8):
-        px(d, x, 13, 'l')
+        px(d, x, 21, 'l')
     for i in range(4):
-        rect(d, 12 + i * 3, 13, 2, 2, 'o')
+        rect(d, 12 + i * 3, 21, 2, 2, 'o')
+    rect(d, 3, 30, 3, 6, 'd', 'o')
+    rect(d, 18, 30, 3, 6, 'd', 'o')
     return img
 
 

@@ -45,6 +45,10 @@ const FLASH_MS = 2500;
 const PACKET_TILES_PER_SEC = 3;
 const PACKET_SPACING_TILES = 0.5;
 const PACKET_COUNT = 3;
+// 機器のスプライト（24×40）の足元は、タイルの下端から何 px 上か。足元のY座標で前後を決める
+const DEVICE_FOOT_INSET = 4;
+// 社員のスプライト（16×24）の足元（上端からの位置）
+const STAFF_FOOT = 23;
 
 export class Scene {
   private content = new Container();
@@ -74,6 +78,8 @@ export class Scene {
   constructor(private app: Application) {
     app.stage.addChild(this.content);
     this.content.addChild(this.bg);
+    // 機器と社員は、足元のY座標（zIndex）の昇順に重ねる
+    this.sprites.sortableChildren = true;
     this.content.addChild(this.sprites);
     this.content.addChild(this.g);
     this.content.addChild(this.bubbles);
@@ -394,13 +400,17 @@ export class Scene {
     if (selected) {
       g.rect(x - 2, y - 2, size + 4, size + 4).stroke({ width: 2, color: SELECT, alpha });
     }
-    // 機器はスプライトで描く（24×24 をタイルの中央上寄せに置く）
+    // 機器はスプライト（24×40）で描く。足元（底面の行）をタイルの下寄りに揃え、床に置いた影を添える
     const tex = texture(deviceData[node.device as keyof typeof deviceData]?.sprite ?? '');
+    const foot = node.y * ts + ts - DEVICE_FOOT_INSET;
     if (tex) {
       const sprite = new Sprite(tex);
-      sprite.position.set(node.x * ts + (ts - 24) / 2, node.y * ts + 1);
+      // スプライトの底面の行（y=37）が足元に来る位置
+      sprite.position.set(node.x * ts + (ts - 24) / 2, foot - 38);
       sprite.alpha = alpha;
+      sprite.zIndex = foot;
       this.sprites.addChild(sprite);
+      this.bg.ellipse(node.x * ts + ts / 2, foot, 10, 3).fill({ color: 0x000000, alpha: 0.25 * alpha });
     } else switch (category) {
       case 'pc':
         // モニターと台座
@@ -438,7 +448,7 @@ export class Scene {
     }
     for (let port = 0; port < count; port++) {
       const px = x + ((port + 0.5) * size) / count - 2;
-      const py = y + size + 1;
+      const py = tex ? foot + 1 : y + size + 1;
       if (used.has(port)) {
         g.rect(px, py, 4, 3).fill({ color: OUTLINE, alpha });
       } else {
@@ -502,8 +512,13 @@ export class Scene {
     const tex = texture(`staff/${shirt}_${frame}`);
     if (!tex) return;
     const sprite = new Sprite(tex);
-    sprite.position.set(Math.round(x), Math.round(y));
+    const left = Math.round(x);
+    const top = Math.round(y);
+    sprite.position.set(left, top);
+    sprite.zIndex = top + STAFF_FOOT;
     this.sprites.addChild(sprite);
+    // 足元の影（機器と同じく床に接地していることを示す）
+    this.bg.ellipse(left + 8, top + STAFF_FOOT, 6, 2).fill({ color: 0x000000, alpha: 0.25 });
   }
 
   // 疎通テストの経路と、パケットの粒。失敗した地点で止まり「×」を出す

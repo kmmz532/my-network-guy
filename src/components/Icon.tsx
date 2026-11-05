@@ -10,7 +10,7 @@ interface Props {
 
 // スプライトの元の大きさ（gen-sprites.py と合わせる）
 const sizeOf = (name: string): [number, number] => {
-  if (name.startsWith('device/')) return [24, 24];
+  if (name.startsWith('device/')) return [24, 40];
   if (name.startsWith('staff/')) return [16, 24];
   return [16, 16];
 };

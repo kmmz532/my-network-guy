@@ -96,7 +96,7 @@ export function Toolbar({ onOffers, onShop }: { onOffers: () => void; onShop: ()
               setPlacing(placing === id ? null : id);
             }}
           >
-            <Icon name={d.sprite} scale={1.5} />
+            <Icon name={d.sprite} scale={1} />
             <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>
               {stock}
             </span>
