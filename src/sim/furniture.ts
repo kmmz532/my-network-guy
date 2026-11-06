@@ -1,6 +1,7 @@
 // 自社オフィスの家具と社員の規則（純粋関数）。配置と撤去、社員の席の数と雇用を扱う。
 import type { Balance, Furniture, GameMap, Staff } from '../data/schema';
 import { DESK_ID, emptyOffice, officeLocked, type Core, type Office, type Outcome } from './project';
+import { tileKind } from '../data/tileKind';
 
 const fail = (reason: string): Outcome => ({ ok: false, reason });
 
@@ -15,7 +16,7 @@ export const placeFurniture = (core: Core, id: string, x: number, y: number, map
   if (officeLocked(core)) return fail('inhouse');
   if ((core.owned[id] ?? 0) < 1) return fail('stock');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
-  if (map.legend[map.tiles[y][x]] !== 'floor') return fail('tile');
+  if (tileKind(map, x, y) !== 'floor') return fail('tile');
   const office = core.office;
   if (office.furniture.some((f) => f.x === x && f.y === y)) return fail('tile');
   if (office.nodes.some((n) => n.x === x && n.y === y)) return fail('tile');
@@ -42,7 +43,7 @@ export const moveFurniture = (core: Core, uid: string, x: number, y: number, map
   if (!target) return fail('none');
   if (x === target.x && y === target.y) return { ok: true, core };
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
-  if (map.legend[map.tiles[y][x]] !== 'floor') return fail('tile');
+  if (tileKind(map, x, y) !== 'floor') return fail('tile');
   if (office.furniture.some((f) => f.uid !== uid && f.x === x && f.y === y)) return fail('tile');
   if (office.nodes.some((n) => n.x === x && n.y === y)) return fail('tile');
   if (office.nodes.some((n) => n.x === target.x && n.y === target.y)) return fail('occupied');

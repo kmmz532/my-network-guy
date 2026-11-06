@@ -29,6 +29,7 @@ import {
 import { colorOfLink, networkColors, type NetworkColors } from '../network/netColor';
 import type { Compiled, IssueDetail } from '../network/compile';
 import { spriteOf, texture } from './sprites';
+import { tileKind } from '../data/tileKind';
 import { balance, devices as deviceData, furniture as furnitureData } from 'virtual:game-data';
 import type { FurnitureId } from '../generated/ids';
 import { hideTip, showTipAt } from '../components/Tooltip';
@@ -896,14 +897,14 @@ export class Scene {
     let door: Point = { x: Math.floor(map.width / 2), y: map.height - 2 };
     outer: for (let y = 0; y < map.height; y++) {
       for (let x = 0; x < map.width; x++) {
-        if (map.legend[map.tiles[y][x]] === 'door') {
+        if (tileKind(map, x, y) === 'door') {
           door = { x, y };
           break outer;
         }
       }
     }
     const passable = (x: number, y: number): boolean => {
-      const kind = map.tiles[y]?.[x] !== undefined ? map.legend[map.tiles[y][x]] : undefined;
+      const kind = tileKind(map, x, y);
       return kind === 'floor' || kind === 'door';
     };
     const route = (from: Point, to: Point): Point[] | null => bfsRoute(from, to, passable);
@@ -911,7 +912,7 @@ export class Scene {
     // 休憩の場所（コーヒー・水・ソファ）。なければ、床の数か所を歩き回る
     const restSpots = s.office.furniture.filter((f) => BREAK_FURNITURE.includes(f.id)).map((f): Point => ({ x: f.x, y: f.y }));
     const floor: Point[] = [];
-    for (let y = 0; y < map.height; y++) for (let x = 0; x < map.width; x++) if (map.legend[map.tiles[y][x]] === 'floor') floor.push({ x, y });
+    for (let y = 0; y < map.height; y++) for (let x = 0; x < map.width; x++) if (tileKind(map, x, y) === 'floor') floor.push({ x, y });
     const minuteOfDay = s.clock.minute % dayMinutes;
     const day = Math.floor(s.clock.minute / dayMinutes);
     const frameDt = Math.min(dt, COMMUTE_MAX_FRAME_MS);
@@ -956,7 +957,7 @@ export class Scene {
     const floor: Point[] = [];
     for (let y = 0; y < map.height; y++) {
       for (let x = 0; x < map.width; x++) {
-        const kind = map.legend[map.tiles[y][x]];
+        const kind = tileKind(map, x, y);
         if (kind === 'floor' || kind === 'door') floor.push({ x, y });
       }
     }

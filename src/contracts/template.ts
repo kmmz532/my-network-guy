@@ -1,6 +1,7 @@
 // 定型案件（ひな形）から案件を生成する。PCの台数と配置は乱数で決め、同じ乱数の状態からは同じ案件になる。
 import type { Contract, ContractTemplate, Goal, GameMap } from '../data/schema';
 import { randInt, rand } from '../sim/rng';
+import { tileKind } from '../data/tileKind';
 
 export interface Offer {
   // 依頼の一意なID（同じひな形から複数の依頼が生まれるため、連番を含む）
@@ -28,7 +29,7 @@ export const starHubOf = (points: readonly { x: number; y: number }[], map: Game
   let best: { x: number; y: number; tiles: number } | null = null;
   for (let y = 0; y < map.height; y++) {
     for (let x = 0; x < map.width; x++) {
-      if (map.legend[map.tiles[y][x]] !== 'floor') continue;
+      if (tileKind(map, x, y) !== 'floor') continue;
       if (points.some((p) => p.x === x && p.y === y)) continue;
       const tiles = points.reduce((sum, p) => sum + Math.abs(p.x - x) + Math.abs(p.y - y), 0);
       if (best === null || tiles < best.tiles) best = { x, y, tiles };
@@ -54,7 +55,7 @@ export const instantiateTemplate = (
   const area = template.spawnArea;
   for (let y = area.y; y < area.y + area.height && y < map.height; y++) {
     for (let x = area.x; x < area.x + area.width && x < map.width; x++) {
-      if (map.legend[map.tiles[y][x]] === 'floor') candidates.push([x, y]);
+      if (tileKind(map, x, y) === 'floor') candidates.push([x, y]);
     }
   }
   if (candidates.length < n) throw new Error(`${template.id}: spawnArea の床が ${n} 台分足りない`);

@@ -2,6 +2,7 @@
 import { Container, Graphics, Sprite } from 'pixi.js';
 import type { GameMap } from '../data/schema';
 import { spriteOf, texture } from './sprites';
+import { tileKind, VOID_KIND } from '../data/tileKind';
 
 // 奥の壁に掛ける物。壁として扱い、真下が床のときに壁の正面へ描く
 const wallDecor = new Set(['window', 'clock', 'poster', 'whiteboard']);
@@ -29,7 +30,7 @@ export const drawTileMap = (map: GameMap): Container => {
   const g = new Graphics();
   container.addChild(g);
   const ts = map.tileSize;
-  const kindAt = (x: number, y: number): string | undefined => map.legend[map.tiles[y]?.[x]];
+  const kindAt = (x: number, y: number): string | undefined => tileKind(map, x, y);
   const put = (name: string, x: number, y: number): boolean => {
     const tex = texture(spriteOf(name));
     if (!tex) return false;
@@ -42,9 +43,11 @@ export const drawTileMap = (map: GameMap): Container => {
 
   // 屋外（芝・道路）は部屋の床ではないので、壁の上面や奥の壁の正面を作らない
   const isOutdoor = (k: string | undefined): boolean => k === 'ground' || k === 'road';
+  // 何もない場所（void）は床ではなく、何も描かない
+  const isVoid = (k: string | undefined): boolean => k === VOID_KIND;
   const floorAt = (x: number, y: number): boolean => {
     const k = kindAt(x, y);
-    return k !== undefined && !isWall(k) && !isOutdoor(k);
+    return k !== undefined && !isWall(k) && !isOutdoor(k) && !isVoid(k);
   };
   // 奥の壁の正面（真下が床の壁）と、手前の壁（真上が床の壁）。
   // 仕切りの壁（左右とも床）は正面にせず、上面で描く。上端の壁は、両隣が正面なら、その間をつないで隙間を作らない
@@ -104,6 +107,7 @@ export const drawTileMap = (map: GameMap): Container => {
         put('tile/road', x, y);
         continue;
       }
+      if (isVoid(kind)) continue;
       // ドアは通れる床。ドアのスプライトを床の上に描く（家具の対象にはしない）
       if (kind === 'door') {
         put('tile/door', x, y);

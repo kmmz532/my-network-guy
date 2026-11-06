@@ -1,6 +1,7 @@
 // 案件の流れ（受注・設計・施工・検収・納品）。状態を受け取り、新しい状態を返す純粋関数で書く。
 // 設計は機器の配置・配線・IP設定、施工は社員が作業時間をかけて行い、検収で達成条件を判定する。
 import type { Balance, Contract, Furniture, GameMap, Staff } from '../data/schema';
+import { tileKind } from '../data/tileKind';
 import { renameNode } from '../network/nodeName';
 import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
@@ -381,7 +382,7 @@ const officePlaceReason = (
     const onDesk = furniture.some((f) => f.x === x && f.y === y && isDeskFurniture(f.id, env));
     return !onDesk || hasNode ? 'desk' : null;
   }
-  const kind = map.legend[map.tiles[y][x]];
+  const kind = tileKind(map, x, y);
   if (kind !== 'floor') return 'tile';
   if (hasNode) return 'tile';
   const here = furniture.filter((f) => f.x === x && f.y === y);
@@ -402,7 +403,7 @@ const placeReason = (
   anyFloor = false,
 ): string | null => {
   if (inhouse) return officePlaceReason(furniture, nodes, deviceId, x, y, map, env, anyFloor);
-  const kind = map.legend[map.tiles[y][x]];
+  const kind = tileKind(map, x, y);
   if (kind !== 'floor' && !(kind === 'desk' && env.devices[deviceId].category === CATEGORY.pc)) return 'tile';
   if (nodes.some((n) => n.x === x && n.y === y)) return 'tile';
   return null;

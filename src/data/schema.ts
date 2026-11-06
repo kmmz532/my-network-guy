@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import { parseCondition } from '../sim/guide';
 import { CATEGORY_IDS } from './categories';
+import { VOID_CHAR } from './tileKind';
 
 const int = z.number().int();
 // 解放のレベル（会社のレベル。N45）。品目ごとに必ず書く
@@ -378,7 +379,7 @@ export const mapSchema = z
         ctx.addIssue({ code: 'custom', message: `tiles[${y}] の長さが width（${map.width}）と一致しない` });
       }
       for (const ch of row) {
-        if (!(ch in map.legend)) {
+        if (ch !== VOID_CHAR && !(ch in map.legend)) {
           ctx.addIssue({ code: 'custom', message: `tiles[${y}] の文字 "${ch}" が legend にない` });
         }
       }
