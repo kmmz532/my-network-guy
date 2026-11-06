@@ -33,8 +33,13 @@ export const watchUpdates = (reg: ServiceWorkerRegistration): void => {
   });
 };
 
+// 利用者が「更新する」を押したあとだけ、切り替えによる再読み込みを行う（プレイ中に勝手に読み込み直さない）
+let applying = false;
+export const isApplyingUpdate = (): boolean => applying;
+
 // 利用者が「更新する」を押したとき。待機中の版を有効にする（controllerchange で再読み込みする）
 export const applyUpdate = (): void => {
+  applying = true;
   waiting?.waiting?.postMessage({ type: 'SKIP_WAITING' });
   waiting = null;
   emit(false);

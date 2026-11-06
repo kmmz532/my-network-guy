@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import { useGameStore } from './stores/useGameStore';
-import { watchUpdates } from './pwa/update';
+import { isApplyingUpdate, watchUpdates } from './pwa/update';
 
 // 開発中と撮影用のビルド（VITE_SHOOT）だけ、画面の確認の自動化から状態を操作できるようにする（通常の本番のビルドには含めない）
 if (import.meta.env.DEV || import.meta.env.VITE_SHOOT) (window as unknown as { __game: typeof useGameStore }).__game = useGameStore;
@@ -23,7 +23,8 @@ for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   const hadController = navigator.serviceWorker.controller !== null;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (hadController) window.location.reload();
+    // 利用者が「更新する」を押したときだけ読み込み直す（プレイ中に勝手に切り替えて読み込み直さない）
+    if (hadController && isApplyingUpdate()) window.location.reload();
   });
   window.addEventListener('load', () => {
     navigator.serviceWorker
