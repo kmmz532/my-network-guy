@@ -60,8 +60,8 @@ export function CompanyBody() {
   const office = useGameStore((s) => s.office);
   // 自社のネットワークの外部への接続と、サーバーの貸し出し（N71・N72）
   const outside = outsideCheck(office, gameEnv.engine);
-  const rental = rentalOf(office, gameEnv.engine, balance.rental.monthlyPerServer);
   const level = levelOf(companyExp, balance);
+  const rental = rentalOf(office, gameEnv.engine, balance.rental, level, balance.time.daysPerMonth);
   const next = nextLevel(companyExp, balance);
   const inLevel = companyExp - expAtLevel(level, balance);
   const need = needOf(level, balance);
@@ -106,7 +106,7 @@ export function CompanyBody() {
       {outside.attached && (
         <div style={row}>
           <span>{t('ui.company.rental')}</span>
-          <span>{outside.leaks ? t('ui.company.rental.leak') : t('ui.company.rental.value', { count: outside.exposedServers.length, income: rental.income.toLocaleString('ja-JP') })}</span>
+          <span>{outside.leaks ? t('ui.company.rental.leak') : t('ui.company.rental.value', { count: outside.exposedServers.length, income: rental.monthly.toLocaleString('ja-JP') })}</span>
         </div>
       )}
       <div style={{ paddingTop: 8 }}>

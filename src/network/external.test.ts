@@ -1,6 +1,6 @@
 // 外部（インターネット）の判定（N71・N72）
 import { describe, expect, it } from 'vitest';
-import { outsideCheck, rentalOf, withInternet } from './external';
+import { customersOf, outsideCheck, rentalOf, withInternet } from './external';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
 const data: EngineData = {
@@ -73,16 +73,27 @@ describe('外部（インターネット）の判定（N71）', () => {
   });
 });
 
-describe('サーバーの貸し出しの収入（N72）', () => {
-  it('漏れがあれば、収入はなく、公開のサーバーがあると評判が下がる', () => {
-    const r = rentalOf(office(), data, 30000);
-    expect(r.income).toBe(0);
+describe('サーバーの貸し出しの収入', () => {
+  const rental = { monthlyPerCustomer: 30000, levelsPerCustomer: 3 };
+
+  it('漏れがあれば、収入はない', () => {
+    const r = rentalOf(office(), data, rental, 1, 30);
+    expect(r.monthly).toBe(0);
+    expect(r.daily).toBe(0);
+    expect(r.leaks).toBe(true);
     // この試験の社内には公開のサーバーがないため、評判は下がらない
     expect(r.penalty).toBe(false);
   });
 
   it('外部につながらなければ、収入はない', () => {
     const net: Network = { nodes: [node('a', 'pc', { interfaces: [{ port: 0, ip: '192.168.1.10', prefix: 24 }] })], links: [] };
-    expect(rentalOf(net, data, 30000)).toEqual({ income: 0, penalty: false });
+    expect(rentalOf(net, data, rental, 1, 30)).toEqual({ monthly: 0, daily: 0, penalty: false, leaks: false, exposed: 0 });
+  });
+
+  it('顧客の数は、レベルで増える（levelsPerCustomer のレベルごとに1件）', () => {
+    expect(customersOf(1, 3)).toBe(1);
+    expect(customersOf(3, 3)).toBe(1);
+    expect(customersOf(4, 3)).toBe(2);
+    expect(customersOf(10, 3)).toBe(4);
   });
 });

@@ -37,7 +37,7 @@ import type {
 import type { ClockState } from './clock';
 import { isOnShift } from './shift';
 import { rate, rewardRateOf } from './rating';
-import { DELEGATE_MIN_COUNT, DELEGATED_EXP_DIVISOR, DELEGATED_STAR_CAP, familiarKeyOf, fitsBlueprint, recordDelivery, type Familiarity } from './familiar';
+import { DELEGATE_MIN_COUNT, DELEGATED_EXP_DIVISOR, DELEGATED_STAR_CAP, familiarKeyOf, missingFixed, positionsMatch, recordDelivery, type Blueprint, type Familiarity } from './familiar';
 import { dueDayOf, lateDaysOf, lateFactor } from './deadline';
 import { furnitureBonus, type BonusEnv } from './furniture';
 import { gainExp, staffPower } from './staff';
@@ -274,57 +274,98 @@ export type Outcome = { ok: true; core: Core; report?: Report } | { ok: false; r
 
 const fail = (reason: string): Outcome => ({ ok: false, reason });
 
-// 任せられるかの理由（任せられるなら null）（N70）
-export const delegationReason = (familiarity: Familiarity, offer: Offer): string | null => {
+// 増えた機器を型紙につなぐときのケーブル（一番安いもの）
+const WIRE_CABLE = 'utp_cat5e';
+
+// 型紙をつなぐ先（N70）: 近くのスイッチかルーターのうち、空きのポートがあるもの。足りない機器は、ここにつなぐ
+const isHubCategory = (category: string): boolean =>
+  category === CATEGORY.l2Switch || category === CATEGORY.router || category === CATEGORY.l3Switch || category === CATEGORY.routerSwitch;
+
+const hubFor = (nodes: readonly NetNode[], links: readonly NetLink[], from: NetNode, env: Env): NetNode | null => {
+  let best: NetNode | null = null;
+  let bestDist = Infinity;
+  for (const n of nodes) {
+    if (n.uid === from.uid || !isHubCategory(env.devices[n.device].category)) continue;
+    if (usedPorts(links, n).size >= env.devices[n.device].portCount) continue;
+    const dist = Math.abs(n.x - from.x) + Math.abs(n.y - from.y);
+    if (dist < bestDist) {
+      best = n;
+      bestDist = dist;
+    }
+  }
+  return best;
+};
+
+// 任せられるかの理由（任せられるなら null）（N70）。型紙の固定の機器の位置が合い、増えた機器をつなぐ先があること
+export const delegationReason = (familiarity: Familiarity, offer: Offer, env: Env): string | null => {
   if (offer.contract.inhouse) return 'inhouse';
   const key = familiarKeyOf(offer.kind, offer.baseId, offer.contract.map);
   if ((familiarity.counts[key] ?? 0) < DELEGATE_MIN_COUNT) return 'delegate.count';
   const bp = familiarity.blueprints[key];
   if (!bp) return 'delegate.blueprint';
-  return fitsBlueprint(bp.design, fixedNodes(offer.contract)) ? null : 'delegate.fit';
+  const fixed = fixedNodes(offer.contract);
+  if (!positionsMatch(bp.design, fixed)) return 'delegate.fit';
+  const reachable = missingFixed(bp.design, fixed).every((m) => hubFor(bp.design.nodes, bp.design.links, m, env) !== null);
+  return reachable ? null : 'delegate.fit';
 };
 
-// 設計中の案件に型紙を写す（「型紙を使う」）。同じ依頼の型紙が、今の機器の置き場所に合うときだけ。写したあとは、テストをやり直す（N70）
-export const applyBlueprint = (core: Core): Outcome => {
+// 型紙を依頼に写す（N70）。型紙の固定の機器は同じ位置にあること。今回の依頼で増えた固定の機器は、同じ種類で置き、近くのスイッチかルーターに配線する
+const copyBlueprint = (core: Core, p: Project, bp: Blueprint, env: Env): Outcome => {
+  const fixed = fixedNodes(p.contract);
+  if (!positionsMatch(bp, fixed)) return fail('delegate.fit');
+  const missing = missingFixed(bp, fixed);
+  const numbers = [...bp.nodes.map((n) => n.uid), ...bp.links.map((l) => l.uid)].map((u) => Number(/(\d+)$/.exec(u)?.[1] ?? 0));
+  const copied: Project = {
+    ...p,
+    nodes: [...bp.nodes, ...missing],
+    links: [...bp.links],
+    segments: { ...bp.segments },
+    seq: Math.max(p.seq, ...numbers) + 1,
+    // 固定の機器は、依頼の時点で置かれている（施工済みとして扱う）。型紙の配線と増えた配線は、施工が必要
+    built: { nodes: fixed.map((n) => n.uid), links: [] },
+    testedOk: false,
+  };
+  let next = withProject(core, copied);
+  for (const m of missing) {
+    const current = next.active.find((x) => x.id === p.id);
+    if (!current) return fail('none');
+    const hub = hubFor(current.nodes, current.links, m, env);
+    if (!hub) return fail('delegate.fit');
+    const wired = connect(next, m.uid, hub.uid, WIRE_CABLE, env, 'focus');
+    if (!wired.ok) return wired;
+    next = wired.core;
+  }
+  return { ok: true, core: next };
+};
+
+// 設計中の案件に型紙を写す（「型紙を使う」）。同じ依頼の型紙が今の機器の置き場所に合うときだけ。写したあとは、テストをやり直す（N70）
+export const applyBlueprint = (core: Core, env: Env): Outcome => {
   const p = requireDesign(core);
   if (typeof p === 'string') return fail(p);
   if (p.contract.inhouse) return fail('inhouse');
   const bp = core.familiarity.blueprints[familiarKeyOf(p.kind, p.baseId, p.contract.map)];
   if (!bp) return fail('delegate.blueprint');
-  if (!fitsBlueprint(bp.design, fixedNodes(p.contract))) return fail('delegate.fit');
-  const numbers = [...bp.design.nodes.map((n) => n.uid), ...bp.design.links.map((l) => l.uid)].map((u) => Number(/(d+)$/.exec(u)?.[1] ?? 0));
-  return { ok: true, core: withProject(core, { ...p, nodes: bp.design.nodes, links: bp.design.links, segments: { ...bp.design.segments }, seq: Math.max(p.seq, ...numbers) + 1, testedOk: false }) };
+  return copyBlueprint(core, p, bp.design, env);
 };
 
 // 社員に任せて受注する（N70）。型紙を写し、テストを通してから施工に入る。★と経験値の上限は検収で掛ける
 export const acceptDelegated = (core: Core, offerId: string, slots: number, crew: string[], env: Env): Outcome => {
   const offer = core.offers.find((o) => o.id === offerId);
   if (!offer) return fail('none');
-  const reason = delegationReason(core.familiarity, offer);
+  const reason = delegationReason(core.familiarity, offer, env);
   if (reason) return fail(reason);
   const accepted = accept(core, offerId, slots, crew);
   if (!accepted.ok) return accepted;
-  const key = familiarKeyOf(offer.kind, offer.baseId, offer.contract.map);
-  const bp = core.familiarity.blueprints[key].design;
-  const fixed = fixedNodes(offer.contract);
+  const bp = core.familiarity.blueprints[familiarKeyOf(offer.kind, offer.baseId, offer.contract.map)].design;
   const p = accepted.core.active.find((x) => x.id === offerId);
   if (!p) return fail('none');
-  // 型紙の機器・配線の連番は、今の案件の連番より後にする
-  const numbers = [...bp.nodes.map((n) => n.uid), ...bp.links.map((l) => l.uid)].map((u) => Number(/(d+)$/.exec(u)?.[1] ?? 0));
-  const copied: Project = {
-    ...p,
-    nodes: bp.nodes,
-    links: bp.links,
-    segments: { ...bp.segments },
-    seq: Math.max(p.seq, ...numbers) + 1,
-    built: { nodes: fixed.map((n) => n.uid), links: [] },
-    delegated: true,
-    testedOk: false,
-  };
-  const tested = judge(copied, env);
-  if (!tested.passed) return fail('delegate.test');
-  const built = requestBuild(withProject(accepted.core, { ...copied, testedOk: true }), env);
-  return built;
+  const copiedOut = copyBlueprint(accepted.core, { ...p, delegated: true }, bp, env);
+  if (!copiedOut.ok) return copiedOut;
+  const copied = copiedOut.core.active.find((x) => x.id === offerId);
+  if (!copied) return fail('none');
+  // 写した設計がテストを通らなければ、受注しない（この場合は状態を変えない）
+  if (!judge(copied, env).passed) return fail('delegate.test');
+  return requestBuild(withProject(copiedOut.core, { ...copied, testedOk: true }), env);
 };
 
 // 案件で最初から置かれている機器
@@ -623,7 +664,7 @@ const segmentAt = (net: Net, env: Env, uid: string, port: number): Segment | und
   segmentOf(segmentsOf(net, env.engine), uid, port);
 
 // 機器のポートのうち、ケーブルがつながっている番号の集合
-const usedPorts = (links: NetLink[], node: NetNode): Set<number> => {
+const usedPorts = (links: readonly NetLink[], node: NetNode): Set<number> => {
   const used = new Set<number>();
   for (const l of links) {
     if (l.a.node === node.uid) used.add(l.a.port);

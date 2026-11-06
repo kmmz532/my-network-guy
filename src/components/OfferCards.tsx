@@ -146,7 +146,7 @@ function OfferCard({
   const busy = useGameStore((s) => s.active.flatMap((p) => p.crew));
   const familiarity = useGameStore((s) => s.familiarity);
   // 社員に任せられない理由（任せられるなら null）（N70）
-  const delegateReason = delegationReason(familiarity, offer);
+  const delegateReason = delegationReason(familiarity, offer, gameEnv);
   // 受注の画面を開いたときの担当（空いている社員全員）
   const [crew, setCrew] = useState<string[]>(() =>
     staff.filter((s) => !busy.includes(s.uid) && s.training === null).map((s) => s.uid),

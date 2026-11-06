@@ -70,15 +70,39 @@ export const outsideCheck = (net: Network, data: EngineData): OutsideCheck => {
   return { attached: true, pcsReachOutside, exposedServers, leaks, servers: servers.length };
 };
 
-// 月末の収入（N72）。公開しているサーバー1台ごとに額を受け取る。社内の PC へ外から届くとき（漏れ）は収入がなく、評判が1下がる（公開のサーバーがあるとき）
+// 貸し出しの収入（N72）。公開しているサーバーの数と、会社のレベルの顧客数で、月の収入が決まる。
+// 1日ごとに判定し、その日に届いたサーバーの分だけ入る（障害の日は入らない）。社内の PC へ外から届く（漏れ）ときは収入がなく、
+// 公開のサーバーがあるときは、月末の判定で評判が1下がる。
 export interface Rental {
-  income: number;
+  // 月の収入の見込み（今の状態のまま1か月続いたとき）
+  monthly: number;
+  // 1日の収入（月の収入を日数で割った額）
+  daily: number;
+  // 漏れがあり、公開のサーバーがある（月末に評判が1下がる）
   penalty: boolean;
+  leaks: boolean;
+  // 公開して届いているサーバーの数
+  exposed: number;
 }
-export const rentalOf = (net: Network, data: EngineData, monthlyPerServer: number): Rental => {
+
+// 顧客の数（会社のレベルで増える。levelsPerCustomer のレベルごとに1件増える）
+export const customersOf = (level: number, levelsPerCustomer: number): number => 1 + Math.floor((level - 1) / levelsPerCustomer);
+
+export const rentalOf = (
+  net: Network,
+  data: EngineData,
+  rental: { monthlyPerCustomer: number; levelsPerCustomer: number },
+  level: number,
+  daysPerMonth: number,
+): Rental => {
   const check = outsideCheck(net, data);
+  const exposed = check.leaks ? 0 : check.exposedServers.length;
+  const monthly = exposed * rental.monthlyPerCustomer * customersOf(level, rental.levelsPerCustomer);
   return {
-    income: check.leaks ? 0 : check.exposedServers.length * monthlyPerServer,
+    monthly,
+    daily: Math.round(monthly / daysPerMonth),
     penalty: check.leaks && check.servers > 0,
+    leaks: check.leaks,
+    exposed,
   };
 };

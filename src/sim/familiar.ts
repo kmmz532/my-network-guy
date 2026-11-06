@@ -37,6 +37,13 @@ export const recordDelivery = (f: Familiarity, key: string, stars: number, desig
   };
 };
 
-// 型紙の機器がすべて、今回の依頼の機器（固定の配置）と同じ uid・種類・位置にあるか
-export const fitsBlueprint = (design: Blueprint, fixed: readonly NetNode[]): boolean =>
-  fixed.every((f) => design.nodes.some((n) => n.uid === f.uid && n.device === f.device && n.x === f.x && n.y === f.y));
+// 型紙にある固定の機器が、今回の依頼と同じ種類・位置にあるか（型紙にない固定の機器は、あとで足せるので数えない）
+export const positionsMatch = (design: Blueprint, fixed: readonly NetNode[]): boolean =>
+  fixed.every((f) => {
+    const n = design.nodes.find((x) => x.uid === f.uid);
+    return n === undefined || (n.device === f.device && n.x === f.x && n.y === f.y);
+  });
+
+// 型紙にない固定の機器（今回の依頼で増えた機器）。同じ種類で置き、近くの機器につなぐ
+export const missingFixed = (design: Blueprint, fixed: readonly NetNode[]): NetNode[] =>
+  fixed.filter((f) => !design.nodes.some((n) => n.uid === f.uid));

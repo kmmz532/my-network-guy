@@ -952,11 +952,12 @@ export const useGameStore = create<GameState>((set, get) => {
           return { speed: 0, payWarned: s.clock.paidMonths, notice: { key: 'ui.notice.payPause', params: {}, id: Date.now() } };
         }
         const ticked = advanceTick(s.clock, balance, totalSalary(s.staff, balance.nightPayRate));
-        // 月末に、自社のサーバーを外部に貸した収入を受け取る（N72。給与と同じ月末）。外から社内の PC へ届くときは収入なしで、評判が1下がる
+        // 貸し出しの収入（日が替わるたびに、その日の分を受け取る。障害の日は入らない）。月末に漏れがあれば評判が1下がる
+        const days = Math.floor(ticked.minute / minutesPerDay) - Math.floor(s.clock.minute / minutesPerDay);
         const months = ticked.paidMonths - s.clock.paidMonths;
-        const rent = months > 0 && !ticked.bankrupt && s.mode === 'career' ? rentalOf(s.office, gameEnv.engine, balance.rental.monthlyPerServer) : null;
-        const clock = rent !== null && rent.income > 0 ? { ...ticked, money: ticked.money + rent.income * months } : ticked;
-        let next: Partial<GameState> = { clock, ...(rent?.penalty ? { reputation: Math.max(0, s.reputation - months) } : {}) };
+        const rent = days > 0 && !ticked.bankrupt && s.mode === 'career' ? rentalOf(s.office, gameEnv.engine, balance.rental, levelOf(s.companyExp, balance), balance.time.daysPerMonth) : null;
+        const clock = rent !== null && rent.daily > 0 ? { ...ticked, money: ticked.money + rent.daily * days } : ticked;
+        let next: Partial<GameState> = { clock, ...(rent?.penalty && months > 0 ? { reputation: Math.max(0, s.reputation - months) } : {}) };
         // 月末に給与を払ったら知らせる
         if (clock.paidMonths > s.clock.paidMonths) {
           const amount = totalSalary(s.staff, balance.nightPayRate);
@@ -1044,7 +1045,7 @@ export const useGameStore = create<GameState>((set, get) => {
       set({ clock: { ...s.clock, money: result.money }, owned: result.owned });
       return true;
     },
-    useBlueprint: () => recorded(() => apply(applyBlueprintOp(coreOf(get())))),
+    useBlueprint: () => recorded(() => apply(applyBlueprintOp(coreOf(get()), gameEnv))),
     acceptDelegated: (offerId, crew) => {
       const reason = apply(acceptDelegatedOp(coreOf(get()), offerId, balance.office.projectSlots, crew, gameEnv));
       if (reason === null && get().speed !== 0 && loadSettings().designPause) get().setSpeed(0);

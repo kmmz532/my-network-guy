@@ -1,6 +1,6 @@
 // なじみの依頼（N70）の数え方・型紙・写せるかの判定
 import { describe, expect, it } from 'vitest';
-import { EMPTY_FAMILIARITY, fitsBlueprint, familiarKeyOf, recordDelivery, type Blueprint } from './familiar';
+import { EMPTY_FAMILIARITY, positionsMatch, missingFixed, familiarKeyOf, recordDelivery, type Blueprint } from './familiar';
 import type { NetNode } from '../network/types';
 
 const node = (uid: string, device: string, x: number, y: number): NetNode => ({
@@ -42,11 +42,16 @@ describe('なじみの依頼の組', () => {
 
 describe('型紙の写せるか', () => {
   it('今回の依頼の機器が、型紙に同じ位置で全部あれば写せる', () => {
-    expect(fitsBlueprint(design, [node('pc_1', 'pc_basic', 1, 1)])).toBe(true);
+    expect(positionsMatch(design, [node('pc_1', 'pc_basic', 1, 1)])).toBe(true);
   });
 
   it('位置や種類が違う機器があれば写せない', () => {
-    expect(fitsBlueprint(design, [node('pc_1', 'pc_basic', 2, 1)])).toBe(false);
-    expect(fitsBlueprint(design, [node('pc_9', 'pc_basic', 1, 1)])).toBe(false);
+    expect(positionsMatch(design, [node('pc_1', 'pc_basic', 2, 1)])).toBe(false);
+  });
+
+  it('型紙にない固定の機器は、写せたうえで足す対象になる', () => {
+    const added = node('pc_9', 'pc_basic', 1, 1);
+    expect(positionsMatch(design, [added])).toBe(true);
+    expect(missingFixed(design, [added]).map((n) => n.uid)).toEqual(['pc_9']);
   });
 });

@@ -100,7 +100,8 @@
     }
   },
   "rental": {
-    "monthlyPerServer": 30000
+    "monthlyPerCustomer": 30000,
+    "levelsPerCustomer": 3
   },
   "office": {
     "projectSlots": 1,

@@ -7,6 +7,7 @@ import { mapLoaders } from 'virtual:loaders';
 import { minutesPerDay } from '../src/sim/clock';
 import { refreshOffers, type OfferEnv, type OfferState } from '../src/contracts/offers';
 import { dailyExpCapOf, deliveryExpOf, expAtLevel, levelOf, needOf } from '../src/sim/level';
+import { DELEGATE_MIN_COUNT, DELEGATED_EXP_DIVISOR } from '../src/sim/familiar';
 import type { GameMap } from '../src/data/schema';
 
 const days = Number(process.argv[2] ?? 365);
@@ -45,6 +46,9 @@ let arrivals = 0;
 let deliveryTotal = 0;
 let auxTotal = 0;
 let delivered = 0;
+// 組ごとの納品の回数（なじみの依頼）と、社員に任せた件数（★2以上の納品を仮定する）
+const familiarCounts = new Map<string, number>();
+let delegatedTotal = 0;
 const milestones = [10, 30, 60, 99];
 const reached = new Map<number, number>();
 let lastLevel = 1;
@@ -73,7 +77,15 @@ for (let day = 0; day < days; day++) {
   for (const o of takeList) {
     const tid = templateOf(o.contract.id);
     counts.set(tid, (counts.get(tid) ?? 0) + 1);
-    const exp = deliveryExpOf(o.contract.unlockLevel, levelOf(state.companyExp, typedBalance), 1.1, typedBalance);
+    // なじみの依頼: 同じ組を3回納品したら、4回目以降は社員に任せる（経験値は半分）
+    const key = o.kind === 'template' ? `${o.baseId}|${o.contract.map}` : `fixed:${o.baseId}`;
+    const delegated = (familiarCounts.get(key) ?? 0) >= DELEGATE_MIN_COUNT && !o.contract.inhouse;
+    let exp = deliveryExpOf(o.contract.unlockLevel, levelOf(state.companyExp, typedBalance), 1.1, typedBalance);
+    if (delegated) {
+      exp = Math.max(1, Math.floor(exp / DELEGATED_EXP_DIVISOR));
+      delegatedTotal++;
+    }
+    familiarCounts.set(key, (familiarCounts.get(key) ?? 0) + 1);
     deliveryTotal += exp;
     delivered++;
     state = { ...state, companyExp: state.companyExp + exp };
@@ -94,6 +106,7 @@ for (let day = 0; day < days; day++) {
 const total = [...counts.values()].reduce((s, n) => s + n, 0);
 console.log(`日数 ${days}・評判 ${reputation}・完了した固定案件 ${fixedDone} 件・1日の受注 ${perDay} 件・補助の使用 ${auxUse}`);
 console.log(`届いた判定 ${arrivals} 回（まとめて届いた ${bursts} 回）・届いた依頼 ${total} 件（納品 ${delivered} 件）`);
+console.log(`任せた依頼 ${delegatedTotal} 件（納品の ${delivered ? ((delegatedTotal / delivered) * 100).toFixed(1) : '0.0'}%）`);
 console.log(`最後のレベル Lv${lastLevel}（経験値 ${state.companyExp}）・納品の経験値の割合 ${((deliveryTotal / (deliveryTotal + auxTotal || 1)) * 100).toFixed(1)}%`);
 console.log('レベルの推移（節目）:');
 for (const m of milestones) {
