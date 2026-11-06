@@ -9,7 +9,7 @@ import { gameEnv } from '../sim/env';
 import { staffPower } from '../sim/staff';
 import { offerHintOf, useGameStore } from '../stores/useGameStore';
 import type { Offer } from '../contracts/template';
-import { Modal, primaryButton, usePrimary } from './Modal';
+import { primaryButton, usePrimary } from './Modal';
 import { loadSettings, saveSettings, OFFER_SORTS, type OfferSort } from '../settings/settings';
 import { sortOffers } from '../contracts/offers';
 import { minutesPerDay, toDate } from '../sim/clock';
@@ -19,7 +19,8 @@ import { RADIUS } from '../ui/theme';
 
 // 依頼の一覧。Enter は一番上の依頼の受注（主のボタン）
 
-export function OfferCards({ onClose }: { onClose: () => void }) {
+// 依頼の一覧の中身（ウィンドウの中に出す。マップの操作は止めない）
+export function OfferBody({ onClose }: { onClose: () => void }) {
   const offers = useGameStore((s) => s.offers);
   // 案件の枠がいっぱいのときは受注できない
   const full = useGameStore((s) => s.active.length >= balance.office.projectSlots);
@@ -43,7 +44,7 @@ export function OfferCards({ onClose }: { onClose: () => void }) {
   const reputation = useGameStore((s) => s.reputation);
 
   return (
-    <Modal onClose={onClose} boxStyle={{ minWidth: 320 }}>
+    <div style={{ minWidth: 300 }}>
       <div style={{ marginBottom: 8 }}>
         <Icon name="icon/mail" />
       </div>
@@ -87,7 +88,7 @@ export function OfferCards({ onClose }: { onClose: () => void }) {
           />
         ))}
       </div>
-    </Modal>
+    </div>
   );
 }
 
@@ -186,14 +187,14 @@ function OfferCard({
           {t('ui.task.hint', { text: t(`contract.${offer.baseId}.hint` as LangKey) })}
         </div>
       )}
-      <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', alignItems: 'center' }}>
         <span>
           <Icon name="icon/pc_count" /> ×{hosts}
         </span>
         <span>
           <Icon name="icon/budget" /> {yen(offer.contract.budget)}
         </span>
-        {offer.contract.deadlineDays !== undefined && <span>{t('ui.offer.deadline', { days: offer.contract.deadlineDays })}</span>}
+        {offer.contract.deadlineDays !== undefined && <span style={{ whiteSpace: 'nowrap' }}>{t('ui.offer.deadline', { days: offer.contract.deadlineDays })}</span>}
         {offer.expiresMinute !== undefined && (
           <span style={{ color: '#ffd866' }}>{t('ui.offer.expires', { days: Math.max(0, Math.ceil((offer.expiresMinute - now) / minutesPerDay)) })}</span>
         )}
@@ -201,12 +202,12 @@ function OfferCard({
           <Icon name="icon/money" /> {yen(offer.contract.reward.money)}
         </span>
         {offer.kind === 'template' && (
-          <button style={{ fontFamily: 'inherit', cursor: 'pointer', background: 'transparent', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: RADIUS.none, padding: '4px 8px', marginLeft: 'auto' }} onClick={onDecline}>
+          <button style={{ fontFamily: 'inherit', cursor: 'pointer', background: 'transparent', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: RADIUS.none, padding: '4px 8px', marginLeft: 'auto', whiteSpace: 'nowrap' }} onClick={onDecline}>
             {t('ui.offer.decline')}
           </button>
         )}
         <button
-          style={{ ...primaryButton, marginLeft: offer.kind === 'template' ? 0 : 'auto' }}
+          style={{ ...primaryButton, marginLeft: offer.kind === 'template' ? 0 : 'auto', whiteSpace: 'nowrap' }}
           disabled={!canAccept}
           onClick={() => onAccept(crew)}
         >

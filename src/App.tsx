@@ -20,13 +20,11 @@ import { SandboxSizePanel } from './components/SandboxSizePanel';
 import { useKeymap } from './input/useKeymap';
 import { tipText } from './input/keymap';
 import { applyUiScale, loadSettings } from './settings/settings';
-import { OfferCards } from './components/OfferCards';
 import { Toolbar } from './components/Toolbar';
 import { Guide } from './components/Guide';
 import { TaskPanel } from './components/TaskPanel';
 import { Windows } from './components/Windows';
 import { PortMenu } from './components/PortMenu';
-import { ShopCards } from './components/ShopCards';
 import { HiringPanel, type HiringTab } from './components/HiringPanel';
 import { Tooltip, TooltipHost, hideTip } from './components/Tooltip';
 import { PausedBuildPrompt } from './components/PausedBuildPrompt';
@@ -45,7 +43,7 @@ const SPEED_NOTE_MS = 1000;
 const SAVE_MARK_MS = 1000;
 
 type Screen = 'title' | 'game';
-type Popup = 'offers' | 'shop' | 'menu' | 'help' | 'settings' | 'sandboxResize' | 'sandboxReset' | 'sandboxResetConfirm' | null;
+type Popup = 'menu' | 'help' | 'settings' | 'sandboxResize' | 'sandboxReset' | 'sandboxResetConfirm' | null;
 
 const hudButton = (on: boolean) =>
   ({
@@ -137,7 +135,11 @@ export function App() {
   }, [speed]);
   // キーの表は、ゲームの画面が開いている間だけ効く。M・S・? はポップアップを、W は倉庫の欄を開け閉めする
   useKeymap(screen === 'game', {
-    togglePopup: (name) => setPopup((p) => (p === name ? null : name)),
+    // 依頼とショップは、マップの操作を止めないウィンドウで開く（N40）
+    togglePopup: (name) => {
+      if (name === 'offers' || name === 'shop') useGameStore.getState().toggleWindow(name, '');
+      else setPopup((p) => (p === name ? null : name));
+    },
     toggleWarehouse: () => setWarehouseOpen((v) => !v),
   });
 
@@ -356,8 +358,8 @@ export function App() {
       />
       <PortMenu />
       <Toolbar
-        onOffers={() => setPopup('offers')}
-        onShop={() => setPopup('shop')}
+        onOffers={() => useGameStore.getState().toggleWindow('offers', '')}
+        onShop={() => useGameStore.getState().toggleWindow('shop', '')}
         hiringOpen={hiring}
         onHire={() => {
           setHiringTab('hiring');
@@ -367,8 +369,6 @@ export function App() {
         setWarehouseOpen={setWarehouseOpen}
       />
       <Guide />
-      {popup === 'offers' && <OfferCards onClose={() => setPopup(null)} />}
-      {popup === 'shop' && <ShopCards onClose={() => setPopup(null)} />}
       {hiring && <HiringPanel tab={hiringTab} onTab={setHiringTab} onClose={() => setHiring(false)} />}
       <TooltipHost />
       {popup === 'menu' && (

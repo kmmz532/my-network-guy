@@ -7,7 +7,7 @@ import { isUnlocked } from '../sim/shop';
 import { effectText } from '../game/effectText';
 import { useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
-import { Modal, primaryButton, secondaryButton } from './Modal';
+import { primaryButton, secondaryButton } from './Modal';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { RADIUS } from '../ui/theme';
 
@@ -15,7 +15,8 @@ import { RADIUS } from '../ui/theme';
 type Section = 'device' | 'furniture';
 const SECTIONS: readonly Section[] = ['device', 'furniture'];
 
-export function ShopCards({ onClose }: { onClose: () => void }) {
+// 機材の店の中身（ウィンドウの中に出す。マップの操作は止めない）
+export function ShopBody({ onClose }: { onClose: () => void }) {
   const completed = useGameStore((s) => s.completed);
   // サンドボックスは解禁の条件を無視し、費用は 0
   const sandbox = useGameStore((s) => s.mode) === 'sandbox';
@@ -29,9 +30,8 @@ export function ShopCards({ onClose }: { onClose: () => void }) {
   const yen = (n: number) => n.toLocaleString('ja-JP');
   const cost = (n: number) => (sandbox ? 0 : n);
 
-  // Enter は閉じる（主のボタン）
   return (
-    <Modal onClose={onClose} primary={onClose} boxStyle={{ width: 'min(420px, calc(100% - 32px))' }}>
+    <div>
       <div style={{ marginBottom: 8 }}>
         <Icon name="icon/cart" />
       </div>
@@ -115,6 +115,6 @@ export function ShopCards({ onClose }: { onClose: () => void }) {
       <button style={{ ...primaryButton, display: 'block', marginTop: 8, marginLeft: 'auto' }} onClick={onClose}>
         {t('ui.panel.close')}
       </button>
-    </Modal>
+    </div>
   );
 }

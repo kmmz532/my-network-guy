@@ -7,6 +7,8 @@ import { frontWindow, clampRect, isNarrow, narrowRect, type Viewport, type Windo
 import { findDevice, DeviceBody, DeviceTitle } from './DevicePanel';
 import { StaffBody, StaffListBody, StaffTitle } from './StaffCard';
 import { Window } from './Window';
+import { OfferBody } from './OfferCards';
+import { ShopBody } from './ShopCards';
 import { Tabs, TAB_COLORS } from './Tabs';
 import { useGameStore, viewportNow } from '../stores/useGameStore';
 import { WINDOW_TAB_GAP, WINDOW_TAB_HEIGHT, uiScaled } from '../ui/theme';
@@ -26,6 +28,8 @@ function useViewport(): Viewport {
 const tabLabel = (kind: WindowKind, ref: string): ReactNode => {
   if (kind === 'device') return <DeviceTitle uid={ref} />;
   if (kind === 'staff') return <StaffTitle uid={ref} />;
+  if (kind === 'offers') return <b style={{ whiteSpace: 'nowrap' }}>{t('ui.offer.title')}</b>;
+  if (kind === 'shop') return <b style={{ whiteSpace: 'nowrap' }}>{t('ui.shop.title')}</b>;
   return <b style={{ whiteSpace: 'nowrap' }}>{t('ui.staff.list.title')}</b>;
 };
 
@@ -114,6 +118,8 @@ export function Windows({ onTraining }: { onTraining: () => void }) {
           {w.kind === 'device' && <DeviceBody uid={w.active} />}
           {w.kind === 'staff' && <StaffBody uid={w.active} onTraining={onTraining} />}
           {w.kind === 'staffList' && <StaffListBody />}
+          {w.kind === 'offers' && <OfferBody onClose={() => state.closeWindow(w.id)} />}
+          {w.kind === 'shop' && <ShopBody onClose={() => state.closeWindow(w.id)} />}
         </Window>
       ))}
     </>
