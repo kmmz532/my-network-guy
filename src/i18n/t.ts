@@ -21,7 +21,10 @@ export function currentLang(): LangCode | null {
 
 // {name} 形式の名前付き置換を行う
 export function t(key: LangKey, params: Params = {}): string {
-  const template = dict[key] ?? key;
+  const found = dict[key];
+  // 翻訳がないキーは、開発中は警告にする（キーのまま画面に出るのを見逃さないため）。案件の任意の文言は hasKey で確かめてから使う
+  if (found === undefined && import.meta.env.DEV && current !== null) console.warn(`翻訳キー ${key} がない`);
+  const template = found ?? key;
   return template.replace(/\{(\w+)\}/g, (match, name: string) => (name in params ? String(params[name]) : match));
 }
 
