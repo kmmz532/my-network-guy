@@ -1,0 +1,52 @@
+{
+  "id": "t_campus",
+  "stage": 1,
+  "unlockLevel": 23,
+  "requires": [
+    "c005_two_sites"
+  ],
+  "jobs": [
+    "infra"
+  ],
+  "weight": 12,
+  "map": "campus",
+  "spawnGroups": [
+    {
+      "x": 1,
+      "y": 1,
+      "width": 14,
+      "height": 4,
+      "min": 2,
+      "max": 4
+    },
+    {
+      "x": 1,
+      "y": 13,
+      "width": 14,
+      "height": 4,
+      "min": 2,
+      "max": 4
+    }
+  ],
+  "deadlineDays": 14,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "base": 9000,
+    "perPc": 2250,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 140000,
+    "perPc": 15000
+  },
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": "$all_pcs"
+    }
+  ],
+  "announce": true
+}

@@ -1,0 +1,46 @@
+{
+  "id": "t_cafe",
+  "stage": 1,
+  "unlockLevel": 2,
+  "requires": [
+    "c002_small_office"
+  ],
+  "jobs": [
+    "infra"
+  ],
+  "weight": 12,
+  "map": "cafe",
+  "params": {
+    "pcCount": {
+      "min": 3,
+      "max": 5
+    }
+  },
+  "spawnArea": {
+    "x": 1,
+    "y": 4,
+    "width": 14,
+    "height": 4
+  },
+  "deadlineDays": 7,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "base": 0,
+    "perPc": 4300,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 50000,
+    "perPc": 12000
+  },
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": "$all_pcs"
+    }
+  ],
+  "announce": true
+}

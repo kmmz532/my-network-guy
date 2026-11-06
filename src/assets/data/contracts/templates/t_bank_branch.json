@@ -1,0 +1,62 @@
+{
+  "id": "t_bank_branch",
+  "stage": 1,
+  "unlockLevel": 19,
+  "requires": [
+    "c003_departments"
+  ],
+  "jobs": [
+    "infra"
+  ],
+  "weight": 12,
+  "map": "bank_branch",
+  "spawnGroups": [
+    {
+      "x": 1,
+      "y": 1,
+      "width": 9,
+      "height": 3,
+      "min": 2,
+      "max": 3
+    },
+    {
+      "x": 11,
+      "y": 1,
+      "width": 11,
+      "height": 7,
+      "min": 2,
+      "max": 3
+    }
+  ],
+  "deadlineDays": 12,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "base": 500000,
+    "perPc": 3250,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 130000,
+    "perPc": 15000
+  },
+  "goals": [
+    {
+      "type": "count",
+      "category": "router",
+      "min": 1
+    },
+    {
+      "type": "count",
+      "category": "server",
+      "min": 1
+    },
+    {
+      "type": "http_all",
+      "port": 80
+    }
+  ],
+  "announce": true
+}

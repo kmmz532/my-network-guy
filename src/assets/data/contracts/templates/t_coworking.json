@@ -1,0 +1,46 @@
+{
+  "id": "t_coworking",
+  "stage": 1,
+  "unlockLevel": 8,
+  "requires": [
+    "c002_small_office"
+  ],
+  "jobs": [
+    "infra"
+  ],
+  "weight": 12,
+  "map": "coworking",
+  "params": {
+    "pcCount": {
+      "min": 6,
+      "max": 9
+    }
+  },
+  "spawnArea": {
+    "x": 1,
+    "y": 1,
+    "width": 9,
+    "height": 8
+  },
+  "deadlineDays": 9,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "base": 0,
+    "perPc": 4250,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 70000,
+    "perPc": 12000
+  },
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": "$all_pcs"
+    }
+  ],
+  "announce": true
+}

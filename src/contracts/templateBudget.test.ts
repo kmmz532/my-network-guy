@@ -11,6 +11,16 @@ import officeTwoSites from '../assets/data/maps/office_two_sites.json';
 import schoolLab from '../assets/data/maps/school_lab.json';
 import longHall from '../assets/data/maps/long_hall.json';
 import factory from '../assets/data/maps/factory.json';
+import cafeMap from '../assets/data/maps/cafe.json';
+import clinicMap from '../assets/data/maps/clinic.json';
+import libraryMap from '../assets/data/maps/library.json';
+import coworkingMap from '../assets/data/maps/coworking.json';
+import hotelFloorMap from '../assets/data/maps/hotel_floor.json';
+import warehouseMap from '../assets/data/maps/warehouse.json';
+import bankBranchMap from '../assets/data/maps/bank_branch.json';
+import studioMap from '../assets/data/maps/studio.json';
+import campusMap from '../assets/data/maps/campus.json';
+import hospitalWardMap from '../assets/data/maps/hospital_ward.json';
 import { instantiateTemplate, pcCountRangeOf, spawnGroupsOf, starHubOf } from './template';
 
 const maps: Record<string, GameMap> = {
@@ -20,6 +30,16 @@ const maps: Record<string, GameMap> = {
   school_lab: schoolLab as unknown as GameMap,
   long_hall: longHall as unknown as GameMap,
   factory: factory as unknown as GameMap,
+  cafe: cafeMap as unknown as GameMap,
+  clinic: clinicMap as unknown as GameMap,
+  library: libraryMap as unknown as GameMap,
+  coworking: coworkingMap as unknown as GameMap,
+  hotel_floor: hotelFloorMap as unknown as GameMap,
+  warehouse: warehouseMap as unknown as GameMap,
+  bank_branch: bankBranchMap as unknown as GameMap,
+  studio: studioMap as unknown as GameMap,
+  campus: campusMap as unknown as GameMap,
+  hospital_ward: hospitalWardMap as unknown as GameMap,
 };
 
 const deviceList = Object.values(devices) as Device[];

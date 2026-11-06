@@ -1,0 +1,57 @@
+{
+  "id": "t_studio",
+  "stage": 1,
+  "unlockLevel": 21,
+  "requires": [
+    "c003_departments"
+  ],
+  "jobs": [
+    "infra"
+  ],
+  "weight": 12,
+  "map": "studio",
+  "spawnGroups": [
+    {
+      "x": 1,
+      "y": 1,
+      "width": 12,
+      "height": 8,
+      "min": 2,
+      "max": 4
+    },
+    {
+      "x": 14,
+      "y": 1,
+      "width": 15,
+      "height": 8,
+      "min": 2,
+      "max": 4
+    }
+  ],
+  "deadlineDays": 12,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "base": 469000,
+    "perPc": 0,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 130000,
+    "perPc": 14000
+  },
+  "goals": [
+    {
+      "type": "count",
+      "category": "server",
+      "min": 1
+    },
+    {
+      "type": "http_all",
+      "port": 80
+    }
+  ],
+  "announce": true
+}

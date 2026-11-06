@@ -1,0 +1,36 @@
+{
+  "id": "campus",
+  "width": 16,
+  "height": 18,
+  "tileSize": 32,
+  "legend": {
+    ".": "floor",
+    "#": "wall",
+    "W": "window",
+    "C": "clock",
+    "P": "poster",
+    "O": "pillar",
+    "g": "ground",
+    "r": "road"
+  },
+  "tiles": [
+    "##W##W##C##W##W#",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "################",
+    "gggggggggggggggg",
+    "gggggggggggggggg",
+    "rrrrrrrrrrrrrrrr",
+    "gggggggggggggggg",
+    "gggggggggggggggg",
+    "gggggggggggggggg",
+    "##W##W##P##W##W#",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "################"
+  ]
+}
