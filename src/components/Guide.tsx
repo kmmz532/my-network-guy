@@ -36,6 +36,9 @@ const belowHud = (): number => {
 const categoryOf = (device: string): string =>
   (devices as Record<string, { category: string } | undefined>)[device]?.category ?? '';
 
+// 案内（吹き出し・ボタンの強調枠）の重なり順。ウィンドウ（4）・案件の欄（4）・マップの操作（5）より下に置き、開いた画面の操作の邪魔をしない（スマホで吹き出しが窓の上に出ていた）
+const GUIDE_Z = 3;
+
 export function Guide() {
   const project = useGameStore(focusedProject);
   const officeNodes = useGameStore((s) => s.office.nodes);
@@ -180,7 +183,7 @@ export function Guide() {
             boxShadow: '0 0 0 2px #3b2a33',
             borderRadius: RADIUS.none,
             pointerEvents: 'none',
-            zIndex: 800,
+            zIndex: GUIDE_Z,
             animation: 'guide-blink 0.8s steps(1, end) infinite',
           }}
         />
@@ -199,7 +202,7 @@ export function Guide() {
                 transform: 'translateX(-50%)',
                 // 幅は画面の左右に 12 px ずつ余白を残す（吹き出しの中の文字が細かく折り返さないため）
                 width: 'calc((100vw - 24px) / var(--ui-scale, 1))',
-                zIndex: 800,
+                zIndex: GUIDE_Z,
                 zoom: 'var(--ui-scale, 1)',
               }
             : {
@@ -208,7 +211,7 @@ export function Guide() {
                 bottom: 'calc(72px * var(--ui-scale, 1))',
                 transform: 'translateX(-50%)',
                 pointerEvents: 'none',
-                zIndex: 800,
+                zIndex: GUIDE_Z,
                 zoom: 'var(--ui-scale, 1)',
               }
         }
