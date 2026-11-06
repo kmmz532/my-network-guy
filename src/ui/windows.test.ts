@@ -25,8 +25,8 @@ import {
   type WindowMemory,
 } from './windows';
 
-const WIDE = { w: 1280, h: 800 };
-const NARROW = { w: 600, h: 900 };
+const WIDE = { w: 1280, h: 800, phone: false };
+const NARROW = { w: 600, h: 900, phone: true };
 const NONE: WindowMemory = {};
 const empty: WindowList = { windows: [], seq: 0 };
 
@@ -95,7 +95,7 @@ describe('ウィンドウを開く', () => {
   });
 
   it('ずらすと画面の外に出る方向は、端に戻して続ける（右端の初期の位置からは左端へ）', () => {
-    const vp = { w: 800, h: 800 };
+    const vp = { w: 800, h: 800, phone: false };
     let list = open(empty, 'pc_a', 'device', vp);
     list = open(list, 'pc_b', 'staff', vp);
     const a = of(list, 'device');
@@ -271,13 +271,13 @@ describe('画面の大きさが変わったとき', () => {
   it('画面の外に出たウィンドウは、画面の中に寄せる', () => {
     let list = open(empty, 'pc_a');
     list = moveWindow(list, list.windows[0].id, 900, 500, WIDE);
-    const fitted = fitWindows(list, { w: 800, h: 600 });
+    const fitted = fitWindows(list, { w: 800, h: 600, phone: false });
     expect(fitted.windows[0]).toMatchObject({ x: 500, y: 240, w: 300, h: 360 });
   });
 
   it('画面より大きいウィンドウは縮めるが、最小の大きさは守る', () => {
     const list = open(empty, 'pc_a');
-    const fitted = fitWindows(list, { w: 200, h: 100 });
+    const fitted = fitWindows(list, { w: 200, h: 100, phone: false });
     expect(fitted.windows[0]).toMatchObject({ x: 0, y: 0, w: MIN_W, h: MIN_H });
   });
 
@@ -294,7 +294,7 @@ describe('画面の大きさの計算', () => {
   });
 
   it('narrowRect は、画面の幅いっぱいで高さ 60%、ツールバーの分を空けて下に置く', () => {
-    const r = narrowRect({ w: 600, h: 1000 });
+    const r = narrowRect({ w: 600, h: 1000, phone: false });
     expect(r).toEqual({ x: 0, y: 1000 - 64 - 600, w: 600, h: 600 });
   });
 

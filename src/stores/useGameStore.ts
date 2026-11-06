@@ -33,25 +33,8 @@ import {
   stepDesign,
   undo as undoHistory,
 } from '../sim/history';
-import {
-  type WindowItem,
-  type WindowKind,
-  type WindowMemory,
-  closeRef,
-  closeWindow as closeWindowOp,
-  focusWindow as focusWindowOp,
-  frontWindow,
-  moveWindow as moveWindowOp,
-  openWindow as openWindowOp,
-  toggleWindow as toggleWindowOp,
-  closeTab as closeTabOp,
-  fitWindows as fitWindowsOp,
-  selectTab as selectTabOp,
-  reorderTab as reorderTabOp,
-  parseMemory,
-  remember,
-  resizeWindow as resizeWindowOp,
-} from '../ui/windows';
+import { type WindowItem, type WindowKind, type WindowMemory, closeRef, closeWindow as closeWindowOp, focusWindow as focusWindowOp, frontWindow, moveWindow as moveWindowOp, openWindow as openWindowOp, toggleWindow as toggleWindowOp, closeTab as closeTabOp, fitWindows as fitWindowsOp, selectTab as selectTabOp, reorderTab as reorderTabOp, parseMemory, remember, resizeWindow as resizeWindowOp, type Viewport } from '../ui/windows';
+import { isPhoneNow } from '../ui/usePhone';
 import {
   hire as hireOp,
   initialOffice,
@@ -143,7 +126,7 @@ const writeMemory = (memory: WindowMemory): void => {
   }
 };
 
-export const viewportNow = (): { w: number; h: number } => ({ w: window.innerWidth, h: window.innerHeight });
+export const viewportNow = (): Viewport => ({ w: window.innerWidth, h: window.innerHeight, phone: isPhoneNow() });
 
 export interface PlannedNet {
   network: string;

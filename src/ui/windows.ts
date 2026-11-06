@@ -25,9 +25,11 @@ export interface WindowItem extends Rect {
   z: number;
 }
 
+// 画面の大きさと、スマホの配置か（usePhone.ts の判定。ウィンドウはスマホでは1つのシートになる）
 export interface Viewport {
   w: number;
   h: number;
+  phone: boolean;
 }
 
 // 種類ごとに最後に置いた位置と大きさ
@@ -46,7 +48,6 @@ export const MIN_H = 160;
 // 新しいウィンドウを前のものからずらす量
 export const CASCADE_PX = 24;
 // これより狭い画面では、移動と大きさの変更をせず、画面の下に1つだけ出す
-export const NARROW_PX = 768;
 export const NARROW_HEIGHT_RATIO = 0.6;
 // 狭い画面で下に出すとき、ツールバーのために空けておく高さ
 export const NARROW_BOTTOM_RESERVE = 64;
@@ -64,7 +65,8 @@ const DEFAULT_RIGHT = 8;
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(Math.max(v, lo), Math.max(lo, hi));
 
-export const isNarrow = (vp: Viewport): boolean => vp.w < NARROW_PX;
+// スマホの配置か（判定は usePhone.ts の1か所）
+export const isNarrow = (vp: Viewport): boolean => vp.phone;
 
 // 画面の外に出ないように、大きさを最小から画面までに収め、位置を画面の中に寄せる
 export function clampRect(r: Rect, vp: Viewport): Rect {
