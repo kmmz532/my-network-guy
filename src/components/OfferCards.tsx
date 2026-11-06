@@ -15,13 +15,6 @@ import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
 
 // 依頼の一覧。Enter は一番上の依頼の受注（主のボタン）
-// 主でない受注ボタン。主のボタンと同じ寸法・縁で、背景だけ明るい青にする（押せないときは薄く出る）
-const acceptButton = {
-  ...primaryButton,
-  background: '#3a7bd0',
-  color: '#f4f1e6',
-  fontFamily: 'inherit',
-} as const;
 
 export function OfferCards({ onClose }: { onClose: () => void }) {
   const offers = useGameStore((s) => s.offers);
@@ -168,7 +161,7 @@ function OfferCard({
           <Icon name="icon/money" /> {yen(offer.contract.reward.money)}
         </span>
         <button
-          style={primary ? { ...primaryButton, marginLeft: 'auto' } : { ...acceptButton, marginLeft: 'auto' }}
+          style={{ ...primaryButton, marginLeft: 'auto' }}
           disabled={!canAccept}
           onClick={() => onAccept(crew)}
         >
