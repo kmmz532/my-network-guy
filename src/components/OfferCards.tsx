@@ -46,9 +46,6 @@ export function OfferBody({ onClose }: { onClose: () => void }) {
 
   return (
     <div style={{ minWidth: 300 }}>
-      <div style={{ marginBottom: 8 }}>
-        <Icon name="icon/mail" />
-      </div>
       <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 8 }}>
         {burst >= 2 && <div style={{ color: '#ffd866' }}>{t('ui.offer.burst', { count: burst })}</div>}
         <div>{t('ui.offer.next', { days: hint.days })}</div>

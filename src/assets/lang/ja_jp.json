@@ -173,7 +173,7 @@
   "ui.wire.cost": "長さ {length} m / 上限 {limit} m ¥{cost}",
   "ui.wire.auto": "おまかせ（空いている最初のポート）",
   "ui.port.free": "空き",
-  "ui.shop.title": "機材ショップ",
+  "ui.shop.title": "ショップ",
   "ui.warehouse.title": "倉庫",
   "ui.warehouse.empty": "倉庫は空です",
   "ui.warehouse.openShop": "ショップを開く",

@@ -1,4 +1,4 @@
-// 機材ショップ。解禁済みの機材と家具を購入して在庫にする。区分ごとのタブで並べ替える。ケーブルは在庫を持たず、配線のときに費用を払うため、ここには出さない
+// ショップ。解禁済みの機材と家具を購入して在庫にする。区分ごとのタブで並べ替える。ケーブルは在庫を持たず、配線のときに費用を払うため、ここには出さない
 import { useState } from 'react';
 import { balance, devices, furniture, shop } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
@@ -10,7 +10,7 @@ import { balance as gameBalance, cables as gameCables, devices as gameDevices, f
 const itemDefs: ItemDefs = { devices: gameDevices, furniture: gameFurniture, cables: gameCables };
 import { effectText } from '../game/effectText';
 import { useGameStore } from '../stores/useGameStore';
-import { Icon } from './Icon';
+import { Icon, TrimmedIcon } from './Icon';
 import { primaryButton, secondaryButton } from './Modal';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { RADIUS } from '../ui/theme';
@@ -19,7 +19,15 @@ import { RADIUS } from '../ui/theme';
 type Section = 'device' | 'furniture';
 const SECTIONS: readonly Section[] = ['device', 'furniture'];
 
-// 機材の店の中身（ウィンドウの中に出す。マップの操作は止めない）
+// 品目の絵。透明な余白を切り落とし、固定の枠の中央に収める
+const ITEM_ICON_BOX = { width: 64, height: 64 };
+const ItemIcon = ({ name }: { name: string }) => (
+  <div style={{ ...ITEM_ICON_BOX, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <TrimmedIcon name={name} height={ITEM_ICON_BOX.height} />
+  </div>
+);
+
+// ショップの中身（ウィンドウの中に出す。マップの操作は止めない）
 export function ShopBody({ onClose }: { onClose: () => void }) {
   // 解放は会社のレベルで決まる（N45）
   const level = levelOf(useGameStore((s) => s.companyExp), gameBalance);
@@ -37,9 +45,6 @@ export function ShopBody({ onClose }: { onClose: () => void }) {
 
   return (
     <div>
-      <div style={{ marginBottom: 8 }}>
-        <Icon name="icon/cart" />
-      </div>
       <Tabs
         idPrefix="shop-tab"
         ariaLabel={t('ui.shop.title')}
@@ -59,7 +64,7 @@ export function ShopBody({ onClose }: { onClose: () => void }) {
                   key={id}
                   style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}
                 >
-                  <Icon name={d.sprite} />
+                  <ItemIcon name={d.sprite} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 'bold' }}>{tDyn(`device.${id}.name`)}</div>
                     <div style={{ fontSize: 12, opacity: 0.85 }}>{tDyn(`device.${id}.desc`)}</div>
@@ -91,9 +96,7 @@ export function ShopBody({ onClose }: { onClose: () => void }) {
                   key={`furniture-${id}`}
                   style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}
                 >
-                  <div style={{ width: 64, display: 'flex', justifyContent: 'center' }}>
-                    <Icon name={f.sprite} />
-                  </div>
+                  <ItemIcon name={f.sprite} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 'bold' }}>{tDyn(`furniture.${id}.name`)}</div>
                     <div style={{ fontSize: 12, opacity: 0.85 }}>{tDyn(`furniture.${id}.desc`)}</div>
