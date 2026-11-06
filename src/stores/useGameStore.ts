@@ -10,7 +10,7 @@ import { nightSpeedStep } from '../sim/nightSpeed';
 import { buyDevice, sellDevice } from '../sim/shop';
 import { declineOffer, offerHint, refreshOffers, type OfferEffects, type OfferEnv, type OfferHint } from '../contracts/offers';
 import type { Offer } from '../contracts/template';
-import type { GameMap, Staff } from '../data/schema';
+import type { GameMap, JobId, Staff } from '../data/schema';
 import { gainExp, initialStaff, rollCandidates, staffCapOf, totalSalary } from '../sim/staff';
 import { expAtLevel, levelOf, levelUpsBetween, type UnlockItem } from '../sim/level';
 import { grantDailyExp, type ExpSource } from '../sim/companyExp';
@@ -193,6 +193,8 @@ export interface GameState {
   staffSeq: number;
   // 採用の候補
   candidates: Staff[];
+  // 次の月の募集の職種の指定（人事がいるときだけ。月が替わると消える。保存しない）
+  hiringWish: JobId | null;
   // 初めての概念の案内を終えた（または飛ばした）固定案件のID（セーブデータに入る）
   guidesDone: string[];
   // 案内が光らせている機器の uid（マップの描画は別の担当。保存しない）
@@ -329,6 +331,8 @@ export interface GameState {
   expandOffice: (side: ExpandSide) => string | null;
   removeFurniture: (uid: string) => string | null;
   hire: (candidateUid: string, shift: 'day' | 'night') => string | null;
+  // 次の月の募集の職種を指定する（null で指定なし）。人事がいないと指定できない
+  setHiringWish: (job: JobId | null) => string | null;
   startTraining: (uid: string, courseId: string) => string | null;
   takeExam: (uid: string, certId: string) => string | null;
   connect: (aUid: string, bUid: string, cableId: string, ports?: PortChoice) => string | null;
@@ -521,7 +525,20 @@ export const unlockItems: UnlockItem[] = [
 // サンドボックスの拡張の設定。解放のレベルを外す（費用は呼び出し側で打ち消す。N59）
 const SANDBOX_EXPAND_CONFIG = { ...balance.office, expand: { ...balance.office.expand, unlockLevels: [] } };
 
-const withLevelUps = (prev: GameState, patch: Partial<GameState>): Partial<GameState> => {
+// 任せた依頼の納品は、結果画面を出さずに通知で伝える。レベルアップしたときだけ結果画面を出す（レベルアップの報告を付ける）
+const withDelegatedNotice = (patch: Partial<GameState>): Partial<GameState> => {
+  const report = patch.lastReport;
+  if (!report?.delegated || (report.levelUps ?? []).length > 0) return patch;
+  return {
+    ...patch,
+    lastReport: null,
+    notice: { key: 'ui.notice.delegated', params: { money: (report.money ?? 0).toLocaleString('ja-JP') }, id: Date.now() },
+  };
+};
+
+const withLevelUps = (prev: GameState, patch: Partial<GameState>): Partial<GameState> => withDelegatedNotice(attachLevelUps(prev, patch));
+
+const attachLevelUps = (prev: GameState, patch: Partial<GameState>): Partial<GameState> => {
   const report = patch.lastReport;
   const nextExp = patch.companyExp;
   if (!report || !report.passed || nextExp === undefined || nextExp <= prev.companyExp) return patch;
@@ -706,6 +723,7 @@ export const useGameStore = create<GameState>((set, get) => {
     planned: {},
     ...newStart(),
     candidates: [],
+    hiringWish: null,
     active: [],
     focus: null,
     office: initialOffice(balance),
@@ -992,11 +1010,16 @@ export const useGameStore = create<GameState>((set, get) => {
         if (clock.paidMonths > s.clock.paidMonths) {
           const amount = totalSalary(s.staff, balance.nightPayRate);
           // 毎月1日に、採用の候補を作り直す
-          const rolled = rollCandidates(levelOf(s.companyExp, balance), clock.paidMonths, s.rng, balance, s.staff.map((m) => m.name), hrCandidateBonus(hrP, balance));
+          // 募集の職種の指定は、人事がいるときだけ効く。指定は次の1回だけ使う
+          const rolled = rollCandidates(levelOf(s.companyExp, balance), clock.paidMonths, s.rng, balance, s.staff.map((m) => m.name), {
+            ...hrCandidateBonus(hrP, balance),
+            ...(hrP > 0 && s.hiringWish !== null ? { wish: s.hiringWish } : {}),
+          });
           next = {
             ...next,
             notice: { key: 'ui.notice.salary', params: { amount }, id: Date.now() },
             candidates: rolled.candidates,
+            hiringWish: null,
             rng: rolled.rng,
           };
         }
@@ -1078,12 +1101,12 @@ export const useGameStore = create<GameState>((set, get) => {
     useBlueprint: () => recorded(() => apply(applyBlueprintOp(coreOf(get()), gameEnv))),
     delegateBlind: (offerId, crew) => {
       const s = get();
-      const r = delegateBlindOp(coreOf(s), offerId, crew, gameEnv, s.rng);
+      const r = delegateBlindOp(coreOf(s), offerId, crew, gameEnv, s.rng, balance.office.projectSlots);
       if (!r.ok) {
         set({ lastError: r.reason });
         return r.reason;
       }
-      const reason = apply({ ok: true, core: r.core, report: r.report });
+      const reason = apply({ ok: true, core: r.core });
       if (reason === null) set({ rng: r.rng });
       return reason;
     },
@@ -1145,6 +1168,13 @@ export const useGameStore = create<GameState>((set, get) => {
     removeFurniture: (uid) => {
       const f = get().office.furniture.find((x) => x.uid === uid);
       return recorded(() => apply(removeFurnitureOp(coreOf(get()), uid), f ? { tx: f.x, ty: f.y } : undefined));
+    },
+    setHiringWish: (job) => {
+      const s = get();
+      const hrP = backOfficeP(s.staff, 'hr', s.office, { defs: gameEnv.furniture ?? {}, balance, staffUids: s.staff.map((m) => m.uid) });
+      if (hrP <= 0) return 'ui.error.hr';
+      set({ hiringWish: job });
+      return null;
     },
     hire: (candidateUid, shift) => {
       const reason = apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true, staffCapOf(levelOf(get().companyExp, balance), balance), shift));

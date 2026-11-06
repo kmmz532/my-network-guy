@@ -115,7 +115,7 @@ export const rollCandidates = (
   rng: number,
   balance: Balance,
   taken: readonly string[] = [],
-  hr: { extraCount: number; levelBonus: number } = { extraCount: 0, levelBonus: 0 },
+  hr: { extraCount: number; levelBonus: number; wish?: JobId } = { extraCount: 0, levelBonus: 0 },
 ): { candidates: Staff[]; rng: number } => {
   const h = balance.hiring;
   const jobs = unlockedJobsOf(companyLevel, balance);
@@ -127,7 +127,9 @@ export const rollCandidates = (
   const names = [...taken];
   for (let i = 0; i < count.value; i++) {
     const bonus = randInt(state, 0, 1);
-    const job = randInt(bonus.state, 0, jobs.length - 1);
+    // 募集の職種の指定（人事）: 候補の半分以上（切り上げ）は、指定した職種にする
+    const wishIndex = hr.wish !== undefined ? jobs.indexOf(hr.wish) : -1;
+    const job = wishIndex >= 0 && i < Math.ceil(count.value / 2) ? { value: wishIndex, state: bonus.state } : randInt(bonus.state, 0, jobs.length - 1);
     const level = 1 + Math.floor(companyLevel / h.candidateLevelStep) + bonus.value + hr.levelBonus;
     const made = createStaff(
       { job: jobs[job.value], level, salary: h.baseSalary + h.salaryPerLevel * level },

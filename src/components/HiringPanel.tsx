@@ -5,12 +5,15 @@ import type { FurnitureId } from '../generated/ids';
 import { staffSpriteName } from '../data/schema';
 import { t, tDyn } from '../i18n/t';
 import { seatCount } from '../sim/furniture';
+import { backOfficeP } from '../sim/backOffice';
+import { gameEnv } from '../sim/env';
+import { unlockedJobsOf } from '../sim/staff';
 import { levelOf } from '../sim/level';
 import { examPassRate } from '../sim/training';
 import { useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
-import { Modal, primaryButton } from './Modal';
+import { Modal, primaryButton, secondaryButton } from './Modal';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { RADIUS } from '../ui/theme';
 import { Select } from './Select';
@@ -53,8 +56,14 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
   const staff = useGameStore((s) => s.staff.length);
   const office = useGameStore((s) => s.office);
   const hire = useGameStore((s) => s.hire);
-  // 夜勤の解放（会社のレベル）と、候補ごとに選んだ区分
   const companyExp = useGameStore((s) => s.companyExp);
+  // 募集の職種の指定（人事がいるときだけ）
+  const allStaff = useGameStore((s) => s.staff);
+  const wish = useGameStore((s) => s.hiringWish);
+  const setHiringWish = useGameStore((s) => s.setHiringWish);
+  const hrP = backOfficeP(allStaff, 'hr', office, { defs: gameEnv.furniture ?? {}, balance, staffUids: allStaff.map((m) => m.uid) });
+  const jobsOpen = unlockedJobsOf(levelOf(companyExp, balance), balance);
+  // 夜勤の解放（会社のレベル）と、候補ごとに選んだ区分
   const nightOpen = levelOf(companyExp, balance) >= balance.featureUnlocks.nightShift;
   const [shiftOf, setShiftOf] = useState<Record<string, 'day' | 'night'>>({});
   const seats = seatCount(office, (id) => furniture[id as FurnitureId]?.seat === true);
@@ -62,6 +71,23 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
   const yen = (n: number) => n.toLocaleString('ja-JP');
   return (
     <>
+      {hrP > 0 && (
+        <div style={{ marginBottom: 6 }}>
+          <div style={{ fontSize: 12, opacity: 0.85 }}>{t('ui.hiring.wish.label')}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
+            {[null, ...jobsOpen].map((j) => (
+              <button
+                key={j ?? 'none'}
+                aria-pressed={wish === j}
+                onClick={() => setHiringWish(j)}
+                style={{ ...secondaryButton, padding: '2px 8px', fontSize: 12, background: wish === j ? '#ffd866' : secondaryButton.background, color: wish === j ? '#3b2a33' : secondaryButton.color }}
+              >
+                {j === null ? t('ui.hiring.wish.none') : tDyn(`staff.job.${j}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {candidates.length === 0 && <div style={{ opacity: 0.7 }}>{t('ui.hiring.none')}</div>}
       {candidates.map((c) => (
         <div
