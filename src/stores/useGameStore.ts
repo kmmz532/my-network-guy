@@ -731,6 +731,8 @@ export const useGameStore = create<GameState>((set, get) => {
     setWireCable: (cableId) => set({ wireCable: cableId }),
     tick: () =>
       set((s) => {
+        // 納品の結果画面を開いている間は、時間を止める（閉じると、今の速度で続きから進む）
+        if (s.showcase) return {};
         // 給与を払えない月は、給与が払われる直前に一度だけ時間を止める（設定でオフにできる）。止めた後の再開では止めず、そのまま払う
         const payday = (s.clock.paidMonths + 1) * minutesPerMonth(balance);
         if (
