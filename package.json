@@ -11,10 +11,10 @@
     "shoot": "node scripts/shoot.mjs",
     "smoke": "node scripts/shoot.mjs all --check --out dist-shoot",
     "simulate:offers": "vite-node scripts/simulate-offers.ts",
-    "bump": "npm version patch --no-git-tag-version",
-    "bump:patch": "npm version patch --no-git-tag-version",
-    "bump:minor": "npm version minor --no-git-tag-version",
-    "bump:major": "npm version major --no-git-tag-version"
+    "bump": "node scripts/bump.mjs patch",
+    "bump:patch": "node scripts/bump.mjs patch",
+    "bump:minor": "node scripts/bump.mjs minor",
+    "bump:major": "node scripts/bump.mjs major"
   },
   "dependencies": {
     "dexie": "^3.2.7",
