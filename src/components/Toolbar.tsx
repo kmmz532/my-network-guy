@@ -295,7 +295,7 @@ export function Toolbar({
             </button>
           )}
           <button aria-label={t('ui.inventory.title')} data-guide="inventory" style={{ ...sl(inventoryOpen && inventoryOpenable), opacity: inventoryOpenable ? 1 : 0.35 }} disabled={!inventoryOpenable} onClick={() => setInventoryOpen(!inventoryOpen)}>
-            <Icon name="icon/inventory" scale={1} />
+            <Icon name="icon/inventory" />
             <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>{stockTotal}</span>
           </button>
           {(design || sandbox) && (
@@ -366,7 +366,7 @@ export function Toolbar({
         disabled={!inventoryOpenable}
         onClick={() => setInventoryOpen(!inventoryOpen)}
       >
-        <Icon name="icon/inventory" scale={1} />
+        <Icon name="icon/inventory" />
         <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>
           {stockTotal}
         </span>
