@@ -11,7 +11,7 @@ const itemDefs: ItemDefs = { devices: gameDevices, furniture: gameFurniture, cab
 import { effectText } from '../game/effectText';
 import { useGameStore } from '../stores/useGameStore';
 import { Icon, TrimmedIcon } from './Icon';
-import { primaryButton, secondaryButton } from './Modal';
+import { secondaryButton } from './Modal';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { RADIUS } from '../ui/theme';
 
@@ -24,12 +24,13 @@ const SECTIONS: readonly Section[] = ['device', 'furniture'];
 const ITEM_ICON_BOX = { width: 64, height: 98 };
 const ItemIcon = ({ name }: { name: string }) => (
   <div style={{ ...ITEM_ICON_BOX, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-    <TrimmedIcon name={name} height={ITEM_ICON_BOX.height} />
+    {/* 枠の幅に収め、拡大は 3 倍まで（4 ポートのスイッチ 14×12 が 42×36 になり、8 ポートの 44×32 とそろう） */}
+    <TrimmedIcon name={name} height={ITEM_ICON_BOX.height} width={ITEM_ICON_BOX.width} maxScale={3} />
   </div>
 );
 
 // ショップの中身（ウィンドウの中に出す。マップの操作は止めない）
-export function ShopBody({ onClose }: { onClose: () => void }) {
+export function ShopBody() {
   // 解放は会社のレベルで決まる（N45）
   const level = levelOf(useGameStore((s) => s.companyExp), gameBalance);
   // サンドボックスは解禁の条件を無視し、費用は 0
@@ -121,9 +122,6 @@ export function ShopBody({ onClose }: { onClose: () => void }) {
             })}
         </div>
       </div>
-      <button style={{ ...primaryButton, display: 'block', marginTop: 8, marginLeft: 'auto' }} onClick={onClose}>
-        {t('ui.panel.close')}
-      </button>
     </div>
   );
 }
