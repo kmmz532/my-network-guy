@@ -349,12 +349,12 @@ export function App() {
         )}
         {/* 自動保存の印。文字は出さず、ツールチップだけ */}
         {/* 印を出していないときも場所を空けておく（出し入れでメニューボタンが動かないように） */}
-        <Tooltip text={t('ui.autosave.mark')}>
+        <Tooltip text={t('ui.autosave.mark')} style={{ marginLeft: 'auto' }}>
           <span
             role={saveMark !== null ? 'status' : undefined}
             aria-label={saveMark !== null ? t('ui.autosave.mark') : undefined}
             aria-hidden={saveMark === null}
-            style={{ display: 'inline-flex', marginLeft: 'auto', visibility: saveMark !== null ? 'visible' : 'hidden' }}
+            style={{ display: 'inline-flex', visibility: saveMark !== null ? 'visible' : 'hidden' }}
           >
             <Icon name="icon/save" scale={1} />
           </span>
