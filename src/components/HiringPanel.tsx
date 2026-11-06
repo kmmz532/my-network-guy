@@ -5,6 +5,7 @@ import type { FurnitureId } from '../generated/ids';
 import { staffSpriteName } from '../data/schema';
 import { t, tDyn } from '../i18n/t';
 import { seatCount } from '../sim/furniture';
+import { levelOf } from '../sim/level';
 import { examPassRate } from '../sim/training';
 import { useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
@@ -51,6 +52,10 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
   const staff = useGameStore((s) => s.staff.length);
   const office = useGameStore((s) => s.office);
   const hire = useGameStore((s) => s.hire);
+  // 夜勤の解放（会社のレベル）と、候補ごとに選んだ区分
+  const companyExp = useGameStore((s) => s.companyExp);
+  const nightOpen = levelOf(companyExp, balance) >= balance.featureUnlocks.nightShift;
+  const [shiftOf, setShiftOf] = useState<Record<string, 'day' | 'night'>>({});
   const seats = seatCount(office, (id) => furniture[id as FurnitureId]?.seat === true);
   const full = staff >= seats;
   const yen = (n: number) => n.toLocaleString('ja-JP');
@@ -70,11 +75,23 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
             </div>
             <div style={{ fontSize: 12 }}>{t('ui.hiring.salary', { salary: yen(c.salary) })}</div>
           </div>
+          {/* 夜勤は会社のレベルで解放される。解放されていれば、雇うときに区分を選ぶ（N48） */}
+          {nightOpen && (
+            <select
+              aria-label={t('ui.hiring.shift')}
+              value={shiftOf[c.uid] ?? 'day'}
+              onChange={(e) => setShiftOf((m) => ({ ...m, [c.uid]: e.target.value as 'day' | 'night' }))}
+              style={{ fontSize: 12 }}
+            >
+              <option value="day">{t('ui.hiring.shift.day')}</option>
+              <option value="night">{t('ui.hiring.shift.night')}</option>
+            </select>
+          )}
           <button
             style={{ padding: '4px 12px', cursor: 'pointer' }}
             disabled={full}
             onClick={() => {
-              const reason = hire(c.uid);
+              const reason = hire(c.uid, shiftOf[c.uid] ?? 'day');
               onMessage(reason ? reasonText(reason) : '');
             }}
           >

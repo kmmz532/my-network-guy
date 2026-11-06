@@ -42,9 +42,9 @@ import { wanderStep, type Walker } from './wander';
 import { bfsRoute, commuteStep, type Commute } from './commute';
 import { breakMoveStep, deskMove, type BreakMove } from './breakMove';
 import { breakAt, breakPlanOf } from '../sim/breaks';
+import { isPresentOnShift, minuteInShift } from '../sim/shift';
 import { minutesPerDay as dayMinutes } from '../sim/clock';
 import { metersOf } from '../sim/cableLength';
-import { isPresentMinute, minutesPerDay } from '../sim/clock';
 import { deskStaffPos, deskTap, staffAt, STAFF_W, wanderStaffPos, type StaffHit } from './staffHit';
 import { CATEGORY } from '../data/categories';
 
@@ -884,7 +884,6 @@ export class Scene {
     if (!map || map.id !== 'hq') return;
     const s = useGameStore.getState();
     // 出社は始業の少し前から（席に着いているのは始業まで）。事務所にいる時刻の間は、出勤の途中か机にいる
-    const working = isPresentMinute(s.clock.minute % minutesPerDay, balance);
     // 出入り口は、マップの最初のドアのマス。ドアがない最初の部屋では、下の壁の手前の中央の床を出入り口にする
     let door: Point = { x: Math.floor(map.width / 2), y: map.height - 2 };
     outer: for (let y = 0; y < map.height; y++) {
@@ -913,13 +912,15 @@ export class Scene {
       const member = s.staff[k];
       if (!member) return;
       seen.add(member.uid);
-      const cur = this.commutes.get(member.uid) ?? { state: working ? 'seated' : 'away', at: { x: f.x, y: f.y }, path: [] };
+      // 出社と退社は、社員の勤務の区分（日勤・夜勤）で決まる（N48）
+      const present = isPresentOnShift(minuteOfDay, member.shift, balance);
+      const cur = this.commutes.get(member.uid) ?? { state: present ? 'seated' : 'away', at: { x: f.x, y: f.y }, path: [] };
       // 1フレームで進みすぎないよう、歩かせる時間を上限で抑える（フレームが飛んだときに一気に歩き終えない）
-      const next = commuteStep(cur, frameDt, working, { x: f.x, y: f.y }, door, route);
+      const next = commuteStep(cur, frameDt, present, { x: f.x, y: f.y }, door, route);
       this.commutes.set(member.uid, next);
       // 休憩は、机にいる社員だけ。休憩の場所は、社員ごとに決まった場所（なければ床の決まった場所）
-      const plan = breakPlanOf(member.uid, day, balance);
-      const onBreak = next.state === 'seated' && breakAt(minuteOfDay, plan) !== null;
+      const plan = breakPlanOf(member.uid, day, balance, member.shift);
+      const onBreak = next.state === 'seated' && breakAt(minuteInShift(minuteOfDay, member.shift, balance), plan) !== null;
       const spot =
         restSpots.length > 0
           ? restSpots[k % restSpots.length]

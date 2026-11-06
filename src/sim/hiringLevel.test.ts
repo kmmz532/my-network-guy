@@ -35,7 +35,26 @@ describe('会社のレベルによる採用', () => {
       candidates: [{ ...candidate, uid: 'c1_1' }],
       office: { furniture: [{ uid: 'f0', id: 'desk', x: 1, y: 1 }, { uid: 'f1', id: 'desk', x: 2, y: 1 }, { uid: 'f2', id: 'desk', x: 3, y: 1 }] },
     } as never;
-    const r = hire(core, 'c1_1', (id) => id === 'desk', 2);
+    const r = hire(core, 'c1_1', (id) => id === 'desk', 2, 'day');
     expect(r).toEqual({ ok: false, reason: 'cap' });
+  });
+});
+
+describe('夜勤の採用（N48）', () => {
+  it('雇うときに選んだ区分（夜勤）が社員に付く', () => {
+    const candidate = { uid: 'c1_0', name: 'staff.name.0', look: 'blue', quirk: 'q1', job: 'network', level: 1, exp: 0, salary: 1, certs: [], training: null, shift: 'day' };
+    const core = {
+      staff: [],
+      staffSeq: 0,
+      candidates: [candidate],
+      office: { furniture: [{ uid: 'f0', id: 'desk', x: 1, y: 1 }] },
+    } as never;
+    const r = hire(core, 'c1_0', (id) => id === 'desk', 2, 'night');
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.core.staff[0].shift).toBe('night');
+  });
+
+  it('夜勤は会社のレベル10で解放される', () => {
+    expect(balance.featureUnlocks.nightShift).toBe(10);
   });
 });

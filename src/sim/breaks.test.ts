@@ -38,3 +38,16 @@ describe('休憩の予定', () => {
     expect(breakAt(630, plan)).toBeNull();
   });
 });
+
+describe('夜勤の休憩（N48）', () => {
+  it('夜勤の休憩は、夜勤の時間（21時〜翌6時）の中に入る', () => {
+    const cfg = balance.breaks;
+    for (let day = 0; day < 30; day++) {
+      for (const b of breakPlanOf('n1', day, balance, 'night')) {
+        expect(b.start).toBeGreaterThanOrEqual(balance.build.nightStartHour * 60);
+        expect(b.start + b.length).toBeLessThanOrEqual(balance.build.nightEndHour * 60 + 24 * 60);
+        expect(b.length).toBeGreaterThanOrEqual(cfg.minMinutes);
+      }
+    }
+  });
+});

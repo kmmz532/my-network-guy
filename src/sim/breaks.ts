@@ -2,6 +2,7 @@
 // 1回は minMinutes 以上、1日に maxPerDay 回まで、合計は maxMinutesPerDay まで。休憩は勤務時間の中に入る。
 import type { Balance } from '../data/schema';
 import { randInt } from './rng';
+import { shiftWindowOf, type Shift } from './shift';
 
 export interface Break {
   // その日の0時からの分
@@ -16,15 +17,15 @@ const seedOf = (text: string): number => {
   return h >>> 0;
 };
 
-// 社員 uid の、day 日目の休憩の予定
-export const breakPlanOf = (uid: string, day: number, balance: Balance): Break[] => {
+// 社員 uid の、day 日目の休憩の予定（区分の勤務時間の中。夜勤は夜の時間の中。時刻は区分の座標）
+export const breakPlanOf = (uid: string, day: number, balance: Balance, shift: Shift = 'day'): Break[] => {
   const cfg = balance.breaks;
-  const { workStartHour, workEndHour } = balance.build;
+  const window = shiftWindowOf(shift, balance);
   const count = randInt(seedOf(`${uid}:${day}`), 0, cfg.maxPerDay);
   let state = count.state;
   // 勤務時間の中央に近い区間を、休憩の数で分ける（始業と終業の1時間は空ける）
-  const from = workStartHour * 60 + 60;
-  const to = workEndHour * 60 - 60;
+  const from = window.start + 60;
+  const to = window.end - 60;
   const slot = Math.max(1, Math.floor((to - from) / (cfg.maxPerDay + 1)));
   const plan: Break[] = [];
   let total = 0;

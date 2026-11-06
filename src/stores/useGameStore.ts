@@ -271,7 +271,7 @@ export interface GameState {
   // 自社オフィスの部屋の辺を買って2マス広げる（確認なし。取り消しの対象外）。失敗したら理由を返す
   expandOffice: (side: ExpandSide) => string | null;
   removeFurniture: (uid: string) => string | null;
-  hire: (candidateUid: string) => string | null;
+  hire: (candidateUid: string, shift: 'day' | 'night') => string | null;
   startTraining: (uid: string, courseId: string) => string | null;
   takeExam: (uid: string, certId: string) => string | null;
   connect: (aUid: string, bUid: string, cableId: string, ports?: PortChoice) => string | null;
@@ -921,8 +921,8 @@ export const useGameStore = create<GameState>((set, get) => {
       const f = get().office.furniture.find((x) => x.uid === uid);
       return recorded(() => apply(removeFurnitureOp(coreOf(get()), uid), f ? { tx: f.x, ty: f.y } : undefined));
     },
-    hire: (candidateUid) =>
-      apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true, staffCapOf(levelOf(get().companyExp, balance), balance))),
+    hire: (candidateUid, shift) =>
+      apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true, staffCapOf(levelOf(get().companyExp, balance), balance), shift)),
     connect: (aUid, bUid, cableId, ports = {}) => {
       const reason = recorded(() => apply(withAutoIp(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get()), ports), netTargetOf(get())), tileOf(bUid)));
       // つながった音と、つなげなかった音（効果音の設定がオフのときは鳴らない）

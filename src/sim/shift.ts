@@ -24,3 +24,9 @@ export const isPresentOnShift = (minuteOfDay: number, shift: Shift, balance: Bal
   const m = minuteOfDay;
   return (m >= start - lead && m < end) || (m + 24 * 60 >= start - lead && m + 24 * 60 < end);
 };
+
+// その時刻（その日の0時からの分）を、区分の勤務の時間の座標に直す。夜勤は、0時をまたいだ時刻を 1440 を足して扱う
+export const minuteInShift = (minuteOfDay: number, shift: Shift, balance: Balance): number => {
+  const { start } = shiftWindowOf(shift, balance);
+  return minuteOfDay < start && shift === 'night' ? minuteOfDay + 24 * 60 : minuteOfDay;
+};
