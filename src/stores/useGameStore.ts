@@ -47,6 +47,7 @@ import {
   closeTab as closeTabOp,
   fitWindows as fitWindowsOp,
   selectTab as selectTabOp,
+  reorderTab as reorderTabOp,
   parseMemory,
   remember,
   resizeWindow as resizeWindowOp,
@@ -219,6 +220,8 @@ export interface GameState {
   // 画面の大きさが変わったとき、開いているウィンドウを画面の中に収める（覚える位置は変えない）
   fitWindows: () => void;
   selectTab: (id: number, ref: string) => void;
+  // ウィンドウのタブを並べ替える（from から to の位置へ）
+  reorderTab: (id: number, from: number, to: number) => void;
   focusWindow: (id: number) => void;
   moveWindow: (id: number, x: number, y: number) => void;
   resizeWindow: (id: number, w: number, h: number) => void;
@@ -718,6 +721,10 @@ export const useGameStore = create<GameState>((set, get) => {
     },
     selectTab: (id, ref) => {
       const list = selectTabOp({ windows: get().windows, seq: get().windowSeq }, id, ref);
+      set({ windows: list.windows });
+    },
+    reorderTab: (id, from, to) => {
+      const list = reorderTabOp({ windows: get().windows, seq: get().windowSeq }, id, from, to);
       set({ windows: list.windows });
     },
     focusWindow: (id) => {

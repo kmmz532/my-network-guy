@@ -30,7 +30,19 @@ const tabLabel = (kind: WindowKind, ref: string): ReactNode => {
 };
 
 // タブの帯。選ぶのはクリック、閉じるのは小さな×か中ボタンのクリック（Tabs が受け持つ）
-function TabStrip({ win, closeLabel, onSelect, onClose }: { win: WindowItem; closeLabel: string; onSelect: (ref: string) => void; onClose: (ref: string) => void }) {
+function TabStrip({
+  win,
+  closeLabel,
+  onSelect,
+  onClose,
+  onReorder,
+}: {
+  win: WindowItem;
+  closeLabel: string;
+  onSelect: (ref: string) => void;
+  onClose: (ref: string) => void;
+  onReorder: (from: number, to: number) => void;
+}) {
   return (
     // 帯の高さは固定（タブの中身の大きさに関係なく、同じ高さ）。はみ出しは切る
     <div style={{ flexShrink: 0, boxSizing: 'border-box', height: uiScaled(WINDOW_TAB_GAP + WINDOW_TAB_HEIGHT), padding: `${uiScaled(WINDOW_TAB_GAP)} 4px 0`, overflow: 'hidden' }}>
@@ -41,6 +53,9 @@ function TabStrip({ win, closeLabel, onSelect, onClose }: { win: WindowItem; clo
         onClose={onClose}
         colors={TAB_COLORS.window}
         tabHeight={WINDOW_TAB_HEIGHT}
+        // 開いて増えるタブは、ドラッグで並べ替えられる
+        reorderable
+        onReorder={onReorder}
         style={{ zoom: 'var(--ui-scale, 1)' }}
       />
     </div>
@@ -84,6 +99,7 @@ export function Windows({ onTraining }: { onTraining: () => void }) {
                 closeLabel={t('ui.panel.close')}
                 onSelect={(ref) => state.selectTab(w.id, ref)}
                 onClose={(ref) => state.closeTab(w.id, ref)}
+                onReorder={(from, to) => state.reorderTab(w.id, from, to)}
               />
             ) : null
           }

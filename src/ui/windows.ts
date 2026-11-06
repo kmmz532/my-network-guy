@@ -164,6 +164,16 @@ export function selectTab(list: WindowList, id: number, ref: string): WindowList
   return showTab(list, id, ref);
 }
 
+// タブの並べ替え。from のタブを to の位置へ動かす（選んでいるタブは変わらない）。範囲外や同じ位置なら同じ一覧を返す
+export function reorderTab(list: WindowList, id: number, from: number, to: number): WindowList {
+  const target = list.windows.find((w) => w.id === id);
+  if (!target || from === to || from < 0 || to < 0 || from >= target.tabs.length || to >= target.tabs.length) return list;
+  const tabs = [...target.tabs];
+  const [moved] = tabs.splice(from, 1);
+  tabs.splice(to, 0, moved);
+  return patch(list, id, { tabs });
+}
+
 // タブを閉じる。選んでいたタブを閉じたら、右隣（なければ左隣）を選ぶ。最後のタブを閉じたらウィンドウも閉じる
 export function closeTab(list: WindowList, id: number, ref: string): WindowList {
   const target = list.windows.find((w) => w.id === id);
