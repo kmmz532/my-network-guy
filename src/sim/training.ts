@@ -1,5 +1,6 @@
 // 研修と資格（STAFF.md「4. 育成」）。受講と受験の判定は純粋関数で行う。
 // 研修中・担当中の社員は受講できず、受験もできない。研修は期日に経験値を与え、受験に合格すると資格を得て level が1上がる。
+import { applyMoney } from './ledger';
 import type { Balance, CertDef, TrainingCourse } from '../data/schema';
 import { minutesPerDay } from './clock';
 import type { Core, Outcome } from './project';
@@ -31,7 +32,7 @@ export const startTraining = (core: Core, uid: string, courseId: string, env: Tr
   if (core.clock.money < course.cost) return fail('money');
   const untilMinute = core.clock.minute + course.days * minutesPerDay;
   const staff = core.staff.map((s) => (s.uid === uid ? { ...s, training: { course: courseId, untilMinute } } : s));
-  return { ok: true, core: { ...core, staff, clock: { ...core.clock, money: core.clock.money - course.cost } } };
+  return { ok: true, core: { ...core, staff, clock: applyMoney(core.clock, -course.cost, 'training') } };
 };
 
 // 期日を過ぎた研修を終える。受講した社員に、課程の経験値を与える
@@ -57,7 +58,7 @@ export const takeExam = (core: Core, uid: string, certId: string, roll: number, 
   if (member.certs.includes(certId)) return fail('owned');
   if (crewOf(core).has(uid)) return fail('crew');
   if (core.clock.money < cert.fee) return fail('money');
-  const paid: Core = { ...core, clock: { ...core.clock, money: core.clock.money - cert.fee } };
+  const paid: Core = { ...core, clock: applyMoney(core.clock, -cert.fee, 'exam') };
   if (roll >= examPassRate(member.level, cert.minLevel, env.balance)) return { ok: true, core: paid };
   const staff = core.staff.map((s) => (s.uid === uid ? { ...s, certs: [...s.certs, certId], level: s.level + 1 } : s));
   return { ok: true, core: { ...paid, staff } };

@@ -14,13 +14,14 @@ import switchJson from '../assets/data/devices/l2_switch.json';
 import { CATEGORY } from '../data/categories';
 import { nextHostname } from '../network/hostname';
 import type { Familiarity } from '../sim/familiar';
+import type { LedgerMonth } from '../sim/ledger';
 import l3Json from '../assets/data/devices/l3_switch.json';
 import routerSwitchJson from '../assets/data/devices/router_switch.json';
 import firewallJson from '../assets/data/devices/firewall.json';
 import firewallDmzJson from '../assets/data/devices/firewall_dmz.json';
 import printerJson from '../assets/data/devices/printer.json';
 
-export const SAVE_VERSION = 30;
+export const SAVE_VERSION = 31;
 
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
@@ -69,7 +70,7 @@ const withDefaultServices = (n: NetNode): NetNode => {
 export interface SaveData {
   // 遊び方（移行前のセーブデータは career）
   mode: GameMode;
-  clock: { minute: number; money: number; paidMonths: number; bankrupt: boolean };
+  clock: { minute: number; money: number; paidMonths: number; bankrupt: boolean; ledger: LedgerMonth[] | null };
   companyExp: number;
   // 評判（★の数の積み上げ。解放の条件には使わない。N55）
   reputation: number;
@@ -212,6 +213,11 @@ export const migrations: Record<number, Migration> = {
   },
   // v26 → v27: 納品した案件の数を追加する。移行前の納品の数は数えていないため 0 とする（N66）
   26: (data) => ({ ...(data as object), deliveries: 0 }),
+  // v30 → v31: 時計に帳簿を足す。移行前は空から始める。サンドボックスは帳簿を持たない（null）
+  30: (data) => {
+    const d = data as { mode: string; clock: object };
+    return { ...d, clock: { ...d.clock, ledger: d.mode === 'sandbox' ? null : [] } };
+  },
   // v29 → v30: なじみの依頼の回数と型紙を追加する。移行前は、まだ数えていないため空から始める（N70）
   29: (data) => ({ ...(data as object), familiarity: { counts: {}, blueprints: {} } }),
   // v28 → v29: 機器に MAC アドレスの連番を付ける（N69）。既存の機器は、ネットワークの中の並び順に 1 から振る
@@ -294,6 +300,7 @@ export const isSaveData = (value: unknown): value is SaveData => {
     clock !== null &&
     Number.isInteger(clock.minute) &&
     Number.isInteger(clock.money) &&
+    (clock.ledger === null || Array.isArray(clock.ledger)) &&
     Number.isInteger(clock.paidMonths) &&
     typeof clock.bankrupt === 'boolean' &&
     Number.isInteger(v.companyExp) &&

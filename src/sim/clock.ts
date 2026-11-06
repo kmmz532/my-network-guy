@@ -1,11 +1,14 @@
 // 固定Tickの時間進行と、月末の給与・倒産判定。1 Tick は balance.time.gameMinutesPerTick 分進む。
 import type { Balance } from '../data/schema';
+import { applyMoney, type LedgerMonth } from './ledger';
 
 export interface ClockState {
   minute: number;
   money: number;
   paidMonths: number;
   bankrupt: boolean;
+  // 帳簿（月ごとの分類の合計）。サンドボックスは null（記録しない）
+  ledger: LedgerMonth[] | null;
 }
 
 export const minutesPerDay = 24 * 60;
@@ -18,25 +21,24 @@ export const initialClock = (balance: Balance): ClockState => ({
   money: balance.startMoney,
   paidMonths: 0,
   bankrupt: false,
+  ledger: [],
 });
 
 // 1 Tick 進める。月の境界を越えたら、雇用中の社員の月給の合計（monthlyPay）を支払い、資金が0円未満なら倒産とする
 export const advanceTick = (state: ClockState, balance: Balance, monthlyPay: number): ClockState => {
   if (state.bankrupt) return state;
   const minute = state.minute + balance.time.gameMinutesPerTick;
-  let money = state.money;
-  let paidMonths = state.paidMonths;
-  let bankrupt: boolean = state.bankrupt;
+  let clock: ClockState = { ...state, minute };
   const monthLength = minutesPerMonth(balance);
-  while ((paidMonths + 1) * monthLength <= minute) {
-    paidMonths++;
-    money -= monthlyPay;
-    if (money < 0) {
-      bankrupt = true;
+  while ((clock.paidMonths + 1) * monthLength <= minute) {
+    // 給与は月の区切りで払い、帳簿の給与の分類に記録する
+    clock = { ...applyMoney(clock, -monthlyPay, 'salary'), paidMonths: clock.paidMonths + 1 };
+    if (clock.money < 0) {
+      clock = { ...clock, bankrupt: true };
       break;
     }
   }
-  return { minute, money, paidMonths, bankrupt };
+  return clock;
 };
 
 // 1年の月数（ゲーム内の暦）

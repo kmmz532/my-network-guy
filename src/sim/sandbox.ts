@@ -37,7 +37,7 @@ export const resizeSandboxOffice = (office: Office, size: OfficeSize): { ok: tru
 };
 
 // 初期の時計（時間は止めたまま。給与の月の区切りは使わない）。資金は SANDBOX_MONEY
-export const sandboxClock = (base: ClockState): ClockState => ({ ...base, money: SANDBOX_MONEY });
+export const sandboxClock = (base: ClockState): ClockState => ({ ...base, money: SANDBOX_MONEY, ledger: null });
 
 // テストの判定に使う達成条件。PC とサーバーの全組み合わせの ping と、PC からサーバーへの HTTP（80番）
 const testGoals = (nodes: NetNode[], categoryOf: (device: string) => string): Goal[] => {

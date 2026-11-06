@@ -1,5 +1,6 @@
 // 自社オフィスの部屋の大きさと広げ方（純粋関数）。大きさからマップを作り、右・下・左の辺を買って広げる。
 // 辺が上限に達したら、その辺の外に別室を足す（1辺に1つまで。別室は広げられない）。
+import { applyMoney } from './ledger';
 import type { Balance, GameMap } from '../data/schema';
 import { officeLocked, type Core, type Office, type OfficeCell, type OfficeSide, type OfficeSize, type Outcome } from './project';
 
@@ -157,5 +158,5 @@ export const expandOffice = (core: Core, side: ExpandSide, config: OfficeConfig,
   const cost = officeExpandCostOf(office, config);
   if (core.clock.money < cost) return fail('money');
   const next = action === 'annex' ? annexOffice(office, side) : growOffice(office, side, config.expand.step);
-  return { ok: true, core: { ...core, clock: { ...core.clock, money: core.clock.money - cost }, office: next } };
+  return { ok: true, core: { ...core, clock: applyMoney(core.clock, -cost, 'expansion'), office: next } };
 };

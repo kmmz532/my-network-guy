@@ -20,7 +20,7 @@ const member = (uid: string): Staff => ({
 
 const sample: SaveData = {
   mode: 'career',
-  clock: { minute: 720, money: 300000, paidMonths: 1, bankrupt: false },
+  clock: { minute: 720, money: 300000, paidMonths: 1, bankrupt: false, ledger: [] },
   companyExp: 2,
   reputation: 0,
   expDay: 0,
@@ -409,7 +409,7 @@ describe('古いセーブの読み込み（版ごとの架空のセーブ）', (
   it('v20 の依頼は、読み込んだ時刻に届いたものとして v21 になる（期限は付けない）', () => {
     const v20 = {
       ...legacySample,
-      clock: { minute: 2880, money: 300000, paidMonths: 1, bankrupt: false },
+      clock: { minute: 2880, money: 300000, paidMonths: 1, bankrupt: false, ledger: [] },
       offers: [{ id: 'old', kind: 'template', baseId: 't_small_lan', params: {}, contract: { id: 'x' } }],
     };
     const migrated = migrate(20, v20);

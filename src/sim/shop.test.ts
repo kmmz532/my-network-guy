@@ -26,6 +26,8 @@ describe('セーブのバージョン移行', () => {
     const v1 = { clock: { minute: 0, money: 500, paidMonths: 0, bankrupt: false }, reputation: 1 };
     expect(migrate(1, v1)).toEqual({
       ...v1,
+      // 帳簿は移行前は空から始める（v31）
+      clock: { ...v1.clock, ledger: [] },
       // 評判は会社の経験値に名前を変える（v22）
       companyExp: 1,
       // 評判は v23 → v24 で 0 から始める（N55）

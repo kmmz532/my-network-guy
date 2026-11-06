@@ -1,5 +1,6 @@
 // 案件の流れ（受注・設計・施工・検収・納品）。状態を受け取り、新しい状態を返す純粋関数で書く。
 // 設計は機器の配置・配線・IP設定、施工は社員が作業時間をかけて行い、検収で達成条件を判定する。
+import { applyMoney } from './ledger';
 import type { Balance, Contract, Furniture, GameMap, Staff } from '../data/schema';
 import { tileKind } from '../data/tileKind';
 import { renameNode } from '../network/nodeName';
@@ -782,7 +783,7 @@ export const connect = (
     const p = focusedOf(next) as Project;
     next = withProject(next, { ...p, cost: p.cost + cost });
   }
-  return { ok: true, core: { ...next, clock: { ...next.clock, money: next.clock.money - cost } } };
+  return { ok: true, core: { ...next, clock: applyMoney(next.clock, -cost, 'construction') } };
 };
 
 // 配線を撤去する。ケーブルは在庫を持たないため戻さない。案件では、施工前の配線の費用を案件と所持金に戻す（施工済みは戻さない）。
@@ -813,7 +814,7 @@ export const removeLink = (core: Core, uid: string, target: NetTarget, env: Env)
     ok: true,
     core: {
       ...next,
-      clock: { ...next.clock, money: next.clock.money + refund },
+      clock: applyMoney(next.clock, refund, 'construction'),
     },
   };
 };
@@ -996,7 +997,7 @@ const cablePath = (a: NetNode, b: NetNode): NetLink['path'] => [
 
 // 配線の費用を払う（正）か返す（負）。案件では案件の費用も増減する。自社オフィスの費用は案件の費用に入れない
 const payCable = (core: Core, target: NetTarget, delta: number): Core => {
-  const next = { ...core, clock: { ...core.clock, money: core.clock.money - delta } };
+  const next = { ...core, clock: applyMoney(core.clock, -delta, 'construction') };
   if (target !== 'focus') return next;
   const p = focusedOf(next) as Project;
   return withProject(next, { ...p, cost: p.cost + delta });
@@ -1355,7 +1356,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
         office,
         effects,
         owned,
-        clock: { ...core.clock, money: core.clock.money + money },
+        clock: applyMoney(core.clock, money, 'reward'),
         companyExp,
         reputation,
         completed: p.kind === 'fixed' ? [...core.completed, p.baseId] : core.completed,

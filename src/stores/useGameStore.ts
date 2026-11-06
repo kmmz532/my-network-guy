@@ -23,6 +23,7 @@ import { resizeSandboxOffice, sandboxClock, sandboxOffice, sandboxTest } from '.
 import { gameEnv } from '../sim/env';
 import { learnFromPing } from '../network/learn';
 import { rentalOf } from '../network/external';
+import { applyMoney } from '../sim/ledger';
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
 import type { MacEntry } from '../network/mac';
 import { autoAssign } from '../sim/autoAssign';
@@ -511,12 +512,11 @@ const withLevelUps = (prev: GameState, patch: Partial<GameState>): Partial<GameS
   if (!report || !report.passed || nextExp === undefined || nextExp <= prev.companyExp) return patch;
   const ups = levelUpsBetween(levelOf(prev.companyExp, balance), levelOf(nextExp, balance), balance, levelMilestones, unlockItems);
   if (ups.length === 0) return patch;
-  const money = (patch.clock ?? prev.clock).money + ups.reduce((sum, u) => sum + u.money, 0);
   const owned = { ...(patch.owned ?? prev.owned) };
   for (const u of ups) for (const d of u.devices) owned[d.device] = (owned[d.device] ?? 0) + d.count;
   return {
     ...patch,
-    clock: { ...(patch.clock ?? prev.clock), money },
+    clock: applyMoney(patch.clock ?? prev.clock, ups.reduce((sum, u) => sum + u.money, 0), 'reward'),
     owned,
     lastReport: { ...report, levelUps: ups },
   };
@@ -708,7 +708,7 @@ export const useGameStore = create<GameState>((set, get) => {
       set({
         companyExp: exp,
         owned,
-        clock: { ...s.clock, money: s.clock.money + ups.reduce((sum, u) => sum + u.money, 0) },
+        clock: applyMoney(s.clock, ups.reduce((sum, u) => sum + u.money, 0), 'reward'),
       });
     },
     debugAddOwned: (device, count) => set((s) => ({ owned: { ...s.owned, [device]: (s.owned[device] ?? 0) + count } })),
@@ -771,7 +771,7 @@ export const useGameStore = create<GameState>((set, get) => {
         expDay: r.expDay,
         expToday: r.expToday,
         owned,
-        clock: { ...s.clock, money: s.clock.money + ups.reduce((sum, u) => sum + u.money, 0) },
+        clock: applyMoney(s.clock, ups.reduce((sum, u) => sum + u.money, 0), 'reward'),
       });
     },
     speed: 1,
@@ -956,7 +956,7 @@ export const useGameStore = create<GameState>((set, get) => {
         const days = Math.floor(ticked.minute / minutesPerDay) - Math.floor(s.clock.minute / minutesPerDay);
         const months = ticked.paidMonths - s.clock.paidMonths;
         const rent = days > 0 && !ticked.bankrupt && s.mode === 'career' ? rentalOf(s.office, gameEnv.engine, balance.rental, levelOf(s.companyExp, balance), balance.time.daysPerMonth) : null;
-        const clock = rent !== null && rent.daily > 0 ? { ...ticked, money: ticked.money + rent.daily * days } : ticked;
+        const clock = rent !== null && rent.daily > 0 ? applyMoney(ticked, rent.daily * days, 'rental') : ticked;
         let next: Partial<GameState> = { clock, ...(rent?.penalty && months > 0 ? { reputation: Math.max(0, s.reputation - months) } : {}) };
         // 月末に給与を払ったら知らせる
         if (clock.paidMonths > s.clock.paidMonths) {
@@ -1032,7 +1032,7 @@ export const useGameStore = create<GameState>((set, get) => {
       const result = buyDevice(s.clock.money, s.owned, deviceId, price);
       if (!result.ok) return false;
       // 購入は費用に入れない。案件の費用は納品のときに、置かれている機器の定価と配線の費用から決める
-      set({ clock: { ...s.clock, money: result.money }, owned: result.owned });
+      set({ clock: applyMoney(s.clock, result.money - s.clock.money, 'purchase'), owned: result.owned });
       return true;
     },
     sell: (deviceId) => {
@@ -1042,7 +1042,7 @@ export const useGameStore = create<GameState>((set, get) => {
       if (price === undefined) return false;
       const result = sellDevice(s.clock.money, s.owned, deviceId, price, balance.sellRate);
       if (!result.ok) return false;
-      set({ clock: { ...s.clock, money: result.money }, owned: result.owned });
+      set({ clock: applyMoney(s.clock, result.money - s.clock.money, 'sale'), owned: result.owned });
       return true;
     },
     useBlueprint: () => recorded(() => apply(applyBlueprintOp(coreOf(get()), gameEnv))),

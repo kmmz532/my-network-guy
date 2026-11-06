@@ -14,7 +14,7 @@ const nearPayday = () => {
   useGameStore.setState({
     speed: 1,
     payWarned: null,
-    clock: { minute: payday - balance.time.gameMinutesPerTick, money: 0, paidMonths: 0, bankrupt: false },
+    clock: { minute: payday - balance.time.gameMinutesPerTick, money: 0, paidMonths: 0, bankrupt: false, ledger: [] },
   });
 };
 

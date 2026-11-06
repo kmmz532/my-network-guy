@@ -73,7 +73,7 @@ const offer: Offer = {
 };
 
 const start = (): Core => ({
-  clock: { minute: 0, money: 1_000_000, paidMonths: 0, bankrupt: false },
+  clock: { minute: 0, money: 1_000_000, paidMonths: 0, bankrupt: false, ledger: [] },
   companyExp: 0,
   reputation: 0,
   owned: {},
