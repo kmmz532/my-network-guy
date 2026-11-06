@@ -13,6 +13,7 @@ import { Tooltip } from './Tooltip';
 import { Modal, primaryButton } from './Modal';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { RADIUS } from '../ui/theme';
+import { Select } from './Select';
 
 export type HiringTab = 'hiring' | 'staff';
 
@@ -77,15 +78,15 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
           </div>
           {/* 夜勤は会社のレベルで解放される。解放されていれば、雇うときに区分を選ぶ（N48） */}
           {nightOpen && (
-            <select
-              aria-label={t('ui.hiring.shift')}
+            <Select
+              label={t('ui.hiring.shift')}
               value={shiftOf[c.uid] ?? 'day'}
-              onChange={(e) => setShiftOf((m) => ({ ...m, [c.uid]: e.target.value as 'day' | 'night' }))}
-              style={{ fontSize: 12 }}
-            >
-              <option value="day">{t('ui.hiring.shift.day')}</option>
-              <option value="night">{t('ui.hiring.shift.night')}</option>
-            </select>
+              options={[
+                { value: 'day', label: t('ui.hiring.shift.day') },
+                { value: 'night', label: t('ui.hiring.shift.night') },
+              ]}
+              onChange={(v) => setShiftOf((m) => ({ ...m, [c.uid]: v as 'day' | 'night' }))}
+            />
           )}
           <button
             style={{ padding: '4px 12px', cursor: 'pointer' }}

@@ -3,24 +3,14 @@
 // 形が正しくなければ理由を赤い文字で出し、直前の値に戻す。Esc は一覧を閉じて入力前の値に戻す。
 // スマホでは、欄を押してもキーボードを開かず候補だけを開く（N62）。一覧の下端の「キーボードで入力…」を押したときだけ、キーボードを出す。
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
-import { createPortal } from 'react-dom';
 import { t, tDyn } from '../i18n/t';
 import { usePhone } from '../ui/usePhone';
 import { filterOptions, isSelectable, listHeight, moveActive, pickOnCommit, placeAbove, type ComboOption } from './comboOptions';
 import { inputStyle, unsetColor } from './devicePorts';
-import { RADIUS } from '../ui/theme';
-
-const LIST_MAX = 220;
-const ROW_PX = 22;
-const MIN_LIST_WIDTH = 180;
+import { OptionList, ROW_PX, LIST_MAX, type OptionAnchor } from './OptionList';
 
 // 入力欄の画面上の位置。一覧は portal で文書の直下に置くため、ウィンドウの枠で隠れず、はみ出しても見える
-interface Anchor {
-  left: number;
-  width: number;
-  top: number;
-  bottom: number;
-}
+type Anchor = OptionAnchor;
 
 const measure = (el: HTMLElement): Anchor => {
   const r = el.getBoundingClientRect();
@@ -208,63 +198,19 @@ export function ComboBox({ label, value, options, disabled, isValid, formatError
         onKeyDown={onKeyDown}
       />
       {error && <div style={{ color: unsetColor }}>{error}</div>}
-      {listVisible &&
-        createPortal(
-          <div
-            style={{
-              position: 'fixed',
-              left: anchorPos.left,
-              width: Math.max(anchorPos.width, MIN_LIST_WIDTH),
-              ...(above ? { bottom: window.innerHeight - anchorPos.top + 2 } : { top: anchorPos.bottom + 2 }),
-              background: '#f4f1e6',
-              color: '#3b2a33',
-              border: '1px solid #3b2a33',
-              borderRadius: RADIUS.none,
-              fontSize: 13,
-              zIndex: 50,
-            }}
-          >
-            <ul
-              id={listId}
-              ref={listRef}
-              role="listbox"
-              aria-label={label}
-              style={{ maxHeight: LIST_MAX, overflowY: 'auto', margin: 0, padding: 0, listStyle: 'none' }}
-            >
-              {shown.map((o, i) => {
-                const selectable = isSelectable(o);
-                const highlighted = i === active;
-                return (
-                  <li
-                    key={o.value}
-                    id={`${id}-${i}`}
-                    data-index={i}
-                    role="option"
-                    aria-selected={highlighted}
-                    aria-disabled={selectable ? undefined : true}
-                    onMouseEnter={() => {
-                      if (selectable) setActive(i);
-                    }}
-                    // 押したときにフォーカスを移さない（欄を離れたときの確定と競合しないように）
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      if (selectable) commit(o.value);
-                    }}
-                    style={{
-                      padding: '2px 6px',
-                      whiteSpace: 'nowrap',
-                      cursor: selectable ? 'pointer' : 'default',
-                      background: highlighted ? '#25406f' : 'transparent',
-                      color: highlighted ? '#f4f1e6' : selectable ? '#3b2a33' : '#8a8f99',
-                    }}
-                  >
-                    {o.value}
-                    {o.usedBy !== null && <span style={{ marginLeft: 6, opacity: 0.8 }}>{t('ui.config.usedBy', { name: o.usedBy })}</span>}
-                  </li>
-                );
-              })}
-            </ul>
-            {keyboardOff && (
+      {listVisible && (
+        <OptionList
+          id={id}
+          label={label}
+          items={shown.map((o) => ({ value: o.value, text: o.value, selectable: isSelectable(o), usedBy: o.usedBy }))}
+          active={active}
+          anchor={anchorPos}
+          above={above}
+          listRef={listRef}
+          onPick={(value) => commit(value)}
+          onHover={(i) => setActive(i)}
+          footer={
+            keyboardOff && (
               // 一覧の下端に固定する（候補が多くて一覧がスクロールしても、常に見える）。押すとキーボードを出す（N62）
               <div
                 role="button"
@@ -277,10 +223,10 @@ export function ComboBox({ label, value, options, disabled, isValid, formatError
               >
                 {t('ui.combo.keyboard')}
               </div>
-            )}
-          </div>,
-          document.body,
-        )}
+            )
+          }
+        />
+      )}
     </div>
   );
 }

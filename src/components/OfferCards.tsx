@@ -16,6 +16,7 @@ import { PixelCheck } from './PixelControls';
 import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
 import { CATEGORY } from '../data/categories';
+import { Select } from './Select';
 import { levelOf } from '../sim/level';
 
 // 依頼の一覧。Enter は一番上の依頼の受注（主のボタン）
@@ -59,18 +60,13 @@ export function OfferBody({ onClose }: { onClose: () => void }) {
       {offers.length === 0 && <div style={{ opacity: 0.7 }}>…</div>}
       {offers.length > 0 && (
         // 並べ替えは選択ボックスにまとめる（幅を取らない。N61）。スマホでは OS の選択画面が開く
-        <select
-          aria-label={t('ui.offer.sort.label')}
+        <Select
+          label={t('ui.offer.sort.label')}
           value={sort}
-          onChange={(e) => setSort(e.target.value as OfferSort)}
-          style={{ fontSize: 12, marginBottom: 8 }}
-        >
-          {OFFER_SORTS.map((mode) => (
-            <option key={mode} value={mode}>
-              {t(`ui.offer.sort.${mode}`)}
-            </option>
-          ))}
-        </select>
+          options={OFFER_SORTS.map((mode) => ({ value: mode, label: t(`ui.offer.sort.${mode}`) }))}
+          onChange={(v) => setSort(v as OfferSort)}
+          style={{ marginBottom: 8 }}
+        />
       )}
       {/* 新しい依頼を上に並べる。件数が多いときは、この中だけスクロールする */}
       <div className="scroll-edge" style={{ maxHeight: 'min(60vh, 520px)', overflowY: 'auto', paddingRight: 4 }}>
