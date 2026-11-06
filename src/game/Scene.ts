@@ -3,7 +3,7 @@
 import { nodeLabel } from '../components/nodeLabel';
 import { isPhoneNow } from '../ui/usePhone';
 import { Application, Container, Graphics, Rectangle, Sprite, Text, type FederatedPointerEvent, type Ticker } from 'pixi.js';
-import { staffSpriteName, type GameMap } from '../data/schema';
+import { staffSpriteName, STAFF_PLACEHOLDER_LOOKS, type GameMap } from '../data/schema';
 import { coreOf, editNetOf, focusedProject, frontDeviceUid, netTargetOf, useGameStore, type Trace, type WireStart } from '../stores/useGameStore';
 import { cableEndAt, linkAt, plugPoints } from './linkHit';
 import { portLabel } from '../components/devicePorts';
@@ -60,7 +60,6 @@ const PACKET_COLOR: Record<string, number> = {
   http: 0xff8fb0,
 };
 // 社員のスプライト（2人を服の色で区別する）
-const STAFF_SHIRT = ['blue_dark_short', 'red_dark_short'];
 // 社員のコマ送りの間隔（ms）。ART.md の 4〜8 fps 相当
 const FRAME_MS = 150;
 // 出勤・退勤で1フレームに歩かせる時間の上限（ms）
@@ -843,7 +842,7 @@ export class Scene {
     const workers = Math.min(desks.length, staffList.length);
     for (let k = 0; k < workers; k++) {
       const [dx, dy] = desks[k];
-      const look = staffList[k]?.look ?? STAFF_SHIRT[k % STAFF_SHIRT.length];
+      const look = staffList[k]?.look ?? STAFF_PLACEHOLDER_LOOKS[k % STAFF_PLACEHOLDER_LOOKS.length];
       const c = this.commutes.get(staffList[k].uid);
       // 退勤して外にいる社員は描かない。出勤・退勤の途中は、通路を歩く姿を描く（机の前の打鍵はしない）
       if (c?.state === 'away') continue;
@@ -928,7 +927,7 @@ export class Scene {
     const seats = s.office.furniture.filter((f) => f.id === DESK_ID).length;
     this.wanderers.forEach((w, k) => {
       const at = wanderStaffPos(w.x, w.y, ts);
-      this.drawStaff(at.x, at.y, s.staff[seats + k]?.look ?? STAFF_SHIRT[k % STAFF_SHIRT.length]);
+      this.drawStaff(at.x, at.y, s.staff[seats + k]?.look ?? STAFF_PLACEHOLDER_LOOKS[k % STAFF_PLACEHOLDER_LOOKS.length]);
     });
   }
 
@@ -1081,7 +1080,7 @@ export class Scene {
     for (let k = 0; k < workers && pending.length > 0; k++) {
       const at = pending[Math.min(pending.length - 1, index + k)];
       // 1人目は作業場所の左、2人目は右に立つ
-      this.drawStaff(at.x + (k === 0 ? -18 : 2), at.y - 24 - bob, useGameStore.getState().staff[k]?.look ?? STAFF_SHIRT[k % STAFF_SHIRT.length]);
+      this.drawStaff(at.x + (k === 0 ? -18 : 2), at.y - 24 - bob, useGameStore.getState().staff[k]?.look ?? STAFF_PLACEHOLDER_LOOKS[k % STAFF_PLACEHOLDER_LOOKS.length]);
     }
 
     // 施工の進捗バー（マップの下端）

@@ -34,6 +34,8 @@ export const STAFF_HAIR_STYLES = ['short', 'long'] as const;
 export const STAFF_LOOKS: readonly string[] = STAFF_SHIRTS.flatMap((shirt) =>
   STAFF_HAIRS.flatMap((hair) => STAFF_HAIR_STYLES.map((style) => `${shirt}_${hair}_${style}`)),
 );
+// 社員の予備の見た目（スプライトが読めないときの代わりに使う。画面の2人分）
+export const STAFF_PLACEHOLDER_LOOKS = ['blue_dark_short', 'red_dark_short'] as const;
 // 増やす前の見た目（blue・red）。保存済みのデータはこの名前のまま残るため、黒髪の短髪として描く
 const LEGACY_STAFF_LOOKS: Readonly<Record<string, string>> = { blue: 'blue_dark_short', red: 'red_dark_short' };
 // 見た目の名前からスプライトの名前（staff/ の前の部分）を決める

@@ -29,7 +29,7 @@ import type {
   SegmentConfig,
   Service,
 } from '../network/types';
-import type { ClockState } from './clock';
+import { isWorkingHour, type ClockState } from './clock';
 import { rate, rewardRateOf } from './rating';
 import { dueDayOf, lateDaysOf, lateFactor } from './deadline';
 import { furnitureBonus, type BonusEnv } from './furniture';
@@ -1037,8 +1037,7 @@ export const requestBuild = (core: Core, env: Env): Outcome => {
 // 施工を1Tick分進める。勤務時間内のみ、担当の社員が並行して作業する。施工中の案件をすべて進め、終わった案件は検収する。
 // 検収の結果が出たら止める（残りの案件は次のTickで進める）
 export const advanceBuild = (core: Core, env: Env, hour: number): Outcome => {
-  const { workStartHour, workEndHour } = env.balance.build;
-  const working = hour >= workStartHour && hour < workEndHour;
+  const working = isWorkingHour(hour, env.balance);
   const bonusEnv: BonusEnv = { defs: env.furniture ?? {}, balance: env.balance, staffUids: core.staff.map((s) => s.uid) };
   const crewOf = (p: Project) => core.staff.filter((s) => p.crew.includes(s.uid));
   // 施工中の案件の担当は、勤務時間内に1ゲーム時間ぶんの経験値を得る（着席の社員は家具の補正を受ける）
