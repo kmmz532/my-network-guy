@@ -3,6 +3,7 @@
 import { ipToInt } from '../network/engine';
 import { epKey, segmentsOf } from '../network/segments';
 import type { EngineData, Iface, NetLink, NetNode, Route } from '../network/types';
+import { CATEGORY } from '../data/categories';
 
 // 色を持つ古い機器の形式（色は v12 までの機器が持っていた）
 type LNode = NetNode & { colors?: Record<number, number> };
@@ -36,8 +37,8 @@ export const legacyInterfaces = (nodes: LNode[], links: NetLink[], data: EngineD
   const colorsOf = (n: LNode): Record<number, number> => n.colors ?? {};
   const coloredPorts = (n: LNode): number[] => {
     const c = cat(n);
-    if (c === 'l2_switch') return [];
-    if (c === 'router') return Object.keys(colorsOf(n)).map(Number);
+    if (c === CATEGORY.l2Switch) return [];
+    if (c === CATEGORY.router) return Object.keys(colorsOf(n)).map(Number);
     return colorsOf(n)[0] ? [0] : [];
   };
   const fixed = (n: LNode) => n.configLocked && n.interfaces.length > 0;
@@ -77,14 +78,14 @@ export const legacyInterfaces = (nodes: LNode[], links: NetLink[], data: EngineD
     const list: Iface[] = [];
     for (const port of coloredPorts(n).sort((a, b) => a - b)) {
       const c = colorsOf(n)[port];
-      list.push({ port, ip: alloc(c, cat(n) === 'router' ? 1 : 11), prefix: 24 });
+      list.push({ port, ip: alloc(c, cat(n) === CATEGORY.router ? 1 : 11), prefix: 24 });
     }
     ifaces.set(n.uid, list);
   }
 
   const routerPorts: { node: LNode; color: number; domain: string; ip: string }[] = [];
   for (const n of nodes) {
-    if (cat(n) !== 'router') continue;
+    if (cat(n) !== CATEGORY.router) continue;
     for (const i of ifaces.get(n.uid)!) {
       routerPorts.push({ node: n, color: colorsOf(n)[i.port], domain: dom(n.uid, i.port), ip: i.ip });
     }
@@ -92,7 +93,7 @@ export const legacyInterfaces = (nodes: LNode[], links: NetLink[], data: EngineD
 
   // ルーター同士が同じ色でつながっていれば隣接とし、幅優先探索で次のホップを決める
   const routes = new Map<string, Route[]>();
-  for (const r of nodes.filter((n) => cat(n) === 'router')) {
+  for (const r of nodes.filter((n) => cat(n) === CATEGORY.router)) {
     const direct = new Set(routerPorts.filter((p) => p.node.uid === r.uid).map((p) => p.color));
     const result: Route[] = [];
     const seenColors = new Set(direct);
@@ -122,8 +123,8 @@ export const legacyInterfaces = (nodes: LNode[], links: NetLink[], data: EngineD
 
   return nodes.map((n) => {
     const c = cat(n);
-    if (c === 'l2_switch') return { ...n, interfaces: [], gateway: null, routes: [] };
-    if (c === 'router') return { ...n, interfaces: ifaces.get(n.uid)!, gateway: null, routes: routes.get(n.uid)! };
+    if (c === CATEGORY.l2Switch) return { ...n, interfaces: [], gateway: null, routes: [] };
+    if (c === CATEGORY.router) return { ...n, interfaces: ifaces.get(n.uid)!, gateway: null, routes: routes.get(n.uid)! };
     const color = colorsOf(n)[0];
     let gateway = fixed(n) ? n.gateway : null;
     if (color && !fixed(n)) {

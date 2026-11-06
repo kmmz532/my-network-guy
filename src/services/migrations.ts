@@ -11,6 +11,7 @@ import pcJson from '../assets/data/devices/pc.json';
 import serverJson from '../assets/data/devices/server.json';
 import routerJson from '../assets/data/devices/router.json';
 import switchJson from '../assets/data/devices/l2_switch.json';
+import { CATEGORY } from '../data/categories';
 
 export const SAVE_VERSION = 21;
 
@@ -47,7 +48,7 @@ const colorsToSegments = <T extends { nodes: NetNode[]; links?: NetLink[] }>(x: 
 
 // サービスが空のサーバーに、機材の既定のサービスを入れる。設定を変えられない機器は変えない
 const withDefaultServices = (n: NetNode): NetNode => {
-  if (migrationCategories[n.device] !== 'server' || n.configLocked || n.services.length > 0) return n;
+  if (migrationCategories[n.device] !== CATEGORY.server || n.configLocked || n.services.length > 0) return n;
   const services = migrationDefaultServices[n.device] ?? [];
   if (services.length === 0) return n;
   return { ...n, services: services.map((s) => ({ ...s })) };

@@ -45,6 +45,7 @@ import { breakAt, breakPlanOf } from '../sim/breaks';
 import { minutesPerDay as dayMinutes } from '../sim/clock';
 import { isPresentMinute, minutesPerDay } from '../sim/clock';
 import { deskStaffPos, deskTap, staffAt, STAFF_W, wanderStaffPos, type StaffHit } from './staffHit';
+import { CATEGORY } from '../data/categories';
 
 // 拡大・縮小ボタンの列は、ツールバーの上の右下の角にある（MapZoomButtons.tsx と同じ寸法。画面の px）
 const ZOOM_BUTTON_W = 44;
@@ -797,7 +798,7 @@ export class Scene {
   // 機器のスプライトの上端（マップの座標）。机の上（PCや机の家具のマス）は天板の高さ、床に置いた機器は足元から
   private spriteTopOf(node: NetNode, ts: number): number {
     // サンドボックスでは、PC は机の上に限らず床に置ける（天板の高さに上げない）
-    const onDesk = this.deskAt(node.x, node.y) || (gameEnv.devices[node.device]?.category === 'pc' && useGameStore.getState().mode !== 'sandbox');
+    const onDesk = this.deskAt(node.x, node.y) || (gameEnv.devices[node.device]?.category === CATEGORY.pc && useGameStore.getState().mode !== 'sandbox');
     return (onDesk ? node.y * ts + DESK_TOP : node.y * ts + ts - DEVICE_FOOT_INSET) - 38;
   }
 
@@ -1035,9 +1036,9 @@ export class Scene {
     // スプライトの底面の行（y=37）が足元に来る位置。PCは机の天板に載せ、影は付けない
     const deskTile = this.deskAt(node.x, node.y);
     const anyFloor = useGameStore.getState().mode === 'sandbox';
-    const onDesk = deskTile || (category === 'pc' && !anyFloor);
+    const onDesk = deskTile || (category === CATEGORY.pc && !anyFloor);
     // 机のないマスに置いたPCには、机も一緒に描く
-    const deskTex = !deskTile && category === 'pc' && !anyFloor ? texture('furniture/desk') : undefined;
+    const deskTex = !deskTile && category === CATEGORY.pc && !anyFloor ? texture('furniture/desk') : undefined;
     if (deskTex) {
       const desk = new Sprite(deskTex);
       desk.position.set(node.x * ts, node.y * ts);

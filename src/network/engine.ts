@@ -3,6 +3,7 @@
 // 失敗理由は ID で返し、文言は言語ファイルで表示する。
 import { isFabricPort, isRelayPort, isRoutingCategory, ROUTER_SWITCH_LAN_HOST_PORT } from './category';
 import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, NetLink, NetNode, Network, PathResult } from './types';
+import { CATEGORY } from '../data/categories';
 
 const MAX_HOPS = 16;
 
@@ -57,7 +58,7 @@ class Topology {
       }
     }
     for (const [uid, ports] of this.fabricBy) {
-      if (this.categoryOf(uid) === 'router_switch' && !ports.includes(ROUTER_SWITCH_LAN_HOST_PORT)) ports.push(ROUTER_SWITCH_LAN_HOST_PORT);
+      if (this.categoryOf(uid) === CATEGORY.routerSwitch && !ports.includes(ROUTER_SWITCH_LAN_HOST_PORT)) ports.push(ROUTER_SWITCH_LAN_HOST_PORT);
       this.fabricBy.set(uid, ports);
     }
   }
@@ -221,7 +222,7 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
     if (!topo.isRouter(cur.uid)) return err(fail('route.none', cur.uid));
     path.push(cur.uid);
     // ファイアウォールは、規則に合う通信だけを通す（既定は拒否）
-    if (check && topo.categoryOf(cur.uid) === 'firewall' && !allows(cur.rules, srcIface.ip, dstIface.ip, traffic)) {
+    if (check && topo.categoryOf(cur.uid) === CATEGORY.firewall && !allows(cur.rules, srcIface.ip, dstIface.ip, traffic)) {
       return err(fail('firewall.denied', cur.uid));
     }
 

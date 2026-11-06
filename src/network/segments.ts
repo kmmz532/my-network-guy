@@ -3,6 +3,7 @@
 import { ipToInt } from './engine';
 import { isFabricPort, isRelayPort, isRoutingCategory, ROUTER_SWITCH_LAN_HOST_PORT } from './category';
 import type { EngineData, Endpoint, NetNode, Network, SegmentConfig } from './types';
+import { CATEGORY } from '../data/categories';
 
 // 設定できるプレフィックス長（sim-3 の候補）
 export const PREFIX_MIN = 24;
@@ -56,7 +57,7 @@ export const segmentsOf = (net: Pick<Network, 'nodes' | 'links'>, data: EngineDa
   }
   // スイッチ付きルーターは、LAN の口につながっていれば代表の LAN 口もセグメントに含める（アドレスを持つ口）
   for (const ep of [...endpoints.values()]) {
-    if (!isFabricPort(cat(ep.node), ep.port) || cat(ep.node) !== 'router_switch') continue;
+    if (!isFabricPort(cat(ep.node), ep.port) || cat(ep.node) !== CATEGORY.routerSwitch) continue;
     const host = { node: ep.node, port: ROUTER_SWITCH_LAN_HOST_PORT };
     endpoints.set(epKey(host.node, host.port), host);
   }

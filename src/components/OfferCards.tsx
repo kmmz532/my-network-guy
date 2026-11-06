@@ -16,6 +16,7 @@ import { minutesPerDay, toDate } from '../sim/clock';
 import { PixelCheck } from './PixelControls';
 import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
+import { CATEGORY } from '../data/categories';
 
 // 依頼の一覧。Enter は一番上の依頼の受注（主のボタン）
 
@@ -152,7 +153,7 @@ function OfferCard({
   usePrimary(primary ? () => canAccept && onAccept(crew) : undefined);
   const hosts = offer.contract.placed.filter((p) => {
     const c = devices[p.device as keyof typeof devices]?.category;
-    return c === 'pc' || c === 'server';
+    return c === CATEGORY.pc || c === CATEGORY.server;
   }).length;
   return (
     <div style={{ background: '#25406f', borderRadius: RADIUS.none, padding: 10, marginBottom: 8 }}>

@@ -1,6 +1,7 @@
 // ゲームデータのzodスキーマ。ビルド時（game-data プラグイン）でのみ使用し、実行時のjsには含めない。
 import { z } from 'zod';
 import { parseCondition } from '../sim/guide';
+import { CATEGORY_IDS } from './categories';
 
 const int = z.number().int();
 const nonNegativeInt = z.number().int().nonnegative();
@@ -171,7 +172,7 @@ const serviceSchema = z.object({
 
 export const deviceSchema = z.object({
   id: z.string().min(1),
-  category: z.enum(['pc', 'server', 'l2_switch', 'router', 'l3_switch', 'router_switch', 'firewall']),
+  category: z.enum(CATEGORY_IDS),
   price: nonNegativeInt,
   ports: z
     .array(

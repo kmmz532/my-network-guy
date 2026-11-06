@@ -15,6 +15,7 @@ import { useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, portLabel } from './devicePorts';
 import { isDragMove, portHoverAt, replugTargetAt, type PortBox, type PortHover } from './rearDrag';
 import { RADIUS } from '../ui/theme';
+import { CATEGORY } from '../data/categories';
 
 // 背面の部品のスプライトを拡大する倍率（ドット絵を整数倍で描く）
 // 背面の部品の拡大率。ポートが多い機器は、板の幅に収まるよう2倍にする
@@ -195,7 +196,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
   };
 
   // 背面の板: 左から電源・ポート群・ファン（PC とサーバーだけ）。スプライトは3倍に拡大して、ドット絵のまま描く
-  const fan = category === 'pc' || category === 'server';
+  const fan = category === CATEGORY.pc || category === CATEGORY.server;
   // 画面の倍率（UI の大きさ）。位置は倍率で割って指定する（PortMenu と同じ考え方）
   const uiScale = loadSettings().uiScale;
   const plugW = 12 * SCALE;

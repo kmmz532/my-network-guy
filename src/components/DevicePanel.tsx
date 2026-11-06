@@ -15,6 +15,7 @@ import { TrimmedIcon } from './Icon';
 import { TerminalTab } from './TerminalTab';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { buttonStyle, greyColor, warnColor } from './devicePorts';
+import { CATEGORY } from '../data/categories';
 
 type Tab = 'rear' | 'config' | 'service' | 'terminal';
 
@@ -92,9 +93,9 @@ function DeviceView({
   const [error, setError] = useState<string | null>(null);
 
   const info = gameEnv.devices[node.device];
-  const isServer = info?.category === 'server';
+  const isServer = info?.category === CATEGORY.server;
   // 設定できるもの（IPアドレスなど）がない機器（L2 スイッチ）は、設定タブを出さない
-  const hasConfig = info?.category !== 'l2_switch';
+  const hasConfig = info?.category !== CATEGORY.l2Switch;
   const issue = compiled.issues[node.uid];
 
   return (

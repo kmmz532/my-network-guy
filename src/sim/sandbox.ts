@@ -6,6 +6,10 @@ import { compile } from '../network/compile';
 import type { NetNode } from '../network/types';
 import type { ClockState } from './clock';
 import { emptyOffice, type Env, type GoalCheck, type Office, type OfficeSize, type TestResult } from './project';
+import { CATEGORY } from '../data/categories';
+
+// PC かサーバー（サンドボックスの通信の両端）
+const isPcOrServer = (category: string): boolean => category === CATEGORY.pc || category === CATEGORY.server;
 
 // 床の大きさの選択肢（床の内側のマス数）。新しく始めるとき、と後で広さを変えるときに選ぶ
 export const SANDBOX_SIZES: OfficeSize[] = [
@@ -38,9 +42,9 @@ export const sandboxClock = (base: ClockState): ClockState => ({ ...base, money:
 // テストの判定に使う達成条件。PC とサーバーの全組み合わせの ping と、PC からサーバーへの HTTP（80番）
 const testGoals = (nodes: NetNode[], categoryOf: (device: string) => string): Goal[] => {
   const category = (n: NetNode) => categoryOf(n.device);
-  const ends = nodes.filter((n) => ['pc', 'server'].includes(category(n))).map((n) => n.uid);
-  const pcs = nodes.some((n) => category(n) === 'pc');
-  const servers = nodes.some((n) => category(n) === 'server');
+  const ends = nodes.filter((n) => isPcOrServer(category(n))).map((n) => n.uid);
+  const pcs = nodes.some((n) => category(n) === CATEGORY.pc);
+  const servers = nodes.some((n) => category(n) === CATEGORY.server);
   const goals: Goal[] = [];
   if (ends.length >= 2) goals.push({ type: 'ping_all', nodes: ends });
   if (pcs && servers) goals.push({ type: 'http_all', port: 80 });

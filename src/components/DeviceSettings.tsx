@@ -19,6 +19,7 @@ import { gameEnv } from '../sim/env';
 import { addressCandidates, PLANNED_NETWORK, PLANNED_PREFIX, plannedAddressCandidates, type AddressCandidate } from '../sim/project';
 import { coreOf, netTargetOf, plannedKey, useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, hexColor, inputStyle, isIpText, portLabel, sectionStyle, unsetColor } from './devicePorts';
+import { CATEGORY } from '../data/categories';
 
 // ネットワークアドレスの候補（sim-3: 192.168.<n>.0）と、プレフィックス長の候補（/24〜/30）
 const NETWORK_CHOICES = Array.from({ length: 16 }, (_, i) => `192.168.${i + 1}.0`);
@@ -269,8 +270,8 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
       {node.configLocked && <div style={{ marginBottom: 6 }}>{t('ui.config.locked')}</div>}
       {ports.map(renderPort)}
       {!isRoutingCategory(category ?? '') && renderGateway()}
-      {isRoutingCategory(category ?? '') && category !== 'firewall' && renderRoutes()}
-      {category === 'firewall' && renderFirewallRules()}
+      {isRoutingCategory(category ?? '') && category !== CATEGORY.firewall && renderRoutes()}
+      {category === CATEGORY.firewall && renderFirewallRules()}
     </div>
   );
 }

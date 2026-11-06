@@ -35,6 +35,7 @@ import { rate, rewardRateOf } from './rating';
 import { dueDayOf, lateDaysOf, lateFactor } from './deadline';
 import { furnitureBonus, type BonusEnv } from './furniture';
 import { gainExp, staffPower } from './staff';
+import { CATEGORY } from '../data/categories';
 
 export interface Project {
   id: string;
@@ -365,7 +366,7 @@ const officePlaceReason = (
   anyFloor = false,
 ): string | null => {
   const hasNode = nodes.some((n) => n.x === x && n.y === y);
-  const isPc = env.devices[deviceId].category === 'pc';
+  const isPc = env.devices[deviceId].category === CATEGORY.pc;
   if (isPc && !anyFloor) {
     const onDesk = furniture.some((f) => f.x === x && f.y === y && f.id === DESK_ID);
     return !onDesk || hasNode ? 'desk' : null;
@@ -392,7 +393,7 @@ const placeReason = (
 ): string | null => {
   if (inhouse) return officePlaceReason(furniture, nodes, deviceId, x, y, map, env, anyFloor);
   const kind = map.legend[map.tiles[y][x]];
-  if (kind !== 'floor' && !(kind === 'desk' && env.devices[deviceId].category === 'pc')) return 'tile';
+  if (kind !== 'floor' && !(kind === 'desk' && env.devices[deviceId].category === CATEGORY.pc)) return 'tile';
   if (nodes.some((n) => n.x === x && n.y === y)) return 'tile';
   return null;
 };
