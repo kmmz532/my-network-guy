@@ -155,11 +155,14 @@ export function ReportModal() {
 export function NoticeToast() {
   const notice = useGameStore((s) => s.notice);
   const dismiss = useGameStore((s) => s.dismissNotice);
+  const openWindow = useGameStore((s) => s.openWindow);
+  // 給与を払えない月の知らせは、資金の画面を開けるように、自分では消えない（押して閉じる）
+  const stays = notice?.key === 'ui.notice.payPause';
   useEffect(() => {
-    if (!notice) return;
+    if (!notice || stays) return;
     const id = window.setTimeout(dismiss, NOTICE_MS);
     return () => window.clearTimeout(id);
-  }, [notice, dismiss]);
+  }, [notice, stays, dismiss]);
   if (!notice) return null;
   return (
     <div
@@ -177,6 +180,17 @@ export function NoticeToast() {
       }}
     >
       {tDyn(notice.key, notice.params)}
+      {stays && (
+        <button
+          onClick={() => {
+            openWindow('funds', '');
+            dismiss();
+          }}
+          style={{ marginLeft: 10, background: '#ffd866', color: '#3b2a33', border: 'none', padding: '2px 8px', cursor: 'pointer', fontWeight: 'bold' }}
+        >
+          {t('ui.funds.open')}
+        </button>
+      )}
     </div>
   );
 }
