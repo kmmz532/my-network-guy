@@ -18,6 +18,30 @@ export type Commute =
 // 1マス歩くのにかかる時間（ms）
 export const STEP_MS = 400;
 
+// 経路に沿って dtMs だけ歩く（1マスずつ。途中まで進んだ位置も返す）。残りの経路と、今の位置を返す
+export const walkPath = (from: Point, route: readonly Point[], dtMs: number): { at: Point; path: Point[] } => {
+  let budget = dtMs / STEP_MS;
+  let path = [...route];
+  let x = from.x;
+  let y = from.y;
+  while (budget > 0 && path.length > 0) {
+    const next = path[0];
+    const dist = Math.abs(next.x - x) + Math.abs(next.y - y);
+    if (budget >= dist) {
+      x = next.x;
+      y = next.y;
+      budget -= dist;
+      path = path.slice(1);
+    } else {
+      // 途中まで進む（経路は縦か横の一方向）
+      x += Math.sign(next.x - x) * budget;
+      y += Math.sign(next.y - y) * budget;
+      budget = 0;
+    }
+  }
+  return { at: { x, y }, path };
+};
+
 // 出発点から目的地まで、床・ドアのマスだけを通る最短の経路（出発点は含まない）。行けなければ null
 export const bfsRoute = (from: Point, to: Point, passable: (x: number, y: number) => boolean): Point[] | null => {
   if (from.x === to.x && from.y === to.y) return [];
@@ -75,29 +99,8 @@ export const commuteStep = (
   }
   if (cur.state !== 'out' && cur.state !== 'in') return cur;
 
-  // 歩く。1マスずつ、残りの時間の分だけ進める
-  let budget = dtMs / STEP_MS;
-  let { at, path } = cur;
-  let x = at.x;
-  let y = at.y;
-  while (budget > 0 && path.length > 0) {
-    const next = path[0];
-    const dist = Math.abs(next.x - x) + Math.abs(next.y - y);
-    if (budget >= dist) {
-      x = next.x;
-      y = next.y;
-      budget -= dist;
-      path = path.slice(1);
-    } else {
-      // 途中まで進む（経路は縦か横の一方向）
-      const dx = next.x - x;
-      const dy = next.y - y;
-      x += Math.sign(dx) * budget;
-      y += Math.sign(dy) * budget;
-      budget = 0;
-    }
-  }
-  at = { x, y };
+  const walked = walkPath(cur.at, cur.path, dtMs);
+  const { at, path } = walked;
   if (path.length > 0) return { state: cur.state, at, path };
   // 着いたら、外へ出た・机に座った状態にする
   return cur.state === 'out' ? { state: 'away', at, path: [] } : { state: 'seated', at: { ...desk }, path: [] };

@@ -112,6 +112,12 @@
     "minutesPerCableTile": 15,
     "arriveMinutesBefore": 30
   },
+  "breaks": {
+    "maxPerDay": 3,
+    "maxMinutesPerDay": 120,
+    "minMinutes": 30,
+    "maxMinutes": 60
+  },
   "rating": [
     {
       "stars": 3,

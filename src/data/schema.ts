@@ -93,6 +93,13 @@ export const balanceSchema = z.object({
     // 社員が出社する時刻（始業の何分前にドアから入るか）。席に着いているのは始業の時刻まで
     arriveMinutesBefore: nonNegativeInt,
   }),
+  // 社員の休憩（N42）。1回は minMinutes 以上、1日に maxPerDay 回・合計 maxMinutesPerDay まで（見た目だけ。施工・経験値・給与には影響しない）
+  breaks: z.object({
+    maxPerDay: nonNegativeInt,
+    maxMinutesPerDay: nonNegativeInt,
+    minMinutes: int.positive(),
+    maxMinutes: int.positive(),
+  }),
   rating: z
     .array(
       z.object({

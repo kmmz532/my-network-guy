@@ -40,6 +40,9 @@ import { bindMapCommands } from './mapControl';
 import { cumulativeLengths, pointAt, type Point } from './animation';
 import { wanderStep, type Walker } from './wander';
 import { bfsRoute, commuteStep, type Commute } from './commute';
+import { breakMoveStep, deskMove, type BreakMove } from './breakMove';
+import { breakAt, breakPlanOf } from '../sim/breaks';
+import { minutesPerDay as dayMinutes } from '../sim/clock';
 import { isPresentMinute, minutesPerDay } from '../sim/clock';
 import { deskStaffPos, deskTap, staffAt, STAFF_W, wanderStaffPos, type StaffHit } from './staffHit';
 
@@ -64,6 +67,8 @@ const PACKET_COLOR: Record<string, number> = {
 const FRAME_MS = 150;
 // 出勤・退勤で1フレームに歩かせる時間の上限（ms）
 const COMMUTE_MAX_FRAME_MS = 100;
+// 休憩の場所にする家具（自社オフィス）
+const BREAK_FURNITURE = ['coffee', 'water', 'sofa'];
 // サンドボックスを開いたとき（全体表示より大きい倍率）
 const SANDBOX_OPEN_ZOOM = 2;
 // 失敗の吹き出しを出しておく時間（ms）
@@ -164,6 +169,8 @@ export class Scene {
   private wanderers: Walker[] = [];
   // 机の社員の出勤・退勤の状態（キーは社員の uid）
   private commutes = new Map<string, Commute>();
+  // 休憩の動き（キーは社員の uid。机にいる社員は desk）
+  private breaks = new Map<string, BreakMove>();
   // 失敗の「？」の押せる範囲（機器の uid → マップの座標の矩形）。描き直すたびに作る
   private helpRects = new Map<string, { x: number; y: number; w: number; h: number }>();
   private unsubscribe: () => void;
@@ -846,6 +853,13 @@ export class Scene {
       const c = this.commutes.get(staffList[k].uid);
       // 退勤して外にいる社員は描かない。出勤・退勤の途中は、通路を歩く姿を描く（机の前の打鍵はしない）
       if (c?.state === 'away') continue;
+      // 休憩の途中（場所へ歩く・休む・戻る）は、その位置に立って描く（机の前の打鍵はしない）
+      const b = this.breaks.get(staffList[k].uid);
+      if (c?.state === 'seated' && b && b.phase !== 'desk') {
+        const at = wanderStaffPos(b.at.x, b.at.y, ts);
+        this.drawStaff(at.x, at.y, look);
+        continue;
+      }
       if (c && c.state !== 'seated') {
         const at = wanderStaffPos(c.at.x, c.at.y, ts);
         this.drawStaff(at.x, at.y, look);
@@ -885,6 +899,13 @@ export class Scene {
     };
     const route = (from: Point, to: Point): Point[] | null => bfsRoute(from, to, passable);
     const desks = s.office.furniture.filter((f) => f.id === DESK_ID);
+    // 休憩の場所（コーヒー・水・ソファ）。なければ、床の数か所を歩き回る
+    const restSpots = s.office.furniture.filter((f) => BREAK_FURNITURE.includes(f.id)).map((f): Point => ({ x: f.x, y: f.y }));
+    const floor: Point[] = [];
+    for (let y = 0; y < map.height; y++) for (let x = 0; x < map.width; x++) if (map.legend[map.tiles[y][x]] === 'floor') floor.push({ x, y });
+    const minuteOfDay = s.clock.minute % dayMinutes;
+    const day = Math.floor(s.clock.minute / dayMinutes);
+    const frameDt = Math.min(dt, COMMUTE_MAX_FRAME_MS);
     const seen = new Set<string>();
     desks.forEach((f, k) => {
       const member = s.staff[k];
@@ -892,9 +913,23 @@ export class Scene {
       seen.add(member.uid);
       const cur = this.commutes.get(member.uid) ?? { state: working ? 'seated' : 'away', at: { x: f.x, y: f.y }, path: [] };
       // 1フレームで進みすぎないよう、歩かせる時間を上限で抑える（フレームが飛んだときに一気に歩き終えない）
-      this.commutes.set(member.uid, commuteStep(cur, Math.min(dt, COMMUTE_MAX_FRAME_MS), working, { x: f.x, y: f.y }, door, route));
+      const next = commuteStep(cur, frameDt, working, { x: f.x, y: f.y }, door, route);
+      this.commutes.set(member.uid, next);
+      // 休憩は、机にいる社員だけ。休憩の場所は、社員ごとに決まった場所（なければ床の決まった場所）
+      const plan = breakPlanOf(member.uid, day, balance);
+      const onBreak = next.state === 'seated' && breakAt(minuteOfDay, plan) !== null;
+      const spot =
+        restSpots.length > 0
+          ? restSpots[k % restSpots.length]
+          : (floor[(k * 7) % Math.max(1, floor.length)] ?? { x: f.x, y: f.y });
+      const prev = this.breaks.get(member.uid) ?? deskMove({ x: f.x, y: f.y });
+      this.breaks.set(
+        member.uid,
+        next.state === 'seated' ? breakMoveStep(prev, frameDt, onBreak, { x: f.x, y: f.y }, spot, route) : deskMove({ x: f.x, y: f.y }),
+      );
     });
     for (const uid of [...this.commutes.keys()]) if (!seen.has(uid)) this.commutes.delete(uid);
+    for (const uid of [...this.breaks.keys()]) if (!seen.has(uid)) this.breaks.delete(uid);
   }
 
   // 席の数を超えた社員は、歩き回る。人数に合わせて歩き手を増減し、床の上を歩かせる（自社オフィスのみ）
@@ -946,6 +981,9 @@ export class Scene {
       // 外にいる社員と、歩いている社員は、机の前にいないので選べない
       const c = this.commutes.get(member.uid);
       if (c && c.state !== 'seated') return;
+      // 休憩の途中の社員は、机の前にいないので選べない
+      const b = this.breaks.get(member.uid);
+      if (b && b.phase !== 'desk') return;
       hits.push({ uid: member.uid, ...deskStaffPos(f.x, f.y, ts, deskTap(this.elapsed, k)) });
     });
     this.wanderers.forEach((w, k) => {
