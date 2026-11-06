@@ -165,9 +165,11 @@ export function Toolbar({
   const design = active?.phase === 'design';
   const yen = (n: number) => n.toLocaleString('ja-JP');
   const phone = usePhone();
+  // スマホのボタンは、幅 44 px（指の場所）と高さ 38 px（N58）。パソコンは今の正方形のまま
+  const sl = (active: boolean) => (phone ? { ...slot(active), height: 38 } : slot(active));
   // IPアドレスの表示の切り替え。設計中は施工のボタンの左、それ以外は右端に出す
   const ipButton = (
-    <Tooltip text={tipText('ui.showIp', 'showIp', !phone)}><button aria-label={t('ui.showIp')} style={{ ...slot(showIp), fontSize: 13, fontWeight: 'bold' }}
+    <Tooltip text={tipText('ui.showIp', 'showIp', !phone)}><button aria-label={t('ui.showIp')} style={{ ...sl(showIp), fontSize: 13, fontWeight: 'bold' }}
       
       onClick={() => setShowIp(!showIp)}
     >
@@ -181,12 +183,12 @@ export function Toolbar({
         <span style={{ fontSize: 13, color: '#ffd3c9', maxWidth: 320 }}>{tDyn(`ui.error.${historyError}`)}</span>
       )}
       <Tooltip text={tipText('keys.undo', 'undo', !phone)}>
-        <button aria-label={t('keys.undo')} style={{ ...slot(false), opacity: canUndo ? 1 : 0.35 }} disabled={!canUndo} onClick={() => undo()}>
+        <button aria-label={t('keys.undo')} style={{ ...sl(false), opacity: canUndo ? 1 : 0.35 }} disabled={!canUndo} onClick={() => undo()}>
           <Icon name="icon/undo" />
         </button>
       </Tooltip>
       <Tooltip text={tipText('keys.redo', 'redo', !phone)}>
-        <button aria-label={t('keys.redo')} style={{ ...slot(false), opacity: canRedo ? 1 : 0.35 }} disabled={!canRedo} onClick={() => redo()}>
+        <button aria-label={t('keys.redo')} style={{ ...sl(false), opacity: canRedo ? 1 : 0.35 }} disabled={!canRedo} onClick={() => redo()}>
           <Icon name="icon/redo" />
         </button>
       </Tooltip>
@@ -239,7 +241,7 @@ export function Toolbar({
         const price = t('ui.cable.price', { link: yen(cable.pricePerLink), tile: yen(cable.pricePerTile) });
         return (
           <Tooltip text={sandbox ? name : `${name}\n${price}`} key={id}>
-            <button aria-label={name} style={{ ...slot(wireCable === id), width: 36, height: 36 }} onClick={() => setWireCable(id)}>
+            <button aria-label={name} style={{ ...sl(wireCable === id), width: 36, height: 36 }} onClick={() => setWireCable(id)}>
               <Icon name={`icon/cable_${id}`} scale={1} />
             </button>
           </Tooltip>
@@ -270,27 +272,27 @@ export function Toolbar({
       ))}
       {sep}
       {!sandbox && (
-      <Tooltip text={tipText('ui.offer.title', 'offers', !phone)}><button aria-label={t('ui.offer.title')} style={{ ...slot(false), position: 'relative' }}  onClick={() => { closeWarehouse(); onOffers(); }}>
+      <Tooltip text={tipText('ui.offer.title', 'offers', !phone)}><button aria-label={t('ui.offer.title')} style={{ ...sl(false), position: 'relative' }}  onClick={() => { closeWarehouse(); onOffers(); }}>
         <Icon name="icon/mail" />
         {offers.length > 0 && (
-          <span style={{ position: 'absolute', top: -6, right: -6, background: '#e84a4a', borderRadius: RADIUS.chrome, fontSize: 11, padding: '0 5px' }}>
+          <span style={{ position: 'absolute', top: phone ? 2 : -6, right: phone ? 2 : -6, background: '#e84a4a', borderRadius: RADIUS.chrome, fontSize: 11, padding: '0 5px' }}>
             {offers.length}
           </span>
         )}
       </button></Tooltip>
       )}
-      <Tooltip text={tipText('ui.shop.title', 'shop', !phone)}><button aria-label={t('ui.shop.title')} data-guide="shop" style={slot(false)}  onClick={() => { closeWarehouse(); onShop(); }}>
+      <Tooltip text={tipText('ui.shop.title', 'shop', !phone)}><button aria-label={t('ui.shop.title')} data-guide="shop" style={sl(false)}  onClick={() => { closeWarehouse(); onShop(); }}>
         <Icon name="icon/cart" />
       </button></Tooltip>
       {!sandbox && (
         // 候補が0人のときは押せない（半透明）
-        <Tooltip text={t('ui.staff.hire')}><button aria-label={t('ui.staff.hire')} style={{ ...slot(hiringOpen), opacity: candidateCount > 0 ? 1 : 0.4 }} disabled={candidateCount === 0} onClick={() => { closeWarehouse(); onHire(); }}>
+        <Tooltip text={t('ui.staff.hire')}><button aria-label={t('ui.staff.hire')} style={{ ...sl(hiringOpen), opacity: candidateCount > 0 ? 1 : 0.4 }} disabled={candidateCount === 0} onClick={() => { closeWarehouse(); onHire(); }}>
           <Icon name="icon/person" />
         </button></Tooltip>
       )}
       {/* 在庫は倉庫のアイコンにまとめる。品目の一覧は倉庫の欄で開く */}
       {sep}
-      <Tooltip text={tipText('ui.warehouse.title', 'warehouse', !phone)}><button aria-label={t('ui.warehouse.title')} data-guide="warehouse" style={{ ...slot(warehouseOpen && warehouseOpenable), opacity: warehouseOpenable ? 1 : 0.35 }}
+      <Tooltip text={tipText('ui.warehouse.title', 'warehouse', !phone)}><button aria-label={t('ui.warehouse.title')} data-guide="warehouse" style={{ ...sl(warehouseOpen && warehouseOpenable), opacity: warehouseOpenable ? 1 : 0.35 }}
         
         disabled={!warehouseOpenable}
         onClick={() => setWarehouseOpen(!warehouseOpen)}
@@ -311,7 +313,7 @@ export function Toolbar({
               aria-label={t('ui.test')}
               data-guide="test"
               style={{
-                ...slot(false),
+                ...sl(false),
                 width: 'auto',
                 padding: '0 14px',
                 background: testLit ? '#ffd866' : '#3a7bd0',
@@ -330,7 +332,7 @@ export function Toolbar({
             <button
               aria-label={t('ui.build')}
               style={{
-                ...slot(false),
+                ...sl(false),
                 width: 'auto',
                 padding: '0 14px',
                 background: '#5aa860',
@@ -345,7 +347,7 @@ export function Toolbar({
           <span style={{ marginLeft: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
             <Icon name="icon/budget" /> {yen(projectCostOf(active, gameEnv).total)} / {yen(active.contract.budget)}
           </span>
-          <Tooltip text={t('ui.project.abandon')} style={{ marginLeft: 'auto' }}><button aria-label={t('ui.project.abandon')} style={{ ...slot(false), width: 32 }}  onClick={() => { closeWarehouse(); abandon(); }}>
+          <Tooltip text={t('ui.project.abandon')} style={{ marginLeft: 'auto' }}><button aria-label={t('ui.project.abandon')} style={{ ...sl(false), width: 32 }}  onClick={() => { closeWarehouse(); abandon(); }}>
             <Icon name="icon/close" />
           </button></Tooltip>
           </>
