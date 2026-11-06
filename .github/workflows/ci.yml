@@ -14,4 +14,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: 型の検査
+        run: npx tsc --noEmit
+      - name: 単体テスト
+        run: npx vitest run
       - run: npm run build
