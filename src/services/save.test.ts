@@ -22,6 +22,8 @@ const sample: SaveData = {
   clock: { minute: 720, money: 300000, paidMonths: 1, bankrupt: false },
   companyExp: 2,
   reputation: 0,
+  expDay: 0,
+  expToday: 0,
   owned: { pc_basic: 1 },
   completed: ['c001_direct_link'],
   offers: [],

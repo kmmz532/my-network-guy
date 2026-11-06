@@ -60,6 +60,8 @@ export const balanceSchema = z.object({
   metersPerTile: int.positive(),
   // 夜勤の給与の倍率（日勤の給与に掛ける。N48）
   nightPayRate: z.number().positive(),
+  // 納品以外の経験値の量と、1日の上限（N55）
+  exp: z.object({ dailyCap: nonNegativeInt, guide: nonNegativeInt, hire: nonNegativeInt, expansion: nonNegativeInt, furniture: nonNegativeInt }),
   // 機材の価格の式（N35）: 基本の価格（分類）＋ポート1つあたり（分類）＋機能ごとの加算。機材の定価は、この式の値とそろえる
   pricing: z.object({
     base: z.record(z.string(), nonNegativeInt),

@@ -13,6 +13,7 @@ import type { Offer } from '../contracts/template';
 import type { GameMap, Staff } from '../data/schema';
 import { initialStaff, rollCandidates, staffCapOf, totalSalary } from '../sim/staff';
 import { expAtLevel, levelOf, levelUpsBetween, type UnlockItem } from '../sim/level';
+import { grantDailyExp, type ExpSource } from '../sim/companyExp';
 import { rand } from '../sim/rng';
 import { finishTrainings, startTraining as startTrainingOp, takeExam as takeExamOp, type TrainingEnv } from '../sim/training';
 import { certs as certRecord, training as trainingRecord } from 'virtual:game-data';
@@ -146,6 +147,9 @@ export interface GameState {
   companyExp: number;
   // 評判（★の数の積み上げ。解放の条件には使わない。N55）
   reputation: number;
+  // 今日（ゲームの日）に経験値を得た量。1日の上限（balance.exp.dailyCap）に使う（N55）
+  expDay: number;
+  expToday: number;
   owned: Record<string, number>;
   completed: string[];
   offers: Offer[];
@@ -178,6 +182,8 @@ export interface GameState {
   debugSetMinute: (minute: number) => void;
   // 案内を終えた案件として記録する
   markGuideDone: (contractId: string) => void;
+  // 納品以外の経験値（案内・採用・拡張・家具。1日の上限あり。N55）
+  grantCompanyExp: (source: ExpSource) => void;
   speed: Speed;
   // 勤務時間外の早送りで、自動で変える前の速さ（自動で変えていなければ null。保存しない）
   nightSpeed: Speed | null;
@@ -619,6 +625,8 @@ export const useGameStore = create<GameState>((set, get) => {
     clock: initialClock(balance),
     companyExp: 0,
     reputation: 0,
+    expDay: 0,
+    expToday: 0,
     owned: { ...balance.initialStock },
     completed: [],
     offers: [],
@@ -650,8 +658,29 @@ export const useGameStore = create<GameState>((set, get) => {
     },
     debugAddOwned: (device, count) => set((s) => ({ owned: { ...s.owned, [device]: (s.owned[device] ?? 0) + count } })),
     debugSetMinute: (minute) => set((s) => ({ clock: { ...s.clock, minute } })),
-    markGuideDone: (contractId) =>
-      set((s) => (s.guidesDone.includes(contractId) ? {} : { guidesDone: [...s.guidesDone, contractId] })),
+    markGuideDone: (contractId) => {
+      if (get().guidesDone.includes(contractId)) return;
+      set((s) => ({ guidesDone: [...s.guidesDone, contractId] }));
+      get().grantCompanyExp('guide');
+    },
+    grantCompanyExp: (source) => {
+      const s = get();
+      // サンドボックスは育成がないため、経験値は入れない
+      if (s.mode === 'sandbox') return;
+      const r = grantDailyExp(s, source, s.clock.minute, balance);
+      if (r.gained === 0) return;
+      // 納品と同じく、上がったレベルの報酬（お金・機器）を受け取る
+      const ups = levelUpsBetween(levelOf(s.companyExp, balance), levelOf(r.companyExp, balance), balance, levelMilestones, unlockItems);
+      const owned = { ...s.owned };
+      for (const u of ups) for (const d of u.devices) owned[d.device] = (owned[d.device] ?? 0) + d.count;
+      set({
+        companyExp: r.companyExp,
+        expDay: r.expDay,
+        expToday: r.expToday,
+        owned,
+        clock: { ...s.clock, money: s.clock.money + ups.reduce((sum, u) => sum + u.money, 0) },
+      });
+    },
     speed: 1,
     nightSpeed: null,
     pausedPrompt: false,
@@ -953,6 +982,7 @@ export const useGameStore = create<GameState>((set, get) => {
       const restored: Outcome = outcome.ok && sandboxExpand ? { ...outcome, core: { ...outcome.core, clock: { ...outcome.core.clock, money: core.clock.money } } } : outcome;
       const reason = apply(restored, at);
       if (reason !== null) return reason;
+      get().grantCompanyExp('expansion');
       // 部屋の大きさが変わったので、マップを作り直す。広げる前の操作の取り消しは、座標が合わないため消す
       dropHistory(OFFICE_HISTORY_KEY);
       set((s) => ({ maps: { ...s.maps, hq: mapOfOffice(s.office) } }));
@@ -961,14 +991,19 @@ export const useGameStore = create<GameState>((set, get) => {
     placeFurniture: (id, x, y) => {
       const hq = get().maps.hq;
       if (!hq) return 'map';
-      return recorded(() => apply(placeFurnitureOp(coreOf(get()), id, x, y, hq), { tx: x, ty: y }));
+      const reason = recorded(() => apply(placeFurnitureOp(coreOf(get()), id, x, y, hq), { tx: x, ty: y }));
+      if (reason === null) get().grantCompanyExp('furniture');
+      return reason;
     },
     removeFurniture: (uid) => {
       const f = get().office.furniture.find((x) => x.uid === uid);
       return recorded(() => apply(removeFurnitureOp(coreOf(get()), uid), f ? { tx: f.x, ty: f.y } : undefined));
     },
-    hire: (candidateUid, shift) =>
-      apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true, staffCapOf(levelOf(get().companyExp, balance), balance), shift)),
+    hire: (candidateUid, shift) => {
+      const reason = apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true, staffCapOf(levelOf(get().companyExp, balance), balance), shift));
+      if (reason === null) get().grantCompanyExp('hire');
+      return reason;
+    },
     connect: (aUid, bUid, cableId, ports = {}) => {
       const reason = recorded(() => apply(withAutoIp(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get()), ports), netTargetOf(get())), tileOf(bUid)));
       // つながった音と、つなげなかった音（効果音の設定がオフのときは鳴らない）
@@ -1074,6 +1109,8 @@ export const useGameStore = create<GameState>((set, get) => {
         clock: save.clock,
         companyExp: save.companyExp,
         reputation: save.reputation,
+        expDay: save.expDay,
+        expToday: save.expToday,
         owned: save.owned,
         completed: save.completed,
         offers: save.offers as Offer[],
@@ -1108,6 +1145,8 @@ export const useGameStore = create<GameState>((set, get) => {
           clock: initialClock(balance),
           companyExp: 0,
           reputation: 0,
+          expDay: 0,
+          expToday: 0,
           owned: { ...balance.initialStock },
           completed: [],
           offers: [],
@@ -1150,6 +1189,8 @@ export const useGameStore = create<GameState>((set, get) => {
           clock: sandboxClock(initialClock(balance)),
           companyExp: 0,
           reputation: 0,
+          expDay: 0,
+          expToday: 0,
           owned: {},
           completed: [],
           offers: [],
@@ -1203,6 +1244,8 @@ export const useGameStore = create<GameState>((set, get) => {
         clock: s.clock,
         companyExp: s.companyExp,
         reputation: s.reputation,
+        expDay: s.expDay,
+        expToday: s.expToday,
         owned: s.owned,
         completed: s.completed,
         offers: s.offers,

@@ -30,6 +30,8 @@ describe('セーブのバージョン移行', () => {
       companyExp: 1,
       // 評判は v23 → v24 で 0 から始める（N55）
       reputation: 0,
+      expDay: 0,
+      expToday: 0,
       // 遊び方は移行で案件の経営ゲーム（career）になる
       mode: 'career',
       owned: {},
