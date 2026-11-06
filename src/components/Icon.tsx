@@ -75,19 +75,20 @@ const useScaledSrc = (url: string, w: number, h: number, scale: number): string 
 };
 
 // 透明な余白を切り落としたアイコン。高さは height（px）に収まる最大の整数倍にする（帯やタブの高さを、元の画像の余白に左右させないため）
-export function TrimmedIcon({ name, height = 16 }: { name: string; height?: number }) {
+// width は枠の幅（省くと高さの 1.5 倍）、maxScale は拡大の上限
+export function TrimmedIcon({ name, height = 16, width, maxScale }: { name: string; height?: number; width?: number; maxScale?: number }) {
   const url = spriteUrl(spriteOf(name));
   const [sprite, setSprite] = useState<TrimmedSprite | null | undefined>(undefined);
   useEffect(() => {
     if (!url) return;
     let alive = true;
-    trimmedSprite(url, height).then((s) => {
+    trimmedSprite(url, { maxHeight: height, maxWidth: width, maxScale }).then((s) => {
       if (alive) setSprite(s);
     });
     return () => {
       alive = false;
     };
-  }, [url, height]);
+  }, [url, height, width, maxScale]);
   if (!url) return null;
   // 外側の span は高さと行の高さを固定し、絵がはみ出しても枠（height）を超えないようにする
   const frame = { display: 'inline-block', flexShrink: 0, height, lineHeight: `${height}px`, overflow: 'hidden', verticalAlign: 'top' } as const;
@@ -103,7 +104,7 @@ export function TrimmedIcon({ name, height = 16 }: { name: string; height?: numb
   }
   return (
     <span style={frame}>
-      <img draggable={false} src={sprite.src} alt="" width={sprite.w} height={sprite.h} style={{ imageRendering: 'pixelated', display: 'block', maxHeight: height, maxWidth: height * 1.5 }} />
+      <img draggable={false} src={sprite.src} alt="" width={sprite.w} height={sprite.h} style={{ imageRendering: 'pixelated', display: 'block', maxHeight: height, maxWidth: width ?? height * 1.5 }} />
     </span>
   );
 }

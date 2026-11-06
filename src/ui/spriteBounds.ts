@@ -53,8 +53,16 @@ export function fitScale(w: number, h: number, maxW: number, maxH: number): numb
   return ratio;
 }
 
-// 画像の不透明な部分を切り出し、枠（高さ maxHeight、幅 maxHeight × 1.5）に収める。1 以上は整数倍で拡大し（補間しない）、1 未満は縮小する
-async function render(url: string, maxHeight: number): Promise<TrimmedSprite | null> {
+// 切り抜いた絵を収める枠。maxWidth を省くと高さの 1.5 倍。maxScale は拡大の上限（品目どうしの大きさをそろえる。省くと上限なし）
+export interface TrimFit {
+  maxHeight: number;
+  maxWidth?: number;
+  maxScale?: number;
+}
+
+// 画像の不透明な部分を切り出し、枠に収める。1 以上は整数倍で拡大し（補間しない）、1 未満は縮小する
+async function render(url: string, fit: TrimFit): Promise<TrimmedSprite | null> {
+  const maxHeight = fit.maxHeight;
   const img = await loadImage(url);
   const W = img.naturalWidth;
   const H = img.naturalHeight;
@@ -67,7 +75,8 @@ async function render(url: string, maxHeight: number): Promise<TrimmedSprite | n
   const bounds = opaqueBoundsOf(fctx.getImageData(0, 0, W, H).data, W, H);
   if (!bounds) return null;
 
-  const scale = fitScale(bounds.w, bounds.h, maxHeight * 1.5, maxHeight);
+  const fitted = fitScale(bounds.w, bounds.h, fit.maxWidth ?? maxHeight * 1.5, maxHeight);
+  const scale = fit.maxScale !== undefined && fitted > fit.maxScale ? fit.maxScale : fitted;
   const out = document.createElement('canvas');
   out.width = Math.max(1, Math.round(bounds.w * scale));
   out.height = Math.max(1, Math.round(bounds.h * scale));
@@ -81,12 +90,12 @@ async function render(url: string, maxHeight: number): Promise<TrimmedSprite | n
 
 const cache = new Map<string, Promise<TrimmedSprite | null>>();
 
-// URL の画像の不透明な部分を、高さが maxHeight に収まるように切り抜いて返す。読めなければ null。結果はキャッシュする
-export function trimmedSprite(url: string, maxHeight: number): Promise<TrimmedSprite | null> {
-  const key = `${url}|${maxHeight}`;
+// URL の画像の不透明な部分を、枠に収まるように切り抜いて返す。読めなければ null。結果はキャッシュする
+export function trimmedSprite(url: string, fit: TrimFit): Promise<TrimmedSprite | null> {
+  const key = `${url}|${fit.maxHeight}|${fit.maxWidth ?? ''}|${fit.maxScale ?? ''}`;
   let result = cache.get(key);
   if (!result) {
-    result = render(url, maxHeight).catch(() => null);
+    result = render(url, fit).catch(() => null);
     cache.set(key, result);
   }
   return result;
