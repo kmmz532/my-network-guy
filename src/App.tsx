@@ -31,6 +31,7 @@ import { HiringPanel, type HiringTab } from './components/HiringPanel';
 import { Tooltip, TooltipHost, hideTip } from './components/Tooltip';
 import { PausedBuildPrompt } from './components/PausedBuildPrompt';
 import { LoopBanner } from './components/LoopBanner';
+import { TabConflict } from './components/TabConflict';
 import { UpdateNotice } from './components/UpdateNotice';
 import { Icon } from './components/Icon';
 import { TitleScreen } from './components/TitleScreen';
@@ -275,6 +276,7 @@ export function App() {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+      <TabConflict />
       <PixiStage />
       <header
         ref={headerRef}
