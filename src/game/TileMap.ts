@@ -4,6 +4,9 @@ import type { GameMap } from '../data/schema';
 import { spriteOf, texture } from './sprites';
 import { tileKind, VOID_KIND } from '../data/tileKind';
 
+// 柱（1マスの柱。床ではない・壁でもない。隣の壁の上面や影を出さない）
+const isPillar = (kind: string | undefined): boolean => kind === 'pillar';
+
 // 奥の壁に掛ける物。壁として扱い、真下が床のときに壁の正面へ描く
 const wallDecor = new Set(['window', 'clock', 'poster', 'whiteboard']);
 const isWall = (kind: string | undefined): boolean => kind === 'wall' || (kind !== undefined && wallDecor.has(kind));
@@ -47,7 +50,7 @@ export const drawTileMap = (map: GameMap): Container => {
   const isVoid = (k: string | undefined): boolean => k === VOID_KIND;
   const floorAt = (x: number, y: number): boolean => {
     const k = kindAt(x, y);
-    return k !== undefined && !isWall(k) && !isOutdoor(k) && !isVoid(k);
+    return k !== undefined && !isWall(k) && !isOutdoor(k) && !isVoid(k) && !isPillar(k);
   };
   // 奥の壁の正面（真下が床の壁）と、手前の壁（真上が床の壁）。
   // 仕切りの壁（左右とも床）は正面にせず、上面で描く。上端の壁は、両隣が正面なら、その間をつないで隙間を作らない
@@ -111,6 +114,10 @@ export const drawTileMap = (map: GameMap): Container => {
       // ドアは通れる床。ドアのスプライトを床の上に描く（家具の対象にはしない）
       if (kind === 'door') {
         put('tile/door', x, y);
+        continue;
+      }
+      if (isPillar(kind)) {
+        put('tile/pillar', x, y);
         continue;
       }
       put(`tile/floor_${floorVariant(x, y)}`, x, y);

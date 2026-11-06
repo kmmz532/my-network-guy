@@ -4,6 +4,10 @@
 export const VOID_CHAR = ' ';
 export const VOID_KIND = 'void';
 
+// 通れず、機器・家具も置けないマス（壁・壁に掛ける物・柱）。判定はここだけで行う（N51b）
+const BLOCKING_KINDS: ReadonlySet<string> = new Set(['wall', 'pillar', 'window', 'clock', 'poster', 'whiteboard']);
+export const isBlocked = (kind: string | undefined): boolean => kind !== undefined && BLOCKING_KINDS.has(kind);
+
 export interface TileSource {
   legend: Record<string, string>;
   tiles: readonly string[];

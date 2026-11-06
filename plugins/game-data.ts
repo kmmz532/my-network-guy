@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSy
 import { basename, join, resolve } from 'node:path';
 import type { Plugin, ResolvedConfig, ViteDevServer } from 'vite';
 import type { ZodTypeAny } from 'zod';
+import { isBlocked } from '../src/data/tileKind';
 import {
   balanceSchema,
   certFileSchema,
@@ -289,8 +290,8 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
         continue;
       }
       const tile = map.tiles[p.y][p.x];
-      if (map.legend[tile] === 'wall') {
-        errors.push(`${owner}: placed ${p.ref} の位置 (${p.x}, ${p.y}) が壁`);
+      if (isBlocked(map.legend[tile])) {
+        errors.push(`${owner}: placed ${p.ref} の位置 (${p.x}, ${p.y}) が壁・柱など通れない場所`);
       }
       const key = `${p.x},${p.y}`;
       if (used.has(key)) errors.push(`${owner}: placed ${p.ref} の位置 (${p.x}, ${p.y}) が他の機器と重なる`);
