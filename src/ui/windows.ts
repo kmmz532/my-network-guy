@@ -69,7 +69,7 @@ export function clampRect(r: Rect, vp: Viewport): Rect {
   return { x: clamp(r.x, 0, vp.w - w), y: clamp(r.y, 0, vp.h - h), w, h };
 }
 
-// 狭い画面で下に1つだけ出すときの位置と大きさ（幅は画面いっぱい、高さは画面の 40%）
+// 狭い画面で下に1つだけ出すときの位置と大きさ（幅は画面いっぱい、高さは画面の 60%）
 export function narrowRect(vp: Viewport): Rect {
   const h = Math.round(vp.h * NARROW_HEIGHT_RATIO);
   return { x: 0, y: Math.max(0, vp.h - NARROW_BOTTOM_RESERVE - h), w: vp.w, h };
