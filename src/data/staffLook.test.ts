@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { STAFF_LOOKS, staffSpriteName } from './schema';
 
 describe('社員の見た目', () => {
-  it('24 通りあり、どれも重ならない', () => {
-    expect(STAFF_LOOKS).toHaveLength(24);
-    expect(new Set(STAFF_LOOKS).size).toBe(24);
+  it('25 通りあり（服×髪×髪型の 24 通りと紫の長髪）、どれも重ならない', () => {
+    expect(STAFF_LOOKS).toHaveLength(25);
+    expect(new Set(STAFF_LOOKS).size).toBe(25);
   });
 
   it('すべての見た目に 2 コマのスプライトがある', () => {

@@ -37,9 +37,12 @@ export interface Staff {
 export const STAFF_SHIRTS = ['blue', 'red', 'green', 'yellow'] as const;
 export const STAFF_HAIRS = ['dark', 'brown', 'blonde'] as const;
 export const STAFF_HAIR_STYLES = ['short', 'long'] as const;
-export const STAFF_LOOKS: readonly string[] = STAFF_SHIRTS.flatMap((shirt) =>
-  STAFF_HAIRS.flatMap((hair) => STAFF_HAIR_STYLES.map((style) => `${shirt}_${hair}_${style}`)),
-);
+// 服の色と髪の色に分けられない見た目（紫の長髪）。ほかの見た目と同じ確率（1/25）で選ばれる
+export const STAFF_SPECIAL_LOOKS: readonly string[] = ['purple_long'];
+export const STAFF_LOOKS: readonly string[] = [
+  ...STAFF_SHIRTS.flatMap((shirt) => STAFF_HAIRS.flatMap((hair) => STAFF_HAIR_STYLES.map((style) => `${shirt}_${hair}_${style}`))),
+  ...STAFF_SPECIAL_LOOKS,
+];
 // 社員の予備の見た目（スプライトが読めないときの代わりに使う。画面の2人分）
 export const STAFF_PLACEHOLDER_LOOKS = ['blue_dark_short', 'red_dark_short'] as const;
 // 増やす前の見た目（blue・red）。保存済みのデータはこの名前のまま残るため、黒髪の短髪として描く
