@@ -1,4 +1,4 @@
-// IPアドレスの欄（AddressInput）の純粋な計算。候補の絞り込み、矢印での移動、確定する値、一覧を開く向きを求める。React には依存しない。
+// 候補つきの入力欄の純粋な計算（ComboBox）。候補の絞り込み、矢印での移動、確定する値、一覧を開く向きを求める。React には依存しない。
 
 export interface ComboOption {
   value: string;

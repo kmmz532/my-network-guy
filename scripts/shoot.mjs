@@ -198,6 +198,12 @@ const scenes = {
       g.getState().connect(node.uid, node.uid, 'utp_cat5e');
     });
   },
+  // IP の欄を押した状態（スマホではキーボードを開かず、候補と「キーボードで入力…」の行を出す。N62）
+  ipfield: async (page) => {
+    await scenes.select(page);
+    await page.getByRole('combobox').first().click();
+    await page.waitForTimeout(400);
+  },
   // PC の設定で「詳しく」を開き、ネットワークの一覧を開いた状態（選択の部品）
   select: async (page) => {
     await scenes.career(page);

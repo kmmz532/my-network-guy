@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterOptions, listHeight, moveActive, pickOnCommit, placeAbove, type ComboOption } from './addressCombo';
+import { filterOptions, listHeight, moveActive, pickOnCommit, placeAbove, type ComboOption } from './comboOptions';
 
 const free = (value: string): ComboOption => ({ value, usedBy: null });
 const used = (value: string, name: string): ComboOption => ({ value, usedBy: name });

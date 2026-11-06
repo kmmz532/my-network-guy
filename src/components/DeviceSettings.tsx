@@ -8,7 +8,7 @@ import { AddressInput } from './AddressInput';
 import { PixelSelect } from './PixelControls';
 import { primaryButton } from './Modal';
 import { dangerButton } from './Modal';
-import type { ComboOption } from './addressCombo';
+import type { ComboOption } from './comboOptions';
 import type { Compiled } from '../network/compile';
 import { isRelayPort, isRoutingCategory } from '../network/category';
 import { colorOfNetwork, networkColors, UNSET_COLOR } from '../network/netColor';
