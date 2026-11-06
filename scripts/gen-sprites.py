@@ -186,6 +186,22 @@ def l2_switch():
     return img
 
 
+def l2_switch_4p():
+    # 4ポートの小さいスイッチ。8ポートより幅が狭く低い箱（距離を延ばす中継に使う安い機器）
+    img, d = new(24, 40)
+    box3q(d, 5, 26, 14, 5, 6, 'bh', 'b', edge='e', shade='B')
+    for x in range(7, 16, 3):
+        d.line([(x, 28), (x + 1, 28)], fill=C['b'] + (255,))
+    for i in range(4):
+        x = 8 + i * 2
+        px(d, x, 33, 'l' if i % 2 == 0 else 'B')
+        rect(d, x, 34, 1, 2, 'o')
+    px(d, 16, 33, 'y')
+    rect(d, 6, 37, 2, 1, 'o')
+    rect(d, 16, 37, 2, 1, 'o')
+    return img
+
+
 def l3_switch():
     # L3スイッチ: L2スイッチと同じ1台の形に、天面と前面の左端の黄色の帯（ルーティングできる印）
     img = l2_switch()
@@ -904,6 +920,7 @@ if __name__ == '__main__':
     save(pc(), 'device/pc_basic.png')
     save(server(), 'device/server_basic.png')
     save(l2_switch(), 'device/l2_switch_8p.png')
+    save(l2_switch_4p(), 'device/l2_switch_4p.png')
     save(router(), 'device/router_basic.png')
     # これから機材に加える候補（データはまだない）
     save(l3_switch(), 'device/l3_switch.png')
