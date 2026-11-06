@@ -53,6 +53,7 @@ import {
   abandon,
   accept,
   acceptDelegated as acceptDelegatedOp,
+  applyBlueprint as applyBlueprintOp,
   advanceBuild,
   connect,
   placeDevice,
@@ -311,6 +312,8 @@ export interface GameState {
   sell: (deviceId: string) => boolean;
   // 案件の流れの操作。失敗したら理由を返す（成功なら null）
   accept: (offerId: string, crew: string[]) => string | null;
+  // 設計中の案件に型紙を写す（N70）
+  useBlueprint: () => string | null;
   // 社員に任せて受注する（N70）。任せられない理由は delegationReason で分かる
   acceptDelegated: (offerId: string, crew: string[]) => string | null;
   place: (deviceId: string, x: number, y: number) => string | null;
@@ -1036,6 +1039,7 @@ export const useGameStore = create<GameState>((set, get) => {
       set({ clock: { ...s.clock, money: result.money }, owned: result.owned });
       return true;
     },
+    useBlueprint: () => recorded(() => apply(applyBlueprintOp(coreOf(get())))),
     acceptDelegated: (offerId, crew) => {
       const reason = apply(acceptDelegatedOp(coreOf(get()), offerId, balance.office.projectSlots, crew, gameEnv));
       if (reason === null && get().speed !== 0 && loadSettings().designPause) get().setSpeed(0);

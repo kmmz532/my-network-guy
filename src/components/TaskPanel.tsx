@@ -6,6 +6,8 @@ import { goalText } from './goalText';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
+import { secondaryButton } from './Modal';
+import { familiarKeyOf } from '../sim/familiar';
 import { usePhone } from '../ui/usePhone';
 import { useEffect } from 'react';
 
@@ -22,6 +24,9 @@ export function TaskPanel({ top = 44 }: { top?: number }) {
   const setTool = useGameStore((s) => s.setTool);
   const phone = usePhone();
   const activeId = active?.id ?? null;
+  // 同じ依頼の型紙があるか（「型紙を使う」を出す。N70）
+  const hasBlueprint = useGameStore((s) => (active ? s.familiarity.blueprints[familiarKeyOf(active.kind, active.baseId, active.contract.map)] !== undefined : false));
+  const useBlueprint = useGameStore((s) => s.useBlueprint);
   useEffect(() => {
     if (phone && activeId !== null) setOpen(false);
   }, [phone, activeId, setOpen]);
@@ -98,6 +103,11 @@ export function TaskPanel({ top = 44 }: { top?: number }) {
             <div style={{ marginTop: 4, color: '#ffd866' }}>
               {t('ui.task.hint', { text: tDyn(hintKey) })}
             </div>
+          )}
+          {active.phase === 'design' && hasBlueprint && (
+            <button style={{ ...secondaryButton, marginTop: 6 }} onClick={() => useBlueprint()}>
+              {t('ui.blueprint.use')}
+            </button>
           )}
           <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>
             {goals.map((g, i) => {

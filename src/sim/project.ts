@@ -284,6 +284,18 @@ export const delegationReason = (familiarity: Familiarity, offer: Offer): string
   return fitsBlueprint(bp.design, fixedNodes(offer.contract)) ? null : 'delegate.fit';
 };
 
+// 設計中の案件に型紙を写す（「型紙を使う」）。同じ依頼の型紙が、今の機器の置き場所に合うときだけ。写したあとは、テストをやり直す（N70）
+export const applyBlueprint = (core: Core): Outcome => {
+  const p = requireDesign(core);
+  if (typeof p === 'string') return fail(p);
+  if (p.contract.inhouse) return fail('inhouse');
+  const bp = core.familiarity.blueprints[familiarKeyOf(p.kind, p.baseId, p.contract.map)];
+  if (!bp) return fail('delegate.blueprint');
+  if (!fitsBlueprint(bp.design, fixedNodes(p.contract))) return fail('delegate.fit');
+  const numbers = [...bp.design.nodes.map((n) => n.uid), ...bp.design.links.map((l) => l.uid)].map((u) => Number(/(d+)$/.exec(u)?.[1] ?? 0));
+  return { ok: true, core: withProject(core, { ...p, nodes: bp.design.nodes, links: bp.design.links, segments: { ...bp.design.segments }, seq: Math.max(p.seq, ...numbers) + 1, testedOk: false }) };
+};
+
 // 社員に任せて受注する（N70）。型紙を写し、テストを通してから施工に入る。★と経験値の上限は検収で掛ける
 export const acceptDelegated = (core: Core, offerId: string, slots: number, crew: string[], env: Env): Outcome => {
   const offer = core.offers.find((o) => o.id === offerId);
