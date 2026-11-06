@@ -407,3 +407,12 @@ describe('古いセーブの読み込み（版ごとの架空のセーブ）', (
     ]);
   });
 });
+
+describe('古いセーブの読み込み（v19）', () => {
+  it('v19 の機器には、名前と IP の対応表（hosts）が空で入る', () => {
+    const node = { uid: 'pc1', device: 'pc_basic', x: 1, y: 1, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [] };
+    const v19 = { ...sample, office: { ...sample.office, nodes: [node] }, active: [] };
+    const migrated = migrate(19, v19);
+    expect(migrated.office.nodes[0]).toMatchObject({ uid: 'pc1', hosts: [] });
+  });
+});
