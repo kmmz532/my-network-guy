@@ -91,7 +91,8 @@ export function TrimmedIcon({ name, height = 16, width, maxScale }: { name: stri
   }, [url, height, width, maxScale]);
   if (!url) return null;
   // 外側の span は高さと行の高さを固定し、絵がはみ出しても枠（height）を超えないようにする
-  const frame = { display: 'inline-block', flexShrink: 0, height, lineHeight: `${height}px`, overflow: 'hidden', verticalAlign: 'top' } as const;
+  // 絵は枠の中央に置く（幅を指定したときは枠の幅も固定し、横にも中央にそろえる）。品目の絵（ItemIcon）とショップの絵をそろえるため
+  const frame = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, height, ...(width !== undefined ? { width } : {}), lineHeight: `${height}px`, overflow: 'hidden', verticalAlign: 'top' } as const;
   // 読み込み中は同じ高さの空き（ずれを防ぐ）
   if (sprite === undefined) return <span style={{ ...frame, width: height }} />;
   // 切り抜けなかったときは、元の画像を高さだけ縮めて出す
