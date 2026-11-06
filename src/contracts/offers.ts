@@ -32,6 +32,18 @@ const isTaken = (state: OfferState, baseId: string): boolean =>
   state.completed.includes(baseId) || state.excluded.includes(baseId) || state.offers.some((o) => o.baseId === baseId);
 const isReady = (state: OfferState, requires: readonly string[]): boolean => requires.every((r) => state.completed.includes(r));
 
+// 届く条件（前提・評判）をそろえているのに、地図が読み込まれていないひな形を、開発中に1度ずつ警告する
+const warnedMaps = new Set<string>();
+const warnMissingMaps = (state: OfferState, env: OfferEnv): void => {
+  if (!import.meta.env.DEV) return;
+  for (const t of env.templates) {
+    if (env.mapOf(t.map) !== undefined || warnedMaps.has(t.map)) continue;
+    if (!t.requires.every((r) => state.completed.includes(r)) || state.reputation < t.minReputation) continue;
+    warnedMaps.add(t.map);
+    console.warn(`定型案件 ${t.id} の地図 ${t.map} が読み込まれていないため、依頼に出ない`);
+  }
+};
+
 // 依頼を1件追加する。追加できなければ、同じ状態を返す。
 const addOffer = (state: OfferState, env: OfferEnv): OfferState => {
   const taken = (baseId: string) => isTaken(state, baseId);
@@ -50,6 +62,8 @@ const addOffer = (state: OfferState, env: OfferEnv): OfferState => {
   const eligible = env.templates.filter(
     (t) => ready(t.requires) && state.reputation >= t.minReputation && env.mapOf(t.map) !== undefined,
   );
+  // 地図が読み込まれていないひな形は、依頼から外れる（黙って外さない。開発中は警告する）
+  warnMissingMaps(state, env);
   if (eligible.length === 0) return state;
   const picked = pickByWeight(eligible, state.rng);
   const map = env.mapOf(picked.item.map);

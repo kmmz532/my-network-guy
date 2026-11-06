@@ -64,7 +64,9 @@ export function parseSettings(raw: string | null): Settings {
   let data: unknown;
   try {
     data = JSON.parse(raw);
-  } catch {
+  } catch (e) {
+    // 壊れた設定は既定の値に戻す。開発中は、どこが壊れていたかを見えるようにする
+    if (import.meta.env.DEV) console.warn('端末の設定が読めないため、既定の値にする', e);
     return { ...DEFAULT_SETTINGS };
   }
   if (typeof data !== 'object' || data === null) return { ...DEFAULT_SETTINGS };
