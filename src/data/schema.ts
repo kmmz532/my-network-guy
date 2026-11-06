@@ -88,7 +88,7 @@ export const balanceSchema = z.object({
   // 内勤（社内の仕事で会社に効果を与える。担当には出さない）。効果の強さは、その職種の内勤の実効 level の合計
   backOffice: z.object({
     dailyExp: nonNegativeInt,
-    sales: z.object({ arrivalsPerLevel: z.number().nonnegative(), maxExtra: nonNegativeInt, rewardWeightPerLevel: z.number().nonnegative() }),
+    sales: z.object({ chancePerLevel: z.number().nonnegative(), maxChance: z.number().min(0).max(1), rewardWeightPerLevel: z.number().nonnegative() }),
     accounting: z.object({ ratePerLevel: z.number().nonnegative(), maxRate: z.number().nonnegative() }),
     // システムエンジニア（エンジニア枠）。担当でない日の開発の収入の率（月給に掛ける）。level が上がるほど率が上がる
     dev: z.object({ baseRate: z.number().nonnegative(), ratePerLevel: z.number().nonnegative() }),

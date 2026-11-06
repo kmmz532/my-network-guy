@@ -51,12 +51,12 @@ const warnMissingMaps = (state: OfferState, env: OfferEnv): void => {
 };
 
 // 依頼を1件追加する。追加できなければ、同じ状態を返す。
-// 営業（N81）の効果。追加の到着の数と、報酬の高い依頼の重みの増え方（P × rewardWeightPerLevel）
+// 営業の効果。報酬の高い依頼の重みの増え方（P × rewardWeightPerLevel）と、1日に依頼が届く確率（店が日ごとに振る）
 export interface OfferEffects {
-  extraArrivals: number;
   rewardWeight: number;
+  arrivalChance: number;
 }
-export const NO_OFFER_EFFECTS: OfferEffects = { extraArrivals: 0, rewardWeight: 0 };
+export const NO_OFFER_EFFECTS: OfferEffects = { rewardWeight: 0, arrivalChance: 0 };
 
 const addOffer = (state: OfferState, env: OfferEnv, rewardWeight = 0, fromSales = false): OfferState => {
   const taken = (baseId: string) => isTaken(state, baseId);
@@ -115,6 +115,13 @@ const addOffer = (state: OfferState, env: OfferEnv, rewardWeight = 0, fromSales 
   };
 };
 
+// 営業の依頼が1件届く（店が日ごとに確率で呼ぶ）。通常の依頼と同じ一覧に、印つきで入る。上限を超えたら古いものから消す
+export const salesArrival = (state: OfferState, env: OfferEnv, rewardWeight: number): OfferState => {
+  const added = addOffer(state, env, rewardWeight, true);
+  if (added === state) return state;
+  return added.offers.length > MAX_OFFERS ? { ...added, offers: added.offers.slice(added.offers.length - MAX_OFFERS) } : added;
+};
+
 export const refreshOffers = (state0: OfferState, env: OfferEnv, effects: OfferEffects = NO_OFFER_EFFECTS): OfferState => {
   // 期限を過ぎた依頼は消す（時間が進むたびに見る）
   const live = state0.offers.filter((o) => o.expiresMinute === undefined || state0.minute < o.expiresMinute);
@@ -139,12 +146,6 @@ export const refreshOffers = (state0: OfferState, env: OfferEnv, effects: OfferE
 
   for (let i = 0; i < count; i++) {
     const added = addOffer(next, env, effects.rewardWeight);
-    if (added === next) break;
-    next = added;
-  }
-  // 営業がいると、到着のたびに追加で届く（件数は営業の実効 level で決まる）
-  for (let i = 0; i < effects.extraArrivals; i++) {
-    const added = addOffer(next, env, effects.rewardWeight, true);
     if (added === next) break;
     next = added;
   }

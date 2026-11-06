@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
 import type { Balance } from '../data/schema';
-import { accountingRate, devDailyIncome, devRate, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, salesExtraArrivals } from './backOffice';
+import { accountingRate, devDailyIncome, devRate, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, salesArrivalChance } from './backOffice';
 import type { Staff } from '../data/schema';
 
 const balance = balanceJson as unknown as Balance;
@@ -20,10 +20,10 @@ describe('内勤の効果', () => {
     expect(accountingRate(1000, balance)).toBe(balance.backOffice.accounting.maxRate);
   });
 
-  it('営業が増やす依頼の数は、上限までの整数', () => {
-    expect(salesExtraArrivals(4, balance)).toBe(0);
-    expect(salesExtraArrivals(5, balance)).toBe(1);
-    expect(salesExtraArrivals(1000, balance)).toBe(balance.backOffice.sales.maxExtra);
+  it('営業の依頼が1日に届く確率は、能力に応じて上がり、上限で止まる', () => {
+    expect(salesArrivalChance(0, balance)).toBe(0);
+    expect(salesArrivalChance(3, balance)).toBeGreaterThan(salesArrivalChance(1, balance));
+    expect(salesArrivalChance(1000, balance)).toBe(balance.backOffice.sales.maxChance);
   });
 });
 

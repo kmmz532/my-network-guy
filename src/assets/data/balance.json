@@ -112,8 +112,8 @@
   "backOffice": {
     "dailyExp": 20,
     "sales": {
-      "arrivalsPerLevel": 0.2,
-      "maxExtra": 2,
+      "chancePerLevel": 0.1,
+      "maxChance": 0.5,
       "rewardWeightPerLevel": 0.05
     },
     "accounting": {

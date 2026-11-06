@@ -61,6 +61,11 @@ export function CompanyBody() {
   const deliveries = useGameStore((s) => s.deliveries);
   const office = useGameStore((s) => s.office);
   const money = useGameStore((s) => s.clock.money);
+  // 今月の開発の収入（システムエンジニアが、担当でない日に得た額）
+  const devThisMonth = useGameStore((s) => {
+    const month = Math.floor(s.clock.minute / (balance.time.daysPerMonth * 24 * 60));
+    return s.clock.ledger?.find((m) => m.month === month)?.totals.dev ?? 0;
+  });
   // 今月の節約（経理の割引で浮いた額）
   const savedThisMonth = useGameStore((s) => {
     const month = Math.floor(s.clock.minute / (balance.time.daysPerMonth * 24 * 60));
@@ -116,6 +121,12 @@ export function CompanyBody() {
           {money.toLocaleString('ja-JP')}円
         </button>
       </div>
+      {devThisMonth > 0 && (
+        <div style={row}>
+          <span>{t('ui.company.dev')}</span>
+          <span>{devThisMonth.toLocaleString('ja-JP')}円</span>
+        </div>
+      )}
       {savedThisMonth > 0 && (
         <div style={row}>
           <span>{t('ui.company.saved')}</span>

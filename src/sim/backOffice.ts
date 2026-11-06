@@ -21,9 +21,9 @@ export const backOfficeP = (staff: readonly Staff[], job: JobId, office: Office,
 export const accountingRate = (P: number, balance: Balance): number =>
   Math.min(balance.backOffice.accounting.maxRate, P * balance.backOffice.accounting.ratePerLevel);
 
-// 営業が増やす依頼の数（1日あたり。上限 maxExtra）
-export const salesExtraArrivals = (P: number, balance: Balance): number =>
-  Math.min(balance.backOffice.sales.maxExtra, Math.floor(P * balance.backOffice.sales.arrivalsPerLevel));
+// 営業の依頼が1日に届く確率（能力が高いほど出やすい。上限 maxChance）
+export const salesArrivalChance = (P: number, balance: Balance): number =>
+  Math.min(balance.backOffice.sales.maxChance, P * balance.backOffice.sales.chancePerLevel);
 
 // 人事の効果（候補の数を増やす・候補の能力を上げる・研修の経験値の倍率・新人の施工の経験値の倍率）
 export const hrCandidateBonus = (P: number, balance: Balance): { extraCount: number; levelBonus: number } => ({

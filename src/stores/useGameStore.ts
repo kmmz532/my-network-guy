@@ -8,13 +8,13 @@ import { advanceTick, initialClock, minutesPerDay, minutesPerMonth, toDate, type
 import { isOnShift } from '../sim/shift';
 import { nightSpeedStep } from '../sim/nightSpeed';
 import { buyDevice, sellDevice } from '../sim/shop';
-import { declineOffer, offerHint, refreshOffers, type OfferEffects, type OfferEnv, type OfferHint } from '../contracts/offers';
+import { declineOffer, offerHint, refreshOffers, salesArrival, type OfferEffects, type OfferEnv, type OfferHint, type OfferState } from '../contracts/offers';
+import { rand } from '../sim/rng';
 import type { Offer } from '../contracts/template';
 import type { GameMap, JobId, Staff } from '../data/schema';
 import { gainExp, initialStaff, rollCandidates, staffCapOf, totalSalary } from '../sim/staff';
 import { expAtLevel, levelOf, levelUpsBetween, type UnlockItem } from '../sim/level';
 import { grantDailyExp, type ExpSource } from '../sim/companyExp';
-import { rand } from '../sim/rng';
 import { finishTrainings, startTraining as startTrainingOp, takeExam as takeExamOp, type TrainingEnv } from '../sim/training';
 import { certs as certRecord, training as trainingRecord } from 'virtual:game-data';
 import type { FirewallRule, NetLink, NetNode, Route } from '../network/types';
@@ -24,7 +24,7 @@ import { gameEnv } from '../sim/env';
 import { learnFromPing } from '../network/learn';
 import { rentalOf } from '../network/external';
 import { applyMoney, recordSaving } from '../sim/ledger';
-import { accountingRate, backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, salesExtraArrivals } from '../sim/backOffice';
+import { accountingRate, backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, salesArrivalChance } from '../sim/backOffice';
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
 import type { MacEntry } from '../network/mac';
 import { autoAssign } from '../sim/autoAssign';
@@ -421,10 +421,34 @@ export const focusedProject = (s: { active: Project[]; focus: string | null }): 
   s.focus === null ? null : (s.active.find((p) => p.id === s.focus) ?? null);
 
 // 機器を編集できる対象の機器と配線（自社オフィス、または設計中の案件）。編集できなければ null
-// 営業の効果（依頼の到着を増やす・報酬の高い依頼の重みを上げる。内勤の実効 level の合計で決まる）
+// 営業の効果（1日に依頼が届く確率と、報酬の高い依頼の重み。内勤の実効 level の合計で決まる）
 const salesEffectsOf = (s: { staff: Staff[]; office: Office }): OfferEffects => {
   const P = backOfficeP(s.staff, 'sales', s.office, { defs: gameEnv.furniture ?? {}, balance, staffUids: s.staff.map((m) => m.uid) });
-  return { extraArrivals: salesExtraArrivals(P, balance), rewardWeight: P * balance.backOffice.sales.rewardWeightPerLevel };
+  return { arrivalChance: salesArrivalChance(P, balance), rewardWeight: P * balance.backOffice.sales.rewardWeightPerLevel };
+};
+
+// 営業の依頼の到着（日ごとの確率）。日が替わった分だけ振り、届いた依頼は通常の一覧に入る
+const salesArrivalPatch = (s: GameState, days: number): Partial<GameState> => {
+  const fx = salesEffectsOf(s);
+  if (days <= 0 || fx.arrivalChance <= 0 || s.mode !== 'career' || s.clock.bankrupt) return {};
+  let state: OfferState = {
+    minute: s.clock.minute,
+    companyExp: s.companyExp,
+    completed: s.completed,
+    offers: s.offers,
+    excluded: s.active.map((p) => p.baseId),
+    nextOfferMinute: s.nextOfferMinute,
+    offerSeq: s.offerSeq,
+    newArrivals: s.newArrivals,
+    rng: s.rng,
+  };
+  const env = offerEnv(s.maps);
+  for (let d = 0; d < days; d++) {
+    const roll = rand(state.rng);
+    state = { ...state, rng: roll.state };
+    if (roll.value < fx.arrivalChance) state = salesArrival(state, env, fx.rewardWeight);
+  }
+  return { offers: [...state.offers], offerSeq: state.offerSeq, newArrivals: state.newArrivals, rng: state.rng };
 };
 
 // 購入の割引（経理の効果。内勤の実効 level の合計で決まる）
@@ -1066,7 +1090,10 @@ export const useGameStore = create<GameState>((set, get) => {
           next = { ...next, speed: night.speed as Speed, nightSpeed: night.saved as Speed | null };
         }
         const merged = { ...s, ...next } as GameState;
-        return { ...withLevelUps(s, next), ...refresh(merged) };
+        const refreshed = refresh(merged);
+        // 営業の依頼は、通常の到着のあとに、日ごとの確率で届く
+        const salesPatch = salesArrivalPatch({ ...merged, ...refreshed } as GameState, days);
+        return { ...withLevelUps(s, next), ...refreshed, ...salesPatch };
       }),
     // 速さを人が変えたら、勤務時間外の自動の早送りは取り消す（覚えた速さには戻さない）
     // サンドボックスは時間を止めたままにする

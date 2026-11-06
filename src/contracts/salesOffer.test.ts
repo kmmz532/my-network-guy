@@ -4,7 +4,7 @@ import balanceJson from '../assets/data/balance.json';
 import mapJson from '../assets/data/maps/office_small.json';
 import templateJson from '../assets/data/contracts/templates/t_small_lan.json';
 import type { Balance, ContractTemplate, GameMap } from '../data/schema';
-import { NO_OFFER_EFFECTS, refreshOffers, type OfferEnv, type OfferState } from './offers';
+import { NO_OFFER_EFFECTS, refreshOffers, salesArrival, type OfferEnv, type OfferState } from './offers';
 
 const map = mapJson as unknown as GameMap;
 const base = templateJson as unknown as ContractTemplate;
@@ -21,10 +21,10 @@ const state = (seed: number): OfferState =>
 
 describe('営業の効果', () => {
   it('追加の到着の数だけ、依頼が増える（印つき）', () => {
-    const next = refreshOffers(state(7), env, { extraArrivals: 2, rewardWeight: 0 });
     const plain = refreshOffers(state(7), env, NO_OFFER_EFFECTS);
-    expect(next.offers.length).toBe(plain.offers.length + 2);
-    expect(next.offers.filter((o) => (o as { fromSales?: true }).fromSales).length).toBe(2);
+    const next = salesArrival(plain, env, 0);
+    expect(next.offers.length).toBe(plain.offers.length + 1);
+    expect(next.offers.filter((o) => (o as { fromSales?: true }).fromSales).length).toBe(1);
     expect(plain.offers.some((o) => (o as { fromSales?: true }).fromSales)).toBe(false);
   });
 
@@ -32,7 +32,7 @@ describe('営業の効果', () => {
     const count = (w: number) => {
       let rich_n = 0;
       for (let seed = 1; seed <= 300; seed++) {
-        const next = refreshOffers(state(seed), env, { extraArrivals: 0, rewardWeight: w });
+        const next = refreshOffers(state(seed), env, { arrivalChance: 0, rewardWeight: w });
         if (next.offers[0]?.baseId === 'rich') rich_n++;
       }
       return rich_n;
