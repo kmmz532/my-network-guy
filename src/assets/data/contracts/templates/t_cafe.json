@@ -10,26 +10,32 @@
   ],
   "weight": 12,
   "map": "cafe",
-  "params": {
-    "pcCount": {
-      "min": 3,
-      "max": 5
+  "spawnGroups": [
+    {
+      "x": 1,
+      "y": 1,
+      "width": 14,
+      "height": 2,
+      "min": 1,
+      "max": 1
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "width": 14,
+      "height": 4,
+      "min": 2,
+      "max": 4
     }
-  },
-  "spawnArea": {
-    "x": 1,
-    "y": 4,
-    "width": 14,
-    "height": 4
-  },
+  ],
   "deadlineDays": 7,
   "offerExpireDays": {
     "min": 30,
     "max": 90
   },
   "budget": {
-    "base": 0,
-    "perPc": 4300,
+    "base": 8150,
+    "perPc": 4750,
     "perTile": 500
   },
   "reward": {
