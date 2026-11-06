@@ -38,3 +38,17 @@ describe('検索の一致', () => {
     expect(matchesQuery('ルーター', fields)).toBe(false);
   });
 });
+
+describe('ローマ字での検索', () => {
+  it('ローマ字で、ひらがなの読みの項目に一致する', () => {
+    expect(matchesQuery('sui', ['すいか'])).toBe(true);
+    expect(matchesQuery('ko-hi-', ['こーひーめーかー'])).toBe(true);
+    expect(matchesQuery('suit', ['すいち'])).toBe(true);
+    expect(matchesQuery('suit', ['さーば'])).toBe(false);
+  });
+
+  it('ID や英語名の照合は今までどおり残す', () => {
+    expect(matchesQuery('pc', ['事務用PC', 'pc_basic'])).toBe(true);
+    expect(matchesQuery('l2_switch', ['l2_switch_8p'])).toBe(true);
+  });
+});
