@@ -16,6 +16,7 @@ import { PixelCheck } from './PixelControls';
 import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
 import { CATEGORY } from '../data/categories';
+import { levelOf } from '../sim/level';
 
 // 依頼の一覧。Enter は一番上の依頼の受注（主のボタン）
 
@@ -51,8 +52,8 @@ export function OfferBody({ onClose }: { onClose: () => void }) {
       <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 8 }}>
         {burst >= 2 && <div style={{ color: '#ffd866' }}>{t('ui.offer.burst', { count: burst })}</div>}
         <div>{t('ui.offer.next', { days: hint.days })}</div>
-        {hint.block?.kind === 'companyExp' && (
-          <div style={{ color: '#ffd866' }}>{t('ui.offer.blocked.reputation', { need: hint.block.need, now: companyExp })}</div>
+        {hint.block?.kind === 'level' && (
+          <div style={{ color: '#ffd866' }}>{t('ui.offer.blocked.level', { need: hint.block.need, now: levelOf(companyExp, balance) })}</div>
         )}
         {hint.block?.kind === 'fixed' && (
           <div style={{ color: '#ffd866' }}>{t('ui.offer.blocked.fixed', { title: tDyn(`contract.${hint.block.after}.title`) })}</div>

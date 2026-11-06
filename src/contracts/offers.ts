@@ -5,6 +5,7 @@ import { minutesPerDay } from '../sim/clock';
 import { rand } from '../sim/rng';
 import { instantiateTemplate, pickByWeight, type Offer } from './template';
 import { randInt } from '../sim/rng';
+import { levelOf } from '../sim/level';
 import type { OfferSort } from '../settings/settings';
 
 export const MAX_OFFERS = 30;
@@ -28,6 +29,9 @@ export interface OfferEnv {
   mapOf: (id: string) => GameMap | undefined;
 }
 
+// 会社のレベル（経験値から決まる。解放の判定に使う）
+const levelOfState = (state: OfferState, env: OfferEnv): number => levelOf(state.companyExp, env.balance);
+
 const isTaken = (state: OfferState, baseId: string): boolean =>
   state.completed.includes(baseId) || state.excluded.includes(baseId) || state.offers.some((o) => o.baseId === baseId);
 const isReady = (state: OfferState, requires: readonly string[]): boolean => requires.every((r) => state.completed.includes(r));
@@ -38,7 +42,7 @@ const warnMissingMaps = (state: OfferState, env: OfferEnv): void => {
   if (!import.meta.env.DEV) return;
   for (const t of env.templates) {
     if (env.mapOf(t.map) !== undefined || warnedMaps.has(t.map)) continue;
-    if (!t.requires.every((r) => state.completed.includes(r)) || state.companyExp < t.minReputation) continue;
+    if (!t.requires.every((r) => state.completed.includes(r)) || levelOfState(state, env) < t.unlockLevel) continue;
     warnedMaps.add(t.map);
     console.warn(`定型案件 ${t.id} の地図 ${t.map} が読み込まれていないため、依頼に出ない`);
   }
@@ -50,7 +54,7 @@ const addOffer = (state: OfferState, env: OfferEnv): OfferState => {
   const ready = (requires: readonly string[]) => isReady(state, requires);
 
   // 固定案件を優先する（並び順は読み込み時に確定している）
-  const fixed = env.fixed.find((c) => !taken(c.id) && ready(c.requires));
+  const fixed = env.fixed.find((c) => !taken(c.id) && ready(c.requires) && levelOfState(state, env) >= c.unlockLevel);
   if (fixed) {
     return {
       ...state,
@@ -60,7 +64,7 @@ const addOffer = (state: OfferState, env: OfferEnv): OfferState => {
 
   // 定型案件: 前提と評判を満たし、地図が読み込まれているひな形から重みで選ぶ
   const eligible = env.templates.filter(
-    (t) => ready(t.requires) && state.companyExp >= t.minReputation && env.mapOf(t.map) !== undefined,
+    (t) => ready(t.requires) && levelOfState(state, env) >= t.unlockLevel && env.mapOf(t.map) !== undefined,
   );
   // 地図が読み込まれていないひな形は、依頼から外れる（黙って外さない。開発中は警告する）
   warnMissingMaps(state, env);
@@ -120,7 +124,7 @@ export const refreshOffers = (state0: OfferState, env: OfferEnv): OfferState => 
 
 // 次の依頼が届かない理由。届く見込みがあるなら null（reason は null のまま）
 export type OfferBlock =
-  | { kind: 'companyExp'; need: number }
+  | { kind: 'level'; need: number }
   | { kind: 'fixed'; after: string };
 
 export interface OfferHint {
@@ -135,9 +139,9 @@ export const offerHint = (state: OfferState, env: OfferEnv): OfferHint => {
   const fixedLeft = env.fixed.filter((c) => !isTaken(state, c.id));
   if (fixedLeft.some((c) => isReady(state, c.requires))) return { days, block: null };
   const loadable = env.templates.filter((t) => isReady(state, t.requires) && env.mapOf(t.map) !== undefined);
-  if (loadable.some((t) => state.companyExp >= t.minReputation)) return { days, block: null };
+  if (loadable.some((t) => levelOfState(state, env) >= t.unlockLevel)) return { days, block: null };
   if (loadable.length > 0) {
-    return { days, block: { kind: 'companyExp', need: Math.min(...loadable.map((t) => t.minReputation)) } };
+    return { days, block: { kind: 'level', need: Math.min(...loadable.map((t) => t.unlockLevel)) } };
   }
   // 定型案件がなく、固定案件の前提も未達なら、最初の固定案件の前提を示す
   const next = fixedLeft[0];

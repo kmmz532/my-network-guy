@@ -6,6 +6,7 @@ import templateJson from '../assets/data/contracts/templates/t_small_lan.json';
 import officeJson from '../assets/data/maps/office_small.json';
 import type { Balance, Contract, ContractTemplate, GameMap } from '../data/schema';
 import { minutesPerDay } from '../sim/clock';
+import { expAtLevel } from '../sim/level';
 import { declineOffer, MAX_OFFERS, offerHint, refreshOffers, sortOffers, type OfferEnv, type OfferState } from './offers';
 import { instantiateTemplate, starHubOf } from './template';
 
@@ -85,18 +86,20 @@ describe('依頼の追加', () => {
   });
 
   it('前提を満たすと次の固定案件が届く', () => {
-    const state = { ...start, completed: ['c001_direct_link'], nextOfferMinute: 0 };
+    // c002 は Lv2 から届く。Lv2 に必要な経験値を持たせる
+    const state = { ...start, completed: ['c001_direct_link'], nextOfferMinute: 0, companyExp: expAtLevel(2, balance) };
     const next = refreshOffers(state, env);
     expect(next.offers.map((o) => o.baseId)).toEqual(['c002_small_office']);
   });
 
-  it('評判が足りない間は定型案件を出さない', () => {
+  it('レベルが足りない間は定型案件を出さない', () => {
+    const lockedEnv = { ...env, templates: [{ ...template, unlockLevel: 5 }] };
     const state = { ...start, completed: ['c001_direct_link', 'c002_small_office'], companyExp: 1 };
-    expect(refreshOffers(state, env).offers).toEqual([]);
+    expect(refreshOffers(state, lockedEnv).offers).toEqual([]);
   });
 
-  it('評判を満たすと定型案件が届き、連番が進む', () => {
-    const state = { ...start, completed: ['c001_direct_link', 'c002_small_office'], companyExp: 2 };
+  it('レベルを満たすと定型案件が届き、連番が進む', () => {
+    const state = { ...start, completed: ['c001_direct_link', 'c002_small_office'], companyExp: expAtLevel(2, balance) };
     const next = refreshOffers(state, env);
     expect(next.offers).toHaveLength(1);
     expect(next.offers[0].baseId).toBe('t_small_lan');
@@ -146,9 +149,9 @@ describe('次の依頼の案内（offerHint）', () => {
     expect(out.offers[0].id).toBe('old1');
   });
 
-  it('評判が足りないときは必要な評判を出す', () => {
-    const high = { ...env, templates: [{ ...template, minReputation: 5 }] };
-    expect(offerHint({ ...start, completed: ['c002_small_office'], companyExp: 0 }, { ...high, fixed: [] }).block).toEqual({ kind: 'companyExp', need: 5 });
+  it('レベルが足りないときは必要なレベルを出す', () => {
+    const high = { ...env, templates: [{ ...template, unlockLevel: 5 }] };
+    expect(offerHint({ ...start, completed: ['c002_small_office'], companyExp: 0 }, { ...high, fixed: [] }).block).toEqual({ kind: 'level', need: 5 });
   });
 
   it('固定案件の前提が未達のときは、最初の前提を出す', () => {

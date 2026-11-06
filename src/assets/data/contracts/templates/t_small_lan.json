@@ -7,7 +7,6 @@
   "jobs": [
     "infra"
   ],
-  "minReputation": 2,
   "weight": 20,
   "map": "office_small",
   "params": {

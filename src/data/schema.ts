@@ -331,7 +331,6 @@ export const templateSchema = z.object({
   unlockLevel: unlockLevelSchema,
   requires: z.array(z.string().min(1)).default([]),
   jobs: z.array(jobIdSchema).optional(),
-  minReputation: nonNegativeInt,
   weight: nonNegativeInt,
   // 受注日からの期日（日数）
   deadlineDays: int.positive(),
