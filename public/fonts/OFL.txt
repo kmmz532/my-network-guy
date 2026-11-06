@@ -1,0 +1,5 @@
+DotGothic16（Google Fonts より同梱）
+
+このフォントは SIL Open Font License, Version 1.1 のもとで配布されている。
+ライセンスの全文は https://openfontlicense.org/ を参照。
+同梱のファイル: dotgothic16-*.woff2（Google Fonts の配布の分割。unicode-range で使う範囲を分けている）、dotgothic16.css。
