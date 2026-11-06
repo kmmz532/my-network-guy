@@ -21,6 +21,7 @@ import {
 import type {
   EngineData,
   FailureReason,
+  FirewallRule,
   Iface,
   NetLink,
   NetNode,
@@ -726,6 +727,11 @@ export const removeHost = (core: Core, uid: string, name: string, target: NetTar
 
 // IPアドレスの書式（各区切りは 0〜255）
 const isIp = (s: string): boolean => /^\d{1,3}(\.\d{1,3}){3}$/.test(s) && s.split('.').every((n) => Number(n) <= 255);
+// 「a.b.c.d/nn」（ネットワークの指定）
+const isCidr = (s: string): boolean => {
+  const [ip, prefix] = s.split('/');
+  return prefix !== undefined && isIp(ip) && /^\d{1,2}$/.test(prefix) && Number(prefix) <= 32;
+};
 
 // ポートのIPアドレスを設定する。ip が空文字なら設定を外す（機器の IP は未設定に戻る）。
 // そのポートのセグメントに設定がなければ、入力したアドレスのネットワークを設定にする（配線の後に入力した場合など）
@@ -761,6 +767,21 @@ export const setGateway = (core: Core, uid: string, gateway: string | null, targ
     (node) => {
       if (gateway !== null && !isIp(gateway)) return 'ip';
       return { ...node, gateway };
+    },
+    target,
+  );
+
+// ファイアウォールの規則を置き換える（N38）。規則の送信元・宛先は 'any' か「a.b.c.d/nn」。一覧にない通信は通さない
+export const setFirewallRules = (core: Core, uid: string, rules: FirewallRule[], target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      for (const r of rules) {
+        if (r.src !== 'any' && !isCidr(r.src)) return 'ip';
+        if (r.dst !== 'any' && !isCidr(r.dst)) return 'ip';
+      }
+      return { ...node, rules };
     },
     target,
   );

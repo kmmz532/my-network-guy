@@ -73,6 +73,13 @@ const handlers: { [K in Goal['type']]: Handler } = {
       return { goal, ok: hit.r.ok, failure: hit.r.failure, kind: 'http' as const, src: pc, dst: hit.sv, result: hit.r };
     });
   },
+  // 通ってはいけない通信: 往路がファイアウォールの規則で止められていること（ほかの理由で届かないだけでは合格にしない）
+  blocked: (goal, net, data) => {
+    if (goal.type !== 'blocked') throw new Error('blocked ハンドラに別の種類が渡された');
+    const r = ping(net, data, goal.from, goal.to);
+    const ok = !r.ok && r.failure?.reason === 'firewall.denied';
+    return [{ goal, ok, failure: r.failure, kind: 'ping', src: goal.from, dst: goal.to, result: { ...r, ok } }];
+  },
   firewall: (goal, net, data) => {
     if (goal.type !== 'firewall') throw new Error('firewall ハンドラに別の種類が渡された');
     const pcs = uidsOf(net, data, 'pc');

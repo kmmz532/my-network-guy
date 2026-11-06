@@ -37,6 +37,7 @@ import {
   focusedOf,
   placeDevice,
   requestBuild,
+  setFirewallRules,
   setInterface,
   testDesign,
   type Core,
@@ -280,6 +281,8 @@ describe('模範解答: 固定案件', () => {
     core = wire(core, fw.uid, 'web', UTP, { a: 1 });
     core = addr(core, fw.uid, '192.168.1.1');
     core = addr(core, fw.uid, '203.0.113.1', 1);
+    // 規則: 社内から外部のWeb（80）だけを許可する。それ以外は既定で拒否される
+    core = ok(setFirewallRules(core, fw.uid, [{ src: '192.168.1.0/24', dst: '203.0.113.0/24', service: 'http', port: 80 }])).core;
     expectReference(finish(core).report);
   });
 

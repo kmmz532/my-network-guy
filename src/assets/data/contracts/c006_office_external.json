@@ -92,7 +92,14 @@
       "port": 80
     },
     {
-      "type": "firewall"
+      "type": "blocked",
+      "from": "web",
+      "to": "staff_a"
+    },
+    {
+      "type": "blocked",
+      "from": "web",
+      "to": "staff_b"
     }
   ],
   "reward": {

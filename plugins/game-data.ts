@@ -189,6 +189,8 @@ const goalRefs = (goal: Goal): string[] => {
     case 'http_all':
     case 'firewall':
       return [];
+    case 'blocked':
+      return [goal.from, goal.to];
   }
 };
 

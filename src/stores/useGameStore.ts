@@ -14,7 +14,7 @@ import { initialStaff, rollCandidates, totalSalary } from '../sim/staff';
 import { rand } from '../sim/rng';
 import { finishTrainings, startTraining as startTrainingOp, takeExam as takeExamOp, type TrainingEnv } from '../sim/training';
 import { certs as certRecord, training as trainingRecord } from 'virtual:game-data';
-import type { NetLink, NetNode, Route } from '../network/types';
+import type { FirewallRule, NetLink, NetNode, Route } from '../network/types';
 import type { GameMode, SaveData } from '../services/migrations';
 import { resizeSandboxOffice, sandboxClock, sandboxOffice, sandboxTest } from '../sim/sandbox';
 import { gameEnv } from '../sim/env';
@@ -72,6 +72,7 @@ import {
   requestBuild,
   setInterface,
   setGateway,
+  setFirewallRules,
   setSegment,
   setService,
   setName as setNameOp,
@@ -294,6 +295,8 @@ export interface GameState {
   // 機器の設定（設計中のみ）。失敗したら理由を返す
   setIface: (uid: string, port: number, ip: string, prefix?: number) => string | null;
   setGateway: (uid: string, gateway: string | null) => string | null;
+  // ファイアウォールの規則を置き換える（N38）
+  setFirewallRules: (uid: string, rules: FirewallRule[]) => string | null;
   // セグメント（ポートが属するネットワーク）のアドレスを設定する
   setSegment: (uid: string, port: number, network: string, prefix: number) => string | null;
   // 詳しくで選んだ、まだ設定のないポートのネットワーク（null で消す）。配線・セグメントの設定のときに使う
@@ -936,6 +939,7 @@ export const useGameStore = create<GameState>((set, get) => {
     setIface: (uid, port, ip, prefix = 24) =>
       recorded(() => apply(setInterface(coreOf(get()), uid, port, ip, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
     setGateway: (uid, gateway) => recorded(() => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid))),
+    setFirewallRules: (uid, rules) => recorded(() => apply(setFirewallRules(coreOf(get()), uid, rules, netTargetOf(get())), tileOf(uid))),
     clearOfferBurst: () => set({ offerBurst: 0 }),
     declineOffer: (id) => set({ offers: declineOffer(get().offers, id) }),
     setPlanned: (uid, port, net) =>

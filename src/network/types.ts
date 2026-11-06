@@ -22,9 +22,19 @@ export interface HostEntry {
   ip: string;
 }
 
+// ファイアウォールの規則（N38）。送信元・宛先は 'any' か「a.b.c.d/nn」のネットワーク。service は any・ping・http（http は port で絞れる）
+export interface FirewallRule {
+  src: string;
+  dst: string;
+  service: 'any' | 'ping' | 'http';
+  port?: number;
+}
+
 export interface NetNode {
   uid: string;
   device: string;
+  // ファイアウォールの規則（ファイアウォールだけが持つ。一覧にない通信は通さない）
+  rules?: FirewallRule[];
   // 手で付けた名前（なければ既定の名前で呼ぶ。nodeName.ts）
   name?: string;
   x: number;
@@ -87,6 +97,8 @@ export const FAILURE_REASONS = [
   'route.loop',
   'return.failed',
   'service.closed',
+  // ファイアウォールの規則に合わない通信（既定は拒否）
+  'firewall.denied',
 ] as const;
 
 export type FailureReason = (typeof FAILURE_REASONS)[number];

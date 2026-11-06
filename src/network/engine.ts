@@ -2,7 +2,7 @@
 // L1（配線）→ L2（スイッチによるL2ドメイン）→ L3（IPアドレスとルーティング）の順に確認する。
 // 失敗理由は ID で返し、文言は言語ファイルで表示する。
 import { isFabricPort, isRelayPort, isRoutingCategory, ROUTER_SWITCH_LAN_HOST_PORT } from './category';
-import type { EngineData, Endpoint, Failure, FailureReason, NetLink, NetNode, Network, PathResult } from './types';
+import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, NetLink, NetNode, Network, PathResult } from './types';
 
 const MAX_HOPS = 16;
 
@@ -141,7 +141,29 @@ class Topology {
 const fail = (reason: FailureReason, node: string): Failure => ({ reason, node });
 
 // 片道の判定（src → dst）。dstIp は宛先のIPアドレス
-const deliver = (topo: Topology, srcUid: string, dstUid: string): PathResult => {
+// 通信の種類（ping は ICMP、http は指定のポートへの TCP）。ファイアウォールの規則の判定に使う
+export type Traffic = { kind: 'ping' } | { kind: 'http'; port: number };
+
+// 規則の送信元・宛先（'any' か「a.b.c.d/nn」）に、IPアドレスが入るか
+const matchNet = (spec: string, ip: string): boolean => {
+  if (spec === 'any') return true;
+  const [network, prefix] = spec.split('/');
+  return inSubnet(ip, network, Number(prefix));
+};
+
+// ファイアウォールが、この通信を通すか（規則のどれかに合えば通す。規則がなければ拒否）
+const allows = (rules: readonly FirewallRule[] | undefined, srcIp: string, dstIp: string, traffic: Traffic): boolean =>
+  (rules ?? []).some(
+    (r) =>
+      matchNet(r.src, srcIp) &&
+      matchNet(r.dst, dstIp) &&
+      (r.service === 'any' ||
+        (r.service === 'ping' && traffic.kind === 'ping') ||
+        (r.service === 'http' && traffic.kind === 'http' && (r.port === undefined || r.port === traffic.port))),
+  );
+
+// 通信を1方向に届ける。check が true のときは、通り道のファイアウォールの規則を確かめる（戻りの通信は、往路で許した通信の戻りとして確かめない）
+const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffic = { kind: 'ping' }, check = true): PathResult => {
   const path: string[] = [];
   const src = topo.node(srcUid);
   const dst = topo.node(dstUid);
@@ -198,6 +220,10 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string): PathResult => 
     }
     if (!topo.isRouter(cur.uid)) return err(fail('route.none', cur.uid));
     path.push(cur.uid);
+    // ファイアウォールは、規則に合う通信だけを通す（既定は拒否）
+    if (check && topo.categoryOf(cur.uid) === 'firewall' && !allows(cur.rules, srcIface.ip, dstIface.ip, traffic)) {
+      return err(fail('firewall.denied', cur.uid));
+    }
 
     // 直結しているサブネットに宛先があるか
     const connected = cur.interfaces.find((i) => inSubnet(dstIface.ip, i.ip, i.prefix));
@@ -232,9 +258,9 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string): PathResult => 
 // Ping（ICMP）の判定。往路と復路の両方が通る必要がある
 export const ping = (net: Network, data: EngineData, srcUid: string, dstUid: string): PathResult => {
   const topo = new Topology(net, data);
-  const forward = deliver(topo, srcUid, dstUid);
+  const forward = deliver(topo, srcUid, dstUid, { kind: 'ping' });
   if (!forward.ok) return forward;
-  const back = deliver(topo, dstUid, srcUid);
+  const back = deliver(topo, dstUid, srcUid, { kind: 'ping' }, false);
   if (!back.ok) {
     return { ok: false, path: forward.path, failure: { reason: 'return.failed', node: dstUid, cause: back.failure } };
   }
@@ -244,13 +270,13 @@ export const ping = (net: Network, data: EngineData, srcUid: string, dstUid: str
 // HTTP の判定。往路で宛先に届き、宛先が指定ポートでサービスを待ち受けていて、復路も通ること
 export const http = (net: Network, data: EngineData, srcUid: string, dstUid: string, port: number): PathResult => {
   const topo = new Topology(net, data);
-  const forward = deliver(topo, srcUid, dstUid);
+  const forward = deliver(topo, srcUid, dstUid, { kind: 'http', port });
   if (!forward.ok) return forward;
   const dst = topo.node(dstUid);
   if (!dst || !dst.services.some((s) => s.protocol === 'http' && s.port === port)) {
     return { ok: false, path: forward.path, failure: fail('service.closed', dstUid) };
   }
-  const back = deliver(topo, dstUid, srcUid);
+  const back = deliver(topo, dstUid, srcUid, { kind: 'http', port }, false);
   if (!back.ok) {
     return { ok: false, path: forward.path, failure: { reason: 'return.failed', node: dstUid, cause: back.failure } };
   }

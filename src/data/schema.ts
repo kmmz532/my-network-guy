@@ -264,6 +264,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('http_all'), port: z.number().int().min(1).max(65535) }),
   // すべてのPCから、到達できるサーバー（外部）への経路にファイアウォールがある
   z.object({ type: z.literal('firewall') }),
+  // from から to への Ping が、ファイアウォールの規則で止められている（通ってはいけない通信。N38）
+  z.object({ type: z.literal('blocked'), from: z.string().min(1), to: z.string().min(1) }),
 ]);
 
 export const contractSchema = z.object({

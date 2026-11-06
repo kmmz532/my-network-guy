@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { t } from '../i18n/t';
 import { AddressInput } from './AddressInput';
 import { PixelSelect } from './PixelControls';
+import { primaryButton } from './Modal';
+import type { LangKey } from '../generated/lang-keys';
 import { dangerButton } from './Modal';
 import type { ComboOption } from './addressCombo';
 import type { Compiled } from '../network/compile';
@@ -41,6 +43,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   const setSegment = useGameStore((s) => s.setSegment);
   const addRoute = useGameStore((s) => s.addRoute);
   const removeRoute = useGameStore((s) => s.removeRoute);
+  const setFirewallRules = useGameStore((s) => s.setFirewallRules);
   // 詳しくで選んだ、まだ設定のないポートのネットワーク（IPアドレスを設定したら消す）。ストアに持ち、配線の自動割り当てで使う
   const planned = useGameStore((s) => s.planned);
   const setPlanned = useGameStore((s) => s.setPlanned);
@@ -199,6 +202,30 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   };
 
   // ルーターの静的ルート（宛先・ネクストホップを一覧から選ぶ）
+  // ファイアウォールの規則（許可する通信。一覧にない通信は通さない）
+  const renderFirewallRules = () => {
+    const rules = node.rules ?? [];
+    return (
+      <div style={sectionStyle}>
+        <div>
+          <b>{t('ui.fw.rules')}</b>
+        </div>
+        {rules.length === 0 && <div style={{ color: greyColor }}>{t('ui.fw.none')}</div>}
+        {rules.map((r, i) => (
+          <div key={`${r.src}-${r.dst}-${r.service}-${r.port ?? ''}-${i}`} style={row}>
+            <span>{t('ui.fw.rule', { src: r.src === 'any' ? t('ui.fw.any') : r.src, dst: r.dst === 'any' ? t('ui.fw.any') : r.dst, service: ruleServiceText(r) })}</span>
+            {!locked && (
+              <button style={dangerButton} onClick={() => onError(setFirewallRules(node.uid, rules.filter((_, j) => j !== i)))}>
+                {t('ui.config.remove')}
+              </button>
+            )}
+          </div>
+        ))}
+        {!locked && <FirewallRuleAdd onAdd={(rule) => onError(setFirewallRules(node.uid, [...rules, rule]))} />}
+      </div>
+    );
+  };
+
   const renderRoutes = () => {
     const dests = new Map<string, { network: string; prefix: number }>();
     for (const seg of segmentsOf(net, engine)) {
@@ -242,12 +269,56 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
       {node.configLocked && <div style={{ marginBottom: 6 }}>{t('ui.config.locked')}</div>}
       {ports.map(renderPort)}
       {!isRoutingCategory(category ?? '') && renderGateway()}
-      {isRoutingCategory(category ?? '') && renderRoutes()}
+      {isRoutingCategory(category ?? '') && category !== 'firewall' && renderRoutes()}
+      {category === 'firewall' && renderFirewallRules()}
     </div>
   );
 }
 
 // ルートの追加。宛先とネクストホップの両方がそろった時点で追加する
+// 規則の送信元・宛先の選択肢（すべて・配線の候補の社内のネットワーク・外部のネットワーク）
+const FIREWALL_NETWORKS = [...NETWORK_CHOICES.map((n) => `${n}/24`), '203.0.113.0/24'];
+
+// 規則の通信の種類の文字
+const ruleServiceText = (r: { service: string; port?: number }): string =>
+  r.service === 'http' ? `${t('ui.fw.service.http')}${r.port !== undefined ? `:${r.port}` : ''}` : t(`ui.fw.service.${r.service}` as LangKey);
+
+// 規則を1つ追加する（送信元・宛先・通信の種類・ポート）
+function FirewallRuleAdd({ onAdd }: { onAdd: (rule: { src: string; dst: string; service: 'any' | 'ping' | 'http'; port?: number }) => void }) {
+  const [src, setSrc] = useState('any');
+  const [dst, setDst] = useState('any');
+  const [service, setService] = useState<'any' | 'ping' | 'http'>('http');
+  const [port, setPort] = useState('80');
+  const nets = [{ value: 'any', label: t('ui.fw.any') }, ...FIREWALL_NETWORKS.map((n) => ({ value: n, label: n }))];
+  const add = () => {
+    const p = Number(port);
+    const rule = service === 'http' ? { src, dst, service, port: Number.isInteger(p) && p > 0 && p < 65536 ? p : 80 } : { src, dst, service };
+    onAdd(rule);
+  };
+  return (
+    <div style={{ ...row, flexWrap: 'wrap' }}>
+      <PixelSelect<string> ariaLabel={t('ui.fw.src')} value={src} options={nets} onChange={setSrc} />
+      <PixelSelect<string> ariaLabel={t('ui.fw.dst')} value={dst} options={nets} onChange={setDst} />
+      <PixelSelect<string>
+        ariaLabel={t('ui.fw.service')}
+        value={service}
+        options={[
+          { value: 'any', label: t('ui.fw.service.any') },
+          { value: 'ping', label: t('ui.fw.service.ping') },
+          { value: 'http', label: t('ui.fw.service.http') },
+        ]}
+        onChange={(v) => setService(v as 'any' | 'ping' | 'http')}
+      />
+      {service === 'http' && (
+        <input aria-label={t('ui.fw.port')} value={port} onChange={(e) => setPort(e.target.value)} style={{ width: 56 }} />
+      )}
+      <button style={primaryButton} onClick={add}>
+        {t('ui.fw.add')}
+      </button>
+    </div>
+  );
+}
+
 function RouteAdd({
   dests,
   hops,
