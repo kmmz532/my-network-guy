@@ -15,7 +15,7 @@
         "routing",
         "firewall"
       ],
-      "sprite": "device/firewall",
+      "sprite": "device/firewall_dmz",
       "unlockLevel": 36
     }
   ]

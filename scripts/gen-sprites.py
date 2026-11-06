@@ -317,6 +317,34 @@ def firewall():
     return img
 
 
+def firewall_dmz():
+    # DMZ のファイアウォール: 通常のファイアウォール（橙のレンガ壁）より背の高い2段の箱。
+    # 上段に赤い帯（公開用の区画の印）、下段の前面に3つのポート（右端の DMZ の口は赤で縁取る）
+    img, d = new(24, 40)
+    box3q(d, 1, 10, 22, 5, 18, 'y', 'f', edge='e', shade='Y')
+    # 上段: 赤い帯と白い点（公開の区画）
+    rect(d, 2, 16, 20, 4, 'r')
+    d.line([(2, 16), (21, 16)], fill=C['rh'] + (255,))
+    d.line([(2, 19), (21, 19)], fill=C['R'] + (255,))
+    for x in (5, 9, 13, 17):
+        px(d, x, 17, 'e')
+    # 下段: レンガ壁の目地
+    d.line([(2, 23), (21, 23)], fill=C['Y'] + (255,))
+    for x in (7, 15):
+        d.line([(x, 21), (x, 22)], fill=C['Y'] + (255,))
+    for x in (4, 11, 19):
+        d.line([(x, 24), (x, 25)], fill=C['Y'] + (255,))
+    # LED と3つのポート
+    px(d, 3, 29, 'l')
+    px(d, 5, 29, 'y')
+    for x in (9, 13):
+        rect(d, x, 28, 3, 2, 'o')
+    rect(d, 16, 27, 5, 4, 'r')
+    rect(d, 17, 28, 3, 2, 'o')
+    base(d)
+    return img
+
+
 def access_point():
     # 置き型のアクセスポイント: 角の丸い白い平たい箱を斜め上から見た形。天面の中央に青い光の輪、
     # 前面に状態のLED。上に小さな電波の印を2本
@@ -1118,6 +1146,7 @@ if __name__ == '__main__':
     save(router_switch(), 'device/router_switch.png')
     save(printer(), 'device/printer_basic.png')
     save(firewall(), 'device/firewall.png')
+    save(firewall_dmz(), 'device/firewall_dmz.png')
     save(access_point(), 'device/access_point.png')
     save(laptop(), 'device/laptop.png')
     save(gpu_server(), 'device/gpu_server.png')
