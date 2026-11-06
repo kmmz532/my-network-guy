@@ -9,6 +9,8 @@ import { Icon } from './Icon';
 import { outsideCheck, rentalOf } from '../network/external';
 import { gameEnv } from '../sim/env';
 import { ItemCards, unlockNameOf } from './UnlockList';
+import { Tooltip } from './Tooltip';
+import { tipText } from '../input/keymap';
 
 // 増えた経験値の「+N」を出している時間（ms）
 const GAIN_MS = 1500;
@@ -93,7 +95,12 @@ export function CompanyBody() {
       </div>
       <div style={row}>
         <span>{t('ui.company.staff')}</span>
-        <span>{t('ui.company.staffCount', { total: staff.length, day: staff.length - night, night })}</span>
+        {/* 押すと社員の一覧を開く。キーは H（ツールチップで示す） */}
+        <Tooltip text={tipText('keys.staffList', 'staffList')}>
+          <button style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => useGameStore.getState().openWindow('staffList', '')}>
+            {t('ui.company.staffCount', { total: staff.length, day: staff.length - night, night })}
+          </button>
+        </Tooltip>
       </div>
       <div style={row}>
         <span>{t('ui.company.delivered')}</span>
