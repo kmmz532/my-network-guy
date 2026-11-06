@@ -19,8 +19,9 @@ import { RADIUS } from '../ui/theme';
 type Section = 'device' | 'furniture';
 const SECTIONS: readonly Section[] = ['device', 'furniture'];
 
-// 品目の絵。透明な余白を切り落とし、固定の枠の中央に収める
-const ITEM_ICON_BOX = { width: 64, height: 64 };
+// 品目の絵。透明な余白を切り落とし、固定の枠の中央に収める。
+// 枠の高さは、最も背の高い品目（本棚 49 px）を 2 倍で収められる 98 px。これより低いと、背の高い品目だけ 1 倍に縮む
+const ITEM_ICON_BOX = { width: 64, height: 98 };
 const ItemIcon = ({ name }: { name: string }) => (
   <div style={{ ...ITEM_ICON_BOX, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
     <TrimmedIcon name={name} height={ITEM_ICON_BOX.height} />
