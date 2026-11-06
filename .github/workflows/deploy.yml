@@ -24,11 +24,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: 型の検査
-        run: npx tsc --noEmit
+      - name: 生成と型の検査（npm run build は生成物を作ってから tsc を行う）
+        run: npm run build
       - name: 単体テスト
         run: npx vitest run
-      - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
