@@ -5,6 +5,7 @@ import { RADIUS } from '../ui/theme';
 import { Icon } from '../components/Icon';
 import { usePhone } from '../ui/usePhone';
 import { mapCommands } from './mapControl';
+import { useGameStore } from '../stores/useGameStore';
 
 // ツールバーの道具のボタンと同じ見た目
 const buttonStyle = {
@@ -30,6 +31,9 @@ const TOOLBAR_HEIGHT_PHONE_PX = 84;
 
 export function MapZoomButtons() {
   const phone = usePhone();
+  // スマホでウィンドウを開いているときは、下のシートと重なるので出さない（マップはドラッグで動かせる）
+  const sheetOpen = useGameStore((s) => s.windows.length > 0);
+  if (phone && sheetOpen) return null;
   return (
     <div
       style={{

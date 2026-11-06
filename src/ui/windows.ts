@@ -45,7 +45,7 @@ export const MIN_H = 160;
 export const CASCADE_PX = 24;
 // これより狭い画面では、移動と大きさの変更をせず、画面の下に1つだけ出す
 export const NARROW_PX = 768;
-export const NARROW_HEIGHT_RATIO = 0.4;
+export const NARROW_HEIGHT_RATIO = 0.6;
 // 狭い画面で下に出すとき、ツールバーのために空けておく高さ
 export const NARROW_BOTTOM_RESERVE = 64;
 
