@@ -251,6 +251,25 @@ def router_switch():
     return img
 
 
+def firewall():
+    # ファイアウォール: 橙の箱の前面にレンガ壁の模様。天面は黄、前面の右下に2つのポートとLED
+    img, d = new(24, 40)
+    box3q(d, 1, 17, 22, 5, 11, 'y', 'f', edge='e', shade='Y')
+    # レンガ壁: 2段の目地（段ごとに縦の目地をずらす）
+    d.line([(2, 26), (21, 26)], fill=C['Y'])
+    for x in (7, 15):
+        d.line([(x, 24), (x, 25)], fill=C['Y'] + (255,))
+    for x in (4, 11, 19):
+        d.line([(x, 27), (x, 28)], fill=C['Y'] + (255,))
+    # 前面の下段: LEDと2つのポート
+    px(d, 4, 30, 'l')
+    px(d, 6, 30, 'y')
+    for x in (15, 19):
+        rect(d, x, 29, 3, 2, 'o')
+    base(d)
+    return img
+
+
 def access_point():
     # 置き型のアクセスポイント: 角の丸い白い平たい箱を斜め上から見た形。天面の中央に青い光の輪、
     # 前面に状態のLED。上に小さな電波の印を2本
@@ -891,6 +910,7 @@ if __name__ == '__main__':
     save(wifi_router(), 'device/wifi_router.png')
     save(vpn_router(), 'device/vpn_router.png')
     save(router_switch(), 'device/router_switch.png')
+    save(firewall(), 'device/firewall.png')
     save(access_point(), 'device/access_point.png')
     save(laptop(), 'device/laptop.png')
     save(gpu_server(), 'device/gpu_server.png')
