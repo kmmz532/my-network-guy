@@ -7,9 +7,13 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(CACHE)
-      .then((cache) => cache.addAll(['./', './manifest.webmanifest', './icon-192.png', './icon-512.png']))
-      .then(() => self.skipWaiting()),
+      .then((cache) => cache.addAll(['./', './manifest.webmanifest', './icon-192.png', './icon-512.png'])),
   );
+});
+
+// 新しい版は、利用者が更新を押すまで待機する（勝手には切り替えない）。ページが SKIP_WAITING を送ったら切り替える
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {

@@ -31,6 +31,7 @@ import { HiringPanel, type HiringTab } from './components/HiringPanel';
 import { Tooltip, TooltipHost, hideTip } from './components/Tooltip';
 import { PausedBuildPrompt } from './components/PausedBuildPrompt';
 import { LoopBanner } from './components/LoopBanner';
+import { UpdateNotice } from './components/UpdateNotice';
 import { Icon } from './components/Icon';
 import { TitleScreen } from './components/TitleScreen';
 import { mapLoaders } from 'virtual:loaders';
@@ -488,6 +489,7 @@ export function App() {
         </div>
       )}
       <LoopBanner />
+      <UpdateNotice />
       {pausedPrompt && <PausedBuildPrompt />}
       <ReportModal />
       {clock.bankrupt && (
