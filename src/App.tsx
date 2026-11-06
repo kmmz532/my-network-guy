@@ -282,6 +282,7 @@ export function App() {
       <PixiStage />
       <header
         ref={headerRef}
+        data-hud
         style={{
           position: 'absolute',
           top: 0,

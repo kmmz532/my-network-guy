@@ -24,6 +24,15 @@ const sameBox = (a: Box | null, b: Box | null): boolean =>
 // 光らせる枠の、ボタンの外側への出っ張り（画面の px）
 const GLOW_OUTSET_PX = 3;
 
+// スマホの吹き出しの上端（HUD と案件の欄の下端の、下の px）。どちらも測れないときは、画面の上の余白を使う
+const belowHud = (): number => {
+  const bottoms = ['[data-hud]', '[data-task-panel]']
+    .map((sel) => document.querySelector(sel))
+    .filter((el): el is Element => el !== null)
+    .map((el) => el.getBoundingClientRect().bottom);
+  return bottoms.length > 0 ? Math.max(...bottoms) + 8 : 8;
+};
+
 const categoryOf = (device: string): string =>
   (devices as Record<string, { category: string } | undefined>)[device]?.category ?? '';
 
@@ -43,8 +52,6 @@ export function Guide() {
   const [progress, setProgress] = useState<{ id: string; index: number }>({ id: '', index: 0 });
   // 光らせるツールバーのボタンの位置（画面の座標）
   const [glow, setGlow] = useState<Box | null>(null);
-  // 狭い画面では、ツールバーの上端の位置（画面の座標）の上に吹き出しを置く。ボタンを隠さないため
-  const [barTop, setBarTop] = useState(0);
   const phone = usePhone();
   // 横にスクロールするツールバーで、光らせるボタンを見える位置へ寄せたときの対象（同じ手順で何度も寄せないため）
   const scrolledFor = useRef<string | null>(null);
@@ -102,11 +109,6 @@ export function Guide() {
   }, [glowName]);
 
   useLayoutEffect(() => {
-    const bar = document.querySelector('[data-toolbar]');
-    if (bar) {
-      const top = bar.getBoundingClientRect().top;
-      setBarTop((prev) => (prev === top ? prev : top));
-    }
     if (glowName === null) {
       scrolledFor.current = null;
       setGlow(null);
@@ -149,6 +151,8 @@ export function Guide() {
 
   if (id === null || step === null) return null;
   const skip = () => markGuideDone(id);
+  // スマホの吹き出しは、HUD と案件の欄の下に置く（ツールバー・倉庫・シートの操作の欄とは重ならない）
+  const topBelowHud = phone ? belowHud() : 0;
 
   return (
     <>
@@ -175,13 +179,15 @@ export function Guide() {
       )}
       <div
         role="status"
+        // 外枠は指の操作を通す（下の倉庫・ツールバー・マップを押せる）。押せる部品（「飛ばす」）だけが指の操作を受け取る（B2）
         style={
           phone
             ? {
-                // ツールバーの上端から少し上に置く（ツールバーのボタンを隠さない）。幅は画面に収める
+                // HUD と案件の欄の下に置く。ツールバーや倉庫の欄とは重ならない
                 position: 'fixed',
                 left: '50%',
-                bottom: barTop > 0 ? (window.innerHeight - barTop + 8) / loadSettings().uiScale : 72,
+                top: topBelowHud,
+                pointerEvents: 'none',
                 transform: 'translateX(-50%)',
                 // 幅は画面の左右に 12 px ずつ余白を残す（吹き出しの中の文字が細かく折り返さないため）
                 width: 'calc((100vw - 24px) / var(--ui-scale, 1))',
@@ -193,6 +199,7 @@ export function Guide() {
                 left: '50%',
                 bottom: 'calc(72px * var(--ui-scale, 1))',
                 transform: 'translateX(-50%)',
+                pointerEvents: 'none',
                 zIndex: 800,
                 zoom: 'var(--ui-scale, 1)',
               }
@@ -227,6 +234,7 @@ export function Guide() {
             onClick={skip}
             style={{
               ...secondaryButton,
+              pointerEvents: 'auto',
               flexShrink: 0,
               whiteSpace: 'nowrap',
               padding: '2px 8px',

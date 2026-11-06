@@ -47,6 +47,8 @@ export function TaskPanel({ top = 44 }: { top?: number }) {
 
   return (
     <aside
+      // 案内の吹き出しを、スマホで案件の欄の下に置くために測る（B2）
+      data-task-panel
       style={{
         position: 'absolute',
         top,

@@ -52,6 +52,14 @@ const scenes = {
     await page.getByRole('button', { name: '依頼' }).first().click();
     await page.waitForTimeout(500);
   },
+  // 案件を受注して設計に入った直後（案内の吹き出しが出る。スマホでの位置と、倉庫との重なりを確かめる）
+  guide: async (page) => {
+    await scenes.career(page);
+    await page.getByRole('button', { name: '依頼' }).first().click();
+    await page.waitForTimeout(500);
+    await page.getByRole('button', { name: '受注' }).first().click();
+    await page.waitForTimeout(800);
+  },
   // ショップ
   shop: async (page) => {
     await scenes.career(page);
