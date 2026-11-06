@@ -107,5 +107,6 @@
   "reward": {
     "money": 600000,
     "reputation": 1
-  }
+  },
+  "unlockLevel": 18
 }

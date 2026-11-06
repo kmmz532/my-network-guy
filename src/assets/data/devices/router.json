@@ -14,7 +14,8 @@
       "features": [
         "routing"
       ],
-      "sprite": "device/router_basic"
+      "sprite": "device/router_basic",
+      "unlockLevel": 4
     }
   ]
 }

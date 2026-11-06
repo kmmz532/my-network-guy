@@ -15,7 +15,7 @@ import { connect, placeInOffice, setInterface, noEffects, type Core, type Env, t
 import { initialClock } from './clock';
 import { placeFurniture } from './furniture';
 
-const balance = balanceJson as Balance;
+const balance = balanceJson as unknown as Balance;
 
 const devices: Env['devices'] = {};
 for (const d of [...pcJson.devices, ...switchJson.devices, ...routerJson.devices, ...serverJson.devices]) {

@@ -1,0 +1,32 @@
+{
+  "milestones": [
+    {
+      "level": 3,
+      "reward": {
+        "devices": [
+          {
+            "device": "l2_switch_8p",
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "level": 6,
+      "reward": {
+        "devices": [
+          {
+            "device": "router_basic",
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "level": 10,
+      "reward": {
+        "devices": []
+      }
+    }
+  ]
+}

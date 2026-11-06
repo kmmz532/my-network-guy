@@ -471,6 +471,7 @@ describe('自社オフィスの編集', () => {
     const inhouse: Contract = {
       id: 'i001_office_lan',
       stage: 1,
+      unlockLevel: 1,
       order: 15,
       requires: [],
       map: 'office_small',
@@ -493,6 +494,7 @@ describe('自社案件', () => {
   const inhouse: Contract = {
     id: 'i001_office_lan',
     stage: 1,
+    unlockLevel: 1,
     order: 15,
     requires: [],
     map: 'office_small',

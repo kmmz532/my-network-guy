@@ -4,6 +4,8 @@ import { parseCondition } from '../sim/guide';
 import { CATEGORY_IDS } from './categories';
 
 const int = z.number().int();
+// 解放のレベル（会社のレベル。N45）。品目ごとに必ず書く
+const unlockLevelSchema = int.min(1).max(999);
 const nonNegativeInt = z.number().int().nonnegative();
 // 床の大きさ（床の内側のマス数）
 const sizeSchema = z.object({ w: int.positive(), h: int.positive() });
@@ -130,11 +132,27 @@ export const balanceSchema = z.object({
   // 採用の候補（毎月1日に作り直す）
   hiring: z.object({
     maxCandidates: nonNegativeInt,
-    // 評判の何点ごとに候補の level が1上がるか
+    // 評判の何点ごとに候補の level が1上がるか（会社のレベルに置き換えるまで残す）
     reputationPerLevel: int.positive(),
     baseSalary: nonNegativeInt,
     salaryPerLevel: nonNegativeInt,
+    // 職種ごとの解放のレベル（解放された職種だけが採用の候補に出る）
+    jobUnlockLevels: z.record(z.enum(JOB_IDS), unlockLevelSchema),
+    // 社員の人数の上限（会社のレベル以上での上限。[レベル, 上限] の組）
+    staffCapByLevel: z.array(z.tuple([unlockLevelSchema, int.positive()])),
+    // 候補の能力は、会社のレベルの何段階ごとに1上がるか
+    candidateLevelStep: int.positive(),
   }),
+  // 会社のレベル（N45）。必要な経験値と、毎回の報酬の式の係数
+  level: z.object({
+    max: unlockLevelSchema,
+    base: z.number().positive(),
+    power: z.number().positive(),
+    moneyBase: nonNegativeInt,
+    moneyPower: z.number().positive(),
+  }),
+  // 機能の解放のレベル（品目ではないもの）
+  featureUnlocks: z.object({ nightShift: unlockLevelSchema }),
   office: z.object({
     // 同時に受注できる案件の数（案件の枠）
     projectSlots: int.positive(),
@@ -146,6 +164,8 @@ export const balanceSchema = z.object({
       increase: z.number().min(0),
       step: int.positive(),
       maxSize: sizeSchema,
+      // 拡張の回数ごとの解放のレベル（1回目から順に）
+      unlockLevels: z.array(unlockLevelSchema),
     }),
   }),
   // 納品が遅れたときの報酬の割合。1日ごとに lateRatePerDay ぶん減り、lateFloor より下がらない
@@ -162,6 +182,7 @@ export const cableSchema = z.object({
   maxLengthTiles: nonNegativeInt,
   pricePerLink: nonNegativeInt,
   pricePerTile: nonNegativeInt,
+  unlockLevel: unlockLevelSchema,
 });
 
 export const cablesFileSchema = z.object({ cables: z.array(cableSchema) });
@@ -188,6 +209,7 @@ export const deviceSchema = z.object({
   features: z.array(z.string()).default([]),
   defaultServices: z.array(serviceSchema).default([]),
   sprite: z.string().min(1),
+  unlockLevel: unlockLevelSchema,
 });
 
 export const devicesFileSchema = z.object({ devices: z.array(deviceSchema) });
@@ -198,6 +220,7 @@ export const furnitureSchema = z.object({
   price: nonNegativeInt,
   sprite: z.string().min(1),
   seat: z.boolean(),
+  unlockLevel: unlockLevelSchema,
   // 家具の効果（OFFICE.md「家具の効果」）。range を省略するとオフィス全体に効く
   effect: z.object({
     stat: z.enum(['power', 'exp', 'seatless']),
@@ -274,6 +297,8 @@ export const goalSchema = z.discriminatedUnion('type', [
 export const contractSchema = z.object({
   id: z.string().min(1),
   stage: int.positive(),
+  // この案件が届く会社のレベル（その案件で使う機器の解放のレベル以上）
+  unlockLevel: unlockLevelSchema,
   order: int,
   requires: z.array(z.string().min(1)).default([]),
   // 向いている職種（施工力の1.5倍・依頼カードの表示）。省くと、どの職種にも向かない
@@ -304,6 +329,7 @@ export const contractSchema = z.object({
 export const templateSchema = z.object({
   id: z.string().min(1),
   stage: int.positive(),
+  unlockLevel: unlockLevelSchema,
   requires: z.array(z.string().min(1)).default([]),
   jobs: z.array(jobIdSchema).optional(),
   minReputation: nonNegativeInt,
@@ -413,3 +439,15 @@ export type ContractTemplate = z.infer<typeof templateSchema>;
 export type GameMap = z.infer<typeof mapSchema>;
 export type Lang = z.infer<typeof langSchema>;
 export type GuideFile = z.infer<typeof guidesFileSchema>['guides'][number];
+
+// 会社のレベルの節目の報酬（N45）。解放は書かない（解放は品目の unlockLevel）
+export const levelsFileSchema = z.object({
+  milestones: z.array(
+    z.object({
+      level: unlockLevelSchema,
+      reward: z.object({
+        devices: z.array(z.object({ device: z.string().min(1), count: int.positive() })).default([]),
+      }),
+    }),
+  ),
+});

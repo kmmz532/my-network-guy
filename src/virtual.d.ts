@@ -13,6 +13,8 @@ declare module 'virtual:game-data' {
   export const guides: Record<string, import('./sim/guide').GuideStep[]>;
   export const training: Record<string, TrainingCourse>;
   export const certs: Record<string, CertDef>;
+  // 会社のレベルの節目の報酬（N45。解放は書かない）
+  export const levelMilestones: { level: number; reward: { devices: { device: string; count: number }[] } }[];
 }
 
 declare module 'virtual:lang/*' {

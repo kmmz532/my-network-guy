@@ -55,6 +55,7 @@ describe('研修', () => {
     const contract: Contract = {
       id: 'x',
       stage: 1,
+      unlockLevel: 1,
       order: 0,
       requires: [],
       map: 'office_small',

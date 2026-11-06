@@ -6,7 +6,8 @@
       "bandwidthMbps": 1000,
       "maxLengthTiles": 20,
       "pricePerLink": 1000,
-      "pricePerTile": 300
+      "pricePerTile": 300,
+      "unlockLevel": 1
     },
     {
       "id": "fiber_sm",
@@ -14,7 +15,8 @@
       "bandwidthMbps": 1000,
       "maxLengthTiles": 400,
       "pricePerLink": 5000,
-      "pricePerTile": 1500
+      "pricePerTile": 1500,
+      "unlockLevel": 18
     }
   ]
 }

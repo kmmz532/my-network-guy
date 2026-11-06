@@ -35,5 +35,6 @@
   "inhouse": true,
   "effect": {
     "buildSpeed": 0.1
-  }
+  },
+  "unlockLevel": 27
 }

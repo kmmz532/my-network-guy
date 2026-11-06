@@ -106,7 +106,7 @@ export const migrations: Record<number, Migration> = {
   // v6 → v7: 社員の人数と家具を追加する。初期の机を置き、旧マップの机のマスに置いたPCで机がないものには机を足す
   6: (data) => {
     const d = data as { office: Office };
-    const balance = balanceJson as Balance;
+    const balance = balanceJson as unknown as Balance;
     const pcIds = new Set(pcJson.devices.map((p) => p.id));
     const init = initialOffice(balance);
     const furniture = [...init.furniture];
@@ -122,7 +122,7 @@ export const migrations: Record<number, Migration> = {
   // v7 → v8: 人数の社員を、社員のデータとして作る。1人目と2人目は初期の職種、3人目以降は network・level 1
   7: (data) => {
     const d = data as { staff: number; rng: number };
-    const balance = balanceJson as Balance;
+    const balance = balanceJson as unknown as Balance;
     let rng = d.rng;
     const staff: Staff[] = [];
     for (let i = 0; i < d.staff; i++) {

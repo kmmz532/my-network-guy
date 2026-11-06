@@ -4,13 +4,15 @@
       "id": "desk",
       "price": 30000,
       "sprite": "furniture/desk_chair",
-      "seat": true
+      "seat": true,
+      "unlockLevel": 1
     },
     {
       "id": "desk_only",
       "price": 24000,
       "sprite": "furniture/desk",
-      "seat": true
+      "seat": true,
+      "unlockLevel": 1
     },
     {
       "id": "plant",
@@ -21,7 +23,8 @@
         "stat": "power",
         "value": 0.1,
         "range": 2
-      }
+      },
+      "unlockLevel": 1
     },
     {
       "id": "bookshelf",
@@ -32,13 +35,15 @@
         "stat": "exp",
         "value": 0.1,
         "range": 2
-      }
+      },
+      "unlockLevel": 5
     },
     {
       "id": "cabinet",
       "price": 15000,
       "sprite": "furniture/cabinet",
-      "seat": false
+      "seat": false,
+      "unlockLevel": 5
     },
     {
       "id": "coffee",
@@ -48,7 +53,8 @@
       "effect": {
         "stat": "power",
         "value": 0.05
-      }
+      },
+      "unlockLevel": 3
     },
     {
       "id": "water",
@@ -58,13 +64,15 @@
       "effect": {
         "stat": "power",
         "value": 0.05
-      }
+      },
+      "unlockLevel": 3
     },
     {
       "id": "trash",
       "price": 2000,
       "sprite": "furniture/trash",
-      "seat": false
+      "seat": false,
+      "unlockLevel": 1
     },
     {
       "id": "sofa",
@@ -74,13 +82,15 @@
       "effect": {
         "stat": "seatless",
         "value": 0.7
-      }
+      },
+      "unlockLevel": 9
     },
     {
       "id": "boxes",
       "price": 2000,
       "sprite": "furniture/boxes",
-      "seat": false
+      "seat": false,
+      "unlockLevel": 1
     }
   ]
 }

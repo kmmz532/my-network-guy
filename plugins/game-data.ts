@@ -14,6 +14,7 @@ import {
   furnitureFileSchema,
   guidesFileSchema,
   langSchema,
+  levelsFileSchema,
   mapSchema,
   shopFileSchema,
   templateSchema,
@@ -57,6 +58,8 @@ const ERROR_IDS = [
 
 interface GameData {
   balance: Balance;
+  // 会社のレベルの節目の報酬（N45）
+  levelMilestones: { level: number; reward: { devices: { device: string; count: number }[] } }[];
   training: TrainingCourse[];
   certs: CertDef[];
   cables: Cable[];
@@ -112,6 +115,7 @@ const loadData = (dataDir: string, langDir: string, spriteDir: string): GameData
   const shop = parseWith(shopFileSchema, readJson(join(dataDir, 'shop.json')), 'shop.json').items;
   const training = parseWith(trainingFileSchema, readJson(join(dataDir, 'training.json')), 'training.json').courses;
   const certs = parseWith(certFileSchema, readJson(join(dataDir, 'certs.json')), 'certs.json').certs;
+  const levelMilestones = parseWith(levelsFileSchema, readJson(join(dataDir, 'levels.json')), 'levels.json').milestones;
   const guides = parseWith(guidesFileSchema, readJson(join(dataDir, 'guides.json')), 'guides.json').guides;
 
   const contractsDir = join(dataDir, 'contracts');
@@ -147,6 +151,7 @@ const loadData = (dataDir: string, langDir: string, spriteDir: string): GameData
 
   const data: GameData = {
     balance,
+    levelMilestones,
     training,
     certs,
     cables,
@@ -287,6 +292,16 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
     // テンプレートの機器は実行時に生成されるため、goals の参照は ping_all の $all_pcs 以外を検証しない
   }
 
+  // 節目の報酬の機器は、その節目のレベルで解放されていること（新しい機器を先に渡さない）
+  const unlockOf = new Map(data.devices.map((d) => [d.id, d.unlockLevel] as const));
+  for (const m of data.levelMilestones) {
+    for (const r of m.reward.devices) {
+      const unlock = unlockOf.get(r.device);
+      ensure(unlock !== undefined, `levels.json: 節目 ${m.level} の機材 ${r.device} が未定義`);
+      ensure(unlock === undefined || unlock <= m.level, `levels.json: 節目 ${m.level} の機材 ${r.device} は Lv${unlock} で解放される`);
+    }
+  }
+
   if (errors.length) throw new GameDataError(errors);
 };
 
@@ -410,6 +425,7 @@ const gameDataModule = (data: GameData): string => {
     `export const shop = ${JSON.stringify(data.shop)};`,
     `export const training = ${JSON.stringify(Object.fromEntries(data.training.map((c) => [c.id, c])))};`,
     `export const certs = ${JSON.stringify(Object.fromEntries(data.certs.map((c) => [c.id, c])))};`,
+    `export const levelMilestones = ${JSON.stringify(data.levelMilestones)};`,
     `export const contracts = ${JSON.stringify(data.contracts)};`,
     `export const contractTemplates = ${JSON.stringify(data.templates)};`,
     `export const guides = ${JSON.stringify(

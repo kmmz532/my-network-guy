@@ -12,7 +12,8 @@
         }
       ],
       "features": [],
-      "sprite": "device/pc_basic"
+      "sprite": "device/pc_basic",
+      "unlockLevel": 1
     },
     {
       "id": "laptop",
@@ -28,7 +29,8 @@
       "features": [
         "portable"
       ],
-      "sprite": "device/laptop"
+      "sprite": "device/laptop",
+      "unlockLevel": 8
     }
   ]
 }

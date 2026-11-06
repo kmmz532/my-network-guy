@@ -565,5 +565,15 @@
   "device.l2_switch_4p.name": "4ポートスイッチ",
   "device.l2_switch_4p.desc": "安い小型のスイッチ。少ない台数をつなぐときや、長い配線の中継に使う",
   "error.cableTooLong": "ケーブルが長すぎます。ケーブルの上限を超えています。",
-  "error.cableTooLong.fix": "途中にスイッチを置いて区切るか、光ファイバーを使ってください。"
+  "error.cableTooLong.fix": "途中にスイッチを置いて区切るか、光ファイバーを使ってください。",
+  "level.title.100": "ベテラン",
+  "level.title.200": "熟練",
+  "level.title.300": "達人",
+  "level.title.400": "名人",
+  "level.title.500": "伝説",
+  "level.title.600": "大御所",
+  "level.title.700": "神技",
+  "level.title.800": "殿堂入り",
+  "level.title.900": "叡智",
+  "level.title.999": "ネットワークの神"
 }

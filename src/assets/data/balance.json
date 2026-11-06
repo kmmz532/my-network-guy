@@ -100,7 +100,14 @@
       "maxSize": {
         "w": 15,
         "h": 15
-      }
+      },
+      "unlockLevels": [
+        3,
+        8,
+        15,
+        25,
+        36
+      ]
     }
   },
   "deadline": {
@@ -143,9 +150,49 @@
   "reputationPerStar": 1,
   "hiring": {
     "maxCandidates": 4,
-    "reputationPerLevel": 20,
     "baseSalary": 150000,
-    "salaryPerLevel": 50000
+    "salaryPerLevel": 50000,
+    "jobUnlockLevels": {
+      "network": 2,
+      "infra": 5,
+      "security": 7
+    },
+    "staffCapByLevel": [
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        4,
+        4
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        8,
+        6
+      ],
+      [
+        10,
+        8
+      ],
+      [
+        20,
+        10
+      ],
+      [
+        40,
+        12
+      ]
+    ],
+    "candidateLevelStep": 5,
+    "reputationPerLevel": 20
   },
   "exam": {
     "baseRate": 0.4,
@@ -156,5 +203,15 @@
     "hoverMs": 300,
     "longPressMs": 400,
     "touchHideMs": 1500
+  },
+  "level": {
+    "max": 999,
+    "base": 2,
+    "power": 1.3,
+    "moneyBase": 10000,
+    "moneyPower": 1.1
+  },
+  "featureUnlocks": {
+    "nightShift": 10
   }
 }

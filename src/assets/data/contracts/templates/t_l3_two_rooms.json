@@ -47,5 +47,6 @@
       "type": "ping_all",
       "nodes": "$all_pcs"
     }
-  ]
+  ],
+  "unlockLevel": 20
 }

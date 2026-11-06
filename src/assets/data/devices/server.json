@@ -20,7 +20,8 @@
           "port": 80
         }
       ],
-      "sprite": "device/server_basic"
+      "sprite": "device/server_basic",
+      "unlockLevel": 6
     },
     {
       "id": "gpu_server",
@@ -43,7 +44,8 @@
           "port": 80
         }
       ],
-      "sprite": "device/gpu_server"
+      "sprite": "device/gpu_server",
+      "unlockLevel": 32
     }
   ]
 }

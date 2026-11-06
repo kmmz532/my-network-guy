@@ -74,6 +74,7 @@ export const instantiateTemplate = (
   const contract: Contract = {
     id: `${template.id}_${seq}`,
     stage: template.stage,
+    unlockLevel: template.unlockLevel,
     order: 0,
     deadlineDays: template.deadlineDays,
     requires: template.requires,

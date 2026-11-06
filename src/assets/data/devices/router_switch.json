@@ -20,7 +20,8 @@
         "routing",
         "switch"
       ],
-      "sprite": "device/router_switch"
+      "sprite": "device/router_switch",
+      "unlockLevel": 9
     }
   ]
 }

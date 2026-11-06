@@ -12,7 +12,8 @@
         }
       ],
       "features": [],
-      "sprite": "device/l2_switch_4p"
+      "sprite": "device/l2_switch_4p",
+      "unlockLevel": 1
     },
     {
       "id": "l2_switch_8p",
@@ -26,7 +27,8 @@
         }
       ],
       "features": [],
-      "sprite": "device/l2_switch_8p"
+      "sprite": "device/l2_switch_8p",
+      "unlockLevel": 2
     },
     {
       "id": "l2_switch_16p",
@@ -40,7 +42,8 @@
         }
       ],
       "features": [],
-      "sprite": "device/l2_switch_8p"
+      "sprite": "device/l2_switch_8p",
+      "unlockLevel": 10
     },
     {
       "id": "l2_switch_24p",
@@ -54,7 +57,8 @@
         }
       ],
       "features": [],
-      "sprite": "device/l2_switch_8p"
+      "sprite": "device/l2_switch_8p",
+      "unlockLevel": 23
     }
   ]
 }

@@ -15,7 +15,8 @@
         "routing",
         "firewall"
       ],
-      "sprite": "device/firewall"
+      "sprite": "device/firewall",
+      "unlockLevel": 27
     }
   ]
 }
