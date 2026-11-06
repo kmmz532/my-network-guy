@@ -12,8 +12,14 @@ const nonNegativeInt = z.number().int().nonnegative();
 const sizeSchema = z.object({ w: int.positive(), h: int.positive() });
 
 // 社員の職種（STAFF.md「1. 社員のデータ」）
-export const JOB_IDS = ['network', 'infra', 'security'] as const;
-export type JobId = (typeof JOB_IDS)[number];
+// エンジニア枠の職種（案件の担当に選べ、施工の力になる）
+export const ENGINEER_JOB_IDS = ['network', 'infra', 'security'] as const;
+export type EngineerJobId = (typeof ENGINEER_JOB_IDS)[number];
+// 内勤の職種（案件の担当に選べず、社内の仕事で会社に効果を与える）。まだ追加していない
+export const BACK_OFFICE_JOB_IDS = [] as const;
+export type BackOfficeJobId = (typeof BACK_OFFICE_JOB_IDS)[number];
+export const JOB_IDS = [...ENGINEER_JOB_IDS, ...BACK_OFFICE_JOB_IDS] as const;
+export type JobId = EngineerJobId | BackOfficeJobId;
 const jobIdSchema = z.enum(JOB_IDS);
 
 // 社員のデータ。ゲームの状態に保存する

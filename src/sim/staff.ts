@@ -1,6 +1,6 @@
 // 社員の生成（STAFF.md「1. 社員のデータ」）。名前・見た目・口癖は乱数の状態から選ぶ。能力の計算は後の段階で加える
-import type { Balance, JobId, Staff } from '../data/schema';
-import { JOB_IDS, STAFF_LOOKS } from '../data/schema';
+import type { Balance, EngineerJobId, JobId, Staff } from '../data/schema';
+import { ENGINEER_JOB_IDS, STAFF_LOOKS } from '../data/schema';
 import type { Office, Project } from './project';
 import { minutesPerDay } from './clock';
 import { furnitureBonus, seatOf, type BonusEnv } from './furniture';
@@ -69,7 +69,7 @@ export const initialStaff = (balance: Balance, rng: number): { staff: Staff[]; s
 };
 
 // 社員の施工力 = level × 職種の係数 × 席の係数 × (1 + 家具の施工力)。requires は案件の求める職種（なければ undefined）
-export const staffPower = (staff: Staff, requires: readonly JobId[] | undefined, office: Office, env: BonusEnv): number => {
+export const staffPower = (staff: Staff, requires: readonly EngineerJobId[] | undefined, office: Office, env: BonusEnv): number => {
   const jobFactor = requires?.includes(staff.job) ? env.balance.staff.power.jobMatch : 1;
   const bonus = furnitureBonus(office, staff.uid, env);
   const seated = seatOf(office, env.staffUids, staff.uid, env.defs) !== null;
@@ -97,8 +97,8 @@ export const totalSalary = (staff: readonly Staff[], nightPayRate: number): numb
 // 候補の uid は "c" + 月 + "_" + 順番。採用するときに社員の uid へ付け替える。
 // taken は在籍中の社員の名前。候補どうしも名前が重ならない
 // 会社のレベルで解放された職種（採用の候補に出る職種）
-export const unlockedJobsOf = (companyLevel: number, balance: Balance): JobId[] =>
-  JOB_IDS.filter((j) => balance.hiring.jobUnlockLevels[j] <= companyLevel);
+export const unlockedJobsOf = (companyLevel: number, balance: Balance): EngineerJobId[] =>
+  ENGINEER_JOB_IDS.filter((j) => balance.hiring.jobUnlockLevels[j] <= companyLevel);
 
 // 社員の人数の上限（会社のレベル以上での上限のうち、最も新しいもの）。どの上限にも届かないレベルは 0
 export const staffCapOf = (companyLevel: number, balance: Balance): number => {
@@ -159,7 +159,7 @@ export const staffStatus = (staff: Staff, active: readonly Project[], minute: nu
 
 // ヒントの段階（1〜3）。担当のうち案件の職種と一致する者の最高 level（いなければ担当全体の最高 level）で決まる。
 // hintLevels は段階2・3の境目の level（先頭の段階1は level が何であっても最低の段階）
-export const hintTier = (crew: readonly Staff[], jobs: readonly JobId[] | undefined, hintLevels: readonly number[]): 1 | 2 | 3 => {
+export const hintTier = (crew: readonly Staff[], jobs: readonly EngineerJobId[] | undefined, hintLevels: readonly number[]): 1 | 2 | 3 => {
   const matched = jobs ? crew.filter((s) => jobs.includes(s.job)) : [];
   const pool = matched.length > 0 ? matched : crew;
   const level = pool.reduce((max, s) => Math.max(max, s.level), 0);
