@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
 import type { Balance } from '../data/schema';
-import { expAtLevel, isUnlocked, levelOf, levelUpsBetween, moneyOf, nextLevel, needOf, titleKeyOf } from './level';
+import { expAtLevel, isUnlocked, levelOf, levelProgressOf, levelUpsBetween, moneyOf, nextLevel, needOf, titleKeyOf } from './level';
 
 const balance = balanceJson as unknown as Balance;
 
@@ -62,5 +62,31 @@ describe('レベルが上がったときの報酬と解放', () => {
 
   it('上がらなければ何もない', () => {
     expect(levelUpsBetween(3, 3, balance, [], [])).toEqual([]);
+  });
+});
+
+describe('レベル内の進み具合（N66 の経験値のゲージ）', () => {
+  it('レベルの境目では 0 になる', () => {
+    for (let n = 1; n <= 50; n++) expect(levelProgressOf(expAtLevel(n, balance), balance)).toBe(0);
+  });
+
+  it('次のレベルの直前は 1 に近く、1 を超えない', () => {
+    for (let n = 1; n <= 50; n++) {
+      const top = expAtLevel(n + 1, balance) - 1;
+      const v = levelProgressOf(top, balance);
+      expect(v).toBeGreaterThanOrEqual(0);
+      expect(v).toBeLessThan(1);
+    }
+  });
+
+  it('途中は、今のレベルの必要経験値に対する割合になる', () => {
+    const start = expAtLevel(3, balance);
+    const half = start + Math.floor(needOf(3, balance) / 2);
+    expect(levelProgressOf(half, balance)).toBeCloseTo(Math.floor(needOf(3, balance) / 2) / needOf(3, balance), 9);
+  });
+
+  it('最大レベルでは満ちたままになる', () => {
+    expect(levelProgressOf(expAtLevel(balance.level.max, balance), balance)).toBe(1);
+    expect(levelProgressOf(expAtLevel(balance.level.max, balance) + 500, balance)).toBe(1);
   });
 });

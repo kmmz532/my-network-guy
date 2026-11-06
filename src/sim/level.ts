@@ -94,3 +94,11 @@ export const deliveryExpOf = (unlockLevel: number, level: number, starRate: numb
   const gap = Math.max(balance.exp.deliveryGapMin, 1 - balance.exp.deliveryGapStep * Math.max(0, level - unlockLevel));
   return Math.max(1, Math.round(needOf(level, balance) * balance.exp.delivery * gap * starRate));
 };
+
+// 今のレベルの中での進み具合（0〜1）。レベルの境目で 0 になり、次のレベルの直前で 1 に近づく。最大レベルは満ちたまま（N66）
+export const levelProgressOf = (exp: number, balance: Balance): number => {
+  const level = levelOf(exp, balance);
+  if (level >= balance.level.max) return 1;
+  const start = expAtLevel(level, balance);
+  return Math.min(1, Math.max(0, (exp - start) / needOf(level, balance)));
+};

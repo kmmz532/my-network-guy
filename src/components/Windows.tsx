@@ -10,6 +10,7 @@ import { Window } from './Window';
 import { OfferBody } from './OfferCards';
 import { ShopBody } from './ShopCards';
 import { InventoryBody } from './Inventory';
+import { CompanyBody } from './CompanyPanel';
 import { primaryButton } from './Modal';
 import { Tabs, TAB_COLORS } from './Tabs';
 import { TrimmedIcon } from './Icon';
@@ -52,6 +53,14 @@ const tabLabel = (kind: WindowKind, ref: string): ReactNode => {
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         <TrimmedIcon name="icon/inventory" height={16} />
         <b style={{ whiteSpace: 'nowrap' }}>{t('ui.inventory.title')}</b>
+      </span>
+    );
+  }
+  if (kind === 'company') {
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        <TrimmedIcon name="icon/level" height={16} />
+        <b style={{ whiteSpace: 'nowrap' }}>{t('ui.company.title')}</b>
       </span>
     );
   }
@@ -155,6 +164,7 @@ export function Windows({ onTraining }: { onTraining: () => void }) {
           {w.kind === 'offers' && <OfferBody onClose={() => state.closeWindow(w.id)} />}
           {w.kind === 'shop' && <ShopBody />}
           {w.kind === 'inventory' && <InventoryBody />}
+          {w.kind === 'company' && <CompanyBody />}
           {/* スマホでは、本文の下に閉じるボタンを置く（パソコンは窓の×で閉じる） */}
           {narrow && (
             <button style={{ ...primaryButton, display: 'block', marginTop: 8, marginLeft: 'auto' }} onClick={() => state.closeWindow(w.id)}>

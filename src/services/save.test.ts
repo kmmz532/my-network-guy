@@ -26,6 +26,7 @@ const sample: SaveData = {
   expToday: 0,
   owned: { pc_basic: 1 },
   completed: ['c001_direct_link'],
+  deliveries: 0,
   offers: [],
   nextOfferMinute: 0,
   offerSeq: 0,

@@ -45,6 +45,7 @@ const core = (over: Partial<Core> = {}): Core => ({
   reputation: 0,
   owned: {},
   completed: [],
+  deliveries: 0,
   offers: [],
   active: [],
   focus: null,

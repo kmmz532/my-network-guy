@@ -70,6 +70,7 @@ const start = (owned: Record<string, number> = {}): Core => ({
   reputation: 0,
   owned,
   completed: [],
+  deliveries: 0,
   offers: [offerOf(c001, 'c001_direct_link')],
   active: [],
   focus: null,

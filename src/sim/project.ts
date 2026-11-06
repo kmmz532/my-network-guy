@@ -219,6 +219,8 @@ export interface Core {
   reputation: number;
   owned: Record<string, number>;
   completed: string[];
+  // 納品した案件の数（合格した納品の数。自社の情報の画面に出す。N66）
+  deliveries: number;
   offers: Offer[];
   // 受注中の案件（複数）
   active: Project[];
@@ -1219,6 +1221,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
         companyExp,
         reputation,
         completed: p.kind === 'fixed' ? [...core.completed, p.baseId] : core.completed,
+        deliveries: core.deliveries + 1,
       },
       report: {
         passed: true,

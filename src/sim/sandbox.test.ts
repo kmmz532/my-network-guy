@@ -45,6 +45,7 @@ const core = (office: Office = sandboxOffice(), owned: Record<string, number> = 
   reputation: 0,
   owned,
   completed: [],
+  deliveries: 0,
   offers: [],
   active: [],
   focus: null,

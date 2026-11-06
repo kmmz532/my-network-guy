@@ -77,6 +77,7 @@ const start = (): Core => ({
   reputation: 0,
   owned: {},
   completed: [],
+  deliveries: 0,
   offers: [offerOf(c001, 'c001_direct_link'), offerOf(i002, 'i002_office_server'), offerOf(c004, 'c004_web_server')],
   active: [],
   focus: null,

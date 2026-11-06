@@ -13,7 +13,7 @@ import routerJson from '../assets/data/devices/router.json';
 import switchJson from '../assets/data/devices/l2_switch.json';
 import { CATEGORY } from '../data/categories';
 
-export const SAVE_VERSION = 26;
+export const SAVE_VERSION = 27;
 
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
@@ -68,6 +68,8 @@ export interface SaveData {
   owned: Record<string, number>;
   // 完了した固定案件のID
   completed: string[];
+  // 納品した案件の数（N66）
+  deliveries: number;
   // 依頼一覧（案件の内容を含む）
   offers: unknown[];
   nextOfferMinute: number;
@@ -194,6 +196,8 @@ export const migrations: Record<number, Migration> = {
     const day = (m: object) => ({ ...m, shift: 'day' });
     return { ...d, staff: d.staff.map(day), candidates: d.candidates.map(day) };
   },
+  // v26 → v27: 納品した案件の数を追加する。移行前の納品の数は数えていないため 0 とする（N66）
+  26: (data) => ({ ...(data as object), deliveries: 0 }),
   // v21 → v22: 評判（reputation）を会社の経験値（companyExp）に名前を変える。値はそのまま（N45）
   21: (data) => {
     const d = data as { reputation: number };
@@ -266,6 +270,7 @@ export const isSaveData = (value: unknown): value is SaveData => {
     owned !== null &&
     Object.values(owned).every((n) => Number.isInteger(n) && (n as number) >= 0) &&
     Array.isArray(v.completed) &&
+    Number.isInteger(v.deliveries) &&
     v.completed.every((id) => typeof id === 'string') &&
     Array.isArray(v.offers) &&
     v.offers.every(isOfferShape) &&

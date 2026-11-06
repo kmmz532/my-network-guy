@@ -36,6 +36,8 @@ describe('セーブのバージョン移行', () => {
       mode: 'career',
       owned: {},
       completed: [],
+      // 納品した案件の数は、移行前は数えていないため 0 から始める（N66）
+      deliveries: 0,
       guidesDone: [],
       offers: [],
       nextOfferMinute: 0,

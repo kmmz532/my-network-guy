@@ -154,6 +154,8 @@ export interface GameState {
   debugGuide: { id: string; step: number } | null;
   owned: Record<string, number>;
   completed: string[];
+  // 納品した案件の数（N66）
+  deliveries: number;
   offers: Offer[];
   nextOfferMinute: number;
   offerSeq: number;
@@ -405,6 +407,7 @@ export const coreOf = (s: GameState): Core => ({
   reputation: s.reputation,
   owned: s.owned,
   completed: s.completed,
+  deliveries: s.deliveries,
   offers: s.offers,
   active: s.active,
   office: s.office,
@@ -465,7 +468,8 @@ const refresh = (s: GameState): Partial<GameState> => {
 
 // 検収の結果を画面の状態に反映する（パケット・納品後の表示・失敗の印）
 // 解放の一覧（品目の unlockLevel）。レベルが上がったとき、そのレベルで解放されたものを出すのに使う
-const unlockItems: UnlockItem[] = [
+// 解放の一覧（品目の unlockLevel）。自社の情報の画面（次に解放される物）でも使う
+export const unlockItems: UnlockItem[] = [
   ...Object.values(devices).map((d) => ({ kind: 'device' as const, id: d.id, unlockLevel: d.unlockLevel })),
   ...Object.values(cables).map((c) => ({ kind: 'cable' as const, id: c.id, unlockLevel: c.unlockLevel })),
   ...Object.values(furniture).map((f) => ({ kind: 'furniture' as const, id: f.id, unlockLevel: f.unlockLevel })),
@@ -609,6 +613,7 @@ export const useGameStore = create<GameState>((set, get) => {
       reputation: c.reputation,
       owned: c.owned,
       completed: c.completed,
+      deliveries: c.deliveries,
       offers: c.offers,
       active: c.active,
       focus: c.focus,
@@ -649,6 +654,7 @@ export const useGameStore = create<GameState>((set, get) => {
     debugGuide: null,
     owned: { ...balance.initialStock },
     completed: [],
+    deliveries: 0,
     offers: [],
     nextOfferMinute: 0,
     offerSeq: 0,
@@ -946,6 +952,7 @@ export const useGameStore = create<GameState>((set, get) => {
               companyExp: r.core.companyExp,
               reputation: r.core.reputation,
               completed: r.core.completed,
+              deliveries: r.core.deliveries,
               active: r.core.active,
               focus: r.core.focus,
               staff: r.core.staff,
@@ -1172,6 +1179,7 @@ export const useGameStore = create<GameState>((set, get) => {
         expToday: save.expToday,
         owned: save.owned,
         completed: save.completed,
+        deliveries: save.deliveries,
         offers: save.offers as Offer[],
         nextOfferMinute: save.nextOfferMinute,
         offerSeq: save.offerSeq,
@@ -1209,6 +1217,7 @@ export const useGameStore = create<GameState>((set, get) => {
           expToday: 0,
           owned: { ...balance.initialStock },
           completed: [],
+          deliveries: 0,
           offers: [],
           nextOfferMinute: 0,
           offerSeq: 0,
@@ -1254,6 +1263,7 @@ export const useGameStore = create<GameState>((set, get) => {
           expToday: 0,
           owned: {},
           completed: [],
+          deliveries: 0,
           offers: [],
           nextOfferMinute: 0,
           offerSeq: 0,
@@ -1310,6 +1320,7 @@ export const useGameStore = create<GameState>((set, get) => {
         expToday: s.expToday,
         owned: s.owned,
         completed: s.completed,
+        deliveries: s.deliveries,
         offers: s.offers,
         nextOfferMinute: s.nextOfferMinute,
         offerSeq: s.offerSeq,

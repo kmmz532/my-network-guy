@@ -42,7 +42,7 @@ const GUIDE_TEXT_MAX = 20;
 const guideKey = (contract: string, index: number): string => `guide.${contract}.${index + 1}`;
 
 // 実行時に存在が必要な翻訳キー（ID以外から導出されない固定のもの）
-const REQUIRED_UI_KEYS = ['ui.hud.money', 'ui.hud.reputation'];
+const REQUIRED_UI_KEYS = ['ui.hud.money', 'ui.company.title'];
 // 失敗理由ID（error.<id> の翻訳キーが言語ファイルに必要）
 const ERROR_IDS = [
   'link.unplugged',

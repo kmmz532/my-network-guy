@@ -34,7 +34,8 @@ import { Icon } from './components/Icon';
 import { TitleScreen } from './components/TitleScreen';
 import { mapLoaders } from 'virtual:loaders';
 import { RADIUS } from './ui/theme';
-import { levelOf, nextLevel } from './sim/level';
+import { levelOf } from './sim/level';
+import { ExpGauge, LevelMark } from './components/CompanyPanel';
 
 const SPEEDS: Speed[] = [0, 1, 2, 4];
 // 速さを変えたときに画面上部に出す表示は、この時間で消す
@@ -72,9 +73,7 @@ export function App() {
   const [sandboxPick, setSandboxPick] = useState(false);
   const clock = useGameStore((s) => s.clock);
   const companyExp = useGameStore((s) => s.companyExp);
-  const reputation = useGameStore((s) => s.reputation);
   const levelNow = levelOf(companyExp, balance);
-  const nextNow = nextLevel(companyExp, balance);
   const speed = useGameStore((s) => s.speed);
   const setSpeed = useGameStore((s) => s.setSpeed);
   // 勤務時間外に自動で早送りしている間の、元の速さ（「夜は早送り」と出す）
@@ -109,7 +108,6 @@ export function App() {
   const sandbox = useGameStore((s) => s.mode) === 'sandbox';
   const office = useGameStore((s) => s.office);
   // 社員の人数。雇えなかった理由をHUDに出す
-  const staff = useGameStore((s) => s.staff.length);
   const [hiring, setHiring] = useState(false);
   const [hiringTab, setHiringTab] = useState<HiringTab>('hiring');
   const openWindow = useGameStore((s) => s.openWindow);
@@ -322,30 +320,15 @@ export function App() {
           <Icon name="icon/money" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} /> {sandbox ? '∞' : clock.money.toLocaleString('ja-JP')}
         </span>
         {!sandbox && (
-        <span>
-          {/* 評判（★の数の積み上げ。N55）。星のアイコンと数 */}
-          <Icon name="icon/star" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} />{' '}
-          {t('ui.hud.reputation', { value: reputation })}
-        </span>
-        )}
-        {!sandbox && (
-        <span>
-          {/* 会社のレベルと、次のレベルまでの経験値（N45）。星のアイコンは付けない */}
-          {t('ui.hud.level', { level: levelNow })}
-          {nextNow ? ` ${t('ui.hud.nextLevel', { need: nextNow.need })}` : ` ${t('ui.hud.maxLevel')}`}
-        </span>
+        <button aria-label={t('ui.company.title')} onClick={() => openWindow('company', '')} style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* 会社のレベルの印と、今のレベルの中の経験値のゲージ（N66）。押すと自社の情報の画面を開く */}
+          <LevelMark level={levelNow} />
+          <ExpGauge companyExp={companyExp} width={phone ? 56 : 96} />
+        </button>
         )}
         {!sandbox && (
         <span>
           <Icon name="icon/calendar" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} /> {t('ui.hud.date', { year: date.year, month: date.month, day: date.day, hour: date.hour })}
-        </span>
-        )}
-        {!sandbox && (
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {/* 押すと、社員の一覧を開く */}
-          <button onClick={() => openWindow('staffList', '')} style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer' }}>
-            {t('ui.staff.label', { staff })}
-          </button>
         </span>
         )}
         {!sandbox && (
