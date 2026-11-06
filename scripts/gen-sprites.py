@@ -416,6 +416,21 @@ def icon_star():
     return outline(img)
 
 
+def icon_level():
+    # エメラルド色のひし形の宝石（会社のレベルの印）。光は左上から。
+    img, d = new(16, 16)
+    em = (46, 184, 122)
+    EM = (24, 120, 86)
+    eh = (132, 230, 180)
+    d.polygon([(8, 1), (14, 8), (8, 15), (2, 8)], fill=em + (255,))
+    d.polygon([(8, 8), (14, 8), (8, 15)], fill=EM + (255,))
+    d.polygon([(2, 8), (8, 8), (8, 15)], fill=(34, 150, 102, 255))
+    d.line([(5, 5), (7, 3)], fill=eh + (255,))
+    d.line([(5, 6), (8, 3)], fill=eh + (255,))
+    px(d, 7, 2, 'e')
+    return outline(img)
+
+
 def icon_calendar():
     img, d = new(16, 16)
     rect(d, 1, 3, 14, 12, 'e')
@@ -982,6 +997,7 @@ if __name__ == '__main__':
         'mail': icon_mail(),
         'money': icon_money(),
         'star': icon_star(),
+        'level': icon_level(),
         'calendar': icon_calendar(),
         'hammer': icon_hammer(),
         'budget': icon_budget(),
