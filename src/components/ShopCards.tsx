@@ -76,14 +76,16 @@ export function ShopBody() {
                     <div style={{ fontSize: 13 }}>
                       <Icon name="icon/money" scale={1} /> {yen(cost(d.price))}　×{owned[id] ?? 0}
                     </div>
+                    {/* 売却の値段は、ボタンではなく値段の下に小さく出す（ボタンの幅をそろえる） */}
+                    {!sandbox && <div style={{ fontSize: 12, opacity: 0.85 }}>{t('ui.shop.sellPrice', { price: yen(Math.floor(d.price * balance.sellRate)) })}</div>}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 64 }}>
                     <button style={{ ...secondaryButton, opacity: money < cost(d.price) ? 0.4 : 1 }} disabled={money < cost(d.price)} onClick={() => buy(id)}>
                       {t('ui.shop.buy')}
                     </button>
                     {!sandbox && (
                       <button style={{ ...secondaryButton, opacity: (owned[id] ?? 0) > 0 ? 1 : 0.4 }} disabled={(owned[id] ?? 0) <= 0} onClick={() => sell(id)}>
-                        {t('ui.shop.sell', { price: yen(Math.floor(d.price * balance.sellRate)) })}
+                        {t('ui.shop.sell')}
                       </button>
                     )}
                   </div>
@@ -106,14 +108,15 @@ export function ShopBody() {
                     <div style={{ fontSize: 13 }}>
                       <Icon name="icon/money" scale={1} /> {yen(cost(f.price))}　×{owned[id] ?? 0}
                     </div>
+                    {!sandbox && <div style={{ fontSize: 12, opacity: 0.85 }}>{t('ui.shop.sellPrice', { price: yen(Math.floor(f.price * balance.sellRate)) })}</div>}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 64 }}>
                     <button style={{ ...secondaryButton, opacity: money < cost(f.price) ? 0.4 : 1 }} disabled={money < cost(f.price)} onClick={() => buy(id)}>
                       {t('ui.shop.buy')}
                     </button>
                     {!sandbox && (
                       <button style={{ ...secondaryButton, opacity: (owned[id] ?? 0) > 0 ? 1 : 0.4 }} disabled={(owned[id] ?? 0) <= 0} onClick={() => sell(id)}>
-                        {t('ui.shop.sell', { price: yen(Math.floor(f.price * balance.sellRate)) })}
+                        {t('ui.shop.sell')}
                       </button>
                     )}
                   </div>
