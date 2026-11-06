@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { t, tDyn } from '../i18n/t';
-import { balance } from 'virtual:game-data';
+import { balance, contractTemplates } from 'virtual:game-data';
+import { pcCountRangeOf } from '../contracts/template';
 import { useGameStore } from '../stores/useGameStore';
 import type { Report } from '../sim/project';
 import { Icon } from './Icon';
@@ -17,7 +18,14 @@ const REPORT_DELAY_MS = 1500;
 
 // 解放された品目の名前（機材・ケーブル・家具・依頼）
 const unlockNameOf = (x: { kind: 'device' | 'cable' | 'furniture' | 'template' | 'contract'; id: string }): string => {
-  if (x.kind === 'template' || x.kind === 'contract') return tDyn(`contract.${x.id}.title`);
+  // 依頼のひな形は台数（{pcCount}）を範囲で入れる。依頼ごとの台数は決まっていないため
+  if (x.kind === 'template') {
+    const template = contractTemplates.find((c) => c.id === x.id);
+    if (!template) throw new Error(`解放された依頼のひな形がない: ${x.id}`);
+    const { min, max } = pcCountRangeOf(template);
+    return tDyn(`contract.${x.id}.title`, { pcCount: min === max ? String(min) : `${min}〜${max}` });
+  }
+  if (x.kind === 'contract') return tDyn(`contract.${x.id}.title`);
   return tDyn(`${x.kind === 'device' ? 'device' : x.kind === 'cable' ? 'cable' : 'furniture'}.${x.id}.name`);
 };
 
@@ -73,15 +81,20 @@ function EvaluationRows({ report }: { report: Report }) {
       ok: (report.designIssues ?? 0) === 0,
     },
   ];
+  // 1つの格子に並べ、行の幅をそろえる。基準と実績の見出しは1回だけ出す（N65）。文字が長いときは列の中で折り返す（B14）
   return (
-    <div style={{ marginTop: 10, fontSize: 13, textAlign: 'left' }}>
+    <div style={{ marginTop: 10, fontSize: 13, textAlign: 'left', display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) minmax(0, 1.4fr) auto', alignItems: 'center', columnGap: 8, rowGap: 2 }}>
+      <span />
+      <span style={{ opacity: 0.7 }}>{t('report.target')}</span>
+      <span style={{ opacity: 0.7 }}>{t('report.actual')}</span>
+      <span />
       {rows.map((row) => (
-        <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0' }}>
-          <span style={{ width: 72 }}>{row.label}</span>
-          <span style={{ width: 96, opacity: 0.85 }}>{t('report.target')} {row.target}</span>
-          <span style={{ width: 96 }}>{t('report.actual')} {row.actual}</span>
+        <Fragment key={row.label}>
+          <span>{row.label}</span>
+          <span style={{ opacity: 0.85 }}>{row.target}</span>
+          <span>{row.actual}</span>
           <Icon name={row.ok ? 'icon/ok' : 'icon/close'} scale={1} />
-        </div>
+        </Fragment>
       ))}
     </div>
   );
@@ -101,61 +114,64 @@ export function ReportModal() {
   if (!report?.passed || !shown) return null;
 
   const stars = report.stars ?? 1;
+  // 箱は画面の高さに収め、本文だけを縦にスクロールする。「閉じる」のボタンは箱の下に固定し、常に見えるようにする（B14）
   return (
-    <Modal onClose={dismiss} primary={dismiss} boxStyle={{ textAlign: 'center', minWidth: 220 }}>
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 6 }}>
-        {[1, 2, 3].map((i) => (
-          <span key={i} style={{ opacity: i <= stars ? 1 : 0.25 }}>
-            <Icon name="icon/star" scale={3} />
-          </span>
+    <Modal onClose={dismiss} primary={dismiss} boxStyle={{ textAlign: 'center', minWidth: 220, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100% - 24px)', overflowWrap: 'anywhere' }}>
+      <div style={{ minHeight: 0, overflowY: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 6 }}>
+          {[1, 2, 3].map((i) => (
+            <span key={i} style={{ opacity: i <= stars ? 1 : 0.25 }}>
+              <Icon name="icon/star" scale={3} />
+            </span>
+          ))}
+        </div>
+        <div style={{ fontSize: 20, marginTop: 8 }}>
+          <Icon name="icon/money" /> +{(report.money ?? 0).toLocaleString('ja-JP')}
+        </div>
+        {/* 評判（★の数の積み上げ）と経験値は別の行。経験値の行には星のアイコンを付けない（N55） */}
+        <div style={{ fontSize: 16, marginTop: 4 }}>
+          <Icon name="icon/star" /> {t('report.reputationGain', { stars: report.stars ?? 0 })}
+        </div>
+        <div style={{ fontSize: 16, marginTop: 4 }}>{t('report.expGain', { exp: report.expGain ?? 0 })}</div>
+        {(report.levelUps ?? []).map((u) => (
+          <div key={u.level} style={{ marginTop: 8, padding: 8, background: '#25406f', fontSize: 14 }}>
+            <div style={{ fontWeight: 'bold', color: '#ffd866' }}>{t('report.levelUp.title', { level: u.level })}</div>
+            <div>{t('report.levelUp.money', { money: u.money.toLocaleString('ja-JP') })}</div>
+            {u.devices.length > 0 && (
+              <div>
+                {t('report.rewardDevices')}
+                <ItemCards items={u.devices.map((d) => ({ kind: 'device' as const, id: d.device, count: d.count }))} />
+              </div>
+            )}
+            {/* 絵のある機器・家具は札、ほかの解放（ケーブル・依頼）と部屋の拡張は文字（N56・N59） */}
+            {u.unlocks.some((x) => x.kind === 'device' || x.kind === 'furniture') && (
+              <div>
+                {t('report.levelUp.unlockCards')}
+                <ItemCards items={u.unlocks.filter((x) => x.kind === 'device' || x.kind === 'furniture').map((x) => ({ kind: x.kind as 'device' | 'furniture', id: x.id }))} />
+              </div>
+            )}
+            {(u.unlocks.some((x) => x.kind !== 'device' && x.kind !== 'furniture') || balance.office.expand.unlockLevels.includes(u.level)) && (
+              <div>
+                {t('report.levelUp.unlock', {
+                  items: [
+                    ...u.unlocks.filter((x) => x.kind !== 'device' && x.kind !== 'furniture').map((x) => unlockNameOf(x)),
+                    ...(balance.office.expand.unlockLevels.includes(u.level) ? [t('report.levelUp.expansion')] : []),
+                  ].join('・'),
+                })}
+              </div>
+            )}
+          </div>
         ))}
+        {/* 受け取った機器は、絵と名前と台数の札で並べる（N56）。札は横に並び、収まらなければ折り返す */}
+        {(report.rewardDevices ?? []).length > 0 && (
+          <div style={{ fontSize: 14, marginTop: 6 }}>
+            <div>{t('report.rewardDevices')}</div>
+            <ItemCards items={(report.rewardDevices ?? []).map((r) => ({ kind: 'device' as const, id: r.device, count: r.count }))} />
+          </div>
+        )}
+        <EvaluationRows report={report} />
       </div>
-      <div style={{ fontSize: 20, marginTop: 8 }}>
-        <Icon name="icon/money" /> +{(report.money ?? 0).toLocaleString('ja-JP')}
-      </div>
-      {/* 評判（★の数の積み上げ）と経験値は別の行。経験値の行には星のアイコンを付けない（N55） */}
-      <div style={{ fontSize: 16, marginTop: 4 }}>
-        <Icon name="icon/star" /> {t('report.reputationGain', { stars: report.stars ?? 0 })}
-      </div>
-      <div style={{ fontSize: 16, marginTop: 4 }}>{t('report.expGain', { exp: report.expGain ?? 0 })}</div>
-      {(report.levelUps ?? []).map((u) => (
-        <div key={u.level} style={{ marginTop: 8, padding: 8, background: '#25406f', fontSize: 14 }}>
-          <div style={{ fontWeight: 'bold', color: '#ffd866' }}>{t('report.levelUp.title', { level: u.level })}</div>
-          <div>{t('report.levelUp.money', { money: u.money.toLocaleString('ja-JP') })}</div>
-          {u.devices.length > 0 && (
-            <div>
-              {t('report.rewardDevices')}
-              <ItemCards items={u.devices.map((d) => ({ kind: 'device' as const, id: d.device, count: d.count }))} />
-            </div>
-          )}
-          {/* 絵のある機器・家具は札、ほかの解放（ケーブル・依頼）と部屋の拡張は文字（N56・N59） */}
-          {u.unlocks.some((x) => x.kind === 'device' || x.kind === 'furniture') && (
-            <div>
-              {t('report.levelUp.unlockCards')}
-              <ItemCards items={u.unlocks.filter((x) => x.kind === 'device' || x.kind === 'furniture').map((x) => ({ kind: x.kind as 'device' | 'furniture', id: x.id }))} />
-            </div>
-          )}
-          {(u.unlocks.some((x) => x.kind !== 'device' && x.kind !== 'furniture') || balance.office.expand.unlockLevels.includes(u.level)) && (
-            <div>
-              {t('report.levelUp.unlock', {
-                items: [
-                  ...u.unlocks.filter((x) => x.kind !== 'device' && x.kind !== 'furniture').map((x) => unlockNameOf(x)),
-                  ...(balance.office.expand.unlockLevels.includes(u.level) ? [t('report.levelUp.expansion')] : []),
-                ].join('・'),
-              })}
-            </div>
-          )}
-        </div>
-      ))}
-      {/* 受け取った機器は、絵と名前と台数の札で並べる（N56）。札は横に並び、収まらなければ折り返す */}
-      {(report.rewardDevices ?? []).length > 0 && (
-        <div style={{ fontSize: 14, marginTop: 6 }}>
-          <div>{t('report.rewardDevices')}</div>
-          <ItemCards items={(report.rewardDevices ?? []).map((r) => ({ kind: 'device' as const, id: r.device, count: r.count }))} />
-        </div>
-      )}
-      <EvaluationRows report={report} />
-      <button style={{ ...primaryButton, marginTop: 12 }} onClick={dismiss}>
+      <button style={{ ...primaryButton, marginTop: 12, flexShrink: 0, alignSelf: 'center' }} onClick={dismiss}>
         <Icon name="icon/ok" />
       </button>
     </Modal>
