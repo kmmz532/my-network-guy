@@ -4,6 +4,7 @@ import { balance } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { staffStatus, totalSalary, type StaffStatus } from '../sim/staff';
+import { staffSpriteName } from '../data/schema';
 import { useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
@@ -41,7 +42,7 @@ export function StaffBody({ uid, onTraining }: { uid: string; onTraining: () => 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-        <Icon name={`staff/${member.look}_0`} scale={3} />
+        <Icon name={`staff/${staffSpriteName(member.look)}_0`} scale={3} />
         <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 'bold', fontSize: 15 }}>{t(member.name as LangKey)}</div>
           <div>{t(`staff.job.${member.job}` as LangKey)}</div>

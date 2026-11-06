@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { balance, certs, furniture, training } from 'virtual:game-data';
 import type { FurnitureId } from '../generated/ids';
+import { staffSpriteName } from '../data/schema';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { seatCount } from '../sim/furniture';
@@ -62,7 +63,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
           key={c.uid}
           style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}
         >
-          <Icon name={`staff/${c.look}_0`} scale={2} />
+          <Icon name={`staff/${staffSpriteName(c.look)}_0`} scale={2} />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 'bold' }}>{t(c.name as LangKey)}</div>
             <div style={{ fontSize: 12 }}>

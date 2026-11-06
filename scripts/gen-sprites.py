@@ -40,6 +40,8 @@ C = {
     'sky': (159, 224, 255),  # 窓の空
     'sky2': (198, 238, 255),  # 窓の空（明）
     'bg': (120, 140, 165),  # 青灰色（スイッチの筐体）
+    'hb': (120, 80, 50),    # 髪（茶）
+    'hy': (214, 176, 96),   # 髪（金）
     'pot': (196, 112, 76),  # 植木鉢
     'POT': (150, 80, 60),   # 植木鉢（影）
 }
@@ -305,14 +307,22 @@ def gpu_server():
 
 
 # ---- 社員（16×24、2コマ） ----
+# 服の色（shirt）・髪の色（hair）・髪型（style）の組み合わせで見た目を作る。名前は staff/<服>_<髪の色>_<髪型>_<コマ>.png
+SHIRT_COLORS = {'blue': ('b', 'B'), 'red': ('r', 'R'), 'green': ('G', 'GG'), 'yellow': ('y', 'Y')}
+HAIR_COLORS = {'dark': 'h', 'brown': 'hb', 'blonde': 'hy'}
+HAIR_STYLES = ('short', 'long')
 
-def staff(shirt, shade, frame):
+
+def staff(shirt, shade, hair, style, frame):
     img, d = new(16, 24)
-    # 頭
+    # 髪（頭の上。長い髪は両側に垂らす）
     rect(d, 4, 2, 8, 7, 'k')
-    rect(d, 4, 1, 8, 3, 'h')
-    px(d, 4, 4, 'h')
-    px(d, 11, 4, 'h')
+    rect(d, 4, 1, 8, 3, hair)
+    px(d, 4, 4, hair)
+    px(d, 11, 4, hair)
+    if style == 'long':
+        rect(d, 3, 3, 1, 7, hair)
+        rect(d, 12, 3, 1, 7, hair)
     d.line([(11, 5), (11, 8)], fill=C['K'])
     px(d, 6, 6, 'o')
     px(d, 9, 6, 'o')
@@ -884,9 +894,11 @@ if __name__ == '__main__':
     save(access_point(), 'device/access_point.png')
     save(laptop(), 'device/laptop.png')
     save(gpu_server(), 'device/gpu_server.png')
-    for name, shirt, shade in (('blue', 'b', 'B'), ('red', 'r', 'R')):
-        for frame in (0, 1):
-            save(staff(shirt, shade, frame), f'staff/{name}_{frame}.png')
+    for shirt_name, (shirt, shade) in SHIRT_COLORS.items():
+        for hair_name, hair in HAIR_COLORS.items():
+            for style in HAIR_STYLES:
+                for frame in (0, 1):
+                    save(staff(shirt, shade, hair, style, frame), f'staff/{shirt_name}_{hair_name}_{style}_{frame}.png')
     icons = {
         'mail': icon_mail(),
         'money': icon_money(),

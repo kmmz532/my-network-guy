@@ -3,7 +3,7 @@
 import { nodeLabel } from '../components/nodeLabel';
 import { isPhoneNow } from '../ui/usePhone';
 import { Application, Container, Graphics, Rectangle, Sprite, Text, type FederatedPointerEvent, type Ticker } from 'pixi.js';
-import type { GameMap } from '../data/schema';
+import { staffSpriteName, type GameMap } from '../data/schema';
 import { coreOf, editNetOf, focusedProject, frontDeviceUid, netTargetOf, useGameStore, type Trace, type WireStart } from '../stores/useGameStore';
 import { cableEndAt, linkAt, plugPoints } from './linkHit';
 import { portLabel } from '../components/devicePorts';
@@ -1075,7 +1075,7 @@ export class Scene {
   // 社員のスプライト（16×24 px）。2コマで足踏みする
   private drawStaff(x: number, y: number, shirt: string): void {
     const frame = Math.floor(this.elapsed / (FRAME_MS * 2)) % 2;
-    const tex = texture(`staff/${shirt}_${frame}`);
+    const tex = texture(`staff/${staffSpriteName(shirt)}_${frame}`);
     if (!tex) return;
     const sprite = new Sprite(tex);
     const left = Math.round(x);

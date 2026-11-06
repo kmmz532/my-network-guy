@@ -26,8 +26,18 @@ export interface Staff {
   training: { course: string; untilMinute: number } | null; // 受講中の研修
 }
 
-// 見た目の候補（src/assets/sprites/staff/ のスプライト名）
-export const STAFF_LOOKS = ['blue', 'red'] as const;
+// 見た目の候補。服の色・髪の色・髪型の組み合わせ（4 × 3 × 2 = 24 通り）。
+// 見た目の名前は「服_髪の色_髪型」で、スプライトは staff/<見た目>_<コマ>（scripts/gen-sprites.py と対応）
+export const STAFF_SHIRTS = ['blue', 'red', 'green', 'yellow'] as const;
+export const STAFF_HAIRS = ['dark', 'brown', 'blonde'] as const;
+export const STAFF_HAIR_STYLES = ['short', 'long'] as const;
+export const STAFF_LOOKS: readonly string[] = STAFF_SHIRTS.flatMap((shirt) =>
+  STAFF_HAIRS.flatMap((hair) => STAFF_HAIR_STYLES.map((style) => `${shirt}_${hair}_${style}`)),
+);
+// 増やす前の見た目（blue・red）。保存済みのデータはこの名前のまま残るため、黒髪の短髪として描く
+const LEGACY_STAFF_LOOKS: Readonly<Record<string, string>> = { blue: 'blue_dark_short', red: 'red_dark_short' };
+// 見た目の名前からスプライトの名前（staff/ の前の部分）を決める
+export const staffSpriteName = (look: string): string => LEGACY_STAFF_LOOKS[look] ?? look;
 
 export const balanceSchema = z.object({
   time: z.object({
