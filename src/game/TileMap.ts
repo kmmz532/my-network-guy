@@ -7,9 +7,6 @@ import { texture } from './sprites';
 const wallDecor = new Set(['window', 'clock', 'poster', 'whiteboard']);
 const isWall = (kind: string | undefined): boolean => kind === 'wall' || (kind !== undefined && wallDecor.has(kind));
 
-// スプライトがないときの塗り色（ART.md のパレット）
-const fallbackColor: Record<string, number> = { floor: 0xe0b77c, wall: 0xcfc3aa };
-
 // 左右・手前の壁は上面（厚み）だけが見える（ART.md「視点」）
 export const CAP = 5;
 const CAP_COLOR = 0xcfc3aa;
@@ -73,7 +70,7 @@ export const drawTileMap = (map: GameMap): Container => {
         // 真下が床なら奥の壁の正面として描く
         const face = faceAt(x, y);
         if (face) {
-          if (!put(kind === 'wall' ? 'tile/wall_face' : `tile/${kind}`, x, y)) g.rect(x * ts, y * ts, ts, ts).fill(fallbackColor.wall);
+          put(kind === 'wall' ? 'tile/wall_face' : `tile/${kind}`, x, y);
           continue;
         }
         // 仕切りの壁は、両側が床なので中を塗る（上面の帯だけだと、中が背景に抜けて見える）
@@ -109,10 +106,10 @@ export const drawTileMap = (map: GameMap): Container => {
       }
       // ドアは通れる床。ドアのスプライトを床の上に描く（家具の対象にはしない）
       if (kind === 'door') {
-        if (!put('tile/door', x, y)) g.rect(x * ts, y * ts, ts, ts).fill(fallbackColor.floor);
+        put('tile/door', x, y);
         continue;
       }
-      if (!put(`tile/floor_${floorVariant(x, y)}`, x, y)) g.rect(x * ts, y * ts, ts, ts).fill(fallbackColor.floor);
+      put(`tile/floor_${floorVariant(x, y)}`, x, y);
       if (kind && kind !== 'floor') furniture.push([kind, x, y]);
     }
   }
