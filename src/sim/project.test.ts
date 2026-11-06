@@ -854,6 +854,15 @@ describe('施工の進み（advanceBuild）', () => {
   });
   const progressOf = (core: Core, id: string) => core.active.find((p) => p.id === id)?.progress ?? 0;
 
+  it('夜勤の担当は夜に施工を進め、昼は進めない（N48）', () => {
+    const base = withTotal(building(), 1e9);
+    const night = { ...base, staff: base.staff.map((s) => ({ ...s, shift: 'night' as const })) };
+    const atNoon = ok(advanceBuild(night, env, 12)).core;
+    const atNight = ok(advanceBuild(night, env, 23)).core;
+    expect(progressOf(atNoon, cur(base)!.id)).toBe(0);
+    expect(progressOf(atNight, cur(base)!.id)).toBeGreaterThan(0);
+  });
+
   it('案件の向いている職種（jobs）の社員は、施工力が職種の一致の倍率（1.5倍）になる。前提の案件（requires）は関係ない', () => {
     const base = withTotal(building(), 1e9);
     const id = cur(base)!.id;

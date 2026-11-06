@@ -30,7 +30,8 @@ import type {
   SegmentConfig,
   Service,
 } from '../network/types';
-import { isWorkingHour, type ClockState } from './clock';
+import type { ClockState } from './clock';
+import { isOnShift } from './shift';
 import { rate, rewardRateOf } from './rating';
 import { dueDayOf, lateDaysOf, lateFactor } from './deadline';
 import { furnitureBonus, type BonusEnv } from './furniture';
@@ -1099,24 +1100,24 @@ export const requestBuild = (core: Core, env: Env): Outcome => {
 // 施工を1Tick分進める。勤務時間内のみ、担当の社員が並行して作業する。施工中の案件をすべて進め、終わった案件は検収する。
 // 検収の結果が出たら止める（残りの案件は次のTickで進める）
 export const advanceBuild = (core: Core, env: Env, hour: number): Outcome => {
-  const working = isWorkingHour(hour, env.balance);
+  // 施工は、その時刻に勤務中の担当の社員だけが進める（日勤と夜勤は区分ごと。N48）
+  const minute = hour * 60;
+  const onShiftNow = (s: Staff) => isOnShift(minute, s.shift, env.balance);
   const bonusEnv: BonusEnv = { defs: env.furniture ?? {}, balance: env.balance, staffUids: core.staff.map((s) => s.uid) };
   const crewOf = (p: Project) => core.staff.filter((s) => p.crew.includes(s.uid));
-  // 施工中の案件の担当は、勤務時間内に1ゲーム時間ぶんの経験値を得る（着席の社員は家具の補正を受ける）
+  // 施工中の案件の担当は、勤務中に1ゲーム時間ぶんの経験値を得る（着席の社員は家具の補正を受ける）
   let state: Core = core;
-  if (working) {
-    const building = new Set(core.active.filter((p) => p.phase === 'build').flatMap((p) => p.crew));
-    if (building.size > 0) {
-      const hours = env.balance.time.gameMinutesPerTick / 60;
-      state = {
-        ...core,
-        staff: core.staff.map((s) =>
-          building.has(s.uid)
-            ? gainExp(s, hours * (1 + furnitureBonus(core.office, s.uid, bonusEnv).exp), env.balance.staff.expPerLevel)
-            : s,
-        ),
-      };
-    }
+  const building = new Set(core.active.filter((p) => p.phase === 'build').flatMap((p) => p.crew));
+  if (building.size > 0) {
+    const hours = env.balance.time.gameMinutesPerTick / 60;
+    state = {
+      ...core,
+      staff: core.staff.map((s) =>
+        building.has(s.uid) && onShiftNow(s)
+          ? gainExp(s, hours * (1 + furnitureBonus(core.office, s.uid, bonusEnv).exp), env.balance.staff.expPerLevel)
+          : s,
+      ),
+    };
   }
   // 全案件の進みを反映してから検収する（1つの案件を検収しても、同じTickのほかの案件の進みを捨てない）
   let finished: string | null = null;
@@ -1124,9 +1125,9 @@ export const advanceBuild = (core: Core, env: Env, hour: number): Outcome => {
     if (p.phase !== 'build') continue;
     // 施工の進みは、担当の社員の施工力の合計に比例する。案件の向いている職種の社員は1.5倍
     const jobs = p.contract.jobs ?? [];
-    const power = crewOf(p).reduce((sum, s) => sum + staffPower(s, jobs, core.office, bonusEnv), 0);
+    const power = crewOf(p).filter(onShiftNow).reduce((sum, s) => sum + staffPower(s, jobs, core.office, bonusEnv), 0);
     let progress = p.progress;
-    if (working) progress += env.balance.time.gameMinutesPerTick * power * (1 + core.effects.buildSpeed);
+    progress += env.balance.time.gameMinutesPerTick * power * (1 + core.effects.buildSpeed);
     if (progress < p.total) {
       state = withProject(state, { ...p, progress });
       continue;

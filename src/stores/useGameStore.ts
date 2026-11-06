@@ -4,7 +4,8 @@ import { playConnect, playDeliver, playFail } from '../audio/sfx';
 import { create } from 'zustand';
 import { balance, cables, contracts, contractTemplates, devices, furniture, levelMilestones } from 'virtual:game-data';
 import type { FurnitureId } from '../generated/ids';
-import { advanceTick, initialClock, isWorkingHour, minutesPerMonth, toDate, type ClockState } from '../sim/clock';
+import { advanceTick, initialClock, minutesPerDay, minutesPerMonth, toDate, type ClockState } from '../sim/clock';
+import { isOnShift } from '../sim/shift';
 import { nightSpeedStep } from '../sim/nightSpeed';
 import { buyDevice, sellDevice } from '../sim/shop';
 import { declineOffer, offerHint, refreshOffers, type OfferEnv, type OfferHint } from '../contracts/offers';
@@ -827,8 +828,11 @@ export const useGameStore = create<GameState>((set, get) => {
         }
         // 勤務時間外に施工中なら最速にし、勤務時間になるか施工が終わったら元の速さへ戻す
         const activeNow = next.active ?? s.active;
+        // 勤務中の社員が1人もいなければ早送りする（夜勤の社員がいるときは、夜も速さを変えない・N48）
+        const minuteOfDay = clock.minute % minutesPerDay;
+        const staffNow = next.staff ?? s.staff;
         const night = nightSpeedStep({
-          working: isWorkingHour(toDate(clock.minute, balance).hour, balance),
+          working: staffNow.some((m) => isOnShift(minuteOfDay, m.shift, balance)),
           building: activeNow.some((p) => p.phase === 'build'),
           speed: s.speed,
           saved: s.nightSpeed,

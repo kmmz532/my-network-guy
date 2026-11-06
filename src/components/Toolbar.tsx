@@ -3,7 +3,8 @@ import { Fragment, useEffect, useState } from 'react';
 import { balance, cables, shop } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { t, tDyn } from '../i18n/t';
-import { isWorkingHour, toDate } from '../sim/clock';
+import { minutesPerDay } from '../sim/clock';
+import { isOnShift } from '../sim/shift';
 import { isUnlocked, type ItemDefs } from '../sim/shop';
 import { levelOf } from '../sim/level';
 
@@ -125,7 +126,9 @@ export function Toolbar({
   const active = useGameStore(focusedProject);
   // 施工は勤務時間内にしか進まない。勤務時間外は棒を灰色にして、再開の時刻を出す
   const clockMinute = useGameStore((s) => s.clock.minute);
-  const workingNow = isWorkingHour(toDate(clockMinute, balance).hour, balance);
+  // 勤務中の社員がいるか（夜勤を含む）。いなければ施工は進まない（N48）
+  const staffList = useGameStore((s) => s.staff);
+  const workingNow = staffList.some((m) => isOnShift(clockMinute % minutesPerDay, m.shift, balance));
   const companyExpNow = useGameStore((s) => s.companyExp);
   const owned = useGameStore((s) => s.owned);
   const placing = useGameStore((s) => s.placing);
