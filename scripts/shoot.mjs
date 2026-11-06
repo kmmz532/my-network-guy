@@ -162,6 +162,36 @@ const scenes = {
     await page.getByRole('button', { name: 'ネットワーク', exact: true }).click();
     await page.waitForTimeout(500);
   },
+  // スイッチ付きルーターに、WAN と LAN の IP を入れた場面（マップの IP の表示が重ならないかを確かめる）
+  routerswitch: async (page) => {
+    await scenes.career(page);
+    await openDevice(page, 'router_switch');
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      const n = g.office.nodes.find((x) => x.device === 'router_switch');
+      g.setIface(n.uid, 0, '192.168.1.1', 24);
+      g.setIface(n.uid, 1, '192.168.2.1', 24);
+    });
+    await page.waitForTimeout(800);
+  },
+  // サンドボックスで、2台のPCを直結して IP を入れ、テストを押す（「すべての疎通が通った」を出す）
+  sandboxok: async (page) => {
+    await page.getByText('サンドボックス').click();
+    await page.getByRole('button', { name: '始める' }).click();
+    await page.waitForTimeout(1200);
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      g.buy('pc_basic');
+      g.buy('pc_basic');
+      for (const [x, y] of [[2, 2], [6, 2]]) g.place('pc_basic', x, y);
+      const pcs = window.__game.getState().office.nodes.filter((n) => n.device === 'pc_basic');
+      window.__game.getState().connect(pcs[0].uid, pcs[1].uid, 'utp_cat5e');
+      window.__game.getState().setIface(pcs[0].uid, 0, '192.168.1.10', 24);
+      window.__game.getState().setIface(pcs[1].uid, 0, '192.168.1.11', 24);
+      window.__game.getState().test();
+    });
+    await page.waitForTimeout(1500);
+  },
   // ルーターの機器の画面（設定タブ・経路の追加を含む）
   router: async (page) => {
     await scenes.career(page);
