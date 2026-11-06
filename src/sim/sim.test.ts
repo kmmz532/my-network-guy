@@ -19,7 +19,8 @@ const balance = {
 
 describe('clock', () => {
   it('1 Tick で60分進み、1か月ごとに給与を払う', () => {
-    let state = initialClock(balance);
+    // 月の境界（0時）から数えるため、開始の時刻を 0 にそろえる
+    let state = { ...initialClock(balance), minute: 0 };
     const ticksPerMonth = minutesPerMonth(balance) / 60;
     for (let i = 0; i < ticksPerMonth; i++) state = advanceTick(state, balance, 400);
     expect(state.minute).toBe(minutesPerMonth(balance));

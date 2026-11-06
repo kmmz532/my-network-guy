@@ -12,8 +12,9 @@ export const minutesPerDay = 24 * 60;
 
 export const minutesPerMonth = (balance: Balance) => balance.time.daysPerMonth * minutesPerDay;
 
+// 新しく始めるときは、勤務の開始時刻（workStartHour）から始める（夜の空いた事務所から始まらないように）
 export const initialClock = (balance: Balance): ClockState => ({
-  minute: 0,
+  minute: balance.build.workStartHour * 60,
   money: balance.startMoney,
   paidMonths: 0,
   bankrupt: false,
