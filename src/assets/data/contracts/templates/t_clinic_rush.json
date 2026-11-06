@@ -1,0 +1,15 @@
+{
+  "id": "t_clinic_rush",
+  "variantOf": "t_clinic",
+  "unlockLevel": 9,
+  "weight": 6,
+  "deadlineDays": 5,
+  "offerExpireDays": {
+    "min": 7,
+    "max": 30
+  },
+  "reward": {
+    "base": 78000,
+    "perPc": 13000
+  }
+}

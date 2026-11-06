@@ -1,0 +1,15 @@
+{
+  "id": "t_hospital_ward_rush",
+  "variantOf": "t_hospital_ward",
+  "unlockLevel": 31,
+  "weight": 6,
+  "deadlineDays": 11,
+  "offerExpireDays": {
+    "min": 7,
+    "max": 30
+  },
+  "reward": {
+    "base": 208000,
+    "perPc": 14000
+  }
+}

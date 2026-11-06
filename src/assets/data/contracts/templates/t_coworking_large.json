@@ -1,0 +1,12 @@
+{
+  "id": "t_coworking_large",
+  "variantOf": "t_coworking",
+  "unlockLevel": 11,
+  "weight": 8,
+  "params": {
+    "pcCount": {
+      "min": 9,
+      "max": 12
+    }
+  }
+}

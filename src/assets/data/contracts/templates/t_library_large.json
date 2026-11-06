@@ -1,0 +1,17 @@
+{
+  "id": "t_library_large",
+  "variantOf": "t_library",
+  "unlockLevel": 8,
+  "weight": 8,
+  "params": {
+    "pcCount": {
+      "min": 6,
+      "max": 8
+    }
+  },
+  "budget": {
+    "base": 7000,
+    "perPc": 9500,
+    "perTile": 500
+  }
+}

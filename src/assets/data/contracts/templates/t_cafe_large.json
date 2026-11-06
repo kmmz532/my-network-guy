@@ -1,0 +1,17 @@
+{
+  "id": "t_cafe_large",
+  "variantOf": "t_cafe",
+  "unlockLevel": 5,
+  "weight": 8,
+  "params": {
+    "pcCount": {
+      "min": 5,
+      "max": 7
+    }
+  },
+  "budget": {
+    "base": 16000,
+    "perPc": 1250,
+    "perTile": 500
+  }
+}

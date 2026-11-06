@@ -1,0 +1,15 @@
+{
+  "id": "t_warehouse_rush",
+  "variantOf": "t_warehouse",
+  "unlockLevel": 17,
+  "weight": 6,
+  "deadlineDays": 8,
+  "offerExpireDays": {
+    "min": 7,
+    "max": 30
+  },
+  "reward": {
+    "base": 117000,
+    "perPc": 11000
+  }
+}

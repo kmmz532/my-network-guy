@@ -1,0 +1,15 @@
+{
+  "id": "t_hotel_floor_rush",
+  "variantOf": "t_hotel_floor",
+  "unlockLevel": 15,
+  "weight": 6,
+  "deadlineDays": 7,
+  "offerExpireDays": {
+    "min": 7,
+    "max": 30
+  },
+  "reward": {
+    "base": 104000,
+    "perPc": 14000
+  }
+}

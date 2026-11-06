@@ -1,0 +1,15 @@
+{
+  "id": "t_bank_branch_rush",
+  "variantOf": "t_bank_branch",
+  "unlockLevel": 24,
+  "weight": 6,
+  "deadlineDays": 9,
+  "offerExpireDays": {
+    "min": 7,
+    "max": 30
+  },
+  "reward": {
+    "base": 169000,
+    "perPc": 15000
+  }
+}

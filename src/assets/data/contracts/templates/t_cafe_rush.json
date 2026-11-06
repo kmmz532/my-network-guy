@@ -1,0 +1,15 @@
+{
+  "id": "t_cafe_rush",
+  "variantOf": "t_cafe",
+  "unlockLevel": 7,
+  "weight": 6,
+  "deadlineDays": 4,
+  "offerExpireDays": {
+    "min": 7,
+    "max": 30
+  },
+  "reward": {
+    "base": 65000,
+    "perPc": 12000
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "id": "t_coworking_rush",
+  "variantOf": "t_coworking",
+  "unlockLevel": 13,
+  "weight": 6,
+  "deadlineDays": 6,
+  "offerExpireDays": {
+    "min": 7,
+    "max": 30
+  },
+  "reward": {
+    "base": 91000,
+    "perPc": 12000
+  }
+}

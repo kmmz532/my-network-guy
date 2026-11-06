@@ -1,0 +1,15 @@
+{
+  "id": "t_library_rush",
+  "variantOf": "t_library",
+  "unlockLevel": 10,
+  "weight": 6,
+  "deadlineDays": 6,
+  "offerExpireDays": {
+    "min": 7,
+    "max": 30
+  },
+  "reward": {
+    "base": 78000,
+    "perPc": 11000
+  }
+}

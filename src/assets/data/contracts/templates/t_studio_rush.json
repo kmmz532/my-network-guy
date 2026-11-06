@@ -1,0 +1,15 @@
+{
+  "id": "t_studio_rush",
+  "variantOf": "t_studio",
+  "unlockLevel": 26,
+  "weight": 6,
+  "deadlineDays": 9,
+  "offerExpireDays": {
+    "min": 7,
+    "max": 30
+  },
+  "reward": {
+    "base": 169000,
+    "perPc": 14000
+  }
+}

@@ -770,21 +770,29 @@ def shelf_face():
 
 
 def rack_top():
-    # 倉庫の棚を上から見た天面。段ボールが並ぶ
+    # 倉庫の棚（青い支柱とオレンジの梁）を上から見た天面。棚板の上に段ボールが2つ
     img, d = new(32, 32)
     rect(d, 0, 0, 32, 32, 'g')
-    for x, y, w, h in ((2, 2, 13, 12), (17, 3, 13, 11), (2, 17, 12, 13), (16, 16, 14, 14)):
-        rect(d, x, y, w, h, 'cb', 'CB')
-        d.line([(x + w // 2, y), (x + w // 2, y + h - 1)], fill=C['CB'])
+    rect(d, 0, 0, 32, 3, 'f')
+    rect(d, 0, 29, 32, 3, 'f')
+    rect(d, 0, 0, 3, 3, 'b')
+    rect(d, 0, 29, 3, 3, 'b')
+    rect(d, 4, 6, 11, 20, 'cb', 'CB')
+    rect(d, 17, 8, 12, 17, 'cb', 'CB')
+    d.line([(4, 15), (14, 15)], fill=C['y'])
+    d.line([(17, 16), (28, 16)], fill=C['y'])
     return img
 
 
 def rack_face():
+    # 正面: 左端の青い支柱、上と下のオレンジの梁、間に段ボール
     img, d = new(32, 14)
     rect(d, 0, 0, 32, 14, 'd')
-    rect(d, 1, 2, 13, 10, 'cb', 'CB')
-    rect(d, 17, 4, 14, 8, 'cb', 'CB')
-    d.line([(0, 12), (31, 12)], fill=C['bg'])
+    rect(d, 0, 0, 32, 2, 'f')
+    rect(d, 0, 11, 32, 3, 'f')
+    rect(d, 4, 3, 11, 8, 'cb', 'CB')
+    rect(d, 18, 4, 11, 7, 'cb', 'CB')
+    rect(d, 0, 0, 3, 14, 'b')
     return img
 
 

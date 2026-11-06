@@ -1,0 +1,15 @@
+{
+  "id": "t_campus_rush",
+  "variantOf": "t_campus",
+  "unlockLevel": 28,
+  "weight": 6,
+  "deadlineDays": 11,
+  "offerExpireDays": {
+    "min": 7,
+    "max": 30
+  },
+  "reward": {
+    "base": 182000,
+    "perPc": 15000
+  }
+}
