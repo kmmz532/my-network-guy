@@ -1,0 +1,60 @@
+{
+  "id": "t_library_catalog",
+  "stage": 1,
+  "unlockLevel": 9,
+  "requires": [
+    "c004_web_server"
+  ],
+  "jobs": [
+    "infra"
+  ],
+  "weight": 12,
+  "map": "library",
+  "params": {
+    "pcCount": {
+      "min": 4,
+      "max": 6
+    }
+  },
+  "spawnArea": {
+    "x": 1,
+    "y": 1,
+    "width": 22,
+    "height": 8
+  },
+  "deadlineDays": 10,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "base": 479000,
+    "perPc": 750,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 110000,
+    "perPc": 12000
+  },
+  "goals": [
+    {
+      "type": "count",
+      "category": "server",
+      "min": 1
+    },
+    {
+      "type": "count",
+      "category": "printer",
+      "min": 1
+    },
+    {
+      "type": "http_all",
+      "port": 80
+    },
+    {
+      "type": "reach_category",
+      "category": "printer"
+    }
+  ],
+  "announce": true
+}

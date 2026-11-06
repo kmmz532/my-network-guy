@@ -1,0 +1,73 @@
+{
+  "id": "t_cafe_guest",
+  "stage": 1,
+  "unlockLevel": 5,
+  "requires": [
+    "c002_small_office"
+  ],
+  "jobs": [
+    "infra"
+  ],
+  "weight": 12,
+  "map": "cafe",
+  "spawnGroups": [
+    {
+      "x": 1,
+      "y": 1,
+      "width": 14,
+      "height": 2,
+      "min": 2,
+      "max": 2,
+      "role": "staff",
+      "name": "店員のPC"
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "width": 14,
+      "height": 4,
+      "min": 2,
+      "max": 4,
+      "role": "guest",
+      "name": "お客さんのPC"
+    }
+  ],
+  "deadlineDays": 8,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "base": 1000,
+    "perPc": 3750,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 70000,
+    "perPc": 13000
+  },
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": [
+        "$role:staff"
+      ]
+    },
+    {
+      "type": "ping_all",
+      "nodes": [
+        "$role:guest"
+      ]
+    },
+    {
+      "type": "isolated",
+      "from": [
+        "$role:guest"
+      ],
+      "to": [
+        "$role:staff"
+      ]
+    }
+  ],
+  "announce": true
+}

@@ -288,7 +288,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('ping'), from: z.string().min(1), to: z.string().min(1) }),
   z.object({
     type: z.literal('ping_all'),
-    nodes: z.union([z.array(z.string().min(1)).min(2), z.literal('$all_pcs')]),
+    // ひな形では、要素に $role:<役割> を書くと、その役割の PC すべてに置き換わる
+    nodes: z.union([z.array(z.string().min(1)).min(1), z.literal('$all_pcs')]),
   }),
   z.object({
     type: z.literal('http'),
@@ -306,6 +307,12 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('firewall') }),
   // from から to への Ping が、ファイアウォールの規則で止められている（通ってはいけない通信。N38）
   z.object({ type: z.literal('blocked'), from: z.string().min(1), to: z.string().min(1) }),
+  // from のどの機器から to のどの機器へも Ping が届かない（理由は問わない。ネットワークを分ける）
+  z.object({ type: z.literal('isolated'), from: z.array(z.string().min(1)).min(1), to: z.array(z.string().min(1)).min(1) }),
+  // nodes のすべての機器から、いずれかのサーバーのWebページを閲覧できる
+  z.object({ type: z.literal('http_from'), nodes: z.array(z.string().min(1)).min(1), port: z.number().int().min(1).max(65535) }),
+  // from のどの機器から to のどの機器への Ping も、ファイアウォールの規則で止められている
+  z.object({ type: z.literal('blocked_all'), from: z.array(z.string().min(1)).min(1), to: z.array(z.string().min(1)).min(1) }),
 ]);
 
 export const contractSchema = z.object({
@@ -347,7 +354,10 @@ const spawnGroupSchema = z.object({
   height: int.positive(),
   min: int.positive(),
   max: int.positive(),
-});
+  // 役割（目標の $role:<役割> で指す）と、PC の表示名（末尾に番号が付く）。どちらも書くか、どちらも書かない
+  role: z.string().regex(/^[a-z]+$/).optional(),
+  name: z.string().min(1).optional(),
+}).refine((g) => (g.role === undefined) === (g.name === undefined), { message: 'role と name は、どちらも書くか、どちらも書かない' });
 
 // 定型案件（ひな形）。変化形（variantOf）は読み込み時に元のひな形と合わせて完全な形にする（N51a）
 export const templateSchema = z

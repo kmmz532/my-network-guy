@@ -92,6 +92,35 @@ const handlers: { [K in Goal['type']]: Handler } = {
     const ok = !r.ok && r.failure?.reason === 'firewall.denied';
     return [{ goal, ok, failure: r.failure, kind: 'ping', src: goal.from, dst: goal.to, result: { ...r, ok } }];
   },
+  isolated: (goal, net, data) => {
+    if (goal.type !== 'isolated') throw new Error('isolated ハンドラに別の種類が渡された');
+    return goal.from.flatMap((src) =>
+      goal.to.map((dst) => {
+        const r = ping(net, data, src, dst);
+        return { goal, ok: !r.ok, failure: r.failure, kind: 'ping' as const, src, dst, result: { ...r, ok: !r.ok } };
+      }),
+    );
+  },
+  http_from: (goal, net, data) => {
+    if (goal.type !== 'http_from') throw new Error('http_from ハンドラに別の種類が渡された');
+    const servers = uidsOf(net, data, 'server');
+    if (!servers.length) return [none(goal, 'http')];
+    return goal.nodes.map((src) => {
+      const tries = servers.map((sv) => ({ sv, r: http(net, data, src, sv, goal.port) }));
+      const hit = tries.find((x) => x.r.ok) ?? tries[0];
+      return { goal, ok: hit.r.ok, failure: hit.r.failure, kind: 'http' as const, src, dst: hit.sv, result: hit.r };
+    });
+  },
+  blocked_all: (goal, net, data) => {
+    if (goal.type !== 'blocked_all') throw new Error('blocked_all ハンドラに別の種類が渡された');
+    return goal.from.flatMap((src) =>
+      goal.to.map((dst) => {
+        const r = ping(net, data, src, dst);
+        const ok = !r.ok && r.failure?.reason === 'firewall.denied';
+        return { goal, ok, failure: r.failure, kind: 'ping' as const, src, dst, result: { ...r, ok } };
+      }),
+    );
+  },
   firewall: (goal, net, data) => {
     if (goal.type !== 'firewall') throw new Error('firewall ハンドラに別の種類が渡された');
     const pcs = uidsOf(net, data, 'pc');

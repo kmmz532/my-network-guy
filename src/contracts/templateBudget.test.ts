@@ -62,7 +62,9 @@ const linkCost = (d: number): number => {
 export const modelCost = (template: ContractTemplate, map: GameMap, placed: { x: number; y: number; ref: string }[]): number => {
   const goalCount = (category: string) =>
     template.goals.filter((g) => g.type === 'count' && g.category === category).reduce((s, g) => s + (g.type === 'count' ? g.min : 0), 0);
-  const hasHttp = template.goals.some((g) => g.type === 'http_all');
+  const hasHttp = template.goals.some((g) => g.type === 'http_all' || g.type === 'http_from');
+  // isolated の goals があるときは、互いに通信させない役割のグループを別のネットワークにする（つながりの組ごとに中継する）
+  const isolatedRoles = new Set(template.goals.flatMap((g) => (g.type === 'isolated' ? g.from.map((r) => r.replace('$role:', '')) : [])));
   const groups = spawnGroupsOf(template);
   let cost = 0;
   // グループごとの PC の位置
@@ -93,9 +95,27 @@ export const modelCost = (template: ContractTemplate, map: GameMap, placed: { x:
     hubs.push({ x: hub.x, y: hub.y });
     for (const p of pcs) cost += linkCost(dist(p, hub));
   }
-  if (groups.length > 1) {
+  // つなぐグループの組（isolated で分けた役割は別の組）
+  const sets: Pt[][] = isolatedRoles.size
+    ? [hubs.filter((_, i) => !isolatedRoles.has(groups[i].role ?? '')), hubs.filter((_, i) => isolatedRoles.has(groups[i].role ?? ''))].filter((x) => x.length > 0)
+    : [hubs];
+  for (const set of isolatedRoles.size ? sets : []) {
+    if (set.length < 2) continue;
+    const center = starHubOf(set.map((h) => ({ ...h, ref: '' })), map);
+    if (set.length === 2 && dist(set[0], set[1]) <= utp.maxLengthTiles) cost += linkCost(dist(set[0], set[1]));
+    else {
+      cost += (cheapest('l2_switch', set.length)?.price ?? 0);
+      for (const h of set) cost += linkCost(dist(h, center));
+    }
+  }
+  if (groups.length > 1 && !isolatedRoles.size) {
     const center = starHubOf(hubs.map((h) => ({ ...h, ref: '' })), map);
-    if (goalCount('router') > 0) {
+    if (goalCount('firewall') > 0) {
+      const fw = cheapest('firewall', groups.length + 1);
+      if (!fw) throw new Error('ファイアウォールがない');
+      cost += fw.price;
+      for (const h of hubs) cost += linkCost(dist(h, center));
+    } else if (goalCount('router') > 0) {
       const router = cheapest('router', groups.length);
       if (!router) throw new Error('ルーターがない');
       cost += router.price;

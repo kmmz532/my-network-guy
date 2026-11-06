@@ -40,7 +40,7 @@ export const starHubOf = (points: readonly { x: number; y: number }[], map: Game
 };
 
 // 置く範囲の組（spawnGroups。spawnArea のときは1つのグループ）
-export interface SpawnGroup { x: number; y: number; width: number; height: number; min: number; max: number }
+export interface SpawnGroup { x: number; y: number; width: number; height: number; min: number; max: number; role?: string; name?: string }
 
 export const spawnGroupsOf = (template: ContractTemplate): SpawnGroup[] => {
   if (template.spawnGroups !== undefined) return template.spawnGroups;
@@ -65,8 +65,11 @@ export const instantiateTemplate = (
 ): InstantiateResult => {
   let rng = rngState;
   // グループごとに台数を決め、その範囲の床から重ならないように選ぶ（spawnArea のときは1グループで、今と同じ乱数の順）
-  const placed: { ref: string; device: string; x: number; y: number; locked: boolean }[] = [];
+  const placed: { ref: string; device: string; x: number; y: number; locked: boolean; name?: string }[] = [];
+  // 役割ごとの PC の ref（目標の $role:<役割> の置き換えに使う）
+  const roles = new Map<string, string[]>();
   for (const group of spawnGroupsOf(template)) {
+    let named = 0;
     const count = randInt(rng, group.min, group.max);
     rng = count.state;
     const n = count.value;
@@ -84,14 +87,37 @@ export const instantiateTemplate = (
       rng = r.state;
       const [px, py] = candidates[r.value];
       candidates[r.value] = candidates[candidates.length - 1 - i];
-      placed.push({ ref: `pc_${placed.length + 1}`, device: 'pc_basic', x: px, y: py, locked: true });
+      if (group.role !== undefined && group.name !== undefined) {
+        const list = roles.get(group.role) ?? [];
+        const ref = `${group.role}_${list.length + 1}`;
+        roles.set(group.role, [...list, ref]);
+        named++;
+        placed.push({ ref, device: 'pc_basic', x: px, y: py, locked: true, name: `${group.name}${named}` });
+      } else {
+        placed.push({ ref: `pc_${placed.length + 1}`, device: 'pc_basic', x: px, y: py, locked: true });
+      }
     }
   }
   const total = placed.length;
   const refs = placed.map((p) => p.ref);
-  const goals: Goal[] = template.goals.map((g) =>
-    g.type === 'ping_all' && g.nodes === '$all_pcs' ? { type: 'ping_all', nodes: refs } : g,
-  );
+  // $role:<役割> を、その役割の PC の ref に置き換える。ない役割は、ひな形の誤りとして止める
+  const expand = (list: readonly string[]): string[] =>
+    list.flatMap((id) => {
+      if (!id.startsWith('$role:')) return [id];
+      const found = roles.get(id.slice('$role:'.length));
+      if (found === undefined) throw new Error(`${template.id}: 役割 ${id} の PC がない`);
+      return found;
+    });
+  const goals: Goal[] = template.goals.map((g): Goal => {
+    if (g.type === 'ping_all') {
+      const nodes = g.nodes === '$all_pcs' ? refs : expand(g.nodes);
+      if (nodes.length < 2) throw new Error(`${template.id}: ping_all の機器が2台に足りない`);
+      return { type: 'ping_all', nodes };
+    }
+    if (g.type === 'isolated' || g.type === 'blocked_all') return { ...g, from: expand(g.from), to: expand(g.to) };
+    if (g.type === 'http_from') return { ...g, nodes: expand(g.nodes) };
+    return g;
+  });
   const contract: Contract = {
     id: `${template.id}_${seq}`,
     stage: template.stage,

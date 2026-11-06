@@ -13,6 +13,10 @@ export const goalText = (goal: Goal, nameOf: (id: string) => string = (id) => id
           ? { name: tDyn(`category.${goal.category}`) }
           : goal.type === 'http_all' || goal.type === 'firewall'
           ? {}
-          : { from: nameOf(goal.from), to: nameOf(goal.to) };
+          : goal.type === 'http_from'
+            ? { nodes: goal.nodes.map(nameOf).join('・') }
+            : goal.type === 'isolated' || goal.type === 'blocked_all'
+              ? { from: goal.from.map(nameOf).join('・'), to: goal.to.map(nameOf).join('・') }
+              : { from: nameOf(goal.from), to: nameOf(goal.to) };
   return tDyn(`goal.${goal.type}`, params);
 };

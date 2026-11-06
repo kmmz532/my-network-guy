@@ -229,6 +229,11 @@ const goalRefs = (goal: Goal): string[] => {
       return [];
     case 'blocked':
       return [goal.from, goal.to];
+    case 'isolated':
+    case 'blocked_all':
+      return [...goal.from, ...goal.to];
+    case 'http_from':
+      return goal.nodes;
   }
 };
 
@@ -319,7 +324,13 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
       ensure(contractIdSet.has(req), `${owner}: requires の案件 ${req} が未定義`);
     }
     ensure(mapsById.has(template.map) || template.map === OFFICE_MAP_ID, `${owner}: 未定義のマップ ${template.map}`);
-    // テンプレートの機器は実行時に生成されるため、goals の参照は ping_all の $all_pcs 以外を検証しない
+    // テンプレートの機器は実行時に生成されるため、goals の参照は $role:<役割> だけを書ける。役割は spawnGroups の role にあること
+    const roles = new Set((template.spawnGroups ?? []).flatMap((g) => (g.role === undefined ? [] : [g.role])));
+    for (const goal of template.goals) {
+      for (const ref of goalRefs(goal)) {
+        ensure(ref.startsWith('$role:') && roles.has(ref.slice('$role:'.length)), `${owner}: goals の参照 ${ref} が spawnGroups の役割にない`);
+      }
+    }
   }
 
   // 節目の報酬の機器は、その節目のレベルで解放されていること（新しい機器を先に渡さない）
