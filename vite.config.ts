@@ -5,15 +5,8 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { execSync } from 'node:child_process';
 
-// ビルド番号。コミットの短いハッシュ（git がなければ時刻の36進）。タイトルとサービスワーカーで共有する
-const commitHash = (): string | null => {
-  try {
-    return execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
-  } catch {
-    return process.env.GITHUB_SHA?.slice(0, 7) ?? null;
-  }
-};
-const buildId = commitHash() ?? Date.now().toString(36);
+// ビルド番号。コミットの短いハッシュ。タイトルとサービスワーカーで共有する（git がなければビルドを止める）
+const buildId = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
 
 // サービスワーカーの保存の版を、ビルドごとに変える（古い保存を捨てるため）
 const swVersion = (): Plugin => {
@@ -26,7 +19,7 @@ const swVersion = (): Plugin => {
     },
     closeBundle: () => {
       const file = resolve(outDir, 'sw.js');
-      if (!existsSync(file)) return;
+      if (!existsSync(file)) throw new Error(`sw.js がビルドの出力にない: ${file}`);
       writeFileSync(file, readFileSync(file, 'utf-8').replace('__BUILD__', buildId));
     },
   };
