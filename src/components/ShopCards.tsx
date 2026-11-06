@@ -14,6 +14,8 @@ import { Icon, TrimmedIcon } from './Icon';
 import { secondaryButton } from './Modal';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { RADIUS } from '../ui/theme';
+import { matchesQuery } from '../ui/search';
+import { SearchField } from './SearchField';
 
 // 区分のタブ（並びの順）
 type Section = 'device' | 'furniture';
@@ -40,10 +42,14 @@ export function ShopBody() {
   const buy = useGameStore((s) => s.buy);
   const sell = useGameStore((s) => s.sell);
   const [section, setSection] = useState<Section>('device');
+  // 検索は選んでいるタブの中で絞り込む（N67）
+  const [query, setQuery] = useState('');
   const ids = shop.filter((i) => i.device && isUnlocked(i, level, itemDefs, sandbox)).map((i) => i.device!);
   const furnitureIds = shop.filter((i) => i.furniture && isUnlocked(i, level, itemDefs, sandbox)).map((i) => i.furniture!);
   const yen = (n: number) => n.toLocaleString('ja-JP');
   const cost = (n: number) => (sandbox ? 0 : n);
+  const deviceRows = ids.filter((id) => matchesQuery(query, [tDyn(`device.${id}.name`), id, tDyn(`category.${devices[id as keyof typeof devices].category}`)]));
+  const furnitureRows = furnitureIds.filter((id) => matchesQuery(query, [tDyn(`furniture.${id}.name`), id]));
 
   return (
     <div>
@@ -57,9 +63,10 @@ export function ShopBody() {
         style={{ paddingLeft: 8 }}
       />
       <div id="shop-panel" role="tabpanel" aria-labelledby={`shop-tab-${section}`} style={tabPanelStyle(TAB_COLORS.shop.selected)}>
+        <SearchField value={query} onChange={setQuery} />
         <div style={{ maxHeight: 'min(60vh, 480px)', overflowY: 'auto', paddingRight: 4 }}>
           {section === 'device' &&
-            ids.map((id) => {
+            deviceRows.map((id) => {
               const d = devices[id as keyof typeof devices];
               return (
                 <div
@@ -92,8 +99,9 @@ export function ShopBody() {
                 </div>
               );
             })}
+          {query !== '' && (section === 'device' ? deviceRows : furnitureRows).length === 0 && <div style={{ padding: 8 }}>{t('ui.search.none')}</div>}
           {section === 'furniture' &&
-            furnitureIds.map((id) => {
+            furnitureRows.map((id) => {
               const f = furniture[id as keyof typeof furniture];
               return (
                 <div

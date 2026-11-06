@@ -13,6 +13,8 @@ import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
 import { secondaryButton } from './Modal';
 import { RADIUS } from '../ui/theme';
+import { matchesQuery } from '../ui/search';
+import { SearchField } from './SearchField';
 import { itemSpriteOf } from './itemSprite';
 
 const strip = {
@@ -71,6 +73,12 @@ export const inventoryCatalog = {
 type InventoryTab = 'all' | 'device' | 'furniture';
 const INVENTORY_TABS: readonly InventoryTab[] = ['all', 'device', 'furniture'];
 
+// 検索の対象（名前・ID・機器の分類）
+const itemSearchFields = (item: InventoryItem): string[] =>
+  item.kind === 'device'
+    ? [tDyn(`device.${item.id}.name`), item.id, tDyn(`category.${catalogDevices[item.id as keyof typeof catalogDevices].category}`)]
+    : [tDyn(`furniture.${item.id}.name`), item.id];
+
 // パソコンのインベントリのウィンドウの中身。上にショップと同じタブ（先頭は「すべて」）、下に品目の格子
 export function InventoryBody() {
   const owned = useGameStore((s) => s.owned);
@@ -79,8 +87,11 @@ export function InventoryBody() {
   const showcase = useGameStore((s) => s.showcase !== null);
   // 選んだタブは、開いている間だけ覚える（保存しない）
   const [tab, setTab] = useState<InventoryTab>('all');
+  // 検索は選んでいるタブの中で絞り込む。「すべて」は全分類から探す（N67）
+  const [query, setQuery] = useState('');
   const all = inventoryItems(inventoryMode(phase, showcase), owned, inventoryCatalog);
-  const items = tab === 'all' ? all : all.filter((item) => item.kind === tab);
+  const inTab = tab === 'all' ? all : all.filter((item) => item.kind === tab);
+  const items = inTab.filter((item) => matchesQuery(query, itemSearchFields(item)));
   // 品目を押すと配置に入る。同じ品目をもう一度押すと配置を終える（ウィンドウは開いたまま）
   const pick = (item: InventoryItem) => {
     const s = useGameStore.getState();
@@ -104,7 +115,12 @@ export function InventoryBody() {
         style={{ paddingLeft: 8 }}
       />
       <div id="inventory-panel" role="tabpanel" aria-labelledby={`inventory-tab-${tab}`} style={{ ...tabPanelStyle(TAB_COLORS.shop.selected), flex: 1 }}>
-        <Inventory layout="grid" items={items} owned={owned} placing={placing} onPick={pick} onShop={() => useGameStore.getState().openWindow('shop', '')} />
+        <SearchField value={query} onChange={setQuery} />
+        {query !== '' && items.length === 0 ? (
+          <div style={{ padding: 8 }}>{t('ui.search.none')}</div>
+        ) : (
+          <Inventory layout="grid" items={items} owned={owned} placing={placing} onPick={pick} onShop={() => useGameStore.getState().openWindow('shop', '')} />
+        )}
       </div>
     </div>
   );

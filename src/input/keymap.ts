@@ -4,6 +4,7 @@
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import { frontWindow } from '../ui/windows';
+import { focusVisibleSearch } from '../ui/focusSearch';
 import { focusedProject, frontDeviceUid, useGameStore } from '../stores/useGameStore';
 import type { Speed } from '../stores/useGameStore';
 import { topPopup } from './popupStack';
@@ -174,6 +175,8 @@ export const KEYMAP: KeyBinding[] = [
   { key: '←', id: 'moveMap', name: 'keys.moveMap', run: () => (mapCommands.pan(PAN_KEY_PX, 0), true) },
   { key: '→', id: 'moveMap', name: 'keys.moveMap', run: () => (mapCommands.pan(-PAN_KEY_PX, 0), true) },
   { key: '?', id: 'help', name: 'keys.help', run: (ui) => (ui.togglePopup('help'), true) },
+  // 検索の欄（ショップ・インベントリのウィンドウの上）に移る。欄がなければ何もしない
+  { key: '/', id: 'search', name: 'keys.search', run: () => focusVisibleSearch() },
 ];
 
 const NAMES: Record<string, string> = {
