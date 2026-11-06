@@ -3,6 +3,7 @@
   "width": 24,
   "height": 12,
   "tileSize": 32,
+  "floor": "linoleum",
   "legend": {
     ".": "floor",
     "#": "wall",

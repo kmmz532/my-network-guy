@@ -3,13 +3,14 @@
   "width": 34,
   "height": 12,
   "tileSize": 32,
+  "floor": "concrete",
   "legend": {
     ".": "floor",
     "#": "wall",
     "W": "window",
     "C": "clock",
     "P": "poster",
-    "O": "pillar"
+    "O": "rack"
   },
   "tiles": [
     "##W#######W#######C#######W#######",

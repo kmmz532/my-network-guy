@@ -4,8 +4,10 @@ import type { GameMap } from '../data/schema';
 import { spriteOf, texture } from './sprites';
 import { tileKind, VOID_KIND } from '../data/tileKind';
 
-// 柱（1マスの柱。床ではない・壁でもない。隣の壁の上面や影を出さない）
-const isPillar = (kind: string | undefined): boolean => kind === 'pillar';
+// 柱と、柱と同じ箱の形で描く障害物（カウンター・本棚・倉庫の棚）。床ではない・壁でもない。隣の壁の上面や影を出さない。
+// 柱は色で塗り、ほかは天面（tile/<種類>_top）と下の段の正面（tile/<種類>_face）の絵を敷く
+const BLOCK_KINDS: ReadonlySet<string> = new Set(['pillar', 'counter', 'shelf', 'rack']);
+const isPillar = (kind: string | undefined): boolean => kind !== undefined && BLOCK_KINDS.has(kind);
 
 // 奥の壁に掛ける物。壁として扱い、真下が床のときに壁の正面へ描く
 const wallDecor = new Set(['window', 'clock', 'poster', 'whiteboard']);
@@ -28,6 +30,9 @@ const SHADOW_ALPHA = 0.18;
 
 // 床の板の継ぎ目が揃わないよう、座標から種類を決める
 const floorVariant = (x: number, y: number): number => (x * 7 + y * 13 + ((x * y) % 5)) % 3;
+// 床の絵の名前（map.floor。wood は tile/floor_0〜2）
+const floorSprite = (floor: GameMap['floor'], x: number, y: number): string =>
+  floor === 'wood' ? `tile/floor_${floorVariant(x, y)}` : `tile/floor_${floor}_${floorVariant(x, y)}`;
 
 export const drawTileMap = (map: GameMap): Container => {
   const container = new Container();
@@ -126,7 +131,7 @@ export const drawTileMap = (map: GameMap): Container => {
         pillars.push([x, y]);
         continue;
       }
-      put(`tile/floor_${floorVariant(x, y)}`, x, y);
+      put(floorSprite(map.floor, x, y), x, y);
       if (kind && kind !== 'floor') furniture.push([kind, x, y]);
     }
   }
@@ -148,27 +153,45 @@ export const drawTileMap = (map: GameMap): Container => {
   // 柱。並んだ柱のマスを1本の太い柱として描く（ART.md「視点」の 3/4 ビュー）。
   // 天面は壁の上面と同じ色。下の段（真下が柱でないマス）だけ、下の部分を正面（壁の色と巾木）にする。
   // 輪郭は、隣が柱でない辺にだけ引く。影は光源（左上）の反対の、右と下の床に落とす
+  // 天面・正面の絵は、輪郭線（pg）より下の層に敷く
+  const pictures = new Container();
+  container.addChild(pictures);
   const pg = new Graphics();
   container.addChild(pg);
-  const pillarAt = (x: number, y: number): boolean => isPillar(kindAt(x, y));
-  for (const [x, y] of pillars) {
+  // 同じ種類の障害物どうしだけを1つの箱としてつなぐ
+  const pillarAt = (x: number, y: number, kind: string | undefined): boolean => kindAt(x, y) === kind;
+  const sprite = (name: string, x0: number, y0: number): void => {
+    const tex = texture(spriteOf(name));
+    if (!tex) return;
+    const sp = new Sprite(tex);
+    sp.position.set(x0, y0);
+    pictures.addChild(sp);
+  };
+  for (const [px, py] of pillars) {
+    const kind = kindAt(px, py);
+    const at = (x: number, y: number): boolean => pillarAt(x, y, kind);
+    const x = px;
+    const y = py;
     const x0 = x * ts;
     const y0 = y * ts;
-    const bottom = !pillarAt(x, y + 1);
-    pg.rect(x0, y0, ts, ts).fill(CAP_COLOR);
+    const bottom = !at(x, y + 1);
+    if (kind === 'pillar') pg.rect(x0, y0, ts, ts).fill(CAP_COLOR);
+    else sprite(`tile/${kind}_top`, x0, y0);
     if (bottom) {
       const fy = y0 + ts - PILLAR_FACE;
-      pg.rect(x0, fy, ts, PILLAR_FACE).fill(PILLAR_FACE_COLOR);
-      pg.rect(x0, y0 + ts - PILLAR_BASE, ts, PILLAR_BASE).fill(FRONT_CAP_COLOR);
+      if (kind === 'pillar') {
+        pg.rect(x0, fy, ts, PILLAR_FACE).fill(PILLAR_FACE_COLOR);
+        pg.rect(x0, y0 + ts - PILLAR_BASE, ts, PILLAR_BASE).fill(FRONT_CAP_COLOR);
+      } else sprite(`tile/${kind}_face`, x0, fy);
       pg.rect(x0, fy, ts, 1).fill(CAP_EDGE_COLOR);
       if (floorAt(x, y + 1)) shade.rect(x0, y0 + ts, ts, SHADOW).fill({ color: SHADOW_COLOR, alpha: SHADOW_ALPHA });
     }
-    if (!pillarAt(x - 1, y)) pg.rect(x0, y0, 1, ts).fill(CAP_EDGE_COLOR);
-    if (!pillarAt(x + 1, y)) {
+    if (!at(x - 1, y)) pg.rect(x0, y0, 1, ts).fill(CAP_EDGE_COLOR);
+    if (!at(x + 1, y)) {
       pg.rect(x0 + ts - 1, y0, 1, ts).fill(CAP_EDGE_COLOR);
       if (floorAt(x + 1, y)) shade.rect(x0 + ts, y0, SHADOW, ts).fill({ color: SHADOW_COLOR, alpha: SHADOW_ALPHA });
     }
-    if (!pillarAt(x, y - 1)) pg.rect(x0, y0, ts, 1).fill(CAP_EDGE_COLOR);
+    if (!at(x, y - 1)) pg.rect(x0, y0, ts, 1).fill(CAP_EDGE_COLOR);
     if (bottom) pg.rect(x0, y0 + ts - 1, ts, 1).fill(CAP_EDGE_COLOR);
   }
   for (const [kind, x, y] of furniture) put(`furniture/${kind}`, x, y);

@@ -3,6 +3,7 @@
   "width": 25,
   "height": 8,
   "tileSize": 32,
+  "floor": "carpet",
   "legend": {
     ".": "floor",
     "#": "wall",

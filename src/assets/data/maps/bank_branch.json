@@ -3,13 +3,14 @@
   "width": 23,
   "height": 9,
   "tileSize": 32,
+  "floor": "carpet",
   "legend": {
     ".": "floor",
     "#": "wall",
     "W": "window",
     "C": "clock",
     "P": "poster",
-    "O": "pillar"
+    "O": "counter"
   },
   "tiles": [
     "##W##W##C##P##W##W##W##",

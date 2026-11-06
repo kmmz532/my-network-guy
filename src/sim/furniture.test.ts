@@ -14,6 +14,7 @@ const map = {
   width: 4,
   height: 3,
   tileSize: 32,
+  floor: 'wood',
   legend: { '.': 'floor', '#': 'wall' },
   tiles: ['....', '.#..', '....'],
 } as unknown as GameMap;

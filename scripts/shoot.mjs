@@ -166,6 +166,26 @@ const scenes = {
   mapHall: newMapScene('t_long_hall_shoot', 'long_hall', '長い廊下の2部屋', [[2, 2], [6, 2], [4, 6], [32, 2], [36, 2], [34, 6]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
   // N51a: 小さな工場の作業場（factory。柱の列の間に16台）
   mapFactory: newMapScene('t_factory_shoot', 'factory', '工場の作業場', [[2, 1], [5, 1], [9, 1], [12, 1], [17, 1], [20, 1], [25, 1], [28, 1], [2, 10], [5, 10], [9, 10], [12, 10], [17, 10], [20, 10], [25, 10], [28, 10]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
+  // 追加したマップ（カフェの客席）
+  mapCafe: newMapScene('t_cafe_shoot', 'cafe', 'カフェの客席', [[2, 5], [6, 5], [10, 5], [13, 6]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
+  // 追加したマップ（診療所）
+  mapClinic: newMapScene('t_clinic_shoot', 'clinic', '診療所', [[2, 2], [9, 2], [16, 2], [3, 6]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
+  // 追加したマップ（図書館）
+  mapLibrary: newMapScene('t_library_shoot', 'library', '図書館', [[1, 3], [7, 3], [13, 5], [20, 7]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
+  // 追加したマップ（コワーキング）
+  mapCoworking: newMapScene('t_coworking_shoot', 'coworking', 'コワーキング', [[3, 2], [15, 2], [20, 3], [3, 7]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
+  // 追加したマップ（ホテルの客室）
+  mapHotel: newMapScene('t_hotel_floor_shoot', 'hotel_floor', 'ホテルの客室', [[2, 2], [8, 2], [14, 2], [20, 2]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
+  // 追加したマップ（物流倉庫）
+  mapWarehouse: newMapScene('t_warehouse_shoot', 'warehouse', '物流倉庫', [[2, 1], [12, 4], [22, 7], [31, 10], [5, 10]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
+  // 追加したマップ（銀行の支店）
+  mapBank: newMapScene('t_bank_branch_shoot', 'bank_branch', '銀行の支店', [[2, 2], [5, 6], [13, 2], [18, 6]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
+  // 追加したマップ（撮影スタジオ）
+  mapStudio: newMapScene('t_studio_shoot', 'studio', '撮影スタジオ', [[3, 3], [8, 6], [17, 3], [24, 7]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
+  // 追加したマップ（キャンパス）
+  mapCampus: newMapScene('t_campus_shoot', 'campus', 'キャンパス', [[3, 2], [11, 3], [3, 14], [11, 15]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
+  // 追加したマップ（病棟）
+  mapHospital: newMapScene('t_hospital_ward_shoot', 'hospital_ward', '病棟', [[2, 2], [28, 3], [3, 10], [30, 11]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
   // インベントリを開いた状態
   inventory: async (page) => {
     await scenes.career(page);

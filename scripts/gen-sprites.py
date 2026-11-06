@@ -44,6 +44,16 @@ C = {
     'hy': (214, 176, 96),   # 髪（金）
     'pot': (196, 112, 76),  # 植木鉢
     'POT': (150, 80, 60),   # 植木鉢（影）
+    'T1': (232, 234, 228),  # 床（タイル・明）
+    'T2': (198, 204, 200),  # 床（タイル・目地）
+    'P1': (122, 138, 170),  # 床（カーペット）
+    'P2': (104, 120, 152),  # 床（カーペット・影）
+    'K1': (190, 190, 182),  # 床（コンクリート）
+    'K2': (168, 168, 160),  # 床（コンクリート・暗）
+    'L1': (196, 222, 208),  # 床（リノリウム）
+    'L2': (172, 202, 186),  # 床（リノリウム・影）
+    'cb': (206, 160, 104),  # 段ボール
+    'CB': (170, 124, 76),   # 段ボール（影）
 }
 
 
@@ -670,6 +680,114 @@ def floor(variant):
     return img
 
 
+# ---- マップごとの床（32×32。map.json の floor で選ぶ。wood は floor_0〜2） ----
+
+def floor_tile(variant):
+    # 白いタイル（診療所・病棟）。16 px角の目地
+    img, d = new(32, 32)
+    rect(d, 0, 0, 32, 32, 'T1')
+    for k in (15, 31):
+        d.line([(0, k), (31, k)], fill=C['T2'])
+        d.line([(k, 0), (k, 31)], fill=C['T2'])
+    px(d, (4 + variant * 9) % 14, (6 + variant * 5) % 14, 'T2')
+    return img
+
+
+def floor_carpet(variant):
+    # カーペット（ホテル・図書館・銀行）。細かい織り目
+    img, d = new(32, 32)
+    rect(d, 0, 0, 32, 32, 'P1')
+    for y in range(0, 32, 4):
+        for x in range((y // 4 % 2) * 2 + variant, 32, 4):
+            px(d, x, y, 'P2')
+    return img
+
+
+def floor_concrete(variant):
+    # コンクリート（倉庫・スタジオ）。まだらの点と、32 pxごとの継ぎ目
+    img, d = new(32, 32)
+    rect(d, 0, 0, 32, 32, 'K1')
+    d.line([(0, 31), (31, 31)], fill=C['K2'])
+    d.line([(31, 0), (31, 31)], fill=C['K2'])
+    for i in range(7):
+        px(d, (i * 13 + variant * 7) % 30, (i * 17 + variant * 11) % 30, 'K2')
+    return img
+
+
+def floor_linoleum(variant):
+    # リノリウム（カフェ・コワーキング・校舎）。市松模様
+    img, d = new(32, 32)
+    rect(d, 0, 0, 32, 32, 'L1')
+    rect(d, 0, 0, 16, 16, 'L2')
+    rect(d, 16, 16, 16, 16, 'L2')
+    return img
+
+
+# ---- 床に置く大きな障害物（柱と同じ形の箱。天面 32×32 と、下の段の正面 32×14。左右に並べてつなぐ） ----
+
+def counter_top():
+    img, d = new(32, 32)
+    rect(d, 0, 0, 32, 32, 'F1')
+    d.line([(0, 30), (31, 30)], fill=C['F2'])
+    return img
+
+
+def counter_face():
+    img, d = new(32, 14)
+    rect(d, 0, 0, 32, 14, 'F2')
+    d.line([(0, 1), (31, 1)], fill=C['F1'])
+    d.line([(15, 2), (15, 13)], fill=C['F3'])
+    return img
+
+
+def shelf_top():
+    # 本棚を上から見た天面。本の上端が並ぶ
+    img, d = new(32, 32)
+    rect(d, 0, 0, 32, 32, 'F2')
+    colors = ['b', 'r', 'G', 'y', 'w', 'B', 'f']
+    for row, y in enumerate((3, 18)):
+        x, i = 0, row * 3
+        while x < 32:
+            w = 2 + (i % 3 == 0)
+            rect(d, x, y, min(w, 32 - x), 11, colors[i % len(colors)])
+            x += w + 1
+            i += 1
+    return img
+
+
+def shelf_face():
+    img, d = new(32, 14)
+    rect(d, 0, 0, 32, 14, 'F3')
+    colors = ['r', 'b', 'y', 'G', 'w', 'f', 'B']
+    x, i = 1, 0
+    while x < 31:
+        w = 2 + (i % 3 == 1)
+        h = 10 - (i % 4 == 2) * 2
+        rect(d, x, 12 - h, min(w, 31 - x), h, colors[i % len(colors)])
+        x += w + 1
+        i += 1
+    return img
+
+
+def rack_top():
+    # 倉庫の棚を上から見た天面。段ボールが並ぶ
+    img, d = new(32, 32)
+    rect(d, 0, 0, 32, 32, 'g')
+    for x, y, w, h in ((2, 2, 13, 12), (17, 3, 13, 11), (2, 17, 12, 13), (16, 16, 14, 14)):
+        rect(d, x, y, w, h, 'cb', 'CB')
+        d.line([(x + w // 2, y), (x + w // 2, y + h - 1)], fill=C['CB'])
+    return img
+
+
+def rack_face():
+    img, d = new(32, 14)
+    rect(d, 0, 0, 32, 14, 'd')
+    rect(d, 1, 2, 13, 10, 'cb', 'CB')
+    rect(d, 17, 4, 14, 8, 'cb', 'CB')
+    d.line([(0, 12), (31, 12)], fill=C['bg'])
+    return img
+
+
 def ground(variant):
     # 屋外の芝。ところどころに濃い草の束
     img, d = new(32, 32)
@@ -1030,6 +1148,12 @@ if __name__ == '__main__':
     for v in range(2):
         save(ground(v), f'tile/ground_{v}.png')
     save(road(), 'tile/road.png')
+    for style, fn in (('tile', floor_tile), ('carpet', floor_carpet), ('concrete', floor_concrete), ('linoleum', floor_linoleum)):
+        for v in range(3):
+            save(fn(v), f'tile/floor_{style}_{v}.png')
+    for kind, top, face in (('counter', counter_top, counter_face), ('shelf', shelf_top, shelf_face), ('rack', rack_top, rack_face)):
+        save(top(), f'tile/{kind}_top.png')
+        save(face(), f'tile/{kind}_face.png')
     tiles = {
         'wall_face': wall_face(),
         'window': wall_window(),

@@ -3,6 +3,7 @@
   "width": 30,
   "height": 10,
   "tileSize": 32,
+  "floor": "concrete",
   "legend": {
     ".": "floor",
     "#": "wall",

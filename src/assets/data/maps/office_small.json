@@ -3,6 +3,7 @@
   "width": 14,
   "height": 10,
   "tileSize": 32,
+  "floor": "wood",
   "legend": {
     ".": "floor",
     "#": "wall",

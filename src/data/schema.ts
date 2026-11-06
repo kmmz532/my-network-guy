@@ -425,6 +425,8 @@ export const mapSchema = z
     width: int.positive(),
     height: int.positive(),
     tileSize: int.positive(),
+    // 床の絵の種類（wood は木の板。ほかは tile/floor_<種類>_0〜2）
+    floor: z.enum(['wood', 'tile', 'carpet', 'concrete', 'linoleum']),
     legend: z.record(z.string().length(1), z.string().min(1)),
     tiles: z.array(z.string()),
   })

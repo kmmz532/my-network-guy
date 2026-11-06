@@ -40,6 +40,7 @@ export const officeMapOf = (size: OfficeSize, innerWalls: OfficeCell[] = [], doo
     width,
     height,
     tileSize: TILE_SIZE,
+    floor: 'wood',
     legend: { '.': 'floor', '#': 'wall', W: 'window', D: 'door' },
     tiles: grid.map((row) => row.join('')),
   };
