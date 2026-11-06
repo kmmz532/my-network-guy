@@ -2,9 +2,7 @@
 
 ## 保存先
 
-- ブラウザの IndexedDB（Dexie.js）に保存します（`src/services/db.ts`）。スロットごとに保存します。
-- JSON ファイルに書き出して、別の端末や別のブラウザへ移せます（`src/services/saveFile.ts`）。
-- サーバーには送りません。データはその端末のブラウザの中だけにあります。
+セーブは、ブラウザの IndexedDB（Dexie.js）に、スロットごとに保存します（`src/services/db.ts`）。JSON ファイルに書き出せば、別の端末や別のブラウザへ移せます（`src/services/saveFile.ts`）。サーバーには送りません。データは、その端末のブラウザの中だけにあります。
 
 ## 形式の移行
 

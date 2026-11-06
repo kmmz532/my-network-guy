@@ -22,12 +22,8 @@
 
 ## 言語ファイルの文言
 
-- 文言は `src/assets/lang/ja_jp.json` に置き、コードには翻訳キーだけを書きます。
-- キーは `<ドメイン>.<ID>.<項目>` の形式です。例: `device.pc_basic.name`
-- 置き換えは名前付きで書きます。例: `"資金 {amount} 円"`
-- 翻訳キーの型はビルド時に生成されます。存在しないキーを `t()` に渡すと型エラーになります。
+文言は `src/assets/lang/ja_jp.json` に置き、コードには翻訳キーだけを書きます。キーは `<ドメイン>.<ID>.<項目>` の形式です（例: `device.pc_basic.name`）。置き換えは名前付きで書きます（例: `"資金 {amount} 円"`）。翻訳キーの型はビルド時に生成されます。存在しないキーを `t()` に渡すと、型エラーになります。
 
 ## 数値を変えるとき
 
-- `balance.json` を編集したら、`node scripts/simulate-balance.mjs` で資金の推移を確かめる（[開発用のツール](tools.md)）。
-- 案件を足すときは `contracts/` に1ファイル追加し、ショップの解禁条件（`shop.json`）と合わせる。
+`balance.json` を編集したら、`node scripts/simulate-balance.mjs` で資金の推移を確かめてください（[開発用のツール](tools.md)）。案件を足すときは、`contracts/` に1ファイル追加し、ショップの解禁条件（`shop.json`）と合わせます。
