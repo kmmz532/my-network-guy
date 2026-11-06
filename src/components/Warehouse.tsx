@@ -1,7 +1,6 @@
 // 倉庫の欄。ツールバーの上に横スクロールで在庫の品目を並べる。品目を押すと配置の操作に入る。
 // 品目をマウス・ペンでドラッグしてマップの上で離すと、そのマスに置く（置けなければ何もしない）
 import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from 'react';
-import { devices, furniture } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import type { WarehouseItem } from '../sim/warehouse';
 import { mapViewOf } from '../game/mapView';
@@ -11,6 +10,7 @@ import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
 import { secondaryButton } from './Modal';
 import { RADIUS } from '../ui/theme';
+import { itemSpriteOf } from './itemSprite';
 
 const strip = {
   position: 'absolute',
@@ -47,8 +47,7 @@ const itemStyle = (active: boolean) =>
     position: 'relative',
   }) as const;
 
-const spriteOf = (item: WarehouseItem): string =>
-  item.kind === 'device' ? devices[item.id as keyof typeof devices].sprite : furniture[item.id as keyof typeof furniture].sprite;
+const spriteOf = (item: WarehouseItem): string => itemSpriteOf(item.kind, item.id);
 
 export function Warehouse({
   items,

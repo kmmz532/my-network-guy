@@ -4,6 +4,7 @@ import { balance } from 'virtual:game-data';
 import { useGameStore } from '../stores/useGameStore';
 import type { Report } from '../sim/project';
 import { Icon } from './Icon';
+import { itemSpriteOf } from './itemSprite';
 import { Modal, primaryButton } from './Modal';
 import { RADIUS } from '../ui/theme';
 
@@ -112,11 +113,18 @@ export function ReportModal() {
           )}
         </div>
       ))}
+      {/* 受け取った機器は、絵と名前と台数の札で並べる（N56）。札は横に並び、収まらなければ折り返す */}
       {(report.rewardDevices ?? []).length > 0 && (
         <div style={{ fontSize: 14, marginTop: 6 }}>
-          {t('report.reward', {
-            devices: (report.rewardDevices ?? []).map((r) => `${tDyn(`device.${r.device}.name`)} ×${r.count}`).join('・'),
-          })}
+          <div>{t('report.rewardDevices')}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 4 }}>
+            {(report.rewardDevices ?? []).map((r) => (
+              <div key={r.device} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', background: '#25406f', border: '1px solid #3b2a33', borderRadius: RADIUS.chrome }}>
+                <Icon name={itemSpriteOf('device', r.device)} scale={1} />
+                <span>{tDyn(`device.${r.device}.name`)} ×{r.count}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
       <EvaluationRows report={report} />
