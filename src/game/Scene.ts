@@ -807,7 +807,9 @@ export class Scene {
     // 上の段（Y座標の小さい機器）のラベルを前面に出すため、Y座標の大きい順に描く
     const nodes = [...compiled.net.nodes].sort((a, b) => b.y - a.y);
     for (const node of nodes) {
-      const ips = node.interfaces.map((i) => `${i.ip}/${i.prefix}`);
+      // IPアドレスが2つ以上ある機器（スイッチ付きルーターの WAN と LAN）は、ポート名を添えて1行ずつ読めるようにする
+      const category = gameEnv.devices[node.device]?.category;
+      const ips = node.interfaces.map((i) => (node.interfaces.length > 1 ? `${portLabel(category, i.port)} ${i.ip}/${i.prefix}` : `${i.ip}/${i.prefix}`));
       // IPアドレスのない機器は、未設定の印（灰色の「IP ---」）だけを出す
       const unset = ips.length === 0 && compiled.issues[node.uid]?.reason === 'ip.unset';
       if (ips.length === 0 && !unset) continue;
@@ -818,7 +820,8 @@ export class Scene {
       const text = new Text({
         text: lines.join('\n'),
         // 背景は付けず、縁取りで文字を読めるようにする
-        style: { fontFamily: 'monospace', fontSize: fontPx, fill: unset ? 0x9a9a9a : 0xf4f1e6, align: 'center', stroke: { color: OUTLINE, width: 2 / scale } },
+        // 行の高さを文字の大きさの1.3倍にし、行どうしが重ならないようにする
+        style: { fontFamily: 'monospace', fontSize: fontPx, lineHeight: fontPx * 1.3, fill: unset ? 0x9a9a9a : 0xf4f1e6, align: 'center', stroke: { color: OUTLINE, width: 2 / scale } },
         resolution: Math.max(2, scale * dpr),
       });
       text.anchor.set(0.5, 1);
