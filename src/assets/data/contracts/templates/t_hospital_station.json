@@ -1,0 +1,109 @@
+{
+  "id": "t_hospital_station",
+  "stage": 1,
+  "unlockLevel": 16,
+  "requires": [
+    "c004_web_server"
+  ],
+  "jobs": [
+    "infra"
+  ],
+  "weight": 12,
+  "map": "hospital_ward",
+  "spawnGroups": [
+    {
+      "x": 1,
+      "y": 6,
+      "width": 33,
+      "height": 2,
+      "min": 2,
+      "max": 2,
+      "role": "nurse",
+      "name": "ナースステーションのPC"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "width": 7,
+      "height": 4,
+      "min": 1,
+      "max": 1,
+      "role": "patient",
+      "name": "病室の端末"
+    },
+    {
+      "x": 25,
+      "y": 1,
+      "width": 9,
+      "height": 4,
+      "min": 1,
+      "max": 1,
+      "role": "patient",
+      "name": "病室の端末"
+    },
+    {
+      "x": 1,
+      "y": 9,
+      "width": 7,
+      "height": 4,
+      "min": 1,
+      "max": 1,
+      "role": "patient",
+      "name": "病室の端末"
+    },
+    {
+      "x": 25,
+      "y": 9,
+      "width": 9,
+      "height": 4,
+      "min": 1,
+      "max": 1,
+      "role": "patient",
+      "name": "病室の端末"
+    }
+  ],
+  "deadlineDays": 12,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "base": 568000,
+    "perPc": 0,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 160000,
+    "perPc": 15000
+  },
+  "goals": [
+    {
+      "type": "count",
+      "category": "server",
+      "min": 1
+    },
+    {
+      "type": "http_from",
+      "nodes": [
+        "$role:nurse"
+      ],
+      "port": 80
+    },
+    {
+      "type": "ping_all",
+      "nodes": [
+        "$role:patient"
+      ]
+    },
+    {
+      "type": "isolated",
+      "from": [
+        "$role:patient"
+      ],
+      "to": [
+        "$role:nurse"
+      ]
+    }
+  ],
+  "announce": true
+}

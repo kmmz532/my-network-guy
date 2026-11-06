@@ -223,6 +223,7 @@ const goalRefs = (goal: Goal): string[] => {
     case 'ping_all':
       return goal.nodes === '$all_pcs' ? [] : goal.nodes;
     case 'count':
+    case 'count_device':
     case 'http_all':
     case 'firewall':
     case 'reach_category':

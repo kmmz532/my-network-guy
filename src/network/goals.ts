@@ -61,6 +61,11 @@ const handlers: { [K in Goal['type']]: Handler } = {
     const ok = uidsOf(net, data, goal.category).length >= goal.min;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
+  count_device: (goal, net) => {
+    if (goal.type !== 'count_device') throw new Error('count_device ハンドラに別の種類が渡された');
+    const ok = net.nodes.filter((n) => n.device === goal.device).length >= goal.min;
+    return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
+  },
   // すべての PC が、そのカテゴリの機器のどれか1台へ届く（PC ごとに、届く機器のうち最初のものの結果）
   reach_category: (goal, net, data) => {
     if (goal.type !== 'reach_category') throw new Error('reach_category ハンドラに別の種類が渡された');

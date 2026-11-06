@@ -143,7 +143,14 @@ export const modelCost = (template: ContractTemplate, map: GameMap, placed: { x:
     if (!printer) throw new Error('プリンターがない');
     cost += printer.price + linkCost(1);
   }
-  if (goalCount('server') > 0 || hasHttp) {
+  // 型で数える機器（count_device。GPUサーバーなど）は、その機器の価格と1本の配線を足す。サーバーの役も兼ねる
+  const byDevice = template.goals.flatMap((g) => (g.type === 'count_device' ? [g] : []));
+  for (const g of byDevice) {
+    const d = deviceList.find((x) => x.id === g.device);
+    if (!d) throw new Error(`機器 ${g.device} がない`);
+    cost += (d.price + linkCost(1)) * g.min;
+  }
+  if ((goalCount('server') > 0 || hasHttp) && byDevice.length === 0) {
     const server = cheapest('server', 1);
     if (!server) throw new Error('サーバーがない');
     cost += server.price + linkCost(1);

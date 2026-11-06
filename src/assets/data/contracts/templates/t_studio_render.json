@@ -1,0 +1,54 @@
+{
+  "id": "t_studio_render",
+  "stage": 1,
+  "unlockLevel": 34,
+  "requires": [
+    "c004_web_server"
+  ],
+  "jobs": [
+    "infra"
+  ],
+  "weight": 12,
+  "map": "studio",
+  "spawnGroups": [
+    {
+      "x": 14,
+      "y": 1,
+      "width": 15,
+      "height": 8,
+      "min": 3,
+      "max": 5,
+      "role": "editor",
+      "name": "編集室のPC"
+    }
+  ],
+  "deadlineDays": 14,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "base": 1700000,
+    "perPc": 3000,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 420000,
+    "perPc": 20000
+  },
+  "goals": [
+    {
+      "type": "count_device",
+      "device": "gpu_server",
+      "min": 1
+    },
+    {
+      "type": "http_from",
+      "nodes": [
+        "$role:editor"
+      ],
+      "port": 80
+    }
+  ],
+  "announce": true
+}

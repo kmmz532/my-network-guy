@@ -173,3 +173,13 @@ describe('銀行の支店の守り（模範解答で解ける）', () => {
     expect(evaluateGoal(goals[1], bank([{ src: 'any', dst: 'any', service: 'any' }]), bankData).some((r) => !r.ok)).toBe(true);
   });
 });
+
+describe('count_device', () => {
+  it('指定の型の機器の台数で判定する（同じカテゴリの別の型は数えない）', () => {
+    const goal: Goal = { type: 'count_device', device: 'gpu_server', min: 1 };
+    const net = twoNets(false);
+    expect(evaluateGoal(goal, net, data)[0].ok).toBe(false);
+    const withGpu: Network = { ...net, nodes: [...net.nodes, host('gpu', 'gpu_server', '192.168.1.40')] };
+    expect(evaluateGoal(goal, withGpu, data)[0].ok).toBe(true);
+  });
+});

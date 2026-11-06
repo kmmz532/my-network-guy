@@ -299,6 +299,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   }),
   // 指定した種類の機器が一定数以上ある
   z.object({ type: z.literal('count'), category: z.string().min(1), min: z.number().int().positive() }),
+  // 指定した型の機器が一定数以上ある（例: GPUサーバー。カテゴリでは区別できない機器に使う）
+  z.object({ type: z.literal('count_device'), device: z.string().min(1), min: z.number().int().positive() }),
   // すべてのPCから、いずれかのサーバーのWebページを閲覧できる
   z.object({ type: z.literal('http_all'), port: z.number().int().min(1).max(65535) }),
   // すべての PC から、そのカテゴリの機器のどれか1台へ Ping が通る（N51b。プリンターの共有）
