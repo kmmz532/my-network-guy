@@ -106,7 +106,8 @@
     "worstCostRatio": 1.1,
     "noiseWidth": 0.1,
     "worstRework": 3,
-    "reworkNoise": 0.5
+    "reworkNoise": 0.5,
+    "blindMinutesPerDevice": 240
   },
   "backOffice": {
     "dailyExp": 20,

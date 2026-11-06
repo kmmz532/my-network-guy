@@ -5,6 +5,7 @@ import type { Contract } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { delegationReason } from '../sim/project';
 import { gameEnv } from '../sim/env';
+import { minutesPerDay } from '../sim/clock';
 import { EMPTY_FAMILIARITY, familiarKeyOf, type Familiarity } from '../sim/familiar';
 import { useGameStore } from './useGameStore';
 
@@ -111,9 +112,28 @@ describe('型紙なしで任せる', () => {
     const reason = st().delegateBlind(offer.id, crew);
     expect(reason).toBeNull();
     expect(st().offers.map((o) => o.id)).toEqual([]);
-    expect(st().active.map((p) => p.id)).toEqual([]);
-    expect(st().lastReport?.passed).toBe(true);
-    expect([1, 2]).toContain(st().lastReport?.stars);
+    // 施工に入る（時間がかかる）。納品までは結果画面も出さず、お金も動かない
+    expect(st().active.map((p) => p.id)).toEqual([offer.id]);
+    expect(st().active[0].phase).toBe('build');
+    expect(st().active[0].delegated).toBe(true);
+    expect(st().lastReport).toBeNull();
+    expect(st().clock.money).toBe(money);
+  });
+
+  it('施工が終わるまで納品せず、終わったら通知で伝え、結果画面は出さない（レベルアップなし）', () => {
+    const moved = { ...bareBlueprint, nodes: bareBlueprint.nodes.map((n) => ({ ...n, x: n.x + 1 })) };
+    withFamiliarity({ counts: { [key]: 3 }, blueprints: { [key]: { stars: 3, design: moved } } });
+    const crew = st().staff.map((m) => m.uid);
+    const money = st().clock.money;
+    expect(st().delegateBlind(offer.id, crew)).toBeNull();
+    // 勤務時間の10時から、施工が終わるまで進める
+    const day = Math.floor(st().clock.minute / minutesPerDay) * minutesPerDay;
+    useGameStore.setState({ speed: 1, clock: { ...st().clock, minute: day + 10 * 60 } });
+    for (let i = 0; i < 20000 && st().active.length > 0; i++) st().tick();
+    expect(st().active.length).toBe(0);
+    expect(st().deliveries).toBe(1);
+    expect(st().lastReport).toBeNull();
+    expect(st().notice?.key).toBe('ui.notice.delegated');
     expect(st().clock.money).not.toBe(money);
   });
 

@@ -82,6 +82,8 @@ export const balanceSchema = z.object({
     noiseWidth: z.number().nonnegative(),
     worstRework: z.number().nonnegative(),
     reworkNoise: z.number().nonnegative(),
+    // 型紙なしで任せた依頼の施工にかける時間（配置する機器1台あたり・分）。施工の進みは担当の社員の施工力で決まる
+    blindMinutesPerDevice: z.number().positive(),
   }),
   // 内勤（社内の仕事で会社に効果を与える。担当には出さない）。効果の強さは、その職種の内勤の実効 level の合計
   backOffice: z.object({

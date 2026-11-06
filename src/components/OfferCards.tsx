@@ -83,8 +83,9 @@ export function OfferBody({ onClose }: { onClose: () => void }) {
             now={now}
             primary={i === 0}
             onAccept={(crew) => accept(offer.id, crew) === null && onClose()}
-            onDelegate={(crew) => useGameStore.getState().acceptDelegated(offer.id, crew) === null && onClose()}
-            onDelegateBlind={(crew) => useGameStore.getState().delegateBlind(offer.id, crew) === null && onClose()}
+            // 任せる依頼は、押したあとも依頼の窓を閉じない（施工は時間がかかり、終わったら通知で伝える）
+            onDelegate={(crew) => useGameStore.getState().acceptDelegated(offer.id, crew)}
+            onDelegateBlind={(crew) => useGameStore.getState().delegateBlind(offer.id, crew)}
             onDecline={() => declineOffer(offer.id)}
           />
         ))}

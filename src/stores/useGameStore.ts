@@ -532,7 +532,7 @@ const withDelegatedNotice = (patch: Partial<GameState>): Partial<GameState> => {
   return {
     ...patch,
     lastReport: null,
-    notice: { key: 'ui.notice.delegated', params: { money: (report.money ?? 0).toLocaleString('ja-JP') }, id: Date.now() },
+    notice: { key: 'ui.notice.delegated', params: { money: report.money ?? 0 }, id: Date.now() },
   };
 };
 

@@ -44,7 +44,7 @@ import { DELEGATE_MIN_COUNT, DELEGATED_EXP_DIVISOR, DELEGATED_STAR_CAP, familiar
 import { dueDayOf, lateDaysOf, lateFactor } from './deadline';
 import { furnitureBonus, type BonusEnv } from './furniture';
 import { gainExp, staffPower } from './staff';
-import { blindDelegation } from './blindDelegate';
+import { blindDelegation, type Stars } from './blindDelegate';
 import { CATEGORY } from '../data/categories';
 import { checkCableLength } from './cableLength';
 import { deliveryExpOf, levelOf, type LevelUp } from './level';
@@ -65,6 +65,8 @@ export interface Project {
   rework: number;
   // 社員に任せた依頼（N70）。★は2が上限、経験値は半分
   delegated?: boolean;
+  // 型紙なしで任せた依頼の結果（受注のときに決め、施工が終わったら納品する）
+  blind?: BlindPlan;
   // 施工済みの機器・配線の uid（差分だけを施工するため）
   built: { nodes: string[]; links: string[] };
   // 自社案件で、自社オフィスから引き継いだ機器の uid（取り消しても在庫に戻さない）
@@ -82,6 +84,13 @@ export interface Project {
   segments?: Record<string, SegmentConfig>;
   // 最後のテストに合格したか。設計を変えると false に戻る。施工は true のときだけ依頼できる
   testedOk: boolean;
+}
+
+// 型紙なしで任せた依頼の結果（★・費用の割合・手直しの回数）
+export interface BlindPlan {
+  stars: Stars;
+  costRatio: number;
+  rework: number;
 }
 
 export interface ReportFailure {
@@ -134,6 +143,8 @@ export interface Report {
   passed: boolean;
   // 納品した案件（納品後の表示に使う）
   delivered?: Project;
+  // 任せた依頼の納品。レベルアップがなければ、結果画面は出さずに通知で伝える（ストアで判断する）
+  delegated?: boolean;
   // 納品が遅れた日数（期日内なら0）
   lateDays?: number;
   // 費用の内訳（納品のとき）
@@ -1301,8 +1312,12 @@ export const advanceBuild = (core: Core, env: Env, hour: number, juniorRate = 1)
     state = withProject(state, { ...p, progress, built });
     finished ??= p.id;
   }
-  // 検収の結果が出たら止める（残りの施工を終えた案件は次のTickで検収する）
-  if (finished !== null) return inspect(state, env, finished);
+  // 検収の結果が出たら止める（残りの施工を終えた案件は次のTickで検収する）。型紙なしで任せた依頼は、受注のときの結果で納品する
+  if (finished !== null) {
+    const done = state.active.find((x) => x.id === finished);
+    if (done?.blind) return settleBlind(state, done, done.blind, env);
+    return inspect(state, env, finished);
+  }
   return { ok: true, core: state };
 };
 
@@ -1339,9 +1354,10 @@ export const testDesign = (core: Core, env: Env): TestOutcome => {
 
 // 型紙なしで任せる（N94）。設計は作らず、結果を乱数で決める。費用は予算 × 費用の割合を払い、報酬は★の倍率で決まる。
 // 経験値は半分。設計は地図に残さない（結果画面は★・費用・報酬）
-export type BlindOutcome = { ok: true; core: Core; report: Report; rng: number } | { ok: false; reason: string };
+// 受注して施工に入る。結果（★・費用の割合・手直し）は受注のときに乱数で決めて案件に持たせ、施工が終わったら納品する（settleBlind）
+export type BlindOutcome = { ok: true; core: Core; rng: number } | { ok: false; reason: string };
 
-export const delegateBlind = (core: Core, offerId: string, crew: string[], env: Env, rng: number): BlindOutcome => {
+export const delegateBlind = (core: Core, offerId: string, crew: string[], env: Env, rng: number, slots: number): BlindOutcome => {
   const offer = core.offers.find((o) => o.id === offerId);
   if (!offer) return { ok: false, reason: 'none' };
   const contract = offer.contract;
@@ -1351,49 +1367,66 @@ export const delegateBlind = (core: Core, offerId: string, crew: string[], env: 
   // 型紙が写せるなら、型紙で任せる（こちらは使わない）
   const bp = core.familiarity.blueprints[key];
   if (bp && positionsMatch(bp.design, fixedNodes(contract))) return { ok: false, reason: 'delegate.blueprint_fits' };
-  if (crew.length === 0) return { ok: false, reason: 'crew' };
-  const busy = new Set(core.active.flatMap((p) => p.crew));
-  const members = crew.map((uid) => core.staff.find((s) => s.uid === uid));
-  const valid = members.every((m) => m !== undefined && m.training === null && !busy.has(m.uid) && !isBackOffice(m.job));
-  if (!valid) return { ok: false, reason: 'crew' };
-  const crewMembers = members as Staff[];
+  // 担当・枠・内勤の判定は受注と同じ（accept）
+  const accepted = accept(core, offerId, slots, crew);
+  if (!accepted.ok) return { ok: false, reason: accepted.reason };
+  const crewMembers = crew.map((uid) => core.staff.find((s) => s.uid === uid)) as Staff[];
   const bonusEnv: BonusEnv = { defs: env.furniture ?? {}, balance: env.balance, staffUids: core.staff.map((s) => s.uid) };
   const jobs = contract.jobs ?? [];
   const power = crewMembers.reduce((sum, m) => sum + staffPower(m, jobs, core.office, bonusEnv), 0);
   const pcCount = contract.placed.filter((p) => env.devices[p.device]?.category === 'pc').length;
   const match = jobs.length === 0 ? 1 : crewMembers.filter((m) => jobs.includes(m.job)).length / crewMembers.length;
   const result = blindDelegation(power, pcCount, match, env.balance, rng);
-  const stars = result.stars;
-  const cost = Math.round(contract.budget * result.costRatio);
-  const reward = Math.round(contract.reward.money * rewardRateOf(stars, env.balance));
+  const plan: BlindPlan = { stars: result.stars, costRatio: result.costRatio, rework: result.rework };
+  // 施工の時間は、配置する機器の数で決める。進みは担当の社員の施工力に比例する（advanceBuild）
+  const total = Math.max(1, contract.placed.length) * env.balance.delegate.blindMinutesPerDevice;
+  const project = accepted.core.active.find((x) => x.id === offerId);
+  if (!project) return { ok: false, reason: 'none' };
+  const started: Project = { ...project, delegated: true, blind: plan, phase: 'build', progress: 0, total, testedOk: true };
+  return { ok: true, core: withProject(accepted.core, started), rng: result.rng };
+};
+
+// 型紙なしで任せた依頼を納品する。費用は予算 × 費用の割合、報酬は★の倍率で決まる。経験値は半分。設計は地図に残さない
+const settleBlind = (core: Core, p: Project, plan: BlindPlan, env: Env): Outcome => {
+  const contract = p.contract;
+  const { stars, costRatio, rework } = plan;
+  const cost = Math.round(contract.budget * costRatio);
+  const money = Math.round(contract.reward.money * rewardRateOf(stars, env.balance));
   const fullExp = deliveryExpOf(contract.unlockLevel, levelOf(core.companyExp, env.balance), rewardRateOf(stars, env.balance), env.balance);
   const expGain = Math.max(1, Math.floor(fullExp / DELEGATED_EXP_DIVISOR));
   let clock = applyMoney(core.clock, -cost, 'construction');
-  clock = applyMoney(clock, reward, 'reward');
-  const next: Core = {
-    ...core,
-    clock,
-    offers: core.offers.filter((o) => o.id !== offerId),
-    completed: offer.kind === 'fixed' ? [...core.completed, offer.baseId] : core.completed,
-    deliveries: core.deliveries + 1,
-    companyExp: core.companyExp + expGain,
-    reputation: core.reputation + stars,
+  clock = applyMoney(clock, money, 'reward');
+  // 報酬の機器はインベントリに入る（型紙で任せた依頼と同じ）
+  const owned = { ...core.owned };
+  for (const r of contract.reward.devices ?? []) owned[r.device] = (owned[r.device] ?? 0) + r.count;
+  return {
+    ok: true,
+    core: {
+      ...core,
+      ...removeProject(core, p.id),
+      clock,
+      owned,
+      completed: p.kind === 'fixed' ? [...core.completed, p.baseId] : core.completed,
+      deliveries: core.deliveries + 1,
+      companyExp: core.companyExp + expGain,
+      reputation: core.reputation + stars,
+    },
+    report: {
+      passed: true,
+      traces: [],
+      failures: [],
+      stars,
+      money,
+      cost,
+      budget: contract.budget,
+      rework,
+      lateDays: 0,
+      designIssues: 0,
+      expGain,
+      rewardDevices: contract.reward.devices ?? [],
+      delegated: true,
+    },
   };
-  const report: Report = {
-    passed: true,
-    traces: [],
-    failures: [],
-    stars,
-    money: reward,
-    cost,
-    budget: contract.budget,
-    rework: result.rework,
-    lateDays: 0,
-    designIssues: 0,
-    expGain,
-    rewardDevices: contract.reward.devices ?? [],
-  };
-  return { ok: true, core: next, report, rng: result.rng };
 };
 
 // 検収: 達成条件を判定する。合格なら納品して報酬と評判を得る。不合格なら設計に戻す（テストの結果を画面に残す）。
@@ -1451,6 +1484,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
         cost: cost.total,
         costBreakdown: cost,
         rewardDevices: p.contract.reward.devices ?? [],
+        delegated: p.delegated,
         budget: p.contract.budget,
         rework: p.rework,
         designIssues: issues,
