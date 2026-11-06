@@ -9,7 +9,7 @@
     {
       "id": "sec1",
       "job": "security",
-      "minLevel": 3,
+      "minLevel": 7,
       "fee": 50000
     }
   ]

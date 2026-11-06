@@ -54,7 +54,7 @@
         "stat": "power",
         "value": 0.05
       },
-      "unlockLevel": 3
+      "unlockLevel": 4
     },
     {
       "id": "water",
@@ -65,7 +65,7 @@
         "stat": "power",
         "value": 0.05
       },
-      "unlockLevel": 3
+      "unlockLevel": 7
     },
     {
       "id": "trash",

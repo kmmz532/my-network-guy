@@ -217,15 +217,12 @@ function OfferCard({
           {t('ui.accept')}
         </button>
         {/* 社員に任せる（N70）。任せられないときは、理由を下に出す */}
-        <button
-          style={{ ...secondaryButton, whiteSpace: 'nowrap' }}
-          disabled={!canAccept || delegateReason !== null}
-          onClick={() => onDelegate(crew)}
-        >
-          {t('ui.delegate.button')}
-        </button>
+        {delegateReason === null && (
+          <button style={{ ...secondaryButton, whiteSpace: 'nowrap' }} disabled={!canAccept} onClick={() => onDelegate(crew)}>
+            {t('ui.delegate.button')}
+          </button>
+        )}
       </div>
-      {delegateReason !== null && <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>{tDyn(`ui.delegate.${delegateReason.replace('delegate.', '')}`)}</div>}
       <CrewPicker selected={crew} onChange={setCrew} />
     </div>
   );
