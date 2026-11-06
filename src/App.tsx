@@ -50,7 +50,7 @@ type Popup = 'menu' | 'help' | 'settings' | 'sandboxResize' | 'sandboxReset' | '
 const hudButton = (on: boolean, phone: boolean) =>
   ({
     padding: '2px 8px',
-    ...(phone ? { minHeight: 44, minWidth: 44 } : {}),
+    ...(phone ? { minHeight: 36, minWidth: 40 } : {}),
     cursor: 'pointer',
     background: on ? '#ffd866' : '#25406f',
     color: on ? '#3b2a33' : '#f4f1e6',
@@ -299,13 +299,13 @@ export function App() {
           top: 0,
           left: 0,
           right: 0,
-          padding: '6px 12px',
+          padding: phone ? '2px 8px' : '6px 12px',
           background: 'rgba(47, 79, 143, 0.75)',
           color: '#f4f1e6',
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
-          gap: 14,
+          gap: phone ? '2px 10px' : 14,
           zoom: 'var(--ui-scale, 1)',
         }}
       >

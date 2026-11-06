@@ -166,7 +166,8 @@ export function Toolbar({
   const yen = (n: number) => n.toLocaleString('ja-JP');
   const phone = usePhone();
   // スマホのボタンは、幅 44 px（指の場所）と高さ 38 px（N58）。パソコンは今の正方形のまま
-  const sl = (active: boolean) => (phone ? { ...slot(active), height: 38 } : slot(active));
+  // 左の道具（選択・配線・撤去）と同じ 44 px の正方形にそろえ、横スクロールの行で縮まないようにする
+  const sl = (active: boolean) => (phone ? { ...slot(active), flexShrink: 0 } : slot(active));
   // IPアドレスの表示の切り替え。設計中は施工のボタンの左、それ以外は右端に出す
   const ipButton = (
     <Tooltip text={tipText('ui.showIp', 'showIp', !phone)}><button aria-label={t('ui.showIp')} style={{ ...sl(showIp), fontSize: 13, fontWeight: 'bold' }}
