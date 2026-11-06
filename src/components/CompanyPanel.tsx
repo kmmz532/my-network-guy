@@ -6,6 +6,8 @@ import { t, tDyn } from '../i18n/t';
 import { expAtLevel, levelOf, levelProgressOf, needOf, nextLevel, titleKeyOf } from '../sim/level';
 import { unlockItems, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
+import { outsideCheck, rentalOf } from '../network/external';
+import { gameEnv } from '../sim/env';
 import { ItemCards, unlockNameOf } from './UnlockList';
 
 // 増えた経験値の「+N」を出している時間（ms）
@@ -55,6 +57,10 @@ export function CompanyBody() {
   const reputation = useGameStore((s) => s.reputation);
   const staff = useGameStore((s) => s.staff);
   const deliveries = useGameStore((s) => s.deliveries);
+  const office = useGameStore((s) => s.office);
+  // 自社のネットワークの外部への接続と、サーバーの貸し出し（N71・N72）
+  const outside = outsideCheck(office, gameEnv.engine);
+  const rental = rentalOf(office, gameEnv.engine, balance.rental.monthlyPerServer);
   const level = levelOf(companyExp, balance);
   const next = nextLevel(companyExp, balance);
   const inLevel = companyExp - expAtLevel(level, balance);
@@ -93,6 +99,16 @@ export function CompanyBody() {
         <span>{t('ui.company.delivered')}</span>
         <span>{t('ui.company.count', { count: deliveries })}</span>
       </div>
+      <div style={row}>
+        <span>{t('ui.company.outside')}</span>
+        <span>{!outside.attached ? t('ui.company.outside.none') : outside.pcsReachOutside ? t('ui.company.outside.ok') : t('ui.company.outside.ng')}</span>
+      </div>
+      {outside.attached && (
+        <div style={row}>
+          <span>{t('ui.company.rental')}</span>
+          <span>{outside.leaks ? t('ui.company.rental.leak') : t('ui.company.rental.value', { count: outside.exposedServers.length, income: rental.income.toLocaleString('ja-JP') })}</span>
+        </div>
+      )}
       <div style={{ paddingTop: 8 }}>
         <div style={{ color: '#ffd866' }}>{next ? t('ui.company.next', { level: next.level }) : t('ui.company.max')}</div>
         {next && unlocks.length === 0 && <div style={{ opacity: 0.85 }}>{t('ui.company.nothing')}</div>}

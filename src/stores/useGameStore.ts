@@ -22,6 +22,7 @@ import type { GameMode, SaveData } from '../services/migrations';
 import { resizeSandboxOffice, sandboxClock, sandboxOffice, sandboxTest } from '../sim/sandbox';
 import { gameEnv } from '../sim/env';
 import { learnFromPing } from '../network/learn';
+import { rentalOf } from '../network/external';
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
 import type { MacEntry } from '../network/mac';
 import { autoAssign } from '../sim/autoAssign';
@@ -950,8 +951,12 @@ export const useGameStore = create<GameState>((set, get) => {
         ) {
           return { speed: 0, payWarned: s.clock.paidMonths, notice: { key: 'ui.notice.payPause', params: {}, id: Date.now() } };
         }
-        const clock = advanceTick(s.clock, balance, totalSalary(s.staff, balance.nightPayRate));
-        let next: Partial<GameState> = { clock };
+        const ticked = advanceTick(s.clock, balance, totalSalary(s.staff, balance.nightPayRate));
+        // 月末に、自社のサーバーを外部に貸した収入を受け取る（N72。給与と同じ月末）。外から社内の PC へ届くときは収入なしで、評判が1下がる
+        const months = ticked.paidMonths - s.clock.paidMonths;
+        const rent = months > 0 && !ticked.bankrupt && s.mode === 'career' ? rentalOf(s.office, gameEnv.engine, balance.rental.monthlyPerServer) : null;
+        const clock = rent !== null && rent.income > 0 ? { ...ticked, money: ticked.money + rent.income * months } : ticked;
+        let next: Partial<GameState> = { clock, ...(rent?.penalty ? { reputation: Math.max(0, s.reputation - months) } : {}) };
         // 月末に給与を払ったら知らせる
         if (clock.paidMonths > s.clock.paidMonths) {
           const amount = totalSalary(s.staff, balance.nightPayRate);

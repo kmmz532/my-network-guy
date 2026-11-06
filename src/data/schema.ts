@@ -66,6 +66,8 @@ export const balanceSchema = z.object({
   nightPayRate: z.number().positive(),
   // 納品以外の経験値の量と、1日の上限（N55）
   // 経験値の量の割合（現在のレベルの必要経験値に掛ける）。納品は解放レベルの必要経験値に掛ける（LEVEL.md）
+  // 自社のサーバーを外部に貸す収入（N72）。公開しているサーバー1台ごとに、月末に受け取る額
+  rental: z.object({ monthlyPerServer: z.number().int().nonnegative() }),
   exp: z.object({ delivery: z.number().nonnegative(), deliveryGapStep: z.number().nonnegative(), deliveryGapMin: z.number().nonnegative(), guide: z.number().nonnegative(), hire: z.number().nonnegative(), expansion: z.number().nonnegative(), furniture: z.number().nonnegative(), dailyCap: z.number().nonnegative() }),
   // 機材の価格の式（N35）: 基本の価格（分類）＋ポート1つあたり（分類）＋機能ごとの加算。機材の定価は、この式の値とそろえる
   pricing: z.object({

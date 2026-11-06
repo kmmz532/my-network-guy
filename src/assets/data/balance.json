@@ -99,6 +99,9 @@
       "seatless": 0.5
     }
   },
+  "rental": {
+    "monthlyPerServer": 30000
+  },
   "office": {
     "projectSlots": 1,
     "initialSize": {
