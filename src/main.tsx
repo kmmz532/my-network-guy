@@ -13,9 +13,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>,
 );
 
-// iOS Safari はピンチをページの拡大にするため、ここで止める（マップの拡大・縮小は Scene が行う）
+// iOS Safari はマップの上のピンチをページの拡大にするため、マップ（canvas）の上だけ止める（マップの拡大・縮小は Scene が行う）。
+// 文字の拡大（ページの拡大）は、それ以外の場所で使えるようにする
 for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
-  document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
+  document.addEventListener(
+    type,
+    (e) => {
+      const target = e.target instanceof Element ? e.target : null;
+      if (target?.closest('canvas')) e.preventDefault();
+    },
+    { passive: false },
+  );
 }
 
 // オフラインでも起動できるよう、本番のビルドだけサービスワーカーを登録する。
