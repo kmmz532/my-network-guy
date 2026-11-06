@@ -53,11 +53,6 @@ export function Guide() {
   // デバッグの「この手順から始める」（N54）: 指定の手順から出す。受け取ったら一度だけ使う
   const debugGuide = useGameStore((s) => s.debugGuide);
   const debugConsumeGuide = useGameStore((s) => s.debugConsumeGuide);
-  useEffect(() => {
-    if (!debugGuide) return;
-    setProgress({ id: debugGuide.id, index: debugGuide.step - 1 });
-    debugConsumeGuide();
-  }, [debugGuide, debugConsumeGuide]);
   // 光らせるツールバーのボタンの位置（画面の座標）
   const [glow, setGlow] = useState<Box | null>(null);
   const phone = usePhone();
@@ -83,19 +78,24 @@ export function Guide() {
     categoryOf,
   };
 
-  const index = progress.id === id ? progress.index : 0;
+  // デバッグの指定の手順（N54）は、表示の計算に直接使う（効果で上書きすると、下の効果が古い値に戻すため）
+  const debugStart = debugGuide !== null && debugGuide.id === id ? debugGuide.step - 1 : null;
+  const index = progress.id === id ? progress.index : (debugStart ?? 0);
   const current = steps ? currentGuideStep(steps, state, index) : null;
   const currentIndex = current ? current.index : -1;
+
 
   // 完了した手順の数を覚える。すべて終えたら案件の案内を終える
   useEffect(() => {
     if (id === null || steps === null) return;
     if (current === null) {
       markGuideDone(id);
+      // 案内を終えたら、デバッグの開始の指定も消す（別の案件の案内に残さない）
+      if (debugGuide !== null && debugGuide.id === id) debugConsumeGuide();
       return;
     }
     if (progress.id !== id || progress.index !== currentIndex) setProgress({ id, index: currentIndex });
-  }, [id, steps, currentIndex, progress.id, progress.index, markGuideDone]);
+  }, [id, steps, currentIndex, progress.id, progress.index, markGuideDone, debugGuide, debugConsumeGuide]);
 
   const step = current ? current.step : null;
   // 対象が機器（案件の機器の ref）なら、マップの機器を光らせるため、ストアに置く（描画は行わない）

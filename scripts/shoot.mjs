@@ -92,6 +92,21 @@ const scenes = {
     await page.getByRole('button', { name: 'DEBUG' }).click();
     await page.waitForTimeout(500);
   },
+  // デバッグの案内（N54）: パネルで、案件の手順 3 から始めた状態
+  guidestart: async (page) => {
+    await page.goto(`${URL_BASE}?debug=1`);
+    await page.waitForFunction(() => window.__game !== undefined, null, { timeout: 30000 });
+    await page.getByText('新しくプレイ').click();
+    await page.waitForTimeout(1000);
+    await page.getByRole('button', { name: 'DEBUG' }).click();
+    await page.waitForTimeout(300);
+    await page.getByRole('combobox', { name: '手順' }).click();
+    await page.getByRole('option', { name: '3', exact: true }).click();
+    await page.getByRole('button', { name: 'この手順から始める' }).click();
+    await page.waitForTimeout(300);
+    await page.getByRole('button', { name: '閉じる' }).click();
+    await page.waitForTimeout(800);
+  },
   // インベントリを開いた状態
   inventory: async (page) => {
     await scenes.career(page);
