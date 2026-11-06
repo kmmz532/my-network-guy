@@ -7,9 +7,9 @@ import { furnitureBonus, seatOf, type BonusEnv } from './furniture';
 import { randInt } from './rng';
 
 // 名前の候補（言語ファイルの staff.name.0 〜 staff.name.59）の数
-export const NAME_COUNT = 60;
+export const NAME_COUNT = 91;
 // 口癖の候補（言語ファイルの staff.quirk.<id>）
-export const QUIRK_IDS = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8'] as const;
+export const QUIRK_IDS = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10', 'q11', 'q12'] as const;
 
 export interface StaffSpec {
   job: JobId;
