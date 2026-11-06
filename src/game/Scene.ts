@@ -1171,25 +1171,17 @@ export class Scene {
     if (tag) this.drawNameTag(left + STAFF_W / 2, top, tag);
   }
 
-  // 社員の名札（「名前 (職種)」を1行で、頭の上に出す）。黒の半透明の背景に縁はなく、文字は明るい色
+  // 社員の名札（「名前 (職種)」を1行で、頭の上に出す）。IPの表示と同じく、背景は付けず縁取りで読めるようにする
   private drawNameTag(cx: number, headTop: number, tag: { name: string; job: string }): void {
-    const map = this.mapSize();
-    const u = 1 / this.content.scale.x;
-    const pad = 2 * u;
+    const scale = this.content.scale.x;
+    const fontPx = 11 / scale;
     const text = new Text({
       text: `${tDyn(tag.name)} (${tDyn(`staff.job.${tag.job}`)})`,
-      style: { fontFamily: 'sans-serif', fontSize: 10 * u, fill: 0xf4f1e6, align: 'center' },
-      resolution: this.textResolution(),
+      style: { fontFamily: 'monospace', fontSize: fontPx, fill: 0xf4f1e6, align: 'center', stroke: { color: OUTLINE, width: 2 / scale } },
+      resolution: Math.max(2, scale * (window.devicePixelRatio || 1)),
     });
-    const w = text.width + pad * 2;
-    const h = text.height + pad * 2;
-    const left = Math.min(Math.max(cx - w / 2, 0), Math.max(0, map.w - w));
-    const top = Math.max(0, headTop - 2 * u - h);
-    const box = new Graphics();
-    box.rect(left, top, w, h).fill({ color: 0x000000, alpha: 0.5 });
-    this.bubbles.addChild(box);
-    text.anchor.set(0, 0);
-    text.position.set(left + pad, top + pad);
+    text.anchor.set(0.5, 1);
+    text.position.set(cx, headTop - 2 / scale);
     this.bubbles.addChild(text);
   }
 
