@@ -105,8 +105,7 @@
     }
   ],
   "reward": {
-    "money": 600000,
-    "exp": 1
+    "money": 600000
   },
   "unlockLevel": 18
 }

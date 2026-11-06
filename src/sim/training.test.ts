@@ -63,7 +63,7 @@ describe('研修', () => {
       budget: 0,
       placed: [],
       goals: [{ type: 'count', category: 'pc', min: 1 }],
-      reward: { money: 0, exp: 0 },
+      reward: { money: 0 },
       inhouse: false,
     };
     const offer: Offer = { id: 'x', kind: 'fixed', baseId: 'x', params: {}, contract };

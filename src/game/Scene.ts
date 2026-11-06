@@ -281,7 +281,7 @@ export class Scene {
       kind: 'fixed',
       baseId: 'hq',
       params: {},
-      contract: { id: 'hq', stage: 1, order: 0, unlockLevel: 1, requires: [], map: 'hq', budget: 0, placed: [], goals: [], reward: { money: 0, exp: 0 }, inhouse: true },
+      contract: { id: 'hq', stage: 1, order: 0, unlockLevel: 1, requires: [], map: 'hq', budget: 0, placed: [], goals: [], reward: { money: 0 }, inhouse: true },
       nodes: office.nodes,
       links: office.links,
       seq: office.seq,

@@ -87,7 +87,6 @@ export const instantiateTemplate = (
     inhouse: false,
     reward: {
       money: template.reward.base + template.reward.perPc * n,
-      exp: template.reward.exp,
     },
   };
   return {

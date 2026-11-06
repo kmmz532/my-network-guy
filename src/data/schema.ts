@@ -61,7 +61,8 @@ export const balanceSchema = z.object({
   // 夜勤の給与の倍率（日勤の給与に掛ける。N48）
   nightPayRate: z.number().positive(),
   // 納品以外の経験値の量と、1日の上限（N55）
-  exp: z.object({ dailyCap: nonNegativeInt, guide: nonNegativeInt, hire: nonNegativeInt, expansion: nonNegativeInt, furniture: nonNegativeInt }),
+  // 経験値の量の割合（現在のレベルの必要経験値に掛ける）。納品は解放レベルの必要経験値に掛ける（LEVEL.md）
+  exp: z.object({ delivery: z.number().nonnegative(), guide: z.number().nonnegative(), hire: z.number().nonnegative(), expansion: z.number().nonnegative(), furniture: z.number().nonnegative(), dailyCap: z.number().nonnegative() }),
   // 機材の価格の式（N35）: 基本の価格（分類）＋ポート1つあたり（分類）＋機能ごとの加算。機材の定価は、この式の値とそろえる
   pricing: z.object({
     base: z.record(z.string(), nonNegativeInt),
@@ -319,7 +320,6 @@ export const contractSchema = z.object({
   goals: z.array(goalSchema).min(1),
   reward: z.object({
     money: nonNegativeInt,
-    exp: int.default(0),
     // 納品で倉庫に入る機材（自社案件の報酬。N34）
     devices: z.array(z.object({ device: z.string().min(1), count: int.positive() })).optional(),
   }),
@@ -356,7 +356,6 @@ export const templateSchema = z.object({
   reward: z.object({
     base: nonNegativeInt,
     perPc: nonNegativeInt,
-    exp: int.default(0),
   }),
   goals: z.array(goalSchema).min(1),
 });

@@ -33,8 +33,7 @@
   },
   "reward": {
     "base": 60000,
-    "perPc": 15000,
-    "exp": 1
+    "perPc": 15000
   },
   "goals": [
     {

@@ -480,7 +480,7 @@ describe('自社オフィスの編集', () => {
       budget: 200000,
       placed: [],
       goals: [{ type: 'count', category: 'pc', min: 2 }],
-      reward: { money: 0, exp: 1 },
+      reward: { money: 0 },
       inhouse: true,
       effect: { buildSpeed: 0 },
     };
@@ -506,7 +506,7 @@ describe('自社案件', () => {
       { type: 'count', category: 'pc', min: 2 },
       { type: 'ping_all', nodes: '$all_pcs' },
     ],
-    reward: { money: 0, exp: 1 },
+    reward: { money: 0 },
     inhouse: true,
     effect: { buildSpeed: 0.2 },
   };

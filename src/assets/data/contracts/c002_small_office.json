@@ -48,8 +48,7 @@
     }
   ],
   "reward": {
-    "money": 90000,
-    "exp": 1
+    "money": 90000
   },
   "unlockLevel": 2
 }

@@ -29,8 +29,7 @@
         "device": "firewall",
         "count": 1
       }
-    ],
-    "exp": 1
+    ]
   },
   "inhouse": true,
   "effect": {

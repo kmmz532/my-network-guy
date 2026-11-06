@@ -79,3 +79,14 @@ export const levelUpsBetween = (
   }
   return out;
 };
+
+// 経験値の量の割合（balance.exp）を、現在のレベルの必要経験値に掛けた量（LEVEL.md の割合の方針。N55）。最小は 1
+export const expAmountOf = (rate: number, level: number, balance: Balance): number =>
+  Math.max(1, Math.round(needOf(level, balance) * rate));
+
+// 1日の上限（繰り返せる源の合計）。最小は 2
+export const dailyExpCapOf = (level: number, balance: Balance): number =>
+  Math.max(2, Math.round(needOf(level, balance) * balance.exp.dailyCap));
+
+// 納品の経験値。案件の解放レベル（unlockLevel）の必要経験値に割合を掛ける。解放レベルを超えて進んだ後の古い案件は相対的に少なくなる
+export const deliveryExpOf = (unlockLevel: number, balance: Balance): number => expAmountOf(balance.exp.delivery, unlockLevel, balance);
