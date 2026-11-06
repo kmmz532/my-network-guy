@@ -50,6 +50,14 @@ export function Guide() {
   const markGuideDone = useGameStore((s) => s.markGuideDone);
   // 案件ごとに、完了した手順の数を覚える（画面の中だけ。条件を満たした手順は戻らない）
   const [progress, setProgress] = useState<{ id: string; index: number }>({ id: '', index: 0 });
+  // デバッグの「この手順から始める」（N54）: 指定の手順から出す。受け取ったら一度だけ使う
+  const debugGuide = useGameStore((s) => s.debugGuide);
+  const debugConsumeGuide = useGameStore((s) => s.debugConsumeGuide);
+  useEffect(() => {
+    if (!debugGuide) return;
+    setProgress({ id: debugGuide.id, index: debugGuide.step - 1 });
+    debugConsumeGuide();
+  }, [debugGuide, debugConsumeGuide]);
   // 光らせるツールバーのボタンの位置（画面の座標）
   const [glow, setGlow] = useState<Box | null>(null);
   const phone = usePhone();

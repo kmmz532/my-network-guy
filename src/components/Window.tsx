@@ -140,7 +140,8 @@ export function Window({ title, rect, movable, closeLabel, closeText, onFocus, o
       </div>
       {tabs}
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 8 }}>
-        <div style={{ width: '100%', zoom: 'var(--ui-scale, 1)' }}>{children}</div>
+        {/* 中身はウィンドウの高さいっぱいまで伸ばせる（インベントリの枠など）。zoom を掛けるため、高さは倍率で割る */}
+        <div style={{ width: '100%', minHeight: 'calc(100% / var(--ui-scale, 1))', display: 'flex', flexDirection: 'column', zoom: 'var(--ui-scale, 1)' }}>{children}</div>
       </div>
       {movable && RESIZE_HANDLES.map((h) => (
         <div

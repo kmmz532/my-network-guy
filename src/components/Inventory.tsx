@@ -88,7 +88,8 @@ export function InventoryBody() {
     s.setPlacing(s.placing === item.id ? null : item.id);
   };
   return (
-    <div>
+    // ウィンドウの高さいっぱいに枠を伸ばし、品目は幅に合わせて複数行に並べる
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Tabs
         idPrefix="inventory-tab"
         ariaLabel={t('ui.inventory.title')}
@@ -102,7 +103,7 @@ export function InventoryBody() {
         colors={TAB_COLORS.shop}
         style={{ paddingLeft: 8 }}
       />
-      <div id="inventory-panel" role="tabpanel" aria-labelledby={`inventory-tab-${tab}`} style={tabPanelStyle(TAB_COLORS.shop.selected)}>
+      <div id="inventory-panel" role="tabpanel" aria-labelledby={`inventory-tab-${tab}`} style={{ ...tabPanelStyle(TAB_COLORS.shop.selected), flex: 1 }}>
         <Inventory layout="grid" items={items} owned={owned} placing={placing} onPick={pick} onShop={() => useGameStore.getState().openWindow('shop', '')} />
       </div>
     </div>

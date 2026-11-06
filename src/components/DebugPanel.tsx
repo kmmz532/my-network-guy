@@ -1,6 +1,8 @@
 // デバッグのパネル（N54）。?debug=1 のときだけ、App が遅延読み込みで出す。操作は既存の操作（ストアと update.ts）を呼ぶ
 import { useState, type CSSProperties } from 'react';
-import { balance } from 'virtual:game-data';
+import { balance, guides } from 'virtual:game-data';
+import { tDyn } from '../i18n/t';
+import { Select } from './Select';
 import { SAVE_VERSION } from '../services/migrations';
 import { exportSave, importSave } from '../services/saveFile';
 import { showUpdateNotice } from '../pwa/update';
@@ -25,11 +27,16 @@ const buttonStyle: CSSProperties = {
 
 export default function DebugPanel() {
   const [open, setOpen] = useState(false);
+  // 案内の欄（N54）: 案件と手順の選び。開始は手順の番号、済みは案件だけで決まる
+  const guideIds = Object.keys(guides);
+  const [guideContract, setGuideContract] = useState<string>(guideIds[0] ?? '');
+  const [guideStep, setGuideStep] = useState<number>(1);
   // パネルを開いたときに控える今のセーブ（「控えに戻す」で戻す）
   const [backup, setBackup] = useState<ReturnType<ReturnType<typeof useGameStore.getState>['snapshot']> | null>(null);
   const [message, setMessage] = useState('');
   const [saveText, setSaveText] = useState('');
   const companyExp = useGameStore((s) => s.companyExp);
+  const guidesDone = useGameStore((s) => s.guidesDone);
   const minute = useGameStore((s) => s.clock.minute);
   const level = levelOf(companyExp, balance);
 
@@ -182,6 +189,40 @@ export default function DebugPanel() {
         </button>
         <button type="button" style={buttonStyle} onClick={act(() => store().debugResetGuides(), '案内を最初から出し直します')}>
           案内を最初から
+        </button>
+        <div>案内（手順から始める）</div>
+        <Select
+          label="案件"
+          value={guideContract}
+          options={guideIds.map((id) => ({ value: id, label: `${guidesDone.includes(id) ? '済 ' : ''}${tDyn(`contract.${id}.title`)}` }))}
+          onChange={(v) => {
+            setGuideContract(v);
+            setGuideStep(1);
+          }}
+        />
+        <Select
+          label="手順"
+          value={String(guideStep)}
+          options={(guides[guideContract] ?? []).map((_, i) => ({ value: String(i + 1), label: `${i + 1}` }))}
+          onChange={(v) => setGuideStep(Number(v))}
+        />
+        <button
+          type="button"
+          style={buttonStyle}
+          onClick={() => {
+            const reason = store().debugStartGuide(guideContract, guideStep);
+            // 受注できないときは理由を出す（何も変えていない）
+            say(reason ? `受注できない: ${tDyn(`ui.error.${reason}`)}` : '案内を始めました');
+          }}
+        >
+          この手順から始める
+        </button>
+        <button
+          type="button"
+          style={buttonStyle}
+          onClick={act(() => store().debugMarkGuideDone(guideContract), '案内を済みにしました（経験値は増えません）')}
+        >
+          済みにする
         </button>
         <textarea
           aria-label="セーブの JSON"

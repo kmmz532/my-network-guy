@@ -98,6 +98,17 @@ const scenes = {
     await page.getByRole('button', { name: 'インベントリ' }).first().click();
     await page.waitForTimeout(500);
   },
+  // インベントリに多くの品目を入れた状態（折り返しとスクロールの確認）
+  inventoryFull: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      const ids = ['pc_basic', 'laptop', 'server_basic', 'gpu_server', 'l2_switch_4p', 'l2_switch_8p', 'l3_switch', 'router_basic', 'router_switch', 'firewall', 'desk', 'plant', 'bookshelf', 'cabinet', 'coffee', 'water', 'trash', 'sofa', 'boxes'];
+      g.setState({ owned: Object.fromEntries(ids.map((id) => [id, 3])) });
+    });
+    await page.getByRole('button', { name: 'インベントリ' }).first().click();
+    await page.waitForTimeout(500);
+  },
   // 右上のメニュー
   menu: async (page) => {
     await scenes.career(page);

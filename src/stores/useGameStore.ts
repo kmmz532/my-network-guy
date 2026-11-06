@@ -2,7 +2,7 @@
 import { loadSettings, saveSettings } from '../settings/settings';
 import { playConnect, playDeliver, playFail } from '../audio/sfx';
 import { create } from 'zustand';
-import { balance, cables, contracts, contractTemplates, devices, furniture, levelMilestones } from 'virtual:game-data';
+import { balance, cables, contracts, contractTemplates, devices, furniture, guides, levelMilestones } from 'virtual:game-data';
 import type { FurnitureId } from '../generated/ids';
 import { advanceTick, initialClock, minutesPerDay, minutesPerMonth, toDate, type ClockState } from '../sim/clock';
 import { isOnShift } from '../sim/shift';
@@ -150,6 +150,8 @@ export interface GameState {
   // 今日（ゲームの日）に経験値を得た量。1日の上限（balance.exp.dailyCap）に使う（N55）
   expDay: number;
   expToday: number;
+  // デバッグ（N54）: 案内を開始する手順（一度だけ使う。保存しない）
+  debugGuide: { id: string; step: number } | null;
   owned: Record<string, number>;
   completed: string[];
   offers: Offer[];
@@ -190,6 +192,12 @@ export interface GameState {
   debugRefreshOffers: () => void;
   // デバッグ（N54）: 施工中の案件を、時間を進めて最後まで進める（検収の結果が出るまで）
   debugFinishBuild: () => void;
+  // デバッグ（N54）: 案内を指定の手順から出す（案件を受注して設計に入る）。受注できないときは理由を返し、何も変えない
+  debugStartGuide: (contractId: string, step: number) => string | null;
+  // デバッグ（N54）: 案内を終わった扱いにする（経験値は増やさない）
+  debugMarkGuideDone: (contractId: string) => void;
+  // 案内の開始の指定を、Guide が受け取ったあとに消す
+  debugConsumeGuide: () => void;
   speed: Speed;
   // 勤務時間外の早送りで、自動で変える前の速さ（自動で変えていなければ null。保存しない）
   nightSpeed: Speed | null;
@@ -633,6 +641,7 @@ export const useGameStore = create<GameState>((set, get) => {
     reputation: 0,
     expDay: 0,
     expToday: 0,
+    debugGuide: null,
     owned: { ...balance.initialStock },
     completed: [],
     offers: [],
@@ -678,6 +687,35 @@ export const useGameStore = create<GameState>((set, get) => {
       for (let i = 0; i < 200000 && get().lastReport === null && get().active.some((p) => p.phase === 'build'); i++) get().tick();
       set({ speed: before });
     },
+    debugStartGuide: (contractId, step) => {
+      const s = get();
+      const steps = guides[contractId];
+      // 手順の番号（1〜手順の数）と案件を確かめてから動く
+      if (!steps || step < 1 || step > steps.length) return 'none';
+      const fixed = offerEnv(s.maps).fixed.find((c) => c.id === contractId);
+      if (!fixed) return 'none';
+      const focused = focusedProject(s);
+      if (!(focused && focused.baseId === contractId && focused.phase === 'design')) {
+        // 依頼の一覧になければ、この案件の依頼を作る。受注できるかを先に確かめ、できないときは何も変えない
+        const existing = s.offers.find((o) => o.kind === 'fixed' && o.baseId === contractId);
+        const offer = existing ?? { id: fixed.id, kind: 'fixed' as const, baseId: fixed.id, params: {}, contract: fixed, arrivedMinute: s.clock.minute };
+        const offers = existing ? s.offers : [...s.offers, offer];
+        // 担当は、空いている社員全員（受注の画面と同じ既定）
+        const busy = s.active.flatMap((p) => p.crew);
+        const crew = s.staff.filter((m) => !busy.includes(m.uid) && m.training === null).map((m) => m.uid);
+        const probe = accept({ ...coreOf(s), offers }, offer.id, balance.office.projectSlots, crew);
+        if (!probe.ok) return probe.reason;
+        set({ offers });
+        const reason = get().accept(offer.id, crew);
+        if (reason) return reason;
+      }
+      set((st) => ({ guidesDone: st.guidesDone.filter((g) => g !== contractId), debugGuide: { id: contractId, step } }));
+      return null;
+    },
+    debugMarkGuideDone: (contractId) =>
+      // 経験値は増やさない（既存の markGuideDone は案内の経験値を入れるため使わない）
+      set((st) => (st.guidesDone.includes(contractId) ? {} : { guidesDone: [...st.guidesDone, contractId] })),
+    debugConsumeGuide: () => set({ debugGuide: null }),
     grantCompanyExp: (source) => {
       const s = get();
       // サンドボックスは育成がないため、経験値は入れない
