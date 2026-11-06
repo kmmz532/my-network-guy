@@ -16,7 +16,7 @@ import { expandActionOf, officeExpandCostOf, type ExpandSide } from '../sim/offi
 import {
   checkConnect,
   compiledNet,
-  DESK_ID,
+  isDeskFurniture,
   moveNode,
   placeDevice,
   placeInOffice,
@@ -29,6 +29,7 @@ import { colorOfLink, networkColors, type NetworkColors } from '../network/netCo
 import type { Compiled, IssueDetail } from '../network/compile';
 import { spriteOf, texture } from './sprites';
 import { balance, devices as deviceData, furniture as furnitureData } from 'virtual:game-data';
+import type { FurnitureId } from '../generated/ids';
 import { hideTip, showTipAt } from '../components/Tooltip';
 import { effectText } from './effectText';
 import { t, tDyn } from '../i18n/t';
@@ -843,7 +844,7 @@ export class Scene {
     // 席は、自社オフィスの机の家具を並び順に使う
     const desks = useGameStore
       .getState()
-      .office.furniture.filter((f) => f.id === DESK_ID)
+      .office.furniture.filter((f) => isDeskFurniture(f.id, gameEnv))
       .map((f): [number, number] => [f.x, f.y]);
     const staffList = useGameStore.getState().staff;
     const workers = Math.min(desks.length, staffList.length);
@@ -898,7 +899,7 @@ export class Scene {
       return kind === 'floor' || kind === 'door';
     };
     const route = (from: Point, to: Point): Point[] | null => bfsRoute(from, to, passable);
-    const desks = s.office.furniture.filter((f) => f.id === DESK_ID);
+    const desks = s.office.furniture.filter((f) => isDeskFurniture(f.id, gameEnv));
     // 休憩の場所（コーヒー・水・ソファ）。なければ、床の数か所を歩き回る
     const restSpots = s.office.furniture.filter((f) => BREAK_FURNITURE.includes(f.id)).map((f): Point => ({ x: f.x, y: f.y }));
     const floor: Point[] = [];
@@ -940,7 +941,7 @@ export class Scene {
       return;
     }
     const s = useGameStore.getState();
-    const seats = s.office.furniture.filter((f) => f.id === DESK_ID).length;
+    const seats = s.office.furniture.filter((f) => isDeskFurniture(f.id, gameEnv)).length;
     const count = Math.max(0, s.staff.length - seats);
     const floor: Point[] = [];
     for (let y = 0; y < map.height; y++) {
@@ -960,7 +961,7 @@ export class Scene {
   private drawWanderers(ts: number): void {
     // 歩き手は、officeStaffHits と同じく席の数の後の社員を描く
     const s = useGameStore.getState();
-    const seats = s.office.furniture.filter((f) => f.id === DESK_ID).length;
+    const seats = s.office.furniture.filter((f) => isDeskFurniture(f.id, gameEnv)).length;
     this.wanderers.forEach((w, k) => {
       const at = wanderStaffPos(w.x, w.y, ts);
       this.drawStaff(at.x, at.y, s.staff[seats + k]?.look ?? STAFF_PLACEHOLDER_LOOKS[k % STAFF_PLACEHOLDER_LOOKS.length]);
@@ -973,7 +974,7 @@ export class Scene {
     const s = useGameStore.getState();
     if (this.map?.id !== 'hq' || s.showcase || focusedProject(s)?.phase === 'build') return [];
     const ts = this.tileSize();
-    const desks = s.office.furniture.filter((f) => f.id === DESK_ID);
+    const desks = s.office.furniture.filter((f) => isDeskFurniture(f.id, gameEnv));
     const hits: StaffHit[] = [];
     desks.forEach((f, k) => {
       const member = s.staff[k];
@@ -996,7 +997,8 @@ export class Scene {
   // 自社オフィスの家具。スプライトの下端をマスの下端に揃え、1マスより高い分は上へはみ出させる
   private drawFurniture(furniture: PlacedFurniture[], ts: number): void {
     for (const f of furniture) {
-      const tex = texture(spriteOf(`furniture/${f.id}`));
+      // 家具の絵は定義の sprite を使う（机と椅子・机だけは、同じ机の ID でも絵が違うため）
+      const tex = texture(spriteOf(furnitureData[f.id as FurnitureId]?.sprite ?? ''));
       if (!tex) continue;
       const sprite = new Sprite(tex);
       sprite.position.set(f.x * ts + Math.round((ts - tex.width) / 2), (f.y + 1) * ts - tex.height);
@@ -1011,7 +1013,7 @@ export class Scene {
   private deskAt(x: number, y: number): boolean {
     return (
       this.map?.id === 'hq' &&
-      useGameStore.getState().office.furniture.some((f) => f.x === x && f.y === y && f.id === DESK_ID)
+      useGameStore.getState().office.furniture.some((f) => f.x === x && f.y === y && isDeskFurniture(f.id, gameEnv))
     );
   }
 

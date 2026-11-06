@@ -310,8 +310,8 @@
   "staff.job.network": "ネットワーク",
   "staff.job.infra": "インフラ",
   "staff.job.security": "セキュリティ",
-  "furniture.desk.name": "オフィスデスク",
-  "furniture.desk.desc": "社員が座って作業する机。PCを載せられる。",
+  "furniture.desk.name": "机と椅子",
+  "furniture.desk.desc": "社員が座って仕事をする。椅子つき",
   "furniture.plant.name": "観葉植物",
   "furniture.plant.desc": "オフィスを明るくする植物。",
   "furniture.bookshelf.name": "本棚",
@@ -558,5 +558,7 @@
   "ui.terminal.usageNoHost": "使い方: no ip host <名前>",
   "ui.terminal.hostLine": "{name}  {ip}",
   "ui.terminal.noHosts": "対応表は空",
-  "ui.terminal.cfgHost": "ip host {name} {ip}"
+  "ui.terminal.cfgHost": "ip host {name} {ip}",
+  "furniture.desk_only.name": "机",
+  "furniture.desk_only.desc": "椅子のない机。席としては数える"
 }

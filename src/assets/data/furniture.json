@@ -3,6 +3,12 @@
     {
       "id": "desk",
       "price": 30000,
+      "sprite": "furniture/desk_chair",
+      "seat": true
+    },
+    {
+      "id": "desk_only",
+      "price": 24000,
       "sprite": "furniture/desk",
       "seat": true
     },

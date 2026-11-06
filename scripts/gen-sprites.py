@@ -751,6 +751,25 @@ def desk():
     return outline(img)
 
 
+def desk_chair():
+    # 机と椅子。机は desk() と同じ。手前（下側）に、背もたれのある椅子を置く（社員はここに座る。N44）
+    img, d = new(32, 32)
+    rect(d, 1, 4, 30, 18, 'e')
+    d.line([(1, 4), (30, 4)], fill=C['w'])
+    d.line([(2, 5), (2, 20)], fill=C['w'])
+    rect(d, 1, 22, 30, 3, 'w')
+    d.line([(1, 24), (30, 24)], fill=C['g'])
+    rect(d, 2, 25, 2, 6, 'g')
+    rect(d, 28, 25, 2, 6, 'g')
+    rect(d, 4, 25, 24, 2, 'd')
+    # 椅子: 背もたれ（奥）と座面（手前）。机の下の段に重ねて描く
+    rect(d, 12, 15, 8, 3, 'b')
+    rect(d, 11, 18, 10, 3, 'B')
+    rect(d, 13, 21, 2, 4, 'g')
+    rect(d, 19, 21, 2, 4, 'g')
+    return outline(img)
+
+
 def plant():
     img, d = new(32, 44)
     d.ellipse([7, 2, 24, 18], fill=C['G'])
@@ -984,6 +1003,7 @@ if __name__ == '__main__':
         save(img, f'tile/{name}.png')
     furniture = {
         'desk': desk(),
+        'desk_chair': desk_chair(),
         'plant': plant(),
         'bookshelf': bookshelf(),
         'cabinet': cabinet(),

@@ -42,6 +42,7 @@
     }
   },
   "initialStock": {
+    "desk": 2,
     "pc_basic": 2,
     "plant": 1
   },

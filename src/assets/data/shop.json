@@ -33,6 +33,7 @@
       }
     },
     { "furniture": "desk", "unlock": null },
+    { "furniture": "desk_only", "unlock": null },
     { "furniture": "plant", "unlock": null },
     { "furniture": "bookshelf", "unlock": null },
     { "furniture": "cabinet", "unlock": null },

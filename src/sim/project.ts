@@ -190,6 +190,9 @@ export interface Effects {
 // 社員の席になる家具（机）のID。PCはこの家具の上にだけ置ける
 export const DESK_ID = 'desk';
 
+// 席になる家具（机。定義の seat が true のもの。N44 で机だけの品目も席として数える）。定義がなければ DESK_ID だけを机とする
+export const isDeskFurniture = (id: string, env: Env): boolean => (env.furniture?.[id]?.seat ?? false) || id === DESK_ID;
+
 export const emptyOffice = (size: OfficeSize): Office => ({
   size,
   innerWalls: [],
@@ -368,14 +371,14 @@ const officePlaceReason = (
   const hasNode = nodes.some((n) => n.x === x && n.y === y);
   const isPc = env.devices[deviceId].category === CATEGORY.pc;
   if (isPc && !anyFloor) {
-    const onDesk = furniture.some((f) => f.x === x && f.y === y && f.id === DESK_ID);
+    const onDesk = furniture.some((f) => f.x === x && f.y === y && isDeskFurniture(f.id, env));
     return !onDesk || hasNode ? 'desk' : null;
   }
   const kind = map.legend[map.tiles[y][x]];
   if (kind !== 'floor') return 'tile';
   if (hasNode) return 'tile';
   const here = furniture.filter((f) => f.x === x && f.y === y);
-  if (isPc) return here.some((f) => f.id !== DESK_ID) ? 'tile' : null;
+  if (isPc) return here.some((f) => !isDeskFurniture(f.id, env)) ? 'tile' : null;
   return here.length > 0 ? 'tile' : null;
 };
 
