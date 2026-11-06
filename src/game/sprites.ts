@@ -33,6 +33,7 @@ const textures = new Map<string, Texture>();
 
 // すべてのスプライトを読み込む。ドット絵が崩れないよう補間を行わない
 export const loadTextures = async (): Promise<void> => {
+  loaded = false;
   await Promise.all(
     [...urls].map(async ([name, url]) => {
       const texture = await Assets.load<Texture>(url);
@@ -40,6 +41,17 @@ export const loadTextures = async (): Promise<void> => {
       textures.set(name, texture);
     }),
   );
+  loaded = true;
 };
 
-export const texture = (name: SpriteId): Texture | undefined => textures.get(name);
+// 読み込みの終わったあとに、ないテクスチャを頼むのは誤り（開発中は警告する。読み込みの前は undefined でよい）
+const warned = new Set<string>();
+let loaded = false;
+export const texture = (name: SpriteId): Texture | undefined => {
+  const tex = textures.get(name);
+  if (!tex && loaded && import.meta.env.DEV && !warned.has(name)) {
+    warned.add(name);
+    console.warn(`テクスチャ ${name} が読み込まれていない`);
+  }
+  return tex;
+};
