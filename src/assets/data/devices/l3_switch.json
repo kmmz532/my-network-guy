@@ -12,7 +12,8 @@
         }
       ],
       "features": [
-        "routing"
+        "routing",
+        "layer3"
       ],
       "sprite": "device/l3_switch"
     }

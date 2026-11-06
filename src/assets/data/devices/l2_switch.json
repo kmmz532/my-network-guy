@@ -17,7 +17,7 @@
     {
       "id": "l2_switch_16p",
       "category": "l2_switch",
-      "price": 26000,
+      "price": 24000,
       "ports": [
         {
           "type": "rj45",
@@ -31,7 +31,7 @@
     {
       "id": "l2_switch_24p",
       "category": "l2_switch",
-      "price": 42000,
+      "price": 36000,
       "ports": [
         {
           "type": "rj45",

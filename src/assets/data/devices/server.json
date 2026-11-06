@@ -34,7 +34,8 @@
         }
       ],
       "features": [
-        "service"
+        "service",
+        "gpu"
       ],
       "defaultServices": [
         {

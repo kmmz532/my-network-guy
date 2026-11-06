@@ -12,6 +12,35 @@
   },
   "startMoney": 1000000,
   "sellRate": 0.8,
+  "pricing": {
+    "base": {
+      "pc": 80000,
+      "server": 200000,
+      "l2_switch": 0,
+      "router": 0,
+      "router_switch": 0,
+      "l3_switch": 0,
+      "firewall": 0
+    },
+    "perPort": {
+      "l2_switch": 1500,
+      "router": 5000,
+      "router_switch": 5000,
+      "l3_switch": 10000,
+      "firewall": 5000,
+      "pc": 0,
+      "server": 0
+    },
+    "features": {
+      "routing": 40000,
+      "switch": 15000,
+      "layer3": 30000,
+      "firewall": 70000,
+      "portable": 40000,
+      "service": 100000,
+      "gpu": 900000
+    }
+  },
   "initialStock": {
     "pc_basic": 2,
     "plant": 1

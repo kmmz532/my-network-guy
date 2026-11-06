@@ -25,7 +25,9 @@
           "speedMbps": 1000
         }
       ],
-      "features": [],
+      "features": [
+        "portable"
+      ],
       "sprite": "device/laptop"
     }
   ]

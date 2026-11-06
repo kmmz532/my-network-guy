@@ -51,6 +51,12 @@ export const balanceSchema = z.object({
   startMoney: int,
   // 在庫を売るときの値段（購入時の値段に掛ける割合）
   sellRate: z.number().min(0).max(1),
+  // 機材の価格の式（N35）: 基本の価格（分類）＋ポート1つあたり（分類）＋機能ごとの加算。機材の定価は、この式の値とそろえる
+  pricing: z.object({
+    base: z.record(z.string(), nonNegativeInt),
+    perPort: z.record(z.string(), nonNegativeInt),
+    features: z.record(z.string(), nonNegativeInt),
+  }),
   // ゲーム開始時の在庫（機器・家具の id と台数）
   initialStock: z.record(z.string(), nonNegativeInt),
   offerIntervalDays: int.positive(),
