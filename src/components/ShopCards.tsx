@@ -44,8 +44,8 @@ export function ShopBody() {
   const furnitureIds = shop.filter((i) => i.furniture && isUnlocked(i, level, itemDefs, sandbox)).map((i) => i.furniture!);
   const yen = (n: number) => n.toLocaleString('ja-JP');
   const cost = (n: number) => (sandbox ? 0 : n);
-  const deviceRows = ids.filter((id) => matchesQuery(query, [tDyn(`device.${id}.name`), id, tDyn(`category.${devices[id as keyof typeof devices].category}`)]));
-  const furnitureRows = furnitureIds.filter((id) => matchesQuery(query, [tDyn(`furniture.${id}.name`), id]));
+  const deviceRows = ids.filter((id) => matchesQuery(query, [tDyn(`device.${id}.name`), tDyn(`device.${id}.kana`), id, tDyn(`category.${devices[id as keyof typeof devices].category}`)]));
+  const furnitureRows = furnitureIds.filter((id) => matchesQuery(query, [tDyn(`furniture.${id}.name`), tDyn(`furniture.${id}.kana`), id]));
 
   return (
     <div>

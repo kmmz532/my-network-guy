@@ -77,8 +77,8 @@ const INVENTORY_TABS: readonly InventoryTab[] = ['all', 'device', 'furniture'];
 // 検索の対象（名前・ID・機器の分類）
 const itemSearchFields = (item: InventoryItem): string[] =>
   item.kind === 'device'
-    ? [tDyn(`device.${item.id}.name`), item.id, tDyn(`category.${catalogDevices[item.id as keyof typeof catalogDevices].category}`)]
-    : [tDyn(`furniture.${item.id}.name`), item.id];
+    ? [tDyn(`device.${item.id}.name`), tDyn(`device.${item.id}.kana`), item.id, tDyn(`category.${catalogDevices[item.id as keyof typeof catalogDevices].category}`)]
+    : [tDyn(`furniture.${item.id}.name`), tDyn(`furniture.${item.id}.kana`), item.id];
 
 // パソコンのインベントリのウィンドウの中身。上にショップと同じタブ（先頭は「すべて」）、下に品目の格子
 export function InventoryBody() {
