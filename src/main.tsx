@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
+import { ErrorScreen } from './components/ErrorScreen';
 import { useGameStore } from './stores/useGameStore';
 import { isApplyingUpdate, watchUpdates } from './pwa/update';
 
@@ -9,7 +10,9 @@ if (import.meta.env.DEV || import.meta.env.VITE_SHOOT) (window as unknown as { _
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <ErrorScreen>
+      <App />
+    </ErrorScreen>
   </React.StrictMode>,
 );
 
