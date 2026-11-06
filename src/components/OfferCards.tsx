@@ -58,18 +58,19 @@ export function OfferBody({ onClose }: { onClose: () => void }) {
       </div>
       {offers.length === 0 && <div style={{ opacity: 0.7 }}>…</div>}
       {offers.length > 0 && (
-        <div role="group" aria-label={t('ui.offer.sort.label')} style={{ display: 'flex', gap: 6, marginBottom: 8, fontSize: 12 }}>
+        // 並べ替えは選択ボックスにまとめる（幅を取らない。N61）。スマホでは OS の選択画面が開く
+        <select
+          aria-label={t('ui.offer.sort.label')}
+          value={sort}
+          onChange={(e) => setSort(e.target.value as OfferSort)}
+          style={{ fontSize: 12, marginBottom: 8 }}
+        >
           {OFFER_SORTS.map((mode) => (
-            <button
-              key={mode}
-              aria-pressed={sort === mode}
-              onClick={() => setSort(mode)}
-              style={{ padding: '2px 8px', cursor: 'pointer', fontFamily: 'inherit', background: sort === mode ? '#ffd866' : '#25406f', color: sort === mode ? '#1d3664' : '#f4f1e6', border: '1px solid #3b2a33', borderRadius: RADIUS.none }}
-            >
+            <option key={mode} value={mode}>
               {t(`ui.offer.sort.${mode}`)}
-            </button>
+            </option>
           ))}
-        </div>
+        </select>
       )}
       {/* 新しい依頼を上に並べる。件数が多いときは、この中だけスクロールする */}
       <div className="scroll-edge" style={{ maxHeight: 'min(60vh, 520px)', overflowY: 'auto', paddingRight: 4 }}>
