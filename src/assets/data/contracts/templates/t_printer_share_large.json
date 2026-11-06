@@ -1,0 +1,12 @@
+{
+  "id": "t_printer_share_large",
+  "variantOf": "t_printer_share",
+  "unlockLevel": 6,
+  "weight": 8,
+  "params": {
+    "pcCount": {
+      "min": 5,
+      "max": 7
+    }
+  }
+}

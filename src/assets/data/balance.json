@@ -30,7 +30,8 @@
       "router": 0,
       "router_switch": 0,
       "l3_switch": 0,
-      "firewall": 0
+      "firewall": 0,
+      "printer": 30000
     },
     "perPort": {
       "l2_switch": 1500,
@@ -39,7 +40,8 @@
       "l3_switch": 10000,
       "firewall": 5000,
       "pc": 0,
-      "server": 0
+      "server": 0,
+      "printer": 0
     },
     "features": {
       "routing": 40000,

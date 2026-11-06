@@ -1,0 +1,19 @@
+{
+  "devices": [
+    {
+      "id": "printer_basic",
+      "category": "printer",
+      "price": 30000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 1,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [],
+      "sprite": "device/printer_basic",
+      "unlockLevel": 3
+    }
+  ]
+}

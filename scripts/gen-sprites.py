@@ -134,6 +134,20 @@ def server():
     return img
 
 
+# プリンター（24×40）。前から見た複合機: 上に用紙の出口、本体の前面に給紙の段と操作パネル
+def printer():
+    img, d = new(24, 40)
+    rect(d, 8, 4, 8, 6, 'e', 'o')
+    rect(d, 2, 10, 20, 17, 'g', 'o')
+    rect(d, 2, 10, 20, 3, 'w')
+    rect(d, 5, 16, 14, 4, 'd', 'o')
+    px(d, 16, 14, 'l')
+    px(d, 18, 14, 'l')
+    rect(d, 4, 28, 16, 5, 'e', 'o')
+    rect(d, 1, 33, 22, 3, 'd')
+    return img
+
+
 # ---- 3/4視点の箱 ----
 # 斜め上から見下ろす（ART.md の視点）。箱は、上に明るい天面、下に前面を描く。
 # 天面の奥行きは depth、前面の高さは h。輪郭線で囲み、天面と前面の境に明るい線を引く
@@ -954,6 +968,7 @@ if __name__ == '__main__':
     save(wifi_router(), 'device/wifi_router.png')
     save(vpn_router(), 'device/vpn_router.png')
     save(router_switch(), 'device/router_switch.png')
+    save(printer(), 'device/printer_basic.png')
     save(firewall(), 'device/firewall.png')
     save(access_point(), 'device/access_point.png')
     save(laptop(), 'device/laptop.png')

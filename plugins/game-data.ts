@@ -225,6 +225,7 @@ const goalRefs = (goal: Goal): string[] => {
     case 'count':
     case 'http_all':
     case 'firewall':
+    case 'reach_category':
       return [];
     case 'blocked':
       return [goal.from, goal.to];

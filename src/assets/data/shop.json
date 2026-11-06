@@ -71,6 +71,9 @@
     },
     {
       "device": "firewall_dmz"
+    },
+    {
+      "device": "printer_basic"
     }
   ]
 }

@@ -9,7 +9,9 @@ export const goalText = (goal: Goal, nameOf: (id: string) => string = (id) => id
       ? { nodes: Array.isArray(goal.nodes) ? goal.nodes.map(nameOf).join('・') : t('ui.task.allPcs') }
       : goal.type === 'count'
         ? { name: tDyn(`category.${goal.category}`), min: goal.min }
-        : goal.type === 'http_all' || goal.type === 'firewall'
+        : goal.type === 'reach_category'
+          ? { name: tDyn(`category.${goal.category}`) }
+          : goal.type === 'http_all' || goal.type === 'firewall'
           ? {}
           : { from: nameOf(goal.from), to: nameOf(goal.to) };
   return tDyn(`goal.${goal.type}`, params);

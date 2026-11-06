@@ -61,6 +61,18 @@ const handlers: { [K in Goal['type']]: Handler } = {
     const ok = uidsOf(net, data, goal.category).length >= goal.min;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
+  // すべての PC が、そのカテゴリの機器のどれか1台へ届く（PC ごとに、届く機器のうち最初のものの結果）
+  reach_category: (goal, net, data) => {
+    if (goal.type !== 'reach_category') throw new Error('reach_category ハンドラに別の種類が渡された');
+    const pcs = uidsOf(net, data, 'pc');
+    const targets = uidsOf(net, data, goal.category);
+    if (!pcs.length || !targets.length) return [none(goal, 'ping')];
+    return pcs.map((pc) => {
+      const tries = targets.map((t) => ({ t, r: ping(net, data, pc, t) }));
+      const hit = tries.find((x) => x.r.ok) ?? tries[0];
+      return { goal, ok: hit.r.ok, failure: hit.r.failure, kind: 'ping' as const, src: pc, dst: hit.t, result: hit.r };
+    });
+  },
   http_all: (goal, net, data) => {
     if (goal.type !== 'http_all') throw new Error('http_all ハンドラに別の種類が渡された');
     const pcs = uidsOf(net, data, 'pc');

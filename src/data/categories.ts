@@ -8,6 +8,8 @@ export const CATEGORY = {
   l3Switch: 'l3_switch',
   routerSwitch: 'router_switch',
   firewall: 'firewall',
+  // プリンター（N51b）
+  printer: 'printer',
 } as const;
 
 export type Category = (typeof CATEGORY)[keyof typeof CATEGORY];

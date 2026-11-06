@@ -300,6 +300,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('count'), category: z.string().min(1), min: z.number().int().positive() }),
   // すべてのPCから、いずれかのサーバーのWebページを閲覧できる
   z.object({ type: z.literal('http_all'), port: z.number().int().min(1).max(65535) }),
+  // すべての PC から、そのカテゴリの機器のどれか1台へ Ping が通る（N51b。プリンターの共有）
+  z.object({ type: z.literal('reach_category'), category: z.string().min(1) }),
   // すべてのPCから、到達できるサーバー（外部）への経路にファイアウォールがある
   z.object({ type: z.literal('firewall') }),
   // from から to への Ping が、ファイアウォールの規則で止められている（通ってはいけない通信。N38）

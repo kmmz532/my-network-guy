@@ -58,7 +58,7 @@ export const modelCost = (template: ContractTemplate, map: GameMap, placed: { x:
   const uplink = groups.length > 1 ? 1 : 0;
   const hubs: Pt[] = [];
   for (const pcs of pcsOf) {
-    const need = pcs.length + uplink;
+    const need = pcs.length + uplink + (groups.length === 1 && goalCount('printer') > 0 ? 1 : 0);
     const hubDevice = goalCount('router_switch') > 0 && groups.length === 1 ? cheapest('router_switch', need) : cheapest('l2_switch', need);
     if (hubDevice) {
       cost += hubDevice.price;
@@ -96,6 +96,12 @@ export const modelCost = (template: ContractTemplate, map: GameMap, placed: { x:
     const router = cheapest('router', 1);
     if (!router) throw new Error('ルーターがない');
     cost += router.price + linkCost(1);
+  }
+  // プリンター（count printer）は、1台のスイッチに1本で足す
+  if (goalCount('printer') > 0) {
+    const printer = cheapest('printer', 1);
+    if (!printer) throw new Error('プリンターがない');
+    cost += printer.price + linkCost(1);
   }
   if (goalCount('server') > 0 || hasHttp) {
     const server = cheapest('server', 1);

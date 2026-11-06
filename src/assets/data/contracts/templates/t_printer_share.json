@@ -1,0 +1,55 @@
+{
+  "id": "t_printer_share",
+  "stage": 1,
+  "unlockLevel": 3,
+  "requires": [
+    "c002_small_office"
+  ],
+  "jobs": [
+    "infra"
+  ],
+  "weight": 12,
+  "map": "office_small",
+  "params": {
+    "pcCount": {
+      "min": 3,
+      "max": 5
+    }
+  },
+  "spawnArea": {
+    "x": 2,
+    "y": 2,
+    "width": 10,
+    "height": 6
+  },
+  "deadlineDays": 7,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "base": 44000,
+    "perPc": 3750,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 50000,
+    "perPc": 10000
+  },
+  "goals": [
+    {
+      "type": "count",
+      "category": "printer",
+      "min": 1
+    },
+    {
+      "type": "reach_category",
+      "category": "printer"
+    },
+    {
+      "type": "ping_all",
+      "nodes": "$all_pcs"
+    }
+  ],
+  "announce": true
+}

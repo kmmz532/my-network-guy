@@ -1,0 +1,15 @@
+{
+  "id": "t_printer_share_rush",
+  "variantOf": "t_printer_share",
+  "unlockLevel": 8,
+  "weight": 6,
+  "deadlineDays": 5,
+  "offerExpireDays": {
+    "min": 7,
+    "max": 30
+  },
+  "reward": {
+    "base": 65000,
+    "perPc": 10000
+  }
+}
