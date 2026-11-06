@@ -545,6 +545,28 @@ describe('自社案件', () => {
     expect(cur(ok(placeDevice(accepted, 'pc_basic', 6, 6, map, env)).core)?.nodes).toHaveLength(before + 1);
   });
 
+  it('自社案件の納品で、報酬の機器が倉庫に入る（N34）', () => {
+    const rewarded: Offer = { ...inhouseOffer, contract: { ...inhouse, reward: { ...inhouse.reward, devices: [{ device: 'l2_switch_8p', count: 1 }] } } };
+    let core: Core = {
+      ...start(),
+      offers: [rewarded],
+      owned: { pc_basic: 2 },
+      office: { size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [desk(3, 4), desk(8, 4)], furnitureSeq: 2 },
+    };
+    core = ok(take(core, inhouse.id)).core;
+    core = ok(placeDevice(core, 'pc_basic', 3, 4, map, env)).core;
+    core = ok(placeDevice(core, 'pc_basic', 8, 4, map, env)).core;
+    core = ok(setInterface(core, 'u0', 0, '192.168.1.10', 24, env)).core;
+    core = ok(setInterface(core, 'u1', 0, '192.168.1.11', 24, env)).core;
+    core = ok(connect(core, 'u0', 'u1', 'utp_cat5e', env)).core;
+    core = ok(requestBuild(passTest(core), env)).core;
+    let r = ok(advanceBuild(core, env, balance.build.workStartHour));
+    for (let i = 0; i < 20 && r.core.active.length > 0; i++) r = ok(advanceBuild(r.core, env, balance.build.workStartHour));
+    expect(r.report?.passed).toBe(true);
+    expect(r.report?.rewardDevices).toEqual([{ device: 'l2_switch_8p', count: 1 }]);
+    expect(r.core.owned.l2_switch_8p).toBe(1);
+  });
+
   it('納品したネットワークが自社オフィスに残り、次の自社案件に引き継がれる', () => {
     let core: Core = {
       ...start(),

@@ -106,6 +106,7 @@
   "report.target": "基準",
   "report.actual": "実績",
   "report.costTarget": "{ratio}以下",
+  "report.reward": "受け取った機器（倉庫）: {devices}",
   "report.costDetail": "機器 {devices}円・配線 {cable}円",
   "report.costActual": "{ratio}",
   "report.reworkTarget": "{count}回以下",

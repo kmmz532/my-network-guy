@@ -25,7 +25,13 @@
   ],
   "reward": {
     "money": 30000,
-    "reputation": 1
+    "reputation": 1,
+    "devices": [
+      {
+        "device": "l2_switch_8p",
+        "count": 1
+      }
+    ]
   },
   "inhouse": true,
   "effect": {

@@ -93,6 +93,13 @@ export function ReportModal() {
       <div style={{ fontSize: 16, marginTop: 4 }}>
         <Icon name="icon/star" /> +{report.reputationGain ?? 0}
       </div>
+      {(report.rewardDevices ?? []).length > 0 && (
+        <div style={{ fontSize: 14, marginTop: 6 }}>
+          {t('report.reward', {
+            devices: (report.rewardDevices ?? []).map((r) => `${t(`device.${r.device}.name` as LangKey)} ×${r.count}`).join('・'),
+          })}
+        </div>
+      )}
       <EvaluationRows report={report} />
       <button style={{ ...primaryButton, marginTop: 12 }} onClick={dismiss}>
         <Icon name="icon/ok" />

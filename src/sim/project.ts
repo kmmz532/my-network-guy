@@ -120,6 +120,8 @@ export interface Report {
   lateDays?: number;
   // 費用の内訳（納品のとき）
   costBreakdown?: ProjectCost;
+  // 報酬として受け取った機器（倉庫に入る）
+  rewardDevices?: { device: string; count: number }[];
   // 結果画面に出す、費用・予算・失敗回数
   cost?: number;
   budget?: number;
@@ -1151,6 +1153,9 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
       ? { ...core.office, nodes: p.nodes, links: p.links, seq: p.seq, segments: p.segments ?? {} }
       : core.office;
     const effects = { buildSpeed: core.effects.buildSpeed + (p.contract.effect?.buildSpeed ?? 0) };
+    // 報酬の機器は倉庫に入る（自社案件の報酬）
+    const owned = { ...core.owned };
+    for (const r of p.contract.reward.devices ?? []) owned[r.device] = (owned[r.device] ?? 0) + r.count;
     return {
       ok: true,
       core: {
@@ -1158,6 +1163,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
         ...removeProject(core, p.id),
         office,
         effects,
+        owned,
         clock: { ...core.clock, money: core.clock.money + money },
         reputation,
         completed: p.kind === 'fixed' ? [...core.completed, p.baseId] : core.completed,
@@ -1171,6 +1177,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
         lateDays,
         cost: cost.total,
         costBreakdown: cost,
+        rewardDevices: p.contract.reward.devices ?? [],
         budget: p.contract.budget,
         rework: p.rework,
         designIssues: issues,

@@ -278,6 +278,8 @@ export const contractSchema = z.object({
   reward: z.object({
     money: nonNegativeInt,
     reputation: int.default(0),
+    // 納品で倉庫に入る機材（自社案件の報酬。N34）
+    devices: z.array(z.object({ device: z.string().min(1), count: int.positive() })).optional(),
   }),
   // 自社案件。自社オフィスで行い、納品後もネットワークが残る
   inhouse: z.boolean().default(false),
