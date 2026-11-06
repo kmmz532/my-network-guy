@@ -5,7 +5,7 @@ import { usePhone } from '../ui/usePhone';
 import { devices, guides } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import { loadSettings } from '../settings/settings';
-import { currentGuideStep, type GuideState, type GuideStep } from '../sim/guide';
+import { currentGuideStep, type GuideState } from '../sim/guide';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { RADIUS } from '../ui/theme';
 import { Icon } from './Icon';
@@ -53,7 +53,7 @@ export function Guide() {
   const id = project?.phase === 'design' ? project.baseId : null;
   const steps =
     id !== null && !guidesDone.includes(id) && loadSettings().guide
-      ? ((guides[id] as GuideStep[] | undefined) ?? null)
+      ? (guides[id] ?? null)
       : null;
 
   const nodes = project ? project.nodes : officeNodes;
