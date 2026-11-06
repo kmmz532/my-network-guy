@@ -184,6 +184,8 @@ export interface GameState {
   markGuideDone: (contractId: string) => void;
   // 納品以外の経験値（案内・採用・拡張・家具。1日の上限あり。N55）
   grantCompanyExp: (source: ExpSource) => void;
+  // デバッグ（N54）: 案内の進みを最初に戻す
+  debugResetGuides: () => void;
   speed: Speed;
   // 勤務時間外の早送りで、自動で変える前の速さ（自動で変えていなければ null。保存しない）
   nightSpeed: Speed | null;
@@ -663,6 +665,7 @@ export const useGameStore = create<GameState>((set, get) => {
       set((s) => ({ guidesDone: [...s.guidesDone, contractId] }));
       get().grantCompanyExp('guide');
     },
+    debugResetGuides: () => set({ guidesDone: [] }),
     grantCompanyExp: (source) => {
       const s = get();
       // サンドボックスは育成がないため、経験値は入れない

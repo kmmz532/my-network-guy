@@ -2,6 +2,7 @@
 import { useState, type CSSProperties } from 'react';
 import { balance } from 'virtual:game-data';
 import { SAVE_VERSION } from '../services/migrations';
+import { exportSave, importSave } from '../services/saveFile';
 import { showUpdateNotice } from '../pwa/update';
 import { isPhoneNow } from '../ui/usePhone';
 import { levelOf } from '../sim/level';
@@ -88,6 +89,7 @@ export default function DebugPanel() {
       </div>
 
       <section style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div>ビルド: {__BUILD_ID__}</div>
         <div>セーブの版: {SAVE_VERSION}</div>
         <div>スマホの配置: {isPhoneNow() ? 'はい' : 'いいえ'}</div>
         <div>指で操作: {window.matchMedia('(pointer: coarse)').matches ? 'はい' : 'いいえ'}</div>
@@ -151,17 +153,35 @@ export default function DebugPanel() {
           type="button"
           style={buttonStyle}
           onClick={() => {
-            setSaveText(JSON.stringify(store().snapshot()));
+            setSaveText(exportSave(store().snapshot()));
             say('今のセーブを下の欄に書き出しました');
           }}
         >
           今のセーブを書き出す
         </button>
+        <button
+          type="button"
+          style={buttonStyle}
+          onClick={() => {
+            // 欄の JSON を読み込む（形式が違えば、理由を出して何もしない）
+            try {
+              store().load(importSave(saveText));
+              say('読み込みました');
+            } catch (e) {
+              say(e instanceof Error ? e.message : '読み込めませんでした');
+            }
+          }}
+        >
+          欄のセーブを読み込む
+        </button>
+        <button type="button" style={buttonStyle} onClick={act(() => store().debugResetGuides(), '案内を最初から出し直します')}>
+          案内を最初から
+        </button>
         <textarea
           aria-label="セーブの JSON"
           value={saveText}
-          readOnly
           rows={4}
+          onChange={(e) => setSaveText(e.target.value)}
           style={{ fontSize: 10, background: '#25406f', color: '#f4f1e6', border: '1px solid #3b2a33' }}
         />
       </section>
