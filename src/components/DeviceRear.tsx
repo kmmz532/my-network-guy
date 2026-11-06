@@ -5,8 +5,7 @@ import { nodeLabel } from './nodeLabel';
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { spriteOf, spriteUrl } from '../game/sprites';
-import type { LangKey } from '../generated/lang-keys';
-import { t } from '../i18n/t';
+import { t, tDyn } from '../i18n/t';
 import type { End } from '../sim/project';
 import { gameEnv } from '../sim/env';
 import type { NetLink, NetNode } from '../network/types';
@@ -331,7 +330,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
           >
             <span style={{ fontWeight: 'bold', marginRight: 6 }}>{portLabel(category, p)}</span>
             <span style={{ color: link ? '#62d26f' : greyColor }}>{link ? peerName : t('ui.rear.free')}</span>
-            {link && <div style={{ color: greyColor, fontSize: 11 }}>{t(`cable.${link.cable}.name` as LangKey)}</div>}
+            {link && <div style={{ color: greyColor, fontSize: 11 }}>{tDyn(`cable.${link.cable}.name`)}</div>}
           </button>
         );
       })}

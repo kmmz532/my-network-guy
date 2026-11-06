@@ -1,8 +1,7 @@
 // 機器のターミナルのタブ。コマンドを1行ずつ入力し、結果を履歴に積む（コマンドは network/terminal.ts と terminalConfig.ts）。
 // ↑↓で過去の入力を呼び出し、Tab で補完する。clear は表示の履歴を消す（入力の履歴は残す）。
 import { useState, type KeyboardEvent } from 'react';
-import type { LangKey } from '../generated/lang-keys';
-import { t } from '../i18n/t';
+import { t, tDyn } from '../i18n/t';
 import { completeLine, runTerminal, type TerminalLine } from '../network/terminal';
 import { parseConfig, type ConfigAction } from '../network/terminalConfig';
 import type { NetLink, NetNode } from '../network/types';
@@ -59,7 +58,7 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
       setHistory([]);
       return;
     }
-    const tr = (key: string, params?: Record<string, string | number>) => t(key as LangKey, params);
+    const tr = (key: string, params?: Record<string, string | number>) => tDyn(key, params);
     const parsed = parseConfig(line, tr);
     let out: TerminalLine[];
     if (parsed.kind === 'action') {

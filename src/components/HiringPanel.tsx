@@ -3,8 +3,7 @@ import { useState } from 'react';
 import { balance, certs, furniture, training } from 'virtual:game-data';
 import type { FurnitureId } from '../generated/ids';
 import { staffSpriteName } from '../data/schema';
-import type { LangKey } from '../generated/lang-keys';
-import { t } from '../i18n/t';
+import { t, tDyn } from '../i18n/t';
 import { seatCount } from '../sim/furniture';
 import { examPassRate } from '../sim/training';
 import { useGameStore } from '../stores/useGameStore';
@@ -44,7 +43,7 @@ export function HiringPanel({ tab, onTab, onClose }: { tab: HiringTab; onTab: (t
   );
 }
 
-const reasonText = (reason: string) => t(`ui.error.${reason}` as LangKey);
+const reasonText = (reason: string) => tDyn(`ui.error.${reason}`);
 
 // 採用の候補
 function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
@@ -65,9 +64,9 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
         >
           <Icon name={`staff/${staffSpriteName(c.look)}_0`} scale={2} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 'bold' }}>{t(c.name as LangKey)}</div>
+            <div style={{ fontWeight: 'bold' }}>{tDyn(c.name)}</div>
             <div style={{ fontSize: 12 }}>
-              {t(`staff.job.${c.job}` as LangKey)} · {t('ui.staff.level', { level: c.level })}
+              {tDyn(`staff.job.${c.job}`)} · {t('ui.staff.level', { level: c.level })}
             </div>
             <div style={{ fontSize: 12 }}>{t('ui.hiring.salary', { salary: yen(c.salary) })}</div>
           </div>
@@ -106,14 +105,14 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
         return (
           <div key={s.uid} style={{ background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}>
             <div style={{ fontWeight: 'bold' }}>
-              {t(s.name as LangKey)}{' '}
+              {tDyn(s.name)}{' '}
               <span style={{ fontWeight: 'normal', fontSize: 12 }}>
-                {t(`staff.job.${s.job}` as LangKey)} · {t('ui.staff.level', { level: s.level })}
+                {tDyn(`staff.job.${s.job}`)} · {t('ui.staff.level', { level: s.level })}
               </span>
             </div>
             <div style={{ fontSize: 12, opacity: 0.85 }}>
               {s.training ? t('ui.training.busy') : onProject ? t('ui.training.onProject') : ''}
-              {s.certs.length > 0 && ` · ${s.certs.map((id) => t(`cert.${id}.name` as LangKey)).join('、')}`}
+              {s.certs.length > 0 && ` · ${s.certs.map((id) => tDyn(`cert.${id}.name`)).join('、')}`}
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
               {courses.map((c) => (
@@ -125,7 +124,7 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
                     onMessage(reason ? reasonText(reason) : t('ui.training.started'));
                   }}
                 >
-                  {t(`training.${c.id}.name` as LangKey)}（{yen(c.cost)}円・{c.days}日）
+                  {tDyn(`training.${c.id}.name`)}（{yen(c.cost)}円・{c.days}日）
                 </button></Tooltip>
               ))}
               {examList
@@ -139,7 +138,7 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
                       onMessage(reason ? reasonText(reason) : t('ui.exam.done'));
                     }}
                   >
-                    {t('ui.exam.start')}：{t(`cert.${c.id}.name` as LangKey)}
+                    {t('ui.exam.start')}：{tDyn(`cert.${c.id}.name`)}
                   </button></Tooltip>
                 ))}
             </div>

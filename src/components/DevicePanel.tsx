@@ -3,8 +3,7 @@
 import { nodeLabel } from './nodeLabel';
 import { useState } from 'react';
 import { devices as deviceData } from 'virtual:game-data';
-import type { LangKey } from '../generated/lang-keys';
-import { t } from '../i18n/t';
+import { t, tDyn } from '../i18n/t';
 import { compile, type Compiled } from '../network/compile';
 import type { NetLink, NetNode } from '../network/types';
 import { gameEnv } from '../sim/env';
@@ -100,7 +99,7 @@ function DeviceView({
 
   return (
     <div>
-      {issue && <div style={{ color: warnColor, marginBottom: 6 }}>{t(`issue.${issue.reason}` as LangKey, { ip: issue.ip ?? '', segment: issue.segment ?? '', gateway: issue.gateway ?? '' })}</div>}
+      {issue && <div style={{ color: warnColor, marginBottom: 6 }}>{tDyn(`issue.${issue.reason}`, { ip: issue.ip ?? '', segment: issue.segment ?? '', gateway: issue.gateway ?? '' })}</div>}
       {readOnly && <div style={{ marginBottom: 6 }}>{t('ui.config.readOnly')}</div>}
       <Tabs<Tab>
         items={[
@@ -117,7 +116,7 @@ function DeviceView({
         colors={TAB_COLORS.window}
       />
       <div style={tabPanelStyle(TAB_COLORS.window.selected)}>
-        {error && <div style={{ color: warnColor, marginBottom: 6 }}>{t(`ui.error.${error}` as LangKey)}</div>}
+        {error && <div style={{ color: warnColor, marginBottom: 6 }}>{tDyn(`ui.error.${error}`)}</div>}
         {tab === 'rear' && <DeviceRear node={node} nodes={nodes} links={links} readOnly={readOnly} onError={setError} />}
         {tab === 'config' && hasConfig && (
           <DeviceSettings node={node} compiled={compiled} readOnly={readOnly} detailOpen={detailOpen} onToggleDetail={onToggleDetail} onError={setError} />

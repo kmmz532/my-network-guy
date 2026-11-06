@@ -2,8 +2,7 @@
 import { offerNodeName } from './nodeLabel';
 import { useEffect, useState } from 'react';
 import { balance, devices } from 'virtual:game-data';
-import type { LangKey } from '../generated/lang-keys';
-import { hasKey, t } from '../i18n/t';
+import { hasKey, t, tDyn } from '../i18n/t';
 import { goalText } from './goalText';
 import { gameEnv } from '../sim/env';
 import { staffPower } from '../sim/staff';
@@ -56,7 +55,7 @@ export function OfferBody({ onClose }: { onClose: () => void }) {
           <div style={{ color: '#ffd866' }}>{t('ui.offer.blocked.reputation', { need: hint.block.need, now: reputation })}</div>
         )}
         {hint.block?.kind === 'fixed' && (
-          <div style={{ color: '#ffd866' }}>{t('ui.offer.blocked.fixed', { title: t(`contract.${hint.block.after}.title` as LangKey) })}</div>
+          <div style={{ color: '#ffd866' }}>{t('ui.offer.blocked.fixed', { title: tDyn(`contract.${hint.block.after}.title`) })}</div>
         )}
       </div>
       {offers.length === 0 && <div style={{ opacity: 0.7 }}>…</div>}
@@ -112,8 +111,8 @@ function CrewPicker({ selected, onChange }: { selected: string[]; onChange: (cre
             checked={selected.includes(s.uid)}
             onChange={(checked) => onChange(checked ? [...selected, s.uid] : selected.filter((u) => u !== s.uid))}
           >
-            <span>{t(s.name as LangKey)}</span>
-            <span>{t(`staff.job.${s.job}` as LangKey)}</span>
+            <span>{tDyn(s.name)}</span>
+            <span>{tDyn(`staff.job.${s.job}`)}</span>
             <span>{t('ui.staff.level', { level: s.level })}</span>
             <span>{t('ui.staff.power', { power: power.toFixed(2) })}</span>
           </PixelCheck>
@@ -163,10 +162,10 @@ function OfferCard({
             {t('ui.offer.inhouse')}
           </span>
         )}
-        {t(`contract.${offer.baseId}.title` as LangKey, offer.params)}
+        {tDyn(`contract.${offer.baseId}.title`, offer.params)}
       </div>
       <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 6 }}>
-        {t(`contract.${offer.baseId}.story` as LangKey, offer.params)}
+        {tDyn(`contract.${offer.baseId}.story`, offer.params)}
       </div>
       {offer.arrivedMinute !== undefined && (
         <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 4 }}>
@@ -175,7 +174,7 @@ function OfferCard({
       )}
       {(offer.contract.jobs?.length ?? 0) > 0 && (
         <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>
-          {t('ui.offer.jobs', { jobs: (offer.contract.jobs ?? []).map((j) => t(`staff.job.${j}` as LangKey)).join('・') })}
+          {t('ui.offer.jobs', { jobs: (offer.contract.jobs ?? []).map((j) => tDyn(`staff.job.${j}`)).join('・') })}
         </div>
       )}
       {offer.contract.goals.map((goal, i) => (
@@ -185,7 +184,7 @@ function OfferCard({
       ))}
       {hasKey(`contract.${offer.baseId}.hint`) && (
         <div style={{ fontSize: 12, color: '#ffd866', marginTop: 4 }}>
-          {t('ui.task.hint', { text: t(`contract.${offer.baseId}.hint` as LangKey) })}
+          {t('ui.task.hint', { text: tDyn(`contract.${offer.baseId}.hint`) })}
         </div>
       )}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', alignItems: 'center' }}>

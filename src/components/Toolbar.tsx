@@ -2,7 +2,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { balance, cables, shop } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
-import { t } from '../i18n/t';
+import { t, tDyn } from '../i18n/t';
 import { isWorkingHour, toDate } from '../sim/clock';
 import { isUnlocked } from '../sim/shop';
 import { historyKeyOf } from '../sim/history';
@@ -162,7 +162,7 @@ export function Toolbar({
   const historyButtons = (
     <>
       {historyError && (
-        <span style={{ fontSize: 13, color: '#ffd3c9', maxWidth: 320 }}>{t(`ui.error.${historyError}` as LangKey)}</span>
+        <span style={{ fontSize: 13, color: '#ffd3c9', maxWidth: 320 }}>{tDyn(`ui.error.${historyError}`)}</span>
       )}
       <Tooltip text={tipText('keys.undo', 'undo')}>
         <button aria-label={t('keys.undo')} style={{ ...slot(false), opacity: canUndo ? 1 : 0.35 }} disabled={!canUndo} onClick={() => undo()}>
@@ -219,7 +219,7 @@ export function Toolbar({
     >
       {cableIds.map((id) => {
         const cable = cables[id as keyof typeof cables];
-        const name = t(`cable.${id}.name` as LangKey);
+        const name = tDyn(`cable.${id}.name`);
         // 値段は、ボタンの文字には出さず、ツールチップの2行目に出す
         const price = t('ui.cable.price', { link: yen(cable.pricePerLink), tile: yen(cable.pricePerTile) });
         return (

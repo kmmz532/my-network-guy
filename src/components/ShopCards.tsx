@@ -1,8 +1,7 @@
 // 機材ショップ。解禁済みの機材と家具を購入して在庫にする。区分ごとのタブで並べ替える。ケーブルは在庫を持たず、配線のときに費用を払うため、ここには出さない
 import { useState } from 'react';
 import { balance, devices, furniture, shop } from 'virtual:game-data';
-import type { LangKey } from '../generated/lang-keys';
-import { t } from '../i18n/t';
+import { t, tDyn } from '../i18n/t';
 import { isUnlocked } from '../sim/shop';
 import { effectText } from '../game/effectText';
 import { useGameStore } from '../stores/useGameStore';
@@ -38,7 +37,7 @@ export function ShopBody({ onClose }: { onClose: () => void }) {
       <Tabs
         idPrefix="shop-tab"
         ariaLabel={t('ui.shop.title')}
-        items={SECTIONS.map((s) => ({ id: s, icon: <Icon name={`icon/${s}`} scale={1} />, label: t(`ui.shop.tab.${s}` as LangKey) }))}
+        items={SECTIONS.map((s) => ({ id: s, icon: <Icon name={`icon/${s}`} scale={1} />, label: tDyn(`ui.shop.tab.${s}`) }))}
         selected={section}
         onSelect={setSection}
         colors={TAB_COLORS.shop}
@@ -56,8 +55,8 @@ export function ShopBody({ onClose }: { onClose: () => void }) {
                 >
                   <Icon name={d.sprite} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 'bold' }}>{t(`device.${id}.name` as LangKey)}</div>
-                    <div style={{ fontSize: 12, opacity: 0.85 }}>{t(`device.${id}.desc` as LangKey)}</div>
+                    <div style={{ fontWeight: 'bold' }}>{tDyn(`device.${id}.name`)}</div>
+                    <div style={{ fontSize: 12, opacity: 0.85 }}>{tDyn(`device.${id}.desc`)}</div>
                     <div style={{ fontSize: 12 }}>
                       {t('ui.shop.spec', { ports: d.ports.reduce((sum, p) => sum + p.count, 0), speed: d.ports[0]?.speedMbps ?? 0 })}
                     </div>
@@ -90,8 +89,8 @@ export function ShopBody({ onClose }: { onClose: () => void }) {
                     <Icon name={`furniture/${id}`} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 'bold' }}>{t(`furniture.${id}.name` as LangKey)}</div>
-                    <div style={{ fontSize: 12, opacity: 0.85 }}>{t(`furniture.${id}.desc` as LangKey)}</div>
+                    <div style={{ fontWeight: 'bold' }}>{tDyn(`furniture.${id}.name`)}</div>
+                    <div style={{ fontSize: 12, opacity: 0.85 }}>{tDyn(`furniture.${id}.desc`)}</div>
                     {effectText(f.effect) && <div style={{ fontSize: 12, color: '#ffd866' }}>{effectText(f.effect)}</div>}
                     <div style={{ fontSize: 13 }}>
                       <Icon name="icon/money" scale={1} /> {yen(cost(f.price))}　×{owned[id] ?? 0}

@@ -1,8 +1,7 @@
 // 受注中の案件の内容（タイトル・依頼文・達成条件・ヒント・最初の案件の手順）。左上に重ねて表示し、折りたためる。
 // 達成条件は最後のテスト（または検収）の結果で ✓／× を出す。× は失敗した機器を選んで機器の画面を開く
 import { labelOfUid } from './nodeLabel';
-import type { LangKey } from '../generated/lang-keys';
-import { hasKey, t } from '../i18n/t';
+import { hasKey, t, tDyn } from '../i18n/t';
 import { goalText } from './goalText';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
@@ -84,18 +83,18 @@ export function TaskPanel({ top = 44 }: { top?: number }) {
         {/* 畳んだときは、狭い画面だけ件名を出す（PC は従来どおり開いたときだけ） */}
         {(open || phone) && (
           <span style={phone && !open ? { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : undefined}>
-            {t(`contract.${active.baseId}.title` as LangKey, active.params)}
+            {tDyn(`contract.${active.baseId}.title`, active.params)}
           </span>
         )}
       </button>
       {open && (
         <div style={{ padding: '0 8px 8px' }}>
           <div style={{ opacity: 0.85, lineHeight: 1.5 }}>
-            {t(`contract.${active.baseId}.story` as LangKey, active.params)}
+            {tDyn(`contract.${active.baseId}.story`, active.params)}
           </div>
           {hasHint && (
             <div style={{ marginTop: 4, color: '#ffd866' }}>
-              {t('ui.task.hint', { text: t(hintKey as LangKey) })}
+              {t('ui.task.hint', { text: tDyn(hintKey) })}
             </div>
           )}
           <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>

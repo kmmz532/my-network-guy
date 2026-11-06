@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { usePhone } from '../ui/usePhone';
 import { devices, guides } from 'virtual:game-data';
-import type { LangKey } from '../generated/lang-keys';
-import { t } from '../i18n/t';
+import { t, tDyn } from '../i18n/t';
 import { loadSettings } from '../settings/settings';
 import { currentGuideStep, type GuideState, type GuideStep } from '../sim/guide';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
@@ -223,7 +222,7 @@ export function Guide() {
           ) : (
             <Icon name={`staff/${staffLook}_0`} scale={2} />
           )}
-          <span style={phone ? { flex: 1, minWidth: 0 } : undefined}>{t(step.key as LangKey)}</span>
+          <span style={phone ? { flex: 1, minWidth: 0 } : undefined}>{tDyn(step.key)}</span>
           <button
             onClick={skip}
             style={{

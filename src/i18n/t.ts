@@ -28,6 +28,11 @@ export function t(key: LangKey, params: Params = {}): string {
   return template.replace(/\{(\w+)\}/g, (match, name: string) => (name in params ? String(params[name]) : match));
 }
 
+// 組み立てた文字列のキーを使う（ID から作るキー）。文字列からキーの型への言い切りは、ここの1か所だけで行う。存在しないキーは t と同じく開発中に警告する
+export function tDyn(key: string, params: Params = {}): string {
+  return t(key as LangKey, params);
+}
+
 // 翻訳キーがあるか（任意の文言がない案件などで使う）
 export function hasKey(key: string): boolean {
   return key in dict;

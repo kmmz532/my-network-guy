@@ -3,11 +3,10 @@
 // PC・サーバーは、ケーブルでつなぐ前でもIPアドレスを設定できる。ルーターのポートはつないでから設定する。
 import { nodeLabel } from './nodeLabel';
 import { useState } from 'react';
-import { t } from '../i18n/t';
+import { t, tDyn } from '../i18n/t';
 import { AddressInput } from './AddressInput';
 import { PixelSelect } from './PixelControls';
 import { primaryButton } from './Modal';
-import type { LangKey } from '../generated/lang-keys';
 import { dangerButton } from './Modal';
 import type { ComboOption } from './addressCombo';
 import type { Compiled } from '../network/compile';
@@ -282,7 +281,7 @@ const FIREWALL_NETWORKS = [...NETWORK_CHOICES.map((n) => `${n}/24`), '203.0.113.
 
 // 規則の通信の種類の文字
 const ruleServiceText = (r: { service: string; port?: number }): string =>
-  r.service === 'http' ? `${t('ui.fw.service.http')}${r.port !== undefined ? `:${r.port}` : ''}` : t(`ui.fw.service.${r.service}` as LangKey);
+  r.service === 'http' ? `${t('ui.fw.service.http')}${r.port !== undefined ? `:${r.port}` : ''}` : tDyn(`ui.fw.service.${r.service}`);
 
 // 規則を1つ追加する（送信元・宛先・通信の種類・ポート）
 function FirewallRuleAdd({ onAdd }: { onAdd: (rule: { src: string; dst: string; service: 'any' | 'ping' | 'http'; port?: number }) => void }) {

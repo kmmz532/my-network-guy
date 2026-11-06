@@ -1,8 +1,7 @@
 // 社員の札と、社員の一覧の中身。ウィンドウ（Window.tsx）の中に出し、タイトルの帯・×・大きさは Windows.tsx が受け持つ。
 // 状態（待機中・担当中・研修中）は sim/staff.ts の staffStatus で決める。
 import { balance } from 'virtual:game-data';
-import type { LangKey } from '../generated/lang-keys';
-import { t } from '../i18n/t';
+import { t, tDyn } from '../i18n/t';
 import { staffStatus, totalSalary, type StaffStatus } from '../sim/staff';
 import { staffSpriteName } from '../data/schema';
 import { useGameStore } from '../stores/useGameStore';
@@ -17,7 +16,7 @@ const COLUMNS = 'minmax(0, 0.8fr) minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1.2f
 const statusText = (status: StaffStatus): string => {
   if (status.kind === 'training') return t('ui.staff.status.training', { days: status.days });
   if (status.kind === 'project') {
-    return t('ui.staff.status.project', { project: t(`contract.${status.baseId}.title` as LangKey, status.params) });
+    return t('ui.staff.status.project', { project: tDyn(`contract.${status.baseId}.title`, status.params) });
   }
   return t('ui.staff.status.idle');
 };
@@ -26,7 +25,7 @@ const statusText = (status: StaffStatus): string => {
 export function StaffTitle({ uid }: { uid: string }) {
   const member = useGameStore((s) => s.staff.find((m) => m.uid === uid));
   if (!member) return null;
-  return <b style={{ display: 'inline-block', maxWidth: '100%', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t(member.name as LangKey)}</b>;
+  return <b style={{ display: 'inline-block', maxWidth: '100%', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tDyn(member.name)}</b>;
 }
 
 // 社員の札。見た目・名前・職種・level・経験値・月給・資格・状態・口癖と、研修・資格へのボタン
@@ -44,8 +43,8 @@ export function StaffBody({ uid, onTraining }: { uid: string; onTraining: () => 
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         <Icon name={`staff/${staffSpriteName(member.look)}_0`} scale={3} />
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 'bold', fontSize: 15 }}>{t(member.name as LangKey)}</div>
-          <div>{t(`staff.job.${member.job}` as LangKey)}</div>
+          <div style={{ fontWeight: 'bold', fontSize: 15 }}>{tDyn(member.name)}</div>
+          <div>{tDyn(`staff.job.${member.job}`)}</div>
           <div>{t('ui.staff.level', { level: member.level })}</div>
           <div>{t('ui.hiring.salary', { salary: yen(member.salary) })}</div>
         </div>
@@ -59,12 +58,12 @@ export function StaffBody({ uid, onTraining }: { uid: string; onTraining: () => 
       <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 10px', margin: 0 }}>
         <dt style={label}>{t('ui.staff.card.certs')}</dt>
         <dd style={{ margin: 0 }}>
-          {member.certs.length > 0 ? member.certs.map((id) => t(`cert.${id}.name` as LangKey)).join('、') : t('ui.staff.card.none')}
+          {member.certs.length > 0 ? member.certs.map((id) => tDyn(`cert.${id}.name`)).join('、') : t('ui.staff.card.none')}
         </dd>
         <dt style={label}>{t('ui.staff.card.status')}</dt>
         <dd style={{ margin: 0 }}>{statusText(status)}</dd>
       </dl>
-      <div style={{ fontStyle: 'italic', opacity: 0.9 }}>{t(`staff.quirk.${member.quirk}` as LangKey)}</div>
+      <div style={{ fontStyle: 'italic', opacity: 0.9 }}>{tDyn(`staff.quirk.${member.quirk}`)}</div>
       <div>
         <button style={{ padding: '4px 12px', cursor: 'pointer' }} onClick={onTraining}>
           {t('ui.staff.card.goto')}
@@ -112,9 +111,9 @@ export function StaffListBody() {
               textAlign: 'left',
             }}
           >
-            <span style={{ fontWeight: 'bold' }}>{t(m.name as LangKey)}</span>
+            <span style={{ fontWeight: 'bold' }}>{tDyn(m.name)}</span>
             <span>
-              {t(`staff.job.${m.job}` as LangKey)} · {t('ui.staff.level', { level: m.level })}
+              {tDyn(`staff.job.${m.job}`)} · {t('ui.staff.level', { level: m.level })}
             </span>
             <span>{yen(m.salary)}円</span>
             <span>{statusText(status)}</span>

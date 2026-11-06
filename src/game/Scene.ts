@@ -31,8 +31,7 @@ import { spriteOf, texture } from './sprites';
 import { balance, devices as deviceData, furniture as furnitureData } from 'virtual:game-data';
 import { hideTip, showTipAt } from '../components/Tooltip';
 import { effectText } from './effectText';
-import { t } from '../i18n/t';
-import type { LangKey } from '../generated/lang-keys';
+import { t, tDyn } from '../i18n/t';
 import type { FailureReason, NetLink, NetNode } from '../network/types';
 import { CAP as WALL_CAP, drawTileMap } from './TileMap';
 import { fitCamera, fitZoom, panCamera, resizeCamera, screenToMap, stepZoom, zoomCamera, type Camera, type Size } from './camera';
@@ -351,7 +350,7 @@ export class Scene {
       this.resetTip();
       const office = useGameStore.getState().office;
       const action = expandActionOf(office, side, balance.office);
-      const name = t(`ui.office.${action === 'annex' ? 'annex' : 'expand'}.${side}` as LangKey);
+      const name = tDyn(`ui.office.${action === 'annex' ? 'annex' : 'expand'}.${side}`);
       const cost = t('ui.office.cost', { cost: officeExpandCostOf(office, balance.office).toLocaleString('ja-JP') });
       this.tipTimer = window.setTimeout(() => this.showTip(`${name}\n${cost}`, e.clientX, e.clientY), balance.tooltip.hoverMs);
     });
@@ -872,7 +871,7 @@ export class Scene {
       // 口癖は、社員ごとにずらした周期で、60秒に3秒だけ頭上に出す（平均60秒に1回）
       const seconds = this.elapsed / 1000 + k * 23;
       if (seconds % 60 < 3) {
-        this.drawSpeech(t(`staff.quirk.${staffList[k].quirk}` as LangKey), at.x + STAFF_W / 2, at.y);
+        this.drawSpeech(tDyn(`staff.quirk.${staffList[k].quirk}`), at.x + STAFF_W / 2, at.y);
       }
     }
   }
@@ -1208,7 +1207,7 @@ export class Scene {
       const node = project.nodes.find((n) => n.uid === uid);
       if (!node) continue;
       const mark = new Text({ text: '×', style: style(FAIL, true), resolution });
-      const message = new Text({ text: t(`error.${reason}` as LangKey), style: style(0xf4f1e6, false), resolution });
+      const message = new Text({ text: tDyn(`error.${reason}`), style: style(0xf4f1e6, false), resolution });
       const help = new Text({ text: t('ui.fail.help'), style: style(SELECT, true), resolution });
       const parts = [mark, message, help];
       const width = parts.reduce((sum, part) => sum + part.width, 0) + gap * (parts.length - 1);
@@ -1230,7 +1229,7 @@ export class Scene {
       });
       // 「？」を押して開いたときは、直し方を機器の上に出す（2〜3行）
       if (s.helpUid === uid) {
-        const fix = new Text({ text: t(`error.${reason}.fix` as LangKey), style: style(0xf4f1e6, false), resolution });
+        const fix = new Text({ text: tDyn(`error.${reason}.fix`), style: style(0xf4f1e6, false), resolution });
         const pad = 4 / scale;
         const boxW = fix.width + pad * 2;
         const boxH = fix.height + pad * 2;
@@ -1369,7 +1368,7 @@ export class Scene {
     if (!f || !this.flashActive()) return;
     const scale = this.content.scale.x;
     const text = new Text({
-      text: t(f.key as LangKey),
+      text: tDyn(f.key),
       style: { fontFamily: 'sans-serif', fontSize: 12 / scale, fill: 0xffd866, stroke: { color: OUTLINE, width: 3 / scale } },
       resolution: this.textResolution(),
     });
@@ -1440,7 +1439,7 @@ export class Scene {
     const staffUid = staffAt(this.officeStaffHits(), p);
     const member = staffUid ? store.staff.find((m) => m.uid === staffUid) : undefined;
     if (member) {
-      const lines = [t(member.name as LangKey), t(`staff.job.${member.job}` as LangKey), t('ui.staff.level', { level: member.level })];
+      const lines = [tDyn(member.name), tDyn(`staff.job.${member.job}`), t('ui.staff.level', { level: member.level })];
       return { key: `s:${member.uid}`, text: lines.join('\n') };
     }
     const tile = this.tileOf(p);
@@ -1454,7 +1453,7 @@ export class Scene {
     if (!focusedProject(store) && !store.showcase) {
       const f = store.office.furniture.find((x) => x.x === tx && x.y === ty);
       if (f) {
-        const lines = [t(`furniture.${f.id}.name` as LangKey), effectText(gameEnv.furniture?.[f.id]?.effect)];
+        const lines = [tDyn(`furniture.${f.id}.name`), effectText(gameEnv.furniture?.[f.id]?.effect)];
         return { key: `f:${f.uid}`, text: lines.filter((l): l is string => l !== null).join('\n') };
       }
     }

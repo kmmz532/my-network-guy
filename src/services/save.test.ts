@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SAVE_VERSION, migrate, type SaveData } from './migrations';
+import { SAVE_VERSION, isSaveData, migrate, type SaveData } from './migrations';
 import type { Staff } from '../data/schema';
 import { exportSave, importSave } from './saveFile';
 
@@ -414,5 +414,12 @@ describe('古いセーブの読み込み（v19）', () => {
     const v19 = { ...sample, office: { ...sample.office, nodes: [node] }, active: [] };
     const migrated = migrate(19, v19);
     expect(migrated.office.nodes[0]).toMatchObject({ uid: 'pc1', hosts: [] });
+  });
+});
+
+describe('保存の中身の検査（依頼の形）', () => {
+  it('依頼の形が合わないセーブは拒否する', () => {
+    expect(isSaveData({ ...sample, offers: [{ id: 'x', kind: 'other', baseId: 'b', params: {}, contract: {} }] })).toBe(false);
+    expect(isSaveData({ ...sample, offers: [{ id: 'x', kind: 'fixed', baseId: 'b', params: {}, contract: {} }] })).toBe(true);
   });
 });

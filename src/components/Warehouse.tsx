@@ -2,8 +2,7 @@
 // 品目をマウス・ペンでドラッグしてマップの上で離すと、そのマスに置く（置けなければ何もしない）
 import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import { devices } from 'virtual:game-data';
-import type { LangKey } from '../generated/lang-keys';
-import { t } from '../i18n/t';
+import { t, tDyn } from '../i18n/t';
 import type { WarehouseItem } from '../sim/warehouse';
 import { mapViewOf } from '../game/mapView';
 import { useGameStore } from '../stores/useGameStore';
@@ -163,7 +162,7 @@ export function Warehouse({
         {items.map((item) => {
           const key = `${item.kind}-${item.id}`;
           const name =
-            item.kind === 'device' ? t(`device.${item.id}.name` as LangKey) : t(`furniture.${item.id}.name` as LangKey);
+            item.kind === 'device' ? tDyn(`device.${item.id}.name`) : tDyn(`furniture.${item.id}.name`);
           return (
             <Tooltip text={name} key={key}>
               <button

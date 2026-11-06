@@ -3,8 +3,7 @@
 // 形が正しくなければ理由を赤い文字で出し、直前の値に戻す。Esc は一覧を閉じて入力前の値に戻す。
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
-import type { LangKey } from '../generated/lang-keys';
-import { t } from '../i18n/t';
+import { t, tDyn } from '../i18n/t';
 import { filterOptions, isSelectable, listHeight, moveActive, pickOnCommit, placeAbove, type ComboOption } from './addressCombo';
 import { inputStyle, unsetColor } from './devicePorts';
 import { RADIUS } from '../ui/theme';
@@ -112,7 +111,7 @@ export function AddressInput({ label, value, options, disabled, isValid, formatE
     }
     const reason = onCommit(v);
     if (reason) {
-      setError(t(`ui.error.${reason}` as LangKey));
+      setError(tDyn(`ui.error.${reason}`));
       setText(value);
     } else {
       setError(null);

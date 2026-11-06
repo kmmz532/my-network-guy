@@ -202,6 +202,24 @@ const isOfficeSize = (value: unknown): boolean => {
   return typeof s === 'object' && s !== null && Number.isInteger(s.w) && Number.isInteger(s.h);
 };
 
+// 依頼の形（保存の中身の検査。案件の本体は、読み込みのあとで案件の定義と照らす）
+const isOfferShape = (value: unknown): boolean => {
+  const o = value as Record<string, unknown> | null;
+  return (
+    typeof o === 'object' &&
+    o !== null &&
+    typeof o.id === 'string' &&
+    (o.kind === 'fixed' || o.kind === 'template') &&
+    typeof o.baseId === 'string' &&
+    typeof o.params === 'object' &&
+    o.params !== null &&
+    typeof o.contract === 'object' &&
+    o.contract !== null &&
+    (o.arrivedMinute === undefined || Number.isFinite(o.arrivedMinute)) &&
+    (o.expiresMinute === undefined || Number.isFinite(o.expiresMinute))
+  );
+};
+
 export const isSaveData = (value: unknown): value is SaveData => {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
@@ -222,6 +240,7 @@ export const isSaveData = (value: unknown): value is SaveData => {
     Array.isArray(v.completed) &&
     v.completed.every((id) => typeof id === 'string') &&
     Array.isArray(v.offers) &&
+    v.offers.every(isOfferShape) &&
     Number.isInteger(v.nextOfferMinute) &&
     Number.isInteger(v.offerSeq) &&
     Number.isInteger(v.rng) &&

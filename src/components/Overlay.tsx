@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { LangKey } from '../generated/lang-keys';
-import { t } from '../i18n/t';
+import { t, tDyn } from '../i18n/t';
 import { balance } from 'virtual:game-data';
 import { useGameStore } from '../stores/useGameStore';
 import type { Report } from '../sim/project';
@@ -96,7 +95,7 @@ export function ReportModal() {
       {(report.rewardDevices ?? []).length > 0 && (
         <div style={{ fontSize: 14, marginTop: 6 }}>
           {t('report.reward', {
-            devices: (report.rewardDevices ?? []).map((r) => `${t(`device.${r.device}.name` as LangKey)} ×${r.count}`).join('・'),
+            devices: (report.rewardDevices ?? []).map((r) => `${tDyn(`device.${r.device}.name`)} ×${r.count}`).join('・'),
           })}
         </div>
       )}
@@ -133,7 +132,7 @@ export function NoticeToast() {
         zoom: 'var(--ui-scale, 1)',
       }}
     >
-      {t(notice.key as LangKey, notice.params)}
+      {tDyn(notice.key, notice.params)}
     </div>
   );
 }
