@@ -137,11 +137,17 @@ const annexOffice = (office: Office, side: ExpandSide): Office => {
 };
 
 // 自社オフィスの辺を買って広げる。費用は資金から引く。辺の上限に達していれば別室を足す
-export const expandOffice = (core: Core, side: ExpandSide, config: OfficeConfig): Outcome => {
+// 拡張の回数（部屋を広げた回数と、別室の数）。次の拡張の解放のレベルは unlockLevels[この回数]（N45）
+export const expansionsDone = (office: Office, config: OfficeConfig): number =>
+  (office.size.w - config.initialSize.w + office.size.h - config.initialSize.h) / config.expand.step + office.annexes.length;
+
+export const expandOffice = (core: Core, side: ExpandSide, config: OfficeConfig, companyLevel: number): Outcome => {
   if (officeLocked(core)) return fail('inhouse');
   const office = core.office;
   const action = expandActionOf(office, side, config);
   if (action === null) return fail('max');
+  const needLevel = config.expand.unlockLevels[expansionsDone(office, config)];
+  if (needLevel !== undefined && companyLevel < needLevel) return fail('level');
   const cost = officeExpandCostOf(office, config);
   if (core.clock.money < cost) return fail('money');
   const next = action === 'annex' ? annexOffice(office, side) : growOffice(office, side, config.expand.step);

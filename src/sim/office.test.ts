@@ -136,11 +136,11 @@ describe('上限', () => {
 
 describe('広げる', () => {
   it('資金が足りなければ、理由 money で失敗する', () => {
-    expect(expandOffice(core(199_999), 'right', config)).toEqual({ ok: false, reason: 'money' });
+    expect(expandOffice(core(199_999), 'right', config, 999)).toEqual({ ok: false, reason: 'money' });
   });
 
   it('資金がちょうどあれば買え、費用を引く', () => {
-    const r = expandOffice(core(200_000), 'right', config);
+    const r = expandOffice(core(200_000), 'right', config, 999);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.core.clock.money).toBe(0);
@@ -148,7 +148,7 @@ describe('広げる', () => {
   });
 
   it('右に広げても、置いてあるものの座標は変わらない', () => {
-    const r = expandOffice(core(1_000_000), 'right', config);
+    const r = expandOffice(core(1_000_000), 'right', config, 999);
     if (!r.ok) throw new Error('広げられるはず');
     expect(r.core.office.nodes.map((n) => [n.x, n.y])).toEqual([
       [2, 2],
@@ -163,7 +163,7 @@ describe('広げる', () => {
   });
 
   it('下に広げると、高さだけが増える', () => {
-    const r = expandOffice(core(1_000_000), 'bottom', config);
+    const r = expandOffice(core(1_000_000), 'bottom', config, 999);
     if (!r.ok) throw new Error('広げられるはず');
     expect(r.core.office.size).toEqual({ w: 5, h: 7 });
     expect(r.core.office.nodes.map((n) => [n.x, n.y])).toEqual([
@@ -173,7 +173,7 @@ describe('広げる', () => {
   });
 
   it('左に広げると、機器・家具・ケーブルの座標を2マスずらし、同じ見た目の位置に保つ', () => {
-    const r = expandOffice(core(1_000_000), 'left', config);
+    const r = expandOffice(core(1_000_000), 'left', config, 999);
     if (!r.ok) throw new Error('広げられるはず');
     expect(r.core.office.size).toEqual({ w: 7, h: 5 });
     expect(r.core.office.nodes.map((n) => [n.uid, n.x, n.y])).toEqual([
@@ -189,7 +189,7 @@ describe('広げる', () => {
   });
 
   it('左に広げたあとも、ずらした座標は新しい部屋のマップの床の中にある', () => {
-    const r = expandOffice(core(1_000_000), 'left', config);
+    const r = expandOffice(core(1_000_000), 'left', config, 999);
     if (!r.ok) throw new Error('広げられるはず');
     const map = officeMapOf(r.core.office.size);
     const floor = (x: number, y: number) => map.legend[map.tiles[y][x]] === 'floor';
@@ -199,13 +199,13 @@ describe('広げる', () => {
 
   it('受注中の自社案件があるときは、理由 inhouse で失敗する', () => {
     const inhouse = { contract: { inhouse: true } } as unknown as Project;
-    expect(expandOffice(core(1_000_000, {}, [inhouse]), 'right', config)).toEqual({ ok: false, reason: 'inhouse' });
+    expect(expandOffice(core(1_000_000, {}, [inhouse]), 'right', config, 999)).toEqual({ ok: false, reason: 'inhouse' });
   });
 
   it('辺の種類ごとに、広げたあとの大きさを返す', () => {
     const sides: ExpandSide[] = ['right', 'bottom', 'left'];
     const sizes = sides.map((side) => {
-      const r = expandOffice(core(1_000_000), side, config);
+      const r = expandOffice(core(1_000_000), side, config, 999);
       return r.ok ? r.core.office.size : null;
     });
     expect(sizes).toEqual([
@@ -224,7 +224,7 @@ describe('別室', () => {
   };
 
   it('右の辺が上限なら、仕切りの壁1マスと奥行き5マスの床を足す（床の大きさは 21×5）', () => {
-    const o = ok(expandOffice(at15(), 'right', config));
+    const o = ok(expandOffice(at15(), 'right', config, 999));
     expect(o.size).toEqual({ w: 21, h: 5 });
     expect(o.annexes).toEqual(['right']);
     // 仕切りは外壁だった列（x=16）の、床の高さ分（y=1〜5）。中央（y=3）はドア
@@ -238,7 +238,7 @@ describe('別室', () => {
   });
 
   it('別室のマップは、仕切りの壁とドアを含み、別室の床は通れる', () => {
-    const o = ok(expandOffice(at15(), 'right', config));
+    const o = ok(expandOffice(at15(), 'right', config, 999));
     const map = mapOfOffice(o);
     expect(map.width).toBe(23);
     expect(map.tiles[1][16]).toBe('#');
@@ -250,7 +250,7 @@ describe('別室', () => {
 
   it('下の辺が上限なら、下に別室を足す（横の長さは床の幅と同じ）', () => {
     const start = core(10_000_000, { size: { w: 5, h: 15 } });
-    const o = ok(expandOffice(start, 'bottom', config));
+    const o = ok(expandOffice(start, 'bottom', config, 999));
     expect(o.size).toEqual({ w: 5, h: 21 });
     expect(o.doors).toEqual([{ x: 3, y: 16 }]);
     expect(o.innerWalls).toHaveLength(4);
@@ -258,17 +258,17 @@ describe('別室', () => {
   });
 
   it('同じ辺に2つ目の別室は足せず、理由 max で失敗する', () => {
-    const once = ok(expandOffice(at15(), 'right', config));
-    expect(expandOffice({ ...core(10_000_000), office: once }, 'right', config)).toEqual({ ok: false, reason: 'max' });
+    const once = ok(expandOffice(at15(), 'right', config, 999));
+    expect(expandOffice({ ...core(10_000_000), office: once }, 'right', config, 999)).toEqual({ ok: false, reason: 'max' });
   });
 
   it('別室のある辺は、床を広げる操作もできない', () => {
-    const once = ok(expandOffice(at15(), 'right', config));
+    const once = ok(expandOffice(at15(), 'right', config, 999));
     expect(expandActionOf(once, 'right', config)).toBeNull();
   });
 
   it('別室の床は広げられず、本体の大きさで上限を見る', () => {
-    const once = ok(expandOffice(at15(), 'right', config));
+    const once = ok(expandOffice(at15(), 'right', config, 999));
     expect(mainSizeOf(once)).toEqual({ w: 15, h: 5 });
     // 本体は左も上限のままなので、左は別室を足す操作になる
     expect(expandActionOf(once, 'left', config)).toBe('annex');
@@ -277,13 +277,13 @@ describe('別室', () => {
 
   it('費用は本体の大きさで決まり、通常の拡張と同じ式で続く', () => {
     expect(officeExpandCostOf(at15().office, config)).toBe(expandCostOf({ w: 15, h: 5 }, config));
-    const once = ok(expandOffice(at15(), 'right', config));
+    const once = ok(expandOffice(at15(), 'right', config, 999));
     expect(officeExpandCostOf(once, config)).toBe(expandCostOf({ w: 15, h: 5 }, config));
   });
 
   it('資金が足りなければ、別室は理由 money で失敗する', () => {
     const start = core(100, { size: { w: 15, h: 5 } });
-    expect(expandOffice(start, 'right', config)).toEqual({ ok: false, reason: 'money' });
+    expect(expandOffice(start, 'right', config, 999)).toEqual({ ok: false, reason: 'money' });
   });
 
   it('左に別室を足すと、機器・家具・ケーブル・内側の壁・ドアを右へ6マスずらす', () => {
@@ -292,7 +292,7 @@ describe('別室', () => {
       innerWalls: [{ x: 6, y: 1 }],
       doors: [{ x: 6, y: 3 }],
     });
-    const o = ok(expandOffice({ ...core(10_000_000), office: withParts }, 'left', config));
+    const o = ok(expandOffice({ ...core(10_000_000), office: withParts }, 'left', config, 999));
     expect(o.size).toEqual({ w: 21, h: 5 });
     expect(o.nodes.map((n) => [n.x, n.y])).toEqual([
       [8, 2],
@@ -309,7 +309,7 @@ describe('別室', () => {
   });
 
   it('左に別室を足したあとも、ずらした座標は床の中にある', () => {
-    const o = ok(expandOffice({ ...core(10_000_000), office: office({ size: { w: 15, h: 5 } }) }, 'left', config));
+    const o = ok(expandOffice({ ...core(10_000_000), office: office({ size: { w: 15, h: 5 } }) }, 'left', config, 999));
     const map = mapOfOffice(o);
     const floor = (x: number, y: number) => map.legend[map.tiles[y][x]] === 'floor';
     expect(o.nodes.every((n) => floor(n.x, n.y))).toBe(true);
@@ -332,7 +332,7 @@ describe('別室の仕切りの壁を延ばす', () => {
   };
   const grow = (c: Core, side: ExpandSide, times: number): Core => {
     let cur = c;
-    for (let i = 0; i < times; i++) cur = ok(expandOffice(cur, side, config));
+    for (let i = 0; i < times; i++) cur = ok(expandOffice(cur, side, config, 999));
     return cur;
   };
   // ドア（通れる床）を通らずに、from から届くマス
@@ -379,7 +379,7 @@ describe('別室の仕切りの壁を延ばす', () => {
   it('右の別室のあとに、下の別室を足しても、右の別室と本体は下の別室とつながらない', () => {
     const c = grow(grow(rich(), 'right', 1), 'bottom', 5);
     expect(c.office.size.h).toBe(15);
-    const next = ok(expandOffice(c, 'bottom', config));
+    const next = ok(expandOffice(c, 'bottom', config, 999));
     const office = next.office;
     expect(office.annexes).toEqual(['right', 'bottom']);
     expect(office.size).toEqual({ w: 21, h: 21 });
@@ -410,3 +410,12 @@ describe('別室の仕切りの壁を延ばす', () => {
   });
 });
 
+
+describe('拡張の解放のレベル（N45）', () => {
+  it('次の拡張の解放のレベルに届かないと拡張できない', () => {
+    // 1回目の拡張は Lv3 から
+    const start = { size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 } as never;
+    expect(expandOffice({ ...core(1_000_000), office: start }, 'right', config, 2)).toEqual({ ok: false, reason: 'level' });
+    expect(expandOffice({ ...core(1_000_000), office: start }, 'right', config, 3).ok).toBe(true);
+  });
+});

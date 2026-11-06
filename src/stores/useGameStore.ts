@@ -874,7 +874,7 @@ export const useGameStore = create<GameState>((set, get) => {
         tx: side === 'right' ? office.size.w + 1 : side === 'left' ? 0 : Math.floor((office.size.w + 2) / 2),
         ty: side === 'bottom' ? office.size.h + 1 : Math.floor((office.size.h + 2) / 2),
       };
-      const reason = apply(expandOfficeOp(coreOf(get()), side, balance.office), at);
+      const reason = apply(expandOfficeOp(coreOf(get()), side, balance.office, levelOf(get().companyExp, balance)), at);
       if (reason !== null) return reason;
       // 部屋の大きさが変わったので、マップを作り直す。広げる前の操作の取り消しは、座標が合わないため消す
       dropHistory(OFFICE_HISTORY_KEY);
