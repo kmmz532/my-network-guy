@@ -40,15 +40,15 @@ L2スイッチは、同じネットワーク内の機器をまとめてつなぎ
 
 | 画像 | 名前 | ID | 定価 | 備考 |
 | --- | --- | --- | --- | --- |
-| <img src="../src/assets/sprites/furniture/desk.png" width="96" alt="オフィスデスク"> | オフィスデスク | `desk` | 30,000円 | 社員が座る席になる。座った社員は、施工力と経験値の補正を受けられる |
-| <img src="../src/assets/sprites/furniture/plant.png" width="96" alt="観葉植物"> | 観葉植物 | `plant` | 8,000円 | 近く（2マス以内）の席の社員の施工力を、+10% する |
-| <img src="../src/assets/sprites/furniture/bookshelf.png" width="96" alt="本棚"> | 本棚 | `bookshelf` | 20,000円 | 近く（2マス以内）の席の社員の経験値を、+10% する |
-| <img src="../src/assets/sprites/furniture/cabinet.png" width="96" alt="書類キャビネット"> | 書類キャビネット | `cabinet` | 15,000円 | 効果なし（置くだけ） |
-| <img src="../src/assets/sprites/furniture/coffee.png" width="96" alt="コーヒーメーカー"> | コーヒーメーカー | `coffee` | 12,000円 | 座っている社員全員の施工力を、+5% する |
-| <img src="../src/assets/sprites/furniture/water.png" width="96" alt="ウォーターサーバー"> | ウォーターサーバー | `water` | 10,000円 | 座っている社員全員の施工力を、+5% する |
-| <img src="../src/assets/sprites/furniture/trash.png" width="96" alt="ゴミ箱"> | ゴミ箱 | `trash` | 2,000円 | 効果なし（置くだけ） |
-| <img src="../src/assets/sprites/furniture/sofa.png" width="96" alt="ソファ"> | ソファ | `sofa` | 25,000円 | 席がない社員の施工力の係数を、0.5 から 0.7 に上げる |
-| <img src="../src/assets/sprites/furniture/boxes.png" width="96" alt="段ボール"> | 段ボール | `boxes` | 2,000円 | 効果なし（置くだけ） |
+| <img src="../src/assets/sprites/furniture/desk.png" width="64" alt="オフィスデスク"> | オフィスデスク | `desk` | 30,000円 | 社員が座る席になる。座った社員は、施工力と経験値の補正を受けられる |
+| <img src="../src/assets/sprites/furniture/plant.png" width="64" alt="観葉植物"> | 観葉植物 | `plant` | 8,000円 | 近く（2マス以内）の席の社員の施工力を、+10% する |
+| <img src="../src/assets/sprites/furniture/bookshelf.png" width="64" alt="本棚"> | 本棚 | `bookshelf` | 20,000円 | 近く（2マス以内）の席の社員の経験値を、+10% する |
+| <img src="../src/assets/sprites/furniture/cabinet.png" width="64" alt="書類キャビネット"> | 書類キャビネット | `cabinet` | 15,000円 | 効果なし（置くだけ） |
+| <img src="../src/assets/sprites/furniture/coffee.png" width="64" alt="コーヒーメーカー"> | コーヒーメーカー | `coffee` | 12,000円 | 座っている社員全員の施工力を、+5% する |
+| <img src="../src/assets/sprites/furniture/water.png" width="64" alt="ウォーターサーバー"> | ウォーターサーバー | `water` | 10,000円 | 座っている社員全員の施工力を、+5% する |
+| <img src="../src/assets/sprites/furniture/trash.png" width="64" alt="ゴミ箱"> | ゴミ箱 | `trash` | 2,000円 | 効果なし（置くだけ） |
+| <img src="../src/assets/sprites/furniture/sofa.png" width="64" alt="ソファ"> | ソファ | `sofa` | 25,000円 | 席がない社員の施工力の係数を、0.5 から 0.7 に上げる |
+| <img src="../src/assets/sprites/furniture/boxes.png" width="64" alt="段ボール"> | 段ボール | `boxes` | 2,000円 | 効果なし（置くだけ） |
 
 家具の効果（施工力・経験値）は、座っている社員だけに効きます。席のない社員は、ソファの係数だけが効きます。近くの範囲は、家具と席のマスの距離が 2マス以内のときです。
 
@@ -56,8 +56,8 @@ L2スイッチは、同じネットワーク内の機器をまとめてつなぎ
 
 | 画像 | 名前 | ID | 最大の長さ | 価格 | 速度 |
 | --- | --- | --- | --- | --- | --- |
-| <img src="../src/assets/sprites/icon/cable_utp_cat5e.png" width="64" alt="LANケーブル"> | LANケーブル（Cat5e） | `utp_cat5e` | 30マス | 1,000円/本 ＋ 300円/マス | 1000 Mbps |
-| <img src="../src/assets/sprites/icon/cable_fiber_sm.png" width="64" alt="光ファイバーケーブル"> | 光ファイバーケーブル | `fiber_sm` | 200マス | 5,000円/本 ＋ 1,500円/マス | 1000 Mbps |
+| <img src="../src/assets/sprites/icon/cable_utp_cat5e.png" width="48" alt="LANケーブル"> | LANケーブル（Cat5e） | `utp_cat5e` | 30マス | 1,000円/本 ＋ 300円/マス | 1000 Mbps |
+| <img src="../src/assets/sprites/icon/cable_fiber_sm.png" width="48" alt="光ファイバーケーブル"> | 光ファイバーケーブル | `fiber_sm` | 200マス | 5,000円/本 ＋ 1,500円/マス | 1000 Mbps |
 
 「本」は、1本の配線（機器のポートとポートをつなぐ 1本）です。「マス」は、ケーブルが通るマップ上のマス数です。光ファイバーは長い距離を結べます。解禁は「社内Webサーバーの接続」の達成後です。
 
