@@ -252,9 +252,87 @@ export function Toolbar({
   );
   const showCables = tool === 'wire' && cableIds.length > 0;
 
+  // スマホは場面ごとに中身を替え、1段に収める（横スクロールしない）。
+  // IP の表示は設定画面で切り替える。戻す・やり直すは地図の左下に浮かせる（右下は拡大・縮小のボタン）。予算・やめる・施工の進み具合はバーの上の帯に出す
+  if (phone) {
+    const strip = { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, fontSize: 13 } as const;
+    const gap = <span style={{ width: 6, flexShrink: 0 }} />;
+    return (
+      <>
+      <footer style={barPhone} data-toolbar>
+        <div style={{ position: 'absolute', left: 8, bottom: '100%', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+          {historyButtons}
+        </div>
+        {showCables && cablePopup}
+        {design && (
+          <div style={strip}>
+            <Icon name="icon/budget" /> {yen(projectCostOf(active, gameEnv).total)} / {yen(active.contract.budget)}
+            <button aria-label={t('ui.project.abandon')} style={{ ...sl(false), width: 32, height: 32, marginLeft: 'auto' }} onClick={() => { closeWarehouse(); abandon(); }}>
+              <Icon name="icon/close" />
+            </button>
+          </div>
+        )}
+        {active?.phase === 'build' && (
+          <div style={strip}>
+            <Icon name="icon/hammer" />
+            <div style={{ flex: 1, height: 10, background: '#3b2a33', borderRadius: RADIUS.none }}>
+              <div style={{ width: `${active.total ? Math.min(100, (active.progress / active.total) * 100) : 0}%`, height: '100%', background: workingNow ? '#ffd866' : '#8a8a8a' }} />
+            </div>
+            {!workingNow && <span style={{ whiteSpace: 'nowrap' }}>{t('ui.build.offHours', { hour: balance.build.workStartHour })}</span>}
+          </div>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {TOOLS.map((item) => (
+            <button key={item.id} aria-label={t(item.name)} data-guide={`tool.${item.id}`} style={{ ...toolSlot(tool === item.id), flexShrink: 0 }} onClick={() => { setTool(item.id); closeWarehouse(); }}>
+              <Icon name={item.icon} />
+            </button>
+          ))}
+          {gap}
+          {!sandbox && !design && (
+            <button aria-label={t('ui.offer.title')} style={sl(false)} onClick={() => { closeWarehouse(); onOffers(); }}>
+              <Icon name="icon/mail" />
+              {offers.length > 0 && (
+                <span style={{ position: 'absolute', top: 2, right: 2, background: '#e84a4a', borderRadius: RADIUS.chrome, fontSize: 11, padding: '0 5px' }}>{offers.length}</span>
+              )}
+            </button>
+          )}
+          <button aria-label={t('ui.shop.title')} data-guide="shop" style={sl(false)} onClick={() => { closeWarehouse(); onShop(); }}>
+            <Icon name="icon/cart" />
+          </button>
+          {!sandbox && !design && (
+            <button aria-label={t('ui.staff.hire')} style={{ ...sl(hiringOpen), opacity: candidateCount > 0 ? 1 : 0.4 }} disabled={candidateCount === 0} onClick={() => { closeWarehouse(); onHire(); }}>
+              <Icon name="icon/person" />
+            </button>
+          )}
+          <button aria-label={t('ui.warehouse.title')} data-guide="warehouse" style={{ ...sl(warehouseOpen && warehouseOpenable), opacity: warehouseOpenable ? 1 : 0.35 }} disabled={!warehouseOpenable} onClick={() => setWarehouseOpen(!warehouseOpen)}>
+            <Icon name="icon/warehouse" scale={1} />
+            <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>{stockTotal}</span>
+          </button>
+          {(design || sandbox) && (
+            <>
+              {gap}
+              <button aria-label={t('ui.test')} data-guide="test" style={{ ...sl(false), background: testLit ? '#ffd866' : '#3a7bd0' }} onClick={() => { closeWarehouse(); test(); }}>
+                <Icon name="icon/test" />
+              </button>
+              {design && (
+                <button aria-label={t('ui.build')} style={{ ...sl(false), background: '#5aa860', opacity: active.testedOk ? 1 : 0.55 }} onClick={() => { closeWarehouse(); requestBuild(); }}>
+                  <Icon name="icon/hammer" />
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </footer>
+      {warehouseOpen && warehouseOpenable && (
+        <Warehouse items={warehouseItemList} owned={owned} placing={placing} onPick={pickWarehouseItem} onShop={onShop} />
+      )}
+      </>
+    );
+  }
+
   return (
     <>
-    <footer style={phone ? barPhone : bar} data-toolbar>
+    <footer style={bar} data-toolbar>
       {/* 狭い画面では、ケーブルの欄を行の上に出す */}
       {phone && showCables && cablePopup}
       <div style={phone ? scrollerPhone : scrollerDesktop}>
