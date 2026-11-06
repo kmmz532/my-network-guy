@@ -186,6 +186,8 @@ export interface GameState {
   grantCompanyExp: (source: ExpSource) => void;
   // デバッグ（N54）: 案内の進みを最初に戻す
   debugResetGuides: () => void;
+  // デバッグ（N54）: 依頼を今すぐ引き直す（届く時刻を今に合わせ、判定を1回行う）
+  debugRefreshOffers: () => void;
   speed: Speed;
   // 勤務時間外の早送りで、自動で変える前の速さ（自動で変えていなければ null。保存しない）
   nightSpeed: Speed | null;
@@ -666,6 +668,7 @@ export const useGameStore = create<GameState>((set, get) => {
       get().grantCompanyExp('guide');
     },
     debugResetGuides: () => set({ guidesDone: [] }),
+    debugRefreshOffers: () => set((s) => refresh({ ...s, nextOfferMinute: s.clock.minute })),
     grantCompanyExp: (source) => {
       const s = get();
       // サンドボックスは育成がないため、経験値は入れない

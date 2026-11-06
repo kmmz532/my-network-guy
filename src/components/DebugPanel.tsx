@@ -174,6 +174,9 @@ export default function DebugPanel() {
         >
           欄のセーブを読み込む
         </button>
+        <button type="button" style={buttonStyle} onClick={act(() => store().debugRefreshOffers(), '依頼を引き直しました')}>
+          依頼を今すぐ引き直す
+        </button>
         <button type="button" style={buttonStyle} onClick={act(() => store().debugResetGuides(), '案内を最初から出し直します')}>
           案内を最初から
         </button>
