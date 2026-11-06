@@ -674,18 +674,6 @@ def wall_face():
     return img
 
 
-def pillar():
-    # 柱（1マス）。上から見た天面と、手前の短い側面。隣に柱があっても縁は描かない（2×2 で1本の太い柱に見える）
-    img, d = new(32, 32)
-    rect(d, 0, 0, 32, 32, 'W3')
-    rect(d, 0, 0, 32, 7, 'W2')
-    d.line([(0, 7), (31, 7)], fill=C['o'])
-    rect(d, 3, 9, 6, 19, 'W1')
-    rect(d, 27, 9, 4, 22, 'W2')
-    rect(d, 0, 28, 32, 4, 'F3')
-    return img
-
-
 def door():
     # 仕切りの壁の真ん中のドア。床の上に、枠と木の扉を描く
     img = floor(0)
@@ -1018,7 +1006,6 @@ if __name__ == '__main__':
         'poster': wall_poster(),
         'whiteboard': wall_whiteboard(),
         'door': door(),
-        'pillar': pillar(),
     }
     for name, img in tiles.items():
         save(img, f'tile/{name}.png')

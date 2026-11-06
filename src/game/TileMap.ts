@@ -16,6 +16,10 @@ export const CAP = 5;
 const CAP_COLOR = 0xcfc3aa;
 const FRONT_CAP_COLOR = 0xb0a088; // 手前の壁は少し暗くする
 const CAP_EDGE_COLOR = 0x3b2a33; // 上面の内側の縁（輪郭線の色）
+// 柱の正面（下の段の下の部分）の高さと、巾木の高さ。正面の色は奥の壁（tile/wall_face.png の W1）と同じ
+const PILLAR_FACE = 14;
+const PILLAR_BASE = 4;
+const PILLAR_FACE_COLOR = 0xefe7d6;
 const WALL_TOP_BAND = 3; // 奥の壁の上面の帯の高さ（tile/wall_face.png の上端の帯に合わせる）
 // 光源は左上。左の壁と奥の壁の下の床に影を落とす
 const SHADOW = 6;
@@ -60,6 +64,8 @@ export const drawTileMap = (map: GameMap): Container => {
 
   // 床と壁を先に敷き、家具は上の行から順に重ねる（手前の家具が奥の家具を隠す）
   const furniture: [string, number, number][] = [];
+  // 柱のマス（床と家具の後に、まとめて描く）
+  const pillars: [number, number][] = [];
   for (let y = 0; y < map.height; y++) {
     for (let x = 0; x < map.width; x++) {
       const kind = kindAt(x, y);
@@ -117,7 +123,7 @@ export const drawTileMap = (map: GameMap): Container => {
         continue;
       }
       if (isPillar(kind)) {
-        put('tile/pillar', x, y);
+        pillars.push([x, y]);
         continue;
       }
       put(`tile/floor_${floorVariant(x, y)}`, x, y);
@@ -138,6 +144,32 @@ export const drawTileMap = (map: GameMap): Container => {
         shade.rect(x * ts + sx, y * ts, ts - sx, SHADOW).fill({ color: SHADOW_COLOR, alpha: SHADOW_ALPHA });
       }
     }
+  }
+  // 柱。並んだ柱のマスを1本の太い柱として描く（ART.md「視点」の 3/4 ビュー）。
+  // 天面は壁の上面と同じ色。下の段（真下が柱でないマス）だけ、下の部分を正面（壁の色と巾木）にする。
+  // 輪郭は、隣が柱でない辺にだけ引く。影は光源（左上）の反対の、右と下の床に落とす
+  const pg = new Graphics();
+  container.addChild(pg);
+  const pillarAt = (x: number, y: number): boolean => isPillar(kindAt(x, y));
+  for (const [x, y] of pillars) {
+    const x0 = x * ts;
+    const y0 = y * ts;
+    const bottom = !pillarAt(x, y + 1);
+    pg.rect(x0, y0, ts, ts).fill(CAP_COLOR);
+    if (bottom) {
+      const fy = y0 + ts - PILLAR_FACE;
+      pg.rect(x0, fy, ts, PILLAR_FACE).fill(PILLAR_FACE_COLOR);
+      pg.rect(x0, y0 + ts - PILLAR_BASE, ts, PILLAR_BASE).fill(FRONT_CAP_COLOR);
+      pg.rect(x0, fy, ts, 1).fill(CAP_EDGE_COLOR);
+      if (floorAt(x, y + 1)) shade.rect(x0, y0 + ts, ts, SHADOW).fill({ color: SHADOW_COLOR, alpha: SHADOW_ALPHA });
+    }
+    if (!pillarAt(x - 1, y)) pg.rect(x0, y0, 1, ts).fill(CAP_EDGE_COLOR);
+    if (!pillarAt(x + 1, y)) {
+      pg.rect(x0 + ts - 1, y0, 1, ts).fill(CAP_EDGE_COLOR);
+      if (floorAt(x + 1, y)) shade.rect(x0 + ts, y0, SHADOW, ts).fill({ color: SHADOW_COLOR, alpha: SHADOW_ALPHA });
+    }
+    if (!pillarAt(x, y - 1)) pg.rect(x0, y0, ts, 1).fill(CAP_EDGE_COLOR);
+    if (bottom) pg.rect(x0, y0 + ts - 1, ts, 1).fill(CAP_EDGE_COLOR);
   }
   for (const [kind, x, y] of furniture) put(`furniture/${kind}`, x, y);
   return container;
