@@ -7,6 +7,7 @@ import { PixiStage } from './game/PixiStage';
 import { useGameStore, type Speed } from './stores/useGameStore';
 import { useTickLoop } from './stores/useTickLoop';
 import { toDate } from './sim/clock';
+import { nightShade } from './ui/daylight';
 import { loadSlot, saveSlot } from './services/db';
 import { SAVE_SLOT, slotOf } from './services/slots';
 import { createSaveQueue, isAutoSaveDue } from './services/autoSave';
@@ -298,6 +299,8 @@ export function App() {
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       <TabConflict />
       <PixiStage inventoryOpen={inventoryOpen} />
+      {/* 夜は画面を少し暗くする（昼夜の雰囲気）。地図の上、HUD・窓・ツールバーの下に置く。押す操作は通す */}
+      <div aria-hidden style={{ position: 'absolute', inset: 0, background: `rgba(12, 16, 40, ${nightShade(date.hour + (clock.minute % 60) / 60)})`, pointerEvents: 'none' }} />
       <header
         ref={headerRef}
         data-hud
