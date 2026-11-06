@@ -699,7 +699,7 @@
   "ui.company.title": "自社の情報",
   "ui.inventory.blocked.design": "設計中は家具を置けません。自社オフィスで使えます",
   "ui.search.label": "検索",
-  "ui.search.placeholder": "名前・分類で探す",
+  "ui.search.placeholder": "名前、分類で探す",
   "ui.search.none": "該当なし",
   "keys.search": "検索の欄に移る",
   "ui.company.exp": "経験値",
