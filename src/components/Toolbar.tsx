@@ -7,6 +7,14 @@ import { isWorkingHour, toDate } from '../sim/clock';
 import { isUnlocked } from '../sim/shop';
 import { historyKeyOf } from '../sim/history';
 import { warehouseItems, warehouseMode, type WarehouseItem } from '../sim/warehouse';
+import { devices as catalogDevices, furniture as catalogFurniture, shop as catalogShop } from 'virtual:game-data';
+
+// 倉庫の並べ方に使う定義（機材・家具・店の並び順）
+const warehouseCatalog = {
+  devices: catalogDevices,
+  furniture: catalogFurniture,
+  shopOrder: catalogShop.map((i) => ('device' in i && i.device ? i.device : 'furniture' in i && i.furniture ? i.furniture : '')).filter((id) => id !== ''),
+};
 import { projectCostOf } from '../sim/project';
 import { gameEnv } from '../sim/env';
 import { focusedProject, useGameStore, type Tool } from '../stores/useGameStore';
@@ -179,7 +187,7 @@ export function Toolbar({
   // 倉庫の在庫の合計（機材と家具の個数の和）
   const stockTotal = Object.values(owned).reduce((sum, n) => sum + n, 0);
   const mode = warehouseMode(active?.phase ?? null, showcase !== null);
-  const warehouseItemList = warehouseItems(mode, shop, completed, owned, sandbox);
+  const warehouseItemList = warehouseItems(mode, owned, warehouseCatalog);
   const warehouseOpenable = mode !== 'closed';
   const phone = usePhone();
 

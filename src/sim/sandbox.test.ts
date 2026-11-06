@@ -211,10 +211,9 @@ describe('サンドボックスの解禁と倉庫', () => {
     expect(isUnlocked(locked, [], true)).toBe(true);
   });
 
-  it('サンドボックスの倉庫には、解禁前の機材も並ぶ', () => {
-    const shop = shopJson.items as ShopItem[];
+  it('サンドボックスの倉庫には、解禁前の機材も、持っていれば並ぶ', () => {
+    const catalog = { devices: { l2_switch_8p: {} }, furniture: { sofa: {} }, shopOrder: ['l2_switch_8p', 'sofa'] };
     const owned = { l2_switch_8p: 1, sofa: 1 };
-    expect(warehouseItems('office', shop, [], owned).map((i) => i.id)).toEqual(['sofa']);
-    expect(warehouseItems('office', shop, [], owned, true).map((i) => i.id)).toEqual(['l2_switch_8p', 'sofa']);
+    expect(warehouseItems('office', owned, catalog).map((i) => i.id)).toEqual(['l2_switch_8p', 'sofa']);
   });
 });
