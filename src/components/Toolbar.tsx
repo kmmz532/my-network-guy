@@ -12,21 +12,14 @@ import { levelOf } from '../sim/level';
 const shopItemDefs: ItemDefs = { devices: catalogDevices, furniture: catalogFurniture, cables: catalogCables };
 import { historyKeyOf } from '../sim/history';
 import { inventoryItems, inventoryMode, type InventoryItem } from '../sim/inventory';
-import { balance as catalogBalance, cables as catalogCables, devices as catalogDevices, furniture as catalogFurniture, shop as catalogShop } from 'virtual:game-data';
-
-// インベントリの並べ方に使う定義（機材・家具・店の並び順）
-const inventoryCatalog = {
-  devices: catalogDevices,
-  furniture: catalogFurniture,
-  shopOrder: catalogShop.map((i) => ('device' in i && i.device ? i.device : 'furniture' in i && i.furniture ? i.furniture : '')).filter((id) => id !== ''),
-};
+import { balance as catalogBalance, cables as catalogCables, devices as catalogDevices, furniture as catalogFurniture } from 'virtual:game-data';
 import { projectCostOf } from '../sim/project';
 import { gameEnv } from '../sim/env';
 import { focusedProject, useGameStore, type Tool } from '../stores/useGameStore';
 import { tipText } from '../input/keymap';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
-import { Inventory } from './Inventory';
+import { Inventory, inventoryCatalog } from './Inventory';
 import { RADIUS } from '../ui/theme';
 import { usePhone } from '../ui/usePhone';
 
@@ -212,9 +205,9 @@ export function Toolbar({
     }
   };
 
-  // インベントリの欄を閉じる（配置の途中では閉じない。置き終わるまで欄を開けておく）
+  // スマホのインベントリの帯を閉じる（配置の途中では閉じない。置き終わるまで帯を開けておく）。パソコンのウィンドウは、ほかのボタンを押しても閉じない
   const closeInventory = () => {
-    if (placing === null) setInventoryOpen(false);
+    if (phone && placing === null) setInventoryOpen(false);
   };
 
   // ケーブルの種類の欄。PC は配線のボタンの上に浮かせ、狭い画面は行の上に出す（スクロールで切れないように）
@@ -458,15 +451,7 @@ export function Toolbar({
       )}
       </div>
     </footer>
-    {inventoryOpen && inventoryOpenable && (
-      <Inventory
-        items={inventoryItemList}
-        owned={owned}
-        placing={placing}
-        onPick={pickInventoryItem}
-        onShop={onShop}
-      />
-    )}
+    {/* パソコンのインベントリはウィンドウ（Windows.tsx の InventoryBody）で出す */}
     </>
   );
 }

@@ -1,8 +1,11 @@
-// インベントリの欄。ツールバーの上に横スクロールで在庫の品目を並べる。品目を押すと配置の操作に入る。
-// 品目をマウス・ペンでドラッグしてマップの上で離すと、そのマスに置く（置けなければ何もしない）
-import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from 'react';
+// インベントリ。スマホはツールバーの上に横スクロールの帯（strip）、パソコンはウィンドウの中の格子（grid。InventoryBody）で在庫の品目を並べる。
+// 品目を押すと配置の操作に入る。品目をマウス・ペンでドラッグしてマップの上で離すと、そのマスに置く（置けなければ何もしない）
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { devices as catalogDevices, furniture as catalogFurniture, shop as catalogShop } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
-import type { InventoryItem } from '../sim/inventory';
+import { focusedProject } from '../stores/useGameStore';
+import { inventoryItems, inventoryMode, type InventoryItem } from '../sim/inventory';
+import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { mapViewOf } from '../game/mapView';
 import { useGameStore } from '../stores/useGameStore';
 import { isDragMove } from './rearDrag';
@@ -47,21 +50,82 @@ const itemStyle = (active: boolean) =>
     position: 'relative',
   }) as const;
 
+// パソコンのウィンドウの中の並び。幅に合わせて折り返す（縦のスクロールはウィンドウが受け持つ）
+const grid = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignContent: 'flex-start',
+  gap: 6,
+  color: '#f4f1e6',
+} as const;
+
 const spriteOf = (item: InventoryItem): string => itemSpriteOf(item.kind, item.id);
 
+// 並べ方を決める定義（機材・家具・店の並び順）
+export const inventoryCatalog = {
+  devices: catalogDevices,
+  furniture: catalogFurniture,
+  shopOrder: catalogShop.map((i) => ('device' in i && i.device ? i.device : 'furniture' in i && i.furniture ? i.furniture : '')).filter((id) => id !== ''),
+};
+
+type InventoryTab = 'all' | 'device' | 'furniture';
+const INVENTORY_TABS: readonly InventoryTab[] = ['all', 'device', 'furniture'];
+
+// パソコンのインベントリのウィンドウの中身。上にショップと同じタブ（先頭は「すべて」）、下に品目の格子
+export function InventoryBody() {
+  const owned = useGameStore((s) => s.owned);
+  const placing = useGameStore((s) => s.placing);
+  const phase = useGameStore((s) => focusedProject(s)?.phase ?? null);
+  const showcase = useGameStore((s) => s.showcase !== null);
+  // 選んだタブは、開いている間だけ覚える（保存しない）
+  const [tab, setTab] = useState<InventoryTab>('all');
+  const all = inventoryItems(inventoryMode(phase, showcase), owned, inventoryCatalog);
+  const items = tab === 'all' ? all : all.filter((item) => item.kind === tab);
+  // 品目を押すと配置に入る。同じ品目をもう一度押すと配置を終える（ウィンドウは開いたまま）
+  const pick = (item: InventoryItem) => {
+    const s = useGameStore.getState();
+    s.setTool('select');
+    s.setPlacing(s.placing === item.id ? null : item.id);
+  };
+  return (
+    <div>
+      <Tabs
+        idPrefix="inventory-tab"
+        ariaLabel={t('ui.inventory.title')}
+        items={INVENTORY_TABS.map((id) => ({
+          id,
+          icon: <Icon name={id === 'all' ? 'icon/inventory' : `icon/${id}`} scale={1} />,
+          label: id === 'all' ? t('ui.inventory.tab.all') : tDyn(`ui.shop.tab.${id}`),
+        }))}
+        selected={tab}
+        onSelect={setTab}
+        colors={TAB_COLORS.shop}
+        style={{ paddingLeft: 8 }}
+      />
+      <div id="inventory-panel" role="tabpanel" aria-labelledby={`inventory-tab-${tab}`} style={tabPanelStyle(TAB_COLORS.shop.selected)}>
+        <Inventory layout="grid" items={items} owned={owned} placing={placing} onPick={pick} onShop={() => useGameStore.getState().openWindow('shop', '')} />
+      </div>
+    </div>
+  );
+}
+
 export function Inventory({
+  layout = 'strip',
   items,
   owned,
   placing,
   onPick,
   onShop,
 }: {
+  // strip: スマホの帯（ツールバーの上）、grid: パソコンのウィンドウの中
+  layout?: 'strip' | 'grid';
   items: InventoryItem[];
   owned: Record<string, number>;
   placing: string | null;
   onPick: (item: InventoryItem) => void;
   onShop: () => void;
 }) {
+  const box = layout === 'strip' ? strip : grid;
   const itemDrag = useGameStore((s) => s.itemDrag);
   const setItemDrag = useGameStore((s) => s.setItemDrag);
   // ドラッグを終えたあとに続く click を1回無視する
@@ -146,7 +210,7 @@ export function Inventory({
 
   if (items.length === 0) {
     return (
-      <div style={{ ...strip, justifyContent: 'center', overflowX: 'visible' }}>
+      <div style={{ ...box, justifyContent: 'center', overflowX: 'visible', alignItems: 'center' }}>
         <span>{t('ui.inventory.empty')}</span>
         <button style={secondaryButton} onClick={onShop}>
           {t('ui.inventory.openShop')}
@@ -157,7 +221,7 @@ export function Inventory({
   const dragged = itemDrag ? items.find((item) => item.id === itemDrag.id) : undefined;
   return (
     <>
-      <div style={strip}>
+      <div style={box}>
         {items.map((item) => {
           const key = `${item.kind}-${item.id}`;
           const name =

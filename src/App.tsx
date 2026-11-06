@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { DEBUG_ENABLED } from './debug';
-import { usePhone } from './ui/usePhone';
+import { isPhoneNow, usePhone } from './ui/usePhone';
 import { balance } from 'virtual:game-data';
 import { loadLang, t } from './i18n/t';
 import { PixiStage } from './game/PixiStage';
@@ -114,12 +114,18 @@ export function App() {
   const [hiringTab, setHiringTab] = useState<HiringTab>('hiring');
   const openWindow = useGameStore((s) => s.openWindow);
   const cacheMap = useGameStore((s) => s.cacheMap);
-  // インベントリの欄の開け閉め（ツールバーと W キーで使う）
-  const [inventoryOpen, setInventoryOpen] = useState(false);
+  // インベントリの開け閉め（ツールバーと E キーで使う）。スマホは帯（この状態）、パソコンはウィンドウ（ウィンドウの一覧）で持つ
+  const [inventoryStripOpen, setInventoryStripOpen] = useState(false);
+  const inventoryWindowOpen = useGameStore((s) => s.windows.some((w) => w.kind === 'inventory'));
   // ヘッダーの下端（画面の座標）。狭い画面では案件の札と速さの表示を、ヘッダーの下に置く
   const headerRef = useRef<HTMLElement>(null);
   const [hudBottom, setHudBottom] = useState(0);
   const phone = usePhone();
+  const inventoryOpen = phone ? inventoryStripOpen : inventoryWindowOpen;
+  const setInventoryOpen = (open: boolean) => {
+    if (isPhoneNow()) setInventoryStripOpen(open);
+    else if (open !== useGameStore.getState().windows.some((w) => w.kind === 'inventory')) useGameStore.getState().toggleWindow('inventory', '');
+  };
   useLayoutEffect(() => {
     const el = headerRef.current;
     if (!el) return;
@@ -143,14 +149,17 @@ export function App() {
     const timer = window.setTimeout(() => setSpeedNote((n) => (n?.id === id ? null : n)), SPEED_NOTE_MS);
     return () => window.clearTimeout(timer);
   }, [speed]);
-  // キーの表は、ゲームの画面が開いている間だけ効く。M・S・? はポップアップを、W はインベントリの欄を開け閉めする
+  // キーの表は、ゲームの画面が開いている間だけ効く。M・S・? はポップアップを、E はインベントリを開け閉めする
   useKeymap(screen === 'game', {
     // 依頼とショップは、マップの操作を止めないウィンドウで開く（N40）
     togglePopup: (name) => {
       if (name === 'offers' || name === 'shop') useGameStore.getState().toggleWindow(name, '');
       else setPopup((p) => (p === name ? null : name));
     },
-    toggleInventory: () => setInventoryOpen((v) => !v),
+    toggleInventory: () => {
+      if (isPhoneNow()) setInventoryStripOpen((v) => !v);
+      else useGameStore.getState().toggleWindow('inventory', '');
+    },
   });
 
   useEffect(() => {

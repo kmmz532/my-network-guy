@@ -175,6 +175,7 @@
   "ui.port.free": "空き",
   "ui.shop.title": "ショップ",
   "ui.inventory.title": "インベントリ",
+  "ui.inventory.tab.all": "すべて",
   "ui.inventory.empty": "インベントリは空です",
   "ui.inventory.openShop": "ショップを開く",
   "ui.shop.buy": "購入",
