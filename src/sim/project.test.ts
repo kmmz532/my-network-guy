@@ -73,7 +73,7 @@ const offer: Offer = {
 
 const start = (): Core => ({
   clock: { minute: 0, money: 1_000_000, paidMonths: 0, bankrupt: false },
-  reputation: 0,
+  companyExp: 0,
   owned: {},
   completed: [],
   offers: [offer],
@@ -145,8 +145,8 @@ describe('案件の流れ: c001 PC2台の直結', () => {
     expect(done.core.completed).toEqual(['c001_direct_link']);
     // 報酬は 45000 × ★3 の倍率 1.25
     expect(done.core.clock.money).toBe(1_000_000 - 3100 + 56250);
-    expect(done.core.reputation).toBe(1 + 3 * balance.reputationPerStar);
-    expect(done.report?.reputationGain).toBe(1 + 3 * balance.reputationPerStar);
+    expect(done.core.companyExp).toBe(1 + 3 * balance.expPerStar);
+    expect(done.report?.expGain).toBe(1 + 3 * balance.expPerStar);
   });
 
   it('IPアドレスを設定せずにテストすると不合格になり、施工を依頼できない（untested）', () => {
@@ -478,7 +478,7 @@ describe('自社オフィスの編集', () => {
       budget: 200000,
       placed: [],
       goals: [{ type: 'count', category: 'pc', min: 2 }],
-      reward: { money: 0, reputation: 1 },
+      reward: { money: 0, exp: 1 },
       inhouse: true,
       effect: { buildSpeed: 0 },
     };
@@ -504,7 +504,7 @@ describe('自社案件', () => {
       { type: 'count', category: 'pc', min: 2 },
       { type: 'ping_all', nodes: '$all_pcs' },
     ],
-    reward: { money: 0, reputation: 1 },
+    reward: { money: 0, exp: 1 },
     inhouse: true,
     effect: { buildSpeed: 0.2 },
   };

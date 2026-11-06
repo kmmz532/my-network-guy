@@ -35,6 +35,7 @@ import { Icon } from './components/Icon';
 import { TitleScreen } from './components/TitleScreen';
 import { mapLoaders } from 'virtual:loaders';
 import { RADIUS } from './ui/theme';
+import { levelOf, nextLevel } from './sim/level';
 
 const SPEEDS: Speed[] = [0, 1, 2, 4];
 // 速さを変えたときに画面上部に出す表示は、この時間で消す
@@ -63,7 +64,9 @@ export function App() {
   // タイトルから新しく始めるサンドボックスの広さを選ぶ画面
   const [sandboxPick, setSandboxPick] = useState(false);
   const clock = useGameStore((s) => s.clock);
-  const reputation = useGameStore((s) => s.reputation);
+  const companyExp = useGameStore((s) => s.companyExp);
+  const levelNow = levelOf(companyExp, balance);
+  const nextNow = nextLevel(companyExp, balance);
   const speed = useGameStore((s) => s.speed);
   const setSpeed = useGameStore((s) => s.setSpeed);
   // 勤務時間外に自動で早送りしている間の、元の速さ（「夜は早送り」と出す）
@@ -303,7 +306,10 @@ export function App() {
         </span>
         {!sandbox && (
         <span>
-          <Icon name="icon/star" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} /> {reputation}
+          {/* 会社のレベルと、次のレベルまでの経験値（N45） */}
+          <Icon name="icon/star" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} />{' '}
+          {t('ui.hud.level', { level: levelNow })}
+          {nextNow ? ` ${t('ui.hud.nextLevel', { need: nextNow.need })}` : ` ${t('ui.hud.maxLevel')}`}
         </span>
         )}
         {!sandbox && (

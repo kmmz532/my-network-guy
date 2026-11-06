@@ -41,7 +41,7 @@ const env: Env = {
 
 const core = (office: Office = sandboxOffice(), owned: Record<string, number> = { pc_basic: 4, server_basic: 1, router_basic: 1 }): Core => ({
   clock: sandboxClock(initialClock(balance)),
-  reputation: 0,
+  companyExp: 0,
   owned,
   completed: [],
   offers: [],

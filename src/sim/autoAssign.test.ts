@@ -56,7 +56,7 @@ const fixedOffer = (contract: unknown): Offer => {
 
 const startCore = (offers: Offer[]): Core => ({
   clock: { minute: 0, money: balance.startMoney, paidMonths: 0, bankrupt: false },
-  reputation: 0,
+  companyExp: 0,
   owned: {},
   completed: [],
   offers,

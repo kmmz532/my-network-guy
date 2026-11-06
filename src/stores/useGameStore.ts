@@ -140,7 +140,7 @@ export interface GameState {
   // 遊び方（career は案件の経営ゲーム、sandbox は自由に設計する練習場）。セーブデータに入る
   mode: GameMode;
   clock: ClockState;
-  reputation: number;
+  companyExp: number;
   owned: Record<string, number>;
   completed: string[];
   offers: Offer[];
@@ -365,7 +365,7 @@ const newStart = () => {
 
 export const coreOf = (s: GameState): Core => ({
   clock: s.clock,
-  reputation: s.reputation,
+  companyExp: s.companyExp,
   owned: s.owned,
   completed: s.completed,
   offers: s.offers,
@@ -384,7 +384,7 @@ export const offerHintOf = (s: GameState): OfferHint =>
   offerHint(
     {
       minute: s.clock.minute,
-      reputation: s.reputation,
+      companyExp: s.companyExp,
       completed: s.completed,
       offers: s.offers,
       excluded: s.active.map((p) => p.baseId),
@@ -402,7 +402,7 @@ const refresh = (s: GameState): Partial<GameState> => {
   const r = refreshOffers(
     {
       minute: s.clock.minute,
-      reputation: s.reputation,
+      companyExp: s.companyExp,
       completed: s.completed,
       offers: s.offers,
       excluded: s.active.map((p) => p.baseId),
@@ -535,7 +535,7 @@ export const useGameStore = create<GameState>((set, get) => {
       lastError: null,
       ...(redesigned || (sandbox && c.office !== get().office) ? { check: null, helpUid: null } : {}),
       clock: sandbox ? get().clock : c.clock,
-      reputation: c.reputation,
+      companyExp: c.companyExp,
       owned: c.owned,
       completed: c.completed,
       offers: c.offers,
@@ -571,7 +571,7 @@ export const useGameStore = create<GameState>((set, get) => {
   return {
     mode: 'career',
     clock: initialClock(balance),
-    reputation: 0,
+    companyExp: 0,
     owned: { ...balance.initialStock },
     completed: [],
     offers: [],
@@ -766,7 +766,7 @@ export const useGameStore = create<GameState>((set, get) => {
         if (clock.paidMonths > s.clock.paidMonths) {
           const amount = totalSalary(s.staff);
           // 毎月1日に、採用の候補を作り直す
-          const rolled = rollCandidates(s.reputation, clock.paidMonths, s.rng, balance, s.staff.map((m) => m.name));
+          const rolled = rollCandidates(s.companyExp, clock.paidMonths, s.rng, balance, s.staff.map((m) => m.name));
           next = {
             ...next,
             notice: { key: 'ui.notice.salary', params: { amount }, id: Date.now() },
@@ -786,7 +786,7 @@ export const useGameStore = create<GameState>((set, get) => {
             next = {
               ...next,
               clock: r.core.clock,
-              reputation: r.core.reputation,
+              companyExp: r.core.companyExp,
               completed: r.core.completed,
               active: r.core.active,
               focus: r.core.focus,
@@ -992,7 +992,7 @@ export const useGameStore = create<GameState>((set, get) => {
       set({
         mode: save.mode,
         clock: save.clock,
-        reputation: save.reputation,
+        companyExp: save.companyExp,
         owned: save.owned,
         completed: save.completed,
         offers: save.offers as Offer[],
@@ -1025,7 +1025,7 @@ export const useGameStore = create<GameState>((set, get) => {
         const base: Partial<GameState> = {
           mode: 'career',
           clock: initialClock(balance),
-          reputation: 0,
+          companyExp: 0,
           owned: { ...balance.initialStock },
           completed: [],
           offers: [],
@@ -1066,7 +1066,7 @@ export const useGameStore = create<GameState>((set, get) => {
         return {
           mode: 'sandbox',
           clock: sandboxClock(initialClock(balance)),
-          reputation: 0,
+          companyExp: 0,
           owned: {},
           completed: [],
           offers: [],
@@ -1118,7 +1118,7 @@ export const useGameStore = create<GameState>((set, get) => {
       return {
         mode: s.mode,
         clock: s.clock,
-        reputation: s.reputation,
+        companyExp: s.companyExp,
         owned: s.owned,
         completed: s.completed,
         offers: s.offers,

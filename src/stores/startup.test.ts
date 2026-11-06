@@ -29,7 +29,7 @@ describe('起動の順序: 依頼の判定', () => {
         mode: 'career',
         speed: 1,
         completed,
-        reputation: 999,
+        companyExp: 999,
         offers: [],
         active: [],
         nextOfferMinute: st().clock.minute,

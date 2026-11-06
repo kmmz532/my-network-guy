@@ -137,7 +137,7 @@ export interface Report {
   stars?: 1 | 2 | 3;
   money?: number;
   // 評判の増え分（報酬の評判と★による評判の合計）
-  reputationGain?: number;
+  expGain?: number;
   failures: ReportFailure[];
 }
 
@@ -209,7 +209,7 @@ export const noEffects = (): Effects => ({ buildSpeed: 0 });
 
 export interface Core {
   clock: ClockState;
-  reputation: number;
+  companyExp: number;
   owned: Record<string, number>;
   completed: string[];
   offers: Offer[];
@@ -1185,7 +1185,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
     const stars = rate(cost.total, p.contract.budget, p.rework, lateDays > 0, issues, env.balance);
     // 報酬は、期日の割合と★ごとの倍率を掛けた額
     const money = Math.round(p.contract.reward.money * lateFactor(lateDays, env.balance) * rewardRateOf(stars, env.balance));
-    const reputation = core.reputation + p.contract.reward.reputation + stars * env.balance.reputationPerStar;
+    const companyExp = core.companyExp + p.contract.reward.exp + stars * env.balance.expPerStar;
     // 自社案件は、納品したネットワークを自社オフィスとして残し、効果を加える
     const office: Office = p.contract.inhouse
       ? { ...core.office, nodes: p.nodes, links: p.links, seq: p.seq, segments: p.segments ?? {} }
@@ -1203,7 +1203,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
         effects,
         owned,
         clock: { ...core.clock, money: core.clock.money + money },
-        reputation,
+        companyExp,
         completed: p.kind === 'fixed' ? [...core.completed, p.baseId] : core.completed,
       },
       report: {
@@ -1219,7 +1219,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
         budget: p.contract.budget,
         rework: p.rework,
         designIssues: issues,
-        reputationGain: reputation - core.reputation,
+        expGain: companyExp - core.companyExp,
         failures: [],
       },
     };

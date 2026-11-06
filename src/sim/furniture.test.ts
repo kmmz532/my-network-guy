@@ -40,7 +40,7 @@ const node = (uid: string, device: string, x: number, y: number): NetNode => ({
 
 const core = (over: Partial<Core> = {}): Core => ({
   clock: { minute: 0, money: 1000000, paidMonths: 0, bankrupt: false },
-  reputation: 0,
+  companyExp: 0,
   owned: {},
   completed: [],
   offers: [],

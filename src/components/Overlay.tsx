@@ -90,7 +90,7 @@ export function ReportModal() {
         <Icon name="icon/money" /> +{(report.money ?? 0).toLocaleString('ja-JP')}
       </div>
       <div style={{ fontSize: 16, marginTop: 4 }}>
-        <Icon name="icon/star" /> +{report.reputationGain ?? 0}
+        <Icon name="icon/star" /> {t('report.expGain', { exp: report.expGain ?? 0 })}
       </div>
       {(report.rewardDevices ?? []).length > 0 && (
         <div style={{ fontSize: 14, marginTop: 6 }}>

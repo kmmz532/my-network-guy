@@ -35,7 +35,7 @@
   "reward": {
     "base": 45000,
     "perPc": 12000,
-    "reputation": 1
+    "exp": 1
   },
   "goals": [
     {

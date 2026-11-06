@@ -24,7 +24,7 @@ const env: OfferEnv = {
 
 const start: OfferState = {
   minute: 0,
-  reputation: 0,
+  companyExp: 0,
   completed: [],
   offers: [],
   excluded: [],
@@ -91,12 +91,12 @@ describe('依頼の追加', () => {
   });
 
   it('評判が足りない間は定型案件を出さない', () => {
-    const state = { ...start, completed: ['c001_direct_link', 'c002_small_office'], reputation: 1 };
+    const state = { ...start, completed: ['c001_direct_link', 'c002_small_office'], companyExp: 1 };
     expect(refreshOffers(state, env).offers).toEqual([]);
   });
 
   it('評判を満たすと定型案件が届き、連番が進む', () => {
-    const state = { ...start, completed: ['c001_direct_link', 'c002_small_office'], reputation: 2 };
+    const state = { ...start, completed: ['c001_direct_link', 'c002_small_office'], companyExp: 2 };
     const next = refreshOffers(state, env);
     expect(next.offers).toHaveLength(1);
     expect(next.offers[0].baseId).toBe('t_small_lan');
@@ -106,7 +106,7 @@ describe('依頼の追加', () => {
   it('まとめて届く設定で確率が1なら、2件以上が一度に届き、件数の上限を超えない', () => {
     const always: OfferEnv = { ...env, balance: { ...balance, offerBurst: { chance: 1, count: 3 } } as Balance };
     // 固定案件を出し終えた状態（定型案件だけが候補になる）
-    const done = { ...start, reputation: 5, completed: ['c001_direct_link', 'c002_small_office'] };
+    const done = { ...start, companyExp: 5, completed: ['c001_direct_link', 'c002_small_office'] };
     const next = refreshOffers(done, always);
     expect(next.offers.length).toBeGreaterThanOrEqual(2);
     expect(next.offers.length).toBeLessThanOrEqual(MAX_OFFERS);
@@ -114,7 +114,7 @@ describe('依頼の追加', () => {
 
   it('まとめて届く確率が0なら、毎回1件だけ届く', () => {
     const never: OfferEnv = { ...env, balance: { ...balance, offerBurst: { chance: 0, count: 3 } } as Balance };
-    const done = { ...start, reputation: 5, completed: ['c001_direct_link', 'c002_small_office'] };
+    const done = { ...start, companyExp: 5, completed: ['c001_direct_link', 'c002_small_office'] };
     expect(refreshOffers(done, never).offers).toHaveLength(1);
   });
 
@@ -148,7 +148,7 @@ describe('次の依頼の案内（offerHint）', () => {
 
   it('評判が足りないときは必要な評判を出す', () => {
     const high = { ...env, templates: [{ ...template, minReputation: 5 }] };
-    expect(offerHint({ ...start, completed: ['c002_small_office'], reputation: 0 }, { ...high, fixed: [] }).block).toEqual({ kind: 'reputation', need: 5 });
+    expect(offerHint({ ...start, completed: ['c002_small_office'], companyExp: 0 }, { ...high, fixed: [] }).block).toEqual({ kind: 'companyExp', need: 5 });
   });
 
   it('固定案件の前提が未達のときは、最初の前提を出す', () => {
@@ -160,7 +160,7 @@ describe('次の依頼の案内（offerHint）', () => {
 describe('依頼の届いた日・期限・並べ替え・断る（N39）', () => {
   it('定型案件には届いた時刻と、ひな形の範囲の受注期限が付く', () => {
     const minute = 5 * minutesPerDay;
-    const out = refreshOffers({ ...start, minute, nextOfferMinute: minute, completed: ['c001_direct_link', 'c002_small_office'], reputation: 5 }, env);
+    const out = refreshOffers({ ...start, minute, nextOfferMinute: minute, completed: ['c001_direct_link', 'c002_small_office'], companyExp: 5 }, env);
     const o = out.offers.find((x) => x.kind === 'template');
     expect(o?.arrivedMinute).toBe(minute);
     const days = ((o?.expiresMinute ?? 0) - minute) / minutesPerDay;
@@ -176,7 +176,7 @@ describe('依頼の届いた日・期限・並べ替え・断る（N39）', () =
 
   it('並べ替え: 新しい順・期限の近い順（期限なしは後ろ）・報酬の高い順', () => {
     const mk = (id: string, arrived: number, expires: number | undefined, money: number) =>
-      ({ id, kind: 'template' as const, baseId: id, params: {}, arrivedMinute: arrived, expiresMinute: expires, contract: { ...fixed[0], reward: { money, reputation: 0 } } }) as unknown as OfferState['offers'][number];
+      ({ id, kind: 'template' as const, baseId: id, params: {}, arrivedMinute: arrived, expiresMinute: expires, contract: { ...fixed[0], reward: { money, companyExp: 0 } } }) as unknown as OfferState['offers'][number];
     const list = [mk('a', 1, 50, 100), mk('b', 3, undefined, 300), mk('c', 2, 20, 200)];
     expect(sortOffers(list, 'new').map((o) => o.id)).toEqual(['b', 'c', 'a']);
     expect(sortOffers(list, 'deadline').map((o) => o.id)).toEqual(['c', 'a', 'b']);

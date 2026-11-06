@@ -147,7 +147,6 @@
       "rewardRate": 1.0
     }
   ],
-  "reputationPerStar": 1,
   "hiring": {
     "maxCandidates": 4,
     "baseSalary": 150000,
@@ -213,5 +212,6 @@
   },
   "featureUnlocks": {
     "nightShift": 10
-  }
+  },
+  "expPerStar": 1
 }

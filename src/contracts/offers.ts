@@ -11,7 +11,7 @@ export const MAX_OFFERS = 30;
 
 export interface OfferState {
   minute: number;
-  reputation: number;
+  companyExp: number;
   completed: readonly string[];
   offers: readonly Offer[];
   // 受注中の案件の baseId。受注中の案件は依頼に出さない
@@ -38,7 +38,7 @@ const warnMissingMaps = (state: OfferState, env: OfferEnv): void => {
   if (!import.meta.env.DEV) return;
   for (const t of env.templates) {
     if (env.mapOf(t.map) !== undefined || warnedMaps.has(t.map)) continue;
-    if (!t.requires.every((r) => state.completed.includes(r)) || state.reputation < t.minReputation) continue;
+    if (!t.requires.every((r) => state.completed.includes(r)) || state.companyExp < t.minReputation) continue;
     warnedMaps.add(t.map);
     console.warn(`定型案件 ${t.id} の地図 ${t.map} が読み込まれていないため、依頼に出ない`);
   }
@@ -60,7 +60,7 @@ const addOffer = (state: OfferState, env: OfferEnv): OfferState => {
 
   // 定型案件: 前提と評判を満たし、地図が読み込まれているひな形から重みで選ぶ
   const eligible = env.templates.filter(
-    (t) => ready(t.requires) && state.reputation >= t.minReputation && env.mapOf(t.map) !== undefined,
+    (t) => ready(t.requires) && state.companyExp >= t.minReputation && env.mapOf(t.map) !== undefined,
   );
   // 地図が読み込まれていないひな形は、依頼から外れる（黙って外さない。開発中は警告する）
   warnMissingMaps(state, env);
@@ -120,7 +120,7 @@ export const refreshOffers = (state0: OfferState, env: OfferEnv): OfferState => 
 
 // 次の依頼が届かない理由。届く見込みがあるなら null（reason は null のまま）
 export type OfferBlock =
-  | { kind: 'reputation'; need: number }
+  | { kind: 'companyExp'; need: number }
   | { kind: 'fixed'; after: string };
 
 export interface OfferHint {
@@ -135,9 +135,9 @@ export const offerHint = (state: OfferState, env: OfferEnv): OfferHint => {
   const fixedLeft = env.fixed.filter((c) => !isTaken(state, c.id));
   if (fixedLeft.some((c) => isReady(state, c.requires))) return { days, block: null };
   const loadable = env.templates.filter((t) => isReady(state, t.requires) && env.mapOf(t.map) !== undefined);
-  if (loadable.some((t) => state.reputation >= t.minReputation)) return { days, block: null };
+  if (loadable.some((t) => state.companyExp >= t.minReputation)) return { days, block: null };
   if (loadable.length > 0) {
-    return { days, block: { kind: 'reputation', need: Math.min(...loadable.map((t) => t.minReputation)) } };
+    return { days, block: { kind: 'companyExp', need: Math.min(...loadable.map((t) => t.minReputation)) } };
   }
   // 定型案件がなく、固定案件の前提も未達なら、最初の固定案件の前提を示す
   const next = fixedLeft[0];

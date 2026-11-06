@@ -18,7 +18,7 @@ const env: TrainingEnv = {
 
 const core = (): Core => ({
   clock: { minute: 1000, money: 1_000_000, paidMonths: 0, bankrupt: false },
-  reputation: 0,
+  companyExp: 0,
   owned: {},
   completed: [],
   offers: [],
@@ -62,7 +62,7 @@ describe('研修', () => {
       budget: 0,
       placed: [],
       goals: [{ type: 'count', category: 'pc', min: 1 }],
-      reward: { money: 0, reputation: 0 },
+      reward: { money: 0, exp: 0 },
       inhouse: false,
     };
     const offer: Offer = { id: 'x', kind: 'fixed', baseId: 'x', params: {}, contract };

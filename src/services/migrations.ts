@@ -13,7 +13,7 @@ import routerJson from '../assets/data/devices/router.json';
 import switchJson from '../assets/data/devices/l2_switch.json';
 import { CATEGORY } from '../data/categories';
 
-export const SAVE_VERSION = 21;
+export const SAVE_VERSION = 22;
 
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
@@ -58,7 +58,7 @@ export interface SaveData {
   // 遊び方（移行前のセーブデータは career）
   mode: GameMode;
   clock: { minute: number; money: number; paidMonths: number; bankrupt: boolean };
-  reputation: number;
+  companyExp: number;
   // 在庫の機材（機材ID → 個数）
   owned: Record<string, number>;
   // 完了した固定案件のID
@@ -175,6 +175,12 @@ export const migrations: Record<number, Migration> = {
   },
   // v18 → v19: 遊び方を追加する。移行前のセーブデータは、すべて案件の経営ゲーム（career）とする
   18: (data) => ({ ...(data as object), mode: 'career' }),
+  // v21 → v22: 評判（reputation）を会社の経験値（companyExp）に名前を変える。値はそのまま（N45）
+  21: (data) => {
+    const d = data as { reputation: number };
+    const { reputation, ...rest } = d;
+    return { ...rest, companyExp: reputation };
+  },
   // v20 → v21: 依頼に届いた時刻を追加する。移行前の依頼は、読み込んだ時刻に届いたものとする（期限は付けない）
   20: (data) => {
     const d = data as { clock: { minute: number }; offers: object[] };
@@ -233,7 +239,7 @@ export const isSaveData = (value: unknown): value is SaveData => {
     Number.isInteger(clock.money) &&
     Number.isInteger(clock.paidMonths) &&
     typeof clock.bankrupt === 'boolean' &&
-    Number.isInteger(v.reputation) &&
+    Number.isInteger(v.companyExp) &&
     typeof owned === 'object' &&
     owned !== null &&
     Object.values(owned).every((n) => Number.isInteger(n) && (n as number) >= 0) &&

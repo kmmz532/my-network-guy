@@ -94,7 +94,7 @@ export const totalSalary = (staff: readonly Staff[]): number => staff.reduce((su
 // 候補の uid は "c" + 月 + "_" + 順番。採用するときに社員の uid へ付け替える。
 // taken は在籍中の社員の名前。候補どうしも名前が重ならない
 export const rollCandidates = (
-  reputation: number,
+  companyExp: number,
   month: number,
   rng: number,
   balance: Balance,
@@ -108,7 +108,7 @@ export const rollCandidates = (
   for (let i = 0; i < count.value; i++) {
     const bonus = randInt(state, 0, 1);
     const job = randInt(bonus.state, 0, JOB_IDS.length - 1);
-    const level = 1 + Math.floor(reputation / h.reputationPerLevel) + bonus.value;
+    const level = 1 + Math.floor(companyExp / h.reputationPerLevel) + bonus.value;
     const made = createStaff(
       { job: JOB_IDS[job.value], level, salary: h.baseSalary + h.salaryPerLevel * level },
       job.state,

@@ -116,7 +116,7 @@ export const balanceSchema = z.object({
       }),
     )
     .min(1),
-  reputationPerStar: nonNegativeInt,
+  expPerStar: nonNegativeInt,
   // ツールチップの出し方（ミリ秒）
   tooltip: z.object({
     hoverMs: nonNegativeInt,
@@ -314,7 +314,7 @@ export const contractSchema = z.object({
   goals: z.array(goalSchema).min(1),
   reward: z.object({
     money: nonNegativeInt,
-    reputation: int.default(0),
+    exp: int.default(0),
     // 納品で倉庫に入る機材（自社案件の報酬。N34）
     devices: z.array(z.object({ device: z.string().min(1), count: int.positive() })).optional(),
   }),
@@ -352,7 +352,7 @@ export const templateSchema = z.object({
   reward: z.object({
     base: nonNegativeInt,
     perPc: nonNegativeInt,
-    reputation: int.default(0),
+    exp: int.default(0),
   }),
   goals: z.array(goalSchema).min(1),
 });

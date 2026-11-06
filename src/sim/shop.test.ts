@@ -26,6 +26,9 @@ describe('セーブのバージョン移行', () => {
     const v1 = { clock: { minute: 0, money: 500, paidMonths: 0, bankrupt: false }, reputation: 1 };
     expect(migrate(1, v1)).toEqual({
       ...v1,
+      // 評判は会社の経験値に名前を変える（v22）
+      companyExp: 1,
+      reputation: undefined,
       // 遊び方は移行で案件の経営ゲーム（career）になる
       mode: 'career',
       owned: {},
@@ -61,7 +64,7 @@ describe('セーブのバージョン移行', () => {
   });
 
   it('形式が不正な在庫は拒否する', () => {
-    expect(isSaveData({ clock: { minute: 0, money: 0, paidMonths: 0, bankrupt: false }, reputation: 0, owned: { a: -1 }, completed: [] })).toBe(false);
+    expect(isSaveData({ clock: { minute: 0, money: 0, paidMonths: 0, bankrupt: false }, companyExp: 0, owned: { a: -1 }, completed: [] })).toBe(false);
   });
 });
 

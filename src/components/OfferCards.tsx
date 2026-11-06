@@ -41,7 +41,7 @@ export function OfferBody({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     clearOfferBurst();
   }, [clearOfferBurst]);
-  const reputation = useGameStore((s) => s.reputation);
+  const companyExp = useGameStore((s) => s.companyExp);
 
   return (
     <div style={{ minWidth: 300 }}>
@@ -51,8 +51,8 @@ export function OfferBody({ onClose }: { onClose: () => void }) {
       <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 8 }}>
         {burst >= 2 && <div style={{ color: '#ffd866' }}>{t('ui.offer.burst', { count: burst })}</div>}
         <div>{t('ui.offer.next', { days: hint.days })}</div>
-        {hint.block?.kind === 'reputation' && (
-          <div style={{ color: '#ffd866' }}>{t('ui.offer.blocked.reputation', { need: hint.block.need, now: reputation })}</div>
+        {hint.block?.kind === 'companyExp' && (
+          <div style={{ color: '#ffd866' }}>{t('ui.offer.blocked.reputation', { need: hint.block.need, now: companyExp })}</div>
         )}
         {hint.block?.kind === 'fixed' && (
           <div style={{ color: '#ffd866' }}>{t('ui.offer.blocked.fixed', { title: tDyn(`contract.${hint.block.after}.title`) })}</div>

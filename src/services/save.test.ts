@@ -19,7 +19,7 @@ const member = (uid: string): Staff => ({
 const sample: SaveData = {
   mode: 'career',
   clock: { minute: 720, money: 300000, paidMonths: 1, bankrupt: false },
-  reputation: 2,
+  companyExp: 2,
   owned: { pc_basic: 1 },
   completed: ['c001_direct_link'],
   offers: [],
@@ -35,6 +35,9 @@ const sample: SaveData = {
   candidates: [],
   guidesDone: ['c001_direct_link'],
 };
+
+// v21 までの形（評判 reputation）。古い版から移行するテストの入力に使う
+const legacySample = (({ companyExp, ...rest }: SaveData) => ({ ...rest, reputation: companyExp }))(sample) as unknown as SaveData;
 
 describe('セーブデータ', () => {
   it('書き出したものを読み込むと元に戻る', () => {
@@ -73,7 +76,7 @@ describe('v6 → v7', () => {
     routes: [],
     services: [],
   });
-  const { staff: _staff, staffSeq: _seq, ...withoutStaff } = sample;
+  const { staff: _staff, staffSeq: _seq, ...withoutStaff } = legacySample;
   const v6 = {
     ...withoutStaff,
     // 旧い形式の案件（単独）
@@ -100,7 +103,7 @@ describe('v6 → v7', () => {
 
 describe('v7 → v8', () => {
   // 人数の社員を作る。1人目と2人目は初期の職種（network・infra）、3人目は network
-  const { staff: _staff, staffSeq: _seq, ...withoutStaff } = sample;
+  const { staff: _staff, staffSeq: _seq, ...withoutStaff } = legacySample;
   const v7 = { ...withoutStaff, active: null, staff: 3 };
 
   it('人数ぶんの社員を、初期の職種の順に作る', () => {
@@ -115,7 +118,7 @@ describe('v7 → v8', () => {
 });
 
 describe('v8 → v9', () => {
-  const { active: _active, focus: _focus, ...withoutActive } = sample;
+  const { active: _active, focus: _focus, ...withoutActive } = legacySample;
 
   it('単独の案件は一覧にし、その案件を設計の対象にする', () => {
     const project = { id: 'c001_direct_link', nodes: [] };
@@ -132,7 +135,7 @@ describe('v8 → v9', () => {
 });
 
 describe('v9 → v10', () => {
-  const { active: _active, focus: _focus, ...withoutActive } = sample;
+  const { active: _active, focus: _focus, ...withoutActive } = legacySample;
 
   it('受注中の案件に期日がなければ、期日のない案件として扱う', () => {
     const project = { id: 'c001_direct_link', nodes: [] };
@@ -156,7 +159,7 @@ describe('v4 → v5 → v13', () => {
       services: [],
     });
     const v4 = {
-      ...sample,
+      ...legacySample,
       active: { nodes: [node('a', '192.168.1.10'), node('b', '192.168.1.11'), node('c', '192.168.2.10')] },
     };
     const out = migrate(4, v4);
@@ -197,7 +200,7 @@ describe('v12 → v13', () => {
 
   it('色を持つ機器に、色の時代の規則でIPアドレス・ゲートウェイ・セグメントを作り、色を外す', () => {
     const v12 = {
-      ...sample,
+      ...legacySample,
       active: [
         {
           id: 'x',
@@ -229,13 +232,13 @@ describe('v12 → v13', () => {
   });
 
   it('色を持たない案件は、そのまま残す', () => {
-    const v12 = { ...sample, active: [{ id: 'x', nodes: [], links: [] }] };
+    const v12 = { ...legacySample, active: [{ id: 'x', nodes: [], links: [] }] };
     expect(migrate(12, v12).active[0]).toEqual({ id: 'x', nodes: [], links: [], testedOk: false });
   });
 });
 
 describe('v15 → v16', () => {
-  const { guidesDone: _guidesDone, ...v15 } = sample;
+  const { guidesDone: _guidesDone, ...v15 } = legacySample;
 
   it('初めての概念の案内を終えた案件は、移行前は空のまま（どの案件の案内も終えていない）', () => {
     const out = migrate(15, v15);
@@ -248,12 +251,12 @@ describe('v15 → v16', () => {
   });
 
   it('guidesDone が文字列の配列でなければ拒否する', () => {
-    expect(() => migrate(16, { ...sample, guidesDone: [1] })).toThrow();
+    expect(() => migrate(16, { ...legacySample, guidesDone: [1] })).toThrow();
   });
 });
 
 describe('v14 → v15', () => {
-  const { active: _active, focus: _focus, ...withoutActive } = sample;
+  const { active: _active, focus: _focus, ...withoutActive } = legacySample;
 
   it('受注中の案件は、テストに合格していないものとして扱う（testedOk: false）', () => {
     const project = { id: 'c001_direct_link', nodes: [], links: [] };
@@ -282,12 +285,12 @@ describe('v13 → v14', () => {
     services: [],
     ...extra,
   });
-  const { active: _active, office: _office, ...withoutNet } = sample;
+  const { active: _active, office: _office, ...withoutNet } = legacySample;
 
   it('サービスが空のサーバーに、機材の既定のサービス（HTTP 80）を入れる。自社オフィスと受注中の案件の両方', () => {
     const v13 = {
       ...withoutNet,
-      office: { ...sample.office, nodes: [node('o_srv', 'server_basic')] },
+      office: { ...legacySample.office, nodes: [node('o_srv', 'server_basic')] },
       active: [{ id: 'x', nodes: [node('a_srv', 'server_basic')], links: [] }],
     };
     const out = migrate(13, v13);
@@ -298,7 +301,7 @@ describe('v13 → v14', () => {
   it('設定を変えられない（configLocked）サーバーは変えない', () => {
     const v13 = {
       ...withoutNet,
-      office: { ...sample.office, nodes: [node('o_srv', 'server_basic', { configLocked: true })] },
+      office: { ...legacySample.office, nodes: [node('o_srv', 'server_basic', { configLocked: true })] },
       active: [{ id: 'x', nodes: [node('a_srv', 'server_basic', { configLocked: true })], links: [] }],
     };
     const out = migrate(13, v13);
@@ -309,7 +312,7 @@ describe('v13 → v14', () => {
   it('サーバー以外の機器や、サービスが既にあるサーバーは変えない', () => {
     const pc = node('o_pc', 'pc_basic');
     const busy = node('o_srv', 'server_basic', { services: [{ protocol: 'http', port: 8080 }] });
-    const v13 = { ...withoutNet, office: { ...sample.office, nodes: [pc, busy] }, active: [] };
+    const v13 = { ...withoutNet, office: { ...legacySample.office, nodes: [pc, busy] }, active: [] };
     const out = migrate(13, v13);
     // 対応表（hosts）は v19 → v20 で空の配列が入る
     expect(out.office.nodes[0]).toEqual({ ...pc, hosts: [] });
@@ -318,7 +321,7 @@ describe('v13 → v14', () => {
 });
 
 describe('v16 → v17', () => {
-  const { office: _office, ...withoutOffice } = sample;
+  const { office: _office, ...withoutOffice } = legacySample;
   const v16 = { ...withoutOffice, office: { nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 } };
 
   it('自社オフィスの部屋の大きさは、移行前の固定のマップ（14×8）とする', () => {
@@ -337,13 +340,13 @@ describe('v16 → v17', () => {
   });
 
   it('部屋の大きさがない自社オフィスは拒否する', () => {
-    const { size: _size, ...officeWithoutSize } = sample.office;
-    expect(() => migrate(17, { ...sample, office: officeWithoutSize })).toThrow();
+    const { size: _size, ...officeWithoutSize } = legacySample.office;
+    expect(() => migrate(17, { ...legacySample, office: officeWithoutSize })).toThrow();
   });
 });
 
 describe('v17 → v18', () => {
-  const { office: _office, ...withoutOffice } = sample;
+  const { office: _office, ...withoutOffice } = legacySample;
   const v17 = { ...withoutOffice, office: { size: { w: 7, h: 5 }, nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 } };
 
   it('内側の壁・ドア・別室は空で移行する（部屋の大きさはそのまま）', () => {
@@ -367,7 +370,7 @@ describe('v17 → v18', () => {
 
 
 describe('v18 → v19', () => {
-  const { mode: _mode, ...v18 } = sample;
+  const { mode: _mode, ...v18 } = legacySample;
 
   it('遊び方のない移行前のセーブデータは、案件の経営ゲーム（career）になる', () => {
     expect(migrate(18, v18).mode).toBe('career');
@@ -386,7 +389,7 @@ describe('v18 → v19', () => {
 describe('v19 → v20: 機器の対応表（hosts）', () => {
   it('既存の機器には空の対応表を入れる（自社オフィスと案件の両方）', () => {
     const node = { uid: 'n1', device: 'pc_basic', x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [] };
-    const v19 = { ...sample, office: { ...sample.office, nodes: [node] }, active: [{ ...sample.active[0], nodes: [node] }] } as unknown;
+    const v19 = { ...legacySample, office: { ...legacySample.office, nodes: [node] }, active: [{ ...legacySample.active[0], nodes: [node] }] } as unknown;
     const out = migrate(19, v19);
     expect(out.office.nodes[0]).toMatchObject({ uid: 'n1', hosts: [] });
     expect(out.active[0].nodes[0]).toMatchObject({ uid: 'n1', hosts: [] });
@@ -397,7 +400,7 @@ describe('v19 → v20: 機器の対応表（hosts）', () => {
 describe('古いセーブの読み込み（版ごとの架空のセーブ）', () => {
   it('v20 の依頼は、読み込んだ時刻に届いたものとして v21 になる（期限は付けない）', () => {
     const v20 = {
-      ...sample,
+      ...legacySample,
       clock: { minute: 2880, money: 300000, paidMonths: 1, bankrupt: false },
       offers: [{ id: 'old', kind: 'template', baseId: 't_small_lan', params: {}, contract: { id: 'x' } }],
     };
@@ -411,7 +414,7 @@ describe('古いセーブの読み込み（版ごとの架空のセーブ）', (
 describe('古いセーブの読み込み（v19）', () => {
   it('v19 の機器には、名前と IP の対応表（hosts）が空で入る', () => {
     const node = { uid: 'pc1', device: 'pc_basic', x: 1, y: 1, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [] };
-    const v19 = { ...sample, office: { ...sample.office, nodes: [node] }, active: [] };
+    const v19 = { ...legacySample, office: { ...legacySample.office, nodes: [node] }, active: [] };
     const migrated = migrate(19, v19);
     expect(migrated.office.nodes[0]).toMatchObject({ uid: 'pc1', hosts: [] });
   });
@@ -421,5 +424,13 @@ describe('保存の中身の検査（依頼の形）', () => {
   it('依頼の形が合わないセーブは拒否する', () => {
     expect(isSaveData({ ...sample, offers: [{ id: 'x', kind: 'other', baseId: 'b', params: {}, contract: {} }] })).toBe(false);
     expect(isSaveData({ ...sample, offers: [{ id: 'x', kind: 'fixed', baseId: 'b', params: {}, contract: {} }] })).toBe(true);
+  });
+});
+
+describe('古いセーブの読み込み（v21 の評判）', () => {
+  it('v21 の評判は、会社の経験値（companyExp）として同じ値で読み込める', () => {
+    const { companyExp: _drop, ...rest } = legacySample;
+    const v21 = { ...rest, reputation: 5 };
+    expect(migrate(21, v21).companyExp).toBe(5);
   });
 });

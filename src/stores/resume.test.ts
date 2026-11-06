@@ -20,7 +20,7 @@ describe('再開の流れ（保存と読み込み）', () => {
       mode: 'career',
       speed: 0,
       completed: contracts.filter((c) => !c.inhouse).map((c) => c.id),
-      reputation: 999,
+      companyExp: 999,
       offers: [],
       active: [],
       nextOfferMinute: st().clock.minute,
