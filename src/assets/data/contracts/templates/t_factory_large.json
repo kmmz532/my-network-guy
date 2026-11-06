@@ -1,0 +1,12 @@
+{
+  "id": "t_factory_large",
+  "variantOf": "t_factory",
+  "unlockLevel": 27,
+  "weight": 8,
+  "params": {
+    "pcCount": {
+      "min": 22,
+      "max": 28
+    }
+  }
+}

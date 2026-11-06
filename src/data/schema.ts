@@ -332,34 +332,85 @@ export const contractSchema = z.object({
   manualIp: z.boolean().optional(),
 });
 
-export const templateSchema = z.object({
-  id: z.string().min(1),
-  stage: int.positive(),
-  unlockLevel: unlockLevelSchema,
-  requires: z.array(z.string().min(1)).default([]),
-  jobs: z.array(jobIdSchema).optional(),
-  weight: nonNegativeInt,
-  // 受注日からの期日（日数）
-  deadlineDays: int.positive(),
-  // 依頼が届いてから受注できる期限（日数の範囲。乱数で決める。N39）。省くと期限はない
-  offerExpireDays: z.object({ min: int.positive(), max: int.positive() }).optional(),
-  map: z.string().min(1),
-  params: z.object({
-    pcCount: z.object({ min: int.positive(), max: int.positive() }),
-  }),
-  spawnArea: z.object({
-    x: nonNegativeInt,
-    y: nonNegativeInt,
-    width: int.positive(),
-    height: int.positive(),
-  }),
-  budget: z.object({ base: nonNegativeInt, perPc: nonNegativeInt, perTile: nonNegativeInt }),
-  reward: z.object({
-    base: nonNegativeInt,
-    perPc: nonNegativeInt,
-  }),
-  goals: z.array(goalSchema).min(1),
+// 置く範囲の1つ。台数の範囲（min〜max）の床に PC を置く（N51a）
+const spawnGroupSchema = z.object({
+  x: nonNegativeInt,
+  y: nonNegativeInt,
+  width: int.positive(),
+  height: int.positive(),
+  min: int.positive(),
+  max: int.positive(),
 });
+
+// 定型案件（ひな形）。変化形（variantOf）は読み込み時に元のひな形と合わせて完全な形にする（N51a）
+export const templateSchema = z
+  .object({
+    id: z.string().min(1),
+    stage: int.positive(),
+    unlockLevel: unlockLevelSchema,
+    requires: z.array(z.string().min(1)).default([]),
+    jobs: z.array(jobIdSchema).optional(),
+    weight: nonNegativeInt,
+    // 受注日からの期日（日数）
+    deadlineDays: int.positive(),
+    // 依頼が届いてから受注できる期限（日数の範囲。乱数で決める。N39）。省くと期限はない
+    offerExpireDays: z.object({ min: int.positive(), max: int.positive() }).optional(),
+    map: z.string().min(1),
+    // 台数の範囲（spawnArea のとき）。spawnGroups のときは書かない（台数は各グループの合計）
+    params: z
+      .object({
+        pcCount: z.object({ min: int.positive(), max: int.positive() }),
+      })
+      .optional(),
+    // 置く範囲（1つ）。spawnGroups と どちらか一方だけを書く
+    spawnArea: z
+      .object({
+        x: nonNegativeInt,
+        y: nonNegativeInt,
+        width: int.positive(),
+        height: int.positive(),
+      })
+      .optional(),
+    // 置く範囲（複数）。複数の部屋に PC を分けて置くときに使う（N51a）
+    spawnGroups: z.array(spawnGroupSchema).min(1).optional(),
+    budget: z.object({ base: nonNegativeInt, perPc: nonNegativeInt, perTile: nonNegativeInt }),
+    reward: z.object({
+      base: nonNegativeInt,
+      perPc: nonNegativeInt,
+    }),
+    goals: z.array(goalSchema).min(1),
+    // レベルアップの画面に出すか（新しい種類は true。変化形は false。N51a）
+    announce: z.boolean(),
+    // 文言のキーに使う ID（変化形は元のひな形の ID。読み込み時に入る）
+    textId: z.string().min(1).optional(),
+  })
+  .superRefine((t, ctx) => {
+    if ((t.spawnArea === undefined) === (t.spawnGroups === undefined)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'spawnArea と spawnGroups は、どちらか一方だけを書く' });
+    }
+    if (t.spawnGroups !== undefined && t.params !== undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'spawnGroups のとき params.pcCount は書かない（台数は各グループの合計）' });
+    }
+    if (t.spawnArea !== undefined && t.params === undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'spawnArea のとき params.pcCount が必要' });
+    }
+  });
+
+// 変化形（N51a）。元のひな形から引き継ぐため、書けるのは台数・予算・報酬・期限・重み・解放のレベルなどに限る
+export const variantSchema = z
+  .object({
+    id: z.string().min(1),
+    variantOf: z.string().min(1),
+    unlockLevel: unlockLevelSchema.optional(),
+    weight: nonNegativeInt.optional(),
+    params: z.object({ pcCount: z.object({ min: int.positive(), max: int.positive() }) }).optional(),
+    spawnGroups: z.array(spawnGroupSchema).min(1).optional(),
+    deadlineDays: int.positive().optional(),
+    offerExpireDays: z.object({ min: int.positive(), max: int.positive() }).optional(),
+    budget: z.object({ base: nonNegativeInt, perPc: nonNegativeInt, perTile: nonNegativeInt }).optional(),
+    reward: z.object({ base: nonNegativeInt, perPc: nonNegativeInt }).optional(),
+  })
+  .strict();
 
 export const mapSchema = z
   .object({

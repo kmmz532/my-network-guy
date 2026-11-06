@@ -1,0 +1,51 @@
+{
+  "id": "t_shop_register",
+  "stage": 1,
+  "unlockLevel": 9,
+  "requires": [
+    "c002_small_office"
+  ],
+  "jobs": [
+    "infra"
+  ],
+  "weight": 12,
+  "map": "office_small",
+  "params": {
+    "pcCount": {
+      "min": 3,
+      "max": 4
+    }
+  },
+  "spawnArea": {
+    "x": 2,
+    "y": 2,
+    "width": 10,
+    "height": 6
+  },
+  "deadlineDays": 6,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "base": 110000,
+    "perPc": 1000,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 70000,
+    "perPc": 12000
+  },
+  "goals": [
+    {
+      "type": "count",
+      "category": "router_switch",
+      "min": 1
+    },
+    {
+      "type": "ping_all",
+      "nodes": "$all_pcs"
+    }
+  ],
+  "announce": true
+}

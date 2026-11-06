@@ -1,0 +1,15 @@
+{
+  "id": "t_two_rooms_server_rush",
+  "variantOf": "t_two_rooms_server",
+  "unlockLevel": 22,
+  "weight": 6,
+  "deadlineDays": 8,
+  "offerExpireDays": {
+    "min": 7,
+    "max": 30
+  },
+  "reward": {
+    "base": 156000,
+    "perPc": 15000
+  }
+}

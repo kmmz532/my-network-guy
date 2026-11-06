@@ -1,0 +1,52 @@
+{
+  "id": "t_long_hall",
+  "stage": 1,
+  "unlockLevel": 15,
+  "requires": [
+    "c002_small_office"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "weight": 12,
+  "map": "long_hall",
+  "spawnGroups": [
+    {
+      "x": 1,
+      "y": 1,
+      "width": 8,
+      "height": 6,
+      "min": 2,
+      "max": 3
+    },
+    {
+      "x": 30,
+      "y": 1,
+      "width": 9,
+      "height": 6,
+      "min": 2,
+      "max": 3
+    }
+  ],
+  "deadlineDays": 10,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "base": 67000,
+    "perPc": 0,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 90000,
+    "perPc": 15000
+  },
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": "$all_pcs"
+    }
+  ],
+  "announce": true
+}

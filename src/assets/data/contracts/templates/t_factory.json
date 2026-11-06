@@ -1,0 +1,46 @@
+{
+  "id": "t_factory",
+  "stage": 1,
+  "unlockLevel": 24,
+  "requires": [
+    "c002_small_office"
+  ],
+  "jobs": [
+    "infra"
+  ],
+  "weight": 12,
+  "map": "factory",
+  "params": {
+    "pcCount": {
+      "min": 16,
+      "max": 22
+    }
+  },
+  "spawnArea": {
+    "x": 1,
+    "y": 1,
+    "width": 30,
+    "height": 10
+  },
+  "deadlineDays": 14,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "base": 2000,
+    "perPc": 3250,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 150000,
+    "perPc": 8000
+  },
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": "$all_pcs"
+    }
+  ],
+  "announce": true
+}

@@ -1,0 +1,15 @@
+{
+  "id": "t_shop_register_rush",
+  "variantOf": "t_shop_register",
+  "unlockLevel": 14,
+  "weight": 6,
+  "deadlineDays": 4,
+  "offerExpireDays": {
+    "min": 7,
+    "max": 30
+  },
+  "reward": {
+    "base": 91000,
+    "perPc": 12000
+  }
+}

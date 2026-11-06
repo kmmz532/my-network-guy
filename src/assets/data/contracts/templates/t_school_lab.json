@@ -1,0 +1,46 @@
+{
+  "id": "t_school_lab",
+  "stage": 1,
+  "unlockLevel": 11,
+  "requires": [
+    "c002_small_office"
+  ],
+  "jobs": [
+    "infra"
+  ],
+  "weight": 12,
+  "map": "school_lab",
+  "params": {
+    "pcCount": {
+      "min": 10,
+      "max": 14
+    }
+  },
+  "spawnArea": {
+    "x": 1,
+    "y": 2,
+    "width": 22,
+    "height": 9
+  },
+  "deadlineDays": 12,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "base": 13000,
+    "perPc": 2500,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 80000,
+    "perPc": 8000
+  },
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": "$all_pcs"
+    }
+  ],
+  "announce": true
+}

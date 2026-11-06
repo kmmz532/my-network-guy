@@ -1,0 +1,12 @@
+{
+  "id": "t_server_office_large",
+  "variantOf": "t_server_office",
+  "unlockLevel": 10,
+  "weight": 8,
+  "params": {
+    "pcCount": {
+      "min": 5,
+      "max": 7
+    }
+  }
+}

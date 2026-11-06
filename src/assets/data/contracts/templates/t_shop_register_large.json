@@ -1,0 +1,12 @@
+{
+  "id": "t_shop_register_large",
+  "variantOf": "t_shop_register",
+  "unlockLevel": 12,
+  "weight": 8,
+  "params": {
+    "pcCount": {
+      "min": 4,
+      "max": 5
+    }
+  }
+}

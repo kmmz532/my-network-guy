@@ -39,6 +39,24 @@ export const starHubOf = (points: readonly { x: number; y: number }[], map: Game
   return best;
 };
 
+// 置く範囲の組（spawnGroups。spawnArea のときは1つのグループ）
+export interface SpawnGroup { x: number; y: number; width: number; height: number; min: number; max: number }
+
+export const spawnGroupsOf = (template: ContractTemplate): SpawnGroup[] => {
+  if (template.spawnGroups !== undefined) return template.spawnGroups;
+  if (template.spawnArea === undefined || template.params === undefined) {
+    throw new Error(`${template.id}: spawnArea と params.pcCount が必要`);
+  }
+  const { x, y, width, height } = template.spawnArea;
+  return [{ x, y, width, height, min: template.params.pcCount.min, max: template.params.pcCount.max }];
+};
+
+// 台数の範囲（全グループの合計）
+export const pcCountRangeOf = (template: ContractTemplate): { min: number; max: number } => {
+  const groups = spawnGroupsOf(template);
+  return { min: groups.reduce((s, g) => s + g.min, 0), max: groups.reduce((s, g) => s + g.max, 0) };
+};
+
 export const instantiateTemplate = (
   template: ContractTemplate,
   map: GameMap,
@@ -46,29 +64,31 @@ export const instantiateTemplate = (
   rngState: number,
 ): InstantiateResult => {
   let rng = rngState;
-  const count = randInt(rng, template.params.pcCount.min, template.params.pcCount.max);
-  rng = count.state;
-  const n = count.value;
+  // グループごとに台数を決め、その範囲の床から重ならないように選ぶ（spawnArea のときは1グループで、今と同じ乱数の順）
+  const placed: { ref: string; device: string; x: number; y: number; locked: boolean }[] = [];
+  for (const group of spawnGroupsOf(template)) {
+    const count = randInt(rng, group.min, group.max);
+    rng = count.state;
+    const n = count.value;
 
-  // spawnArea のうち床のマスを候補にし、重ならないように n 個選ぶ
-  const candidates: [number, number][] = [];
-  const area = template.spawnArea;
-  for (let y = area.y; y < area.y + area.height && y < map.height; y++) {
-    for (let x = area.x; x < area.x + area.width && x < map.width; x++) {
-      if (tileKind(map, x, y) === 'floor') candidates.push([x, y]);
+    // 範囲のうち床のマスを候補にし、重ならないように n 個選ぶ
+    const candidates: [number, number][] = [];
+    for (let y = group.y; y < group.y + group.height && y < map.height; y++) {
+      for (let x = group.x; x < group.x + group.width && x < map.width; x++) {
+        if (tileKind(map, x, y) === 'floor') candidates.push([x, y]);
+      }
+    }
+    if (candidates.length < n) throw new Error(`${template.id}: 置く範囲の床が ${n} 台分足りない`);
+    for (let i = 0; i < n; i++) {
+      const r = randInt(rng, 0, candidates.length - 1 - i);
+      rng = r.state;
+      const [px, py] = candidates[r.value];
+      candidates[r.value] = candidates[candidates.length - 1 - i];
+      placed.push({ ref: `pc_${placed.length + 1}`, device: 'pc_basic', x: px, y: py, locked: true });
     }
   }
-  if (candidates.length < n) throw new Error(`${template.id}: spawnArea の床が ${n} 台分足りない`);
-  const picked: [number, number][] = [];
-  for (let i = 0; i < n; i++) {
-    const r = randInt(rng, 0, candidates.length - 1 - i);
-    rng = r.state;
-    picked.push(candidates[r.value]);
-    candidates[r.value] = candidates[candidates.length - 1 - i];
-  }
-
-  const refs = picked.map((_, i) => `pc_${i + 1}`);
-  const placed = picked.map(([x, y], i) => ({ ref: refs[i], device: 'pc_basic', x, y, locked: true }));
+  const total = placed.length;
+  const refs = placed.map((p) => p.ref);
   const goals: Goal[] = template.goals.map((g) =>
     g.type === 'ping_all' && g.nodes === '$all_pcs' ? { type: 'ping_all', nodes: refs } : g,
   );
@@ -82,16 +102,22 @@ export const instantiateTemplate = (
     jobs: template.jobs,
     map: template.map,
     // 予算は、台数と、スイッチを中心に配線したときの配線の長さで決まる（模範の費用の約7割）
-    budget: template.budget.base + template.budget.perPc * n + template.budget.perTile * starHubOf(placed, map).tiles,
+    budget: template.budget.base + template.budget.perPc * total + template.budget.perTile * starHubOf(placed, map).tiles,
     placed,
     goals,
     inhouse: false,
     reward: {
-      money: template.reward.base + template.reward.perPc * n,
+      money: template.reward.base + template.reward.perPc * total,
     },
   };
   return {
-    offer: { id: contract.id, kind: 'template', baseId: template.id, params: { pcCount: n }, contract },
+    offer: {
+      id: contract.id,
+      kind: 'template',
+      baseId: template.textId ?? template.id,
+      params: { pcCount: total },
+      contract,
+    },
     rng,
   };
 };

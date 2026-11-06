@@ -1,0 +1,12 @@
+{
+  "id": "t_school_lab_large",
+  "variantOf": "t_school_lab",
+  "unlockLevel": 14,
+  "weight": 8,
+  "params": {
+    "pcCount": {
+      "min": 14,
+      "max": 18
+    }
+  }
+}

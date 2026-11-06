@@ -1,0 +1,57 @@
+{
+  "id": "t_departments",
+  "stage": 1,
+  "unlockLevel": 13,
+  "requires": [
+    "c003_departments"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "weight": 12,
+  "map": "office_two_rooms",
+  "spawnGroups": [
+    {
+      "x": 1,
+      "y": 1,
+      "width": 8,
+      "height": 8,
+      "min": 2,
+      "max": 3
+    },
+    {
+      "x": 11,
+      "y": 1,
+      "width": 8,
+      "height": 8,
+      "min": 2,
+      "max": 3
+    }
+  ],
+  "deadlineDays": 10,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "base": 88000,
+    "perPc": 3000,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 90000,
+    "perPc": 15000
+  },
+  "goals": [
+    {
+      "type": "count",
+      "category": "router",
+      "min": 1
+    },
+    {
+      "type": "ping_all",
+      "nodes": "$all_pcs"
+    }
+  ],
+  "announce": true
+}

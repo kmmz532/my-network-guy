@@ -464,7 +464,7 @@ const unlockItems: UnlockItem[] = [
   ...Object.values(devices).map((d) => ({ kind: 'device' as const, id: d.id, unlockLevel: d.unlockLevel })),
   ...Object.values(cables).map((c) => ({ kind: 'cable' as const, id: c.id, unlockLevel: c.unlockLevel })),
   ...Object.values(furniture).map((f) => ({ kind: 'furniture' as const, id: f.id, unlockLevel: f.unlockLevel })),
-  ...contractTemplates.map((t) => ({ kind: 'template' as const, id: t.id, unlockLevel: t.unlockLevel })),
+  ...contractTemplates.filter((t) => t.announce).map((t) => ({ kind: 'template' as const, id: t.id, unlockLevel: t.unlockLevel })),
   ...contracts.map((c) => ({ kind: 'contract' as const, id: c.id, unlockLevel: c.unlockLevel })),
 ];
 

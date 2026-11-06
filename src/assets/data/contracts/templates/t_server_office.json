@@ -1,0 +1,51 @@
+{
+  "id": "t_server_office",
+  "stage": 1,
+  "unlockLevel": 7,
+  "requires": [
+    "c002_small_office"
+  ],
+  "jobs": [
+    "infra"
+  ],
+  "weight": 12,
+  "map": "office_small",
+  "params": {
+    "pcCount": {
+      "min": 3,
+      "max": 5
+    }
+  },
+  "spawnArea": {
+    "x": 2,
+    "y": 2,
+    "width": 10,
+    "height": 6
+  },
+  "deadlineDays": 8,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "base": 419000,
+    "perPc": 3250,
+    "perTile": 500
+  },
+  "reward": {
+    "base": 70000,
+    "perPc": 12000
+  },
+  "goals": [
+    {
+      "type": "count",
+      "category": "server",
+      "min": 1
+    },
+    {
+      "type": "http_all",
+      "port": 80
+    }
+  ],
+  "announce": true
+}

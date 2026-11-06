@@ -1,0 +1,15 @@
+{
+  "id": "t_factory_rush",
+  "variantOf": "t_factory",
+  "unlockLevel": 29,
+  "weight": 6,
+  "deadlineDays": 9,
+  "offerExpireDays": {
+    "min": 7,
+    "max": 30
+  },
+  "reward": {
+    "base": 195000,
+    "perPc": 8000
+  }
+}

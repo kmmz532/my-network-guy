@@ -6,7 +6,7 @@ import twoSitesJson from '../assets/data/contracts/templates/t_two_sites_lan.jso
 import officeTwoRoomsJson from '../assets/data/maps/office_two_rooms.json';
 import officeTwoSitesJson from '../assets/data/maps/office_two_sites.json';
 import type { ContractTemplate, GameMap } from '../data/schema';
-import { instantiateTemplate } from './template';
+import { instantiateTemplate, pcCountRangeOf } from './template';
 
 // 定型案件（2 部屋・2 拠点）が、どの乱数でも案件になることを確かめる
 const cases: { template: ContractTemplate; map: GameMap }[] = [
@@ -21,8 +21,9 @@ describe.each(cases)('定型案件 $template.id', ({ template, map }) => {
     for (let seed = 1; seed <= 200; seed++) {
       const { offer } = instantiateTemplate(template, map, 0, seed);
       const n = offer.params.pcCount;
-      expect(n).toBeGreaterThanOrEqual(template.params.pcCount.min);
-      expect(n).toBeLessThanOrEqual(template.params.pcCount.max);
+      const range = pcCountRangeOf(template);
+      expect(n).toBeGreaterThanOrEqual(range.min);
+      expect(n).toBeLessThanOrEqual(range.max);
       expect(offer.contract.placed).toHaveLength(n);
       for (const p of offer.contract.placed) {
         expect(map.legend[map.tiles[p.y][p.x]]).toBe('floor');

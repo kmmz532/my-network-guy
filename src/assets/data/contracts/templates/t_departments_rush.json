@@ -1,0 +1,15 @@
+{
+  "id": "t_departments_rush",
+  "variantOf": "t_departments",
+  "unlockLevel": 18,
+  "weight": 6,
+  "deadlineDays": 6,
+  "offerExpireDays": {
+    "min": 7,
+    "max": 30
+  },
+  "reward": {
+    "base": 117000,
+    "perPc": 15000
+  }
+}

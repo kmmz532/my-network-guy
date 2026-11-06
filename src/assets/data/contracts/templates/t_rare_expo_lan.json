@@ -27,8 +27,8 @@
     "max": 30
   },
   "budget": {
-    "base": 40000,
-    "perPc": 3000,
+    "base": 16000,
+    "perPc": 1000,
     "perTile": 500
   },
   "reward": {
@@ -41,5 +41,6 @@
       "nodes": "$all_pcs"
     }
   ],
+  "announce": true,
   "unlockLevel": 39
 }

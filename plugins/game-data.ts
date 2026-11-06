@@ -18,6 +18,7 @@ import {
   mapSchema,
   shopFileSchema,
   templateSchema,
+  variantSchema,
   type Balance,
   type Cable,
   type Contract,
@@ -97,6 +98,42 @@ const parseWith = <S extends ZodTypeAny>(schema: S, value: unknown, file: string
   return result.data;
 };
 
+// 定型案件のファイルを読み、変化形（variantOf）を元のひな形と合わせて完全な形にする（N51a）。
+// 変化形は元のひな形の値を引き継ぎ、書いた項目だけを置き換える。変化形は通知（announce）を出さず、文言は元のひな形のものを使う。
+const resolveTemplates = (files: string[]): ContractTemplate[] => {
+  const roots: ContractTemplate[] = [];
+  const variants: { file: string; raw: unknown }[] = [];
+  for (const file of files) {
+    const raw = readJson(file);
+    if (raw !== null && typeof raw === 'object' && 'variantOf' in raw) {
+      variants.push({ file, raw });
+      continue;
+    }
+    const template = parseWith(templateSchema, raw, file);
+    if (template.id !== basename(file, '.json')) {
+      throw new GameDataError([`${file}: id（${template.id}）がファイル名と一致しない`]);
+    }
+    roots.push({ ...template, textId: template.id });
+  }
+  const rootsById = new Map(roots.map((t) => [t.id, t] as const));
+  const resolved: ContractTemplate[] = [...roots];
+  for (const { file, raw } of variants) {
+    const variant = parseWith(variantSchema, raw, file);
+    const root = rootsById.get(variant.variantOf);
+    if (!root) {
+      throw new GameDataError([`${file}: variantOf の元のひな形 ${variant.variantOf} が未定義（変化形の変化形は使えない）`]);
+    }
+    if (variant.id !== basename(file, '.json')) {
+      throw new GameDataError([`${file}: id（${variant.id}）がファイル名と一致しない`]);
+    }
+    const { variantOf: _variantOf, ...own } = variant;
+    const defined = Object.fromEntries(Object.entries(own).filter(([, v]) => v !== undefined));
+    const merged = parseWith(templateSchema, { ...root, ...defined, announce: false, textId: root.id }, file);
+    resolved.push(merged);
+  }
+  return resolved;
+};
+
 const jsonFiles = (dir: string): string[] => {
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
@@ -126,13 +163,7 @@ const loadData = (dataDir: string, langDir: string, spriteDir: string): GameData
     }
     return contract;
   });
-  const templates = jsonFiles(join(contractsDir, 'templates')).map((file) => {
-    const template = parseWith(templateSchema, readJson(file), file);
-    if (template.id !== basename(file, '.json')) {
-      throw new GameDataError([`${file}: id（${template.id}）がファイル名と一致しない`]);
-    }
-    return template;
-  });
+  const templates = resolveTemplates(jsonFiles(join(contractsDir, 'templates')));
   const maps = jsonFiles(join(dataDir, 'maps')).map((file) => {
     const map = parseWith(mapSchema, readJson(file), file);
     if (map.id !== basename(file, '.json')) {
@@ -333,9 +364,15 @@ const fillLanguages = (data: GameData): void => {
     required.add(`furniture.${f.id}.name`);
     required.add(`furniture.${f.id}.desc`);
   }
-  for (const c of [...data.contracts, ...data.templates]) {
+  for (const c of data.contracts) {
     required.add(`contract.${c.id}.title`);
     required.add(`contract.${c.id}.story`);
+  }
+  // 変化形は元のひな形の文言を使う（textId）
+  for (const t of data.templates) {
+    if (t.textId === undefined) throw new GameDataError([`contracts/templates/${t.id}.json: textId がない`]);
+    required.add(`contract.${t.textId}.title`);
+    required.add(`contract.${t.textId}.story`);
   }
   for (const c of data.contracts) required.add(`contract.${c.id}.hint`);
   // 案内の文言は guide.<案件>.<n>（n は1から）。1手順20文字以内

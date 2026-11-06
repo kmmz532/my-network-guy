@@ -1,0 +1,15 @@
+{
+  "id": "t_school_lab_rush",
+  "variantOf": "t_school_lab",
+  "unlockLevel": 16,
+  "weight": 6,
+  "deadlineDays": 8,
+  "offerExpireDays": {
+    "min": 7,
+    "max": 30
+  },
+  "reward": {
+    "base": 104000,
+    "perPc": 8000
+  }
+}

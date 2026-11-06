@@ -13,7 +13,13 @@ describe('定型案件の地図', () => {
     const templates = readdirSync(templatesDir).filter((f) => f.endsWith('.json'));
     expect(templates.length).toBeGreaterThan(0);
     for (const file of templates) {
-      const { map } = JSON.parse(readFileSync(join(templatesDir, file), 'utf8')) as { map: string };
+      const raw = JSON.parse(readFileSync(join(templatesDir, file), 'utf8')) as { map?: string; variantOf?: string };
+      // 変化形は地図を持たず、元のひな形の地図を使う（N51a）
+      if (raw.variantOf !== undefined) {
+        expect(existsSync(join(templatesDir, `${raw.variantOf}.json`)), `${file} の元のひな形 ${raw.variantOf}`).toBe(true);
+        continue;
+      }
+      const { map } = raw as { map: string };
       expect(existsSync(join(mapsDir, `${map}.json`)), `${file} の地図 ${map}`).toBe(true);
     }
   });

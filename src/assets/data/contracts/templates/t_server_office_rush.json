@@ -1,0 +1,15 @@
+{
+  "id": "t_server_office_rush",
+  "variantOf": "t_server_office",
+  "unlockLevel": 12,
+  "weight": 6,
+  "deadlineDays": 5,
+  "offerExpireDays": {
+    "min": 7,
+    "max": 30
+  },
+  "reward": {
+    "base": 91000,
+    "perPc": 12000
+  }
+}

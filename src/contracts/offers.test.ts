@@ -8,7 +8,9 @@ import type { Balance, Contract, ContractTemplate, GameMap } from '../data/schem
 import { minutesPerDay } from '../sim/clock';
 import { expAtLevel } from '../sim/level';
 import { declineOffer, MAX_OFFERS, offerHint, refreshOffers, sortOffers, type OfferEnv, type OfferState } from './offers';
-import { instantiateTemplate, starHubOf } from './template';
+import { instantiateTemplate, pcCountRangeOf, spawnGroupsOf, starHubOf } from './template';
+
+const area = spawnGroupsOf(templateJson as unknown as ContractTemplate)[0];
 
 const balance = balanceJson as unknown as Balance;
 const map = officeJson as unknown as GameMap;
@@ -45,15 +47,16 @@ describe('定型案件の生成', () => {
     for (let seed = 1; seed <= 30; seed++) {
       const { offer } = instantiateTemplate(template, map, 0, seed);
       const n = offer.params.pcCount;
-      expect(n).toBeGreaterThanOrEqual(template.params.pcCount.min);
-      expect(n).toBeLessThanOrEqual(template.params.pcCount.max);
+      const range = pcCountRangeOf(template);
+      expect(n).toBeGreaterThanOrEqual(range.min);
+      expect(n).toBeLessThanOrEqual(range.max);
       expect(offer.contract.placed).toHaveLength(n);
       const seen = new Set<string>();
       for (const p of offer.contract.placed) {
-        expect(p.x).toBeGreaterThanOrEqual(template.spawnArea.x);
-        expect(p.x).toBeLessThan(template.spawnArea.x + template.spawnArea.width);
-        expect(p.y).toBeGreaterThanOrEqual(template.spawnArea.y);
-        expect(p.y).toBeLessThan(template.spawnArea.y + template.spawnArea.height);
+        expect(p.x).toBeGreaterThanOrEqual(area.x);
+        expect(p.x).toBeLessThan(area.x + area.width);
+        expect(p.y).toBeGreaterThanOrEqual(area.y);
+        expect(p.y).toBeLessThan(area.y + area.height);
         expect(map.legend[map.tiles[p.y][p.x]]).toBe('floor');
         seen.add(`${p.x},${p.y}`);
       }

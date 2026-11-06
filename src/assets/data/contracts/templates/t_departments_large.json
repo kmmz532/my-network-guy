@@ -1,0 +1,24 @@
+{
+  "id": "t_departments_large",
+  "variantOf": "t_departments",
+  "unlockLevel": 16,
+  "weight": 8,
+  "spawnGroups": [
+    {
+      "x": 1,
+      "y": 1,
+      "width": 8,
+      "height": 8,
+      "min": 3,
+      "max": 4
+    },
+    {
+      "x": 11,
+      "y": 1,
+      "width": 8,
+      "height": 8,
+      "min": 3,
+      "max": 4
+    }
+  ]
+}
