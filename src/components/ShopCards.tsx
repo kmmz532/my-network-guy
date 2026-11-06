@@ -80,7 +80,7 @@ export function ShopBody() {
                       {t('ui.shop.spec', { ports: d.ports.reduce((sum, p) => sum + p.count, 0), speed: d.ports[0]?.speedMbps ?? 0 })}
                     </div>
                     <div style={{ fontSize: 13 }}>
-                      <Icon name="icon/money" scale={1} /> {yen(cost(d.price))}　×{owned[id] ?? 0}
+                      <Icon name="icon/money" scale={1} /> {discount > 0 && !sandbox && <s style={{ opacity: 0.6, marginRight: 4 }}>{yen(d.price)}</s>}{yen(cost(d.price))}　×{owned[id] ?? 0}
                     </div>
                     {/* 売却の値段は、ボタンではなく値段の下に小さく出す（ボタンの幅をそろえる） */}
                     {!sandbox && <div style={{ fontSize: 12, opacity: 0.85 }}>{t('ui.shop.sellPrice', { price: yen(Math.floor(d.price * balance.sellRate)) })}</div>}
@@ -113,7 +113,7 @@ export function ShopBody() {
                     <div style={{ fontSize: 12, opacity: 0.85 }}>{tDyn(`furniture.${id}.desc`)}</div>
                     {effectText(f.effect) && <div style={{ fontSize: 12, color: '#ffd866' }}>{effectText(f.effect)}</div>}
                     <div style={{ fontSize: 13 }}>
-                      <Icon name="icon/money" scale={1} /> {yen(cost(f.price))}　×{owned[id] ?? 0}
+                      <Icon name="icon/money" scale={1} /> {discount > 0 && !sandbox && <s style={{ opacity: 0.6, marginRight: 4 }}>{yen(f.price)}</s>}{yen(cost(f.price))}　×{owned[id] ?? 0}
                     </div>
                     {!sandbox && <div style={{ fontSize: 12, opacity: 0.85 }}>{t('ui.shop.sellPrice', { price: yen(Math.floor(f.price * balance.sellRate)) })}</div>}
                   </div>

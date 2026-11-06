@@ -61,6 +61,11 @@ export function CompanyBody() {
   const deliveries = useGameStore((s) => s.deliveries);
   const office = useGameStore((s) => s.office);
   const money = useGameStore((s) => s.clock.money);
+  // 今月の節約（経理の割引で浮いた額）
+  const savedThisMonth = useGameStore((s) => {
+    const month = Math.floor(s.clock.minute / (balance.time.daysPerMonth * 24 * 60));
+    return s.clock.ledger?.find((m) => m.month === month)?.totals.saved ?? 0;
+  });
   // 自社のネットワークの外部への接続と、サーバーの貸し出し（N71・N72）
   const outside = outsideCheck(office, gameEnv.engine);
   const level = levelOf(companyExp, balance);
@@ -111,6 +116,12 @@ export function CompanyBody() {
           {money.toLocaleString('ja-JP')}円
         </button>
       </div>
+      {savedThisMonth > 0 && (
+        <div style={row}>
+          <span>{t('ui.company.saved')}</span>
+          <span>{savedThisMonth.toLocaleString('ja-JP')}円</span>
+        </div>
+      )}
       <div style={row}>
         <span>{t('ui.company.delivered')}</span>
         <span>{t('ui.company.count', { count: deliveries })}</span>

@@ -27,7 +27,8 @@ export function FundsBody() {
   const outlook = clock.money + rent.daily * daysLeft - salary;
   // 直近の月の収支（分類の合計）。古いものから並べる
   const history = [...ledger].sort((a, b) => a.month - b.month);
-  const net = (m: { totals: Record<LedgerCategory, number> }) => LEDGER_CATEGORIES.reduce((s, c) => s + m.totals[c], 0);
+  // 収支の合計はお金の増減だけ（経理で浮いた額は含めない）
+  const net = (m: { totals: Record<LedgerCategory, number> }) => LEDGER_CATEGORIES.filter((c) => c !== 'saved').reduce((s, c) => s + m.totals[c], 0);
   const maxAbs = Math.max(1, ...history.map((m) => Math.abs(net(m))));
   const row = { display: 'flex', justifyContent: 'space-between', gap: 8, padding: '4px 0', borderBottom: '1px solid #3b2a33' } as const;
   return (

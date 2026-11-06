@@ -80,6 +80,7 @@ const start = (): Core => ({
   completed: [],
   deliveries: 0,
   familiarity: EMPTY_FAMILIARITY,
+  purchaseDiscount: 0,
   offers: [offer],
   active: [],
   focus: null,

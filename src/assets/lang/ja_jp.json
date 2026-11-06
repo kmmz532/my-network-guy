@@ -766,6 +766,8 @@
   "ledger.construction": "施工の経費",
   "ledger.expansion": "オフィスの拡張",
   "ledger.training": "研修",
+  "ledger.saved": "経理で浮いた額（支出とは別）",
+  "ui.company.saved": "今月の節約（経理）",
   "ledger.exam": "受験",
   "ui.company.funds": "資金",
   "ui.company.jobs": "職種の解放: {jobs}",

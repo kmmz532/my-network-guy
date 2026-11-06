@@ -63,6 +63,7 @@ const startCore = (offers: Offer[]): Core => ({
   completed: [],
   deliveries: 0,
   familiarity: EMPTY_FAMILIARITY,
+  purchaseDiscount: 0,
   offers,
   active: [],
   focus: null,

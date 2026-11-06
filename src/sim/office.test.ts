@@ -64,6 +64,7 @@ const core = (money: number, over: Partial<Office> = {}, active: Project[] = [])
   completed: [],
   deliveries: 0,
   familiarity: EMPTY_FAMILIARITY,
+  purchaseDiscount: 0,
   offers: [],
   active,
   focus: null,

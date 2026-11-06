@@ -21,7 +21,7 @@ import firewallJson from '../assets/data/devices/firewall.json';
 import firewallDmzJson from '../assets/data/devices/firewall_dmz.json';
 import printerJson from '../assets/data/devices/printer.json';
 
-export const SAVE_VERSION = 32;
+export const SAVE_VERSION = 33;
 
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
@@ -215,6 +215,12 @@ export const migrations: Record<number, Migration> = {
   26: (data) => ({ ...(data as object), deliveries: 0 }),
   // v31 → v32: 依頼に家具（机・棚・飾り）を足す。移行前の依頼は家具を持たない（N76）
   31: (data) => data as object,
+  // v32 → v33: 帳簿に、経理の割引で浮いた額（saved）を足す。移行前は0。サンドボックス（帳簿なし）は変えない
+  32: (data) => {
+    const d = data as { clock: { ledger: { month: number; totals: object }[] | null } };
+    const ledger = d.clock.ledger === null ? null : d.clock.ledger.map((m) => ({ ...m, totals: { ...m.totals, saved: 0 } }));
+    return { ...d, clock: { ...d.clock, ledger } };
+  },
   // v30 → v31: 時計に帳簿を足す。移行前は空から始める。サンドボックスは帳簿を持たない（null）
   30: (data) => {
     const d = data as { mode: string; clock: object };

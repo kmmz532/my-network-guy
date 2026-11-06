@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
 import type { Balance } from '../data/schema';
 import { advanceTick, initialClock, minutesPerMonth, type ClockState } from './clock';
-import { applyMoney, LEDGER_MONTHS } from './ledger';
+import { applyMoney, LEDGER_MONTHS, recordSaving } from './ledger';
 
 const balance = balanceJson as unknown as Balance;
 const monthLength = minutesPerMonth(balance);
@@ -51,5 +51,16 @@ describe('帳簿', () => {
     expect(next.paidMonths).toBe(1);
     expect(next.money).toBe(balance.startMoney - 10000);
     expect(next.ledger?.[0].totals.salary).toBe(-10000);
+  });
+});
+
+// 経理の割引で浮いた額（節約）は、資金を変えず、今月の節約に残る
+describe('節約の記録', () => {
+  it('資金は変えず、今月の節約だけ増える。サンドボックス（帳簿なし）では何もしない', () => {
+    const c = clockAt(0);
+    const saved = recordSaving(c, 300);
+    expect(saved.money).toBe(c.money);
+    expect(saved.ledger?.[0].totals.saved).toBe(300);
+    expect(recordSaving({ ...c, ledger: null }, 300).ledger).toBeNull();
   });
 });

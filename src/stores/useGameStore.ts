@@ -23,7 +23,7 @@ import { resizeSandboxOffice, sandboxClock, sandboxOffice, sandboxTest } from '.
 import { gameEnv } from '../sim/env';
 import { learnFromPing } from '../network/learn';
 import { rentalOf } from '../network/external';
-import { applyMoney } from '../sim/ledger';
+import { applyMoney, recordSaving } from '../sim/ledger';
 import { accountingRate, backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, salesExtraArrivals } from '../sim/backOffice';
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
 import type { MacEntry } from '../network/mac';
@@ -451,6 +451,7 @@ export const coreOf = (s: GameState): Core => ({
   completed: s.completed,
   deliveries: s.deliveries,
   familiarity: s.familiarity,
+  purchaseDiscount: purchaseDiscountOf(s),
   offers: s.offers,
   active: s.active,
   office: s.office,
@@ -1085,7 +1086,8 @@ export const useGameStore = create<GameState>((set, get) => {
       const result = buyDevice(s.clock.money, s.owned, deviceId, price);
       if (!result.ok) return false;
       // 購入は費用に入れない。案件の費用は納品のときに、置かれている機器の定価と配線の費用から決める
-      set({ clock: applyMoney(s.clock, result.money - s.clock.money, 'purchase'), owned: result.owned });
+      // 割引で浮いた額は、節約として帳簿に残す（資金は変えない）
+      set({ clock: recordSaving(applyMoney(s.clock, result.money - s.clock.money, 'purchase'), s.mode === 'sandbox' ? 0 : listPrice - price), owned: result.owned });
       return true;
     },
     sell: (deviceId) => {

@@ -73,6 +73,7 @@ const start = (owned: Record<string, number> = {}): Core => ({
   completed: [],
   deliveries: 0,
   familiarity: EMPTY_FAMILIARITY,
+  purchaseDiscount: 0,
   offers: [offerOf(c001, 'c001_direct_link')],
   active: [],
   focus: null,

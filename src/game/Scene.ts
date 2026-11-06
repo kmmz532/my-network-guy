@@ -29,7 +29,7 @@ import {
 } from '../sim/project';
 import { colorOfLink, networkColors, type NetworkColors } from '../network/netColor';
 import type { Compiled, IssueDetail } from '../network/compile';
-import { spriteOf, texture } from './sprites';
+import { spriteOf, texture, visibleTopOfSprite } from './sprites';
 import { tileKind } from '../data/tileKind';
 import { balance, devices as deviceData, furniture as furnitureData } from 'virtual:game-data';
 import type { FurnitureId } from '../generated/ids';
@@ -844,7 +844,9 @@ export class Scene {
         resolution: Math.max(2, scale * dpr),
       });
       text.anchor.set(0.5, 1);
-      const bottom = this.spriteTopOf(node, ts) + 4;
+      // 画像の上の透明な部分を飛ばし、見えている部分の上にラベルを置く（PCは上の透明部が多いため）
+      const visibleTop = visibleTopOfSprite(deviceData[node.device as keyof typeof deviceData]?.sprite ?? '');
+      const bottom = this.spriteTopOf(node, ts) + visibleTop + 4;
       const cx = node.x * ts + ts / 2;
       text.position.set(cx, bottom);
       this.bubbles.addChild(text);
@@ -871,17 +873,17 @@ export class Scene {
       const b = this.breaks.get(staffList[k].uid);
       if (c?.state === 'seated' && b && b.phase !== 'desk') {
         const at = wanderStaffPos(b.at.x, b.at.y, ts);
-        this.drawStaff(at.x, at.y, look);
+        this.drawStaff(at.x, at.y, look, staffList[k]);
         continue;
       }
       if (c && c.state !== 'seated') {
         const at = wanderStaffPos(c.at.x, c.at.y, ts);
-        this.drawStaff(at.x, at.y, look);
+        this.drawStaff(at.x, at.y, look, staffList[k]);
         continue;
       }
       // 机の下の段に座り、打鍵に合わせて小さく揺れる
       const at = deskStaffPos(dx, dy, ts, deskTap(this.elapsed, k));
-      this.drawStaff(at.x, at.y, look);
+      this.drawStaff(at.x, at.y, look, staffList[k]);
       // 口癖は、社員ごとにずらした周期で、60秒に3秒だけ頭上に出す（平均60秒に1回）
       const seconds = this.elapsed / 1000 + k * 23;
       if (seconds % 60 < 3) {
@@ -978,7 +980,7 @@ export class Scene {
     const seats = s.office.furniture.filter((f) => isDeskFurniture(f.id, gameEnv)).length;
     this.wanderers.forEach((w, k) => {
       const at = wanderStaffPos(w.x, w.y, ts);
-      this.drawStaff(at.x, at.y, s.staff[seats + k]?.look ?? STAFF_PLACEHOLDER_LOOKS[k % STAFF_PLACEHOLDER_LOOKS.length]);
+      this.drawStaff(at.x, at.y, s.staff[seats + k]?.look ?? STAFF_PLACEHOLDER_LOOKS[k % STAFF_PLACEHOLDER_LOOKS.length], s.staff[seats + k]);
     });
   }
 
@@ -1146,14 +1148,15 @@ export class Scene {
     for (let k = 0; k < workers && pending.length > 0; k++) {
       const at = pending[Math.min(pending.length - 1, index + k)];
       // 1人目は作業場所の左、2人目は右に立つ
-      this.drawStaff(at.x + (k === 0 ? -18 : 2), at.y - 24 - bob, useGameStore.getState().staff[k]?.look ?? STAFF_PLACEHOLDER_LOOKS[k % STAFF_PLACEHOLDER_LOOKS.length]);
+      this.drawStaff(at.x + (k === 0 ? -18 : 2), at.y - 24 - bob, useGameStore.getState().staff[k]?.look ?? STAFF_PLACEHOLDER_LOOKS[k % STAFF_PLACEHOLDER_LOOKS.length], useGameStore.getState().staff[k]);
     }
 
     // 施工の進み具合は、ツールバーの帯（Toolbar.tsx）だけに出す。マップの下端には描かない（B13。パソコンも1本にそろえる）
   }
 
   // 社員のスプライト（16×24 px）。2コマで足踏みする
-  private drawStaff(x: number, y: number, shirt: string): void {
+  // tag があれば、頭の上に名札（名前と職種）を出す。社員の名前が分からないときは出さない
+  private drawStaff(x: number, y: number, shirt: string, tag?: { name: string; job: string }): void {
     const frame = Math.floor(this.elapsed / (FRAME_MS * 2)) % 2;
     const tex = texture(spriteOf(`staff/${staffSpriteName(shirt)}_${frame}`));
     if (!tex) return;
@@ -1165,6 +1168,29 @@ export class Scene {
     this.sprites.addChild(sprite);
     // 足元の影（機器と同じく床に接地していることを示す）
     this.bg.ellipse(left + 8, top + STAFF_FOOT, 6, 2).fill({ color: 0x000000, alpha: 0.25 });
+    if (tag) this.drawNameTag(left + STAFF_W / 2, top, tag);
+  }
+
+  // 社員の名札（「名前 (職種)」を1行で、頭の上に出す）。黒の半透明の背景に縁はなく、文字は明るい色
+  private drawNameTag(cx: number, headTop: number, tag: { name: string; job: string }): void {
+    const map = this.mapSize();
+    const u = 1 / this.content.scale.x;
+    const pad = 2 * u;
+    const text = new Text({
+      text: `${tDyn(tag.name)} (${tDyn(`staff.job.${tag.job}`)})`,
+      style: { fontFamily: 'sans-serif', fontSize: 10 * u, fill: 0xf4f1e6, align: 'center' },
+      resolution: this.textResolution(),
+    });
+    const w = text.width + pad * 2;
+    const h = text.height + pad * 2;
+    const left = Math.min(Math.max(cx - w / 2, 0), Math.max(0, map.w - w));
+    const top = Math.max(0, headTop - 2 * u - h);
+    const box = new Graphics();
+    box.rect(left, top, w, h).fill({ color: 0x000000, alpha: 0.5 });
+    this.bubbles.addChild(box);
+    text.anchor.set(0, 0);
+    text.position.set(left + pad, top + pad);
+    this.bubbles.addChild(text);
   }
 
   // 疎通テストの経路と、パケットの粒。失敗した地点で止まり「×」を出す
@@ -1935,7 +1961,7 @@ export class Scene {
       return;
     }
     const ports = this.wireFrom ? {} : { a: start.port ?? undefined };
-    const reason = checkConnect(store, start.uid, target.uid, store.wireCable, gameEnv, netTargetOf(store), ports);
+    const reason = checkConnect(coreOf(store), start.uid, target.uid, store.wireCable, gameEnv, netTargetOf(store), ports);
     this.hover = { uid: target.uid, reason };
   }
 
