@@ -25,6 +25,18 @@ const scenes = {
     await page.getByText('新しくプレイ').click();
     await page.waitForTimeout(1500);
   },
+  // 昼（10時）の自社オフィス。社員は机に座っている
+  day: async (page) => {
+    await scenes.career(page);
+    await setHour(page, 10);
+    await page.waitForTimeout(500);
+  },
+  // 夜（22時）の自社オフィス。社員はドアから退勤し、机は空いている（歩いて出る途中も撮れる）
+  night: async (page) => {
+    await scenes.career(page);
+    await setHour(page, 22);
+    await page.waitForTimeout(6000);
+  },
   // サンドボックス
   sandbox: async (page) => {
     await page.getByText('サンドボックス').click();
@@ -155,6 +167,14 @@ const scenes = {
     await page.waitForTimeout(500);
   },
 };
+
+// 時刻を、その日の指定の時（時）に合わせる（撮影用の window.__game を使う）
+async function setHour(page, hour) {
+  await page.evaluate((h) => {
+    const g = window.__game;
+    g.setState({ clock: { ...g.getState().clock, minute: Math.floor(g.getState().clock.minute / 1440) * 1440 + h * 60 } });
+  }, hour);
+}
 
 // 機器を空いている場所に置き、その機器の画面を開く（撮影用の window.__game を使う）
 // place は、成功なら null、失敗なら理由のキー（例: stock）を返す
