@@ -575,6 +575,16 @@ describe('自社案件', () => {
   });
 });
 
+describe('固定案件の取り消し（N41）', () => {
+  it('固定案件をやめたら、その依頼は一覧に戻る', () => {
+    const taken = ok(accept({ ...start(), offers: [offer] }, offer.id, 2, ['s0'])).core;
+    expect(taken.offers.some((o) => o.baseId === offer.baseId)).toBe(false);
+    const back = ok(abandon(taken)).core;
+    expect(back.offers.filter((o) => o.baseId === offer.baseId)).toHaveLength(1);
+    expect(back.active).toHaveLength(0);
+  });
+});
+
 // 案件の manualIp を外す（自動割り当てを確かめるため。c001 は manualIp を持つ）
 const autoIpOn = (core: Core): Core =>
   autoAssign(

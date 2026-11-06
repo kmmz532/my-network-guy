@@ -1199,5 +1199,10 @@ export const abandon = (core: Core): Outcome => {
   if (p.phase !== 'design' || builtNew.length > p.contract.placed.length) return fail('locked');
   const owned = { ...core.owned };
   for (const n of p.nodes) if (!n.locked && !inherited.has(n.uid)) owned[n.device] = (owned[n.device] ?? 0) + 1;
-  return { ok: true, core: { ...core, owned, ...removeProject(core, p.id) } };
+  // 固定案件は、やめても依頼の一覧に戻す（定型案件は今までどおり消える）
+  const back = p.kind === 'fixed' && !core.offers.some((o) => o.baseId === p.baseId);
+  const offers: Offer[] = back
+    ? [...core.offers, { id: p.baseId, kind: 'fixed', baseId: p.baseId, params: p.params, contract: p.contract }]
+    : core.offers;
+  return { ok: true, core: { ...core, owned, offers, ...removeProject(core, p.id) } };
 };
