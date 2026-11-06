@@ -22,6 +22,7 @@ import type { GameMode, SaveData } from '../services/migrations';
 import { resizeSandboxOffice, sandboxClock, sandboxOffice, sandboxTest } from '../sim/sandbox';
 import { gameEnv } from '../sim/env';
 import { learnFromPing } from '../network/learn';
+import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
 import type { MacEntry } from '../network/mac';
 import { autoAssign } from '../sim/autoAssign';
 import { type ExpandSide, expandOffice as expandOfficeOp, mapOfOffice } from '../sim/office';
@@ -51,6 +52,7 @@ import {
   type PortChoice,
   abandon,
   accept,
+  acceptDelegated as acceptDelegatedOp,
   advanceBuild,
   connect,
   placeDevice,
@@ -161,6 +163,8 @@ export interface GameState {
   completed: string[];
   // 納品した案件の数（N66）
   deliveries: number;
+  // なじみの依頼の回数と型紙（N70）
+  familiarity: Familiarity;
   // 通信で覚えた ARP の表と、スイッチの MAC の表（画面の状態。保存しない。N69）。キーは「案件の ID または office」と機器の uid
   arpTable: Record<string, { ip: string; mac: string }[]>;
   macTable: Record<string, MacEntry[]>;
@@ -307,6 +311,8 @@ export interface GameState {
   sell: (deviceId: string) => boolean;
   // 案件の流れの操作。失敗したら理由を返す（成功なら null）
   accept: (offerId: string, crew: string[]) => string | null;
+  // 社員に任せて受注する（N70）。任せられない理由は delegationReason で分かる
+  acceptDelegated: (offerId: string, crew: string[]) => string | null;
   place: (deviceId: string, x: number, y: number) => string | null;
   // 自社オフィスの家具と社員。失敗したら理由を返す
   placeFurniture: (id: string, x: number, y: number) => string | null;
@@ -421,6 +427,7 @@ export const coreOf = (s: GameState): Core => ({
   owned: s.owned,
   completed: s.completed,
   deliveries: s.deliveries,
+  familiarity: s.familiarity,
   offers: s.offers,
   active: s.active,
   office: s.office,
@@ -627,6 +634,7 @@ export const useGameStore = create<GameState>((set, get) => {
       owned: c.owned,
       completed: c.completed,
       deliveries: c.deliveries,
+      familiarity: c.familiarity,
       offers: c.offers,
       active: c.active,
       focus: c.focus,
@@ -668,6 +676,7 @@ export const useGameStore = create<GameState>((set, get) => {
     owned: { ...balance.initialStock },
     completed: [],
     deliveries: 0,
+    familiarity: EMPTY_FAMILIARITY,
     arpTable: {},
     macTable: {},
     offers: [],
@@ -968,6 +977,7 @@ export const useGameStore = create<GameState>((set, get) => {
               reputation: r.core.reputation,
               completed: r.core.completed,
               deliveries: r.core.deliveries,
+              familiarity: r.core.familiarity,
               active: r.core.active,
               focus: r.core.focus,
               staff: r.core.staff,
@@ -1025,6 +1035,11 @@ export const useGameStore = create<GameState>((set, get) => {
       if (!result.ok) return false;
       set({ clock: { ...s.clock, money: result.money }, owned: result.owned });
       return true;
+    },
+    acceptDelegated: (offerId, crew) => {
+      const reason = apply(acceptDelegatedOp(coreOf(get()), offerId, balance.office.projectSlots, crew, gameEnv));
+      if (reason === null && get().speed !== 0 && loadSettings().designPause) get().setSpeed(0);
+      return reason;
     },
     accept: (offerId, crew) => {
       const inhouse = get().offers.find((o) => o.id === offerId)?.contract.inhouse === true;
@@ -1214,6 +1229,7 @@ export const useGameStore = create<GameState>((set, get) => {
         owned: save.owned,
         completed: save.completed,
         deliveries: save.deliveries,
+        familiarity: save.familiarity,
         offers: save.offers as Offer[],
         nextOfferMinute: save.nextOfferMinute,
         offerSeq: save.offerSeq,
@@ -1252,6 +1268,7 @@ export const useGameStore = create<GameState>((set, get) => {
           owned: { ...balance.initialStock },
           completed: [],
           deliveries: 0,
+          familiarity: EMPTY_FAMILIARITY,
           offers: [],
           nextOfferMinute: 0,
           offerSeq: 0,
@@ -1298,6 +1315,7 @@ export const useGameStore = create<GameState>((set, get) => {
           owned: {},
           completed: [],
           deliveries: 0,
+          familiarity: EMPTY_FAMILIARITY,
           offers: [],
           nextOfferMinute: 0,
           offerSeq: 0,
@@ -1355,6 +1373,7 @@ export const useGameStore = create<GameState>((set, get) => {
         owned: s.owned,
         completed: s.completed,
         deliveries: s.deliveries,
+        familiarity: s.familiarity,
         offers: s.offers,
         nextOfferMinute: s.nextOfferMinute,
         offerSeq: s.offerSeq,

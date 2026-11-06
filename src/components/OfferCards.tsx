@@ -8,7 +8,8 @@ import { gameEnv } from '../sim/env';
 import { staffPower } from '../sim/staff';
 import { offerHintOf, useGameStore } from '../stores/useGameStore';
 import type { Offer } from '../contracts/template';
-import { primaryButton, usePrimary } from './Modal';
+import { primaryButton, secondaryButton, usePrimary } from './Modal';
+import { delegationReason } from '../sim/project';
 import { loadSettings, saveSettings, OFFER_SORTS, type OfferSort } from '../settings/settings';
 import { sortOffers } from '../contracts/offers';
 import { minutesPerDay, toDate } from '../sim/clock';
@@ -79,6 +80,7 @@ export function OfferBody({ onClose }: { onClose: () => void }) {
             now={now}
             primary={i === 0}
             onAccept={(crew) => accept(offer.id, crew) === null && onClose()}
+            onDelegate={(crew) => useGameStore.getState().acceptDelegated(offer.id, crew) === null && onClose()}
             onDecline={() => declineOffer(offer.id)}
           />
         ))}
@@ -124,6 +126,7 @@ function OfferCard({
   now,
   primary,
   onAccept,
+  onDelegate,
   onDecline,
 }: {
   offer: Offer;
@@ -136,9 +139,14 @@ function OfferCard({
   // 一番上の依頼だけ、Enter で受注する主のボタンになる
   primary: boolean;
   onAccept: (crew: string[]) => void;
+  // 社員に任せて受注する（N70）
+  onDelegate: (crew: string[]) => void;
 }) {
   const staff = useGameStore((s) => s.staff);
   const busy = useGameStore((s) => s.active.flatMap((p) => p.crew));
+  const familiarity = useGameStore((s) => s.familiarity);
+  // 社員に任せられない理由（任せられるなら null）（N70）
+  const delegateReason = delegationReason(familiarity, offer);
   // 受注の画面を開いたときの担当（空いている社員全員）
   const [crew, setCrew] = useState<string[]>(() =>
     staff.filter((s) => !busy.includes(s.uid) && s.training === null).map((s) => s.uid),
@@ -208,7 +216,16 @@ function OfferCard({
         >
           {t('ui.accept')}
         </button>
+        {/* 社員に任せる（N70）。任せられないときは、理由を下に出す */}
+        <button
+          style={{ ...secondaryButton, whiteSpace: 'nowrap' }}
+          disabled={!canAccept || delegateReason !== null}
+          onClick={() => onDelegate(crew)}
+        >
+          {t('ui.delegate.button')}
+        </button>
       </div>
+      {delegateReason !== null && <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>{tDyn(`ui.delegate.${delegateReason.replace('delegate.', '')}`)}</div>}
       <CrewPicker selected={crew} onChange={setCrew} />
     </div>
   );

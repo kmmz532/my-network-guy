@@ -1,3 +1,4 @@
+import { EMPTY_FAMILIARITY } from './familiar';
 // IPアドレスの自動割り当ての確認。配線の後に autoAssign を呼ぶ（ストアと同じ順）。固定案件 c001・c002 を使う
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
@@ -61,6 +62,7 @@ const startCore = (offers: Offer[]): Core => ({
   owned: {},
   completed: [],
   deliveries: 0,
+  familiarity: EMPTY_FAMILIARITY,
   offers,
   active: [],
   focus: null,

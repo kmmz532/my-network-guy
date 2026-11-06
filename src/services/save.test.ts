@@ -1,3 +1,4 @@
+import { EMPTY_FAMILIARITY } from '../sim/familiar';
 import { describe, expect, it } from 'vitest';
 import { SAVE_VERSION, isSaveData, migrate, type SaveData } from './migrations';
 import type { Staff } from '../data/schema';
@@ -27,6 +28,7 @@ const sample: SaveData = {
   owned: { pc_basic: 1 },
   completed: ['c001_direct_link'],
   deliveries: 0,
+  familiarity: EMPTY_FAMILIARITY,
   offers: [],
   nextOfferMinute: 0,
   offerSeq: 0,

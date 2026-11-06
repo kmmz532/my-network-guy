@@ -1,3 +1,4 @@
+import { EMPTY_FAMILIARITY } from './familiar';
 // 模範解答のテスト。固定案件・定型案件ごとに、達成条件を満たす最小の構成を実際に組み、検収に通す。
 // 費用は、案件に置いた機器の定価の合計と配線（connect）の費用（projectCostOf）を使う。
 // 費用が予算の 60〜75% に入ることを確かめる（予算が高すぎると★の意味がなく、低すぎると★3 が取れないため）。
@@ -96,6 +97,7 @@ const startCore = (offers: Offer[]): Core => ({
   owned: {},
   completed: [],
   deliveries: 0,
+  familiarity: EMPTY_FAMILIARITY,
   offers,
   active: [],
   focus: null,

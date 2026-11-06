@@ -1,3 +1,4 @@
+import { EMPTY_FAMILIARITY } from './familiar';
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
 import cablesJson from '../assets/data/cables.json';
@@ -46,6 +47,7 @@ const core = (office: Office = sandboxOffice(), owned: Record<string, number> = 
   owned,
   completed: [],
   deliveries: 0,
+  familiarity: EMPTY_FAMILIARITY,
   offers: [],
   active: [],
   focus: null,

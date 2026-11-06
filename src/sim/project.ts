@@ -37,6 +37,7 @@ import type {
 import type { ClockState } from './clock';
 import { isOnShift } from './shift';
 import { rate, rewardRateOf } from './rating';
+import { DELEGATE_MIN_COUNT, DELEGATED_EXP_DIVISOR, DELEGATED_STAR_CAP, familiarKeyOf, fitsBlueprint, recordDelivery, type Familiarity } from './familiar';
 import { dueDayOf, lateDaysOf, lateFactor } from './deadline';
 import { furnitureBonus, type BonusEnv } from './furniture';
 import { gainExp, staffPower } from './staff';
@@ -58,6 +59,8 @@ export interface Project {
   cost: number;
   // 検収に失敗した回数
   rework: number;
+  // 社員に任せた依頼（N70）。★は2が上限、経験値は半分
+  delegated?: boolean;
   // 施工済みの機器・配線の uid（差分だけを施工するため）
   built: { nodes: string[]; links: string[] };
   // 自社案件で、自社オフィスから引き継いだ機器の uid（取り消しても在庫に戻さない）
@@ -224,6 +227,8 @@ export interface Core {
   completed: string[];
   // 納品した案件の数（合格した納品の数。自社の情報の画面に出す。N66）
   deliveries: number;
+  // なじみの依頼の回数と型紙（N70）
+  familiarity: Familiarity;
   offers: Offer[];
   // 受注中の案件（複数）
   active: Project[];
@@ -268,6 +273,47 @@ export interface Env {
 export type Outcome = { ok: true; core: Core; report?: Report } | { ok: false; reason: string };
 
 const fail = (reason: string): Outcome => ({ ok: false, reason });
+
+// 任せられるかの理由（任せられるなら null）（N70）
+export const delegationReason = (familiarity: Familiarity, offer: Offer): string | null => {
+  if (offer.contract.inhouse) return 'inhouse';
+  const key = familiarKeyOf(offer.kind, offer.baseId, offer.contract.map);
+  if ((familiarity.counts[key] ?? 0) < DELEGATE_MIN_COUNT) return 'delegate.count';
+  const bp = familiarity.blueprints[key];
+  if (!bp) return 'delegate.blueprint';
+  return fitsBlueprint(bp.design, fixedNodes(offer.contract)) ? null : 'delegate.fit';
+};
+
+// 社員に任せて受注する（N70）。型紙を写し、テストを通してから施工に入る。★と経験値の上限は検収で掛ける
+export const acceptDelegated = (core: Core, offerId: string, slots: number, crew: string[], env: Env): Outcome => {
+  const offer = core.offers.find((o) => o.id === offerId);
+  if (!offer) return fail('none');
+  const reason = delegationReason(core.familiarity, offer);
+  if (reason) return fail(reason);
+  const accepted = accept(core, offerId, slots, crew);
+  if (!accepted.ok) return accepted;
+  const key = familiarKeyOf(offer.kind, offer.baseId, offer.contract.map);
+  const bp = core.familiarity.blueprints[key].design;
+  const fixed = fixedNodes(offer.contract);
+  const p = accepted.core.active.find((x) => x.id === offerId);
+  if (!p) return fail('none');
+  // 型紙の機器・配線の連番は、今の案件の連番より後にする
+  const numbers = [...bp.nodes.map((n) => n.uid), ...bp.links.map((l) => l.uid)].map((u) => Number(/(d+)$/.exec(u)?.[1] ?? 0));
+  const copied: Project = {
+    ...p,
+    nodes: bp.nodes,
+    links: bp.links,
+    segments: { ...bp.segments },
+    seq: Math.max(p.seq, ...numbers) + 1,
+    built: { nodes: fixed.map((n) => n.uid), links: [] },
+    delegated: true,
+    testedOk: false,
+  };
+  const tested = judge(copied, env);
+  if (!tested.passed) return fail('delegate.test');
+  const built = requestBuild(withProject(accepted.core, { ...copied, testedOk: true }), env);
+  return built;
+};
 
 // 案件で最初から置かれている機器
 const fixedNodes = (contract: Contract): NetNode[] =>
@@ -1230,11 +1276,15 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
     const lateDays = lateDaysOf(p.due, core.clock.minute);
     const issues = Object.keys(designIssues(p, env)).length;
     const cost = projectCostOf(p, env);
-    const stars = rate(cost.total, p.contract.budget, p.rework, lateDays > 0, issues, env.balance);
+    const rawStars = rate(cost.total, p.contract.budget, p.rework, lateDays > 0, issues, env.balance);
+    // 任せた依頼は★の上限が2（N70）
+    const stars = (p.delegated ? Math.min(DELEGATED_STAR_CAP, rawStars) : rawStars) as typeof rawStars;
     // 報酬は、期日の割合と★ごとの倍率を掛けた額
     const money = Math.round(p.contract.reward.money * lateFactor(lateDays, env.balance) * rewardRateOf(stars, env.balance));
     // 会社の経験値は、現在のレベルの必要経験値に割合と★の倍率を掛けた量で増える（deliveryExpOf）。評判は得た★の数だけ増える（N55）
-    const companyExp = core.companyExp + deliveryExpOf(p.contract.unlockLevel, levelOf(core.companyExp, env.balance), rewardRateOf(stars, env.balance), env.balance);
+    const expGain = deliveryExpOf(p.contract.unlockLevel, levelOf(core.companyExp, env.balance), rewardRateOf(stars, env.balance), env.balance);
+    // 任せた依頼は経験値を半分にする（N70）
+    const companyExp = core.companyExp + (p.delegated ? Math.max(1, Math.floor(expGain / DELEGATED_EXP_DIVISOR)) : expGain);
     const reputation = core.reputation + stars;
     // 自社案件は、納品したネットワークを自社オフィスとして残し、効果を加える
     const office: Office = p.contract.inhouse
@@ -1256,6 +1306,8 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
         companyExp,
         reputation,
         completed: p.kind === 'fixed' ? [...core.completed, p.baseId] : core.completed,
+        // なじみの依頼: ★2以上の納品を数え、設計を型紙として覚える（自社案件は対象外）（N70）
+        familiarity: p.contract.inhouse ? core.familiarity : recordDelivery(core.familiarity, familiarKeyOf(p.kind, p.baseId, p.contract.map), stars, { nodes: p.nodes, links: p.links, segments: p.segments ?? {} }),
         deliveries: core.deliveries + 1,
       },
       report: {

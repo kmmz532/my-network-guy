@@ -1,3 +1,4 @@
+import { EMPTY_FAMILIARITY } from './familiar';
 import { describe, expect, it } from 'vitest';
 import type { Balance, GameMap } from '../data/schema';
 import balanceJson from '../assets/data/balance.json';
@@ -62,6 +63,7 @@ const core = (money: number, over: Partial<Office> = {}, active: Project[] = [])
   owned: {},
   completed: [],
   deliveries: 0,
+  familiarity: EMPTY_FAMILIARITY,
   offers: [],
   active,
   focus: null,

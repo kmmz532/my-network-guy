@@ -13,13 +13,14 @@ import routerJson from '../assets/data/devices/router.json';
 import switchJson from '../assets/data/devices/l2_switch.json';
 import { CATEGORY } from '../data/categories';
 import { nextHostname } from '../network/hostname';
+import type { Familiarity } from '../sim/familiar';
 import l3Json from '../assets/data/devices/l3_switch.json';
 import routerSwitchJson from '../assets/data/devices/router_switch.json';
 import firewallJson from '../assets/data/devices/firewall.json';
 import firewallDmzJson from '../assets/data/devices/firewall_dmz.json';
 import printerJson from '../assets/data/devices/printer.json';
 
-export const SAVE_VERSION = 29;
+export const SAVE_VERSION = 30;
 
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
@@ -81,6 +82,8 @@ export interface SaveData {
   completed: string[];
   // 納品した案件の数（N66）
   deliveries: number;
+  // なじみの依頼の回数と型紙（N70）
+  familiarity: Familiarity;
   // 依頼一覧（案件の内容を含む）
   offers: unknown[];
   nextOfferMinute: number;
@@ -209,6 +212,8 @@ export const migrations: Record<number, Migration> = {
   },
   // v26 → v27: 納品した案件の数を追加する。移行前の納品の数は数えていないため 0 とする（N66）
   26: (data) => ({ ...(data as object), deliveries: 0 }),
+  // v29 → v30: なじみの依頼の回数と型紙を追加する。移行前は、まだ数えていないため空から始める（N70）
+  29: (data) => ({ ...(data as object), familiarity: { counts: {}, blueprints: {} } }),
   // v28 → v29: 機器に MAC アドレスの連番を付ける（N69）。既存の機器は、ネットワークの中の並び順に 1 から振る
   28: (data) => {
     const d = data as { office: { nodes: NetNode[] }; active: { nodes: NetNode[] }[] };
@@ -300,6 +305,8 @@ export const isSaveData = (value: unknown): value is SaveData => {
     Object.values(owned).every((n) => Number.isInteger(n) && (n as number) >= 0) &&
     Array.isArray(v.completed) &&
     Number.isInteger(v.deliveries) &&
+    typeof v.familiarity === 'object' &&
+    v.familiarity !== null &&
     v.completed.every((id) => typeof id === 'string') &&
     Array.isArray(v.offers) &&
     v.offers.every(isOfferShape) &&

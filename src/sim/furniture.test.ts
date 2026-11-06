@@ -1,3 +1,4 @@
+import { EMPTY_FAMILIARITY } from './familiar';
 import { describe, expect, it } from 'vitest';
 import type { GameMap } from '../data/schema';
 import type { NetNode } from '../network/types';
@@ -46,6 +47,7 @@ const core = (over: Partial<Core> = {}): Core => ({
   owned: {},
   completed: [],
   deliveries: 0,
+  familiarity: EMPTY_FAMILIARITY,
   offers: [],
   active: [],
   focus: null,
