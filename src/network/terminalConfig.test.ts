@@ -66,7 +66,8 @@ describe('hostname', () => {
 
   it('使えない名前は理由のキーを出す', () => {
     expect(parseConfig('hostname 日本語', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
-    expect(parseConfig('hostname abcdefghijklmnopq', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
+    expect(parseConfig('hostname ' + 'a'.repeat(64), tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
+    expect(parseConfig('hostname 1pc', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
     expect(parseConfig('hostname', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageHostname' });
   });
 });

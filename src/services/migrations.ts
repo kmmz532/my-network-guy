@@ -12,8 +12,14 @@ import serverJson from '../assets/data/devices/server.json';
 import routerJson from '../assets/data/devices/router.json';
 import switchJson from '../assets/data/devices/l2_switch.json';
 import { CATEGORY } from '../data/categories';
+import { nextHostname } from '../network/hostname';
+import l3Json from '../assets/data/devices/l3_switch.json';
+import routerSwitchJson from '../assets/data/devices/router_switch.json';
+import firewallJson from '../assets/data/devices/firewall.json';
+import firewallDmzJson from '../assets/data/devices/firewall_dmz.json';
+import printerJson from '../assets/data/devices/printer.json';
 
-export const SAVE_VERSION = 27;
+export const SAVE_VERSION = 28;
 
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
@@ -23,6 +29,11 @@ const legacyOfficeSize = { w: 14, h: 8 };
 
 // 移行で使う機器の種類（色の時代の規則で IPアドレスを作るときに使う）
 const migrationCategories: Record<string, string> = {};
+// ホスト名の略号に使う種類（全部の機器。v27 の移行で使う）
+const categoryForHost: Record<string, string> = {};
+for (const d of [...pcJson.devices, ...serverJson.devices, ...routerJson.devices, ...switchJson.devices, ...l3Json.devices, ...routerSwitchJson.devices, ...firewallJson.devices, ...firewallDmzJson.devices, ...printerJson.devices]) {
+  categoryForHost[d.id] = d.category;
+}
 // 移行で使う機器の既定のサービス（defaultServices）
 const migrationDefaultServices: Record<string, Service[]> = {};
 for (const d of [...pcJson.devices, ...serverJson.devices, ...routerJson.devices, ...switchJson.devices]) {
@@ -198,7 +209,19 @@ export const migrations: Record<number, Migration> = {
   },
   // v26 → v27: 納品した案件の数を追加する。移行前の納品の数は数えていないため 0 とする（N66）
   26: (data) => ({ ...(data as object), deliveries: 0 }),
-  // v21 → v22: 評判（reputation）を会社の経験値（companyExp）に名前を変える。値はそのまま（N45）
+  // v27 → v28: 機器にホスト名（種類の略号-番号）を付ける。ホスト名のない機器は、並び順に自動で付ける（N68）
+  27: (data) => {
+    const d = data as { office: { nodes: NetNode[] }; active: { nodes: NetNode[] }[] };
+    const named = (nodes: NetNode[]): NetNode[] => {
+      const done: NetNode[] = [];
+      for (const n of nodes) {
+        const hostname = n.hostname ?? nextHostname(done, categoryForHost[n.device]);
+        done.push({ ...n, hostname });
+      }
+      return done;
+    };
+    return { ...d, office: { ...d.office, nodes: named(d.office.nodes) }, active: d.active.map((p) => ({ ...p, nodes: named(p.nodes) })) };
+  },  // v21 → v22: 評判（reputation）を会社の経験値（companyExp）に名前を変える。値はそのまま（N45）
   21: (data) => {
     const d = data as { reputation: number };
     const { reputation, ...rest } = d;

@@ -20,6 +20,7 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
   const setHostname = useGameStore((s) => s.setHostname);
   const setHost = useGameStore((s) => s.setHost);
   const removeHost = useGameStore((s) => s.removeHost);
+  const setNameServer = useGameStore((s) => s.setNameServer);
   // 設定のコマンドを、画面の操作に当てる。失敗したら理由のキーを返す（成功なら null）
   const applyConfig = (action: ConfigAction): string | null => {
     switch (action.kind) {
@@ -39,6 +40,8 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
         return setHost(node.uid, action.name, action.ip);
       case 'noHost':
         return removeHost(node.uid, action.name);
+      case 'nameServer':
+        return setNameServer(node.uid, action.ip);
     }
   };
 

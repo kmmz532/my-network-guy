@@ -63,6 +63,9 @@ import {
   setService,
   setName as setNameOp,
   setHostname as setHostnameOp,
+  setNameServer as setNameServerOp,
+  setDnsRole as setDnsRoleOp,
+  autoRegisterZone as autoRegisterZoneOp,
   setHost as setHostOp,
   removeHost as removeHostOp,
   replug,
@@ -336,6 +339,9 @@ export interface GameState {
   setName: (uid: string, name: string) => string | null;
   // ホスト名を付ける（null で外す）（N46）
   setHostname: (uid: string, hostname: string | null) => string | null;
+  setNameServer: (uid: string, ip: string | null) => string | null;
+  setDnsRole: (uid: string, on: boolean) => string | null;
+  autoRegisterZone: (uid: string) => string | null;
   // 対応表（名前と IPアドレス）の登録と削除。失敗したら理由を返す
   setHost: (uid: string, name: string, ip: string) => string | null;
   removeHost: (uid: string, name: string) => string | null;
@@ -1139,6 +1145,9 @@ export const useGameStore = create<GameState>((set, get) => {
     setService: (uid, protocol, on) =>
       recorded(() => apply(setService(coreOf(get()), uid, protocol, on, netTargetOf(get())), tileOf(uid))),
     setHostname: (uid, hostname) => recorded(() => apply(setHostnameOp(coreOf(get()), uid, hostname, netTargetOf(get())), tileOf(uid))),
+    setNameServer: (uid, ip) => recorded(() => apply(setNameServerOp(coreOf(get()), uid, ip, netTargetOf(get())), tileOf(uid))),
+    setDnsRole: (uid, on) => recorded(() => apply(setDnsRoleOp(coreOf(get()), uid, on, netTargetOf(get())), tileOf(uid))),
+    autoRegisterZone: (uid) => recorded(() => apply(autoRegisterZoneOp(coreOf(get()), uid, netTargetOf(get())), tileOf(uid))),
     setName: (uid, name) => recorded(() => apply(setNameOp(coreOf(get()), uid, name, netTargetOf(get())), tileOf(uid))),
     setHost: (uid, name, ip) => recorded(() => apply(setHostOp(coreOf(get()), uid, name, ip, netTargetOf(get())), tileOf(uid))),
     removeHost: (uid, name) => recorded(() => apply(removeHostOp(coreOf(get()), uid, name, netTargetOf(get())), tileOf(uid))),

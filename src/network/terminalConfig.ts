@@ -5,10 +5,12 @@
 //   ip route <宛先> <マスク> <次ホップ>
 //   no ip default-gateway
 //   no ip route <宛先> <マスク>
-//   hostname <名前>   /   no hostname   （名前は英数字とハイフン、16文字まで）
+//   hostname <名前>   /   no hostname   （ホスト名の規則は hostname.ts。英字で始まり、英数字とハイフン、63文字まで）
+//   ip name-server <IP>   /   no ip name-server   （名前を引くネームサーバー。N68）
 //   ip host <名前> <IP>   /   no ip host <名前>   （対応表。ping・traceroute の宛先の名前を引く）
 import type { Tr } from './terminal';
 import type { Route } from './types';
+import { isValidHostname } from './hostname';
 
 export type ConfigAction =
   | { kind: 'iface'; port: number; ip: string; prefix: number }
@@ -17,7 +19,8 @@ export type ConfigAction =
   | { kind: 'removeRoute'; dest: string; prefix: number }
   | { kind: 'hostname'; hostname: string | null }
   | { kind: 'host'; name: string; ip: string }
-  | { kind: 'noHost'; name: string };
+  | { kind: 'noHost'; name: string }
+  | { kind: 'nameServer'; ip: string | null };
 
 export type ConfigParse = { kind: 'action'; action: ConfigAction } | { kind: 'error'; text: string } | { kind: 'none' };
 
@@ -39,10 +42,8 @@ export const maskToPrefix = (mask: string): number | null => {
   return bits.indexOf('0') === -1 ? 32 : bits.indexOf('0');
 };
 
-const NAME_RE = /^[A-Za-z0-9-]{1,16}$/;
-
-// 名前（hostname・対応表）の形。英数字とハイフンで16文字まで
-export const isHostName = (s: string): boolean => NAME_RE.test(s);
+// 名前（hostname・対応表）の形（hostname.ts の規則）
+export const isHostName = (s: string): boolean => isValidHostname(s);
 
 const port = (s: string): number | null => (/^\d+$/.test(s) ? Number(s) : null);
 
@@ -91,12 +92,23 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
 
   if (first === 'hostname') {
     if (rest.length !== 1) return error('ui.terminal.usageHostname');
-    if (!NAME_RE.test(rest[0])) return error('ui.terminal.errHostname');
+    if (!isValidHostname(rest[0])) return error('ui.terminal.errHostname');
     return { kind: 'action', action: { kind: 'hostname', hostname: rest[0] } };
   }
 
   if (first === 'no' && rest[0] === 'hostname' && rest.length === 1) {
     return { kind: 'action', action: { kind: 'hostname', hostname: null } };
+  }
+
+  if (first === 'ip' && rest[0] === 'name-server') {
+    if (rest.length !== 2) return error('ui.terminal.usageNameServer');
+    if (!isIp(rest[1])) return error('ui.terminal.errIp');
+    return { kind: 'action', action: { kind: 'nameServer', ip: rest[1] } };
+  }
+
+  if (first === 'no' && rest[0] === 'ip' && rest[1] === 'name-server') {
+    if (rest.length !== 2) return error('ui.terminal.usageNameServer');
+    return { kind: 'action', action: { kind: 'nameServer', ip: null } };
   }
 
   if (first === 'no' && rest[0] === 'ip' && rest[1] === 'default-gateway' && rest.length === 2) {

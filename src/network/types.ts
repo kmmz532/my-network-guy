@@ -51,6 +51,10 @@ export interface NetNode {
   services: Service[];
   // 名前と IPアドレスの対応表（ping・traceroute の宛先の名前を引く）。移行前のセーブは空
   hosts?: HostEntry[];
+  // ネームサーバー（ip name-server）の IPアドレス。機器の対応表で引けない名前を、この DNS サーバーに問い合わせる（N68）
+  nameServer?: string;
+  // DNS の役割（サーバーだけが持つ）。zone は名前と IPアドレスの表（N68）
+  dns?: { zone: HostEntry[] };
 }
 
 export interface Endpoint {
@@ -103,6 +107,8 @@ export const FAILURE_REASONS = [
   'firewall.denied',
   // ケーブルが上限の長さを超えている（N49）
   'cableTooLong',
+  // 名前（ホスト名）を引けない（対応表にもネームサーバーにもない、またはネームサーバーまで届かない）（N68）
+  'name.unresolved',
 ] as const;
 
 export type FailureReason = (typeof FAILURE_REASONS)[number];

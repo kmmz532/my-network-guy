@@ -1,6 +1,7 @@
 // 機器の画面の中身。ウィンドウ（Window.tsx）の中に出し、タイトルの帯・×・大きさは Windows.tsx が受け持つ。
 // 背面・設定・サービス（サーバーだけ）・ターミナルのタブを持つ。閉じるのは、ウィンドウの×か Esc（キーは input/keymap.ts が受け取る）。
 import { nodeLabel } from './nodeLabel';
+import { duplicateHostnames } from '../sim/project';
 import { useState } from 'react';
 import { devices as deviceData } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
@@ -121,7 +122,7 @@ function DeviceView({
         {tab === 'config' && hasConfig && (
           <DeviceSettings node={node} compiled={compiled} readOnly={readOnly} detailOpen={detailOpen} onToggleDetail={onToggleDetail} onError={setError} />
         )}
-        {tab === 'service' && isServer && <ServiceTab node={node} readOnly={readOnly} onError={setError} />}
+        {tab === 'service' && isServer && <ServiceTab node={node} nodes={nodes} readOnly={readOnly} onError={setError} />}
         {tab === 'terminal' && <TerminalTab node={node} nodes={nodes} links={links} readOnly={readOnly} />}
       </div>
     </div>
@@ -129,13 +130,37 @@ function DeviceView({
 }
 
 // サービスタブ（サーバーだけ）。HTTP を起動・停止する
-function ServiceTab({ node, readOnly, onError }: { node: NetNode; readOnly: boolean; onError: (reason: string | null) => void }) {
+function ServiceTab({ node, nodes, readOnly, onError }: { node: NetNode; nodes: NetNode[]; readOnly: boolean; onError: (reason: string | null) => void }) {
   const setService = useGameStore((s) => s.setService);
+  const setDnsRole = useGameStore((s) => s.setDnsRole);
+  const autoRegisterZone = useGameStore((s) => s.autoRegisterZone);
   const http = node.services.find((s) => s.protocol === 'http');
   const running = http !== undefined;
   const locked = readOnly || node.configLocked;
+  // DNS の表（名前 → IPアドレス）。同じ名前の機器があれば警告する（N68）
+  const zone = node.dns?.zone ?? [];
+  const duplicates = duplicateHostnames(nodes);
   return (
     <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+        <b>{t('ui.dns.title')}</b>
+        <span style={{ color: node.dns ? '#62d26f' : greyColor }}>{node.dns ? t('ui.service.running') : t('ui.service.stopped')}</span>
+        <button style={buttonStyle} disabled={locked} onClick={() => onError(setDnsRole(node.uid, !node.dns))}>
+          {node.dns ? t('ui.service.stop') : t('ui.service.start')}
+        </button>
+        {node.dns && (
+          <button style={buttonStyle} disabled={locked} onClick={() => onError(autoRegisterZone(node.uid))}>
+            {t('ui.dns.register')}
+          </button>
+        )}
+      </div>
+      {node.dns && (
+        <div style={{ marginTop: 4, fontSize: 13 }}>
+          {zone.length === 0 ? <div>{t('ui.dns.empty')}</div> : zone.map((h) => <div key={h.name}>{`${h.name}  ${h.ip}`}</div>)}
+          {duplicates.length > 0 && <div style={{ color: '#ffd866' }}>{t('ui.dns.duplicate', { names: duplicates.join('・') })}</div>}
+        </div>
+      )}
+
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <b>{t('ui.service.http')}</b>
         <span>{running ? t('ui.service.port', { port: http.port }) : null}</span>

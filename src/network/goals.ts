@@ -1,6 +1,7 @@
 // 案件の達成条件（goals）の判定ハンドラ。種類ごとにハンドラを登録し、案件データから呼び出す。
 import type { Contract, Goal } from '../data/schema';
 import { http, ping } from './engine';
+import { resolveName } from './resolve';
 import type { EngineData, Failure, Network, PathResult } from './types';
 
 export interface GoalResult {
@@ -76,6 +77,24 @@ const handlers: { [K in Goal['type']]: Handler } = {
       const tries = targets.map((t) => ({ t, r: ping(net, data, pc, t) }));
       const hit = tries.find((x) => x.r.ok) ?? tries[0];
       return { goal, ok: hit.r.ok, failure: hit.r.failure, kind: 'ping' as const, src: pc, dst: hit.t, result: hit.r };
+    });
+  },
+  // すべての PC が、名前で指定の機器へ届く。PC ごとに名前を引き（対応表 → ネームサーバー）、引けた IPアドレスの機器へ Ping する（N68）
+  reach_by_name: (goal, net, data) => {
+    if (goal.type !== 'reach_by_name') throw new Error('reach_by_name ハンドラに別の種類が渡された');
+    const pcs = uidsOf(net, data, 'pc');
+    const target = net.nodes.find((n) => n.hostname === goal.name);
+    if (!pcs.length || !target) return [none(goal, 'ping')];
+    return pcs.map((pc) => {
+      const from = net.nodes.find((n) => n.uid === pc);
+      if (!from) throw new Error(`PC が見つからない: ${pc}`);
+      const r = resolveName(from, goal.name, net, data);
+      const dst = r.ok ? net.nodes.find((n) => n.interfaces.some((i) => i.ip === r.ip)) : undefined;
+      if (!dst) {
+        return { goal, ok: false, failure: { reason: 'name.unresolved' as const, node: pc }, kind: 'ping' as const, src: pc, dst: target.uid, result: { ok: false, path: [] } };
+      }
+      const result = ping(net, data, pc, dst.uid);
+      return { goal, ok: result.ok, failure: result.failure, kind: 'ping' as const, src: pc, dst: dst.uid, result };
     });
   },
   http_all: (goal, net, data) => {

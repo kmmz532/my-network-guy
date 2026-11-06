@@ -147,12 +147,16 @@ describe('対応表による名前の解決（段階5の準備）', () => {
   it('ping は対応表の名前を IPアドレスに直して届ける', () => {
     const src = withHosts([{ name: 'PC-B', ip: '192.168.1.11' }]);
     const ctx = { node: src, nodes: [src, ...nodes.slice(1)], links, data };
-    expect(runTerminal('ping PC-B', ctx, tr)).toEqual([{ text: 'ui.terminal.pingOk {"ip":"PC-B"}', kind: 'out' }]);
+    // 1行目に「名前 [IPアドレス]」を出し、続けて結果を出す（N68）
+    expect(runTerminal('ping PC-B', ctx, tr)).toEqual([
+      { text: 'ui.terminal.resolved {"name":"PC-B","ip":"192.168.1.11"}', kind: 'out' },
+      { text: 'ui.terminal.pingOk {"ip":"PC-B"}', kind: 'out' },
+    ]);
   });
 
-  it('対応表にない名前は、宛先が見つからないと出す', () => {
+  it('対応表にもネームサーバーにもない名前は、解決できないと出す（N68）', () => {
     const ctx = { node: nodes[0], nodes, links, data };
-    expect(runTerminal('ping R9', ctx, tr)[0].text).toBe('ui.terminal.noHost {"ip":"R9"}');
+    expect(runTerminal('ping R9', ctx, tr)[0].text).toBe('ui.terminal.noResolve {"name":"R9"}');
   });
 
   it('show hosts と running-config は対応表を出す（空なら空の旨）', () => {

@@ -3,6 +3,7 @@
 import type { Balance, Contract, Furniture, GameMap, Staff } from '../data/schema';
 import { tileKind } from '../data/tileKind';
 import { renameNode } from '../network/nodeName';
+import { nextHostname } from '../network/hostname';
 import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
 import { ipToInt, linkLength } from '../network/engine';
@@ -30,6 +31,7 @@ import type {
   Route,
   SegmentConfig,
   Service,
+  HostEntry,
 } from '../network/types';
 import type { ClockState } from './clock';
 import { isOnShift } from './shift';
@@ -423,6 +425,8 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
   const node: NetNode = {
     uid: `u${p.seq}`,
     device: deviceId,
+    // ホスト名は種類の略号と番号を自動で付ける（N68）
+    hostname: nextHostname(p.nodes, env.devices[deviceId].category),
     x,
     y,
     locked: false,
@@ -451,6 +455,7 @@ export const placeInOffice = (core: Core, deviceId: string, x: number, y: number
   const node: NetNode = {
     uid: `u${office.seq}`,
     device: deviceId,
+    hostname: nextHostname(office.nodes, env.devices[deviceId].category),
     x,
     y,
     locked: false,
@@ -727,6 +732,33 @@ const editNode = (core: Core, uid: string, edit: (n: NetNode) => NetNode | strin
 // ホスト名を付ける（null で外す）。画面の名前（setName）とは別に持つ（N46）
 export const setHostname = (core: Core, uid: string, hostname: string | null, target: NetTarget = 'focus'): Outcome =>
   editNode(core, uid, (node) => ({ ...node, hostname: hostname ?? undefined }), target);
+
+// ネームサーバー（ip name-server）を設定する。null で外す（N68）
+export const setNameServer = (core: Core, uid: string, ip: string | null, target: NetTarget = 'focus'): Outcome =>
+  editNode(core, uid, (node) => ({ ...node, nameServer: ip ?? undefined }), target);
+
+// DNS の役割を付ける（zone は空から）。外すと表も消える（N68）
+export const setDnsRole = (core: Core, uid: string, on: boolean, target: NetTarget = 'focus'): Outcome =>
+  editNode(core, uid, (node) => ({ ...node, dns: on ? (node.dns ?? { zone: [] }) : undefined }), target);
+
+// 名前と IPアドレスの表を、同じ案件（自社オフィス）の機器から作る。ホスト名のある機器の、最初の IPアドレスを登録する（N68）
+export const zoneFromNodes = (nodes: readonly NetNode[]): HostEntry[] =>
+  nodes.flatMap((n) => (n.hostname && n.interfaces[0] ? [{ name: n.hostname, ip: n.interfaces[0].ip }] : []));
+
+// 同じホスト名が2つ以上ある名前の一覧（DNS の自動登録の警告に使う）
+export const duplicateHostnames = (nodes: readonly NetNode[]): string[] => {
+  const count = new Map<string, number>();
+  for (const n of nodes) if (n.hostname) count.set(n.hostname, (count.get(n.hostname) ?? 0) + 1);
+  return [...count].filter(([, c]) => c > 1).map(([name]) => name);
+};
+
+// 「自動で登録する」: 対象のネットワークの機器から DNS の表を作り直す（DNS の役割のある機器だけ）
+export const autoRegisterZone = (core: Core, uid: string, target: NetTarget = 'focus'): Outcome => {
+  const net = netOf(core, target);
+  if (typeof net === 'string') return fail(net);
+  const zone = zoneFromNodes(net.nodes);
+  return editNode(core, uid, (node) => (node.dns ? { ...node, dns: { zone } } : 'none'), target);
+};
 
 export const setName = (core: Core, uid: string, name: string, target: NetTarget = 'focus'): Outcome => {
   const net = netOf(core, target);

@@ -5,6 +5,7 @@
 import { ping } from './engine';
 import { networkAddress } from './segments';
 import { isIp } from './terminalConfig';
+import { resolveName } from './resolve';
 import type { EngineData, NetLink, NetNode } from './types';
 
 export interface TerminalContext {
@@ -81,6 +82,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       const lines: TerminalLine[] = node.hostname ? [out(tr('ui.terminal.cfgHostname', { name: node.hostname }))] : [];
       for (const i of node.interfaces) lines.push(out(tr('ui.terminal.cfgInterface', { port: i.port })));
       for (const h of node.hosts ?? []) lines.push(out(tr('ui.terminal.cfgHost', { name: h.name, ip: h.ip })));
+      if (node.nameServer) lines.push(out(tr('ui.terminal.cfgNameServer', { ip: node.nameServer })));
       for (const i of node.interfaces) lines.push(out(tr('ui.terminal.cfgAddress', { ip: i.ip, prefix: i.prefix })));
       if (node.gateway) lines.push(out(tr('ui.terminal.cfgGateway', { gateway: node.gateway })));
       for (const r of node.routes) lines.push(out(tr('ui.terminal.cfgRoute', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop })));
@@ -91,16 +93,23 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
 
   if (cmd === 'ping' || cmd === 'traceroute') {
     if (args.length !== 1) return [err(tr(cmd === 'ping' ? 'ui.terminal.usagePing' : 'ui.terminal.usageTrace'))];
-    // 宛先は IPアドレスか、対応表の名前。名前は、この機器の対応表で IPアドレスに直す
+    // 宛先は IPアドレスか、名前（対応表 → ネームサーバーの順に引く。N68）。名前は1行目に「名前 [IPアドレス]」を出す
     const given = args[0];
-    const ip = isIp(given) ? given : (node.hosts ?? []).find((h) => h.name === given)?.ip ?? given;
+    let ip = given;
+    let header: TerminalLine[] = [];
+    if (!isIp(given)) {
+      const r = resolveName(node, given, { nodes: ctx.nodes, links: ctx.links }, ctx.data);
+      if (!r.ok) return [err(tr('ui.terminal.noResolve', { name: given }))];
+      ip = r.ip;
+      header = [out(tr('ui.terminal.resolved', { name: given, ip }))];
+    }
     const target = ctx.nodes.find((n) => n.interfaces.some((i) => i.ip === ip));
     if (!target) return [err(tr('ui.terminal.noHost', { ip: given }))];
     const result = ping({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid, target.uid);
     if (cmd === 'ping') {
-      if (result.ok) return [out(tr('ui.terminal.pingOk', { ip: given }))];
+      if (result.ok) return [...header, out(tr('ui.terminal.pingOk', { ip: given }))];
       const reason = result.failure?.reason ?? 'route.none';
-      return [err(tr('ui.terminal.pingNg')), err(tr(`error.${reason}`))];
+      return [...header, err(tr('ui.terminal.pingNg')), err(tr(`error.${reason}`))];
     }
     // traceroute: 通った機器を1台ずつ、送信元の次から出す。届かなければ止まった場所と理由を出す
     const hops = result.path.slice(1).map((uid, i) => {
@@ -108,9 +117,9 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       const hopIp = hop?.interfaces[0]?.ip ?? '-';
       return out(tr('ui.terminal.hop', { n: i + 1, ip: hopIp, name: hop ? name(hop) : uid }));
     });
-    if (result.ok) return hops;
+    if (result.ok) return [...header, ...hops];
     const reason = result.failure?.reason ?? 'route.none';
-    return [...hops, err(tr('ui.terminal.traceNg')), err(tr(`error.${reason}`))];
+    return [...header, ...hops, err(tr('ui.terminal.traceNg')), err(tr(`error.${reason}`))];
   }
 
   return [err(tr('ui.terminal.unknown', { cmd }))];

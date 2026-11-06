@@ -305,6 +305,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('http_all'), port: z.number().int().min(1).max(65535) }),
   // すべての PC から、そのカテゴリの機器のどれか1台へ Ping が通る（N51b。プリンターの共有）
   z.object({ type: z.literal('reach_category'), category: z.string().min(1) }),
+  // すべての PC が、名前（ホスト名）で指定の機器へ届く。名前は各 PC が対応表・ネームサーバーで引く（N68）
+  z.object({ type: z.literal('reach_by_name'), name: z.string().min(1) }),
   // すべてのPCから、到達できるサーバー（外部）への経路にファイアウォールがある
   z.object({ type: z.literal('firewall') }),
   // from から to への Ping が、ファイアウォールの規則で止められている（通ってはいけない通信。N38）
