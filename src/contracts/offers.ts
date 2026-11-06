@@ -51,7 +51,14 @@ const warnMissingMaps = (state: OfferState, env: OfferEnv): void => {
 };
 
 // 依頼を1件追加する。追加できなければ、同じ状態を返す。
-const addOffer = (state: OfferState, env: OfferEnv): OfferState => {
+// 営業（N81）の効果。追加の到着の数と、報酬の高い依頼の重みの増え方（P × rewardWeightPerLevel）
+export interface OfferEffects {
+  extraArrivals: number;
+  rewardWeight: number;
+}
+export const NO_OFFER_EFFECTS: OfferEffects = { extraArrivals: 0, rewardWeight: 0 };
+
+const addOffer = (state: OfferState, env: OfferEnv, rewardWeight = 0, fromSales = false): OfferState => {
   const taken = (baseId: string) => isTaken(state, baseId);
   const ready = (requires: readonly string[]) => isReady(state, requires);
 
@@ -73,10 +80,13 @@ const addOffer = (state: OfferState, env: OfferEnv): OfferState => {
   if (eligible.length === 0) return state;
   // 新しく解放した種類は、解放から一定の件数が届くまで重みを上げる（LEVEL.md 10.4。N51b）
   const fresh = env.balance.freshOffer;
+  // 報酬の高い依頼（報酬の基準が平均より高いもの）は、営業がいると重みが増える
+  const averageBase = eligible.reduce((sum, t) => sum + t.reward.base, 0) / eligible.length;
   const weighted = eligible.map((t) => {
     const arrived = state.newArrivals[t.id] ?? 0;
     const boost = t.announce && arrived < fresh.arrivals ? fresh.weightFactor : 1;
-    return { ...t, weight: t.weight * boost };
+    const reward = t.reward.base > averageBase ? 1 + rewardWeight : 1;
+    return { ...t, weight: t.weight * boost * reward };
   });
   const picked = pickByWeight(weighted, state.rng);
   const map = env.mapOf(picked.item.map);
@@ -88,6 +98,8 @@ const addOffer = (state: OfferState, env: OfferEnv): OfferState => {
   // 受注できる期限は、ひな形の範囲から乱数で決める（範囲がなければ期限はない）
   let rng = made.rng;
   let offer: Offer = { ...made.offer, arrivedMinute: state.minute };
+  // 営業が持ってきた依頼には印を付ける（一覧で区別する）
+  if (fromSales) (offer as Offer & { fromSales?: true }).fromSales = true;
   const span = picked.item.offerExpireDays;
   if (span) {
     const days = randInt(rng, span.min, span.max);
@@ -103,7 +115,7 @@ const addOffer = (state: OfferState, env: OfferEnv): OfferState => {
   };
 };
 
-export const refreshOffers = (state0: OfferState, env: OfferEnv): OfferState => {
+export const refreshOffers = (state0: OfferState, env: OfferEnv, effects: OfferEffects = NO_OFFER_EFFECTS): OfferState => {
   // 期限を過ぎた依頼は消す（時間が進むたびに見る）
   const live = state0.offers.filter((o) => o.expiresMinute === undefined || state0.minute < o.expiresMinute);
   const state = live.length === state0.offers.length ? state0 : { ...state0, offers: live };
@@ -126,7 +138,13 @@ export const refreshOffers = (state0: OfferState, env: OfferEnv): OfferState => 
   }
 
   for (let i = 0; i < count; i++) {
-    const added = addOffer(next, env);
+    const added = addOffer(next, env, effects.rewardWeight);
+    if (added === next) break;
+    next = added;
+  }
+  // 営業がいると、到着のたびに追加で届く（件数は営業の実効 level で決まる）
+  for (let i = 0; i < effects.extraArrivals; i++) {
+    const added = addOffer(next, env, effects.rewardWeight, true);
     if (added === next) break;
     next = added;
   }

@@ -118,6 +118,19 @@
     "accounting": {
       "ratePerLevel": 0.01,
       "maxRate": 0.15
+    },
+    "dev": {
+      "baseRate": 1.0,
+      "ratePerLevel": 0.1
+    },
+    "hr": {
+      "maxExtraCandidates": 2,
+      "candidatesPerLevel": 0.2,
+      "candidateLevelPerLevel": 0.2,
+      "trainingRatePerLevel": 0.05,
+      "maxTrainingRate": 2,
+      "juniorMaxLevel": 3,
+      "juniorExpRatePerLevel": 0.05
     }
   },
   "rental": {
@@ -196,7 +209,8 @@
       "security": 7,
       "sales": 3,
       "hr": 4,
-      "accounting": 8
+      "accounting": 8,
+      "dev": 6
     },
     "staffCapByLevel": [
       [

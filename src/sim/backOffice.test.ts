@@ -2,7 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
 import type { Balance } from '../data/schema';
-import { accountingRate, isBackOffice, salesExtraArrivals } from './backOffice';
+import { accountingRate, devDailyIncome, devRate, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, salesExtraArrivals } from './backOffice';
+import type { Staff } from '../data/schema';
 
 const balance = balanceJson as unknown as Balance;
 
@@ -23,5 +24,30 @@ describe('内勤の効果', () => {
     expect(salesExtraArrivals(4, balance)).toBe(0);
     expect(salesExtraArrivals(5, balance)).toBe(1);
     expect(salesExtraArrivals(1000, balance)).toBe(balance.backOffice.sales.maxExtra);
+  });
+});
+
+describe('人事の効果', () => {
+  it('候補は、人数と能力が P に応じて増える（人数は上限まで）', () => {
+    expect(hrCandidateBonus(0, balance)).toEqual({ extraCount: 0, levelBonus: 0 });
+    expect(hrCandidateBonus(5, balance)).toEqual({ extraCount: 1, levelBonus: 1 });
+    expect(hrCandidateBonus(1000, balance).extraCount).toBe(balance.backOffice.hr.maxExtraCandidates);
+  });
+
+  it('研修と新人の倍率は、上限までの 1 以上の値', () => {
+    expect(hrTrainingRate(0, balance)).toBe(1);
+    expect(hrTrainingRate(10, balance)).toBeGreaterThan(1);
+    expect(hrTrainingRate(1000, balance)).toBe(balance.backOffice.hr.maxTrainingRate);
+    expect(hrJuniorRate(0, balance)).toBe(1);
+    expect(hrJuniorRate(10, balance)).toBeGreaterThan(1);
+  });
+});
+
+describe('システムエンジニアの開発の収入', () => {
+  it('率は level で上がり、採用直後（level 1）は月給と同じ額（1日分に割る）', () => {
+    expect(devRate(1, balance)).toBeCloseTo(balance.backOffice.dev.baseRate, 9);
+    expect(devRate(10, balance)).toBeGreaterThan(devRate(1, balance));
+    const member = { salary: 300000, level: 1 } as Staff;
+    expect(devDailyIncome(member, balance) * balance.time.daysPerMonth).toBeCloseTo(300000, -2);
   });
 });

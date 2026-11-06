@@ -108,25 +108,27 @@ export const staffCapOf = (companyLevel: number, balance: Balance): number => {
 };
 
 // 候補を作る。職種は、会社のレベルで解放された職種から選ぶ。候補の能力は会社のレベルで上がる（LEVEL.md 3.3）
+// hr は人事の効果（候補の数を増やす・候補の能力を上げる。どちらも既定は 0）
 export const rollCandidates = (
   companyLevel: number,
   month: number,
   rng: number,
   balance: Balance,
   taken: readonly string[] = [],
+  hr: { extraCount: number; levelBonus: number } = { extraCount: 0, levelBonus: 0 },
 ): { candidates: Staff[]; rng: number } => {
   const h = balance.hiring;
   const jobs = unlockedJobsOf(companyLevel, balance);
   // 解放された職種がなければ、候補は出ない（Lv1 では採用の画面は開けない）
   if (jobs.length === 0) return { candidates: [], rng };
-  const count = randInt(rng, 0, h.maxCandidates);
+  const count = randInt(rng, 0, h.maxCandidates + hr.extraCount);
   let state = count.state;
   const candidates: Staff[] = [];
   const names = [...taken];
   for (let i = 0; i < count.value; i++) {
     const bonus = randInt(state, 0, 1);
     const job = randInt(bonus.state, 0, jobs.length - 1);
-    const level = 1 + Math.floor(companyLevel / h.candidateLevelStep) + bonus.value;
+    const level = 1 + Math.floor(companyLevel / h.candidateLevelStep) + bonus.value + hr.levelBonus;
     const made = createStaff(
       { job: jobs[job.value], level, salary: h.baseSalary + h.salaryPerLevel * level },
       job.state,

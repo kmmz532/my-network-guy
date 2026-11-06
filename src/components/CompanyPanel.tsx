@@ -73,6 +73,8 @@ export function CompanyBody() {
   const unlocks = next ? unlockItems.filter((x) => x.unlockLevel === next.level) : [];
   const devices = unlocks.filter((x) => x.kind === 'device' || x.kind === 'furniture').map((x) => ({ kind: x.kind as 'device' | 'furniture', id: x.id }));
   const others = unlocks.filter((x) => x.kind !== 'device' && x.kind !== 'furniture');
+  // 次のレベルで解放される職種（採用の候補に出る）
+  const jobsUnlockedAt = next ? (Object.keys(balance.hiring.jobUnlockLevels) as (keyof typeof balance.hiring.jobUnlockLevels)[]).filter((j) => balance.hiring.jobUnlockLevels[j] === next.level) : [];
   const row = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #3b2a33' } as const;
   return (
     <div style={{ padding: 12, fontSize: 14, color: '#f4f1e6' }}>
@@ -128,6 +130,8 @@ export function CompanyBody() {
         {next && unlocks.length === 0 && <div style={{ opacity: 0.85 }}>{t('ui.company.nothing')}</div>}
         {devices.length > 0 && <ItemCards items={devices} />}
         {others.length > 0 && <div style={{ marginTop: 4 }}>{others.map((x) => unlockNameOf(x)).join('・')}</div>}
+        {/* 職種（採用の候補に出る職種）も、解放のレベルで案内する（N84） */}
+        {jobsUnlockedAt.length > 0 && <div style={{ marginTop: 4 }}>{t('ui.company.jobs', { jobs: jobsUnlockedAt.map((j) => tDyn(`staff.job.${j}`)).join('・') })}</div>}
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ import { advanceTick, initialClock, minutesPerDay, minutesPerMonth, toDate, type
 import { isOnShift } from '../sim/shift';
 import { nightSpeedStep } from '../sim/nightSpeed';
 import { buyDevice, sellDevice } from '../sim/shop';
-import { declineOffer, offerHint, refreshOffers, type OfferEnv, type OfferHint } from '../contracts/offers';
+import { declineOffer, offerHint, refreshOffers, type OfferEffects, type OfferEnv, type OfferHint } from '../contracts/offers';
 import type { Offer } from '../contracts/template';
 import type { GameMap, Staff } from '../data/schema';
 import { gainExp, initialStaff, rollCandidates, staffCapOf, totalSalary } from '../sim/staff';
@@ -24,7 +24,7 @@ import { gameEnv } from '../sim/env';
 import { learnFromPing } from '../network/learn';
 import { rentalOf } from '../network/external';
 import { applyMoney } from '../sim/ledger';
-import { accountingRate, backOfficeP, isBackOffice } from '../sim/backOffice';
+import { accountingRate, backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, salesExtraArrivals } from '../sim/backOffice';
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
 import type { MacEntry } from '../network/mac';
 import { autoAssign } from '../sim/autoAssign';
@@ -417,6 +417,12 @@ export const focusedProject = (s: { active: Project[]; focus: string | null }): 
   s.focus === null ? null : (s.active.find((p) => p.id === s.focus) ?? null);
 
 // 機器を編集できる対象の機器と配線（自社オフィス、または設計中の案件）。編集できなければ null
+// 営業の効果（依頼の到着を増やす・報酬の高い依頼の重みを上げる。内勤の実効 level の合計で決まる）
+const salesEffectsOf = (s: { staff: Staff[]; office: Office }): OfferEffects => {
+  const P = backOfficeP(s.staff, 'sales', s.office, { defs: gameEnv.furniture ?? {}, balance, staffUids: s.staff.map((m) => m.uid) });
+  return { extraArrivals: salesExtraArrivals(P, balance), rewardWeight: P * balance.backOffice.sales.rewardWeightPerLevel };
+};
+
 // 購入の割引（経理の効果。内勤の実効 level の合計で決まる）
 export const purchaseDiscountOf = (s: { staff: Staff[]; office: Office }): number =>
   accountingRate(backOfficeP(s.staff, 'accounting', s.office, { defs: gameEnv.furniture ?? {}, balance, staffUids: s.staff.map((m) => m.uid) }), balance);
@@ -486,6 +492,7 @@ const refresh = (s: GameState): Partial<GameState> => {
       rng: s.rng,
     },
     offerEnv(s.maps),
+    salesEffectsOf(s),
   );
   // 一度に2件以上届いたら、依頼の一覧を開いたときに知らせる（件数）
   const added = r.offers.length - s.offers.length;
@@ -964,19 +971,28 @@ export const useGameStore = create<GameState>((set, get) => {
         const days = Math.floor(ticked.minute / minutesPerDay) - Math.floor(s.clock.minute / minutesPerDay);
         const months = ticked.paidMonths - s.clock.paidMonths;
         const rent = days > 0 && !ticked.bankrupt && s.mode === 'career' ? rentalOf(s.office, gameEnv.engine, balance.rental, levelOf(s.companyExp, balance), balance.time.daysPerMonth) : null;
-        const clock = rent !== null && rent.daily > 0 ? applyMoney(ticked, rent.daily * days, 'rental') : ticked;
+        const rentedClock = rent !== null && rent.daily > 0 ? applyMoney(ticked, rent.daily * days, 'rental') : ticked;
+        // システムエンジニアは、担当でない日に開発の収入を得る（担当の日は施工の経験値）
+        const crewUids = new Set(s.active.flatMap((p) => p.crew));
+        const devIdle = days > 0 && s.mode === 'career' ? s.staff.filter((m) => m.job === 'dev' && m.training === null && !crewUids.has(m.uid)) : [];
+        const devIncome = devIdle.reduce((sum, m) => sum + devDailyIncome(m, balance) * days, 0);
+        const clock = devIncome > 0 ? applyMoney(rentedClock, devIncome, 'dev') : rentedClock;
         // 内勤は、出勤した日ごとに経験値を得る（施工の経験値は得ない）。日が替わるたびに受け取る
-        const backOfficeStaff = days > 0 && s.mode === 'career' ? s.staff.map((m) => (isBackOffice(m.job) && m.shift === 'day' && m.training === null ? gainExp(m, balance.backOffice.dailyExp * days, balance.staff.expPerLevel) : m)) : s.staff;
+        // 内勤と、担当でない日のシステムエンジニアは、日ごとに経験値を得る
+        const devIdleUids = new Set(devIdle.map((m) => m.uid));
+        const backOfficeStaff = days > 0 && s.mode === 'career' ? s.staff.map((m) => (devIdleUids.has(m.uid) || (isBackOffice(m.job) && m.shift === 'day' && m.training === null) ? gainExp(m, balance.backOffice.dailyExp * days, balance.staff.expPerLevel) : m)) : s.staff;
         let next: Partial<GameState> = {
           clock,
           ...(rent?.penalty && months > 0 ? { reputation: Math.max(0, s.reputation - months) } : {}),
           ...(backOfficeStaff !== s.staff ? { staff: backOfficeStaff } : {}),
         };
         // 月末に給与を払ったら知らせる
+        // 人事の効果（候補・研修・新人の施工）の大きさ。内勤の実効 level の合計
+        const hrP = backOfficeP(s.staff, 'hr', s.office, { defs: gameEnv.furniture ?? {}, balance, staffUids: s.staff.map((m) => m.uid) });
         if (clock.paidMonths > s.clock.paidMonths) {
           const amount = totalSalary(s.staff, balance.nightPayRate);
           // 毎月1日に、採用の候補を作り直す
-          const rolled = rollCandidates(levelOf(s.companyExp, balance), clock.paidMonths, s.rng, balance, s.staff.map((m) => m.name));
+          const rolled = rollCandidates(levelOf(s.companyExp, balance), clock.paidMonths, s.rng, balance, s.staff.map((m) => m.name), hrCandidateBonus(hrP, balance));
           next = {
             ...next,
             notice: { key: 'ui.notice.salary', params: { amount }, id: Date.now() },
@@ -985,13 +1001,13 @@ export const useGameStore = create<GameState>((set, get) => {
           };
         }
         // 研修の期日が来た社員は、経験値を得て研修を終える
-        const trainedStaff = finishTrainings(coreOf({ ...s, ...next } as GameState), trainingEnv).staff;
+        const trainedStaff = finishTrainings(coreOf({ ...s, ...next } as GameState), trainingEnv, hrTrainingRate(hrP, balance)).staff;
         if (trainedStaff !== s.staff) next = { ...next, staff: trainedStaff };
         const withClock = { ...s, ...next } as GameState;
         // 施工中なら、勤務時間内に作業を進める
         if (!clock.bankrupt && withClock.active.some((p) => p.phase === 'build')) {
           const hour = toDate(clock.minute, balance).hour;
-          const r = advanceBuild(coreOf(withClock), gameEnv, hour);
+          const r = advanceBuild(coreOf(withClock), gameEnv, hour, hrJuniorRate(hrP, balance));
           if (r.ok) {
             next = {
               ...next,

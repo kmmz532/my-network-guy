@@ -24,3 +24,22 @@ export const accountingRate = (P: number, balance: Balance): number =>
 // 営業が増やす依頼の数（1日あたり。上限 maxExtra）
 export const salesExtraArrivals = (P: number, balance: Balance): number =>
   Math.min(balance.backOffice.sales.maxExtra, Math.floor(P * balance.backOffice.sales.arrivalsPerLevel));
+
+// 人事の効果（候補の数を増やす・候補の能力を上げる・研修の経験値の倍率・新人の施工の経験値の倍率）
+export const hrCandidateBonus = (P: number, balance: Balance): { extraCount: number; levelBonus: number } => ({
+  extraCount: Math.min(balance.backOffice.hr.maxExtraCandidates, Math.floor(P * balance.backOffice.hr.candidatesPerLevel)),
+  levelBonus: Math.floor(P * balance.backOffice.hr.candidateLevelPerLevel),
+});
+
+export const hrTrainingRate = (P: number, balance: Balance): number =>
+  Math.min(balance.backOffice.hr.maxTrainingRate, 1 + P * balance.backOffice.hr.trainingRatePerLevel);
+
+export const hrJuniorRate = (P: number, balance: Balance): number => 1 + P * balance.backOffice.hr.juniorExpRatePerLevel;
+
+// システムエンジニアの開発の率（月給に掛ける）。level が上がるほど上がる
+export const devRate = (level: number, balance: Balance): number =>
+  balance.backOffice.dev.baseRate + balance.backOffice.dev.ratePerLevel * (level - 1);
+
+// 担当でない日の開発の収入（1日分）。月給 × 率 ÷ 月の日数
+export const devDailyIncome = (member: Staff, balance: Balance): number =>
+  Math.round((member.salary * devRate(member.level, balance)) / balance.time.daysPerMonth);

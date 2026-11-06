@@ -1256,7 +1256,8 @@ export const requestBuild = (core: Core, env: Env): Outcome => {
 
 // 施工を1Tick分進める。勤務時間内のみ、担当の社員が並行して作業する。施工中の案件をすべて進め、終わった案件は検収する。
 // 検収の結果が出たら止める（残りの案件は次のTickで進める）
-export const advanceBuild = (core: Core, env: Env, hour: number): Outcome => {
+// juniorRate は人事の効果（新人の施工の経験値の倍率。既定は1）
+export const advanceBuild = (core: Core, env: Env, hour: number, juniorRate = 1): Outcome => {
   // 施工は、その時刻に勤務中の担当の社員だけが進める（日勤と夜勤は区分ごと。N48）
   const minute = hour * 60;
   const onShiftNow = (s: Staff) => isOnShift(minute, s.shift, env.balance);
@@ -1271,7 +1272,11 @@ export const advanceBuild = (core: Core, env: Env, hour: number): Outcome => {
       ...core,
       staff: core.staff.map((s) =>
         building.has(s.uid) && onShiftNow(s)
-          ? gainExp(s, hours * (1 + furnitureBonus(core.office, s.uid, bonusEnv).exp), env.balance.staff.expPerLevel)
+          ? gainExp(
+              s,
+              hours * (1 + furnitureBonus(core.office, s.uid, bonusEnv).exp) * (s.level <= env.balance.backOffice.hr.juniorMaxLevel ? juniorRate : 1),
+              env.balance.staff.expPerLevel,
+            )
           : s,
       ),
     };

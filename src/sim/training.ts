@@ -36,13 +36,14 @@ export const startTraining = (core: Core, uid: string, courseId: string, env: Tr
 };
 
 // 期日を過ぎた研修を終える。受講した社員に、課程の経験値を与える
-export const finishTrainings = (core: Core, env: TrainingEnv): Core => {
+// rate は人事の効果（研修の経験値の倍率。既定は1）
+export const finishTrainings = (core: Core, env: TrainingEnv, rate = 1): Core => {
   let changed = false;
   const staff = core.staff.map((s) => {
     if (!s.training || s.training.untilMinute > core.clock.minute) return s;
     changed = true;
     const exp = env.courses[s.training.course]?.exp ?? 0;
-    return { ...gainExp(s, exp, env.balance.staff.expPerLevel), training: null };
+    return { ...gainExp(s, exp * rate, env.balance.staff.expPerLevel), training: null };
   });
   return changed ? { ...core, staff } : core;
 };

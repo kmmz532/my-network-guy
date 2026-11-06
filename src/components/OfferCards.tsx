@@ -156,6 +156,12 @@ function OfferCard({
   const familiarity = useGameStore((s) => s.familiarity);
   // 社員に任せられない理由（任せられるなら null）（N70）
   const delegateReason = delegationReason(familiarity, offer, gameEnv);
+  // 断る前の確認（設定で切り替える）
+  const [asking, setAsking] = useState(false);
+  // 受注の画面を開いたときの担当（空いている社員全員）
+  const [crew, setCrew] = useState<string[]>(() =>
+    staff.filter((s) => !busy.includes(s.uid) && s.training === null && !isBackOffice(s.job)).map((s) => s.uid),
+  );
   // 予想の★の範囲（今の担当で）。担当が決まると変わる
   const blindRange = (() => {
     const jobs = offer.contract.jobs ?? [];
@@ -167,12 +173,6 @@ function OfferCard({
     const [min, max] = starRangeOf(power, pcCount, match, balance);
     return min === max ? `★${min}` : `★${min}〜${max}`;
   })();
-  // 断る前の確認（設定で切り替える）
-  const [asking, setAsking] = useState(false);
-  // 受注の画面を開いたときの担当（空いている社員全員）
-  const [crew, setCrew] = useState<string[]>(() =>
-    staff.filter((s) => !busy.includes(s.uid) && s.training === null && !isBackOffice(s.job)).map((s) => s.uid),
-  );
   const canAccept = !full && crew.length > 0;
   usePrimary(primary ? () => canAccept && onAccept(crew) : undefined);
   const hosts = offer.contract.placed.filter((p) => {
@@ -188,6 +188,8 @@ function OfferCard({
           </span>
         )}
         {tDyn(`contract.${offer.baseId}.title`, offer.params)}
+        {/* 営業が持ってきた依頼の印（N81） */}
+        {(offer as Offer & { fromSales?: true }).fromSales && <span style={{ marginLeft: 6, fontSize: 12, color: '#ffd866' }}>{t('ui.offer.fromSales')}</span>}
       </div>
       <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 6 }}>
         {tDyn(`contract.${offer.baseId}.story`, offer.params)}

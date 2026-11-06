@@ -13,7 +13,7 @@ const sizeSchema = z.object({ w: int.positive(), h: int.positive() });
 
 // 社員の職種（STAFF.md「1. 社員のデータ」）
 // エンジニア枠の職種（案件の担当に選べ、施工の力になる）
-export const ENGINEER_JOB_IDS = ['network', 'infra', 'security'] as const;
+export const ENGINEER_JOB_IDS = ['network', 'infra', 'security', 'dev'] as const;
 export type EngineerJobId = (typeof ENGINEER_JOB_IDS)[number];
 // 内勤の職種（案件の担当に選べず、社内の仕事で会社に効果を与える）。まだ追加していない
 export const BACK_OFFICE_JOB_IDS = ['sales', 'hr', 'accounting'] as const;
@@ -88,6 +88,17 @@ export const balanceSchema = z.object({
     dailyExp: nonNegativeInt,
     sales: z.object({ arrivalsPerLevel: z.number().nonnegative(), maxExtra: nonNegativeInt, rewardWeightPerLevel: z.number().nonnegative() }),
     accounting: z.object({ ratePerLevel: z.number().nonnegative(), maxRate: z.number().nonnegative() }),
+    // システムエンジニア（エンジニア枠）。担当でない日の開発の収入の率（月給に掛ける）。level が上がるほど率が上がる
+    dev: z.object({ baseRate: z.number().nonnegative(), ratePerLevel: z.number().nonnegative() }),
+    hr: z.object({
+      maxExtraCandidates: nonNegativeInt,
+      candidatesPerLevel: z.number().nonnegative(),
+      candidateLevelPerLevel: z.number().nonnegative(),
+      trainingRatePerLevel: z.number().nonnegative(),
+      maxTrainingRate: z.number().nonnegative(),
+      juniorMaxLevel: nonNegativeInt,
+      juniorExpRatePerLevel: z.number().nonnegative(),
+    }),
   }),
   rental: z.object({ monthlyPerCustomer: z.number().int().nonnegative(), levelsPerCustomer: z.number().int().positive() }),
   exp: z.object({ delivery: z.number().nonnegative(), deliveryGapStep: z.number().nonnegative(), deliveryGapMin: z.number().nonnegative(), guide: z.number().nonnegative(), hire: z.number().nonnegative(), expansion: z.number().nonnegative(), furniture: z.number().nonnegative(), dailyCap: z.number().nonnegative() }),
@@ -181,6 +192,7 @@ export const balanceSchema = z.object({
       sales: unlockLevelSchema,
       hr: unlockLevelSchema,
       accounting: unlockLevelSchema,
+      dev: unlockLevelSchema,
     }),
     // 社員の人数の上限（会社のレベル以上での上限。[レベル, 上限] の組）
     staffCapByLevel: z.array(z.tuple([unlockLevelSchema, int.positive()])),
