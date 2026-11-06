@@ -1,0 +1,39 @@
+{
+  "id": "i003_office_firewall",
+  "stage": 1,
+  "order": 36,
+  "requires": [
+    "i002_office_server"
+  ],
+  "jobs": [
+    "security"
+  ],
+  "map": "hq",
+  "budget": 380000,
+  "placed": [],
+  "goals": [
+    {
+      "type": "count",
+      "category": "firewall",
+      "min": 1
+    },
+    {
+      "type": "http_all",
+      "port": 80
+    }
+  ],
+  "reward": {
+    "money": 0,
+    "reputation": 1,
+    "devices": [
+      {
+        "device": "firewall",
+        "count": 1
+      }
+    ]
+  },
+  "inhouse": true,
+  "effect": {
+    "buildSpeed": 0.1
+  }
+}
