@@ -3,9 +3,17 @@ import react from '@vitejs/plugin-react';
 import gameData from './plugins/game-data';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { execSync } from 'node:child_process';
 
-// ビルド番号。GitHub Actions では実行の連番、手元のビルドでは時刻（36進）。タイトルとサービスワーカーで共有する
-const buildId = process.env.GITHUB_RUN_NUMBER ?? Date.now().toString(36);
+// ビルド番号。コミットの短いハッシュ（git がなければ時刻の36進）。タイトルとサービスワーカーで共有する
+const commitHash = (): string | null => {
+  try {
+    return execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
+  } catch {
+    return process.env.GITHUB_SHA?.slice(0, 7) ?? null;
+  }
+};
+const buildId = commitHash() ?? Date.now().toString(36);
 
 // サービスワーカーの保存の版を、ビルドごとに変える（古い保存を捨てるため）
 const swVersion = (): Plugin => {
