@@ -19,6 +19,8 @@ export interface OfferState {
   excluded: readonly string[];
   nextOfferMinute: number;
   offerSeq: number;
+  // 新しく解放した種類（announce）が届いた件数（解放から数える。ひな形の ID → 件数。N51b）
+  newArrivals: Readonly<Record<string, number>>;
   rng: number;
 }
 
@@ -69,10 +71,20 @@ const addOffer = (state: OfferState, env: OfferEnv): OfferState => {
   // 地図が読み込まれていないひな形は、依頼から外れる（黙って外さない。開発中は警告する）
   warnMissingMaps(state, env);
   if (eligible.length === 0) return state;
-  const picked = pickByWeight(eligible, state.rng);
+  // 新しく解放した種類は、解放から一定の件数が届くまで重みを上げる（LEVEL.md 10.4。N51b）
+  const fresh = env.balance.freshOffer;
+  const weighted = eligible.map((t) => {
+    const arrived = state.newArrivals[t.id] ?? 0;
+    const boost = t.announce && arrived < fresh.arrivals ? fresh.weightFactor : 1;
+    return { ...t, weight: t.weight * boost };
+  });
+  const picked = pickByWeight(weighted, state.rng);
   const map = env.mapOf(picked.item.map);
   if (!map) return state;
   const made = instantiateTemplate(picked.item, map, state.offerSeq, picked.rng);
+  const newArrivals = picked.item.announce
+    ? { ...state.newArrivals, [picked.item.id]: (state.newArrivals[picked.item.id] ?? 0) + 1 }
+    : state.newArrivals;
   // 受注できる期限は、ひな形の範囲から乱数で決める（範囲がなければ期限はない）
   let rng = made.rng;
   let offer: Offer = { ...made.offer, arrivedMinute: state.minute };
@@ -86,6 +98,7 @@ const addOffer = (state: OfferState, env: OfferEnv): OfferState => {
     ...state,
     offers: [...state.offers, offer],
     offerSeq: state.offerSeq + 1,
+    newArrivals,
     rng,
   };
 };

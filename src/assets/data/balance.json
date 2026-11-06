@@ -146,7 +146,7 @@
     },
     {
       "stars": 2,
-      "maxCostRatio": 1.0,
+      "maxCostRatio": 1,
       "maxRework": 1,
       "rewardRate": 1.1
     },
@@ -154,7 +154,7 @@
       "stars": 1,
       "maxCostRatio": null,
       "maxRework": null,
-      "rewardRate": 1.0
+      "rewardRate": 1
     }
   ],
   "hiring": {
@@ -221,5 +221,9 @@
   },
   "featureUnlocks": {
     "nightShift": 10
+  },
+  "freshOffer": {
+    "arrivals": 2,
+    "weightFactor": 3
   }
 }

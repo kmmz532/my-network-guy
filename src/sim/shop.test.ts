@@ -40,6 +40,8 @@ describe('セーブのバージョン移行', () => {
       offers: [],
       nextOfferMinute: 0,
       offerSeq: 0,
+      // 新しく解放した種類の届いた件数は空から始める（N51b）
+      newArrivals: {},
       // 社員を作るときに乱数を進める
       rng: expect.any(Number),
       active: [],

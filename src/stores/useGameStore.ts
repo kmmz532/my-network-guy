@@ -157,6 +157,8 @@ export interface GameState {
   offers: Offer[];
   nextOfferMinute: number;
   offerSeq: number;
+  // 新しく解放した種類の届いた件数（N51b）
+  newArrivals: Record<string, number>;
   // まとめて届いた件数（一覧を開くまで残る。0 なら知らせない）
   offerBurst: number;
   rng: number;
@@ -425,6 +427,7 @@ export const offerHintOf = (s: GameState): OfferHint =>
       excluded: s.active.map((p) => p.baseId),
       nextOfferMinute: s.nextOfferMinute,
       offerSeq: s.offerSeq,
+      newArrivals: s.newArrivals,
       rng: s.rng,
     },
     offerEnv(s.maps),
@@ -443,6 +446,7 @@ const refresh = (s: GameState): Partial<GameState> => {
       excluded: s.active.map((p) => p.baseId),
       nextOfferMinute: s.nextOfferMinute,
       offerSeq: s.offerSeq,
+      newArrivals: s.newArrivals,
       rng: s.rng,
     },
     offerEnv(s.maps),
@@ -453,6 +457,7 @@ const refresh = (s: GameState): Partial<GameState> => {
     offers: [...r.offers],
     nextOfferMinute: r.nextOfferMinute,
     offerSeq: r.offerSeq,
+    newArrivals: r.newArrivals,
     rng: r.rng,
     offerBurst: added >= 2 ? Math.max(added, s.offerBurst) : s.offerBurst,
   };
@@ -647,6 +652,7 @@ export const useGameStore = create<GameState>((set, get) => {
     offers: [],
     nextOfferMinute: 0,
     offerSeq: 0,
+    newArrivals: {},
     offerBurst: 0,
     planned: {},
     ...newStart(),
@@ -1169,6 +1175,7 @@ export const useGameStore = create<GameState>((set, get) => {
         offers: save.offers as Offer[],
         nextOfferMinute: save.nextOfferMinute,
         offerSeq: save.offerSeq,
+        newArrivals: save.newArrivals,
         rng: save.rng,
         active: save.active,
         focus: save.focus,
@@ -1205,6 +1212,7 @@ export const useGameStore = create<GameState>((set, get) => {
           offers: [],
           nextOfferMinute: 0,
           offerSeq: 0,
+          newArrivals: {},
           offerBurst: 0,
           ...newStart(),
           candidates: [],
@@ -1249,6 +1257,7 @@ export const useGameStore = create<GameState>((set, get) => {
           offers: [],
           nextOfferMinute: 0,
           offerSeq: 0,
+          newArrivals: {},
           offerBurst: 0,
           rng: newRng(),
           staff: [],
@@ -1304,6 +1313,7 @@ export const useGameStore = create<GameState>((set, get) => {
         offers: s.offers,
         nextOfferMinute: s.nextOfferMinute,
         offerSeq: s.offerSeq,
+        newArrivals: s.newArrivals,
         rng: s.rng,
         active: s.active,
         focus: s.focus,

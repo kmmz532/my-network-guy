@@ -29,6 +29,7 @@ const sample: SaveData = {
   offers: [],
   nextOfferMinute: 0,
   offerSeq: 0,
+  newArrivals: {},
   rng: 1,
   active: [],
   focus: null,

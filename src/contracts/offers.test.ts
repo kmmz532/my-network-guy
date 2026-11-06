@@ -33,6 +33,7 @@ const start: OfferState = {
   excluded: [],
   nextOfferMinute: 0,
   offerSeq: 0,
+  newArrivals: {},
   rng: 42,
 };
 

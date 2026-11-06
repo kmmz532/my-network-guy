@@ -13,7 +13,7 @@ import routerJson from '../assets/data/devices/router.json';
 import switchJson from '../assets/data/devices/l2_switch.json';
 import { CATEGORY } from '../data/categories';
 
-export const SAVE_VERSION = 25;
+export const SAVE_VERSION = 26;
 
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
@@ -72,6 +72,8 @@ export interface SaveData {
   offers: unknown[];
   nextOfferMinute: number;
   offerSeq: number;
+  // 新しく解放した種類の届いた件数（N51b）
+  newArrivals: Record<string, number>;
   // 乱数の状態
   rng: number;
   // 受注中の案件（なければ null）
@@ -184,6 +186,8 @@ export const migrations: Record<number, Migration> = {
   23: (data) => ({ ...(data as object), reputation: 0 }),
   // v24 → v25: 納品以外の経験値の1日分を足す。移行前のセーブは、0 から始める（N55）
   24: (data) => ({ ...(data as object), expDay: 0, expToday: 0 }),
+  // v25 → v26: 新しく解放した種類の届いた件数を追加する（N51b）
+  25: (data) => ({ ...(data as object), newArrivals: {} }),
   // v22 → v23: 社員と候補に勤務の区分（shift）を足す。移行前の社員は全員日勤（N48）
   22: (data) => {
     const d = data as { staff: object[]; candidates: object[] };
@@ -267,6 +271,9 @@ export const isSaveData = (value: unknown): value is SaveData => {
     v.offers.every(isOfferShape) &&
     Number.isInteger(v.nextOfferMinute) &&
     Number.isInteger(v.offerSeq) &&
+    typeof v.newArrivals === 'object' &&
+    v.newArrivals !== null &&
+    Object.values(v.newArrivals).every((n) => Number.isInteger(n) && (n as number) >= 0) &&
     Number.isInteger(v.rng) &&
     Array.isArray(v.active) &&
     (v.focus === null || typeof v.focus === 'string') &&
