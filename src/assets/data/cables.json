@@ -4,7 +4,7 @@
       "id": "utp_cat5e",
       "port": "rj45",
       "bandwidthMbps": 1000,
-      "maxLengthTiles": 30,
+      "maxLengthTiles": 20,
       "pricePerLink": 1000,
       "pricePerTile": 300
     },
@@ -12,7 +12,7 @@
       "id": "fiber_sm",
       "port": "rj45",
       "bandwidthMbps": 1000,
-      "maxLengthTiles": 200,
+      "maxLengthTiles": 400,
       "pricePerLink": 5000,
       "pricePerTile": 1500
     }

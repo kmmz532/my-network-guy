@@ -99,6 +99,8 @@ export const FAILURE_REASONS = [
   'service.closed',
   // ファイアウォールの規則に合わない通信（既定は拒否）
   'firewall.denied',
+  // ケーブルが上限の長さを超えている（N49）
+  'cableTooLong',
 ] as const;
 
 export type FailureReason = (typeof FAILURE_REASONS)[number];

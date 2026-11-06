@@ -52,6 +52,8 @@ export const balanceSchema = z.object({
   startMoney: int,
   // 在庫を売るときの値段（購入時の値段に掛ける割合）
   sellRate: z.number().min(0).max(1),
+  // 地図の1マスの長さ（メートル）。ケーブルの上限と表示に使う（N49）
+  metersPerTile: int.positive(),
   // 機材の価格の式（N35）: 基本の価格（分類）＋ポート1つあたり（分類）＋機能ごとの加算。機材の定価は、この式の値とそろえる
   pricing: z.object({
     base: z.record(z.string(), nonNegativeInt),

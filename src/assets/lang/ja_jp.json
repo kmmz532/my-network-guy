@@ -126,6 +126,7 @@
   "ui.error.tile": "そこには置けない",
   "ui.error.money": "資金が足りない",
   "ui.error.cable": "ケーブルが届かない長さ",
+  "ui.error.cableTooLong": "ケーブルが長すぎます。途中にスイッチを置くか、光ファイバーを使ってください",
   "ui.error.port": "空いているポートがない",
   "ui.error.locked": "この機器は変更できない",
   "ui.error.untested": "テストに合格していない",
@@ -168,7 +169,7 @@
   "ui.tool.select": "選択",
   "ui.tool.wire": "配線",
   "ui.tool.remove": "撤去",
-  "ui.wire.cost": "長さ {length}マス ¥{cost}",
+  "ui.wire.cost": "長さ {length} m / 上限 {limit} m ¥{cost}",
   "ui.wire.auto": "おまかせ（空いている最初のポート）",
   "ui.port.free": "空き",
   "ui.shop.title": "機材ショップ",
@@ -562,5 +563,7 @@
   "furniture.desk_only.name": "机",
   "furniture.desk_only.desc": "椅子のない机。席としては数える",
   "device.l2_switch_4p.name": "4ポートスイッチ",
-  "device.l2_switch_4p.desc": "安い小型のスイッチ。少ない台数をつなぐときや、長い配線の中継に使う"
+  "device.l2_switch_4p.desc": "安い小型のスイッチ。少ない台数をつなぐときや、長い配線の中継に使う",
+  "error.cableTooLong": "ケーブルが長すぎます。ケーブルの上限を超えています。",
+  "error.cableTooLong.fix": "途中にスイッチを置いて区切るか、光ファイバーを使ってください。"
 }

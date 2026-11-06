@@ -12,6 +12,7 @@
   },
   "startMoney": 1000000,
   "sellRate": 0.8,
+  "metersPerTile": 5,
   "pricing": {
     "base": {
       "pc": 80000,

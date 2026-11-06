@@ -43,6 +43,7 @@ import { bfsRoute, commuteStep, type Commute } from './commute';
 import { breakMoveStep, deskMove, type BreakMove } from './breakMove';
 import { breakAt, breakPlanOf } from '../sim/breaks';
 import { minutesPerDay as dayMinutes } from '../sim/clock';
+import { metersOf } from '../sim/cableLength';
 import { isPresentMinute, minutesPerDay } from '../sim/clock';
 import { deskStaffPos, deskTap, staffAt, STAFF_W, wanderStaffPos, type StaffHit } from './staffHit';
 import { CATEGORY } from '../data/categories';
@@ -1993,9 +1994,13 @@ export class Scene {
     if (length < 1) return;
     const cost = cable.pricePerLink + cable.pricePerTile * length;
     const scale = this.content.scale.x;
+    // 長さはメートルで出す。上限を超えたら赤くし、配線できないことを示す（N49）
+    const meters = metersOf(length, balance.metersPerTile);
+    const limit = metersOf(cable.maxLengthTiles, balance.metersPerTile);
+    const over = length > cable.maxLengthTiles;
     const text = new Text({
-      text: t('ui.wire.cost', { length, cost: cost.toLocaleString('ja-JP') }),
-      style: { fontFamily: 'sans-serif', fontSize: 12 / scale, fill: 0xf4f1e6, stroke: { color: OUTLINE, width: 2 / scale } },
+      text: t('ui.wire.cost', { length: meters, limit, cost: cost.toLocaleString('ja-JP') }),
+      style: { fontFamily: 'sans-serif', fontSize: 12 / scale, fill: over ? 0xff8a7a : 0xf4f1e6, stroke: { color: OUTLINE, width: 2 / scale } },
       resolution: Math.max(2, scale * (window.devicePixelRatio || 1)),
     });
     text.anchor.set(0, 1);

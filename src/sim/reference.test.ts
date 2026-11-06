@@ -245,7 +245,7 @@ describe('模範解答: 固定案件', () => {
     expectReference(finish(core).report);
   });
 
-  it('c005 2拠点: 拠点ごとにスイッチを置き、ルーターを間に置いて配線で結ぶ（30タイル以内なら UTP）', () => {
+  it('c005 2拠点: 拠点ごとにスイッチを置き、ルーターを間に置いて光ファイバーで結ぶ（UTP は20マスまで。道路をまたぐ区間は UTP では届かない・N49）', () => {
     let core = take(startCore([fixedOffer(c005)]), 'c005_two_sites');
     core = buy(core, ROUTER);
     core = buy(core, SWITCH);
@@ -259,12 +259,16 @@ describe('模範解答: 固定案件', () => {
     core = wire(core, 'hq_a', swA.uid);
     core = wire(core, 'hq_b', swA.uid);
     core = wire(core, swA.uid, router.uid, UTP, { b: 0 });
-    core = wire(core, router.uid, swB.uid, UTP, { a: 1 });
+    // ルーターと拠点Bは29マス離れている。UTP の上限は20マスのため、光ファイバーで結ぶ
+    core = wire(core, router.uid, swB.uid, 'fiber_sm', { a: 1 });
     core = wire(core, 'br_a', swB.uid);
     core = wire(core, 'br_b', swB.uid);
     core = addr(core, router.uid, '192.168.1.1');
     core = addr(core, router.uid, '192.168.20.1', 1);
-    expectReference(finish(core).report);
+    // 光ファイバーの費用（1マス1500円）で、予算の75%を超える。★3は取れず、★2で合格する（予算の調整は報告する・N49）
+    const report = finish(core).report;
+    expect(report?.passed).toBe(true);
+    expect(report?.stars).toBe(2);
   });
 
   it('c006 外部接続: スイッチの先にファイアウォールを置き、外部のサーバーへつなぐ', () => {

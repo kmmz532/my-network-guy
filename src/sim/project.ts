@@ -36,6 +36,7 @@ import { dueDayOf, lateDaysOf, lateFactor } from './deadline';
 import { furnitureBonus, type BonusEnv } from './furniture';
 import { gainExp, staffPower } from './staff';
 import { CATEGORY } from '../data/categories';
+import { checkCableLength } from './cableLength';
 
 export interface Project {
   id: string;
@@ -595,7 +596,8 @@ export const checkConnect = (
   const cable = env.cables[cableId];
   if (!a || !b || aUid === bUid || !cable) return 'none';
   const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-  if (length < 1 || length > cable.maxLengthTiles) return 'cable';
+  const lengthCheck = checkCableLength(length, cable.maxLengthTiles);
+  if (lengthCheck !== 'ok') return lengthCheck;
   if (core.clock.money < cable.pricePerLink + cable.pricePerTile * length) return 'money';
   const portA = choosePort(net.links, a, env, ports.a);
   if (typeof portA === 'string') return portA;
@@ -885,7 +887,9 @@ export const moveNode = (core: Core, uid: string, x: number, y: number, env: Env
     const a = after.get(l.a.node)!;
     const b = after.get(l.b.node)!;
     const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-    if (!cable || length < 1 || length > cable.maxLengthTiles) return fail('cable');
+    if (!cable) return fail('cable');
+    const lengthCheck = checkCableLength(length, cable.maxLengthTiles);
+    if (lengthCheck !== 'ok') return fail(lengthCheck);
     const oldA = before.get(l.a.node)!;
     const oldB = before.get(l.b.node)!;
     const oldLength = Math.abs(oldA.x - oldB.x) + Math.abs(oldA.y - oldB.y);
@@ -957,7 +961,9 @@ export const replugTo = (
   const b = end === 'b' ? node : before.get(link.b.node)!;
   const cable = env.cables[link.cable];
   const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-  if (!cable || length < 1 || length > cable.maxLengthTiles) return fail('cable');
+  if (!cable) return fail('cable');
+  const lengthCheck = checkCableLength(length, cable.maxLengthTiles);
+  if (lengthCheck !== 'ok') return fail(lengthCheck);
   const oldA = before.get(link.a.node)!;
   const oldB = before.get(link.b.node)!;
   const delta = cableCost(cable, length) - cableCost(cable, Math.abs(oldA.x - oldB.x) + Math.abs(oldA.y - oldB.y));

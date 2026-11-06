@@ -171,7 +171,7 @@ describe('機器の移動（moveNode）', () => {
     const core = wired();
     const short: Env = { ...env, cables: { ...cables, [UTP]: { ...cables[UTP], maxLengthTiles: 4 } } };
     // (6,6) → (8,8) は pc_a(3,4) から長さ 9
-    expect(reasonOf(moveNode(core, 'u0', 8, 8, short, 'focus', map))).toBe('cable');
+    expect(reasonOf(moveNode(core, 'u0', 8, 8, short, 'focus', map))).toBe('cableTooLong');
   });
 
   it('差額を払えないときは動かせない（money）', () => {
