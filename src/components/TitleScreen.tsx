@@ -409,7 +409,7 @@ export function TitleScreen({ onNew, onContinue, onSandbox, message }: Props) {
       </div>
 
       <div className="ts-foot">
-        <div>{t('ui.title.version', { version: pkg.version })}</div>
+        <div>{t('ui.title.version', { version: pkg.version, build: __BUILD_ID__ })}</div>
       </div>
     </div>
   );
