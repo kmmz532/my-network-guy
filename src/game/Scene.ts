@@ -1128,7 +1128,6 @@ export class Scene {
 
   // 施工中の社員と進捗バー。施工前の機器と配線を順に回る
   private drawBuilding(project: Project, ts: number): void {
-    const g = this.g;
     const pending: Point[] = [];
     for (const n of project.nodes) {
       if (!project.built.nodes.includes(n.uid)) pending.push({ x: n.x * ts + ts / 2, y: n.y * ts + ts / 2 });
@@ -1147,13 +1146,7 @@ export class Scene {
       this.drawStaff(at.x + (k === 0 ? -18 : 2), at.y - 24 - bob, useGameStore.getState().staff[k]?.look ?? STAFF_PLACEHOLDER_LOOKS[k % STAFF_PLACEHOLDER_LOOKS.length]);
     }
 
-    // 施工の進捗バー（マップの下端）。スマホはツールバーの上の帯（Toolbar.tsx）に同じ進み具合を出すため、ここでは描かない（B13）
-    if (!isPhoneNow()) {
-      const barW = (this.map?.width ?? 1) * ts;
-      const barY = (this.map?.height ?? 1) * ts + 2;
-      g.rect(0, barY, barW, 3).fill({ color: OUTLINE });
-      g.rect(0, barY, barW * fraction, 3).fill({ color: SELECT });
-    }
+    // 施工の進み具合は、ツールバーの帯（Toolbar.tsx）だけに出す。マップの下端には描かない（B13。パソコンも1本にそろえる）
   }
 
   // 社員のスプライト（16×24 px）。2コマで足踏みする
