@@ -560,5 +560,7 @@
   "ui.terminal.noHosts": "対応表は空",
   "ui.terminal.cfgHost": "ip host {name} {ip}",
   "furniture.desk_only.name": "机",
-  "furniture.desk_only.desc": "椅子のない机。席としては数える"
+  "furniture.desk_only.desc": "椅子のない机。席としては数える",
+  "device.l2_switch_4p.name": "4ポートスイッチ",
+  "device.l2_switch_4p.desc": "安い小型のスイッチ。少ない台数をつなぐときや、長い配線の中継に使う"
 }

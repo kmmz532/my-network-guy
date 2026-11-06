@@ -1,6 +1,20 @@
 {
   "devices": [
     {
+      "id": "l2_switch_4p",
+      "category": "l2_switch",
+      "price": 6000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 4,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [],
+      "sprite": "device/l2_switch_4p"
+    },
+    {
       "id": "l2_switch_8p",
       "category": "l2_switch",
       "price": 12000,

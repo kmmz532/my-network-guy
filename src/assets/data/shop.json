@@ -9,6 +9,10 @@
       "unlock": null
     },
     {
+      "device": "l2_switch_4p",
+      "unlock": null
+    },
+    {
       "device": "l2_switch_8p",
       "unlock": {
         "contract": "c001_direct_link"
