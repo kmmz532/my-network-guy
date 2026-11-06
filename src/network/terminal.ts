@@ -6,6 +6,7 @@ import { ping } from './engine';
 import { networkAddress } from './segments';
 import { isIp } from './terminalConfig';
 import { resolveName } from './resolve';
+import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
 
 export interface TerminalContext {
@@ -15,6 +16,12 @@ export interface TerminalContext {
   data: EngineData;
   // 機器の画面に出す名前（省略時は uid）
   nameOf?: (node: NetNode) => string;
+  // ARP の表（ping で覚えたもの。保存しない）（N69）
+  arp?: { ip: string; mac: string }[];
+  // L2スイッチの MAC の表（通信で覚えたもの。保存しない）（N69）
+  macTable?: MacEntry[];
+  // 通信が届いたときに呼ぶ（宛先の機器の uid）。画面が ARP と MAC の表を覚えるために使う（N69）
+  onReach?: (dstUid: string) => void;
 }
 
 export type Tr = (key: string, params?: Record<string, string | number>) => string;
@@ -33,6 +40,12 @@ const peersOf = (ctx: TerminalContext): Map<number, NetNode | undefined> => {
     if (link.b.node === ctx.node.uid) peers.set(link.b.port, ctx.nodes.find((n) => n.uid === link.a.node));
   }
   return peers;
+};
+
+// 機器のポートの MAC アドレス（機器の連番が必要）。連番のない機器は例外にする
+const macOfPort = (ctx: TerminalContext, port: number): string => {
+  if (ctx.node.macSerial === undefined) throw new Error(`MAC アドレスの連番がない機器: ${ctx.node.uid}`);
+  return macOf(ctx.data.categoryOf(ctx.node.device), ctx.node.macSerial, port);
 };
 
 export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): TerminalLine[] => {
@@ -69,10 +82,22 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       return ports.map((port) => {
         const iface = node.interfaces.find((i) => i.port === port);
         const peer = peers.get(port);
-        if (!peer) return out(tr('ui.terminal.ifFree', { port }));
-        if (iface) return out(tr('ui.terminal.ifLinkedIp', { port, ip: iface.ip, prefix: iface.prefix, peer: name(peer) }));
-        return out(tr('ui.terminal.ifLinked', { port, peer: name(peer) }));
-      });
+        const line = !peer
+          ? out(tr('ui.terminal.ifFree', { port }))
+          : iface
+            ? out(tr('ui.terminal.ifLinkedIp', { port, ip: iface.ip, prefix: iface.prefix, peer: name(peer) }))
+            : out(tr('ui.terminal.ifLinked', { port, peer: name(peer) }));
+        return [line, out(tr('ui.terminal.mac', { port, mac: macOfPort(ctx, port) }))];
+      }).flat();
+    }
+    if (sub === 'arp') {
+      const rows = ctx.arp ?? [];
+      return rows.length > 0 ? rows.map((r) => out(tr('ui.terminal.arpLine', { ip: r.ip, mac: r.mac }))) : [out(tr('ui.terminal.noArp'))];
+    }
+    if (sub === 'mac address-table') {
+      if (ctx.data.categoryOf(node.device) !== 'l2_switch') return [err(tr('ui.terminal.noMacTable'))];
+      const rows = ctx.macTable ?? [];
+      return rows.length > 0 ? rows.map((r) => out(tr('ui.terminal.macLine', { mac: r.mac, port: r.port }))) : [out(tr('ui.terminal.noMacRows'))];
     }
     if (sub === 'hosts') {
       const hosts = node.hosts ?? [];
@@ -106,6 +131,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
     const target = ctx.nodes.find((n) => n.interfaces.some((i) => i.ip === ip));
     if (!target) return [err(tr('ui.terminal.noHost', { ip: given }))];
     const result = ping({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid, target.uid);
+    if (result.ok) ctx.onReach?.(target.uid);
     if (cmd === 'ping') {
       if (result.ok) return [...header, out(tr('ui.terminal.pingOk', { ip: given }))];
       const reason = result.failure?.reason ?? 'route.none';

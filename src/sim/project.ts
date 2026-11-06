@@ -4,6 +4,7 @@ import type { Balance, Contract, Furniture, GameMap, Staff } from '../data/schem
 import { tileKind } from '../data/tileKind';
 import { renameNode } from '../network/nodeName';
 import { nextHostname } from '../network/hostname';
+import { nextMacSerial } from '../network/mac';
 import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
 import { ipToInt, linkLength } from '../network/engine';
@@ -427,6 +428,7 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
     device: deviceId,
     // ホスト名は種類の略号と番号を自動で付ける（N68）
     hostname: nextHostname(p.nodes, env.devices[deviceId].category),
+    macSerial: nextMacSerial(p.nodes),
     x,
     y,
     locked: false,
@@ -456,6 +458,7 @@ export const placeInOffice = (core: Core, deviceId: string, x: number, y: number
     uid: `u${office.seq}`,
     device: deviceId,
     hostname: nextHostname(office.nodes, env.devices[deviceId].category),
+    macSerial: nextMacSerial(office.nodes),
     x,
     y,
     locked: false,

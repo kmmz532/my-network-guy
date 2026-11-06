@@ -18,6 +18,7 @@ const pc = (uid: string, ip: string | null, gateway: string | null = null): NetN
   gateway,
   routes: [],
   services: [],
+  macSerial: 1,
 });
 
 const sw = (uid: string): NetNode => ({ ...pc(uid, null), device: 'l2' });
@@ -88,7 +89,22 @@ describe('確認のコマンド（段階2）', () => {
 
   it('show interfaces は、ポートごとの接続先とIPを出す', () => {
     const lines = runTerminal('show interfaces', ctx(nodes[0]), tr);
-    expect(lines.map((l) => l.text)).toEqual(['ui.terminal.ifLinkedIp {"port":0,"ip":"192.168.1.10","prefix":24,"peer":"s"}']);
+    expect(lines.map((l) => l.text)).toEqual([
+      'ui.terminal.ifLinkedIp {"port":0,"ip":"192.168.1.10","prefix":24,"peer":"s"}',
+      'ui.terminal.mac {"port":0,"mac":"02:10:00:00:01:00"}',
+    ]);
+  });
+
+  it('show arp は、ping で覚えた表を出す。空なら空の文言', () => {
+    expect(runTerminal('show arp', ctx(nodes[0]), tr)).toEqual([{ text: 'ui.terminal.noArp', kind: 'out' }]);
+    const withArp = { ...ctx(nodes[0]), arp: [{ ip: '192.168.1.11', mac: '02:10:00:00:01:01' }] };
+    expect(runTerminal('show arp', withArp, tr)).toEqual([{ text: 'ui.terminal.arpLine {"ip":"192.168.1.11","mac":"02:10:00:00:01:01"}', kind: 'out' }]);
+  });
+
+  it('show mac address-table は、スイッチの表を出す（端末では使えない）', () => {
+    const table = { ...ctx(nodes[2]), macTable: [{ mac: '02:10:00:00:01:00', port: 0 }] };
+    expect(runTerminal('show mac address-table', table, tr)).toEqual([{ text: 'ui.terminal.macLine {"mac":"02:10:00:00:01:00","port":0}', kind: 'out' }]);
+    expect(runTerminal('show mac address-table', ctx(nodes[0]), tr)).toEqual([{ text: 'ui.terminal.noMacTable', kind: 'err' }]);
   });
 
   it('show ip route は、直結の経路と既定のゲートウェイを出す', () => {

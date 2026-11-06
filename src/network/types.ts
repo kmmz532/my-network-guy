@@ -55,6 +55,8 @@ export interface NetNode {
   nameServer?: string;
   // DNS の役割（サーバーだけが持つ）。zone は名前と IPアドレスの表（N68）
   dns?: { zone: HostEntry[] };
+  // MAC アドレスの機器ごとの連番（機器を置いたときに決める。mac.ts）（N69）
+  macSerial?: number;
 }
 
 export interface Endpoint {

@@ -19,7 +19,7 @@ import firewallJson from '../assets/data/devices/firewall.json';
 import firewallDmzJson from '../assets/data/devices/firewall_dmz.json';
 import printerJson from '../assets/data/devices/printer.json';
 
-export const SAVE_VERSION = 28;
+export const SAVE_VERSION = 29;
 
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
@@ -209,6 +209,12 @@ export const migrations: Record<number, Migration> = {
   },
   // v26 → v27: 納品した案件の数を追加する。移行前の納品の数は数えていないため 0 とする（N66）
   26: (data) => ({ ...(data as object), deliveries: 0 }),
+  // v28 → v29: 機器に MAC アドレスの連番を付ける（N69）。既存の機器は、ネットワークの中の並び順に 1 から振る
+  28: (data) => {
+    const d = data as { office: { nodes: NetNode[] }; active: { nodes: NetNode[] }[] };
+    const serial = (nodes: NetNode[]): NetNode[] => nodes.map((n, i) => ({ ...n, macSerial: n.macSerial ?? i + 1 }));
+    return { ...d, office: { ...d.office, nodes: serial(d.office.nodes) }, active: d.active.map((p) => ({ ...p, nodes: serial(p.nodes) })) };
+  },
   // v27 → v28: 機器にホスト名（種類の略号-番号）を付ける。ホスト名のない機器は、並び順に自動で付ける（N68）
   27: (data) => {
     const d = data as { office: { nodes: NetNode[] }; active: { nodes: NetNode[] }[] };

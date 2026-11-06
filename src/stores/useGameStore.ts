@@ -21,6 +21,8 @@ import type { FirewallRule, NetLink, NetNode, Route } from '../network/types';
 import type { GameMode, SaveData } from '../services/migrations';
 import { resizeSandboxOffice, sandboxClock, sandboxOffice, sandboxTest } from '../sim/sandbox';
 import { gameEnv } from '../sim/env';
+import { learnFromPing } from '../network/learn';
+import type { MacEntry } from '../network/mac';
 import { autoAssign } from '../sim/autoAssign';
 import { type ExpandSide, expandOffice as expandOfficeOp, mapOfOffice } from '../sim/office';
 import {
@@ -159,6 +161,9 @@ export interface GameState {
   completed: string[];
   // 納品した案件の数（N66）
   deliveries: number;
+  // 通信で覚えた ARP の表と、スイッチの MAC の表（画面の状態。保存しない。N69）。キーは「案件の ID または office」と機器の uid
+  arpTable: Record<string, { ip: string; mac: string }[]>;
+  macTable: Record<string, MacEntry[]>;
   offers: Offer[];
   nextOfferMinute: number;
   offerSeq: number;
@@ -341,6 +346,8 @@ export interface GameState {
   setHostname: (uid: string, hostname: string | null) => string | null;
   setNameServer: (uid: string, ip: string | null) => string | null;
   setDnsRole: (uid: string, on: boolean) => string | null;
+  // ping が通ったときに、ARP と MAC の表へ覚える（N69）
+  learnPing: (srcUid: string, dstUid: string) => void;
   autoRegisterZone: (uid: string) => string | null;
   // 対応表（名前と IPアドレス）の登録と削除。失敗したら理由を返す
   setHost: (uid: string, name: string, ip: string) => string | null;
@@ -661,6 +668,8 @@ export const useGameStore = create<GameState>((set, get) => {
     owned: { ...balance.initialStock },
     completed: [],
     deliveries: 0,
+    arpTable: {},
+    macTable: {},
     offers: [],
     nextOfferMinute: 0,
     offerSeq: 0,
@@ -1146,6 +1155,22 @@ export const useGameStore = create<GameState>((set, get) => {
       recorded(() => apply(setService(coreOf(get()), uid, protocol, on, netTargetOf(get())), tileOf(uid))),
     setHostname: (uid, hostname) => recorded(() => apply(setHostnameOp(coreOf(get()), uid, hostname, netTargetOf(get())), tileOf(uid))),
     setNameServer: (uid, ip) => recorded(() => apply(setNameServerOp(coreOf(get()), uid, ip, netTargetOf(get())), tileOf(uid))),
+    learnPing: (srcUid, dstUid) => {
+      const s = get();
+      const net = editNetOf(s);
+      if (!net) return;
+      const r = learnFromPing(net.nodes, net.links, gameEnv.engine, srcUid, dstUid);
+      if (r.arp === null && r.macs.length === 0) return;
+      const netKey = s.focus ?? 'office';
+      const arpKey = `${netKey}:${srcUid}`;
+      const arp = r.arp === null ? (s.arpTable[arpKey] ?? []) : [...(s.arpTable[arpKey] ?? []).filter((x) => x.ip !== r.arp?.ip), r.arp];
+      const macTable = { ...s.macTable };
+      for (const { switchUid, entry } of r.macs) {
+        const k = `${netKey}:${switchUid}`;
+        macTable[k] = [...(macTable[k] ?? []).filter((x) => x.port !== entry.port), entry];
+      }
+      set({ arpTable: { ...s.arpTable, [arpKey]: arp }, macTable });
+    },
     setDnsRole: (uid, on) => recorded(() => apply(setDnsRoleOp(coreOf(get()), uid, on, netTargetOf(get())), tileOf(uid))),
     autoRegisterZone: (uid) => recorded(() => apply(autoRegisterZoneOp(coreOf(get()), uid, netTargetOf(get())), tileOf(uid))),
     setName: (uid, name) => recorded(() => apply(setNameOp(coreOf(get()), uid, name, netTargetOf(get())), tileOf(uid))),

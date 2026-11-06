@@ -21,6 +21,10 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
   const setHost = useGameStore((s) => s.setHost);
   const removeHost = useGameStore((s) => s.removeHost);
   const setNameServer = useGameStore((s) => s.setNameServer);
+  const learnPing = useGameStore((s) => s.learnPing);
+  const netKey = useGameStore((s) => s.focus ?? 'office');
+  const arp = useGameStore((s) => s.arpTable[`${netKey}:${node.uid}`]);
+  const macTable = useGameStore((s) => s.macTable[`${netKey}:${node.uid}`]);
   // 設定のコマンドを、画面の操作に当てる。失敗したら理由のキーを返す（成功なら null）
   const applyConfig = (action: ConfigAction): string | null => {
     switch (action.kind) {
@@ -74,7 +78,7 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
     } else if (parsed.kind === 'error') {
       out = [{ text: parsed.text, kind: 'err' }];
     } else {
-      out = runTerminal(line, { node, nodes, links, data: gameEnv.engine, nameOf: (n) => nodeLabel(state, n, nodes) }, tr);
+      out = runTerminal(line, { node, nodes, links, data: gameEnv.engine, nameOf: (n) => nodeLabel(state, n, nodes), arp, macTable, onReach: (dst) => learnPing(node.uid, dst) }, tr);
     }
     setHistory((h) => [...h, { text: `> ${line}`, kind: 'out' }, ...out]);
   };
