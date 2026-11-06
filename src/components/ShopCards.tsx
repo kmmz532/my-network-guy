@@ -92,7 +92,7 @@ export function ShopBody({ onClose }: { onClose: () => void }) {
                   style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}
                 >
                   <div style={{ width: 64, display: 'flex', justifyContent: 'center' }}>
-                    <Icon name={`furniture/${id}`} />
+                    <Icon name={f.sprite} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 'bold' }}>{tDyn(`furniture.${id}.name`)}</div>
