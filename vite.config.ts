@@ -1,8 +1,8 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import gameData from './plugins/game-data';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { join, relative, resolve, sep } from 'node:path';
 import { execSync } from 'node:child_process';
 
 // ビルド番号。コミットの短いハッシュ。タイトルとサービスワーカーで共有する（git がなければビルドを止める）
@@ -20,7 +20,17 @@ const swVersion = (): Plugin => {
     closeBundle: () => {
       const file = resolve(outDir, 'sw.js');
       if (!existsSync(file)) throw new Error(`sw.js がビルドの出力にない: ${file}`);
-      writeFileSync(file, readFileSync(file, 'utf-8').replace('__BUILD__', buildId));
+      // オフラインで遊べるよう、ビルドの出力のすべての資材（sw.js を除く）を、インストール時に保存する一覧にする
+      const assets: string[] = [];
+      const walk = (dir: string): void => {
+        for (const name of readdirSync(dir)) {
+          const path = join(dir, name);
+          if (statSync(path).isDirectory()) walk(path);
+          else if (path !== file) assets.push(`./${relative(resolve(outDir), path).split(sep).join('/')}`);
+        }
+      };
+      walk(resolve(outDir));
+      writeFileSync(file, readFileSync(file, 'utf-8').replace('__BUILD__', buildId).replace('__ASSETS__', JSON.stringify(assets.sort())));
     },
   };
 };

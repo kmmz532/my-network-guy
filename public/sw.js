@@ -5,9 +5,12 @@ const CACHE = 'network-ya-__BUILD__';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches
-      .open(CACHE)
-      .then((cache) => cache.addAll(['./', './manifest.webmanifest', './icon-192.png', './icon-512.png'])),
+    caches.open(CACHE).then((cache) =>
+      cache
+        .addAll(['./', './manifest.webmanifest', './icon-192.png', './icon-512.png'])
+        // ビルドのすべての資材は、1つずつ保存する（1つが読めなくてもインストールは止めない。読めなかった資材は、開いたときに保存される）
+        .then(() => Promise.all(__ASSETS__.map((url) => cache.add(url).catch(() => undefined)))),
+    ),
   );
 });
 
