@@ -108,6 +108,14 @@ export function Windows({ onTraining }: { onTraining: () => void }) {
 
   return (
     <>
+      {/* スマホでパネルを開いている間は、後ろを暗くする。暗い所を押すとパネルを閉じる */}
+      {narrow && front && (
+        <div
+          aria-hidden
+          onClick={() => state.closeWindow(front.id)}
+          style={{ position: 'absolute', inset: 0, zIndex: 4, background: 'rgba(10, 16, 32, 0.45)' }}
+        />
+      )}
       {shown.map((w) => (
         <Window
           key={w.id}
@@ -116,7 +124,7 @@ export function Windows({ onTraining }: { onTraining: () => void }) {
             w.tabs.length > 1 ? (
               <TabStrip
                 win={w}
-                closeLabel={narrow ? t('ui.panel.back') : t('ui.panel.close')}
+                closeLabel={t('ui.panel.close')}
                 onSelect={(ref) => state.selectTab(w.id, ref)}
                 onClose={(ref) => state.closeTab(w.id, ref)}
                 onReorder={(from, to) => state.reorderTab(w.id, from, to)}
@@ -125,9 +133,8 @@ export function Windows({ onTraining }: { onTraining: () => void }) {
           }
           rect={narrow ? narrowRect(vp) : clampRect(w, vp)}
           movable={!narrow}
-          // スマホのパネルは「戻る」で閉じる（パネルは画面全体を覆う）
-          closeLabel={narrow ? t('ui.panel.back') : t('ui.panel.close')}
-          closeText={narrow ? t('ui.panel.back') : undefined}
+          // スマホもパソコンと同じく、右上の×で閉じる
+          closeLabel={t('ui.panel.close')}
           onFocus={() => state.focusWindow(w.id)}
           onMove={(x, y) => state.moveWindow(w.id, x, y)}
           onResize={(edges, dx, dy, start) => state.placeWindow(w.id, resizeRect(start, edges, dx, dy, vp))}

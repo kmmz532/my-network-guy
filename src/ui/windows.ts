@@ -47,10 +47,6 @@ export const MIN_W = 240;
 export const MIN_H = 160;
 // 新しいウィンドウを前のものからずらす量
 export const CASCADE_PX = 24;
-// これより狭い画面では、移動と大きさの変更をせず、画面の下に1つだけ出す
-export const NARROW_HEIGHT_RATIO = 0.6;
-// 狭い画面で下に出すとき、ツールバーのために空けておく高さ
-export const NARROW_BOTTOM_RESERVE = 64;
 
 const DEFAULT_SIZE: Record<WindowKind, { w: number; h: number }> = {
   device: { w: 300, h: 360 },
@@ -75,9 +71,15 @@ export function clampRect(r: Rect, vp: Viewport): Rect {
   return { x: clamp(r.x, 0, vp.w - w), y: clamp(r.y, 0, vp.h - h), w, h };
 }
 
-// スマホのパネル: 画面全体を覆う1枚（移動も大きさの変更もしない。戻るで閉じる）
+// スマホのパネルの、画面の左右の端からの余白（px）
+export const NARROW_MARGIN_X = 8;
+// 高さは画面の高さの割合で決める（画面の大きさが変わっても、上下に後ろの画面が同じ割合で見える）
+export const NARROW_HEIGHT_RATIO = 0.7;
+
+// スマホのパネル: 画面の中央の1枚（左右は余白だけ、高さは画面の7割。移動も大きさの変更もしない。戻るで閉じる）
 export function narrowRect(vp: Viewport): Rect {
-  return { x: 0, y: 0, w: vp.w, h: vp.h };
+  const h = Math.round(vp.h * NARROW_HEIGHT_RATIO);
+  return { x: NARROW_MARGIN_X, y: Math.round((vp.h - h) / 2), w: vp.w - NARROW_MARGIN_X * 2, h };
 }
 
 // 種類の初期の位置と大きさ。覚えた位置があればそれを使う

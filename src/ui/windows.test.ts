@@ -134,14 +134,11 @@ describe('ウィンドウを開く', () => {
     expect(list.windows[0]).toMatchObject({ x: 100, y: 120, w: 420, h: 300 });
   });
 
-  it('狭い画面では、別の種類のウィンドウを開くと、ほかを閉じて画面いっぱいのパネルを1つだけ出す', () => {
+  it('狭い画面では、別の種類のウィンドウを開くと、ほかを閉じて中央のパネルを1つだけ出す', () => {
     let list = open(empty, 'pc_a', 'device', NARROW);
     list = open(list, 'pc_b', 'staff', NARROW);
     expect(list.windows).toHaveLength(1);
-    expect(list.windows[0]).toMatchObject({ kind: 'staff', tabs: ['pc_b'], active: 'pc_b' });
-    expect(list.windows[0].w).toBe(NARROW.w);
-    expect(list.windows[0].h).toBe(NARROW.h);
-    expect(list.windows[0].y).toBe(0);
+    expect(list.windows[0]).toMatchObject({ kind: 'staff', tabs: ['pc_b'], active: 'pc_b', ...narrowRect(NARROW) });
   });
 
   it('狭い画面でも、同じ種類なら1つのウィンドウにタブとして加える', () => {
@@ -296,9 +293,9 @@ describe('画面の大きさの計算', () => {
     expect(clampRect({ x: 1200, y: 780, w: 300, h: 360 }, WIDE)).toEqual({ x: 980, y: 440, w: 300, h: 360 });
   });
 
-  it('narrowRect は、スマホでは画面全体を覆う1枚（移動・大きさの変更なし）', () => {
+  it('narrowRect は、スマホでは左右 8 px の余白、高さは画面の7割で上下中央の1枚（移動・大きさの変更なし）', () => {
     const r = narrowRect({ w: 600, h: 1000, phone: true });
-    expect(r).toEqual({ x: 0, y: 0, w: 600, h: 1000 });
+    expect(r).toEqual({ x: 8, y: 150, w: 584, h: 700 });
   });
 
   it('defaultRect は覚えた位置を使い、覚えていなければ右上', () => {
