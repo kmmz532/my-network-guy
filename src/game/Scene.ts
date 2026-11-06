@@ -66,7 +66,7 @@ const PACKET_COLOR: Record<string, number> = {
   http: 0xff8fb0,
 };
 // 社員のスプライト（2人を服の色で区別する）
-const STAFF_SHIRT = ['blue', 'red'];
+const STAFF_SHIRT = ['blue_dark_short', 'red_dark_short'];
 // 社員のコマ送りの間隔（ms）。ART.md の 4〜8 fps 相当
 const FRAME_MS = 150;
 // サンドボックスを開いたとき（全体表示より大きい倍率）

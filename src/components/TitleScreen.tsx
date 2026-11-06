@@ -321,12 +321,12 @@ function Rack() {
       </div>
       <div className="ts-staff">
         <div className="ts-staff-slot">
-          <Typist base="blue" />
+          <Typist base="blue_dark_short" />
         </div>
         <div className="ts-staff-slot" />
         <div className="ts-staff-slot" />
         <div className="ts-staff-slot">
-          <Typist base="red" />
+          <Typist base="red_brown_long" />
         </div>
       </div>
     </div>
