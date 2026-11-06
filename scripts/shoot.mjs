@@ -37,6 +37,46 @@ const runBuild = (untilResult) => {
 };
 
 // 場面の一覧。page は開いたページ。game は開発中だけ window.__game（ゲームの状態）として使える
+// N51a の新しい地図の依頼を1件受注した状態（配置は確かめるための固定の位置）
+const newMapScene = (offerId, map, title, pcs, goals) => async (page) => {
+  await scenes.career(page);
+  await page.evaluate(
+    ({ offerId, map, title, pcs, goals }) => {
+      const g = window.__game;
+      const placed = pcs.map(([x, y], i) => ({ ref: `pc_${i + 1}`, device: 'pc_basic', x, y, locked: true }));
+      const refs = placed.map((p) => p.ref);
+      const offer = {
+        id: offerId,
+        kind: 'template',
+        // 文言は元のひな形の ID を使う（_shoot を外す）
+        baseId: offerId.replace(/_shoot$/, ''),
+        params: { pcCount: placed.length },
+        contract: {
+          id: offerId,
+          stage: 1,
+          unlockLevel: 1,
+          order: 0,
+          deadlineDays: 14,
+          requires: [],
+          jobs: ['infra'],
+          map,
+          budget: 1000000,
+          placed,
+          goals: goals.map((x) => (x === '$all_pcs' ? { type: 'ping_all', nodes: refs } : x)),
+          inhouse: false,
+          reward: { money: 100000 },
+        },
+      };
+      g.setState({ offers: [...g.getState().offers, offer] });
+      const s = g.getState();
+      const reason = s.accept(offerId, [s.staff[0].uid, s.staff[1].uid]);
+      if (reason) throw new Error(`受注できない: ${reason}（${title}）`);
+    },
+    { offerId, map, title, pcs, goals },
+  );
+  await page.waitForTimeout(500);
+};
+
 const scenes = {
   // タイトル画面
   title: async () => {},
@@ -120,6 +160,12 @@ const scenes = {
     await page.getByRole('button', { name: '雇用', exact: true }).first().click();
     await page.waitForTimeout(500);
   },
+  // N51a: 学校のパソコン室（school_lab。1部屋の広い教室、10台を2列で置く）
+  mapSchool: newMapScene('t_school_lab_shoot', 'school_lab', '学校のパソコン室', [[2, 3], [5, 3], [8, 3], [11, 3], [14, 3], [17, 3], [2, 7], [5, 7], [8, 7], [11, 7]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
+  // N51a: 長い廊下でつながる2部屋（long_hall。左右の部屋に3台ずつ）
+  mapHall: newMapScene('t_long_hall_shoot', 'long_hall', '長い廊下の2部屋', [[2, 2], [6, 2], [4, 6], [32, 2], [36, 2], [34, 6]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
+  // N51a: 小さな工場の作業場（factory。柱の列の間に16台）
+  mapFactory: newMapScene('t_factory_shoot', 'factory', '工場の作業場', [[2, 1], [5, 1], [9, 1], [12, 1], [17, 1], [20, 1], [25, 1], [28, 1], [2, 10], [5, 10], [9, 10], [12, 10], [17, 10], [20, 10], [25, 10], [28, 10]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
   // インベントリを開いた状態
   inventory: async (page) => {
     await scenes.career(page);
