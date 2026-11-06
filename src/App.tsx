@@ -74,6 +74,7 @@ export function App() {
   const [sandboxPick, setSandboxPick] = useState(false);
   const clock = useGameStore((s) => s.clock);
   const companyExp = useGameStore((s) => s.companyExp);
+  const reputation = useGameStore((s) => s.reputation);
   const levelNow = levelOf(companyExp, balance);
   const nextNow = nextLevel(companyExp, balance);
   const speed = useGameStore((s) => s.speed);
@@ -316,8 +317,14 @@ export function App() {
         </span>
         {!sandbox && (
         <span>
-          {/* 会社のレベルと、次のレベルまでの経験値（N45） */}
+          {/* 評判（★の数の積み上げ。N55）。星のアイコンと数 */}
           <Icon name="icon/star" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} />{' '}
+          {t('ui.hud.reputation', { value: reputation })}
+        </span>
+        )}
+        {!sandbox && (
+        <span>
+          {/* 会社のレベルと、次のレベルまでの経験値（N45）。星のアイコンは付けない */}
           {t('ui.hud.level', { level: levelNow })}
           {nextNow ? ` ${t('ui.hud.nextLevel', { need: nextNow.need })}` : ` ${t('ui.hud.maxLevel')}`}
         </span>

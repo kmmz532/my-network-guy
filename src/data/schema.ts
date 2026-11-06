@@ -123,7 +123,6 @@ export const balanceSchema = z.object({
       }),
     )
     .min(1),
-  expPerStar: nonNegativeInt,
   // ツールチップの出し方（ミリ秒）
   tooltip: z.object({
     hoverMs: nonNegativeInt,

@@ -95,9 +95,11 @@ export function ReportModal() {
       <div style={{ fontSize: 20, marginTop: 8 }}>
         <Icon name="icon/money" /> +{(report.money ?? 0).toLocaleString('ja-JP')}
       </div>
+      {/* 評判（★の数の積み上げ）と経験値は別の行。経験値の行には星のアイコンを付けない（N55） */}
       <div style={{ fontSize: 16, marginTop: 4 }}>
-        <Icon name="icon/star" /> {t('report.expGain', { exp: report.expGain ?? 0 })}
+        <Icon name="icon/star" /> {t('report.reputationGain', { stars: report.stars ?? 0 })}
       </div>
+      <div style={{ fontSize: 16, marginTop: 4 }}>{t('report.expGain', { exp: report.expGain ?? 0 })}</div>
       {(report.levelUps ?? []).map((u) => (
         <div key={u.level} style={{ marginTop: 8, padding: 8, background: '#25406f', fontSize: 14 }}>
           <div style={{ fontWeight: 'bold', color: '#ffd866' }}>{t('report.levelUp.title', { level: u.level })}</div>

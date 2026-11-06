@@ -144,6 +144,8 @@ export interface GameState {
   mode: GameMode;
   clock: ClockState;
   companyExp: number;
+  // 評判（★の数の積み上げ。解放の条件には使わない。N55）
+  reputation: number;
   owned: Record<string, number>;
   completed: string[];
   offers: Offer[];
@@ -378,6 +380,7 @@ const newStart = () => {
 export const coreOf = (s: GameState): Core => ({
   clock: s.clock,
   companyExp: s.companyExp,
+  reputation: s.reputation,
   owned: s.owned,
   completed: s.completed,
   offers: s.offers,
@@ -446,6 +449,9 @@ const unlockItems: UnlockItem[] = [
 ];
 
 // 納品で会社のレベルが上がったら、上がった各レベルの報酬（お金・機器）を足し、解放の一覧を報告に付ける（N45）
+// サンドボックスの拡張の設定。解放のレベルを外す（費用は呼び出し側で打ち消す。N59）
+const SANDBOX_EXPAND_CONFIG = { ...balance.office, expand: { ...balance.office.expand, unlockLevels: [] } };
+
 const withLevelUps = (prev: GameState, patch: Partial<GameState>): Partial<GameState> => {
   const report = patch.lastReport;
   const nextExp = patch.companyExp;
@@ -575,6 +581,7 @@ export const useGameStore = create<GameState>((set, get) => {
       ...(redesigned || (sandbox && c.office !== get().office) ? { check: null, helpUid: null } : {}),
       clock: sandbox ? get().clock : c.clock,
       companyExp: c.companyExp,
+      reputation: c.reputation,
       owned: c.owned,
       completed: c.completed,
       offers: c.offers,
@@ -611,6 +618,7 @@ export const useGameStore = create<GameState>((set, get) => {
     mode: 'career',
     clock: initialClock(balance),
     companyExp: 0,
+    reputation: 0,
     owned: { ...balance.initialStock },
     completed: [],
     offers: [],
@@ -848,6 +856,7 @@ export const useGameStore = create<GameState>((set, get) => {
               ...next,
               clock: r.core.clock,
               companyExp: r.core.companyExp,
+              reputation: r.core.reputation,
               completed: r.core.completed,
               active: r.core.active,
               focus: r.core.focus,
@@ -929,15 +938,20 @@ export const useGameStore = create<GameState>((set, get) => {
       return recorded(() => apply(placeDevice(coreOf(get()), deviceId, x, y, map, gameEnv), { tx: x, ty: y }));
     },
     expandOffice: (side) => {
-      // サンドボックスは床の大きさを変えない（部屋は 30 × 20 の1部屋）
-      if (get().mode === 'sandbox') return 'none';
       const office = get().office;
       // 失敗の吹き出しは、広げる辺の内側の壁のマスに出す（広げる前の大きさで決める）
       const at = {
         tx: side === 'right' ? office.size.w + 1 : side === 'left' ? 0 : Math.floor((office.size.w + 2) / 2),
         ty: side === 'bottom' ? office.size.h + 1 : Math.floor((office.size.h + 2) / 2),
       };
-      const reason = apply(expandOfficeOp(coreOf(get()), side, balance.office, levelOf(get().companyExp, balance)), at);
+      // サンドボックスは、解放（レベル）も費用も問わず広げる。拡張の上限は通常と同じ（N59）。費用は、資金を変えないよう一時的に大きな資金で計算してから戻す
+      const sandboxExpand = get().mode === 'sandbox';
+      const core = coreOf(get());
+      const outcome = sandboxExpand
+        ? expandOfficeOp({ ...core, clock: { ...core.clock, money: Number.MAX_SAFE_INTEGER } }, side, SANDBOX_EXPAND_CONFIG, 0)
+        : expandOfficeOp(core, side, balance.office, levelOf(get().companyExp, balance));
+      const restored: Outcome = outcome.ok && sandboxExpand ? { ...outcome, core: { ...outcome.core, clock: { ...outcome.core.clock, money: core.clock.money } } } : outcome;
+      const reason = apply(restored, at);
       if (reason !== null) return reason;
       // 部屋の大きさが変わったので、マップを作り直す。広げる前の操作の取り消しは、座標が合わないため消す
       dropHistory(OFFICE_HISTORY_KEY);
@@ -1059,6 +1073,7 @@ export const useGameStore = create<GameState>((set, get) => {
         mode: save.mode,
         clock: save.clock,
         companyExp: save.companyExp,
+        reputation: save.reputation,
         owned: save.owned,
         completed: save.completed,
         offers: save.offers as Offer[],
@@ -1092,6 +1107,7 @@ export const useGameStore = create<GameState>((set, get) => {
           mode: 'career',
           clock: initialClock(balance),
           companyExp: 0,
+          reputation: 0,
           owned: { ...balance.initialStock },
           completed: [],
           offers: [],
@@ -1133,6 +1149,7 @@ export const useGameStore = create<GameState>((set, get) => {
           mode: 'sandbox',
           clock: sandboxClock(initialClock(balance)),
           companyExp: 0,
+          reputation: 0,
           owned: {},
           completed: [],
           offers: [],
@@ -1185,6 +1202,7 @@ export const useGameStore = create<GameState>((set, get) => {
         mode: s.mode,
         clock: s.clock,
         companyExp: s.companyExp,
+        reputation: s.reputation,
         owned: s.owned,
         completed: s.completed,
         offers: s.offers,

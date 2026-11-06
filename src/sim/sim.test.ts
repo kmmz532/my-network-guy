@@ -14,7 +14,6 @@ const balance = {
     { stars: 2, maxCostRatio: 1.0, maxRework: 1 },
     { stars: 1, maxCostRatio: null, maxRework: null },
   ],
-  expPerStar: 1,
 } as Balance;
 
 describe('clock', () => {

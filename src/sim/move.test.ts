@@ -67,6 +67,7 @@ const offerOf = (contract: unknown, id: string): Offer => ({
 const start = (owned: Record<string, number> = {}): Core => ({
   clock: { minute: 0, money: 1_000_000, paidMonths: 0, bankrupt: false },
   companyExp: 0,
+  reputation: 0,
   owned,
   completed: [],
   offers: [offerOf(c001, 'c001_direct_link')],

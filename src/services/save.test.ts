@@ -21,6 +21,7 @@ const sample: SaveData = {
   mode: 'career',
   clock: { minute: 720, money: 300000, paidMonths: 1, bankrupt: false },
   companyExp: 2,
+  reputation: 0,
   owned: { pc_basic: 1 },
   completed: ['c001_direct_link'],
   offers: [],
@@ -443,5 +444,12 @@ describe('古いセーブの読み込み（v22 の社員）', () => {
     const migrated = migrate(22, v22);
     expect(migrated.staff[0].shift).toBe('day');
     expect(migrated.candidates[0].shift).toBe('day');
+  });
+});
+
+describe('評判（N55）', () => {
+  it('v23 の保存は評判を 0 から始めて読み込める（検収の★は残っていない）', () => {
+    const { reputation: _r, ...v23 } = sample;
+    expect(migrate(23, v23).reputation).toBe(0);
   });
 });

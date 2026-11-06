@@ -378,12 +378,13 @@ export class Scene {
     const map = this.map;
     const s = useGameStore.getState();
     // サンドボックスは部屋を広げないので、広げるボタンは出さない
-    const shown = s.active.length === 0 && !s.showcase && map?.id === 'hq' && s.mode !== 'sandbox';
+    // サンドボックスも、広げるボタンを出す（解放と費用を問わない。N59）
+    const shown = s.active.length === 0 && !s.showcase && map?.id === 'hq';
     for (const side of EXPAND_SIDES) {
       const box = this.expandButtons.get(side);
       if (!box) continue;
       // 次の拡張が会社のレベルで解放されるまでは出さない（N59）
-      const locked = expansionLocked(s.office, balance.office, levelOf(s.companyExp, balance));
+      const locked = s.mode !== 'sandbox' && expansionLocked(s.office, balance.office, levelOf(s.companyExp, balance));
       const visible = shown && !locked && expandActionOf(s.office, side, balance.office) !== null;
       box.visible = visible;
       if (!visible || !map) continue;

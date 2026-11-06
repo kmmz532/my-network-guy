@@ -58,6 +58,7 @@ const office = (over: Partial<Office> = {}): Office => ({
 const core = (money: number, over: Partial<Office> = {}, active: Project[] = []): Core => ({
   clock: { minute: 0, money, paidMonths: 0, bankrupt: false },
   companyExp: 0,
+  reputation: 0,
   owned: {},
   completed: [],
   offers: [],

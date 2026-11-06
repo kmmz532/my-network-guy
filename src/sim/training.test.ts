@@ -19,6 +19,7 @@ const env: TrainingEnv = {
 const core = (): Core => ({
   clock: { minute: 1000, money: 1_000_000, paidMonths: 0, bankrupt: false },
   companyExp: 0,
+  reputation: 0,
   owned: {},
   completed: [],
   offers: [],

@@ -74,6 +74,7 @@ const offer: Offer = {
 const start = (): Core => ({
   clock: { minute: 0, money: 1_000_000, paidMonths: 0, bankrupt: false },
   companyExp: 0,
+  reputation: 0,
   owned: {},
   completed: [],
   offers: [offer],
@@ -145,8 +146,9 @@ describe('案件の流れ: c001 PC2台の直結', () => {
     expect(done.core.completed).toEqual(['c001_direct_link']);
     // 報酬は 45000 × ★3 の倍率 1.25
     expect(done.core.clock.money).toBe(1_000_000 - 3100 + 56250);
-    expect(done.core.companyExp).toBe(1 + 3 * balance.expPerStar);
-    expect(done.report?.expGain).toBe(1 + 3 * balance.expPerStar);
+    // 経験値は案件の規模で増え、評判は得た★の数（3）だけ増える（N55）
+    expect(done.core.reputation).toBe(3);
+    expect(done.report?.expGain).toBe(done.core.companyExp);
   });
 
   it('IPアドレスを設定せずにテストすると不合格になり、施工を依頼できない（untested）', () => {
