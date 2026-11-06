@@ -84,6 +84,8 @@ export const balanceSchema = z.object({
     workEndHour: z.number().min(0).max(24),
     minutesPerDevice: nonNegativeInt,
     minutesPerCableTile: nonNegativeInt,
+    // 社員が出社する時刻（始業の何分前にドアから入るか）。席に着いているのは始業の時刻まで
+    arriveMinutesBefore: nonNegativeInt,
   }),
   rating: z
     .array(

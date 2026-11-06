@@ -53,6 +53,10 @@ export const toDate = (minute: number, balance: Balance) => {
   return { year, month, day, hour };
 };
 
+// 社員が事務所にいる時刻（出社の時刻から終業まで）。分（その日の0時からの分）で決める
+export const isPresentMinute = (minuteOfDay: number, balance: Balance): boolean =>
+  minuteOfDay >= balance.build.workStartHour * 60 - balance.build.arriveMinutesBefore && minuteOfDay < balance.build.workEndHour * 60;
+
 // 勤務時間内か（施工は勤務時間内にしか進まない）
 export const isWorkingHour = (hour: number, balance: Balance): boolean =>
   hour >= balance.build.workStartHour && hour < balance.build.workEndHour;

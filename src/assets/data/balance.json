@@ -80,7 +80,8 @@
     "workStartHour": 9,
     "workEndHour": 18,
     "minutesPerDevice": 240,
-    "minutesPerCableTile": 15
+    "minutesPerCableTile": 15,
+    "arriveMinutesBefore": 30
   },
   "rating": [
     {

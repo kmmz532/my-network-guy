@@ -40,7 +40,7 @@ import { bindMapCommands } from './mapControl';
 import { cumulativeLengths, pointAt, type Point } from './animation';
 import { wanderStep, type Walker } from './wander';
 import { bfsRoute, commuteStep, type Commute } from './commute';
-import { isWorkingHour, toDate } from '../sim/clock';
+import { isPresentMinute, minutesPerDay } from '../sim/clock';
 import { deskStaffPos, deskTap, staffAt, STAFF_W, wanderStaffPos, type StaffHit } from './staffHit';
 
 // 拡大・縮小ボタンの列は、ツールバーの上の右下の角にある（MapZoomButtons.tsx と同じ寸法。画面の px）
@@ -867,7 +867,8 @@ export class Scene {
     const map = this.map;
     if (!map || map.id !== 'hq') return;
     const s = useGameStore.getState();
-    const working = isWorkingHour(toDate(s.clock.minute, balance).hour, balance);
+    // 出社は始業の少し前から（席に着いているのは始業まで）。事務所にいる時刻の間は、出勤の途中か机にいる
+    const working = isPresentMinute(s.clock.minute % minutesPerDay, balance);
     // 出入り口は、マップの最初のドアのマス。ドアがない最初の部屋では、下の壁の手前の中央の床を出入り口にする
     let door: Point = { x: Math.floor(map.width / 2), y: map.height - 2 };
     outer: for (let y = 0; y < map.height; y++) {
