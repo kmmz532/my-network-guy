@@ -144,11 +144,11 @@ describe('社員を雇う', () => {
   const twoDesks = { ...emptyOffice({ w: 5, h: 5 }), furniture: [{ uid: 'f0', id: 'desk', x: 1, y: 0 }, { uid: 'f1', id: 'desk', x: 2, y: 0 }], furnitureSeq: 2 };
 
   it('席が足りなければ採用できない（seat）', () => {
-    expect(reasonOf(hire(core({ candidates: [candidate] }), 'c1_0', isSeat))).toBe('seat');
+    expect(reasonOf(hire(core({ candidates: [candidate] }), 'c1_0', isSeat, 10))).toBe('seat');
   });
 
   it('席が空いていれば採用でき、候補から社員に移る', () => {
-    const out = hire(core({ staff: [], staffSeq: 0, office: twoDesks, candidates: [candidate] }), 'c1_0', isSeat);
+    const out = hire(core({ staff: [], staffSeq: 0, office: twoDesks, candidates: [candidate] }), 'c1_0', isSeat, 10);
     expect(out.ok).toBe(true);
     if (!out.ok) return;
     expect(out.core.staff.map((s) => [s.uid, s.job])).toEqual([['s0', 'infra']]);
@@ -157,7 +157,7 @@ describe('社員を雇う', () => {
   });
 
   it('候補にいない uid は採用できない（none）', () => {
-    expect(reasonOf(hire(core({ staff: [], office: twoDesks }), 'nobody', isSeat))).toBe('none');
+    expect(reasonOf(hire(core({ staff: [], office: twoDesks }), 'nobody', isSeat, 10))).toBe('none');
   });
 });
 

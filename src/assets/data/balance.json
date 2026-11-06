@@ -190,8 +190,7 @@
         12
       ]
     ],
-    "candidateLevelStep": 5,
-    "reputationPerLevel": 20
+    "candidateLevelStep": 5
   },
   "exam": {
     "baseRate": 0.4,

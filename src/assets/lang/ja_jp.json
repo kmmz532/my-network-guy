@@ -579,5 +579,6 @@
   "ui.hud.nextLevel": "（次まで {need}）",
   "ui.hud.maxLevel": "（最大）",
   "report.expGain": "経験値 +{exp}",
-  "ui.offer.blocked.level": "Lv {need} で届きます（今は Lv {now}）"
+  "ui.offer.blocked.level": "Lv {need} で届きます（今は Lv {now}）",
+  "ui.error.cap": "社員の人数が、今の会社のレベルの上限に達している"
 }

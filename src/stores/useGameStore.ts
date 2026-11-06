@@ -10,7 +10,8 @@ import { buyDevice, sellDevice } from '../sim/shop';
 import { declineOffer, offerHint, refreshOffers, type OfferEnv, type OfferHint } from '../contracts/offers';
 import type { Offer } from '../contracts/template';
 import type { GameMap, Staff } from '../data/schema';
-import { initialStaff, rollCandidates, totalSalary } from '../sim/staff';
+import { initialStaff, rollCandidates, staffCapOf, totalSalary } from '../sim/staff';
+import { levelOf } from '../sim/level';
 import { rand } from '../sim/rng';
 import { finishTrainings, startTraining as startTrainingOp, takeExam as takeExamOp, type TrainingEnv } from '../sim/training';
 import { certs as certRecord, training as trainingRecord } from 'virtual:game-data';
@@ -766,7 +767,7 @@ export const useGameStore = create<GameState>((set, get) => {
         if (clock.paidMonths > s.clock.paidMonths) {
           const amount = totalSalary(s.staff);
           // 毎月1日に、採用の候補を作り直す
-          const rolled = rollCandidates(s.companyExp, clock.paidMonths, s.rng, balance, s.staff.map((m) => m.name));
+          const rolled = rollCandidates(levelOf(s.companyExp, balance), clock.paidMonths, s.rng, balance, s.staff.map((m) => m.name));
           next = {
             ...next,
             notice: { key: 'ui.notice.salary', params: { amount }, id: Date.now() },
@@ -889,7 +890,8 @@ export const useGameStore = create<GameState>((set, get) => {
       const f = get().office.furniture.find((x) => x.uid === uid);
       return recorded(() => apply(removeFurnitureOp(coreOf(get()), uid), f ? { tx: f.x, ty: f.y } : undefined));
     },
-    hire: (candidateUid) => apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true)),
+    hire: (candidateUid) =>
+      apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true, staffCapOf(levelOf(get().companyExp, balance), balance))),
     connect: (aUid, bUid, cableId, ports = {}) => {
       const reason = recorded(() => apply(withAutoIp(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get()), ports), netTargetOf(get())), tileOf(bUid)));
       // つながった音と、つなげなかった音（効果音の設定がオフのときは鳴らない）

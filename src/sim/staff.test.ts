@@ -113,12 +113,12 @@ describe('採用の候補', () => {
     }
   });
 
-  it('level は評判で上がり、月給は level で決まる', () => {
+  it('level は会社のレベルで上がり、月給は level で決まる', () => {
     const h = balance.hiring;
     for (let seed = 1; seed < 200; seed += 7) {
       const { candidates } = rollCandidates(45, 2, seed, balance);
       for (const c of candidates) {
-        const base = 1 + Math.floor(45 / h.reputationPerLevel);
+        const base = 1 + Math.floor(45 / h.candidateLevelStep);
         expect([base, base + 1]).toContain(c.level);
         expect(c.salary).toBe(h.baseSalary + h.salaryPerLevel * c.level);
       }

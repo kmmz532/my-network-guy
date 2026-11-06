@@ -93,24 +93,39 @@ export const totalSalary = (staff: readonly Staff[]): number => staff.reduce((su
 // 採用の候補を毎月作り直す（0人〜maxCandidates人）。level は評判と乱数で決まり、月給は level で決まる
 // 候補の uid は "c" + 月 + "_" + 順番。採用するときに社員の uid へ付け替える。
 // taken は在籍中の社員の名前。候補どうしも名前が重ならない
+// 会社のレベルで解放された職種（採用の候補に出る職種）
+export const unlockedJobsOf = (companyLevel: number, balance: Balance): JobId[] =>
+  JOB_IDS.filter((j) => balance.hiring.jobUnlockLevels[j] <= companyLevel);
+
+// 社員の人数の上限（会社のレベル以上での上限のうち、最も新しいもの）。どの上限にも届かないレベルは 0
+export const staffCapOf = (companyLevel: number, balance: Balance): number => {
+  let cap = 0;
+  for (const [lvl, max] of balance.hiring.staffCapByLevel) if (companyLevel >= lvl) cap = max;
+  return cap;
+};
+
+// 候補を作る。職種は、会社のレベルで解放された職種から選ぶ。候補の能力は会社のレベルで上がる（LEVEL.md 3.3）
 export const rollCandidates = (
-  companyExp: number,
+  companyLevel: number,
   month: number,
   rng: number,
   balance: Balance,
   taken: readonly string[] = [],
 ): { candidates: Staff[]; rng: number } => {
   const h = balance.hiring;
+  const jobs = unlockedJobsOf(companyLevel, balance);
+  // 解放された職種がなければ、候補は出ない（Lv1 では採用の画面は開けない）
+  if (jobs.length === 0) return { candidates: [], rng };
   const count = randInt(rng, 0, h.maxCandidates);
   let state = count.state;
   const candidates: Staff[] = [];
   const names = [...taken];
   for (let i = 0; i < count.value; i++) {
     const bonus = randInt(state, 0, 1);
-    const job = randInt(bonus.state, 0, JOB_IDS.length - 1);
-    const level = 1 + Math.floor(companyExp / h.reputationPerLevel) + bonus.value;
+    const job = randInt(bonus.state, 0, jobs.length - 1);
+    const level = 1 + Math.floor(companyLevel / h.candidateLevelStep) + bonus.value;
     const made = createStaff(
-      { job: JOB_IDS[job.value], level, salary: h.baseSalary + h.salaryPerLevel * level },
+      { job: jobs[job.value], level, salary: h.baseSalary + h.salaryPerLevel * level },
       job.state,
       0,
       names,

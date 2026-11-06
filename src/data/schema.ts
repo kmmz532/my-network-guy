@@ -132,12 +132,10 @@ export const balanceSchema = z.object({
   // 採用の候補（毎月1日に作り直す）
   hiring: z.object({
     maxCandidates: nonNegativeInt,
-    // 評判の何点ごとに候補の level が1上がるか（会社のレベルに置き換えるまで残す）
-    reputationPerLevel: int.positive(),
     baseSalary: nonNegativeInt,
     salaryPerLevel: nonNegativeInt,
     // 職種ごとの解放のレベル（解放された職種だけが採用の候補に出る）
-    jobUnlockLevels: z.record(z.enum(JOB_IDS), unlockLevelSchema),
+    jobUnlockLevels: z.object({ network: unlockLevelSchema, infra: unlockLevelSchema, security: unlockLevelSchema }),
     // 社員の人数の上限（会社のレベル以上での上限。[レベル, 上限] の組）
     staffCapByLevel: z.array(z.tuple([unlockLevelSchema, int.positive()])),
     // 候補の能力は、会社のレベルの何段階ごとに1上がるか

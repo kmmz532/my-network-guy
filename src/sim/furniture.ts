@@ -76,10 +76,12 @@ export const seatCount = (office: Office, isSeat: (id: string) => boolean): numb
   office.furniture.filter((f) => isSeat(f.id)).length;
 
 // 候補の社員を採用する。席の数を超えては採用できない。採用に費用はかからない
-export const hire = (core: Core, candidateUid: string, isSeat: (id: string) => boolean): Outcome => {
+export const hire = (core: Core, candidateUid: string, isSeat: (id: string) => boolean, staffCap: number): Outcome => {
   const candidate = core.candidates.find((c) => c.uid === candidateUid);
   if (!candidate) return fail('none');
   if (core.staff.length >= seatCount(core.office, isSeat)) return fail('seat');
+  // 会社のレベルの上限（人数）に達していれば採用できない（LEVEL.md 3.3）
+  if (core.staff.length >= staffCap) return fail('cap');
   const staff: Staff = { ...candidate, uid: `s${core.staffSeq}` };
   return {
     ok: true,
