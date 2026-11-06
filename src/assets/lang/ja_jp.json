@@ -661,7 +661,7 @@
   "ui.terminal.errHostname": "名前は英字で始め、英数字とハイフンで、63文字まで（末尾はハイフンにしない）",
   "ui.blueprint.use": "型紙を使う",
   "ui.delegate.button": "型紙で任せる",
-  "ui.delegate.blind": "社員に任せる（結果はおまかせ）",
+  "ui.delegate.blind": "社員に任せる",
   "ui.delegate.stars": "予想の★: {range}",
   "ui.delegate.count": "3回納品すると、社員に任せられる",
   "ui.delegate.blueprint": "納品した設計（型紙）がない",
