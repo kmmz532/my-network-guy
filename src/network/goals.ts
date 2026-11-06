@@ -73,6 +73,22 @@ const handlers: { [K in Goal['type']]: Handler } = {
       return { goal, ok: hit.r.ok, failure: hit.r.failure, kind: 'http' as const, src: pc, dst: hit.sv, result: hit.r };
     });
   },
+  firewall: (goal, net, data) => {
+    if (goal.type !== 'firewall') throw new Error('firewall ハンドラに別の種類が渡された');
+    const pcs = uidsOf(net, data, 'pc');
+    const servers = uidsOf(net, data, 'server');
+    if (!pcs.length || !servers.length) return [none(goal, 'ping')];
+    const firewalls = new Set(uidsOf(net, data, 'firewall'));
+    // PC ごとに、届くすべてのサーバーへの経路にファイアウォールがあれば成立。どこにも届かなければ不成立
+    return pcs.map((pc) => {
+      const tries = servers.map((sv) => ({ sv, r: ping(net, data, pc, sv) }));
+      const reached = tries.filter((x) => x.r.ok);
+      const bare = reached.find((x) => !x.r.path.some((uid) => firewalls.has(uid)));
+      const hit = bare ?? reached[0] ?? tries[0];
+      const ok = reached.length > 0 && !bare;
+      return { goal, ok, failure: hit.r.failure, kind: 'ping' as const, src: pc, dst: hit.sv, result: { ...hit.r, ok } };
+    });
+  },
 };
 
 // 1つの達成条件を判定する。ping_all は全ペアの結果を返す

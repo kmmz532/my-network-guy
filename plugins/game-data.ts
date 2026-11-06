@@ -187,6 +187,7 @@ const goalRefs = (goal: Goal): string[] => {
       return goal.nodes === '$all_pcs' ? [] : goal.nodes;
     case 'count':
     case 'http_all':
+    case 'firewall':
       return [];
   }
 };

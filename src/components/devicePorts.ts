@@ -5,7 +5,7 @@ import { ROUTER_SWITCH_WAN_PORT } from '../network/category';
 
 // ポートの名前。スイッチは 1 から、ルーターは G0/0 の形、スイッチ付きルーターは WAN と LAN1〜4、PC・サーバーは LAN（ポートの番号は 0 から数える）
 export const portLabel = (category: string | undefined, port: number): string => {
-  if (category === 'router' || category === 'l3_switch') return t('ui.rear.routerPort', { port });
+  if (category === 'router' || category === 'l3_switch' || category === 'firewall') return t('ui.rear.routerPort', { port });
   if (category === 'router_switch') return port === ROUTER_SWITCH_WAN_PORT ? t('ui.rear.wan') : t('ui.rear.switchLan', { port });
   if (category === 'l2_switch') return String(port + 1);
   return t('ui.rear.lan');

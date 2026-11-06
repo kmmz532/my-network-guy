@@ -154,7 +154,7 @@ const serviceSchema = z.object({
 
 export const deviceSchema = z.object({
   id: z.string().min(1),
-  category: z.enum(['pc', 'server', 'l2_switch', 'router', 'l3_switch', 'router_switch']),
+  category: z.enum(['pc', 'server', 'l2_switch', 'router', 'l3_switch', 'router_switch', 'firewall']),
   price: nonNegativeInt,
   ports: z
     .array(
@@ -245,6 +245,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('count'), category: z.string().min(1), min: z.number().int().positive() }),
   // すべてのPCから、いずれかのサーバーのWebページを閲覧できる
   z.object({ type: z.literal('http_all'), port: z.number().int().min(1).max(65535) }),
+  // すべてのPCから、到達できるサーバー（外部）への経路にファイアウォールがある
+  z.object({ type: z.literal('firewall') }),
 ]);
 
 export const contractSchema = z.object({

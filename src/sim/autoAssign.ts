@@ -108,7 +108,7 @@ export const autoAssign = (
     if (defaulted) {
       for (const m of seg.members) {
         const node = nodeMap().get(m.node);
-        if (!node || node.configLocked || categoryOf(m.node) !== 'router') continue;
+        if (!node || node.configLocked || !['router', 'firewall'].includes(categoryOf(m.node))) continue;
         if (node.interfaces.some((i) => i.port === m.port)) continue;
         const h = pickFree(1);
         if (h !== undefined) assign(m, h);

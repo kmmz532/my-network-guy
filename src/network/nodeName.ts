@@ -4,7 +4,7 @@
 import type { NetNode } from './types';
 
 export interface NameContext {
-  // 機器の種類（pc・server・l2_switch・router・l3_switch・router_switch）。ノートPCは pc の種類
+  // 機器の種類（pc・server・l2_switch・router・l3_switch・router_switch・firewall）。ノートPCは pc の種類
   categoryOf: (device: string) => string;
   // 種類の短い呼び名（「PC」「サーバー」「L3スイッチ」など）。種類ごとに番号を振る
   categoryLabel: (category: string) => string;

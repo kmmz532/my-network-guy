@@ -7,6 +7,7 @@ import cablesJson from '../assets/data/cables.json';
 import furnitureJson from '../assets/data/furniture.json';
 import pcJson from '../assets/data/devices/pc.json';
 import routerJson from '../assets/data/devices/router.json';
+import firewallJson from '../assets/data/devices/firewall.json';
 import switchJson from '../assets/data/devices/l2_switch.json';
 import serverJson from '../assets/data/devices/server.json';
 import c001 from '../assets/data/contracts/c001_direct_link.json';
@@ -14,6 +15,7 @@ import c002 from '../assets/data/contracts/c002_small_office.json';
 import c003 from '../assets/data/contracts/c003_departments.json';
 import c004 from '../assets/data/contracts/c004_web_server.json';
 import c005 from '../assets/data/contracts/c005_two_sites.json';
+import c006 from '../assets/data/contracts/c006_office_external.json';
 import i001 from '../assets/data/contracts/i001_office_lan.json';
 import i002 from '../assets/data/contracts/i002_office_server.json';
 import templateJson from '../assets/data/contracts/templates/t_small_lan.json';
@@ -47,7 +49,7 @@ const gameMinutesPerTick = balance.time.gameMinutesPerTick;
 
 // 機材の性質（ゲームの定義と同じ。サーバーの既定のサービスを含む）
 const devices: Env['devices'] = {};
-for (const d of [...pcJson.devices, ...switchJson.devices, ...routerJson.devices, ...serverJson.devices]) {
+for (const d of [...pcJson.devices, ...switchJson.devices, ...routerJson.devices, ...firewallJson.devices, ...serverJson.devices]) {
   devices[d.id] = {
     category: d.category,
     price: d.price,
@@ -73,6 +75,7 @@ const env: Env = {
 const UTP = 'utp_cat5e';
 const SWITCH = 'l2_switch_8p';
 const ROUTER = 'router_basic';
+const FIREWALL = 'firewall';
 const PC = 'pc_basic';
 const SERVER = 'server_basic';
 
@@ -267,6 +270,41 @@ describe('模範解答: 固定案件', () => {
     core = addr(core, router.uid, '192.168.1.1');
     core = addr(core, router.uid, '192.168.20.1', 1);
     expectReference(finish(core).report);
+  });
+
+  it('c006 外部接続: スイッチの先にファイアウォールを置き、外部のサーバーへつなぐ', () => {
+    let core = take(startCore([fixedOffer(c006)]), 'c006_office_external');
+    core = buy(core, FIREWALL);
+    core = buy(core, SWITCH);
+    const fw = place(core, FIREWALL, 9, 5, roomsMap);
+    core = fw.core;
+    const sw = place(core, SWITCH, 2, 5, roomsMap);
+    core = sw.core;
+    core = wire(core, 'staff_a', sw.uid);
+    core = wire(core, 'staff_b', sw.uid);
+    core = wire(core, sw.uid, fw.uid, UTP, { b: 0 });
+    core = wire(core, fw.uid, 'web', UTP, { a: 1 });
+    core = addr(core, fw.uid, '192.168.1.1');
+    core = addr(core, fw.uid, '203.0.113.1', 1);
+    expectReference(finish(core).report);
+  });
+
+  it('c006 外部接続: ルーターで通じても、ファイアウォールを通らなければ合格しない', () => {
+    let core = take(startCore([fixedOffer(c006)]), 'c006_office_external');
+    core = buy(core, ROUTER);
+    core = buy(core, SWITCH);
+    const router = place(core, ROUTER, 9, 5, roomsMap);
+    core = router.core;
+    const sw = place(core, SWITCH, 2, 5, roomsMap);
+    core = sw.core;
+    core = wire(core, 'staff_a', sw.uid);
+    core = wire(core, 'staff_b', sw.uid);
+    core = wire(core, sw.uid, router.uid, UTP, { b: 0 });
+    core = wire(core, router.uid, 'web', UTP, { a: 1 });
+    core = addr(core, router.uid, '192.168.1.1');
+    core = addr(core, router.uid, '203.0.113.1', 1);
+    const tested = ok(testDesign(core, env));
+    expect(tested.result.passed).toBe(false);
   });
 
   it('i001 自社オフィスのLAN: 机の2台をスイッチにつなぐ（後の i002 でサーバーをつなげるよう、スイッチを置く）', () => {

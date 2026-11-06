@@ -45,6 +45,7 @@
     { "device": "l2_switch_16p", "unlock": { "contract": "c004_web_server" } },
     { "device": "l2_switch_24p", "unlock": { "contract": "c005_two_sites" } },
     { "device": "l3_switch", "unlock": { "contract": "c005_two_sites" } },
-    { "device": "gpu_server", "unlock": { "contract": "c005_two_sites" } }
+    { "device": "gpu_server", "unlock": { "contract": "c005_two_sites" } },
+    { "device": "firewall", "unlock": { "contract": "c005_two_sites" } }
   ]
 }

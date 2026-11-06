@@ -1,0 +1,102 @@
+{
+  "id": "c006_office_external",
+  "stage": 1,
+  "order": 60,
+  "requires": [
+    "c005_two_sites"
+  ],
+  "jobs": [
+    "security"
+  ],
+  "map": "office_two_rooms",
+  "budget": 200000,
+  "deadlineDays": 12,
+  "placed": [
+    {
+      "ref": "web",
+      "device": "server_basic",
+      "x": 17,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "203.0.113.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "203.0.113.1",
+        "services": [
+          {
+            "protocol": "http",
+            "port": 80
+          }
+        ],
+        "locked": true
+      },
+      "name": "外部のWebサーバー"
+    },
+    {
+      "ref": "staff_a",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "社員のPC1"
+    },
+    {
+      "ref": "staff_b",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "社員のPC2"
+    }
+  ],
+  "goals": [
+    {
+      "type": "http",
+      "from": "staff_a",
+      "to": "web",
+      "port": 80
+    },
+    {
+      "type": "http",
+      "from": "staff_b",
+      "to": "web",
+      "port": 80
+    },
+    {
+      "type": "firewall"
+    }
+  ],
+  "reward": {
+    "money": 520000,
+    "reputation": 2
+  }
+}

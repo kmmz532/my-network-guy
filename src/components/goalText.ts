@@ -10,7 +10,7 @@ export const goalText = (goal: Goal, nameOf: (id: string) => string = (id) => id
       ? { nodes: Array.isArray(goal.nodes) ? goal.nodes.map(nameOf).join('・') : t('ui.task.allPcs') }
       : goal.type === 'count'
         ? { name: t(`category.${goal.category}` as LangKey), min: goal.min }
-        : goal.type === 'http_all'
+        : goal.type === 'http_all' || goal.type === 'firewall'
           ? {}
           : { from: nameOf(goal.from), to: nameOf(goal.to) };
   return t(`goal.${goal.type}` as LangKey, params);
