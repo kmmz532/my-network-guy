@@ -303,12 +303,16 @@ export function App() {
         <span>
           <Icon name="icon/money" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} /> {sandbox ? '∞' : clock.money.toLocaleString('ja-JP')}
         </span>
+        {!sandbox && (
         <span>
           <Icon name="icon/star" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} /> {reputation}
         </span>
+        )}
+        {!sandbox && (
         <span>
           <Icon name="icon/calendar" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} /> {t('ui.hud.date', { year: date.year, month: date.month, day: date.day, hour: date.hour })}
         </span>
+        )}
         {!sandbox && (
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {/* 押すと、社員の一覧を開く */}

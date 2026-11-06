@@ -69,6 +69,8 @@ const PACKET_COLOR: Record<string, number> = {
 const STAFF_SHIRT = ['blue', 'red'];
 // 社員のコマ送りの間隔（ms）。ART.md の 4〜8 fps 相当
 const FRAME_MS = 150;
+// サンドボックスを開いたとき（全体表示より大きい倍率）
+const SANDBOX_OPEN_ZOOM = 2;
 // 失敗の吹き出しを出しておく時間（ms）
 const FLASH_MS = 2500;
 // つながった瞬間に、ケーブルの上を光が走る時間（ms）
@@ -498,7 +500,8 @@ export class Scene {
     const padded = { w: map.w + pad * 2, h: map.h + pad * 2 };
     const insets = this.fitInsets();
     const area = { w: view.w, h: Math.max(0, view.h - insets.top - insets.bottom) };
-    const zoom = fitZoom(padded, area);
+    // サンドボックスは全体表示だと機器が小さすぎるため、開いたときは部屋の一部を拡大する
+    const zoom = useGameStore.getState().mode === 'sandbox' ? Math.max(fitZoom(padded, area), SANDBOX_OPEN_ZOOM) : fitZoom(padded, area);
     const boxW = padded.w * zoom;
     const boxH = padded.h * zoom;
     let left = (area.w - boxW) / 2;
