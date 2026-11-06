@@ -1,6 +1,6 @@
 // 案件の流れ（受注・設計・施工・検収・納品）。状態を受け取り、新しい状態を返す純粋関数で書く。
 // 設計は機器の配置・配線・IP設定、施工は社員が作業時間をかけて行い、検収で達成条件を判定する。
-import type { Balance, Contract, Furniture, GameMap, JobId, Staff } from '../data/schema';
+import type { Balance, Contract, Furniture, GameMap, Staff } from '../data/schema';
 import { renameNode } from '../network/nodeName';
 import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
@@ -1061,9 +1061,9 @@ export const advanceBuild = (core: Core, env: Env, hour: number): Outcome => {
   let finished: string | null = null;
   for (const p of core.active) {
     if (p.phase !== 'build') continue;
-    // 施工の進みは、担当の社員の施工力の合計に比例する。案件の求める職種の社員は1.5倍
-    const requires = p.contract.requires as JobId[];
-    const power = crewOf(p).reduce((sum, s) => sum + staffPower(s, requires, core.office, bonusEnv), 0);
+    // 施工の進みは、担当の社員の施工力の合計に比例する。案件の向いている職種の社員は1.5倍
+    const jobs = p.contract.jobs ?? [];
+    const power = crewOf(p).reduce((sum, s) => sum + staffPower(s, jobs, core.office, bonusEnv), 0);
     let progress = p.progress;
     if (working) progress += env.balance.time.gameMinutesPerTick * power * (1 + core.effects.buildSpeed);
     if (progress < p.total) {

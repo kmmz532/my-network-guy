@@ -8,7 +8,7 @@ import switchJson from '../assets/data/devices/l2_switch.json';
 import serverJson from '../assets/data/devices/server.json';
 import c001 from '../assets/data/contracts/c001_direct_link.json';
 import officeJson from '../assets/data/maps/office_small.json';
-import type { Balance, Contract, Furniture, GameMap } from '../data/schema';
+import type { Balance, Contract, Furniture, GameMap, JobId } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { initialStaff } from './staff';
 import { autoAssign } from './autoAssign';
@@ -819,18 +819,18 @@ describe('施工の進み（advanceBuild）', () => {
   });
   const progressOf = (core: Core, id: string) => core.active.find((p) => p.id === id)?.progress ?? 0;
 
-  it('案件の求める職種の社員は、施工力が職種の一致の倍率（1.5倍）になる', () => {
+  it('案件の向いている職種（jobs）の社員は、施工力が職種の一致の倍率（1.5倍）になる。前提の案件（requires）は関係ない', () => {
     const base = withTotal(building(), 1e9);
     const id = cur(base)!.id;
     // 2人とも同じ職種にして、案件の求める職種だけを変える
     const staff = base.staff.map((s) => ({ ...s, job: 'network' as const }));
-    const withRequires = (core: Core, requires: string[]): Core => ({
+    const withJobs = (core: Core, jobs: JobId[]): Core => ({
       ...core,
       staff,
-      active: core.active.map((p) => ({ ...p, contract: { ...p.contract, requires } })),
+      active: core.active.map((p) => ({ ...p, contract: { ...p.contract, jobs } })),
     });
-    const plain = ok(advanceBuild(withRequires(base, []), env, balance.build.workStartHour)).core;
-    const matched = ok(advanceBuild(withRequires(base, ['network']), env, balance.build.workStartHour)).core;
+    const plain = ok(advanceBuild(withJobs(base, []), env, balance.build.workStartHour)).core;
+    const matched = ok(advanceBuild(withJobs(base, ['network']), env, balance.build.workStartHour)).core;
     expect(progressOf(plain, id)).toBeGreaterThan(0);
     expect(progressOf(matched, id) / progressOf(plain, id)).toBeCloseTo(balance.staff.power.jobMatch);
   });

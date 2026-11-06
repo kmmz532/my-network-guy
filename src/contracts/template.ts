@@ -73,6 +73,7 @@ export const instantiateTemplate = (
     order: 0,
     deadlineDays: template.deadlineDays,
     requires: template.requires,
+    jobs: template.jobs,
     map: template.map,
     // 予算は、台数と、スイッチを中心に配線したときの配線の長さで決まる（模範の費用の約7割）
     budget: template.budget.base + template.budget.perPc * n + template.budget.perTile * starHubOf(placed, map).tiles,

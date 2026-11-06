@@ -300,6 +300,7 @@
   "furniture.boxes.name": "段ボール",
   "furniture.boxes.desc": "引っ越しの荷物。",
   "ui.offer.crew": "担当",
+  "ui.offer.jobs": "向いている職種: {jobs}",
   "ui.offer.next": "次の依頼まであと {days}日",
   "ui.offer.blocked.full": "依頼が{max}件までたまっています。受注すると次の依頼が届きます",
   "ui.offer.blocked.reputation": "評判 {need} が必要です（今は {now}）",

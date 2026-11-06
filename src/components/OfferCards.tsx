@@ -134,6 +134,11 @@ function OfferCard({
       <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 6 }}>
         {t(`contract.${offer.baseId}.story` as LangKey, offer.params)}
       </div>
+      {(offer.contract.jobs?.length ?? 0) > 0 && (
+        <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>
+          {t('ui.offer.jobs', { jobs: (offer.contract.jobs ?? []).map((j) => t(`staff.job.${j}` as LangKey)).join('・') })}
+        </div>
+      )}
       {offer.contract.goals.map((goal, i) => (
         <div key={i} style={{ fontSize: 12, opacity: 0.85 }}>
           ・{goalText(goal, (id) => offerNodeName(offer, id))}

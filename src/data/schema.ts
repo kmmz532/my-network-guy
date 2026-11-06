@@ -252,6 +252,8 @@ export const contractSchema = z.object({
   stage: int.positive(),
   order: int,
   requires: z.array(z.string().min(1)).default([]),
+  // 向いている職種（施工力の1.5倍・依頼カードの表示）。省くと、どの職種にも向かない
+  jobs: z.array(jobIdSchema).optional(),
   map: z.string().min(1),
   budget: nonNegativeInt,
   // 受注日からの期日（日数）。自社案件のように期日のない案件は省く
@@ -277,6 +279,7 @@ export const templateSchema = z.object({
   id: z.string().min(1),
   stage: int.positive(),
   requires: z.array(z.string().min(1)).default([]),
+  jobs: z.array(jobIdSchema).optional(),
   minReputation: nonNegativeInt,
   weight: nonNegativeInt,
   // 受注日からの期日（日数）
