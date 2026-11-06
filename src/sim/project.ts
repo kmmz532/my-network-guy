@@ -39,7 +39,7 @@ import { furnitureBonus, type BonusEnv } from './furniture';
 import { gainExp, staffPower } from './staff';
 import { CATEGORY } from '../data/categories';
 import { checkCableLength } from './cableLength';
-import { deliveryExpOf, type LevelUp } from './level';
+import { deliveryExpOf, levelOf, type LevelUp } from './level';
 
 export interface Project {
   id: string;
@@ -1196,8 +1196,8 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
     const stars = rate(cost.total, p.contract.budget, p.rework, lateDays > 0, issues, env.balance);
     // 報酬は、期日の割合と★ごとの倍率を掛けた額
     const money = Math.round(p.contract.reward.money * lateFactor(lateDays, env.balance) * rewardRateOf(stars, env.balance));
-    // 会社の経験値は、案件の解放レベルの必要経験値に割合を掛けた量で増える（deliveryExpOf）。評判は得た★の数だけ増える（N55）
-    const companyExp = core.companyExp + deliveryExpOf(p.contract.unlockLevel, env.balance);
+    // 会社の経験値は、現在のレベルの必要経験値に割合と★の倍率を掛けた量で増える（deliveryExpOf）。評判は得た★の数だけ増える（N55）
+    const companyExp = core.companyExp + deliveryExpOf(p.contract.unlockLevel, levelOf(core.companyExp, env.balance), rewardRateOf(stars, env.balance), env.balance);
     const reputation = core.reputation + stars;
     // 自社案件は、納品したネットワークを自社オフィスとして残し、効果を加える
     const office: Office = p.contract.inhouse

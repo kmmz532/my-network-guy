@@ -15,7 +15,9 @@
   "metersPerTile": 5,
   "nightPayRate": 1.5,
   "exp": {
-    "delivery": 0.6,
+    "delivery": 0.3,
+    "deliveryGapStep": 0.1,
+    "deliveryGapMin": 0.3,
     "guide": 0.06,
     "hire": 0.03,
     "expansion": 0.05,
@@ -57,7 +59,7 @@
     "pc_basic": 2,
     "plant": 1
   },
-  "offerIntervalDays": 3,
+  "offerIntervalDays": 2,
   "offerBurst": {
     "chance": 0.2,
     "count": 3

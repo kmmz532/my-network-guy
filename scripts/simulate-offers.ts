@@ -73,7 +73,7 @@ for (let day = 0; day < days; day++) {
   for (const o of takeList) {
     const tid = templateOf(o.contract.id);
     counts.set(tid, (counts.get(tid) ?? 0) + 1);
-    const exp = deliveryExpOf(o.contract.unlockLevel, typedBalance);
+    const exp = deliveryExpOf(o.contract.unlockLevel, levelOf(state.companyExp, typedBalance), 1.1, typedBalance);
     deliveryTotal += exp;
     delivered++;
     state = { ...state, companyExp: state.companyExp + exp };

@@ -88,5 +88,9 @@ export const expAmountOf = (rate: number, level: number, balance: Balance): numb
 export const dailyExpCapOf = (level: number, balance: Balance): number =>
   Math.max(2, Math.round(needOf(level, balance) * balance.exp.dailyCap));
 
-// 納品の経験値。案件の解放レベル（unlockLevel）の必要経験値に割合を掛ける。解放レベルを超えて進んだ後の古い案件は相対的に少なくなる
-export const deliveryExpOf = (unlockLevel: number, balance: Balance): number => expAmountOf(balance.exp.delivery, unlockLevel, balance);
+// 納品の経験値。現在のレベルの必要経験値に割合を掛け、★の報酬の倍率（rewardRate）を掛ける。
+// 案件の解放レベルが現在のレベルより低いほど減る（1レベルごとに deliveryGapStep、下限 deliveryGapMin）。古い依頼だけを繰り返しても上がるが、新しい種類の方が早い
+export const deliveryExpOf = (unlockLevel: number, level: number, starRate: number, balance: Balance): number => {
+  const gap = Math.max(balance.exp.deliveryGapMin, 1 - balance.exp.deliveryGapStep * Math.max(0, level - unlockLevel));
+  return Math.max(1, Math.round(needOf(level, balance) * balance.exp.delivery * gap * starRate));
+};

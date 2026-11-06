@@ -48,9 +48,16 @@ describe('grantDailyExp（納品以外の経験値）', () => {
   });
 });
 
-describe('deliveryExpOf（納品の経験値は解放レベルで決まる）', () => {
-  it('解放レベルが高い案件ほど、納品の経験値が多い。最小は1', () => {
-    expect(deliveryExpOf(40, balance)).toBeGreaterThan(deliveryExpOf(1, balance));
-    expect(deliveryExpOf(1, balance)).toBeGreaterThanOrEqual(1);
+describe('deliveryExpOf（納品の経験値は現在のレベル・解放レベルとの差・★で決まる）', () => {
+  it('Lv4 で Lv1 の依頼を納品しても、数件でレベルが上がる量を得る', () => {
+    expect(deliveryExpOf(1, 4, 1, balance)).toBeGreaterThanOrEqual(Math.ceil(needOf(4, balance) / 5));
+  });
+  it('解放レベルが現在のレベルに近い依頼ほど多い。下限の割合より減らない', () => {
+    expect(deliveryExpOf(20, 20, 1, balance)).toBeGreaterThan(deliveryExpOf(10, 20, 1, balance));
+    expect(deliveryExpOf(1, 50, 1, balance)).toBe(Math.round(needOf(50, balance) * balance.exp.delivery * balance.exp.deliveryGapMin));
+  });
+  it('★の倍率が高いほど多い。最小は1', () => {
+    expect(deliveryExpOf(5, 5, 1.25, balance)).toBeGreaterThan(deliveryExpOf(5, 5, 1, balance));
+    expect(deliveryExpOf(1, 1, 1, balance)).toBeGreaterThanOrEqual(1);
   });
 });
