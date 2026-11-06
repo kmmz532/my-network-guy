@@ -9,7 +9,7 @@ import { balance as gameBalance, cables as gameCables, devices as gameDevices, f
 // 店の解放の判定に使う定義（品目の解放のレベル）
 const itemDefs: ItemDefs = { devices: gameDevices, furniture: gameFurniture, cables: gameCables };
 import { effectText } from '../game/effectText';
-import { useGameStore } from '../stores/useGameStore';
+import { purchaseDiscountOf, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 import { secondaryButton } from './Modal';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
@@ -44,7 +44,9 @@ export function ShopBody() {
   const ids = shop.filter((i) => i.device && isUnlocked(i, level, itemDefs, sandbox)).map((i) => i.device!);
   const furnitureIds = shop.filter((i) => i.furniture && isUnlocked(i, level, itemDefs, sandbox)).map((i) => i.furniture!);
   const yen = (n: number) => n.toLocaleString('ja-JP');
-  const cost = (n: number) => (sandbox ? 0 : n);
+  // 購入の割引（経理）。売却には掛けない
+  const discount = useGameStore((s) => purchaseDiscountOf(s));
+  const cost = (n: number) => (sandbox ? 0 : Math.round(n * (1 - discount)));
   const deviceRows = ids.filter((id) => matchesQuery(query, [tDyn(`device.${id}.name`), tDyn(`device.${id}.kana`), id, tDyn(`category.${devices[id as keyof typeof devices].category}`)]));
   const furnitureRows = furnitureIds.filter((id) => matchesQuery(query, [tDyn(`furniture.${id}.name`), tDyn(`furniture.${id}.kana`), id]));
 

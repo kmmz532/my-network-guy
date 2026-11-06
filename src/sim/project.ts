@@ -1,6 +1,7 @@
 // 案件の流れ（受注・設計・施工・検収・納品）。状態を受け取り、新しい状態を返す純粋関数で書く。
 // 設計は機器の配置・配線・IP設定、施工は社員が作業時間をかけて行い、検収で達成条件を判定する。
 import { applyMoney } from './ledger';
+import { isBackOffice } from './backOffice';
 import type { Balance, Contract, Furniture, GameMap, Staff } from '../data/schema';
 import { tileKind } from '../data/tileKind';
 import { renameNode } from '../network/nodeName';
@@ -423,6 +424,12 @@ export const accept = (core: Core, offerId: string, slots: number, crew: string[
     return member !== undefined && member.training === null && !busy.has(uid);
   };
   if (!crew.every(free)) return fail('crew');
+  // 内勤（営業・人事・経理）は、案件の担当に選べない
+  const isEngineerCrew = (uid: string) => {
+    const member = core.staff.find((s) => s.uid === uid);
+    return member !== undefined && !isBackOffice(member.job);
+  };
+  if (!crew.every(isEngineerCrew)) return fail('crew');
   const inhouse = offer.contract.inhouse;
   if (inhouse && core.active.some((p) => p.contract.inhouse)) return fail('busy');
   const office = core.office;

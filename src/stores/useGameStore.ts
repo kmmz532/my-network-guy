@@ -11,7 +11,7 @@ import { buyDevice, sellDevice } from '../sim/shop';
 import { declineOffer, offerHint, refreshOffers, type OfferEnv, type OfferHint } from '../contracts/offers';
 import type { Offer } from '../contracts/template';
 import type { GameMap, Staff } from '../data/schema';
-import { initialStaff, rollCandidates, staffCapOf, totalSalary } from '../sim/staff';
+import { gainExp, initialStaff, rollCandidates, staffCapOf, totalSalary } from '../sim/staff';
 import { expAtLevel, levelOf, levelUpsBetween, type UnlockItem } from '../sim/level';
 import { grantDailyExp, type ExpSource } from '../sim/companyExp';
 import { rand } from '../sim/rng';
@@ -24,6 +24,7 @@ import { gameEnv } from '../sim/env';
 import { learnFromPing } from '../network/learn';
 import { rentalOf } from '../network/external';
 import { applyMoney } from '../sim/ledger';
+import { accountingRate, backOfficeP, isBackOffice } from '../sim/backOffice';
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
 import type { MacEntry } from '../network/mac';
 import { autoAssign } from '../sim/autoAssign';
@@ -413,6 +414,10 @@ export const focusedProject = (s: { active: Project[]; focus: string | null }): 
   s.focus === null ? null : (s.active.find((p) => p.id === s.focus) ?? null);
 
 // 機器を編集できる対象の機器と配線（自社オフィス、または設計中の案件）。編集できなければ null
+// 購入の割引（経理の効果。内勤の実効 level の合計で決まる）
+export const purchaseDiscountOf = (s: { staff: Staff[]; office: Office }): number =>
+  accountingRate(backOfficeP(s.staff, 'accounting', s.office, { defs: gameEnv.furniture ?? {}, balance, staffUids: s.staff.map((m) => m.uid) }), balance);
+
 export const editNetOf = (s: GameState): { nodes: NetNode[]; links: NetLink[] } | null => {
   if (s.active.length === 0 && !s.showcase) return { nodes: s.office.nodes, links: s.office.links };
   const p = focusedProject(s);
@@ -957,7 +962,13 @@ export const useGameStore = create<GameState>((set, get) => {
         const months = ticked.paidMonths - s.clock.paidMonths;
         const rent = days > 0 && !ticked.bankrupt && s.mode === 'career' ? rentalOf(s.office, gameEnv.engine, balance.rental, levelOf(s.companyExp, balance), balance.time.daysPerMonth) : null;
         const clock = rent !== null && rent.daily > 0 ? applyMoney(ticked, rent.daily * days, 'rental') : ticked;
-        let next: Partial<GameState> = { clock, ...(rent?.penalty && months > 0 ? { reputation: Math.max(0, s.reputation - months) } : {}) };
+        // 内勤は、出勤した日ごとに経験値を得る（施工の経験値は得ない）。日が替わるたびに受け取る
+        const backOfficeStaff = days > 0 && s.mode === 'career' ? s.staff.map((m) => (isBackOffice(m.job) && m.shift === 'day' && m.training === null ? gainExp(m, balance.backOffice.dailyExp * days, balance.staff.expPerLevel) : m)) : s.staff;
+        let next: Partial<GameState> = {
+          clock,
+          ...(rent?.penalty && months > 0 ? { reputation: Math.max(0, s.reputation - months) } : {}),
+          ...(backOfficeStaff !== s.staff ? { staff: backOfficeStaff } : {}),
+        };
         // 月末に給与を払ったら知らせる
         if (clock.paidMonths > s.clock.paidMonths) {
           const amount = totalSalary(s.staff, balance.nightPayRate);
@@ -1028,7 +1039,7 @@ export const useGameStore = create<GameState>((set, get) => {
       const listPrice = priceOfItem(deviceId);
       if (listPrice === undefined) return false;
       // サンドボックスは購入の費用を 0 とする（在庫は増える）
-      const price = s.mode === 'sandbox' ? 0 : listPrice;
+      const price = s.mode === 'sandbox' ? 0 : Math.round(listPrice * (1 - purchaseDiscountOf(s)));
       const result = buyDevice(s.clock.money, s.owned, deviceId, price);
       if (!result.ok) return false;
       // 購入は費用に入れない。案件の費用は納品のときに、置かれている機器の定価と配線の費用から決める

@@ -99,6 +99,18 @@
       "seatless": 0.5
     }
   },
+  "backOffice": {
+    "dailyExp": 20,
+    "sales": {
+      "arrivalsPerLevel": 0.2,
+      "maxExtra": 2,
+      "rewardWeightPerLevel": 0.05
+    },
+    "accounting": {
+      "ratePerLevel": 0.01,
+      "maxRate": 0.15
+    }
+  },
   "rental": {
     "monthlyPerCustomer": 30000,
     "levelsPerCustomer": 3
@@ -172,7 +184,10 @@
     "jobUnlockLevels": {
       "network": 2,
       "infra": 5,
-      "security": 7
+      "security": 7,
+      "sales": 3,
+      "hr": 4,
+      "accounting": 8
     },
     "staffCapByLevel": [
       [

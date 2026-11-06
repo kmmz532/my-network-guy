@@ -19,6 +19,7 @@ import { RADIUS } from '../ui/theme';
 import { CATEGORY } from '../data/categories';
 import { Select } from './Select';
 import { levelOf } from '../sim/level';
+import { isBackOffice } from '../sim/backOffice';
 
 // 依頼の一覧。Enter は一番上の依頼の受注（主のボタン）
 
@@ -98,7 +99,8 @@ function CrewPicker({ selected, onChange }: { selected: string[]; onChange: (cre
   return (
     <div style={{ marginTop: 6, fontSize: 13 }}>
       <div style={{ marginBottom: 2 }}>{t('ui.offer.crew')}</div>
-      {staff.map((s) => {
+      {/* 内勤（営業・人事・経理）は担当に出さない */}
+      {staff.filter((s) => !isBackOffice(s.job)).map((s) => {
         const unavailable = busy.includes(s.uid) || s.training !== null;
         const power = staffPower(s, undefined, office, bonusEnv);
         return (
@@ -151,7 +153,7 @@ function OfferCard({
   const [asking, setAsking] = useState(false);
   // 受注の画面を開いたときの担当（空いている社員全員）
   const [crew, setCrew] = useState<string[]>(() =>
-    staff.filter((s) => !busy.includes(s.uid) && s.training === null).map((s) => s.uid),
+    staff.filter((s) => !busy.includes(s.uid) && s.training === null && !isBackOffice(s.job)).map((s) => s.uid),
   );
   const canAccept = !full && crew.length > 0;
   usePrimary(primary ? () => canAccept && onAccept(crew) : undefined);

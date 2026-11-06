@@ -16,7 +16,7 @@ const sizeSchema = z.object({ w: int.positive(), h: int.positive() });
 export const ENGINEER_JOB_IDS = ['network', 'infra', 'security'] as const;
 export type EngineerJobId = (typeof ENGINEER_JOB_IDS)[number];
 // 内勤の職種（案件の担当に選べず、社内の仕事で会社に効果を与える）。まだ追加していない
-export const BACK_OFFICE_JOB_IDS = [] as const;
+export const BACK_OFFICE_JOB_IDS = ['sales', 'hr', 'accounting'] as const;
 export type BackOfficeJobId = (typeof BACK_OFFICE_JOB_IDS)[number];
 export const JOB_IDS = [...ENGINEER_JOB_IDS, ...BACK_OFFICE_JOB_IDS] as const;
 export type JobId = EngineerJobId | BackOfficeJobId;
@@ -73,6 +73,12 @@ export const balanceSchema = z.object({
   // 納品以外の経験値の量と、1日の上限（N55）
   // 経験値の量の割合（現在のレベルの必要経験値に掛ける）。納品は解放レベルの必要経験値に掛ける（LEVEL.md）
   // 自社のサーバーを外部に貸す収入（N72）。公開しているサーバー1台ごとに、月末に受け取る額
+  // 内勤（社内の仕事で会社に効果を与える。担当には出さない）。効果の強さは、その職種の内勤の実効 level の合計
+  backOffice: z.object({
+    dailyExp: nonNegativeInt,
+    sales: z.object({ arrivalsPerLevel: z.number().nonnegative(), maxExtra: nonNegativeInt, rewardWeightPerLevel: z.number().nonnegative() }),
+    accounting: z.object({ ratePerLevel: z.number().nonnegative(), maxRate: z.number().nonnegative() }),
+  }),
   rental: z.object({ monthlyPerCustomer: z.number().int().nonnegative(), levelsPerCustomer: z.number().int().positive() }),
   exp: z.object({ delivery: z.number().nonnegative(), deliveryGapStep: z.number().nonnegative(), deliveryGapMin: z.number().nonnegative(), guide: z.number().nonnegative(), hire: z.number().nonnegative(), expansion: z.number().nonnegative(), furniture: z.number().nonnegative(), dailyCap: z.number().nonnegative() }),
   // 機材の価格の式（N35）: 基本の価格（分類）＋ポート1つあたり（分類）＋機能ごとの加算。機材の定価は、この式の値とそろえる
@@ -158,7 +164,14 @@ export const balanceSchema = z.object({
     baseSalary: nonNegativeInt,
     salaryPerLevel: nonNegativeInt,
     // 職種ごとの解放のレベル（解放された職種だけが採用の候補に出る）
-    jobUnlockLevels: z.object({ network: unlockLevelSchema, infra: unlockLevelSchema, security: unlockLevelSchema }),
+    jobUnlockLevels: z.object({
+      network: unlockLevelSchema,
+      infra: unlockLevelSchema,
+      security: unlockLevelSchema,
+      sales: unlockLevelSchema,
+      hr: unlockLevelSchema,
+      accounting: unlockLevelSchema,
+    }),
     // 社員の人数の上限（会社のレベル以上での上限。[レベル, 上限] の組）
     staffCapByLevel: z.array(z.tuple([unlockLevelSchema, int.positive()])),
     // 候補の能力は、会社のレベルの何段階ごとに1上がるか
