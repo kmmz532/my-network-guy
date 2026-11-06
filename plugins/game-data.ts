@@ -246,6 +246,11 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
   const furnitureIds = unique(data.furniture, (f) => f.id, 'furniture.json');
   const mapsById = new Map(data.maps.map((m) => [m.id, m]));
   unique(data.maps, (m) => m.id, 'maps/');
+  for (const m of data.maps) {
+    for (const f of m.furniture ?? []) {
+      if (!furnitureIds.has(f.id)) errors.push(`maps/${m.id}.json: 未定義の家具 ${f.id}`);
+    }
+  }
   // 案件とテンプレートはどちらも requires や解禁条件から参照されるため、ID の集合を共通で作る
   const contractIdSet = unique([...data.contracts, ...data.templates], (c) => c.id, 'contracts/');
 
@@ -327,6 +332,7 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
       ensure(contractIdSet.has(req), `${owner}: requires の案件 ${req} が未定義`);
     }
     ensure(mapsById.has(template.map) || template.map === OFFICE_MAP_ID, `${owner}: 未定義のマップ ${template.map}`);
+    for (const d of template.decor ?? []) ensure(furnitureIds.has(d), `${owner}: decor の家具 ${d} が未定義`);
     // テンプレートの機器は実行時に生成されるため、goals の参照は $role:<役割> だけを書ける。役割は spawnGroups の role にあること
     const roles = new Set((template.spawnGroups ?? []).flatMap((g) => (g.role === undefined ? [] : [g.role])));
     for (const goal of template.goals) {

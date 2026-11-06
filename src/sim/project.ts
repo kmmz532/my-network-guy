@@ -4,6 +4,7 @@ import { applyMoney } from './ledger';
 import { isBackOffice } from './backOffice';
 import type { Balance, Contract, Furniture, GameMap, Staff } from '../data/schema';
 import { tileKind } from '../data/tileKind';
+import { furnitureOf } from '../contracts/layout';
 import { renameNode } from '../network/nodeName';
 import { nextHostname } from '../network/hostname';
 import { nextMacSerial } from '../network/mac';
@@ -519,6 +520,8 @@ const placeReason = (
   const kind = tileKind(map, x, y);
   if (kind !== 'floor' && !(kind === 'desk' && env.devices[deviceId].category === CATEGORY.pc)) return 'tile';
   if (nodes.some((n) => n.x === x && n.y === y)) return 'tile';
+  // 依頼先の家具（机・棚・飾り。N76）のあるマスには置けない
+  if (furniture.some((f) => f.x === x && f.y === y)) return 'tile';
   return null;
 };
 
@@ -529,7 +532,8 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
   if (!env.devices[deviceId]) return fail('none');
   if ((core.owned[deviceId] ?? 0) < 1) return fail('stock');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
-  const reason = placeReason(p.contract.inhouse, core.office.furniture, p.nodes, deviceId, x, y, map, env);
+  const furniture = p.contract.inhouse ? core.office.furniture : furnitureOf(map.furniture, p.contract.furniture);
+  const reason = placeReason(p.contract.inhouse, furniture, p.nodes, deviceId, x, y, map, env);
   if (reason) return fail(reason);
   const node: NetNode = {
     uid: `u${p.seq}`,
@@ -1026,7 +1030,8 @@ export const moveNode = (core: Core, uid: string, x: number, y: number, env: Env
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
   const inhouse = project === null || project.contract.inhouse;
   const others = net.nodes.filter((n) => n.uid !== uid);
-  const reason = placeReason(inhouse, core.office.furniture, others, node.device, x, y, map, env, anyFloor);
+  const furniture = inhouse ? core.office.furniture : furnitureOf(map.furniture, project?.contract.furniture);
+  const reason = placeReason(inhouse, furniture, others, node.device, x, y, map, env, anyFloor);
   if (reason) return fail(reason);
 
   const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, x, y } : n));

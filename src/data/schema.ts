@@ -352,6 +352,9 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('blocked_all'), from: z.array(z.string().min(1)).min(1), to: z.array(z.string().min(1)).min(1) }),
 ]);
 
+// 地図・依頼に置く家具（N76）。歩けない床になり、機器は置けない
+const placedFurnitureSchema = z.object({ id: z.string().min(1), x: nonNegativeInt, y: nonNegativeInt });
+
 export const contractSchema = z.object({
   id: z.string().min(1),
   stage: int.positive(),
@@ -369,6 +372,8 @@ export const contractSchema = z.object({
   topics: z.array(z.string().min(1)).optional(),
   addressBlock: z.object({ network: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/), prefix: int.min(8).max(30) }).optional(),
   placed: z.array(placedSchema),
+  // 依頼で作った家具（机・棚・飾り。N76）
+  furniture: z.array(placedFurnitureSchema).optional(),
   goals: z.array(goalSchema).min(1),
   reward: z.object({
     money: nonNegativeInt,
@@ -437,6 +442,10 @@ export const templateSchema = z
     announce: z.boolean(),
     // 文言のキーに使う ID（変化形は元のひな形の ID。読み込み時に入る）
     textId: z.string().min(1).optional(),
+    // 机の並べ方の候補（N76）。省くと島型と壁沿い型
+    layout: z.array(z.enum(['island', 'wall', 'reception'])).min(1).optional(),
+    // 飾りの家具の候補（N76）。省くと事務所の既定
+    decor: z.array(z.string().min(1)).min(1).optional(),
   })
   .superRefine((t, ctx) => {
     if ((t.spawnArea === undefined) === (t.spawnGroups === undefined)) {
@@ -476,6 +485,8 @@ export const mapSchema = z
     floor: z.enum(['wood', 'tile', 'carpet', 'concrete', 'linoleum']),
     legend: z.record(z.string().length(1), z.string().min(1)),
     tiles: z.array(z.string()),
+    // 地図に置く固定の家具（N76）
+    furniture: z.array(placedFurnitureSchema).optional(),
   })
   .superRefine((map, ctx) => {
     if (map.tiles.length !== map.height) {

@@ -56,5 +56,14 @@
       "nodes": "$all_pcs"
     }
   ],
-  "announce": true
+  "announce": true,
+  "layout": [
+    "reception",
+    "wall"
+  ],
+  "decor": [
+    "bookshelf",
+    "cabinet",
+    "water"
+  ]
 }

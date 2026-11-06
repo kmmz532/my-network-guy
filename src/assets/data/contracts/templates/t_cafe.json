@@ -48,5 +48,14 @@
       "nodes": "$all_pcs"
     }
   ],
-  "announce": true
+  "announce": true,
+  "layout": [
+    "island",
+    "wall"
+  ],
+  "decor": [
+    "plant",
+    "sofa",
+    "trash"
+  ]
 }

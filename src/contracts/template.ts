@@ -2,6 +2,11 @@
 import type { Contract, ContractTemplate, Goal, GameMap } from '../data/schema';
 import { randInt, rand } from '../sim/rng';
 import { tileKind } from '../data/tileKind';
+import { DEFAULT_DECOR, DEFAULT_LAYOUT, layoutDesks, placeDecor, type Cell, type FurnitureCell } from './layout';
+
+// 依頼先の机（PC の下に敷く家具）と棚（窓口型）の家具 ID
+const DESK_FURNITURE = 'desk_only';
+const SHELF_FURNITURE = 'bookshelf';
 
 export interface Offer {
   // 依頼の一意なID（同じひな形から複数の依頼が生まれるため、連番を含む）
@@ -57,6 +62,64 @@ export const pcCountRangeOf = (template: ContractTemplate): { min: number; max: 
   return { min: groups.reduce((s, g) => s + g.min, 0), max: groups.reduce((s, g) => s + g.max, 0) };
 };
 
+// 机と飾りの配置を1回作る。途中で机が並べられなければ null（rng は進んだ状態を返す）
+interface LaidTemplate {
+  placed: { ref: string; device: string; x: number; y: number; locked: boolean; name?: string }[];
+  roles: Map<string, string[]>;
+  furniture: FurnitureCell[];
+  rng: number;
+}
+const layoutTemplate = (template: ContractTemplate, map: GameMap, rngState: number): { laid: LaidTemplate | null; rng: number } => {
+  let rng = rngState;
+  const placed: LaidTemplate['placed'] = [];
+  // 役割ごとの PC の ref（目標の $role:<役割> の置き換えに使う）
+  const roles = new Map<string, string[]>();
+  const groups = spawnGroupsOf(template);
+  const kinds = template.layout ?? DEFAULT_LAYOUT;
+  // 歩けない床（地図の家具・机・棚）。後の机と飾りは、これを避けて置く
+  const taken = new Set<string>((map.furniture ?? []).map((f) => `${f.x},${f.y}`));
+  const desks: Cell[] = [];
+  const furniture: FurnitureCell[] = [];
+  for (const group of groups) {
+    let named = 0;
+    const count = randInt(rng, group.min, group.max);
+    rng = count.state;
+    const n = count.value;
+
+    const got = layoutDesks(map, group, n, kinds, taken, desks, rng);
+    rng = got.rng;
+    const laid = got.laid;
+    // 前のグループの机が床をふさぐと、このグループは並べられないことがある。呼び出し側で作り直す
+    if (laid === null) return { laid: null, rng };
+    for (const d of laid.desks) {
+      taken.add(`${d.x},${d.y}`);
+      desks.push(d);
+      furniture.push({ id: DESK_FURNITURE, x: d.x, y: d.y });
+      if (group.role !== undefined && group.name !== undefined) {
+        const list = roles.get(group.role) ?? [];
+        const ref = `${group.role}_${list.length + 1}`;
+        roles.set(group.role, [...list, ref]);
+        named++;
+        placed.push({ ref, device: 'pc_basic', x: d.x, y: d.y, locked: true, name: `${group.name}${named}` });
+      } else {
+        placed.push({ ref: `pc_${placed.length + 1}`, device: 'pc_basic', x: d.x, y: d.y, locked: true });
+      }
+    }
+    for (const s of laid.shelves) {
+      taken.add(`${s.x},${s.y}`);
+      furniture.push({ id: SHELF_FURNITURE, x: s.x, y: s.y });
+    }
+  }
+  // 残りの床に飾りの家具を置く。置く範囲（PC の範囲）は空けておく
+  const decor = placeDecor(map, taken, desks, groups, template.decor ?? DEFAULT_DECOR, rng);
+  rng = decor.rng;
+  furniture.push(...decor.furniture);
+  return { laid: { placed, roles, furniture, rng }, rng };
+};
+
+// 机の並べ方が決まらないときに、乱数を進めて作り直す回数（超えたら作れないとして止める）
+const LAYOUT_RETRIES = 30;
+
 export const instantiateTemplate = (
   template: ContractTemplate,
   map: GameMap,
@@ -64,40 +127,15 @@ export const instantiateTemplate = (
   rngState: number,
 ): InstantiateResult => {
   let rng = rngState;
-  // グループごとに台数を決め、その範囲の床から重ならないように選ぶ（spawnArea のときは1グループで、今と同じ乱数の順）
-  const placed: { ref: string; device: string; x: number; y: number; locked: boolean; name?: string }[] = [];
-  // 役割ごとの PC の ref（目標の $role:<役割> の置き換えに使う）
-  const roles = new Map<string, string[]>();
-  for (const group of spawnGroupsOf(template)) {
-    let named = 0;
-    const count = randInt(rng, group.min, group.max);
-    rng = count.state;
-    const n = count.value;
-
-    // 範囲のうち床のマスを候補にし、重ならないように n 個選ぶ
-    const candidates: [number, number][] = [];
-    for (let y = group.y; y < group.y + group.height && y < map.height; y++) {
-      for (let x = group.x; x < group.x + group.width && x < map.width; x++) {
-        if (tileKind(map, x, y) === 'floor') candidates.push([x, y]);
-      }
-    }
-    if (candidates.length < n) throw new Error(`${template.id}: 置く範囲の床が ${n} 台分足りない`);
-    for (let i = 0; i < n; i++) {
-      const r = randInt(rng, 0, candidates.length - 1 - i);
-      rng = r.state;
-      const [px, py] = candidates[r.value];
-      candidates[r.value] = candidates[candidates.length - 1 - i];
-      if (group.role !== undefined && group.name !== undefined) {
-        const list = roles.get(group.role) ?? [];
-        const ref = `${group.role}_${list.length + 1}`;
-        roles.set(group.role, [...list, ref]);
-        named++;
-        placed.push({ ref, device: 'pc_basic', x: px, y: py, locked: true, name: `${group.name}${named}` });
-      } else {
-        placed.push({ ref: `pc_${placed.length + 1}`, device: 'pc_basic', x: px, y: py, locked: true });
-      }
-    }
+  let result: LaidTemplate | null = null;
+  for (let attempt = 0; attempt < LAYOUT_RETRIES && result === null; attempt++) {
+    const tried = layoutTemplate(template, map, rng);
+    rng = tried.rng;
+    result = tried.laid;
   }
+  if (result === null) throw new Error(`${template.id}: 置く範囲に机を並べられない`);
+  const { placed, roles, furniture } = result;
+  rng = result.rng;
   const total = placed.length;
   const refs = placed.map((p) => p.ref);
   // $role:<役割> を、その役割の PC の ref に置き換える。ない役割は、ひな形の誤りとして止める
@@ -130,6 +168,8 @@ export const instantiateTemplate = (
     // 予算は、台数と、スイッチを中心に配線したときの配線の長さで決まる（模範の費用の約7割）
     budget: template.budget.base + template.budget.perPc * total + template.budget.perTile * starHubOf(placed, map).tiles,
     placed,
+    // 机・棚・飾りの家具（N76）。予算には含めない
+    furniture,
     goals,
     inhouse: false,
     reward: {

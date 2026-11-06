@@ -12,6 +12,7 @@ import { rangeTiles } from './effectRange';
 import { setMapView } from './mapView';
 import { gameEnv } from '../sim/env';
 import { moveFurniture, placeFurniture } from '../sim/furniture';
+import { furnitureOf } from '../contracts/layout';
 import { expandActionOf, expansionLocked, officeExpandCostOf, type ExpandSide } from '../sim/office';
 import { levelOf } from '../sim/level';
 import {
@@ -762,6 +763,8 @@ export class Scene {
 
     // 自社オフィスの家具は、機材と同じ層で足元のY座標の順に重ねる
     if (map.id === 'hq') this.drawFurniture(s.office.furniture, ts);
+    // 依頼先の家具（机・棚・飾り。N76）は、地図の固定の家具と合わせて描く
+    else this.drawFurniture(furnitureOf(map.furniture, project.contract.furniture), ts);
 
     for (const node of project.nodes) {
       const dim = building && !isBuilt(node.uid, 'nodes');
