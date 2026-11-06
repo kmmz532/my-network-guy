@@ -1,9 +1,7 @@
 import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { DEBUG_ENABLED } from './debug';
 import { usePhone } from './ui/usePhone';
-import { balance, furniture } from 'virtual:game-data';
-import type { FurnitureId } from './generated/ids';
-import { seatCount } from './sim/furniture';
+import { balance } from 'virtual:game-data';
 import { loadLang, t } from './i18n/t';
 import { PixiStage } from './game/PixiStage';
 import { useGameStore, type Speed } from './stores/useGameStore';

@@ -587,6 +587,8 @@
   "report.levelUp.money": "報酬 +{money}円",
   "report.levelUp.devices": "受け取った機器（倉庫）: {devices}",
   "report.levelUp.unlock": "解放: {items}",
+  "report.levelUp.unlockCards": "解放された品目",
+  "report.levelUp.expansion": "部屋の拡張",
   "ui.hiring.shift": "勤務",
   "ui.hiring.shift.day": "日勤",
   "ui.hiring.shift.night": "夜勤（給与 ×1.5）",

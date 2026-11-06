@@ -21,6 +21,23 @@ const unlockNameOf = (x: { kind: 'device' | 'cable' | 'furniture' | 'template' |
   return tDyn(`${x.kind === 'device' ? 'device' : x.kind === 'cable' ? 'cable' : 'furniture'}.${x.id}.name`);
 };
 
+// 機器・家具の札（絵・名前・台数）。報酬とレベルアップの解放で共有する（N56）。札は横に並び、収まらなければ折り返す
+function ItemCards({ items }: { items: { kind: 'device' | 'furniture'; id: string; count?: number }[] }) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 4 }}>
+      {items.map((x) => (
+        <div key={`${x.kind}_${x.id}`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', background: '#25406f', border: '1px solid #3b2a33', borderRadius: RADIUS.chrome }}>
+          <Icon name={itemSpriteOf(x.kind, x.id)} scale={1} />
+          <span>
+            {tDyn(`${x.kind}.${x.id}.name`)}
+            {x.count !== undefined ? ` ×${x.count}` : ''}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // 結果の4項目（費用の割合・失敗回数・納期・設計の不備）。基準は★3の条件、実績は今回の数字。達成の印を付ける
 function EvaluationRows({ report }: { report: Report }) {
   const star3 = balance.rating.find((r) => r.stars === 3);
@@ -106,10 +123,27 @@ export function ReportModal() {
           <div style={{ fontWeight: 'bold', color: '#ffd866' }}>{t('report.levelUp.title', { level: u.level })}</div>
           <div>{t('report.levelUp.money', { money: u.money.toLocaleString('ja-JP') })}</div>
           {u.devices.length > 0 && (
-            <div>{t('report.levelUp.devices', { devices: u.devices.map((d) => `${tDyn(`device.${d.device}.name`)} ×${d.count}`).join('・') })}</div>
+            <div>
+              {t('report.rewardDevices')}
+              <ItemCards items={u.devices.map((d) => ({ kind: 'device' as const, id: d.device, count: d.count }))} />
+            </div>
           )}
-          {u.unlocks.length > 0 && (
-            <div>{t('report.levelUp.unlock', { items: u.unlocks.map((x) => unlockNameOf(x)).join('・') })}</div>
+          {/* 絵のある機器・家具は札、ほかの解放（ケーブル・依頼）と部屋の拡張は文字（N56・N59） */}
+          {u.unlocks.some((x) => x.kind === 'device' || x.kind === 'furniture') && (
+            <div>
+              {t('report.levelUp.unlockCards')}
+              <ItemCards items={u.unlocks.filter((x) => x.kind === 'device' || x.kind === 'furniture').map((x) => ({ kind: x.kind as 'device' | 'furniture', id: x.id }))} />
+            </div>
+          )}
+          {(u.unlocks.some((x) => x.kind !== 'device' && x.kind !== 'furniture') || balance.office.expand.unlockLevels.includes(u.level)) && (
+            <div>
+              {t('report.levelUp.unlock', {
+                items: [
+                  ...u.unlocks.filter((x) => x.kind !== 'device' && x.kind !== 'furniture').map((x) => unlockNameOf(x)),
+                  ...(balance.office.expand.unlockLevels.includes(u.level) ? [t('report.levelUp.expansion')] : []),
+                ].join('・'),
+              })}
+            </div>
           )}
         </div>
       ))}
@@ -117,14 +151,7 @@ export function ReportModal() {
       {(report.rewardDevices ?? []).length > 0 && (
         <div style={{ fontSize: 14, marginTop: 6 }}>
           <div>{t('report.rewardDevices')}</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 4 }}>
-            {(report.rewardDevices ?? []).map((r) => (
-              <div key={r.device} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', background: '#25406f', border: '1px solid #3b2a33', borderRadius: RADIUS.chrome }}>
-                <Icon name={itemSpriteOf('device', r.device)} scale={1} />
-                <span>{tDyn(`device.${r.device}.name`)} ×{r.count}</span>
-              </div>
-            ))}
-          </div>
+          <ItemCards items={(report.rewardDevices ?? []).map((r) => ({ kind: 'device' as const, id: r.device, count: r.count }))} />
         </div>
       )}
       <EvaluationRows report={report} />
