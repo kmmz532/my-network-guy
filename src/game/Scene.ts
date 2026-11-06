@@ -1147,11 +1147,13 @@ export class Scene {
       this.drawStaff(at.x + (k === 0 ? -18 : 2), at.y - 24 - bob, useGameStore.getState().staff[k]?.look ?? STAFF_PLACEHOLDER_LOOKS[k % STAFF_PLACEHOLDER_LOOKS.length]);
     }
 
-    // 施工の進捗バー（マップの下端）
-    const barW = (this.map?.width ?? 1) * ts;
-    const barY = (this.map?.height ?? 1) * ts + 2;
-    g.rect(0, barY, barW, 3).fill({ color: OUTLINE });
-    g.rect(0, barY, barW * fraction, 3).fill({ color: SELECT });
+    // 施工の進捗バー（マップの下端）。スマホはツールバーの上の帯（Toolbar.tsx）に同じ進み具合を出すため、ここでは描かない（B13）
+    if (!isPhoneNow()) {
+      const barW = (this.map?.width ?? 1) * ts;
+      const barY = (this.map?.height ?? 1) * ts + 2;
+      g.rect(0, barY, barW, 3).fill({ color: OUTLINE });
+      g.rect(0, barY, barW * fraction, 3).fill({ color: SELECT });
+    }
   }
 
   // 社員のスプライト（16×24 px）。2コマで足踏みする
