@@ -38,7 +38,7 @@
     "max": 90
   },
   "budget": {
-    "base": 1000,
+    "base": 4600,
     "perPc": 3750,
     "perTile": 500
   },

@@ -27,8 +27,8 @@
     "max": 90
   },
   "budget": {
-    "base": 80000,
-    "perPc": 7250,
+    "base": 0,
+    "perPc": 3650,
     "perTile": 500
   },
   "reward": {

@@ -70,6 +70,12 @@
         -webkit-user-select: text;
         user-select: text;
       }
+      /* エラーの文言（報告に使うため）は、文字の選択とコピーを許す */
+      [role='alert'],
+      [role='alert'] * {
+        -webkit-user-select: text;
+        user-select: text;
+      }
       /* スクロールバーは、ゲームの部品と同じドット絵（細い溝と、角のつまみ）。Firefox は scrollbar-color、Chromium と Safari は ::-webkit-scrollbar */
       * {
         scrollbar-width: thin;
