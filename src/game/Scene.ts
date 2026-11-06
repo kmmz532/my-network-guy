@@ -54,14 +54,6 @@ const OUTLINE = 0x3b2a33;
 const SELECT = 0xffd866;
 const WARN = 0xffcc33;
 const FAIL = 0xe84a4a;
-const CATEGORY_COLOR: Record<string, number> = {
-  pc: 0xdfe3e8,
-  server: 0xa3acb8,
-  l2_switch: 0x4f7cc4,
-  router: 0xe0644f,
-  l3_switch: 0x4f7cc4,
-  router_switch: 0xe0644f,
-};
 // プロトコルごとのパケットの色（ART.md）
 const PACKET_COLOR: Record<string, number> = {
   ping: 0xffffff,
@@ -994,66 +986,34 @@ export class Scene {
     const x = node.x * ts + pad;
     const y = node.y * ts + pad;
     const size = ts - pad * 2;
-    const base = CATEGORY_COLOR[category] ?? 0xffffff;
-    // 撤去の道具でマウスを乗せた機器は、赤みがかった明るさにする
-    const body = hot ? mixColor(base, HOT_RED, 0.5) : base;
     if (selected) {
       g.rect(x - 2, y - 2, size + 4, size + 4).stroke({ width: 2, color: SELECT, alpha });
     }
     // 機器はスプライト（24×40）で描く。足元（底面の行）をタイルの下寄りに揃え、床に置いた影を添える
     const tex = texture(deviceData[node.device as keyof typeof deviceData]?.sprite ?? '');
     const foot = node.y * ts + ts - DEVICE_FOOT_INSET;
-    if (tex) {
-      const sprite = new Sprite(tex);
-      // スプライトの底面の行（y=37）が足元に来る位置。PCは机の天板に載せ、影は付けない
-      const deskTile = this.deskAt(node.x, node.y);
-      const anyFloor = useGameStore.getState().mode === 'sandbox';
-      const onDesk = deskTile || (category === 'pc' && !anyFloor);
-      // 机のないマスに置いたPCには、机も一緒に描く
-      const deskTex = !deskTile && category === 'pc' && !anyFloor ? texture('furniture/desk') : undefined;
-      if (deskTex) {
-        const desk = new Sprite(deskTex);
-        desk.position.set(node.x * ts, node.y * ts);
-        desk.alpha = alpha;
-        desk.zIndex = foot - 1;
-        this.sprites.addChild(desk);
-      }
-      const base = onDesk ? node.y * ts + DESK_TOP : foot;
-      sprite.position.set(node.x * ts + (ts - 24) / 2, base - 38);
-      sprite.alpha = alpha;
-      sprite.tint = hot ? REMOVE_TINT : 0xffffff;
-      sprite.zIndex = foot;
-      this.sprites.addChild(sprite);
-      if (!onDesk) this.bg.ellipse(node.x * ts + ts / 2, foot, 10, 3).fill({ color: 0x000000, alpha: 0.25 * alpha });
-    } else switch (category) {
-      case 'pc':
-        // モニターと台座
-        g.rect(x + 2, y + 1, size - 4, size - 8).fill({ color: body, alpha });
-        g.rect(x + 4, y + 3, size - 8, size - 12).fill({ color: 0x3b5f8a, alpha });
-        g.rect(x + size / 2 - 2, y + size - 7, 4, 3).fill({ color: body, alpha });
-        break;
-      case 'server':
-        // 縦長のラック。ドライブの線を入れる
-        g.rect(x + 3, y, size - 6, size).fill({ color: body, alpha });
-        for (const dy of [4, 10, 16]) g.rect(x + 5, y + dy, size - 10, 2).fill({ color: 0x5a6573, alpha });
-        break;
-      case 'l2_switch':
-        // 横長の箱にポートの列
-        g.rect(x, y + size * 0.3, size, size * 0.5).fill({ color: body, alpha });
-        for (let i = 0; i < 4; i++) g.rect(x + 3 + i * 4, y + size * 0.5, 2, 3).fill({ color: 0x3b2a33, alpha });
-        break;
-      case 'router':
-      case 'l3_switch':
-      case 'router_switch':
-        // 箱とアンテナ
-        g.moveTo(x + 4, y + size * 0.35).lineTo(x + 4, y).stroke({ width: 1, color: OUTLINE, alpha });
-        g.moveTo(x + size - 4, y + size * 0.35).lineTo(x + size - 4, y).stroke({ width: 1, color: OUTLINE, alpha });
-        g.rect(x, y + size * 0.35, size, size * 0.55).fill({ color: body, alpha });
-        break;
-      default:
-        g.rect(x, y, size, size).fill({ color: body, alpha });
+    if (!tex) return;
+    const sprite = new Sprite(tex);
+    // スプライトの底面の行（y=37）が足元に来る位置。PCは机の天板に載せ、影は付けない
+    const deskTile = this.deskAt(node.x, node.y);
+    const anyFloor = useGameStore.getState().mode === 'sandbox';
+    const onDesk = deskTile || (category === 'pc' && !anyFloor);
+    // 机のないマスに置いたPCには、机も一緒に描く
+    const deskTex = !deskTile && category === 'pc' && !anyFloor ? texture('furniture/desk') : undefined;
+    if (deskTex) {
+      const desk = new Sprite(deskTex);
+      desk.position.set(node.x * ts, node.y * ts);
+      desk.alpha = alpha;
+      desk.zIndex = foot - 1;
+      this.sprites.addChild(desk);
     }
-    if (!tex) g.rect(x, y, size, size).stroke({ width: node.locked ? 2 : 1, color: OUTLINE, alpha });
+    const base = onDesk ? node.y * ts + DESK_TOP : foot;
+    sprite.position.set(node.x * ts + (ts - 24) / 2, base - 38);
+    sprite.alpha = alpha;
+    sprite.tint = hot ? REMOVE_TINT : 0xffffff;
+    sprite.zIndex = foot;
+    this.sprites.addChild(sprite);
+    if (!onDesk) this.bg.ellipse(node.x * ts + ts / 2, foot, 10, 3).fill({ color: 0x000000, alpha: 0.25 * alpha });
 
     // ポート（下の辺）。使用中は塗りつぶし、空きは白抜き
     const count = gameEnv.devices[node.device]?.portCount ?? 0;
@@ -1064,7 +1024,7 @@ export class Scene {
     }
     for (let port = 0; port < count; port++) {
       const px = x + ((port + 0.5) * size) / count - 2;
-      const py = tex ? foot + 1 : y + size + 1;
+      const py = foot + 1;
       if (used.has(port)) {
         g.rect(px, py, 4, 3).fill({ color: OUTLINE, alpha });
       } else {
