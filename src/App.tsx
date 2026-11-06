@@ -5,7 +5,7 @@ import type { FurnitureId } from './generated/ids';
 import { seatCount } from './sim/furniture';
 import { loadLang, t } from './i18n/t';
 import { PixiStage } from './game/PixiStage';
-import { focusedProject, useGameStore, type Speed } from './stores/useGameStore';
+import { useGameStore, type Speed } from './stores/useGameStore';
 import { useTickLoop } from './stores/useTickLoop';
 import { toDate } from './sim/clock';
 import { loadSlot, saveSlot } from './services/db';
@@ -145,17 +145,10 @@ export function App() {
     // タイトル画面の間は時間を止める。端末の UI の大きさを反映する
     setSpeed(0);
     applyUiScale(loadSettings().uiScale);
-    loadLang('ja_jp').then(() => setReady(true));
-    mapLoaders.office_small().then((m) => cacheMap(m.default));
+    // 翻訳と、すべての地図を起動時に読み込んでから始める。依頼の判定は地図の読み込みに依存するため、読み込み中に判定させない
+    const maps = Object.values(mapLoaders).map((load) => load().then((m) => cacheMap(m.default)));
+    Promise.all([loadLang('ja_jp'), ...maps]).then(() => setReady(true));
   }, []);
-
-  // 受注した案件のマップは、配置や描画のために読み込んでおく
-  const activeMap = useGameStore((s) => focusedProject(s)?.contract.map);
-  useEffect(() => {
-    if (activeMap && !useGameStore.getState().maps[activeMap]) {
-      mapLoaders[activeMap as keyof typeof mapLoaders]().then((m) => cacheMap(m.default));
-    }
-  }, [activeMap]);
 
   useEffect(() => {
     if (!saveMark) return;
