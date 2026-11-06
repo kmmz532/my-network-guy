@@ -15,12 +15,12 @@
   "metersPerTile": 5,
   "nightPayRate": 1.5,
   "exp": {
-    "delivery": 0.2,
+    "delivery": 0.6,
     "guide": 0.06,
-    "hire": 0.06,
-    "expansion": 0.1,
-    "furniture": 0.03,
-    "dailyCap": 0.2
+    "hire": 0.03,
+    "expansion": 0.05,
+    "furniture": 0.01,
+    "dailyCap": 0.03
   },
   "pricing": {
     "base": {
