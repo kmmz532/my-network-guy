@@ -56,6 +56,7 @@ import {
   abandon,
   accept,
   acceptDelegated as acceptDelegatedOp,
+  delegateBlind as delegateBlindOp,
   applyBlueprint as applyBlueprintOp,
   advanceBuild,
   connect,
@@ -317,6 +318,8 @@ export interface GameState {
   accept: (offerId: string, crew: string[]) => string | null;
   // 設計中の案件に型紙を写す（N70）
   useBlueprint: () => string | null;
+  // 型紙なしで任せる（結果は乱数。N94）
+  delegateBlind: (offerId: string, crew: string[]) => string | null;
   // 社員に任せて受注する（N70）。任せられない理由は delegationReason で分かる
   acceptDelegated: (offerId: string, crew: string[]) => string | null;
   place: (deviceId: string, x: number, y: number) => string | null;
@@ -1057,6 +1060,17 @@ export const useGameStore = create<GameState>((set, get) => {
       return true;
     },
     useBlueprint: () => recorded(() => apply(applyBlueprintOp(coreOf(get()), gameEnv))),
+    delegateBlind: (offerId, crew) => {
+      const s = get();
+      const r = delegateBlindOp(coreOf(s), offerId, crew, gameEnv, s.rng);
+      if (!r.ok) {
+        set({ lastError: r.reason });
+        return r.reason;
+      }
+      const reason = apply({ ok: true, core: r.core, report: r.report });
+      if (reason === null) set({ rng: r.rng });
+      return reason;
+    },
     acceptDelegated: (offerId, crew) => {
       const reason = apply(acceptDelegatedOp(coreOf(get()), offerId, balance.office.projectSlots, crew, gameEnv));
       if (reason === null && get().speed !== 0 && loadSettings().designPause) get().setSpeed(0);

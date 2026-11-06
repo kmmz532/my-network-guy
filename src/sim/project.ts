@@ -43,6 +43,7 @@ import { DELEGATE_MIN_COUNT, DELEGATED_EXP_DIVISOR, DELEGATED_STAR_CAP, familiar
 import { dueDayOf, lateDaysOf, lateFactor } from './deadline';
 import { furnitureBonus, type BonusEnv } from './furniture';
 import { gainExp, staffPower } from './staff';
+import { blindDelegation } from './blindDelegate';
 import { CATEGORY } from '../data/categories';
 import { checkCableLength } from './cableLength';
 import { deliveryExpOf, levelOf, type LevelUp } from './level';
@@ -1324,6 +1325,65 @@ export const testDesign = (core: Core, env: Env): TestOutcome => {
   const j = judge(p, env);
   const result: TestResult = { passed: j.passed, goals: j.goals, traces: j.traces };
   return { ok: true, core: withProject(core, { ...p, testedOk: j.passed }), result };
+};
+
+// 型紙なしで任せる（N94）。設計は作らず、結果を乱数で決める。費用は予算 × 費用の割合を払い、報酬は★の倍率で決まる。
+// 経験値は半分。設計は地図に残さない（結果画面は★・費用・報酬）
+export type BlindOutcome = { ok: true; core: Core; report: Report; rng: number } | { ok: false; reason: string };
+
+export const delegateBlind = (core: Core, offerId: string, crew: string[], env: Env, rng: number): BlindOutcome => {
+  const offer = core.offers.find((o) => o.id === offerId);
+  if (!offer) return { ok: false, reason: 'none' };
+  const contract = offer.contract;
+  if (contract.inhouse) return { ok: false, reason: 'inhouse' };
+  const key = familiarKeyOf(offer.kind, offer.baseId, contract.map);
+  if ((core.familiarity.counts[key] ?? 0) < DELEGATE_MIN_COUNT) return { ok: false, reason: 'delegate.count' };
+  // 型紙が写せるなら、型紙で任せる（こちらは使わない）
+  const bp = core.familiarity.blueprints[key];
+  if (bp && positionsMatch(bp.design, fixedNodes(contract))) return { ok: false, reason: 'delegate.blueprint_fits' };
+  if (crew.length === 0) return { ok: false, reason: 'crew' };
+  const busy = new Set(core.active.flatMap((p) => p.crew));
+  const members = crew.map((uid) => core.staff.find((s) => s.uid === uid));
+  const valid = members.every((m) => m !== undefined && m.training === null && !busy.has(m.uid) && !isBackOffice(m.job));
+  if (!valid) return { ok: false, reason: 'crew' };
+  const crewMembers = members as Staff[];
+  const bonusEnv: BonusEnv = { defs: env.furniture ?? {}, balance: env.balance, staffUids: core.staff.map((s) => s.uid) };
+  const jobs = contract.jobs ?? [];
+  const power = crewMembers.reduce((sum, m) => sum + staffPower(m, jobs, core.office, bonusEnv), 0);
+  const pcCount = contract.placed.filter((p) => env.devices[p.device]?.category === 'pc').length;
+  const match = jobs.length === 0 ? 1 : crewMembers.filter((m) => jobs.includes(m.job)).length / crewMembers.length;
+  const result = blindDelegation(power, pcCount, match, env.balance, rng);
+  const stars = result.stars;
+  const cost = Math.round(contract.budget * result.costRatio);
+  const reward = Math.round(contract.reward.money * rewardRateOf(stars, env.balance));
+  const fullExp = deliveryExpOf(contract.unlockLevel, levelOf(core.companyExp, env.balance), rewardRateOf(stars, env.balance), env.balance);
+  const expGain = Math.max(1, Math.floor(fullExp / DELEGATED_EXP_DIVISOR));
+  let clock = applyMoney(core.clock, -cost, 'construction');
+  clock = applyMoney(clock, reward, 'reward');
+  const next: Core = {
+    ...core,
+    clock,
+    offers: core.offers.filter((o) => o.id !== offerId),
+    completed: offer.kind === 'fixed' ? [...core.completed, offer.baseId] : core.completed,
+    deliveries: core.deliveries + 1,
+    companyExp: core.companyExp + expGain,
+    reputation: core.reputation + stars,
+  };
+  const report: Report = {
+    passed: true,
+    traces: [],
+    failures: [],
+    stars,
+    money: reward,
+    cost,
+    budget: contract.budget,
+    rework: result.rework,
+    lateDays: 0,
+    designIssues: 0,
+    expGain,
+    rewardDevices: contract.reward.devices ?? [],
+  };
+  return { ok: true, core: next, report, rng: result.rng };
 };
 
 // 検収: 達成条件を判定する。合格なら納品して報酬と評判を得る。不合格なら設計に戻す（テストの結果を画面に残す）。

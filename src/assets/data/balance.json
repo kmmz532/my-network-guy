@@ -99,6 +99,15 @@
       "seatless": 0.5
     }
   },
+  "delegate": {
+    "powerForFull": 3,
+    "matchWeight": 0.3,
+    "bestCostRatio": 0.6,
+    "worstCostRatio": 1.1,
+    "noiseWidth": 0.1,
+    "worstRework": 3,
+    "reworkNoise": 0.5
+  },
   "backOffice": {
     "dailyExp": 20,
     "sales": {

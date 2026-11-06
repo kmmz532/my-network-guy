@@ -100,3 +100,25 @@ describe('増えた機器をつないで任せる', () => {
     expect(delegationReason(st().familiarity, offer, gameEnv)).toBeNull();
   });
 });
+
+// 型紙なしで任せる（結果は乱数で決まる）
+describe('型紙なしで任せる', () => {
+  it('型紙が写せない依頼は、結果を決めて受注を終える（設計は残らない・★は1か2）', () => {
+    const moved = { ...bareBlueprint, nodes: bareBlueprint.nodes.map((n) => ({ ...n, x: n.x + 1 })) };
+    withFamiliarity({ counts: { [key]: 3 }, blueprints: { [key]: { stars: 3, design: moved } } });
+    const crew = st().staff.map((m) => m.uid);
+    const money = st().clock.money;
+    const reason = st().delegateBlind(offer.id, crew);
+    expect(reason).toBeNull();
+    expect(st().offers.map((o) => o.id)).toEqual([]);
+    expect(st().active.map((p) => p.id)).toEqual([]);
+    expect(st().lastReport?.passed).toBe(true);
+    expect([1, 2]).toContain(st().lastReport?.stars);
+    expect(st().clock.money).not.toBe(money);
+  });
+
+  it('型紙が写せるなら、型紙なしでは任せない', () => {
+    withFamiliarity({ counts: { [key]: 3 }, blueprints: { [key]: { stars: 3, design: bareBlueprint } } });
+    expect(st().delegateBlind(offer.id, st().staff.map((m) => m.uid))).toBe('delegate.blueprint_fits');
+  });
+});

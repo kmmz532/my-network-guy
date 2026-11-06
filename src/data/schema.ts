@@ -73,6 +73,16 @@ export const balanceSchema = z.object({
   // 納品以外の経験値の量と、1日の上限（N55）
   // 経験値の量の割合（現在のレベルの必要経験値に掛ける）。納品は解放レベルの必要経験値に掛ける（LEVEL.md）
   // 自社のサーバーを外部に貸す収入（N72）。公開しているサーバー1台ごとに、月末に受け取る額
+  // 型紙なしで任せる（N94）。能力と職種の一致から、費用の割合と手直しを乱数で決める
+  delegate: z.object({
+    powerForFull: z.number().positive(),
+    matchWeight: z.number().min(0).max(1),
+    bestCostRatio: z.number().nonnegative(),
+    worstCostRatio: z.number().nonnegative(),
+    noiseWidth: z.number().nonnegative(),
+    worstRework: z.number().nonnegative(),
+    reworkNoise: z.number().nonnegative(),
+  }),
   // 内勤（社内の仕事で会社に効果を与える。担当には出さない）。効果の強さは、その職種の内勤の実効 level の合計
   backOffice: z.object({
     dailyExp: nonNegativeInt,

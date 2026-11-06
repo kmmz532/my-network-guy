@@ -5,11 +5,13 @@ import { balance, devices } from 'virtual:game-data';
 import { hasKey, t, tDyn } from '../i18n/t';
 import { goalText } from './goalText';
 import { gameEnv } from '../sim/env';
-import { staffPower } from '../sim/staff';
 import { offerHintOf, useGameStore } from '../stores/useGameStore';
 import type { Offer } from '../contracts/template';
 import { dangerButton, primaryButton, secondaryButton, usePrimary } from './Modal';
 import { delegationReason } from '../sim/project';
+import { staffPower } from '../sim/staff';
+import { starRangeOf } from '../sim/blindDelegate';
+import { Tooltip } from './Tooltip';
 import { loadSettings, saveSettings, OFFER_SORTS, type OfferSort } from '../settings/settings';
 import { sortOffers } from '../contracts/offers';
 import { minutesPerDay, toDate } from '../sim/clock';
@@ -82,6 +84,7 @@ export function OfferBody({ onClose }: { onClose: () => void }) {
             primary={i === 0}
             onAccept={(crew) => accept(offer.id, crew) === null && onClose()}
             onDelegate={(crew) => useGameStore.getState().acceptDelegated(offer.id, crew) === null && onClose()}
+            onDelegateBlind={(crew) => useGameStore.getState().delegateBlind(offer.id, crew) === null && onClose()}
             onDecline={() => declineOffer(offer.id)}
           />
         ))}
@@ -129,6 +132,7 @@ function OfferCard({
   primary,
   onAccept,
   onDelegate,
+  onDelegateBlind,
   onDecline,
 }: {
   offer: Offer;
@@ -143,12 +147,26 @@ function OfferCard({
   onAccept: (crew: string[]) => void;
   // 社員に任せて受注する（N70）
   onDelegate: (crew: string[]) => void;
+  // 型紙なしで任せる（N94）
+  onDelegateBlind: (crew: string[]) => void;
 }) {
   const staff = useGameStore((s) => s.staff);
+  const office = useGameStore((s) => s.office);
   const busy = useGameStore((s) => s.active.flatMap((p) => p.crew));
   const familiarity = useGameStore((s) => s.familiarity);
   // 社員に任せられない理由（任せられるなら null）（N70）
   const delegateReason = delegationReason(familiarity, offer, gameEnv);
+  // 予想の★の範囲（今の担当で）。担当が決まると変わる
+  const blindRange = (() => {
+    const jobs = offer.contract.jobs ?? [];
+    const members = staff.filter((m) => crew.includes(m.uid));
+    const bonusEnv = { defs: gameEnv.furniture ?? {}, balance, staffUids: staff.map((m) => m.uid) };
+    const power = members.reduce((sum, m) => sum + staffPower(m, jobs, office, bonusEnv), 0);
+    const pcCount = offer.contract.placed.filter((p) => devices[p.device as keyof typeof devices]?.category === CATEGORY.pc).length;
+    const match = jobs.length === 0 || members.length === 0 ? 1 : members.filter((m) => jobs.includes(m.job)).length / members.length;
+    const [min, max] = starRangeOf(power, pcCount, match, balance);
+    return min === max ? `★${min}` : `★${min}〜${max}`;
+  })();
   // 断る前の確認（設定で切り替える）
   const [asking, setAsking] = useState(false);
   // 受注の画面を開いたときの担当（空いている社員全員）
@@ -237,6 +255,14 @@ function OfferCard({
                 <button style={{ ...secondaryButton, whiteSpace: 'nowrap' }} disabled={!canAccept} onClick={() => onDelegate(crew)}>
                   {t('ui.delegate.button')}
                 </button>
+              )}
+              {/* 型紙が合わない依頼は、結果を乱数で決めて任せる（N94）。予想の★を、押す前に出す */}
+              {(delegateReason === 'delegate.fit' || delegateReason === 'delegate.blueprint') && (
+                <Tooltip text={t('ui.delegate.stars', { range: blindRange })}>
+                  <button style={{ ...secondaryButton, whiteSpace: 'nowrap' }} disabled={!canAccept} onClick={() => onDelegateBlind(crew)}>
+                    {t('ui.delegate.blind')}
+                  </button>
+                </Tooltip>
               )}
             </>
           )}
