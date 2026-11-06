@@ -2,7 +2,7 @@
 import { contractTemplates } from 'virtual:game-data';
 import { pcCountRangeOf } from '../contracts/template';
 import { tDyn } from '../i18n/t';
-import { Icon } from './Icon';
+import { ItemIcon } from './ItemIcon';
 import { itemSpriteOf } from './itemSprite';
 import { RADIUS } from '../ui/theme';
 
@@ -25,7 +25,7 @@ export function ItemCards({ items }: { items: { kind: 'device' | 'furniture'; id
     <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 4 }}>
       {items.map((x) => (
         <div key={`${x.kind}_${x.id}`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', background: '#25406f', border: '1px solid #3b2a33', borderRadius: RADIUS.chrome }}>
-          <Icon name={itemSpriteOf(x.kind, x.id)} scale={1} />
+          <ItemIcon name={itemSpriteOf(x.kind, x.id)} box={{ width: 36, height: 36 }} maxScale={2} />
           <span>
             {tDyn(`${x.kind}.${x.id}.name`)}
             {x.count !== undefined ? ` ×${x.count}` : ''}

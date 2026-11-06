@@ -8,6 +8,8 @@ export type InventoryMode = 'office' | 'design' | 'closed';
 export interface InventoryItem {
   kind: 'device' | 'furniture';
   id: string;
+  // 今は使えない理由（使えるなら省く）。設計中の家具は、一覧に残して使えないと示す（N・インベントリ）
+  blocked?: 'design';
 }
 
 // 受注中の案件の段階と、納品の結果を表示しているかで画面の状態を決める
@@ -17,13 +19,13 @@ export const inventoryMode = (activePhase: 'design' | 'build' | null, showcase: 
   return 'office';
 };
 
-// 欄に並べる品目。機材を先、家具を後に並べる（店の並び順。店にないものは、その後に ID の順）。設計中は家具を並べない。
+// 欄に並べる品目。機材を先、家具を後に並べる（店の並び順。店にないものは、その後に ID の順）。設計中の家具は並べたうえで使えない印を付ける（自社オフィスの家具は、設計中は置けない）。
 // 定義（機材・家具）にない ID を持っていたら例外にする（黙って消さない。R5）
 export const inventoryItems = (mode: InventoryMode, owned: Record<string, number>, catalog: Catalog): InventoryItem[] => {
   if (mode === 'closed') return [];
   const held = Object.entries(owned).filter(([, n]) => n > 0).map(([id]) => id);
   const { devices, furniture } = inventoryCatalogOf(held, catalog);
   const asDevices: InventoryItem[] = devices.map((id) => ({ kind: 'device', id }));
-  const asFurniture: InventoryItem[] = mode === 'office' ? furniture.map((id) => ({ kind: 'furniture', id })) : [];
+  const asFurniture: InventoryItem[] = furniture.map((id) => (mode === 'design' ? { kind: 'furniture', id, blocked: 'design' } : { kind: 'furniture', id }));
   return [...asDevices, ...asFurniture];
 };

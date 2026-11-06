@@ -29,8 +29,11 @@ describe('インベントリの欄に並べる品目（B1）', () => {
     ]);
   });
 
-  it('案件の設計中は、機材だけを並べる', () => {
-    expect(inventoryItems('design', owned, catalog).map((i) => i.id)).toEqual(['pc_basic', 'l2_switch_8p', 'l3_switch']);
+  it('案件の設計中は、家具も並べるが使えない印を付ける', () => {
+    const items = inventoryItems('design', owned, catalog);
+    expect(items.map((i) => i.id)).toEqual(['pc_basic', 'l2_switch_8p', 'l3_switch', 'plant', 'sofa']);
+    expect(items.filter((i) => i.blocked === 'design').map((i) => i.id)).toEqual(['plant', 'sofa']);
+    expect(items.filter((i) => i.kind === 'device' && i.blocked).length).toBe(0);
   });
 
   it('施工中と納品の結果では、何も並べない', () => {

@@ -10,12 +10,13 @@ import { balance as gameBalance, cables as gameCables, devices as gameDevices, f
 const itemDefs: ItemDefs = { devices: gameDevices, furniture: gameFurniture, cables: gameCables };
 import { effectText } from '../game/effectText';
 import { useGameStore } from '../stores/useGameStore';
-import { Icon, TrimmedIcon } from './Icon';
+import { Icon } from './Icon';
 import { secondaryButton } from './Modal';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { RADIUS } from '../ui/theme';
 import { matchesQuery } from '../ui/search';
 import { SearchField } from './SearchField';
+import { ItemIcon as SharedItemIcon } from './ItemIcon';
 
 // 区分のタブ（並びの順）
 type Section = 'device' | 'furniture';
@@ -24,12 +25,7 @@ const SECTIONS: readonly Section[] = ['device', 'furniture'];
 // 品目の絵。透明な余白を切り落とし、固定の枠の中央に収める。
 // 枠の高さは、最も背の高い品目（本棚 49 px）を 2 倍で収められる 98 px。これより低いと、背の高い品目だけ 1 倍に縮む
 const ITEM_ICON_BOX = { width: 64, height: 98 };
-const ItemIcon = ({ name }: { name: string }) => (
-  <div style={{ ...ITEM_ICON_BOX, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-    {/* 枠の幅に収め、拡大は 3 倍まで（4 ポートのスイッチ 14×12 が 42×36 になり、8 ポートの 44×32 とそろう） */}
-    <TrimmedIcon name={name} height={ITEM_ICON_BOX.height} width={ITEM_ICON_BOX.width} maxScale={3} />
-  </div>
-);
+const ItemIcon = ({ name }: { name: string }) => <SharedItemIcon name={name} box={ITEM_ICON_BOX} maxScale={3} />;
 
 // ショップの中身（ウィンドウの中に出す。マップの操作は止めない）
 export function ShopBody() {

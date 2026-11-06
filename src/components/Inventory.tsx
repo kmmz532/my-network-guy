@@ -10,6 +10,7 @@ import { mapViewOf } from '../game/mapView';
 import { useGameStore } from '../stores/useGameStore';
 import { isDragMove } from './rearDrag';
 import { Icon } from './Icon';
+import { ItemIcon } from './ItemIcon';
 import { Tooltip } from './Tooltip';
 import { secondaryButton } from './Modal';
 import { RADIUS } from '../ui/theme';
@@ -243,17 +244,21 @@ export function Inventory({
           const key = `${item.kind}-${item.id}`;
           const name =
             item.kind === 'device' ? tDyn(`device.${item.id}.name`) : tDyn(`furniture.${item.id}.name`);
+          // 使えない品目は薄暗くし、押しても何もしない。理由はツールチップで出す（設計中の家具）
+          const blocked = item.blocked !== undefined;
           return (
-            <Tooltip text={name} key={key}>
+            <Tooltip text={blocked ? `${name}
+${t('ui.inventory.blocked.design')}` : name} key={key}>
               <button
                 aria-label={name}
-                style={itemStyle(placing === item.id)}
-                onPointerDown={onItemPointerDown(item)}
+                aria-disabled={blocked}
+                style={blocked ? { ...itemStyle(false), opacity: 0.4, cursor: 'not-allowed' } : itemStyle(placing === item.id)}
+                onPointerDown={blocked ? undefined : onItemPointerDown(item)}
                 onClick={() => {
-                  if (!ignoreClick.current) onPick(item);
+                  if (!blocked && !ignoreClick.current) onPick(item);
                 }}
               >
-                <Icon name={spriteOf(item)} scale={1} />
+                <ItemIcon name={spriteOf(item)} box={{ width: 40, height: 40 }} maxScale={2} />
                 <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>
                   {owned[item.id] ?? 0}
                 </span>
@@ -265,7 +270,7 @@ export function Inventory({
       {itemDrag && dragged && (
         // ドラッグ中の品目の絵。ポインターに付いて動く（マップの判定には使わない）
         <div style={{ position: 'fixed', left: itemDrag.x - 16, top: itemDrag.y - 16, pointerEvents: 'none', opacity: 0.85, zIndex: 1000 }}>
-          <Icon name={spriteOf(dragged)} scale={1} />
+          <ItemIcon name={spriteOf(dragged)} box={{ width: 40, height: 40 }} maxScale={2} />
         </div>
       )}
     </>
