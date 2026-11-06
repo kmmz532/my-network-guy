@@ -12,7 +12,7 @@ import serverJson from '../assets/data/devices/server.json';
 import routerJson from '../assets/data/devices/router.json';
 import switchJson from '../assets/data/devices/l2_switch.json';
 
-export const SAVE_VERSION = 20;
+export const SAVE_VERSION = 21;
 
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
@@ -174,6 +174,11 @@ export const migrations: Record<number, Migration> = {
   },
   // v18 → v19: 遊び方を追加する。移行前のセーブデータは、すべて案件の経営ゲーム（career）とする
   18: (data) => ({ ...(data as object), mode: 'career' }),
+  // v20 → v21: 依頼に届いた時刻を追加する。移行前の依頼は、読み込んだ時刻に届いたものとする（期限は付けない）
+  20: (data) => {
+    const d = data as { clock: { minute: number }; offers: object[] };
+    return { ...d, offers: d.offers.map((o) => ({ ...o, arrivedMinute: d.clock.minute })) };
+  },
   // v19 → v20: 機器に、名前と IPアドレスの対応表（hosts）を追加する。移行前の機器は、対応表が空だったものとする
   19: (data) => {
     const d = data as { office: { nodes: NetNode[] }; active: { nodes: NetNode[] }[] };

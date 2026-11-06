@@ -7,7 +7,7 @@ import type { FurnitureId } from '../generated/ids';
 import { advanceTick, initialClock, isWorkingHour, minutesPerMonth, toDate, type ClockState } from '../sim/clock';
 import { nightSpeedStep } from '../sim/nightSpeed';
 import { buyDevice, sellDevice } from '../sim/shop';
-import { offerHint, refreshOffers, type OfferEnv, type OfferHint } from '../contracts/offers';
+import { declineOffer, offerHint, refreshOffers, type OfferEnv, type OfferHint } from '../contracts/offers';
 import type { Offer } from '../contracts/template';
 import type { GameMap, Staff } from '../data/schema';
 import { initialStaff, rollCandidates, totalSalary } from '../sim/staff';
@@ -300,6 +300,8 @@ export interface GameState {
   setPlanned: (uid: string, port: number, net: PlannedNet | null) => void;
   // まとめて届いた知らせを消す（依頼の一覧を開いたとき）
   clearOfferBurst: () => void;
+  // 定型案件の依頼を断る（固定案件は断れない）
+  declineOffer: (id: string) => void;
   // 配線の片方の端を、同じ機器の別のポートへ挿し替える
   replug: (linkUid: string, end: End, port: number) => string | null;
   // 機器・家具を別のマスへ動かす（配置と同じ判定。ケーブルは付いたまま、費用の差額を払う）。失敗したら理由を返す
@@ -935,6 +937,7 @@ export const useGameStore = create<GameState>((set, get) => {
       recorded(() => apply(setInterface(coreOf(get()), uid, port, ip, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
     setGateway: (uid, gateway) => recorded(() => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid))),
     clearOfferBurst: () => set({ offerBurst: 0 }),
+    declineOffer: (id) => set({ offers: declineOffer(get().offers, id) }),
     setPlanned: (uid, port, net) =>
       set((s) => {
         const key = plannedKey(uid, port);

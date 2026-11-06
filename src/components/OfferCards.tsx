@@ -10,6 +10,9 @@ import { staffPower } from '../sim/staff';
 import { offerHintOf, useGameStore } from '../stores/useGameStore';
 import type { Offer } from '../contracts/template';
 import { Modal, primaryButton, usePrimary } from './Modal';
+import { loadSettings, saveSettings, OFFER_SORTS, type OfferSort } from '../settings/settings';
+import { sortOffers } from '../contracts/offers';
+import { minutesPerDay, toDate } from '../sim/clock';
 import { PixelCheck } from './PixelControls';
 import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
@@ -21,6 +24,14 @@ export function OfferCards({ onClose }: { onClose: () => void }) {
   // 案件の枠がいっぱいのときは受注できない
   const full = useGameStore((s) => s.active.length >= balance.office.projectSlots);
   const accept = useGameStore((s) => s.accept);
+  const declineOffer = useGameStore((s) => s.declineOffer);
+  const now = useGameStore((s) => s.clock.minute);
+  // 並べ方（端末の設定に保存する）
+  const [sort, setSortState] = useState<OfferSort>(() => loadSettings().offerSort);
+  const setSort = (mode: OfferSort) => {
+    setSortState(mode);
+    saveSettings({ offerSort: mode });
+  };
   const yen = (n: number) => n.toLocaleString('ja-JP');
   const hint = useGameStore(offerHintOf);
   // まとめて届いた件数は、開いたときの値を出し、知らせを消す
@@ -47,16 +58,32 @@ export function OfferCards({ onClose }: { onClose: () => void }) {
         )}
       </div>
       {offers.length === 0 && <div style={{ opacity: 0.7 }}>…</div>}
+      {offers.length > 0 && (
+        <div role="group" aria-label={t('ui.offer.sort.label')} style={{ display: 'flex', gap: 6, marginBottom: 8, fontSize: 12 }}>
+          {OFFER_SORTS.map((mode) => (
+            <button
+              key={mode}
+              aria-pressed={sort === mode}
+              onClick={() => setSort(mode)}
+              style={{ padding: '2px 8px', cursor: 'pointer', fontFamily: 'inherit', background: sort === mode ? '#ffd866' : '#25406f', color: sort === mode ? '#1d3664' : '#f4f1e6', border: '1px solid #3b2a33', borderRadius: RADIUS.none }}
+            >
+              {t(`ui.offer.sort.${mode}`)}
+            </button>
+          ))}
+        </div>
+      )}
       {/* 新しい依頼を上に並べる。件数が多いときは、この中だけスクロールする */}
       <div className="scroll-edge" style={{ maxHeight: 'min(60vh, 520px)', overflowY: 'auto', paddingRight: 4 }}>
-        {[...offers].reverse().map((offer, i) => (
+        {sortOffers(offers, sort).map((offer, i) => (
           <OfferCard
             key={offer.id}
             offer={offer}
             full={full}
             yen={yen}
+            now={now}
             primary={i === 0}
             onAccept={(crew) => accept(offer.id, crew) === null && onClose()}
+            onDecline={() => declineOffer(offer.id)}
           />
         ))}
       </div>
@@ -98,12 +125,18 @@ function OfferCard({
   offer,
   full,
   yen,
+  now,
   primary,
   onAccept,
+  onDecline,
 }: {
   offer: Offer;
   full: boolean;
   yen: (n: number) => string;
+  // 今の時刻（分）。届いた日と、受注の期限の残りに使う
+  now: number;
+  // 定型案件だけ断れる
+  onDecline: () => void;
   // 一番上の依頼だけ、Enter で受注する主のボタンになる
   primary: boolean;
   onAccept: (crew: string[]) => void;
@@ -133,6 +166,11 @@ function OfferCard({
       <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 6 }}>
         {t(`contract.${offer.baseId}.story` as LangKey, offer.params)}
       </div>
+      {offer.arrivedMinute !== undefined && (
+        <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 4 }}>
+          {t('ui.offer.arrived', { month: toDate(offer.arrivedMinute, balance).month, day: toDate(offer.arrivedMinute, balance).day })}
+        </div>
+      )}
       {(offer.contract.jobs?.length ?? 0) > 0 && (
         <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>
           {t('ui.offer.jobs', { jobs: (offer.contract.jobs ?? []).map((j) => t(`staff.job.${j}` as LangKey)).join('・') })}
@@ -156,11 +194,19 @@ function OfferCard({
           <Icon name="icon/budget" /> {yen(offer.contract.budget)}
         </span>
         {offer.contract.deadlineDays !== undefined && <span>{t('ui.offer.deadline', { days: offer.contract.deadlineDays })}</span>}
+        {offer.expiresMinute !== undefined && (
+          <span style={{ color: '#ffd866' }}>{t('ui.offer.expires', { days: Math.max(0, Math.ceil((offer.expiresMinute - now) / minutesPerDay)) })}</span>
+        )}
         <span style={{ color: '#ffd866' }}>
           <Icon name="icon/money" /> {yen(offer.contract.reward.money)}
         </span>
+        {offer.kind === 'template' && (
+          <button style={{ fontFamily: 'inherit', cursor: 'pointer', background: 'transparent', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: RADIUS.none, padding: '4px 8px', marginLeft: 'auto' }} onClick={onDecline}>
+            {t('ui.offer.decline')}
+          </button>
+        )}
         <button
-          style={{ ...primaryButton, marginLeft: 'auto' }}
+          style={{ ...primaryButton, marginLeft: offer.kind === 'template' ? 0 : 'auto' }}
           disabled={!canAccept}
           onClick={() => onAccept(crew)}
         >

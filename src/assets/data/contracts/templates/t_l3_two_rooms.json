@@ -23,6 +23,10 @@
     "height": 8
   },
   "deadlineDays": 12,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
   "budget": {
     "base": 60000,
     "perPc": 3000,

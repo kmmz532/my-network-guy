@@ -298,6 +298,8 @@ export const templateSchema = z.object({
   weight: nonNegativeInt,
   // 受注日からの期日（日数）
   deadlineDays: int.positive(),
+  // 依頼が届いてから受注できる期限（日数の範囲。乱数で決める。N39）。省くと期限はない
+  offerExpireDays: z.object({ min: int.positive(), max: int.positive() }).optional(),
   map: z.string().min(1),
   params: z.object({
     pcCount: z.object({ min: int.positive(), max: int.positive() }),

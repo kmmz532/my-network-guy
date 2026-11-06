@@ -6,7 +6,7 @@ import templateJson from '../assets/data/contracts/templates/t_small_lan.json';
 import officeJson from '../assets/data/maps/office_small.json';
 import type { Balance, Contract, ContractTemplate, GameMap } from '../data/schema';
 import { minutesPerDay } from '../sim/clock';
-import { MAX_OFFERS, offerHint, refreshOffers, type OfferEnv, type OfferState } from './offers';
+import { declineOffer, MAX_OFFERS, offerHint, refreshOffers, sortOffers, type OfferEnv, type OfferState } from './offers';
 import { instantiateTemplate, starHubOf } from './template';
 
 const balance = balanceJson as unknown as Balance;
@@ -154,5 +154,41 @@ describe('次の依頼の案内（offerHint）', () => {
   it('固定案件の前提が未達のときは、最初の前提を出す', () => {
     const noTemplate = { ...env, templates: [], fixed: [{ ...c002, requires: ['c001_direct_link'] }] as unknown as Contract[] };
     expect(offerHint({ ...start, completed: [] }, noTemplate).block).toEqual({ kind: 'fixed', after: 'c001_direct_link' });
+  });
+});
+
+describe('依頼の届いた日・期限・並べ替え・断る（N39）', () => {
+  it('定型案件には届いた時刻と、ひな形の範囲の受注期限が付く', () => {
+    const minute = 5 * minutesPerDay;
+    const out = refreshOffers({ ...start, minute, nextOfferMinute: minute, completed: ['c001_direct_link', 'c002_small_office'], reputation: 5 }, env);
+    const o = out.offers.find((x) => x.kind === 'template');
+    expect(o?.arrivedMinute).toBe(minute);
+    const days = ((o?.expiresMinute ?? 0) - minute) / minutesPerDay;
+    expect(days).toBeGreaterThanOrEqual(30);
+    expect(days).toBeLessThanOrEqual(90);
+  });
+
+  it('受注期限を過ぎた定型案件は、次の判定で消える', () => {
+    const offers = [{ id: 'old', kind: 'template' as const, baseId: 't_small_lan', params: {}, contract: fixed[0], arrivedMinute: 0, expiresMinute: 10 }];
+    const out = refreshOffers({ ...start, minute: 11, nextOfferMinute: 1e9, offers: offers as OfferState['offers'] }, env);
+    expect(out.offers.some((o) => o.id === 'old')).toBe(false);
+  });
+
+  it('並べ替え: 新しい順・期限の近い順（期限なしは後ろ）・報酬の高い順', () => {
+    const mk = (id: string, arrived: number, expires: number | undefined, money: number) =>
+      ({ id, kind: 'template' as const, baseId: id, params: {}, arrivedMinute: arrived, expiresMinute: expires, contract: { ...fixed[0], reward: { money, reputation: 0 } } }) as unknown as OfferState['offers'][number];
+    const list = [mk('a', 1, 50, 100), mk('b', 3, undefined, 300), mk('c', 2, 20, 200)];
+    expect(sortOffers(list, 'new').map((o) => o.id)).toEqual(['b', 'c', 'a']);
+    expect(sortOffers(list, 'deadline').map((o) => o.id)).toEqual(['c', 'a', 'b']);
+    expect(sortOffers(list, 'reward').map((o) => o.id)).toEqual(['b', 'c', 'a']);
+  });
+
+  it('断るは定型案件だけ消す（固定案件は残す）', () => {
+    const list = [
+      { id: 'fx', kind: 'fixed' as const, baseId: 'fx', params: {}, contract: fixed[0] },
+      { id: 'tp', kind: 'template' as const, baseId: 'tp', params: {}, contract: fixed[0] },
+    ] as OfferState['offers'];
+    expect(declineOffer(list, 'tp').map((o) => o.id)).toEqual(['fx']);
+    expect(declineOffer(list, 'fx').map((o) => o.id)).toEqual(['fx', 'tp']);
   });
 });

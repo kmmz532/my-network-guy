@@ -4,6 +4,8 @@ import type { Balance, Contract, ContractTemplate, GameMap } from '../data/schem
 import { minutesPerDay } from '../sim/clock';
 import { rand } from '../sim/rng';
 import { instantiateTemplate, pickByWeight, type Offer } from './template';
+import { randInt } from '../sim/rng';
+import type { OfferSort } from '../settings/settings';
 
 export const MAX_OFFERS = 30;
 
@@ -40,7 +42,7 @@ const addOffer = (state: OfferState, env: OfferEnv): OfferState => {
   if (fixed) {
     return {
       ...state,
-      offers: [...state.offers, { id: fixed.id, kind: 'fixed', baseId: fixed.id, params: {}, contract: fixed }],
+      offers: [...state.offers, { id: fixed.id, kind: 'fixed', baseId: fixed.id, params: {}, contract: fixed, arrivedMinute: state.minute }],
     };
   }
 
@@ -53,15 +55,27 @@ const addOffer = (state: OfferState, env: OfferEnv): OfferState => {
   const map = env.mapOf(picked.item.map);
   if (!map) return state;
   const made = instantiateTemplate(picked.item, map, state.offerSeq, picked.rng);
+  // 受注できる期限は、ひな形の範囲から乱数で決める（範囲がなければ期限はない）
+  let rng = made.rng;
+  let offer: Offer = { ...made.offer, arrivedMinute: state.minute };
+  const span = picked.item.offerExpireDays;
+  if (span) {
+    const days = randInt(rng, span.min, span.max);
+    rng = days.state;
+    offer = { ...offer, expiresMinute: state.minute + days.value * minutesPerDay };
+  }
   return {
     ...state,
-    offers: [...state.offers, made.offer],
+    offers: [...state.offers, offer],
     offerSeq: state.offerSeq + 1,
-    rng: made.rng,
+    rng,
   };
 };
 
-export const refreshOffers = (state: OfferState, env: OfferEnv): OfferState => {
+export const refreshOffers = (state0: OfferState, env: OfferEnv): OfferState => {
+  // 期限を過ぎた依頼は消す（時間が進むたびに見る）
+  const live = state0.offers.filter((o) => o.expiresMinute === undefined || state0.minute < o.expiresMinute);
+  const state = live.length === state0.offers.length ? state0 : { ...state0, offers: live };
   if (state.minute < state.nextOfferMinute) return state;
   const interval = env.balance.offerIntervalDays * minutesPerDay;
   let next: OfferState = { ...state, nextOfferMinute: state.nextOfferMinute + interval };
@@ -119,3 +133,16 @@ export const offerHint = (state: OfferState, env: OfferEnv): OfferHint => {
   }
   return { days, block: null };
 };
+
+// 依頼の一覧の並べ方。新しい順（届いた時刻が新しい順）・期限の近い順（期限がないものは後ろ）・報酬の高い順
+export const sortOffers = (offers: readonly Offer[], mode: OfferSort): Offer[] => {
+  // 同じ値のときは、新しく届いたものを上にする（配列の後ろほど新しい）
+  const newestFirst = [...offers].reverse();
+  if (mode === 'deadline') return newestFirst.sort((a, b) => (a.expiresMinute ?? Infinity) - (b.expiresMinute ?? Infinity));
+  if (mode === 'reward') return newestFirst.sort((a, b) => b.contract.reward.money - a.contract.reward.money);
+  return newestFirst.sort((a, b) => (b.arrivedMinute ?? 0) - (a.arrivedMinute ?? 0));
+};
+
+// 定型案件の依頼を断る。固定案件は断れない（同じ一覧を返す）
+export const declineOffer = (offers: readonly Offer[], id: string): Offer[] =>
+  offers.filter((o) => !(o.id === id && o.kind === 'template'));

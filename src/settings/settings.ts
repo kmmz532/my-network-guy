@@ -13,6 +13,9 @@ export type PausedBuildMode = (typeof PAUSED_BUILD_MODES)[number];
 
 // 自動保存の間隔。off はしない、daily はゲーム内の毎日の朝0時、weekly は7日ごと（開始日から数えて7の倍数の日の朝0時）
 export const AUTO_SAVE_MODES = ['off', 'daily', 'weekly'] as const;
+// 依頼の一覧の並べ方（N39）
+export const OFFER_SORTS = ['new', 'deadline', 'reward'] as const;
+export type OfferSort = (typeof OFFER_SORTS)[number];
 export type AutoSaveMode = (typeof AUTO_SAVE_MODES)[number];
 
 export interface Settings {
@@ -35,6 +38,8 @@ export interface Settings {
   sound: boolean;
   // 給与を払えない月は、給与の前に一度時間を止めるか（既定はオン。放置による倒産を防ぐ）
   payPause: boolean;
+  // 依頼の一覧の並べ方（既定は新しい順）
+  offerSort: OfferSort;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -48,6 +53,7 @@ export const DEFAULT_SETTINGS: Settings = {
   designPause: true,
   sound: true,
   payPause: true,
+  offerSort: 'new',
 };
 
 export const SETTINGS_KEY = 'network-ya.settings.v1';
@@ -80,6 +86,7 @@ export function parseSettings(raw: string | null): Settings {
     designPause: typeof d.designPause === 'boolean' ? d.designPause : DEFAULT_SETTINGS.designPause,
     sound: typeof d.sound === 'boolean' ? d.sound : DEFAULT_SETTINGS.sound,
     payPause: typeof d.payPause === 'boolean' ? d.payPause : DEFAULT_SETTINGS.payPause,
+    offerSort: (OFFER_SORTS as readonly unknown[]).includes(d.offerSort) ? (d.offerSort as OfferSort) : DEFAULT_SETTINGS.offerSort,
   };
 }
 

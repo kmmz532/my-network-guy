@@ -12,6 +12,10 @@ export interface Offer {
   // 文言の置換に使う値（例: pcCount）
   params: Record<string, number>;
   contract: Contract;
+  // 届いた時刻（分）。古い保存では読み込んだ時刻（移行で入れる）
+  arrivedMinute?: number;
+  // 受注できる期限（分）。定型案件だけ持つ。固定案件と期限のない定型案件は持たない（N39）
+  expiresMinute?: number;
 }
 
 export interface InstantiateResult {
