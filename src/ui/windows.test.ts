@@ -21,8 +21,11 @@ import {
   selectTab,
   toggleWindow,
   type WindowKind,
+  type WindowItem,
   type WindowList,
   type WindowMemory,
+  placeWindow,
+  resizeRect,
 } from './windows';
 
 const WIDE = { w: 1280, h: 800, phone: false };
@@ -378,5 +381,47 @@ describe('同じ機器・社員をもう一度押す（toggleWindow）', () => {
     list = toggle(list, 'pc_b');
     expect(list.windows).toHaveLength(1);
     expect(of(list)).toMatchObject({ tabs: ['pc_a', 'pc_b'], active: 'pc_b' });
+  });
+});
+
+describe('resizeRect（辺と角のドラッグ。N57）', () => {
+  const start = { x: 300, y: 200, w: 400, h: 300 };
+  it('右辺は幅だけ、左辺は反対の右辺を固定して位置も動かす', () => {
+    expect(resizeRect(start, { e: true }, 50, 0, WIDE)).toEqual({ x: 300, y: 200, w: 450, h: 300 });
+    expect(resizeRect(start, { w: true }, -50, 0, WIDE)).toEqual({ x: 250, y: 200, w: 450, h: 300 });
+  });
+  it('上辺は下の辺を固定し、下辺は上の辺を固定する', () => {
+    expect(resizeRect(start, { n: true }, 0, -40, WIDE)).toEqual({ x: 300, y: 160, w: 400, h: 340 });
+    expect(resizeRect(start, { s: true }, 0, 40, WIDE)).toEqual({ x: 300, y: 200, w: 400, h: 340 });
+  });
+  it('角は2つの辺を同時に動かす', () => {
+    expect(resizeRect(start, { n: true, w: true }, -20, -30, WIDE)).toEqual({ x: 280, y: 170, w: 420, h: 330 });
+    expect(resizeRect(start, { s: true, e: true }, 20, 30, WIDE)).toEqual({ x: 300, y: 200, w: 420, h: 330 });
+  });
+  it('最小の大きさで止まるとき、反対の辺は動かない', () => {
+    // 左辺を右へ大きく動かしても、幅は最小のまま。右の辺（x+w = 700）は固定
+    const r = resizeRect(start, { w: true }, 1000, 0, WIDE);
+    expect(r.w).toBe(MIN_W);
+    expect(r.x + r.w).toBe(700);
+    // 上辺を下へ大きく動かしても、高さは最小のまま。下の辺（y+h = 500）は固定
+    const t = resizeRect(start, { n: true }, 0, 1000, WIDE);
+    expect(t.h).toBe(MIN_H);
+    expect(t.y + t.h).toBe(500);
+  });
+  it('画面の外には出さない', () => {
+    const r = resizeRect(start, { e: true, s: true }, 5000, 5000, WIDE);
+    expect(r.x + r.w).toBeLessThanOrEqual(WIDE.w);
+    expect(r.y + r.h).toBeLessThanOrEqual(WIDE.h);
+    const l = resizeRect(start, { w: true }, 5000, 0, WIDE);
+    expect(l.x).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('placeWindow（位置と大きさを置く。N57）', () => {
+  it('狭い画面では変えない・画面の外には出さない', () => {
+    const list = { windows: [{ id: 1, kind: 'device', x: 10, y: 10, w: 300, h: 200 } as WindowItem], seq: 2 } as WindowList;
+    expect(placeWindow(list, 1, { x: 0, y: 0, w: 300, h: 200 }, NARROW)).toBe(list);
+    const moved = placeWindow(list, 1, { x: 5000, y: 5000, w: 300, h: 200 }, WIDE);
+    expect(moved.windows[0].x + moved.windows[0].w).toBeLessThanOrEqual(WIDE.w);
   });
 });

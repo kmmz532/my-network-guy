@@ -35,7 +35,7 @@ import {
   stepDesign,
   undo as undoHistory,
 } from '../sim/history';
-import { type WindowItem, type WindowKind, type WindowMemory, closeRef, closeWindow as closeWindowOp, focusWindow as focusWindowOp, frontWindow, moveWindow as moveWindowOp, openWindow as openWindowOp, toggleWindow as toggleWindowOp, closeTab as closeTabOp, fitWindows as fitWindowsOp, selectTab as selectTabOp, reorderTab as reorderTabOp, parseMemory, remember, resizeWindow as resizeWindowOp, type Viewport } from '../ui/windows';
+import { type WindowItem, type WindowKind, type WindowMemory, closeRef, closeWindow as closeWindowOp, focusWindow as focusWindowOp, frontWindow, moveWindow as moveWindowOp, openWindow as openWindowOp, toggleWindow as toggleWindowOp, closeTab as closeTabOp, fitWindows as fitWindowsOp, selectTab as selectTabOp, reorderTab as reorderTabOp, parseMemory, remember, resizeWindow as resizeWindowOp, placeWindow as placeWindowOp, type Rect, type Viewport } from '../ui/windows';
 import { isPhoneNow } from '../ui/usePhone';
 import {
   hire as hireOp,
@@ -217,6 +217,8 @@ export interface GameState {
   focusWindow: (id: number) => void;
   moveWindow: (id: number, x: number, y: number) => void;
   resizeWindow: (id: number, w: number, h: number) => void;
+  // 位置と大きさを、辺のドラッグの結果のまま置く（N57）
+  placeWindow: (id: number, rect: Rect) => void;
   // 配置モードで置く機材（null なら配置しない）
   placing: string | null;
   // 配線に使うケーブル
@@ -782,6 +784,13 @@ export const useGameStore = create<GameState>((set, get) => {
       const s = get();
       const vp = viewportNow();
       const list = moveWindowOp({ windows: s.windows, seq: s.windowSeq }, id, x, y, vp);
+      if (list.windows === s.windows) return;
+      set({ windows: list.windows, windowMemory: rememberWin(s.windowMemory, list.windows, id) });
+    },
+    placeWindow: (id, rect) => {
+      const s = get();
+      const vp = viewportNow();
+      const list = placeWindowOp({ windows: s.windows, seq: s.windowSeq }, id, rect, vp);
       if (list.windows === s.windows) return;
       set({ windows: list.windows, windowMemory: rememberWin(s.windowMemory, list.windows, id) });
     },

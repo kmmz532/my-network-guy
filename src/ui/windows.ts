@@ -224,6 +224,40 @@ export function resizeWindow(list: WindowList, id: number, w: number, h: number,
   return patch(list, id, rect);
 }
 
+// 動かす辺（N57）。n は上、s は下、e は右、w は左
+export interface Edges {
+  n?: boolean;
+  s?: boolean;
+  e?: boolean;
+  w?: boolean;
+}
+
+// 辺をドラッグしたときの位置と大きさ（N57）。開始時の位置と大きさ（start）から求める。
+// 動かさない辺は動かさず、反対側の辺を基準に最小の大きさ（MIN_W・MIN_H）と画面の外に出さない制約をかける
+export function resizeRect(start: Rect, edges: Edges, dx: number, dy: number, vp: Viewport): Rect {
+  let { x, y, w, h } = start;
+  if (edges.e) w = clamp(start.w + dx, MIN_W, vp.w - start.x);
+  if (edges.w) {
+    const right = start.x + start.w;
+    w = clamp(start.w - dx, MIN_W, right);
+    x = right - w;
+  }
+  if (edges.s) h = clamp(start.h + dy, MIN_H, vp.h - start.y);
+  if (edges.n) {
+    const bottom = start.y + start.h;
+    h = clamp(start.h - dy, MIN_H, bottom);
+    y = bottom - h;
+  }
+  return clampRect({ x, y, w, h }, vp);
+}
+
+// ウィンドウの位置と大きさを、そのまま置く（画面の外には出さない）。狭い画面では変えない（N57）
+export function placeWindow(list: WindowList, id: number, rect: Rect, vp: Viewport): WindowList {
+  if (isNarrow(vp)) return list;
+  if (!list.windows.some((t) => t.id === id)) return list;
+  return patch(list, id, clampRect(rect, vp));
+}
+
 // 画面の大きさが変わったとき、開いているすべてのウィンドウを画面の中に収める（大きさは最小から画面まで）。変わらなければ同じ一覧を返す
 export function fitWindows(list: WindowList, vp: Viewport): WindowList {
   let changed = false;

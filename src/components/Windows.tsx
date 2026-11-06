@@ -3,7 +3,7 @@
 // 幅 768 px 未満では、一番手前の1つだけを画面の下に出し、動かさない。
 import { useEffect, useState, type ReactNode } from 'react';
 import { t } from '../i18n/t';
-import { frontWindow, clampRect, isNarrow, narrowRect, type Viewport, type WindowItem, type WindowKind } from '../ui/windows';
+import { frontWindow, clampRect, isNarrow, narrowRect, type Viewport, type WindowItem, type WindowKind, resizeRect } from '../ui/windows';
 import { findDevice, DeviceBody, DeviceTitle } from './DevicePanel';
 import { StaffBody, StaffListBody, StaffTitle } from './StaffCard';
 import { Window } from './Window';
@@ -114,7 +114,7 @@ export function Windows({ onTraining }: { onTraining: () => void }) {
           closeText={narrow ? t('ui.panel.back') : undefined}
           onFocus={() => state.focusWindow(w.id)}
           onMove={(x, y) => state.moveWindow(w.id, x, y)}
-          onResize={(nw, nh) => state.resizeWindow(w.id, nw, nh)}
+          onResize={(edges, dx, dy, start) => state.placeWindow(w.id, resizeRect(start, edges, dx, dy, vp))}
           onClose={() => state.closeWindow(w.id)}
         >
           {w.kind === 'device' && <DeviceBody uid={w.active} />}

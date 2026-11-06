@@ -1,7 +1,7 @@
 // 動かせるウィンドウの部品。上端の帯をドラッグして移動し、右下の角をドラッグして大きさを変える。
 // 位置と大きさの計算は ui/windows.ts が受け持ち、ここはポインターの処理と見た目だけを扱う（マウス・タッチ・ペンは同じ処理）。
-import { useRef, type PointerEvent, type ReactNode } from 'react';
-import type { Rect } from '../ui/windows';
+import { useRef, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
+import type { Edges, Rect } from '../ui/windows';
 import { RADIUS, WINDOW_BAR_HEIGHT, uiScaled } from '../ui/theme';
 
 interface Props {
@@ -14,7 +14,8 @@ interface Props {
   closeText?: string;
   onFocus: () => void;
   onMove: (x: number, y: number) => void;
-  onResize: (w: number, h: number) => void;
+  // 辺や角をドラッグしたとき。動かした辺・移動量・開始時の位置と大きさを渡す（計算は ui/windows.ts の resizeRect）
+  onResize: (edges: Edges, dx: number, dy: number, start: Rect) => void;
   onClose: () => void;
   // タイトルの帯の下に出すタブの帯（タブが1つのときは null）
   tabs?: ReactNode;
@@ -27,7 +28,23 @@ interface Drag {
   px: number;
   py: number;
   rect: Rect;
+  // 大きさを変えるときに動かす辺（移動のときは使わない）
+  edges?: Edges;
 }
+
+// 大きさを変える判定（N57）。四辺は縁から内側 6 px、四隅は 12 px 四方。帯の上辺も大きさを変える（移動は帯の内側）
+const EDGE_PX = 6;
+const CORNER_PX = 12;
+const RESIZE_HANDLES: { name: string; edges: Edges; cursor: string; style: CSSProperties }[] = [
+  { name: 'n', edges: { n: true }, cursor: 'ns-resize', style: { top: 0, left: CORNER_PX, right: CORNER_PX, height: EDGE_PX } },
+  { name: 's', edges: { s: true }, cursor: 'ns-resize', style: { bottom: 0, left: CORNER_PX, right: CORNER_PX, height: EDGE_PX } },
+  { name: 'e', edges: { e: true }, cursor: 'ew-resize', style: { right: 0, top: CORNER_PX, bottom: CORNER_PX, width: EDGE_PX } },
+  { name: 'w', edges: { w: true }, cursor: 'ew-resize', style: { left: 0, top: CORNER_PX, bottom: CORNER_PX, width: EDGE_PX } },
+  { name: 'nw', edges: { n: true, w: true }, cursor: 'nwse-resize', style: { top: 0, left: 0, width: CORNER_PX, height: CORNER_PX } },
+  { name: 'ne', edges: { n: true, e: true }, cursor: 'nesw-resize', style: { top: 0, right: 0, width: CORNER_PX, height: CORNER_PX } },
+  { name: 'se', edges: { s: true, e: true }, cursor: 'nwse-resize', style: { bottom: 0, right: 0, width: CORNER_PX, height: CORNER_PX } },
+  { name: 'sw', edges: { s: true, w: true }, cursor: 'nesw-resize', style: { bottom: 0, left: 0, width: CORNER_PX, height: CORNER_PX } },
+];
 
 const frame = {
   position: 'absolute',
@@ -47,11 +64,11 @@ export function Window({ title, rect, movable, closeLabel, closeText, onFocus, o
   const drag = useRef<Drag | null>(null);
 
   // 押したら、そのウィンドウを手前に出し、つかんだ位置を覚える。左ボタン以外のマウスは無視する
-  const begin = (kind: Drag['kind']) => (e: PointerEvent<HTMLElement>) => {
+  const begin = (kind: Drag['kind'], edges?: Edges) => (e: PointerEvent<HTMLElement>) => {
     if (!movable) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { kind, px: e.clientX, py: e.clientY, rect };
+    drag.current = { kind, px: e.clientX, py: e.clientY, rect, edges };
   };
 
   const move = (e: PointerEvent<HTMLElement>) => {
@@ -60,7 +77,7 @@ export function Window({ title, rect, movable, closeLabel, closeText, onFocus, o
     const dx = e.clientX - d.px;
     const dy = e.clientY - d.py;
     if (d.kind === 'move') onMove(d.rect.x + dx, d.rect.y + dy);
-    else onResize(d.rect.w + dx, d.rect.h + dy);
+    else onResize(d.edges ?? { e: true, s: true }, dx, dy, d.rect);
   };
 
   const end = (e: PointerEvent<HTMLElement>) => {
@@ -115,7 +132,7 @@ export function Window({ title, rect, movable, closeLabel, closeText, onFocus, o
             // 帯の移動を始めないよう、押した位置の処理を止める（止めないと、ボタンの上で移動が始まる）
             onPointerDown={(e) => e.stopPropagation()}
             onClick={onClose}
-            style={{ flexShrink: 0, width: closeText ? 'auto' : 22, minWidth: 22, height: 22, padding: closeText ? '0 8px' : 0, cursor: 'pointer', background: '#25406f', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: RADIUS.none, lineHeight: '20px' }}
+            style={{ position: 'relative', zIndex: 1, flexShrink: 0, width: closeText ? 'auto' : 22, minWidth: 22, height: 22, padding: closeText ? '0 8px' : 0, cursor: 'pointer', background: '#25406f', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: RADIUS.none, lineHeight: '20px' }}
           >
             {closeText ?? '×'}
           </button>
@@ -125,12 +142,20 @@ export function Window({ title, rect, movable, closeLabel, closeText, onFocus, o
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 8 }}>
         <div style={{ width: '100%', zoom: 'var(--ui-scale, 1)' }}>{children}</div>
       </div>
-      {movable && (
+      {movable && RESIZE_HANDLES.map((h) => (
         <div
-          onPointerDown={begin('resize')}
+          key={h.name}
+          onPointerDown={begin('resize', h.edges)}
           onPointerMove={move}
           onPointerUp={end}
           onPointerCancel={end}
+          aria-hidden="true"
+          style={{ position: 'absolute', zIndex: 2, touchAction: 'none', cursor: h.cursor, ...h.style }}
+        />
+      ))}
+      {movable && (
+        // 右下の取っ手は大きさを変えられることの目印（動きは右下の角の判定が受け持つ）
+        <div
           aria-hidden="true"
           style={{
             position: 'absolute',
@@ -138,8 +163,7 @@ export function Window({ title, rect, movable, closeLabel, closeText, onFocus, o
             bottom: 0,
             width: 16,
             height: 16,
-            cursor: 'nwse-resize',
-            touchAction: 'none',
+            pointerEvents: 'none',
             background: 'linear-gradient(135deg, transparent 0 50%, #b8bfcc 50% 58%, transparent 58% 74%, #b8bfcc 74% 82%, transparent 82%)',
           }}
         />
