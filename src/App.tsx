@@ -46,9 +46,12 @@ const SAVE_MARK_MS = 1000;
 type Screen = 'title' | 'game';
 type Popup = 'menu' | 'help' | 'settings' | 'sandboxResize' | 'sandboxReset' | 'sandboxResetConfirm' | null;
 
+// 上部の操作（速さ・メニュー・社員）の大きさ。指で押すため、スマホでも 44 px の高さを確保する（M4）
 const hudButton = (on: boolean) =>
   ({
     padding: '2px 8px',
+    minHeight: 44,
+    minWidth: 44,
     cursor: 'pointer',
     background: on ? '#ffd866' : '#25406f',
     color: on ? '#3b2a33' : '#f4f1e6',

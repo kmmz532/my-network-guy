@@ -11,7 +11,8 @@ import { chromium } from 'playwright';
 const PORT = 5199;
 const URL_BASE = `http://localhost:${PORT}/my-network-guy/`;
 const args = process.argv.slice(2);
-const phone = args.includes('--phone');
+const landscape = args.includes('--phone-landscape');
+const phone = args.includes('--phone') || landscape;
 const outIdx = args.indexOf('--out');
 const outDir = outIdx >= 0 ? args[outIdx + 1] : 'shots';
 const names = args.filter((a, i) => !a.startsWith('--') && (outIdx < 0 || i !== outIdx + 1));
@@ -286,7 +287,7 @@ try {
     // 場面ごとに新しいブラウザの状態（保存データなし）で始める
     const context = await browser.newContext(
       phone
-        ? { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true }
+        ? { viewport: landscape ? { width: 844, height: 390 } : { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true }
         : { viewport: { width: 1280, height: 720 } },
     );
     const page = await context.newPage();
@@ -302,7 +303,7 @@ try {
     await page.goto(URL_BASE);
     await page.waitForTimeout(1500);
     await scenes[name](page);
-    const file = `${outDir}/${name}${phone ? '.phone' : ''}.png`;
+    const file = `${outDir}/${name}${landscape ? '.phone-landscape' : phone ? '.phone' : ''}.png`;
     await page.screenshot({ path: file });
     console.log(`保存: ${file}`);
     await context.close();
