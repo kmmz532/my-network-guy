@@ -26,13 +26,14 @@ export interface OfferEnv {
   mapOf: (id: string) => GameMap | undefined;
 }
 
+const isTaken = (state: OfferState, baseId: string): boolean =>
+  state.completed.includes(baseId) || state.excluded.includes(baseId) || state.offers.some((o) => o.baseId === baseId);
+const isReady = (state: OfferState, requires: readonly string[]): boolean => requires.every((r) => state.completed.includes(r));
+
 // 依頼を1件追加する。追加できなければ、同じ状態を返す。
 const addOffer = (state: OfferState, env: OfferEnv): OfferState => {
-  const taken = (baseId: string) =>
-    state.completed.includes(baseId) ||
-    state.excluded.includes(baseId) ||
-    state.offers.some((o) => o.baseId === baseId);
-  const ready = (requires: readonly string[]) => requires.every((r) => state.completed.includes(r));
+  const taken = (baseId: string) => isTaken(state, baseId);
+  const ready = (requires: readonly string[]) => isReady(state, requires);
 
   // 固定案件を優先する（並び順は読み込み時に確定している）
   const fixed = env.fixed.find((c) => !taken(c.id) && ready(c.requires));
@@ -86,4 +87,36 @@ export const refreshOffers = (state: OfferState, env: OfferEnv): OfferState => {
     next = added;
   }
   return next;
+};
+
+// 次の依頼が届かない理由。届く見込みがあるなら null（reason は null のまま）
+export type OfferBlock =
+  | { kind: 'full'; max: number }
+  | { kind: 'reputation'; need: number }
+  | { kind: 'fixed'; after: string };
+
+export interface OfferHint {
+  // 次の依頼まで、何日か（1日未満は1日）
+  days: number;
+  block: OfferBlock | null;
+}
+
+// 依頼の一覧に出す案内。次の依頼までの日数と、届かない理由（あれば）
+export const offerHint = (state: OfferState, env: OfferEnv): OfferHint => {
+  const days = Math.max(1, Math.ceil((state.nextOfferMinute - state.minute) / minutesPerDay));
+  if (state.offers.length >= MAX_OFFERS) return { days, block: { kind: 'full', max: MAX_OFFERS } };
+  const fixedLeft = env.fixed.filter((c) => !isTaken(state, c.id));
+  if (fixedLeft.some((c) => isReady(state, c.requires))) return { days, block: null };
+  const loadable = env.templates.filter((t) => isReady(state, t.requires) && env.mapOf(t.map) !== undefined);
+  if (loadable.some((t) => state.reputation >= t.minReputation)) return { days, block: null };
+  if (loadable.length > 0) {
+    return { days, block: { kind: 'reputation', need: Math.min(...loadable.map((t) => t.minReputation)) } };
+  }
+  // 定型案件がなく、固定案件の前提も未達なら、最初の固定案件の前提を示す
+  const next = fixedLeft[0];
+  if (next) {
+    const after = next.requires.find((r) => !state.completed.includes(r));
+    if (after) return { days, block: { kind: 'fixed', after } };
+  }
+  return { days, block: null };
 };

@@ -7,7 +7,7 @@ import type { FurnitureId } from '../generated/ids';
 import { advanceTick, initialClock, isWorkingHour, minutesPerMonth, toDate, type ClockState } from '../sim/clock';
 import { nightSpeedStep } from '../sim/nightSpeed';
 import { buyDevice, sellDevice } from '../sim/shop';
-import { refreshOffers, type OfferEnv } from '../contracts/offers';
+import { offerHint, refreshOffers, type OfferEnv, type OfferHint } from '../contracts/offers';
 import type { Offer } from '../contracts/template';
 import type { GameMap, Staff } from '../data/schema';
 import { initialStaff, rollCandidates, totalSalary } from '../sim/staff';
@@ -366,6 +366,22 @@ export const coreOf = (s: GameState): Core => ({
   focus: s.focus,
   guidesDone: s.guidesDone,
 });
+
+// 依頼の一覧に出す案内（次の依頼までの日数と、届かない理由）
+export const offerHintOf = (s: GameState): OfferHint =>
+  offerHint(
+    {
+      minute: s.clock.minute,
+      reputation: s.reputation,
+      completed: s.completed,
+      offers: s.offers,
+      excluded: s.active.map((p) => p.baseId),
+      nextOfferMinute: s.nextOfferMinute,
+      offerSeq: s.offerSeq,
+      rng: s.rng,
+    },
+    offerEnv(s.maps),
+  );
 
 // 依頼の追加を1回分進める。受注中の案件と同じ依頼は出さない
 const refresh = (s: GameState): Partial<GameState> => {

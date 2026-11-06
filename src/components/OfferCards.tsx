@@ -7,7 +7,7 @@ import { hasKey, t } from '../i18n/t';
 import { goalText } from './goalText';
 import { gameEnv } from '../sim/env';
 import { staffPower } from '../sim/staff';
-import { useGameStore } from '../stores/useGameStore';
+import { offerHintOf, useGameStore } from '../stores/useGameStore';
 import type { Offer } from '../contracts/template';
 import { Modal, primaryButton, usePrimary } from './Modal';
 import { PixelCheck } from './PixelControls';
@@ -29,11 +29,23 @@ export function OfferCards({ onClose }: { onClose: () => void }) {
   const full = useGameStore((s) => s.active.length >= balance.office.projectSlots);
   const accept = useGameStore((s) => s.accept);
   const yen = (n: number) => n.toLocaleString('ja-JP');
+  const hint = useGameStore(offerHintOf);
+  const reputation = useGameStore((s) => s.reputation);
 
   return (
     <Modal onClose={onClose} boxStyle={{ minWidth: 320 }}>
       <div style={{ marginBottom: 8 }}>
         <Icon name="icon/mail" />
+      </div>
+      <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 8 }}>
+        <div>{t('ui.offer.next', { days: hint.days })}</div>
+        {hint.block?.kind === 'full' && <div style={{ color: '#ffd866' }}>{t('ui.offer.blocked.full', { max: hint.block.max })}</div>}
+        {hint.block?.kind === 'reputation' && (
+          <div style={{ color: '#ffd866' }}>{t('ui.offer.blocked.reputation', { need: hint.block.need, now: reputation })}</div>
+        )}
+        {hint.block?.kind === 'fixed' && (
+          <div style={{ color: '#ffd866' }}>{t('ui.offer.blocked.fixed', { title: t(`contract.${hint.block.after}.title` as LangKey) })}</div>
+        )}
       </div>
       {offers.length === 0 && <div style={{ opacity: 0.7 }}>…</div>}
       {/* 新しい依頼を上に並べる。件数が多いときは、この中だけスクロールする */}

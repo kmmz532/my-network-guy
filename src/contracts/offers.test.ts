@@ -6,7 +6,7 @@ import templateJson from '../assets/data/contracts/templates/t_small_lan.json';
 import officeJson from '../assets/data/maps/office_small.json';
 import type { Balance, Contract, ContractTemplate, GameMap } from '../data/schema';
 import { minutesPerDay } from '../sim/clock';
-import { MAX_OFFERS, refreshOffers, type OfferEnv, type OfferState } from './offers';
+import { MAX_OFFERS, offerHint, refreshOffers, type OfferEnv, type OfferState } from './offers';
 import { instantiateTemplate, starHubOf } from './template';
 
 const balance = balanceJson as unknown as Balance;
@@ -121,5 +121,31 @@ describe('依頼の追加', () => {
   it('受注中の案件は依頼に出さない', () => {
     const state = { ...start, excluded: ['c001_direct_link'] };
     expect(refreshOffers(state, env).offers.map((o) => o.baseId)).toEqual([]);
+  });
+});
+
+describe('次の依頼の案内（offerHint）', () => {
+  it('次の依頼までの日数を出す（1日未満は1日）', () => {
+    expect(offerHint({ ...start, nextOfferMinute: 2 * minutesPerDay }, env).days).toBe(2);
+    expect(offerHint({ ...start, nextOfferMinute: 10 }, env).days).toBe(1);
+  });
+
+  it('届く見込みがあれば理由は出さない', () => {
+    expect(offerHint(start, env).block).toBeNull();
+  });
+
+  it('依頼が上限までたまっているときは理由を出す', () => {
+    const offers = Array.from({ length: MAX_OFFERS }, (_, i) => ({ id: `x${i}`, kind: 'template' as const, baseId: `x${i}`, params: {}, contract: fixed[0] }));
+    expect(offerHint({ ...start, offers: offers as OfferState['offers'] }, env).block).toEqual({ kind: 'full', max: MAX_OFFERS });
+  });
+
+  it('評判が足りないときは必要な評判を出す', () => {
+    const high = { ...env, templates: [{ ...template, minReputation: 5 }] };
+    expect(offerHint({ ...start, completed: ['c002_small_office'], reputation: 0 }, { ...high, fixed: [] }).block).toEqual({ kind: 'reputation', need: 5 });
+  });
+
+  it('固定案件の前提が未達のときは、最初の前提を出す', () => {
+    const noTemplate = { ...env, templates: [], fixed: [{ ...c002, requires: ['c001_direct_link'] }] as unknown as Contract[] };
+    expect(offerHint({ ...start, completed: [] }, noTemplate).block).toEqual({ kind: 'fixed', after: 'c001_direct_link' });
   });
 });
