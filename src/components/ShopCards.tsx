@@ -17,6 +17,7 @@ import { RADIUS } from '../ui/theme';
 import { matchesQuery } from '../ui/search';
 import { SearchField } from './SearchField';
 import { ItemIcon as SharedItemIcon } from './ItemIcon';
+import { itemSpriteOf } from './itemSprite';
 
 // 区分のタブ（並びの順）
 type Section = 'device' | 'furniture';
@@ -104,7 +105,7 @@ export function ShopBody() {
                   key={`furniture-${id}`}
                   style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}
                 >
-                  <ItemIcon name={f.sprite} />
+                  <ItemIcon name={itemSpriteOf('furniture', f.id)} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 'bold' }}>{tDyn(`furniture.${id}.name`)}</div>
                     <div style={{ fontSize: 12, opacity: 0.85 }}>{tDyn(`furniture.${id}.desc`)}</div>

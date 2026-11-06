@@ -240,6 +240,8 @@ export const furnitureSchema = z.object({
   id: z.string().min(1),
   price: nonNegativeInt,
   sprite: z.string().min(1),
+  // ショップ・インベントリのアイコン（地図の絵と分けたいときだけ書く。省くと sprite を使う）
+  icon: z.string().min(1).optional(),
   seat: z.boolean(),
   unlockLevel: unlockLevelSchema,
   // 家具の効果（OFFICE.md「家具の効果」）。range を省略するとオフィス全体に効く

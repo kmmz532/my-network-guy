@@ -4,6 +4,7 @@
       "id": "desk",
       "price": 30000,
       "sprite": "furniture/desk",
+      "icon": "furniture/desk_chair",
       "seat": true,
       "unlockLevel": 1
     },

@@ -941,6 +941,14 @@ def desk():
     return outline(img)
 
 
+def desk_chair_icon(desk_img, chair_img):
+    # 「机と椅子」のアイコン（ショップ・インベントリ用）。地図と同じく、机の手前に椅子を重ねる（「机」だけの品目と見分けるため）
+    img = Image.new('RGBA', (32, 32 + 28 - 4), (0, 0, 0, 0))
+    img.alpha_composite(desk_img, (0, 0))
+    img.alpha_composite(chair_img, (0, 32 - 4))
+    return img
+
+
 def chair():
     # 椅子だけの絵（N44・B10）。机の手前に置き、机と同じ斜め上（3/4）から見たオフィスチェア。社員はこの上に重なる
     # 座面は上面が広く見える平たい楕円で、手前に厚みがある。背もたれは座面の手前の端から立ち、上面（厚み）と背面が見える
@@ -1222,4 +1230,5 @@ if __name__ == '__main__':
     }
     for name, img in furniture.items():
         save(img, f'furniture/{name}.png')
+    save(desk_chair_icon(furniture['desk'], furniture['chair']), 'furniture/desk_chair.png')
     print('ok')

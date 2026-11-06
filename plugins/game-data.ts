@@ -266,6 +266,7 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
   for (const f of data.furniture) {
     ensure(!deviceIds.has(f.id) && !cableIds.has(f.id), `furniture.json: ID ${f.id} が機材かケーブルと重複している`);
     ensure(existsSync(join(spriteDir, `${f.sprite}.png`)), `furniture.json: ${f.id} のスプライト ${f.sprite} がない`);
+    if (f.icon !== undefined) ensure(existsSync(join(spriteDir, `${f.icon}.png`)), `furniture.json: ${f.id} のアイコン ${f.icon} がない`);
   }
 
   // 機材のスプライトは、描画のときに必ず使うため、ビルドで存在を確かめる
