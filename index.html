@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>わたしのネットワーク屋</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -59,6 +59,11 @@
         #root {
           height: 100dvh;
         }
+      }
+      /* ノッチ・角丸の画面（iPhone など）では、画面の端に安全な余白を取り、時計やノッチの下に UI を置かない（viewport-fit=cover と組み合わせる） */
+      #root {
+        box-sizing: border-box;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
       }
       /* 入力欄では文字の選択を許す */
       input,

@@ -29,6 +29,11 @@ for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
   );
 }
 
+// ブラウザが空き容量の少ないときにサイトのデータを消さないよう、永続化を要求する（セーブを守る。断られても遊べる）
+if (typeof navigator !== 'undefined' && navigator.storage?.persist) {
+  void navigator.storage.persist().catch(() => undefined);
+}
+
 // オフラインでも起動できるよう、本番のビルドだけサービスワーカーを登録する。
 // 新しい版は待機させ、利用者が更新を押したあとだけ切り替えて再読み込みする（もともと版がなかったときの最初の読み込みでは再読み込みしない）
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
