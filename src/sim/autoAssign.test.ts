@@ -280,3 +280,19 @@ describe('IPアドレスの自動割り当て（自社オフィス・サンド�
     expect(officeNode(set, a).interfaces).toEqual([]);
   });
 });
+
+describe('詳しくで選んだネットワーク（planned）', () => {
+  it('ネットワークが決まっていないセグメントは、選んだネットワークで振る', () => {
+    const { core: base, sw } = officeWithSwitch();
+    const wired = ok(connect(base, 'pc_a', sw, UTP, env, 'focus')).core;
+    const planned = () => ({ network: '192.168.7.0', prefix: 24 });
+    const out = autoAssign(wired, env, 'focus', true, planned);
+    expect(ipsOf(out).pc_a).toBe('192.168.7.10');
+  });
+
+  it('選んだネットワークがなければ、従来どおり既定の 192.168.N.0/24 を使う', () => {
+    const { core: base, sw } = officeWithSwitch();
+    const wired = ok(connect(base, 'pc_a', sw, UTP, env, 'focus')).core;
+    expect(ipsOf(autoAssign(wired, env, 'focus', true))).toEqual(ipsOf(autoAssign(wired, env, 'focus', true, () => undefined)));
+  });
+});

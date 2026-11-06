@@ -13,7 +13,16 @@ const FIRST_HOST = 10;
 // 既定のネットワークを選ぶ第1オクテットの後ろ（192.168.N.0/24 の N を 1 から探す）
 const DEFAULT_PREFIX = 24;
 
-export const autoAssign = (core: Core, env: Env, target: NetTarget, enabled: boolean): Core => {
+type Segment = ReturnType<typeof segmentsOf>[number];
+
+// 詳しくで選んだ、まだ設定のないセグメントのネットワーク（ストアの planned。なければ undefined）
+export const autoAssign = (
+  core: Core,
+  env: Env,
+  target: NetTarget,
+  enabled: boolean,
+  planned: (seg: Segment) => SegmentConfig | undefined = () => undefined,
+): Core => {
   if (!enabled) return core;
   if (target === 'focus' && focusedOf(core)?.contract.manualIp) return core;
   // 編集できない対象（自社オフィスが案件に使われている、設計中でない）は、netOf が理由を返すので何もしない
@@ -73,7 +82,7 @@ export const autoAssign = (core: Core, env: Env, target: NetTarget, enabled: boo
     if (!cfg) {
       // ネットワークが決まっていないセグメントは、振る相手（IPのない PC・サーバー）があるときだけ既定を決める
       if (!hostsUnset) continue;
-      cfg = pickDefaultNetwork();
+      cfg = planned(seg) ?? pickDefaultNetwork();
       if (!cfg) continue;
       segments = { ...segments, [seg.key]: cfg };
       changed = true;

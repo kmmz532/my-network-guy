@@ -15,7 +15,7 @@ import { networkAddress, neighborRouterAddresses, routerAddressesOn, segmentConf
 import type { NetNode, SegmentConfig } from '../network/types';
 import { gameEnv } from '../sim/env';
 import { addressCandidates, PLANNED_NETWORK, PLANNED_PREFIX, plannedAddressCandidates, type AddressCandidate } from '../sim/project';
-import { coreOf, netTargetOf, useGameStore } from '../stores/useGameStore';
+import { coreOf, netTargetOf, plannedKey, useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, hexColor, inputStyle, isIpText, portLabel, sectionStyle, unsetColor } from './devicePorts';
 
 // ネットワークアドレスの候補（sim-3: 192.168.<n>.0）と、プレフィックス長の候補（/24〜/30）
@@ -41,8 +41,9 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   const setSegment = useGameStore((s) => s.setSegment);
   const addRoute = useGameStore((s) => s.addRoute);
   const removeRoute = useGameStore((s) => s.removeRoute);
-  // 詳しくで選んだ、まだ設定のないポートのネットワーク（IPアドレスを設定したら消す）
-  const [pending, setPending] = useState<Record<number, { network: string; prefix: number }>>({});
+  // 詳しくで選んだ、まだ設定のないポートのネットワーク（IPアドレスを設定したら消す）。ストアに持ち、配線の自動割り当てで使う
+  const planned = useGameStore((s) => s.planned);
+  const setPlanned = useGameStore((s) => s.setPlanned);
 
   const net = compiled.net;
   const engine = gameEnv.engine;
@@ -72,15 +73,9 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   // セグメントの設定は、配線のときと同じく IPアドレスから補う（fillSegments）
   const commitIp = (port: number, ip: string): string | null => {
     const cfg = cfgOf(port);
-    const prefix = cfg ? cfg.prefix : (pending[port]?.prefix ?? PLANNED_PREFIX);
+    const prefix = cfg ? cfg.prefix : (planned[plannedKey(node.uid, port)]?.prefix ?? PLANNED_PREFIX);
     const reason = setIface(node.uid, port, ip, prefix);
-    if (!reason) {
-      setPending((p0) => {
-        const next = { ...p0 };
-        delete next[port];
-        return next;
-      });
-    }
+    if (!reason) setPlanned(node.uid, port, null);
     return reason;
   };
 
@@ -97,7 +92,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
     const iface = node.interfaces.find((i) => i.port === port);
     // 今のネットワーク: 設定があればそれ。なければ詳しくで選んだ値、IPアドレスがあればその /24、どちらもなければ既定
     const fromIface = iface ? { network: networkAddress(iface.ip, iface.prefix), prefix: iface.prefix } : null;
-    const shown = cfg ?? pending[port] ?? fromIface ?? { network: PLANNED_NETWORK, prefix: PLANNED_PREFIX };
+    const shown = cfg ?? planned[plannedKey(node.uid, port)] ?? fromIface ?? { network: PLANNED_NETWORK, prefix: PLANNED_PREFIX };
     const color = colorOfNetwork(colors, cfg?.network) ?? UNSET_COLOR;
     // 候補は、読み取り専用でなければ一覧にする。設定の前でも後でも同じ範囲（.1 からブロードキャストの1つ前まで）・同じ順で並べる
     const candidates: AddressCandidate[] = readOnly || unlinkedRouter
@@ -112,7 +107,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
     });
     // 設定のないポートのネットワークを変えるとき、入っているIPアドレスは外す（新しいネットワークのアドレスを選び直す）
     const changePlanned = (next: { network: string; prefix: number }) => {
-      setPending((p0) => ({ ...p0, [port]: next }));
+      setPlanned(node.uid, port, next);
       if (iface) onError(setIface(node.uid, port, ''));
     };
     const networks = cfg && !NETWORK_CHOICES.includes(cfg.network) ? [...NETWORK_CHOICES, cfg.network] : NETWORK_CHOICES;

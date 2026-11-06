@@ -143,7 +143,15 @@ const writeMemory = (memory: WindowMemory): void => {
 
 export const viewportNow = (): { w: number; h: number } => ({ w: window.innerWidth, h: window.innerHeight });
 
+export interface PlannedNet {
+  network: string;
+  prefix: number;
+}
+export const plannedKey = (uid: string, port: number): string => `${uid}:${port}`;
+
 export interface GameState {
+  // 詳しくで選んだネットワーク（画面の状態。セーブには入らない）。キーは plannedKey
+  planned: Record<string, PlannedNet>;
   // 遊び方（career は案件の経営ゲーム、sandbox は自由に設計する練習場）。セーブデータに入る
   mode: GameMode;
   clock: ClockState;
@@ -283,6 +291,8 @@ export interface GameState {
   setGateway: (uid: string, gateway: string | null) => string | null;
   // セグメント（ポートが属するネットワーク）のアドレスを設定する
   setSegment: (uid: string, port: number, network: string, prefix: number) => string | null;
+  // 詳しくで選んだ、まだ設定のないポートのネットワーク（null で消す）。配線・セグメントの設定のときに使う
+  setPlanned: (uid: string, port: number, net: PlannedNet | null) => void;
   // 配線の片方の端を、同じ機器の別のポートへ挿し替える
   replug: (linkUid: string, end: End, port: number) => string | null;
   // 機器・家具を別のマスへ動かす（配置と同じ判定。ケーブルは付いたまま、費用の差額を払う）。失敗したら理由を返す
@@ -426,8 +436,16 @@ const rememberWin = (memory: WindowMemory, windows: WindowItem[], id: number): W
 
 export const useGameStore = create<GameState>((set, get) => {
   // 配線・セグメントの設定の後に、IPアドレスの自動割り当てをかける（設定がオフなら何もしない）。同じ操作として取り消しに残る
+  // 詳しくで選んだネットワークを、そのセグメントのポートから探す
+  const plannedOf = (seg: { members: { node: string; port: number }[] }): PlannedNet | undefined => {
+    for (const m of seg.members) {
+      const p = get().planned[plannedKey(m.node, m.port)];
+      if (p) return p;
+    }
+    return undefined;
+  };
   const withAutoIp = (o: Outcome, target: NetTarget): Outcome =>
-    o.ok ? { ...o, core: autoAssign(o.core, gameEnv, target, loadSettings().autoIp) } : o;
+    o.ok ? { ...o, core: autoAssign(o.core, gameEnv, target, loadSettings().autoIp, plannedOf) } : o;
 
   // 案件の操作の結果を状態に反映する。失敗なら理由を返す
   // 機器の位置（失敗の吹き出しを出す場所）
@@ -549,6 +567,7 @@ export const useGameStore = create<GameState>((set, get) => {
     offers: [],
     nextOfferMinute: 0,
     offerSeq: 0,
+    planned: {},
     ...newStart(),
     candidates: [],
     active: [],
@@ -898,6 +917,14 @@ export const useGameStore = create<GameState>((set, get) => {
     setIface: (uid, port, ip, prefix = 24) =>
       recorded(() => apply(setInterface(coreOf(get()), uid, port, ip, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
     setGateway: (uid, gateway) => recorded(() => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid))),
+    setPlanned: (uid, port, net) =>
+      set((s) => {
+        const key = plannedKey(uid, port);
+        const next = { ...s.planned };
+        if (net) next[key] = net;
+        else delete next[key];
+        return { planned: next };
+      }),
     setSegment: (uid, port, network, prefix) =>
       recorded(() =>
         apply(withAutoIp(setSegment(coreOf(get()), uid, port, network, prefix, gameEnv, netTargetOf(get())), netTargetOf(get())), tileOf(uid)),
