@@ -334,6 +334,13 @@ export interface GameState {
   resizeSandbox: (size: OfficeSize) => string | null;
 }
 
+// 機材または家具の定価（どちらにもないIDは undefined）
+const priceOfItem = (id: string): number | undefined => {
+  if (id in furniture) return furniture[id as FurnitureId].price;
+  if (id in devices) return devices[id as keyof typeof devices].price;
+  return undefined;
+};
+
 const offerEnv = (maps: Record<string, GameMap>): OfferEnv => ({
   balance,
   fixed: contracts,
@@ -832,14 +839,11 @@ export const useGameStore = create<GameState>((set, get) => {
       }),
     buy: (deviceId) => {
       const s = get();
-      const isFurniture = deviceId in furniture;
+      // 機材・家具の定価。どちらにもないIDは買えない（黙って0円にしない）
+      const listPrice = priceOfItem(deviceId);
+      if (listPrice === undefined) return false;
       // サンドボックスは購入の費用を 0 とする（在庫は増える）
-      const price =
-        s.mode === 'sandbox'
-          ? 0
-          : isFurniture
-            ? furniture[deviceId as FurnitureId].price
-            : devices[deviceId as keyof typeof devices].price;
+      const price = s.mode === 'sandbox' ? 0 : listPrice;
       const result = buyDevice(s.clock.money, s.owned, deviceId, price);
       if (!result.ok) return false;
       // 購入は費用に入れない。案件の費用は納品のときに、置かれている機器の定価と配線の費用から決める
@@ -849,8 +853,8 @@ export const useGameStore = create<GameState>((set, get) => {
     sell: (deviceId) => {
       const s = get();
       if (s.mode === 'sandbox') return false;
-      const isFurniture = deviceId in furniture;
-      const price = isFurniture ? furniture[deviceId as FurnitureId].price : devices[deviceId as keyof typeof devices].price;
+      const price = priceOfItem(deviceId);
+      if (price === undefined) return false;
       const result = sellDevice(s.clock.money, s.owned, deviceId, price, balance.sellRate);
       if (!result.ok) return false;
       set({ clock: { ...s.clock, money: result.money }, owned: result.owned });

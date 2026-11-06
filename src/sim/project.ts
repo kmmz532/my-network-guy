@@ -626,14 +626,21 @@ export const connect = (
 ): Outcome => {
   const reason = checkConnect(core, aUid, bUid, cableId, env, target, ports);
   if (reason) return fail(reason);
-  const net = netOf(core, target) as Net;
-  const a = net.nodes.find((n) => n.uid === aUid) as NetNode;
-  const b = net.nodes.find((n) => n.uid === bUid) as NetNode;
+  const net = netOf(core, target);
+  if (typeof net === 'string') return fail(net);
+  const a = net.nodes.find((n) => n.uid === aUid);
+  const b = net.nodes.find((n) => n.uid === bUid);
+  // 機器が見つからないのは、画面と状態のずれ。黙って進めず、理由を返す
+  if (!a || !b) return fail('none');
   const cable = env.cables[cableId];
   const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
   const cost = cableCost(cable, length);
-  const portA = choosePort(net.links, a, env, ports.a) as number;
-  const portB = choosePort(net.links, b, env, ports.b) as number;
+  const chosenA = choosePort(net.links, a, env, ports.a);
+  const chosenB = choosePort(net.links, b, env, ports.b);
+  if (typeof chosenA === 'string') return fail(chosenA);
+  if (typeof chosenB === 'string') return fail(chosenB);
+  const portA = chosenA;
+  const portB = chosenB;
   const link: NetLink = {
     uid: `l${net.seq}`,
     cable: cableId,
