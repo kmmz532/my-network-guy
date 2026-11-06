@@ -110,9 +110,8 @@ export function App() {
   // サンドボックスの画面。速度のボタン・社員・依頼は出さない
   const sandbox = useGameStore((s) => s.mode) === 'sandbox';
   const office = useGameStore((s) => s.office);
-  // 社員の人数と席の数（席は自社オフィスの机の家具）。雇えなかった理由をHUDに出す
+  // 社員の人数。雇えなかった理由をHUDに出す
   const staff = useGameStore((s) => s.staff.length);
-  const seats = useGameStore((s) => seatCount(s.office, (id) => furniture[id as FurnitureId]?.seat === true));
   const [hiring, setHiring] = useState(false);
   const [hiringTab, setHiringTab] = useState<HiringTab>('hiring');
   const openWindow = useGameStore((s) => s.openWindow);
@@ -338,7 +337,7 @@ export function App() {
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {/* 押すと、社員の一覧を開く */}
           <button onClick={() => openWindow('staffList', '')} style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer' }}>
-            {t('ui.staff.label', { staff, seats })}
+            {t('ui.staff.label', { staff })}
           </button>
         </span>
         )}
