@@ -134,9 +134,16 @@ describe('次の依頼の案内（offerHint）', () => {
     expect(offerHint(start, env).block).toBeNull();
   });
 
-  it('依頼が上限までたまっているときは理由を出す', () => {
+  it('依頼が上限までたまっていても、新しい依頼は届く（古いものから消す）', () => {
     const offers = Array.from({ length: MAX_OFFERS }, (_, i) => ({ id: `x${i}`, kind: 'template' as const, baseId: `x${i}`, params: {}, contract: fixed[0] }));
-    expect(offerHint({ ...start, offers: offers as OfferState['offers'] }, env).block).toEqual({ kind: 'full', max: MAX_OFFERS });
+    expect(offerHint({ ...start, offers: offers as OfferState['offers'] }, env).block).toBeNull();
+  });
+
+  it('上限を超える依頼は、古いものから消して最大 MAX_OFFERS 件に保つ', () => {
+    const offers = Array.from({ length: MAX_OFFERS }, (_, i) => ({ id: `old${i}`, kind: 'template' as const, baseId: `old${i}`, params: {}, contract: fixed[0] }));
+    const out = refreshOffers({ ...start, minute: 0, nextOfferMinute: 0, offers: offers as OfferState['offers'] }, { ...env, balance: { ...env.balance, offerBurst: undefined } });
+    expect(out.offers.length).toBe(MAX_OFFERS);
+    expect(out.offers[0].id).toBe('old1');
   });
 
   it('評判が足りないときは必要な評判を出す', () => {

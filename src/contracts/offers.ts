@@ -65,7 +65,6 @@ export const refreshOffers = (state: OfferState, env: OfferEnv): OfferState => {
   if (state.minute < state.nextOfferMinute) return state;
   const interval = env.balance.offerIntervalDays * minutesPerDay;
   let next: OfferState = { ...state, nextOfferMinute: state.nextOfferMinute + interval };
-  if (state.offers.length >= MAX_OFFERS) return next;
 
   // まとめて届くかを、確率で決める（設定がなければ、毎回1件だけ）
   let count = 1;
@@ -81,17 +80,18 @@ export const refreshOffers = (state: OfferState, env: OfferEnv): OfferState => {
     }
   }
 
-  for (let i = 0; i < count && next.offers.length < MAX_OFFERS; i++) {
+  for (let i = 0; i < count; i++) {
     const added = addOffer(next, env);
     if (added === next) break;
     next = added;
   }
+  // 上限を超えたら、古いものから消す（新しい依頼は必ず届く）
+  if (next.offers.length > MAX_OFFERS) next = { ...next, offers: next.offers.slice(next.offers.length - MAX_OFFERS) };
   return next;
 };
 
 // 次の依頼が届かない理由。届く見込みがあるなら null（reason は null のまま）
 export type OfferBlock =
-  | { kind: 'full'; max: number }
   | { kind: 'reputation'; need: number }
   | { kind: 'fixed'; after: string };
 
@@ -104,7 +104,6 @@ export interface OfferHint {
 // 依頼の一覧に出す案内。次の依頼までの日数と、届かない理由（あれば）
 export const offerHint = (state: OfferState, env: OfferEnv): OfferHint => {
   const days = Math.max(1, Math.ceil((state.nextOfferMinute - state.minute) / minutesPerDay));
-  if (state.offers.length >= MAX_OFFERS) return { days, block: { kind: 'full', max: MAX_OFFERS } };
   const fixedLeft = env.fixed.filter((c) => !isTaken(state, c.id));
   if (fixedLeft.some((c) => isReady(state, c.requires))) return { days, block: null };
   const loadable = env.templates.filter((t) => isReady(state, t.requires) && env.mapOf(t.map) !== undefined);
