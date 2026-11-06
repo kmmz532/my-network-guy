@@ -16,7 +16,7 @@ const offer: Offer = {
   params: {},
   contract: c001 as unknown as Contract,
 };
-const ui: UiActions = { togglePopup: () => {}, toggleWarehouse: () => {} };
+const ui: UiActions = { togglePopup: () => {}, toggleInventory: () => {} };
 const st = () => useGameStore.getState();
 
 // 自社オフィスで、机2つ（(3,4) と (8,4)）と在庫を用意する

@@ -17,7 +17,7 @@ describe('机と椅子（N44）', () => {
     expect(seatCount(office, (id) => (furnitureData as Record<string, { seat?: boolean }>)[id]?.seat === true)).toBe(1);
   });
 
-  it('部屋の机は2つで、倉庫に机はない（B12）', () => {
+  it('部屋の机は2つで、インベントリに机はない（B12）', () => {
     expect(balance.initialStock.desk).toBeUndefined();
     expect(balance.staff.initialDesks.length).toBe(2);
   });

@@ -13,8 +13,8 @@ import { mapCommands, PAN_KEY_PX } from '../game/mapControl';
 export interface UiActions {
   // ポップアップを開く。同じものが開いていれば閉じる
   togglePopup: (name: 'offers' | 'shop' | 'help') => void;
-  // 倉庫の欄を開け閉めする
-  toggleWarehouse: () => void;
+  // インベントリの欄を開け閉めする
+  toggleInventory: () => void;
 }
 
 export interface KeyInput {
@@ -162,7 +162,7 @@ export const KEYMAP: KeyBinding[] = [
   // 依頼と社員の一覧は、サンドボックスでは出さない
   { key: 'M', id: 'offers', name: 'ui.offer.title', run: (ui) => (useGameStore.getState().mode === 'sandbox' ? false : (ui.togglePopup('offers'), true)) },
   { key: 'S', id: 'shop', name: 'ui.shop.title', run: (ui) => (ui.togglePopup('shop'), true) },
-  { key: 'W', id: 'warehouse', name: 'ui.warehouse.title', run: (ui) => (ui.toggleWarehouse(), true) },
+  { key: 'E', id: 'inventory', name: 'ui.inventory.title', run: (ui) => (ui.toggleInventory(), true) },
   { key: 'H', id: 'staffList', name: 'keys.staffList', run: () => { const s = useGameStore.getState(); if (s.mode === 'sandbox') return false; s.openWindow('staffList', ''); return true; } },
   // マップの拡大・縮小と移動（mapControl.ts の命令を呼ぶ）
   { key: '+', id: 'zoomIn', name: 'keys.zoomIn', run: () => (mapCommands.zoomIn(), true) },

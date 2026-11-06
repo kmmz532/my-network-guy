@@ -8,7 +8,7 @@ import serverJson from '../assets/data/devices/server.json';
 import shopJson from '../assets/data/shop.json';
 import type { Balance, GameMap, ShopItem } from '../data/schema';
 import { isUnlocked } from './shop';
-import { warehouseItems } from './warehouse';
+import { inventoryItems } from './inventory';
 import { mapOfOffice } from './office';
 import { SANDBOX_DEFAULT_SIZE, SANDBOX_MONEY, SANDBOX_SIZES, resizeSandboxOffice, sandboxClock, sandboxOffice, sandboxTest } from './sandbox';
 import { connect, placeInOffice, setInterface, noEffects, type Core, type Env, type Office } from './project';
@@ -204,7 +204,7 @@ describe('サンドボックスのテスト', () => {
   });
 });
 
-describe('サンドボックスの解禁と倉庫', () => {
+describe('サンドボックスの解禁とインベントリ', () => {
   const locked = shopJson.items.find((i) => i.device === 'l2_switch_8p') as ShopItem;
 
   it('解禁の条件のある品目も、サンドボックスでは買える', () => {
@@ -212,9 +212,9 @@ describe('サンドボックスの解禁と倉庫', () => {
     expect(isUnlocked(locked, 1, { devices: { l2_switch_8p: { unlockLevel: 2 } }, furniture: {}, cables: {} }, true)).toBe(true);
   });
 
-  it('サンドボックスの倉庫には、解禁前の機材も、持っていれば並ぶ', () => {
+  it('サンドボックスのインベントリには、解禁前の機材も、持っていれば並ぶ', () => {
     const catalog = { devices: { l2_switch_8p: {} }, furniture: { sofa: {} }, shopOrder: ['l2_switch_8p', 'sofa'] };
     const owned = { l2_switch_8p: 1, sofa: 1 };
-    expect(warehouseItems('office', owned, catalog).map((i) => i.id)).toEqual(['l2_switch_8p', 'sofa']);
+    expect(inventoryItems('office', owned, catalog).map((i) => i.id)).toEqual(['l2_switch_8p', 'sofa']);
   });
 });

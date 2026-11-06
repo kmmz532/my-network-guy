@@ -200,7 +200,7 @@ export class Scene {
   private expandButtons = new Map<ExpandSide, Container>();
 
   constructor(private app: Application) {
-    // 倉庫の欄（DOM）から、マスの判定と品目を置けるかを使えるようにする
+    // インベントリの欄（DOM）から、マスの判定と品目を置けるかを使えるようにする
     setMapView({ tileAtClient: (x, y) => this.tileAtClient(x, y), canPlace: (id, tx, ty) => this.canPlace(id, tx, ty) });
     window.addEventListener('keydown', this.onPressKey, true);
     window.addEventListener('pointermove', this.onWindowPointerMove);
@@ -1816,7 +1816,7 @@ export class Scene {
     return replugTo(coreOf(s), linkUid, end, nodeUid, null, gameEnv, netTargetOf(s)).ok;
   }
 
-  // 品目（機材・家具）を、マスに置けるか（倉庫の欄からのドラッグと、配置の表示で使う）
+  // 品目（機材・家具）を、マスに置けるか（インベントリの欄からのドラッグと、配置の表示で使う）
   private canPlace(id: string, tx: number, ty: number): boolean {
     const s = useGameStore.getState();
     const core = coreOf(s);
@@ -1855,7 +1855,7 @@ export class Scene {
     this.g.rect(x + 1, y + 1, ts - 2, ts - 2).stroke({ width: 2, color: ok ? 0x62d26f : FAIL });
   }
 
-  // 倉庫の欄からドラッグ中、または配置中は、カーソルのマスを置けるかで示す
+  // インベントリの欄からドラッグ中、または配置中は、カーソルのマスを置けるかで示す
   private drawPlacePreview(ts: number): void {
     const s = useGameStore.getState();
     const id = s.itemDrag?.id ?? s.placing;

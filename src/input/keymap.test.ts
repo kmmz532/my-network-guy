@@ -18,7 +18,7 @@ const fakeUi = () => {
   const calls: string[] = [];
   const ui: UiActions = {
     togglePopup: (name) => calls.push(`popup:${name}`),
-    toggleWarehouse: () => calls.push('warehouse'),
+    toggleInventory: () => calls.push('inventory'),
   };
   return { ui, calls };
 };
@@ -49,7 +49,7 @@ describe('keyName（キーの入力を表の書き方にする）', () => {
 describe('KEYMAP（CORE.md「キー操作」の表）', () => {
   it('CORE.md の表のキーをすべて持つ', () => {
     const keys = KEYMAP.map((b) => b.key);
-    for (const k of ['1', '2', '3', 'Esc', 'Enter', 'Tab', 'Shift+Tab', 'Delete', 'Ctrl+Z', 'Ctrl+Y', 'Space', '[', ']', 'T', 'B', 'I', 'M', 'S', 'W', 'H', '+', '-', '0', '↑', '↓', '←', '→', '?']) {
+    for (const k of ['1', '2', '3', 'Esc', 'Enter', 'Tab', 'Shift+Tab', 'Delete', 'Ctrl+Z', 'Ctrl+Y', 'Space', '[', ']', 'T', 'B', 'I', 'M', 'S', 'E', 'H', '+', '-', '0', '↑', '↓', '←', '→', '?']) {
       expect(keys, k).toContain(k);
     }
   });
@@ -85,8 +85,8 @@ describe('handleKey（キーの処理）', () => {
     const { ui, calls } = fakeUi();
     expect(handleKey({ ...input('?'), target: null }, ui)).toBe(true);
     expect(handleKey({ ...input('m'), target: null }, ui)).toBe(true);
-    expect(handleKey({ ...input('W'), target: null }, ui)).toBe(true);
-    expect(calls).toEqual(['popup:help', 'popup:offers', 'warehouse']);
+    expect(handleKey({ ...input('E'), target: null }, ui)).toBe(true);
+    expect(calls).toEqual(['popup:help', 'popup:offers', 'inventory']);
   });
 
   it('入力欄にいるときは Enter・Esc・Tab 以外を無視する', () => {

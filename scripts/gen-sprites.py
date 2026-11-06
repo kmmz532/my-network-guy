@@ -516,8 +516,8 @@ def icon_cart():
     return outline(img)
 
 
-def icon_warehouse():
-    # 段ボール箱。倉庫の印として使う
+def icon_inventory():
+    # 段ボール箱。インベントリの印として使う
     img, d = new(16, 16)
     rect(d, 2, 6, 12, 9, 'c')
     rect(d, 1, 3, 14, 4, 'F1')
@@ -982,7 +982,7 @@ if __name__ == '__main__':
         'furniture': icon_furniture(),
         'cart': icon_cart(),
         'save': icon_save(),
-        'warehouse': icon_warehouse(),
+        'inventory': icon_inventory(),
         'person': icon_person(),
         'cursor': icon_cursor(),
         'wire': icon_wire(),

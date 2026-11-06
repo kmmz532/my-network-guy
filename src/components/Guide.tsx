@@ -151,7 +151,7 @@ export function Guide() {
 
   if (id === null || step === null) return null;
   const skip = () => markGuideDone(id);
-  // スマホの吹き出しは、HUD と案件の欄の下に置く（ツールバー・倉庫・シートの操作の欄とは重ならない）
+  // スマホの吹き出しは、HUD と案件の欄の下に置く（ツールバー・インベントリ・シートの操作の欄とは重ならない）
   const topBelowHud = phone ? belowHud() : 0;
 
   return (
@@ -179,11 +179,11 @@ export function Guide() {
       )}
       <div
         role="status"
-        // 外枠は指の操作を通す（下の倉庫・ツールバー・マップを押せる）。押せる部品（「飛ばす」）だけが指の操作を受け取る（B2）
+        // 外枠は指の操作を通す（下のインベントリ・ツールバー・マップを押せる）。押せる部品（「飛ばす」）だけが指の操作を受け取る（B2）
         style={
           phone
             ? {
-                // HUD と案件の欄の下に置く。ツールバーや倉庫の欄とは重ならない
+                // HUD と案件の欄の下に置く。ツールバーやインベントリの欄とは重ならない
                 position: 'fixed',
                 left: '50%',
                 top: topBelowHud,

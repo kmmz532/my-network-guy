@@ -1,4 +1,4 @@
-// 品目（機器・家具）の絵の名前。倉庫・店・結果画面で共有する（N56。N16 の重複の整理）。定義がなければ例外にする（R5）
+// 品目（機器・家具）の絵の名前。インベントリ・店・結果画面で共有する（N56。N16 の重複の整理）。定義がなければ例外にする（R5）
 import { devices, furniture } from 'virtual:game-data';
 
 export type ItemKind = 'device' | 'furniture';

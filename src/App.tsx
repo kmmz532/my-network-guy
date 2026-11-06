@@ -114,8 +114,8 @@ export function App() {
   const [hiringTab, setHiringTab] = useState<HiringTab>('hiring');
   const openWindow = useGameStore((s) => s.openWindow);
   const cacheMap = useGameStore((s) => s.cacheMap);
-  // 倉庫の欄の開け閉め（ツールバーと W キーで使う）
-  const [warehouseOpen, setWarehouseOpen] = useState(false);
+  // インベントリの欄の開け閉め（ツールバーと W キーで使う）
+  const [inventoryOpen, setInventoryOpen] = useState(false);
   // ヘッダーの下端（画面の座標）。狭い画面では案件の札と速さの表示を、ヘッダーの下に置く
   const headerRef = useRef<HTMLElement>(null);
   const [hudBottom, setHudBottom] = useState(0);
@@ -143,14 +143,14 @@ export function App() {
     const timer = window.setTimeout(() => setSpeedNote((n) => (n?.id === id ? null : n)), SPEED_NOTE_MS);
     return () => window.clearTimeout(timer);
   }, [speed]);
-  // キーの表は、ゲームの画面が開いている間だけ効く。M・S・? はポップアップを、W は倉庫の欄を開け閉めする
+  // キーの表は、ゲームの画面が開いている間だけ効く。M・S・? はポップアップを、W はインベントリの欄を開け閉めする
   useKeymap(screen === 'game', {
     // 依頼とショップは、マップの操作を止めないウィンドウで開く（N40）
     togglePopup: (name) => {
       if (name === 'offers' || name === 'shop') useGameStore.getState().toggleWindow(name, '');
       else setPopup((p) => (p === name ? null : name));
     },
-    toggleWarehouse: () => setWarehouseOpen((v) => !v),
+    toggleInventory: () => setInventoryOpen((v) => !v),
   });
 
   useEffect(() => {
@@ -290,7 +290,7 @@ export function App() {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       <TabConflict />
-      <PixiStage warehouseOpen={warehouseOpen} />
+      <PixiStage inventoryOpen={inventoryOpen} />
       <header
         ref={headerRef}
         data-hud
@@ -386,8 +386,8 @@ export function App() {
           setHiringTab('hiring');
           setHiring(!hiring);
         }}
-        warehouseOpen={warehouseOpen}
-        setWarehouseOpen={setWarehouseOpen}
+        inventoryOpen={inventoryOpen}
+        setInventoryOpen={setInventoryOpen}
       />
       <Guide />
       {DEBUG_ENABLED && (

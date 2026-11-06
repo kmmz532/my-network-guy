@@ -1,8 +1,8 @@
-// 倉庫の欄。ツールバーの上に横スクロールで在庫の品目を並べる。品目を押すと配置の操作に入る。
+// インベントリの欄。ツールバーの上に横スクロールで在庫の品目を並べる。品目を押すと配置の操作に入る。
 // 品目をマウス・ペンでドラッグしてマップの上で離すと、そのマスに置く（置けなければ何もしない）
 import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import { t, tDyn } from '../i18n/t';
-import type { WarehouseItem } from '../sim/warehouse';
+import type { InventoryItem } from '../sim/inventory';
 import { mapViewOf } from '../game/mapView';
 import { useGameStore } from '../stores/useGameStore';
 import { isDragMove } from './rearDrag';
@@ -47,19 +47,19 @@ const itemStyle = (active: boolean) =>
     position: 'relative',
   }) as const;
 
-const spriteOf = (item: WarehouseItem): string => itemSpriteOf(item.kind, item.id);
+const spriteOf = (item: InventoryItem): string => itemSpriteOf(item.kind, item.id);
 
-export function Warehouse({
+export function Inventory({
   items,
   owned,
   placing,
   onPick,
   onShop,
 }: {
-  items: WarehouseItem[];
+  items: InventoryItem[];
   owned: Record<string, number>;
   placing: string | null;
-  onPick: (item: WarehouseItem) => void;
+  onPick: (item: InventoryItem) => void;
   onShop: () => void;
 }) {
   const itemDrag = useGameStore((s) => s.itemDrag);
@@ -88,7 +88,7 @@ export function Warehouse({
 
   // 押した品目を、動かしたらドラッグとして扱う。動かさずに離したときは click（押して配置）に任せる。
   // 指の操作は欄のスクロールに使うため、ドラッグはマウスとペンだけにする
-  const onItemPointerDown = (item: WarehouseItem) => (e: ReactPointerEvent<HTMLButtonElement>) => {
+  const onItemPointerDown = (item: InventoryItem) => (e: ReactPointerEvent<HTMLButtonElement>) => {
     if (e.button !== 0) return;
     const touch = e.pointerType === 'touch';
     stopRef.current?.();
@@ -147,9 +147,9 @@ export function Warehouse({
   if (items.length === 0) {
     return (
       <div style={{ ...strip, justifyContent: 'center', overflowX: 'visible' }}>
-        <span>{t('ui.warehouse.empty')}</span>
+        <span>{t('ui.inventory.empty')}</span>
         <button style={secondaryButton} onClick={onShop}>
-          {t('ui.warehouse.openShop')}
+          {t('ui.inventory.openShop')}
         </button>
       </div>
     );

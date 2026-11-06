@@ -104,7 +104,7 @@ export interface PortMenuState {
   role: 'from' | 'to';
 }
 
-// 倉庫の欄からドラッグ中の品目と、画面の位置（クライアントの座標）。保存しない
+// インベントリの欄からドラッグ中の品目と、画面の位置（クライアントの座標）。保存しない
 export interface ItemDrag {
   id: string;
   x: number;
@@ -274,7 +274,7 @@ export interface GameState {
   // 給与を払えない月に、払う前に時間を止めた月（paidMonths の値）。同じ月は、もう止めない（保存しない）
   payWarned: number | null;
   setPlacing: (deviceId: string | null) => void;
-  // 倉庫の欄から品目をドラッグしている間の位置（保存しない）
+  // インベントリの欄から品目をドラッグしている間の位置（保存しない）
   itemDrag: ItemDrag | null;
   setItemDrag: (drag: ItemDrag | null) => void;
   setWireCable: (cableId: string) => void;

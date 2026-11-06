@@ -69,7 +69,7 @@ const scenes = {
     await page.getByRole('button', { name: '依頼' }).first().click();
     await page.waitForTimeout(500);
   },
-  // 案件を受注して設計に入った直後（案内の吹き出しが出る。スマホでの位置と、倉庫との重なりを確かめる）
+  // 案件を受注して設計に入った直後（案内の吹き出しが出る。スマホでの位置と、インベントリとの重なりを確かめる）
   guide: async (page) => {
     await scenes.career(page);
     await page.getByRole('button', { name: '依頼' }).first().click();
@@ -92,10 +92,10 @@ const scenes = {
     await page.getByRole('button', { name: 'DEBUG' }).click();
     await page.waitForTimeout(500);
   },
-  // 倉庫を開いた状態
-  warehouse: async (page) => {
+  // インベントリを開いた状態
+  inventory: async (page) => {
     await scenes.career(page);
-    await page.getByRole('button', { name: '倉庫' }).first().click();
+    await page.getByRole('button', { name: 'インベントリ' }).first().click();
     await page.waitForTimeout(500);
   },
   // 右上のメニュー
@@ -266,7 +266,7 @@ async function setHour(page, hour) {
 // place は、成功なら null、失敗なら理由のキー（例: stock）を返す
 async function openDevice(page, deviceId) {
   await page.evaluate((id) => {
-    // 倉庫に在庫がなければ、先に買う（撮影の場面では資金は十分にある）
+    // インベントリに在庫がなければ、先に買う（撮影の場面では資金は十分にある）
     window.__game.getState().buy(id);
     for (let y = 1; y < 12; y++) {
       for (let x = 1; x < 12; x++) {

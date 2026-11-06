@@ -1,6 +1,8 @@
 // マップの上の拡大・縮小ボタン（右下の角の内側、ツールバーの上）。キーの `+` `-` `0` と同じ命令を呼ぶ（mapControl.ts）
 // ツールバーは高さ 56 px（ボタン 44 px と余白）。UIの大きさ（--ui-scale）の拡大を、この部品にも掛ける
-import { t } from '../i18n/t';
+import { t, tDyn } from '../i18n/t';
+import { historyKeyOf } from '../sim/history';
+import { focusedProject } from '../stores/useGameStore';
 import { RADIUS } from '../ui/theme';
 import { Icon } from '../components/Icon';
 import { usePhone } from '../ui/usePhone';
@@ -28,10 +30,34 @@ const TOOLBAR_HEIGHT_PX = 56;
 const EDGE_PX = 12;
 // 狭い画面（スマホ）では、ツールバーが1段の横スクロールになり、高さが変わる（余白とスクロールバーを含む）
 const TOOLBAR_HEIGHT_PHONE_PX = 84;
-// スマホで倉庫の欄を開いているときは、欄の上へ移す（欄は下から約 72 px の位置に出る。B6 の応急の対応。M2 で配置を決め直す）
-const WAREHOUSE_RAISE_PHONE_PX = 80;
+// スマホでインベントリの欄を開いているときは、欄の上へ移す（欄は下から約 72 px の位置に出る。B6 の応急の対応。M2 で配置を決め直す）
+const INVENTORY_RAISE_PHONE_PX = 80;
 
-export function MapZoomButtons({ warehouseOpen = false }: { warehouseOpen?: boolean }) {
+// スマホの戻す・やり直す。戻せない・やり直せないときは薄く出す。戻せなかった理由は列の左に出す
+function PhoneHistoryButtons() {
+  const undo = useGameStore((s) => s.undo);
+  const redo = useGameStore((s) => s.redo);
+  const canUndo = useGameStore((s) => (s.histories[historyKeyOf(focusedProject(s))]?.past.length ?? 0) > 0);
+  const canRedo = useGameStore((s) => (s.histories[historyKeyOf(focusedProject(s))]?.future.length ?? 0) > 0);
+  const historyError = useGameStore((s) => s.historyError);
+  return (
+    <>
+      {historyError && (
+        <span style={{ position: 'absolute', right: '100%', marginRight: 8, width: 180, fontSize: 13, color: '#ffd3c9', textAlign: 'right' }}>
+          {tDyn(`ui.error.${historyError}`)}
+        </span>
+      )}
+      <button type="button" style={{ ...buttonStyle, opacity: canUndo ? 1 : 0.35 }} disabled={!canUndo} onClick={() => undo()} aria-label={t('keys.undo')}>
+        <Icon name="icon/undo" />
+      </button>
+      <button type="button" style={{ ...buttonStyle, opacity: canRedo ? 1 : 0.35, marginBottom: 12 }} disabled={!canRedo} onClick={() => redo()} aria-label={t('keys.redo')}>
+        <Icon name="icon/redo" />
+      </button>
+    </>
+  );
+}
+
+export function MapZoomButtons({ inventoryOpen = false }: { inventoryOpen?: boolean }) {
   const phone = usePhone();
   // スマホでウィンドウを開いているときは、下のシートと重なるので出さない（マップはドラッグで動かせる）
   const sheetOpen = useGameStore((s) => s.windows.length > 0);
@@ -41,7 +67,7 @@ export function MapZoomButtons({ warehouseOpen = false }: { warehouseOpen?: bool
       style={{
         position: 'absolute',
         right: EDGE_PX,
-        bottom: (phone ? TOOLBAR_HEIGHT_PHONE_PX + (warehouseOpen ? WAREHOUSE_RAISE_PHONE_PX : 0) : TOOLBAR_HEIGHT_PX) + EDGE_PX,
+        bottom: (phone ? TOOLBAR_HEIGHT_PHONE_PX + (inventoryOpen ? INVENTORY_RAISE_PHONE_PX : 0) : TOOLBAR_HEIGHT_PX) + EDGE_PX,
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
@@ -49,6 +75,8 @@ export function MapZoomButtons({ warehouseOpen = false }: { warehouseOpen?: bool
         zoom: 'var(--ui-scale, 1)',
       }}
     >
+      {/* スマホでは、戻す・やり直すを拡大・縮小の上に置く（パソコンはツールバーにある） */}
+      {phone && <PhoneHistoryButtons />}
       <button type="button" style={buttonStyle} onClick={() => mapCommands.zoomIn()} aria-label={t('keys.zoomIn')}>
         {t('ui.map.zoomIn')}
       </button>

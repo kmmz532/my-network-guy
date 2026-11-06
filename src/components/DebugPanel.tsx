@@ -129,8 +129,8 @@ export default function DebugPanel() {
         >
           レベルを 1 上げる
         </button>
-        <button type="button" style={buttonStyle} onClick={act(() => store().debugAddOwned('l2_switch_4p', 1), '4ポートスイッチを倉庫に加えました')}>
-          4ポートスイッチを倉庫に加える
+        <button type="button" style={buttonStyle} onClick={act(() => store().debugAddOwned('l2_switch_4p', 1), '4ポートスイッチをインベントリに加えました')}>
+          4ポートスイッチをインベントリに加える
         </button>
       </section>
 

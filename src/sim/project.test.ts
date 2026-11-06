@@ -549,7 +549,7 @@ describe('自社案件', () => {
     expect(cur(ok(placeDevice(accepted, 'pc_basic', 6, 6, map, env)).core)?.nodes).toHaveLength(before + 1);
   });
 
-  it('自社案件の納品で、報酬の機器が倉庫に入る（N34）', () => {
+  it('自社案件の納品で、報酬の機器がインベントリに入る（N34）', () => {
     const rewarded: Offer = { ...inhouseOffer, contract: { ...inhouse, reward: { ...inhouse.reward, devices: [{ device: 'l2_switch_8p', count: 1 }] } } };
     let core: Core = {
       ...start(),

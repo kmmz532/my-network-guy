@@ -11,11 +11,11 @@ import { levelOf } from '../sim/level';
 // 店の解放の判定に使う定義（品目の解放のレベル）
 const shopItemDefs: ItemDefs = { devices: catalogDevices, furniture: catalogFurniture, cables: catalogCables };
 import { historyKeyOf } from '../sim/history';
-import { warehouseItems, warehouseMode, type WarehouseItem } from '../sim/warehouse';
+import { inventoryItems, inventoryMode, type InventoryItem } from '../sim/inventory';
 import { balance as catalogBalance, cables as catalogCables, devices as catalogDevices, furniture as catalogFurniture, shop as catalogShop } from 'virtual:game-data';
 
-// 倉庫の並べ方に使う定義（機材・家具・店の並び順）
-const warehouseCatalog = {
+// インベントリの並べ方に使う定義（機材・家具・店の並び順）
+const inventoryCatalog = {
   devices: catalogDevices,
   furniture: catalogFurniture,
   shopOrder: catalogShop.map((i) => ('device' in i && i.device ? i.device : 'furniture' in i && i.furniture ? i.furniture : '')).filter((id) => id !== ''),
@@ -26,7 +26,7 @@ import { focusedProject, useGameStore, type Tool } from '../stores/useGameStore'
 import { tipText } from '../input/keymap';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
-import { Warehouse } from './Warehouse';
+import { Inventory } from './Inventory';
 import { RADIUS } from '../ui/theme';
 import { usePhone } from '../ui/usePhone';
 
@@ -108,16 +108,16 @@ export function Toolbar({
   onShop,
   onHire,
   hiringOpen,
-  warehouseOpen,
-  setWarehouseOpen,
+  inventoryOpen,
+  setInventoryOpen,
 }: {
   onOffers: () => void;
   onShop: () => void;
   // 雇用の画面を開く（閉じる）。候補がいないときは押せない
   onHire: () => void;
   hiringOpen: boolean;
-  warehouseOpen: boolean;
-  setWarehouseOpen: (open: boolean) => void;
+  inventoryOpen: boolean;
+  setInventoryOpen: (open: boolean) => void;
 }) {
   const offers = useGameStore((s) => s.offers);
   const candidateCount = useGameStore((s) => s.candidates.length);
@@ -195,26 +195,26 @@ export function Toolbar({
       </Tooltip>
     </>
   );
-  // 倉庫の在庫の合計（機材と家具の個数の和）
+  // インベントリの在庫の合計（機材と家具の個数の和）
   const stockTotal = Object.values(owned).reduce((sum, n) => sum + n, 0);
-  const mode = warehouseMode(active?.phase ?? null, showcase !== null);
-  const warehouseItemList = warehouseItems(mode, owned, warehouseCatalog);
-  const warehouseOpenable = mode !== 'closed';
+  const mode = inventoryMode(active?.phase ?? null, showcase !== null);
+  const inventoryItemList = inventoryItems(mode, owned, inventoryCatalog);
+  const inventoryOpenable = mode !== 'closed';
 
   // 品目を選ぶと配置に入る。同じ品目をもう一度押すと配置を終えて欄を閉じる
-  const pickWarehouseItem = (item: WarehouseItem) => {
+  const pickInventoryItem = (item: InventoryItem) => {
     setTool('select');
     if (placing === item.id) {
       setPlacing(null);
-      setWarehouseOpen(false);
+      setInventoryOpen(false);
     } else {
       setPlacing(item.id);
     }
   };
 
-  // 倉庫の欄を閉じる（配置の途中では閉じない。置き終わるまで欄を開けておく）
-  const closeWarehouse = () => {
-    if (placing === null) setWarehouseOpen(false);
+  // インベントリの欄を閉じる（配置の途中では閉じない。置き終わるまで欄を開けておく）
+  const closeInventory = () => {
+    if (placing === null) setInventoryOpen(false);
   };
 
   // ケーブルの種類の欄。PC は配線のボタンの上に浮かせ、狭い画面は行の上に出す（スクロールで切れないように）
@@ -253,21 +253,18 @@ export function Toolbar({
   const showCables = tool === 'wire' && cableIds.length > 0;
 
   // スマホは場面ごとに中身を替え、1段に収める（横スクロールしない）。
-  // IP の表示は設定画面で切り替える。戻す・やり直すは地図の左下に浮かせる（右下は拡大・縮小のボタン）。予算・やめる・施工の進み具合はバーの上の帯に出す
+  // IP の表示は設定画面で切り替える。戻す・やり直すは、地図の右下の拡大・縮小のボタンの上に置く（MapZoomButtons.tsx）。予算・やめる・施工の進み具合はバーの上の帯に出す
   if (phone) {
     const strip = { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, fontSize: 13 } as const;
     const gap = <span style={{ width: 6, flexShrink: 0 }} />;
     return (
       <>
       <footer style={barPhone} data-toolbar>
-        <div style={{ position: 'absolute', left: 8, bottom: '100%', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-          {historyButtons}
-        </div>
         {showCables && cablePopup}
         {design && (
           <div style={strip}>
             <Icon name="icon/budget" /> {yen(projectCostOf(active, gameEnv).total)} / {yen(active.contract.budget)}
-            <button aria-label={t('ui.project.abandon')} style={{ ...sl(false), width: 32, height: 32, marginLeft: 'auto' }} onClick={() => { closeWarehouse(); abandon(); }}>
+            <button aria-label={t('ui.project.abandon')} style={{ ...sl(false), width: 32, height: 32, marginLeft: 'auto' }} onClick={() => { closeInventory(); abandon(); }}>
               <Icon name="icon/close" />
             </button>
           </div>
@@ -283,39 +280,39 @@ export function Toolbar({
         )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           {TOOLS.map((item) => (
-            <button key={item.id} aria-label={t(item.name)} data-guide={`tool.${item.id}`} style={{ ...toolSlot(tool === item.id), flexShrink: 0 }} onClick={() => { setTool(item.id); closeWarehouse(); }}>
+            <button key={item.id} aria-label={t(item.name)} data-guide={`tool.${item.id}`} style={{ ...toolSlot(tool === item.id), flexShrink: 0 }} onClick={() => { setTool(item.id); closeInventory(); }}>
               <Icon name={item.icon} />
             </button>
           ))}
           {gap}
           {!sandbox && !design && (
-            <button aria-label={t('ui.offer.title')} style={sl(false)} onClick={() => { closeWarehouse(); onOffers(); }}>
+            <button aria-label={t('ui.offer.title')} style={sl(false)} onClick={() => { closeInventory(); onOffers(); }}>
               <Icon name="icon/mail" />
               {offers.length > 0 && (
                 <span style={{ position: 'absolute', top: 2, right: 2, background: '#e84a4a', borderRadius: RADIUS.chrome, fontSize: 11, padding: '0 5px' }}>{offers.length}</span>
               )}
             </button>
           )}
-          <button aria-label={t('ui.shop.title')} data-guide="shop" style={sl(false)} onClick={() => { closeWarehouse(); onShop(); }}>
+          <button aria-label={t('ui.shop.title')} data-guide="shop" style={sl(false)} onClick={() => { closeInventory(); onShop(); }}>
             <Icon name="icon/cart" />
           </button>
           {!sandbox && !design && (
-            <button aria-label={t('ui.staff.hire')} style={{ ...sl(hiringOpen), opacity: candidateCount > 0 ? 1 : 0.4 }} disabled={candidateCount === 0} onClick={() => { closeWarehouse(); onHire(); }}>
+            <button aria-label={t('ui.staff.hire')} style={{ ...sl(hiringOpen), opacity: candidateCount > 0 ? 1 : 0.4 }} disabled={candidateCount === 0} onClick={() => { closeInventory(); onHire(); }}>
               <Icon name="icon/person" />
             </button>
           )}
-          <button aria-label={t('ui.warehouse.title')} data-guide="warehouse" style={{ ...sl(warehouseOpen && warehouseOpenable), opacity: warehouseOpenable ? 1 : 0.35 }} disabled={!warehouseOpenable} onClick={() => setWarehouseOpen(!warehouseOpen)}>
-            <Icon name="icon/warehouse" scale={1} />
+          <button aria-label={t('ui.inventory.title')} data-guide="inventory" style={{ ...sl(inventoryOpen && inventoryOpenable), opacity: inventoryOpenable ? 1 : 0.35 }} disabled={!inventoryOpenable} onClick={() => setInventoryOpen(!inventoryOpen)}>
+            <Icon name="icon/inventory" scale={1} />
             <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>{stockTotal}</span>
           </button>
           {(design || sandbox) && (
             <>
               {gap}
-              <button aria-label={t('ui.test')} data-guide="test" style={{ ...sl(false), background: testLit ? '#ffd866' : '#3a7bd0' }} onClick={() => { closeWarehouse(); test(); }}>
+              <button aria-label={t('ui.test')} data-guide="test" style={{ ...sl(false), background: testLit ? '#ffd866' : '#3a7bd0' }} onClick={() => { closeInventory(); test(); }}>
                 <Icon name="icon/test" />
               </button>
               {design && (
-                <button aria-label={t('ui.build')} style={{ ...sl(false), background: '#5aa860', opacity: active.testedOk ? 1 : 0.55 }} onClick={() => { closeWarehouse(); requestBuild(); }}>
+                <button aria-label={t('ui.build')} style={{ ...sl(false), background: '#5aa860', opacity: active.testedOk ? 1 : 0.55 }} onClick={() => { closeInventory(); requestBuild(); }}>
                   <Icon name="icon/hammer" />
                 </button>
               )}
@@ -323,8 +320,8 @@ export function Toolbar({
           )}
         </div>
       </footer>
-      {warehouseOpen && warehouseOpenable && (
-        <Warehouse items={warehouseItemList} owned={owned} placing={placing} onPick={pickWarehouseItem} onShop={onShop} />
+      {inventoryOpen && inventoryOpenable && (
+        <Inventory items={inventoryItemList} owned={owned} placing={placing} onPick={pickInventoryItem} onShop={onShop} />
       )}
       </>
     );
@@ -341,7 +338,7 @@ export function Toolbar({
         <Fragment key={item.id}>
           <span style={{ position: 'relative', display: 'inline-flex' }}>
             <Tooltip text={tipText(item.name, item.action, !phone)}>
-              <button aria-label={t(item.name)} data-guide={`tool.${item.id}`} style={toolSlot(tool === item.id)} onClick={() => { setTool(item.id); closeWarehouse(); }}>
+              <button aria-label={t(item.name)} data-guide={`tool.${item.id}`} style={toolSlot(tool === item.id)} onClick={() => { setTool(item.id); closeInventory(); }}>
                 <Icon name={item.icon} />
               </button>
             </Tooltip>
@@ -351,7 +348,7 @@ export function Toolbar({
       ))}
       {sep}
       {!sandbox && (
-      <Tooltip text={tipText('ui.offer.title', 'offers', !phone)}><button aria-label={t('ui.offer.title')} style={{ ...sl(false), position: 'relative' }}  onClick={() => { closeWarehouse(); onOffers(); }}>
+      <Tooltip text={tipText('ui.offer.title', 'offers', !phone)}><button aria-label={t('ui.offer.title')} style={{ ...sl(false), position: 'relative' }}  onClick={() => { closeInventory(); onOffers(); }}>
         <Icon name="icon/mail" />
         {offers.length > 0 && (
           <span style={{ position: 'absolute', top: phone ? 2 : -6, right: phone ? 2 : -6, background: '#e84a4a', borderRadius: RADIUS.chrome, fontSize: 11, padding: '0 5px' }}>
@@ -360,23 +357,23 @@ export function Toolbar({
         )}
       </button></Tooltip>
       )}
-      <Tooltip text={tipText('ui.shop.title', 'shop', !phone)}><button aria-label={t('ui.shop.title')} data-guide="shop" style={sl(false)}  onClick={() => { closeWarehouse(); onShop(); }}>
+      <Tooltip text={tipText('ui.shop.title', 'shop', !phone)}><button aria-label={t('ui.shop.title')} data-guide="shop" style={sl(false)}  onClick={() => { closeInventory(); onShop(); }}>
         <Icon name="icon/cart" />
       </button></Tooltip>
       {!sandbox && (
         // 候補が0人のときは押せない（半透明）
-        <Tooltip text={t('ui.staff.hire')}><button aria-label={t('ui.staff.hire')} style={{ ...sl(hiringOpen), opacity: candidateCount > 0 ? 1 : 0.4 }} disabled={candidateCount === 0} onClick={() => { closeWarehouse(); onHire(); }}>
+        <Tooltip text={t('ui.staff.hire')}><button aria-label={t('ui.staff.hire')} style={{ ...sl(hiringOpen), opacity: candidateCount > 0 ? 1 : 0.4 }} disabled={candidateCount === 0} onClick={() => { closeInventory(); onHire(); }}>
           <Icon name="icon/person" />
         </button></Tooltip>
       )}
-      {/* 在庫は倉庫のアイコンにまとめる。品目の一覧は倉庫の欄で開く */}
+      {/* 在庫はインベントリのアイコンにまとめる。品目の一覧はインベントリの欄で開く */}
       {sep}
-      <Tooltip text={tipText('ui.warehouse.title', 'warehouse', !phone)}><button aria-label={t('ui.warehouse.title')} data-guide="warehouse" style={{ ...sl(warehouseOpen && warehouseOpenable), opacity: warehouseOpenable ? 1 : 0.35 }}
+      <Tooltip text={tipText('ui.inventory.title', 'inventory', !phone)}><button aria-label={t('ui.inventory.title')} data-guide="inventory" style={{ ...sl(inventoryOpen && inventoryOpenable), opacity: inventoryOpenable ? 1 : 0.35 }}
         
-        disabled={!warehouseOpenable}
-        onClick={() => setWarehouseOpen(!warehouseOpen)}
+        disabled={!inventoryOpenable}
+        onClick={() => setInventoryOpen(!inventoryOpen)}
       >
-        <Icon name="icon/warehouse" scale={1} />
+        <Icon name="icon/inventory" scale={1} />
         <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>
           {stockTotal}
         </span>
@@ -399,7 +396,7 @@ export function Toolbar({
                 color: testLit ? '#1d3664' : '#f4f1e6',
                 fontSize: 16,
               }}
-              onClick={() => { closeWarehouse(); test(); }}
+              onClick={() => { closeInventory(); test(); }}
             >
               <Icon name="icon/test" /> {t('ui.test')}
             </button>
@@ -418,7 +415,7 @@ export function Toolbar({
                 fontSize: 16,
                 opacity: active.testedOk ? 1 : 0.55,
               }}
-              onClick={() => { closeWarehouse(); requestBuild(); }}
+              onClick={() => { closeInventory(); requestBuild(); }}
             >
               <Icon name="icon/hammer" /> {t('ui.build')}
             </button>
@@ -426,7 +423,7 @@ export function Toolbar({
           <span style={{ marginLeft: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
             <Icon name="icon/budget" /> {yen(projectCostOf(active, gameEnv).total)} / {yen(active.contract.budget)}
           </span>
-          <Tooltip text={t('ui.project.abandon')} style={{ marginLeft: 'auto' }}><button aria-label={t('ui.project.abandon')} style={{ ...sl(false), width: 32 }}  onClick={() => { closeWarehouse(); abandon(); }}>
+          <Tooltip text={t('ui.project.abandon')} style={{ marginLeft: 'auto' }}><button aria-label={t('ui.project.abandon')} style={{ ...sl(false), width: 32 }}  onClick={() => { closeInventory(); abandon(); }}>
             <Icon name="icon/close" />
           </button></Tooltip>
           </>
@@ -461,12 +458,12 @@ export function Toolbar({
       )}
       </div>
     </footer>
-    {warehouseOpen && warehouseOpenable && (
-      <Warehouse
-        items={warehouseItemList}
+    {inventoryOpen && inventoryOpenable && (
+      <Inventory
+        items={inventoryItemList}
         owned={owned}
         placing={placing}
-        onPick={pickWarehouseItem}
+        onPick={pickInventoryItem}
         onShop={onShop}
       />
     )}
