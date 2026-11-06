@@ -20,6 +20,22 @@ const names = args.filter((a, i) => !a.startsWith('--') && (outIdx < 0 || i !== 
 const check = args.includes('--check');
 let problems = 0;
 
+// 施工までの流れ（テストの結果が出るまで時間を進め、施工を頼む）。untilResult なら施工の結果が出るまで進める。
+// page.evaluate に渡すため、この関数の中だけで完結させる（外の変数を使わない）
+const runBuild = (untilResult) => {
+  const g = window.__game;
+  g.getState().setSpeed(4);
+  g.getState().test();
+  for (let i = 0; i < 20000 && g.getState().active?.[0]?.testedOk !== true; i++) g.getState().tick();
+  if (g.getState().active?.[0]?.testedOk !== true) throw new Error('テストが通らなかった');
+  const err = g.getState().requestBuild();
+  if (err) throw new Error('施工を頼めない: ' + err);
+  if (untilResult) {
+    for (let i = 0; i < 200000 && g.getState().lastReport === null; i++) g.getState().tick();
+    if (g.getState().lastReport === null) throw new Error('結果が出なかった');
+  }
+};
+
 // 場面の一覧。page は開いたページ。game は開発中だけ window.__game（ゲームの状態）として使える
 const scenes = {
   // タイトル画面
@@ -131,6 +147,19 @@ const scenes = {
       g.getState().test();
     });
     await page.waitForTimeout(350);
+  },
+  // 施工の途中（設計を終えて施工を始めた直後。進みのバーと施工中の社員）
+  build: async (page) => {
+    await scenes.pctest(page);
+    await page.evaluate(runBuild, false);
+    await page.waitForTimeout(500);
+  },
+  // 結果画面（施工を最後まで進めて、報告を出す。時間は tick で進める）
+  result: async (page) => {
+    await scenes.pctest(page);
+    await page.evaluate(runBuild, true);
+    // 結果の報告は、納品から少し遅れて出る（REPORT_DELAY_MS）
+    await page.waitForTimeout(4000);
   },
   // 2台のPCをつないだ直後（つながった瞬間の光は 450ms なので、操作の直後に撮る）
   connect: async (page) => {
