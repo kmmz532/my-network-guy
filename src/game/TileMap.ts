@@ -96,11 +96,12 @@ export const drawTileMap = (map: GameMap): Container => {
         const r = x * ts + ts; // 右端
         // 上面の内側の縁に1 pxの線を引く。奥の壁の横では、奥の壁の上面の帯より下だけに引き、上面どうしをL字につなげる
         const edgeTop = (nx: number): number => (faceAt(nx, y) ? WALL_TOP_BAND : 0);
-        if (floorAt(x + 1, y) || faceAt(x + 1, y)) {
+        // 隣が床・奥の壁の正面・遮るもの（カウンターなど）なら、壁の上面を描く（遮るものの横で壁が途切れないように）
+        if (floorAt(x + 1, y) || faceAt(x + 1, y) || isPillar(kindAt(x + 1, y))) {
           g.rect(r - CAP, y * ts, CAP, ts).fill(CAP_COLOR);
           g.rect(r - 1, y * ts + edgeTop(x + 1), 1, ts - edgeTop(x + 1)).fill(CAP_EDGE_COLOR);
         }
-        if (floorAt(x - 1, y) || faceAt(x - 1, y)) {
+        if (floorAt(x - 1, y) || faceAt(x - 1, y) || isPillar(kindAt(x - 1, y))) {
           g.rect(x * ts, y * ts, CAP, ts).fill(CAP_COLOR);
           g.rect(x * ts, y * ts + edgeTop(x - 1), 1, ts - edgeTop(x - 1)).fill(CAP_EDGE_COLOR);
         }
