@@ -8,7 +8,9 @@ import { exportSave, importSave } from '../services/saveFile';
 import { showUpdateNotice } from '../pwa/update';
 import { isPhoneNow } from '../ui/usePhone';
 import { levelOf } from '../sim/level';
-import { useGameStore } from '../stores/useGameStore';
+import { useGameStore, viewportNow } from '../stores/useGameStore';
+import { clampRect, narrowRect, resizeRect, type Rect } from '../ui/windows';
+import { Window } from './Window';
 import { RADIUS } from '../ui/theme';
 
 const MINUTES_PER_DAY = 1440;
@@ -27,6 +29,8 @@ const buttonStyle: CSSProperties = {
 
 export default function DebugPanel() {
   const [open, setOpen] = useState(false);
+  // ウィンドウの位置と大きさ（初めは右上。保存しない）
+  const [rect, setRect] = useState<Rect>(() => ({ x: Math.max(0, window.innerWidth - 300), y: 44, w: 280, h: Math.min(560, window.innerHeight - 60) }));
   // 案内の欄（N54）: 案件と手順の選び。開始は手順の番号、済みは案件だけで決まる
   const guideIds = Object.keys(guides);
   const [guideContract, setGuideContract] = useState<string>(guideIds[0] ?? '');
@@ -65,35 +69,23 @@ export default function DebugPanel() {
     );
   }
 
+  // ほかのウィンドウと同じ部品で出す（パソコンは移動・大きさの変更ができる。スマホは中央のパネル）。
+  // 位置はストアのウィンドウの一覧に入れず、この部品だけで持つ（デバッグの状態をセーブに混ぜない）
+  const vp = viewportNow();
+  const phone = isPhoneNow();
   return (
-    <div
-      role="dialog"
-      aria-label="DEBUG"
-      style={{
-        position: 'fixed',
-        top: 4,
-        right: 4,
-        bottom: 4,
-        width: 260,
-        overflowY: 'auto',
-        zIndex: 2000,
-        padding: 8,
-        background: '#1f3560',
-        color: '#f4f1e6',
-        border: '3px solid #3b2a33',
-        borderRadius: RADIUS.chrome,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-        fontSize: 12,
-      }}
+    <Window
+      title={<b>DEBUG</b>}
+      rect={phone ? narrowRect(vp) : clampRect(rect, vp)}
+      movable={!phone}
+      closeLabel="閉じる"
+      onFocus={() => {}}
+      onMove={(x, y) => setRect((r) => clampRect({ ...r, x, y }, viewportNow()))}
+      onResize={(edges, dx, dy, start) => setRect(resizeRect(start, edges, dx, dy, viewportNow()))}
+      onClose={() => setOpen(false)}
+      tabs={null}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <strong>DEBUG</strong>
-        <button type="button" onClick={() => setOpen(false)} style={buttonStyle}>
-          閉じる
-        </button>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, color: '#f4f1e6' }}>
 
       <section style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div>ビルド: {__BUILD_ID__}</div>
@@ -235,5 +227,6 @@ export default function DebugPanel() {
 
       {message && <div role="status">{message}</div>}
     </div>
+    </Window>
   );
 }
