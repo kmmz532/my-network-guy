@@ -4,7 +4,7 @@
 import { nodeLabel } from './nodeLabel';
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { spriteUrl } from '../game/sprites';
+import { spriteOf, spriteUrl } from '../game/sprites';
 import type { LangKey } from '../generated/lang-keys';
 import { t } from '../i18n/t';
 import type { End } from '../sim/project';
@@ -274,7 +274,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
               >
                 {/* LED（つながっていれば緑）。2×2 の点を3倍にする */}
                 <span style={{ width: 2 * SCALE, height: 2 * SCALE, background: lit ? '#62d26f' : '#2a2f36' }} />
-                <img src={spriteUrl(slot)} width={12 * SCALE} height={10 * SCALE} alt="" draggable={false} style={{ imageRendering: 'pixelated', display: 'block' }} />
+                <img src={spriteUrl(spriteOf(slot))} width={12 * SCALE} height={10 * SCALE} alt="" draggable={false} style={{ imageRendering: 'pixelated', display: 'block' }} />
                 <span style={{ color: '#f4f1e6', fontSize: 11, lineHeight: 1 }}>{portLabel(category, p)}</span>
               </button>
             );
@@ -287,7 +287,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
       {carry &&
         createPortal(
           <img
-            src={spriteUrl(carry.slot)}
+            src={spriteUrl(spriteOf(carry.slot))}
             alt=""
             draggable={false}
             style={{

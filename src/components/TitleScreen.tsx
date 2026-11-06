@@ -1,7 +1,7 @@
 // タイトル画面。ゲーム中のオフィスを背景にして、新しく始めるか、保存データから続けるかを選ぶ
 import { useEffect, useState } from 'react';
 import pkg from '../../package.json';
-import { spriteUrl } from '../game/sprites';
+import { spriteOf, spriteUrl } from '../game/sprites';
 import { t } from '../i18n/t';
 import { loadSlot } from '../services/db';
 import { SAVE_SLOT } from '../services/slots';
@@ -268,7 +268,7 @@ function Backdrop() {
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       const name = y === 0 ? (x % 4 === 2 ? 'tile/window' : 'tile/wall_face') : `tile/floor_${floorVariant(x, y)}`;
-      const url = spriteUrl(name);
+      const url = spriteUrl(spriteOf(name));
       if (!url) continue;
       cells.push(
         <img
@@ -302,8 +302,8 @@ function Backdrop() {
 function Typist({ base }: { base: string }) {
   return (
     <div className="ts-typist">
-      <img draggable={false} className="ts-frame-a" src={spriteUrl(`staff/${base}_0`)} alt="" />
-      <img draggable={false} className="ts-frame-b" src={spriteUrl(`staff/${base}_1`)} alt="" />
+      <img draggable={false} className="ts-frame-a" src={spriteUrl(spriteOf(`staff/${base}_0`))} alt="" />
+      <img draggable={false} className="ts-frame-b" src={spriteUrl(spriteOf(`staff/${base}_1`))} alt="" />
     </div>
   );
 }
@@ -316,7 +316,7 @@ function Rack() {
       <div className="ts-packet" />
       <div className="ts-rack-devices">
         {DEVICES.map((name) => (
-          <img key={name} src={spriteUrl(name)} alt="" draggable={false} />
+          <img key={name} src={spriteUrl(spriteOf(name))} alt="" draggable={false} />
         ))}
       </div>
       <div className="ts-staff">

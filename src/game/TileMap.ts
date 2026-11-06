@@ -1,7 +1,7 @@
 // タイルマップの描画。3/4ビューの断面図として、床・奥の壁・家具をスプライトで描く（ART.md「視点」）
 import { Container, Graphics, Sprite } from 'pixi.js';
 import type { GameMap } from '../data/schema';
-import { texture } from './sprites';
+import { spriteOf, texture } from './sprites';
 
 // 奥の壁に掛ける物。壁として扱い、真下が床のときに壁の正面へ描く
 const wallDecor = new Set(['window', 'clock', 'poster', 'whiteboard']);
@@ -31,7 +31,7 @@ export const drawTileMap = (map: GameMap): Container => {
   const ts = map.tileSize;
   const kindAt = (x: number, y: number): string | undefined => map.legend[map.tiles[y]?.[x]];
   const put = (name: string, x: number, y: number): boolean => {
-    const tex = texture(name);
+    const tex = texture(spriteOf(name));
     if (!tex) return false;
     const sprite = new Sprite(tex);
     // 下端をマスの下端に揃え、1マスより高い分は上へはみ出させる
@@ -60,7 +60,7 @@ export const drawTileMap = (map: GameMap): Container => {
       if (isWall(kind)) {
         // 屋外に接する外壁の下には芝を敷く。部屋の側には、ほかの壁と同じ細い上面を描く
         if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => isOutdoor(kindAt(x + dx, y + dy)))) {
-          const tex = texture(`tile/ground_${(x * 7 + y * 3) % 2}`);
+          const tex = texture(spriteOf(`tile/ground_${(x * 7 + y * 3) % 2}`));
           if (tex) {
             const sprite = new Sprite(tex);
             sprite.position.set(x * ts, y * ts);

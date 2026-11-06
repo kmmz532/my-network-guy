@@ -1,6 +1,6 @@
 // ドット絵のアイコン。整数倍で拡大し、補間を行わない
 import { useEffect, useReducer, useState } from 'react';
-import { spriteUrl } from '../game/sprites';
+import { spriteOf, spriteUrl } from '../game/sprites';
 import { trimmedSprite, type TrimmedSprite } from '../ui/spriteBounds';
 
 interface Props {
@@ -76,7 +76,7 @@ const useScaledSrc = (url: string, w: number, h: number, scale: number): string 
 
 // 透明な余白を切り落としたアイコン。高さは height（px）に収まる最大の整数倍にする（帯やタブの高さを、元の画像の余白に左右させないため）
 export function TrimmedIcon({ name, height = 16 }: { name: string; height?: number }) {
-  const url = spriteUrl(name);
+  const url = spriteUrl(spriteOf(name));
   const [sprite, setSprite] = useState<TrimmedSprite | null | undefined>(undefined);
   useEffect(() => {
     if (!url) return;
@@ -109,7 +109,7 @@ export function TrimmedIcon({ name, height = 16 }: { name: string; height?: numb
 }
 
 export function Icon({ name, scale = 2, style: customStyle }: Props & { style?: React.CSSProperties }) {
-  const url = spriteUrl(name);
+  const url = spriteUrl(spriteOf(name));
   // 家具は高さがまちまちなので、幅だけ整数倍にして高さは画像の比率に任せる（拡大は整数倍のまま）
   const furniture = name.startsWith('furniture/');
   const [w, h] = furniture ? [0, 0] : sizeOf(name);

@@ -27,7 +27,7 @@ import {
 } from '../sim/project';
 import { colorOfLink, networkColors, type NetworkColors } from '../network/netColor';
 import type { Compiled, IssueDetail } from '../network/compile';
-import { texture } from './sprites';
+import { spriteOf, texture } from './sprites';
 import { balance, devices as deviceData, furniture as furnitureData } from 'virtual:game-data';
 import { hideTip, showTipAt } from '../components/Tooltip';
 import { effectText } from './effectText';
@@ -958,7 +958,7 @@ export class Scene {
   // 自社オフィスの家具。スプライトの下端をマスの下端に揃え、1マスより高い分は上へはみ出させる
   private drawFurniture(furniture: PlacedFurniture[], ts: number): void {
     for (const f of furniture) {
-      const tex = texture(`furniture/${f.id}`);
+      const tex = texture(spriteOf(`furniture/${f.id}`));
       if (!tex) continue;
       const sprite = new Sprite(tex);
       sprite.position.set(f.x * ts + Math.round((ts - tex.width) / 2), (f.y + 1) * ts - tex.height);
@@ -990,7 +990,7 @@ export class Scene {
       g.rect(x - 2, y - 2, size + 4, size + 4).stroke({ width: 2, color: SELECT, alpha });
     }
     // 機器はスプライト（24×40）で描く。足元（底面の行）をタイルの下寄りに揃え、床に置いた影を添える
-    const tex = texture(deviceData[node.device as keyof typeof deviceData]?.sprite ?? '');
+    const tex = texture(spriteOf(deviceData[node.device as keyof typeof deviceData]?.sprite ?? ''));
     const foot = node.y * ts + ts - DEVICE_FOOT_INSET;
     if (!tex) return;
     const sprite = new Sprite(tex);
@@ -1094,7 +1094,7 @@ export class Scene {
   // 社員のスプライト（16×24 px）。2コマで足踏みする
   private drawStaff(x: number, y: number, shirt: string): void {
     const frame = Math.floor(this.elapsed / (FRAME_MS * 2)) % 2;
-    const tex = texture(`staff/${staffSpriteName(shirt)}_${frame}`);
+    const tex = texture(spriteOf(`staff/${staffSpriteName(shirt)}_${frame}`));
     if (!tex) return;
     const sprite = new Sprite(tex);
     const left = Math.round(x);

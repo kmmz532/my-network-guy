@@ -221,6 +221,11 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
     ensure(existsSync(join(spriteDir, `${f.sprite}.png`)), `furniture.json: ${f.id} のスプライト ${f.sprite} がない`);
   }
 
+  // 機材のスプライトは、描画のときに必ず使うため、ビルドで存在を確かめる
+  for (const d of data.devices) {
+    ensure(existsSync(join(spriteDir, `${d.sprite}.png`)), `devices/: ${d.id} のスプライト ${d.sprite} がない`);
+  }
+
   for (const item of data.shop) {
     if (item.device !== undefined) ensure(deviceIds.has(item.device), `shop.json: 未定義の機材 ${item.device}`);
     if (item.cable !== undefined) ensure(cableIds.has(item.cable), `shop.json: 未定義のケーブル ${item.cable}`);
@@ -355,7 +360,20 @@ const fillLanguages = (data: GameData): void => {
 
 const toTypeUnion = (values: string[]): string => (values.length ? values.map((v) => JSON.stringify(v)).join(' | ') : 'never');
 
-const writeGenerated = (generatedDir: string, data: GameData): void => {
+// スプライト（src/assets/sprites/ の PNG）の名前。拡張子を除いた相対パス（例: device/pc_basic）
+const spriteNamesIn = (spriteDir: string): string[] => {
+  const names: string[] = [];
+  const walk = (dir: string, prefix: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) walk(join(dir, entry.name), `${prefix}${entry.name}/`);
+      else if (entry.name.endsWith('.png')) names.push(`${prefix}${entry.name.slice(0, -4)}`);
+    }
+  };
+  walk(spriteDir, '');
+  return names.sort();
+};
+
+const writeGenerated = (generatedDir: string, data: GameData, spriteDir: string): void => {
   mkdirSync(generatedDir, { recursive: true });
   const ids = [
     `// このファイルはビルド時に game-data プラグインが生成する。編集しない。`,
@@ -365,6 +383,7 @@ const writeGenerated = (generatedDir: string, data: GameData): void => {
     `export type ContractId = ${toTypeUnion(data.contracts.map((c) => c.id))};`,
     `export type TemplateId = ${toTypeUnion(data.templates.map((t) => t.id))};`,
     `export type MapId = ${toTypeUnion([...data.maps.map((m) => m.id), OFFICE_MAP_ID])};`,
+    `export type SpriteId = ${toTypeUnion(spriteNamesIn(spriteDir))};`,
     `export type LangCode = ${toTypeUnion(Object.keys(data.langs))};`,
     '',
   ].join('\n');
@@ -431,7 +450,7 @@ export default function gameData(): Plugin {
 
   const generate = (): void => {
     data = loadData(dataDir, langDir, spriteDir);
-    writeGenerated(generatedDir, data);
+    writeGenerated(generatedDir, data, spriteDir);
     for (const [code, count] of Object.entries(data.missingFilled)) {
       if (count > 0) config.logger.info(`[game-data] ${code}.json: ${count} 件の翻訳キーを ${BASE_LANG} の値で補完した`);
     }
