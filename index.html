@@ -66,6 +66,42 @@
         -webkit-user-select: text;
         user-select: text;
       }
+      /* スクロールバーは、ゲームの部品と同じドット絵（細い溝と、角のつまみ）。Firefox は scrollbar-color、Chromium と Safari は ::-webkit-scrollbar */
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: #7f9cc9 #1d3664;
+      }
+      ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #1d3664;
+        border-left: 2px solid #3b2a33;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #7f9cc9;
+        border: 2px solid #1d3664;
+        border-radius: 0;
+      }
+      /* スマホ（指で触る画面）は、スクロールバーを出さない（指で動かす）。端で切れていることは、一覧の上下の影で示す */
+      @media (pointer: coarse) {
+        * {
+          scrollbar-width: none;
+        }
+        ::-webkit-scrollbar {
+          width: 0;
+          height: 0;
+        }
+      }
+      /* 一覧の上下の影: 端までスクロールしていないときだけ見える影（local の背景を使う） */
+      .scroll-edge {
+        background:
+          linear-gradient(#25406f 30%, rgba(37, 64, 111, 0)) top / 100% 24px no-repeat local,
+          linear-gradient(rgba(37, 64, 111, 0), #25406f 70%) bottom / 100% 24px no-repeat local,
+          linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0)) top / 100% 8px no-repeat scroll,
+          linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.45)) bottom / 100% 8px no-repeat scroll;
+      }
       /* UI の画像（アイコン・スプライト）は選択も、ブラウザのドラッグ（画像のドラッグ）もさせない */
       img {
         user-select: none;

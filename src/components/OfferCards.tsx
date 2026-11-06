@@ -48,7 +48,7 @@ export function OfferCards({ onClose }: { onClose: () => void }) {
       </div>
       {offers.length === 0 && <div style={{ opacity: 0.7 }}>…</div>}
       {/* 新しい依頼を上に並べる。件数が多いときは、この中だけスクロールする */}
-      <div style={{ maxHeight: 'min(60vh, 520px)', overflowY: 'auto', paddingRight: 4 }}>
+      <div className="scroll-edge" style={{ maxHeight: 'min(60vh, 520px)', overflowY: 'auto', paddingRight: 4 }}>
         {[...offers].reverse().map((offer, i) => (
           <OfferCard
             key={offer.id}
