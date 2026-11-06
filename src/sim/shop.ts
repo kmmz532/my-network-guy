@@ -1,9 +1,35 @@
-// ショップの陳列と購入の判定。解禁条件は案件の完了で判断する。
+// ショップの陳列と購入の判定。解禁は会社のレベル（品目の unlockLevel。N45）で決まる。
 import type { ShopItem } from '../data/schema';
 
-// サンドボックスでは解禁の条件を無視し、すべての品目を買える
-export const isUnlocked = (item: ShopItem, completed: readonly string[], sandbox = false): boolean =>
-  sandbox || !item.unlock || completed.includes(item.unlock.contract);
+// 品目の解放のレベル（機器・ケーブル・家具の定義から）。定義がなければ例外（R5）
+export interface ItemDefs {
+  devices: Readonly<Record<string, { unlockLevel: number }>>;
+  furniture: Readonly<Record<string, { unlockLevel: number }>>;
+  cables: Readonly<Record<string, { unlockLevel: number }>>;
+}
+
+export const unlockLevelOfItem = (item: ShopItem, defs: ItemDefs): number => {
+  if (item.device !== undefined) {
+    const d = defs.devices[item.device];
+    if (!d) throw new Error(`unknown shop device: ${item.device}`);
+    return d.unlockLevel;
+  }
+  if (item.furniture !== undefined) {
+    const f = defs.furniture[item.furniture];
+    if (!f) throw new Error(`unknown shop furniture: ${item.furniture}`);
+    return f.unlockLevel;
+  }
+  if (item.cable !== undefined) {
+    const c = defs.cables[item.cable];
+    if (!c) throw new Error(`unknown shop cable: ${item.cable}`);
+    return c.unlockLevel;
+  }
+  throw new Error('shop item without a target');
+};
+
+// 店に並べるか（会社のレベルが解放のレベル以上。サンドボックスは全部）
+export const isUnlocked = (item: ShopItem, level: number, defs: ItemDefs, sandbox = false): boolean =>
+  sandbox || unlockLevelOfItem(item, defs) <= level;
 
 export type BuyResult = { ok: true; money: number; owned: Record<string, number> } | { ok: false; reason: 'money' };
 

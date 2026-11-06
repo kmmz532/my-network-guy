@@ -4,10 +4,14 @@ import { balance, cables, shop } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { t, tDyn } from '../i18n/t';
 import { isWorkingHour, toDate } from '../sim/clock';
-import { isUnlocked } from '../sim/shop';
+import { isUnlocked, type ItemDefs } from '../sim/shop';
+import { levelOf } from '../sim/level';
+
+// 店の解放の判定に使う定義（品目の解放のレベル）
+const shopItemDefs: ItemDefs = { devices: catalogDevices, furniture: catalogFurniture, cables: catalogCables };
 import { historyKeyOf } from '../sim/history';
 import { warehouseItems, warehouseMode, type WarehouseItem } from '../sim/warehouse';
-import { devices as catalogDevices, furniture as catalogFurniture, shop as catalogShop } from 'virtual:game-data';
+import { balance as catalogBalance, cables as catalogCables, devices as catalogDevices, furniture as catalogFurniture, shop as catalogShop } from 'virtual:game-data';
 
 // 倉庫の並べ方に使う定義（機材・家具・店の並び順）
 const warehouseCatalog = {
@@ -122,7 +126,7 @@ export function Toolbar({
   // 施工は勤務時間内にしか進まない。勤務時間外は棒を灰色にして、再開の時刻を出す
   const clockMinute = useGameStore((s) => s.clock.minute);
   const workingNow = isWorkingHour(toDate(clockMinute, balance).hour, balance);
-  const completed = useGameStore((s) => s.completed);
+  const companyExpNow = useGameStore((s) => s.companyExp);
   const owned = useGameStore((s) => s.owned);
   const placing = useGameStore((s) => s.placing);
   const tool = useGameStore((s) => s.tool);
@@ -153,7 +157,7 @@ export function Toolbar({
   }, [testNudge]);
 
   const showcase = useGameStore((s) => s.showcase);
-  const unlocked = shop.filter((item) => isUnlocked(item, completed, sandbox));
+  const unlocked = shop.filter((item) => isUnlocked(item, levelOf(companyExpNow, catalogBalance), shopItemDefs, sandbox));
   const cableIds = unlocked.filter((i) => i.cable).map((i) => i.cable!);
   const design = active?.phase === 'design';
   const yen = (n: number) => n.toLocaleString('ja-JP');

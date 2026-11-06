@@ -2,7 +2,12 @@
 import { useState } from 'react';
 import { balance, devices, furniture, shop } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
-import { isUnlocked } from '../sim/shop';
+import { isUnlocked, type ItemDefs } from '../sim/shop';
+import { levelOf } from '../sim/level';
+import { balance as gameBalance, cables as gameCables, devices as gameDevices, furniture as gameFurniture } from 'virtual:game-data';
+
+// 店の解放の判定に使う定義（品目の解放のレベル）
+const itemDefs: ItemDefs = { devices: gameDevices, furniture: gameFurniture, cables: gameCables };
 import { effectText } from '../game/effectText';
 import { useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
@@ -16,7 +21,8 @@ const SECTIONS: readonly Section[] = ['device', 'furniture'];
 
 // 機材の店の中身（ウィンドウの中に出す。マップの操作は止めない）
 export function ShopBody({ onClose }: { onClose: () => void }) {
-  const completed = useGameStore((s) => s.completed);
+  // 解放は会社のレベルで決まる（N45）
+  const level = levelOf(useGameStore((s) => s.companyExp), gameBalance);
   // サンドボックスは解禁の条件を無視し、費用は 0
   const sandbox = useGameStore((s) => s.mode) === 'sandbox';
   const owned = useGameStore((s) => s.owned);
@@ -24,8 +30,8 @@ export function ShopBody({ onClose }: { onClose: () => void }) {
   const buy = useGameStore((s) => s.buy);
   const sell = useGameStore((s) => s.sell);
   const [section, setSection] = useState<Section>('device');
-  const ids = shop.filter((i) => i.device && isUnlocked(i, completed, sandbox)).map((i) => i.device!);
-  const furnitureIds = shop.filter((i) => i.furniture && isUnlocked(i, completed, sandbox)).map((i) => i.furniture!);
+  const ids = shop.filter((i) => i.device && isUnlocked(i, level, itemDefs, sandbox)).map((i) => i.device!);
+  const furnitureIds = shop.filter((i) => i.furniture && isUnlocked(i, level, itemDefs, sandbox)).map((i) => i.furniture!);
   const yen = (n: number) => n.toLocaleString('ja-JP');
   const cost = (n: number) => (sandbox ? 0 : n);
 

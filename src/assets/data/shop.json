@@ -1,57 +1,76 @@
 {
   "items": [
     {
-      "device": "pc_basic",
-      "unlock": null
+      "device": "pc_basic"
     },
     {
-      "cable": "utp_cat5e",
-      "unlock": null
+      "cable": "utp_cat5e"
     },
     {
-      "device": "l2_switch_4p",
-      "unlock": null
+      "device": "l2_switch_4p"
     },
     {
-      "device": "l2_switch_8p",
-      "unlock": {
-        "contract": "c001_direct_link"
-      }
+      "device": "l2_switch_8p"
     },
     {
-      "device": "router_basic",
-      "unlock": {
-        "contract": "c002_small_office"
-      }
+      "device": "router_basic"
     },
     {
-      "cable": "fiber_sm",
-      "unlock": {
-        "contract": "c004_web_server"
-      }
+      "cable": "fiber_sm"
     },
     {
-      "device": "server_basic",
-      "unlock": {
-        "contract": "c003_departments"
-      }
+      "device": "server_basic"
     },
-    { "furniture": "desk", "unlock": null },
-    { "furniture": "desk_only", "unlock": null },
-    { "furniture": "plant", "unlock": null },
-    { "furniture": "bookshelf", "unlock": null },
-    { "furniture": "cabinet", "unlock": null },
-    { "furniture": "coffee", "unlock": null },
-    { "furniture": "water", "unlock": null },
-    { "furniture": "trash", "unlock": null },
-    { "furniture": "sofa", "unlock": null },
-    { "device": "laptop", "unlock": { "contract": "c003_departments" } },
-    { "device": "router_switch", "unlock": { "contract": "c003_departments" } },
-    { "device": "l2_switch_16p", "unlock": { "contract": "c004_web_server" } },
-    { "device": "l2_switch_24p", "unlock": { "contract": "c005_two_sites" } },
-    { "device": "l3_switch", "unlock": { "contract": "c005_two_sites" } },
-    { "device": "gpu_server", "unlock": { "contract": "c005_two_sites" } },
-    { "device": "firewall", "unlock": { "contract": "c005_two_sites" } },
-    { "device": "firewall_dmz", "unlock": { "contract": "c006_office_external" } }
+    {
+      "furniture": "desk"
+    },
+    {
+      "furniture": "desk_only"
+    },
+    {
+      "furniture": "plant"
+    },
+    {
+      "furniture": "bookshelf"
+    },
+    {
+      "furniture": "cabinet"
+    },
+    {
+      "furniture": "coffee"
+    },
+    {
+      "furniture": "water"
+    },
+    {
+      "furniture": "trash"
+    },
+    {
+      "furniture": "sofa"
+    },
+    {
+      "device": "laptop"
+    },
+    {
+      "device": "router_switch"
+    },
+    {
+      "device": "l2_switch_16p"
+    },
+    {
+      "device": "l2_switch_24p"
+    },
+    {
+      "device": "l3_switch"
+    },
+    {
+      "device": "gpu_server"
+    },
+    {
+      "device": "firewall"
+    },
+    {
+      "device": "firewall_dmz"
+    }
   ]
 }

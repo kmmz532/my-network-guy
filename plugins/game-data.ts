@@ -237,9 +237,6 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
     if (item.device !== undefined) ensure(deviceIds.has(item.device), `shop.json: 未定義の機材 ${item.device}`);
     if (item.cable !== undefined) ensure(cableIds.has(item.cable), `shop.json: 未定義のケーブル ${item.cable}`);
     if (item.furniture !== undefined) ensure(furnitureIds.has(item.furniture), `shop.json: 未定義の家具 ${item.furniture}`);
-    if (item.unlock) {
-      ensure(contractIdSet.has(item.unlock.contract), `shop.json: 解禁条件の案件 ${item.unlock.contract} が未定義`);
-    }
   }
 
   const checkGoals = (owner: string, goals: Goal[], refs: Set<string>) => {

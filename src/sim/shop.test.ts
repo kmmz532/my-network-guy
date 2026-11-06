@@ -3,12 +3,12 @@ import { buyDevice, isUnlocked, sellDevice } from './shop';
 import { isSaveData, migrate } from '../services/migrations';
 
 describe('ショップ', () => {
-  it('解禁条件が満たされていない品目は陳列しない', () => {
-    expect(isUnlocked({ device: 'router_basic', unlock: { contract: 'c002_small_office' } } as never, [])).toBe(false);
-    expect(
-      isUnlocked({ device: 'router_basic', unlock: { contract: 'c002_small_office' } } as never, ['c002_small_office']),
-    ).toBe(true);
-    expect(isUnlocked({ cable: 'utp_cat5e', unlock: null } as never, [])).toBe(true);
+  it('会社のレベルが解放のレベルに届かない品目は、店に並べない（解放は品目の unlockLevel）', () => {
+    const defs = { devices: { router_basic: { unlockLevel: 4 } }, furniture: {}, cables: { utp_cat5e: { unlockLevel: 1 } } };
+    expect(isUnlocked({ device: 'router_basic' } as never, 3, defs)).toBe(false);
+    expect(isUnlocked({ device: 'router_basic' } as never, 4, defs)).toBe(true);
+    expect(isUnlocked({ cable: 'utp_cat5e' } as never, 1, defs)).toBe(true);
+    expect(isUnlocked({ device: 'router_basic' } as never, 1, defs, true)).toBe(true);
   });
 
   it('資金が足りないと購入しない', () => {

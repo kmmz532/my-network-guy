@@ -207,8 +207,8 @@ describe('サンドボックスの解禁と倉庫', () => {
   const locked = shopJson.items.find((i) => i.device === 'l2_switch_8p') as ShopItem;
 
   it('解禁の条件のある品目も、サンドボックスでは買える', () => {
-    expect(isUnlocked(locked, [], false)).toBe(false);
-    expect(isUnlocked(locked, [], true)).toBe(true);
+    expect(isUnlocked(locked, 1, { devices: { l2_switch_8p: { unlockLevel: 2 } }, furniture: {}, cables: {} }, false)).toBe(false);
+    expect(isUnlocked(locked, 1, { devices: { l2_switch_8p: { unlockLevel: 2 } }, furniture: {}, cables: {} }, true)).toBe(true);
   });
 
   it('サンドボックスの倉庫には、解禁前の機材も、持っていれば並ぶ', () => {

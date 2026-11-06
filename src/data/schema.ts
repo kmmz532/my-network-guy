@@ -239,7 +239,6 @@ export const shopFileSchema = z.object({
           device: z.string().min(1).optional(),
           cable: z.string().min(1).optional(),
           furniture: z.string().min(1).optional(),
-          unlock: z.object({ contract: z.string().min(1) }).nullable(),
         })
         .refine((item) => [item.device, item.cable, item.furniture].filter((v) => v !== undefined).length === 1, {
           message: 'device・cable・furniture のどれか1つだけを指定する',
