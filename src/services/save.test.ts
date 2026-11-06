@@ -392,3 +392,18 @@ describe('v19 → v20: 機器の対応表（hosts）', () => {
     expect(out.active[0].nodes[0]).toMatchObject({ uid: 'n1', hosts: [] });
   });
 });
+
+// 版ごとの架空のセーブ（N19）。版を上げるたびに、その版の形を1つ残す。ここでは v20（依頼に届いた日がない）を残し、v21 まで移行できることを確かめる
+describe('古いセーブの読み込み（版ごとの架空のセーブ）', () => {
+  it('v20 の依頼は、読み込んだ時刻に届いたものとして v21 になる（期限は付けない）', () => {
+    const v20 = {
+      ...sample,
+      clock: { minute: 2880, money: 300000, paidMonths: 1, bankrupt: false },
+      offers: [{ id: 'old', kind: 'template', baseId: 't_small_lan', params: {}, contract: { id: 'x' } }],
+    };
+    const migrated = migrate(20, v20);
+    expect(migrated.offers).toEqual([
+      { id: 'old', kind: 'template', baseId: 't_small_lan', params: {}, contract: { id: 'x' }, arrivedMinute: 2880 },
+    ]);
+  });
+});
