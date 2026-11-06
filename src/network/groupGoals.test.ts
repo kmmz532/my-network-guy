@@ -116,3 +116,60 @@ describe('ひな形の役割', () => {
     expect(() => instantiateTemplate(bad, map, 0, 1)).toThrow();
   });
 });
+
+// t_bank_secure の模範解答: 窓口（192.168.1.0/24）と、事務室とサーバー（192.168.2.0/24）を、ポート2つのファイアウォールで分ける。
+// 規則は「窓口からサーバーへの http を許す」1本だけ。既定は拒否のため、窓口から事務室への Ping は止まる
+describe('銀行の支店の守り（模範解答で解ける）', () => {
+  const bankData: EngineData = {
+    categoryOf: (device) => ({ pc: 'pc', server: 'server', l2_switch: 'l2_switch', firewall: 'firewall' })[device] ?? 'unknown',
+    maxLengthOf: () => 30,
+  };
+  const pc = (uid: string, ip: string, gw: string): NetNode => ({ ...host(uid, 'pc', ip), gateway: gw });
+  const fw = (rules: NetNode['rules']): NetNode => ({
+    ...sw('fw'),
+    device: 'firewall',
+    interfaces: [
+      { port: 0, ip: '192.168.1.1', prefix: 24 },
+      { port: 1, ip: '192.168.2.1', prefix: 24 },
+    ],
+    rules,
+  });
+  const l = (uid: string, a: string, aPort: number, b: string, bPort: number): NetLink => ({ ...link(uid, a, b, bPort), a: { node: a, port: aPort } });
+  const bank = (rules: NetNode['rules']): Network => ({
+    nodes: [
+      pc('teller_1', '192.168.1.10', '192.168.1.1'),
+      pc('teller_2', '192.168.1.11', '192.168.1.1'),
+      pc('office_1', '192.168.2.10', '192.168.2.1'),
+      pc('office_2', '192.168.2.11', '192.168.2.1'),
+      { ...host('sv', 'server', '192.168.2.20'), gateway: '192.168.2.1' },
+      sw('s1'),
+      sw('s2'),
+      fw(rules),
+    ],
+    links: [
+      l('a', 'teller_1', 0, 's1', 0),
+      l('b', 'teller_2', 0, 's1', 1),
+      l('c', 's1', 2, 'fw', 0),
+      l('d', 'office_1', 0, 's2', 0),
+      l('e', 'office_2', 0, 's2', 1),
+      l('f', 'sv', 0, 's2', 2),
+      l('g', 's2', 3, 'fw', 1),
+    ],
+  });
+  const goals: Goal[] = [
+    { type: 'http_all', port: 80 },
+    { type: 'blocked_all', from: ['teller_1', 'teller_2'], to: ['office_1', 'office_2'] },
+  ];
+  const allowWeb = { src: '192.168.1.0/24', dst: '192.168.2.20/32', service: 'http' as const, port: 80 };
+
+  it('窓口からサーバーへの http だけを許せば、すべての目標を満たす', () => {
+    const results = goals.flatMap((g) => evaluateGoal(g, bank([allowWeb]), bankData));
+    expect(results.filter((r) => !r.ok).map((r) => `${r.goal.type} ${r.src}→${r.dst} ${r.failure?.reason ?? ''}`)).toEqual([]);
+  });
+  it('規則がなければ、窓口からサーバーを閲覧できない', () => {
+    expect(evaluateGoal(goals[0], bank([]), bankData).some((r) => !r.ok)).toBe(true);
+  });
+  it('すべて許すと、窓口から事務室へ届いてしまい不合格', () => {
+    expect(evaluateGoal(goals[1], bank([{ src: 'any', dst: 'any', service: 'any' }]), bankData).some((r) => !r.ok)).toBe(true);
+  });
+});

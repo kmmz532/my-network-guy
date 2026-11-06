@@ -77,6 +77,33 @@ const newMapScene = (offerId, map, title, pcs, goals) => async (page) => {
   await page.waitForTimeout(500);
 };
 
+// 役割付きの端末（ref と名前を指定）と、任意の目標を持つ依頼を1件受注した状態
+const roleMapScene = (offerId, map, placed, goals) => async (page) => {
+  await scenes.career(page);
+  await page.evaluate(
+    ({ offerId, map, placed, goals }) => {
+      const g = window.__game;
+      const offer = {
+        id: offerId,
+        kind: 'template',
+        baseId: offerId.replace(/_shoot$/, ''),
+        params: { pcCount: placed.length },
+        contract: {
+          id: offerId, stage: 1, unlockLevel: 1, order: 0, deadlineDays: 14, requires: [], jobs: ['infra'], map, budget: 1000000,
+          placed: placed.map(([ref, name, x, y]) => ({ ref, name, device: 'pc_basic', x, y, locked: true })),
+          goals, inhouse: false, reward: { money: 100000 },
+        },
+      };
+      g.setState({ offers: [...g.getState().offers, offer] });
+      const s = g.getState();
+      const reason = s.accept(offerId, [s.staff[0].uid, s.staff[1].uid]);
+      if (reason) throw new Error(`受注できない: ${reason}`);
+    },
+    { offerId, map, placed, goals },
+  );
+  await page.waitForTimeout(500);
+};
+
 const scenes = {
   // タイトル画面
   title: async () => {},
@@ -186,6 +213,12 @@ const scenes = {
   mapCampus: newMapScene('t_campus_shoot', 'campus', 'キャンパス', [[3, 2], [11, 3], [3, 14], [11, 15]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
   // 追加したマップ（病棟）
   mapHospital: newMapScene('t_hospital_ward_shoot', 'hospital_ward', '病棟', [[2, 2], [28, 3], [3, 10], [30, 11]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
+  // 役割付きの依頼（isolated の目標）
+  mapCafeGuest: roleMapScene('t_cafe_guest_shoot', 'cafe', [['staff_1', '店員のPC1', 3, 1], ['staff_2', '店員のPC2', 9, 2], ['guest_1', 'お客さんのPC1', 2, 5], ['guest_2', 'お客さんのPC2', 8, 6], ['guest_3', 'お客さんのPC3', 13, 5]], [
+    { type: 'ping_all', nodes: ['staff_1', 'staff_2'] },
+    { type: 'ping_all', nodes: ['guest_1', 'guest_2', 'guest_3'] },
+    { type: 'isolated', from: ['guest_1', 'guest_2', 'guest_3'], to: ['staff_1', 'staff_2'] },
+  ]),
   // インベントリを開いた状態
   inventory: async (page) => {
     await scenes.career(page);

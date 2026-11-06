@@ -111,7 +111,7 @@ export const modelCost = (template: ContractTemplate, map: GameMap, placed: { x:
   if (groups.length > 1 && !isolatedRoles.size) {
     const center = starHubOf(hubs.map((h) => ({ ...h, ref: '' })), map);
     if (goalCount('firewall') > 0) {
-      const fw = cheapest('firewall', groups.length + 1);
+      const fw = cheapest('firewall', groups.length);
       if (!fw) throw new Error('ファイアウォールがない');
       cost += fw.price;
       for (const h of hubs) cost += linkCost(dist(h, center));
