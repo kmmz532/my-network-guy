@@ -48,11 +48,11 @@ type Screen = 'title' | 'game';
 type Popup = 'menu' | 'help' | 'settings' | 'sandboxResize' | 'sandboxReset' | 'sandboxResetConfirm' | null;
 
 // 上部の操作（速さ・メニュー・社員）の大きさ。指で押すため、スマホでも 44 px の高さを確保する（M4）
-const hudButton = (on: boolean) =>
+// 上部の操作の見た目。パソコンは文字の幅に合わせた横長で低いボタン。スマホは指で押すため 44 px 以上にする（M4・B11）
+const hudButton = (on: boolean, phone: boolean) =>
   ({
     padding: '2px 8px',
-    minHeight: 44,
-    minWidth: 44,
+    ...(phone ? { minHeight: 44, minWidth: 44 } : {}),
     cursor: 'pointer',
     background: on ? '#ffd866' : '#25406f',
     color: on ? '#3b2a33' : '#f4f1e6',
@@ -338,7 +338,7 @@ export function App() {
         {!sandbox && (
         <span style={{ display: 'flex', gap: 4 }}>
           {SPEEDS.map((s) => (
-            <Tooltip text={s === 0 ? tipText('ui.speed.0', 'pause', !phone) : t(`ui.speed.${s}` as const)} key={s}><button aria-label={t(`ui.speed.${s}` as const)} style={hudButton(speed === s)}  onClick={() => { hideTip(); setSpeed(s); }}>
+            <Tooltip text={s === 0 ? tipText('ui.speed.0', 'pause', !phone) : t(`ui.speed.${s}` as const)} key={s}><button aria-label={t(`ui.speed.${s}` as const)} style={hudButton(speed === s, phone)}  onClick={() => { hideTip(); setSpeed(s); }}>
               {s === 0 ? (
                 <Icon name="icon/pause" scale={1} />
               ) : (
@@ -361,7 +361,7 @@ export function App() {
             <Icon name="icon/save" scale={1} />
           </span>
         </Tooltip>
-        <button style={hudButton(false)} onClick={() => setPopup('menu')}>
+        <button style={hudButton(false, phone)} onClick={() => setPopup('menu')}>
           <Icon name="icon/menu" scale={1} />
         </button>
       </header>

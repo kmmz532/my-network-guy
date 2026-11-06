@@ -167,7 +167,7 @@ export function Toolbar({
   const phone = usePhone();
   // IPアドレスの表示の切り替え。設計中は施工のボタンの左、それ以外は右端に出す
   const ipButton = (
-    <Tooltip text={tipText('ui.showIp', 'showIp', !phone)}><button aria-label={t('ui.showIp')} style={{ ...slot(showIp), width: 'auto', padding: '0 8px', fontSize: 13, fontWeight: 'bold' }}
+    <Tooltip text={tipText('ui.showIp', 'showIp', !phone)}><button aria-label={t('ui.showIp')} style={{ ...slot(showIp), fontSize: 13, fontWeight: 'bold' }}
       
       onClick={() => setShowIp(!showIp)}
     >
