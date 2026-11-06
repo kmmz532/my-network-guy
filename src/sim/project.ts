@@ -37,6 +37,7 @@ import { furnitureBonus, type BonusEnv } from './furniture';
 import { gainExp, staffPower } from './staff';
 import { CATEGORY } from '../data/categories';
 import { checkCableLength } from './cableLength';
+import type { LevelUp } from './level';
 
 export interface Project {
   id: string;
@@ -116,6 +117,8 @@ export const projectCostOf = (p: Project, env: Env): ProjectCost => {
 };
 
 export interface Report {
+  // 納品で会社のレベルが上がったときの、各レベルの報酬と解放（N45。ストアで付ける）
+  levelUps?: LevelUp[];
   passed: boolean;
   // 納品した案件（納品後の表示に使う）
   delivered?: Project;

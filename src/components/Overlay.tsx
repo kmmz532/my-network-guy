@@ -14,6 +14,12 @@ const NOTICE_MS = 3000;
 // 納品の結果は、パケットが流れ切ってから出す
 const REPORT_DELAY_MS = 1500;
 
+// 解放された品目の名前（機材・ケーブル・家具・依頼）
+const unlockNameOf = (x: { kind: 'device' | 'cable' | 'furniture' | 'template' | 'contract'; id: string }): string => {
+  if (x.kind === 'template' || x.kind === 'contract') return tDyn(`contract.${x.id}.title`);
+  return tDyn(`${x.kind === 'device' ? 'device' : x.kind === 'cable' ? 'cable' : 'furniture'}.${x.id}.name`);
+};
+
 // 結果の4項目（費用の割合・失敗回数・納期・設計の不備）。基準は★3の条件、実績は今回の数字。達成の印を付ける
 function EvaluationRows({ report }: { report: Report }) {
   const star3 = balance.rating.find((r) => r.stars === 3);
@@ -92,6 +98,18 @@ export function ReportModal() {
       <div style={{ fontSize: 16, marginTop: 4 }}>
         <Icon name="icon/star" /> {t('report.expGain', { exp: report.expGain ?? 0 })}
       </div>
+      {(report.levelUps ?? []).map((u) => (
+        <div key={u.level} style={{ marginTop: 8, padding: 8, background: '#25406f', fontSize: 14 }}>
+          <div style={{ fontWeight: 'bold', color: '#ffd866' }}>{t('report.levelUp.title', { level: u.level })}</div>
+          <div>{t('report.levelUp.money', { money: u.money.toLocaleString('ja-JP') })}</div>
+          {u.devices.length > 0 && (
+            <div>{t('report.levelUp.devices', { devices: u.devices.map((d) => `${tDyn(`device.${d.device}.name`)} ×${d.count}`).join('・') })}</div>
+          )}
+          {u.unlocks.length > 0 && (
+            <div>{t('report.levelUp.unlock', { items: u.unlocks.map((x) => unlockNameOf(x)).join('・') })}</div>
+          )}
+        </div>
+      ))}
       {(report.rewardDevices ?? []).length > 0 && (
         <div style={{ fontSize: 14, marginTop: 6 }}>
           {t('report.reward', {

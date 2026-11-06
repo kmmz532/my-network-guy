@@ -45,3 +45,37 @@ export const titleKeyOf = (level: number): string | null => {
   if (level >= 100 && level % 100 === 0) return `level.title.${level}`;
   return null;
 };
+
+// 上がったレベルごとの報酬と、そのレベルで解放された品目（LEVEL.md 6）
+export interface LevelUp {
+  level: number;
+  money: number;
+  devices: { device: string; count: number }[];
+  unlocks: { kind: 'device' | 'cable' | 'furniture' | 'template' | 'contract'; id: string }[];
+}
+
+export interface UnlockItem {
+  kind: LevelUp['unlocks'][number]['kind'];
+  id: string;
+  unlockLevel: number;
+}
+
+// Lv before から Lv after までに上がった各レベルの報酬と解放（before は含まず、after は含む）
+export const levelUpsBetween = (
+  before: number,
+  after: number,
+  balance: Balance,
+  milestones: readonly { level: number; reward: { devices: { device: string; count: number }[] } }[],
+  items: readonly UnlockItem[],
+): LevelUp[] => {
+  const out: LevelUp[] = [];
+  for (let n = before + 1; n <= after; n++) {
+    out.push({
+      level: n,
+      money: moneyOf(n, balance),
+      devices: milestones.filter((m) => m.level === n).flatMap((m) => m.reward.devices),
+      unlocks: items.filter((i) => i.unlockLevel === n).map((i) => ({ kind: i.kind, id: i.id })),
+    });
+  }
+  return out;
+};

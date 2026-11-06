@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
 import type { Balance } from '../data/schema';
-import { expAtLevel, isUnlocked, levelOf, moneyOf, nextLevel, needOf, titleKeyOf } from './level';
+import { expAtLevel, isUnlocked, levelOf, levelUpsBetween, moneyOf, nextLevel, needOf, titleKeyOf } from './level';
 
 const balance = balanceJson as unknown as Balance;
 
@@ -43,5 +43,24 @@ describe('会社のレベルの式', () => {
     expect(titleKeyOf(100)).toBe('level.title.100');
     expect(titleKeyOf(999)).toBe('level.title.999');
     expect(titleKeyOf(150)).toBeNull();
+  });
+});
+
+describe('レベルが上がったときの報酬と解放', () => {
+  it('2つ以上上がったら、各レベルの報酬と解放を全部入れる', () => {
+    const items = [
+      { kind: 'device' as const, id: 'l2_switch_8p', unlockLevel: 2 },
+      { kind: 'device' as const, id: 'router_basic', unlockLevel: 4 },
+    ];
+    const ups = levelUpsBetween(1, 4, balance, [{ level: 3, reward: { devices: [{ device: 'l2_switch_8p', count: 1 }] } }], items);
+    expect(ups.map((u) => u.level)).toEqual([2, 3, 4]);
+    expect(ups[0].unlocks).toEqual([{ kind: 'device', id: 'l2_switch_8p' }]);
+    expect(ups[1].devices).toEqual([{ device: 'l2_switch_8p', count: 1 }]);
+    expect(ups[2].unlocks).toEqual([{ kind: 'device', id: 'router_basic' }]);
+    expect(ups.every((u) => u.money > 0)).toBe(true);
+  });
+
+  it('上がらなければ何もない', () => {
+    expect(levelUpsBetween(3, 3, balance, [], [])).toEqual([]);
   });
 });

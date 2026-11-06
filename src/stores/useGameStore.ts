@@ -2,7 +2,7 @@
 import { loadSettings, saveSettings } from '../settings/settings';
 import { playConnect, playDeliver, playFail } from '../audio/sfx';
 import { create } from 'zustand';
-import { balance, contracts, contractTemplates, devices, furniture } from 'virtual:game-data';
+import { balance, cables, contracts, contractTemplates, devices, furniture, levelMilestones } from 'virtual:game-data';
 import type { FurnitureId } from '../generated/ids';
 import { advanceTick, initialClock, isWorkingHour, minutesPerMonth, toDate, type ClockState } from '../sim/clock';
 import { nightSpeedStep } from '../sim/nightSpeed';
@@ -11,7 +11,7 @@ import { declineOffer, offerHint, refreshOffers, type OfferEnv, type OfferHint }
 import type { Offer } from '../contracts/template';
 import type { GameMap, Staff } from '../data/schema';
 import { initialStaff, rollCandidates, staffCapOf, totalSalary } from '../sim/staff';
-import { levelOf } from '../sim/level';
+import { levelOf, levelUpsBetween, type UnlockItem } from '../sim/level';
 import { rand } from '../sim/rng';
 import { finishTrainings, startTraining as startTrainingOp, takeExam as takeExamOp, type TrainingEnv } from '../sim/training';
 import { certs as certRecord, training as trainingRecord } from 'virtual:game-data';
@@ -425,6 +425,33 @@ const refresh = (s: GameState): Partial<GameState> => {
 };
 
 // 検収の結果を画面の状態に反映する（パケット・納品後の表示・失敗の印）
+// 解放の一覧（品目の unlockLevel）。レベルが上がったとき、そのレベルで解放されたものを出すのに使う
+const unlockItems: UnlockItem[] = [
+  ...Object.values(devices).map((d) => ({ kind: 'device' as const, id: d.id, unlockLevel: d.unlockLevel })),
+  ...Object.values(cables).map((c) => ({ kind: 'cable' as const, id: c.id, unlockLevel: c.unlockLevel })),
+  ...Object.values(furniture).map((f) => ({ kind: 'furniture' as const, id: f.id, unlockLevel: f.unlockLevel })),
+  ...contractTemplates.map((t) => ({ kind: 'template' as const, id: t.id, unlockLevel: t.unlockLevel })),
+  ...contracts.map((c) => ({ kind: 'contract' as const, id: c.id, unlockLevel: c.unlockLevel })),
+];
+
+// 納品で会社のレベルが上がったら、上がった各レベルの報酬（お金・機器）を足し、解放の一覧を報告に付ける（N45）
+const withLevelUps = (prev: GameState, patch: Partial<GameState>): Partial<GameState> => {
+  const report = patch.lastReport;
+  const nextExp = patch.companyExp;
+  if (!report || !report.passed || nextExp === undefined || nextExp <= prev.companyExp) return patch;
+  const ups = levelUpsBetween(levelOf(prev.companyExp, balance), levelOf(nextExp, balance), balance, levelMilestones, unlockItems);
+  if (ups.length === 0) return patch;
+  const money = (patch.clock ?? prev.clock).money + ups.reduce((sum, u) => sum + u.money, 0);
+  const owned = { ...(patch.owned ?? prev.owned) };
+  for (const u of ups) for (const d of u.devices) owned[d.device] = (owned[d.device] ?? 0) + d.count;
+  return {
+    ...patch,
+    clock: { ...(patch.clock ?? prev.clock), money },
+    owned,
+    lastReport: { ...report, levelUps: ups },
+  };
+};
+
 const reportState = (report: Report | undefined): Partial<GameState> => {
   if (!report) return {};
   return {
@@ -532,7 +559,7 @@ export const useGameStore = create<GameState>((set, get) => {
       after !== null &&
       before.id === after.id &&
       (before.nodes !== after.nodes || before.links !== after.links || before.segments !== after.segments);
-    set({
+    set(withLevelUps(get(), {
       lastError: null,
       ...(redesigned || (sandbox && c.office !== get().office) ? { check: null, helpUid: null } : {}),
       clock: sandbox ? get().clock : c.clock,
@@ -548,7 +575,7 @@ export const useGameStore = create<GameState>((set, get) => {
       staffSeq: c.staffSeq,
       candidates: c.candidates,
       ...reportState(outcome.report),
-    });
+    }));
     return null;
   };
 
@@ -811,7 +838,7 @@ export const useGameStore = create<GameState>((set, get) => {
           next = { ...next, speed: night.speed as Speed, nightSpeed: night.saved as Speed | null };
         }
         const merged = { ...s, ...next } as GameState;
-        return { ...next, ...refresh(merged) };
+        return { ...withLevelUps(s, next), ...refresh(merged) };
       }),
     // 速さを人が変えたら、勤務時間外の自動の早送りは取り消す（覚えた速さには戻さない）
     // サンドボックスは時間を止めたままにする
