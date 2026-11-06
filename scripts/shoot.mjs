@@ -107,6 +107,19 @@ const scenes = {
     await page.getByRole('button', { name: '閉じる' }).click();
     await page.waitForTimeout(800);
   },
+  // 雇用の画面（N63）: 会社のレベル10で夜勤が選べる。候補を1人つけて、雇用の画面を開いた状態
+  hire: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      g.getState().debugSetCompanyLevel(10);
+      const base = g.getState().staff[0];
+      g.setState({ candidates: [{ ...base, uid: 'c_shoot_0', name: 'staff.name.5', exp: 0, training: null }] });
+    });
+    await page.waitForTimeout(300);
+    await page.getByRole('button', { name: '雇用', exact: true }).first().click();
+    await page.waitForTimeout(500);
+  },
   // インベントリを開いた状態
   inventory: async (page) => {
     await scenes.career(page);
