@@ -13,7 +13,7 @@ import routerJson from '../assets/data/devices/router.json';
 import switchJson from '../assets/data/devices/l2_switch.json';
 import { CATEGORY } from '../data/categories';
 
-export const SAVE_VERSION = 22;
+export const SAVE_VERSION = 23;
 
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
@@ -175,6 +175,12 @@ export const migrations: Record<number, Migration> = {
   },
   // v18 → v19: 遊び方を追加する。移行前のセーブデータは、すべて案件の経営ゲーム（career）とする
   18: (data) => ({ ...(data as object), mode: 'career' }),
+  // v22 → v23: 社員と候補に勤務の区分（shift）を足す。移行前の社員は全員日勤（N48）
+  22: (data) => {
+    const d = data as { staff: object[]; candidates: object[] };
+    const day = (m: object) => ({ ...m, shift: 'day' });
+    return { ...d, staff: d.staff.map(day), candidates: d.candidates.map(day) };
+  },
   // v21 → v22: 評判（reputation）を会社の経験値（companyExp）に名前を変える。値はそのまま（N45）
   21: (data) => {
     const d = data as { reputation: number };

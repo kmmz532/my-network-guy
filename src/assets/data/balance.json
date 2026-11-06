@@ -13,6 +13,7 @@
   "startMoney": 1000000,
   "sellRate": 0.8,
   "metersPerTile": 5,
+  "nightPayRate": 1.5,
   "pricing": {
     "base": {
       "pc": 80000,
@@ -119,7 +120,9 @@
     "workEndHour": 18,
     "minutesPerDevice": 240,
     "minutesPerCableTile": 15,
-    "arriveMinutesBefore": 30
+    "arriveMinutesBefore": 30,
+    "nightStartHour": 21,
+    "nightEndHour": 6
   },
   "breaks": {
     "maxPerDay": 3,

@@ -4,6 +4,7 @@ import type { Staff } from '../data/schema';
 import { exportSave, importSave } from './saveFile';
 
 const member = (uid: string): Staff => ({
+  shift: 'day',
   uid,
   name: 'staff.name.0',
   look: 'blue',
@@ -432,5 +433,15 @@ describe('古いセーブの読み込み（v21 の評判）', () => {
     const { companyExp: _drop, ...rest } = legacySample;
     const v21 = { ...rest, reputation: 5 };
     expect(migrate(21, v21).companyExp).toBe(5);
+  });
+});
+
+describe('古いセーブの読み込み（v22 の社員）', () => {
+  it('v22 の社員と候補は、日勤として v23 になる', () => {
+    const { shift: _s, ...noShift } = member('s0');
+    const v22 = { ...legacySample, companyExp: 0, staff: [noShift], candidates: [noShift] } as unknown as SaveData;
+    const migrated = migrate(22, v22);
+    expect(migrated.staff[0].shift).toBe('day');
+    expect(migrated.candidates[0].shift).toBe('day');
   });
 });

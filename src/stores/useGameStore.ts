@@ -784,15 +784,15 @@ export const useGameStore = create<GameState>((set, get) => {
           loadSettings().payPause &&
           s.payWarned !== s.clock.paidMonths &&
           s.clock.minute + balance.time.gameMinutesPerTick >= payday &&
-          s.clock.money < totalSalary(s.staff)
+          s.clock.money < totalSalary(s.staff, balance.nightPayRate)
         ) {
           return { speed: 0, payWarned: s.clock.paidMonths, notice: { key: 'ui.notice.payPause', params: {}, id: Date.now() } };
         }
-        const clock = advanceTick(s.clock, balance, totalSalary(s.staff));
+        const clock = advanceTick(s.clock, balance, totalSalary(s.staff, balance.nightPayRate));
         let next: Partial<GameState> = { clock };
         // 月末に給与を払ったら知らせる
         if (clock.paidMonths > s.clock.paidMonths) {
-          const amount = totalSalary(s.staff);
+          const amount = totalSalary(s.staff, balance.nightPayRate);
           // 毎月1日に、採用の候補を作り直す
           const rolled = rollCandidates(levelOf(s.companyExp, balance), clock.paidMonths, s.rng, balance, s.staff.map((m) => m.name));
           next = {

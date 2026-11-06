@@ -121,7 +121,7 @@ export function StaffListBody() {
         );
       })}
       <div style={{ textAlign: 'right', fontWeight: 'bold', marginTop: 6 }}>
-        {t('ui.staff.list.total', { salary: yen(totalSalary(state.staff)) })}
+        {t('ui.staff.list.total', { salary: yen(totalSalary(state.staff, balance.nightPayRate)) })}
       </div>
     </div>
   );

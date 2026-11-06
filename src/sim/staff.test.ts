@@ -52,7 +52,7 @@ describe('施工力', () => {
     staffUids: ['s0'],
   };
   const worker = (level: number, job: Staff['job'] = 'network'): Staff => ({
-    uid: 's0',
+    uid: 's0', shift: 'day' as const,
     name: 'staff.name.0',
     look: 'blue',
     quirk: 'q1',
@@ -93,7 +93,7 @@ describe('施工力', () => {
 describe('給与と経験値', () => {
   it('給与は全社員の月給の合計', () => {
     const init = initialStaff(balance, 5).staff;
-    expect(totalSalary(init)).toBe(init.reduce((sum, s) => sum + s.salary, 0));
+    expect(totalSalary(init, 1.5)).toBe(init.reduce((sum, s) => sum + s.salary, 0));
   });
 
   it('経験値が expPerLevel × level に達するとレベルが上がり、余りは繰り越す', () => {
@@ -194,7 +194,7 @@ describe('社員の名前が重ならない', () => {
 });
 
 describe('社員の状態', () => {
-  const base: Staff = { uid: 's1', name: 'staff.name.0', look: 'blue', quirk: 'q1', job: 'network', level: 1, exp: 0, salary: 1, certs: [], training: null };
+  const base: Staff = { uid: 's1', shift: 'day' as const, name: 'staff.name.0', look: 'blue', quirk: 'q1', job: 'network', level: 1, exp: 0, salary: 1, certs: [], training: null };
   const project = { id: 'p1', baseId: 'c001', params: { n: 2 }, crew: ['s1'] } as unknown as Project;
 
   it('研修中は残りの日数（1日未満は1日）を出す', () => {

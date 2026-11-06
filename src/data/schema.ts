@@ -18,6 +18,8 @@ const jobIdSchema = z.enum(JOB_IDS);
 // 社員のデータ。ゲームの状態に保存する
 export interface Staff {
   uid: string; // "s" + 連番
+  // 勤務の区分（日勤か夜勤。N48）
+  shift: 'day' | 'night';
   name: string; // 名前（言語ファイルの名前の候補のキー）
   look: string; // 見た目（STAFF_LOOKS のいずれか）
   quirk: string; // 口癖（言語ファイルの口癖の候補のID）
@@ -56,6 +58,8 @@ export const balanceSchema = z.object({
   sellRate: z.number().min(0).max(1),
   // 地図の1マスの長さ（メートル）。ケーブルの上限と表示に使う（N49）
   metersPerTile: int.positive(),
+  // 夜勤の給与の倍率（日勤の給与に掛ける。N48）
+  nightPayRate: z.number().positive(),
   // 機材の価格の式（N35）: 基本の価格（分類）＋ポート1つあたり（分類）＋機能ごとの加算。機材の定価は、この式の値とそろえる
   pricing: z.object({
     base: z.record(z.string(), nonNegativeInt),
@@ -95,6 +99,9 @@ export const balanceSchema = z.object({
     workEndHour: z.number().min(0).max(24),
     minutesPerDevice: nonNegativeInt,
     minutesPerCableTile: nonNegativeInt,
+    // 夜勤の勤務時間（開始の時刻から、翌日の終了の時刻まで。N48）
+    nightStartHour: z.number().min(0).max(24),
+    nightEndHour: z.number().min(0).max(24),
     // 社員が出社する時刻（始業の何分前にドアから入るか）。席に着いているのは始業の時刻まで
     arriveMinutesBefore: nonNegativeInt,
   }),

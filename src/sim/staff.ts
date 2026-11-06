@@ -35,6 +35,7 @@ export const createStaff = (spec: StaffSpec, rng: number, seq: number, taken: re
   const quirk = randInt(look.state, 0, QUIRK_IDS.length - 1);
   const staff: Staff = {
     uid: `s${seq}`,
+    shift: 'day',
     name: picked.name,
     look: STAFF_LOOKS[look.value],
     quirk: QUIRK_IDS[quirk.value],
@@ -88,7 +89,9 @@ export const gainExp = (staff: Staff, amount: number, expPerLevel: number): Staf
 };
 
 // 月給の合計（全社員の salary）
-export const totalSalary = (staff: readonly Staff[]): number => staff.reduce((sum, s) => sum + s.salary, 0);
+// 夜勤の給与は、日勤の給与に nightPayRate を掛けた額（N48）
+export const totalSalary = (staff: readonly Staff[], nightPayRate: number): number =>
+  staff.reduce((sum, s) => sum + (s.shift === 'night' ? s.salary * nightPayRate : s.salary), 0);
 
 // 採用の候補を毎月作り直す（0人〜maxCandidates人）。level は評判と乱数で決まり、月給は level で決まる
 // 候補の uid は "c" + 月 + "_" + 順番。採用するときに社員の uid へ付け替える。
