@@ -91,15 +91,21 @@ const TOOLS: { id: Tool; name: LangKey; action: string; icon: string }[] = [
 export function Toolbar({
   onOffers,
   onShop,
+  onHire,
+  hiringOpen,
   warehouseOpen,
   setWarehouseOpen,
 }: {
   onOffers: () => void;
   onShop: () => void;
+  // 雇用の画面を開く（閉じる）。候補がいないときは押せない
+  onHire: () => void;
+  hiringOpen: boolean;
   warehouseOpen: boolean;
   setWarehouseOpen: (open: boolean) => void;
 }) {
   const offers = useGameStore((s) => s.offers);
+  const candidateCount = useGameStore((s) => s.candidates.length);
   // サンドボックスは案件・依頼がなく、テストと設計の操作だけを出す
   const sandbox = useGameStore((s) => s.mode) === 'sandbox';
   const active = useGameStore(focusedProject);
@@ -259,6 +265,12 @@ export function Toolbar({
       <Tooltip text={tipText('ui.shop.title', 'shop')}><button aria-label={t('ui.shop.title')} data-guide="shop" style={slot(false)}  onClick={() => { closeWarehouse(); onShop(); }}>
         <Icon name="icon/cart" />
       </button></Tooltip>
+      {!sandbox && (
+        // 候補が0人のときは押せない（半透明）
+        <Tooltip text={t('ui.staff.hire')}><button aria-label={t('ui.staff.hire')} style={{ ...slot(hiringOpen), opacity: candidateCount > 0 ? 1 : 0.4 }} disabled={candidateCount === 0} onClick={() => { closeWarehouse(); onHire(); }}>
+          <Icon name="icon/person" />
+        </button></Tooltip>
+      )}
       {/* 在庫は倉庫のアイコンにまとめる。品目の一覧は倉庫の欄で開く */}
       {sep}
       <Tooltip text={tipText('ui.warehouse.title', 'warehouse')}><button aria-label={t('ui.warehouse.title')} data-guide="warehouse" style={{ ...slot(warehouseOpen && warehouseOpenable), opacity: warehouseOpenable ? 1 : 0.35 }}

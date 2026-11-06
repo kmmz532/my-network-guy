@@ -101,7 +101,6 @@ export function App() {
   // 社員の人数と席の数（席は自社オフィスの机の家具）。雇えなかった理由をHUDに出す
   const staff = useGameStore((s) => s.staff.length);
   const seats = useGameStore((s) => seatCount(s.office, (id) => furniture[id as FurnitureId]?.seat === true));
-  const candidates = useGameStore((s) => s.candidates);
   const [hiring, setHiring] = useState(false);
   const [hiringTab, setHiringTab] = useState<HiringTab>('hiring');
   const openWindow = useGameStore((s) => s.openWindow);
@@ -313,17 +312,6 @@ export function App() {
           <button onClick={() => openWindow('staffList', '')} style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer' }}>
             {t('ui.staff.label', { staff, seats })}
           </button>
-          {/* 候補が0人のときは押せない（半透明） */}
-          <Tooltip text={t('ui.staff.hire')}><button aria-label={t('ui.staff.hire')} style={{ ...hudButton(hiring), opacity: candidates.length > 0 ? 1 : 0.4 }}
-
-            disabled={candidates.length === 0}
-            onClick={() => {
-              setHiringTab('hiring');
-              setHiring(!hiring);
-            }}
-          >
-            <Icon name="icon/person" scale={1} />
-          </button></Tooltip>
         </span>
         )}
         {!sandbox && (
@@ -368,6 +356,11 @@ export function App() {
       <Toolbar
         onOffers={() => setPopup('offers')}
         onShop={() => setPopup('shop')}
+        hiringOpen={hiring}
+        onHire={() => {
+          setHiringTab('hiring');
+          setHiring(!hiring);
+        }}
         warehouseOpen={warehouseOpen}
         setWarehouseOpen={setWarehouseOpen}
       />

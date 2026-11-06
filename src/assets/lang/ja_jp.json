@@ -216,7 +216,7 @@
   "ui.shop.tab.furniture": "家具",
   "ui.cable.price": "¥{link}＋¥{tile}/マス",
   "ui.staff.label": "社員 {staff}人 / 席 {seats}",
-  "ui.staff.hire": "雇う",
+  "ui.staff.hire": "雇用",
   "staff.name.0": "荒木",
   "staff.name.1": "安藤",
   "staff.name.2": "池端",
