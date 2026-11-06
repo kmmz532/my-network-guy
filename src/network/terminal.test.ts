@@ -162,4 +162,10 @@ describe('対応表による名前の解決（段階5の準備）', () => {
     expect(runTerminal('show hosts', { node: nodes[0], nodes, links, data }, tr)).toEqual([{ text: 'ui.terminal.noHosts', kind: 'out' }]);
     expect(runTerminal('show running-config', ctx, tr).some((l) => l.text === 'ui.terminal.cfgHost {"name":"R1","ip":"192.168.1.1"}')).toBe(true);
   });
+
+  it('ホスト名を付けると、show running-config の先頭に出る（N46）', () => {
+    const named = { ...nodes[0], hostname: 'R1' };
+    const lines = runTerminal('show running-config', { node: named, nodes: [named], links, data }, tr);
+    expect(lines[0]).toEqual({ text: 'ui.terminal.cfgHostname {"name":"R1"}', kind: 'out' });
+  });
 });

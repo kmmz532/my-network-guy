@@ -33,6 +33,8 @@ export interface FirewallRule {
 export interface NetNode {
   uid: string;
   device: string;
+  // ホスト名（ターミナルのプロンプトと show running-config に出す。画面の名前とは別。N46）
+  hostname?: string;
   // ファイアウォールの規則（ファイアウォールだけが持つ。一覧にない通信は通さない）
   rules?: FirewallRule[];
   // 手で付けた名前（なければ既定の名前で呼ぶ。nodeName.ts）

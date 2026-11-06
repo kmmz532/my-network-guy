@@ -17,7 +17,7 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
   const setGateway = useGameStore((s) => s.setGateway);
   const addRoute = useGameStore((s) => s.addRoute);
   const removeRoute = useGameStore((s) => s.removeRoute);
-  const setName = useGameStore((s) => s.setName);
+  const setHostname = useGameStore((s) => s.setHostname);
   const setHost = useGameStore((s) => s.setHost);
   const removeHost = useGameStore((s) => s.removeHost);
   // 設定のコマンドを、画面の操作に当てる。失敗したら理由のキーを返す（成功なら null）
@@ -33,8 +33,8 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
         const index = node.routes.findIndex((r) => r.dest === action.dest && r.prefix === action.prefix);
         return index < 0 ? 'ui.terminal.noRouteToRemove' : removeRoute(node.uid, index);
       }
-      case 'name':
-        return setName(node.uid, action.name ?? '');
+      case 'hostname':
+        return setHostname(node.uid, action.hostname);
       case 'host':
         return setHost(node.uid, action.name, action.ip);
       case 'noHost':
@@ -121,6 +121,8 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
         }}
         style={{ display: 'flex', gap: 6 }}
       >
+        {/* ホスト名を付けたら、プロンプトとして入力の前に出す（N46） */}
+        {node.hostname && <span style={{ fontFamily: 'monospace', fontSize: 13, alignSelf: 'center' }}>{tDyn('ui.terminal.prompt', { name: node.hostname })}</span>}
         <input
           aria-label={t('ui.terminal.input')}
           value={input}

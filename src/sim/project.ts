@@ -719,6 +719,10 @@ const editNode = (core: Core, uid: string, edit: (n: NetNode) => NetNode | strin
 };
 
 // 機器の名前を付け直す。名前は見た目だけなので、設定が固定された機器でも変えられる。空なら既定の名前に戻す
+// ホスト名を付ける（null で外す）。画面の名前（setName）とは別に持つ（N46）
+export const setHostname = (core: Core, uid: string, hostname: string | null, target: NetTarget = 'focus'): Outcome =>
+  editNode(core, uid, (node) => ({ ...node, hostname: hostname ?? undefined }), target);
+
 export const setName = (core: Core, uid: string, name: string, target: NetTarget = 'focus'): Outcome => {
   const net = netOf(core, target);
   if (typeof net === 'string') return fail(net);

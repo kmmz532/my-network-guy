@@ -60,8 +60,8 @@ describe('設定のコマンド（段階3）', () => {
 
 describe('hostname', () => {
   it('hostname は名前を付け、no hostname は既定の名前に戻す', () => {
-    expect(parseConfig('hostname R1', tr)).toEqual({ kind: 'action', action: { kind: 'name', name: 'R1' } });
-    expect(parseConfig('no hostname', tr)).toEqual({ kind: 'action', action: { kind: 'name', name: null } });
+    expect(parseConfig('hostname R1', tr)).toEqual({ kind: 'action', action: { kind: 'hostname', hostname: 'R1' } });
+    expect(parseConfig('no hostname', tr)).toEqual({ kind: 'action', action: { kind: 'hostname', hostname: null } });
   });
 
   it('使えない名前は理由のキーを出す', () => {

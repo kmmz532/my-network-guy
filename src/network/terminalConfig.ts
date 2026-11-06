@@ -15,7 +15,7 @@ export type ConfigAction =
   | { kind: 'gateway'; gateway: string | null }
   | { kind: 'addRoute'; route: Route }
   | { kind: 'removeRoute'; dest: string; prefix: number }
-  | { kind: 'name'; name: string | null }
+  | { kind: 'hostname'; hostname: string | null }
   | { kind: 'host'; name: string; ip: string }
   | { kind: 'noHost'; name: string };
 
@@ -92,11 +92,11 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   if (first === 'hostname') {
     if (rest.length !== 1) return error('ui.terminal.usageHostname');
     if (!NAME_RE.test(rest[0])) return error('ui.terminal.errHostname');
-    return { kind: 'action', action: { kind: 'name', name: rest[0] } };
+    return { kind: 'action', action: { kind: 'hostname', hostname: rest[0] } };
   }
 
   if (first === 'no' && rest[0] === 'hostname' && rest.length === 1) {
-    return { kind: 'action', action: { kind: 'name', name: null } };
+    return { kind: 'action', action: { kind: 'hostname', hostname: null } };
   }
 
   if (first === 'no' && rest[0] === 'ip' && rest[1] === 'default-gateway' && rest.length === 2) {
