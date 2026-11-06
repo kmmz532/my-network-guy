@@ -95,12 +95,31 @@ export interface Trace {
   result: PathResult;
 }
 
+// 案件の費用の内訳。機器は、案件で自分で置いた機器（既設でも引き継いだものでもない）の定価の合計。配線は、配線の費用の合計
+export interface ProjectCost {
+  total: number;
+  devices: number;
+  cable: number;
+}
+
+export const projectCostOf = (p: Project, env: Env): ProjectCost => {
+  // 既設の機器（案件で置かれたもの）と、自社オフィスから引き継いだ機器（前の案件で買った分）は含めない
+  const inherited = new Set(p.inherited ?? []);
+  const devices = p.nodes.reduce(
+    (sum, n) => (n.locked || inherited.has(n.uid) ? sum : sum + (env.devices[n.device]?.price ?? 0)),
+    0,
+  );
+  return { total: devices + p.cost, devices, cable: p.cost };
+};
+
 export interface Report {
   passed: boolean;
   // 納品した案件（納品後の表示に使う）
   delivered?: Project;
   // 納品が遅れた日数（期日内なら0）
   lateDays?: number;
+  // 費用の内訳（納品のとき）
+  costBreakdown?: ProjectCost;
   // 結果画面に出す、費用・予算・失敗回数
   cost?: number;
   budget?: number;
@@ -1122,7 +1141,8 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
     // 期日に遅れたら、遅れた日数に応じて報酬が減る。遅れた案件と設計の不備がある案件は、★は2が上限になる
     const lateDays = lateDaysOf(p.due, core.clock.minute);
     const issues = Object.keys(designIssues(p, env)).length;
-    const stars = rate(p.cost, p.contract.budget, p.rework, lateDays > 0, issues, env.balance);
+    const cost = projectCostOf(p, env);
+    const stars = rate(cost.total, p.contract.budget, p.rework, lateDays > 0, issues, env.balance);
     // 報酬は、期日の割合と★ごとの倍率を掛けた額
     const money = Math.round(p.contract.reward.money * lateFactor(lateDays, env.balance) * rewardRateOf(stars, env.balance));
     const reputation = core.reputation + p.contract.reward.reputation + stars * env.balance.reputationPerStar;
@@ -1149,7 +1169,8 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
         stars,
         money,
         lateDays,
-        cost: p.cost,
+        cost: cost.total,
+        costBreakdown: cost,
         budget: p.contract.budget,
         rework: p.rework,
         designIssues: issues,

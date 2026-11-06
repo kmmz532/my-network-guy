@@ -25,7 +25,10 @@ function EvaluationRows({ report }: { report: Report }) {
     {
       label: t('report.cost'),
       target: t('report.costTarget', { ratio: pct(star3?.maxCostRatio ?? 0) }),
-      actual: t('report.costActual', { ratio: pct(costRatio) }),
+      actual: `${t('report.costActual', { ratio: pct(costRatio) })}（${t('report.costDetail', {
+        devices: (report.costBreakdown?.devices ?? 0).toLocaleString('ja-JP'),
+        cable: (report.costBreakdown?.cable ?? 0).toLocaleString('ja-JP'),
+      })}）`,
       ok: star3?.maxCostRatio == null || costRatio <= star3.maxCostRatio,
     },
     {

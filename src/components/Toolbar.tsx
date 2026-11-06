@@ -7,6 +7,8 @@ import { isWorkingHour, toDate } from '../sim/clock';
 import { isUnlocked } from '../sim/shop';
 import { historyKeyOf } from '../sim/history';
 import { warehouseItems, warehouseMode, type WarehouseItem } from '../sim/warehouse';
+import { projectCostOf } from '../sim/project';
+import { gameEnv } from '../sim/env';
 import { focusedProject, useGameStore, type Tool } from '../stores/useGameStore';
 import { tipText } from '../input/keymap';
 import { Icon } from './Icon';
@@ -326,7 +328,7 @@ export function Toolbar({
             </button>
           </Tooltip>
           <span style={{ marginLeft: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Icon name="icon/budget" /> {yen(active.cost)} / {yen(active.contract.budget)}
+            <Icon name="icon/budget" /> {yen(projectCostOf(active, gameEnv).total)} / {yen(active.contract.budget)}
           </span>
           <Tooltip text={t('ui.project.abandon')} style={{ marginLeft: 'auto' }}><button aria-label={t('ui.project.abandon')} style={{ ...slot(false), width: 32 }}  onClick={() => { closeWarehouse(); abandon(); }}>
             <Icon name="icon/close" />

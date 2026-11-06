@@ -830,13 +830,8 @@ export const useGameStore = create<GameState>((set, get) => {
             : devices[deviceId as keyof typeof devices].price;
       const result = buyDevice(s.clock.money, s.owned, deviceId, price);
       if (!result.ok) return false;
-      // 受注中の案件に対する機材の購入は、案件の費用に含める（家具は自社オフィスのものなので含めない）
-      const focused = focusedProject(s);
-      const active =
-        !isFurniture && focused
-          ? s.active.map((p) => (p.id === focused.id ? { ...p, cost: p.cost + price } : p))
-          : s.active;
-      set({ clock: { ...s.clock, money: result.money }, owned: result.owned, active });
+      // 購入は費用に入れない。案件の費用は納品のときに、置かれている機器の定価と配線の費用から決める
+      set({ clock: { ...s.clock, money: result.money }, owned: result.owned });
       return true;
     },
     sell: (deviceId) => {

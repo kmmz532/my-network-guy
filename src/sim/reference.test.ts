@@ -1,5 +1,5 @@
 // 模範解答のテスト。固定案件・定型案件ごとに、達成条件を満たす最小の構成を実際に組み、検収に通す。
-// 費用は、受注中の機材の購入（store の buy と同じく案件の費用に加える）と配線（connect）で積み上がった p.cost を使う。
+// 費用は、案件に置いた機器の定価の合計と配線（connect）の費用（projectCostOf）を使う。
 // 費用が予算の 60〜75% に入ることを確かめる（予算が高すぎると★の意味がなく、低すぎると★3 が取れないため）。
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
@@ -116,18 +116,12 @@ const take = (core: Core, offerId: string): Core => {
   return ok(accept(core, offerId, balance.office.projectSlots, crew)).core;
 };
 
-// 機材を1台買う。店の購入と同じく、受注中の案件の費用に加える（家具は含めない）
+// 機材を1台買う。店の購入と同じく、費用には入れない（案件の費用は納品のとき、置かれている機器の定価から決める）
 const buy = (core: Core, deviceId: string): Core => {
   const price = devices[deviceId].price;
   const r = buyDevice(core.clock.money, core.owned, deviceId, price);
   if (!r.ok) throw new Error(`買えない: ${deviceId}`);
-  const p = focusedOf(core);
-  return {
-    ...core,
-    clock: { ...core.clock, money: r.money },
-    owned: r.owned,
-    active: p ? core.active.map((q) => (q.id === p.id ? { ...q, cost: q.cost + price } : q)) : core.active,
-  };
+  return { ...core, clock: { ...core.clock, money: r.money }, owned: r.owned };
 };
 
 // 機材を置き、置いた機器のuidを返す
