@@ -1,0 +1,21 @@
+{
+  "devices": [
+    {
+      "id": "firewall_dmz",
+      "category": "firewall",
+      "price": 125000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 3,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [
+        "routing",
+        "firewall"
+      ],
+      "sprite": "device/firewall"
+    }
+  ]
+}

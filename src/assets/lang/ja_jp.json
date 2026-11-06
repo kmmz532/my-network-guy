@@ -22,6 +22,8 @@
   "device.router_switch.name": "スイッチ付きルーター",
   "device.router_switch.desc": "WANの1口とスイッチ付きのLAN4口を備える",
   "device.firewall.name": "ファイアウォール",
+  "device.firewall_dmz.name": "DMZ付きファイアウォール",
+  "device.firewall_dmz.desc": "外部・社内・公開用のサーバーの3つの口を持つ。公開サーバーを社内から分けて守る",
   "device.firewall.desc": "通過する通信を見張る。内側と外側の2ポートを備える",
   "cable.utp_cat5e.name": "LANケーブル（Cat5e）",
   "cable.utp_cat5e.short": "UTP",
