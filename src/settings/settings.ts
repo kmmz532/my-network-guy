@@ -34,6 +34,8 @@ export interface Settings {
   autoIp: boolean;
   // 案件を受注して設計に入ったとき、時間を止めるか（既定はオン。配線の作業を時間に追われずに進められる）
   designPause: boolean;
+  // 依頼を断るとき、確認する
+  confirmDecline: boolean;
   // 効果音を鳴らすか（既定はオン）
   sound: boolean;
   // 給与を払えない月は、給与の前に一度時間を止めるか（既定はオン。放置による倒産を防ぐ）
@@ -51,6 +53,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoSave: 'daily',
   autoIp: true,
   designPause: true,
+  confirmDecline: true,
   sound: true,
   payPause: true,
   offerSort: 'new',
@@ -86,6 +89,7 @@ export function parseSettings(raw: string | null): Settings {
       : DEFAULT_SETTINGS.autoSave,
     autoIp: typeof d.autoIp === 'boolean' ? d.autoIp : DEFAULT_SETTINGS.autoIp,
     designPause: typeof d.designPause === 'boolean' ? d.designPause : DEFAULT_SETTINGS.designPause,
+    confirmDecline: typeof d.confirmDecline === 'boolean' ? d.confirmDecline : DEFAULT_SETTINGS.confirmDecline,
     sound: typeof d.sound === 'boolean' ? d.sound : DEFAULT_SETTINGS.sound,
     payPause: typeof d.payPause === 'boolean' ? d.payPause : DEFAULT_SETTINGS.payPause,
     offerSort: (OFFER_SORTS as readonly unknown[]).includes(d.offerSort) ? (d.offerSort as OfferSort) : DEFAULT_SETTINGS.offerSort,

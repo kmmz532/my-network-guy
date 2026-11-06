@@ -8,7 +8,7 @@ import { gameEnv } from '../sim/env';
 import { staffPower } from '../sim/staff';
 import { offerHintOf, useGameStore } from '../stores/useGameStore';
 import type { Offer } from '../contracts/template';
-import { primaryButton, secondaryButton, usePrimary } from './Modal';
+import { dangerButton, primaryButton, secondaryButton, usePrimary } from './Modal';
 import { delegationReason } from '../sim/project';
 import { loadSettings, saveSettings, OFFER_SORTS, type OfferSort } from '../settings/settings';
 import { sortOffers } from '../contracts/offers';
@@ -147,6 +147,8 @@ function OfferCard({
   const familiarity = useGameStore((s) => s.familiarity);
   // 社員に任せられない理由（任せられるなら null）（N70）
   const delegateReason = delegationReason(familiarity, offer, gameEnv);
+  // 断る前の確認（設定で切り替える）
+  const [asking, setAsking] = useState(false);
   // 受注の画面を開いたときの担当（空いている社員全員）
   const [crew, setCrew] = useState<string[]>(() =>
     staff.filter((s) => !busy.includes(s.uid) && s.training === null).map((s) => s.uid),
@@ -204,24 +206,39 @@ function OfferCard({
         <span style={{ color: '#ffd866' }}>
           <Icon name="icon/money" /> {yen(offer.contract.reward.money)}
         </span>
-        {offer.kind === 'template' && (
-          <button style={{ fontFamily: 'inherit', cursor: 'pointer', background: 'transparent', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: RADIUS.none, padding: '4px 8px', marginLeft: 'auto', whiteSpace: 'nowrap' }} onClick={onDecline}>
-            {t('ui.offer.decline')}
-          </button>
-        )}
-        <button
-          style={{ ...primaryButton, marginLeft: offer.kind === 'template' ? 0 : 'auto', whiteSpace: 'nowrap' }}
-          disabled={!canAccept}
-          onClick={() => onAccept(crew)}
-        >
-          {t('ui.accept')}
-        </button>
-        {/* 社員に任せる（N70）。任せられないときは、理由を下に出す */}
-        {delegateReason === null && (
-          <button style={{ ...secondaryButton, whiteSpace: 'nowrap' }} disabled={!canAccept} onClick={() => onDelegate(crew)}>
-            {t('ui.delegate.button')}
-          </button>
-        )}
+        {/* 断る・受注・任せる。ボタンは1つの並びで折り返さない（スマホで受注が次の行に落ちないように） */}
+        <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', flexShrink: 0, alignItems: 'center' }}>
+          {asking ? (
+            <>
+              <span style={{ whiteSpace: 'nowrap' }}>{t('ui.offer.decline.confirm')}</span>
+              <button style={{ ...dangerButton, whiteSpace: 'nowrap' }} onClick={onDecline}>
+                {t('ui.offer.decline.yes')}
+              </button>
+              <button style={{ ...secondaryButton, whiteSpace: 'nowrap' }} onClick={() => setAsking(false)}>
+                {t('ui.offer.decline.no')}
+              </button>
+            </>
+          ) : (
+            <>
+              {offer.kind === 'template' && (
+                <button
+                  style={{ fontFamily: 'inherit', cursor: 'pointer', background: 'transparent', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: RADIUS.none, padding: '4px 8px', whiteSpace: 'nowrap' }}
+                  onClick={() => (loadSettings().confirmDecline ? setAsking(true) : onDecline())}
+                >
+                  {t('ui.offer.decline')}
+                </button>
+              )}
+              <button style={{ ...primaryButton, whiteSpace: 'nowrap' }} disabled={!canAccept} onClick={() => onAccept(crew)}>
+                {t('ui.accept')}
+              </button>
+              {delegateReason === null && (
+                <button style={{ ...secondaryButton, whiteSpace: 'nowrap' }} disabled={!canAccept} onClick={() => onDelegate(crew)}>
+                  {t('ui.delegate.button')}
+                </button>
+              )}
+            </>
+          )}
+        </div>
       </div>
       <CrewPicker selected={crew} onChange={setCrew} />
     </div>

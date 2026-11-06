@@ -123,6 +123,16 @@ export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; on
           onChange={(v) => update({ autoIp: v })}
         />
       </Row>
+      <Row label={t('ui.settings.confirmDecline')}>
+        <Choice
+          options={[
+            { value: true, label: t('ui.settings.confirmDecline.on') },
+            { value: false, label: t('ui.settings.confirmDecline.off') },
+          ]}
+          value={settings.confirmDecline}
+          onChange={(v) => update({ confirmDecline: v })}
+        />
+      </Row>
       <Row label={t('ui.settings.designPause')}>
         <Choice
           options={[
