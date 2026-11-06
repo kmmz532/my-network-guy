@@ -100,7 +100,7 @@ export function Windows({ onTraining }: { onTraining: () => void }) {
             w.tabs.length > 1 ? (
               <TabStrip
                 win={w}
-                closeLabel={t('ui.panel.close')}
+                closeLabel={narrow ? t('ui.panel.back') : t('ui.panel.close')}
                 onSelect={(ref) => state.selectTab(w.id, ref)}
                 onClose={(ref) => state.closeTab(w.id, ref)}
                 onReorder={(from, to) => state.reorderTab(w.id, from, to)}
@@ -109,7 +109,9 @@ export function Windows({ onTraining }: { onTraining: () => void }) {
           }
           rect={narrow ? narrowRect(vp) : clampRect(w, vp)}
           movable={!narrow}
-          closeLabel={t('ui.panel.close')}
+          // スマホのパネルは「戻る」で閉じる（パネルは画面全体を覆う）
+          closeLabel={narrow ? t('ui.panel.back') : t('ui.panel.close')}
+          closeText={narrow ? t('ui.panel.back') : undefined}
           onFocus={() => state.focusWindow(w.id)}
           onMove={(x, y) => state.moveWindow(w.id, x, y)}
           onResize={(nw, nh) => state.resizeWindow(w.id, nw, nh)}

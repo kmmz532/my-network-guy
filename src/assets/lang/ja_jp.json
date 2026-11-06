@@ -589,5 +589,6 @@
   "ui.hiring.shift.day": "日勤",
   "ui.hiring.shift.night": "夜勤（給与 ×1.5）",
   "ui.terminal.cfgHostname": "hostname {name}",
-  "ui.terminal.prompt": "{name}#"
+  "ui.terminal.prompt": "{name}#",
+  "ui.panel.back": "戻る"
 }

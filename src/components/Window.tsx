@@ -10,6 +10,8 @@ interface Props {
   // false のときは、帯と角で動かさない（狭い画面）
   movable: boolean;
   closeLabel: string;
+  // 閉じるボタンの文字（指定がなければ ×。スマホのパネルは「戻る」）
+  closeText?: string;
   onFocus: () => void;
   onMove: (x: number, y: number) => void;
   onResize: (w: number, h: number) => void;
@@ -41,7 +43,7 @@ const frame = {
   overflow: 'hidden',
 } as const;
 
-export function Window({ title, rect, movable, closeLabel, onFocus, onMove, onResize, onClose, tabs, children }: Props) {
+export function Window({ title, rect, movable, closeLabel, closeText, onFocus, onMove, onResize, onClose, tabs, children }: Props) {
   const drag = useRef<Drag | null>(null);
 
   // 押したら、そのウィンドウを手前に出し、つかんだ位置を覚える。左ボタン以外のマウスは無視する
@@ -113,9 +115,9 @@ export function Window({ title, rect, movable, closeLabel, onFocus, onMove, onRe
             // 帯の移動を始めないよう、押した位置の処理を止める（止めないと、ボタンの上で移動が始まる）
             onPointerDown={(e) => e.stopPropagation()}
             onClick={onClose}
-            style={{ flexShrink: 0, width: 22, height: 22, padding: 0, cursor: 'pointer', background: '#25406f', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: RADIUS.none, lineHeight: '20px' }}
+            style={{ flexShrink: 0, width: closeText ? 'auto' : 22, minWidth: 22, height: 22, padding: closeText ? '0 8px' : 0, cursor: 'pointer', background: '#25406f', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: RADIUS.none, lineHeight: '20px' }}
           >
-            ×
+            {closeText ?? '×'}
           </button>
         </div>
       </div>
