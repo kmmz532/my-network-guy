@@ -1,6 +1,6 @@
 // 依頼カード。タイトル1行と、PC台数・予算・報酬のアイコンで表す。受注するときに担当の社員を選ぶ
 import { offerNodeName } from './nodeLabel';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { balance, devices } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { hasKey, t } from '../i18n/t';
@@ -30,6 +30,12 @@ export function OfferCards({ onClose }: { onClose: () => void }) {
   const accept = useGameStore((s) => s.accept);
   const yen = (n: number) => n.toLocaleString('ja-JP');
   const hint = useGameStore(offerHintOf);
+  // まとめて届いた件数は、開いたときの値を出し、知らせを消す
+  const [burst] = useState(() => useGameStore.getState().offerBurst);
+  const clearOfferBurst = useGameStore((s) => s.clearOfferBurst);
+  useEffect(() => {
+    clearOfferBurst();
+  }, [clearOfferBurst]);
   const reputation = useGameStore((s) => s.reputation);
 
   return (
@@ -38,6 +44,7 @@ export function OfferCards({ onClose }: { onClose: () => void }) {
         <Icon name="icon/mail" />
       </div>
       <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 8 }}>
+        {burst >= 2 && <div style={{ color: '#ffd866' }}>{t('ui.offer.burst', { count: burst })}</div>}
         <div>{t('ui.offer.next', { days: hint.days })}</div>
         {hint.block?.kind === 'full' && <div style={{ color: '#ffd866' }}>{t('ui.offer.blocked.full', { max: hint.block.max })}</div>}
         {hint.block?.kind === 'reputation' && (

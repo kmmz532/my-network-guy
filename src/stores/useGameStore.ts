@@ -161,6 +161,8 @@ export interface GameState {
   offers: Offer[];
   nextOfferMinute: number;
   offerSeq: number;
+  // まとめて届いた件数（一覧を開くまで残る。0 なら知らせない）
+  offerBurst: number;
   rng: number;
   // 受注中の案件（複数）
   active: Project[];
@@ -293,6 +295,8 @@ export interface GameState {
   setSegment: (uid: string, port: number, network: string, prefix: number) => string | null;
   // 詳しくで選んだ、まだ設定のないポートのネットワーク（null で消す）。配線・セグメントの設定のときに使う
   setPlanned: (uid: string, port: number, net: PlannedNet | null) => void;
+  // まとめて届いた知らせを消す（依頼の一覧を開いたとき）
+  clearOfferBurst: () => void;
   // 配線の片方の端を、同じ機器の別のポートへ挿し替える
   replug: (linkUid: string, end: End, port: number) => string | null;
   // 機器・家具を別のマスへ動かす（配置と同じ判定。ケーブルは付いたまま、費用の差額を払う）。失敗したら理由を返す
@@ -410,7 +414,15 @@ const refresh = (s: GameState): Partial<GameState> => {
     },
     offerEnv(s.maps),
   );
-  return { offers: [...r.offers], nextOfferMinute: r.nextOfferMinute, offerSeq: r.offerSeq, rng: r.rng };
+  // 一度に2件以上届いたら、依頼の一覧を開いたときに知らせる（件数）
+  const added = r.offers.length - s.offers.length;
+  return {
+    offers: [...r.offers],
+    nextOfferMinute: r.nextOfferMinute,
+    offerSeq: r.offerSeq,
+    rng: r.rng,
+    offerBurst: added >= 2 ? Math.max(added, s.offerBurst) : s.offerBurst,
+  };
 };
 
 // 検収の結果を画面の状態に反映する（パケット・納品後の表示・失敗の印）
@@ -567,6 +579,7 @@ export const useGameStore = create<GameState>((set, get) => {
     offers: [],
     nextOfferMinute: 0,
     offerSeq: 0,
+    offerBurst: 0,
     planned: {},
     ...newStart(),
     candidates: [],
@@ -919,6 +932,7 @@ export const useGameStore = create<GameState>((set, get) => {
     setIface: (uid, port, ip, prefix = 24) =>
       recorded(() => apply(setInterface(coreOf(get()), uid, port, ip, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
     setGateway: (uid, gateway) => recorded(() => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid))),
+    clearOfferBurst: () => set({ offerBurst: 0 }),
     setPlanned: (uid, port, net) =>
       set((s) => {
         const key = plannedKey(uid, port);
@@ -1021,6 +1035,7 @@ export const useGameStore = create<GameState>((set, get) => {
           offers: [],
           nextOfferMinute: 0,
           offerSeq: 0,
+          offerBurst: 0,
           ...newStart(),
           candidates: [],
           active: [],
@@ -1061,6 +1076,7 @@ export const useGameStore = create<GameState>((set, get) => {
           offers: [],
           nextOfferMinute: 0,
           offerSeq: 0,
+          offerBurst: 0,
           rng: newRng(),
           staff: [],
           staffSeq: 0,

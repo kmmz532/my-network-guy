@@ -309,6 +309,7 @@
   "ui.offer.crew": "担当",
   "ui.update.ready": "新しい版があります",
   "ui.update.apply": "更新する",
+  "ui.offer.burst": "まとめて{count}件届きました",
   "ui.offer.jobs": "向いている職種: {jobs}",
   "ui.offer.next": "次の依頼まであと {days}日",
   "ui.offer.blocked.full": "依頼が{max}件までたまっています。受注すると次の依頼が届きます",
