@@ -188,6 +188,8 @@ export interface GameState {
   debugResetGuides: () => void;
   // デバッグ（N54）: 依頼を今すぐ引き直す（届く時刻を今に合わせ、判定を1回行う）
   debugRefreshOffers: () => void;
+  // デバッグ（N54）: 施工中の案件を、時間を進めて最後まで進める（検収の結果が出るまで）
+  debugFinishBuild: () => void;
   speed: Speed;
   // 勤務時間外の早送りで、自動で変える前の速さ（自動で変えていなければ null。保存しない）
   nightSpeed: Speed | null;
@@ -669,6 +671,13 @@ export const useGameStore = create<GameState>((set, get) => {
     },
     debugResetGuides: () => set({ guidesDone: [] }),
     debugRefreshOffers: () => set((s) => refresh({ ...s, nextOfferMinute: s.clock.minute })),
+    debugFinishBuild: () => {
+      // 施工の進みは時間で決まるため、既存の tick を速い速さで回す（速さは終わったら戻す）
+      const before = get().speed;
+      set({ speed: 4, nightSpeed: null });
+      for (let i = 0; i < 200000 && get().lastReport === null && get().active.some((p) => p.phase === 'build'); i++) get().tick();
+      set({ speed: before });
+    },
     grantCompanyExp: (source) => {
       const s = get();
       // サンドボックスは育成がないため、経験値は入れない
