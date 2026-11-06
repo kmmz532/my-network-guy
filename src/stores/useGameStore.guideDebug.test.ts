@@ -7,6 +7,7 @@ import { useGameStore } from './useGameStore';
 const map = officeJson as unknown as GameMap;
 const st = () => useGameStore.getState();
 const C = 'c001_direct_link';
+const initialStaff = st().staff;
 
 beforeEach(() => {
   const s = st();
@@ -21,6 +22,7 @@ beforeEach(() => {
     lastError: null,
     guidesDone: [],
     debugGuide: null,
+    staff: initialStaff,
   });
 });
 
