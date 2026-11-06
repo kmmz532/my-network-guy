@@ -5,6 +5,9 @@
   "requires": [
     "c004_web_server"
   ],
+  "jobs": [
+    "network"
+  ],
   "map": "office_two_sites",
   "budget": 147000,
   "deadlineDays": 14,

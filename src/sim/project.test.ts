@@ -225,7 +225,8 @@ describe('複数の案件', () => {
     let core = ok(accept(ok(accept(base, offer.id, 2, ['s0'])).core, second.id, 2, ['s1'])).core;
     core = {
       ...core,
-      active: core.active.map((p) => ({ ...p, phase: 'build' as const, progress: 0, total: 100000 })),
+      // 職種の一致（1.5倍）を外し、施工力は1人ぶんにする
+      active: core.active.map((p) => ({ ...p, phase: 'build' as const, progress: 0, total: 100000, contract: { ...p.contract, jobs: [] } })),
     };
     const r = ok(advanceBuild(core, env, balance.build.workStartHour));
     // 担当は1人ずつなので、施工力は1人ぶん

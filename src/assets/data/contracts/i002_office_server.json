@@ -6,6 +6,9 @@
     "c003_departments",
     "i001_office_lan"
   ],
+  "jobs": [
+    "infra"
+  ],
   "map": "hq",
   "budget": 431000,
   "placed": [],

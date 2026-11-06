@@ -5,6 +5,9 @@
   "requires": [
     "c001_direct_link"
   ],
+  "jobs": [
+    "infra"
+  ],
   "map": "hq",
   "manualIp": true,
   "budget": 250000,

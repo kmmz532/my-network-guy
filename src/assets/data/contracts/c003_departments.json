@@ -5,6 +5,9 @@
   "requires": [
     "c002_small_office"
   ],
+  "jobs": [
+    "network"
+  ],
   "map": "office_two_rooms",
   "manualIp": true,
   "budget": 139000,

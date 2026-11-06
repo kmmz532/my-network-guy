@@ -5,6 +5,9 @@
   "requires": [
     "c001_direct_link"
   ],
+  "jobs": [
+    "network"
+  ],
   "map": "office_small",
   "budget": 25000,
   "deadlineDays": 5,

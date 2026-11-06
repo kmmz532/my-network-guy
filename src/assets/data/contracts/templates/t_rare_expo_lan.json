@@ -4,6 +4,9 @@
   "requires": [
     "c005_two_sites"
   ],
+  "jobs": [
+    "infra"
+  ],
   "minReputation": 10,
   "weight": 3,
   "map": "office_two_rooms",

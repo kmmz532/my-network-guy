@@ -4,6 +4,9 @@
   "requires": [
     "c003_departments"
   ],
+  "jobs": [
+    "infra"
+  ],
   "minReputation": 4,
   "weight": 16,
   "map": "office_two_rooms",

@@ -5,6 +5,9 @@
   "requires": [
     "c003_departments"
   ],
+  "jobs": [
+    "infra"
+  ],
   "map": "office_two_rooms",
   "budget": 117000,
   "deadlineDays": 10,

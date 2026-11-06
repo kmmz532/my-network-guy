@@ -3,6 +3,9 @@
   "stage": 1,
   "order": 10,
   "requires": [],
+  "jobs": [
+    "network"
+  ],
   "map": "office_small",
   "manualIp": true,
   "budget": 5000,
