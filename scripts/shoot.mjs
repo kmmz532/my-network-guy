@@ -15,6 +15,9 @@ const phone = args.includes('--phone');
 const outIdx = args.indexOf('--out');
 const outDir = outIdx >= 0 ? args[outIdx + 1] : 'shots';
 const names = args.filter((a, i) => !a.startsWith('--') && (outIdx < 0 || i !== outIdx + 1));
+// --check: ページのエラーや console のエラーが出たら、終了の符号を 1 にする（煙テストに使う）
+const check = args.includes('--check');
+let problems = 0;
 
 // 場面の一覧。page は開いたページ。game は開発中だけ window.__game（ゲームの状態）として使える
 const scenes = {
@@ -249,7 +252,15 @@ try {
         : { viewport: { width: 1280, height: 720 } },
     );
     const page = await context.newPage();
-    page.on('pageerror', (e) => console.error(`[${name}] ページのエラー: ${e.message}`));
+    page.on('pageerror', (e) => {
+      problems++;
+      console.error(`[${name}] ページのエラー: ${e.message}`);
+    });
+    page.on('console', (msg) => {
+      if (msg.type() !== 'error') return;
+      problems++;
+      console.error(`[${name}] コンソールのエラー: ${msg.text()}`);
+    });
     await page.goto(URL_BASE);
     await page.waitForTimeout(1500);
     await scenes[name](page);
@@ -259,6 +270,12 @@ try {
     await context.close();
   }
   await browser.close();
+  if (check) {
+    if (problems > 0) {
+      console.error(`煙テスト: ${problems} 件のエラー`);
+      process.exitCode = 1;
+    } else console.log('煙テスト: エラーなし');
+  }
 } finally {
   stop();
 }

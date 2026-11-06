@@ -8,7 +8,8 @@
     "build": "vite build && tsc --noEmit",
     "preview": "vite preview",
     "test": "vitest run",
-    "shoot": "node scripts/shoot.mjs"
+    "shoot": "node scripts/shoot.mjs",
+    "smoke": "node scripts/shoot.mjs all --check --out dist-shoot"
   },
   "dependencies": {
     "dexie": "^3.2.7",
