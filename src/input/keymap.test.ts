@@ -75,6 +75,8 @@ describe('KEYMAP（CORE.md「キー操作」の表）', () => {
     // このテストでは言語を読み込まないため、文言は文言キーのまま出る（キーの値は表から入る）
     expect(tipText('ui.tool.wire', 'tool.wire')).toBe('ui.tool.wire\nui.tip.key');
     expect(tipText('ui.tool.wire', 'none')).toBe('ui.tool.wire');
+    // スマホ（withKey が false）では、キーの行を出さない（B4）
+    expect(tipText('ui.tool.wire', 'tool.wire', false)).toBe('ui.tool.wire');
   });
 });
 

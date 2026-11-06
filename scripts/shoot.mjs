@@ -67,6 +67,15 @@ const scenes = {
     await page.getByRole('button', { name: 'ショップ' }).first().click();
     await page.waitForTimeout(500);
   },
+  // デバッグのパネル（?debug=1 のときだけ出る。N54）
+  debug: async (page) => {
+    await page.goto(`${URL_BASE}?debug=1`);
+    await page.waitForFunction(() => window.__game !== undefined, null, { timeout: 30000 });
+    await page.getByText('新しくプレイ').click();
+    await page.waitForTimeout(1000);
+    await page.getByRole('button', { name: 'DEBUG' }).click();
+    await page.waitForTimeout(500);
+  },
   // 倉庫を開いた状態
   warehouse: async (page) => {
     await scenes.career(page);
@@ -301,6 +310,8 @@ try {
       console.error(`[${name}] コンソールのエラー: ${msg.text()}`);
     });
     await page.goto(URL_BASE);
+    // 場面の操作は window.__game（撮影用のビルドだけが持つ）を使う。読み込みが終わるまで待つ（B7）
+    await page.waitForFunction(() => window.__game !== undefined, null, { timeout: 30000 });
     await page.waitForTimeout(1500);
     await scenes[name](page);
     const file = `${outDir}/${name}${landscape ? '.phone-landscape' : phone ? '.phone' : ''}.png`;

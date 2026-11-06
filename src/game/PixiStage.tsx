@@ -5,7 +5,7 @@ import { loadTextures } from './sprites';
 import { MapZoomButtons } from './MapZoomButtons';
 
 // Pixi.js のキャンバスをReactに組み込む。描画と操作は Scene が行い、UIはReactのDOM層で描く。
-export function PixiStage() {
+export function PixiStage({ warehouseOpen = false }: { warehouseOpen?: boolean }) {
   const hostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export function PixiStage() {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={hostRef} style={{ width: '100%', height: '100%' }} />
-      <MapZoomButtons />
+      <MapZoomButtons warehouseOpen={warehouseOpen} />
     </div>
   );
 }

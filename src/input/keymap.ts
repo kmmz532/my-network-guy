@@ -198,9 +198,9 @@ export function keyOfAction(id: string): string | undefined {
   return KEYMAP.find((b) => b.id === id)?.key;
 }
 
-// ツールチップの文字。1行目は動作の名前、2行目はキー（キーがなければ名前だけ）
-export function tipText(name: LangKey, id: string): string {
-  const key = keyOfAction(id);
+// ツールチップの文字。1行目は動作の名前、2行目はキー（キーがなければ名前だけ）。withKey が false のときはキーを出さない（スマホ）
+export function tipText(name: LangKey, id: string, withKey = true): string {
+  const key = withKey ? keyOfAction(id) : undefined;
   return key ? `${t(name)}\n${t('ui.tip.key', { key })}` : t(name);
 }
 

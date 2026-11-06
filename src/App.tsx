@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { DEBUG_ENABLED } from './debug';
 import { usePhone } from './ui/usePhone';
 import { balance, furniture } from 'virtual:game-data';
 import type { FurnitureId } from './generated/ids';
@@ -58,6 +59,9 @@ const hudButton = (on: boolean) =>
     border: '1px solid #3b2a33',
     borderRadius: RADIUS.chrome,
   }) as const;
+
+// デバッグのパネルは ?debug=1 のときだけ読み込む（N54）
+const DebugPanel = lazy(() => import('./components/DebugPanel'));
 
 export function App() {
   const [ready, setReady] = useState(false);
@@ -285,7 +289,7 @@ export function App() {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       <TabConflict />
-      <PixiStage />
+      <PixiStage warehouseOpen={warehouseOpen} />
       <header
         ref={headerRef}
         data-hud
@@ -331,7 +335,7 @@ export function App() {
         {!sandbox && (
         <span style={{ display: 'flex', gap: 4 }}>
           {SPEEDS.map((s) => (
-            <Tooltip text={s === 0 ? tipText('ui.speed.0', 'pause') : t(`ui.speed.${s}` as const)} key={s}><button aria-label={t(`ui.speed.${s}` as const)} style={hudButton(speed === s)}  onClick={() => { hideTip(); setSpeed(s); }}>
+            <Tooltip text={s === 0 ? tipText('ui.speed.0', 'pause', !phone) : t(`ui.speed.${s}` as const)} key={s}><button aria-label={t(`ui.speed.${s}` as const)} style={hudButton(speed === s)}  onClick={() => { hideTip(); setSpeed(s); }}>
               {s === 0 ? (
                 <Icon name="icon/pause" scale={1} />
               ) : (
@@ -379,6 +383,11 @@ export function App() {
         setWarehouseOpen={setWarehouseOpen}
       />
       <Guide />
+      {DEBUG_ENABLED && (
+        <Suspense fallback={null}>
+          <DebugPanel />
+        </Suspense>
+      )}
       {hiring && <HiringPanel tab={hiringTab} onTab={setHiringTab} onClose={() => setHiring(false)} />}
       <TooltipHost />
       {popup === 'menu' && (

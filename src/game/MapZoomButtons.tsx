@@ -28,8 +28,10 @@ const TOOLBAR_HEIGHT_PX = 56;
 const EDGE_PX = 12;
 // 狭い画面（スマホ）では、ツールバーが1段の横スクロールになり、高さが変わる（余白とスクロールバーを含む）
 const TOOLBAR_HEIGHT_PHONE_PX = 84;
+// スマホで倉庫の欄を開いているときは、欄の上へ移す（欄は下から約 72 px の位置に出る。B6 の応急の対応。M2 で配置を決め直す）
+const WAREHOUSE_RAISE_PHONE_PX = 80;
 
-export function MapZoomButtons() {
+export function MapZoomButtons({ warehouseOpen = false }: { warehouseOpen?: boolean }) {
   const phone = usePhone();
   // スマホでウィンドウを開いているときは、下のシートと重なるので出さない（マップはドラッグで動かせる）
   const sheetOpen = useGameStore((s) => s.windows.length > 0);
@@ -39,7 +41,7 @@ export function MapZoomButtons() {
       style={{
         position: 'absolute',
         right: EDGE_PX,
-        bottom: (phone ? TOOLBAR_HEIGHT_PHONE_PX : TOOLBAR_HEIGHT_PX) + EDGE_PX,
+        bottom: (phone ? TOOLBAR_HEIGHT_PHONE_PX + (warehouseOpen ? WAREHOUSE_RAISE_PHONE_PX : 0) : TOOLBAR_HEIGHT_PX) + EDGE_PX,
         display: 'flex',
         flexDirection: 'column',
         gap: 6,

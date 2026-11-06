@@ -164,9 +164,10 @@ export function Toolbar({
   const cableIds = unlocked.filter((i) => i.cable).map((i) => i.cable!);
   const design = active?.phase === 'design';
   const yen = (n: number) => n.toLocaleString('ja-JP');
+  const phone = usePhone();
   // IPアドレスの表示の切り替え。設計中は施工のボタンの左、それ以外は右端に出す
   const ipButton = (
-    <Tooltip text={tipText('ui.showIp', 'showIp')}><button aria-label={t('ui.showIp')} style={{ ...slot(showIp), width: 'auto', padding: '0 8px', fontSize: 13, fontWeight: 'bold' }}
+    <Tooltip text={tipText('ui.showIp', 'showIp', !phone)}><button aria-label={t('ui.showIp')} style={{ ...slot(showIp), width: 'auto', padding: '0 8px', fontSize: 13, fontWeight: 'bold' }}
       
       onClick={() => setShowIp(!showIp)}
     >
@@ -179,12 +180,12 @@ export function Toolbar({
       {historyError && (
         <span style={{ fontSize: 13, color: '#ffd3c9', maxWidth: 320 }}>{tDyn(`ui.error.${historyError}`)}</span>
       )}
-      <Tooltip text={tipText('keys.undo', 'undo')}>
+      <Tooltip text={tipText('keys.undo', 'undo', !phone)}>
         <button aria-label={t('keys.undo')} style={{ ...slot(false), opacity: canUndo ? 1 : 0.35 }} disabled={!canUndo} onClick={() => undo()}>
           <Icon name="icon/undo" />
         </button>
       </Tooltip>
-      <Tooltip text={tipText('keys.redo', 'redo')}>
+      <Tooltip text={tipText('keys.redo', 'redo', !phone)}>
         <button aria-label={t('keys.redo')} style={{ ...slot(false), opacity: canRedo ? 1 : 0.35 }} disabled={!canRedo} onClick={() => redo()}>
           <Icon name="icon/redo" />
         </button>
@@ -196,7 +197,6 @@ export function Toolbar({
   const mode = warehouseMode(active?.phase ?? null, showcase !== null);
   const warehouseItemList = warehouseItems(mode, owned, warehouseCatalog);
   const warehouseOpenable = mode !== 'closed';
-  const phone = usePhone();
 
   // 品目を選ぶと配置に入る。同じ品目をもう一度押すと配置を終えて欄を閉じる
   const pickWarehouseItem = (item: WarehouseItem) => {
@@ -259,7 +259,7 @@ export function Toolbar({
       {TOOLS.map((item) => (
         <Fragment key={item.id}>
           <span style={{ position: 'relative', display: 'inline-flex' }}>
-            <Tooltip text={tipText(item.name, item.action)}>
+            <Tooltip text={tipText(item.name, item.action, !phone)}>
               <button aria-label={t(item.name)} data-guide={`tool.${item.id}`} style={toolSlot(tool === item.id)} onClick={() => { setTool(item.id); closeWarehouse(); }}>
                 <Icon name={item.icon} />
               </button>
@@ -270,7 +270,7 @@ export function Toolbar({
       ))}
       {sep}
       {!sandbox && (
-      <Tooltip text={tipText('ui.offer.title', 'offers')}><button aria-label={t('ui.offer.title')} style={{ ...slot(false), position: 'relative' }}  onClick={() => { closeWarehouse(); onOffers(); }}>
+      <Tooltip text={tipText('ui.offer.title', 'offers', !phone)}><button aria-label={t('ui.offer.title')} style={{ ...slot(false), position: 'relative' }}  onClick={() => { closeWarehouse(); onOffers(); }}>
         <Icon name="icon/mail" />
         {offers.length > 0 && (
           <span style={{ position: 'absolute', top: -6, right: -6, background: '#e84a4a', borderRadius: RADIUS.chrome, fontSize: 11, padding: '0 5px' }}>
@@ -279,7 +279,7 @@ export function Toolbar({
         )}
       </button></Tooltip>
       )}
-      <Tooltip text={tipText('ui.shop.title', 'shop')}><button aria-label={t('ui.shop.title')} data-guide="shop" style={slot(false)}  onClick={() => { closeWarehouse(); onShop(); }}>
+      <Tooltip text={tipText('ui.shop.title', 'shop', !phone)}><button aria-label={t('ui.shop.title')} data-guide="shop" style={slot(false)}  onClick={() => { closeWarehouse(); onShop(); }}>
         <Icon name="icon/cart" />
       </button></Tooltip>
       {!sandbox && (
@@ -290,7 +290,7 @@ export function Toolbar({
       )}
       {/* 在庫は倉庫のアイコンにまとめる。品目の一覧は倉庫の欄で開く */}
       {sep}
-      <Tooltip text={tipText('ui.warehouse.title', 'warehouse')}><button aria-label={t('ui.warehouse.title')} data-guide="warehouse" style={{ ...slot(warehouseOpen && warehouseOpenable), opacity: warehouseOpenable ? 1 : 0.35 }}
+      <Tooltip text={tipText('ui.warehouse.title', 'warehouse', !phone)}><button aria-label={t('ui.warehouse.title')} data-guide="warehouse" style={{ ...slot(warehouseOpen && warehouseOpenable), opacity: warehouseOpenable ? 1 : 0.35 }}
         
         disabled={!warehouseOpenable}
         onClick={() => setWarehouseOpen(!warehouseOpen)}
@@ -306,7 +306,7 @@ export function Toolbar({
           {ipButton}
           {sep}
           {/* テストは何度でも押せ、時間も費用もかからない。施工は、テストに合格してからだけ依頼できる（押すと案内を出す） */}
-          <Tooltip text={tipText('ui.test', 'test')}>
+          <Tooltip text={tipText('ui.test', 'test', !phone)}>
             <button
               aria-label={t('ui.test')}
               data-guide="test"
@@ -326,7 +326,7 @@ export function Toolbar({
           {historyButtons}
           {design && (
           <>
-          <Tooltip text={tipText('ui.build', 'build')}>
+          <Tooltip text={tipText('ui.build', 'build', !phone)}>
             <button
               aria-label={t('ui.build')}
               style={{

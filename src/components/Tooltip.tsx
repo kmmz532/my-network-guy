@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { balance } from 'virtual:game-data';
 import { placeTip, type Anchor } from '../game/tipLayout';
 import { RADIUS } from '../ui/theme';
+import { isPhoneNow } from '../ui/usePhone';
 
 interface Tip extends Anchor {
   text: string;
@@ -102,7 +103,8 @@ export function Tooltip({ text, children, style }: { text: string; children: Rea
       ref={ref}
       style={{ display: 'inline-flex', ...style }}
       onPointerEnter={(e) => {
-        if (e.pointerType !== 'mouse') return;
+        // スマホでは乗せても出さない（押したあとに残って、開いた欄の中身を隠すため。B4）
+        if (e.pointerType !== 'mouse' || isPhoneNow()) return;
         clearTimer();
         timer.current = window.setTimeout(showNow, balance.tooltip.hoverMs);
       }}
@@ -130,6 +132,11 @@ export function Tooltip({ text, children, style }: { text: string; children: Rea
       }}
       onPointerCancel={() => {
         clearTimer();
+      }}
+      onClick={() => {
+        // 押したら説明は消す（開いた先の欄に残さない）
+        clearTimer();
+        hideNow();
       }}
       onClickCapture={(e) => {
         // 長押しで出した説明のあとのクリックは、ボタンに届けない

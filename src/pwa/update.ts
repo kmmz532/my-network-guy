@@ -2,14 +2,17 @@
 export type UpdateListener = (ready: boolean) => void;
 
 let waiting: ServiceWorkerRegistration | null = null;
+// デバッグ（N54）で通知だけを出しているか。待機中の版がなくても通知を出す
+let forced = false;
 const listeners = new Set<UpdateListener>();
 
 const emit = (ready: boolean) => listeners.forEach((l) => l(ready));
+const isReady = (): boolean => waiting !== null || forced;
 
 // 通知を受け取る。戻り値の関数で解除する
 export const subscribeUpdate = (listener: UpdateListener): (() => void) => {
   listeners.add(listener);
-  listener(waiting !== null);
+  listener(isReady());
   return () => {
     listeners.delete(listener);
   };
@@ -37,10 +40,23 @@ export const watchUpdates = (reg: ServiceWorkerRegistration): void => {
 let applying = false;
 export const isApplyingUpdate = (): boolean => applying;
 
-// 利用者が「更新する」を押したとき。待機中の版を有効にする（controllerchange で再読み込みする）
+// デバッグ（N54）: 待機中の版がなくても、更新の通知を出す（「更新する」は再読み込みだけ行う）
+export const showUpdateNotice = (): void => {
+  forced = true;
+  emit(true);
+};
+
+// 利用者が「更新する」を押したとき。待機中の版を有効にする（controllerchange で再読み込みする）。
+// 待機中の版がなければ（デバッグの通知だけのとき）、再読み込みだけを行う
 export const applyUpdate = (): void => {
+  if (!waiting?.waiting) {
+    forced = false;
+    emit(false);
+    window.location.reload();
+    return;
+  }
   applying = true;
-  waiting?.waiting?.postMessage({ type: 'SKIP_WAITING' });
+  waiting.waiting.postMessage({ type: 'SKIP_WAITING' });
   waiting = null;
   emit(false);
 };

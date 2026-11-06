@@ -12,7 +12,7 @@ import { declineOffer, offerHint, refreshOffers, type OfferEnv, type OfferHint }
 import type { Offer } from '../contracts/template';
 import type { GameMap, Staff } from '../data/schema';
 import { initialStaff, rollCandidates, staffCapOf, totalSalary } from '../sim/staff';
-import { levelOf, levelUpsBetween, type UnlockItem } from '../sim/level';
+import { expAtLevel, levelOf, levelUpsBetween, type UnlockItem } from '../sim/level';
 import { rand } from '../sim/rng';
 import { finishTrainings, startTraining as startTrainingOp, takeExam as takeExamOp, type TrainingEnv } from '../sim/training';
 import { certs as certRecord, training as trainingRecord } from 'virtual:game-data';
@@ -169,6 +169,11 @@ export interface GameState {
   // 案内が光らせている機器の uid（マップの描画は別の担当。保存しない）
   guideTarget: string | null;
   setGuideTarget: (uid: string | null) => void;
+  // デバッグ（N54）: お金・経験値・レベル・在庫・時刻を、既存の仕組みで変える
+  debugAddMoney: (amount: number) => void;
+  debugSetCompanyLevel: (level: number) => void;
+  debugAddOwned: (device: string, count: number) => void;
+  debugSetMinute: (minute: number) => void;
   // 案内を終えた案件として記録する
   markGuideDone: (contractId: string) => void;
   speed: Speed;
@@ -620,6 +625,21 @@ export const useGameStore = create<GameState>((set, get) => {
     guidesDone: [],
     guideTarget: null,
     setGuideTarget: (uid) => set({ guideTarget: uid }),
+    debugAddMoney: (amount) => set((s) => ({ clock: { ...s.clock, money: s.clock.money + amount } })),
+    debugSetCompanyLevel: (level) => {
+      const s = get();
+      const exp = expAtLevel(level, balance);
+      const ups = levelUpsBetween(levelOf(s.companyExp, balance), levelOf(exp, balance), balance, levelMilestones, unlockItems);
+      const owned = { ...s.owned };
+      for (const u of ups) for (const d of u.devices) owned[d.device] = (owned[d.device] ?? 0) + d.count;
+      set({
+        companyExp: exp,
+        owned,
+        clock: { ...s.clock, money: s.clock.money + ups.reduce((sum, u) => sum + u.money, 0) },
+      });
+    },
+    debugAddOwned: (device, count) => set((s) => ({ owned: { ...s.owned, [device]: (s.owned[device] ?? 0) + count } })),
+    debugSetMinute: (minute) => set((s) => ({ clock: { ...s.clock, minute } })),
     markGuideDone: (contractId) =>
       set((s) => (s.guidesDone.includes(contractId) ? {} : { guidesDone: [...s.guidesDone, contractId] })),
     speed: 1,
