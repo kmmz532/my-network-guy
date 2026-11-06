@@ -751,22 +751,15 @@ def desk():
     return outline(img)
 
 
-def desk_chair():
-    # 机と椅子。机は desk() と同じ。手前（下側）に、背もたれのある椅子を置く（社員はここに座る。N44）
-    img, d = new(32, 32)
-    rect(d, 1, 4, 30, 18, 'e')
-    d.line([(1, 4), (30, 4)], fill=C['w'])
-    d.line([(2, 5), (2, 20)], fill=C['w'])
-    rect(d, 1, 22, 30, 3, 'w')
-    d.line([(1, 24), (30, 24)], fill=C['g'])
-    rect(d, 2, 25, 2, 6, 'g')
-    rect(d, 28, 25, 2, 6, 'g')
-    rect(d, 4, 25, 24, 2, 'd')
-    # 椅子: 背もたれ（奥）と座面（手前）。机の下の段に重ねて描く
-    rect(d, 12, 15, 8, 3, 'b')
-    rect(d, 11, 18, 10, 3, 'B')
-    rect(d, 13, 21, 2, 4, 'g')
-    rect(d, 19, 21, 2, 4, 'g')
+def chair():
+    # 椅子だけの絵（N44・B10）。机の絵とは別に、机の手前（下側）に描く。背もたれが上、座面が中ほど、脚が下
+    img, d = new(32, 24)
+    rect(d, 9, 0, 14, 8, 'b')
+    d.line([(9, 0), (22, 0)], fill=C['B'])
+    rect(d, 7, 8, 18, 4, 'B')
+    rect(d, 9, 12, 2, 8, 'g')
+    rect(d, 21, 12, 2, 8, 'g')
+    rect(d, 5, 20, 22, 2, 'd')
     return outline(img)
 
 
@@ -1003,7 +996,7 @@ if __name__ == '__main__':
         save(img, f'tile/{name}.png')
     furniture = {
         'desk': desk(),
-        'desk_chair': desk_chair(),
+        'chair': chair(),
         'plant': plant(),
         'bookshelf': bookshelf(),
         'cabinet': cabinet(),

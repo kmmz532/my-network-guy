@@ -21,8 +21,8 @@ describe('机と椅子（N44）', () => {
     expect(balance.initialStock.desk).toBe(2);
   });
 
-  it('机と椅子の絵は、定義の sprite のとおり（机は椅子つき、机だけは椅子なし）', () => {
-    expect((furnitureData as Record<string, { sprite: string }>).desk.sprite).toBe('furniture/desk_chair');
+  it('机の絵は椅子を含まない。椅子は別の絵で、机の手前に描く（B10）', () => {
+    expect((furnitureData as Record<string, { sprite: string }>).desk.sprite).toBe('furniture/desk');
     expect((furnitureData as Record<string, { sprite: string }>).desk_only.sprite).toBe('furniture/desk');
   });
 });

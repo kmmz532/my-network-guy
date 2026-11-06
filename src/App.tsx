@@ -65,6 +65,8 @@ const DebugPanel = lazy(() => import('./components/DebugPanel'));
 
 export function App() {
   const [ready, setReady] = useState(false);
+  // 翻訳や地図の読み込みが失敗したときの例外（エラー画面で再読み込みを促す。B9）
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [screen, setScreen] = useState<Screen>('title');
   const [popup, setPopup] = useState<Popup>(null);
   const [message, setMessage] = useState('');
@@ -159,7 +161,7 @@ export function App() {
     applyUiScale(loadSettings().uiScale);
     // 翻訳と、すべての地図を起動時に読み込んでから始める。依頼の判定は地図の読み込みに依存するため、読み込み中に判定させない
     const maps = Object.values(mapLoaders).map((load) => load().then((m) => cacheMap(m.default)));
-    Promise.all([loadLang('ja_jp'), ...maps]).then(() => setReady(true));
+    Promise.all([loadLang('ja_jp'), ...maps]).then(() => setReady(true), (e: unknown) => setLoadError(e ?? new Error('読み込みに失敗')));
   }, []);
 
   useEffect(() => {
@@ -202,6 +204,7 @@ export function App() {
     };
   }, [screen]);
 
+  if (loadError) throw loadError;
   if (!ready) return null;
 
   const startGame = () => {

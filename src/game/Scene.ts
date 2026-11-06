@@ -12,7 +12,8 @@ import { rangeTiles } from './effectRange';
 import { setMapView } from './mapView';
 import { gameEnv } from '../sim/env';
 import { moveFurniture, placeFurniture } from '../sim/furniture';
-import { expandActionOf, officeExpandCostOf, type ExpandSide } from '../sim/office';
+import { expandActionOf, expansionLocked, officeExpandCostOf, type ExpandSide } from '../sim/office';
+import { levelOf } from '../sim/level';
 import {
   checkConnect,
   compiledNet,
@@ -72,6 +73,10 @@ const COMMUTE_MAX_FRAME_MS = 100;
 // 休憩の場所にする家具（自社オフィス）
 const BREAK_FURNITURE = ['coffee', 'water', 'sofa'];
 // サンドボックスを開いたとき（全体表示より大きい倍率）
+// 椅子つきの机の ID と、椅子の絵・マスの下端からの位置（B10）
+const CHAIR_FURNITURE = new Set(['desk']);
+const CHAIR_SPRITE = 'furniture/chair';
+const CHAIR_TOP_INSET = 4;
 const SANDBOX_OPEN_ZOOM = 2;
 // 失敗の吹き出しを出しておく時間（ms）
 const FLASH_MS = 2500;
@@ -377,7 +382,9 @@ export class Scene {
     for (const side of EXPAND_SIDES) {
       const box = this.expandButtons.get(side);
       if (!box) continue;
-      const visible = shown && expandActionOf(s.office, side, balance.office) !== null;
+      // 次の拡張が会社のレベルで解放されるまでは出さない（N59）
+      const locked = expansionLocked(s.office, balance.office, levelOf(s.companyExp, balance));
+      const visible = shown && !locked && expandActionOf(s.office, side, balance.office) !== null;
       box.visible = visible;
       if (!visible || !map) continue;
       const ts = map.tileSize;
@@ -1008,7 +1015,19 @@ export class Scene {
       sprite.zIndex = (f.y + 1) * ts - DEVICE_FOOT_INSET - 1;
       sprite.tint = f.uid === this.hoverFurnUid ? REMOVE_TINT : 0xffffff;
       this.sprites.addChild(sprite);
+      // 椅子つきの机は、椅子を机の手前に別の絵で描く（B10）。社員は椅子の上に重なる
+      if (CHAIR_FURNITURE.has(f.id)) this.drawChair(f, ts);
     }
+  }
+
+  // 机の手前の椅子。マスの下端から少しはみ出す位置に描く（机の天板には載せない）
+  private drawChair(f: PlacedFurniture, ts: number): void {
+    const tex = texture(spriteOf(CHAIR_SPRITE));
+    if (!tex) return;
+    const sprite = new Sprite(tex);
+    sprite.position.set(f.x * ts + Math.round((ts - tex.width) / 2), (f.y + 1) * ts - CHAIR_TOP_INSET);
+    sprite.zIndex = (f.y + 1) * ts - DEVICE_FOOT_INSET;
+    this.sprites.addChild(sprite);
   }
 
   // 自社オフィスで、そのマスに机の家具があるか

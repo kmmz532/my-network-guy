@@ -8,6 +8,7 @@ import {
   expandCostOf,
   expandCountOf,
   expandOffice,
+  expansionLocked,
   mainSizeOf,
   mapOfOffice,
   officeExpandCostOf,
@@ -417,5 +418,23 @@ describe('拡張の解放のレベル（N45）', () => {
     const start = { size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 } as never;
     expect(expandOffice({ ...core(1_000_000), office: start }, 'right', config, 2)).toEqual({ ok: false, reason: 'level' });
     expect(expandOffice({ ...core(1_000_000), office: start }, 'right', config, 3).ok).toBe(true);
+  });
+});
+
+describe('expansionLocked（次の拡張が会社のレベルで解放されていないか。N59）', () => {
+  const need0 = config.expand.unlockLevels[0];
+  it('レベルが届かないあいだは解放されていない（ボタンを出さない）', () => {
+    const office = emptyOffice(SMALL);
+    expect(expansionLocked(office, config, need0 - 1)).toBe(true);
+  });
+  it('レベルが届けば解放される', () => {
+    const office = emptyOffice(SMALL);
+    expect(expansionLocked(office, config, need0)).toBe(false);
+  });
+  it('拡張の回数の上限のあとは、解放の判定の対象がない（false）', () => {
+    const office = emptyOffice(SMALL);
+    const done = config.expand.unlockLevels.length;
+    const many = { ...office, annexes: Array.from({ length: done }, (_, i) => (['left', 'right', 'bottom'] as const)[i % 3]) };
+    expect(expansionLocked(many, config, 0)).toBe(false);
   });
 });

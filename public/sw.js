@@ -9,7 +9,10 @@ self.addEventListener('install', (event) => {
       cache
         .addAll(['./', './manifest.webmanifest', './icon-192.png', './icon-512.png'])
         // ビルドのすべての資材は、1つずつ保存する（1つが読めなくてもインストールは止めない。読めなかった資材は、開いたときに保存される）
-        .then(() => Promise.all(__ASSETS__.map((url) => cache.add(url).catch(() => undefined)))),
+        .then(() =>
+          // 一度に保存する数を1件に絞る（同時の取得が重なると、初回の訪問で一部の取得が失敗することがあるため。B9）
+          __ASSETS__.reduce((chain, url) => chain.then(() => cache.add(url).catch(() => undefined)), Promise.resolve()),
+        ),
     ),
   );
 });
@@ -48,7 +51,8 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    caches.match(req).then(
+    // 保存の照合が失敗したときは、ネットワークから取り直す（例外を外へ出さない。B9）
+    caches.match(req).catch(() => undefined).then(
       (hit) =>
         hit ||
         fetch(req).then((res) => {

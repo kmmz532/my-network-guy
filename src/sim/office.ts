@@ -141,13 +141,18 @@ const annexOffice = (office: Office, side: ExpandSide): Office => {
 export const expansionsDone = (office: Office, config: OfficeConfig): number =>
   (office.size.w - config.initialSize.w + office.size.h - config.initialSize.h) / config.expand.step + office.annexes.length;
 
+// 次の拡張が、会社のレベルでまだ解放されていないか（N59。ボタンの表示と、拡張の判定で共有する）
+export const expansionLocked = (office: Office, config: OfficeConfig, companyLevel: number): boolean => {
+  const need = config.expand.unlockLevels[expansionsDone(office, config)];
+  return need !== undefined && companyLevel < need;
+};
+
 export const expandOffice = (core: Core, side: ExpandSide, config: OfficeConfig, companyLevel: number): Outcome => {
   if (officeLocked(core)) return fail('inhouse');
   const office = core.office;
   const action = expandActionOf(office, side, config);
   if (action === null) return fail('max');
-  const needLevel = config.expand.unlockLevels[expansionsDone(office, config)];
-  if (needLevel !== undefined && companyLevel < needLevel) return fail('level');
+  if (expansionLocked(office, config, companyLevel)) return fail('level');
   const cost = officeExpandCostOf(office, config);
   if (core.clock.money < cost) return fail('money');
   const next = action === 'annex' ? annexOffice(office, side) : growOffice(office, side, config.expand.step);
