@@ -110,6 +110,10 @@ export function ReportModal() {
               <Icon name="icon/level" /> {t('report.levelUp.title', { level: u.level })}
             </div>
             <div>{t('report.levelUp.money', { money: u.money.toLocaleString('ja-JP') })}</div>
+            {/* このレベルで解放される職種（採用の候補に出る。N84） */}
+            {(Object.keys(balance.hiring.jobUnlockLevels) as (keyof typeof balance.hiring.jobUnlockLevels)[]).some((j) => balance.hiring.jobUnlockLevels[j] === u.level) && (
+              <div>{t('ui.company.jobs', { jobs: (Object.keys(balance.hiring.jobUnlockLevels) as (keyof typeof balance.hiring.jobUnlockLevels)[]).filter((j) => balance.hiring.jobUnlockLevels[j] === u.level).map((j) => tDyn(`staff.job.${j}`)).join('・') })}</div>
+            )}
             {u.devices.length > 0 && (
               <div>
                 {t('report.rewardDevices')}
