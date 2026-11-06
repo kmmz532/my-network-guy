@@ -60,6 +60,7 @@ export function CompanyBody() {
   const staff = useGameStore((s) => s.staff);
   const deliveries = useGameStore((s) => s.deliveries);
   const office = useGameStore((s) => s.office);
+  const money = useGameStore((s) => s.clock.money);
   // 自社のネットワークの外部への接続と、サーバーの貸し出し（N71・N72）
   const outside = outsideCheck(office, gameEnv.engine);
   const level = levelOf(companyExp, balance);
@@ -101,6 +102,12 @@ export function CompanyBody() {
             {t('ui.company.staffCount', { total: staff.length, day: staff.length - night, night })}
           </button>
         </Tooltip>
+      </div>
+      <div style={row}>
+        <span>{t('ui.company.funds')}</span>
+        <button style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => useGameStore.getState().openWindow('funds', '')}>
+          {money.toLocaleString('ja-JP')}円
+        </button>
       </div>
       <div style={row}>
         <span>{t('ui.company.delivered')}</span>
