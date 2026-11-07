@@ -56,6 +56,12 @@ describe('動的経路（RIP・OSPF）', () => {
     expect(ping(line(true, 'ospf'), gameEnv.engine, 'pa', 'pb').ok).toBe(true);
   });
 
+  it('OSPF は、エリアの違う口どうしは隣接せず、届かない（N142）', () => {
+    const net = line(true, 'ospf');
+    const other = { ...net, nodes: net.nodes.map((x) => (x.uid === 'r2' ? { ...x, interfaces: x.interfaces.map((i) => (i.port === 0 ? { ...i, ospf: { area: 1 } } : i)) } : x)) };
+    expect(ping(other, gameEnv.engine, 'pa', 'pb').ok).toBe(false);
+  });
+
   it('設定した経路（static）は、RIP の経路より優先される（管理距離）', () => {
     // R1 に、宛先 10.0.2.0/24 を直接 10.0.12.2 へ向ける static を置く。RIP の経路と同じ宛先で、AD が小さい static が選ばれる
     const net = line(true, 'rip', [{ dest: '10.0.2.0', prefix: 24, nextHop: '10.0.12.2' }]);

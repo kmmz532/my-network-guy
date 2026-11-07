@@ -96,6 +96,8 @@ class Topology {
             if (!other || !this.isRouter(other.uid)) continue;
             const oi = other.interfaces.find((x) => x.port === m.port);
             if (!oi || !joined(oi) || !inSubnet(oi.ip, i.ip, i.prefix)) continue;
+            // OSPF の隣接は、同じエリアの口どうしだけ（エリアが違えば隣接しない・N142）
+            if (proto === 'ospf' && i.ospf?.area !== oi.ospf?.area) continue;
             const cost = proto === 'rip' ? 1 : (i.ospf?.cost ?? 1);
             (adj.get(r.uid) ?? adj.set(r.uid, []).get(r.uid)!).push({ to: other.uid, cost, nextHop: oi.ip });
           }
