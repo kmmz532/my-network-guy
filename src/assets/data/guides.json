@@ -40,6 +40,7 @@
       "contract": "c004_web_server",
       "steps": [
         { "target": "web", "done": "open:web" },
+        { "target": "web", "done": "service:web" },
         { "target": "test", "done": "test:pass" }
       ]
     }
