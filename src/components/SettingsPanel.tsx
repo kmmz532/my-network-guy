@@ -1,6 +1,6 @@
 // 設定の画面（メニューの「設定」から開く）。項目は端末ごとに保存する（settings/settings.ts）。
 // 名前とIPアドレスの表示は、ツールバーの「IP」ボタンと同じ値（ストアの showIp）を使う。
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { t } from '../i18n/t';
 import { applyUiScale, AUTO_SAVE_MODES, loadSettings, PAUSED_BUILD_MODES, saveSettings, START_SPEEDS, UI_SCALES, type Settings } from '../settings/settings';
 import { useGameStore } from '../stores/useGameStore';
@@ -66,6 +66,15 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 
 export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; onOpenKeys: () => void }) {
   const [settings, setSettings] = useState<Settings>(loadSettings);
+  // 保存（会社の枠）が、ブラウザに守られているか（N133）
+  const [kept, setKept] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void navigator.storage?.persisted?.().then((v) => alive && setKept(v)).catch(() => alive && setKept(false));
+    return () => {
+      alive = false;
+    };
+  }, []);
   const showIp = useGameStore((s) => s.showIp);
   const setShowIp = useGameStore((s) => s.setShowIp);
 
@@ -77,6 +86,9 @@ export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; on
   return (
     <Modal onClose={onClose} primary={onClose} boxStyle={{ width: 'min(380px, calc(100% - 32px))', maxHeight: 'calc(100% - 32px)', overflowY: 'auto' }}>
       <div style={{ fontWeight: 'bold' }}>{t('ui.settings.title')}</div>
+      <Row label={t('ui.settings.saveKeep')}>
+        <span style={{ fontSize: 13 }}>{kept === null ? '…' : kept ? t('ui.settings.saveKept') : t('ui.settings.saveNotKept')}</span>
+      </Row>
       <Row label={t('ui.settings.uiScale')}>
         <Choice
           options={UI_SCALES.map((v) => ({ value: v, label: `${Math.round(v * 100)}%` }))}
