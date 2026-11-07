@@ -5,7 +5,7 @@ import { isPhoneNow } from '../ui/usePhone';
 import { Application, Container, Graphics, Rectangle, Sprite, Text, type FederatedPointerEvent, type Ticker } from 'pixi.js';
 import { staffSpriteName, STAFF_PLACEHOLDER_LOOKS, type GameMap } from '../data/schema';
 import { coreOf, editNetOf, focusedProject, frontDeviceUid, netTargetOf, useGameStore, type Trace, type WireStart } from '../stores/useGameStore';
-import { cableEndAt, linkAt, plugPoints } from './linkHit';
+import { cableEndAt, grabsCableEnd, linkAt, plugPoints } from './linkHit';
 import { portLabel } from '../components/devicePorts';
 import { isDragMove } from '../components/rearDrag';
 import { rangeTiles } from './effectRange';
@@ -1728,7 +1728,8 @@ export class Scene {
     // ケーブルの端は、離すまで挿し替えか押したかを決めない（配置中は、置く操作を優先する）
     if (e.button === 0 && !store.placing && (store.tool === 'select' || store.tool === 'wire')) {
       const end = cableEndAt(this.editLinks() ?? [], p.x, p.y, this.tileSize(), this.content.scale.x);
-      if (end) {
+      // 配線の道具で機器の上を押したときは、ケーブルの端より機器を優先する（新しいケーブルを引く・N107）
+      if (end && grabsCableEnd(store.tool, node !== undefined)) {
         const wire = store.tool === 'wire';
         this.startPress(e, { kind: 'end', linkUid: end.linkUid, end: end.end }, () => {
           if (wire) this.wireDown(p, node);

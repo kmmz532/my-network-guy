@@ -90,3 +90,7 @@ export const cableEndAt = (
   }
   return found;
 };
+
+// 押したときに、ケーブルの端をつかむか（N107）。配線の道具では、押した位置に機器があれば機器を優先して新しいケーブルを引く。
+// 選択の道具は、今のとおりケーブルの端を先につかむ（挿し替えは選択の道具の操作）
+export const grabsCableEnd = (tool: 'select' | 'wire', hasNodeAtPress: boolean): boolean => !(tool === 'wire' && hasNodeAtPress);
