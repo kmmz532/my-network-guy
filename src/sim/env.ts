@@ -9,6 +9,7 @@ const devices: Env['devices'] = Object.fromEntries(
       category: d.category,
       price: d.price,
       portCount: d.ports.reduce((sum, p) => sum + p.count, 0),
+      deskable: d.deskable,
       defaultServices: d.defaultServices,
     },
   ]),

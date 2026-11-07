@@ -3,6 +3,7 @@
     {
       "id": "l2_switch_4p",
       "category": "l2_switch",
+      "deskable": true,
       "price": 6000,
       "ports": [
         {
@@ -18,6 +19,7 @@
     {
       "id": "l2_switch_8p",
       "category": "l2_switch",
+      "deskable": true,
       "price": 12000,
       "ports": [
         {

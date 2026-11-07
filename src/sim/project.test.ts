@@ -10,6 +10,7 @@ import serverJson from '../assets/data/devices/server.json';
 import c001 from '../assets/data/contracts/c001_direct_link.json';
 import officeJson from '../assets/data/maps/office_small.json';
 import type { Balance, Contract, Furniture, GameMap, JobId } from '../data/schema';
+import type { NetNode } from '../network/types';
 import type { Offer } from '../contracts/template';
 import { initialStaff } from './staff';
 import { autoAssign } from './autoAssign';
@@ -898,5 +899,45 @@ describe('施工の進み（advanceBuild）', () => {
     // あとの案件も、この Tick の進みを反映している（検収はまだ次の Tick）
     expect(progressOf(r.core, 'other')).toBeGreaterThanOrEqual(1);
     expect(r.core.active[0]?.built.nodes.length).toBeGreaterThan(0);
+  });
+});
+
+describe('机の上に置ける機器（N91）', () => {
+  // 床の上に机が1つあるオフィス
+  const deskAt = (x: number, y: number) => ({ uid: `d${x}${y}`, id: 'desk', x, y });
+  const officeWith = (furniture: { uid: string; id: string; x: number; y: number }[], nodes: NetNode[] = []) => ({
+    ...start().office, furniture, furnitureSeq: furniture.length, nodes,
+  });
+  const info = (category: string, deskable: boolean) => ({ category, price: 1, portCount: 1, deskable });
+  const env = {
+    devices: { pc_basic: info('pc', false), printer_basic: info('printer', true), server_basic: info('server', false) },
+    furniture: { desk: { seat: true } },
+  } as unknown as Env;
+  // 床だけの地図（5×5）
+  const map = { id: 'hq', width: 5, height: 5, legend: { '.': 'floor' }, tiles: ['.....', '.....', '.....', '.....', '.....'] } as unknown as GameMap;
+  // 在庫を持たせて、機器を1台置く。置けなければ理由を返す
+  const placeAt = (office: ReturnType<typeof officeWith>, device: string, x: number, y: number): string | null => {
+    const core = { ...start(), office, owned: { [device]: 1 } } as Core;
+    const out = placeInOffice(core, device, x, y, map, env);
+    return out.ok ? null : out.reason;
+  };
+
+  it('deskable の機器は、机の上にも床にも置ける', () => {
+    expect(placeAt(officeWith([deskAt(1, 1)]), 'printer_basic', 1, 1)).toBeNull();
+    expect(placeAt(officeWith([deskAt(1, 1)]), 'printer_basic', 3, 3)).toBeNull();
+  });
+
+  it('机の上の機器は、机1台に1台（ほかに機器があれば tile）', () => {
+    const office = officeWith([deskAt(1, 1)], [{ uid: 'u0', device: 'pc_basic', x: 1, y: 1 } as NetNode]);
+    expect(placeAt(office, 'printer_basic', 1, 1)).toBe('tile');
+  });
+
+  it('PC（deskable でない）は床に置けない（desk）', () => {
+    expect(placeAt(officeWith([]), 'pc_basic', 3, 3)).toBe('desk');
+  });
+
+  it('サーバー（deskable でない）は、机の上にも床にも置けない（tile）', () => {
+    expect(placeAt(officeWith([deskAt(1, 1)]), 'server_basic', 1, 1)).toBe('tile');
+    expect(placeAt(officeWith([]), 'server_basic', 3, 3)).toBeNull();
   });
 });

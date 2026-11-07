@@ -3,6 +3,7 @@
     {
       "id": "router_basic",
       "category": "router",
+      "deskable": true,
       "price": 60000,
       "ports": [
         {

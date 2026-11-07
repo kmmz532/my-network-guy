@@ -15,6 +15,8 @@ import { moveFurniture, placeFurniture, seatedStaff, unseatedStaff } from '../si
 
 // 席になる家具（机）かどうか（社員が座る）
 const isDesk = (id: string): boolean => isDeskFurniture(id, gameEnv);
+// PC のうち、机の上にしか置けないもの（deskable でない PC。N91）
+const isPcOnlyDevice = (device: string): boolean => gameEnv.devices[device]?.category === CATEGORY.pc && gameEnv.devices[device]?.deskable !== true;
 import { furnitureOf } from '../contracts/layout';
 import { expandActionOf, expansionLocked, officeExpandCostOf, type ExpandSide } from '../sim/office';
 import { levelOf } from '../sim/level';
@@ -815,7 +817,7 @@ export class Scene {
   // 機器のスプライトの上端（マップの座標）。机の上（PCや机の家具のマス）は天板の高さ、床に置いた機器は足元から
   private spriteTopOf(node: NetNode, ts: number): number {
     // サンドボックスでは、PC は机の上に限らず床に置ける（天板の高さに上げない）
-    const onDesk = this.deskAt(node.x, node.y) || (gameEnv.devices[node.device]?.category === CATEGORY.pc && useGameStore.getState().mode !== 'sandbox');
+    const onDesk = this.deskAt(node.x, node.y) || (isPcOnlyDevice(node.device) && useGameStore.getState().mode !== 'sandbox');
     return (onDesk ? node.y * ts + DESK_TOP : node.y * ts + ts - DEVICE_FOOT_INSET) - 38;
   }
 
@@ -1059,7 +1061,7 @@ export class Scene {
     // スプライトの底面の行（y=37）が足元に来る位置。PCは机の天板に載せ、影は付けない
     const deskTile = this.deskAt(node.x, node.y);
     const anyFloor = useGameStore.getState().mode === 'sandbox';
-    const onDesk = deskTile || (category === CATEGORY.pc && !anyFloor);
+    const onDesk = deskTile || (isPcOnlyDevice(node.device) && !anyFloor);
     // 机のないマスに置いたPCには、机も一緒に描く
     const deskTex = !deskTile && category === CATEGORY.pc && !anyFloor ? texture('furniture/desk') : undefined;
     if (deskTex) {

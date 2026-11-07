@@ -268,6 +268,8 @@ export interface DeviceInfo {
   category: string;
   price: number;
   portCount: number;
+  // 机の上にも床にも置ける（N91）
+  deskable?: boolean;
   // 置いたときから動いているサービス（サーバーの HTTP など）。省略すると動いていない
   defaultServices?: Service[];
 }
@@ -508,8 +510,11 @@ const officePlaceReason = (
   anyFloor = false,
 ): string | null => {
   const hasNode = nodes.some((n) => n.x === x && n.y === y);
-  const isPc = env.devices[deviceId].category === CATEGORY.pc;
-  if (isPc && !anyFloor) {
+  const device = env.devices[deviceId];
+  const isPc = device.category === CATEGORY.pc;
+  // 机の上にも床にも置ける機器（N91）は、PC のような机の上の判定を使い、床にも置ける。PC でも deskable でもない機器は床だけ
+  const desktop = device.deskable === true;
+  if (isPc && !desktop && !anyFloor) {
     const onDesk = furniture.some((f) => f.x === x && f.y === y && isDeskFurniture(f.id, env));
     return !onDesk || hasNode ? 'desk' : null;
   }
@@ -517,7 +522,7 @@ const officePlaceReason = (
   if (kind !== 'floor') return 'tile';
   if (hasNode) return 'tile';
   const here = furniture.filter((f) => f.x === x && f.y === y);
-  if (isPc) return here.some((f) => !isDeskFurniture(f.id, env)) ? 'tile' : null;
+  if (isPc || desktop) return here.some((f) => !isDeskFurniture(f.id, env)) ? 'tile' : null;
   return here.length > 0 ? 'tile' : null;
 };
 
@@ -535,7 +540,8 @@ const placeReason = (
 ): string | null => {
   if (inhouse) return officePlaceReason(furniture, nodes, deviceId, x, y, map, env, anyFloor);
   const kind = tileKind(map, x, y);
-  if (kind !== 'floor' && !(kind === 'desk' && env.devices[deviceId].category === CATEGORY.pc)) return 'tile';
+  const deskOk = env.devices[deviceId].category === CATEGORY.pc || env.devices[deviceId].deskable === true;
+  if (kind !== 'floor' && !(kind === 'desk' && deskOk)) return 'tile';
   if (nodes.some((n) => n.x === x && n.y === y)) return 'tile';
   // 依頼先の家具（机・棚・飾り。N76）のあるマスには置けない
   if (furniture.some((f) => f.x === x && f.y === y)) return 'tile';

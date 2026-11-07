@@ -18,6 +18,7 @@
     {
       "id": "laptop",
       "category": "pc",
+      "deskable": true,
       "price": 120000,
       "ports": [
         {

@@ -3,6 +3,7 @@
     {
       "id": "router_switch",
       "category": "router_switch",
+      "deskable": true,
       "price": 80000,
       "ports": [
         {

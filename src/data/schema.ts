@@ -264,6 +264,8 @@ const serviceSchema = z.object({
 export const deviceSchema = z.object({
   id: z.string().min(1),
   category: z.enum(CATEGORY_IDS),
+  // 机の上にも床にも置ける小さな機器（N91）。省略時は false（PC は机の上だけ・サーバーなどは床だけ）
+  deskable: z.boolean().default(false),
   price: nonNegativeInt,
   ports: z
     .array(
