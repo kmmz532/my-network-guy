@@ -20,7 +20,7 @@ describe('parseSettings（端末の設定の読み込み）', () => {
 
   it('正しい値はそのまま読む', () => {
     const s = parseSettings(JSON.stringify({ uiScale: 1.25, guide: false, showIp: false, startSpeed: 4, pausedBuild: 'stay', autoSave: 'weekly', autoIp: false }));
-    expect(s).toEqual({ uiScale: 1.25, guide: false, showIp: false, startSpeed: 4, pausedBuild: 'stay', autoSave: 'weekly', autoIp: false, designPause: true, confirmDecline: true, sound: true, payPause: true, offerSort: 'new' });
+    expect(s).toEqual({ uiScale: 1.25, guide: false, showIp: false, startSpeed: 4, pausedBuild: 'stay', autoSave: 'weekly', autoIp: false, designPause: true, confirmDecline: true, sound: true, payPause: true, offerSort: 'new', dayTint: true });
   });
 
   it('UIの大きさは 80・100・125・150% の4つだけ', () => {

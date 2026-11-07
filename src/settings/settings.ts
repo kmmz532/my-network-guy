@@ -42,6 +42,8 @@ export interface Settings {
   payPause: boolean;
   // 依頼の一覧の並べ方（既定は新しい順）
   offerSort: OfferSort;
+  // 時刻による画面の色（夕方の暖色・夜の青み）を重ねるか（既定はオン。N75）
+  dayTint: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -57,6 +59,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sound: true,
   payPause: true,
   offerSort: 'new',
+  dayTint: true,
 };
 
 export const SETTINGS_KEY = 'network-ya.settings.v1';
@@ -93,6 +96,7 @@ export function parseSettings(raw: string | null): Settings {
     sound: typeof d.sound === 'boolean' ? d.sound : DEFAULT_SETTINGS.sound,
     payPause: typeof d.payPause === 'boolean' ? d.payPause : DEFAULT_SETTINGS.payPause,
     offerSort: (OFFER_SORTS as readonly unknown[]).includes(d.offerSort) ? (d.offerSort as OfferSort) : DEFAULT_SETTINGS.offerSort,
+    dayTint: typeof d.dayTint === 'boolean' ? d.dayTint : DEFAULT_SETTINGS.dayTint,
   };
 }
 

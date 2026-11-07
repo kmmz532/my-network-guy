@@ -14,6 +14,7 @@ import { gameEnv } from '../sim/env';
 import { moveFurniture, placeFurniture, seatedStaff, unseatedStaff } from '../sim/furniture';
 import { spriteNameOf, type Facing } from '../sim/facing';
 import { dayTintOf, nightnessOf, toHex, type Rgb } from '../sim/dayTint';
+import { loadSettings } from '../settings/settings';
 
 // 向きの絵がある家具（机・椅子）。向きに合わせて絵を切り替える（N95）
 const FACING_SPRITES = new Set(['furniture/desk', 'furniture/chair']);
@@ -457,7 +458,8 @@ export class Scene {
   private updateDayTint(): void {
     const map = this.map;
     const s = useGameStore.getState();
-    const tint: Rgb = dayTintOf(s.clock.minute % dayMinutes);
+    // 設定で切っているときは、色を変えない（白）
+    const tint: Rgb = loadSettings().dayTint ? dayTintOf(s.clock.minute % dayMinutes) : { r: 1, g: 1, b: 1 };
     // 背景（マップの外の青）も、同じ時刻の色にする。色は今の背景の色（#2f4f8f）に掛ける
     const bg = { r: 0x2f * tint.r, g: 0x4f * tint.g, b: 0x8f * tint.b };
     const bgHex = toHex({ r: bg.r / 255, g: bg.g / 255, b: bg.b / 255 });
