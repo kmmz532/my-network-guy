@@ -27,3 +27,13 @@ describe('wireless_clients', () => {
     expect(evaluateGoal({ type: 'wireless_clients', min: 1 }, net(1, 'wrong'), data).every((r) => r.ok)).toBe(false);
   });
 });
+
+describe('つながっていない無線の端末（N152）', () => {
+  it('ケーブルの失敗ではなく、無線のつながらない失敗を返す', async () => {
+    const { ping } = await import('./netState');
+    const { gameEnv } = await import('../sim/env');
+    const n: Network = { nodes: [node('ap', 'access_point', 0, WIFI), { ...node('lap', 'laptop', 1), interfaces: [{ id: 'g0/0', kind: 'port', port: 0, ip: '192.168.1.20', prefix: 24 }] }], links: [], segments: {} };
+    const r = ping(n, gameEnv.engine, 'lap', 'ap');
+    expect(r.failure?.reason).toBe('wireless.unassociated');
+  });
+});

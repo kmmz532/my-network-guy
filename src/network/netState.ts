@@ -346,6 +346,12 @@ const allows = (rules: readonly FirewallRule[] | undefined, srcIp: string, dstIp
   );
 
 // 通信を1方向に届ける。check が true のときは、通り道のファイアウォールの規則を確かめる（戻りの通信は、往路で許した通信の戻りとして確かめない）
+// 口に線がないときの理由。無線の端末は、ケーブルがないのではなく、アクセスポイントにつながっていない（N152）
+const unpluggedReason = (topo: Topology, uid: string): 'link.unplugged' | 'wireless.unassociated' => {
+  const device = topo.node(uid)?.device;
+  return device !== undefined && can(device, 'wireless') ? 'wireless.unassociated' : 'link.unplugged';
+};
+
 const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffic = { kind: 'ping' }, check = true, srcIp?: string, dstIp?: string): PathResult => {
   const path: string[] = [];
   const src = topo.node(srcUid);
@@ -359,7 +365,7 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
   if (!srcIface) return err(fail('ip.unset', src.uid));
   const srcEp: Endpoint = { node: src.uid, port: srcIface.port };
   if (topo.isShut(src.uid, srcIface.port)) return err(fail('port.shutdown', src.uid));
-  if (!topo.linkAt(srcEp)) return err(fail('link.unplugged', src.uid));
+  if (!topo.linkAt(srcEp)) return err(fail(unpluggedReason(topo, src.uid), src.uid));
   // 相手の口が停止していれば、その口で止まる（port.shutdown）
   const srcPeer = topo.linkAt(srcEp)!.peer;
   if (topo.isShut(srcPeer.node, srcPeer.port)) return err(fail('port.shutdown', srcPeer.node));
@@ -367,7 +373,7 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
   const dstIface = dstIp === undefined ? dst.interfaces[0] : dst.interfaces.find((i) => i.ip === dstIp);
   if (!dstIface) return err(fail('ip.unset', dst.uid));
   const dstEp: Endpoint = { node: dst.uid, port: dstIface.port };
-  if (!topo.linkAt(dstEp)) return err(fail('link.unplugged', dst.uid));
+  if (!topo.linkAt(dstEp)) return err(fail(unpluggedReason(topo, dst.uid), dst.uid));
 
   path.push(src.uid);
 

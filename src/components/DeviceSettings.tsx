@@ -11,12 +11,15 @@ import { dangerButton } from './Modal';
 import type { ComboOption } from './comboOptions';
 import type { Compiled } from '../network/compile';
 import { isRelayPort, isRoutingCategory } from '../network/category';
+import { can } from '../network/capabilities';
+import { wirelessAssociations, withWireless } from '../network/netState';
+import { engineWithWalls } from '../sim/walls';
 import { colorOfNetwork, networkColors, UNSET_COLOR } from '../network/netColor';
 import { networkAddress, neighborRouterAddresses, routerAddressesOn, segmentConfigOf, segmentOf, segmentsOf } from '../network/segments';
-import type { NetNode, SegmentConfig } from '../network/types';
+import type { NetNode, Network, SegmentConfig } from '../network/types';
 import { gameEnv } from '../sim/env';
 import { addressCandidates, PLANNED_NETWORK, PLANNED_PREFIX, plannedAddressCandidates, type AddressCandidate } from '../sim/project';
-import { coreOf, netTargetOf, plannedKey, useGameStore } from '../stores/useGameStore';
+import { coreOf, focusedProject, netTargetOf, plannedKey, useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, hexColor, inputStyle, isIpText, portLabel, sectionStyle, unsetColor } from './devicePorts';
 import { CATEGORY } from '../data/categories';
 
@@ -53,7 +56,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   const category = gameEnv.devices[node.device]?.category;
 
   const byUid = new Map(net.nodes.map((n) => [n.uid, n]));
-  const colors = networkColors(net, engine);
+  const colors = networkColors(withWireless(net, engine), engine);
   const locked = readOnly || node.configLocked;
   const portCount = gameEnv.devices[node.device]?.portCount ?? 0;
   // IPアドレスを持つ口（スイッチ付きルーターの2つ目以降の LAN 口は中継だけなので欄を出さない）
@@ -266,6 +269,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   return (
     <div>
       <NameField key={node.uid} node={node} nodes={net.nodes} readOnly={readOnly} onError={onError} />
+      {can(node.device, 'wireless') && <WirelessField key={`w-${node.uid}`} node={node} net={net} readOnly={readOnly} onError={onError} />}
       {node.configLocked && <div style={{ marginBottom: 6 }}>{t('ui.config.locked')}</div>}
       {ports.map(renderPort)}
       {!isRoutingCategory(category ?? '') && renderGateway()}
@@ -362,6 +366,55 @@ function RouteAdd({
 }
 
 // 機器の名前の欄。欄を離れたとき・Enter で確定する。空にすると既定の名前に戻る
+// 無線の設定（N152）: SSID とパスワード。アクセスポイントと無線の端末の SSID・パスワードが合うとつながる。空欄は未設定
+function WirelessField({ node, net, readOnly, onError }: { node: NetNode; net: Network; readOnly: boolean; onError: (reason: string | null) => void }) {
+  const setWireless = useGameStore((s) => s.setWireless);
+  const store = useGameStore.getState();
+  // 画面の表示と同じ電波の計算（壁の減衰を含む）で、つながりを出す
+  const engine = engineWithWalls(gameEnv.engine, store.maps[focusedProject(store)?.contract.map ?? 'hq']);
+  const pairs = wirelessAssociations(net, engine);
+  const status = pairs.find((p) => p.client.uid === node.uid);
+  const clients = pairs.filter((p) => p.ap.uid === node.uid).length;
+  // アクセスポイントは、つながっている端末の数を出す。端末は、つながった先か、つながっていないことを出す
+  const isClient = gameEnv.devices[node.device]?.category !== CATEGORY.accessPoint && gameEnv.devices[node.device]?.category !== CATEGORY.homeRouter;
+  const statusText = status
+    ? t('ui.wireless.connected', { ap: nodeLabel(store, status.ap, net.nodes) })
+    : isClient
+      ? t('ui.wireless.none')
+      : t('ui.wireless.clients', { n: clients });
+  const [ssid, setSsid] = useState(node.wireless?.ssid ?? '');
+  const [password, setPassword] = useState(node.wireless?.password ?? '');
+  const commit = (key: 'ssid' | 'password', value: string) => {
+    if ((node.wireless?.[key] ?? '') === value) return;
+    onError(setWireless(node.uid, key, value));
+  };
+  const field = (label: string, value: string, setValue: (v: string) => void, key: 'ssid' | 'password', type: string) => (
+    <div style={{ marginBottom: 8 }}>
+      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 2 }}>{label}</label>
+      <input
+        aria-label={label}
+        type={type}
+        style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }}
+        value={value}
+        disabled={readOnly}
+        maxLength={32}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={() => commit(key, value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+        }}
+      />
+    </div>
+  );
+  return (
+    <div style={sectionStyle}>
+      {field(t('ui.wireless.ssid'), ssid, setSsid, 'ssid', 'text')}
+      {field(t('ui.wireless.password'), password, setPassword, 'password', 'password')}
+      <div style={{ fontSize: 12 }}>{statusText}</div>
+    </div>
+  );
+}
+
 function NameField({ node, nodes, readOnly, onError }: { node: NetNode; nodes: readonly NetNode[]; readOnly: boolean; onError: (reason: string | null) => void }) {
   const setName = useGameStore((s) => s.setName);
   const current = nodeLabel(useGameStore.getState(), node, nodes);

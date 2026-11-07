@@ -12,7 +12,7 @@ import { rangeTiles } from './effectRange';
 import { setMapView } from './mapView';
 import { gameEnv, isPcDevice } from '../sim/env';
 import { engineWithWalls } from '../sim/walls';
-import { WALL_LOSS, WIRELESS_RADIUS, wallsBetween, wirelessAssociations } from '../network/engine';
+import { WALL_LOSS, WIRELESS_RADIUS, wallsBetween, wirelessAssociations, withWireless } from '../network/engine';
 import type { EngineData } from '../network/types';
 import { moveFurniture, placeFurniture, seatedStaff, unseatedStaff } from '../sim/furniture';
 import { spriteNameOf, type Facing } from '../sim/facing';
@@ -363,7 +363,8 @@ export class Scene {
     const env = { ...gameEnv, engine: engineWithWalls(gameEnv.engine, map) };
     this.compiled = shown ? compiledNet(shown, env) : null;
     this.wireEngine = env.engine;
-    this.netColors = this.compiled ? networkColors(this.compiled.net, env.engine) : null;
+    // 無線の端末は、つながったアクセスポイントの LAN の色で塗る（ケーブルがないので、仮想の配線を足して数える）
+    this.netColors = this.compiled ? networkColors(withWireless(this.compiled.net, env.engine), env.engine) : null;
     if (!map) return;
     // 自社オフィスの部屋は広げると作り直すため、同じIDでもマップが変わったら描き直す
     if (this.tilesId !== mapId || this.map !== map) {
