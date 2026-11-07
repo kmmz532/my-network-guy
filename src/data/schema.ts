@@ -392,7 +392,7 @@ export const goalSchema = z.discriminatedUnion('type', [
 ]);
 
 // 地図・依頼に置く家具（N76）。歩けない床になり、機器は置けない
-const placedFurnitureSchema = z.object({ id: z.string().min(1), x: nonNegativeInt, y: nonNegativeInt });
+const placedFurnitureSchema = z.object({ id: z.string().min(1), x: nonNegativeInt, y: nonNegativeInt, facing: z.enum(['up', 'down', 'left', 'right']).optional() });
 
 export const contractSchema = z.object({
   id: z.string().min(1),

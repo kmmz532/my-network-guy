@@ -3,6 +3,7 @@
 import { applyMoney, recordSaving } from './ledger';
 import { isBackOffice } from './backOffice';
 import type { Balance, Contract, Furniture, FloorId, GameMap, Staff } from '../data/schema';
+import type { Facing } from './facing';
 import { tileKind } from '../data/tileKind';
 import { furnitureOf } from '../contracts/layout';
 import { renameNode } from '../network/nodeName';
@@ -174,6 +175,8 @@ export interface PlacedFurniture {
   id: string; // 家具ID
   x: number;
   y: number;
+  // 向き（座った社員が向く方向。省略は up・N95）
+  facing?: Facing;
 }
 
 // 床の大きさ（床の内側のマス数。壁は含まない）

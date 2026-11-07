@@ -22,7 +22,7 @@ import firewallDmzJson from '../assets/data/devices/firewall_dmz.json';
 import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 
-export const SAVE_VERSION = 37;
+export const SAVE_VERSION = 38;
 
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
@@ -216,6 +216,8 @@ export const migrations: Record<number, Migration> = {
   26: (data) => ({ ...(data as object), deliveries: 0 }),
   // v31 → v32: 依頼に家具（机・棚・飾り）を足す。移行前の依頼は家具を持たない（N76）
   31: (data) => data as object,
+  // v37 → v38: 家具に向き（facing）を足す。移行前の家具は向きを書いていないため、up（今の絵のまま）として扱う（N95）
+  37: (data) => data as object,
   // v36 → v37: 社員に level の上限（levelCap）を足す。移行前の社員は、今の level を含む段階の上端を上限にする（今より下がる社員を作らない・N101）。給与は変えない
   36: (data) => {
     const d = data as { staff: { level: number }[]; candidates: { level: number }[] };
