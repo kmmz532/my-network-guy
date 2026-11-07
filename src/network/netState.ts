@@ -196,6 +196,11 @@ class Topology {
     }
   }
 
+  // すべての機器（静的 NAT の宛先を探すときに使う）
+  allNodes(): NetNode[] {
+    return [...this.nodes.values()];
+  }
+
   node(uid: string): NetNode | undefined {
     return this.nodes.get(uid);
   }
@@ -451,7 +456,6 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
   return err(fail('route.loop', current.node));
 };
 
-// Ping（ICMP）の判定。往路と復路の両方が通る必要がある
 // 戻りの通信。往路で NAPT を行ったときは、外から変換後のアドレス（外の口）へ届き、NAPT の機器が社内のアドレスへ戻す（N145）
 const backOf = (topo: Topology, dstUid: string, srcUid: string, traffic: Traffic, forward: PathResult): PathResult => {
   const dst = topo.node(dstUid);
@@ -464,6 +468,26 @@ const backOf = (topo: Topology, dstUid: string, srcUid: string, traffic: Traffic
   const insideIface = topo.node(router)?.interfaces.find((i) => inSubnet(insideIp, i.ip, i.prefix));
   if (!insideIface || !src || !dst) return { ok: false, path: toRouter.path, failure: fail('route.none', router) };
   return deliver(topo, router, srcUid, traffic, false, insideIface.ip, undefined);
+};
+
+// 静的 NAT（ポートの転送）: 外からルーターの外の口へのポートの通信を、社内のサーバーへ届ける。往路は外→外の口→社内の口→サーバー、復路は逆に戻す（N145）
+const viaStatic = (topo: Topology, srcUid: string, routerUid: string, traffic: Traffic): PathResult | null => {
+  const r = topo.node(routerUid);
+  if (!r || traffic.kind !== 'http') return null;
+  const map = r.statics?.find((s) => s.port === traffic.port);
+  if (!map) return null;
+  const outside = r.interfaces.find((i) => i.nat === 'outside');
+  const inside = r.interfaces.find((i) => i.nat === 'inside' && inSubnet(map.insideIp, i.ip, i.prefix));
+  const server = topo.allNodes().find((n) => n.interfaces.some((i) => i.ip === map.insideIp));
+  if (!outside || !inside || !server) return { ok: false, path: [], failure: fail('route.none', routerUid) };
+  const toRouter = deliver(topo, srcUid, routerUid, traffic, true, undefined, outside.ip);
+  if (!toRouter.ok) return toRouter;
+  const toServer = deliver(topo, routerUid, server.uid, { kind: 'http', port: map.insidePort }, false, inside.ip, map.insideIp);
+  if (!toServer.ok) return { ok: false, path: toRouter.path, failure: toServer.failure };
+  if (!server.services.some((s) => s.protocol === 'http' && s.port === map.insidePort)) return { ok: false, path: toRouter.path, failure: fail('service.closed', server.uid) };
+  const back = deliver(topo, server.uid, routerUid, traffic, false, map.insideIp, inside.ip);
+  if (!back.ok) return { ok: false, path: toRouter.path, failure: { reason: 'return.failed', node: server.uid, cause: back.failure } };
+  return { ok: true, path: [...toRouter.path, ...toServer.path.slice(1)] };
 };
 
 // Ping（ICMP）の判定。往路と復路の両方が通る必要がある
@@ -481,6 +505,9 @@ export const ping = (net: Network, data: EngineData, srcUid: string, dstUid: str
 // HTTP の判定。往路で宛先に届き、宛先が指定ポートでサービスを待ち受けていて、復路も通ること
 export const http = (net: Network, data: EngineData, srcUid: string, dstUid: string, port: number): PathResult => {
   const topo = new Topology(net, data);
+  // 外の口への通信が、静的 NAT で社内のサーバーへ届く場合（N145）
+  const nat = viaStatic(topo, srcUid, dstUid, { kind: 'http', port });
+  if (nat !== null) return nat;
   const forward = deliver(topo, srcUid, dstUid, { kind: 'http', port });
   if (!forward.ok) return forward;
   const dst = topo.node(dstUid);

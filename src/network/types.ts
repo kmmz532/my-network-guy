@@ -70,6 +70,8 @@ export interface NetNode {
   ports: PortConfig[];
   // NAPT を行う（inside から outside へ出る通信の送信元を、outside の口のアドレスに変える・N145）
   napt?: boolean;
+  // 静的 NAT（ポートの転送・N145）: 外の口へのこのポートの通信を、社内の宛先（アドレスとポート）へ届ける
+  statics?: { port: number; insideIp: string; insidePort: number }[];
   // ホスト名（ターミナルのプロンプトと show running-config に出す。画面の名前とは別。N46）
   hostname?: string;
   // ファイアウォールの規則（ファイアウォールだけが持つ。一覧にない通信は通さない）

@@ -121,6 +121,7 @@
   "error.iface.none.fix": "先に ip address で口にアドレスを付けてから、network 文を入れます。",
   "ui.terminal.errArea": "MVP では OSPF のエリアは 0 だけです。",
   "ui.terminal.usageNetwork": "書式: network <IP>（RIP） / network <IP> <ワイルドカード> area 0（OSPF）",
+  "ui.terminal.usageNat": "書式: ip nat inside|outside <ポート> / ip nat napt / ip nat static <外のポート> <社内のIP> <社内のポート>",
   "error.link.unplugged": "ケーブルが接続されていない。",
   "error.port.shutdown": "口が停止している（shutdown）。",
   "error.port.shutdown.fix": "ターミナルで no shutdown を入力すると、口が使えるようになります。",

@@ -992,6 +992,33 @@ export const setRouting = (core: Core, uid: string, change: { proto: 'rip' | 'os
     target,
   );
 
+// NAT の設定（N145）。口の inside・outside、NAPT の有効、静的 NAT（ポートの転送）
+export type NatOp =
+  | { op: 'iface'; port: number; nat: 'inside' | 'outside' | null }
+  | { op: 'napt'; on: boolean }
+  | { op: 'static'; port: number; insideIp: string; insidePort: number }
+  | { op: 'noStatic'; port: number };
+export const setNat = (core: Core, uid: string, change: NatOp, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      switch (change.op) {
+        case 'iface': {
+          if (!node.interfaces.some((i) => i.port === change.port)) return 'iface.none';
+          return { ...node, interfaces: node.interfaces.map((i) => (i.port === change.port ? { ...i, nat: change.nat ?? undefined } : i)) };
+        }
+        case 'napt':
+          return { ...node, napt: change.on || undefined };
+        case 'static':
+          return { ...node, statics: [...(node.statics ?? []).filter((s) => s.port !== change.port), { port: change.port, insideIp: change.insideIp, insidePort: change.insidePort }] };
+        case 'noStatic':
+          return { ...node, statics: (node.statics ?? []).filter((s) => s.port !== change.port) };
+      }
+    },
+    target,
+  );
+
 // BGP の設定（N147）。router bgp で自分の AS を決め、neighbor と network を足す
 export type BgpOp = { op: 'asn'; asn: number } | { op: 'off' } | { op: 'neighbor'; ip: string; remoteAs: number } | { op: 'network'; dest: string; prefix: number };
 export const setBgp = (core: Core, uid: string, change: BgpOp, target: NetTarget = 'focus'): Outcome =>

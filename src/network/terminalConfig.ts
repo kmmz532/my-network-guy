@@ -25,6 +25,11 @@ export type ConfigAction =
   | { kind: 'routing'; proto: 'rip' | 'ospf'; on: boolean }
   // network 文: ip のサブネットのインターフェースを、RIP または OSPF（エリア 0）に参加させる（N143）
   | { kind: 'network'; proto: 'rip' | 'ospf'; ip: string; area: number | null; on: boolean }
+  // NAT（N145）: ip nat inside|outside <ポート> / no ip nat <ポート> / ip nat napt / no ip nat napt / ip nat static <外のポート> <社内のIP> <社内のポート> / no ip nat static <外のポート>
+  | { kind: 'nat'; op: 'iface'; port: number; nat: 'inside' | 'outside' | null }
+  | { kind: 'nat'; op: 'napt'; on: boolean }
+  | { kind: 'nat'; op: 'static'; port: number; insideIp: string; insidePort: number }
+  | { kind: 'nat'; op: 'noStatic'; port: number }
   // BGP（N147）: 自分の AS・隣接（neighbor）・広告する宛先（network … mask）
   | { kind: 'bgp'; op: 'asn'; asn: number }
   | { kind: 'bgp'; op: 'off' }
@@ -68,6 +73,20 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   }
   if (first === 'no' && rest[0] === 'router' && (rest[1] === 'rip' || rest[1] === 'ospf')) {
     return { kind: 'action', action: { kind: 'routing', proto: rest[1], on: false } };
+  }
+  // ip nat（NAT・N145）
+  if (first === 'ip' && rest[0] === 'nat') {
+    const [, kind, a, b, c] = rest;
+    if ((kind === 'inside' || kind === 'outside') && port(a ?? '') !== null && rest.length === 3) return { kind: 'action', action: { kind: 'nat', op: 'iface', port: Number(a), nat: kind } };
+    if (kind === 'napt' && rest.length === 2) return { kind: 'action', action: { kind: 'nat', op: 'napt', on: true } };
+    if (kind === 'static' && rest.length === 5 && port(a ?? '') !== null && isIp(b ?? '') && port(c ?? '') !== null) return { kind: 'action', action: { kind: 'nat', op: 'static', port: Number(a), insideIp: b, insidePort: Number(c) } };
+    return error('ui.terminal.usageNat');
+  }
+  if (first === 'no' && rest[0] === 'ip' && rest[1] === 'nat') {
+    if (rest[2] === 'napt' && rest.length === 3) return { kind: 'action', action: { kind: 'nat', op: 'napt', on: false } };
+    if (rest[2] === 'static' && rest.length === 4 && port(rest[3]) !== null) return { kind: 'action', action: { kind: 'nat', op: 'noStatic', port: Number(rest[3]) } };
+    if (rest.length === 3 && port(rest[2]) !== null) return { kind: 'action', action: { kind: 'nat', op: 'iface', port: Number(rest[2]), nat: null } };
+    return error('ui.terminal.usageNat');
   }
   // router bgp <AS>・no router bgp・neighbor <IP> remote-as <AS>・network <IP> mask <マスク>（BGP）
   if (first === 'router' && rest[0] === 'bgp') {

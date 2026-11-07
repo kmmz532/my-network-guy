@@ -77,6 +77,8 @@ import {
   setGateway,
   setRouting,
   setBgp,
+  setNat,
+  type NatOp,
   type BgpOp,
   setFirewallRules,
   setSegment,
@@ -373,6 +375,7 @@ export interface GameState {
   setGateway: (uid: string, gateway: string | null) => string | null;
   setRouting: (uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string }) => string | null;
   setBgp: (uid: string, change: BgpOp) => string | null;
+  setNat: (uid: string, change: NatOp) => string | null;
   // ファイアウォールの規則を置き換える（N38）
   setFirewallRules: (uid: string, rules: FirewallRule[]) => string | null;
   // セグメント（ポートが属するネットワーク）のアドレスを設定する
@@ -1388,6 +1391,7 @@ export const useGameStore = create<GameState>((set, get) => {
     setGateway: (uid, gateway) => recorded(() => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid))),
     setRouting: (uid, change) => recorded(() => apply(setRouting(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
     setBgp: (uid, change) => recorded(() => apply(setBgp(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
+    setNat: (uid, change) => recorded(() => apply(setNat(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
     setFirewallRules: (uid, rules) => recorded(() => apply(setFirewallRules(coreOf(get()), uid, rules, netTargetOf(get())), tileOf(uid))),
     clearOfferBurst: () => set({ offerBurst: 0 }),
     declineOffer: (id) => set({ offers: declineOffer(get().offers, id) }),
