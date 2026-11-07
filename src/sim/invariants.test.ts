@@ -139,7 +139,7 @@ describe('不変条件（操作の列の試験）', () => {
           if (violations.length > 0) throw new Error(`${JSON.stringify(action)} のあと: ${violations.join(' / ')}`);
         }
       }),
-      { numRuns: 300 },
+      { numRuns: 300, seed: 20261107 },
     );
     // 試験が意味を持つよう、成功した操作が実際に起きていること（全部失敗では不変条件を確かめたことにならない）
     expect(succeeded).toBeGreaterThan(100);
