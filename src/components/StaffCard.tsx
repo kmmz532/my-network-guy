@@ -2,7 +2,10 @@
 // 状態（待機中・担当中・研修中）は sim/staff.ts の staffStatus で決める。
 import { balance } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
-import { staffStatus, totalSalary, type StaffStatus } from '../sim/staff';
+import { staffPower, staffStatus, totalSalary, type StaffStatus } from '../sim/staff';
+import { backOfficeP, countsForBackOffice, effectiveLevelOf, isBackOffice, jobEffect } from '../sim/backOffice';
+import { gameEnv } from '../sim/env';
+import { jobEffectText } from './jobEffectText';
 import { staffSpriteName } from '../data/schema';
 import { useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
@@ -37,6 +40,15 @@ export function StaffBody({ uid, onTraining }: { uid: string; onTraining: () => 
   const member = state.staff.find((m) => m.uid === uid);
   if (!member) return null;
   const status = staffStatus(member, state.active, state.clock.minute);
+  const env = { defs: gameEnv.furniture ?? {}, balance, staffUids: state.staff.map((m) => m.uid) };
+  const back = isBackOffice(member.job);
+  // この社員の内勤の寄与（日勤で研修中でないときだけ効く）。効果は、この社員が加わったときの増分
+  const contribution = countsForBackOffice(member) ? effectiveLevelOf(member, state.office, env) : 0;
+  const effect = back
+    ? jobEffect(member.job, member, contribution, backOfficeP(state.staff, member.job, state.office, env) - contribution, balance)
+    : member.job === 'dev'
+      ? jobEffect(member.job, member, contribution, 0, balance)
+      : null;
   // 次の level までの経験値（level n から n+1 に上がるのに expPerLevel × n）
   const next = balance.staff.expPerLevel * member.level;
   const ratio = Math.min(1, member.exp / next);
@@ -65,6 +77,19 @@ export function StaffBody({ uid, onTraining }: { uid: string; onTraining: () => 
         </dd>
         <dt style={label}>{t('ui.staff.card.status')}</dt>
         <dd style={{ margin: 0 }}>{statusText(status)}</dd>
+        {/* 施工力はエンジニア枠の社員。内勤は施工力の代わりに、その社員の効果を出す（システムエンジニアは両方） */}
+        {!back && (
+          <>
+            <dt style={label}>{t('ui.staff.card.power')}</dt>
+            <dd style={{ margin: 0 }}>{staffPower(member, undefined, state.office, env).toFixed(2)}</dd>
+          </>
+        )}
+        {(back || member.job === 'dev') && (
+          <>
+            <dt style={label}>{t('ui.staff.card.effect')}</dt>
+            <dd style={{ margin: 0 }}>{effect && (contribution > 0 || member.job === 'dev') ? jobEffectText(effect) : t('ui.effect.job.none')}</dd>
+          </>
+        )}
       </dl>
       <div style={{ fontStyle: 'italic', opacity: 0.9 }}>{tDyn(`staff.quirk.${member.quirk}`)}</div>
       <div>

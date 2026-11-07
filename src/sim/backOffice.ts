@@ -7,15 +7,20 @@ import { furnitureBonus, seatOf, type BonusEnv } from './furniture';
 
 export const isBackOffice = (job: JobId): boolean => (BACK_OFFICE_JOB_IDS as readonly JobId[]).includes(job);
 
+// 内勤の効果に数えるか（日勤で、研修中でない）
+export const countsForBackOffice = (s: Staff): boolean => s.shift === 'day' && s.training === null;
+
+// 社員の実効 level（level × 席の係数 × (1 + 家具の補正)）。席がなければ席の係数で下がる
+export const effectiveLevelOf = (s: Staff, office: Office, env: BonusEnv): number => {
+  const bonus = furnitureBonus(office, s.uid, env);
+  const seated = seatOf(office, env.staffUids, s.uid, env.defs) !== null;
+  const seatFactor = seated ? 1 : bonus.seatless;
+  return s.level * seatFactor * (1 + bonus.power);
+};
+
 // 職種の内勤の実効 level の合計 P（日勤のみ。席がなければ席の係数で下がる）
 export const backOfficeP = (staff: readonly Staff[], job: JobId, office: Office, env: BonusEnv): number =>
-  staff.reduce((sum, s) => {
-    if (s.job !== job || s.shift !== 'day' || s.training !== null) return sum;
-    const bonus = furnitureBonus(office, s.uid, env);
-    const seated = seatOf(office, env.staffUids, s.uid, env.defs) !== null;
-    const seatFactor = seated ? 1 : bonus.seatless;
-    return sum + s.level * seatFactor * (1 + bonus.power);
-  }, 0);
+  staff.reduce((sum, s) => (s.job === job && countsForBackOffice(s) ? sum + effectiveLevelOf(s, office, env) : sum), 0);
 
 // 経理の割引率（購入の価格を安くする割合。上限 maxRate）
 export const accountingRate = (P: number, balance: Balance): number =>
@@ -43,3 +48,36 @@ export const devRate = (level: number, balance: Balance): number =>
 // 担当でない日の開発の収入（1日分）。月給 × 率 ÷ 月の日数
 export const devDailyIncome = (member: Staff, balance: Balance): number =>
   Math.round((member.salary * devRate(member.level, balance)) / balance.time.daysPerMonth);
+
+// 職種ごとの効果（内勤・システムエンジニア）。加わる社員の寄与 contribution（実効 level）と、加わる前の合計 P から、増える分を出す
+export type JobEffect =
+  | { kind: 'sales'; chance: number } // 依頼の出やすさの増分（0〜1）
+  | { kind: 'hr'; candidates: number; trainingRate: number } // 候補の増分（人）・研修の経験値の倍率の増分
+  | { kind: 'accounting'; rate: number } // 割引の割合の増分（0〜1）
+  | { kind: 'dev'; monthlyIncome: number }; // 開発の収入（担当でない日の合計・月）
+
+export const jobEffect = (
+  job: JobId,
+  member: { level: number; salary: number },
+  contribution: number,
+  P: number,
+  balance: Balance,
+): JobEffect | null => {
+  const after = P + contribution;
+  switch (job) {
+    case 'sales':
+      return { kind: 'sales', chance: salesArrivalChance(after, balance) - salesArrivalChance(P, balance) };
+    case 'hr':
+      return {
+        kind: 'hr',
+        candidates: hrCandidateBonus(after, balance).extraCount - hrCandidateBonus(P, balance).extraCount,
+        trainingRate: hrTrainingRate(after, balance) - hrTrainingRate(P, balance),
+      };
+    case 'accounting':
+      return { kind: 'accounting', rate: accountingRate(after, balance) - accountingRate(P, balance) };
+    case 'dev':
+      return { kind: 'dev', monthlyIncome: Math.round(member.salary * devRate(member.level, balance)) };
+    default:
+      return null;
+  }
+};

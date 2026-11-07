@@ -5,7 +5,8 @@ import type { FurnitureId } from '../generated/ids';
 import { staffSpriteName } from '../data/schema';
 import { t, tDyn } from '../i18n/t';
 import { seatCount } from '../sim/furniture';
-import { backOfficeP } from '../sim/backOffice';
+import { backOfficeP, isBackOffice, jobEffect } from '../sim/backOffice';
+import { jobEffectText } from './jobEffectText';
 import { gameEnv } from '../sim/env';
 import { unlockedJobsOf } from '../sim/staff';
 import { levelOf } from '../sim/level';
@@ -89,7 +90,11 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
         </div>
       )}
       {candidates.length === 0 && <div style={{ opacity: 0.7 }}>{t('ui.hiring.none')}</div>}
-      {candidates.map((c) => (
+      {candidates.map((c) => {
+        // 内勤の札と、雇うと増える効果（席に座った場合の見込み）
+        const back = isBackOffice(c.job);
+        const effect = back ? jobEffect(c.job, c, c.level, backOfficeP(allStaff, c.job, office, { defs: gameEnv.furniture ?? {}, balance, staffUids: allStaff.map((m) => m.uid) }), balance) : null;
+        return (
         <div
           key={c.uid}
           style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}
@@ -99,8 +104,14 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
             <div style={{ fontWeight: 'bold' }}>{tDyn(c.name)}</div>
             <div style={{ fontSize: 12 }}>
               {tDyn(`staff.job.${c.job}`)} · {t('ui.staff.level', { level: c.level })}
+              {/* 札: 内勤（非エンジニア枠）とエンジニア枠を分ける */}
+              <span style={{ marginLeft: 6, padding: '0 4px', border: '1px solid #3b2a33', fontSize: 11, background: back ? '#ffd866' : '#5aa860', color: back ? '#3b2a33' : '#f4f1e6' }}>
+                {t(back ? 'ui.hiring.tag.backOffice' : 'ui.hiring.tag.engineer')}
+              </span>
             </div>
             <div style={{ fontSize: 12 }}>{t('ui.hiring.salary', { salary: yen(c.salary) })}</div>
+            {/* 内勤は、雇うと増える効果を1行で出す */}
+            {effect && <div style={{ fontSize: 12, color: '#ffd866' }}>{jobEffectText(effect)}</div>}
           </div>
           {/* 夜勤は会社のレベルで解放される。解放されていれば、雇うときに区分を選ぶ（N48） */}
           {nightOpen && (
@@ -125,8 +136,9 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
             {t('ui.hiring.hire')}
           </button>
         </div>
-      ))}
-      {full && <div style={{ color: '#ffd866', fontSize: 13 }}>{t('ui.error.seat')}</div>}
+        );
+      })}
+      {full &&<div style={{ color: '#ffd866', fontSize: 13 }}>{t('ui.error.seat')}</div>}
     </>
   );
 }

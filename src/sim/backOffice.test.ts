@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
 import type { Balance } from '../data/schema';
-import { accountingRate, devDailyIncome, devRate, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, salesArrivalChance } from './backOffice';
+import { accountingRate, devDailyIncome, devRate, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, jobEffect, salesArrivalChance } from './backOffice';
 import type { Staff } from '../data/schema';
 
 const balance = balanceJson as unknown as Balance;
@@ -49,5 +49,37 @@ describe('システムエンジニアの開発の収入', () => {
     expect(devRate(10, balance)).toBeGreaterThan(devRate(1, balance));
     const member = { salary: 300000, level: 1 } as Staff;
     expect(devDailyIncome(member, balance) * balance.time.daysPerMonth).toBeCloseTo(300000, -2);
+  });
+});
+
+describe('職種ごとの効果（札と社員の詳細に出す増分）', () => {
+  const who = { level: 3, salary: 200000 };
+
+  it('営業は、加わった分だけ依頼の出やすさが増える（上限まで）', () => {
+    const e = jobEffect('sales', who, 3, 0, balance);
+    expect(e).toEqual({ kind: 'sales', chance: salesArrivalChance(3, balance) });
+  });
+
+  it('経理は、加わった分だけ割引の割合が増える', () => {
+    const e = jobEffect('accounting', who, 3, 2, balance);
+    expect(e).toEqual({ kind: 'accounting', rate: accountingRate(5, balance) - accountingRate(2, balance) });
+  });
+
+  it('人事は、候補の増分と研修の倍率の増分を出す', () => {
+    const e = jobEffect('hr', who, 5, 0, balance);
+    expect(e).toEqual({
+      kind: 'hr',
+      candidates: hrCandidateBonus(5, balance).extraCount,
+      trainingRate: hrTrainingRate(5, balance) - hrTrainingRate(0, balance),
+    });
+  });
+
+  it('システムエンジニアは、開発の収入を月ぶんで出す（担当でない日の合計）', () => {
+    const e = jobEffect('dev', who, 3, 0, balance);
+    expect(e).toEqual({ kind: 'dev', monthlyIncome: Math.round(who.salary * devRate(who.level, balance)) });
+  });
+
+  it('エンジニア枠（内勤でない職種）には効果を出さない', () => {
+    expect(jobEffect('network', who, 3, 0, balance)).toBeNull();
   });
 });

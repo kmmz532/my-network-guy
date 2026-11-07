@@ -263,6 +263,30 @@ const scenes = {
     });
     await page.waitForTimeout(500);
   },
+  // 採用の候補に内勤（営業・人事・経理）とエンジニアを並べる（札と、雇うと増える効果を見る）
+  hiringjobs: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      const base = g.getState().staff[0];
+      const jobs = ['sales', 'hr', 'accounting', 'network'];
+      g.setState({ candidates: jobs.map((job, i) => ({ ...base, uid: `c_shoot_${i}`, name: 'staff.name.5', job, level: 3, exp: 0, training: null })) });
+    });
+    // 雇用の画面は、ツールバーの「雇用」のボタンで開く
+    await page.getByRole('button', { name: /雇用|採用/ }).first().click();
+    await page.waitForTimeout(500);
+  },
+  // 内勤の社員の詳細（効果の行）。2人目を営業にして開く
+  staffback: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      const uid = g.getState().staff[1].uid;
+      g.setState({ staff: g.getState().staff.map((m) => (m.uid === uid ? { ...m, job: 'sales', level: 4 } : m)) });
+      g.getState().openWindow('staff', uid);
+    });
+    await page.waitForTimeout(500);
+  },
   // 退職を伝えた後の社員の詳細（月末に退職する。取り消しの操作を出す）
   staffleaving: async (page) => {
     await scenes.career(page);
