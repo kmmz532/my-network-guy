@@ -28,6 +28,40 @@
       ],
       "sprite": "device/router_basic",
       "unlockLevel": 4
+    },
+    {
+      "id": "router_sfp",
+      "category": "router",
+      "capabilities": [
+        "routedPort",
+        "subif",
+        "routing",
+        "ospf",
+        "bgp",
+        "nat",
+        "dhcpRelay",
+        "wan",
+        "rip"
+      ],
+      "deskable": true,
+      "price": 65000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 4,
+          "speedMbps": 1000
+        },
+        {
+          "type": "sfp",
+          "count": 1,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [
+        "routing"
+      ],
+      "sprite": "device/router_sfp",
+      "unlockLevel": 16
     }
   ]
 }

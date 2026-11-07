@@ -25,7 +25,7 @@ const plans = [
   { id: 'c002_small_office', designHours: 8, devices: ['l2_switch_8p'], cables: { utp_cat5e: [5, 4, 6] } },
   { id: 'c003_departments', designHours: 16, devices: ['router_basic', 'l2_switch_8p', 'l2_switch_8p'], cables: { utp_cat5e: [4, 4, 4, 4, 6, 6] } },
   { id: 'c004_web_server', designHours: 16, devices: ['router_basic', 'l2_switch_8p'], cables: { utp_cat5e: [4, 4, 5, 8] } },
-  { id: 'c005_two_sites', designHours: 24, devices: ['router_basic', 'router_basic', 'l2_switch_8p', 'l2_switch_8p'], cables: { utp_cat5e: [4, 4, 4, 4, 3, 3], fiber_sm: [30] } },
+  { id: 'c005_two_sites', designHours: 24, devices: ['router_sfp', 'router_sfp', 'l2_switch_8p', 'l2_switch_8p'], cables: { utp_cat5e: [2, 4, 2, 4, 6, 6], fiber_mm: [23] } },
   { id: 'c006_office_external', designHours: 16, devices: ['firewall', 'l2_switch_8p'], cables: { utp_cat5e: [4, 4, 5, 8] } },
   ...Array.from({ length: 30 }, (_, i) => 3 + (i % 4)).map((n) => ({
     id: `${template.id}(${n})`,

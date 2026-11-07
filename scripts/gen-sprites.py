@@ -171,6 +171,25 @@ def pc():
     ], PC_KEYS)
 
 
+WIFI_BADGE_ROWS = [
+    '.ooooooo.',
+    'oSSSSSSSo',
+    'oSeeeeeSo',
+    'oeSSSSSeo',
+    'oSSeeeSSo',
+    'oSSSSSSSo',
+    'oSSSeSSSo',
+    '.ooooooo.',
+]
+
+
+def with_wifi_badge(img, x=14, y=6):
+    # 無線対応の PC の印: 機器の右上に、青い札に白い扇形（無線）を重ねる。業務用の PC（有線だけ）と見分ける
+    out = img.copy()
+    out.alpha_composite(from_rows(WIFI_BADGE_ROWS, {'o': 'o', 'S': 'b', 'e': 'e'}), (x, y))
+    return out
+
+
 def pc_front():
     # 手前向き（社員はこちらを向き、画面は奥を向く）: モニターの背面と台座。キーボードはモニターの奥にあり、上の縁だけが見える
     return from_rows([PC_EMPTY] * 11 + [
@@ -364,10 +383,10 @@ def router_box(d, y=20, h=14, sfp=False):
         rect(d, 11 + i * 3, fy + 3, 2, 2, 'o')
 
 
-def router():
+def router(sfp=False):
     # アンテナのない赤い箱を、低い台に載せる
     img, d = new(24, 40)
-    router_box(d, 19, 14, sfp=True)
+    router_box(d, 19, 14, sfp=sfp)
     base(d)
     return img
 
@@ -1789,10 +1808,16 @@ if __name__ == '__main__':
     pc_right = pc_side()
     save(pc_right, 'device/pc_basic_right.png')
     save(pc_right.transpose(Image.FLIP_LEFT_RIGHT), 'device/pc_basic_left.png')
+    # 無線対応の PC（業務用の PC は有線だけ。2026-11-07 の利用者の決定）。同じ絵に無線の札を重ねる
+    save(with_wifi_badge(pc()), 'device/pc_wifi.png')
+    save(with_wifi_badge(pc_front()), 'device/pc_wifi_front.png')
+    save(with_wifi_badge(pc_right), 'device/pc_wifi_right.png')
+    save(with_wifi_badge(pc_right.transpose(Image.FLIP_LEFT_RIGHT), 1), 'device/pc_wifi_left.png')
     save(server(), 'device/server_basic.png')
     save(l2_switch(), 'device/l2_switch_8p.png')
     save(l2_switch_4p(), 'device/l2_switch_4p.png')
     save(router(), 'device/router_basic.png')
+    save(router(sfp=True), 'device/router_sfp.png')
     # これから機材に加える候補（データはまだない）
     save(l3_switch(), 'device/l3_switch.png')
     save(wifi_router(), 'device/wifi_router.png')

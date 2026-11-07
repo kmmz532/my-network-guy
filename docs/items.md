@@ -20,6 +20,7 @@
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/l2_switch_8p.png" width="72" alt="L2スイッチ（24ポート）"> | L2スイッチ（24ポート） | 36,000円 | LAN 24口 | - | Lv23 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/l3_switch.png" width="72" alt="L3スイッチ"> | L3スイッチ | 150,000円 | LAN 8口 | ルーティング、L3（ポートごとにネットワークを持つ） | Lv20 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/router_basic.png" width="72" alt="ルーター"> | ルーター | 60,000円 | LAN 4口 | ルーティング | Lv4 |
+| <img style="image-rendering: pixelated" src="../src/assets/sprites/device/router_sfp.png" width="72" alt="SFP対応ルーター"> | SFP対応ルーター | 65,000円 | LAN 4口・SFP 1口 | ルーティング | Lv16 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/router_switch.png" width="72" alt="スイッチ付きルーター"> | スイッチ付きルーター | 80,000円 | WAN 1口、LAN 4口 | ルーティング、スイッチ | Lv9 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/firewall.png" width="72" alt="ファイアウォール"> | ファイアウォール | 120,000円 | 2口（内側・外側） | ルーティング、ファイアウォール | Lv27 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/firewall_dmz.png" width="72" alt="DMZ付きファイアウォール"> | DMZ付きファイアウォール | 125,000円 | 3口（外部・社内・公開用サーバー） | ルーティング、ファイアウォール | Lv36 |

@@ -32,6 +32,7 @@ import { buyDevice } from './shop';
 import { initialStaff } from './staff';
 import {
   accept,
+  addRoute,
   advanceBuild,
   connect,
   designIssues,
@@ -56,12 +57,14 @@ for (const d of [...pcJson.devices, ...switchJson.devices, ...routerJson.devices
     category: d.category,
     price: d.price,
     portCount: d.ports.reduce((sum, p) => sum + p.count, 0),
+    // 口の種類（ゲームの環境 gameEnv と同じ作り方。光ファイバーは sfp の口だけに挿せる検査を、試験でも効かせる）
+    portTypes: d.ports.flatMap((p) => Array.from({ length: p.count }, () => p.type)),
     defaultServices: (d as { defaultServices?: { protocol: 'http'; port: number }[] }).defaultServices,
   };
 }
 const cables: Env['cables'] = {};
 for (const c of cablesJson.cables) {
-  cables[c.id] = { pricePerLink: c.pricePerLink, pricePerTile: c.pricePerTile, maxLengthTiles: c.maxLengthTiles };
+  cables[c.id] = { port: c.port, pricePerLink: c.pricePerLink, pricePerTile: c.pricePerTile, maxLengthTiles: c.maxLengthTiles };
 }
 const env: Env = {
   balance,
@@ -77,6 +80,9 @@ const env: Env = {
 const UTP = 'utp_cat5e';
 const SWITCH = 'l2_switch_8p';
 const ROUTER = 'router_basic';
+// SFP 対応ルーターと、その SFP の口の番号（RJ45 の口0〜3の後）
+const ROUTER_SFP = 'router_sfp';
+const SFP_PORT = 4;
 const FIREWALL = 'firewall';
 const PC = 'pc_basic';
 const SERVER = 'server_basic';
@@ -250,30 +256,35 @@ describe('模範解答: 固定案件', () => {
     expectReference(finish(core).report);
   });
 
-  it('c005 2拠点: 拠点ごとにスイッチを置き、ルーターを間に置いて光ファイバーで結ぶ（UTP は20マスまで。道路をまたぐ区間は UTP では届かない・N49）', () => {
+  it('c005 2拠点: 拠点ごとにスイッチとルーターを置き、SFP 対応ルーターの SFP の口どうしを光ファイバーで結んで、相手の拠点への静的ルートを登録する（拠点の間は UTP の20マスでは届かない・道路をまたぐ）', () => {
     let core = take(startCore([fixedOffer(c005)]), 'c005_two_sites');
-    core = buy(core, ROUTER);
+    core = buy(core, ROUTER_SFP);
+    core = buy(core, ROUTER_SFP);
     core = buy(core, SWITCH);
     core = buy(core, SWITCH);
-    const router = place(core, ROUTER, 8, 5, sitesMap);
-    core = router.core;
+    const routerA = place(core, ROUTER_SFP, 8, 5, sitesMap);
+    core = routerA.core;
+    const routerB = place(core, ROUTER_SFP, 31, 5, sitesMap);
+    core = routerB.core;
     const swA = place(core, SWITCH, 2, 5, sitesMap);
     core = swA.core;
     const swB = place(core, SWITCH, 37, 5, sitesMap);
     core = swB.core;
     core = wire(core, 'hq_a', swA.uid);
     core = wire(core, 'hq_b', swA.uid);
-    core = wire(core, swA.uid, router.uid, UTP, { b: 0 });
-    // ルーターと拠点Bは29マス離れている。UTP の上限は20マスのため、光ファイバーで結ぶ
-    core = wire(core, router.uid, swB.uid, 'fiber_sm', { a: 1 });
+    core = wire(core, swA.uid, routerA.uid, UTP, { b: 0 });
+    // ルーターの口4は SFP。光ファイバーは SFP の口どうしだけを結べる
+    core = wire(core, routerA.uid, routerB.uid, 'fiber_mm', { a: SFP_PORT, b: SFP_PORT });
+    core = wire(core, routerB.uid, swB.uid, UTP, { a: 0 });
     core = wire(core, 'br_a', swB.uid);
     core = wire(core, 'br_b', swB.uid);
-    core = addr(core, router.uid, '192.168.1.1');
-    core = addr(core, router.uid, '192.168.20.1', 1);
-    // 光ファイバーの費用（1マス1500円）で、予算の75%を超える。★3は取れず、★2で合格する（予算の調整は報告する・N49）
-    const report = finish(core).report;
-    expect(report?.passed).toBe(true);
-    expect(report?.stars).toBe(2);
+    core = addr(core, routerA.uid, '192.168.1.1');
+    core = addr(core, routerA.uid, '192.168.30.1', SFP_PORT);
+    core = addr(core, routerB.uid, '192.168.20.1');
+    core = addr(core, routerB.uid, '192.168.30.2', SFP_PORT);
+    core = ok(addRoute(core, routerA.uid, { dest: '192.168.20.0', prefix: 24, nextHop: '192.168.30.2' })).core;
+    core = ok(addRoute(core, routerB.uid, { dest: '192.168.1.0', prefix: 24, nextHop: '192.168.30.1' })).core;
+    expectReference(finish(core).report);
   });
 
   it('c006 外部接続: スイッチの先にファイアウォールを置き、外部のサーバーへつなぐ', () => {
