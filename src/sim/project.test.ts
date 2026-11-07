@@ -1,4 +1,5 @@
 import { EMPTY_FAMILIARITY } from './familiar';
+import { keepFocus, type Outcome } from './project';
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
 import cablesJson from '../assets/data/cables.json';
@@ -939,5 +940,19 @@ describe('机の上に置ける機器（N91）', () => {
   it('サーバー（deskable でない）は、机の上にも床にも置けない（tile）', () => {
     expect(placeAt(officeWith([deskAt(1, 1)]), 'server_basic', 1, 1)).toBe('tile');
     expect(placeAt(officeWith([]), 'server_basic', 3, 3)).toBeNull();
+  });
+});
+
+describe('任せて受注したときの画面の対象（N111）', () => {
+  it('任せて受注しても、画面の対象（focus）は受注の前のまま', () => {
+    const before = { focus: 'hq-office' } as unknown as Core;
+    const accepted = { ok: true, core: { focus: 'c001' } } as unknown as Outcome;
+    const kept = keepFocus(before, accepted);
+    expect(kept.ok && kept.core.focus).toBe('hq-office');
+  });
+
+  it('失敗したときは、そのまま失敗を返す', () => {
+    const before = { focus: null } as unknown as Core;
+    expect(keepFocus(before, { ok: false, reason: 'crew' })).toEqual({ ok: false, reason: 'crew' });
   });
 });

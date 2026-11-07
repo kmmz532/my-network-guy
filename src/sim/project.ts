@@ -379,6 +379,9 @@ export const applyBlueprint = (core: Core, env: Env): Outcome => {
 };
 
 // 社員に任せて受注する（N70）。型紙を写し、テストを通してから施工に入る。★と経験値の上限は検収で掛ける
+// 任せて受注したあとも、画面の対象（focus）は受注の前のまま残す（現場に移さない・N111）
+export const keepFocus = (before: Core, outcome: Outcome): Outcome => (outcome.ok ? { ...outcome, core: { ...outcome.core, focus: before.focus } } : outcome);
+
 export const acceptDelegated = (core: Core, offerId: string, slots: number, crew: string[], env: Env): Outcome => {
   const offer = core.offers.find((o) => o.id === offerId);
   if (!offer) return fail('none');
@@ -395,7 +398,7 @@ export const acceptDelegated = (core: Core, offerId: string, slots: number, crew
   if (!copied) return fail('none');
   // 写した設計がテストを通らなければ、受注しない（この場合は状態を変えない）
   if (!judge(copied, env).passed) return fail('delegate.test');
-  return requestBuild(withProject(copiedOut.core, { ...copied, testedOk: true }), env);
+  return keepFocus(core, requestBuild(withProject(copiedOut.core, { ...copied, testedOk: true }), env));
 };
 
 // 案件で最初から置かれている機器
@@ -1408,7 +1411,7 @@ export const delegateBlind = (core: Core, offerId: string, crew: string[], env: 
   const project = accepted.core.active.find((x) => x.id === offerId);
   if (!project) return { ok: false, reason: 'none' };
   const started: Project = { ...project, delegated: true, blind: plan, phase: 'build', progress: 0, total, testedOk: true };
-  return { ok: true, core: withProject(accepted.core, started), rng: result.rng };
+  return { ok: true, core: { ...withProject(accepted.core, started), focus: core.focus }, rng: result.rng };
 };
 
 // 型紙なしで任せた依頼を納品する。費用は予算 × 費用の割合、報酬は★の倍率で決まる。経験値は半分。設計は地図に残さない
