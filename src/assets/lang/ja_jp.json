@@ -128,6 +128,8 @@
   "ui.terminal.usageWireless": "書式: wireless ssid <名前> / wireless password <8字以上> / wireless channel <1-13> / wireless vlan <番号>",
   "ui.terminal.usageNat": "書式: ip nat inside|outside <ポート> / ip nat napt / ip nat static <外のポート> <社内のIP> <社内のポート>",
   "error.link.unplugged": "ケーブルが接続されていない。",
+  "error.ospf.no_neighbor": "OSPF の隣接がなく、宛先への経路を覚えていない。",
+  "error.ospf.no_neighbor.fix": "同じエリアの OSPF の口を、隣の機器の口とつなぎ、同じサブネットにそろえます。",
   "error.wireless.unassociated": "無線でアクセスポイントにつながっていない。",
   "error.wireless.unassociated.fix": "SSID とパスワードをアクセスポイントと同じにし、電波の範囲（半径6マス・壁は減衰する）の中に置きます。",
   "ui.wireless.connected": "つながっている（{ap}）",

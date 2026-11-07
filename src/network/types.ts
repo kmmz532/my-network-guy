@@ -141,6 +141,8 @@ export const FAILURE_REASONS = [
   'link.unplugged',
   // 無線の端末がアクセスポイントにつながっていない（SSID・パスワードが合わない、電波の範囲の外）。ケーブルの失敗とは分ける
   'wireless.unassociated',
+  // OSPF に参加しているのに、宛先への経路を得られない（隣接がない。route.none の OSPF の場合・N142）
+  'ospf.no_neighbor',
   // 口が停止している（shutdown・N137）
   'port.shutdown',
   // 口の VLAN が通らない（access と trunk の許可の不一致・N137）
