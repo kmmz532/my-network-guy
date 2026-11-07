@@ -12,7 +12,7 @@ import { rangeTiles } from './effectRange';
 import { setMapView } from './mapView';
 import { gameEnv } from '../sim/env';
 import { moveFurniture, placeFurniture, seatedStaff, unseatedStaff } from '../sim/furniture';
-import { spriteNameOf } from '../sim/facing';
+import { spriteNameOf, type Facing } from '../sim/facing';
 
 // 向きの絵がある家具（机・椅子）。向きに合わせて絵を切り替える（N95）
 const FACING_SPRITES = new Set(['furniture/desk', 'furniture/chair']);
@@ -90,6 +90,8 @@ const BREAK_FURNITURE = ['coffee', 'water', 'sofa'];
 const CHAIR_FURNITURE = new Set(['desk']);
 const CHAIR_SPRITE = 'furniture/chair';
 const CHAIR_TOP_INSET = 4;
+// 向きごとの椅子の位置のずれ（マス単位）。社員の背中側に椅子を置く（N95）
+const CHAIR_OFFSET: Record<Facing, [number, number]> = { up: [0, 0], down: [0, -0.6], left: [0.3, 0], right: [-0.3, 0] };
 const SANDBOX_OPEN_ZOOM = 2;
 // 失敗の吹き出しを出しておく時間（ms）
 const FLASH_MS = 2500;
@@ -899,9 +901,9 @@ export class Scene {
         this.drawStaff(at.x, at.y, look, member);
         return;
       }
-      // 机の下の段に座り、打鍵に合わせて小さく揺れる
+      // 机の下の段に座り、打鍵に合わせて小さく揺れる（向きは机と同じ）
       const at = deskStaffPos(desk.x, desk.y, ts, deskTap(this.elapsed, k));
-      this.drawStaff(at.x, at.y, look, member);
+      this.drawStaff(at.x, at.y, look, member, desk.facing ?? 'up');
       // 口癖は、社員ごとにずらした周期で、60秒に3秒だけ頭上に出す（平均60秒に1回）
       const seconds = this.elapsed / 1000 + k * 23;
       if (seconds % 60 < 3) {
@@ -1047,7 +1049,9 @@ export class Scene {
     const tex = texture(spriteOf(spriteNameOf(CHAIR_SPRITE, f.facing ?? 'up')));
     if (!tex) return;
     const sprite = new Sprite(tex);
-    sprite.position.set(f.x * ts + Math.round((ts - tex.width) / 2), (f.y + 1) * ts - CHAIR_TOP_INSET);
+    // 椅子は社員の背中側に描く（up は手前、down は奥、left は右、right は左。N95）
+    const [ox, oy] = CHAIR_OFFSET[f.facing ?? 'up'];
+    sprite.position.set(f.x * ts + Math.round((ts - tex.width) / 2) + Math.round(ox * ts), (f.y + 1) * ts - CHAIR_TOP_INSET + Math.round(oy * ts));
     sprite.zIndex = (f.y + 1) * ts - DEVICE_FOOT_INSET;
     this.sprites.addChild(sprite);
   }
@@ -1175,7 +1179,8 @@ export class Scene {
 
   // 社員のスプライト（16×24 px）。2コマで足踏みする
   // tag があれば、頭の上に名札（名前と職種）を出す。社員の名前が分からないときは出さない
-  private drawStaff(x: number, y: number, shirt: string, tag?: { name: string; job: string }): void {
+  // 社員の絵。向きが左・右のときは、今の絵を左右に反転する（前向きの絵はまだないため。N95）
+  private drawStaff(x: number, y: number, shirt: string, tag?: { name: string; job: string }, facing?: Facing): void {
     const frame = Math.floor(this.elapsed / (FRAME_MS * 2)) % 2;
     const tex = texture(spriteOf(`staff/${staffSpriteName(shirt)}_${frame}`));
     if (!tex) return;
@@ -1183,6 +1188,10 @@ export class Scene {
     const left = Math.round(x);
     const top = Math.round(y);
     sprite.position.set(left, top);
+    if (facing === 'left' || facing === 'right') {
+      sprite.scale.x = -1;
+      sprite.position.x = left + STAFF_W;
+    }
     sprite.zIndex = top + STAFF_FOOT;
     this.sprites.addChild(sprite);
     // 足元の影（機器と同じく床に接地していることを示す）
