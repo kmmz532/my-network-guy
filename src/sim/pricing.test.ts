@@ -10,6 +10,8 @@ const balance = balanceJson as unknown as Balance;
 describe('機材の価格の式', () => {
   it('すべての機材の定価は、式の値と一致する', () => {
     for (const d of Object.values(devices)) {
+      // 回線終端（uplink）は店で買えない固定の機器なので、価格の式の対象にしない（N144）
+      if (d.category === 'uplink') continue;
       const ports = d.ports.reduce((sum, p) => sum + p.count, 0);
       expect(d.price, `${d.id} の定価`).toBe(priceOf({ category: d.category, ports, features: d.features ?? [] }, balance.pricing));
     }

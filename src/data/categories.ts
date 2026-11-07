@@ -10,6 +10,8 @@ export const CATEGORY = {
   firewall: 'firewall',
   // プリンター（N51b）
   printer: 'printer',
+  // 回線終端（ISP の回線の口。固定の機器で、店では買えない・N144）
+  uplink: 'uplink',
 } as const;
 
 // 分類が PC か（機器の分類の判定はここだけで行う。N116）

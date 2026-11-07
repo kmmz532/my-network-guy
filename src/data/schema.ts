@@ -311,7 +311,7 @@ export const deviceSchema = z
     if (has('svi') && d.sviMax === undefined) fail('svi には sviMax が必要');
     if (!has('svi') && d.sviMax !== undefined) fail('sviMax は svi を持つ機器だけ');
     if (has('subif') && !has('routedPort')) fail('subif には routedPort が必要');
-    if ((has('ospf') || has('bgp') || has('nat') || has('wan')) && !has('routing')) fail('ospf・bgp・nat・wan には routing が必要');
+    if ((has('ospf') || has('bgp') || has('nat')) && !has('routing')) fail('ospf・bgp・nat には routing が必要');
     if (has('vlan') && !has('switchport')) fail('vlan には switchport が必要');
   });
 

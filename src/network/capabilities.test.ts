@@ -34,3 +34,11 @@ describe('機器の能力', () => {
     expect(deviceSchema.safeParse({ ...base, capabilities: ['nat'] }).success).toBe(false);
   });
 });
+
+describe('回線終端（N144）', () => {
+  it('回線終端は回線（wan）の能力を持ち、L3スイッチは持たない（回線につなげられるのは wan の機器）', () => {
+    expect(can('uplink', 'wan')).toBe(true);
+    expect(can('l3_switch', 'wan')).toBe(false);
+    expect(can('router_basic', 'wan')).toBe(true);
+  });
+});

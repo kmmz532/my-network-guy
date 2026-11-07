@@ -135,6 +135,8 @@ export const FAILURE_REASONS = [
   'vlan.not_allowed',
   // そのサブネットのインターフェースがない（RIP・OSPF の network 文・N143）
   'iface.none',
+  // 回線終端を、回線の能力のない機器につないだ（N144）
+  'uplink.no_wan',
   'link.too_long',
   'link.loop',
   'ip.unset',

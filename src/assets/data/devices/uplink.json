@@ -1,0 +1,23 @@
+{
+  "devices": [
+    {
+      "id": "uplink",
+      "category": "uplink",
+      "capabilities": [
+        "wan"
+      ],
+      "deskable": false,
+      "price": 0,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 1,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [],
+      "sprite": "device/uplink",
+      "unlockLevel": 99
+    }
+  ]
+}

@@ -49,6 +49,7 @@ import { CATEGORY, isPcCategory } from '../data/categories';
 import { cableLengthOf, checkCableLength } from './cableLength';
 import { busyStaff, crewBlock } from './crew';
 import { makeIface } from '../network/iface';
+import { can } from '../network/capabilities';
 import { deliveryExpOf, levelOf, type LevelUp } from './level';
 
 export interface Project {
@@ -760,6 +761,11 @@ export const checkConnect = (
   const lengthCheck = checkCableLength(length, cable.maxLengthTiles);
   if (lengthCheck !== 'ok') return lengthCheck;
   if (core.clock.money < paidCable(core, cable.pricePerLink + cable.pricePerTile * length)) return 'money';
+  // 回線終端（uplink）は、回線（wan）の能力を持つ機器だけとつなげる（N144）
+  const uplinkRule = (x: NetNode, y: NetNode): string | null =>
+    env.devices[x.device]?.category === 'uplink' && !can(y.device, 'wan') ? 'uplink.no_wan' : null;
+  const uplinkBad = uplinkRule(a, b) ?? uplinkRule(b, a);
+  if (uplinkBad) return uplinkBad;
   const portA = choosePort(net.links, a, env, ports.a);
   if (typeof portA === 'string') return portA;
   const portB = choosePort(net.links, b, env, ports.b);
