@@ -96,3 +96,23 @@ describe('ひな形の配置（instantiateTemplate）', () => {
   });
 });
 
+
+// 机の向き（N171）: 島型の2列は向かい合い、壁沿いは壁に向かい、窓口は手前を向く
+describe('机の向き（N171）', () => {
+  it('島型は、左の列が右向き・右の列が左向きで向かい合う', () => {
+    for (let seed = 1; seed <= 30; seed++) {
+      const got = layoutDesks(officeSmall, { x: 2, y: 2, width: 10, height: 6 }, 6, ['island'], new Set(), [], seed);
+      if (got.laid === null) continue;
+      for (const d of got.laid.desks) {
+        expect(["left", "right"]).toContain(d.facing);
+        // 右向きの机の右隣は、左向きの机（列が向かい合う）
+        if (d.facing === "right") expect(got.laid.desks.some((o) => o.x === d.x + 1 && o.y === d.y && o.facing === "left")).toBe(true);
+      }
+    }
+  });
+
+  it('窓口の机は手前（down）を向く', () => {
+    const got = layoutDesks(officeSmall, { x: 2, y: 2, width: 10, height: 6 }, 4, ['reception'], new Set(), [], 3);
+    if (got.laid !== null) for (const d of got.laid.desks) expect(d.facing).toBe('down');
+  });
+});

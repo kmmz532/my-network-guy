@@ -2,12 +2,15 @@
 import type { GameMap } from '../data/schema';
 import { tileKind } from '../data/tileKind';
 import { rand, randInt } from '../sim/rng';
+import type { Facing } from '../sim/facing';
 
 export type LayoutKind = 'island' | 'wall' | 'reception';
 
 export interface Cell { x: number; y: number }
 export interface Rect { x: number; y: number; width: number; height: number }
-export interface FurnitureCell extends Cell { id: string }
+export interface FurnitureCell extends Cell { id: string; facing?: Facing }
+// 机（向きを持つ）。島型の列・壁沿いの列・窓口の向きで決める（N171）
+export interface DeskCell extends Cell { facing: Facing }
 
 // 飾りの家具の数は、床の広さに対するこの割合（5〜10%）
 export const DECOR_RATIO = { min: 0.05, max: 0.1 };
@@ -24,26 +27,28 @@ const inRect = (r: Rect, x: number, y: number): boolean => x >= r.x && x < r.x +
 const isFloor = (map: GameMap, x: number, y: number): boolean => tileKind(map, x, y) === 'floor';
 
 // 机の島（2列 × 4行 = 最大8台）を、通路1マスを空けて並べた候補。先頭の島から行ごとに並ぶ
-const islandSlots = (rect: Rect, ox: number, oy: number): Cell[] => {
-  const out: Cell[] = [];
+// 向かい合う2列（左の列は右向き、右の列は左向き。通路を挟んで顔を合わせる・N171）
+const islandSlots = (rect: Rect, ox: number, oy: number): DeskCell[] => {
+  const out: DeskCell[] = [];
   for (let j = 0; j < rect.height; j++) {
     for (let i = 0; i < rect.width; i++) {
       const bx = rect.x + ox + 3 * i;
       const by = rect.y + oy + 5 * j;
-      for (let r = 0; r < 4; r++) for (let c = 0; c < 2; c++) out.push({ x: bx + c, y: by + r });
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 2; c++) out.push({ x: bx + c, y: by + r, facing: c === 0 ? 'right' : 'left' });
     }
   }
   return out;
 };
 
 // 壁沿いの1列（机の間を1マス空ける）
-const wallRow = (rect: Rect, y: number, ox: number, n: number): Cell[] => {
-  const out: Cell[] = [];
-  for (let i = 0; i < n; i++) out.push({ x: rect.x + ox + 2 * i, y });
+// 壁沿いの列は、壁に向かう（N171）
+const wallRow = (rect: Rect, y: number, ox: number, n: number, facing: Facing): DeskCell[] => {
+  const out: DeskCell[] = [];
+  for (let i = 0; i < n; i++) out.push({ x: rect.x + ox + 2 * i, y, facing });
   return out;
 };
 
-interface Plan { slots: Cell[]; shelfRow: boolean; rng: number }
+interface Plan { slots: DeskCell[]; shelfRow: boolean; rng: number }
 
 // 型ごとの候補の並び（先頭から順に使う）。範囲の外や床でないマスは、あとで外す。窓口型は、手前の行に机を並べ、後ろの行に棚を置く
 const planOf = (kind: LayoutKind, map: GameMap, rect: Rect, rng: number): Plan => {
@@ -66,15 +71,17 @@ const planOf = (kind: LayoutKind, map: GameMap, rect: Rect, rng: number): Plan =
     const useTop = topWindow !== bottomWindow ? topWindow : pick(0, 1) === 0;
     const y = useTop ? rect.y : rect.y + rect.height - 1;
     const ox = pick(0, 1);
-    return { slots: wallRow(rect, y, ox, rect.width), shelfRow: false, rng: state };
+    // 上の壁沿いは奥向き（up）、下の壁沿いは手前向き（down）
+    return { slots: wallRow(rect, y, ox, rect.width, useTop ? 'up' : 'down'), shelfRow: false, rng: state };
   }
   // 窓口型: 下の行に机を並べ、上の行に同じ x の棚を置く
   const ox = pick(0, 1);
-  return { slots: wallRow(rect, rect.y + rect.height - 1, ox, rect.width), shelfRow: true, rng: state };
+  // 窓口の机は客の側（手前）を向く
+  return { slots: wallRow(rect, rect.y + rect.height - 1, ox, rect.width, 'down'), shelfRow: true, rng: state };
 };
 
 export interface LaidOut {
-  desks: Cell[];
+  desks: DeskCell[];
   shelves: Cell[];
   rng: number;
 }

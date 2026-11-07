@@ -2,7 +2,7 @@
 import type { Contract, ContractTemplate, Goal, GameMap } from '../data/schema';
 import { randInt, rand } from '../sim/rng';
 import { tileKind } from '../data/tileKind';
-import { DEFAULT_DECOR, DEFAULT_LAYOUT, layoutDesks, placeDecor, type Cell, type FurnitureCell } from './layout';
+import { DEFAULT_DECOR, DEFAULT_LAYOUT, layoutDesks, placeDecor, type DeskCell, type FurnitureCell } from './layout';
 
 // 依頼先の机（PC の下に敷く家具）と棚（窓口型）の家具 ID
 const DESK_FURNITURE = 'desk_only';
@@ -78,7 +78,7 @@ const layoutTemplate = (template: ContractTemplate, map: GameMap, rngState: numb
   const kinds = template.layout ?? DEFAULT_LAYOUT;
   // 歩けない床（地図の家具・机・棚）。後の机と飾りは、これを避けて置く
   const taken = new Set<string>((map.furniture ?? []).map((f) => `${f.x},${f.y}`));
-  const desks: Cell[] = [];
+  const desks: DeskCell[] = [];
   const furniture: FurnitureCell[] = [];
   for (const group of groups) {
     let named = 0;
@@ -94,7 +94,8 @@ const layoutTemplate = (template: ContractTemplate, map: GameMap, rngState: numb
     for (const d of laid.desks) {
       taken.add(`${d.x},${d.y}`);
       desks.push(d);
-      furniture.push({ id: DESK_FURNITURE, x: d.x, y: d.y });
+      // 机の向きは、並べ方の型で決めた向きを持たせる（N171）
+      furniture.push({ id: DESK_FURNITURE, x: d.x, y: d.y, facing: d.facing });
       if (group.role !== undefined && group.name !== undefined) {
         const list = roles.get(group.role) ?? [];
         const ref = `${group.role}_${list.length + 1}`;

@@ -1150,7 +1150,7 @@ export class Scene {
     // 機器はスプライト（24×40）で描く。足元（底面の行）をタイルの下寄りに揃え、床に置いた影を添える
     // PC は、机の上にあれば机と同じ向きの絵にする（N95）
     const deviceBase = deviceData[node.device as keyof typeof deviceData]?.sprite ?? '';
-    const deskFacing = useGameStore.getState().office.furniture.find((f) => f.x === node.x && f.y === node.y && f.id === 'desk')?.facing ?? 'up';
+    const deskFacing = this.deskFacingAt(node.x, node.y);
     const deviceSprite = FACING_DEVICE_SPRITES.has(deviceBase) ? spriteNameOf(deviceBase, deskFacing) : deviceBase;
     const tex = texture(spriteOf(deviceSprite));
     const foot = node.y * ts + ts - DEVICE_FOOT_INSET;
@@ -1259,6 +1259,13 @@ export class Scene {
   // 社員のスプライト（16×24 px）。2コマで足踏みする
   // tag があれば、頭の上に名札（名前と職種）を出す。社員の名前が分からないときは出さない
   // 社員の絵。向きが左・右のときは、今の絵を左右に反転する（前向きの絵はまだないため。N95）
+  // 机の向き（自社オフィスなら自社の家具、依頼先なら依頼の家具。N171）
+  private deskFacingAt(x: number, y: number): Facing {
+    const store = useGameStore.getState();
+    if (viewingOffice(store)) return store.office.furniture.find((f) => f.x === x && f.y === y && f.id === 'desk')?.facing ?? 'up';
+    return this.project()?.contract?.furniture?.find((f) => f.x === x && f.y === y && f.id === 'desk')?.facing ?? 'up';
+  }
+
   private drawStaff(x: number, y: number, shirt: string, tag?: { name: string; job: string }, facing?: Facing): void {
     const frame = Math.floor(this.elapsed / (FRAME_MS * 2)) % 2;
     const tex = texture(spriteOf(`staff/${staffSpriteName(shirt)}_${frame}`));
