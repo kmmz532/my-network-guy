@@ -164,7 +164,7 @@ describe('IPアドレスの自動割り当て（autoAssign）', () => {
     const sw = place(core, SWITCH, 10, 4);
     core = ok(connect(sw.core, 'pc_c', sw.uid, UTP, env, 'focus')).core;
     core = autoAssign(core, env, 'focus', true);
-    expect(nodeOf(core, 'pc_c')).toMatchObject({ interfaces: [{ port: 0, ip: '192.168.2.10', prefix: 24 }] });
+    expect(nodeOf(core, 'pc_c')).toMatchObject({ interfaces: [{ id: "eth0", kind: "port", port: 0, ip: '192.168.2.10', prefix: 24 }] });
     expect(nodeOf(core, 'pc_a').interfaces[0].ip).toBe('192.168.1.10');
   });
 
@@ -173,8 +173,8 @@ describe('IPアドレスの自動割り当て（autoAssign）', () => {
     let core = ok(connect(base, 'pc_a', sw, UTP, env, 'focus')).core;
     const router = place(buy(core, ROUTER), ROUTER, 6, 6);
     core = wireAuto(router.core, router.uid, sw);
-    expect(nodeOf(core, router.uid).interfaces).toEqual([{ port: 0, ip: '192.168.1.1', prefix: 24 }]);
-    expect(nodeOf(core, 'pc_a')).toMatchObject({ gateway: '192.168.1.1', interfaces: [{ port: 0, ip: '192.168.1.10', prefix: 24 }] });
+    expect(nodeOf(core, router.uid).interfaces).toEqual([{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 }]);
+    expect(nodeOf(core, 'pc_a')).toMatchObject({ gateway: '192.168.1.1', interfaces: [{ id: "eth0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }] });
   });
 
   it('ゲートウェイ: 未設定で、同じセグメントにルーターのアドレスがあれば、それを使う。ルーターのポートは振らない', () => {
@@ -186,7 +186,7 @@ describe('IPアドレスの自動割り当て（autoAssign）', () => {
     expect(nodeOf(core, router.uid).interfaces).toEqual([]);
     core = addr(core, router.uid, '192.168.1.1');
     core = wireAuto(core, 'pc_b', sw);
-    expect(nodeOf(core, 'pc_b')).toMatchObject({ gateway: '192.168.1.1', interfaces: [{ port: 0, ip: '192.168.1.10', prefix: 24 }] });
+    expect(nodeOf(core, 'pc_b')).toMatchObject({ gateway: '192.168.1.1', interfaces: [{ id: "eth0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }] });
   });
 
   it('既にゲートウェイがあるPCは、ゲートウェイを変えない', () => {
@@ -195,7 +195,7 @@ describe('IPアドレスの自動割り当て（autoAssign）', () => {
     core = addr(core, 'pc_a', '192.168.1.11');
     core = ok(setGateway(core, 'pc_b', '192.168.1.99', 'focus')).core;
     core = wireAuto(core, 'pc_b', sw);
-    expect(nodeOf(core, 'pc_b')).toMatchObject({ gateway: '192.168.1.99', interfaces: [{ port: 0, ip: '192.168.1.10', prefix: 24 }] });
+    expect(nodeOf(core, 'pc_b')).toMatchObject({ gateway: '192.168.1.99', interfaces: [{ id: "eth0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }] });
   });
 
   it('既にIPアドレスのあるポートは変えない', () => {
@@ -265,8 +265,8 @@ describe('IPアドレスの自動割り当て（自社オフィス・サンド�
     const { core: base, a, b } = sandboxWired();
     const set = ok(setSegment(base, a, 0, '192.168.7.0', 24, env, 'office')).core;
     const core = autoAssign(set, env, 'office', true);
-    expect(officeNode(core, a).interfaces).toEqual([{ port: 0, ip: '192.168.7.10', prefix: 24 }]);
-    expect(officeNode(core, b).interfaces).toEqual([{ port: 0, ip: '192.168.7.11', prefix: 24 }]);
+    expect(officeNode(core, a).interfaces).toEqual([{ id: "eth0", kind: "port", port: 0, ip: '192.168.7.10', prefix: 24 }]);
+    expect(officeNode(core, b).interfaces).toEqual([{ id: "eth0", kind: "port", port: 0, ip: '192.168.7.11', prefix: 24 }]);
     expect(officeNode(core, a).gateway).toBeNull();
   });
 
@@ -274,8 +274,8 @@ describe('IPアドレスの自動割り当て（自社オフィス・サンド�
     const { core: base, a, b } = sandboxWired();
     const set = ok(setSegment(base, b, 0, '10.0.0.0', 24, env, 'office')).core;
     const on = autoAssign(set, env, 'office', true);
-    expect(officeNode(on, a).interfaces).toEqual([{ port: 0, ip: '10.0.0.10', prefix: 24 }]);
-    expect(officeNode(on, b).interfaces).toEqual([{ port: 0, ip: '10.0.0.11', prefix: 24 }]);
+    expect(officeNode(on, a).interfaces).toEqual([{ id: "eth0", kind: "port", port: 0, ip: '10.0.0.10', prefix: 24 }]);
+    expect(officeNode(on, b).interfaces).toEqual([{ id: "eth0", kind: "port", port: 0, ip: '10.0.0.11', prefix: 24 }]);
   });
 
   it('設定がオフなら、サンドボックスでも振らない', () => {

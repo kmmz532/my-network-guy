@@ -1,3 +1,4 @@
+import { makeIface } from './iface';
 // 外部（インターネット）の表し方（N71・N72）。仮想のインターネットを、ルーターの空いている WAN の口（ポート0）につなぐ。
 // 配線はプレイヤーが行わない（判定のときだけ使う）。ルーターの WAN の口に 198.51.100.0/24 の IPアドレスと既定の経路を設定すると、外部へ届く。
 // 公開: インターネットから、サーバーへ HTTP（80）が届き、社内の PC へは外から届かないこと（NAT・ポート転送は扱わない）。
@@ -40,7 +41,7 @@ export const withInternet = (net: Network, data: EngineData): (Network & { inter
     y: 0,
     locked: true,
     configLocked: true,
-    interfaces: [{ port: 0, ip: INTERNET_IP, prefix: INTERNET_PREFIX }],
+    interfaces: [makeIface('internet', 0, INTERNET_IP, INTERNET_PREFIX)],
     gateway: wanIp,
     routes: [],
     services: [],

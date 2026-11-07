@@ -1,5 +1,10 @@
 // 配置された機器と配線の形式（セーブデータとシミュレーションの入力を兼ねる）
+// インターフェース（IPアドレスを持つ場所）。口（port）とは別に、名前（id）と種類（kind）を持つ（N135）
 export interface Iface {
+  // 名前（eth0・g0/1 など。画面とターミナルで同じ名前を出す）
+  id: string;
+  // 種類: port（口のインターフェース）・svi・sub・lan（内蔵スイッチ）。今は port だけを使う
+  kind: 'port';
   port: number;
   ip: string;
   prefix: number;

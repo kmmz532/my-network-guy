@@ -469,7 +469,7 @@ describe('自社オフィスの編集', () => {
     core = ok(connect(core, 'u1', 'u2', 'utp_cat5e', env, 'office')).core;
     expect(core.office.links).toHaveLength(2);
     core = ok(setInterface(core, 'u0', 0, '192.168.1.10', 24, env, 'office')).core;
-    expect(core.office.nodes.find((n) => n.uid === 'u0')?.interfaces).toEqual([{ port: 0, ip: '192.168.1.10', prefix: 24 }]);
+    expect(core.office.nodes.find((n) => n.uid === 'u0')?.interfaces).toEqual([{ id: "eth0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }]);
   });
 
   it('配線は施工を待たず、すぐに自社オフィスに反映される', () => {
@@ -821,7 +821,7 @@ describe('配線の前のIPアドレス（PC・サーバー）', () => {
 
   it('配線していないPCにIPアドレスを設定でき、セグメントはまだ作られない', () => {
     const core = ok(setInterface(unwired(), 'pc_a', 0, '192.168.1.10', 24, env)).core;
-    expect(cur(core)?.nodes.find((n) => n.uid === 'pc_a')?.interfaces).toEqual([{ port: 0, ip: '192.168.1.10', prefix: 24 }]);
+    expect(cur(core)?.nodes.find((n) => n.uid === 'pc_a')?.interfaces).toEqual([{ id: "eth0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }]);
     expect(cur(core)?.segments ?? {}).toEqual({});
   });
 
@@ -863,7 +863,7 @@ describe('配線の前のIPアドレス（PC・サーバー）', () => {
 
   it('配線の前に設定したアドレスは、入力した値のまま残る', () => {
     const core = ok(setInterface(unwired(), 'pc_a', 0, '10.20.30.40', 24, env)).core;
-    expect(cur(core)?.nodes.find((n) => n.uid === 'pc_a')?.interfaces[0]).toEqual({ port: 0, ip: '10.20.30.40', prefix: 24 });
+    expect(cur(core)?.nodes.find((n) => n.uid === 'pc_a')?.interfaces[0]).toEqual({ id: "eth0", kind: "port", port: 0, ip: '10.20.30.40', prefix: 24 });
   });
 });
 

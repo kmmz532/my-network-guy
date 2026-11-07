@@ -17,7 +17,7 @@ const host = (uid: string, device: string, ip: string): NetNode => ({
   y: 0,
   locked: false,
   configLocked: false,
-  interfaces: [{ port: 0, ip, prefix: 24 }],
+  interfaces: [{ id: "g0/0", kind: "port", port: 0, ip, prefix: 24 }],
   gateway: null,
   routes: [],
   services: device === 'server' ? [{ protocol: 'http', port: 80 }] : [],
@@ -129,8 +129,8 @@ describe('銀行の支店の守り（模範解答で解ける）', () => {
     ...sw('fw'),
     device: 'firewall',
     interfaces: [
-      { port: 0, ip: '192.168.1.1', prefix: 24 },
-      { port: 1, ip: '192.168.2.1', prefix: 24 },
+      { id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 },
+      { id: "g0/1", kind: "port", port: 1, ip: '192.168.2.1', prefix: 24 },
     ],
     rules,
   });

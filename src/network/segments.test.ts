@@ -80,7 +80,7 @@ describe('セグメントの算出', () => {
 
 describe('セグメントの設定', () => {
   it('案件で設定が固定された機器を含むセグメントは、その機器のアドレスから決まる', () => {
-    const fixed = node('a', 'pc', [{ port: 0, ip: '192.168.1.11', prefix: 24 }], true);
+    const fixed = node('a', 'pc', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }], true);
     const net: Network = { nodes: [fixed, node('b', 'pc')], links: [link('l0', 'a:0', 'b:0')] };
     const [seg] = segmentsOf(net, data);
     const nodes = new Map(net.nodes.map((n) => [n.uid, n]));
@@ -90,7 +90,7 @@ describe('セグメントの設定', () => {
 
   it('設定のないセグメントは、IPアドレスのある機器のネットワークを設定にする（保存された設定は残す）', () => {
     const net: Network = {
-      nodes: [node('a', 'pc', [{ port: 0, ip: '192.168.1.11', prefix: 24 }]), node('b', 'pc'), node('c', 'pc', [{ port: 0, ip: '10.0.0.5', prefix: 8 }]), node('d', 'pc')],
+      nodes: [node('a', 'pc', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }]), node('b', 'pc'), node('c', 'pc', [{ id: "g0/0", kind: "port", port: 0, ip: '10.0.0.5', prefix: 8 }]), node('d', 'pc')],
       links: [link('l0', 'a:0', 'b:0'), link('l1', 'c:0', 'd:0')],
       segments: { 'c:0': { network: '10.0.0.0', prefix: 16 } },
     };

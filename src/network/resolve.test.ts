@@ -16,7 +16,7 @@ const host = (uid: string, ip: string, extra: Partial<NetNode> = {}): NetNode =>
   y: 0,
   locked: false,
   configLocked: false,
-  interfaces: [{ port: 0, ip, prefix: 24 }],
+  interfaces: [{ id: "g0/0", kind: "port", port: 0, ip, prefix: 24 }],
   gateway: null,
   routes: [],
   services: [],

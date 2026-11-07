@@ -25,7 +25,7 @@ const node = (uid: string, device: string, interfaces: Iface[] = [], routes: Rou
 });
 
 const pc = (uid: string, ip?: string, gateway: string | null = null): NetNode => ({
-  ...node(uid, 'pc', ip ? [{ port: 0, ip, prefix: 24 }] : []),
+  ...node(uid, 'pc', ip ? [{ id: "g0/0", kind: "port", port: 0, ip, prefix: 24 }] : []),
   gateway,
 });
 
@@ -43,7 +43,7 @@ const link = (uid: string, a: string, aPort: number, b: string, bPort: number): 
 describe('スイッチ付きルーターのセグメント', () => {
   it('LAN の口どうしは、つながった位置によらず同じセグメントになる', () => {
     const net: Network = {
-      nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), node('rs', 'rs', [{ port: 1, ip: '192.168.1.1', prefix: 24 }])],
+      nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), node('rs', 'rs', [{ id: "g0/1", kind: "port", port: 1, ip: '192.168.1.1', prefix: 24 }])],
       links: [link('l1', 'a', 0, 'rs', 1), link('l2', 'b', 0, 'rs', 3)],
     };
     const segs = segmentsOf(net, data);
@@ -80,7 +80,7 @@ describe('スイッチ付きルーターのセグメント', () => {
 describe('スイッチ付きルーターの判定', () => {
   it('LAN の口につないだPC どうしは、同じネットワークなら通る', () => {
     const net: Network = {
-      nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), node('rs', 'rs', [{ port: 1, ip: '192.168.1.1', prefix: 24 }])],
+      nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), node('rs', 'rs', [{ id: "g0/1", kind: "port", port: 1, ip: '192.168.1.1', prefix: 24 }])],
       links: [link('l1', 'a', 0, 'rs', 1), link('l2', 'b', 0, 'rs', 4)],
     };
     expect(ping(net, data, 'a', 'b')).toMatchObject({ ok: true, path: ['a', 'b'] });
@@ -95,8 +95,8 @@ describe('スイッチ付きルーターの判定', () => {
           'rs',
           'rs',
           [
-            { port: 0, ip: '10.0.0.1', prefix: 24 },
-            { port: 1, ip: '192.168.1.1', prefix: 24 },
+            { id: "g0/0", kind: "port", port: 0, ip: '10.0.0.1', prefix: 24 },
+            { id: "g0/1", kind: "port", port: 1, ip: '192.168.1.1', prefix: 24 },
           ],
           [{ dest: '192.168.2.0', prefix: 24, nextHop: '10.0.0.2' }],
         ),
@@ -104,8 +104,8 @@ describe('スイッチ付きルーターの判定', () => {
           'r2',
           'router',
           [
-            { port: 0, ip: '10.0.0.2', prefix: 24 },
-            { port: 1, ip: '192.168.2.1', prefix: 24 },
+            { id: "g0/0", kind: "port", port: 0, ip: '10.0.0.2', prefix: 24 },
+            { id: "g0/1", kind: "port", port: 1, ip: '192.168.2.1', prefix: 24 },
           ],
           [{ dest: '192.168.1.0', prefix: 24, nextHop: '10.0.0.1' }],
         ),
@@ -131,7 +131,7 @@ describe('スイッチ付きルーターの判定', () => {
 describe('スイッチ付きルーターとL3スイッチの設定の判定', () => {
   it('LAN の口の機器は、代表の口のアドレスをゲートウェイにする', () => {
     const net: Network = {
-      nodes: [pc('a', '192.168.1.10'), node('rs', 'rs', [{ port: 1, ip: '192.168.1.1', prefix: 24 }])],
+      nodes: [pc('a', '192.168.1.10'), node('rs', 'rs', [{ id: "g0/1", kind: "port", port: 1, ip: '192.168.1.1', prefix: 24 }])],
       links: [link('l1', 'a', 0, 'rs', 3)],
       segments: { 'a:0': { network: '192.168.1.0', prefix: 24 } },
     };
@@ -152,7 +152,7 @@ describe('スイッチ付きルーターとL3スイッチの設定の判定', ()
 
   it('LAN の2つ目以降の口に入ったアドレスは、設定から外す', () => {
     const net: Network = {
-      nodes: [pc('a', '192.168.1.10'), node('rs', 'rs', [{ port: 3, ip: '192.168.1.1', prefix: 24 }])],
+      nodes: [pc('a', '192.168.1.10'), node('rs', 'rs', [{ id: "g0/3", kind: "port", port: 3, ip: '192.168.1.1', prefix: 24 }])],
       links: [link('l1', 'a', 0, 'rs', 3)],
     };
     const { net: compiled } = compile(net, data);
@@ -165,8 +165,8 @@ describe('スイッチ付きルーターとL3スイッチの設定の判定', ()
         pc('a', '192.168.1.10', '192.168.1.1'),
         pc('b', '192.168.2.10', '192.168.2.1'),
         node('l3', 'l3', [
-          { port: 0, ip: '192.168.1.1', prefix: 24 },
-          { port: 1, ip: '192.168.2.1', prefix: 24 },
+          { id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 },
+          { id: "g0/1", kind: "port", port: 1, ip: '192.168.2.1', prefix: 24 },
         ]),
       ],
       links: [link('l1', 'a', 0, 'l3', 0), link('l2', 'l3', 1, 'b', 0)],

@@ -15,7 +15,7 @@ const host = (uid: string, ip: string, serial: number, extra: Partial<NetNode> =
   y: 0,
   locked: false,
   configLocked: false,
-  interfaces: [{ port: 0, ip, prefix: 24 }],
+  interfaces: [{ id: "g0/0", kind: "port", port: 0, ip, prefix: 24 }],
   gateway: null,
   routes: [],
   services: [],
@@ -57,8 +57,8 @@ describe('通信で覚えること（N69）', () => {
     const router = host('r', '192.168.1.1', 3, {
       device: 'rt',
       interfaces: [
-        { port: 0, ip: '192.168.1.1', prefix: 24 },
-        { port: 1, ip: '10.0.0.1', prefix: 24 },
+        { id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 },
+        { id: "g0/1", kind: "port", port: 1, ip: '10.0.0.1', prefix: 24 },
       ],
     });
     const far = host('c', '10.0.0.5', 4, { gateway: '10.0.0.1' });

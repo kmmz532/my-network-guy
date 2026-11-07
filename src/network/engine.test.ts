@@ -14,7 +14,7 @@ const pc = (uid: string, ip: string | null, gateway: string | null = null): NetN
   y: 0,
   locked: false,
   configLocked: false,
-  interfaces: ip ? [{ port: 0, ip, prefix: 24 }] : [],
+  interfaces: ip ? [{ id: "g0/0", kind: "port", port: 0, ip, prefix: 24 }] : [],
   gateway,
   routes: [],
   services: [],
@@ -183,8 +183,8 @@ describe('ping: L1 / L2 / L3', () => {
         pc('a', '192.168.1.10', '192.168.1.1'),
         pc('b', '192.168.2.10', '192.168.2.1'),
         router('r', [
-          { port: 0, ip: '192.168.1.1', prefix: 24 },
-          { port: 1, ip: '192.168.2.1', prefix: 24 },
+          { id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 },
+          { id: "g0/1", kind: "port", port: 1, ip: '192.168.2.1', prefix: 24 },
         ]),
       ],
       links: [link('l1', 'a', 0, 'r', 0), link('l2', 'r', 1, 'b', 0)],
@@ -208,8 +208,8 @@ describe('ping: L1 / L2 / L3', () => {
         pc('a', '192.168.1.10', '192.168.1.1'),
         pc('b', '192.168.3.10', '192.168.3.1'),
         router('r', [
-          { port: 0, ip: '192.168.1.1', prefix: 24 },
-          { port: 1, ip: '192.168.2.1', prefix: 24 },
+          { id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 },
+          { id: "g0/1", kind: "port", port: 1, ip: '192.168.2.1', prefix: 24 },
         ]),
       ],
       links: [link('l1', 'a', 0, 'r', 0), link('l2', 'r', 1, 'b', 0)],
@@ -224,16 +224,16 @@ describe('ping: L1 / L2 / L3', () => {
         router(
           'r1',
           [
-            { port: 0, ip: '192.168.1.1', prefix: 24 },
-            { port: 1, ip: '10.0.0.1', prefix: 30 },
+            { id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 },
+            { id: "g0/1", kind: "port", port: 1, ip: '10.0.0.1', prefix: 30 },
           ],
           [{ dest: '192.168.9.0', prefix: 24, nextHop: '10.0.0.2' }],
         ),
         router(
           'r2',
           [
-            { port: 0, ip: '10.0.0.2', prefix: 30 },
-            { port: 1, ip: '10.0.1.1', prefix: 30 },
+            { id: "g0/0", kind: "port", port: 0, ip: '10.0.0.2', prefix: 30 },
+            { id: "g0/1", kind: "port", port: 1, ip: '10.0.1.1', prefix: 30 },
           ],
           [{ dest: '192.168.9.0', prefix: 24, nextHop: '10.0.0.1' }],
         ),
@@ -252,8 +252,8 @@ describe('ping: 復路', () => {
         pc('a', '192.168.1.10', '192.168.1.1'),
         pc('b', '192.168.2.10'),
         router('r', [
-          { port: 0, ip: '192.168.1.1', prefix: 24 },
-          { port: 1, ip: '192.168.2.1', prefix: 24 },
+          { id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 },
+          { id: "g0/1", kind: "port", port: 1, ip: '192.168.2.1', prefix: 24 },
         ]),
       ],
       links: [link('l1', 'a', 0, 'r', 0), link('l2', 'r', 1, 'b', 0)],

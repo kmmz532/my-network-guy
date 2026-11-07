@@ -14,7 +14,7 @@ const pc = (uid: string, ip: string | null, gateway: string | null = null): NetN
   y: 0,
   locked: false,
   configLocked: false,
-  interfaces: ip ? [{ port: 0, ip, prefix: 24 }] : [],
+  interfaces: ip ? [{ id: "g0/0", kind: "port", port: 0, ip, prefix: 24 }] : [],
   gateway,
   routes: [],
   services: [],

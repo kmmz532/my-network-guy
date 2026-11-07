@@ -1,3 +1,4 @@
+import { makeIface } from '../network/iface';
 // IPアドレスの自動割り当て（純粋関数）。配線・セグメントの設定の後に呼び、PC・サーバーのIPアドレスが未設定のポートへ、
 // そのセグメントの空いているアドレスを .10 から順に振る（使えなければ .1 から）。ゲートウェイが未設定なら、同じセグメントのルーターのアドレスにする。
 // ネットワークが決まっていないセグメントには、ルーターのアドレスの /24（なければ、ほかと重ならない 192.168.N.0/24）を既定として決め、
@@ -103,7 +104,7 @@ export const autoAssign = (
       used.add(base + h);
       const ip = intToIp(base + h);
       nodes = nodes.map((n) =>
-        n.uid === m.node ? { ...n, interfaces: [...n.interfaces, { port: m.port, ip, prefix: cfg.prefix }] } : n,
+        n.uid === m.node ? { ...n, interfaces: [...n.interfaces, makeIface(n.device, m.port, ip, cfg.prefix)] } : n,
       );
       changed = true;
     };

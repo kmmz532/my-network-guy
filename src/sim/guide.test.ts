@@ -68,7 +68,7 @@ describe('guideStepDone', () => {
     expect(guideStepDone({ key: 'k', target: 'x', done: 'linked:pc_b' }, linked)).toBe(true);
 
     // つながっていなければ、IPアドレスを付けても ip は満たさない
-    const withIp = { ...s, nodes: [node('pc_a', 'pc_basic', { interfaces: [{ port: 0, ip: '192.168.1.10', prefix: 24 }] }), node('pc_b', 'pc_basic')] };
+    const withIp = { ...s, nodes: [node('pc_a', 'pc_basic', { interfaces: [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }] }), node('pc_b', 'pc_basic')] };
     expect(guideStepDone({ key: 'k', target: 'x', done: 'ip:pc_a' }, withIp)).toBe(false);
     const linkedWithIp = { ...withIp, links: [link('l1', ['pc_a', 0], ['pc_b', 0])] };
     expect(guideStepDone({ key: 'k', target: 'x', done: 'ip:pc_a' }, linkedWithIp)).toBe(true);
@@ -101,9 +101,9 @@ describe('currentGuideStep（c001）', () => {
     expect(at()).toBe('guide.c001_direct_link.2');
     state = { ...state, links: [link('l1', ['pc_a', 0], ['pc_b', 0])] };
     expect(at()).toBe('guide.c001_direct_link.3');
-    state = { ...state, nodes: [node('pc_a', 'pc_basic', { interfaces: [{ port: 0, ip: '192.168.1.10', prefix: 24 }] }), state.nodes[1]] };
+    state = { ...state, nodes: [node('pc_a', 'pc_basic', { interfaces: [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }] }), state.nodes[1]] };
     expect(at()).toBe('guide.c001_direct_link.4');
-    state = { ...state, nodes: [state.nodes[0], node('pc_b', 'pc_basic', { interfaces: [{ port: 0, ip: '192.168.1.11', prefix: 24 }] })] };
+    state = { ...state, nodes: [state.nodes[0], node('pc_b', 'pc_basic', { interfaces: [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }] })] };
     expect(at()).toBe('guide.c001_direct_link.5');
     state = { ...state, testPassed: true };
     expect(at()).toBeNull();

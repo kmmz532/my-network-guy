@@ -1,3 +1,4 @@
+import { makeIface } from '../network/iface';
 // 色（サブネット）でIPアドレス・ゲートウェイ・ルートを決めていた第2版の規則。古いセーブの移行（v4→v5、v12→v13）でだけ使う。
 // 通常の判定・表示には使わない（それらは network/compile.ts と network/segments.ts を使う）。
 import { ipToInt } from '../network/engine';
@@ -78,7 +79,7 @@ export const legacyInterfaces = (nodes: LNode[], links: NetLink[], data: EngineD
     const list: Iface[] = [];
     for (const port of coloredPorts(n).sort((a, b) => a - b)) {
       const c = colorsOf(n)[port];
-      list.push({ port, ip: alloc(c, cat(n) === CATEGORY.router ? 1 : 11), prefix: 24 });
+      list.push(makeIface(n.device, port, alloc(c, cat(n) === CATEGORY.router ? 1 : 11), 24));
     }
     ifaces.set(n.uid, list);
   }

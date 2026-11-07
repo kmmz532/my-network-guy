@@ -37,19 +37,19 @@ const office = (): Network => ({
   nodes: [
     node('r', 'rt', {
       interfaces: [
-        { port: 0, ip: '198.51.100.2', prefix: 24 },
-        { port: 1, ip: '192.168.1.1', prefix: 24 },
+        { id: "g0/0", kind: "port", port: 0, ip: '198.51.100.2', prefix: 24 },
+        { id: "g0/1", kind: "port", port: 1, ip: '192.168.1.1', prefix: 24 },
       ],
       routes: [{ dest: '0.0.0.0', prefix: 0, nextHop: '198.51.100.1' }],
     }),
-    node('a', 'pc', { interfaces: [{ port: 0, ip: '192.168.1.10', prefix: 24 }], gateway: '192.168.1.1' }),
+    node('a', 'pc', { interfaces: [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }], gateway: '192.168.1.1' }),
   ],
   links: [link('l1', 'a', 0, 'r', 1)],
 });
 
 describe('外部（インターネット）の判定（N71）', () => {
   it('WAN の口が空いたルーターがなければ、外部につながらない', () => {
-    const net: Network = { nodes: [node('a', 'pc', { interfaces: [{ port: 0, ip: '192.168.1.10', prefix: 24 }] })], links: [] };
+    const net: Network = { nodes: [node('a', 'pc', { interfaces: [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }] })], links: [] };
     expect(withInternet(net, data)).toBeNull();
     expect(outsideCheck(net, data).attached).toBe(false);
   });
@@ -86,7 +86,7 @@ describe('サーバーの貸し出しの収入', () => {
   });
 
   it('外部につながらなければ、収入はない', () => {
-    const net: Network = { nodes: [node('a', 'pc', { interfaces: [{ port: 0, ip: '192.168.1.10', prefix: 24 }] })], links: [] };
+    const net: Network = { nodes: [node('a', 'pc', { interfaces: [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }] })], links: [] };
     expect(rentalOf(net, data, rental, 1, 30)).toEqual({ monthly: 0, daily: 0, penalty: false, leaks: false, exposed: 0 });
   });
 

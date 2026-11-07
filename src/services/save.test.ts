@@ -236,11 +236,11 @@ describe('v12 → v13', () => {
     };
     const out = migrate(12, v12);
     const [a, b, r] = out.active[0].nodes;
-    expect(a.interfaces).toEqual([{ port: 0, ip: '192.168.101.11', prefix: 24 }]);
+    expect(a.interfaces).toEqual([{ id: "eth0", kind: "port", port: 0, ip: '192.168.101.11', prefix: 24 }]);
     expect(a.gateway).toBe('192.168.101.1');
-    expect(b.interfaces).toEqual([{ port: 0, ip: '192.168.101.12', prefix: 24 }]);
+    expect(b.interfaces).toEqual([{ id: "eth0", kind: "port", port: 0, ip: '192.168.101.12', prefix: 24 }]);
     expect(b.gateway).toBeNull();
-    expect(r.interfaces).toEqual([{ port: 0, ip: '192.168.101.1', prefix: 24 }]);
+    expect(r.interfaces).toEqual([{ id: "g0/0", kind: "port", port: 0, ip: '192.168.101.1', prefix: 24 }]);
     expect(out.active[0].segments).toEqual({ 'pc_a:0': { network: '192.168.101.0', prefix: 24 } });
     expect([a, b, r].some((n) => 'colors' in n)).toBe(false);
   });
@@ -540,5 +540,16 @@ describe('v41 → v42（社名）', () => {
   it('経営の移行前のセーブには「パケットカンパニー」、サンドボックスには「サンドボックス」を付ける', () => {
     expect(migrate(41, { ...noName, mode: 'career' }).name).toBe('パケットカンパニー');
     expect(migrate(41, { ...noName, mode: 'sandbox' }).name).toBe('サンドボックス');
+  });
+});
+
+describe('v42 → v43（インターフェースの名前と種類）', () => {
+  it('既存のインターフェースに名前（PC は eth、機器は g0/）と種類（port）を付ける', () => {
+    const pc = { uid: 'p', device: 'pc_basic', x: 0, y: 0, locked: false, configLocked: false, interfaces: [{ port: 0, ip: '10.0.0.2', prefix: 24 }], gateway: null, routes: [], services: [] };
+    const sw = { uid: 's', device: 'router_basic', x: 1, y: 0, locked: false, configLocked: false, interfaces: [{ port: 2, ip: '10.0.0.1', prefix: 24 }], gateway: null, routes: [], services: [] };
+    const { active: _a, office: _o, ...rest } = sample;
+    const out = migrate(42, { ...rest, active: [], office: { ...sample.office, nodes: [pc, sw] } });
+    expect(out.office.nodes[0].interfaces[0]).toMatchObject({ id: 'eth0', kind: 'port', port: 0 });
+    expect(out.office.nodes[1].interfaces[0]).toMatchObject({ id: 'g0/2', kind: 'port', port: 2 });
   });
 });

@@ -48,6 +48,7 @@ import { blindDelegation, type Stars } from './blindDelegate';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { cableLengthOf, checkCableLength } from './cableLength';
 import { busyStaff, crewBlock } from './crew';
+import { makeIface } from '../network/iface';
 import { deliveryExpOf, levelOf, type LevelUp } from './level';
 
 export interface Project {
@@ -414,7 +415,7 @@ const fixedNodes = (contract: Contract): NetNode[] =>
     y: p.y,
     locked: p.locked,
     configLocked: p.config?.locked ?? false,
-    interfaces: (p.config?.interfaces ?? []).map((i) => ({ ...i })),
+    interfaces: (p.config?.interfaces ?? []).map((i) => makeIface(p.device, i.port, i.ip, i.prefix)),
     gateway: p.config?.gateway ?? null,
     routes: [],
     services: (p.config?.services ?? []).map((s) => ({ ...s })),
@@ -949,7 +950,7 @@ export const setInterface = (
   const interfaces: Iface[] =
     ip === ''
       ? node.interfaces.filter((i) => i.port !== port)
-      : [...node.interfaces.filter((i) => i.port !== port), { port, ip, prefix }];
+      : [...node.interfaces.filter((i) => i.port !== port), makeIface(node.device, port, ip, prefix)];
   const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, interfaces } : n));
   const segments = fillSegments({ nodes, links: net.links, segments: net.segments }, env.engine);
   return { ok: true, core: withNet(core, target, { ...net, nodes, segments }) };

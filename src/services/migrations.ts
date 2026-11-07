@@ -23,7 +23,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 42;
+export const SAVE_VERSION = 43;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -242,6 +242,17 @@ export const migrations: Record<number, Migration> = {
       }) }),
     });
     return { ...d, active: d.active.map(withPaid), office: withPaid(d.office) };
+  },
+  // v42 → v43: インターフェースに名前（id）と種類（kind: port）を足す（N135）。名前は、機器の種類ごとの接頭辞と口の番号（PC・サーバー・プリンターは eth、それ以外は g0/）
+  42: (data) => {
+    const d = data as { active: Project[]; office: Office };
+    const named = (nodes: NetNode[]): NetNode[] =>
+      nodes.map((n) => {
+        const prefix = pcJson.devices.some((p) => p.id === n.device) || serverJson.devices.some((s) => s.id === n.device) ? 'eth' : 'g0/';
+        return { ...n, interfaces: n.interfaces.map((i) => ({ ...i, id: `${prefix}${i.port}`, kind: 'port' as const })) };
+      });
+    const fill = <T extends { nodes: NetNode[] }>(x: T): T => ({ ...x, nodes: named(x.nodes) });
+    return { ...d, active: d.active.map(fill), office: fill(d.office) };
   },
   // v41 → v42: 社名（name）を足す。移行前のセーブは、既定の社名「パケットカンパニー」とする（N133）
   41: (data) => {

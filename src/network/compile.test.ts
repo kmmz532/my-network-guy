@@ -21,7 +21,7 @@ const node = (uid: string, device: string, interfaces: Iface[] = []): NetNode =>
   services: [],
 });
 
-const pc = (uid: string, ip?: string): NetNode => node(uid, 'pc', ip ? [{ port: 0, ip, prefix: 24 }] : []);
+const pc = (uid: string, ip?: string): NetNode => node(uid, 'pc', ip ? [{ id: "g0/0", kind: "port", port: 0, ip, prefix: 24 }] : []);
 const sw = (uid: string): NetNode => node(uid, 'l2');
 const router = (uid: string, ifaces: Iface[] = [], routes: Route[] = []): NetNode => ({
   ...node(uid, 'router', ifaces),
@@ -61,7 +61,7 @@ describe('セグメントの設定から機器の設定を作る', () => {
 
   it('ホストのゲートウェイは、同じセグメントにあるルーターのアドレスになる', () => {
     const net: Network = {
-      nodes: [pc('a', '192.168.1.11'), router('r', [{ port: 0, ip: '192.168.1.1', prefix: 24 }])],
+      nodes: [pc('a', '192.168.1.11'), router('r', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 }])],
       links: [link('l0', 'a:0', 'r:0')],
       segments: { 'a:0': seg('192.168.1.0') },
     };
@@ -75,8 +75,8 @@ describe('セグメントの設定から機器の設定を作る', () => {
       nodes: [
         pc('a', '192.168.1.11'),
         router('r', [
-          { port: 0, ip: '192.168.1.1', prefix: 24 },
-          { port: 1, ip: '192.168.2.1', prefix: 24 },
+          { id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 },
+          { id: "g0/1", kind: "port", port: 1, ip: '192.168.2.1', prefix: 24 },
         ]),
         pc('c', '192.168.2.11'),
       ],
@@ -91,7 +91,7 @@ describe('セグメントの設定から機器の設定を作る', () => {
   it('ルーターの静的ルートは、保存されたものをそのまま使う', () => {
     const route: Route = { dest: '10.0.0.0', prefix: 8, nextHop: '192.168.1.2' };
     const net: Network = {
-      nodes: [router('r', [{ port: 0, ip: '192.168.1.1', prefix: 24 }], [route])],
+      nodes: [router('r', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 }], [route])],
       links: [],
     };
     expect(compile(net, data).net.nodes[0].routes).toEqual([route]);
@@ -166,7 +166,7 @@ describe('機器の不備（issues）', () => {
       gateway: '192.168.1.2',
     };
     const net: Network = {
-      nodes: [fixedPc, router('r', [{ port: 0, ip: '192.168.1.1', prefix: 24 }])],
+      nodes: [fixedPc, router('r', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 }])],
       links: [link('l0', 'a:0', 'r:0')],
     };
     const { net: out, issues } = compile(net, data);
