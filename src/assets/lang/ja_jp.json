@@ -485,6 +485,7 @@
   "ui.staff.card.pc": "PC",
   "ui.staff.pc.yes": "机にある",
   "ui.staff.pc.no": "机にない（この職種は働けない）",
+  "ui.staff.pc.no.short": "（PCなし）",
   "ui.staff.card.goto": "研修/資格へ",
   "ui.staff.status.idle": "待機中",
   "ui.staff.status.project": "「{project}」を担当中",

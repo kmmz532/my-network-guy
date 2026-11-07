@@ -177,6 +177,8 @@ function RetireControl({ uid }: { uid: string }) {
 export function StaffListBody() {
   const state = useGameStore();
   const openWindow = state.openWindow;
+  // 机に PC がない社内の職種（システムエンジニア・人事・経理）は、一覧に印を出す（N102）
+  const pcDesks = pcDesksOf(state.office, isPcDevice);
   if (state.staff.length === 0) return <div style={{ opacity: 0.7 }}>{t('ui.staff.list.empty')}</div>;
   const head = { fontSize: 12, opacity: 0.7, padding: '0 6px' } as const;
   return (
@@ -216,7 +218,12 @@ export function StaffListBody() {
               {tDyn(`staff.job.${m.job}`)} · {t('ui.staff.level', { level: m.level })}
             </span>
             <span>{yen(m.salary)}円</span>
-            <span>{statusText(status)}</span>
+            <span>
+              {statusText(status)}
+              {(m.job === 'dev' || m.job === 'hr' || m.job === 'accounting') && !(m.desk !== null && pcDesks.includes(m.desk)) && (
+                <span style={{ marginLeft: 4, color: '#ffd866' }}>{t('ui.staff.pc.no.short')}</span>
+              )}
+            </span>
           </button>
         );
       })}
