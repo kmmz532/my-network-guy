@@ -9,7 +9,7 @@ import { RADIUS } from '../ui/theme';
 import { secondaryButton } from './Modal';
 import { familiarKeyOf } from '../sim/familiar';
 import { usePhone } from '../ui/usePhone';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 // 最初の案件（c001）の手順。配線・疎通・施工依頼の順に、済んだものに印を付ける
 const FIRST_CONTRACT = 'c001_direct_link';
@@ -27,9 +27,14 @@ export function TaskPanel({ top = 44 }: { top?: number }) {
   // 同じ依頼の型紙があるか（「型紙を使う」を出す。N70）
   const hasBlueprint = useGameStore((s) => (active ? s.familiarity.blueprints[familiarKeyOf(active.kind, active.baseId, active.contract.map)] !== undefined : false));
   const useBlueprint = useGameStore((s) => s.useBlueprint);
+  // 「型紙を使う」が失敗したときの理由（ui.error.* のキー）。案件が変わったら消す
+  const [blueprintError, setBlueprintError] = useState<string | null>(null);
   useEffect(() => {
     if (phone && activeId !== null) setOpen(false);
   }, [phone, activeId, setOpen]);
+  useEffect(() => {
+    setBlueprintError(null);
+  }, [activeId]);
   if (!active) return null;
 
   // 最後のテスト（または検収）の結果。この案件のものだけを使う。結果がなければ ok は null（未判定）
@@ -105,9 +110,15 @@ export function TaskPanel({ top = 44 }: { top?: number }) {
             </div>
           )}
           {active.phase === 'design' && hasBlueprint && (
-            <button style={{ ...secondaryButton, marginTop: 6 }} onClick={() => useBlueprint()}>
-              {t('ui.blueprint.use')}
-            </button>
+            <>
+              <button
+                style={{ ...secondaryButton, marginTop: 6 }}
+                onClick={() => setBlueprintError(useBlueprint())}
+              >
+                {t('ui.blueprint.use')}
+              </button>
+              {blueprintError && <div style={{ marginTop: 4, color: '#ffd866' }}>{tDyn(`ui.error.${blueprintError}`)}</div>}
+            </>
           )}
           <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>
             {goals.map((g, i) => {
