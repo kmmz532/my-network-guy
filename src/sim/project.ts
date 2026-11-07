@@ -10,7 +10,7 @@ import { nextHostname } from '../network/hostname';
 import { nextMacSerial } from '../network/mac';
 import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
-import { ipToInt, linkLength } from '../network/engine';
+import { inSubnet, ipToInt, linkLength } from '../network/engine';
 import { compile, type IssueDetail } from '../network/compile';
 import {
   PREFIX_MAX,
@@ -958,6 +958,24 @@ export const setInterface = (
 };
 
 // デフォルトゲートウェイを設定する。null で外す
+// RIP・OSPF の参加（N141b・N142・N143）。network 文は、そのサブネットのインターフェースを参加させる。router rip / ospf は、参加を止める（on が false のとき全部）
+export const setRouting = (core: Core, uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string }, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      const touches = (i: Iface) => (change.ip === undefined ? true : inSubnet(change.ip, i.ip, i.prefix));
+      const interfaces = node.interfaces.map((i) => {
+        if (!touches(i)) return i;
+        if (change.proto === 'rip') return { ...i, rip: change.on };
+        return change.on ? { ...i, ospf: { area: 0, cost: i.ospf?.cost } } : { ...i, ospf: undefined };
+      });
+      if (change.ip !== undefined && change.on && !node.interfaces.some(touches)) return 'iface.none';
+      return { ...node, interfaces };
+    },
+    target,
+  );
+
 export const setGateway = (core: Core, uid: string, gateway: string | null, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,

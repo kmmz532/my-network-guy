@@ -75,6 +75,7 @@ import {
   requestBuild,
   setInterface,
   setGateway,
+  setRouting,
   setFirewallRules,
   setSegment,
   setService,
@@ -368,6 +369,7 @@ export interface GameState {
   // 機器の設定（設計中のみ）。失敗したら理由を返す
   setIface: (uid: string, port: number, ip: string, prefix?: number) => string | null;
   setGateway: (uid: string, gateway: string | null) => string | null;
+  setRouting: (uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string }) => string | null;
   // ファイアウォールの規則を置き換える（N38）
   setFirewallRules: (uid: string, rules: FirewallRule[]) => string | null;
   // セグメント（ポートが属するネットワーク）のアドレスを設定する
@@ -1381,6 +1383,7 @@ export const useGameStore = create<GameState>((set, get) => {
     setIface: (uid, port, ip, prefix = 24) =>
       recorded(() => apply(setInterface(coreOf(get()), uid, port, ip, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
     setGateway: (uid, gateway) => recorded(() => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid))),
+    setRouting: (uid, change) => recorded(() => apply(setRouting(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
     setFirewallRules: (uid, rules) => recorded(() => apply(setFirewallRules(coreOf(get()), uid, rules, netTargetOf(get())), tileOf(uid))),
     clearOfferBurst: () => set({ offerBurst: 0 }),
     declineOffer: (id) => set({ offers: declineOffer(get().offers, id) }),

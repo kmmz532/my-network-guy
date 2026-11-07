@@ -20,7 +20,11 @@ export type ConfigAction =
   | { kind: 'hostname'; hostname: string | null }
   | { kind: 'host'; name: string; ip: string }
   | { kind: 'noHost'; name: string }
-  | { kind: 'nameServer'; ip: string | null };
+  | { kind: 'nameServer'; ip: string | null }
+  // RIP・OSPF の有効（router rip / router ospf）。on が false は no router ...（N141b・N143）
+  | { kind: 'routing'; proto: 'rip' | 'ospf'; on: boolean }
+  // network 文: ip のサブネットのインターフェースを、RIP または OSPF（エリア 0）に参加させる（N143）
+  | { kind: 'network'; proto: 'rip' | 'ospf'; ip: string; area: number | null; on: boolean };
 
 export type ConfigParse = { kind: 'action'; action: ConfigAction } | { kind: 'error'; text: string } | { kind: 'none' };
 
@@ -50,8 +54,29 @@ const port = (s: string): number | null => (/^\d+$/.test(s) ? Number(s) : null);
 export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   const words = line.trim().split(/\s+/).filter((w) => w !== '');
   const [first, ...rest] = words;
-  if (first !== 'ip' && first !== 'no' && first !== 'hostname') return { kind: 'none' };
+  if (first !== 'ip' && first !== 'no' && first !== 'hostname' && first !== 'router' && first !== 'network') return { kind: 'none' };
   const error = (key: string) => ({ kind: 'error' as const, text: tr(key) });
+
+  // router rip / router ospf <番号>（no で止める）
+  if (first === 'router' && (rest[0] === 'rip' || rest[0] === 'ospf')) {
+    return { kind: 'action', action: { kind: 'routing', proto: rest[0], on: true } };
+  }
+  if (first === 'no' && rest[0] === 'router' && (rest[1] === 'rip' || rest[1] === 'ospf')) {
+    return { kind: 'action', action: { kind: 'routing', proto: rest[1], on: false } };
+  }
+  // network <IP>（RIP）・network <IP> <ワイルドカード> area <エリア>（OSPF。MVP はエリア 0 だけ）
+  if (first === 'network') {
+    if (rest.length === 1 && isIp(rest[0])) return { kind: 'action', action: { kind: 'network', proto: 'rip', ip: rest[0], area: null, on: true } };
+    if (rest.length === 4 && isIp(rest[0]) && isIp(rest[1]) && rest[2] === 'area' && /^[0-9]+$/.test(rest[3])) {
+      const area = Number(rest[3]);
+      if (area !== 0) return error('ui.terminal.errArea');
+      return { kind: 'action', action: { kind: 'network', proto: 'ospf', ip: rest[0], area, on: true } };
+    }
+    return error('ui.terminal.usageNetwork');
+  }
+  if (first === 'no' && rest[0] === 'network' && rest.length === 2 && isIp(rest[1])) {
+    return { kind: 'action', action: { kind: 'network', proto: 'rip', ip: rest[1], area: null, on: false } };
+  }
 
   if (first === 'ip' && rest[0] === 'address') {
     if (rest.length !== 4) return error('ui.terminal.usageIpAddress');

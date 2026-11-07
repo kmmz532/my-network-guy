@@ -124,6 +124,8 @@ export const FAILURE_REASONS = [
   'port.shutdown',
   // 口の VLAN が通らない（access と trunk の許可の不一致・N137）
   'vlan.not_allowed',
+  // そのサブネットのインターフェースがない（RIP・OSPF の network 文・N143）
+  'iface.none',
   'link.too_long',
   'link.loop',
   'ip.unset',

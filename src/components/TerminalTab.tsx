@@ -21,6 +21,7 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
   const setHost = useGameStore((s) => s.setHost);
   const removeHost = useGameStore((s) => s.removeHost);
   const setNameServer = useGameStore((s) => s.setNameServer);
+  const setRouting = useGameStore((s) => s.setRouting);
   const learnPing = useGameStore((s) => s.learnPing);
   const netKey = useGameStore((s) => s.focus ?? 'office');
   const arp = useGameStore((s) => s.arpTable[`${netKey}:${node.uid}`]);
@@ -46,6 +47,12 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
         return removeHost(node.uid, action.name);
       case 'nameServer':
         return setNameServer(node.uid, action.ip);
+      case 'routing':
+        return setRouting(node.uid, { proto: action.proto, on: action.on });
+      case 'network':
+        return setRouting(node.uid, { proto: action.proto, on: action.on, ip: action.ip });
+      default:
+        return null;
     }
   };
 
