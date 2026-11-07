@@ -22,6 +22,7 @@ import { CATEGORY } from '../data/categories';
 import { Select } from './Select';
 import { levelOf } from '../sim/level';
 import { isBackOffice } from '../sim/backOffice';
+import { usePhone } from '../ui/usePhone';
 
 // 依頼の一覧。Enter は一番上の依頼の受注（主のボタン）
 
@@ -180,6 +181,8 @@ function OfferCard({
     const c = devices[p.device as keyof typeof devices]?.category;
     return c === CATEGORY.pc || c === CATEGORY.server;
   }).length;
+  // スマホでは、ボタンの列を情報の下の独立した行にする（受注を広く、断るを狭く・B15）
+  const phone = usePhone();
   return (
     <div style={{ background: '#25406f', borderRadius: RADIUS.none, padding: 10, marginBottom: 8 }}>
       <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
@@ -230,7 +233,7 @@ function OfferCard({
           <Icon name="icon/money" /> {yen(offer.contract.reward.money)}
         </span>
         {/* 断る・受注・任せる。ボタンは1つの並びで折り返さない（スマホで受注が次の行に落ちないように） */}
-        <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', flexShrink: 0, alignItems: 'center' }}>
+        <div style={phone ? { display: 'flex', flexWrap: 'nowrap', gap: 6, width: '100%', alignItems: 'center' } : { display: 'flex', gap: 6, marginLeft: 'auto', flexShrink: 0, alignItems: 'center' }}>
           {asking ? (
             <>
               <span style={{ whiteSpace: 'nowrap' }}>{t('ui.offer.decline.confirm')}</span>
@@ -251,7 +254,7 @@ function OfferCard({
                   {t('ui.offer.decline')}
                 </button>
               )}
-              <button style={{ ...primaryButton, whiteSpace: 'nowrap' }} disabled={!canAccept} onClick={() => onAccept(crew)}>
+              <button style={{ ...primaryButton, whiteSpace: 'nowrap', ...(phone ? { flex: '1 1 auto' } : {}) }} disabled={!canAccept} onClick={() => onAccept(crew)}>
                 {t('ui.accept')}
               </button>
               {delegateReason === null && (
