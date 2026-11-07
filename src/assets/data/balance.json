@@ -120,6 +120,7 @@
     "sales": {
       "chancePerLevel": 0.1,
       "maxChance": 0.5,
+      "printerArrivalBonus": 0.05,
       "rewardWeightPerLevel": 0.05
     },
     "accounting": {

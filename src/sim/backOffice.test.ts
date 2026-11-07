@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
 import type { Balance } from '../data/schema';
-import { accountingRate, backOfficeP, devDailyIncome, devRate, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, jobEffect, salesArrivalChance } from './backOffice';
+import { printerArrivalBonusOf, accountingRate, backOfficeP, devDailyIncome, devRate, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, jobEffect, salesArrivalChance } from './backOffice';
 import furnitureJson from '../assets/data/furniture.json';
 import type { BonusEnv } from './furniture';
 import type { Furniture } from '../data/schema';
@@ -129,5 +129,23 @@ describe('机の上の PC（N102）', () => {
     expect(pc).toBeCloseTo(base * (1 + balance.deskPc.engineerPowerBonus));
     const dev = staffPower(member('dev', 'd0'), undefined, office, envWith(['d0']));
     expect(dev).toBeCloseTo(staffPower(member('dev', 'd0'), undefined, office, envWith([])));
+  });
+});
+
+describe('プリンターの効果（N98）', () => {
+  const printer = (uid: string, x: number, y: number) => ({ uid, device: 'printer_basic', x, y, hostname: '', macSerial: 1 });
+  const link = (a: string, b: string) => ({ uid: `l_${a}_${b}`, cable: 'utp', a: { node: a, port: 0 }, b: { node: b, port: 0 }, path: [] });
+  const isPrinter = (d: string) => d === 'printer_basic';
+  const office = (nodes: unknown[], links: unknown[]) => ({ size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes, links, seq: 0, furniture: [], furnitureSeq: 0 }) as unknown as Office;
+
+  it('つないでいないプリンターは効かない', () => {
+    expect(printerArrivalBonusOf(office([printer('p1', 1, 1)], []), isPrinter, balance)).toBe(0);
+  });
+
+  it('つないでいるプリンターがあれば効く（台数は数えない）', () => {
+    const one = printerArrivalBonusOf(office([printer('p1', 1, 1), { ...printer('p2', 2, 1), device: 'pc_basic' }], [link('p1', 'p2')]), isPrinter, balance);
+    const two = printerArrivalBonusOf(office([printer('p1', 1, 1), printer('p3', 3, 1), { ...printer('p2', 2, 1), device: 'pc_basic' }], [link('p1', 'p2'), link('p3', 'p2')]), isPrinter, balance);
+    expect(one).toBe(balance.backOffice.sales.printerArrivalBonus);
+    expect(two).toBe(one);
   });
 });

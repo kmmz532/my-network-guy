@@ -93,3 +93,9 @@ export const jobEffect = (
       return null;
   }
 };
+
+// プリンターの効果（N98）。つないでいる（機器のリンクがある）プリンターが1台でもあれば、営業の依頼が届く確率に足す。台数は数えない
+export const printerArrivalBonusOf = (office: Office, isPrinter: (device: string) => boolean, balance: Balance): number => {
+  const connected = office.nodes.some((n) => isPrinter(n.device) && office.links.some((l) => l.a.node === n.uid || l.b.node === n.uid));
+  return connected ? balance.backOffice.sales.printerArrivalBonus : 0;
+};

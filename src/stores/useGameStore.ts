@@ -27,6 +27,7 @@ import { applyMoney, recordSaving } from '../sim/ledger';
 
 import { isSpeedUnlocked, unlockedSpeedsOf } from '../sim/speed';
 import { dismissNotice, openOf, promoteNotices, pushNotice, type NoticeItem } from '../ui/notices';
+import { printerArrivalBonusOf } from '../sim/backOffice';
 import { tDyn } from '../i18n/t';
 import { cancelRetire as cancelRetireOp, noticeRetire as noticeRetireOp, settleRetirements } from '../sim/retire';
 import { accountingRate, backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, salesArrivalChance } from '../sim/backOffice';
@@ -443,7 +444,9 @@ export const focusedProject = (s: { active: Project[]; focus: string | null }): 
 // 営業の効果（1日に依頼が届く確率と、報酬の高い依頼の重み。内勤の実効 level の合計で決まる）
 const salesEffectsOf = (s: { staff: Staff[]; office: Office }): OfferEffects => {
   const P = backOfficeP(s.staff, 'sales', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff, pcDesks: pcDesksOf(s.office, isPcDevice) });
-  return { arrivalChance: salesArrivalChance(P, balance), rewardWeight: P * balance.backOffice.sales.rewardWeightPerLevel };
+  // プリンターの効果（N98）は、営業の人数と関係なく効く
+  const printer = printerArrivalBonusOf(s.office, (d) => gameEnv.devices[d]?.category === 'printer', balance);
+  return { arrivalChance: salesArrivalChance(P, balance) + printer, rewardWeight: P * balance.backOffice.sales.rewardWeightPerLevel };
 };
 
 // 営業の依頼の到着（日ごとの確率）。日が替わった分だけ振り、届いた依頼は通常の一覧に入る

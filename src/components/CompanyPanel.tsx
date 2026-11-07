@@ -12,6 +12,7 @@ import { ItemCards, unlockNameOf } from './UnlockList';
 import { Tooltip } from './Tooltip';
 import { tipText } from '../input/keymap';
 import { pcDesksOf } from '../sim/furniture';
+import { printerArrivalBonusOf } from '../sim/backOffice';
 import { isPcDevice } from '../sim/env';
 import { Select } from './Select';
 import { floorOfRoom, roomTileCount } from '../sim/office';
@@ -80,6 +81,8 @@ export function CompanyBody() {
   // 自社のネットワークの外部への接続と、サーバーの貸し出し（N71・N72）
   const outside = outsideCheck(office, gameEnv.engine);
   const level = levelOf(companyExp, balance);
+  // プリンターが営業の依頼に足す確率（N98）
+  const printerBonus = useGameStore((s) => printerArrivalBonusOf(s.office, (d) => gameEnv.devices[d]?.category === 'printer', balance));
   // 机に PC がない社内の職種の人数（働けない・N102）
   const noPcCount = useGameStore((s) => {
     const pcDesks = pcDesksOf(s.office, isPcDevice);
@@ -132,6 +135,12 @@ export function CompanyBody() {
           {money.toLocaleString('ja-JP')}円
         </button>
       </div>
+      {printerBonus > 0 && (
+        <div style={row}>
+          <span>{t('ui.company.printer')}</span>
+          <span>{t('ui.company.printer.value', { pct: Math.round(printerBonus * 1000) / 10 })}</span>
+        </div>
+      )}
       {/* PC がなく働けない社内の職種の人数（N102） */}
       {noPcCount > 0 && (
         <div style={row}>
