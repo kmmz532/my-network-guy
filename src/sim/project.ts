@@ -47,7 +47,7 @@ import { furnitureBonus, type BonusEnv, pcDesksOf } from './furniture';
 import { gainExp, staffPower } from './staff';
 import { blindDelegation, type Stars } from './blindDelegate';
 import { CATEGORY } from '../data/categories';
-import { checkCableLength } from './cableLength';
+import { cableLengthOf, checkCableLength } from './cableLength';
 import { deliveryExpOf, levelOf, type LevelUp } from './level';
 
 export interface Project {
@@ -758,7 +758,7 @@ export const checkConnect = (
   const b = net.nodes.find((n) => n.uid === bUid);
   const cable = env.cables[cableId];
   if (!a || !b || aUid === bUid || !cable) return 'none';
-  const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+  const length = cableLengthOf(a, b);
   const lengthCheck = checkCableLength(length, cable.maxLengthTiles);
   if (lengthCheck !== 'ok') return lengthCheck;
   if (core.clock.money < paidCable(core, cable.pricePerLink + cable.pricePerTile * length)) return 'money';
@@ -770,14 +770,8 @@ export const checkConnect = (
 };
 
 // 空いているポートの数（描画で使う）
-export const freePortCount = (p: Project, node: NetNode, env: Env): number => {
-  const used = new Set<number>();
-  for (const l of p.links) {
-    if (l.a.node === node.uid) used.add(l.a.port);
-    if (l.b.node === node.uid) used.add(l.b.port);
-  }
-  return env.devices[node.device].portCount - used.size;
-};
+// 数え方は usedPorts と同じ（判定と描画で数えが食い違わないように、1か所にする）（N115）
+export const freePortCount = (p: Project, node: NetNode, env: Env): number => env.devices[node.device].portCount - usedPorts(p.links, node).size;
 
 // ケーブル1本の費用（配線の長さで決まる）
 const cableCost = (cable: Env['cables'][string], length: number): number => cable.pricePerLink + cable.pricePerTile * length;
@@ -802,7 +796,7 @@ export const connect = (
   // 機器が見つからないのは、画面と状態のずれ。黙って進めず、理由を返す
   if (!a || !b) return fail('none');
   const cable = env.cables[cableId];
-  const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+  const length = cableLengthOf(a, b);
   const listCost = cableCost(cable, length);
   const cost = paidCable(core, listCost);
   const chosenA = choosePort(net.links, a, env, ports.a);
@@ -1091,13 +1085,13 @@ export const moveNode = (core: Core, uid: string, x: number, y: number, env: Env
     const cable = env.cables[l.cable];
     const a = after.get(l.a.node)!;
     const b = after.get(l.b.node)!;
-    const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+    const length = cableLengthOf(a, b);
     if (!cable) return fail('cable');
     const lengthCheck = checkCableLength(length, cable.maxLengthTiles);
     if (lengthCheck !== 'ok') return fail(lengthCheck);
     const oldA = before.get(l.a.node)!;
     const oldB = before.get(l.b.node)!;
-    const oldLength = Math.abs(oldA.x - oldB.x) + Math.abs(oldA.y - oldB.y);
+    const oldLength = cableLengthOf(oldA, oldB);
     const pay = paymentFor(core, cableCost(cable, length) - cableCost(cable, oldLength), l.paid);
     paidTotal += pay.paid;
     savedTotal += pay.saved;
@@ -1167,13 +1161,13 @@ export const replugTo = (
   const a = end === 'a' ? node : before.get(link.a.node)!;
   const b = end === 'b' ? node : before.get(link.b.node)!;
   const cable = env.cables[link.cable];
-  const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+  const length = cableLengthOf(a, b);
   if (!cable) return fail('cable');
   const lengthCheck = checkCableLength(length, cable.maxLengthTiles);
   if (lengthCheck !== 'ok') return fail(lengthCheck);
   const oldA = before.get(link.a.node)!;
   const oldB = before.get(link.b.node)!;
-  const pay = paymentFor(core, cableCost(cable, length) - cableCost(cable, Math.abs(oldA.x - oldB.x) + Math.abs(oldA.y - oldB.y)), link.paid);
+  const pay = paymentFor(core, cableCost(cable, length) - cableCost(cable, cableLengthOf(oldA, oldB)), link.paid);
   if (pay.paid > 0 && core.clock.money < pay.paid) return fail('money');
 
   const moved: NetLink = { ...link, [end]: { node: nodeUid, port: to }, path: cablePath(a, b), paid: link.paid + pay.paid };

@@ -10,3 +10,7 @@ export const checkCableLength = (tiles: number, maxTiles: number): CableLengthCh
   if (tiles > maxTiles) return 'cableTooLong';
   return 'ok';
 };
+
+// 2台の機器の位置をつなぐケーブルの長さ（マス）。経路は L字（cablePath）のため、長さはマンハッタン距離と一致する（N118）
+// 長さと経路はこの関数だけから作る。経路の引き方を変えるときは、ここを直す
+export const cableLengthOf = (a: { x: number; y: number }, b: { x: number; y: number }): number => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
