@@ -199,7 +199,7 @@ export function NoticeToast() {
   const visible = visibleNotices(notices);
   if (visible.length === 0) return null;
   return (
-    <div style={{ position: 'absolute', top: 48, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', gap: 4, zIndex: 9, zoom: 'var(--ui-scale, 1)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
       {visible.map((n) => {
         const pressable = openOf(n.kind) !== null;
         return (

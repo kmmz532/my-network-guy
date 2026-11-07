@@ -692,14 +692,12 @@ export function App() {
       )}
       {popup === 'help' && <KeyHelp onClose={() => setPopup(null)} />}
       {popup === 'settings' && <SettingsPanel onClose={() => setPopup(null)} onOpenKeys={() => setPopup('help')} />}
-      <NoticeToast />
+      {/* 上の中央の知らせ（通知・繰り返しの案内・速度の表示）は、1つの縦並びの箱に入れる。位置の数値は箱だけが持つ（N124） */}
+      <div style={{ position: 'absolute', top: phone ? (hudBottom + 6) / loadSettings().uiScale : 44, left: '50%', transform: 'translateX(-50%)', zIndex: 9, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, zoom: 'var(--ui-scale, 1)' }}>
+        <NoticeToast />
       {speedNote && (
         <div
           style={{
-            position: 'absolute',
-            top: phone ? (hudBottom + 6) / loadSettings().uiScale : 48,
-            left: '50%',
-            transform: 'translateX(-50%)',
             background: 'rgba(47, 79, 143, 0.95)',
             color: '#ffd866',
             padding: '6px 14px',
@@ -712,7 +710,8 @@ export function App() {
           {t(`ui.speed.${speedNote.speed}` as const)}
         </div>
       )}
-      <LoopBanner />
+        <LoopBanner />
+      </div>
       <UpdateNotice />
       {pausedPrompt && <PausedBuildPrompt />}
       <ReportModal />

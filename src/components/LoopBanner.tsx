@@ -19,11 +19,6 @@ export function LoopBanner() {
     <div
       role="alert"
       style={{
-        position: 'absolute',
-        top: 44,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 5,
         padding: '6px 12px',
         background: '#8a2b2b',
         color: '#f4f1e6',
