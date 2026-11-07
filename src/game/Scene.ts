@@ -1987,7 +1987,8 @@ export class Scene {
   // 機器・家具・配線の端の判定（store の操作と同じ条件で、sim の純粋関数を試す）
   private canMoveNode(uid: string, tx: number, ty: number): boolean {
     const s = useGameStore.getState();
-    return this.map !== null && moveNode(coreOf(s), uid, tx, ty, gameEnv, netTargetOf(s), this.map).ok;
+    // サンドボックスは、PC を床にも置ける（store の移動と同じ条件にする）
+    return this.map !== null && moveNode(coreOf(s), uid, tx, ty, gameEnv, netTargetOf(s), this.map, s.mode === 'sandbox').ok;
   }
 
   private canMoveFurniture(uid: string, tx: number, ty: number): boolean {
