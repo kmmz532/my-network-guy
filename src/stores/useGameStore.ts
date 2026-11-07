@@ -1238,7 +1238,7 @@ export const useGameStore = create<GameState>((set, get) => {
     },
     acceptDelegated: (offerId, crew) => {
       const reason = apply(acceptDelegatedOp(coreOf(get()), offerId, balance.office.projectSlots, crew, gameEnv));
-      if (reason === null && get().speed !== 0 && loadSettings().designPause) get().setSpeed(0);
+      // 型紙で任せた依頼は、利用者が設計しないため時間を止めない（N110）
       return reason;
     },
     accept: (offerId, crew) => {
