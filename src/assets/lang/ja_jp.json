@@ -580,6 +580,7 @@
   "ui.settings.confirmDecline.off": "確認しない",
   "ui.offer.decline.confirm": "この依頼を断りますか？",
   "ui.offer.decline.yes": "断る",
+  "ui.offer.decline.never": "次から確認しない",
   "ui.offer.decline.no": "やめる",
   "ui.settings.showIp": "名前とIPアドレスの表示",
   "ui.settings.showIp.on": "表示する",

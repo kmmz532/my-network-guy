@@ -176,7 +176,8 @@ function OfferCard({
     return min === max ? `★${min}` : `★${min}〜${max}`;
   })();
   const canAccept = !full && crew.length > 0;
-  usePrimary(primary ? () => canAccept && onAccept(crew) : undefined);
+  // Enter の既定: 断る確認の中では「やめる」、それ以外は一番上の依頼の受注（N74）
+  usePrimary(asking ? () => setAsking(false) : primary ? () => canAccept && onAccept(crew) : undefined);
   const hosts = offer.contract.placed.filter((p) => {
     const c = devices[p.device as keyof typeof devices]?.category;
     return c === CATEGORY.pc || c === CATEGORY.server;
@@ -243,12 +244,22 @@ function OfferCard({
               <button style={{ ...secondaryButton, whiteSpace: 'nowrap' }} onClick={() => setAsking(false)}>
                 {t('ui.offer.decline.no')}
               </button>
+              {/* 次から確認しない（設定と同じ値を変える。この依頼はまだ断らない） */}
+              <button
+                style={{ ...secondaryButton, whiteSpace: 'nowrap' }}
+                onClick={() => {
+                  saveSettings({ confirmDecline: false });
+                  setAsking(false);
+                }}
+              >
+                {t('ui.offer.decline.never')}
+              </button>
             </>
           ) : (
             <>
               {offer.kind === 'template' && (
                 <button
-                  style={{ fontFamily: 'inherit', cursor: 'pointer', background: 'transparent', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: RADIUS.none, padding: '4px 8px', whiteSpace: 'nowrap' }}
+                  style={{ ...dangerButton, whiteSpace: 'nowrap' }}
                   onClick={() => (loadSettings().confirmDecline ? setAsking(true) : onDecline())}
                 >
                   {t('ui.offer.decline')}
