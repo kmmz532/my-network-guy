@@ -24,7 +24,7 @@
         "switch"
       ],
       "sprite": "device/home_router",
-      "unlockLevel": 5
+      "unlockLevel": 20
     },
     {
       "id": "home_router_ap",
@@ -52,7 +52,7 @@
         "wireless"
       ],
       "sprite": "device/home_router_ap",
-      "unlockLevel": 7
+      "unlockLevel": 21
     }
   ]
 }
