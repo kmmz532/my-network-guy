@@ -296,6 +296,16 @@ const scenes = {
     });
     await page.waitForTimeout(500);
   },
+  // 夜（22時）の地図。時刻による色（N75）の確認用
+  night: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      const c = g.getState().clock;
+      g.setState({ clock: { ...c, minute: Math.floor(c.minute / 1440) * 1440 + 22 * 60 } });
+    });
+    await page.waitForTimeout(500);
+  },
   // 自社の情報の床の行（解禁のレベル5に届いてから出す）
   floor: async (page) => {
     await scenes.career(page);

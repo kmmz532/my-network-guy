@@ -13,6 +13,7 @@ import { setMapView } from './mapView';
 import { gameEnv } from '../sim/env';
 import { moveFurniture, placeFurniture, seatedStaff, unseatedStaff } from '../sim/furniture';
 import { spriteNameOf, type Facing } from '../sim/facing';
+import { dayTintOf, nightnessOf, toHex, type Rgb } from '../sim/dayTint';
 
 // 向きの絵がある家具（机・椅子）。向きに合わせて絵を切り替える（N95）
 const FACING_SPRITES = new Set(['furniture/desk', 'furniture/chair']);
@@ -163,6 +164,10 @@ export class Scene {
   private bg = new Graphics();
   private sprites = new Container();
   private g = new Graphics();
+  // 時刻による色の重ね（乗算）と、夜の明かり（加算）（N75）
+  private dayOverlay = new Graphics();
+  private nightLights = new Graphics();
+  private tintKey = '';
   private bubbles = new Container();
   // 配線をドラッグ中の起点と現在位置（マップの座標）
   private wireFrom: string | null = null;
@@ -224,6 +229,11 @@ export class Scene {
     // 機器と社員は、足元のY座標（zIndex）の昇順に重ねる
     this.sprites.sortableChildren = true;
     this.content.addChild(this.sprites);
+    // 時刻による色（N75）は、機器と社員の上・配線と吹き出しの下に重ねる（配線とラベルは暗くしない）
+    this.dayOverlay.blendMode = 'multiply';
+    this.nightLights.blendMode = 'add';
+    this.content.addChild(this.dayOverlay);
+    this.content.addChild(this.nightLights);
     this.content.addChild(this.g);
     this.content.addChild(this.bubbles);
     for (const side of EXPAND_SIDES) this.expandButtons.set(side, this.makeExpandButton(side));
@@ -439,6 +449,36 @@ export class Scene {
     }
   }
 
+  // 時刻による色（N75）。色が変わったときだけ重ねを描き直す。夜は、夜勤の机と機器の周りに明かりを描く
+  private updateDayTint(): void {
+    const map = this.map;
+    if (!map) {
+      this.dayOverlay.clear();
+      this.nightLights.clear();
+      this.tintKey = '';
+      return;
+    }
+    const s = useGameStore.getState();
+    const tint: Rgb = dayTintOf(s.clock.minute % dayMinutes);
+    const ts = this.tileSize();
+    const key = `${map.id}|${map.width}x${map.height}|${ts}|${toHex(tint)}`;
+    if (key !== this.tintKey) {
+      this.tintKey = key;
+      this.dayOverlay.clear().rect(0, 0, map.width * ts, map.height * ts).fill(toHex(tint));
+    }
+    this.nightLights.clear();
+    const night = nightnessOf(tint);
+    if (night > 0.2 && map.id === 'hq') {
+      for (const { member, desk } of seatedStaff(s.office, s.staff, isDesk)) {
+        if (member.shift !== 'night') continue;
+        this.nightLights.circle((desk.x + 0.5) * ts, (desk.y + 0.5) * ts, ts * 0.9).fill({ color: 0xffe9a8, alpha: 0.3 * night });
+      }
+      for (const n of s.office.nodes) {
+        this.nightLights.circle((n.x + 0.5) * ts, (n.y + 0.5) * ts, ts * 0.3).fill({ color: 0x9ff0b0, alpha: 0.35 * night });
+      }
+    }
+  }
+
   private onTick = (ticker: Ticker): void => {
     // 疎通テストの流れ（粒）は実時間で進める。時間を止めていても（設計中など）流れが動く
     this.realElapsed += ticker.deltaMS;
@@ -450,6 +490,7 @@ export class Scene {
     if (this.map && (view.w !== this.view.w || view.h !== this.view.h)) this.layout();
     this.updateWanderers(dt);
     this.updateCommutes(dt);
+    this.updateDayTint();
     // パケットは滑らかに動かす。それ以外はコマ送り（ART.md）
     if (this.traceActive() || this.flashActive() || this.pulseActive() || this.pressActive()) {
       this.drawObjects();
