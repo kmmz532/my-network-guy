@@ -213,6 +213,8 @@ export function Toolbar({
   // ケーブルの種類の欄。PC は配線のボタンの上に浮かせ、狭い画面は行の上に出す（スクロールで切れないように）
   const cablePopup = (
     <div
+      // ツールバーの上に浮く欄の印（案内の吹き出しの位置を測るため・N106）
+      data-toolbar-popup
       style={{
         position: phone ? 'static' : 'absolute',
         left: 0,

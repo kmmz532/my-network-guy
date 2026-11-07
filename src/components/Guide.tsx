@@ -58,6 +58,25 @@ export function Guide() {
   const debugConsumeGuide = useGameStore((s) => s.debugConsumeGuide);
   // 光らせるツールバーのボタンの位置（画面の座標）
   const [glow, setGlow] = useState<Box | null>(null);
+  // PC の吹き出しの下端（画面の下からの px）。ツールバーと、その上に浮いた欄の上端の8px上に置く（N106）
+  const [desktopBottom, setDesktopBottom] = useState<number | null>(null);
+  const measureDesktop = useCallback(() => {
+    const scale = loadSettings().uiScale || 1;
+    const tops = ['[data-toolbar]', '[data-toolbar-popup]']
+      .flatMap((sel) => Array.from(document.querySelectorAll(sel)))
+      .map((el) => el.getBoundingClientRect().top)
+      .filter((top) => top > 0);
+    // 画面の拡大（zoom）で、指定の px も拡大されるため、拡大率で割って指定する
+    const next = (tops.length > 0 ? window.innerHeight - Math.min(...tops) + 8 : 8) / scale;
+    setDesktopBottom((prev) => (prev === next ? prev : next));
+  }, []);
+  useLayoutEffect(() => {
+    if (!phone) measureDesktop();
+  });
+  useEffect(() => {
+    window.addEventListener('resize', measureDesktop);
+    return () => window.removeEventListener('resize', measureDesktop);
+  }, [measureDesktop]);
   const phone = usePhone();
   // 横にスクロールするツールバーで、光らせるボタンを見える位置へ寄せたときの対象（同じ手順で何度も寄せないため）
   const scrolledFor = useRef<string | null>(null);
@@ -208,7 +227,7 @@ export function Guide() {
             : {
                 position: 'fixed',
                 left: '50%',
-                bottom: 'calc(72px * var(--ui-scale, 1))',
+                bottom: desktopBottom ?? 'calc(72px * var(--ui-scale, 1))',
                 transform: 'translateX(-50%)',
                 pointerEvents: 'none',
                 zIndex: GUIDE_Z,
