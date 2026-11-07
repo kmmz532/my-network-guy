@@ -287,6 +287,12 @@ const scenes = {
     });
     await page.waitForTimeout(500);
   },
+  // お金（HUD）を押して、資金の画面を開く
+  funds: async (page) => {
+    await scenes.career(page);
+    await page.getByRole('button', { name: /資金/ }).first().click();
+    await page.waitForTimeout(500);
+  },
   // 退職の月末の確認（時間を進め、退職の予定の社員が月末に一覧から消えて退職金が出ることを確かめる）。結果は標準出力に出す
   retireend: async (page) => {
     await scenes.career(page);

@@ -319,9 +319,20 @@ export function App() {
           zoom: 'var(--ui-scale, 1)',
         }}
       >
-        <span>
-          <Icon name="icon/money" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} /> {sandbox ? '∞' : clock.money.toLocaleString('ja-JP')}
-        </span>
+        {/* お金を押すと、資金の画面を開く（サンドボックスは資金がないため、開かない） */}
+        {sandbox ? (
+          <span>
+            <Icon name="icon/money" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} /> ∞
+          </span>
+        ) : (
+          <button
+            aria-label={t('ui.funds.open')}
+            onClick={() => openWindow('funds', '')}
+            style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <Icon name="icon/money" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} /> {clock.money.toLocaleString('ja-JP')}
+          </button>
+        )}
         {!sandbox && (
         <button aria-label={t('ui.company.title')} onClick={() => openWindow('company', '')} style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
           {/* 会社のレベルの印と、今のレベルの中の経験値のゲージ（N66）。押すと自社の情報の画面を開く */}
