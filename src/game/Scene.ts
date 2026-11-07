@@ -4,7 +4,7 @@ import { nodeLabel } from '../components/nodeLabel';
 import { isPhoneNow } from '../ui/usePhone';
 import { Application, Container, Graphics, Rectangle, Sprite, Text, type FederatedPointerEvent, type Ticker } from 'pixi.js';
 import { staffSpriteName, STAFF_PLACEHOLDER_LOOKS, type GameMap } from '../data/schema';
-import { coreOf, editNetOf, focusedProject, frontDeviceUid, netTargetOf, useGameStore, type Trace, type WireStart } from '../stores/useGameStore';
+import { coreOf, editNetOf, focusedProject, viewingOffice, frontDeviceUid, netTargetOf, useGameStore, type Trace, type WireStart } from '../stores/useGameStore';
 import { cableEndAt, centerPath, grabsCableEnd, linkAt, plugPoints } from './linkHit';
 import { portLabel } from '../components/devicePorts';
 import { isDragMove } from '../components/rearDrag';
@@ -422,7 +422,7 @@ export class Scene {
     const s = useGameStore.getState();
     // サンドボックスは部屋を広げないので、広げるボタンは出さない
     // サンドボックスも、広げるボタンを出す（解放と費用を問わない。N59）
-    const shown = s.active.length === 0 && !s.showcase && map?.id === 'hq';
+    const shown = viewingOffice(s) && map?.id === 'hq';
     for (const side of EXPAND_SIDES) {
       const box = this.expandButtons.get(side);
       if (!box) continue;
@@ -1597,7 +1597,7 @@ export class Scene {
       const ips = this.compiled?.net.nodes.find((n) => n.uid === node.uid)?.interfaces.map((i) => `${i.ip}/${i.prefix}`) ?? [];
       return { key: `n:${node.uid}`, text: [nodeLabel(store, node, this.project()?.nodes ?? []), ...ips].join('\n') };
     }
-    if (!focusedProject(store) && !store.showcase) {
+    if (viewingOffice(store)) {
       const f = store.office.furniture.find((x) => x.x === tx && x.y === ty);
       if (f) {
         const lines = [tDyn(`furniture.${f.id}.name`), effectText(gameEnv.furniture?.[f.id]?.effect)];
@@ -1673,7 +1673,7 @@ export class Scene {
   // 右クリックで撤去できる配線: 自社オフィス、または案件の設計中の配線。なければ null
   private removableLinks(): readonly NetLink[] | null {
     const s = useGameStore.getState();
-    if (s.active.length === 0 && !s.showcase) return s.office.links;
+    if (viewingOffice(s)) return s.office.links;
     const project = focusedProject(s);
     return project?.phase === 'design' ? project.links : null;
   }
@@ -1791,7 +1791,7 @@ export class Scene {
       return;
     }
     const tile = this.tileOf(p);
-    const inOffice = store.active.length === 0 && !store.showcase;
+    const inOffice = viewingOffice(store);
     const furniture =
       inOffice && tile ? store.office.furniture.find((f) => f.x === tile.tx && f.y === tile.ty) : undefined;
     if (furniture) {
@@ -1947,7 +1947,7 @@ export class Scene {
     const hq = s.maps.hq;
     if (!hq) return false;
     if (id in furnitureData) return placeFurniture(core, id, tx, ty, hq).ok;
-    if (s.active.length === 0) return placeInOffice(core, id, tx, ty, hq, gameEnv, s.mode === 'sandbox').ok;
+    if (viewingOffice(s)) return placeInOffice(core, id, tx, ty, hq, gameEnv, s.mode === 'sandbox').ok;
     return this.map !== null && placeDevice(core, id, tx, ty, this.map, gameEnv).ok;
   }
 
@@ -2080,7 +2080,7 @@ export class Scene {
     const removing = store.tool === 'remove' && !store.placing;
     const nodes = removing ? this.editNodes() : null;
     const node = nodes ? this.nodeNear(p, nodes) : undefined;
-    const inOffice = store.active.length === 0 && !store.showcase;
+    const inOffice = viewingOffice(store);
     const furniture =
       removing && inOffice && tile ? store.office.furniture.find((f) => f.x === tile.tx && f.y === tile.ty) : undefined;
     const link = store.placing ? undefined : this.linkUnder(p);

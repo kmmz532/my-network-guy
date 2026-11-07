@@ -481,8 +481,11 @@ const salesArrivalPatch = (s: GameState, days: number): Partial<GameState> => {
 export const purchaseDiscountOf = (s: { staff: Staff[]; office: Office }): number =>
   accountingRate(backOfficeP(s.staff, 'accounting', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff, pcDesks: pcDesksOf(s.office, isPcDevice) }), balance);
 
+// 画面が自社オフィスを見ているか（N112）。判定はここだけで行う（案件の数では決めない）
+export const viewingOffice = (s: { focus: string | null; showcase: unknown }): boolean => s.focus === null && !s.showcase;
+
 export const editNetOf = (s: GameState): { nodes: NetNode[]; links: NetLink[] } | null => {
-  if (s.active.length === 0 && !s.showcase) return { nodes: s.office.nodes, links: s.office.links };
+  if (viewingOffice(s)) return { nodes: s.office.nodes, links: s.office.links };
   const p = focusedProject(s);
   return p?.phase === 'design' ? { nodes: p.nodes, links: p.links } : null;
 };
@@ -1261,12 +1264,14 @@ export const useGameStore = create<GameState>((set, get) => {
     // 在庫の機材・家具を配置する（購入はショップで行う）。案件がなければ自社オフィスに置く
     place: (deviceId, x, y) => {
       if (deviceId in furniture) return get().placeFurniture(deviceId, x, y);
-      if (get().active.length === 0) {
+      if (!focusedProject(get())) {
         const hq = get().maps.hq;
         if (!hq) return 'map';
         return recorded(() => apply(placeInOffice(coreOf(get()), deviceId, x, y, hq, gameEnv, get().mode === 'sandbox'), { tx: x, ty: y }));
       }
-      const map = get().maps[focusedProject(get())!.contract.map];
+      const project = focusedProject(get());
+      if (!project) return 'map';
+      const map = get().maps[project.contract.map];
       if (!map) return 'map';
       return recorded(() => apply(placeDevice(coreOf(get()), deviceId, x, y, map, gameEnv), { tx: x, ty: y }));
     },
@@ -1356,7 +1361,7 @@ export const useGameStore = create<GameState>((set, get) => {
     },
     removeNode: (uid) => {
       const reason = recorded(() => {
-        if (get().active.length === 0) {
+        if (!focusedProject(get())) {
           const n = get().office.nodes.find((x) => x.uid === uid);
           return apply(removeFromOffice(coreOf(get()), uid, gameEnv), n ? { tx: n.x, ty: n.y } : undefined);
         }
