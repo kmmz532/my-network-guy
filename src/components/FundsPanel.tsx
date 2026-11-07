@@ -32,7 +32,8 @@ export function FundsBody() {
   const maxAbs = Math.max(1, ...history.map((m) => Math.abs(net(m))));
   const row = { display: 'flex', justifyContent: 'space-between', gap: 8, padding: '4px 0', borderBottom: '1px solid #3b2a33' } as const;
   return (
-    <div style={{ padding: 12, fontSize: 14, color: '#f4f1e6', maxHeight: 'min(60vh, 480px)', overflowY: 'auto' }}>
+    // スクロールはウィンドウの本体だけで行う（中身の枠は持たない・N105）
+    <div style={{ padding: 12, fontSize: 14, color: '#f4f1e6' }}>
       <div style={{ ...row, fontSize: 16 }}>
         <span>{t('ui.funds.balance')}</span>
         <span>{clock.ledger === null ? '∞' : yen(clock.money)}</span>
