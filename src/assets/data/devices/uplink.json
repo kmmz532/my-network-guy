@@ -11,7 +11,7 @@
       "ports": [
         {
           "type": "rj45",
-          "count": 1,
+          "count": 2,
           "speedMbps": 1000
         }
       ],

@@ -15,9 +15,10 @@ export const isL2Category = (category: string): boolean => categoryCan(category,
 export const isRoutingCategory = (category: string): boolean => categoryCan(category, 'routing');
 
 // 中継（機器の内部のスイッチ）でつながる口。L2スイッチのすべての口と、スイッチ付きルーターの LAN の口
+// 回線終端（uplink）は、口0（ルーター側）と口1（インターネット側）を素通しする（N144）
 export const isFabricPort = (category: string, port: number): boolean =>
-  isL2Category(category) || (category === CATEGORY.routerSwitch && port >= ROUTER_SWITCH_LAN_HOST_PORT);
+  isL2Category(category) || (category === CATEGORY.routerSwitch && port >= ROUTER_SWITCH_LAN_HOST_PORT) || category === CATEGORY.uplink;
 
 // 機器の一員として数えない口（中継だけの口）。代表の LAN 口は一員として数える
 export const isRelayPort = (category: string, port: number): boolean =>
-  isL2Category(category) || (category === CATEGORY.routerSwitch && port > ROUTER_SWITCH_LAN_HOST_PORT);
+  isL2Category(category) || (category === CATEGORY.routerSwitch && port > ROUTER_SWITCH_LAN_HOST_PORT) || category === CATEGORY.uplink;

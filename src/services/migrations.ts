@@ -2,6 +2,8 @@
 import type { Effects, Office, Project } from '../sim/project';
 import type { EngineData, NetLink, NetNode, Service } from '../network/types';
 import { fillSegments } from '../network/segments';
+import { isRoutingCategory } from '../network/category';
+
 import { colorsFromConfig, legacyInterfaces } from './legacyColors';
 import { initialOffice } from '../sim/furniture';
 import type { Balance, FloorId, Staff } from '../data/schema';
@@ -23,7 +25,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 44;
+export const SAVE_VERSION = 45;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -242,6 +244,21 @@ export const migrations: Record<number, Migration> = {
       }) }),
     });
     return { ...d, active: d.active.map(withPaid), office: withPaid(d.office) };
+  },
+  // v44 → v45: 外部への接続を、回線終端（uplink）経由にする（N144）。今まで仮想のインターネットにつながっていた（WAN の口が空いた）最初のルーターに、
+  // 費用0の回線終端を、ルーターの WAN の口（口0）と結んで置く。回線終端の口1 がインターネット側になる
+  44: (data) => {
+    const d = data as { active: Project[]; office: Office };
+    const fill = <T extends { nodes: NetNode[]; links?: NetLink[] }>(net: T): T => {
+      const links = net.links ?? [];
+      const router = net.nodes.find((n) => isRoutingCategory(categoryForHost[n.device] ?? '') && !links.some((l) => (l.a.node === n.uid && l.a.port === 0) || (l.b.node === n.uid && l.b.port === 0)));
+      if (!router) return net;
+      const uid = `${router.uid}_uplink`;
+      const uplink: NetNode = { uid, device: 'uplink', x: router.x + 1, y: router.y, locked: true, configLocked: true, interfaces: [], gateway: null, routes: [], services: [], ports: [] };
+      const cable: NetLink = { uid: `${uid}_link`, cable: 'utp_cat5e', a: { node: router.uid, port: 0 }, b: { node: uid, port: 0 }, path: [[router.x, router.y], [router.x + 1, router.y]], paid: 0 };
+      return { ...net, nodes: [...net.nodes, uplink], links: [...links, cable] };
+    };
+    return { ...d, active: d.active.map(fill), office: fill(d.office) };
   },
   // v43 → v44: 機器に口の設定（ports）を足す。移行前は設定のない口（空）とする（既定のモードで動く）（N135）
   43: (data) => {

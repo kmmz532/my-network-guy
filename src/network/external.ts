@@ -4,13 +4,16 @@ import { makeIface } from './iface';
 // 公開: インターネットから、サーバーへ HTTP（80）が届き、社内の PC へは外から届かないこと（NAT・ポート転送は扱わない）。
 import { http, ping } from './engine';
 import { isRoutingCategory } from './category';
-import { isPcCategory } from '../data/categories';
+import { CATEGORY, isPcCategory } from '../data/categories';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
 export const INTERNET_UID = '__internet';
 export const INTERNET_IP = '198.51.100.1';
 export const INTERNET_PREFIX = 24;
 export const WAN_PORT = 0;
+// 回線終端の口: 口0 はルーターの WAN 側、口1 は ISP（インターネット）側（N144）
+export const UPLINK_ROUTER_PORT = 0;
+export const UPLINK_ISP_PORT = 1;
 export const PUBLIC_PORT = 80;
 
 export interface OutsideCheck {
@@ -26,14 +29,18 @@ export interface OutsideCheck {
   servers: number;
 }
 
-// ネットワークに仮想のインターネットを加える。WAN の口が空いたルーターがなければ null
+// ネットワークに仮想のインターネットを加える（N144）。回線終端（uplink）の口1（ISP 側）につなぐ。
+// 回線終端の口0 がルーターの WAN の口につながっていなければ、外部へ届かない（回線が要る）。回線終端がなければ null
 export const withInternet = (net: Network, data: EngineData): (Network & { internetUid: string }) | null => {
-  const router = net.nodes.find(
-    (n) => isRoutingCategory(data.categoryOf(n.device)) && !net.links.some((l) => (l.a.node === n.uid && l.a.port === WAN_PORT) || (l.b.node === n.uid && l.b.port === WAN_PORT)),
-  );
-  if (!router) return null;
+  const uplink = net.nodes.find((n) => data.categoryOf(n.device) === CATEGORY.uplink);
+  if (!uplink) return null;
+  const routerLink = net.links.find((l) => (l.a.node === uplink.uid && l.a.port === UPLINK_ROUTER_PORT) || (l.b.node === uplink.uid && l.b.port === UPLINK_ROUTER_PORT));
+  if (!routerLink) return null;
+  const routerEnd = routerLink.a.node === uplink.uid ? routerLink.b : routerLink.a;
+  const router = net.nodes.find((n) => n.uid === routerEnd.node);
+  if (!router || !isRoutingCategory(data.categoryOf(router.device))) return null;
   // 戻りの経路: 外部の側の既定のゲートウェイは、つないだルーターの WAN の IPアドレス（WAN に IPアドレスがなければ戻れない）
-  const wanIp = router.interfaces.find((i) => i.port === WAN_PORT)?.ip ?? null;
+  const wanIp = router.interfaces.find((i) => i.port === routerEnd.port)?.ip ?? null;
   const internet: NetNode = { ports: [],
     uid: INTERNET_UID,
     device: 'internet',
@@ -49,7 +56,7 @@ export const withInternet = (net: Network, data: EngineData): (Network & { inter
   const link: NetLink = {
     uid: '__internet_link',
     cable: 'utp_cat5e',
-    a: { node: router.uid, port: WAN_PORT },
+    a: { node: uplink.uid, port: UPLINK_ISP_PORT },
     b: { node: INTERNET_UID, port: 0 },
     path: [
       [0, 0],

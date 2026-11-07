@@ -4,7 +4,7 @@ import { customersOf, outsideCheck, rentalOf, withInternet } from './external';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
 const data: EngineData = {
-  categoryOf: (device) => ({ pc: 'pc', rt: 'router', l2: 'l2_switch' })[device] ?? 'unknown',
+  categoryOf: (device) => ({ pc: 'pc', rt: 'router', l2: 'l2_switch', up: 'uplink' })[device] ?? 'unknown',
   maxLengthOf: () => 30,
 };
 
@@ -44,24 +44,26 @@ const office = (): Network => ({
       routes: [{ dest: '0.0.0.0', prefix: 0, nextHop: '198.51.100.1' }],
     }),
     node('a', 'pc', { interfaces: [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }], gateway: '192.168.1.1' }),
+    // 回線終端（口0 がルーターの WAN 側）。インターネットは口1 につながる（N144）
+    node('u', 'up', { ports: [] }),
   ],
-  links: [link('l1', 'a', 0, 'r', 1)],
+  links: [link('l1', 'a', 0, 'r', 1), link('l0', 'r', 0, 'u', 0)],
 });
 
 describe('外部（インターネット）の判定（N71）', () => {
-  it('WAN の口が空いたルーターがなければ、外部につながらない', () => {
+  it('回線終端がなければ、外部につながらない（今の外部の仕組みは回線が要る）', () => {
     const net: Network = { nodes: [node('a', 'pc', { interfaces: [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }] })], links: [] };
     expect(withInternet(net, data)).toBeNull();
     expect(outsideCheck(net, data).attached).toBe(false);
   });
 
-  it('WAN の口が使われていれば、外部につながらない（配線は変えない）', () => {
+  it('回線終端がルーターにつながっていなければ、外部につながらない', () => {
     const net = office();
-    const busy = { ...net, links: [...net.links, link('w', 'r', 0, 'a', 0)] };
-    expect(withInternet(busy, data)).toBeNull();
+    const unplugged = { ...net, links: net.links.filter((l) => l.uid !== 'l0') };
+    expect(withInternet(unplugged, data)).toBeNull();
   });
 
-  it('WAN の口が空いていれば、社内の PC が外部へ届く', () => {
+  it('回線終端がつながっていれば、社内の PC が外部へ届く', () => {
     const r = outsideCheck(office(), data);
     expect(r.attached).toBe(true);
     expect(r.pcsReachOutside).toBe(true);

@@ -553,3 +553,15 @@ describe('v42 → v43（インターフェースの名前と種類）', () => {
     expect(out.office.nodes[1].interfaces[0]).toMatchObject({ id: 'g0/2', kind: 'port', port: 2 });
   });
 });
+
+describe('v44 → v45（回線終端）', () => {
+  it('WAN の口が空いていたルーターに、費用0の回線終端をつなぐ（今までどおり外部へ届く）', () => {
+    const router = { uid: 'r', device: 'router_basic', x: 2, y: 3, locked: false, configLocked: false, interfaces: [{ id: 'g0/0', kind: 'port', port: 0, ip: '198.51.100.2', prefix: 24 }, { id: 'g0/1', kind: 'port', port: 1, ip: '192.168.1.1', prefix: 24 }], gateway: null, routes: [], services: [], ports: [] };
+    const { active: _a, office: _o, ...rest } = sample;
+    const out = migrate(44, { ...rest, active: [], office: { ...sample.office, nodes: [router], links: [] } });
+    expect(out.office.nodes.some((n) => n.device === 'uplink')).toBe(true);
+    const cable = out.office.links.find((l) => l.a.node === 'r' && l.a.port === 0);
+    expect(cable?.b.node).toBe('r_uplink');
+    expect(cable?.paid).toBe(0);
+  });
+});
