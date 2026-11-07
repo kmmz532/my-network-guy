@@ -71,9 +71,10 @@ const CSS = `
   text-shadow: 2px 2px 0 #3b2a33;
 }
 @media (max-width: 540px) {
-  /* 「わたしのネットワーク屋」（11字。1字がちょうど 1em）が、左右の余白 16px と文字の影 3px を除いた幅に1行で収まる大きさ */
+  /* 「わたしのネットワーク屋」（11字。1字がちょうど 1em）を、左右の余白 16px と文字の影 3px に加え、字の幅の違い（フォントの代わり・端末の差）の余裕 0.5字ぶんを除いた幅に1行で収める */
   .ts-title {
-    font-size: min(36px, calc((100vw - 38px) / 11));
+    font-size: min(36px, calc((100vw - 56px) / 11.5));
+    max-width: 100%;
   }
 }
 .ts-rack {
