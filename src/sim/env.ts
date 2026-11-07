@@ -1,6 +1,6 @@
 // ゲームデータから、案件の流れと判定に使う環境を作る（実行時のみ使用）。
 import { balance, cables as cableRecord, devices as deviceRecord, furniture as furnitureRecord } from 'virtual:game-data';
-import type { Env } from './project';
+import { isPcIn, type Env } from './project';
 
 const devices: Env['devices'] = Object.fromEntries(
   Object.values(deviceRecord).map((d) => [
@@ -34,4 +34,4 @@ export const gameEnv: Env = {
 };
 
 // 機器の種類が PC かどうか（N102）
-export const isPcDevice = (device: string): boolean => gameEnv.devices[device]?.category === 'pc';
+export const isPcDevice = (device: string): boolean => isPcIn(gameEnv, device);

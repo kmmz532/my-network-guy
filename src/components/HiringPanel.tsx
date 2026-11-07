@@ -4,7 +4,7 @@ import { balance, certs, furniture, training } from 'virtual:game-data';
 import type { FurnitureId } from '../generated/ids';
 import { staffSpriteName } from '../data/schema';
 import { t, tDyn } from '../i18n/t';
-import { freeDesks, pcDesksOf } from '../sim/furniture';
+import { bonusEnvOf, freeDesks } from '../sim/furniture';
 import { backOfficeP, isBackOffice, jobEffect } from '../sim/backOffice';
 import { jobEffectText } from './jobEffectText';
 import { gameEnv, isPcDevice } from '../sim/env';
@@ -61,7 +61,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
   const allStaff = useGameStore((s) => s.staff);
   const wish = useGameStore((s) => s.hiringWish);
   const setHiringWish = useGameStore((s) => s.setHiringWish);
-  const hrP = backOfficeP(allStaff, 'hr', office, { defs: gameEnv.furniture ?? {}, balance, staff: allStaff, pcDesks: pcDesksOf(office, isPcDevice) });
+  const hrP = backOfficeP(allStaff, 'hr', office, bonusEnvOf({ staff: allStaff, office: office }, gameEnv));
   const jobsOpen = unlockedJobsOf(levelOf(companyExp, balance), balance);
   // 夜勤の解放（会社のレベル）と、候補ごとに選んだ区分
   const nightOpen = levelOf(companyExp, balance) >= balance.featureUnlocks.nightShift;
@@ -95,7 +95,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
       {candidates.map((c) => {
         // 内勤の札と、雇うと増える効果（席に座った場合の見込み）
         const back = isBackOffice(c.job);
-        const effect = back ? jobEffect(c.job, c, c.level, backOfficeP(allStaff, c.job, office, { defs: gameEnv.furniture ?? {}, balance, staff: allStaff, pcDesks: pcDesksOf(office, isPcDevice) }), balance) : null;
+        const effect = back ? jobEffect(c.job, c, c.level, backOfficeP(allStaff, c.job, office, bonusEnvOf({ staff: allStaff, office: office }, gameEnv)), balance) : null;
         return (
         <div
           key={c.uid}

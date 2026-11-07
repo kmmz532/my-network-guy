@@ -1,6 +1,6 @@
 // 自社オフィスの家具と社員の規則（純粋関数）。配置と撤去、社員の席の数と雇用を扱う。
 import type { Balance, Furniture, GameMap, Staff } from '../data/schema';
-import { DESK_ID, emptyOffice, fail, officeLocked, type Core, type Office, type Outcome } from './project';
+import { DESK_ID, emptyOffice, fail, isPcIn, officeLocked, type Core, type Env, type Office, type Outcome } from './project';
 import { tileKind } from '../data/tileKind';
 import type { NetLink, NetNode } from '../network/types';
 import cablesData from '../assets/data/cables.json';
@@ -256,3 +256,11 @@ export const furnitureBonus = (office: Office, staffUid: string, env: BonusEnv):
   }
   return { power, exp, seatless };
 };
+
+// 社員の効果の計算に渡す環境を、自社オフィスと社員の一覧から作る（N116）。PC の判定は環境の機器の定義を使う
+export const bonusEnvOf = (core: Pick<Core, 'staff' | 'office'>, env: Env): BonusEnv => ({
+  defs: env.furniture ?? {},
+  balance: env.balance,
+  staff: core.staff,
+  pcDesks: pcDesksOf(core.office, (d) => isPcIn(env, d)),
+});

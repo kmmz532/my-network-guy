@@ -43,7 +43,7 @@ import { isOnShift } from './shift';
 import { rate, rewardRateOf } from './rating';
 import { DELEGATE_MIN_COUNT, DELEGATED_EXP_DIVISOR, DELEGATED_STAR_CAP, familiarKeyOf, missingFixed, positionsMatch, recordDelivery, type Blueprint, type Familiarity } from './familiar';
 import { dueDayOf, lateDaysOf, lateFactor } from './deadline';
-import { furnitureBonus, type BonusEnv, pcDesksOf } from './furniture';
+import { bonusEnvOf, furnitureBonus, type BonusEnv } from './furniture';
 import { gainExp, staffPower } from './staff';
 import { blindDelegation, type Stars } from './blindDelegate';
 import { CATEGORY } from '../data/categories';
@@ -1302,7 +1302,7 @@ export const advanceBuild = (core: Core, env: Env, hour: number, juniorRate = 1)
   // 施工は、その時刻に勤務中の担当の社員だけが進める（日勤と夜勤は区分ごと。N48）
   const minute = hour * 60;
   const onShiftNow = (s: Staff) => isOnShift(minute, s.shift, env.balance);
-  const bonusEnv: BonusEnv = { defs: env.furniture ?? {}, balance: env.balance, staff: core.staff, pcDesks: pcDesksOf(core.office, (d) => env.devices[d]?.category === CATEGORY.pc) };
+  const bonusEnv: BonusEnv = bonusEnvOf({ staff: core.staff, office: core.office }, env);
   const crewOf = (p: Project) => core.staff.filter((s) => p.crew.includes(s.uid));
   // 施工中の案件の担当は、勤務中に1ゲーム時間ぶんの経験値を得る（着席の社員は家具の補正を受ける）
   let state: Core = core;
@@ -1401,7 +1401,7 @@ export const delegateBlind = (core: Core, offerId: string, crew: string[], env: 
   const accepted = accept(core, offerId, slots, crew);
   if (!accepted.ok) return { ok: false, reason: accepted.reason };
   const crewMembers = crew.map((uid) => core.staff.find((s) => s.uid === uid)) as Staff[];
-  const bonusEnv: BonusEnv = { defs: env.furniture ?? {}, balance: env.balance, staff: core.staff, pcDesks: pcDesksOf(core.office, (d) => env.devices[d]?.category === CATEGORY.pc) };
+  const bonusEnv: BonusEnv = bonusEnvOf({ staff: core.staff, office: core.office }, env);
   const jobs = contract.jobs ?? [];
   const power = crewMembers.reduce((sum, m) => sum + staffPower(m, jobs, core.office, bonusEnv), 0);
   const pcCount = contract.placed.filter((p) => env.devices[p.device]?.category === 'pc').length;
@@ -1550,3 +1550,6 @@ export const abandon = (core: Core): Outcome => {
     : core.offers;
   return { ok: true, core: { ...core, owned, offers, ...removeProject(core, p.id) } };
 };
+
+// 機器の種類が PC か（環境の機器の定義を引く。判定はここだけで行う。N116）
+export const isPcIn = (env: Env, device: string): boolean => env.devices[device]?.category === CATEGORY.pc;

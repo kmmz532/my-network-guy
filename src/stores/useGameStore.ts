@@ -56,7 +56,7 @@ import {
   initialOffice,
   placeFurniture as placeFurnitureOp,
   moveFurniture as moveFurnitureOp,
-  removeFurniture as removeFurnitureOp, pcDesksOf, rotateFurniture as rotateFurnitureOp } from '../sim/furniture';
+  removeFurniture as removeFurnitureOp, bonusEnvOf, pcDesksOf, rotateFurniture as rotateFurnitureOp } from '../sim/furniture';
 import {
   type PortChoice,
   type RoomId,
@@ -447,7 +447,7 @@ export const focusedProject = (s: { active: Project[]; focus: string | null }): 
 // 機器を編集できる対象の機器と配線（自社オフィス、または設計中の案件）。編集できなければ null
 // 営業の効果（1日に依頼が届く確率と、報酬の高い依頼の重み。内勤の実効 level の合計で決まる）
 const salesEffectsOf = (s: { staff: Staff[]; office: Office }): OfferEffects => {
-  const P = backOfficeP(s.staff, 'sales', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff, pcDesks: pcDesksOf(s.office, isPcDevice) });
+  const P = backOfficeP(s.staff, 'sales', s.office, bonusEnvOf({ staff: s.staff, office: s.office }, gameEnv));
   // プリンターの効果（N98）は、営業の人数と関係なく効く
   const printer = printerArrivalBonusOf(s.office, (d) => gameEnv.devices[d]?.category === 'printer', balance);
   return { arrivalChance: salesArrivalChance(P, balance) + printer, rewardWeight: P * balance.backOffice.sales.rewardWeightPerLevel };
@@ -479,7 +479,7 @@ const salesArrivalPatch = (s: GameState, days: number): Partial<GameState> => {
 
 // 購入の割引（経理の効果。内勤の実効 level の合計で決まる）
 export const purchaseDiscountOf = (s: { staff: Staff[]; office: Office }): number =>
-  accountingRate(backOfficeP(s.staff, 'accounting', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff, pcDesks: pcDesksOf(s.office, isPcDevice) }), balance);
+  accountingRate(backOfficeP(s.staff, 'accounting', s.office, bonusEnvOf({ staff: s.staff, office: s.office }, gameEnv)), balance);
 
 // 画面が自社オフィスを見ているか（N112）。判定はここだけで行う（案件の数では決めない）
 export const viewingOffice = (s: { focus: string | null; showcase: unknown }): boolean => s.focus === null && !s.showcase;
@@ -1106,7 +1106,7 @@ export const useGameStore = create<GameState>((set, get) => {
         };
         // 月末に給与を払ったら知らせる
         // 人事の効果（候補・研修・新人の施工）の大きさ。内勤の実効 level の合計
-        const hrP = backOfficeP(s.staff, 'hr', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff, pcDesks: pcDesksOf(s.office, isPcDevice) });
+        const hrP = backOfficeP(s.staff, 'hr', s.office, bonusEnvOf({ staff: s.staff, office: s.office }, gameEnv));
         if (clock.paidMonths > s.clock.paidMonths) {
           const amount = totalSalary(s.staff, balance.nightPayRate);
           // 退職の予定の社員は、今月末で退職する（退職金を払い、一覧から外す。今月の給与は上で払い済み・N90）
@@ -1310,7 +1310,7 @@ export const useGameStore = create<GameState>((set, get) => {
     },
     setHiringWish: (job) => {
       const s = get();
-      const hrP = backOfficeP(s.staff, 'hr', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff, pcDesks: pcDesksOf(s.office, isPcDevice) });
+      const hrP = backOfficeP(s.staff, 'hr', s.office, bonusEnvOf({ staff: s.staff, office: s.office }, gameEnv));
       if (hrP <= 0) return 'ui.error.hr';
       set({ hiringWish: job });
       return null;
