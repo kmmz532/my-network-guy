@@ -189,3 +189,37 @@ describe('対応表による名前の解決（段階5の準備）', () => {
     expect(lines[0]).toEqual({ text: 'ui.terminal.cfgHostname {"name":"R1"}', kind: 'out' });
   });
 });
+
+
+describe('show ip ospf neighbor（N143）', () => {
+  const router = (uid: string, ip: string, area: number | null): NetNode =>
+    ({
+      ports: [],
+      uid,
+      device: 'router_basic',
+      x: 0,
+      y: 0,
+      locked: false,
+      configLocked: false,
+      gateway: null,
+      routes: [],
+      services: [],
+      interfaces: [{ id: 'g0/0', kind: 'port' as const, port: 0, ip, prefix: 24, ...(area === null ? {} : { ospf: { area } }) }],
+    }) as NetNode;
+  const ospfData: EngineData = { categoryOf: (device) => ({ router_basic: 'router' })[device] ?? 'unknown', maxLengthOf: () => 30 };
+  const link = (a: string, b: string): NetLink => ({ uid: `l-${a}-${b}`, cable: 'utp_cat5e', a: { node: a, port: 0 }, b: { node: b, port: 0 }, path: [[0, 0], [1, 0]], paid: 0 });
+
+  it('同じエリアで同じサブネットの OSPF の相手を、隣接として出す', () => {
+    const nodes = [router('r1', '10.0.0.1', 0), router('r2', '10.0.0.2', 0)];
+    const lines = runTerminal('show ip ospf neighbor', { node: nodes[0], nodes, links: [link('r1', 'r2')], data: ospfData, nameOf: (n) => n.uid }, tr);
+    expect(lines).toHaveLength(1);
+    expect(lines[0].text).toContain('ui.terminal.ospfNeighbor');
+    expect(lines[0].text).toContain('10.0.0.2');
+  });
+
+  it('エリアが違えば隣接はなく、その旨を出す', () => {
+    const nodes = [router('r1', '10.0.0.1', 0), router('r2', '10.0.0.2', 1)];
+    const lines = runTerminal('show ip ospf neighbor', { node: nodes[0], nodes, links: [link('r1', 'r2')], data: ospfData }, tr);
+    expect(lines).toEqual([{ text: 'ui.terminal.ospfNone', kind: 'out' }]);
+  });
+});

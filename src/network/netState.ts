@@ -554,6 +554,26 @@ export const withWireless = (net: Network, data: EngineData): Network => {
   return { ...net, nodes, links: [...net.links, ...extra] };
 };
 
+// OSPF の隣接（show ip ospf neighbor に出す）。同じエリアで同じサブネットの、OSPF に参加した相手のルーターの口
+export const ospfNeighborsOf = (net: Network, data: EngineData, uid: string): { uid: string; ip: string; port: number; neighborIp: string }[] => {
+  const topo = new Topology(net, data);
+  const r = topo.node(uid);
+  if (!r) return [];
+  const out: { uid: string; ip: string; port: number; neighborIp: string }[] = [];
+  for (const i of r.interfaces) {
+    if (i.ospf === undefined) continue;
+    for (const m of topo.domainOf({ node: r.uid, port: i.port }).members) {
+      if (m.node === r.uid) continue;
+      const other = topo.node(m.node);
+      if (!other || !topo.isRouter(other.uid)) continue;
+      const oi = other.interfaces.find((x) => x.port === m.port);
+      if (!oi || oi.ospf === undefined || oi.ospf.area !== i.ospf.area || !inSubnet(oi.ip, i.ip, i.prefix)) continue;
+      out.push({ uid: other.uid, ip: i.ip, port: i.port, neighborIp: oi.ip });
+    }
+  }
+  return out;
+};
+
 // 静的 NAT（ポートの転送）: 外からルーターの外の口へのポートの通信を、社内のサーバーへ届ける。往路は外→外の口→社内の口→サーバー、復路は逆に戻す（N145）
 const viaStatic = (topo: Topology, srcUid: string, routerUid: string, traffic: Traffic): PathResult | null => {
   const r = topo.node(routerUid);

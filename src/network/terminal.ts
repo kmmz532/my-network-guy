@@ -8,6 +8,7 @@ import { isIp } from './terminalConfig';
 import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
+import { ospfNeighborsOf } from './netState';
 
 export interface TerminalContext {
   node: NetNode;
@@ -74,6 +75,11 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       if (node.gateway) lines.push(out(tr('ui.terminal.routeStatic', { dest: '0.0.0.0', prefix: 0, nextHop: node.gateway })));
       for (const r of node.routes) lines.push(out(tr('ui.terminal.routeStatic', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop })));
       return lines.length > 0 ? lines : [out(tr('ui.terminal.noRoute'))];
+    }
+    if (sub === 'ip ospf neighbor') {
+      const neighbors = ospfNeighborsOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
+      if (neighbors.length === 0) return [out(tr('ui.terminal.ospfNone'))];
+      return neighbors.map((nb) => out(tr('ui.terminal.ospfNeighbor', { name: name(ctx.nodes.find((n) => n.uid === nb.uid) ?? node), ip: nb.neighborIp, port: nb.port })));
     }
     if (sub === 'interfaces') {
       const peers = peersOf(ctx);
@@ -155,7 +161,8 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
 const WORDS: Record<string, string[]> = {
   '': ['help', 'show', 'ping', 'traceroute', 'ip', 'no', 'hostname', 'clear'],
   show: ['ip', 'interfaces', 'running-config'],
-  'show ip': ['route'],
+  'show ip': ['route', 'ospf'],
+  'show ip ospf': ['neighbor'],
   ip: ['address', 'default-gateway', 'route'],
   no: ['ip', 'hostname'],
   'no ip': ['default-gateway', 'route'],

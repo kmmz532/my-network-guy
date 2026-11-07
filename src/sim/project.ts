@@ -567,6 +567,16 @@ const placeReason = (
 };
 
 // 在庫から機器を1台配置する。自社案件では自社オフィスと同じ規則に従い、ほかの案件では床（PCは机の上も可）に置ける。
+// 家庭用ルーターの出荷時の設定（NET.md §4・N148 の DHCP は後続）: LAN の口（1）に 192.168.1.1/24、社内側の口、NAPT 有効。無線つきは SSID とパスワードも持つ。ほかの機器は何も持たない
+const FACTORY_WIFI = { ssid: 'HOME', password: 'home1234' };
+export const factoryConfigOf = (env: Env, deviceId: string): Pick<NetNode, 'interfaces' | 'napt' | 'wireless'> => {
+  const category = env.devices[deviceId]?.category;
+  if (category !== CATEGORY.homeRouter) return { interfaces: [] };
+  const lan = { ...makeIface(deviceId, 1, '192.168.1.1', 24), nat: 'inside' as const };
+  const wireless = deviceId === 'home_router_ap' ? { wireless: { ...FACTORY_WIFI } } : {};
+  return { interfaces: [lan], napt: true, ...wireless };
+};
+
 export const placeDevice = (core: Core, deviceId: string, x: number, y: number, map: GameMap, env: Env): Outcome => {
   const p = requireDesign(core);
   if (typeof p === 'string') return fail(p);
@@ -586,7 +596,7 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
     y,
     locked: false,
     configLocked: false,
-    interfaces: [],
+    ...factoryConfigOf(env, deviceId),
     gateway: null,
     routes: [],
     services: servicesOf(env, deviceId),
@@ -616,7 +626,7 @@ export const placeInOffice = (core: Core, deviceId: string, x: number, y: number
     y,
     locked: false,
     configLocked: false,
-    interfaces: [],
+    ...factoryConfigOf(env, deviceId),
     gateway: null,
     routes: [],
     services: servicesOf(env, deviceId),
