@@ -20,6 +20,7 @@ const host = (uid: string, ip: string, serial: number, extra: Partial<NetNode> =
   routes: [],
   services: [],
   macSerial: serial,
+  ports: [],
   ...extra,
 });
 const sw: NetNode = { ...host('s', '0.0.0.0', 9), device: 'l2', interfaces: [], macSerial: 9 };

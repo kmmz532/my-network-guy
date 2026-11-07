@@ -9,7 +9,7 @@ const data: EngineData = {
   maxLengthOf: () => 30,
 };
 
-const host = (uid: string, device: string, ip: string, gateway: string, services: NetNode['services'] = []): NetNode => ({
+const host = (uid: string, device: string, ip: string, gateway: string, services: NetNode['services'] = []): NetNode => ({ ports: [],
   uid,
   device,
   x: 0,
@@ -22,7 +22,7 @@ const host = (uid: string, device: string, ip: string, gateway: string, services
   services,
 });
 
-const firewall = (rules?: NetNode['rules']): NetNode => ({
+const firewall = (rules?: NetNode['rules']): NetNode => ({ ports: [],
   uid: 'f',
   device: 'firewall',
   x: 0,

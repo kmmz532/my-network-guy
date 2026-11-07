@@ -27,7 +27,7 @@ const env = {
   },
 } as unknown as Env;
 
-const node = (uid: string, device: string, x: number, y: number): NetNode => ({
+const node = (uid: string, device: string, x: number, y: number): NetNode => ({ ports: [],
   uid,
   device,
   x,

@@ -34,7 +34,7 @@ export const withInternet = (net: Network, data: EngineData): (Network & { inter
   if (!router) return null;
   // 戻りの経路: 外部の側の既定のゲートウェイは、つないだルーターの WAN の IPアドレス（WAN に IPアドレスがなければ戻れない）
   const wanIp = router.interfaces.find((i) => i.port === WAN_PORT)?.ip ?? null;
-  const internet: NetNode = {
+  const internet: NetNode = { ports: [],
     uid: INTERNET_UID,
     device: 'internet',
     x: 0,

@@ -7,7 +7,7 @@ const data: EngineData = {
   maxLengthOf: () => 30,
 };
 
-const pc = (uid: string, ip: string | null, gateway: string | null = null): NetNode => ({
+const pc = (uid: string, ip: string | null, gateway: string | null = null): NetNode => ({ ports: [],
   uid,
   device: 'pc',
   x: 0,
@@ -26,7 +26,7 @@ const server = (uid: string, ip: string, services: NetNode['services']): NetNode
   services,
 });
 
-const sw = (uid: string): NetNode => ({
+const sw = (uid: string): NetNode => ({ ports: [],
   uid,
   device: 'l2',
   x: 0,
@@ -39,7 +39,7 @@ const sw = (uid: string): NetNode => ({
   services: [],
 });
 
-const router = (uid: string, interfaces: NetNode['interfaces'], routes: NetNode['routes'] = []): NetNode => ({
+const router = (uid: string, interfaces: NetNode['interfaces'], routes: NetNode['routes'] = []): NetNode => ({ ports: [],
   uid,
   device: 'router',
   x: 0,

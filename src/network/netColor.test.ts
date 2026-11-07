@@ -9,7 +9,7 @@ const data: EngineData = {
   maxLengthOf: () => 100,
 };
 
-const node = (uid: string, device: string, ifaces: Iface[] = []): NetNode => ({
+const node = (uid: string, device: string, ifaces: Iface[] = []): NetNode => ({ ports: [],
   uid,
   device,
   x: 0,

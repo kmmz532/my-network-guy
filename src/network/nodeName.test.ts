@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { nodeName, renameNode, type NameContext } from './nodeName';
 import type { NetNode } from './types';
 
-const node = (uid: string, device: string, x = 0, y = 0, name?: string): NetNode => ({
+const node = (uid: string, device: string, x = 0, y = 0, name?: string): NetNode => ({ ports: [],
   uid,
   device,
   x,

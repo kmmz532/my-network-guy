@@ -15,6 +15,7 @@ const node = (uid: string, device: string, extra: Partial<NetNode> = {}): NetNod
   gateway: null,
   routes: [],
   services: [],
+  ports: [],
   ...extra,
 });
 

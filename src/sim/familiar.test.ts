@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { EMPTY_FAMILIARITY, positionsMatch, missingFixed, familiarKeyOf, recordDelivery, type Blueprint } from './familiar';
 import type { NetNode } from '../network/types';
 
-const node = (uid: string, device: string, x: number, y: number): NetNode => ({
+const node = (uid: string, device: string, x: number, y: number): NetNode => ({ ports: [],
   uid,
   device,
   x,

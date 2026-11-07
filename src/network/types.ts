@@ -35,9 +35,22 @@ export interface FirewallRule {
   port?: number;
 }
 
+// 口の設定（NET.md §3）。設定のない口は、機器の既定のモードで動く。N135 の後半で、設定を画面から変えられるようにする
+export interface PortConfig {
+  port: number;
+  mode: 'access' | 'trunk' | 'routed';
+  vlan?: number;
+  allowed?: number[];
+  native?: number;
+  shutdown?: boolean;
+  stpCost?: number;
+}
+
 export interface NetNode {
   uid: string;
   device: string;
+  // 口の設定（機器ごと。設定のない口は既定のモード）
+  ports: PortConfig[];
   // ホスト名（ターミナルのプロンプトと show running-config に出す。画面の名前とは別。N46）
   hostname?: string;
   // ファイアウォールの規則（ファイアウォールだけが持つ。一覧にない通信は通さない）

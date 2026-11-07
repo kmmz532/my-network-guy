@@ -715,6 +715,7 @@ describe('IPアドレスとセグメントの設定', () => {
       y: 0,
       locked: false,
       configLocked: false,
+      ports: [],
       interfaces: [],
       gateway: null,
       routes: [],

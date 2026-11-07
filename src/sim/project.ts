@@ -410,6 +410,7 @@ const fixedNodes = (contract: Contract): NetNode[] =>
   contract.placed.map((p) => ({
     uid: p.ref,
     device: p.device,
+    ports: [],
     ...(p.name ? { name: p.name } : {}),
     x: p.x,
     y: p.y,
@@ -566,7 +567,7 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
   const furniture = p.contract.inhouse ? core.office.furniture : furnitureOf(map.furniture, p.contract.furniture);
   const reason = placeReason(p.contract.inhouse, furniture, p.nodes, deviceId, x, y, map, env);
   if (reason) return fail(reason);
-  const node: NetNode = {
+  const node: NetNode = { ports: [],
     uid: `u${p.seq}`,
     device: deviceId,
     // ホスト名は種類の略号と番号を自動で付ける（N68）
@@ -597,7 +598,7 @@ export const placeInOffice = (core: Core, deviceId: string, x: number, y: number
   const office = core.office;
   const reason = officePlaceReason(office.furniture, office.nodes, deviceId, x, y, map, env, anyFloor);
   if (reason) return fail(reason);
-  const node: NetNode = {
+  const node: NetNode = { ports: [],
     uid: `u${office.seq}`,
     device: deviceId,
     hostname: nextHostname(office.nodes, env.devices[deviceId].category),

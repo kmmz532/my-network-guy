@@ -21,7 +21,7 @@ import { emptyOffice, noEffects, type Core, type Office, type Project } from './
 const config = (balanceJson as unknown as Balance).office;
 const SMALL = { w: 5, h: 5 };
 
-const node = (uid: string, x: number, y: number): NetNode => ({
+const node = (uid: string, x: number, y: number): NetNode => ({ ports: [],
   uid,
   device: 'pc_basic',
   x,

@@ -20,6 +20,7 @@ const host = (uid: string, ip: string, extra: Partial<NetNode> = {}): NetNode =>
   gateway: null,
   routes: [],
   services: [],
+  ports: [],
   ...extra,
 });
 

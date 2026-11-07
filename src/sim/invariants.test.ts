@@ -149,7 +149,7 @@ describe('不変条件（操作の列の試験）', () => {
 // 規則ごとに、破ると違反が出ることを確かめる（変異試験で生き残った条件を殺すため）
 describe('不変条件の違反（規則ごと）', () => {
   const link = (uid: string, a: string, port: number, b: string, paid = 0) => ({ uid, cable: 'utp_cat5e', a: { node: a, port }, b: { node: b, port: 0 }, path: [], paid });
-  const node = (uid: string, x = 0) => ({ uid, device: 'pc_basic', x, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [] });
+  const node = (uid: string, x = 0) => ({ uid, device: 'pc_basic', x, y: 0, locked: false, configLocked: false, ports: [], interfaces: [], gateway: null, routes: [], services: [] });
   const withOffice = (nodes: ReturnType<typeof node>[], links: ReturnType<typeof link>[]): Core => {
     const core = start();
     return { ...core, office: { ...core.office, nodes, links } } as Core;

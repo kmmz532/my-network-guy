@@ -19,6 +19,7 @@ const node = (uid: string, device: string, extra: Partial<NetNode> = {}): NetNod
   gateway: null,
   routes: [],
   services: [],
+  ports: [],
   ...extra,
 });
 const link = (uid: string, a: string, ap: number, b: string, bp: number): NetLink => ({ paid: 0,

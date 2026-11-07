@@ -329,7 +329,7 @@ describe('v13 → v14', () => {
     const v13 = { ...withoutNet, office: { ...legacySample.office, nodes: [pc, busy] }, active: [] };
     const out = migrate(13, v13);
     // 対応表（hosts）は v19 → v20 で空の配列が入る
-    expect(out.office.nodes[0]).toEqual({ ...pc, hosts: [], hostname: 'PC-1', macSerial: 1 });
+    expect(out.office.nodes[0]).toEqual({ ...pc, hosts: [], hostname: 'PC-1', macSerial: 1, ports: [] });
     expect(out.office.nodes[1].services).toEqual([{ protocol: 'http', port: 8080 }]);
   });
 });

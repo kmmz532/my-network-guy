@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { hostLabelOf, isValidHostname, nextHostname } from './hostname';
 import type { NetNode } from './types';
 
-const node = (hostname?: string): NetNode => ({
+const node = (hostname?: string): NetNode => ({ ports: [],
   uid: Math.random().toString(36).slice(2),
   device: 'pc_basic',
   hostname,

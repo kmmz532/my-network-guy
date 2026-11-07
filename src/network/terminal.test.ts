@@ -7,7 +7,7 @@ const data: EngineData = {
   maxLengthOf: () => 30,
 };
 
-const pc = (uid: string, ip: string | null, gateway: string | null = null): NetNode => ({
+const pc = (uid: string, ip: string | null, gateway: string | null = null): NetNode => ({ ports: [],
   uid,
   device: 'pc',
   x: 0,

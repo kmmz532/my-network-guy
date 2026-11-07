@@ -23,7 +23,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 43;
+export const SAVE_VERSION = 44;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -242,6 +242,12 @@ export const migrations: Record<number, Migration> = {
       }) }),
     });
     return { ...d, active: d.active.map(withPaid), office: withPaid(d.office) };
+  },
+  // v43 → v44: 機器に口の設定（ports）を足す。移行前は設定のない口（空）とする（既定のモードで動く）（N135）
+  43: (data) => {
+    const d = data as { active: Project[]; office: Office };
+    const fill = <T extends { nodes: NetNode[] }>(x: T): T => ({ ...x, nodes: x.nodes.map((n) => ({ ...n, ports: [] })) });
+    return { ...d, active: d.active.map(fill), office: fill(d.office) };
   },
   // v42 → v43: インターフェースに名前（id）と種類（kind: port）を足す（N135）。名前は、機器の種類ごとの接頭辞と口の番号（PC・サーバー・プリンターは eth、それ以外は g0/）
   42: (data) => {

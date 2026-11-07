@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { l2Path, learnedOnPath, macOf, nextMacSerial } from './mac';
 import type { NetNode } from './types';
 
-const node = (macSerial?: number): NetNode => ({
+const node = (macSerial?: number): NetNode => ({ ports: [],
   uid: `u${macSerial ?? 0}`,
   device: 'pc_basic',
   x: 0,
