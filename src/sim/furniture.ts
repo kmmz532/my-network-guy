@@ -8,9 +8,20 @@ import { rotateFacing } from './facing';
 
 
 // 自社オフィスの初期状態。バランス値の初期の大きさの部屋に、バランス値の初期の机の位置に机を置く
+// 自社オフィスの回線終端（N144 の残り）を置くマス: 上の壁沿いの床の行（y = 1）のうち、机のないマスの右端から。建物に1つ。
+export const uplinkTileOf = (size: { w: number; h: number }, desks: readonly { x: number; y: number }[]): { x: number; y: number } => {
+  for (let x = size.w; x >= 1; x--) {
+    if (!desks.some((d) => d.x === x && d.y === 1)) return { x, y: 1 };
+  }
+  throw new Error('回線終端を置くマスがない（床の上の壁沿いがすべて机）');
+};
+
 export const initialOffice = (balance: Balance): Office => {
   const furniture = balance.staff.initialDesks.map((p, i) => ({ uid: `f${i}`, id: DESK_ID, x: p.x, y: p.y }));
-  return { ...emptyOffice(balance.office.initialSize), furniture, furnitureSeq: furniture.length };
+  const tile = uplinkTileOf(balance.office.initialSize, balance.staff.initialDesks);
+  // 回線終端は、店で買えない既設の機器（動かせない・設定も変えられない）
+  const uplink = { uid: 'uplink', device: 'uplink', x: tile.x, y: tile.y, locked: true, configLocked: true, interfaces: [], gateway: null, routes: [], services: [], ports: [] };
+  return { ...emptyOffice(balance.office.initialSize), furniture, furnitureSeq: furniture.length, nodes: [uplink] };
 };
 
 // 自社オフィスの家具を置く。在庫があり、家具のない床のマスで、機材もないときだけ置ける

@@ -11,6 +11,7 @@ import routerJson from '../assets/data/devices/router.json';
 import firewallJson from '../assets/data/devices/firewall.json';
 import switchJson from '../assets/data/devices/l2_switch.json';
 import serverJson from '../assets/data/devices/server.json';
+import uplinkJson from '../assets/data/devices/uplink.json';
 import c001 from '../assets/data/contracts/c001_direct_link.json';
 import c002 from '../assets/data/contracts/c002_small_office.json';
 import c003 from '../assets/data/contracts/c003_departments.json';
@@ -52,7 +53,7 @@ const gameMinutesPerTick = balance.time.gameMinutesPerTick;
 
 // 機材の性質（ゲームの定義と同じ。サーバーの既定のサービスを含む）
 const devices: Env['devices'] = {};
-for (const d of [...pcJson.devices, ...switchJson.devices, ...routerJson.devices, ...firewallJson.devices, ...serverJson.devices]) {
+for (const d of [...pcJson.devices, ...switchJson.devices, ...routerJson.devices, ...firewallJson.devices, ...serverJson.devices, ...uplinkJson.devices]) {
   devices[d.id] = {
     category: d.category,
     price: d.price,
@@ -326,7 +327,8 @@ describe('模範解答: 固定案件', () => {
 
   it('i001 自社オフィスのLAN: 机の2台をスイッチにつなぐ（後の i002 でサーバーをつなげるよう、スイッチを置く）', () => {
     const { core } = buildI001(startCore([fixedOffer(i001), fixedOffer(i002)]));
-    expect(core.office.nodes.length).toBe(3);
+    // 回線終端（既設）1つと、机の2台とスイッチ1台
+    expect(core.office.nodes.length).toBe(4);
   });
 
   it('i002 自社オフィスのサーバー: i001 の後の自社オフィスに、サーバーを1台つなぐ', () => {
