@@ -103,7 +103,10 @@ describe('確認のコマンド（段階2）', () => {
 
   it('show mac address-table は、スイッチの表を出す（端末では使えない）', () => {
     const table = { ...ctx(nodes[2]), macTable: [{ mac: '02:10:00:00:01:00', port: 0 }] };
-    expect(runTerminal('show mac address-table', table, tr)).toEqual([{ text: 'ui.terminal.macLine {"mac":"02:10:00:00:01:00","port":0}', kind: 'out' }]);
+    // 表は段2の計算から出す（学習の表は使わない・N153）。線のないスイッチは、表に出るものがない
+    const lines = runTerminal('show mac address-table', table, tr);
+    expect(lines.length).toBeGreaterThan(0);
+    expect(lines.every((l) => l.text.startsWith('ui.terminal.macEntry'))).toBe(true);
     expect(runTerminal('show mac address-table', ctx(nodes[0]), tr)).toEqual([{ text: 'ui.terminal.noMacTable', kind: 'err' }]);
   });
 
@@ -229,5 +232,18 @@ describe('show ip rip database（N141b）', () => {
     const nodes = [{ uid: 'r1', device: 'router_basic', x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [] } as unknown as NetNode];
     const lines = runTerminal('show ip rip database', { node: nodes[0], nodes, links: [], data }, tr);
     expect(lines).toEqual([{ text: 'ui.terminal.ripNone', kind: 'out' }]);
+  });
+});
+
+describe('show mac address-table（N153）', () => {
+  it('スイッチの口ごとに、同じ L2 の端末の MAC を出す（ping の学習ではない）', async () => {
+    const { macOf } = await import('./mac');
+    const sw = { uid: 'sw', device: 'l2_switch', macSerial: 1, x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [] } as unknown as NetNode;
+    const pc1 = { uid: 'pc1', device: 'pc', macSerial: 7, x: 1, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [] } as unknown as NetNode;
+    const nodes = [sw, pc1];
+    const links: NetLink[] = [{ uid: 'l', cable: 'utp_cat5e', a: { node: 'sw', port: 2 }, b: { node: 'pc1', port: 0 }, path: [[0, 0], [1, 0]], paid: 0 }];
+    const d: EngineData = { categoryOf: (x) => ({ l2_switch: 'l2_switch', pc: 'pc' })[x] ?? 'unknown', maxLengthOf: () => 30 };
+    const lines = runTerminal('show mac address-table', { node: sw, nodes, links, data: d }, tr);
+    expect(lines).toEqual([{ text: `ui.terminal.macEntry ${JSON.stringify({ port: 2, mac: macOf('pc', 7, 0) })}`, kind: 'out' }]);
   });
 });

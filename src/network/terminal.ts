@@ -8,7 +8,7 @@ import { isIp } from './terminalConfig';
 import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
-import { learnedRoutesOf, ospfNeighborsOf } from './netState';
+import { learnedRoutesOf, macTableOf, ospfNeighborsOf } from './netState';
 
 export interface TerminalContext {
   node: NetNode;
@@ -76,6 +76,13 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       for (const r of node.routes) lines.push(out(tr('ui.terminal.routeStatic', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop })));
       return lines.length > 0 ? lines : [out(tr('ui.terminal.noRoute'))];
     }
+    if (sub === 'mac address-table') {
+      // スイッチの MAC の表は、段2の計算（同じ L2 のドメインの端末）から出す。端末では使えない
+      if (ctx.data.categoryOf(node.device) !== 'l2_switch') return [err(tr('ui.terminal.noMacTable'))];
+      const entries = macTableOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
+      if (entries.length === 0) return [out(tr('ui.terminal.macNone'))];
+      return entries.map((e) => out(tr('ui.terminal.macEntry', { port: e.port, mac: e.mac })));
+    }
     if (sub === 'ip rip database') {
       const routes = learnedRoutesOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid, 'rip');
       if (routes.length === 0) return [out(tr('ui.terminal.ripNone'))];
@@ -104,11 +111,6 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
     if (sub === 'arp') {
       const rows = ctx.arp ?? [];
       return rows.length > 0 ? rows.map((r) => out(tr('ui.terminal.arpLine', { ip: r.ip, mac: r.mac }))) : [out(tr('ui.terminal.noArp'))];
-    }
-    if (sub === 'mac address-table') {
-      if (ctx.data.categoryOf(node.device) !== 'l2_switch') return [err(tr('ui.terminal.noMacTable'))];
-      const rows = ctx.macTable ?? [];
-      return rows.length > 0 ? rows.map((r) => out(tr('ui.terminal.macLine', { mac: r.mac, port: r.port }))) : [out(tr('ui.terminal.noMacRows'))];
     }
     if (sub === 'hosts') {
       const hosts = node.hosts ?? [];
@@ -165,7 +167,8 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
 // 入力の補完の候補。先頭の語・show の下位・ip の下位の順に、今の入力の続きを探す
 const WORDS: Record<string, string[]> = {
   '': ['help', 'show', 'ping', 'traceroute', 'ip', 'no', 'hostname', 'clear'],
-  show: ['ip', 'interfaces', 'running-config'],
+  show: ['ip', 'interfaces', 'running-config', 'mac'],
+  'show mac': ['address-table'],
   'show ip': ['route', 'ospf'],
   'show ip rip': ['database'],
   'show ip ospf': ['neighbor'],

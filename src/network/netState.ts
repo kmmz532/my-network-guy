@@ -5,6 +5,7 @@ import { isFabricPort, isRelayPort, isRoutingCategory, isSwitchedRouterCategory,
 import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, Iface, NetLink, NetNode, Network, PathResult, PortConfig, Route } from './types';
 import { CATEGORY } from '../data/categories';
 import { can } from './capabilities';
+import { macOf } from './mac';
 
 const MAX_HOPS = 16;
 
@@ -654,3 +655,34 @@ export const channelOverlapsOf = (net: Network, data: EngineData): { a: string; 
 
 // 機器が動的経路（RIP・OSPF）で覚えた経路（show ip rip database・show ip route に使う）
 export const learnedRoutesOf = (net: Network, data: EngineData, uid: string, protocol: 'rip' | 'ospf'): Route[] => new Topology(net, data).routesOf(uid).filter((r) => r.protocol === protocol);
+
+// スイッチの MAC の表（show mac address-table）: 口ごとに、同じ L2 のドメインにつながった端末の MAC（段2の計算の結果。ping の学習ではない・NET.md §5.10）
+export const macTableOf = (net: Network, data: EngineData, uid: string): { port: number; mac: string }[] => {
+  const topo = new Topology(net, data);
+  const self = topo.node(uid);
+  if (!self) return [];
+  const out: { port: number; mac: string }[] = [];
+  for (const port of [...new Set(net.links.filter((l) => l.a.node === uid || l.b.node === uid).map((l) => (l.a.node === uid ? l.a.port : l.b.port)))].sort((a, b) => a - b)) {
+    for (const m of topo.domainOf({ node: uid, port }).members) {
+      if (m.node === uid) continue;
+      const other = topo.node(m.node);
+      if (!other || other.macSerial === undefined || topo.isRouter(other.uid)) continue;
+      out.push({ port, mac: macOf(topo.categoryOf(other.uid), other.macSerial, m.port) });
+    }
+  }
+  return out;
+};
+
+// 通れば通るが直すべき設定（警告・NET.md §6）: 直結の両端の口の VLAN が違う access（vlan.mismatch）、両端の native が違う trunk（vlan.native_mismatch）
+export const warningsOf = (net: Network): { id: 'vlan.mismatch' | 'vlan.native_mismatch'; a: string; b: string }[] => {
+  const cfgOf = (uid: string, port: number): PortConfig | undefined => net.nodes.find((n) => n.uid === uid)?.ports.find((p) => p.port === port);
+  const out: { id: 'vlan.mismatch' | 'vlan.native_mismatch'; a: string; b: string }[] = [];
+  for (const l of net.links) {
+    const ca = cfgOf(l.a.node, l.a.port);
+    const cb = cfgOf(l.b.node, l.b.port);
+    if (!ca || !cb) continue;
+    if (ca.mode === 'access' && cb.mode === 'access' && (ca.vlan ?? 1) !== (cb.vlan ?? 1)) out.push({ id: 'vlan.mismatch', a: l.a.node, b: l.b.node });
+    if (ca.mode === 'trunk' && cb.mode === 'trunk' && (ca.native ?? 1) !== (cb.native ?? 1)) out.push({ id: 'vlan.native_mismatch', a: l.a.node, b: l.b.node });
+  }
+  return out;
+};
