@@ -10,6 +10,7 @@
 | 画像 | 名前 | 定価 | ポート | 機能 | 解禁 |
 | --- | --- | --- | --- | --- | --- |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/pc_basic.png" width="72" alt="事務用PC"> | 事務用PC | 80,000円 | LAN 1口 | - | Lv1 |
+| <img style="image-rendering: pixelated" src="../src/assets/sprites/device/pc_wifi.png" width="72" alt="無線対応のパソコン"> | 無線対応のパソコン | 110,000円 | LAN 1口 | 無線 | Lv25 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/laptop.png" width="72" alt="ノートPC"> | ノートPC | 120,000円 | LAN 1口 | 持ち運び | Lv8 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/server_basic.png" width="72" alt="サーバー"> | サーバー | 300,000円 | LAN 1口 | サービス（HTTP 80番を標準で提供） | Lv6 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/gpu_server.png" width="72" alt="GPUサーバー"> | GPUサーバー | 1,200,000円 | LAN 1口 | サービス、GPU | Lv32 |
@@ -18,10 +19,13 @@
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/l2_switch_8p.png" width="72" alt="L2スイッチ（8ポート）"> | L2スイッチ（8ポート） | 12,000円 | LAN 8口 | - | Lv2 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/l2_switch_8p.png" width="72" alt="L2スイッチ（16ポート）"> | L2スイッチ（16ポート） | 24,000円 | LAN 16口 | - | Lv10 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/l2_switch_8p.png" width="72" alt="L2スイッチ（24ポート）"> | L2スイッチ（24ポート） | 36,000円 | LAN 24口 | - | Lv23 |
+| <img style="image-rendering: pixelated" src="../src/assets/sprites/device/access_point.png" width="72" alt="アクセスポイント"> | アクセスポイント | 33,000円 | LAN 1口 | 無線 | Lv25 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/l3_switch.png" width="72" alt="L3スイッチ"> | L3スイッチ | 150,000円 | LAN 8口 | ルーティング、L3（ポートごとにネットワークを持つ） | Lv20 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/router_basic.png" width="72" alt="ルーター"> | ルーター | 60,000円 | LAN 4口 | ルーティング | Lv4 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/router_sfp.png" width="72" alt="SFP対応ルーター"> | SFP対応ルーター | 65,000円 | LAN 4口・SFP 1口 | ルーティング | Lv16 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/router_switch.png" width="72" alt="スイッチ付きルーター"> | スイッチ付きルーター | 80,000円 | WAN 1口、LAN 4口 | ルーティング、スイッチ | Lv9 |
+| <img style="image-rendering: pixelated" src="../src/assets/sprites/device/home_router.png" width="72" alt="家庭用ルーター"> | 家庭用ルーター | 80,000円 | WAN 1口、LAN 4口 | ルーティング、スイッチ、ファイアウォール | Lv20 |
+| <img style="image-rendering: pixelated" src="../src/assets/sprites/device/home_router_ap.png" width="72" alt="無線つき家庭用ルーター"> | 無線つき家庭用ルーター | 110,000円 | WAN 1口、LAN 4口 | ルーティング、スイッチ、ファイアウォール、無線 | Lv30 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/firewall.png" width="72" alt="ファイアウォール"> | ファイアウォール | 120,000円 | 2口（内側・外側） | ルーティング、ファイアウォール | Lv27 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/firewall_dmz.png" width="72" alt="DMZ付きファイアウォール"> | DMZ付きファイアウォール | 125,000円 | 3口（外部・社内・公開用サーバー） | ルーティング、ファイアウォール | Lv36 |
 
@@ -33,7 +37,9 @@ L2スイッチの16口と24口は、8口と同じ絵を使っています。
 
 L2スイッチは、同じネットワーク内の機器をまとめてつなぎます。ルーティングはしません。4ポートスイッチは小型の安いスイッチで、少ない台数をつなぐときや、長い配線の中継に使います。ルーターは、異なるネットワークの間で通信を中継します。各ポートに IP アドレスを設定し、経路（どの宛先をどこへ送るか）を登録します。
 
-スイッチ付きルーターは、WAN の 1口と、スイッチの役割をする LAN の 4口を持ちます。L3スイッチは、スイッチの中でネットワークを分けたまま、ルーターの役割もします。ルーターを使わずに部署をまたぐ通信ができます。
+スイッチ付きルーターは、WAN の 1口と、スイッチの役割をする LAN の 4口を持ちます。家庭用ルーターは、スイッチ付きルーターと同じ口の構成で、外から始まる通信を既定で止めます。無線つき家庭用ルーターは、家庭用ルーターにアクセスポイントの機能を加えたものです。L3スイッチは、スイッチの中でネットワークを分けたまま、ルーターの役割もします。ルーターを使わずに部署をまたぐ通信ができます。
+
+アクセスポイントは、有線の LAN につなぎ、電波の届く範囲にある無線対応の機器を同じネットワークに結びます。電波は壁で弱まります。無線対応のパソコンは、ケーブルの代わりに電波でアクセスポイントにつながります。
 
 ファイアウォールは、通過する通信を規則で止めたり、通したりします。外部と内部の間に置きます。DMZ付きファイアウォールは、公開用のサーバーを、社内のネットワークから分けて守ります。
 
@@ -78,6 +84,7 @@ L2スイッチは、同じネットワーク内の機器をまとめてつなぎ
 | `portable` | 持ち運びできる | 40,000円 |
 | `service` | サービスを待ち受ける | 100,000円 |
 | `gpu` | GPUを積む | 900,000円 |
+| `wireless` | 電波で機器をつなぐ | 30,000円 |
 
 ## インベントリの初期の持ち物
 
