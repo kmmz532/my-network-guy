@@ -132,6 +132,8 @@
   "warn.vlan.native_mismatch": "直結の両端の trunk の native の VLAN が違う",
   "error.port.security": "登録のない機器がつながったため、スイッチの口が止まった。",
   "error.port.security.fix": "つないだ機器の MAC アドレスを、その口に登録します。",
+  "error.ospf.area_detached": "エリア 0 に接していないエリアの経路が、エリア 0 へ届かない。",
+  "error.ospf.area_detached.fix": "エリア 0 のルーターと、このエリアのルーターを、エリアの境界で接続します。",
   "error.nat.no_forward": "外から来た通信の転送先が、ルーターに設定されていない。",
   "error.nat.no_forward.fix": "ルーターに静的 NAT（ip nat static）でポートの転送先を設定します。",
   "error.rip.unreachable": "RIP の経路が 16 ホップ以上で、届かない（RIP では遠すぎる）。",

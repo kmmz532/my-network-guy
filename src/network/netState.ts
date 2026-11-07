@@ -483,7 +483,10 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
       if (cur.bgp && cur.bgp.neighbors.some((nb) => !topo.bgpSessionOk(cur, nb.ip, nb.remoteAs))) return err(fail('bgp.no_session', cur.uid));
       // RIP に参加している機器で経路がないのは、16 ホップ以上で届かない（rip.unreachable・NET.md §6）
       if (cur.interfaces.some((i) => i.rip === true)) return err(fail('rip.unreachable', cur.uid));
-      return err(fail(cur.interfaces.some((i) => i.ospf !== undefined) ? 'ospf.no_neighbor' : 'route.none', cur.uid));
+      // OSPF のエリア 0 に接していないエリアだけに参加している機器は、経路がエリア 0 へ届かない（ospf.area_detached・NET.md §6）
+      const ospfAreas = cur.interfaces.filter((i) => i.ospf !== undefined).map((i) => i.ospf!.area);
+      if (ospfAreas.length > 0 && !ospfAreas.includes(0)) return err(fail('ospf.area_detached', cur.uid));
+      return err(fail(ospfAreas.length > 0 ? 'ospf.no_neighbor' : 'route.none', cur.uid));
     }
     const route = matches.reduce((best, r) => (r.prefix > best.prefix || (r.prefix === best.prefix && adOf(r) < adOf(best)) ? r : best));
 

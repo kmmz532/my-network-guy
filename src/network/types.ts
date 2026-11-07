@@ -156,6 +156,8 @@ export const FAILURE_REASONS = [
   'rip.unreachable',
   // 外から NAT のルーターの外の口へ来た通信に、静的 NAT の転送先がない（NET.md §6）
   'nat.no_forward',
+  // エリア 0 に接していないエリアの経路が届かない（NET.md §6）
+  'ospf.area_detached',
   // 口が停止している（shutdown・N137）
   'port.shutdown',
   // 口の VLAN が通らない（access と trunk の許可の不一致・N137）
