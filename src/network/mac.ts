@@ -13,6 +13,7 @@ const VENDOR: Record<string, string> = {
   home_router: '02:42:00',
   firewall: '02:50:00',
   printer: '02:60:00',
+  access_point: '02:70:00',
 };
 
 const hex2 = (n: number): string => n.toString(16).padStart(2, '0');

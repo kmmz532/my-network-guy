@@ -344,6 +344,7 @@
   "category.l3_switch": "L3スイッチ",
   "category.router_switch": "スイッチ付きルーター",
   "category.home_router": "家庭用ルーター",
+  "category.access_point": "アクセスポイント",
   "category.firewall": "ファイアウォール",
   "ui.focus.office": "自社オフィス",
   "ui.focus.label": "画面の対象",
