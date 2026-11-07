@@ -70,6 +70,24 @@ def px(d, x, y, color):
     d.point((x, y), fill=C[color] + (255,))
 
 
+def from_rows(rows, keys):
+    # 文字の行から絵を作る。'.' は透明、ほかの文字は keys で C の色の名前に対応させる
+    img = Image.new('RGBA', (len(rows[0]), len(rows)), (0, 0, 0, 0))
+    for y, row in enumerate(rows):
+        assert len(row) == img.width, f'行 {y} の幅が違う'
+        for x, ch in enumerate(row):
+            if ch != '.':
+                img.putpixel((x, y), C[keys[ch]] + (255,))
+    return img
+
+
+def overlay(base, rows, keys):
+    # base の上に、文字の行の絵を重ねる（'.' は下の絵を残す）
+    img = base.copy()
+    img.alpha_composite(from_rows(rows, keys))
+    return img
+
+
 def outline(img):
     # 不透明な画素に接する透明な画素を輪郭線の色で塗る
     w, h = img.size
@@ -90,7 +108,6 @@ def outline(img):
 
 # 手で描き直したスプライト。このスクリプトでは上書きしない（描き直すときは一覧から外す）
 MANUAL = {
-    'device/pc_basic.png',
     'device/server_basic.png',
     'device/access_point.png',
 }
@@ -107,27 +124,102 @@ def save(img, path):
 # ---- 機器（24×40。床の1マスより高く、足元は下から 4 px 上に揃える） ----
 # 描画の基準: 足元（底面）は y=37 の行。y=38〜39 は床に重なる余白
 
+# PC（24×40）。利用者が手で直した pc_basic.png を、画素のまま写したもの。
+# 向きの名前は座った社員が向く方向（机・椅子と同じ）。画面は社員の方を向く。pc は奥向き（画面がこちらを向く）
+PC_KEYS = {'A': 'o', 'B': 'e', 'C': 'w', 'D': 'S', 'E': 's', 'F': 'l', 'G': 'g'}
+PC_EMPTY = '.' * 24
+
+
 def pc():
-    # モニターとキーボードを斜め上から見る。モニターは上の縁の厚み（天面）を見せ、
-    # 台座とキーボードは天面を広く見せる。下端（y=37）を置き場所に揃える
-    img, d = new(24, 40)
-    # モニターの上の縁（天面）と画面の枠
-    rect(d, 2, 14, 20, 3, 'e', 'o')
-    rect(d, 2, 16, 20, 14, 'w', 'o')
-    rect(d, 4, 18, 16, 10, 's')
-    rect(d, 4, 18, 16, 3, 'S')
-    d.line([(6, 23), (12, 23)], fill=C['S'])
-    d.line([(6, 25), (10, 25)], fill=C['S'])
-    px(d, 19, 29, 'l')
-    # 首と台座
-    rect(d, 10, 30, 4, 2, 'g', 'o')
-    # キーボード: 天面（キーの並び）と手前の縁
-    rect(d, 2, 32, 20, 5, 'e', 'o')
-    for x in range(4, 20, 2):
-        px(d, x, 33, 'g')
-        px(d, x + 1, 35, 'g')
-    d.line([(3, 36), (20, 36)], fill=C['g'] + (255,))
-    return img
+    return from_rows([PC_EMPTY] * 14 + [
+        '...AAAAAAAAAAAAAAAAAA...',
+        '..ABBBBBBBBBBBBBBBBBBA..',
+        '..AAAAAAAAAAAAAAAAAAAA..',
+        '..ACCCCCCCCCCCCCCCCCCA..',
+        '..ACDDDDDDDDDDDDDDDDCA..',
+        '..ACDDDDDDDDDDDDDDDDCA..',
+        '..ACDDDDDDDDDDDDDDDDCA..',
+        '..ACEEEEEEEEEEEEEEEECA..',
+        '..ACEEEEEEEEEEEEEEEECA..',
+        '..ACEEDDDDDDDEEEEEEECA..',
+        '..ACEEEEEEEEEEEEEEEECA..',
+        '..ACEEDDDDDEEEEEEEEECA..',
+        '..ACEEEEEEEEEEEEEEEECA..',
+        '..ACEEEEEEEEEEEEEEEECA..',
+        '..ACCCCCCCCCCCCCCCCCCA..',
+        '..AAAAAAAAAAAAAAAAAFAA..',
+        '..........AAAA..........',
+        '..........AAAA..........',
+        '..AAAAAAAAAAAAAAAAAAAA..',
+        '..ABGBGBGBGBGBGBGBGBBA..',
+        '..ABBBBBBBBBBBBBBBBBBA..',
+        '..ABBGBGBGBGBGBGBGBGBA..',
+        '..AGGGGGGGGGGGGGGGGGGA..',
+        '...AAAAAAAAAAAAAAAAAA...',
+        PC_EMPTY,
+        PC_EMPTY,
+    ], PC_KEYS)
+
+
+def pc_front():
+    # 手前向き（社員はこちらを向き、画面は奥を向く）: モニターの背面と台座。キーボードはモニターの奥にあり、上の縁だけが見える
+    return from_rows([PC_EMPTY] * 11 + [
+        '....AAAAAAAAAAAAAAAA....',
+        '....ABGBGBGBGBGBGBBA....',
+        '....ABBBBBBBBBBBBBBA....',
+        '..AAAAAAAAAAAAAAAAAAAA..',
+        '..ABBBBBBBBBBBBBBBBBBA..',
+        '..AAAAAAAAAAAAAAAAAAAA..',
+        '..ACCCCCCCCCCCCCCCCCCA..',
+        '..ACCCCCCCCCCCCCCCCCCA..',
+        '..ACCCAAAAAAAAAAAACCCA..',
+        '..ACCCAGGGGGGGGGGACCCA..',
+        '..ACCCAGCCCCCCCCGACCCA..',
+        '..ACCCAGGGGGGGGGGACCCA..',
+        '..ACCCAGCCCCCCCCGACCCA..',
+        '..ACCCAGGGGGGGGGGACCCA..',
+        '..ACCCAGCCCCCCCCGACCCA..',
+        '..ACCCAAAAAAAAAAAACCCA..',
+        '..ACCCCCCCCCCCCCCCCCCA..',
+        '..ACCCCCCCCCCCCCCCCCCA..',
+        '..AAAAAAAAAAAAAAAAAAAA..',
+        '..........AAAA..........',
+        '..........AGGA..........',
+        '......AAAAAAAAAAAA......',
+        '......ABBBBBBBBBBA......',
+        '......ABBBBBBBBBBA......',
+        '......ABBBBBBBBBBA......',
+        '......AGGGGGGGGGGA......',
+    ] + [PC_EMPTY] * 3, PC_KEYS)
+
+
+def pc_side():
+    # 右向き（社員は右を向き、画面は左の社員の方を向く）: モニターを横から見る。キーボードは画面の前（左）に縦に置く。左向きは左右反転で作る
+    return from_rows([PC_EMPTY] * 14 + [
+        '............AAAAAA......',
+        '............ABBBBA......',
+        '............AAAAAA......',
+        '............ADCCGA......',
+        '............ADCCGA......',
+        '............ADCCGA......',
+        '............ADCCGA......',
+        '............ADCCGA......',
+        '............ADCCGA......',
+        '............ADCCGA......',
+        '..AAAAAAA...ADCCGA......',
+        '..ABBBBBA...ADCCGA......',
+        '..ABGBBBA...ADCCGA......',
+        '..ABBBGBA...ADCCGA......',
+        '..ABGBBBA...ADFCGA......',
+        '..ABBBGBA...AAAAAA......',
+        '..ABGBBBA.....AAA.......',
+        '..ABBBGBA.....AGA.......',
+        '..ABGBBBA..AAAAAAAAA....',
+        '..ABBBGBA..ABBBBBBBA....',
+        '..ABBBBBA..ABBBBBBBA....',
+        '..AGGGGGA..ABBBBBBBA....',
+        '..AAAAAAA..AGGGGGGGA....',
+    ] + [PC_EMPTY] * 3, PC_KEYS)
 
 
 def server():
@@ -949,31 +1041,47 @@ def desk_chair_icon(desk_img, chair_img):
     return img
 
 
+# 椅子（32×28）。利用者が手で直した chair.png を、画素のまま写したもの。
+# 向きの名前は座った社員が向く方向。chair は奥向き（背もたれの背面が見える）
+CHAIR_KEYS = {'A': 'o', 'B': 'b', 'C': 'S', 'D': 'B', 'E': 'n', 'F': 'w', 'G': 'g', 'H': 'd'}
+CHAIR_EMPTY = '.' * 32
+# 脚（五本脚とキャスター。y=20〜27）。どの向きでも同じ
+CHAIR_BASE = [
+    '......AAAAAAAAAFGGAAAAAAAA......',
+    '....AAGGGGGAAAAFGGAAAAGGGGAA....',
+    '....AAHHHHHGGGGFGGGGGGHHHHAA....',
+    '......AAAAAHHGGHGHGGHHAAAA......',
+    '.........AGGGHHAGAHHGGGA........',
+    '.......AAGHHHAAAGAAAHHHAA.......',
+    '.......AAHAAA..AA...AAAAA.......',
+    '.........A.....AA...............',
+]
+
+
 def chair():
-    # 椅子だけの絵（N44・B10）。机の手前に置き、机と同じ斜め上（3/4）から見たオフィスチェア。社員はこの上に重なる
-    # 座面は上面が広く見える平たい楕円で、手前に厚みがある。背もたれは座面の手前の端から立ち、上面（厚み）と背面が見える
-    # 脚は床に平たくつぶれた五本脚で、奥の脚は支柱に隠れる
-    img, d = new(32, 28)
-    # 五本脚とキャスター（床の上の平たい星形）
-    hub = (16, 23)
-    for x, y in ((5, 22), (27, 22), (8, 26), (24, 26), (16, 27)):
-        d.line([hub, (x, y)], fill=C['d'])
-        d.line([(hub[0], hub[1] - 1), (x, y - 1)], fill=C['g'])
-        rect(d, x - 1, y - 1, 2, 2, 'o')
-    # 支柱
-    rect(d, 15, 17, 3, 6, 'g')
-    d.line([(15, 17), (15, 22)], fill=C['w'])
-    # 座面（厚み、上面、上面の光）
-    d.ellipse([2, 10, 29, 19], fill=C['B'])
-    d.ellipse([2, 8, 29, 17], fill=C['b'])
-    d.arc([4, 9, 27, 16], 190, 300, fill=C['S'])
-    # 背もたれ（座面の手前の端から立つ。上面の厚みを明るく、背面を影の色に）
-    d.rounded_rectangle([6, 1, 25, 18], radius=4, fill=C['B'])
-    d.rounded_rectangle([6, 0, 25, 4], radius=2, fill=C['b'])
-    d.line([(9, 0), (22, 0)], fill=C['S'])
-    d.line([(7, 5), (7, 15)], fill=C['b'])
-    d.line([(9, 17), (22, 17)], fill=C['n'])
-    return outline(img)
+    # 奥向き: 背もたれの背面（y=1〜19）。左右に座面の端が見える
+    return from_rows([
+        CHAIR_EMPTY,
+        '........AAAAAAAAAAAAAAAA........',
+        '.......ABCCCCCCCCCCCCCCBA.......',
+        '......ABBBBBBBBBBBBBBBBBBA......',
+        '......ABBBBBBBBBBBBBBBBBBA......',
+        '......ADBBBBBBBBBBBBBBBBDA......',
+        '......ADDDDDDDDDDDDDDDDDDA......',
+        '......ADDDDDDDDDDDDDDDDDDA......',
+        '......ADDDDDDDDDDDDDDDDDDA......',
+        '......ADDDDDDDDDDDDDDDDDDA......',
+        '.....AADDDDDDDDDDDDDDDDDDAA.....',
+        '....ABBDDDDDDDDDDDDDDDDDDBBA....',
+        '...ABBBDDDDDDDDDDDDDDDDDDBBBA...',
+        '...ABBBDDDDDDDDDDDDDDDDDDBBBA...',
+        '...ABBBDDDDDDDDDDDDDDDDDDBBBA...',
+        '...ADBBDDDDDDDDDDDDDDDDDDBBDA...',
+        '...ADDDBDDDDDDDDDDDDDDDDBDDDA...',
+        '....ADDDDEEEEEEEEEEEEEEDDDDA....',
+        '.....AADDDDDDDDDDDDDDDDDDAA.....',
+        '.......AAADDDDDDDDDDDDAAA.......',
+    ] + CHAIR_BASE, CHAIR_KEYS)
 
 
 # ---- 机と椅子の向き（N95）。名前の向きは、座った社員が向く方向（奥・手前・左・右）。今の desk・chair は奥向き ----
@@ -1013,45 +1121,54 @@ def desk_side():
 
 
 def chair_front():
-    # 手前向きの椅子（社員はこちらを向く）。背もたれは座面の奥に立ち、座面の上面が手前に広く見える
-    img, d = new(32, 28)
-    hub = (16, 23)
-    for x, y in ((5, 22), (27, 22), (8, 26), (24, 26), (16, 27)):
-        d.line([hub, (x, y)], fill=C['d'])
-        d.line([(hub[0], hub[1] - 1), (x, y - 1)], fill=C['g'])
-        rect(d, x - 1, y - 1, 2, 2, 'o')
-    rect(d, 15, 17, 3, 6, 'g')
-    d.line([(15, 17), (15, 22)], fill=C['w'])
-    # 背もたれ（奥。前面のクッションが見える）
-    d.rounded_rectangle([6, 0, 25, 13], radius=4, fill=C['b'])
-    d.rounded_rectangle([8, 2, 23, 11], radius=3, fill=C['B'])
-    d.line([(10, 3), (21, 3)], fill=C['S'])
-    # 座面（背もたれの手前に重なる）
-    d.ellipse([2, 11, 29, 20], fill=C['B'])
-    d.ellipse([2, 9, 29, 18], fill=C['b'])
-    d.arc([4, 10, 27, 17], 190, 300, fill=C['S'])
-    return outline(img)
+    # 手前向き（社員はこちらを向く）: 奥に背もたれの前面（クッション）、手前に座面の上面と厚み。脚は奥向きと同じ
+    return from_rows([
+        CHAIR_EMPTY,
+        '........AAAAAAAAAAAAAAAA........',
+        '.......ABCCCCCCCCCCCCCCBA.......',
+        '......ABBBBBBBBBBBBBBBBBBA......',
+        '......ABDDDDDDDDDDDDDDDDBA......',
+        '......ABDBBBBBBBBBBBBBBDBA......',
+        '......ABDBBBBBBBBBBBBBBDBA......',
+        '......ABDBBBBBBBBBBBBBBDBA......',
+        '......ABDDDDDDDDDDDDDDDDBA......',
+        '......ADBBBBBBBBBBBBBBBBDA......',
+        '.....AAAAAAAAAAAAAAAAAAAAA......',
+        '....ABBBBBBBBBBBBBBBBBBBBBBA....',
+        '...ABBCCCCCCCCCCCCCCCCCCCCBBA...',
+        '...ABBBBBBBBBBBBBBBBBBBBBBBBA...',
+        '...ABBBBBBBBBBBBBBBBBBBBBBBBA...',
+        '...ABBBBBBBBBBBBBBBBBBBBBBBBA...',
+        '...ADBBBBBBBBBBBBBBBBBBBBBBDA...',
+        '....ADDDDDDDDDDDDDDDDDDDDDDA....',
+        '.....AADDDDDDDDDDDDDDDDDDAA.....',
+        '.......AAADDDDDDDDDDDDAAA.......',
+    ] + CHAIR_BASE, CHAIR_KEYS)
 
 
 def chair_side():
-    # 左向きの椅子（社員は左を向く）。背もたれは座面の右の端に立ち、横から見て細い。右向きは左右反転で作る
-    img, d = new(32, 28)
-    hub = (16, 23)
-    for x, y in ((5, 22), (27, 22), (8, 26), (24, 26), (16, 27)):
-        d.line([hub, (x, y)], fill=C['d'])
-        d.line([(hub[0], hub[1] - 1), (x, y - 1)], fill=C['g'])
-        rect(d, x - 1, y - 1, 2, 2, 'o')
-    rect(d, 15, 17, 3, 6, 'g')
-    d.line([(15, 17), (15, 22)], fill=C['w'])
-    # 座面
-    d.ellipse([2, 10, 29, 19], fill=C['B'])
-    d.ellipse([2, 8, 29, 17], fill=C['b'])
-    d.arc([4, 9, 27, 16], 190, 300, fill=C['S'])
-    # 背もたれ（右の端。上面の厚みと側面）
-    d.rounded_rectangle([21, 0, 27, 16], radius=2, fill=C['B'])
-    d.rounded_rectangle([21, 0, 27, 3], radius=1, fill=C['b'])
-    d.line([(22, 4), (22, 14)], fill=C['b'])
-    return outline(img)
+    # 右向き（社員は右を向く）: 座面を横から見て、背もたれは左の端に細く立つ。左向きは左右反転で作る
+    seat = from_rows([CHAIR_EMPTY] * 11 + [
+        '....AAAAAAAAAAAAAAAAAAAAAAAA....',
+        '...ABCCCCCCCCCCCCCCCCCCCCCCBA...',
+        '...ABBBBBBBBBBBBBBBBBBBBBBBBA...',
+        '...ABBBBBBBBBBBBBBBBBBBBBBBBA...',
+        '...ADBBBBBBBBBBBBBBBBBBBBBBDA...',
+        '....ADDDDDDDDDDDDDDDDDDDDDDA....',
+        '.....AADDDDDDDDDDDDDDDDDDAA.....',
+        '.......AAADDDDDDDDDDDDAAA.......',
+        CHAIR_EMPTY,
+    ] + CHAIR_BASE, CHAIR_KEYS)
+    back = [
+        CHAIR_EMPTY,
+        '......AAAAAA....................',
+        '.....ABCCCCBA...................',
+    ] + ['.....ADBBBBBA...................'] * 12 + [
+        '.....ADDBBBBA...................',
+        '.....ADDDDDDA...................',
+        '......AAAAAA....................',
+    ] + [CHAIR_EMPTY] * 10
+    return overlay(seat, back, CHAIR_KEYS)
 
 
 def plant():
@@ -1221,6 +1338,11 @@ if __name__ == '__main__':
     for name, img in rear.items():
         save(img, f'rear/{name}.png')
     save(pc(), 'device/pc_basic.png')
+    # PC の向き（N95）。左向きは右向きの左右反転
+    save(pc_front(), 'device/pc_basic_front.png')
+    pc_right = pc_side()
+    save(pc_right, 'device/pc_basic_right.png')
+    save(pc_right.transpose(Image.FLIP_LEFT_RIGHT), 'device/pc_basic_left.png')
     save(server(), 'device/server_basic.png')
     save(l2_switch(), 'device/l2_switch_8p.png')
     save(l2_switch_4p(), 'device/l2_switch_4p.png')
@@ -1313,10 +1435,10 @@ if __name__ == '__main__':
         'desk_front': desk_front(),
         'desk_left': desk_side(),
         'chair_front': chair_front(),
-        'chair_left': chair_side(),
+        'chair_right': chair_side(),
     }
     facings['desk_right'] = facings['desk_left'].transpose(Image.FLIP_LEFT_RIGHT)
-    facings['chair_right'] = facings['chair_left'].transpose(Image.FLIP_LEFT_RIGHT)
+    facings['chair_left'] = facings['chair_right'].transpose(Image.FLIP_LEFT_RIGHT)
     for name, img in facings.items():
         save(img, f'furniture/{name}.png')
     save(desk_chair_icon(furniture['desk'], furniture['chair']), 'furniture/desk_chair.png')
