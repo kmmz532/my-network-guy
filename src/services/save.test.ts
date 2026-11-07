@@ -565,3 +565,22 @@ describe('v44 → v45（回線終端）', () => {
     expect(cable?.paid).toBe(0);
   });
 });
+
+describe('v45 → v46（光ファイバーは SFP の口だけ）', () => {
+  const mk = (uid: string, device: string, x: number) => ({ uid, device, x, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [] });
+  const fiber = (uid: string, a: string, pa: number, b: string, pb: number) => ({ uid, cable: 'fiber_sm', a: { node: a, port: pa }, b: { node: b, port: pb }, path: [[0, 0], [1, 0]] as [number, number][], paid: 0 });
+  const { active: _a, office: _o, ...rest } = sample;
+
+  it('両端の L3 スイッチに空いた SFP の口があれば、そこへつなぎ直す', () => {
+    const out = migrate(45, { ...rest, active: [], office: { ...sample.office, nodes: [mk('s1', 'l3_switch', 0), mk('s2', 'l3_switch', 2)], links: [fiber('f', 's1', 0, 's2', 0)] } });
+    const l = out.office.links[0];
+    expect(l.cable).toBe('fiber_sm');
+    expect(l.a.port).toBe(8);
+    expect(l.b.port).toBe(8);
+  });
+
+  it('SFP の口がない機器（PC）につながる光ファイバーは、LAN ケーブルに置き換える', () => {
+    const out = migrate(45, { ...rest, active: [], office: { ...sample.office, nodes: [mk('p', 'pc_basic', 0), mk('s1', 'l3_switch', 2)], links: [fiber('f', 'p', 0, 's1', 0)] } });
+    expect(out.office.links[0].cable).toBe('utp_cat5e');
+  });
+});

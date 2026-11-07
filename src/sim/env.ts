@@ -9,6 +9,8 @@ const devices: Env['devices'] = Object.fromEntries(
       category: d.category,
       price: d.price,
       portCount: d.ports.reduce((sum, p) => sum + p.count, 0),
+      // 口の種類を、口の番号の順に並べる（rj45 の口の後に sfp の口）
+      portTypes: d.ports.flatMap((p) => Array.from({ length: p.count }, () => p.type)),
       deskable: d.deskable,
       defaultServices: d.defaultServices,
     },
@@ -18,7 +20,7 @@ const devices: Env['devices'] = Object.fromEntries(
 const cables: Env['cables'] = Object.fromEntries(
   Object.values(cableRecord).map((c) => [
     c.id,
-    { pricePerLink: c.pricePerLink, pricePerTile: c.pricePerTile, maxLengthTiles: c.maxLengthTiles },
+    { port: c.port, pricePerLink: c.pricePerLink, pricePerTile: c.pricePerTile, maxLengthTiles: c.maxLengthTiles },
   ]),
 );
 

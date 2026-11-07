@@ -280,6 +280,8 @@ export interface DeviceInfo {
   category: string;
   price: number;
   portCount: number;
+  // 口の種類（口の番号の順。rj45・sfp など）。省略は、すべて rj45（ケーブルの口の種類の判定・N-sfp）
+  portTypes?: string[];
   // 机の上にも床にも置ける（N91）
   deskable?: boolean;
   // 置いたときから動いているサービス（サーバーの HTTP など）。省略すると動いていない
@@ -287,6 +289,8 @@ export interface DeviceInfo {
 }
 
 export interface CableInfo {
+  // 口の種類（省略は rj45）
+  port?: string;
   pricePerLink: number;
   pricePerTile: number;
   maxLengthTiles: number;
@@ -734,6 +738,9 @@ export interface PortChoice {
 }
 
 // 機器のポートを決める。指定があればそのポートを確かめる（範囲外は port、使用中は portUsed）。指定がなければ空きの最小番号（空きがなければ port）
+// 機器の口の種類（定義にない機器・口は rj45）
+export const portTypeOf = (env: Env, device: string, port: number): string => env.devices[device]?.portTypes?.[port] ?? 'rj45';
+
 const choosePort = (links: NetLink[], node: NetNode, env: Env, want: number | undefined): number | string => {
   if (want === undefined) return freePort(links, node, env) ?? 'port';
   const count = env.devices[node.device].portCount;
@@ -770,6 +777,9 @@ export const checkConnect = (
   if (typeof portA === 'string') return portA;
   const portB = choosePort(net.links, b, env, ports.b);
   if (typeof portB === 'string') return portB;
+  // ケーブルの口の種類（光ファイバーは sfp の口だけ）が、両端の口と合うか（N-sfp）
+  const cablePort = cable.port ?? 'rj45';
+  if (portTypeOf(env, a.device, portA) !== cablePort || portTypeOf(env, b.device, portB) !== cablePort) return 'cable.port_type';
   return null;
 };
 

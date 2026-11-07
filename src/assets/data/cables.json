@@ -11,12 +11,30 @@
     },
     {
       "id": "fiber_sm",
-      "port": "rj45",
+      "port": "sfp",
       "bandwidthMbps": 1000,
       "maxLengthTiles": 400,
       "pricePerLink": 5000,
       "pricePerTile": 1500,
       "unlockLevel": 18
+    },
+    {
+      "id": "fiber_mm",
+      "port": "sfp",
+      "bandwidthMbps": 1000,
+      "maxLengthTiles": 100,
+      "pricePerLink": 3000,
+      "pricePerTile": 800,
+      "unlockLevel": 12
+    },
+    {
+      "id": "cat6a",
+      "port": "rj45",
+      "bandwidthMbps": 10000,
+      "maxLengthTiles": 20,
+      "pricePerLink": 1500,
+      "pricePerTile": 400,
+      "unlockLevel": 10
     }
   ]
 }

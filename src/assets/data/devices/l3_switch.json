@@ -15,11 +15,16 @@
         "rip"
       ],
       "sviMax": 16,
-      "price": 150000,
+      "price": 170000,
       "ports": [
         {
           "type": "rj45",
           "count": 8,
+          "speedMbps": 1000
+        },
+        {
+          "type": "sfp",
+          "count": 2,
           "speedMbps": 1000
         }
       ],

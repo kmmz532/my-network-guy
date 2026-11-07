@@ -137,6 +137,8 @@ export const FAILURE_REASONS = [
   'iface.none',
   // 回線終端を、回線の能力のない機器につないだ（N144）
   'uplink.no_wan',
+  // ケーブルの口の種類が、機器の口と合わない（光ファイバーは sfp の口だけ・N-sfp）
+  'cable.port_type',
   'link.too_long',
   'link.loop',
   'ip.unset',

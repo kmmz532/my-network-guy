@@ -25,7 +25,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 45;
+export const SAVE_VERSION = 46;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -244,6 +244,39 @@ export const migrations: Record<number, Migration> = {
       }) }),
     });
     return { ...d, active: d.active.map(withPaid), office: withPaid(d.office) };
+  },
+  // v45 → v46: 光ファイバーは SFP の口だけに挿せる（N-sfp）。両端の機器に空いた SFP の口があれば、そこへつなぎ直す。
+  // なければ、光ファイバーを LAN ケーブル（RJ45）に置き換える（費用は変えない）
+  45: (data) => {
+    const d = data as { active: Project[]; office: Office };
+    const portTypes = new Map<string, string[]>();
+    for (const x of [...pcJson.devices, ...serverJson.devices, ...routerJson.devices, ...switchJson.devices, ...l3Json.devices, ...routerSwitchJson.devices, ...firewallJson.devices, ...firewallDmzJson.devices, ...printerJson.devices]) {
+      portTypes.set(x.id, (x.ports as { type: string; count: number }[]).flatMap((p) => Array.from({ length: p.count }, () => p.type)));
+    }
+    const typeOf = (device: string, port: number) => portTypes.get(device)?.[port] ?? 'rj45';
+    const fix = <T extends { nodes: NetNode[]; links?: NetLink[] }>(net: T): T => {
+      const links = net.links ?? [];
+      const used = new Set(links.flatMap((l) => [`${l.a.node}:${l.a.port}`, `${l.b.node}:${l.b.port}`]));
+      const freeSfp = (uid: string, device: string): number | undefined => (portTypes.get(device) ?? []).findIndex((t, i) => t === 'sfp' && !used.has(`${uid}:${i}`));
+      const nodeOf = (uid: string) => net.nodes.find((n) => n.uid === uid);
+      const next: NetLink[] = [];
+      for (const l of links) {
+        if (l.cable !== 'fiber_sm') { next.push(l); continue; }
+        const na = nodeOf(l.a.node);
+        const nb = nodeOf(l.b.node);
+        const pa = na && typeOf(na.device, l.a.port) === 'sfp' ? l.a.port : na ? freeSfp(na.uid, na.device) : undefined;
+        const pb = nb && typeOf(nb.device, l.b.port) === 'sfp' ? l.b.port : nb ? freeSfp(nb.uid, nb.device) : undefined;
+        if (pa !== undefined && pb !== undefined && pa >= 0 && pb >= 0) {
+          used.add(`${l.a.node}:${pa}`);
+          used.add(`${l.b.node}:${pb}`);
+          next.push({ ...l, a: { node: l.a.node, port: pa }, b: { node: l.b.node, port: pb } });
+        } else {
+          next.push({ ...l, cable: 'utp_cat5e' });
+        }
+      }
+      return { ...net, links: next };
+    };
+    return { ...d, active: d.active.map(fix), office: fix(d.office) };
   },
   // v44 → v45: 外部への接続を、回線終端（uplink）経由にする（N144）。今まで仮想のインターネットにつながっていた（WAN の口が空いた）最初のルーターに、
   // 費用0の回線終端を、ルーターの WAN の口（口0）と結んで置く。回線終端の口1 がインターネット側になる
