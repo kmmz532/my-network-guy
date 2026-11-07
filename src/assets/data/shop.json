@@ -74,6 +74,18 @@
     },
     {
       "device": "printer_basic"
+    },
+    {
+      "device": "pc_wifi"
+    },
+    {
+      "device": "access_point"
+    },
+    {
+      "device": "home_router"
+    },
+    {
+      "device": "home_router_ap"
     }
   ]
 }
