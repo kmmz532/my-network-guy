@@ -13,7 +13,7 @@ export function FocusSwitch() {
     ...active.map((p) => ({ id: p.id, label: tDyn(`contract.${p.baseId}.title`, p.params) })),
   ];
   return (
-    <div role="group" aria-label={t('ui.focus.label')} style={{ position: 'absolute', top: 44, left: 8, display: 'flex', gap: 4, flexWrap: 'wrap', zIndex: 5 }}>
+    <div role="group" aria-label={t('ui.focus.label')} style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
       {items.map((i) => {
         const on = i.id === focus;
         return (

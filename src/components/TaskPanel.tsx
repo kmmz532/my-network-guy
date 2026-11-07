@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react';
 const FIRST_CONTRACT = 'c001_direct_link';
 
 // top は札の上端（ヘッダーの下）。狭い画面では、案件を受けたときに畳んだ状態（件名だけ）で出す
-export function TaskPanel({ top = 44 }: { top?: number }) {
+export function TaskPanel() {
   const active = useGameStore(focusedProject);
   const open = useGameStore((s) => s.taskOpen);
   const setOpen = useGameStore((s) => s.setTaskOpen);
@@ -60,9 +60,6 @@ export function TaskPanel({ top = 44 }: { top?: number }) {
       // 案内の吹き出しを、スマホで案件の欄の下に置くために測る（B2）
       data-task-panel
       style={{
-        position: 'absolute',
-        top,
-        left: 8,
         width: open ? 260 : 'auto',
         maxWidth: phone ? 'calc((100vw - 16px) / var(--ui-scale, 1))' : undefined,
         background: 'rgba(47, 79, 143, 0.92)',

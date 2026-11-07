@@ -401,9 +401,11 @@ export function App() {
           <Icon name="icon/menu" scale={1} />
         </button>
       </header>
-      {/* 狭い画面では、札をヘッダーの下に置く（ヘッダーの高さは zoom を掛けた画面の座標なので、札の上端は倍率で割って渡す） */}
-      <TaskPanel top={phone ? (hudBottom + 6) / (loadSettings().uiScale) : 44} />
-      <FocusSwitch />
+      {/* 左上の列: 切り替えのボタンと案件の欄を縦に並べる（位置の数値を部品に持たせない・N121）。狭い画面では、列をヘッダーの下に置く（ヘッダーの高さは zoom を掛けた画面の座標なので、上端は倍率で割って渡す） */}
+      <div style={{ position: 'absolute', top: phone ? (hudBottom + 6) / loadSettings().uiScale : 44, left: 8, zIndex: 5, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
+        <FocusSwitch />
+        <TaskPanel />
+      </div>
       <Windows
         onTraining={() => {
           setHiringTab('staff');
