@@ -208,6 +208,8 @@
     "maxCandidates": 4,
     "baseSalary": 150000,
     "salaryPerLevel": 50000,
+    "backOfficeSalaryRate": 0.85,
+    "minSalary": 200000,
     "jobUnlockLevels": {
       "network": 2,
       "infra": 5,

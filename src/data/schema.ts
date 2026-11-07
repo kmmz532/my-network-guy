@@ -191,6 +191,9 @@ export const balanceSchema = z.object({
     maxCandidates: nonNegativeInt,
     baseSalary: nonNegativeInt,
     salaryPerLevel: nonNegativeInt,
+    // 内勤（営業・人事・経理）の給与は、エンジニアの式に掛ける係数。下限は minSalary（N100）
+    backOfficeSalaryRate: z.number().positive(),
+    minSalary: nonNegativeInt,
     // 職種ごとの解放のレベル（解放された職種だけが採用の候補に出る）
     jobUnlockLevels: z.object({
       network: unlockLevelSchema,

@@ -4,6 +4,7 @@ import { JOB_IDS, STAFF_LOOKS } from '../data/schema';
 import type { Office, Project } from './project';
 import { minutesPerDay } from './clock';
 import { furnitureBonus, seatOf, type BonusEnv } from './furniture';
+import { isBackOffice } from './backOffice';
 import { randInt } from './rng';
 
 // 名前の候補（言語ファイルの staff.name.0 〜 staff.name.59）の数
@@ -112,6 +113,14 @@ export const staffCapOf = (companyLevel: number, balance: Balance): number => {
 
 // 候補を作る。職種は、会社のレベルで解放された職種から選ぶ。候補の能力は会社のレベルで上がる（LEVEL.md 3.3）
 // hr は人事の効果（候補の数を増やす・候補の能力を上げる。どちらも既定は 0）
+// 採用の候補の月給（N100）。エンジニアの式で決め、内勤（営業・人事・経理）は係数を掛けて下限を守る。システムエンジニアは式のまま
+export const candidateSalaryOf = (job: JobId, level: number, balance: Balance): number => {
+  const h = balance.hiring;
+  const base = h.baseSalary + h.salaryPerLevel * level;
+  if (!isBackOffice(job)) return base;
+  return Math.max(h.minSalary, Math.round(base * h.backOfficeSalaryRate));
+};
+
 export const rollCandidates = (
   companyLevel: number,
   month: number,
@@ -135,7 +144,7 @@ export const rollCandidates = (
     const job = wishIndex >= 0 && i < Math.ceil(count.value / 2) ? { value: wishIndex, state: bonus.state } : randInt(bonus.state, 0, jobs.length - 1);
     const level = 1 + Math.floor(companyLevel / h.candidateLevelStep) + bonus.value + hr.levelBonus;
     const made = createStaff(
-      { job: jobs[job.value], level, salary: h.baseSalary + h.salaryPerLevel * level },
+      { job: jobs[job.value], level, salary: candidateSalaryOf(jobs[job.value], level, balance) },
       job.state,
       0,
       names,

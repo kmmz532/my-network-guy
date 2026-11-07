@@ -6,7 +6,7 @@ import type { Furniture, Staff } from '../data/schema';
 import { emptyOffice } from './project';
 import type { BonusEnv } from './furniture';
 import { readFileSync } from 'node:fs';
-import { NAME_COUNT, QUIRK_IDS, createStaff, gainExp, hintTier, initialStaff, pickName, rollCandidates, specAt, staffPower, staffStatus, totalSalary } from './staff';
+import { NAME_COUNT, QUIRK_IDS, createStaff, gainExp, hintTier, initialStaff, pickName, rollCandidates, specAt, staffPower, staffStatus, totalSalary, candidateSalaryOf } from './staff';
 import type { Project } from './project';
 
 const balance = balanceJson as unknown as Balance;
@@ -123,7 +123,7 @@ describe('採用の候補', () => {
       for (const c of candidates) {
         const base = 1 + Math.floor(45 / h.candidateLevelStep);
         expect([base, base + 1]).toContain(c.level);
-        expect(c.salary).toBe(h.baseSalary + h.salaryPerLevel * c.level);
+        expect(c.salary).toBe(candidateSalaryOf(c.job, c.level, balance));
       }
     }
   });
@@ -213,5 +213,23 @@ describe('社員の状態', () => {
 
   it('どちらでもなければ待機中', () => {
     expect(staffStatus(base, [], 0)).toEqual({ kind: 'idle' });
+  });
+});
+
+describe('内勤の給与（N100）', () => {
+  it('内勤は、エンジニアの式に係数を掛けた額になる（下限を下回らない）', () => {
+    // level 5: 150,000 + 50,000 × 5 = 400,000。内勤は 0.85 倍 = 340,000
+    expect(candidateSalaryOf('sales', 5, balance)).toBe(340000);
+    expect(candidateSalaryOf('hr', 5, balance)).toBe(340000);
+  });
+
+  it('係数を掛けた結果が下限を下回るときは下限にする', () => {
+    // level 1: 200,000 × 0.85 = 170,000 → 下限 200,000
+    expect(candidateSalaryOf('accounting', 1, balance)).toBe(balance.hiring.minSalary);
+  });
+
+  it('システムエンジニアとエンジニアは、式のまま', () => {
+    expect(candidateSalaryOf('dev', 5, balance)).toBe(400000);
+    expect(candidateSalaryOf('network', 5, balance)).toBe(400000);
   });
 });
