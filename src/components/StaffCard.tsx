@@ -220,6 +220,7 @@ export function StaffListBody() {
             <span>{yen(m.salary)}円</span>
             <span>
               {statusText(status)}
+              {m.level >= m.levelCap && <span style={{ marginLeft: 4, color: '#ffd866' }}>{t('ui.staff.cap')}</span>}
               {(m.job === 'dev' || m.job === 'hr' || m.job === 'accounting') && !(m.desk !== null && pcDesks.includes(m.desk)) && (
                 <span style={{ marginLeft: 4, color: '#ffd866' }}>{t('ui.staff.pc.no.short')}</span>
               )}
