@@ -809,6 +809,8 @@
   "ledger.expansion": "オフィスの拡張",
   "ledger.training": "研修",
   "ledger.saved": "経理で浮いた額（支出とは別）",
+  "ui.company.noPc": "机にPCがなく働けない社員",
+  "ui.company.noPc.count": "{count}人",
   "ui.company.dev": "今月の開発の収入（システムエンジニア）",
   "ui.company.saved": "今月の節約（経理）",
   "ledger.exam": "受験",

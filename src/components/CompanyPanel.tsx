@@ -11,6 +11,8 @@ import { gameEnv } from '../sim/env';
 import { ItemCards, unlockNameOf } from './UnlockList';
 import { Tooltip } from './Tooltip';
 import { tipText } from '../input/keymap';
+import { pcDesksOf } from '../sim/furniture';
+import { isPcDevice } from '../sim/env';
 import { Select } from './Select';
 import { floorOfRoom, roomTileCount } from '../sim/office';
 import type { RoomId } from '../sim/project';
@@ -78,6 +80,11 @@ export function CompanyBody() {
   // 自社のネットワークの外部への接続と、サーバーの貸し出し（N71・N72）
   const outside = outsideCheck(office, gameEnv.engine);
   const level = levelOf(companyExp, balance);
+  // 机に PC がない社内の職種の人数（働けない・N102）
+  const noPcCount = useGameStore((s) => {
+    const pcDesks = pcDesksOf(s.office, isPcDevice);
+    return s.staff.filter((m) => (m.job === 'dev' || m.job === 'hr' || m.job === 'accounting') && !(m.desk !== null && pcDesks.includes(m.desk))).length;
+  });
   const rental = rentalOf(office, gameEnv.engine, balance.rental, level, balance.time.daysPerMonth);
   const next = nextLevel(companyExp, balance);
   const inLevel = companyExp - expAtLevel(level, balance);
@@ -125,6 +132,13 @@ export function CompanyBody() {
           {money.toLocaleString('ja-JP')}円
         </button>
       </div>
+      {/* PC がなく働けない社内の職種の人数（N102） */}
+      {noPcCount > 0 && (
+        <div style={row}>
+          <span>{t('ui.company.noPc')}</span>
+          <span>{t('ui.company.noPc.count', { count: noPcCount })}</span>
+        </div>
+      )}
       {devThisMonth > 0 && (
         <div style={row}>
           <span>{t('ui.company.dev')}</span>
