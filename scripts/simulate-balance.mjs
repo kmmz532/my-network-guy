@@ -100,7 +100,7 @@ for (const plan of plans) {
   const ratio = cost / budget;
   const stars = balance.rating.find((r) => r.maxCostRatio === null || ratio <= r.maxCostRatio).stars;
   money += reward;
-  reputation += stars * balance.reputationPerStar;
+  reputation += stars; // 本体（sim/project.ts）と同じく、評判は星の数だけ増える
   rows.push({
     event: plan.id,
     day: (now / minutesPerDay).toFixed(1),
