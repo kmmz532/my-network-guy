@@ -91,6 +91,10 @@ const BREAK_FURNITURE = ['coffee', 'water', 'sofa'];
 const CHAIR_FURNITURE = new Set(['desk']);
 const CHAIR_SPRITE = 'furniture/chair';
 const CHAIR_TOP_INSET = 4;
+// 施工中の社員の立つ位置（作業場所からのずれ。マス単位。左・右・下・上の順。N108）
+// 時刻による色の重ね（N75）の大きさ（地図の外まで覆う。マス・画素の単位）
+const OVERLAY_EXTENT = 20000;
+const BUILD_SLOTS: [number, number][] = [[-0.56, 0], [0.06, 0], [-0.25, 0.5], [-0.25, -0.5]];
 // 向きごとの椅子の位置のずれ（マス単位）。社員の背中側に椅子を置く（N95）
 const CHAIR_OFFSET: Record<Facing, [number, number]> = { up: [0, 0], down: [0, -0.6], left: [0.3, 0], right: [-0.3, 0] };
 const SANDBOX_OPEN_ZOOM = 2;
@@ -452,19 +456,24 @@ export class Scene {
   // 時刻による色（N75）。色が変わったときだけ重ねを描き直す。夜は、夜勤の机と機器の周りに明かりを描く
   private updateDayTint(): void {
     const map = this.map;
+    const s = useGameStore.getState();
+    const tint: Rgb = dayTintOf(s.clock.minute % dayMinutes);
+    // 背景（マップの外の青）も、同じ時刻の色にする。色は今の背景の色（#2f4f8f）に掛ける
+    const bg = { r: 0x2f * tint.r, g: 0x4f * tint.g, b: 0x8f * tint.b };
+    const bgHex = toHex({ r: bg.r / 255, g: bg.g / 255, b: bg.b / 255 });
+    this.app.renderer.background.color = bgHex;
     if (!map) {
       this.dayOverlay.clear();
       this.nightLights.clear();
       this.tintKey = '';
       return;
     }
-    const s = useGameStore.getState();
-    const tint: Rgb = dayTintOf(s.clock.minute % dayMinutes);
     const ts = this.tileSize();
-    const key = `${map.id}|${map.width}x${map.height}|${ts}|${toHex(tint)}`;
+    // 重ねは画面の全体を覆う（地図の外の床・背景も同じ色にする）
+    const key = `${toHex(tint)}|${map.id}|${ts}`;
     if (key !== this.tintKey) {
       this.tintKey = key;
-      this.dayOverlay.clear().rect(0, 0, map.width * ts, map.height * ts).fill(toHex(tint));
+      this.dayOverlay.clear().rect(-OVERLAY_EXTENT, -OVERLAY_EXTENT, 2 * OVERLAY_EXTENT, 2 * OVERLAY_EXTENT).fill(toHex(tint));
     }
     this.nightLights.clear();
     const night = nightnessOf(tint);
@@ -1206,14 +1215,22 @@ export class Scene {
     }
     const fraction = project.total > 0 ? Math.min(1, project.progress / project.total) : 1;
     const index = pending.length === 0 ? 0 : Math.min(pending.length - 1, Math.floor(fraction * pending.length));
-    // 2人の社員は並んで作業する。足踏みのコマで上下に揺れる
+    // 担当の社員を全員描く（担当の順。N108）。足踏みのコマで上下に揺れる。同じ作業場所に重なるときは、左・右・下の順にずらす
     const bob = Math.floor(this.elapsed / FRAME_MS) % 2;
-    const workers = Math.min(2, useGameStore.getState().staff.length);
-    for (let k = 0; k < workers && pending.length > 0; k++) {
-      const at = pending[Math.min(pending.length - 1, index + k)];
-      // 1人目は作業場所の左、2人目は右に立つ
-      this.drawStaff(at.x + (k === 0 ? -18 : 2), at.y - 24 - bob, useGameStore.getState().staff[k]?.look ?? STAFF_PLACEHOLDER_LOOKS[k % STAFF_PLACEHOLDER_LOOKS.length], useGameStore.getState().staff[k]);
-    }
+    const staffList = useGameStore.getState().staff;
+    const used = new Map<number, number>();
+    project.crew.forEach((uid, k) => {
+      const member = staffList.find((m) => m.uid === uid);
+      // 担当が社員の一覧にないのは、状態の誤り（予備の絵で描かない）
+      if (!member) throw new Error(`施工中の担当の社員がいない: ${uid}`);
+      if (pending.length === 0) return;
+      const spot = Math.min(pending.length - 1, index + k);
+      const n = used.get(spot) ?? 0;
+      used.set(spot, n + 1);
+      const at = pending[spot];
+      const [dx, dy] = BUILD_SLOTS[n % BUILD_SLOTS.length];
+      this.drawStaff(at.x + dx * ts, at.y - 24 - bob + dy * ts, member.look, member);
+    });
 
     // 施工の進み具合は、ツールバーの帯（Toolbar.tsx）だけに出す。マップの下端には描かない（B13。パソコンも1本にそろえる）
   }
