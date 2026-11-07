@@ -1924,6 +1924,13 @@ export class Scene {
     if (target.kind === 'node') {
       const node = this.editNodes()?.find((n) => n.uid === target.uid);
       if (!node || (node.x === tile.tx && node.y === tile.ty)) return;
+      // 机の上の機器を、床（家具のないマス）へ離したときは、机ごと動かす（機器とケーブルも一緒に動く・N168）。空いている机へ離すときは機器だけを動かす
+      const desk = viewingOffice(store) ? store.office.furniture.find((f) => f.x === node.x && f.y === node.y && f.id === 'desk') : undefined;
+      const floorTile = !store.office.furniture.some((f) => f.x === tile.tx && f.y === tile.ty);
+      if (desk && floorTile && this.canMoveFurniture(desk.uid, tile.tx, tile.ty)) {
+        store.moveFurniture(desk.uid, tile.tx, tile.ty);
+        return;
+      }
       if (this.canMoveNode(target.uid, tile.tx, tile.ty)) store.moveNode(target.uid, tile.tx, tile.ty);
       return;
     }

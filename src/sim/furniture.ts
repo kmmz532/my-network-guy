@@ -37,7 +37,7 @@ export const placeFurniture = (core: Core, id: string, x: number, y: number, map
 };
 
 // 自社オフィスの家具を別のマスへ動かす。置ける条件は配置と同じ（床で、家具も機材もないマス）。
-// 家具の上に機材があるときは動かせない（機材が床に取り残されるため）
+// 家具の上の機材は、家具と一緒に動く（機材が床に取り残されない・N103・N168）。動いた先のマスに、家具か機材があれば動かせない
 export const moveFurniture = (core: Core, uid: string, x: number, y: number, map: GameMap): Outcome => {
   if (officeLocked(core)) return fail('inhouse');
   const office = core.office;
