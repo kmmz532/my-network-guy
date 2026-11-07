@@ -56,6 +56,9 @@ C = {
     'CB': (170, 124, 76),   # 段ボール（影）
     'aq': (96, 200, 214),   # 水色（マルチモードの光ファイバー）
     'AQ': (58, 146, 168),   # 水色（影）
+    'x1': (44, 44, 52),     # 黒い筐体（家庭用ルーター）
+    'x2': (78, 80, 92),     # 黒い筐体（天面）
+    'x3': (122, 126, 140),  # 黒い筐体（ハイライト）
 }
 
 
@@ -403,6 +406,26 @@ def router_switch():
     router_box(d, 13, 13)
     switch_unit(d, 26)
     base(d)
+    return img
+
+
+def home_router():
+    # 家庭用ルーター（ルーター・スイッチ・DHCP・ファイアウォールを1台にまとめた箱）: 黒い横長の箱を、低い脚で置く。
+    # 業務用の赤い箱と見分けるため黒にする。前面の左に LED の列（電源・WAN・LAN）、右に盾の印（ファイアウォールを持つ印）
+    img, d = new(24, 40)
+    box3q(d, 2, 22, 20, 4, 9, 'x2', 'x1', edge='x3', shade='o')
+    d.line([(3, 23), (20, 23)], fill=C['x3'] + (255,))  # 天面の奥の縁の光
+    px(d, 4, 30, 'S')                                   # 電源（青）
+    px(d, 6, 30, 'f')                                   # WAN（橙）
+    for x in (8, 10, 12):
+        px(d, x, 30, 'l')                               # LAN
+    # 盾の印（白）
+    d.line([(16, 28), (19, 28)], fill=C['e'] + (255,))
+    d.line([(16, 29), (16, 30)], fill=C['e'] + (255,))
+    d.line([(19, 29), (19, 30)], fill=C['e'] + (255,))
+    d.line([(17, 31), (18, 31)], fill=C['e'] + (255,))
+    rect(d, 4, 35, 2, 2, 'o')
+    rect(d, 18, 35, 2, 2, 'o')
     return img
 
 
@@ -1765,6 +1788,7 @@ if __name__ == '__main__':
     save(wifi_router(), 'device/wifi_router.png')
     save(vpn_router(), 'device/vpn_router.png')
     save(router_switch(), 'device/router_switch.png')
+    save(home_router(), 'device/home_router.png')
     save(printer(), 'device/printer_basic.png')
     save(firewall(), 'device/firewall.png')
     save(firewall_dmz(), 'device/firewall_dmz.png')
