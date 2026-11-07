@@ -9,7 +9,7 @@ import { busyStaff } from '../sim/crew';
 import { backOfficeP, isBackOffice, jobEffect } from '../sim/backOffice';
 import { jobEffectText } from './jobEffectText';
 import { gameEnv, isPcDevice } from '../sim/env';
-import { unlockedJobsOf } from '../sim/staff';
+import { totalSalary, unlockedJobsOf } from '../sim/staff';
 import { levelOf } from '../sim/level';
 import { examPassRate } from '../sim/training';
 import { useGameStore } from '../stores/useGameStore';
@@ -112,7 +112,11 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
                 {t(back ? 'ui.hiring.tag.backOffice' : 'ui.hiring.tag.engineer')}
               </span>
             </div>
-            <div style={{ fontSize: 12 }}>{t('ui.hiring.salary', { salary: yen(c.salary) })}</div>
+            <div style={{ fontSize: 12 }}>
+              {t('ui.hiring.salary', { salary: yen(c.salary) })}
+              {/* 雇ったあとの、月給の合計（今の月給の合計に足した額）。雇う前に負担が分かるように（N156） */}
+              <span style={{ opacity: 0.8 }}> {t('ui.hiring.salaryTotal', { total: yen(totalSalary(allStaff, balance.nightPayRate) + c.salary) })}</span>
+            </div>
             {/* PC が要る職種は、次に座る机に PC がないと働けない（採用はできる）（N102） */}
             {(c.job === 'dev' || c.job === 'hr' || c.job === 'accounting') && !nextDeskHasPc && !full && (
               <div style={{ fontSize: 12, color: '#ffd866' }}>{t('ui.hiring.noPc')}</div>

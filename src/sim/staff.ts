@@ -164,15 +164,23 @@ export const rollCandidates = (
   let state = count.state;
   const candidates: Staff[] = [];
   const names = [...taken];
+  // 上限の近くのレベルの候補の人数（1人まで）
+  let topCount = 0;
   for (let i = 0; i < count.value; i++) {
     const bonus = randInt(state, 0, 1);
     // 募集の職種の指定（人事）: 候補の半分以上（切り上げ）は、指定した職種にする
     const wishIndex = hr.wish !== undefined ? jobs.indexOf(hr.wish) : -1;
     const job = wishIndex >= 0 && i < Math.ceil(count.value / 2) ? { value: wishIndex, state: bonus.state } : randInt(bonus.state, 0, jobs.length - 1);
-    const level = 1 + Math.floor(companyLevel / h.candidateLevelStep) + bonus.value + hr.levelBonus;
+    // 候補のレベル（N156）: 1人目は必ず新卒（Lv1〜3）。残りは Lv1 から今の上限までに散らし、上限の近くは1人まで
+    const cap = 1 + Math.floor(companyLevel / h.candidateLevelStep);
+    const drawn = i === 0 ? randInt(job.state, 0, Math.min(2, cap - 1)) : randInt(job.state, 0, Math.max(0, cap - 1));
+    let base = 1 + drawn.value;
+    if (i > 0 && base >= cap && topCount >= 1) base = Math.max(1, cap - 1);
+    if (base >= cap && i > 0) topCount++;
+    const level = base + hr.levelBonus;
     const made = createStaff(
       { job: jobs[job.value], level, salary: candidateSalaryOf(jobs[job.value], level, balance), levelCap: levelCapOf(level, balance.staff.levelCapStep) },
-      job.state,
+      drawn.state,
       0,
       names,
     );

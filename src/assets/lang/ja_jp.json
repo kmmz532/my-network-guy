@@ -554,6 +554,7 @@
   "ui.hiring.title": "採用",
   "ui.hiring.none": "候補がいない",
   "ui.hiring.salary": "月給 {salary}円",
+  "ui.hiring.salaryTotal": "（雇うと月給の合計 {total}円）",
   "ui.hiring.hire": "採用",
   "ui.hiring.tab.hiring": "採用",
   "ui.hiring.tab.staff": "社員",
