@@ -2,7 +2,7 @@
 // L1（配線）→ L2（スイッチによるL2ドメイン）→ L3（IPアドレスとルーティング）の順に確認する。
 // 失敗理由は ID で返し、文言は言語ファイルで表示する。
 import { isFabricPort, isRelayPort, isRoutingCategory, ROUTER_SWITCH_LAN_HOST_PORT } from './category';
-import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, NetLink, NetNode, Network, PathResult, PortConfig } from './types';
+import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, Iface, NetLink, NetNode, Network, PathResult, PortConfig, Route } from './types';
 import { CATEGORY } from '../data/categories';
 
 const MAX_HOPS = 16;
@@ -11,6 +11,12 @@ export const ipToInt = (ip: string): number =>
   ip.split('.').reduce((acc, octet) => ((acc << 8) + Number(octet)) >>> 0, 0);
 
 const maskOf = (prefix: number): number => (prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0);
+
+// IPアドレスのネットワークアドレス（a.b.c.d/nn の a.b.c.d の部分）
+const networkOf = (ip: string, prefix: number): string => {
+  const n = (ipToInt(ip) & maskOf(prefix)) >>> 0;
+  return [24, 16, 8, 0].map((s) => (n >>> s) & 255).join('.');
+};
 
 export const inSubnet = (ip: string, network: string, prefix: number): boolean =>
   ((ipToInt(ip) & maskOf(prefix)) >>> 0) === ((ipToInt(network) & maskOf(prefix)) >>> 0);
@@ -61,6 +67,79 @@ class Topology {
       if (this.categoryOf(uid) === CATEGORY.routerSwitch && !ports.includes(ROUTER_SWITCH_LAN_HOST_PORT)) ports.push(ROUTER_SWITCH_LAN_HOST_PORT);
       this.fabricBy.set(uid, ports);
     }
+  }
+
+  // 段4の動的経路（RIP・OSPF の MVP）。RIP・OSPF に参加したインターフェースどうしが、同じ L2 ドメインでつながる隣接をたどり、
+  // 宛先のサブネットへの経路を作る。RIP は跳ね数（16 以上は届かない）、OSPF はコストの合計の最短経路（エリア 0 だけ）。
+  // 参加していない機器・インターフェースは、経路を作らない（今までの動きと同じ）
+  routesOf(uid: string): Route[] {
+    if (this.dyn === undefined) this.dyn = this.dynamicRoutes();
+    return this.dyn.get(uid) ?? [];
+  }
+
+  private dyn?: Map<string, Route[]>;
+
+  private dynamicRoutes(): Map<string, Route[]> {
+    const out = new Map<string, Route[]>();
+    const routers = [...this.nodes.values()].filter((n) => this.isRouter(n.uid));
+    for (const proto of ['rip', 'ospf'] as const) {
+      const joined = (i: Iface): boolean => (proto === 'rip' ? i.rip === true : i.ospf !== undefined);
+      // 隣接（同じサブネットで、両方が参加している）。辺は相手の機器と、こちらの口の番号と、相手の口のアドレス
+      const adj = new Map<string, { to: string; cost: number; nextHop: string }[]>();
+      for (const r of routers) {
+        for (const i of r.interfaces) {
+          if (!joined(i)) continue;
+          for (const m of this.domainOf({ node: r.uid, port: i.port }).members) {
+            if (m.node === r.uid) continue;
+            const other = this.nodes.get(m.node);
+            if (!other || !this.isRouter(other.uid)) continue;
+            const oi = other.interfaces.find((x) => x.port === m.port);
+            if (!oi || !joined(oi) || !inSubnet(oi.ip, i.ip, i.prefix)) continue;
+            const cost = proto === 'rip' ? 1 : (i.ospf?.cost ?? 1);
+            (adj.get(r.uid) ?? adj.set(r.uid, []).get(r.uid)!).push({ to: other.uid, cost, nextHop: oi.ip });
+          }
+        }
+      }
+      for (const r of routers) {
+        // 自分のインターフェース（参加している）と同じサブネットは、直結の経路として扱うため、経路を作らない
+        const own = r.interfaces.filter(joined);
+        // 最短経路（Bellman-Ford。機器は少ない）。最初の一歩の相手のアドレスを覚える
+        const dist = new Map<string, number>([[r.uid, 0]]);
+        const first = new Map<string, string>();
+        for (let round = 0; round < this.nodes.size; round++) {
+          let changed = false;
+          for (const [from, edges] of adj) {
+            const d = dist.get(from);
+            if (d === undefined) continue;
+            for (const e of edges) {
+              const nd = d + e.cost;
+              if (dist.get(e.to) === undefined || nd < (dist.get(e.to) as number)) {
+                dist.set(e.to, nd);
+                first.set(e.to, from === r.uid ? e.nextHop : (first.get(from) as string));
+                changed = true;
+              }
+            }
+          }
+          if (!changed) break;
+        }
+        const routes: Route[] = [];
+        for (const o of routers) {
+          if (o.uid === r.uid || dist.get(o.uid) === undefined) continue;
+          const hop = first.get(o.uid);
+          if (hop === undefined) continue;
+          const metric = dist.get(o.uid) as number;
+          // RIP は 16 以上で届かない（rip.unreachable）
+          if (proto === 'rip' && metric >= 16) continue;
+          for (const oi of o.interfaces) {
+            if (!joined(oi)) continue;
+            if (own.some((x) => inSubnet(oi.ip, x.ip, x.prefix))) continue;
+            routes.push({ dest: networkOf(oi.ip, oi.prefix), prefix: oi.prefix, nextHop: hop, protocol: proto });
+          }
+        }
+        out.set(r.uid, [...(out.get(r.uid) ?? []), ...routes]);
+      }
+    }
+    return out;
   }
 
   node(uid: string): NetNode | undefined {
@@ -183,6 +262,9 @@ const fail = (reason: FailureReason, node: string): Failure => ({ reason, node }
 // 通信の種類（ping は ICMP、http は指定のポートへの TCP）。ファイアウォールの規則の判定に使う
 export type Traffic = { kind: 'ping' } | { kind: 'http'; port: number };
 
+// 経路の管理距離（AD）。static 1・OSPF 110・RIP 120
+const adOf = (r: Route): number => (r.protocol === 'ospf' ? 110 : r.protocol === 'rip' ? 120 : 1);
+
 // 規則の送信元・宛先（'any' か「a.b.c.d/nn」）に、IPアドレスが入るか
 const matchNet = (spec: string, ip: string): boolean => {
   if (spec === 'any') return true;
@@ -282,9 +364,10 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
     }
 
     // 最長一致で静的ルートを選ぶ
-    const matches = cur.routes.filter((r) => inSubnet(dstIface.ip, r.dest, r.prefix));
+    // 設定した経路（static）と、RIP・OSPF の経路を合わせ、最長一致で選ぶ。同じ長さなら管理距離（AD）の小さい方（static 1・OSPF 110・RIP 120）
+    const matches = [...cur.routes, ...topo.routesOf(cur.uid)].filter((r) => inSubnet(dstIface.ip, r.dest, r.prefix));
     if (matches.length === 0) return err(fail('route.none', cur.uid));
-    const route = matches.reduce((best, r) => (r.prefix > best.prefix ? r : best));
+    const route = matches.reduce((best, r) => (r.prefix > best.prefix || (r.prefix === best.prefix && adOf(r) < adOf(best)) ? r : best));
 
     const egress = cur.interfaces.find((i) => inSubnet(route.nextHop, i.ip, i.prefix));
     if (!egress) return err(fail('route.none', cur.uid));

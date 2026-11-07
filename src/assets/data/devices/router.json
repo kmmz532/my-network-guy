@@ -11,7 +11,8 @@
         "bgp",
         "nat",
         "dhcpRelay",
-        "wan"
+        "wan",
+        "rip"
       ],
       "deskable": true,
       "price": 60000,

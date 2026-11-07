@@ -11,7 +11,8 @@
         "routedPort",
         "routing",
         "ospf",
-        "dhcpRelay"
+        "dhcpRelay",
+        "rip"
       ],
       "sviMax": 16,
       "price": 150000,

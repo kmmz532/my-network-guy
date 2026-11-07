@@ -8,12 +8,18 @@ export interface Iface {
   port: number;
   ip: string;
   prefix: number;
+  // RIP に参加しているか（N141b）
+  rip?: boolean;
+  // OSPF に参加しているエリアとコスト（N142・MVP はエリア 0 だけ）
+  ospf?: { area: number; cost?: number };
 }
 
 export interface Route {
   dest: string;
   prefix: number;
   nextHop: string;
+  // 経路の出どころ（static は設定した経路。省略は static）。同じ宛先の長さなら管理距離（AD）の小さいものを使う
+  protocol?: 'static' | 'rip' | 'ospf';
 }
 
 export interface Service {
