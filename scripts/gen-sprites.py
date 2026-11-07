@@ -976,6 +976,81 @@ def chair():
     return outline(img)
 
 
+# ---- 机と椅子の向き（N95）。名前の向きは、座った社員が向く方向（奥・手前・左・右）。今の desk・chair は奥向き ----
+
+def desk_front():
+    # 手前向き（社員は机の奥に座り、こちらを向く）。手前に幕板の正面が見える
+    img, d = new(32, 32)
+    rect(d, 1, 4, 30, 18, 'e')
+    d.line([(1, 4), (30, 4)], fill=C['w'])
+    d.line([(2, 5), (2, 20)], fill=C['w'])
+    rect(d, 1, 22, 30, 3, 'w')
+    d.line([(1, 24), (30, 24)], fill=C['g'])
+    # 脚と、手前の幕板（正面。床近くまで下がる）
+    rect(d, 2, 25, 2, 6, 'g')
+    rect(d, 28, 25, 2, 6, 'g')
+    rect(d, 4, 25, 24, 5, 'w')
+    d.line([(4, 29), (27, 29)], fill=C['g'])
+    return outline(img)
+
+
+def desk_side():
+    # 左向き（社員は机の右に座り、左を向く）。幕板は左の脚の間に立つ。右向きは左右反転で作る
+    img, d = new(32, 32)
+    rect(d, 1, 4, 30, 18, 'e')
+    d.line([(1, 4), (30, 4)], fill=C['w'])
+    d.line([(2, 5), (2, 20)], fill=C['w'])
+    rect(d, 1, 22, 30, 3, 'w')
+    d.line([(1, 24), (30, 24)], fill=C['g'])
+    # 左の板脚（幕板を兼ねる）と、右の細い脚
+    rect(d, 2, 25, 4, 6, 'd')
+    d.line([(3, 25), (3, 30)], fill=C['g'])
+    rect(d, 28, 25, 2, 6, 'g')
+    return outline(img)
+
+
+def chair_front():
+    # 手前向きの椅子（社員はこちらを向く）。背もたれは座面の奥に立ち、座面の上面が手前に広く見える
+    img, d = new(32, 28)
+    hub = (16, 23)
+    for x, y in ((5, 22), (27, 22), (8, 26), (24, 26), (16, 27)):
+        d.line([hub, (x, y)], fill=C['d'])
+        d.line([(hub[0], hub[1] - 1), (x, y - 1)], fill=C['g'])
+        rect(d, x - 1, y - 1, 2, 2, 'o')
+    rect(d, 15, 17, 3, 6, 'g')
+    d.line([(15, 17), (15, 22)], fill=C['w'])
+    # 背もたれ（奥。前面のクッションが見える）
+    d.rounded_rectangle([6, 0, 25, 13], radius=4, fill=C['b'])
+    d.rounded_rectangle([8, 2, 23, 11], radius=3, fill=C['B'])
+    d.line([(10, 3), (21, 3)], fill=C['S'])
+    # 座面（背もたれの手前に重なる）
+    d.ellipse([2, 11, 29, 20], fill=C['B'])
+    d.ellipse([2, 9, 29, 18], fill=C['b'])
+    d.arc([4, 10, 27, 17], 190, 300, fill=C['S'])
+    return outline(img)
+
+
+def chair_side():
+    # 左向きの椅子（社員は左を向く）。背もたれは座面の右の端に立ち、横から見て細い。右向きは左右反転で作る
+    img, d = new(32, 28)
+    hub = (16, 23)
+    for x, y in ((5, 22), (27, 22), (8, 26), (24, 26), (16, 27)):
+        d.line([hub, (x, y)], fill=C['d'])
+        d.line([(hub[0], hub[1] - 1), (x, y - 1)], fill=C['g'])
+        rect(d, x - 1, y - 1, 2, 2, 'o')
+    rect(d, 15, 17, 3, 6, 'g')
+    d.line([(15, 17), (15, 22)], fill=C['w'])
+    # 座面
+    d.ellipse([2, 10, 29, 19], fill=C['B'])
+    d.ellipse([2, 8, 29, 17], fill=C['b'])
+    d.arc([4, 9, 27, 16], 190, 300, fill=C['S'])
+    # 背もたれ（右の端。上面の厚みと側面）
+    d.rounded_rectangle([21, 0, 27, 16], radius=2, fill=C['B'])
+    d.rounded_rectangle([21, 0, 27, 3], radius=1, fill=C['b'])
+    d.line([(22, 4), (22, 14)], fill=C['b'])
+    return outline(img)
+
+
 def plant():
     img, d = new(32, 44)
     d.ellipse([7, 2, 24, 18], fill=C['G'])
@@ -1229,6 +1304,17 @@ if __name__ == '__main__':
         'sofa': sofa(),
     }
     for name, img in furniture.items():
+        save(img, f'furniture/{name}.png')
+    # 机と椅子の向き（N95）。右向きは左向きの左右反転
+    facings = {
+        'desk_front': desk_front(),
+        'desk_left': desk_side(),
+        'chair_front': chair_front(),
+        'chair_left': chair_side(),
+    }
+    facings['desk_right'] = facings['desk_left'].transpose(Image.FLIP_LEFT_RIGHT)
+    facings['chair_right'] = facings['chair_left'].transpose(Image.FLIP_LEFT_RIGHT)
+    for name, img in facings.items():
         save(img, f'furniture/{name}.png')
     save(desk_chair_icon(furniture['desk'], furniture['chair']), 'furniture/desk_chair.png')
     print('ok')
