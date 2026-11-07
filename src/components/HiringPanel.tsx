@@ -67,7 +67,10 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
   const nightOpen = levelOf(companyExp, balance) >= balance.featureUnlocks.nightShift;
   const [shiftOf, setShiftOf] = useState<Record<string, 'day' | 'night'>>({});
   // 空いている机がなければ、採用できない（座っている社員の机は、辞めるまで空かない）
-  const full = freeDesks(office, allStaff, (id) => furniture[id as FurnitureId]?.seat === true).length === 0;
+  const freeSeats = freeDesks(office, allStaff, (id) => furniture[id as FurnitureId]?.seat === true);
+  const full = freeSeats.length === 0;
+  // 次に座る机に PC がないか（PC が要る職種の警告に使う・N102）
+  const nextDeskHasPc = freeSeats[0] !== undefined && office.nodes.some((n) => n.x === freeSeats[0].x && n.y === freeSeats[0].y && isPcDevice(n.device));
   const yen = (n: number) => n.toLocaleString('ja-JP');
   return (
     <>
@@ -109,6 +112,10 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
               </span>
             </div>
             <div style={{ fontSize: 12 }}>{t('ui.hiring.salary', { salary: yen(c.salary) })}</div>
+            {/* PC が要る職種は、次に座る机に PC がないと働けない（採用はできる）（N102） */}
+            {(c.job === 'dev' || c.job === 'hr' || c.job === 'accounting') && !nextDeskHasPc && !full && (
+              <div style={{ fontSize: 12, color: '#ffd866' }}>{t('ui.hiring.noPc')}</div>
+            )}
             {/* 内勤は、雇うと増える効果を1行で出す */}
             {effect && <div style={{ fontSize: 12, color: '#ffd866' }}>{jobEffectText(effect)}</div>}
           </div>

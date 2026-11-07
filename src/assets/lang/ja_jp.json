@@ -473,6 +473,7 @@
   "ui.effect.job.accounting": "機器と施工の経費 −{pct}%",
   "ui.effect.job.dev": "開発の収入 {income}円/月（担当でない日）",
   "ui.effect.job.none": "日勤で席に座ると効果が出る",
+  "ui.hiring.noPc": "次に座る机にPCがない（PCを置くと働ける）",
   "ui.hiring.tag.engineer": "エンジニア",
   "ui.hiring.tag.backOffice": "内勤",
   "ui.staff.card.power": "施工力",
