@@ -578,6 +578,8 @@ export const unlockItems: UnlockItem[] = [
   ...contracts.map((c) => ({ kind: 'contract' as const, id: c.id, unlockLevel: c.unlockLevel })),
   // 自社の床の種類（木以外。N92）
   ...balance.floors.filter((f) => f.id !== 'wood').map((f) => ({ kind: 'floor' as const, id: f.id, unlockLevel: f.unlockLevel })),
+  // 機能の解放（床の変更・夜勤など）。鍵は balance.featureUnlocks から作り、手で並べない（N127）
+  ...Object.entries(balance.featureUnlocks).map(([id, unlockLevel]) => ({ kind: 'feature' as const, id, unlockLevel })),
   // 早送りの速さ（4倍・8倍。N99）
   ...Object.entries(balance.time.speedUnlockLevels).map(([id, unlockLevel]) => ({ kind: 'speed' as const, id, unlockLevel })),
 ];
