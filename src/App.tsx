@@ -91,6 +91,8 @@ export function App() {
   const [saveMark, setSaveMark] = useState<number | null>(null);
   // 今遊んでいる会社の枠（経営もサンドボックスも、その会社の枠へ保存する・N133）
   const slotRef = useRef<number | null>(null);
+  // 同じ枠（会社）の別のタブを見つけるための、今開いている枠（画面の表示にも使う・N133）
+  const [activeSlot, setActiveSlot] = useState<number | null>(null);
   // 会社（セーブの枠）の画面。タイトル画面の上に出す（N132・N133）
   const [companyView, setCompanyView] = useState<CompanyView | null>(null);
   const [companyMode, setCompanyMode] = useState<GameMode>('career');
@@ -261,6 +263,7 @@ export function App() {
   const playSave = (save: CompanySave) => {
     load(save.data);
     slotRef.current = save.slot;
+    setActiveSlot(save.slot);
     setCompanyView(null);
     startGame();
   };
@@ -319,6 +322,7 @@ export function App() {
     if (companyMode === 'career') newGame(trimmed);
     else renameCompany(trimmed);
     slotRef.current = slot;
+    setActiveSlot(slot);
     await saveSlot(slot, snapshot());
     setCompanyView(null);
     startGame();
@@ -453,7 +457,7 @@ export function App() {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-      <TabConflict />
+      <TabConflict slot={activeSlot} />
       <PixiStage inventoryOpen={inventoryOpen} />
       <header
         ref={headerRef}
@@ -599,6 +603,7 @@ export function App() {
               setPopup(null);
               setSpeed(0);
               setScreen('title');
+              setActiveSlot(null);
             }}
           >
             {t('ui.title.back')}

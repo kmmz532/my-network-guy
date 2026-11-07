@@ -1,12 +1,22 @@
 // 別のタブで同じゲームを開いているときの表示（N27）。続けるまで、この画面の操作を止める
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { t } from '../i18n/t';
-import { startTabGuard } from '../services/tabGuard';
+import { startTabGuard, type TabGuard } from '../services/tabGuard';
 
-export function TabConflict() {
+// slot は今開いている会社の枠（タイトル画面は null）。同じ会社を別のタブで開いたときだけ止める（N133）
+export function TabConflict({ slot }: { slot: number | null }) {
   const [conflict, setConflict] = useState(false);
   const [continued, setContinued] = useState(false);
-  useEffect(() => startTabGuard(() => setConflict(true)), []);
+  const guard = useRef<TabGuard | null>(null);
+  useEffect(() => {
+    const g = startTabGuard(() => setConflict(true), slot);
+    guard.current = g;
+    return () => g.stop();
+    // 最初の1回だけ作る（枠の変更は下の effect で知らせる）
+  }, []);
+  useEffect(() => {
+    guard.current?.setSlot(slot);
+  }, [slot]);
   if (!conflict || continued) return null;
   return (
     <div
