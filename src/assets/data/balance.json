@@ -42,7 +42,8 @@
       "router_switch": 0,
       "l3_switch": 0,
       "firewall": 0,
-      "printer": 30000
+      "printer": 30000,
+      "access_point": 0
     },
     "perPort": {
       "l2_switch": 1500,
@@ -52,7 +53,8 @@
       "firewall": 5000,
       "pc": 0,
       "server": 0,
-      "printer": 0
+      "printer": 0,
+      "access_point": 3000
     },
     "features": {
       "routing": 40000,
@@ -61,7 +63,8 @@
       "firewall": 70000,
       "portable": 40000,
       "service": 100000,
-      "gpu": 900000
+      "gpu": 900000,
+      "wireless": 30000
     }
   },
   "initialStock": {

@@ -1,0 +1,25 @@
+{
+  "devices": [
+    {
+      "id": "access_point",
+      "category": "access_point",
+      "capabilities": [
+        "wireless"
+      ],
+      "deskable": false,
+      "price": 33000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 1,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [
+        "wireless"
+      ],
+      "sprite": "device/access_point",
+      "unlockLevel": 6
+    }
+  ]
+}

@@ -12,6 +12,8 @@ export const CATEGORY = {
   printer: 'printer',
   // 回線終端（ISP の回線の口。固定の機器で、店では買えない・N144）
   uplink: 'uplink',
+  // 無線のアクセスポイント（有線の LAN の口1つと電波。N151 の最初の段）
+  accessPoint: 'access_point',
 } as const;
 
 // 分類が PC か（機器の分類の判定はここだけで行う。N116）

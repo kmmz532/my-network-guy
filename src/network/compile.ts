@@ -109,7 +109,7 @@ export const compile = (input: Network, data: EngineData): Compiled => {
   for (const n of input.nodes) {
     const c = cat(n);
     // 回線終端（uplink）は IPアドレスを持たない機器（N144）
-    if (!isL2Category(c) && !isRoutingCategory(c) && c !== 'uplink' && n.interfaces.length === 0) flag(n.uid, { reason: 'ip.unset' });
+    if (!isL2Category(c) && !isRoutingCategory(c) && c !== 'uplink' && c !== 'access_point' && n.interfaces.length === 0) flag(n.uid, { reason: 'ip.unset' });
   }
 
   // ホストのデフォルトゲートウェイは、同じセグメントにあるルーターのポートのアドレス（最も小さいもの）
