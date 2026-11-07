@@ -13,7 +13,7 @@ export const countsForBackOffice = (s: Staff): boolean => s.shift === 'day' && s
 // 社員の実効 level（level × 席の係数 × (1 + 家具の補正)）。席がなければ席の係数で下がる
 export const effectiveLevelOf = (s: Staff, office: Office, env: BonusEnv): number => {
   const bonus = furnitureBonus(office, s.uid, env);
-  const seated = seatOf(office, env.staffUids, s.uid, env.defs) !== null;
+  const seated = seatOf(office, s.desk, env.defs) !== null;
   const seatFactor = seated ? 1 : bonus.seatless;
   return s.level * seatFactor * (1 + bonus.power);
 };

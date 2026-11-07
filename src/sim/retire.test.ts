@@ -18,6 +18,7 @@ const member = (uid: string, job: Staff['job'], over: Partial<Staff> = {}): Staf
   training: null,
   hiredMonth: 0,
   leaving: false,
+  desk: null,
   ...over,
 });
 

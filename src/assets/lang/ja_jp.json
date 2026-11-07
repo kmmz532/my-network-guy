@@ -449,6 +449,7 @@
   "ui.retire.notice": "退職を伝える",
   "ui.retire.cancel": "退職を取り消す",
   "ui.retire.leaving": "月末に退職します（退職金は月給の{months}か月分）",
+  "ui.error.seated": "社員が座っている机は撤去できない",
   "ui.error.retire.tooSoon": "採用から間もないため、退職は伝えられない",
   "ui.error.retire.already": "今月は、ほかの社員にすでに退職を伝えている",
   "ui.error.retire.noEngineer": "エンジニアがいなくなるため、退職は伝えられない",

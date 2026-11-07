@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { furniture as furnitureData } from 'virtual:game-data';
 import balanceJson from '../assets/data/balance.json';
 import type { Balance } from '../data/schema';
-import { seatCount } from './furniture';
+import { freeDesks } from './furniture';
 import { isDeskFurniture, type Env } from './project';
 
 const balance = balanceJson as unknown as Balance;
@@ -14,7 +14,7 @@ describe('机と椅子（N44）', () => {
     expect(isDeskFurniture('desk_only', env)).toBe(true);
     expect(isDeskFurniture('plant', env)).toBe(false);
     const office = { furniture: [{ uid: 'f0', id: 'desk_only', x: 1, y: 1 }] } as never;
-    expect(seatCount(office, (id) => (furnitureData as Record<string, { seat?: boolean }>)[id]?.seat === true)).toBe(1);
+    expect(freeDesks(office, [], (id) => (furnitureData as Record<string, { seat?: boolean }>)[id]?.seat === true).length).toBe(1);
   });
 
   it('部屋の机は2つで、インベントリに机はない（B12）', () => {

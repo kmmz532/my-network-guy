@@ -2,7 +2,7 @@ import { EMPTY_FAMILIARITY } from './familiar';
 import { describe, expect, it } from 'vitest';
 import type { GameMap } from '../data/schema';
 import type { NetNode } from '../network/types';
-import { furnitureBonus, hire, placeFurniture, removeFurniture, seatCount, type BonusEnv } from './furniture';
+import { assignDesks, freeDesks, furnitureBonus, hire, placeFurniture, removeFurniture, seatedStaff, type BonusEnv } from './furniture';
 import balanceJson from '../assets/data/balance.json';
 import furnitureJson from '../assets/data/furniture.json';
 import type { Balance, Furniture } from '../data/schema';
@@ -141,16 +141,24 @@ describe('自社オフィスにPC以外の機材を置く', () => {
 describe('社員を雇う', () => {
   const isSeat = (id: string) => id === 'desk';
 
-  it('席の数を家具から数える', () => {
+  it('空いている席（机）を家具から数える', () => {
     const office = core().office;
-    expect(seatCount(office, isSeat)).toBe(1);
+    expect(freeDesks(office, [], isSeat).length).toBe(1);
+    expect(freeDesks(office, [{ desk: office.furniture[0].uid }], isSeat).length).toBe(0);
   });
 
   const candidate = { ...createStaff({ job: 'infra', level: 1, salary: 200000 }, 1, 9).staff, uid: 'c1_0' };
   const twoDesks = { ...emptyOffice({ w: 5, h: 5 }), furniture: [{ uid: 'f0', id: 'desk', x: 1, y: 0 }, { uid: 'f1', id: 'desk', x: 2, y: 0 }], furnitureSeq: 2 };
 
-  it('席が足りなければ採用できない（seat）', () => {
-    expect(reasonOf(hire(core({ candidates: [candidate] }), 'c1_0', isSeat, 10, 'day'))).toBe('seat');
+  it('空いている机がなければ採用できない（seat）', () => {
+    // 机に座っている社員がいる（その机は空いていない）
+    const seated = { ...candidate, uid: 's0', desk: core().office.furniture[0].uid };
+    expect(reasonOf(hire(core({ candidates: [candidate], staff: [seated] }), 'c1_0', isSeat, 10, 'day'))).toBe('seat');
+  });
+
+  it('採用した社員は、空いている机に座る', () => {
+    const out = hire(core({ staff: [], staffSeq: 0, office: twoDesks, candidates: [candidate] }), 'c1_0', isSeat, 10, 'day');
+    expect(out.ok && out.core.staff[0].desk).toBe('f0');
   });
 
   it('席が空いていれば採用でき、候補から社員に移る', () => {
@@ -169,7 +177,7 @@ describe('社員を雇う', () => {
 
 describe('家具の補正', () => {
   const defs = Object.fromEntries(furnitureJson.furniture.map((f) => [f.id, f as unknown as Furniture]));
-  const env: BonusEnv = { defs, balance: balanceJson as unknown as Balance, staffUids: ['s0'] };
+  const env: BonusEnv = { defs, balance: balanceJson as unknown as Balance, staff: [{ uid: 's0', desk: 'desk' }] };
   const withFurniture = (items: { id: string; x: number; y: number }[]) => ({
     ...emptyOffice({ w: 5, h: 5 }),
     furniture: [{ uid: 'desk', id: 'desk', x: 5, y: 5 }, ...items.map((f, i) => ({ uid: `f${i}`, ...f }))],
@@ -206,5 +214,32 @@ describe('家具の補正', () => {
 
   it('ソファがあれば、席のない社員の係数は 0.7 になる', () => {
     expect(furnitureBonus(withFurniture([{ id: 'sofa', x: 0, y: 0 }]), 'nobody', env).seatless).toBe(0.7);
+  });
+});
+
+describe('社員ごとの机（A: 辞めた社員の机は空いたままにする）', () => {
+  const isSeat = (id: string) => id === 'desk';
+  const office = { ...emptyOffice({ w: 5, h: 5 }), furniture: [{ uid: 'f0', id: 'desk', x: 1, y: 0 }, { uid: 'f1', id: 'desk', x: 2, y: 0 }], furnitureSeq: 2 };
+  const seat = (uid: string, desk: string | null) => ({ ...createStaff({ job: 'infra', level: 1, salary: 1 }, 1, 0).staff, uid, desk });
+
+  it('社員が辞めても、ほかの社員は同じ机に座り続ける', () => {
+    const staff = [seat('s0', 'f0'), seat('s1', 'f1')];
+    const remaining = staff.filter((s) => s.uid !== 's0');
+    expect(seatedStaff(office, remaining, isSeat).map((x) => [x.member.uid, x.desk.uid])).toEqual([['s1', 'f1']]);
+  });
+
+  it('辞めた社員の机は空き、次の採用はその机に座る', () => {
+    const remaining = [seat('s1', 'f1')];
+    expect(freeDesks(office, remaining, isSeat).map((f) => f.uid)).toEqual(['f0']);
+  });
+
+  it('座っている机は撤去できない（seated）', () => {
+    const core = { office, staff: [seat('s0', 'f0')], active: [] } as unknown as Core;
+    expect(removeFurniture(core, 'f0')).toEqual({ ok: false, reason: 'seated' });
+  });
+
+  it('机のない社員は、空いている机を並び順に割り当てる（ゲームの開始・移行）', () => {
+    const assigned = assignDesks([seat('s0', null), seat('s1', null), seat('s2', null)], office, isSeat);
+    expect(assigned.map((s) => s.desk)).toEqual(['f0', 'f1', null]);
   });
 });

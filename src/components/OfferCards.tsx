@@ -99,7 +99,7 @@ function CrewPicker({ selected, onChange }: { selected: string[]; onChange: (cre
   const staff = useGameStore((s) => s.staff);
   const office = useGameStore((s) => s.office);
   const busy = useGameStore((s) => s.active.flatMap((p) => p.crew));
-  const bonusEnv = { defs: gameEnv.furniture ?? {}, balance, staffUids: staff.map((s) => s.uid) };
+  const bonusEnv = { defs: gameEnv.furniture ?? {}, balance, staff: staff };
   return (
     <div style={{ marginTop: 6, fontSize: 13 }}>
       <div style={{ marginBottom: 2 }}>{t('ui.offer.crew')}</div>
@@ -167,7 +167,7 @@ function OfferCard({
   const blindRange = (() => {
     const jobs = offer.contract.jobs ?? [];
     const members = staff.filter((m) => crew.includes(m.uid));
-    const bonusEnv = { defs: gameEnv.furniture ?? {}, balance, staffUids: staff.map((m) => m.uid) };
+    const bonusEnv = { defs: gameEnv.furniture ?? {}, balance, staff: staff };
     const power = members.reduce((sum, m) => sum + staffPower(m, jobs, office, bonusEnv), 0);
     const pcCount = offer.contract.placed.filter((p) => devices[p.device as keyof typeof devices]?.category === CATEGORY.pc).length;
     const match = jobs.length === 0 || members.length === 0 ? 1 : members.filter((m) => jobs.includes(m.job)).length / members.length;

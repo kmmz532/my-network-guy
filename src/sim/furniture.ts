@@ -62,6 +62,8 @@ export const removeFurniture = (core: Core, uid: string): Outcome => {
   const target = core.office.furniture.find((f) => f.uid === uid);
   if (!target) return fail('none');
   if (core.office.nodes.some((n) => n.x === target.x && n.y === target.y)) return fail('occupied');
+  // 社員が座っている机は撤去できない（座る席がなくなるため）
+  if (core.staff.some((s) => s.desk === uid)) return fail('seated');
   return {
     ok: true,
     core: {
@@ -72,20 +74,18 @@ export const removeFurniture = (core: Core, uid: string): Outcome => {
   };
 };
 
-// 社員の席の数（席になる家具の数）。isSeat は家具IDが席かどうかを返す
-export const seatCount = (office: Office, isSeat: (id: string) => boolean): number =>
-  office.furniture.filter((f) => isSeat(f.id)).length;
-
 // 候補の社員を採用する。席の数を超えては採用できない。採用に費用はかからない
 export const hire = (core: Core, candidateUid: string, isSeat: (id: string) => boolean, staffCap: number, shift: 'day' | 'night'): Outcome => {
   const candidate = core.candidates.find((c) => c.uid === candidateUid);
   if (!candidate) return fail('none');
-  if (core.staff.length >= seatCount(core.office, isSeat)) return fail('seat');
+  // 空いている机（社員に座られていない席）がなければ採用できない
+  const desk = freeDesks(core.office, core.staff, isSeat)[0];
+  if (!desk) return fail('seat');
   // 会社のレベルの上限（人数）に達していれば採用できない（LEVEL.md 3.3）
   if (core.staff.length >= staffCap) return fail('cap');
   // 雇うときに、日勤か夜勤を選ぶ（夜勤は会社のレベルで解放される・N48）
   // 採用した月を覚える（退職の条件に使う）。候補は採用の時点で退職の予定はない
-  const staff: Staff = { ...candidate, uid: `s${core.staffSeq}`, shift, hiredMonth: core.clock.paidMonths, leaving: false };
+  const staff: Staff = { ...candidate, uid: `s${core.staffSeq}`, shift, desk: desk.uid, hiredMonth: core.clock.paidMonths, leaving: false };
   return {
     ok: true,
     core: {
@@ -97,16 +97,37 @@ export const hire = (core: Core, candidateUid: string, isSeat: (id: string) => b
   };
 };
 
-// 社員が座る机（雇用の順に、並び順の机から1つずつ）。席がなければ null
-export const seatOf = (
-  office: Office,
-  staffUids: readonly string[],
-  uid: string,
-  defs: Record<string, Furniture>,
-): { x: number; y: number } | null => {
-  const desks = office.furniture.filter((f) => defs[f.id]?.seat === true);
-  const index = staffUids.indexOf(uid);
-  return index >= 0 && index < desks.length ? desks[index] : null;
+// 社員が座る机の位置。desk は社員の机（家具の uid）。机がなければ null
+export const seatOf = (office: Office, desk: string | null, defs: Record<string, Furniture>): { x: number; y: number } | null => {
+  if (desk === null) return null;
+  const f = office.furniture.find((x) => x.uid === desk);
+  return f && defs[f.id]?.seat === true ? { x: f.x, y: f.y } : null;
+};
+
+// 机に座っている社員と、その机の家具（社員の机の順）。机のない社員は含まない
+export const seatedStaff = <T extends { desk: string | null }>(office: Office, staff: readonly T[], isSeat: (id: string) => boolean): { member: T; desk: Office['furniture'][number] }[] =>
+  staff.flatMap((member) => {
+    const desk = member.desk === null ? undefined : office.furniture.find((f) => f.uid === member.desk && isSeat(f.id));
+    return desk ? [{ member, desk }] : [];
+  });
+
+// 机のない社員（歩き回る社員）
+export const unseatedStaff = <T extends { desk: string | null }>(office: Office, staff: readonly T[], isSeat: (id: string) => boolean): T[] => {
+  const seated = new Set(seatedStaff(office, staff, isSeat).map((x) => x.member));
+  return staff.filter((m) => !seated.has(m));
+};
+
+// 社員に座られていない机（並び順）。席になる家具のうち、どの社員の机でもないもの
+export const freeDesks = (office: Office, staff: readonly { desk: string | null }[], isSeat: (id: string) => boolean): Office['furniture'] => {
+  const taken = new Set(staff.map((s) => s.desk));
+  return office.furniture.filter((f) => isSeat(f.id) && !taken.has(f.uid));
+};
+
+// 机のない社員に、空いている机を並び順に割り当てる（机のある社員は変えない）
+export const assignDesks = <T extends { desk: string | null }>(staff: readonly T[], office: Office, isSeat: (id: string) => boolean): T[] => {
+  const free = freeDesks(office, staff, isSeat).map((f) => f.uid);
+  let next = 0;
+  return staff.map((s) => (s.desk === null && next < free.length ? { ...s, desk: free[next++] } : s));
 };
 
 // 社員の家具の補正。power（施工力）・exp（経験値）は着席している社員だけに効く。seatless は席のない社員の係数
@@ -116,11 +137,11 @@ export interface StaffBonus {
   seatless: number;
 }
 
-// 補正の計算に必要な情報。defs は家具IDから家具の定義、staffUids は雇用の順（先頭から机に座る）
+// 補正の計算に必要な情報。defs は家具IDから家具の定義、staff は社員（座っている机を持つ）
 export interface BonusEnv {
   defs: Record<string, Furniture>;
   balance: Balance;
-  staffUids: readonly string[];
+  staff: readonly { uid: string; desk: string | null }[];
 }
 
 // 社員1人の家具の補正。机の位置から範囲（チェビシェフ距離）を測る。同じ家具IDは1つ分だけ数える
@@ -132,7 +153,7 @@ export const furnitureBonus = (office: Office, staffUid: string, env: BonusEnv):
     .map((e) => e!.value);
   const seatless = seatlessValues.length > 0 ? Math.max(...seatlessValues) : env.balance.staff.power.seatless;
 
-  const desk = seatOf(office, env.staffUids, staffUid, env.defs);
+  const desk = seatOf(office, env.staff.find((s) => s.uid === staffUid)?.desk ?? null, env.defs);
   if (!desk) return { power: 0, exp: 0, seatless };
 
   let power = 0;

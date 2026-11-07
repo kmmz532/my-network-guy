@@ -46,6 +46,7 @@ import {
 import { type WindowItem, type WindowKind, type WindowMemory, closeRef, closeWindow as closeWindowOp, focusWindow as focusWindowOp, frontWindow, moveWindow as moveWindowOp, openWindow as openWindowOp, toggleWindow as toggleWindowOp, closeTab as closeTabOp, fitWindows as fitWindowsOp, selectTab as selectTabOp, reorderTab as reorderTabOp, parseMemory, remember, resizeWindow as resizeWindowOp, placeWindow as placeWindowOp, type Rect, type Viewport } from '../ui/windows';
 import { isPhoneNow } from '../ui/usePhone';
 import {
+  assignDesks,
   hire as hireOp,
   initialOffice,
   placeFurniture as placeFurnitureOp,
@@ -427,7 +428,7 @@ export const focusedProject = (s: { active: Project[]; focus: string | null }): 
 // 機器を編集できる対象の機器と配線（自社オフィス、または設計中の案件）。編集できなければ null
 // 営業の効果（1日に依頼が届く確率と、報酬の高い依頼の重み。内勤の実効 level の合計で決まる）
 const salesEffectsOf = (s: { staff: Staff[]; office: Office }): OfferEffects => {
-  const P = backOfficeP(s.staff, 'sales', s.office, { defs: gameEnv.furniture ?? {}, balance, staffUids: s.staff.map((m) => m.uid) });
+  const P = backOfficeP(s.staff, 'sales', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff });
   return { arrivalChance: salesArrivalChance(P, balance), rewardWeight: P * balance.backOffice.sales.rewardWeightPerLevel };
 };
 
@@ -457,7 +458,7 @@ const salesArrivalPatch = (s: GameState, days: number): Partial<GameState> => {
 
 // 購入の割引（経理の効果。内勤の実効 level の合計で決まる）
 export const purchaseDiscountOf = (s: { staff: Staff[]; office: Office }): number =>
-  accountingRate(backOfficeP(s.staff, 'accounting', s.office, { defs: gameEnv.furniture ?? {}, balance, staffUids: s.staff.map((m) => m.uid) }), balance);
+  accountingRate(backOfficeP(s.staff, 'accounting', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff }), balance);
 
 export const editNetOf = (s: GameState): { nodes: NetNode[]; links: NetLink[] } | null => {
   if (s.active.length === 0 && !s.showcase) return { nodes: s.office.nodes, links: s.office.links };
@@ -468,7 +469,9 @@ export const editNetOf = (s: GameState): { nodes: NetNode[]; links: NetLink[] } 
 // 新しいゲームの乱数と初期の社員
 const newStart = () => {
   const init = initialStaff(balance, newRng());
-  return { rng: init.rng, staff: init.staff, staffSeq: init.staffSeq };
+  // 初めの社員は、初めの机に座る（並び順）
+  const staff = assignDesks(init.staff, initialOffice(balance), (id) => furniture[id as FurnitureId]?.seat === true);
+  return { rng: init.rng, staff, staffSeq: init.staffSeq };
 };
 
 export const coreOf = (s: GameState): Core => ({
@@ -1035,7 +1038,7 @@ export const useGameStore = create<GameState>((set, get) => {
         };
         // 月末に給与を払ったら知らせる
         // 人事の効果（候補・研修・新人の施工）の大きさ。内勤の実効 level の合計
-        const hrP = backOfficeP(s.staff, 'hr', s.office, { defs: gameEnv.furniture ?? {}, balance, staffUids: s.staff.map((m) => m.uid) });
+        const hrP = backOfficeP(s.staff, 'hr', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff });
         if (clock.paidMonths > s.clock.paidMonths) {
           const amount = totalSalary(s.staff, balance.nightPayRate);
           // 退職の予定の社員は、今月末で退職する（退職金を払い、一覧から外す。今月の給与は上で払い済み・N90）
@@ -1207,7 +1210,7 @@ export const useGameStore = create<GameState>((set, get) => {
     },
     setHiringWish: (job) => {
       const s = get();
-      const hrP = backOfficeP(s.staff, 'hr', s.office, { defs: gameEnv.furniture ?? {}, balance, staffUids: s.staff.map((m) => m.uid) });
+      const hrP = backOfficeP(s.staff, 'hr', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff });
       if (hrP <= 0) return 'ui.error.hr';
       set({ hiringWish: job });
       return null;

@@ -36,6 +36,7 @@ export interface Staff {
   salary: number; // 月給（採用時に決まり、変わらない）
   certs: string[]; // 取得した資格のID
   training: { course: string; untilMinute: number } | null; // 受講中の研修
+  desk: string | null; // 座っている机（自社オフィスの家具の uid）。辞めた社員の机は空いたままになる（A）
   hiredMonth: number; // 採用した月（ゲーム内の月の番号。退職の条件に使う・N90）
   leaving: boolean; // 退職を伝え済み（その月の末日に退職する・N90）
 }

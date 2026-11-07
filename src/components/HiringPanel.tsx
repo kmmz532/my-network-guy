@@ -4,7 +4,7 @@ import { balance, certs, furniture, training } from 'virtual:game-data';
 import type { FurnitureId } from '../generated/ids';
 import { staffSpriteName } from '../data/schema';
 import { t, tDyn } from '../i18n/t';
-import { seatCount } from '../sim/furniture';
+import { freeDesks } from '../sim/furniture';
 import { backOfficeP, isBackOffice, jobEffect } from '../sim/backOffice';
 import { jobEffectText } from './jobEffectText';
 import { gameEnv } from '../sim/env';
@@ -54,7 +54,6 @@ const reasonText = (reason: string) => tDyn(`ui.error.${reason}`);
 // 採用の候補
 function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
   const candidates = useGameStore((s) => s.candidates);
-  const staff = useGameStore((s) => s.staff.length);
   const office = useGameStore((s) => s.office);
   const hire = useGameStore((s) => s.hire);
   const companyExp = useGameStore((s) => s.companyExp);
@@ -62,13 +61,13 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
   const allStaff = useGameStore((s) => s.staff);
   const wish = useGameStore((s) => s.hiringWish);
   const setHiringWish = useGameStore((s) => s.setHiringWish);
-  const hrP = backOfficeP(allStaff, 'hr', office, { defs: gameEnv.furniture ?? {}, balance, staffUids: allStaff.map((m) => m.uid) });
+  const hrP = backOfficeP(allStaff, 'hr', office, { defs: gameEnv.furniture ?? {}, balance, staff: allStaff });
   const jobsOpen = unlockedJobsOf(levelOf(companyExp, balance), balance);
   // 夜勤の解放（会社のレベル）と、候補ごとに選んだ区分
   const nightOpen = levelOf(companyExp, balance) >= balance.featureUnlocks.nightShift;
   const [shiftOf, setShiftOf] = useState<Record<string, 'day' | 'night'>>({});
-  const seats = seatCount(office, (id) => furniture[id as FurnitureId]?.seat === true);
-  const full = staff >= seats;
+  // 空いている机がなければ、採用できない（座っている社員の机は、辞めるまで空かない）
+  const full = freeDesks(office, allStaff, (id) => furniture[id as FurnitureId]?.seat === true).length === 0;
   const yen = (n: number) => n.toLocaleString('ja-JP');
   return (
     <>
@@ -93,7 +92,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
       {candidates.map((c) => {
         // 内勤の札と、雇うと増える効果（席に座った場合の見込み）
         const back = isBackOffice(c.job);
-        const effect = back ? jobEffect(c.job, c, c.level, backOfficeP(allStaff, c.job, office, { defs: gameEnv.furniture ?? {}, balance, staffUids: allStaff.map((m) => m.uid) }), balance) : null;
+        const effect = back ? jobEffect(c.job, c, c.level, backOfficeP(allStaff, c.job, office, { defs: gameEnv.furniture ?? {}, balance, staff: allStaff }), balance) : null;
         return (
         <div
           key={c.uid}

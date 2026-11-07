@@ -20,8 +20,9 @@ import routerSwitchJson from '../assets/data/devices/router_switch.json';
 import firewallJson from '../assets/data/devices/firewall.json';
 import firewallDmzJson from '../assets/data/devices/firewall_dmz.json';
 import printerJson from '../assets/data/devices/printer.json';
+import furnitureDefsJson from '../assets/data/furniture.json';
 
-export const SAVE_VERSION = 34;
+export const SAVE_VERSION = 35;
 
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
@@ -215,6 +216,13 @@ export const migrations: Record<number, Migration> = {
   26: (data) => ({ ...(data as object), deliveries: 0 }),
   // v31 → v32: 依頼に家具（机・棚・飾り）を足す。移行前の依頼は家具を持たない（N76）
   31: (data) => data as object,
+  // v34 → v35: 社員ごとに机を持たせる（辞めた社員の机は空いたままにする）。移行前は、社員の並び順と机の並び順で座っていたため、その割り当てをそのまま記録する（机のない社員は、歩き回る社員のまま）
+  34: (data) => {
+    const d = data as { staff: { uid: string }[]; candidates: object[]; office: { furniture: { uid: string; id: string }[] } };
+    const seatIds = new Set((furnitureDefsJson.furniture as { id: string; seat?: boolean }[]).filter((f) => f.seat === true).map((f) => f.id));
+    const desks = d.office.furniture.filter((f) => seatIds.has(f.id)).map((f) => f.uid);
+    return { ...d, staff: d.staff.map((m, i) => ({ ...m, desk: desks[i] ?? null })), candidates: d.candidates.map((m) => ({ ...m, desk: null })) };
+  },
   // v33 → v34: 社員に採用した月（hiredMonth）と退職の予定（leaving）を足す。移行前の社員は、いつでも退職させられるよう採用の月を0、退職の予定はなしとする（N90）
   33: (data) => {
     const d = data as { staff: object[]; candidates: object[] };

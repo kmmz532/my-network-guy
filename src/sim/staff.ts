@@ -47,6 +47,7 @@ export const createStaff = (spec: StaffSpec, rng: number, seq: number, taken: re
     hiredMonth: 0,
     leaving: false,
     training: null,
+    desk: null,
   };
   return { staff, rng: quirk.state };
 };
@@ -74,7 +75,7 @@ export const initialStaff = (balance: Balance, rng: number): { staff: Staff[]; s
 export const staffPower = (staff: Staff, requires: readonly JobId[] | undefined, office: Office, env: BonusEnv): number => {
   const jobFactor = requires?.includes(staff.job) ? env.balance.staff.power.jobMatch : 1;
   const bonus = furnitureBonus(office, staff.uid, env);
-  const seated = seatOf(office, env.staffUids, staff.uid, env.defs) !== null;
+  const seated = seatOf(office, staff.desk, env.defs) !== null;
   const seatFactor = seated ? 1 : bonus.seatless;
   return staff.level * jobFactor * seatFactor * (1 + bonus.power);
 };

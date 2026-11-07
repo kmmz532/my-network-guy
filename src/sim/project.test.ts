@@ -97,7 +97,8 @@ const start = (): Core => ({
     furnitureSeq: 2,
   },
   effects: { buildSpeed: 0 },
-  staff: initialStaff(balance, 1).staff,
+  // 初めの社員は、初めの2つの机に座る（ゲームの開始と同じ）
+  staff: initialStaff(balance, 1).staff.map((s, i) => ({ ...s, desk: i === 0 ? 'f0' : i === 1 ? 'f1' : null })),
   staffSeq: 2,
   candidates: [],
   guidesDone: [],

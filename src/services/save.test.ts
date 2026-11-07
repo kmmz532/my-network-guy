@@ -18,6 +18,7 @@ const member = (uid: string): Staff => ({
   training: null,
   hiredMonth: 0,
   leaving: false,
+  desk: null,
 });
 
 const sample: SaveData = {
@@ -478,6 +479,27 @@ describe('v33 → v34', () => {
 
   it('移行後の形式は、読み込んで書き出しても元に戻る', () => {
     const out = migrate(33, v33);
+    expect(importSave(exportSave(out))).toEqual(out);
+  });
+});
+
+describe('v34 → v35', () => {
+  // 移行前は、社員の並び順で机に座っていた（机の並び順と同じ）
+  const desk = (uid: string, x: number) => ({ uid, id: 'desk', x, y: 1 });
+  const v34 = {
+    ...sample,
+    office: { ...sample.office, furniture: [desk('fa', 1), desk('fb', 2)] },
+    staff: [member('s0'), member('s1'), member('s2')].map(({ desk: _desk, ...m }) => m),
+    candidates: sample.candidates.map(({ desk: _desk, ...m }) => m),
+  };
+
+  it('社員は、移行前の並び順のとおりに机に座る（机のない社員は、歩き回る社員のまま）', () => {
+    const out = migrate(34, v34);
+    expect(out.staff.map((m) => m.desk)).toEqual(['fa', 'fb', null]);
+  });
+
+  it('移行後の形式は、読み込んで書き出しても元に戻る', () => {
+    const out = migrate(34, v34);
     expect(importSave(exportSave(out))).toEqual(out);
   });
 });

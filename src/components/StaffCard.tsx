@@ -40,7 +40,7 @@ export function StaffBody({ uid, onTraining }: { uid: string; onTraining: () => 
   const member = state.staff.find((m) => m.uid === uid);
   if (!member) return null;
   const status = staffStatus(member, state.active, state.clock.minute);
-  const env = { defs: gameEnv.furniture ?? {}, balance, staffUids: state.staff.map((m) => m.uid) };
+  const env = { defs: gameEnv.furniture ?? {}, balance, staff: state.staff };
   const back = isBackOffice(member.job);
   // この社員の内勤の寄与（日勤で研修中でないときだけ効く）。効果は、この社員が加わったときの増分
   const contribution = countsForBackOffice(member) ? effectiveLevelOf(member, state.office, env) : 0;

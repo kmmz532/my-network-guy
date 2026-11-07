@@ -11,7 +11,10 @@ import { isDragMove } from '../components/rearDrag';
 import { rangeTiles } from './effectRange';
 import { setMapView } from './mapView';
 import { gameEnv } from '../sim/env';
-import { moveFurniture, placeFurniture } from '../sim/furniture';
+import { moveFurniture, placeFurniture, seatedStaff, unseatedStaff } from '../sim/furniture';
+
+// 席になる家具（机）かどうか（社員が座る）
+const isDesk = (id: string): boolean => isDeskFurniture(id, gameEnv);
 import { furnitureOf } from '../contracts/layout';
 import { expandActionOf, expansionLocked, officeExpandCostOf, type ExpandSide } from '../sim/office';
 import { levelOf } from '../sim/level';
@@ -856,40 +859,34 @@ export class Scene {
 
   // 自社オフィスでは、社員が机の前でキーボードを打つ
   private drawDeskStaff(ts: number): void {
-    // 席は、自社オフィスの机の家具を並び順に使う
-    const desks = useGameStore
-      .getState()
-      .office.furniture.filter((f) => isDeskFurniture(f.id, gameEnv))
-      .map((f): [number, number] => [f.x, f.y]);
-    const staffList = useGameStore.getState().staff;
-    const workers = Math.min(desks.length, staffList.length);
-    for (let k = 0; k < workers; k++) {
-      const [dx, dy] = desks[k];
-      const look = staffList[k]?.look ?? STAFF_PLACEHOLDER_LOOKS[k % STAFF_PLACEHOLDER_LOOKS.length];
-      const c = this.commutes.get(staffList[k].uid);
+    // 社員は、自分の机（家具）に座る。机のない社員は歩き回る（drawWanderers）
+    const s = useGameStore.getState();
+    seatedStaff(s.office, s.staff, isDesk).forEach(({ member, desk }, k) => {
+      const look = member.look;
+      const c = this.commutes.get(member.uid);
       // 退勤して外にいる社員は描かない。出勤・退勤の途中は、通路を歩く姿を描く（机の前の打鍵はしない）
-      if (c?.state === 'away') continue;
+      if (c?.state === 'away') return;
       // 休憩の途中（場所へ歩く・休む・戻る）は、その位置に立って描く（机の前の打鍵はしない）
-      const b = this.breaks.get(staffList[k].uid);
+      const b = this.breaks.get(member.uid);
       if (c?.state === 'seated' && b && b.phase !== 'desk') {
         const at = wanderStaffPos(b.at.x, b.at.y, ts);
-        this.drawStaff(at.x, at.y, look, staffList[k]);
-        continue;
+        this.drawStaff(at.x, at.y, look, member);
+        return;
       }
       if (c && c.state !== 'seated') {
         const at = wanderStaffPos(c.at.x, c.at.y, ts);
-        this.drawStaff(at.x, at.y, look, staffList[k]);
-        continue;
+        this.drawStaff(at.x, at.y, look, member);
+        return;
       }
       // 机の下の段に座り、打鍵に合わせて小さく揺れる
-      const at = deskStaffPos(dx, dy, ts, deskTap(this.elapsed, k));
-      this.drawStaff(at.x, at.y, look, staffList[k]);
+      const at = deskStaffPos(desk.x, desk.y, ts, deskTap(this.elapsed, k));
+      this.drawStaff(at.x, at.y, look, member);
       // 口癖は、社員ごとにずらした周期で、60秒に3秒だけ頭上に出す（平均60秒に1回）
       const seconds = this.elapsed / 1000 + k * 23;
       if (seconds % 60 < 3) {
-        this.drawSpeech(tDyn(`staff.quirk.${staffList[k].quirk}`), at.x + STAFF_W / 2, at.y);
+        this.drawSpeech(tDyn(`staff.quirk.${member.quirk}`), at.x + STAFF_W / 2, at.y);
       }
-    }
+    });
   }
 
   // 机の社員の出勤と退勤。終業（workEndHour）になると机からドアへ歩いて外に出て、始業（workStartHour）になるとドアから机へ歩いて入る（自社オフィスのみ）
@@ -913,7 +910,7 @@ export class Scene {
       return kind === 'floor' || kind === 'door';
     };
     const route = (from: Point, to: Point): Point[] | null => bfsRoute(from, to, passable);
-    const desks = s.office.furniture.filter((f) => isDeskFurniture(f.id, gameEnv));
+    const seated = seatedStaff(s.office, s.staff, isDesk);
     // 休憩の場所（コーヒー・水・ソファ）。なければ、床の数か所を歩き回る
     const restSpots = s.office.furniture.filter((f) => BREAK_FURNITURE.includes(f.id)).map((f): Point => ({ x: f.x, y: f.y }));
     const floor: Point[] = [];
@@ -922,9 +919,7 @@ export class Scene {
     const day = Math.floor(s.clock.minute / dayMinutes);
     const frameDt = Math.min(dt, COMMUTE_MAX_FRAME_MS);
     const seen = new Set<string>();
-    desks.forEach((f, k) => {
-      const member = s.staff[k];
-      if (!member) return;
+    seated.forEach(({ member, desk: f }, k) => {
       seen.add(member.uid);
       // 出社と退社は、社員の勤務の区分（日勤・夜勤）で決まる（N48）
       const present = isPresentOnShift(minuteOfDay, member.shift, balance);
@@ -957,8 +952,7 @@ export class Scene {
       return;
     }
     const s = useGameStore.getState();
-    const seats = s.office.furniture.filter((f) => isDeskFurniture(f.id, gameEnv)).length;
-    const count = Math.max(0, s.staff.length - seats);
+    const count = unseatedStaff(s.office, s.staff, isDesk).length;
     const floor: Point[] = [];
     for (let y = 0; y < map.height; y++) {
       for (let x = 0; x < map.width; x++) {
@@ -975,12 +969,13 @@ export class Scene {
   }
 
   private drawWanderers(ts: number): void {
-    // 歩き手は、officeStaffHits と同じく席の数の後の社員を描く
+    // 歩き手は、机のない社員（officeStaffHits と同じ並び）
     const s = useGameStore.getState();
-    const seats = s.office.furniture.filter((f) => isDeskFurniture(f.id, gameEnv)).length;
+    const unseated = unseatedStaff(s.office, s.staff, isDesk);
     this.wanderers.forEach((w, k) => {
       const at = wanderStaffPos(w.x, w.y, ts);
-      this.drawStaff(at.x, at.y, s.staff[seats + k]?.look ?? STAFF_PLACEHOLDER_LOOKS[k % STAFF_PLACEHOLDER_LOOKS.length], s.staff[seats + k]);
+      const member = unseated[k];
+      this.drawStaff(at.x, at.y, member?.look ?? STAFF_PLACEHOLDER_LOOKS[k % STAFF_PLACEHOLDER_LOOKS.length], member);
     });
   }
 
@@ -990,11 +985,8 @@ export class Scene {
     const s = useGameStore.getState();
     if (this.map?.id !== 'hq' || s.showcase || focusedProject(s)?.phase === 'build') return [];
     const ts = this.tileSize();
-    const desks = s.office.furniture.filter((f) => isDeskFurniture(f.id, gameEnv));
     const hits: StaffHit[] = [];
-    desks.forEach((f, k) => {
-      const member = s.staff[k];
-      if (!member) return;
+    seatedStaff(s.office, s.staff, isDesk).forEach(({ member, desk: f }, k) => {
       // 外にいる社員と、歩いている社員は、机の前にいないので選べない
       const c = this.commutes.get(member.uid);
       if (c && c.state !== 'seated') return;
@@ -1003,8 +995,9 @@ export class Scene {
       if (b && b.phase !== 'desk') return;
       hits.push({ uid: member.uid, ...deskStaffPos(f.x, f.y, ts, deskTap(this.elapsed, k)) });
     });
+    const unseated = unseatedStaff(s.office, s.staff, isDesk);
     this.wanderers.forEach((w, k) => {
-      const member = s.staff[desks.length + k];
+      const member = unseated[k];
       if (member) hits.push({ uid: member.uid, ...wanderStaffPos(w.x, w.y, ts) });
     });
     return hits;

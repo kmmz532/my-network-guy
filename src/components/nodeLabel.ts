@@ -11,9 +11,9 @@ const contextFor = (state: GameState, office: boolean): NameContext => ({
   ownedPc: (owner) => t('ui.node.ownedPc', { name: owner }),
   ownerAt: office
     ? (x, y) => {
-        const desks = state.office.furniture.filter((f) => gameEnv.furniture?.[f.id]?.seat === true);
-        const index = desks.findIndex((d) => d.x === x && d.y === y);
-        const member = index >= 0 ? state.staff[index] : undefined;
+        // 机の位置から、その机に座る社員を探す（机は社員ごとに決まっている）
+        const desk = state.office.furniture.find((f) => f.x === x && f.y === y && gameEnv.furniture?.[f.id]?.seat === true);
+        const member = desk ? state.staff.find((m) => m.desk === desk.uid) : undefined;
         return member ? tDyn(member.name) : null;
       }
     : undefined,
