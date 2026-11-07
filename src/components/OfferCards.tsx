@@ -235,7 +235,7 @@ function OfferCard({
         <span style={{ color: '#ffd866' }}>
           <Icon name="icon/money" /> {yen(offer.contract.reward.money)}
         </span>
-        {/* 断る・受注・任せる。ボタンは1つの並びで折り返さない（スマホで受注が次の行に落ちないように） */}
+        {/* 断る・任せる・受注を1つのまとまりにして右寄せにする。折り返さない（スマホで受注が次の行に落ちないように・N109b） */}
         <div style={phone ? { display: 'flex', flexWrap: 'nowrap', gap: 6, width: '100%', alignItems: 'center', justifyContent: 'flex-end' } : { display: 'flex', gap: 6, marginLeft: 'auto', flexShrink: 0, alignItems: 'center' }}>
           {asking ? (
             <>
@@ -261,16 +261,13 @@ function OfferCard({
             <>
               {offer.kind === 'template' && (
                 <button
-                  // 断るは左端に置き、受注・任せるから離す（押し間違いを防ぐ・N109）
-                  style={{ ...dangerButton, whiteSpace: 'nowrap', ...(phone ? { marginRight: 'auto', minHeight: 44 } : {}) }}
+                  // 断るは危ないボタンの見た目で区別する。確認があるため、位置は離さない（N109b）
+                  style={{ ...dangerButton, whiteSpace: 'nowrap', marginRight: 6, ...(phone ? { minHeight: 44 } : {}) }}
                   onClick={() => (loadSettings().confirmDecline ? setAsking(true) : onDecline())}
                 >
                   {t('ui.offer.decline')}
                 </button>
               )}
-              <button style={{ ...primaryButton, whiteSpace: 'nowrap', ...(phone ? { minWidth: 96, minHeight: 44 } : {}) }} disabled={!canAccept} onClick={() => onAccept(crew)}>
-                {t('ui.accept')}
-              </button>
               {delegateReason === null && (
                 <button style={{ ...secondaryButton, whiteSpace: 'nowrap' }} disabled={!canAccept} onClick={() => onDelegate(crew)}>
                   {t('ui.delegate.button')}
@@ -284,6 +281,9 @@ function OfferCard({
                   </button>
                 </Tooltip>
               )}
+              <button style={{ ...primaryButton, whiteSpace: 'nowrap', ...(phone ? { minWidth: 96, minHeight: 44 } : {}) }} disabled={!canAccept} onClick={() => onAccept(crew)}>
+                {t('ui.accept')}
+              </button>
             </>
           )}
         </div>
