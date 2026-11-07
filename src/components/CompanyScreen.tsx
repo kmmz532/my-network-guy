@@ -1,12 +1,12 @@
 // 会社（セーブの枠）の画面（N132・N133）。一覧・社名の入力・上書きの確認・社名の変更・複製・書き出し・消す確認を1つの部品で出す
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePhone } from '../ui/usePhone';
 import { Modal, dangerButton, primaryButton, secondaryButton } from './Modal';
 import { t } from '../i18n/t';
 import { balance } from 'virtual:game-data';
 import { levelOf } from '../sim/level';
 import { toDate } from '../sim/clock';
-import { MAX_COMPANY_NAME, isValidCompanyName, type CompanySave } from '../services/companies';
+import { MAX_COMPANY_NAME, isValidCompanyName, sortByRecent, type CompanySave } from '../services/companies';
 import type { GameMode } from '../services/migrations';
 
 export type CompanyView =
@@ -87,6 +87,19 @@ export function CompanyScreen(props: Props) {
   // スマホは、行を押すと操作を開く（一覧の行の下に並べる）。開いている行は1つだけ（N133）
   const phone = usePhone();
   const [openSlot, setOpenSlot] = useState<number | null>(null);
+  // 一覧（続けて遊ぶ）を開いたときは、Enter で先頭（最後に遊んだ会社）を始める（PC・N157）
+  useEffect(() => {
+    if (props.view.kind !== 'list' || props.view.purpose !== 'play' || props.saves.length === 0) return;
+    const first = sortByRecent(props.saves)[0];
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && !phone) {
+        e.preventDefault();
+        props.onPlay(first);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [props.view, props.saves, phone]);
   const { view, mode, saves, suggested, notice, onView, onPlay, onStartIn, onRename, onDuplicate, onExport, onDelete, onImport, onNewHere, importing, onOverwriteWith } = props;
   const close = () => onView(null);
   const toList = (purpose: 'play' | 'overwrite') => onView({ kind: 'list', purpose });
@@ -161,10 +174,15 @@ export function CompanyScreen(props: Props) {
         <div style={{ fontSize: 15 }}>{purpose === 'overwrite' ? t('ui.company.list.overwrite') : t('ui.company.list.title')}</div>
         {notice !== '' && <div style={{ color: '#ffd866', fontSize: 13 }}>{notice}</div>}
         {saves.length === 0 && <div style={{ opacity: 0.8 }}>{t('ui.company.list.empty')}</div>}
-        {saves.map((save) => (
+        {sortByRecent(saves).map((save, index) => (
           <div key={save.slot} style={{ border: '1px solid #3b2a33', padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ fontSize: 16, cursor: phone ? 'pointer' : 'default' }} onClick={phone ? () => setOpenSlot(openSlot === save.slot ? null : save.slot) : undefined}>
+            <div
+              style={{ fontSize: 16, cursor: phone ? 'pointer' : 'default' }}
+              // スマホは、先頭（最後に遊んだ会社）の行を押すとすぐ始める。ほかの行は押すと操作を開く（N157）
+              onClick={phone ? () => (purpose === 'play' && index === 0 ? onPlay(save) : setOpenSlot(openSlot === save.slot ? null : save.slot)) : undefined}
+            >
               {save.data.name}
+              {purpose === 'play' && index === 0 && <span style={{ fontSize: 12, color: '#ffd866', marginLeft: 8 }}>{t('ui.company.last')}</span>}
             </div>
             <div style={{ fontSize: 12, opacity: 0.85 }}>
               {companySummary(save)}・{t('ui.company.list.saved', { at: savedAtText(save.savedAt) })}

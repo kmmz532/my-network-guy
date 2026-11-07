@@ -110,6 +110,10 @@ const scenes = {
   // 新しくプレイした直後（自社オフィス）
   career: async (page) => {
     await page.getByText('新しくプレイ').click();
+    await page.waitForTimeout(800);
+    // 会社ごとのセーブ（N133）では、新しく始めるときに社名の入力が出る。既定の社名のまま始める（N160）
+    const start = page.getByRole('button', { name: '始める' });
+    if ((await start.count()) > 0) await start.first().click();
     await page.waitForTimeout(1500);
   },
   // 昼（10時）の自社オフィス。社員は机に座っている

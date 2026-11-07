@@ -71,6 +71,15 @@
         -webkit-user-select: text;
         user-select: text;
       }
+      /* ボタンと入力欄も、画面と同じ書体・大きさ・色を継ぐ（ブラウザは既定で標準の書体に戻すため。N158） */
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+        color: inherit;
+        letter-spacing: inherit;
+      }
       /* ブラウザ標準の部品の見た目（iOS の角丸・影）を消す。見た目は各部品の style で決める */
       button,
       input:not([type='checkbox']):not([type='radio']),

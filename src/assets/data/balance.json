@@ -1,18 +1,22 @@
 {
   "time": {
     "realMsPerTick": 1000,
-    "gameMinutesPerTick": 60,
+    "gameMinutesPerTick": 30,
     "daysPerMonth": 30,
     "speeds": [
       0,
       1,
       2,
       4,
-      8
+      8,
+      16,
+      32
     ],
     "speedUnlockLevels": {
       "4": 3,
-      "8": 6
+      "8": 6,
+      "16": 12,
+      "32": 20
     }
   },
   "startMoney": 1000000,

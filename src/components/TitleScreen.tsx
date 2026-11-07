@@ -9,7 +9,6 @@ import { RADIUS } from '../ui/theme';
 interface Props {
   onNew: () => void;
   onContinue: () => void;
-  onCompanies: () => void;
   // サンドボックス。その枠に保存があれば続きから、なければ新しく始める
   onSandbox: () => void;
   message: string;
@@ -336,7 +335,7 @@ function Rack() {
 }
 
 // タイトル画面。新しく始めるか、保存データから続けるかを選ぶ
-export function TitleScreen({ onNew, onContinue, onCompanies, onSandbox, message }: Props) {
+export function TitleScreen({ onNew, onContinue, onSandbox, message, locked = false }: Props & { locked?: boolean }) {
   // null は保存データを確認中
   const [hasSave, setHasSave] = useState<boolean | null>(null);
   // 矢印キーで選んだボタン。未操作のときは主のボタン（保存データがあれば「続きから」）
@@ -355,7 +354,6 @@ export function TitleScreen({ onNew, onContinue, onCompanies, onSandbox, message
   const items = [
     { label: t('ui.title.new'), enabled: true, run: onNew },
     { label: t('ui.title.continue'), enabled: hasSave === true, run: onContinue },
-    { label: t('ui.title.companies'), enabled: hasSave === true, run: onCompanies },
     { label: t('ui.title.sandbox'), enabled: true, run: onSandbox },
   ];
   const primary = hasSave === true ? 1 : 0;
@@ -363,6 +361,8 @@ export function TitleScreen({ onNew, onContinue, onCompanies, onSandbox, message
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // 会社の画面を開いている間は、タイトルのキー操作を止める（Enter は会社の画面が受ける）
+      if (locked) return;
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
         const enabled = items.flatMap((item, i) => (item.enabled ? [i] : []));
@@ -380,7 +380,7 @@ export function TitleScreen({ onNew, onContinue, onCompanies, onSandbox, message
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selected, hasSave, onNew, onContinue, onCompanies, onSandbox]);
+  }, [selected, hasSave, onNew, onContinue, onSandbox, locked]);
 
   return (
     <div className="ts-root">

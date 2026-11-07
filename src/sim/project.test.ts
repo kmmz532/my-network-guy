@@ -146,7 +146,9 @@ describe('案件の流れ: c001 PC2台の直結', () => {
     expect(cur(core)?.total).toBe(7 * balance.build.minutesPerCableTile);
 
     // 勤務時間内の1Tickで施工が終わり、検収に合格する
-    const done = ok(advanceBuild(core, env, balance.build.workStartHour));
+    // 施工は勤務時間の刻みを重ねて進む（刻みは 30 分。N161）
+    let done = ok(advanceBuild(core, env, balance.build.workStartHour));
+    for (let i = 0; i < 20 && !done.report; i++) done = ok(advanceBuild(done.core, env, balance.build.workStartHour));
     expect(done.report?.passed).toBe(true);
     expect(done.report?.stars).toBe(3);
     expect(done.core.active).toEqual([]);
@@ -174,7 +176,8 @@ describe('案件の流れ: c001 PC2台の直結', () => {
     let core = ok(take(start(), 'c001_direct_link')).core;
     core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
     core = ok(requestBuild(forceTested(core), env)).core;
-    const r = ok(advanceBuild(core, env, balance.build.workStartHour));
+    let r = ok(advanceBuild(core, env, balance.build.workStartHour));
+    for (let i = 0; i < 20 && !r.report; i++) r = ok(advanceBuild(r.core, env, balance.build.workStartHour));
     expect(r.report?.passed).toBe(false);
     expect(r.report?.failures.map((f) => f.reason)).toContain('ip.unset');
     expect(r.report?.check?.goals[0].ok).toBe(false);

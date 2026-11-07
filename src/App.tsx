@@ -9,7 +9,7 @@ import { useTickLoop } from './stores/useTickLoop';
 import { toDate } from './sim/clock';
 import { deleteSlot, listCompanies, moveLegacySlots, saveSlot } from './services/db';
 import { CompanyScreen, type CompanyView } from './components/CompanyScreen';
-import { copyNameOf, freeSlotOf, isNameTaken, isValidCompanyName, latestCompany, suggestCompanyName, uniqueNameFrom, type CompanySave } from './services/companies';
+import { copyNameOf, freeSlotOf, isNameTaken, isValidCompanyName, suggestCompanyName, uniqueNameFrom, type CompanySave } from './services/companies';
 import type { GameMode, SaveData } from './services/migrations';
 import { createSaveQueue, isAutoSaveDue } from './services/autoSave';
 import { exportSave, importSave } from './services/saveFile';
@@ -254,12 +254,6 @@ export function App() {
     setCompanies(list);
     return list;
   };
-  const openCompanies = async (mode: GameMode, purpose: 'play' | 'overwrite') => {
-    setCompanyMode(mode);
-    setCompanyNotice('');
-    await refreshCompanies(mode);
-    setCompanyView({ kind: 'list', purpose });
-  };
 
   // 会社を開いて遊ぶ（その会社の枠に保存し続ける）
   const playSave = (save: CompanySave) => {
@@ -281,14 +275,13 @@ export function App() {
   };
 
   // 「続きから」は、最後に保存した経営の会社を開く
+  // 「コンティニュー」は会社の一覧を開く（最後に遊んだ会社を先頭に出す。1社だけでも一覧を開く・N157）
   const onContinue = async () => {
-    const latest = latestCompany(await listCompanies('career'));
-    if (!latest) return setMessage(t('ui.title.none'));
-    playSave(latest);
-  };
-
-  const onCompanies = () => {
-    void openCompanies('career', 'play');
+    setCompanyMode('career');
+    setCompanyNotice('');
+    const list = await refreshCompanies('career');
+    if (list.length === 0) return setMessage(t('ui.title.none'));
+    setCompanyView({ kind: 'list', purpose: 'play' });
   };
 
   // サンドボックスは、保存があれば一覧を開き（「新しく作る」も一覧に置く）、なければ広さを選んで始める
@@ -419,7 +412,7 @@ export function App() {
             }}
           />
         )}
-        <TitleScreen onNew={onNew} onContinue={onContinue} onCompanies={onCompanies} onSandbox={onSandbox} message={message} />
+        <TitleScreen onNew={onNew} onContinue={onContinue} onSandbox={onSandbox} message={message} locked={companyView !== null} />
         {companyView !== null && (
           <CompanyScreen
             view={companyView}
