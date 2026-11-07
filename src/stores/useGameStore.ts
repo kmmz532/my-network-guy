@@ -11,7 +11,7 @@ import { buyDevice, sellDevice } from '../sim/shop';
 import { declineOffer, offerHint, refreshOffers, salesArrival, type OfferEffects, type OfferEnv, type OfferHint, type OfferState } from '../contracts/offers';
 import { rand } from '../sim/rng';
 import type { Offer } from '../contracts/template';
-import type { GameMap, JobId, Staff } from '../data/schema';
+import type { FloorId, GameMap, JobId, Staff } from '../data/schema';
 import { gainExp, initialStaff, rollCandidates, staffCapOf, totalSalary } from '../sim/staff';
 import { expAtLevel, levelOf, levelUpsBetween, type UnlockItem } from '../sim/level';
 import { grantDailyExp, type ExpSource } from '../sim/companyExp';
@@ -30,7 +30,7 @@ import { accountingRate, backOfficeP, devDailyIncome, hrCandidateBonus, hrJunior
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
 import type { MacEntry } from '../network/mac';
 import { autoAssign } from '../sim/autoAssign';
-import { type ExpandSide, expandOffice as expandOfficeOp, mapOfOffice } from '../sim/office';
+import { changeOfficeFloor as changeFloorOp, type ExpandSide, expandOffice as expandOfficeOp, mapOfOffice } from '../sim/office';
 import {
   type DesignEntry,
   type History,
@@ -56,6 +56,7 @@ import {
 } from '../sim/furniture';
 import {
   type PortChoice,
+  type RoomId,
   abandon,
   accept,
   acceptDelegated as acceptDelegatedOp,
@@ -336,6 +337,8 @@ export interface GameState {
   hire: (candidateUid: string, shift: 'day' | 'night') => string | null;
   // 退職を伝える・取り消す（N90）。伝えられないときは理由の文言の鍵を返す
   noticeRetire: (uid: string) => string | null;
+  // 自社の床を張り替える（N92）
+  changeFloor: (room: RoomId, floor: FloorId) => string | null;
   cancelRetire: (uid: string) => string | null;
   // 次の月の募集の職種を指定する（null で指定なし）。人事がいないと指定できない
   setHiringWish: (job: JobId | null) => string | null;
@@ -552,6 +555,8 @@ export const unlockItems: UnlockItem[] = [
   ...Object.values(furniture).map((f) => ({ kind: 'furniture' as const, id: f.id, unlockLevel: f.unlockLevel })),
   ...contractTemplates.filter((t) => t.announce).map((t) => ({ kind: 'template' as const, id: t.id, unlockLevel: t.unlockLevel })),
   ...contracts.map((c) => ({ kind: 'contract' as const, id: c.id, unlockLevel: c.unlockLevel })),
+  // 自社の床の種類（木以外。N92）
+  ...balance.floors.filter((f) => f.id !== 'wood').map((f) => ({ kind: 'floor' as const, id: f.id, unlockLevel: f.unlockLevel })),
   // 早送りの速さ（4倍・8倍。N99）
   ...Object.entries(balance.time.speedUnlockLevels).map(([id, unlockLevel]) => ({ kind: 'speed' as const, id, unlockLevel })),
 ];
@@ -1223,6 +1228,12 @@ export const useGameStore = create<GameState>((set, get) => {
       return null;
     },
     noticeRetire: (uid) => apply(noticeRetireOp(coreOf(get()), uid, balance)),
+    changeFloor: (room, floor) => {
+      const reason = apply(changeFloorOp(coreOf(get()), room, floor, balance));
+      // 床の絵が変わるので、マップを作り直す（機器と家具はそのまま）
+      if (reason === null) set((s) => ({ maps: { ...s.maps, hq: mapOfOffice(s.office) } }));
+      return reason;
+    },
     cancelRetire: (uid) => apply(cancelRetireOp(coreOf(get()), uid)),
     hire: (candidateUid, shift) => {
       const reason = apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true, staffCapOf(levelOf(get().companyExp, balance), balance), shift));

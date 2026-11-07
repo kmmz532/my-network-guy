@@ -16,6 +16,8 @@ export const LEDGER_CATEGORIES = [
   'training',
   'exam',
   'retirement',
+  // 自社の床の張り替え（N92）
+  'interior',
   // 経理の割引で浮いた額（お金の増減ではない。支出とは別に記録する）
   'saved',
 ] as const;

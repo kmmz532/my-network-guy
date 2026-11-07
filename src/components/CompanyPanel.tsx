@@ -11,6 +11,10 @@ import { gameEnv } from '../sim/env';
 import { ItemCards, unlockNameOf } from './UnlockList';
 import { Tooltip } from './Tooltip';
 import { tipText } from '../input/keymap';
+import { Select } from './Select';
+import { floorOfRoom, roomTileCount } from '../sim/office';
+import type { RoomId } from '../sim/project';
+import type { FloorId } from '../data/schema';
 
 // 増えた経験値の「+N」を出している時間（ms）
 const GAIN_MS = 1500;
@@ -147,6 +151,8 @@ export function CompanyBody() {
           <span>{outside.leaks ? t('ui.company.rental.leak') : t('ui.company.rental.value', { count: outside.exposedServers.length, income: rental.monthly.toLocaleString('ja-JP') })}</span>
         </div>
       )}
+      {/* 床（部屋ごとの床の種類）。解禁のレベルに届いてから出す（N92） */}
+      {level >= balance.featureUnlocks.floorChange && <FloorRows />}
       <div style={{ paddingTop: 8 }}>
         <div style={{ color: '#ffd866' }}>{next ? t('ui.company.next', { level: next.level }) : t('ui.company.max')}</div>
         {next && unlocks.length === 0 && <div style={{ opacity: 0.85 }}>{t('ui.company.nothing')}</div>}
@@ -155,6 +161,46 @@ export function CompanyBody() {
         {/* 職種（採用の候補に出る職種）も、解放のレベルで案内する（N84） */}
         {jobsUnlockedAt.length > 0 && <div style={{ marginTop: 4 }}>{t('ui.company.jobs', { jobs: jobsUnlockedAt.map((j) => tDyn(`staff.job.${j}`)).join('・') })}</div>}
       </div>
+    </div>
+  );
+}
+
+// 部屋ごとの床の張り替え（N92）。部屋を選び、床の種類を選ぶ。解禁前の種類は鍵の文字と解禁のレベルを出す
+function FloorRows() {
+  const office = useGameStore((s) => s.office);
+  const level = useGameStore((s) => levelOf(s.companyExp, balance));
+  const changeFloor = useGameStore((s) => s.changeFloor);
+  const [message, setMessage] = useState<string | null>(null);
+  const yen = (n: number) => n.toLocaleString('ja-JP');
+  const rooms: RoomId[] = ['main', ...office.annexes];
+  return (
+    <div style={{ marginTop: 6 }}>
+      <div style={{ color: '#ffd866' }}>{t('ui.floor.title')}</div>
+      {rooms.map((room) => {
+        const current = floorOfRoom(office, room);
+        const tiles = roomTileCount(office, room);
+        const options = balance.floors.map((f) => {
+          const name = t(`ui.floor.${f.id}` as const);
+          if (level < f.unlockLevel) return { value: f.id, label: `${name}（${t('ui.floor.locked', { level: f.unlockLevel })}）` };
+          const cost = f.id === current ? '' : `（${yen(f.costPerTile * tiles)}円）`;
+          return { value: f.id, label: `${name}${cost}` };
+        });
+        return (
+          <div key={room} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+            <span>{t(`ui.floor.room.${room}` as const)}</span>
+            <Select
+              label={t(`ui.floor.room.${room}` as const)}
+              value={current}
+              options={options}
+              onChange={(v) => {
+                const reason = changeFloor(room, v as FloorId);
+                setMessage(reason ? tDyn(`ui.error.${reason}`) : null);
+              }}
+            />
+          </div>
+        );
+      })}
+      {message && <div style={{ color: '#ffd866', fontSize: 12 }}>{message}</div>}
     </div>
   );
 }

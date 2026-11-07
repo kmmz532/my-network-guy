@@ -278,8 +278,16 @@
     "moneyPower": 1.1
   },
   "featureUnlocks": {
-    "nightShift": 10
+    "nightShift": 10,
+    "floorChange": 5
   },
+  "floors": [
+    { "id": "wood", "unlockLevel": 1, "costPerTile": 0 },
+    { "id": "tile", "unlockLevel": 5, "costPerTile": 300 },
+    { "id": "carpet", "unlockLevel": 8, "costPerTile": 500 },
+    { "id": "linoleum", "unlockLevel": 12, "costPerTile": 400 },
+    { "id": "concrete", "unlockLevel": 15, "costPerTile": 600 }
+  ],
   "freshOffer": {
     "arrivals": 2,
     "weightFactor": 3

@@ -59,6 +59,11 @@ const LEGACY_STAFF_LOOKS: Readonly<Record<string, string>> = { blue: 'blue_dark_
 // 見た目の名前からスプライトの名前（staff/ の前の部分）を決める
 export const staffSpriteName = (look: string): string => LEGACY_STAFF_LOOKS[look] ?? look;
 
+// 床の絵の種類（木・タイル・カーペット・コンクリート・リノリウム）
+export const FLOOR_IDS = ['wood', 'tile', 'carpet', 'concrete', 'linoleum'] as const;
+export type FloorId = (typeof FLOOR_IDS)[number];
+const floorIdSchema = z.enum(FLOOR_IDS);
+
 export const balanceSchema = z.object({
   time: z.object({
     realMsPerTick: int.positive(),
@@ -220,7 +225,9 @@ export const balanceSchema = z.object({
     moneyPower: z.number().positive(),
   }),
   // 機能の解放のレベル（品目ではないもの）
-  featureUnlocks: z.object({ nightShift: unlockLevelSchema }),
+  featureUnlocks: z.object({ nightShift: unlockLevelSchema, floorChange: unlockLevelSchema }),
+  // 自社の床の種類（N92）。見た目だけで、費用は1マスあたり。木は最初から使える
+  floors: z.array(z.object({ id: floorIdSchema, unlockLevel: unlockLevelSchema, costPerTile: nonNegativeInt })),
   office: z.object({
     // 同時に受注できる案件の数（案件の枠）
     projectSlots: int.positive(),
@@ -508,7 +515,9 @@ export const mapSchema = z
     height: int.positive(),
     tileSize: int.positive(),
     // 床の絵の種類（wood は木の板。ほかは tile/floor_<種類>_0〜2）
-    floor: z.enum(['wood', 'tile', 'carpet', 'concrete', 'linoleum']),
+    floor: floorIdSchema,
+    // 部屋ごとの床の種類（自社オフィスの床の張り替え・N92）。マスに書いていないものは floor と同じ
+    floorTiles: z.record(z.string(), floorIdSchema).optional(),
     legend: z.record(z.string().length(1), z.string().min(1)),
     tiles: z.array(z.string()),
     // 地図に置く固定の家具（N76）

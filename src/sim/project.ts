@@ -2,7 +2,7 @@
 // 設計は機器の配置・配線・IP設定、施工は社員が作業時間をかけて行い、検収で達成条件を判定する。
 import { applyMoney, recordSaving } from './ledger';
 import { isBackOffice } from './backOffice';
-import type { Balance, Contract, Furniture, GameMap, Staff } from '../data/schema';
+import type { Balance, Contract, Furniture, FloorId, GameMap, Staff } from '../data/schema';
 import { tileKind } from '../data/tileKind';
 import { furnitureOf } from '../contracts/layout';
 import { renameNode } from '../network/nodeName';
@@ -191,7 +191,12 @@ export interface OfficeCell {
 // 部屋の辺（右・下・左）。上（奥の壁）には広げない
 export type OfficeSide = 'right' | 'bottom' | 'left';
 
+// 部屋の種類（主の部屋と、辺の別室。N92）
+export type RoomId = 'main' | OfficeSide;
+
 export interface Office {
+  // 部屋ごとの床の種類（N92）。書いていない部屋は木
+  floors?: Partial<Record<RoomId, FloorId>>;
   // 部屋の床の大きさ（別室を含む外側の床の大きさ）。マップは大きさから作る
   size: OfficeSize;
   // 内側の壁のマス（床の内側。機器・家具は置けない）

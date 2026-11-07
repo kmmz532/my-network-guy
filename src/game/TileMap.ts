@@ -132,7 +132,7 @@ export const drawTileMap = (map: GameMap): Container => {
         pillars.push([x, y]);
         continue;
       }
-      put(floorSprite(map.floor, x, y), x, y);
+      put(floorSprite(map.floorTiles?.[`${x},${y}`] ?? map.floor, x, y), x, y);
       if (kind && kind !== 'floor') furniture.push([kind, x, y]);
     }
   }

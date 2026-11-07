@@ -1,8 +1,9 @@
 // 自社オフィスの部屋の大きさと広げ方（純粋関数）。大きさからマップを作り、右・下・左の辺を買って広げる。
 // 辺が上限に達したら、その辺の外に別室を足す（1辺に1つまで。別室は広げられない）。
 import { applyMoney } from './ledger';
-import type { Balance, GameMap } from '../data/schema';
-import { officeLocked, type Core, type Office, type OfficeCell, type OfficeSide, type OfficeSize, type Outcome } from './project';
+import type { Balance, FloorId, GameMap } from '../data/schema';
+import { officeLocked, type Core, type Office, type OfficeCell, type OfficeSide, type OfficeSize, type Outcome, type RoomId } from './project';
+import { levelOf } from './level';
 
 export type ExpandSide = OfficeSide;
 export type OfficeConfig = Balance['office'];
@@ -47,8 +48,66 @@ export const officeMapOf = (size: OfficeSize, innerWalls: OfficeCell[] = [], doo
   };
 };
 
-// 自社オフィスのマップ（内側の壁・ドアを含む）
-export const mapOfOffice = (office: Office): GameMap => officeMapOf(office.size, office.innerWalls, office.doors);
+// 自社オフィスのマップ（内側の壁・ドアを含む）。部屋ごとの床の種類を、マスごとに持たせる（N92）
+export const mapOfOffice = (office: Office): GameMap => {
+  const map = officeMapOf(office.size, office.innerWalls, office.doors);
+  const floorTiles: Record<string, FloorId> = {};
+  for (let y = 1; y <= office.size.h; y++) {
+    for (let x = 1; x <= office.size.w; x++) {
+      const floor = floorOfRoom(office, roomOf(office, x, y));
+      if (floor !== map.floor) floorTiles[`${x},${y}`] = floor;
+    }
+  }
+  return Object.keys(floorTiles).length > 0 ? { ...map, floorTiles } : map;
+};
+
+// 座標（x, y）の属する部屋。別室は、辺の外の仕切りの壁の向こう（下の別室は全幅、右と左は下の別室の手前まで）
+export const roomOf = (office: Office, x: number, y: number): RoomId => {
+  const { w, h } = office.size;
+  const bottomRow = h - ANNEX_DEPTH;
+  if (office.annexes.includes('bottom') && y > bottomRow) return 'bottom';
+  const sideRows = office.annexes.includes('bottom') ? bottomRow - 1 : h;
+  if (y <= sideRows && office.annexes.includes('right') && x > w - ANNEX_DEPTH) return 'right';
+  if (y <= sideRows && office.annexes.includes('left') && x < ANNEX_STEP) return 'left';
+  return 'main';
+};
+
+// 部屋の床の種類（書いていなければ木）
+export const floorOfRoom = (office: Office, room: RoomId): FloorId => office.floors?.[room] ?? 'wood';
+
+// 部屋の床のマス数（内側の壁を除く）
+export const roomTileCount = (office: Office, room: RoomId): number => {
+  let count = 0;
+  for (let y = 1; y <= office.size.h; y++) {
+    for (let x = 1; x <= office.size.w; x++) {
+      if (roomOf(office, x, y) !== room) continue;
+      if (office.innerWalls.some((c) => c.x === x && c.y === y)) continue;
+      count++;
+    }
+  }
+  return count;
+};
+
+// 床の張り替え（N92）。解禁のレベルを満たしていれば、部屋の床のマス数 × 1マスの費用をその場で払い、すぐに変える。家具と機器はそのまま
+export const changeOfficeFloor = (core: Core, room: RoomId, floor: FloorId, balance: Balance): Outcome => {
+  const level = levelOf(core.companyExp, balance);
+  if (level < balance.featureUnlocks.floorChange) return fail('floor.locked');
+  const spec = balance.floors.find((f) => f.id === floor);
+  if (!spec) return fail('none');
+  if (level < spec.unlockLevel) return fail('floor.locked');
+  if (!(['main', ...core.office.annexes] as RoomId[]).includes(room)) return fail('none');
+  if (floorOfRoom(core.office, room) === floor) return { ok: true, core };
+  const cost = spec.costPerTile * roomTileCount(core.office, room);
+  if (core.clock.money < cost) return fail('money');
+  return {
+    ok: true,
+    core: {
+      ...core,
+      clock: applyMoney(core.clock, -cost, 'interior'),
+      office: { ...core.office, floors: { ...core.office.floors, [room]: floor } },
+    },
+  };
+};
 
 // 広げた回数。床の増えた分（step マスずつ）から数える。新しく始めた部屋は0回
 export const expandCountOf = (size: OfficeSize, initial: OfficeSize, step: number): number =>

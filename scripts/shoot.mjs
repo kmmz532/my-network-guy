@@ -287,6 +287,16 @@ const scenes = {
     });
     await page.waitForTimeout(500);
   },
+  // 自社の情報の床の行（解禁のレベル5に届いてから出す）
+  floor: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      g.setState({ companyExp: 3000 });
+      g.getState().openWindow('company', '');
+    });
+    await page.waitForTimeout(500);
+  },
   // お金（HUD）を押して、資金の画面を開く
   funds: async (page) => {
     await scenes.career(page);

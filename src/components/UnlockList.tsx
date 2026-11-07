@@ -7,7 +7,9 @@ import { itemSpriteOf } from './itemSprite';
 import { RADIUS } from '../ui/theme';
 
 // 解放された品目の名前（機材・ケーブル・家具・依頼）
-export const unlockNameOf = (x: { kind: 'device' | 'cable' | 'furniture' | 'template' | 'contract' | 'speed'; id: string }): string => {
+export const unlockNameOf = (x: { kind: 'device' | 'cable' | 'furniture' | 'template' | 'contract' | 'speed' | 'floor'; id: string }): string => {
+  // 自社の床の種類（N92）。張り替えの解禁は、床の種類の名前で案内する
+  if (x.kind === 'floor') return tDyn(`ui.floor.unlock.${x.id}`);
   // 早送りの速さ（N99）。名前は速さの表示（例:「4倍」）
   if (x.kind === 'speed') return tDyn(`ui.speed.${x.id}`);
   // 依頼のひな形は台数（{pcCount}）を範囲で入れる。依頼ごとの台数は決まっていないため
