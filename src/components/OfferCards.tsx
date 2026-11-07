@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { balance, devices } from 'virtual:game-data';
 import { hasKey, t, tDyn } from '../i18n/t';
 import { goalText } from './goalText';
-import { gameEnv } from '../sim/env';
+import { gameEnv, isPcDevice } from '../sim/env';
 import { offerHintOf, useGameStore } from '../stores/useGameStore';
 import type { Offer } from '../contracts/template';
 import { dangerButton, primaryButton, secondaryButton, usePrimary } from './Modal';
@@ -19,7 +19,7 @@ import { minutesPerDay, toDate } from '../sim/clock';
 import { PixelCheck } from './PixelControls';
 import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
-import { CATEGORY } from '../data/categories';
+import { CATEGORY, isPcCategory } from '../data/categories';
 import { Select } from './Select';
 import { levelOf } from '../sim/level';
 import { isBackOffice } from '../sim/backOffice';
@@ -172,7 +172,7 @@ function OfferCard({
     const members = staff.filter((m) => crew.includes(m.uid));
     const bonusEnv = bonusEnvOf({ staff: staff, office: office }, gameEnv);
     const power = members.reduce((sum, m) => sum + staffPower(m, jobs, office, bonusEnv), 0);
-    const pcCount = offer.contract.placed.filter((p) => devices[p.device as keyof typeof devices]?.category === CATEGORY.pc).length;
+    const pcCount = offer.contract.placed.filter((p) => isPcDevice(p.device)).length;
     const match = jobs.length === 0 || members.length === 0 ? 1 : members.filter((m) => jobs.includes(m.job)).length / members.length;
     const [min, max] = starRangeOf(power, pcCount, match, balance);
     return min === max ? `★${min}` : `★${min}〜${max}`;
@@ -182,7 +182,7 @@ function OfferCard({
   usePrimary(asking ? () => setAsking(false) : primary ? () => canAccept && onAccept(crew) : undefined);
   const hosts = offer.contract.placed.filter((p) => {
     const c = devices[p.device as keyof typeof devices]?.category;
-    return c === CATEGORY.pc || c === CATEGORY.server;
+    return isPcCategory(c) || c === CATEGORY.server;
   }).length;
   // スマホでは、ボタンの列を情報の下の独立した行にする（受注を広く、断るを狭く・B15）
   const phone = usePhone();

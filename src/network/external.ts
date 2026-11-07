@@ -3,6 +3,7 @@
 // 公開: インターネットから、サーバーへ HTTP（80）が届き、社内の PC へは外から届かないこと（NAT・ポート転送は扱わない）。
 import { http, ping } from './engine';
 import { isRoutingCategory } from './category';
+import { isPcCategory } from '../data/categories';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
 export const INTERNET_UID = '__internet';
@@ -62,7 +63,7 @@ export const withInternet = (net: Network, data: EngineData): (Network & { inter
 export const outsideCheck = (net: Network, data: EngineData): OutsideCheck => {
   const withNet = withInternet(net, data);
   if (!withNet) return { attached: false, pcsReachOutside: false, exposedServers: [], leaks: false, servers: 0 };
-  const pcs = net.nodes.filter((n) => data.categoryOf(n.device) === 'pc');
+  const pcs = net.nodes.filter((n) => isPcCategory(data.categoryOf(n.device)));
   const servers = net.nodes.filter((n) => data.categoryOf(n.device) === 'server' && n.services.some((s) => s.protocol === 'http' && s.port === PUBLIC_PORT));
   const pcsReachOutside = pcs.length > 0 && pcs.every((pc) => ping(withNet, data, pc.uid, INTERNET_UID).ok);
   // 外から社内の PC へ届くか（届けば、公開のサーバーがあっても収入はない）

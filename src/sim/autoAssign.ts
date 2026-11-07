@@ -7,7 +7,7 @@ import { inSubnet, ipToInt } from '../network/engine';
 import { intToIp, networkAddress, routerAddressesOn, segmentConfigOf, segmentsOf } from '../network/segments';
 import type { NetNode, SegmentConfig } from '../network/types';
 import { focusedOf, netOf, withNet, type Core, type Env, type NetTarget } from './project';
-import { CATEGORY } from '../data/categories';
+import { CATEGORY, isPcCategory } from '../data/categories';
 
 // ルーターと、ファイアウォール（経路の設定を持つ機器）
 const isRoutingFirewall = (category: string): boolean => category === CATEGORY.router || category === CATEGORY.firewall;
@@ -79,7 +79,7 @@ export const autoAssign = (
       const node = nodeMap().get(m.node);
       if (!node || node.configLocked) return false;
       const category = env.engine.categoryOf(node.device);
-      return (category === CATEGORY.pc || category === CATEGORY.server) && !node.interfaces.some((i) => i.port === m.port);
+      return (isPcCategory(category) || category === CATEGORY.server) && !node.interfaces.some((i) => i.port === m.port);
     });
     let cfg = segmentConfigOf(seg, nodeMap(), segments) ?? ifaceConfigOf(seg);
     let defaulted = false;
@@ -123,7 +123,7 @@ export const autoAssign = (
       const node = nodeMap().get(m.node);
       if (!node || node.configLocked) continue;
       const category = env.engine.categoryOf(node.device);
-      if (category !== CATEGORY.pc && category !== CATEGORY.server) continue;
+      if (!isPcCategory(category) && category !== CATEGORY.server) continue;
       if (node.interfaces.some((i) => i.port === m.port)) continue;
 
       const h = pickFree(FIRST_HOST) ?? pickFree(1);

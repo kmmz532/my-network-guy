@@ -145,3 +145,74 @@ describe('不変条件（操作の列の試験）', () => {
     expect(succeeded).toBeGreaterThan(100);
   });
 });
+
+// 規則ごとに、破ると違反が出ることを確かめる（変異試験で生き残った条件を殺すため）
+describe('不変条件の違反（規則ごと）', () => {
+  const link = (uid: string, a: string, port: number, b: string, paid = 0) => ({ uid, cable: 'utp_cat5e', a: { node: a, port }, b: { node: b, port: 0 }, path: [], paid });
+  const node = (uid: string, x = 0) => ({ uid, device: 'pc_basic', x, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [] });
+  const withOffice = (nodes: ReturnType<typeof node>[], links: ReturnType<typeof link>[]): Core => {
+    const core = start();
+    return { ...core, office: { ...core.office, nodes, links } } as Core;
+  };
+
+  it('開始状態は違反なし（基準）', () => {
+    expect(checkInvariants(withOffice([node('a'), node('b', 1)], [link('l0', 'a', 0, 'b')]), env)).toEqual([]);
+  });
+
+  it('資金が負なら違反', () => {
+    const core = start();
+    expect(checkInvariants({ ...core, clock: { ...core.clock, money: -1 } }, env).join(' ')).toContain('資金が負');
+  });
+
+  it('機器の uid が重なると違反', () => {
+    expect(checkInvariants(withOffice([node('a'), node('a', 1)], []), env).join(' ')).toContain('機器の uid が重なる');
+  });
+
+  it('配線の uid が重なると違反', () => {
+    const nodes = [node('a'), node('b', 1)];
+    expect(checkInvariants(withOffice(nodes, [link('l0', 'a', 0, 'b'), link('l0', 'a', 1, 'b')]), env).join(' ')).toContain('配線の uid が重なる');
+  });
+
+  it('両端の機器がないと違反', () => {
+    expect(checkInvariants(withOffice([node('a')], [link('l0', 'a', 0, 'zz')]), env).join(' ')).toContain('zz がない');
+  });
+
+  it('ポートの番号が機器の範囲の外だと違反', () => {
+    expect(checkInvariants(withOffice([node('a'), node('b', 1)], [link('l0', 'a', 99, 'b')]), env).join(' ')).toContain('範囲外');
+  });
+
+  it('1つのポートに2本つなぐと違反', () => {
+    const nodes = [node('a'), node('b', 1), node('c', 2)];
+    expect(checkInvariants(withOffice(nodes, [link('l0', 'a', 0, 'b'), link('l1', 'a', 0, 'c')]), env).join(' ')).toContain('2本のケーブル');
+  });
+
+  it('払った額が負だと違反', () => {
+    const nodes = [node('a'), node('b', 1)];
+    expect(checkInvariants(withOffice(nodes, [link('l0', 'a', 0, 'b', -5)]), env).join(' ')).toContain('払った額が負');
+  });
+
+  it('担当が社員にいないと違反', () => {
+    const core = start();
+    const project = { id: 'p1', nodes: [], links: [], crew: ['nobody'], phase: 'design' } as unknown as Core['active'][number];
+    expect(checkInvariants({ ...core, active: [project] }, env).join(' ')).toContain('担当 nobody がいない');
+  });
+
+  it('内勤の社員を担当にすると違反', () => {
+    const core = start();
+    const clerk = { ...core.staff[0], uid: 'clerk', job: 'sales' as const };
+    const project = { id: 'p1', nodes: [], links: [], crew: ['clerk'], phase: 'design' } as unknown as Core['active'][number];
+    expect(checkInvariants({ ...core, staff: [...core.staff, clerk], active: [project] }, env).join(' ')).toContain('が内勤');
+  });
+
+  it('同じ社員が2つの案件の担当だと違反', () => {
+    const core = start();
+    const uid = core.staff[0].uid;
+    const p1 = { id: 'p1', nodes: [], links: [], crew: [uid], phase: 'design' } as unknown as Core['active'][number];
+    const p2 = { ...p1, id: 'p2' };
+    expect(checkInvariants({ ...core, active: [p1, p2] }, env).join(' ')).toContain('の両方にいる');
+  });
+
+  it('見ている案件が進行中でないと違反', () => {
+    expect(checkInvariants({ ...start(), focus: 'ghost' }, env).join(' ')).toContain('進行中でない');
+  });
+});

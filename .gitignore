@@ -4,3 +4,4 @@ src/generated/
 *.local
 shots/
 dist-shoot/
+.stryker-tmp/

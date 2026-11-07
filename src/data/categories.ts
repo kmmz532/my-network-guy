@@ -12,6 +12,9 @@ export const CATEGORY = {
   printer: 'printer',
 } as const;
 
+// 分類が PC か（機器の分類の判定はここだけで行う。N116）
+export const isPcCategory = (category: string): boolean => category === CATEGORY.pc;
+
 export type Category = (typeof CATEGORY)[keyof typeof CATEGORY];
 
 // 分類の一覧（スキーマの列挙に使う）

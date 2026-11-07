@@ -10,7 +10,7 @@ import { portLabel } from '../components/devicePorts';
 import { isDragMove } from '../components/rearDrag';
 import { rangeTiles } from './effectRange';
 import { setMapView } from './mapView';
-import { gameEnv } from '../sim/env';
+import { gameEnv, isPcDevice } from '../sim/env';
 import { moveFurniture, placeFurniture, seatedStaff, unseatedStaff } from '../sim/furniture';
 import { spriteNameOf, type Facing } from '../sim/facing';
 import { dayTintOf, nightnessOf, toHex, type Rgb } from '../sim/dayTint';
@@ -24,7 +24,7 @@ const FACING_DEVICE_SPRITES = new Set(['device/pc_basic']);
 // 席になる家具（机）かどうか（社員が座る）
 const isDesk = (id: string): boolean => isDeskFurniture(id, gameEnv);
 // PC のうち、机の上にしか置けないもの（deskable でない PC。N91）
-const isPcOnlyDevice = (device: string): boolean => gameEnv.devices[device]?.category === CATEGORY.pc && gameEnv.devices[device]?.deskable !== true;
+const isPcOnlyDevice = (device: string): boolean => isPcDevice(device) && gameEnv.devices[device]?.deskable !== true;
 import { furnitureOf } from '../contracts/layout';
 import { expandActionOf, expansionLocked, officeExpandCostOf, type ExpandSide } from '../sim/office';
 import { levelOf } from '../sim/level';
@@ -62,7 +62,7 @@ import { isPresentOnShift, minuteInShift } from '../sim/shift';
 import { minutesPerDay as dayMinutes } from '../sim/clock';
 import { metersOf } from '../sim/cableLength';
 import { deskStaffPos, deskTap, staffAt, STAFF_W, wanderStaffPos, type StaffHit } from './staffHit';
-import { CATEGORY } from '../data/categories';
+import { isPcCategory } from '../data/categories';
 
 // 拡大・縮小ボタンの列は、ツールバーの上の右下の角にある（MapZoomButtons.tsx と同じ寸法。画面の px）
 const ZOOM_BUTTON_W = 44;
@@ -1161,7 +1161,7 @@ export class Scene {
     const anyFloor = useGameStore.getState().mode === 'sandbox';
     const onDesk = deskTile || (isPcOnlyDevice(node.device) && !anyFloor);
     // 机のないマスに置いたPCには、机も一緒に描く
-    const deskTex = !deskTile && category === CATEGORY.pc && !anyFloor ? texture('furniture/desk') : undefined;
+    const deskTex = !deskTile && isPcCategory(category) && !anyFloor ? texture('furniture/desk') : undefined;
     if (deskTex) {
       const desk = new Sprite(deskTex);
       desk.position.set(node.x * ts, node.y * ts);

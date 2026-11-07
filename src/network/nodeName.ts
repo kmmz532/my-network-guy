@@ -2,7 +2,7 @@
 // PC は、座る社員が決まっていれば「{社員名}のPC」、決まっていなければ「PC-1」のように番号で呼ぶ。
 // ほかの機器は「サーバー-1」「スイッチ-1」のように、種類ごとの番号で呼ぶ。番号は、同じ種類の機器の中での並び順
 import type { NetNode } from './types';
-import { CATEGORY } from '../data/categories';
+import { isPcCategory } from '../data/categories';
 
 export interface NameContext {
   // 機器の種類（pc・server・l2_switch・router・l3_switch・router_switch・firewall）。ノートPCは pc の種類
@@ -19,7 +19,7 @@ export const nodeName = (node: NetNode, nodes: readonly NetNode[], ctx: NameCont
   const custom = node.name?.trim();
   if (custom) return custom;
   const category = ctx.categoryOf(node.device);
-  if (category === CATEGORY.pc) {
+  if (isPcCategory(category)) {
     const owner = ctx.ownerAt?.(node.x, node.y) ?? null;
     if (owner) return ctx.ownedPc(owner);
   }

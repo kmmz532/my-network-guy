@@ -45,9 +45,9 @@ import { dueDayOf, lateDaysOf, lateFactor } from './deadline';
 import { bonusEnvOf, furnitureBonus, type BonusEnv } from './furniture';
 import { gainExp, staffPower } from './staff';
 import { blindDelegation, type Stars } from './blindDelegate';
-import { CATEGORY } from '../data/categories';
+import { CATEGORY, isPcCategory } from '../data/categories';
 import { cableLengthOf, checkCableLength } from './cableLength';
-import { crewBlock } from './crew';
+import { busyStaff, crewBlock } from './crew';
 import { deliveryExpOf, levelOf, type LevelUp } from './level';
 
 export interface Project {
@@ -518,7 +518,7 @@ const officePlaceReason = (
 ): string | null => {
   const hasNode = nodes.some((n) => n.x === x && n.y === y);
   const device = env.devices[deviceId];
-  const isPc = device.category === CATEGORY.pc;
+  const isPc = isPcCategory(device.category);
   // 机の上にも床にも置ける機器（N91）は、PC のような机の上の判定を使い、床にも置ける。PC でも deskable でもない機器は床だけ
   const desktop = device.deskable === true;
   if (isPc && !desktop && !anyFloor) {
@@ -547,7 +547,7 @@ const placeReason = (
 ): string | null => {
   if (inhouse) return officePlaceReason(furniture, nodes, deviceId, x, y, map, env, anyFloor);
   const kind = tileKind(map, x, y);
-  const deskOk = env.devices[deviceId].category === CATEGORY.pc || env.devices[deviceId].deskable === true;
+  const deskOk = isPcIn(env, deviceId) || env.devices[deviceId].deskable === true;
   if (kind !== 'floor' && !(kind === 'desk' && deskOk)) return 'tile';
   if (nodes.some((n) => n.x === x && n.y === y)) return 'tile';
   // 依頼先の家具（机・棚・飾り。N76）のあるマスには置けない
@@ -1301,7 +1301,7 @@ export const advanceBuild = (core: Core, env: Env, hour: number, juniorRate = 1)
   const crewOf = (p: Project) => core.staff.filter((s) => p.crew.includes(s.uid));
   // 施工中の案件の担当は、勤務中に1ゲーム時間ぶんの経験値を得る（着席の社員は家具の補正を受ける）
   let state: Core = core;
-  const building = new Set(core.active.filter((p) => p.phase === 'build').flatMap((p) => p.crew));
+  const building = busyStaff({ active: core.active.filter((p) => p.phase === 'build') });
   if (building.size > 0) {
     const hours = env.balance.time.gameMinutesPerTick / 60;
     state = {
@@ -1399,7 +1399,7 @@ export const delegateBlind = (core: Core, offerId: string, crew: string[], env: 
   const bonusEnv: BonusEnv = bonusEnvOf({ staff: core.staff, office: core.office }, env);
   const jobs = contract.jobs ?? [];
   const power = crewMembers.reduce((sum, m) => sum + staffPower(m, jobs, core.office, bonusEnv), 0);
-  const pcCount = contract.placed.filter((p) => env.devices[p.device]?.category === 'pc').length;
+  const pcCount = contract.placed.filter((p) => isPcIn(env, p.device)).length;
   const match = jobs.length === 0 ? 1 : crewMembers.filter((m) => jobs.includes(m.job)).length / crewMembers.length;
   const result = blindDelegation(power, pcCount, match, env.balance, rng);
   const plan: BlindPlan = { stars: result.stars, costRatio: result.costRatio, rework: result.rework };
@@ -1547,4 +1547,7 @@ export const abandon = (core: Core): Outcome => {
 };
 
 // 機器の種類が PC か（環境の機器の定義を引く。判定はここだけで行う。N116）
-export const isPcIn = (env: Env, device: string): boolean => env.devices[device]?.category === CATEGORY.pc;
+export const isPcIn = (env: Env, device: string): boolean => {
+  const category = env.devices[device]?.category;
+  return category !== undefined && isPcCategory(category);
+};
