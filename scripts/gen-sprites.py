@@ -1038,14 +1038,34 @@ def wall_face():
 
 
 def door():
-    # 仕切りの壁の真ん中のドア。床の上に、枠と木の扉を描く
-    img = floor(0)
+    # 横の仕切りの壁（奥の壁の正面）のドア。壁の正面の絵の上に、枠と木の扉を描く。
+    # 壁は左右の端まで続け、床が見える隙間を作らない。扉は巾木を切って床まで下ろす
+    img = wall_face()
     d = ImageDraw.Draw(img)
-    rect(d, 3, 0, 26, 2, 'W3')
-    rect(d, 3, 0, 3, 32, 'W3')
-    rect(d, 26, 0, 3, 32, 'W3')
-    rect(d, 6, 2, 20, 30, 'c', 'o')
-    px(d, 21, 17, 'y')
+    rect(d, 5, 3, 22, 29, 'W3')
+    d.line([(5, 3), (5, 31)], fill=C['o'])
+    d.line([(26, 3), (26, 31)], fill=C['o'])
+    d.line([(5, 3), (26, 3)], fill=C['o'])
+    rect(d, 8, 6, 16, 26, 'c', 'o')
+    rect(d, 11, 9, 10, 8, 'c', 'F3')
+    rect(d, 11, 20, 10, 9, 'c', 'F3')
+    px(d, 21, 18, 'y')
+    px(d, 21, 19, 'o')
+    return img
+
+
+def door_side():
+    # 縦の仕切りの壁のドア（真上から見る）。仕切りの壁と同じ上面の色で塗り、扉の厚みを細い木の帯で描く。
+    # 左右の端の線は、仕切りの壁の上面の縁（TileMap.ts の CAP_EDGE_COLOR）と同じ位置に引く
+    img, d = new(32, 32)
+    rect(d, 0, 0, 32, 32, 'W2')
+    d.line([(0, 0), (0, 31)], fill=C['o'])
+    d.line([(31, 0), (31, 31)], fill=C['o'])
+    rect(d, 1, 0, 30, 3, 'W3')
+    rect(d, 1, 29, 30, 3, 'W3')
+    rect(d, 13, 3, 6, 26, 'c', 'o')
+    d.line([(15, 4), (15, 27)], fill=C['F3'])
+    px(d, 17, 16, 'y')
     return img
 
 
@@ -1511,6 +1531,7 @@ if __name__ == '__main__':
         'poster': wall_poster(),
         'whiteboard': wall_whiteboard(),
         'door': door(),
+        'door_side': door_side(),
     }
     for name, img in tiles.items():
         save(img, f'tile/{name}.png')

@@ -66,6 +66,8 @@ export const drawTileMap = (map: GameMap): Container => {
   const frontFaceAt = (x: number, y: number): boolean => isWall(kindAt(x, y)) && floorAt(x, y + 1) && !(floorAt(x - 1, y) && floorAt(x + 1, y));
   const faceAt = (x: number, y: number): boolean => frontFaceAt(x, y) || (y === 0 && isWall(kindAt(x, y)) && frontFaceAt(x - 1, y) && frontFaceAt(x + 1, y));
   const frontAt = (x: number, y: number): boolean => isWall(kindAt(x, y)) && floorAt(x, y - 1);
+  // 部屋の床（ドアを除く）。ドアは壁の続きとして描くため、隣の壁の上面の縁をドアの側に引かない
+  const roomAt = (x: number, y: number): boolean => floorAt(x, y) && kindAt(x, y) !== 'door';
 
   // 床と壁を先に敷き、家具は上の行から順に重ねる（手前の家具が奥の家具を隠す）
   const furniture: [string, number, number][] = [];
@@ -97,15 +99,15 @@ export const drawTileMap = (map: GameMap): Container => {
         // 上面の内側の縁に1 pxの線を引く。奥の壁の横では、奥の壁の上面の帯より下だけに引き、上面どうしをL字につなげる
         const edgeTop = (nx: number): number => (faceAt(nx, y) ? WALL_TOP_BAND : 0);
         // 隣が床・奥の壁の正面・遮るもの（カウンターなど）なら、壁の上面を描く（遮るものの横で壁が途切れないように）
-        if (floorAt(x + 1, y) || faceAt(x + 1, y) || isPillar(kindAt(x + 1, y))) {
+        if (roomAt(x + 1, y) || faceAt(x + 1, y) || isPillar(kindAt(x + 1, y))) {
           g.rect(r - CAP, y * ts, CAP, ts).fill(CAP_COLOR);
           g.rect(r - 1, y * ts + edgeTop(x + 1), 1, ts - edgeTop(x + 1)).fill(CAP_EDGE_COLOR);
         }
-        if (floorAt(x - 1, y) || faceAt(x - 1, y) || isPillar(kindAt(x - 1, y))) {
+        if (roomAt(x - 1, y) || faceAt(x - 1, y) || isPillar(kindAt(x - 1, y))) {
           g.rect(x * ts, y * ts, CAP, ts).fill(CAP_COLOR);
           g.rect(x * ts, y * ts + edgeTop(x - 1), 1, ts - edgeTop(x - 1)).fill(CAP_EDGE_COLOR);
         }
-        if (floorAt(x, y - 1)) {
+        if (roomAt(x, y - 1)) {
           g.rect(x * ts, y * ts, ts, CAP).fill(FRONT_CAP_COLOR);
           g.rect(x * ts, y * ts, ts, 1).fill(CAP_EDGE_COLOR);
         }
@@ -123,9 +125,9 @@ export const drawTileMap = (map: GameMap): Container => {
         continue;
       }
       if (isVoid(kind)) continue;
-      // ドアは通れる床。ドアのスプライトを床の上に描く（家具の対象にはしない）
+      // ドアは通れるマス。上下が壁なら縦の仕切りのドア（真上から見た絵）、そうでなければ横の仕切りのドア（壁の正面の絵）
       if (kind === 'door') {
-        put('tile/door', x, y);
+        put(isWall(kindAt(x, y - 1)) || isWall(kindAt(x, y + 1)) ? 'tile/door_side' : 'tile/door', x, y);
         continue;
       }
       if (isPillar(kind)) {
@@ -141,11 +143,13 @@ export const drawTileMap = (map: GameMap): Container => {
   container.addChild(shade);
   for (let y = 0; y < map.height; y++) {
     for (let x = 0; x < map.width; x++) {
-      if (!floorAt(x, y)) continue;
-      const left = isWall(kindAt(x - 1, y));
+      // ドアのマスには影を落とさない。ドアの横の床には、壁と同じ影を落とす（影が途切れないように）
+      if (!floorAt(x, y) || kindAt(x, y) === 'door') continue;
+      const shadeFrom = (k: string | undefined): boolean => isWall(k) || k === 'door';
+      const left = shadeFrom(kindAt(x - 1, y));
       if (left) shade.rect(x * ts, y * ts, SHADOW, ts).fill({ color: SHADOW_COLOR, alpha: SHADOW_ALPHA });
       // 角では左の影と重ならないようにする
-      if (isWall(kindAt(x, y - 1))) {
+      if (shadeFrom(kindAt(x, y - 1))) {
         const sx = left ? SHADOW : 0;
         shade.rect(x * ts + sx, y * ts, ts - sx, SHADOW).fill({ color: SHADOW_COLOR, alpha: SHADOW_ALPHA });
       }

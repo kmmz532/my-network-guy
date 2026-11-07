@@ -316,6 +316,20 @@ const scenes = {
     });
     await page.waitForTimeout(500);
   },
+  // 別室のドア。上限まで広げてから、右・左・下に別室を足す（仕切りの壁の縦と横のドアを見る）
+  doors: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      g.setState({ companyExp: 1e7, clock: { ...g.getState().clock, money: 1e9 } });
+      for (const side of ['right', 'left', 'bottom']) {
+        for (let i = 0; i < 20 && !g.getState().office.annexes.includes(side); i++) g.getState().expandOffice(side);
+      }
+      g.getState().changeFloor('right', 'carpet');
+      g.getState().changeFloor('bottom', 'tile');
+    });
+    await page.waitForTimeout(500);
+  },
   // お金（HUD）を押して、資金の画面を開く
   funds: async (page) => {
     await scenes.career(page);
