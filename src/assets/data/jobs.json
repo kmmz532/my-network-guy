@@ -1,0 +1,11 @@
+{
+  "jobs": [
+    { "id": "network", "group": "field", "unlockLevel": 2, "pc": "bonus", "pcBonus": { "buildRate": 0.05, "idleExpRate": 0.5 }, "salaryRate": 1, "effect": "none", "dailyExp": "none", "buildsOnSite": true },
+    { "id": "infra", "group": "field", "unlockLevel": 5, "pc": "bonus", "pcBonus": { "buildRate": 0.05, "idleExpRate": 0.5 }, "salaryRate": 1, "effect": "none", "dailyExp": "none", "buildsOnSite": true },
+    { "id": "security", "group": "field", "unlockLevel": 7, "pc": "bonus", "pcBonus": { "buildRate": 0.05, "idleExpRate": 0.5 }, "salaryRate": 1, "effect": "none", "dailyExp": "none", "buildsOnSite": true },
+    { "id": "dev", "group": "dev", "unlockLevel": 6, "pc": "required", "salaryRate": 1, "effect": "devIncome", "dailyExp": "idle", "buildsOnSite": true },
+    { "id": "sales", "group": "backOffice", "unlockLevel": 3, "pc": "bonus", "pcBonus": { "effectRate": 1.2 }, "salaryRate": 0.85, "effect": "sales", "dailyExp": "full", "buildsOnSite": false },
+    { "id": "hr", "group": "backOffice", "unlockLevel": 4, "pc": "required", "salaryRate": 0.85, "effect": "hr", "dailyExp": "full", "buildsOnSite": false },
+    { "id": "accounting", "group": "backOffice", "unlockLevel": 8, "pc": "required", "salaryRate": 0.85, "effect": "accounting", "dailyExp": "full", "buildsOnSite": false }
+  ]
+}

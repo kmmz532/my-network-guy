@@ -614,3 +614,20 @@ export const levelsFileSchema = z.object({
     }),
   ),
 });
+
+// 職種の定義（jobs.json・N104）。性質はここで決め、コードは分岐の代わりにこれを読む
+export const jobDefSchema = z.object({
+  id: z.enum(JOB_IDS),
+  group: z.enum(['field', 'dev', 'backOffice']),
+  unlockLevel: unlockLevelSchema,
+  pc: z.enum(['required', 'bonus', 'none']),
+  pcBonus: z
+    .object({ buildRate: z.number().nonnegative().optional(), idleExpRate: z.number().nonnegative().optional(), effectRate: z.number().positive().optional() })
+    .optional(),
+  salaryRate: z.number().positive(),
+  effect: z.enum(['sales', 'hr', 'accounting', 'devIncome', 'none']),
+  dailyExp: z.enum(['full', 'idle', 'none']),
+  buildsOnSite: z.boolean(),
+});
+export const jobsFileSchema = z.object({ jobs: z.array(jobDefSchema) });
+export type JobDef = z.infer<typeof jobDefSchema>;
