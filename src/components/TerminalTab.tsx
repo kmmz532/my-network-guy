@@ -5,9 +5,9 @@ import { t, tDyn } from '../i18n/t';
 import { completeLine, runTerminal, type TerminalLine } from '../network/terminal';
 import { parseConfig, type ConfigAction } from '../network/terminalConfig';
 import type { NetLink, NetNode } from '../network/types';
-import { gameEnv } from '../sim/env';
+import { engineWithWalls, gameEnv } from '../sim/env';
 import { nodeLabel } from './nodeLabel';
-import { useGameStore } from '../stores/useGameStore';
+import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { secondaryButton } from './Modal';
 import { warnColor } from './devicePorts';
 
@@ -94,7 +94,7 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
     } else if (parsed.kind === 'error') {
       out = [{ text: parsed.text, kind: 'err' }];
     } else {
-      out = runTerminal(line, { node, nodes, links, data: gameEnv.engine, nameOf: (n) => nodeLabel(state, n, nodes), arp, macTable, onReach: (dst) => learnPing(node.uid, dst) }, tr);
+      out = runTerminal(line, { node, nodes, links, data: engineWithWalls(gameEnv.engine, state.maps[focusedProject(state)?.contract.map ?? 'hq']), nameOf: (n) => nodeLabel(state, n, nodes), arp, macTable, onReach: (dst) => learnPing(node.uid, dst) }, tr);
     }
     setHistory((h) => [...h, { text: `> ${line}`, kind: 'out' }, ...out]);
   };
