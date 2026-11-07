@@ -22,12 +22,17 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
+// 初回の訪問（前の版の保存がない）では、読み込み中のページを引き受けない（B9）。途中から取得を引き受けると、遅延読み込みの資材の取得が失敗することがあるため。
+// 前の版があるときだけ、開いているページを新しい版の管理下に入れる
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
+      .then((keys) => {
+        const hadOld = keys.some((k) => k !== CACHE);
+        return Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))).then(() => hadOld);
+      })
+      .then((hadOld) => (hadOld ? self.clients.claim() : undefined)),
   );
 });
 
