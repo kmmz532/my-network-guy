@@ -52,6 +52,8 @@ export interface PortConfig {
   native?: number;
   shutdown?: boolean;
   stpCost?: number;
+  // ポートセキュリティ（N153）: 登録した MAC アドレスの機器だけを通す。省略なら制限しない
+  macs?: string[];
 }
 
 // BGP の設定（MVP は eBGP の隣接と、宛先の広告・AS パスで選ぶ経路。N147）
@@ -141,6 +143,8 @@ export const FAILURE_REASONS = [
   'link.unplugged',
   // 無線の端末がアクセスポイントにつながっていない（SSID・パスワードが合わない、電波の範囲の外）。ケーブルの失敗とは分ける
   'wireless.unassociated',
+  // ポートセキュリティ: 登録のない MAC の機器がつながり、その口が止まった（N153）
+  'port.security',
   // OSPF に参加しているのに、宛先への経路を得られない（隣接がない。route.none の OSPF の場合・N142）
   'ospf.no_neighbor',
   // 口が停止している（shutdown・N137）

@@ -353,6 +353,19 @@ const unpluggedReason = (topo: Topology, uid: string): 'link.unplugged' | 'wirel
   return device !== undefined && can(device, 'wireless') ? 'wireless.unassociated' : 'link.unplugged';
 };
 
+// ポートセキュリティ（N153）: 機器の口が、登録のない MAC の機器をつないだとき、つないだ先のスイッチの口で止める
+// 登録（macs）のない口は制限しない。機器の MAC は、機器の連番と口から求める
+const securityDenied = (topo: Topology, device: NetNode, devicePort: number): Failure | null => {
+  const link = topo.linkAt({ node: device.uid, port: devicePort });
+  if (!link) return null;
+  const sw = link.peer;
+  const macs = topo.portCfg(sw.node, sw.port)?.macs;
+  if (macs === undefined) return null;
+  if (device.macSerial === undefined) return fail('port.security', sw.node);
+  const mac = macOf(topo.categoryOf(device.uid), device.macSerial, devicePort);
+  return macs.includes(mac) ? null : fail('port.security', sw.node);
+};
+
 const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffic = { kind: 'ping' }, check = true, srcIp?: string, dstIp?: string): PathResult => {
   const path: string[] = [];
   const src = topo.node(srcUid);
@@ -367,6 +380,8 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
   const srcEp: Endpoint = { node: src.uid, port: srcIface.port };
   if (topo.isShut(src.uid, srcIface.port)) return err(fail('port.shutdown', src.uid));
   if (!topo.linkAt(srcEp)) return err(fail(unpluggedReason(topo, src.uid), src.uid));
+  const srcSecurity = securityDenied(topo, src, srcIface.port);
+  if (srcSecurity) return err(srcSecurity);
   // 相手の口が停止していれば、その口で止まる（port.shutdown）
   const srcPeer = topo.linkAt(srcEp)!.peer;
   if (topo.isShut(srcPeer.node, srcPeer.port)) return err(fail('port.shutdown', srcPeer.node));
@@ -375,6 +390,8 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
   if (!dstIface) return err(fail('ip.unset', dst.uid));
   const dstEp: Endpoint = { node: dst.uid, port: dstIface.port };
   if (!topo.linkAt(dstEp)) return err(fail(unpluggedReason(topo, dst.uid), dst.uid));
+  const dstSecurity = securityDenied(topo, dst, dstIface.port);
+  if (dstSecurity) return err(dstSecurity);
 
   path.push(src.uid);
 

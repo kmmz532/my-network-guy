@@ -130,6 +130,8 @@
   "error.link.unplugged": "ケーブルが接続されていない。",
   "warn.vlan.mismatch": "直結の両端の access の VLAN が違い、2つの VLAN が混ざっている",
   "warn.vlan.native_mismatch": "直結の両端の trunk の native の VLAN が違う",
+  "error.port.security": "登録のない機器がつながったため、スイッチの口が止まった。",
+  "error.port.security.fix": "つないだ機器の MAC アドレスを、その口に登録します。",
   "error.ospf.no_neighbor": "OSPF の隣接がなく、宛先への経路を覚えていない。",
   "error.ospf.no_neighbor.fix": "同じエリアの OSPF の口を、隣の機器の口とつなぎ、同じサブネットにそろえます。",
   "error.wireless.unassociated": "無線でアクセスポイントにつながっていない。",
