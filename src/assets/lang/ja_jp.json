@@ -838,6 +838,8 @@
   "ui.terminal.resolved": "{name} [{ip}]",
   "ui.terminal.noResolve": "% 名前を解決できません: {name}",
   "ui.terminal.usageNameServer": "使い方: ip name-server <IP>",
+  "ui.terminal.cfgWireless": "wireless ssid {ssid}",
+  "ui.terminal.cfgRip": "router rip",
   "ui.terminal.cfgNameServer": "ip name-server {ip}",
   "ui.terminal.usageHost": "使い方: ip host <名前> <IP>",
   "ui.terminal.usageNoHost": "使い方: no ip host <名前>",

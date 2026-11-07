@@ -247,3 +247,13 @@ describe('show mac address-table（N153）', () => {
     expect(lines).toEqual([{ text: `ui.terminal.macEntry ${JSON.stringify({ port: 2, mac: macOf('pc', 7, 0) })}`, kind: 'out' }]);
   });
 });
+
+describe('show running-config に無線と RIP（N151・N141b）', () => {
+  it('無線の SSID と RIP の参加を、設定として出す（パスワードは出さない）', () => {
+    const wifi = { uid: 'lap', device: 'laptop', macSerial: 3, x: 0, y: 0, locked: false, configLocked: false, gateway: null, routes: [], services: [], ports: [], interfaces: [{ id: 'g0/0', kind: 'port' as const, port: 0, ip: '192.168.1.20', prefix: 24, rip: true }], wireless: { ssid: 'HOME', password: 'secret' } } as unknown as NetNode;
+    const texts = runTerminal('show running-config', { node: wifi, nodes: [wifi], links: [], data }, tr).map((l) => l.text);
+    expect(texts).toContain('ui.terminal.cfgWireless {"ssid":"HOME"}');
+    expect(texts).toContain('ui.terminal.cfgRip');
+    expect(texts.join(' ')).not.toContain('secret');
+  });
+});
