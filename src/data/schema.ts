@@ -274,9 +274,18 @@ const serviceSchema = z.object({
   port: z.number().int().min(1).max(65535),
 });
 
-export const deviceSchema = z.object({
+// 機器の能力（NET.md §4）。コードは機器の種類ではなく、この能力だけを見る（N134）
+export const CAPABILITY_IDS = ['switchport', 'vlan', 'stp', 'svi', 'routedPort', 'subif', 'routing', 'ospf', 'bgp', 'nat', 'dhcpServer', 'dhcpRelay', 'firewall', 'wireless', 'wan'] as const;
+export type Capability = (typeof CAPABILITY_IDS)[number];
+
+export const deviceSchema = z
+  .object({
   id: z.string().min(1),
   category: z.enum(CATEGORY_IDS),
+  // 機器ができること（N134）。定義にない能力は、読み込みで止める
+  capabilities: z.array(z.enum(CAPABILITY_IDS)).default([]),
+  // SVI（VLAN のインターフェース）の数の上限。svi を持つ機器だけ
+  sviMax: nonNegativeInt.optional(),
   // 机の上にも床にも置ける小さな機器（N91）。省略時は false（PC は机の上だけ・サーバーなどは床だけ）
   deskable: z.boolean().default(false),
   price: nonNegativeInt,
@@ -293,7 +302,18 @@ export const deviceSchema = z.object({
   defaultServices: z.array(serviceSchema).default([]),
   sprite: z.string().min(1),
   unlockLevel: unlockLevelSchema,
-});
+})
+  // 能力の組み合わせの矛盾は、読み込みで止める（N134）
+  .superRefine((d, ctx) => {
+    const has = (c: Capability) => d.capabilities.includes(c);
+    const fail = (message: string) => ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${d.id}: ${message}` });
+    if (has('svi') && !has('switchport')) fail('svi には switchport が必要');
+    if (has('svi') && d.sviMax === undefined) fail('svi には sviMax が必要');
+    if (!has('svi') && d.sviMax !== undefined) fail('sviMax は svi を持つ機器だけ');
+    if (has('subif') && !has('routedPort')) fail('subif には routedPort が必要');
+    if ((has('ospf') || has('bgp') || has('nat') || has('wan')) && !has('routing')) fail('ospf・bgp・nat・wan には routing が必要');
+    if (has('vlan') && !has('switchport')) fail('vlan には switchport が必要');
+  });
 
 export const devicesFileSchema = z.object({ devices: z.array(deviceSchema) });
 

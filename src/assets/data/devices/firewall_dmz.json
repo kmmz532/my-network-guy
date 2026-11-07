@@ -3,6 +3,14 @@
     {
       "id": "firewall_dmz",
       "category": "firewall",
+      "capabilities": [
+        "routedPort",
+        "subif",
+        "routing",
+        "nat",
+        "firewall",
+        "wan"
+      ],
       "price": 125000,
       "ports": [
         {

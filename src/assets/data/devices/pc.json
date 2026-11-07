@@ -3,6 +3,7 @@
     {
       "id": "pc_basic",
       "category": "pc",
+      "capabilities": [],
       "price": 80000,
       "ports": [
         {
@@ -18,6 +19,7 @@
     {
       "id": "laptop",
       "category": "pc",
+      "capabilities": [],
       "deskable": true,
       "price": 120000,
       "ports": [

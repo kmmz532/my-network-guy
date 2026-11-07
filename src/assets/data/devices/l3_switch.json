@@ -3,6 +3,18 @@
     {
       "id": "l3_switch",
       "category": "l3_switch",
+      "capabilities": [
+        "switchport",
+        "vlan",
+        "stp",
+        "svi",
+        "routedPort",
+        "routing",
+        "ospf",
+        "dhcpServer",
+        "dhcpRelay"
+      ],
+      "sviMax": 16,
       "price": 150000,
       "ports": [
         {

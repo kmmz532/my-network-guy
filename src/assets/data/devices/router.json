@@ -3,6 +3,17 @@
     {
       "id": "router_basic",
       "category": "router",
+      "capabilities": [
+        "routedPort",
+        "subif",
+        "routing",
+        "ospf",
+        "bgp",
+        "nat",
+        "dhcpServer",
+        "dhcpRelay",
+        "wan"
+      ],
       "deskable": true,
       "price": 60000,
       "ports": [

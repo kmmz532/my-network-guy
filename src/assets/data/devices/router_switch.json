@@ -3,6 +3,12 @@
     {
       "id": "router_switch",
       "category": "router_switch",
+      "capabilities": [
+        "routing",
+        "nat",
+        "dhcpServer",
+        "wan"
+      ],
       "deskable": true,
       "price": 80000,
       "ports": [

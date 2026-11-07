@@ -3,6 +3,14 @@
     {
       "id": "firewall",
       "category": "firewall",
+      "capabilities": [
+        "routedPort",
+        "subif",
+        "routing",
+        "nat",
+        "firewall",
+        "wan"
+      ],
       "price": 120000,
       "ports": [
         {

@@ -3,6 +3,9 @@
     {
       "id": "l2_switch_4p",
       "category": "l2_switch",
+      "capabilities": [
+        "switchport"
+      ],
       "deskable": true,
       "price": 6000,
       "ports": [
@@ -19,6 +22,13 @@
     {
       "id": "l2_switch_8p",
       "category": "l2_switch",
+      "capabilities": [
+        "switchport",
+        "vlan",
+        "stp",
+        "svi"
+      ],
+      "sviMax": 1,
       "deskable": true,
       "price": 12000,
       "ports": [
@@ -35,6 +45,13 @@
     {
       "id": "l2_switch_16p",
       "category": "l2_switch",
+      "capabilities": [
+        "switchport",
+        "vlan",
+        "stp",
+        "svi"
+      ],
+      "sviMax": 1,
       "price": 24000,
       "ports": [
         {
@@ -50,6 +67,13 @@
     {
       "id": "l2_switch_24p",
       "category": "l2_switch",
+      "capabilities": [
+        "switchport",
+        "vlan",
+        "stp",
+        "svi"
+      ],
+      "sviMax": 1,
       "price": 36000,
       "ports": [
         {

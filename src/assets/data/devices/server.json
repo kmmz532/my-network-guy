@@ -3,6 +3,7 @@
     {
       "id": "server_basic",
       "category": "server",
+      "capabilities": [],
       "price": 300000,
       "ports": [
         {
@@ -26,6 +27,7 @@
     {
       "id": "gpu_server",
       "category": "server",
+      "capabilities": [],
       "price": 1200000,
       "ports": [
         {
