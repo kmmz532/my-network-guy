@@ -416,6 +416,11 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
       return err(fail('firewall.denied', cur.uid));
     }
 
+    // 家庭用ルーターは、外から始まる通信を既定で止める（社内へ向かう往路を外の口から受けたら拒否。静的 NAT の転送は別の経路で届く・NET.md §4）
+    const arrivedFrom = cur.interfaces.find((i) => i.port === current.port);
+    if (check && topo.categoryOf(cur.uid) === CATEGORY.homeRouter && arrivedFrom?.nat === 'outside') {
+      return err(fail('firewall.denied', cur.uid));
+    }
     // 直結しているサブネットに宛先があるか
     const connected = cur.interfaces.find((i) => inSubnet(dstIface.ip, i.ip, i.prefix));
     if (connected) {
