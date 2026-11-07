@@ -56,7 +56,7 @@ import {
   initialOffice,
   placeFurniture as placeFurnitureOp,
   moveFurniture as moveFurnitureOp,
-  removeFurniture as removeFurnitureOp, pcDesksOf } from '../sim/furniture';
+  removeFurniture as removeFurnitureOp, pcDesksOf, rotateFurniture as rotateFurnitureOp } from '../sim/furniture';
 import {
   type PortChoice,
   type RoomId,
@@ -346,6 +346,8 @@ export interface GameState {
   hire: (candidateUid: string, shift: 'day' | 'night') => string | null;
   // 退職を伝える・取り消す（N90）。伝えられないときは理由の文言の鍵を返す
   noticeRetire: (uid: string) => string | null;
+  // 家具を90度回す（N95）
+  rotateFurniture: (uid: string) => string | null;
   // 社員の昇給（N101）。上限に達した社員の上限を上げ、給与を次の段階の相場まで上げる
   raiseStaff: (uid: string) => string | null;
   // 自社の床を張り替える（N92）
@@ -1295,6 +1297,7 @@ export const useGameStore = create<GameState>((set, get) => {
     },
     noticeRetire: (uid) => apply(noticeRetireOp(coreOf(get()), uid, balance)),
     raiseStaff: (uid) => apply(raiseStaffOp(coreOf(get()), uid, balance)),
+    rotateFurniture: (uid) => apply(rotateFurnitureOp(coreOf(get()), uid)),
     changeFloor: (room, floor) => {
       const reason = apply(changeFloorOp(coreOf(get()), room, floor, balance));
       // 床の絵が変わるので、マップを作り直す（機器と家具はそのまま）

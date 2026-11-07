@@ -287,6 +287,15 @@ const scenes = {
     });
     await page.waitForTimeout(500);
   },
+  // 机を回した向き（left）の絵を確かめる
+  facing: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      g.setState({ office: { ...g.getState().office, furniture: g.getState().office.furniture.map((f) => ({ ...f, facing: 'left' })) } });
+    });
+    await page.waitForTimeout(500);
+  },
   // 自社の情報の床の行（解禁のレベル5に届いてから出す）
   floor: async (page) => {
     await scenes.career(page);

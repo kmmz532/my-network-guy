@@ -12,6 +12,12 @@ import { rangeTiles } from './effectRange';
 import { setMapView } from './mapView';
 import { gameEnv } from '../sim/env';
 import { moveFurniture, placeFurniture, seatedStaff, unseatedStaff } from '../sim/furniture';
+import { spriteNameOf } from '../sim/facing';
+
+// 向きの絵がある家具（机・椅子）。向きに合わせて絵を切り替える（N95）
+const FACING_SPRITES = new Set(['furniture/desk', 'furniture/chair']);
+// 向きに合わせて絵を変える機器（PC は机と同じ向きにする・N95）
+const FACING_DEVICE_SPRITES = new Set(['device/pc_basic']);
 
 // 席になる家具（机）かどうか（社員が座る）
 const isDesk = (id: string): boolean => isDeskFurniture(id, gameEnv);
@@ -224,6 +230,8 @@ export class Scene {
     app.stage.on('pointermove', this.onMove);
     app.stage.on('pointerup', this.onUp);
     app.stage.on('pointerupoutside', this.dropWire);
+    // R キーで、マウスを乗せた家具（自社オフィスの机など）を90度回す（N95）
+    window.addEventListener('keydown', this.onRotateKey);
     app.canvas.addEventListener('pointerleave', this.onCanvasLeave);
     app.canvas.addEventListener('contextmenu', this.preventMenu);
     // ホイールはブラウザの拡大・スクロールを止めるため passive を外す（Ctrl＋ホイールとピンチも、マップの拡大にする）
@@ -246,7 +254,17 @@ export class Scene {
     this.refresh();
   }
 
+  // R キーで、マウスを乗せた家具を回す（自社オフィスのみ）
+  private onRotateKey = (e: KeyboardEvent): void => {
+    if ((e.key !== 'r' && e.key !== 'R') || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (this.hoverFurnUid === null || this.map?.id !== 'hq') return;
+    const target = e.target instanceof HTMLElement ? e.target : null;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+    useGameStore.getState().rotateFurniture(this.hoverFurnUid);
+  };
+
   destroy(): void {
+    window.removeEventListener('keydown', this.onRotateKey);
     this.unsubscribe();
     setMapView(null);
     window.removeEventListener('keydown', this.onPressKey, true);
@@ -1010,7 +1028,8 @@ export class Scene {
   private drawFurniture(furniture: PlacedFurniture[], ts: number): void {
     for (const f of furniture) {
       // 家具の絵は定義の sprite を使う（机と椅子・机だけは、同じ机の ID でも絵が違うため）
-      const tex = texture(spriteOf(furnitureData[f.id as FurnitureId]?.sprite ?? ''));
+      const base = furnitureData[f.id as FurnitureId]?.sprite ?? '';
+      const tex = texture(spriteOf(FACING_SPRITES.has(base) ? spriteNameOf(base, f.facing ?? 'up') : base));
       if (!tex) continue;
       const sprite = new Sprite(tex);
       sprite.position.set(f.x * ts + Math.round((ts - tex.width) / 2), (f.y + 1) * ts - tex.height);
@@ -1025,7 +1044,7 @@ export class Scene {
 
   // 机の手前の椅子。マスの下端から少しはみ出す位置に描く（机の天板には載せない）
   private drawChair(f: PlacedFurniture, ts: number): void {
-    const tex = texture(spriteOf(CHAIR_SPRITE));
+    const tex = texture(spriteOf(spriteNameOf(CHAIR_SPRITE, f.facing ?? 'up')));
     if (!tex) return;
     const sprite = new Sprite(tex);
     sprite.position.set(f.x * ts + Math.round((ts - tex.width) / 2), (f.y + 1) * ts - CHAIR_TOP_INSET);
@@ -1054,7 +1073,11 @@ export class Scene {
       g.rect(x - 2, y - 2, size + 4, size + 4).stroke({ width: 2, color: SELECT, alpha });
     }
     // 機器はスプライト（24×40）で描く。足元（底面の行）をタイルの下寄りに揃え、床に置いた影を添える
-    const tex = texture(spriteOf(deviceData[node.device as keyof typeof deviceData]?.sprite ?? ''));
+    // PC は、机の上にあれば机と同じ向きの絵にする（N95）
+    const deviceBase = deviceData[node.device as keyof typeof deviceData]?.sprite ?? '';
+    const deskFacing = useGameStore.getState().office.furniture.find((f) => f.x === node.x && f.y === node.y && f.id === 'desk')?.facing ?? 'up';
+    const deviceSprite = FACING_DEVICE_SPRITES.has(deviceBase) ? spriteNameOf(deviceBase, deskFacing) : deviceBase;
+    const tex = texture(spriteOf(deviceSprite));
     const foot = node.y * ts + ts - DEVICE_FOOT_INSET;
     if (!tex) return;
     const sprite = new Sprite(tex);
