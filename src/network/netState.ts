@@ -511,7 +511,9 @@ export const wirelessAssociations = (net: Network, data: EngineData): { ap: NetN
   const wired = new Set(net.links.flatMap((l) => [`${l.a.node}:${l.a.port}`, `${l.b.node}:${l.b.port}`]));
   const out: { ap: NetNode; client: NetNode }[] = [];
   for (const c of net.nodes) {
+    // アクセスポイント（と無線つきの家庭用ルーター）は端末ではない。端末は無線の能力を持つ機器のうち、ほかの接続の口0がないもの
     if (!can(c.device, 'wireless') || wired.has(`${c.uid}:0`)) continue;
+    if (aps.includes(c)) continue;
     let best: { ap: NetNode; d: number } | undefined;
     for (const ap of aps) {
       const d = Math.abs(ap.x - c.x) + Math.abs(ap.y - c.y);

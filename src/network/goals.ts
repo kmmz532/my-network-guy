@@ -1,6 +1,6 @@
 // 案件の達成条件（goals）の判定ハンドラ。種類ごとにハンドラを登録し、案件データから呼び出す。
 import type { Contract, Goal } from '../data/schema';
-import { http, ping } from './engine';
+import { http, ping, wirelessAssociations } from './engine';
 import { resolveName } from './resolve';
 import type { EngineData, Failure, Network, PathResult } from './types';
 
@@ -60,6 +60,12 @@ const handlers: { [K in Goal['type']]: Handler } = {
   count: (goal, net, data) => {
     if (goal.type !== 'count') throw new Error('count ハンドラに別の種類が渡された');
     const ok = uidsOf(net, data, goal.category).length >= goal.min;
+    return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
+  },
+  // 無線の端末が、アクセスポイントに一定数以上つながる（電波の範囲・SSID・パスワードで決まる。N152）
+  wireless_clients: (goal, net, data) => {
+    if (goal.type !== 'wireless_clients') throw new Error('wireless_clients ハンドラに別の種類が渡された');
+    const ok = wirelessAssociations(net, data).length >= goal.min;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   count_device: (goal, net) => {

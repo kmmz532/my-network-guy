@@ -13,6 +13,8 @@ export const goalText = (goal: Goal, nameOf: (id: string) => string = (id) => id
           ? { name: tDyn(`device.${goal.device}.name`), min: goal.min }
         : goal.type === 'reach_category'
           ? { name: tDyn(`category.${goal.category}`) }
+        : goal.type === 'wireless_clients'
+          ? { min: goal.min }
           : goal.type === 'reach_by_name'
             ? { name: goal.name }
           : goal.type === 'http_all' || goal.type === 'firewall'

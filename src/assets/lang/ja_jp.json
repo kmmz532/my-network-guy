@@ -321,6 +321,7 @@
   "goal.blocked": "{from} から {to} への Ping は、ファイアウォールで止められている",
   "goal.firewall": "すべてのPCからサーバーへの経路に、ファイアウォールがある",
   "goal.reach_category": "すべてのPCから{name}に届く",
+  "goal.wireless_clients": "無線の端末を{min}台以上、アクセスポイントにつなぐ",
   "goal.count_device": "{name}を{min}台以上置く",
   "goal.isolated": "{from} と {to} は、互いに通信できない",
   "goal.http_from": "{nodes} から、サーバーのWebページを閲覧できる",
