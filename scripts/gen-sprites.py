@@ -110,6 +110,11 @@ def outline(img):
 MANUAL = {
     'device/server_basic.png',
     'device/access_point.png',
+    'furniture/trash.png',
+    'icon/cursor.png',
+    'icon/inventory.png',
+    'staff/purple_long_0.png',
+    'staff/purple_long_1.png',
 }
 
 
@@ -642,6 +647,93 @@ def icon_tap_ring(frame):
     r = (3, 5, 7)[frame]
     color = C['e'] if frame < 2 else C['g']
     d.ellipse([8 - r, 8 - r, 7 + r, 7 + r], outline=color + (255,), width=1 if frame == 2 else 2)
+    return img
+
+
+# 回線の口（24×40）。外へつながる回線終端装置: 白い小さな箱に緑の LED。上から光の回線（橙）が降りてくる
+def uplink():
+    img, d = new(24, 40)
+    d.line([(12, 0), (12, 22)], fill=C['f'] + (255,), width=2)
+    box3q(d, 5, 22, 14, 3, 12, 'e', 'w', edge='e')
+    for x in (8, 10, 12):
+        px(d, x, 28, 'l')
+    rect(d, 7, 31, 10, 2, 'g')
+    return img
+
+
+# サーバーの役割の印（12×12）。サーバーの絵の右上に重ねて、動いているサービスを示す。色の地に白い絵
+SERVICE_GLYPHS = {
+    'web': ('b', [
+        '..####..',
+        '.#.##.#.',
+        '#..##..#',
+        '########',
+        '#..##..#',
+        '.#.##.#.',
+        '..####..',
+        '........',
+    ]),
+    'dns': ('G', [
+        '.######.',
+        '#.#....#',
+        '#.#.##.#',
+        '#.#....#',
+        '#.#.##.#',
+        '#.#....#',
+        '.######.',
+        '........',
+    ]),
+    'dhcp': ('f', [
+        '..#..#..',
+        '.######.',
+        '..#..#..',
+        '..#..#..',
+        '.######.',
+        '..#..#..',
+        '........',
+        '........',
+    ]),
+    'mail': ('r', [
+        '........',
+        '########',
+        '##....##',
+        '#.#..#.#',
+        '#..##..#',
+        '#......#',
+        '########',
+        '........',
+    ]),
+    'nas': ('Y', [
+        '........',
+        '###.....',
+        '########',
+        '#......#',
+        '#......#',
+        '#......#',
+        '########',
+        '........',
+    ]),
+    'multi': ('d', [
+        '........',
+        '########',
+        '........',
+        '########',
+        '........',
+        '########',
+        '........',
+        '........',
+    ]),
+}
+
+
+def service_badge(kind):
+    color, rows = SERVICE_GLYPHS[kind]
+    img, d = new(12, 12)
+    rect(d, 0, 0, 12, 12, color, 'o')
+    for y, row in enumerate(rows):
+        for x, ch in enumerate(row):
+            if ch == '#':
+                px(d, 2 + x, 2 + y, 'e')
     return img
 
 
@@ -1544,6 +1636,9 @@ if __name__ == '__main__':
     save(firewall(), 'device/firewall.png')
     save(firewall_dmz(), 'device/firewall_dmz.png')
     save(access_point(), 'device/access_point.png')
+    save(uplink(), 'device/uplink.png')
+    for kind in SERVICE_GLYPHS:
+        save(service_badge(kind), f'icon/svc_{kind}.png')
     save(laptop(), 'device/laptop.png')
     save(gpu_server(), 'device/gpu_server.png')
     for shirt_name, (shirt, shade) in SHIRT_COLORS.items():
