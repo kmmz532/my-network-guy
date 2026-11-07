@@ -212,9 +212,10 @@ describe('家具の移動（moveFurniture）', () => {
     expect(reasonOf(moveFurniture(withNode, 'f0', 5, 5, map))).toBe('tile');
   });
 
-  it('机の上に機材があるときは動かせない（occupied）', () => {
+  it('机の上の機材は、机と一緒に動く（N103）', () => {
     const core = ok(placeInOffice(start({ pc_basic: 1 }), 'pc_basic', 3, 3, map, env)).core;
-    expect(reasonOf(moveFurniture(core, 'f0', 4, 6, map))).toBe('occupied');
+    const moved = ok(moveFurniture(core, 'f0', 4, 6, map)).core;
+    expect(moved.office.nodes[0]).toMatchObject({ x: 4, y: 6 });
   });
 });
 
