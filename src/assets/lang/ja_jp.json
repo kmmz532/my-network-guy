@@ -778,6 +778,8 @@
   "ui.terminal.ifLinkedIp": "ポート{port}: {ip}/{prefix}、接続先 {peer}",
   "ui.terminal.routeConnected": "C {net}/{prefix}（ポート{port}）",
   "ui.terminal.routeStatic": "S {dest}/{prefix} via {nextHop}",
+  "ui.terminal.ripNone": "RIP で覚えた経路はない",
+  "ui.terminal.ripRoute": "R {dest}/{prefix} via {nextHop}",
   "ui.terminal.ospfNone": "OSPF の隣接はない",
   "ui.terminal.ospfNeighbor": "{name}（{ip}）を、口{port}で隣接",
   "ui.terminal.noRoute": "経路がない",

@@ -223,3 +223,11 @@ describe('show ip ospf neighbor（N143）', () => {
     expect(lines).toEqual([{ text: 'ui.terminal.ospfNone', kind: 'out' }]);
   });
 });
+
+describe('show ip rip database（N141b）', () => {
+  it('RIP で覚えた経路がなければ、その旨を出す', () => {
+    const nodes = [{ uid: 'r1', device: 'router_basic', x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [] } as unknown as NetNode];
+    const lines = runTerminal('show ip rip database', { node: nodes[0], nodes, links: [], data }, tr);
+    expect(lines).toEqual([{ text: 'ui.terminal.ripNone', kind: 'out' }]);
+  });
+});

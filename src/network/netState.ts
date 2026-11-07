@@ -651,3 +651,6 @@ export const channelOverlapsOf = (net: Network, data: EngineData): { a: string; 
   }
   return out;
 };
+
+// 機器が動的経路（RIP・OSPF）で覚えた経路（show ip rip database・show ip route に使う）
+export const learnedRoutesOf = (net: Network, data: EngineData, uid: string, protocol: 'rip' | 'ospf'): Route[] => new Topology(net, data).routesOf(uid).filter((r) => r.protocol === protocol);

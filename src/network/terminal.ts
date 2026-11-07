@@ -8,7 +8,7 @@ import { isIp } from './terminalConfig';
 import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
-import { ospfNeighborsOf } from './netState';
+import { learnedRoutesOf, ospfNeighborsOf } from './netState';
 
 export interface TerminalContext {
   node: NetNode;
@@ -75,6 +75,11 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       if (node.gateway) lines.push(out(tr('ui.terminal.routeStatic', { dest: '0.0.0.0', prefix: 0, nextHop: node.gateway })));
       for (const r of node.routes) lines.push(out(tr('ui.terminal.routeStatic', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop })));
       return lines.length > 0 ? lines : [out(tr('ui.terminal.noRoute'))];
+    }
+    if (sub === 'ip rip database') {
+      const routes = learnedRoutesOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid, 'rip');
+      if (routes.length === 0) return [out(tr('ui.terminal.ripNone'))];
+      return routes.map((r) => out(tr('ui.terminal.ripRoute', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop })));
     }
     if (sub === 'ip ospf neighbor') {
       const neighbors = ospfNeighborsOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
@@ -162,6 +167,7 @@ const WORDS: Record<string, string[]> = {
   '': ['help', 'show', 'ping', 'traceroute', 'ip', 'no', 'hostname', 'clear'],
   show: ['ip', 'interfaces', 'running-config'],
   'show ip': ['route', 'ospf'],
+  'show ip rip': ['database'],
   'show ip ospf': ['neighbor'],
   ip: ['address', 'default-gateway', 'route'],
   no: ['ip', 'hostname'],
