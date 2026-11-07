@@ -2,7 +2,7 @@
 // L1（配線）→ L2（スイッチによるL2ドメイン）→ L3（IPアドレスとルーティング）の順に確認する。
 // 失敗理由は ID で返し、文言は言語ファイルで表示する。
 import { isFabricPort, isRelayPort, isRoutingCategory, ROUTER_SWITCH_LAN_HOST_PORT } from './category';
-import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, NetLink, NetNode, Network, PathResult } from './types';
+import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, NetLink, NetNode, Network, PathResult, PortConfig } from './types';
 import { CATEGORY } from '../data/categories';
 
 const MAX_HOPS = 16;
@@ -95,11 +95,38 @@ class Topology {
     return this.nodes.get(uid)?.interfaces.find((i) => i.port === port);
   }
 
-  // 端点と同じL2ドメインに属する機器の端点を集める。スイッチは中継するだけで、結果には含めない。
+  // 口の設定（PortConfig）。設定のない口は、VLAN 1 の access として動く（N137）
+  portCfg(uid: string, port: number): PortConfig | undefined {
+    return this.nodes.get(uid)?.ports?.find((p) => p.port === port);
+  }
+
+  // 口が停止しているか（shutdown）
+  isShut(uid: string, port: number): boolean {
+    return this.portCfg(uid, port)?.shutdown === true;
+  }
+
+  // 口に入るフレームの VLAN（access は設定の VLAN、trunk は untagged の native）
+  vlanOf(uid: string, port: number): number {
+    const cfg = this.portCfg(uid, port);
+    if (cfg?.mode === 'trunk') return cfg.native ?? 1;
+    return cfg?.vlan ?? 1;
+  }
+
+  // 口がその VLAN のフレームを通すか（access は同じ VLAN、trunk は許可された VLAN）
+  carries(uid: string, port: number, vlan: number): boolean {
+    const cfg = this.portCfg(uid, port);
+    // 設定のない口（機器の口）は、届いたフレームをそのまま受け取る
+    if (cfg === undefined) return true;
+    if (cfg.mode === 'trunk') return cfg.allowed === undefined || cfg.allowed.includes(vlan);
+    return (cfg.vlan ?? 1) === vlan;
+  }
+
+  // 端点と同じL2ドメインに属する機器の端点を集める（N137: VLAN ごとに、口の設定を見て広がる）。スイッチは中継するだけで、結果には含めない。
   domainOf(start: Endpoint): DomainResult {
     const members: Endpoint[] = [];
     const visited = new Set<string>();
-    const queue: Endpoint[] = [start];
+    const startVlan = this.vlanOf(start.node, start.port);
+    const queue: { ep: Endpoint; vlan: number }[] = [{ ep: start, vlan: startVlan }];
     // 同じL2ドメインの配線の数と機器の数。機器を頂点、配線を辺と見て、辺が頂点以上あれば輪になっている
     const cables = new Set<string>();
     const devices = new Set<string>();
@@ -107,29 +134,40 @@ class Topology {
     let tooLong: Endpoint | undefined;
 
     while (queue.length) {
-      const ep = queue.shift()!;
-      const k = key(ep);
+      const { ep, vlan } = queue.shift()!;
+      const k = `${key(ep)}@${vlan}`;
       if (visited.has(k)) continue;
       visited.add(k);
+      // 停止している口と、その VLAN を通さない口は、ドメインに入らない
+      if (this.isShut(ep.node, ep.port) || !this.carries(ep.node, ep.port, vlan)) continue;
       devices.add(ep.node);
 
-      if (!this.isRelay(ep.node, ep.port)) {
+      // 機器の口（設定なし）は、届いたフレームの VLAN に属する。設定のある access の口は、その VLAN の口だけ数える
+      const cfgMember = this.portCfg(ep.node, ep.port);
+      // 同じ機器の口は、VLAN が違っても1回だけ数える（ドメインの機器の一覧に重複させない）
+      if (!this.isRelay(ep.node, ep.port) && (cfgMember === undefined || this.vlanOf(ep.node, ep.port) === vlan) && !members.some((m) => key(m) === key(ep))) {
         members.push(ep);
       }
       if (this.isFabric(ep.node, ep.port)) relay ??= ep;
       const linked = this.linkAt(ep);
       if (linked) {
         const { link, peer } = linked;
-        cables.add(link.uid);
-        if (!tooLong && linkLength(link.path) > this.data.maxLengthOf(link.cable)) {
-          tooLong = ep;
+        // 相手が access の口なら、フレームはその口の VLAN になる（機器側の口には VLAN の設定がないため）
+        const cfgPeer = this.portCfg(peer.node, peer.port);
+        const peerVlan = cfgPeer?.mode === 'access' ? this.vlanOf(peer.node, peer.port) : vlan;
+        if (!this.isShut(peer.node, peer.port) && this.carries(peer.node, peer.port, peerVlan)) {
+          // 配線は、実際にたどったものだけを数える（輪の判定に使う）
+          cables.add(link.uid);
+          if (!tooLong && linkLength(link.path) > this.data.maxLengthOf(link.cable)) {
+            tooLong = ep;
+          }
+          queue.push({ ep: peer, vlan: peerVlan });
         }
-        queue.push(peer);
       }
-      // 機器の内部のスイッチに入ったら、同じスイッチにつながる口をすべてたどる
+      // 機器の内部のスイッチに入ったら、同じ VLAN を通す口をすべてたどる
       if (this.isFabric(ep.node, ep.port)) {
         for (const port of this.fabricBy.get(ep.node) ?? []) {
-          queue.push({ node: ep.node, port });
+          queue.push({ ep: { node: ep.node, port }, vlan });
         }
       }
     }
@@ -175,7 +213,11 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
   const srcIface = src.interfaces[0];
   if (!srcIface) return err(fail('ip.unset', src.uid));
   const srcEp: Endpoint = { node: src.uid, port: srcIface.port };
+  if (topo.isShut(src.uid, srcIface.port)) return err(fail('port.shutdown', src.uid));
   if (!topo.linkAt(srcEp)) return err(fail('link.unplugged', src.uid));
+  // 相手の口が停止していれば、その口で止まる（port.shutdown）
+  const srcPeer = topo.linkAt(srcEp)!.peer;
+  if (topo.isShut(srcPeer.node, srcPeer.port)) return err(fail('port.shutdown', srcPeer.node));
 
   const dstIface = dst.interfaces[0];
   if (!dstIface) return err(fail('ip.unset', dst.uid));

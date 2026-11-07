@@ -114,6 +114,10 @@ export interface EngineData {
 // 疎通の失敗の理由。文言は言語ファイルの error.<理由> と error.<理由>.fix に置く
 export const FAILURE_REASONS = [
   'link.unplugged',
+  // 口が停止している（shutdown・N137）
+  'port.shutdown',
+  // 口の VLAN が通らない（access と trunk の許可の不一致・N137）
+  'vlan.not_allowed',
   'link.too_long',
   'link.loop',
   'ip.unset',
