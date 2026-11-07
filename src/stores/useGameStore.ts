@@ -18,7 +18,7 @@ import { grantDailyExp, type ExpSource } from '../sim/companyExp';
 import { finishTrainings, startTraining as startTrainingOp, takeExam as takeExamOp, type TrainingEnv } from '../sim/training';
 import { certs as certRecord, training as trainingRecord } from 'virtual:game-data';
 import type { FirewallRule, NetLink, NetNode, Route } from '../network/types';
-import type { GameMode, SaveData } from '../services/migrations';
+import { DEFAULT_COMPANY_NAME, type GameMode, type SaveData } from '../services/migrations';
 import { resizeSandboxOffice, sandboxClock, sandboxOffice, sandboxTest } from '../sim/sandbox';
 import { gameEnv, isPcDevice } from '../sim/env';
 import { learnFromPing } from '../network/learn';
@@ -163,6 +163,8 @@ export interface GameState {
   planned: Record<string, PlannedNet>;
   // 遊び方（career は案件の経営ゲーム、sandbox は自由に設計する練習場）。セーブデータに入る
   mode: GameMode;
+  // 社名（N133）
+  name: string;
   clock: ClockState;
   companyExp: number;
   // 評判（★の数の積み上げ。解放の条件には使わない。N55）
@@ -404,7 +406,9 @@ export interface GameState {
   load: (save: SaveData) => void;
   snapshot: () => SaveData;
   // 最初から始める（資金・在庫・依頼などを初期状態に戻す）
-  newGame: () => void;
+  newGame: (name: string) => void;
+  // 社名を変える（前後の空白を除く。空なら変えない・N133）
+  renameCompany: (name: string) => void;
   // サンドボックスを新しく始める（案件・依頼・社員はなく、時間は止めたまま）
   // サンドボックスを新しく始める（大きさを省くと既定の大きさ）。資金・機器は捨てる
   newSandbox: (size?: OfficeSize) => void;
@@ -774,6 +778,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
   return {
     mode: 'career',
+    name: DEFAULT_COMPANY_NAME,
     clock: initialClock(balance),
     companyExp: 0,
     reputation: 0,
@@ -1461,6 +1466,7 @@ export const useGameStore = create<GameState>((set, get) => {
     load: (save) =>
       set({
         mode: save.mode,
+        name: save.name,
         clock: save.clock,
         companyExp: save.companyExp,
         reputation: save.reputation,
@@ -1496,10 +1502,15 @@ export const useGameStore = create<GameState>((set, get) => {
         historyError: null,
         windows: [],
       }),
-    newGame: () =>
+    renameCompany: (name) => {
+      const trimmed = name.trim();
+      if (trimmed !== '') set({ name: trimmed });
+    },
+    newGame: (name) =>
       set((s) => {
         const base: Partial<GameState> = {
           mode: 'career',
+          name,
           clock: initialClock(balance),
           companyExp: 0,
           reputation: 0,
@@ -1605,6 +1616,7 @@ export const useGameStore = create<GameState>((set, get) => {
       const s = get();
       return {
         mode: s.mode,
+        name: s.name,
         clock: s.clock,
         companyExp: s.companyExp,
         reputation: s.reputation,

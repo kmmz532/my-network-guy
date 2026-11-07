@@ -23,7 +23,12 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 41;
+export const SAVE_VERSION = 42;
+
+// 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
+export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
+// サンドボックスの社名の既定（N133）
+export const DEFAULT_SANDBOX_NAME = 'サンドボックス';
 
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
@@ -72,6 +77,8 @@ const withDefaultServices = (n: NetNode): NetNode => {
 export interface SaveData {
   // 遊び方（移行前のセーブデータは career）
   mode: GameMode;
+  // 社名（セーブの名前。経営の会社は必ず持つ・N133）
+  name: string;
   clock: { minute: number; money: number; paidMonths: number; bankrupt: boolean; ledger: LedgerMonth[] | null };
   companyExp: number;
   // 評判（★の数の積み上げ。解放の条件には使わない。N55）
@@ -236,6 +243,11 @@ export const migrations: Record<number, Migration> = {
     });
     return { ...d, active: d.active.map(withPaid), office: withPaid(d.office) };
   },
+  // v41 → v42: 社名（name）を足す。移行前のセーブは、既定の社名「パケットカンパニー」とする（N133）
+  41: (data) => {
+    const d = data as { mode: GameMode };
+    return { ...d, name: d.mode === 'sandbox' ? DEFAULT_SANDBOX_NAME : DEFAULT_COMPANY_NAME };
+  },
   // v40 → v41: 床の買い切りの記録（bought）を足す（N125）。移行前に使っていた床は、すでに払っているため購入済みとする（木は最初から購入済み）
   40: (data) => {
     const d = data as { office: Office };
@@ -373,7 +385,8 @@ export const isSaveData = (value: unknown): value is SaveData => {
     (clock.ledger === null || Array.isArray(clock.ledger)) &&
     Number.isInteger(clock.paidMonths) &&
     typeof clock.bankrupt === 'boolean' &&
-    Number.isInteger(v.companyExp) &&
+    typeof v.name === 'string' &&
+  Number.isInteger(v.companyExp) &&
     Number.isInteger(v.reputation) &&
     Number.isInteger(v.expDay) &&
     Number.isInteger(v.expToday) &&
@@ -408,7 +421,7 @@ export const isSaveData = (value: unknown): value is SaveData => {
   );
 };
 
-// 保存されたバージョンから現在のバージョンまで順に移行する
+
 export const migrate = (saveVersion: number, data: unknown): SaveData => {
   if (!Number.isInteger(saveVersion) || saveVersion < 1) throw new Error('セーブデータのバージョンが不正');
   if (saveVersion > SAVE_VERSION) throw new Error('このバージョンより新しいセーブデータは読み込めない');

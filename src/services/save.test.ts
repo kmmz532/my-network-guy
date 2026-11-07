@@ -24,6 +24,7 @@ const member = (uid: string): Staff => ({
 
 const sample: SaveData = {
   mode: 'career',
+  name: 'テスト社',
   clock: { minute: 720, money: 300000, paidMonths: 1, bankrupt: false, ledger: [] },
   companyExp: 2,
   reputation: 0,
@@ -530,5 +531,14 @@ describe('v39 → v40', () => {
     expect(out.active[0]).toMatchObject({ segments: {}, inheritedLinks: ['o0'] });
     expect(out.active[1]).toMatchObject({ segments: {}, inheritedLinks: [] });
     expect(out.office.segments).toEqual({});
+  });
+});
+
+describe('v41 → v42（社名）', () => {
+  const { name: _name, ...noName } = sample;
+
+  it('経営の移行前のセーブには「パケットカンパニー」、サンドボックスには「サンドボックス」を付ける', () => {
+    expect(migrate(41, { ...noName, mode: 'career' }).name).toBe('パケットカンパニー');
+    expect(migrate(41, { ...noName, mode: 'sandbox' }).name).toBe('サンドボックス');
   });
 });

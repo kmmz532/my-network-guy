@@ -7,8 +7,10 @@ import { PixiStage } from './game/PixiStage';
 import { useGameStore, type Speed } from './stores/useGameStore';
 import { useTickLoop } from './stores/useTickLoop';
 import { toDate } from './sim/clock';
-import { loadSlot, saveSlot } from './services/db';
-import { SAVE_SLOT, slotOf } from './services/slots';
+import { deleteSlot, listCompanies, moveLegacySlots, saveSlot } from './services/db';
+import { CompanyScreen, type CompanyView } from './components/CompanyScreen';
+import { copyNameOf, freeSlotOf, isNameTaken, isValidCompanyName, latestCompany, suggestCompanyName, uniqueNameFrom, type CompanySave } from './services/companies';
+import type { GameMode } from './services/migrations';
 import { createSaveQueue, isAutoSaveDue } from './services/autoSave';
 import { exportSave, importSave } from './services/saveFile';
 import { NoticeToast, ReportModal } from './components/Overlay';
@@ -87,6 +89,13 @@ export function App() {
   const lastSpeed = useRef(speed);
   // 自動保存の印を出している間だけ値を持つ（自動保存が終わった時刻）
   const [saveMark, setSaveMark] = useState<number | null>(null);
+  // 今遊んでいる会社の枠（経営もサンドボックスも、その会社の枠へ保存する・N133）
+  const slotRef = useRef<number | null>(null);
+  // 会社（セーブの枠）の画面。タイトル画面の上に出す（N132・N133）
+  const [companyView, setCompanyView] = useState<CompanyView | null>(null);
+  const [companyMode, setCompanyMode] = useState<GameMode>('career');
+  const [companies, setCompanies] = useState<CompanySave[]>([]);
+  const [companyNotice, setCompanyNotice] = useState('');
   // 自動保存の直列化。実行中に次の要求が来たら、終わってから1回だけ書く（書く内容は実行時点の状態）
   const [autoSaver] = useState(() =>
     createSaveQueue(async () => {
@@ -94,17 +103,19 @@ export function App() {
       if (useGameStore.getState().clock.bankrupt) return;
       try {
         const data = useGameStore.getState().snapshot();
-        // 遊び方ごとの枠に保存する（サンドボックスの自動保存で案件の枠を壊さない）
-        await saveSlot(slotOf(data.mode), data);
+        // 今遊んでいる会社の枠に保存する（会社ごとの枠なので、ほかの会社を壊さない）
+        if (slotRef.current !== null) await saveSlot(slotRef.current, data);
         setSaveMark(Date.now());
       } catch {
-        // 保存できなかったときは印を出さない
+        // 保存できなかったときは印を出さない。保存の失敗は知らせる（黙って続けない・N133）
+        setMessage(t('ui.save.failed'));
       }
     }),
   );
   const load = useGameStore((s) => s.load);
   const snapshot = useGameStore((s) => s.snapshot);
   const newGame = useGameStore((s) => s.newGame);
+  const renameCompany = useGameStore((s) => s.renameCompany);
   const newSandbox = useGameStore((s) => s.newSandbox);
   const resizeSandbox = useGameStore((s) => s.resizeSandbox);
   // サンドボックスの画面。速度のボタン・社員・依頼は出さない
@@ -176,7 +187,7 @@ export function App() {
     applyUiScale(loadSettings().uiScale);
     // 翻訳と、すべての地図を起動時に読み込んでから始める。依頼の判定は地図の読み込みに依存するため、読み込み中に判定させない
     const maps = Object.values(mapLoaders).map((load) => load().then((m) => cacheMap(m.default)));
-    Promise.all([loadLang('ja_jp'), ...maps]).then(() => setReady(true), (e: unknown) => setLoadError(e ?? new Error('読み込みに失敗')));
+    Promise.all([loadLang('ja_jp'), ...maps, moveLegacySlots()]).then(() => setReady(true), (e: unknown) => setLoadError(e ?? new Error('読み込みに失敗')));
   }, []);
 
   useEffect(() => {
@@ -224,6 +235,8 @@ export function App() {
 
   const startGame = () => {
     setMessage('');
+    // 保存を、ブラウザが勝手に消さないように頼む（断られても遊べる・N133）
+    void navigator.storage?.persist?.();
     // 時間を進める初期の速さは設定で決める
     // 解放されていない速さは、1倍にする（4倍は会社のレベル3で解放される・N99）
     const wanted = loadSettings().startSpeed;
@@ -231,26 +244,139 @@ export function App() {
     setScreen('game');
   };
 
-  const onNew = () => {
-    newGame();
+  // 会社の一覧を、遊び方ごとに読み直す
+  const refreshCompanies = async (mode: GameMode): Promise<CompanySave[]> => {
+    const list = await listCompanies(mode);
+    setCompanies(list);
+    return list;
+  };
+  const openCompanies = async (mode: GameMode, purpose: 'play' | 'overwrite') => {
+    setCompanyMode(mode);
+    setCompanyNotice('');
+    await refreshCompanies(mode);
+    setCompanyView({ kind: 'list', purpose });
+  };
+
+  // 会社を開いて遊ぶ（その会社の枠に保存し続ける）
+  const playSave = (save: CompanySave) => {
+    load(save.data);
+    slotRef.current = save.slot;
+    setCompanyView(null);
     startGame();
   };
 
+  // 新しく始める（経営）。空いた枠があれば社名を決めて始める。全部埋まっていれば、上書きする会社を選ばせる（N132）
+  const onNew = async () => {
+    setCompanyMode('career');
+    setCompanyNotice('');
+    const list = await refreshCompanies('career');
+    const free = freeSlotOf('career', list);
+    if (free !== null) setCompanyView({ kind: 'name', slot: free, suggested: suggestCompanyName('career', list), from: 'new' });
+    else setCompanyView({ kind: 'list', purpose: 'overwrite' });
+  };
+
+  // 「続きから」は、最後に保存した経営の会社を開く
   const onContinue = async () => {
-    const data = await loadSlot(SAVE_SLOT.career);
-    if (!data) return setMessage(t('ui.title.none'));
-    load(data);
+    const latest = latestCompany(await listCompanies('career'));
+    if (!latest) return setMessage(t('ui.title.none'));
+    playSave(latest);
+  };
+
+  const onCompanies = () => {
+    void openCompanies('career', 'play');
+  };
+
+  // サンドボックスは、保存があれば一覧を開き（「新しく作る」も一覧に置く）、なければ広さを選んで始める
+  const onSandbox = async () => {
+    setCompanyMode('sandbox');
+    const list = await refreshCompanies('sandbox');
+    if (list.length > 0) setCompanyView({ kind: 'list', purpose: 'play' });
+    else setSandboxPick(true);
+  };
+
+  // 広さを決めたサンドボックスは、社名を決めてから始める
+  const onSandboxSized = async () => {
+    setCompanyMode('sandbox');
+    const list = await refreshCompanies('sandbox');
+    const free = freeSlotOf('sandbox', list);
+    if (free === null) {
+      setCompanyView({ kind: 'list', purpose: 'overwrite' });
+      return;
+    }
+    setCompanyView({ kind: 'name', slot: free, suggested: suggestCompanyName('sandbox', list), from: 'new' });
+  };
+
+  // 一覧の「新しく作る」: 経営は社名、サンドボックスは広さを選ぶ
+  const onNewHere = () => {
+    setCompanyView(null);
+    if (companyMode === 'sandbox') setSandboxPick(true);
+    else void onNew();
+  };
+
+  // 社名を決めて始める。経営は新しい会社、サンドボックスは広さを決めた今の状態に社名を付ける
+  const startIn = async (slot: number, name: string) => {
+    const trimmed = name.trim();
+    if (companyMode === 'career') newGame(trimmed);
+    else renameCompany(trimmed);
+    slotRef.current = slot;
+    await saveSlot(slot, snapshot());
+    setCompanyView(null);
     startGame();
   };
 
-  // サンドボックスは、その枠に保存があれば続きから、なければ広さを選んで新しく始める
-  const onSandbox = async () => {
-    const data = await loadSlot(SAVE_SLOT.sandbox);
-    if (data) {
-      load(data);
-      startGame();
-    } else {
-      setSandboxPick(true);
+  // 社名を変える（同じ遊び方の中で、同じ名前は不可）
+  const renameSave = async (save: CompanySave, name: string) => {
+    const trimmed = name.trim();
+    if (!isValidCompanyName(trimmed)) return setCompanyNotice(t('ui.company.name.hint', { max: 12 }));
+    const list = await refreshCompanies(companyMode);
+    if (isNameTaken(trimmed, list.filter((s) => s.slot !== save.slot))) return setCompanyNotice(t('ui.company.name.taken'));
+    await saveSlot(save.slot, { ...save.data, name: trimmed });
+    await refreshCompanies(companyMode);
+    setCompanyNotice('');
+    setCompanyView({ kind: 'list', purpose: 'play' });
+  };
+
+  // 複製する（空いた枠に同じ会社を写し、社名に「（コピー）」を付ける）
+  const copySave = async (save: CompanySave) => {
+    const list = await refreshCompanies(companyMode);
+    const free = freeSlotOf(companyMode, list);
+    if (free === null) return setCompanyNotice(t('ui.company.copy.full'));
+    await saveSlot(free, { ...save.data, name: copyNameOf(save.data.name, list) });
+    await refreshCompanies(companyMode);
+    setCompanyNotice('');
+  };
+
+  // 書き出す（その会社1つをファイルに保存する）
+  const exportCompany = (save: CompanySave) => {
+    const blob = new Blob([exportSave(save.data)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${save.data.name}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  // 消す（元に戻せない）。今遊んでいる会社は、ここ（タイトル画面）からしか消せない
+  const removeSave = async (save: CompanySave) => {
+    await deleteSlot(save.slot);
+    await refreshCompanies(companyMode);
+    setCompanyNotice('');
+    setCompanyView({ kind: 'list', purpose: 'play' });
+  };
+
+  // ファイルから読み込む。同じ遊び方の会社だけ。空いた枠に入れ、同じ社名があれば番号を付ける
+  const importCompany = async (file: File) => {
+    try {
+      const data = importSave(await file.text());
+      if (data.mode !== companyMode) return setCompanyNotice(t('ui.company.import.mode'));
+      const list = await refreshCompanies(companyMode);
+      const free = freeSlotOf(companyMode, list);
+      if (free === null) return setCompanyNotice(t('ui.company.import.full'));
+      await saveSlot(free, { ...data, name: uniqueNameFrom(data.name, list) });
+      await refreshCompanies(companyMode);
+      setCompanyNotice('');
+    } catch (e) {
+      setCompanyNotice(t('ui.import.failed', { reason: (e as Error).message }));
     }
   };
 
@@ -264,12 +390,31 @@ export function App() {
             onClose={() => setSandboxPick(false)}
             submit={(size) => {
               newSandbox(size);
-              startGame();
+              setSandboxPick(false);
+              void onSandboxSized();
               return null;
             }}
           />
         )}
-        <TitleScreen onNew={onNew} onContinue={onContinue} onSandbox={onSandbox} message={message} />
+        <TitleScreen onNew={onNew} onContinue={onContinue} onCompanies={onCompanies} onSandbox={onSandbox} message={message} />
+        {companyView !== null && (
+          <CompanyScreen
+            view={companyView}
+            mode={companyMode}
+            saves={companies}
+            suggested={suggestCompanyName(companyMode, companies)}
+            notice={companyNotice}
+            onView={setCompanyView}
+            onPlay={playSave}
+            onStartIn={startIn}
+            onRename={renameSave}
+            onDuplicate={copySave}
+            onExport={exportCompany}
+            onDelete={removeSave}
+            onImport={importCompany}
+            onNewHere={onNewHere}
+          />
+        )}
       </>
     );
 
@@ -279,7 +424,7 @@ export function App() {
     // 倒産した後は保存しない（倒産の前の保存を上書きしない）
     if (useGameStore.getState().clock.bankrupt) return;
     const data = snapshot();
-    await saveSlot(slotOf(data.mode), data);
+    if (slotRef.current !== null) await saveSlot(slotRef.current, data);
     setMessage(t('ui.save.done'));
   };
 
