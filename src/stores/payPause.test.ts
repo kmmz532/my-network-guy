@@ -29,7 +29,7 @@ describe('給与を払えない月の対策', () => {
     expect(st().speed).toBe(0);
     expect(st().clock.minute).toBe(before);
     expect(st().clock.paidMonths).toBe(0);
-    expect(st().notice?.key).toBe('ui.notice.payPause');
+    expect(st().notices.map((n) => n.kind)).toContain('payPause');
     expect(st().payWarned).toBe(0);
   });
 

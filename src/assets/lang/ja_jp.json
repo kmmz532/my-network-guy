@@ -211,6 +211,7 @@
   "ui.notice.capReached": "雇える人数の上限（{cap}人）に達しました",
   "ui.notice.trained": "{name}が研修を終えました",
   "ui.notice.retired": "{name}が退職しました",
+  "ui.notice.close": "閉じる",
   "ui.notice.salary": "給与 -{amount} 円",
   "ui.notice.delegated": "任せた依頼が納品されました（+{money} 円）",
   "ui.notice.payPause": "来月の給与を払えないため、時間を止めました。",

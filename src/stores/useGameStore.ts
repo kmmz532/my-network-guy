@@ -26,6 +26,7 @@ import { rentalOf } from '../network/external';
 import { applyMoney, recordSaving } from '../sim/ledger';
 
 import { isSpeedUnlocked, unlockedSpeedsOf } from '../sim/speed';
+import { dismissNotice, openOf, promoteNotices, pushNotice, type NoticeItem } from '../ui/notices';
 import { cancelRetire as cancelRetireOp, noticeRetire as noticeRetireOp, settleRetirements } from '../sim/retire';
 import { accountingRate, backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, salesArrivalChance } from '../sim/backOffice';
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
@@ -237,9 +238,15 @@ export interface GameState {
   // 直近の検収結果（保存しない）
   lastReport: Report | null;
   dismissReport: () => void;
-  // 画面に出す通知（給与の支払いなど）。保存しない
-  notice: { key: string; params: Record<string, number>; id: number } | null;
-  dismissNotice: () => void;
+  // 画面に出す通知の列（給与の支払いなど。N96）。保存しない
+  notices: NoticeItem[];
+  // 通知を押して閉じる（開く画面があれば開く）
+  openNotice: (id: number) => void;
+  dismissNotice: (id: number) => void;
+  // 期限の過ぎた通知を消し、待っている通知を出す
+  tickNotices: () => void;
+  // 採用の画面を開く要求（押した数が増える。画面の部品が見て開く）
+  hiringRequest: number;
   // 設計の取り消しの履歴（案件ごと・自社オフィスごと）。保存しない
   histories: Record<string, History<DesignEntry>>;
   // 設計の操作を1つ元に戻す・やり直す（戻せなければ何もしない）
@@ -568,17 +575,17 @@ export const unlockItems: UnlockItem[] = [
 const SANDBOX_EXPAND_CONFIG = { ...balance.office, expand: { ...balance.office.expand, unlockLevels: [] } };
 
 // 任せた依頼の納品は、結果画面を出さずに通知で伝える。レベルアップしたときだけ結果画面を出す（レベルアップの報告を付ける）
-const withDelegatedNotice = (patch: Partial<GameState>): Partial<GameState> => {
+const withDelegatedNotice = (prev: GameState, patch: Partial<GameState>): Partial<GameState> => {
   const report = patch.lastReport;
   if (!report?.delegated || (report.levelUps ?? []).length > 0) return patch;
   return {
     ...patch,
     lastReport: null,
-    notice: { key: 'ui.notice.delegated', params: { money: report.money ?? 0 }, id: Date.now() },
+    notices: pushNotice(patch.notices ?? prev.notices, 'delegated', { money: report.money ?? 0 }, Date.now()),
   };
 };
 
-const withLevelUps = (prev: GameState, patch: Partial<GameState>): Partial<GameState> => withDelegatedNotice(attachLevelUps(prev, patch));
+const withLevelUps = (prev: GameState, patch: Partial<GameState>): Partial<GameState> => withDelegatedNotice(prev, attachLevelUps(prev, patch));
 
 const attachLevelUps = (prev: GameState, patch: Partial<GameState>): Partial<GameState> => {
   const report = patch.lastReport;
@@ -733,7 +740,7 @@ export const useGameStore = create<GameState>((set, get) => {
     // テストに合格していないと施工を依頼できない。案内を出し、テストのボタンを光らせる
     if (!r.ok && r.reason === 'untested') {
       const at = Date.now();
-      set({ lastError: r.reason, testNudge: at, notice: { key: 'ui.error.untested', params: {}, id: at } });
+      set({ lastError: r.reason, testNudge: at });
       return r.reason;
     }
     set({ traces: [] });
@@ -854,9 +861,23 @@ export const useGameStore = create<GameState>((set, get) => {
     pausedPrompt: false,
     maps: { hq: mapOfOffice(initialOffice(balance)) },
     lastReport: null,
-    notice: null,
+    notices: [],
+    hiringRequest: 0,
     dismissReport: () => set({ lastReport: null, showcase: null, traces: [] }),
-    dismissNotice: () => set({ notice: null }),
+    dismissNotice: (id) => set((s) => ({ notices: dismissNotice(s.notices, id) })),
+    tickNotices: () => set((s) => ({ notices: promoteNotices(s.notices, Date.now()) })),
+    openNotice: (id) => {
+      const item = get().notices.find((n) => n.id === id);
+      if (!item) return;
+      const open = openOf(item.kind);
+      const s = get();
+      if (open === 'funds') s.openWindow('funds', '');
+      else if (open === 'offers') s.openWindow('offers', '');
+      else if (open === 'staff' && typeof item.params.uid === 'string') s.openWindow('staff', item.params.uid);
+      else if (open === 'staff' || open === 'staffList') s.openWindow('staffList', '');
+      else if (open === 'hiring') set((st) => ({ hiringRequest: st.hiringRequest + 1 }));
+      set((st) => ({ notices: dismissNotice(st.notices, id) }));
+    },
     histories: {},
     undo: () => stepHistory('undo'),
     redo: () => stepHistory('redo'),
@@ -887,7 +908,6 @@ export const useGameStore = create<GameState>((set, get) => {
           traces: sr.traces,
           check: { projectId: 'hq', goals: sr.goals },
           helpUid: null,
-          notice: { key: sr.passed ? 'ui.sandbox.testOk' : 'ui.sandbox.testNg', params: {}, id: Date.now() },
         });
         return null;
       }
@@ -1024,7 +1044,7 @@ export const useGameStore = create<GameState>((set, get) => {
           s.clock.minute + balance.time.gameMinutesPerTick >= payday &&
           s.clock.money < totalSalary(s.staff, balance.nightPayRate)
         ) {
-          return { speed: 0, payWarned: s.clock.paidMonths, notice: { key: 'ui.notice.payPause', params: {}, id: Date.now() } };
+          return { speed: 0, payWarned: s.clock.paidMonths, notices: pushNotice(s.notices, 'payPause', {}, Date.now()) };
         }
         const ticked = advanceTick(s.clock, balance, totalSalary(s.staff, balance.nightPayRate));
         // 貸し出しの収入（日が替わるたびに、その日の分を受け取る。障害の日は入らない）。月末に漏れがあれば評判が1下がる
@@ -1075,7 +1095,7 @@ export const useGameStore = create<GameState>((set, get) => {
           });
           next = {
             ...next,
-            notice: { key: 'ui.notice.salary', params: { amount }, id: Date.now() },
+            notices: pushNotice(next.notices ?? s.notices, 'salary', { amount }, Date.now()),
             candidates: rolled.candidates,
             hiringWish: null,
             rng: rolled.rng,
@@ -1493,7 +1513,7 @@ export const useGameStore = create<GameState>((set, get) => {
           pausedPrompt: false,
           lastReport: null,
           lastError: null,
-          notice: null,
+          notices: [],
           flash: null,
           traces: [],
           showcase: null,

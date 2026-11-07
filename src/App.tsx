@@ -113,6 +113,13 @@ export function App() {
   // 社員の人数。雇えなかった理由をHUDに出す
   const [hiring, setHiring] = useState(false);
   const [hiringTab, setHiringTab] = useState<HiringTab>('hiring');
+  // 通知の「採用」から開く要求（N96）
+  const hiringRequest = useGameStore((s) => s.hiringRequest);
+  useEffect(() => {
+    if (hiringRequest === 0) return;
+    setHiringTab('hiring');
+    setHiring(true);
+  }, [hiringRequest]);
   const openWindow = useGameStore((s) => s.openWindow);
   const cacheMap = useGameStore((s) => s.cacheMap);
   // インベントリの開け閉め（ツールバーと E キーで使う）。スマホは帯（この状態）、パソコンはウィンドウ（ウィンドウの一覧）で持つ

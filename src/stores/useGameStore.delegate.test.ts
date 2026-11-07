@@ -133,7 +133,7 @@ describe('型紙なしで任せる', () => {
     expect(st().active.length).toBe(0);
     expect(st().deliveries).toBe(1);
     expect(st().lastReport).toBeNull();
-    expect(st().notice?.key).toBe('ui.notice.delegated');
+    expect(st().notices.map((n) => n.kind)).toContain('delegated');
     expect(st().clock.money).not.toBe(money);
   });
 

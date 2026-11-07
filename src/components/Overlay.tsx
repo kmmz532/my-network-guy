@@ -7,11 +7,11 @@ import { Icon } from './Icon';
 import { ItemCards, unlockNameOf } from './UnlockList';
 import { Modal, primaryButton } from './Modal';
 import { RADIUS } from '../ui/theme';
+import { openOf, visibleNotices } from '../ui/notices';
 
 // 既存の import 先（modalBack・modalBox）を保つため、部品の定義は Modal.tsx にあり、ここから出す
 export { modalBack, modalBox } from './Modal';
 
-const NOTICE_MS = 3000;
 // 納品の結果は、パケットが流れ切ってから出す
 const REPORT_DELAY_MS = 1500;
 
@@ -155,46 +155,63 @@ export function ReportModal() {
   );
 }
 
-// 画面の上に短く通知を出す（給与の支払いなど）
+// 画面の上に通知を縦に重ねて出す（給与の支払いなど。最大3件・N96）。開く画面がある通知は押せる
 export function NoticeToast() {
-  const notice = useGameStore((s) => s.notice);
-  const dismiss = useGameStore((s) => s.dismissNotice);
-  const openWindow = useGameStore((s) => s.openWindow);
-  // 給与を払えない月の知らせは、資金の画面を開けるように、自分では消えない（押して閉じる）
-  const stays = notice?.key === 'ui.notice.payPause';
+  const notices = useGameStore((s) => s.notices);
+  const openNotice = useGameStore((s) => s.openNotice);
+  const dismissNotice = useGameStore((s) => s.dismissNotice);
+  const tickNotices = useGameStore((s) => s.tickNotices);
+  // 期限を見る（表示の時間が過ぎたものを消し、待っているものを出す）
   useEffect(() => {
-    if (!notice || stays) return;
-    const id = window.setTimeout(dismiss, NOTICE_MS);
-    return () => window.clearTimeout(id);
-  }, [notice, stays, dismiss]);
-  if (!notice) return null;
+    if (notices.length === 0) return;
+    const id = window.setInterval(tickNotices, 250);
+    return () => window.clearInterval(id);
+  }, [notices.length, tickNotices]);
+  const visible = visibleNotices(notices);
+  if (visible.length === 0) return null;
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 48,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        background: 'rgba(47, 79, 143, 0.95)',
-        color: '#ffd866',
-        padding: '6px 14px',
-        borderRadius: RADIUS.chrome,
-        zIndex: 9,
-        zoom: 'var(--ui-scale, 1)',
-      }}
-    >
-      {tDyn(notice.key, notice.params)}
-      {stays && (
-        <button
-          onClick={() => {
-            openWindow('funds', '');
-            dismiss();
-          }}
-          style={{ marginLeft: 10, background: '#ffd866', color: '#3b2a33', border: 'none', padding: '2px 8px', cursor: 'pointer', fontWeight: 'bold' }}
-        >
-          {t('ui.funds.open')}
-        </button>
-      )}
+    <div style={{ position: 'absolute', top: 48, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', gap: 4, zIndex: 9, zoom: 'var(--ui-scale, 1)' }}>
+      {visible.map((n) => {
+        const pressable = openOf(n.kind) !== null;
+        return (
+          <div
+            key={n.id}
+            onClick={() => (pressable ? openNotice(n.id) : undefined)}
+            style={{
+              background: 'rgba(47, 79, 143, 0.95)',
+              color: '#ffd866',
+              padding: '6px 14px',
+              borderRadius: RADIUS.chrome,
+              cursor: pressable ? 'pointer' : 'default',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {tDyn(`ui.notice.${n.kind}`, n.params)}
+            {n.kind === 'payPause' ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openNotice(n.id);
+                }}
+                style={{ marginLeft: 10, background: '#ffd866', color: '#3b2a33', border: 'none', padding: '2px 8px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                {t('ui.funds.open')}
+              </button>
+            ) : (
+              <button
+                aria-label={t('ui.notice.close')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dismissNotice(n.id);
+                }}
+                style={{ marginLeft: 10, background: 'transparent', color: '#f4f1e6', border: 'none', cursor: 'pointer' }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
