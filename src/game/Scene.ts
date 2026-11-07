@@ -374,7 +374,8 @@ export class Scene {
     box.on('pointermove', (e) => {
       if (!this.wireFrom && !this.pan && !this.press) e.stopPropagation();
     });
-    this.content.addChild(box);
+    // 拡張のボタンは吹き出しの下に置く（吹き出しの文字を隠さない・B5）。吹き出しより後に足すと上に出るため、吹き出しの位置に差し込む
+    this.content.addChildAt(box, this.content.getChildIndex(this.bubbles));
     return box;
   }
 
