@@ -1,13 +1,13 @@
 import { EMPTY_FAMILIARITY } from './familiar';
 import { describe, expect, it } from 'vitest';
 import type { GameMap } from '../data/schema';
+import { assignDesks, freeDesks, furnitureBonus, hire, moveFurniture, placeFurniture, removeFurniture, seatedStaff, type BonusEnv } from './furniture';
 import type { NetNode } from '../network/types';
-import { assignDesks, freeDesks, furnitureBonus, hire, placeFurniture, removeFurniture, seatedStaff, type BonusEnv } from './furniture';
 import balanceJson from '../assets/data/balance.json';
 import furnitureJson from '../assets/data/furniture.json';
 import type { Balance, Furniture } from '../data/schema';
 import { createStaff } from './staff';
-import { emptyOffice, noEffects, placeInOffice, type Core, type Env } from './project';
+import { emptyOffice, noEffects, placeInOffice, type Core, type Env, type Office } from './project';
 
 // 1行目は床・2行目の(1,1)は壁。机は(1,0)に置いておく
 const map = {
@@ -177,7 +177,7 @@ describe('社員を雇う', () => {
 
 describe('家具の補正', () => {
   const defs = Object.fromEntries(furnitureJson.furniture.map((f) => [f.id, f as unknown as Furniture]));
-  const env: BonusEnv = { defs, balance: balanceJson as unknown as Balance, staff: [{ uid: 's0', desk: 'desk' }] };
+  const env: BonusEnv = { defs, balance: balanceJson as unknown as Balance, staff: [{ uid: 's0', desk: 'desk' }], pcDesks: [] };
   const withFurniture = (items: { id: string; x: number; y: number }[]) => ({
     ...emptyOffice({ w: 5, h: 5 }),
     furniture: [{ uid: 'desk', id: 'desk', x: 5, y: 5 }, ...items.map((f, i) => ({ uid: `f${i}`, ...f }))],
@@ -241,5 +241,40 @@ describe('社員ごとの机（A: 辞めた社員の机は空いたままにす�
   it('机のない社員は、空いている机を並び順に割り当てる（ゲームの開始・移行）', () => {
     const assigned = assignDesks([seat('s0', null), seat('s1', null), seat('s2', null)], office, isSeat);
     expect(assigned.map((s) => s.desk)).toEqual(['f0', 'f1', null]);
+  });
+});
+
+describe('座っている机の移動（N103）', () => {
+  // 床だけの地図（7×5）と、(2,2) の机の上の PC
+  const map = { id: 'hq', width: 7, height: 5, tileSize: 32, floor: 'wood', legend: { '.': 'floor' }, tiles: ['.......', '.......', '.......', '.......', '.......'] } as unknown as GameMap;
+  const desk = { uid: 'd0', id: 'desk', x: 2, y: 2 };
+  const pc = { uid: 'n0', device: 'pc_basic', x: 2, y: 2 } as unknown as NetNode;
+  const other = { uid: 'n1', device: 'pc_basic', x: 5, y: 4 } as unknown as NetNode;
+  const link = (uid: string, a: string, b: string, path: [number, number][]) => ({ uid, cable: 'utp', a: { node: a, port: 0 }, b: { node: b, port: 0 }, path });
+  const withOffice = (over: Partial<Office>) => ({ ...core().office, furniture: [desk], furnitureSeq: 1, nodes: [] as NetNode[], links: [], ...over }) as Office;
+
+  it('机の上の PC は、机と一緒に動く', () => {
+    const out = moveFurniture({ ...core(), office: withOffice({ nodes: [pc] }) }, 'd0', 3, 2, map);
+    expect(out.ok).toBe(true);
+    if (!out.ok) return;
+    expect(out.core.office.furniture[0]).toMatchObject({ x: 3, y: 2 });
+    expect(out.core.office.nodes[0]).toMatchObject({ x: 3, y: 2 });
+  });
+
+  it('机につながるケーブルは、動いた機器から、もう一方の機器まで道筋を引き直す', () => {
+    const office = withOffice({ nodes: [pc, { ...other, x: 2, y: 3 }], links: [link('l0', 'n0', 'n1', [[2, 2], [2, 3]])] });
+    const out = moveFurniture({ ...core(), office } as Core, 'd0', 4, 2, map);
+    expect(out.ok).toBe(true);
+    if (!out.ok) return;
+    const path = out.core.office.links[0].path;
+    expect(path[0]).toEqual([4, 2]);
+    expect(path[path.length - 1]).toEqual([2, 3]);
+  });
+
+  it('道筋が引けなければ、机は動かせない（tile）', () => {
+    // もう一方の機器（1,1）は、四方を家具で囲まれている（道がない）
+    const fence = [{ uid: 'f1', id: 'plant', x: 0, y: 1 }, { uid: 'f2', id: 'plant', x: 2, y: 1 }, { uid: 'f3', id: 'plant', x: 1, y: 0 }, { uid: 'f4', id: 'plant', x: 1, y: 2 }];
+    const office = withOffice({ furniture: [desk, ...fence], furnitureSeq: 5, nodes: [pc, { ...other, x: 1, y: 1 }], links: [link('l0', 'n0', 'n1', [[2, 2], [1, 2], [1, 1]])] });
+    expect(reasonOf(moveFurniture({ ...core(), office } as Core, 'd0', 4, 2, map))).toBe('tile');
   });
 });

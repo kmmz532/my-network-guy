@@ -51,6 +51,7 @@ describe('施工力', () => {
     defs: Object.fromEntries(furnitureJson.furniture.map((f) => [f.id, f as unknown as Furniture])),
     balance,
     staff: [{ uid: 's0', desk: 'd' }],
+    pcDesks: [],
   };
   const worker = (level: number, job: Staff['job'] = 'network'): Staff => ({
     uid: 's0', shift: 'day' as const,

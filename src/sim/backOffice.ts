@@ -18,9 +18,21 @@ export const effectiveLevelOf = (s: Staff, office: Office, env: BonusEnv): numbe
   return s.level * seatFactor * (1 + bonus.power);
 };
 
-// 職種の内勤の実効 level の合計 P（日勤のみ。席がなければ席の係数で下がる）
+// 社員の机に PC があるか（N102）
+export const hasPcAt = (s: Staff, env: BonusEnv): boolean => s.desk !== null && env.pcDesks.includes(s.desk);
+
+// 内勤の効果に数える寄与（N102）。日勤で研修中でないことが前提。
+// 人事・経理は PC のある机の社員だけ。営業は PC がなくても数え、PC があると効果が deskPc.salesMultiplier 倍になる
+export const backOfficeContributionOf = (s: Staff, office: Office, env: BonusEnv): number => {
+  if (!countsForBackOffice(s)) return 0;
+  if (s.job === 'sales') return effectiveLevelOf(s, office, env) * (hasPcAt(s, env) ? env.balance.deskPc.salesMultiplier : 1);
+  if (s.job === 'hr' || s.job === 'accounting') return hasPcAt(s, env) ? effectiveLevelOf(s, office, env) : 0;
+  return 0;
+};
+
+// 職種の内勤の実効 level の合計 P（日勤のみ。席がなければ席の係数で下がる。PC の有無も数える・N102）
 export const backOfficeP = (staff: readonly Staff[], job: JobId, office: Office, env: BonusEnv): number =>
-  staff.reduce((sum, s) => (s.job === job && countsForBackOffice(s) ? sum + effectiveLevelOf(s, office, env) : sum), 0);
+  staff.reduce((sum, s) => (s.job === job ? sum + backOfficeContributionOf(s, office, env) : sum), 0);
 
 // 経理の割引率（購入の価格を安くする割合。上限 maxRate）
 export const accountingRate = (P: number, balance: Balance): number =>

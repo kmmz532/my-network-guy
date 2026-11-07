@@ -32,3 +32,6 @@ export const gameEnv: Env = {
     maxLengthOf: (cable) => cables[cable]?.maxLengthTiles ?? 0,
   },
 };
+
+// 機器の種類が PC かどうか（N102）
+export const isPcDevice = (device: string): boolean => gameEnv.devices[device]?.category === 'pc';

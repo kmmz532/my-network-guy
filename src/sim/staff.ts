@@ -1,10 +1,10 @@
 // 社員の生成（STAFF.md「1. 社員のデータ」）。名前・見た目・口癖は乱数の状態から選ぶ。能力の計算は後の段階で加える
 import type { Balance, JobId, Staff } from '../data/schema';
-import { JOB_IDS, STAFF_LOOKS } from '../data/schema';
+import { ENGINEER_JOB_IDS, JOB_IDS, STAFF_LOOKS } from '../data/schema';
 import type { Core, Office, Outcome, Project } from './project';
 import { minutesPerDay } from './clock';
 import { furnitureBonus, seatOf, type BonusEnv } from './furniture';
-import { isBackOffice } from './backOffice';
+import { hasPcAt, isBackOffice } from './backOffice';
 import { randInt } from './rng';
 
 // 名前の候補（言語ファイルの staff.name.0 〜 staff.name.59）の数
@@ -82,7 +82,10 @@ export const staffPower = (staff: Staff, requires: readonly JobId[] | undefined,
   const bonus = furnitureBonus(office, staff.uid, env);
   const seated = seatOf(office, staff.desk, env.defs) !== null;
   const seatFactor = seated ? 1 : bonus.seatless;
-  return staff.level * jobFactor * seatFactor * (1 + bonus.power);
+  // 現場のエンジニア（システムエンジニア以外）は、机に PC があると施工力が上がる（図面・手順書の準備・N102）
+  const fieldEngineer = (ENGINEER_JOB_IDS as readonly string[]).includes(staff.job) && staff.job !== 'dev';
+  const pcFactor = fieldEngineer && hasPcAt(staff, env) ? 1 + env.balance.deskPc.engineerPowerBonus : 1;
+  return staff.level * jobFactor * seatFactor * (1 + bonus.power) * pcFactor;
 };
 
 // 経験値を与える。expPerLevel × level に達したら level を上げ、余りは繰り越す

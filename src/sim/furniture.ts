@@ -2,6 +2,8 @@
 import type { Balance, Furniture, GameMap, Staff } from '../data/schema';
 import { DESK_ID, emptyOffice, officeLocked, type Core, type Office, type Outcome } from './project';
 import { tileKind } from '../data/tileKind';
+import type { NetLink, NetNode } from '../network/types';
+import cablesData from '../assets/data/cables.json';
 
 const fail = (reason: string): Outcome => ({ ok: false, reason });
 
@@ -46,15 +48,78 @@ export const moveFurniture = (core: Core, uid: string, x: number, y: number, map
   if (tileKind(map, x, y) !== 'floor') return fail('tile');
   if (office.furniture.some((f) => f.uid !== uid && f.x === x && f.y === y)) return fail('tile');
   if (office.nodes.some((n) => n.x === x && n.y === y)) return fail('tile');
-  if (office.nodes.some((n) => n.x === target.x && n.y === target.y)) return fail('occupied');
+  // 机の上の機器（PC など）は、机と一緒に動く（N103）。つながっているケーブルは、動いた機器からもう一方の機器まで道筋を引き直す
+  const dx = x - target.x;
+  const dy = y - target.y;
+  const riding = new Set(office.nodes.filter((n) => n.x === target.x && n.y === target.y).map((n) => n.uid));
+  const movedNode = (n: NetNode): { x: number; y: number } => (riding.has(n.uid) ? { x: n.x + dx, y: n.y + dy } : { x: n.x, y: n.y });
+  const nodeAt = new Map(office.nodes.map((n) => [n.uid, movedNode(n)] as const));
+  // 動いたあとの、置けないマス（机・機器。動かす机は新しい場所）
+  const blocked = (px: number, py: number): boolean =>
+    (px === x && py === y) ||
+    office.furniture.some((f) => f.uid !== uid && f.x === px && f.y === py) ||
+    office.nodes.some((n) => !riding.has(n.uid) && n.x === px && n.y === py);
+  const links: NetLink[] = [];
+  for (const l of office.links) {
+    if (!riding.has(l.a.node) && !riding.has(l.b.node)) {
+      links.push(l);
+      continue;
+    }
+    const from = nodeAt.get(l.a.node);
+    const to = nodeAt.get(l.b.node);
+    if (!from || !to) return fail('linked');
+    const path = routeFloor(map, from, to, blocked);
+    if (path === null) return fail('tile');
+    const max = cablesMaxTiles(l.cable);
+    if (max !== undefined && path.length - 1 > max) return fail('cableTooLong');
+    links.push({ ...l, path });
+  }
   return {
     ok: true,
     core: {
       ...core,
-      office: { ...office, furniture: office.furniture.map((f) => (f.uid === uid ? { ...f, x, y } : f)) },
+      office: {
+        ...office,
+        furniture: office.furniture.map((f) => (f.uid === uid ? { ...f, x, y } : f)),
+        nodes: office.nodes.map((n) => (riding.has(n.uid) ? { ...n, x: n.x + dx, y: n.y + dy } : n)),
+        links,
+      },
     },
   };
 };
+
+// 床の上の最短の道筋（4方向）。始点と終点を含む。通れない場所（blocked）と床でないマスは通らない。道がなければ null
+const routeFloor = (map: GameMap, from: { x: number; y: number }, to: { x: number; y: number }, blocked: (x: number, y: number) => boolean): [number, number][] | null => {
+  const key = (px: number, py: number) => `${px},${py}`;
+  const prev = new Map<string, string | null>([[key(from.x, from.y), null]]);
+  const queue: [number, number][] = [[from.x, from.y]];
+  const goal = key(to.x, to.y);
+  for (let i = 0; i < queue.length; i++) {
+    const [cx, cy] = queue[i];
+    if (key(cx, cy) === goal) break;
+    for (const [dx2, dy2] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      const nx = cx + dx2;
+      const ny = cy + dy2;
+      const k = key(nx, ny);
+      if (prev.has(k)) continue;
+      if (nx < 0 || ny < 0 || nx >= map.width || ny >= map.height) continue;
+      if (tileKind(map, nx, ny) !== 'floor') continue;
+      if (k !== goal && blocked(nx, ny)) continue;
+      prev.set(k, key(cx, cy));
+      queue.push([nx, ny]);
+    }
+  }
+  if (!prev.has(goal)) return null;
+  const path: [number, number][] = [];
+  for (let k: string | null | undefined = goal; k; k = prev.get(k)) {
+    const [px, py] = k.split(',').map(Number);
+    path.unshift([px, py]);
+  }
+  return path;
+};
+
+// ケーブルの種類の最大の長さ（マス）。種類がなければ undefined
+const cablesMaxTiles = (cable: string): number | undefined => (cablesData.cables as { id: string; maxLengthTiles: number }[]).find((c) => c.id === cable)?.maxLengthTiles;
 
 // 自社オフィスの家具を撤去する（在庫に戻る）。机の上にPCがあるときは撤去できない
 export const removeFurniture = (core: Core, uid: string): Outcome => {
@@ -142,7 +207,13 @@ export interface BonusEnv {
   defs: Record<string, Furniture>;
   balance: Balance;
   staff: readonly { uid: string; desk: string | null }[];
+  // PC（機器の種類が pc）が置かれている机（家具の uid）。PC の有無で社内の職種の働きが変わる（N102）
+  pcDesks: readonly string[];
 }
+
+// PC が置かれている家具（机）の uid（N102）。isPc は機器の種類が PC かを返す
+export const pcDesksOf = (office: Office, isPc: (device: string) => boolean): string[] =>
+  office.furniture.filter((f) => office.nodes.some((n) => n.x === f.x && n.y === f.y && isPc(n.device))).map((f) => f.uid);
 
 // 社員1人の家具の補正。机の位置から範囲（チェビシェフ距離）を測る。同じ家具IDは1つ分だけ数える
 export const furnitureBonus = (office: Office, staffUid: string, env: BonusEnv): StaffBonus => {

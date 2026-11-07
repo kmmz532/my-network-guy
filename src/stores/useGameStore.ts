@@ -20,10 +20,11 @@ import { certs as certRecord, training as trainingRecord } from 'virtual:game-da
 import type { FirewallRule, NetLink, NetNode, Route } from '../network/types';
 import type { GameMode, SaveData } from '../services/migrations';
 import { resizeSandboxOffice, sandboxClock, sandboxOffice, sandboxTest } from '../sim/sandbox';
-import { gameEnv } from '../sim/env';
+import { gameEnv, isPcDevice } from '../sim/env';
 import { learnFromPing } from '../network/learn';
 import { rentalOf } from '../network/external';
 import { applyMoney, recordSaving } from '../sim/ledger';
+
 import { isSpeedUnlocked, unlockedSpeedsOf } from '../sim/speed';
 import { cancelRetire as cancelRetireOp, noticeRetire as noticeRetireOp, settleRetirements } from '../sim/retire';
 import { accountingRate, backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, salesArrivalChance } from '../sim/backOffice';
@@ -52,8 +53,7 @@ import {
   initialOffice,
   placeFurniture as placeFurnitureOp,
   moveFurniture as moveFurnitureOp,
-  removeFurniture as removeFurnitureOp,
-} from '../sim/furniture';
+  removeFurniture as removeFurnitureOp, pcDesksOf } from '../sim/furniture';
 import {
   type PortChoice,
   type RoomId,
@@ -434,7 +434,7 @@ export const focusedProject = (s: { active: Project[]; focus: string | null }): 
 // 機器を編集できる対象の機器と配線（自社オフィス、または設計中の案件）。編集できなければ null
 // 営業の効果（1日に依頼が届く確率と、報酬の高い依頼の重み。内勤の実効 level の合計で決まる）
 const salesEffectsOf = (s: { staff: Staff[]; office: Office }): OfferEffects => {
-  const P = backOfficeP(s.staff, 'sales', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff });
+  const P = backOfficeP(s.staff, 'sales', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff, pcDesks: pcDesksOf(s.office, isPcDevice) });
   return { arrivalChance: salesArrivalChance(P, balance), rewardWeight: P * balance.backOffice.sales.rewardWeightPerLevel };
 };
 
@@ -464,7 +464,7 @@ const salesArrivalPatch = (s: GameState, days: number): Partial<GameState> => {
 
 // 購入の割引（経理の効果。内勤の実効 level の合計で決まる）
 export const purchaseDiscountOf = (s: { staff: Staff[]; office: Office }): number =>
-  accountingRate(backOfficeP(s.staff, 'accounting', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff }), balance);
+  accountingRate(backOfficeP(s.staff, 'accounting', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff, pcDesks: pcDesksOf(s.office, isPcDevice) }), balance);
 
 export const editNetOf = (s: GameState): { nodes: NetNode[]; links: NetLink[] } | null => {
   if (s.active.length === 0 && !s.showcase) return { nodes: s.office.nodes, links: s.office.links };
@@ -1034,13 +1034,26 @@ export const useGameStore = create<GameState>((set, get) => {
         const rentedClock = rent !== null && rent.daily > 0 ? applyMoney(ticked, rent.daily * days, 'rental') : ticked;
         // システムエンジニアは、担当でない日に開発の収入を得る（担当の日は施工の経験値）
         const crewUids = new Set(s.active.flatMap((p) => p.crew));
-        const devIdle = days > 0 && s.mode === 'career' ? s.staff.filter((m) => m.job === 'dev' && m.training === null && !crewUids.has(m.uid)) : [];
+        // 机の上の PC（N102）。システムエンジニア・人事・経理は、自分の机に PC がないと働けない（収入・経験値・効果が出ない）
+        const pcDesks = pcDesksOf(s.office, isPcDevice);
+        const hasPc = (m: Staff): boolean => m.desk !== null && pcDesks.includes(m.desk);
+        const devIdle = days > 0 && s.mode === 'career' ? s.staff.filter((m) => m.job === 'dev' && m.training === null && !crewUids.has(m.uid) && hasPc(m)) : [];
         const devIncome = devIdle.reduce((sum, m) => sum + devDailyIncome(m, balance) * days, 0);
         const clock = devIncome > 0 ? applyMoney(rentedClock, devIncome, 'dev') : rentedClock;
         // 内勤は、出勤した日ごとに経験値を得る（施工の経験値は得ない）。日が替わるたびに受け取る
         // 内勤と、担当でない日のシステムエンジニアは、日ごとに経験値を得る
         const devIdleUids = new Set(devIdle.map((m) => m.uid));
-        const backOfficeStaff = days > 0 && s.mode === 'career' ? s.staff.map((m) => (devIdleUids.has(m.uid) || (isBackOffice(m.job) && m.shift === 'day' && m.training === null) ? gainExp(m, balance.backOffice.dailyExp * days, balance.staff.expPerLevel) : m)) : s.staff;
+        // 日ごとの経験値（N102）: 内勤は出勤した日（営業はPCがなくても、人事・経理とシステムエンジニアは PC のある机のみ）。現場のエンジニアは、担当でない日に PC があれば自習で少し
+        const dailyExpOf = (m: Staff): number | null => {
+          if (devIdleUids.has(m.uid)) return balance.backOffice.dailyExp * days;
+          if (isBackOffice(m.job)) return m.shift === 'day' && m.training === null && (m.job === 'sales' || hasPc(m)) ? balance.backOffice.dailyExp * days : null;
+          if (m.job !== 'dev' && m.training === null && !crewUids.has(m.uid) && hasPc(m)) return balance.backOffice.dailyExp * balance.deskPc.engineerDailyExpRate * days;
+          return null;
+        };
+        const backOfficeStaff = days > 0 && s.mode === 'career' ? s.staff.map((m) => {
+          const exp = dailyExpOf(m);
+          return exp === null ? m : gainExp(m, exp, balance.staff.expPerLevel);
+        }) : s.staff;
         let next: Partial<GameState> = {
           clock,
           ...(rent?.penalty && months > 0 ? { reputation: Math.max(0, s.reputation - months) } : {}),
@@ -1048,7 +1061,7 @@ export const useGameStore = create<GameState>((set, get) => {
         };
         // 月末に給与を払ったら知らせる
         // 人事の効果（候補・研修・新人の施工）の大きさ。内勤の実効 level の合計
-        const hrP = backOfficeP(s.staff, 'hr', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff });
+        const hrP = backOfficeP(s.staff, 'hr', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff, pcDesks: pcDesksOf(s.office, isPcDevice) });
         if (clock.paidMonths > s.clock.paidMonths) {
           const amount = totalSalary(s.staff, balance.nightPayRate);
           // 退職の予定の社員は、今月末で退職する（退職金を払い、一覧から外す。今月の給与は上で払い済み・N90）
@@ -1224,7 +1237,7 @@ export const useGameStore = create<GameState>((set, get) => {
     },
     setHiringWish: (job) => {
       const s = get();
-      const hrP = backOfficeP(s.staff, 'hr', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff });
+      const hrP = backOfficeP(s.staff, 'hr', s.office, { defs: gameEnv.furniture ?? {}, balance, staff: s.staff, pcDesks: pcDesksOf(s.office, isPcDevice) });
       if (hrP <= 0) return 'ui.error.hr';
       set({ hiringWish: job });
       return null;

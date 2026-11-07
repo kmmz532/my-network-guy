@@ -1,10 +1,11 @@
+import { pcDesksOf } from '../sim/furniture';
 // 依頼カード。タイトル1行と、PC台数・予算・報酬のアイコンで表す。受注するときに担当の社員を選ぶ
 import { offerNodeName } from './nodeLabel';
 import { useEffect, useState } from 'react';
 import { balance, devices } from 'virtual:game-data';
 import { hasKey, t, tDyn } from '../i18n/t';
 import { goalText } from './goalText';
-import { gameEnv } from '../sim/env';
+import { gameEnv, isPcDevice } from '../sim/env';
 import { offerHintOf, useGameStore } from '../stores/useGameStore';
 import type { Offer } from '../contracts/template';
 import { dangerButton, primaryButton, secondaryButton, usePrimary } from './Modal';
@@ -100,7 +101,7 @@ function CrewPicker({ selected, onChange }: { selected: string[]; onChange: (cre
   const staff = useGameStore((s) => s.staff);
   const office = useGameStore((s) => s.office);
   const busy = useGameStore((s) => s.active.flatMap((p) => p.crew));
-  const bonusEnv = { defs: gameEnv.furniture ?? {}, balance, staff: staff };
+  const bonusEnv = { defs: gameEnv.furniture ?? {}, balance, staff: staff, pcDesks: pcDesksOf(office, isPcDevice) };
   return (
     <div style={{ marginTop: 6, fontSize: 13 }}>
       <div style={{ marginBottom: 2 }}>{t('ui.offer.crew')}</div>
@@ -168,7 +169,7 @@ function OfferCard({
   const blindRange = (() => {
     const jobs = offer.contract.jobs ?? [];
     const members = staff.filter((m) => crew.includes(m.uid));
-    const bonusEnv = { defs: gameEnv.furniture ?? {}, balance, staff: staff };
+    const bonusEnv = { defs: gameEnv.furniture ?? {}, balance, staff: staff, pcDesks: pcDesksOf(office, isPcDevice) };
     const power = members.reduce((sum, m) => sum + staffPower(m, jobs, office, bonusEnv), 0);
     const pcCount = offer.contract.placed.filter((p) => devices[p.device as keyof typeof devices]?.category === CATEGORY.pc).length;
     const match = jobs.length === 0 || members.length === 0 ? 1 : members.filter((m) => jobs.includes(m.job)).length / members.length;

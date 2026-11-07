@@ -282,6 +282,11 @@
     "nightShift": 10,
     "floorChange": 5
   },
+  "deskPc": {
+    "engineerDailyExpRate": 0.5,
+    "engineerPowerBonus": 0.05,
+    "salesMultiplier": 1.2
+  },
   "floors": [
     { "id": "wood", "unlockLevel": 1, "costPerTile": 0 },
     { "id": "tile", "unlockLevel": 5, "costPerTile": 300 },

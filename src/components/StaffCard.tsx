@@ -1,10 +1,11 @@
+import { pcDesksOf } from '../sim/furniture';
 // 社員の札と、社員の一覧の中身。ウィンドウ（Window.tsx）の中に出し、タイトルの帯・×・大きさは Windows.tsx が受け持つ。
 // 状態（待機中・担当中・研修中）は sim/staff.ts の staffStatus で決める。
 import { balance } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import { raiseAmountOf, staffPower, staffStatus, totalSalary, type StaffStatus } from '../sim/staff';
-import { backOfficeP, countsForBackOffice, effectiveLevelOf, isBackOffice, jobEffect } from '../sim/backOffice';
-import { gameEnv } from '../sim/env';
+import { backOfficeContributionOf, backOfficeP, hasPcAt, isBackOffice, jobEffect } from '../sim/backOffice';
+import { gameEnv, isPcDevice } from '../sim/env';
 import { jobEffectText } from './jobEffectText';
 import { staffSpriteName } from '../data/schema';
 import { useGameStore } from '../stores/useGameStore';
@@ -41,10 +42,10 @@ export function StaffBody({ uid, onTraining }: { uid: string; onTraining: () => 
   const member = state.staff.find((m) => m.uid === uid);
   if (!member) return null;
   const status = staffStatus(member, state.active, state.clock.minute);
-  const env = { defs: gameEnv.furniture ?? {}, balance, staff: state.staff };
+  const env = { defs: gameEnv.furniture ?? {}, balance, staff: state.staff, pcDesks: pcDesksOf(state.office, isPcDevice) };
   const back = isBackOffice(member.job);
   // この社員の内勤の寄与（日勤で研修中でないときだけ効く）。効果は、この社員が加わったときの増分
-  const contribution = countsForBackOffice(member) ? effectiveLevelOf(member, state.office, env) : 0;
+  const contribution = backOfficeContributionOf(member, state.office, env);
   const effect = back
     ? jobEffect(member.job, member, contribution, backOfficeP(state.staff, member.job, state.office, env) - contribution, balance)
     : member.job === 'dev'
@@ -86,6 +87,12 @@ export function StaffBody({ uid, onTraining }: { uid: string; onTraining: () => 
           <>
             <dt style={label}>{t('ui.staff.card.power')}</dt>
             <dd style={{ margin: 0 }}>{staffPower(member, undefined, state.office, env).toFixed(2)}</dd>
+          </>
+        )}
+        {(member.job === 'dev' || member.job === 'hr' || member.job === 'accounting') && (
+          <>
+            <dt style={label}>{t('ui.staff.card.pc')}</dt>
+            <dd style={{ margin: 0 }}>{hasPcAt(member, env) ? t('ui.staff.pc.yes') : t('ui.staff.pc.no')}</dd>
           </>
         )}
         {(back || member.job === 'dev') && (
