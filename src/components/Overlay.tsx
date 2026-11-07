@@ -4,7 +4,8 @@ import { balance } from 'virtual:game-data';
 import { useGameStore } from '../stores/useGameStore';
 import type { Report } from '../sim/project';
 import { Icon } from './Icon';
-import { ItemCards, unlockNameOf } from './UnlockList';
+import { ItemCards, UnlockCards, type UnlockCardKind } from './UnlockList';
+import type { LevelUp } from '../sim/level';
 import { Modal, primaryButton } from './Modal';
 import { RADIUS } from '../ui/theme';
 import { openOf, visibleNotices } from '../ui/notices';
@@ -70,6 +71,47 @@ function EvaluationRows({ report }: { report: Report }) {
 }
 
 // 納品の結果。★・報酬・評判の数字のみ。不合格はマップ上の「×」と吹き出しで示すため出さない
+// 職種の解放（そのレベルで採用の候補に出る職種）
+const jobsAt = (level: number): (keyof typeof balance.hiring.jobUnlockLevels)[] =>
+  (Object.keys(balance.hiring.jobUnlockLevels) as (keyof typeof balance.hiring.jobUnlockLevels)[]).filter((j) => balance.hiring.jobUnlockLevels[j] === level);
+
+// レベルアップの札の単位（1つのレベルなら1つ、2つ以上のレベルが一度に上がったら1つにまとめる）（N131）
+const levelUpBlocks = (ups: readonly LevelUp[]) => {
+  if (ups.length === 0) return [];
+  const cardsOf = (u: LevelUp, level: number): { kind: UnlockCardKind; id: string }[] => [
+    ...u.unlocks.map((x) => ({ kind: x.kind as UnlockCardKind, id: x.id })),
+    ...(balance.office.expand.unlockLevels.includes(level) ? [{ kind: 'expansion' as const, id: 'expansion' }] : []),
+  ];
+  if (ups.length === 1) {
+    const u = ups[0];
+    return [
+      {
+        key: String(u.level),
+        title: t('report.levelUp.title', { level: u.level }),
+        money: u.money,
+        jobs: jobsAt(u.level),
+        devices: u.devices,
+        cards: cardsOf(u, u.level),
+      },
+    ];
+  }
+  // 見出しは1つ（Lv 最初 → 最後）。報酬の額と機器は合計する
+  const first = ups[0].level;
+  const last = ups[ups.length - 1].level;
+  const devices = new Map<string, number>();
+  for (const u of ups) for (const d of u.devices) devices.set(d.device, (devices.get(d.device) ?? 0) + d.count);
+  return [
+    {
+      key: `${first}-${last}`,
+      title: t('report.levelUp.range', { from: first, to: last }),
+      money: ups.reduce((sum, u) => sum + u.money, 0),
+      jobs: ups.flatMap((u) => jobsAt(u.level)),
+      devices: [...devices].map(([device, count]) => ({ device, count })),
+      cards: ups.flatMap((u) => cardsOf(u, u.level)),
+    },
+  ];
+};
+
 export function ReportModal() {
   const report = useGameStore((s) => s.lastReport);
   const dismiss = useGameStore((s) => s.dismissReport);
@@ -104,37 +146,24 @@ export function ReportModal() {
         <div style={{ fontSize: 16, marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
           <Icon name="icon/level" /> {t('report.expGain', { exp: report.expGain ?? 0 })}
         </div>
-        {(report.levelUps ?? []).map((u) => (
-          <div key={u.level} style={{ marginTop: 8, padding: 8, background: '#25406f', fontSize: 14 }}>
+        {/* レベルアップの札（N131）。種類ごとに同じ形の札にそろえ、2つ以上のレベルが一度に上がったら、見出しと報酬と札を1つにまとめる */}
+        {levelUpBlocks(report.levelUps ?? []).map((block) => (
+          <div key={block.key} style={{ marginTop: 8, padding: 8, background: '#25406f', fontSize: 14 }}>
             <div style={{ fontWeight: 'bold', color: '#ffd866', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              <Icon name="icon/level" /> {t('report.levelUp.title', { level: u.level })}
+              <Icon name="icon/level" /> {block.title}
             </div>
-            <div>{t('report.levelUp.money', { money: u.money.toLocaleString('ja-JP') })}</div>
-            {/* このレベルで解放される職種（採用の候補に出る。N84） */}
-            {(Object.keys(balance.hiring.jobUnlockLevels) as (keyof typeof balance.hiring.jobUnlockLevels)[]).some((j) => balance.hiring.jobUnlockLevels[j] === u.level) && (
-              <div>{t('ui.company.jobs', { jobs: (Object.keys(balance.hiring.jobUnlockLevels) as (keyof typeof balance.hiring.jobUnlockLevels)[]).filter((j) => balance.hiring.jobUnlockLevels[j] === u.level).map((j) => tDyn(`staff.job.${j}`)).join('・') })}</div>
-            )}
-            {u.devices.length > 0 && (
+            <div>{t('report.levelUp.money', { money: block.money.toLocaleString('ja-JP') })}</div>
+            {block.jobs.length > 0 && <div>{t('ui.company.jobs', { jobs: block.jobs.map((j) => tDyn(`staff.job.${j}`)).join('・') })}</div>}
+            {block.devices.length > 0 && (
               <div>
                 {t('report.rewardDevices')}
-                <ItemCards items={u.devices.map((d) => ({ kind: 'device' as const, id: d.device, count: d.count }))} />
+                <ItemCards items={block.devices.map((d) => ({ kind: 'device' as const, id: d.device, count: d.count }))} />
               </div>
             )}
-            {/* 絵のある機器・家具は札、ほかの解放（ケーブル・依頼）と部屋の拡張は文字（N56・N59） */}
-            {u.unlocks.some((x) => x.kind === 'device' || x.kind === 'furniture') && (
+            {block.cards.length > 0 && (
               <div>
                 {t('report.levelUp.unlockCards')}
-                <ItemCards items={u.unlocks.filter((x) => x.kind === 'device' || x.kind === 'furniture').map((x) => ({ kind: x.kind as 'device' | 'furniture', id: x.id }))} />
-              </div>
-            )}
-            {(u.unlocks.some((x) => x.kind !== 'device' && x.kind !== 'furniture') || balance.office.expand.unlockLevels.includes(u.level)) && (
-              <div>
-                {t('report.levelUp.unlock', {
-                  items: [
-                    ...u.unlocks.filter((x) => x.kind !== 'device' && x.kind !== 'furniture').map((x) => unlockNameOf(x)),
-                    ...(balance.office.expand.unlockLevels.includes(u.level) ? [t('report.levelUp.expansion')] : []),
-                  ].join('・'),
-                })}
+                <UnlockCards items={block.cards} />
               </div>
             )}
           </div>

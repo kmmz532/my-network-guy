@@ -698,6 +698,32 @@ def icon_play():
     return outline(img)
 
 
+# 解放の種類の印（N131）。床・機能・部屋の拡張は、絵のある札にできないため印を付ける
+def icon_floor():
+    img, d = new(16, 16)
+    rect(d, 2, 2, 5, 5, 'e')
+    rect(d, 9, 9, 5, 5, 'e')
+    rect(d, 9, 2, 5, 5, 'y')
+    rect(d, 2, 9, 5, 5, 'y')
+    return outline(img)
+
+
+def icon_feature():
+    img, d = new(16, 16)
+    d.ellipse([3, 2, 12, 11], outline=C['e'] + (255,), width=2)
+    rect(d, 7, 10, 2, 5, 'e')
+    rect(d, 9, 12, 2, 2, 'e')
+    return outline(img)
+
+
+def icon_expand():
+    img, d = new(16, 16)
+    d.rectangle([2, 2, 13, 13], outline=C['e'] + (255,), width=2)
+    rect(d, 7, 5, 2, 6, 'e')
+    rect(d, 5, 7, 6, 2, 'e')
+    return outline(img)
+
+
 # 虫めがね（検索の欄の印。飾りのため読み上げの対象にしない・N128）
 def icon_search():
     img, d = new(16, 16)
@@ -1501,6 +1527,9 @@ if __name__ == '__main__':
         'pause': icon_pause(),
         'play': icon_play(),
         'search': icon_search(),
+        'floor': icon_floor(),
+        'feature': icon_feature(),
+        'expand': icon_expand(),
         'menu': icon_menu(),
         'cable_utp_cat5e': icon_cable('b'),
         'cable_fiber_sm': icon_cable('f'),

@@ -3,6 +3,7 @@ import { contractTemplates } from 'virtual:game-data';
 import { pcCountRangeOf } from '../contracts/template';
 import { tDyn } from '../i18n/t';
 import { ItemIcon } from './ItemIcon';
+import { Icon } from './Icon';
 import { itemSpriteOf } from './itemSprite';
 import { RADIUS } from '../ui/theme';
 
@@ -34,6 +35,47 @@ export function ItemCards({ items }: { items: { kind: 'device' | 'furniture'; id
           <ItemIcon name={itemSpriteOf(x.kind, x.id)} box={{ width: 36, height: 36 }} maxScale={2} />
           <span>
             {tDyn(`${x.kind}.${x.id}.name`)}
+            {x.count !== undefined ? ` ×${x.count}` : ''}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// 解放の札の種類（N131）。種類ごとに同じ形の札（絵か印 + 名前）にする
+export type UnlockCardKind = 'device' | 'cable' | 'furniture' | 'template' | 'contract' | 'speed' | 'floor' | 'feature' | 'expansion';
+
+// 絵のない種類の印（アイコン）
+const markOf: Record<Exclude<UnlockCardKind, 'device' | 'furniture'>, string> = {
+  cable: 'icon/wire',
+  template: 'icon/mail',
+  contract: 'icon/mail',
+  speed: 'icon/play',
+  floor: 'icon/floor',
+  feature: 'icon/feature',
+  expansion: 'icon/expand',
+};
+
+// 解放の札の名前。部屋の拡張は、名前の鍵がないため文言で出す
+const cardNameOf = (x: { kind: UnlockCardKind; id: string }): string => (x.kind === 'expansion' ? tDyn('report.levelUp.expansion') : unlockNameOf(x as { kind: Exclude<UnlockCardKind, 'expansion'>; id: string }));
+
+// 解放の札を、種類ごとに同じ形で並べる。札は名前の途中で折り返さず、札の単位で折り返す（N131）
+export function UnlockCards({ items }: { items: { kind: UnlockCardKind; id: string; count?: number }[] }) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 4 }}>
+      {items.map((x, i) => (
+        <div
+          key={`${x.kind}_${x.id}_${i}`}
+          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', background: '#25406f', border: '1px solid #3b2a33', borderRadius: RADIUS.chrome, whiteSpace: 'nowrap' }}
+        >
+          {x.kind === 'device' || x.kind === 'furniture' ? (
+            <ItemIcon name={itemSpriteOf(x.kind, x.id)} box={{ width: 36, height: 36 }} maxScale={2} />
+          ) : (
+            <Icon name={markOf[x.kind]} scale={1} />
+          )}
+          <span>
+            {cardNameOf(x)}
             {x.count !== undefined ? ` ×${x.count}` : ''}
           </span>
         </div>
