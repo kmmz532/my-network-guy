@@ -210,6 +210,7 @@
   "ui.notice.capRaised": "雇える人数が{cap}人に増えました",
   "ui.notice.capReached": "雇える人数の上限（{cap}人）に達しました",
   "ui.notice.trained": "{name}が研修を終えました",
+  "ui.notice.raiseWaiting": "{name}が昇給を待っています",
   "ui.notice.retired": "{name}が退職しました",
   "ui.notice.close": "閉じる",
   "ui.notice.salary": "給与 -{amount} 円",

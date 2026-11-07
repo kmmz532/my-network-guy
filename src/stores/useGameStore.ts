@@ -1179,6 +1179,13 @@ export const useGameStore = create<GameState>((set, get) => {
         let notices = result.notices ?? s.notices;
         if (salesCount > 0) notices = pushNotice(notices, 'salesArrival', { count: salesCount }, Date.now());
         if (refreshCount > 0) notices = pushNotice(notices, 'offersRefreshed', {}, Date.now());
+        // 上限に達して、昇給を待っている社員（N97・N101）。この時間で上限に達した社員だけ知らせる
+        for (const m of result.staff ?? s.staff) {
+          const before = s.staff.find((x) => x.uid === m.uid);
+          if (before && before.level < before.levelCap && m.level >= m.levelCap) {
+            notices = pushNotice(notices, 'raiseWaiting', { name: tDyn(m.name), uid: m.uid }, Date.now());
+          }
+        }
         return { ...result, notices };
       }),
     // 速さを人が変えたら、勤務時間外の自動の早送りは取り消す（覚えた速さには戻さない）
