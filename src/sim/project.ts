@@ -9,6 +9,7 @@ import { renameNode } from '../network/nodeName';
 import { nextHostname } from '../network/hostname';
 import { nextMacSerial } from '../network/mac';
 import { isSwitchedRouterCategory } from '../network/category';
+import { engineWithWalls } from './walls';
 import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
 import { inSubnet, ipToInt, linkLength } from '../network/engine';
@@ -304,6 +305,8 @@ export interface Env {
   devices: Record<string, DeviceInfo>;
   cables: Record<string, CableInfo>;
   engine: EngineData;
+  // 地図（壁の判定に使う）。案件の地図のIDから引く。省略すると壁はない（N151）
+  mapOf?: (id: string) => GameMap | undefined;
 }
 
 export type Outcome = { ok: true; core: Core; report?: Report } | { ok: false; reason: string };
@@ -1438,7 +1441,8 @@ export const advanceBuild = (core: Core, env: Env, hour: number, juniorRate = 1)
 
 // 設計を判定する（テストと検収で同じ判定を使う）。達成条件ごとに、失敗した機器と理由をまとめる
 const judge = (p: Project, env: Env) => {
-  const result = evaluateContract(p.contract, compiledNet(p, env).net, env.engine);
+  const engine = engineWithWalls(env.engine, env.mapOf?.(p.contract.map));
+  const result = evaluateContract(p.contract, compiledNet(p, { ...env, engine }).net, engine);
   const traces: Trace[] = result.results.map((r) => ({ kind: r.kind, src: r.src, dst: r.dst, result: r.result }));
   const goals: GoalCheck[] = p.contract.goals.map((goal) => {
     const rs = result.results.filter((r) => r.goal === goal);

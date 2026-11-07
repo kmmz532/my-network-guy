@@ -947,7 +947,7 @@ export const useGameStore = create<GameState>((set, get) => {
         });
         return null;
       }
-      const r = testDesign(coreOf(get()), gameEnv);
+      const r = testDesign(coreOf(get()), { ...gameEnv, mapOf: (id) => get().maps[id] });
       if (!r.ok) {
         set({ lastError: r.reason });
         return r.reason;
@@ -1161,7 +1161,7 @@ export const useGameStore = create<GameState>((set, get) => {
         // 施工中なら、勤務時間内に作業を進める
         if (!clock.bankrupt && withClock.active.some((p) => p.phase === 'build')) {
           const hour = toDate(clock.minute, balance).hour;
-          const r = advanceBuild(coreOf(withClock), gameEnv, hour, hrJuniorRate(hrP, balance));
+          const r = advanceBuild(coreOf(withClock), { ...gameEnv, mapOf: (id) => s.maps[id] }, hour, hrJuniorRate(hrP, balance));
           if (r.ok) {
             next = {
               ...next,

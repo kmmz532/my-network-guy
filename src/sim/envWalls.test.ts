@@ -1,6 +1,7 @@
 // 地図の壁を電波の減衰に渡す（N151）: 壁のマスだけが壁として数えられ、地図がなければ壁はない
 import { describe, expect, it } from 'vitest';
-import { engineWithWalls, gameEnv } from './env';
+import { gameEnv } from './env';
+import { engineWithWalls } from './walls';
 import type { GameMap } from '../data/schema';
 
 const map = { tiles: ['.#D'], legend: { '.': 'floor', '#': 'wall', D: 'door' } } as unknown as GameMap;
