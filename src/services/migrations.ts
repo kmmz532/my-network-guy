@@ -4,7 +4,7 @@ import type { EngineData, NetLink, NetNode, Service } from '../network/types';
 import { fillSegments } from '../network/segments';
 import { colorsFromConfig, legacyInterfaces } from './legacyColors';
 import { initialOffice } from '../sim/furniture';
-import type { Balance, Staff } from '../data/schema';
+import type { Balance, FloorId, Staff } from '../data/schema';
 import { createStaff, specAt } from '../sim/staff';
 import balanceJson from '../assets/data/balance.json';
 import pcJson from '../assets/data/devices/pc.json';
@@ -23,7 +23,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 40;
+export const SAVE_VERSION = 41;
 
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
@@ -235,6 +235,12 @@ export const migrations: Record<number, Migration> = {
       }) }),
     });
     return { ...d, active: d.active.map(withPaid), office: withPaid(d.office) };
+  },
+  // v40 → v41: 床の買い切りの記録（bought）を足す（N125）。移行前に使っていた床は、すでに払っているため購入済みとする（木は最初から購入済み）
+  40: (data) => {
+    const d = data as { office: Office };
+    const used = Object.values(d.office.floors ?? {}) as FloorId[];
+    return { ...d, office: { ...d.office, bought: [...new Set<FloorId>(['wood', ...used])] } };
   },
   // v39 → v40: 案件の segments と inheritedLinks、自社オフィスの segments を必須にし、欠けていれば埋める（N114）。
   // segments は {}。inheritedLinks は自社案件なら、案件の配線のうち自社オフィスの配線と同じ uid のもの（引き継いだ配線）、それ以外は []

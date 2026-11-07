@@ -205,7 +205,7 @@ function FloorRows() {
         const options = balance.floors.map((f) => {
           const name = t(`ui.floor.${f.id}` as const);
           if (level < f.unlockLevel) return { value: f.id, label: `${name}（${t('ui.floor.locked', { level: f.unlockLevel })}）` };
-          const cost = f.id === current ? '' : `（${yen(f.costPerTile * tiles)}円）`;
+          const cost = f.id === current ? '' : office.bought.includes(f.id) ? `（${t('ui.floor.bought')}）` : `（${yen(f.costPerTile * tiles)}円）`;
           return { value: f.id, label: `${name}${cost}` };
         });
         return (

@@ -11,7 +11,7 @@ const ANNEX_DEPTH = 5;
 const ANNEX_STEP = ANNEX_DEPTH + 1;
 
 // 床 6×6 の主の部屋（外側の壁を含むマスの座標は 1〜6）
-const base: Office = { segments: {},
+const base: Office = { bought: ['wood' as const], segments: {},
   size: { w: 6, h: 6 },
   innerWalls: [],
   doors: [],
@@ -92,6 +92,26 @@ describe('床の張り替え（N92）', () => {
     const out = changeOfficeFloor(core(office, 5), 'right', 'tile', balance);
     expect(out.ok && out.core.office.floors).toEqual({ right: 'tile' });
     expect(out.ok && floorOfRoom(out.core.office, 'main')).toBe('wood');
+  });
+
+  it('一度買った床は、買い切り。戻して敷き直しても、代金は1回だけ（N125）', () => {
+    const tile = balance.floors.find((f) => f.id === 'tile')!;
+    const bought = changeOfficeFloor(core(base, 5, 1000000), 'main', 'tile', balance);
+    if (!bought.ok) throw new Error('購入できない');
+    expect(bought.core.office.bought).toEqual(['wood', 'tile']);
+    const back = changeOfficeFloor(bought.core, 'main', 'wood', balance);
+    if (!back.ok) throw new Error('戻せない');
+    const again = changeOfficeFloor(back.core, 'main', 'tile', balance);
+    expect(again.ok && again.core.clock.money).toBe(1000000 - tile.costPerTile * 36);
+    expect(again.ok && again.core.office.floors?.main).toBe('tile');
+  });
+
+  it('買い切りの床は、部屋を広げた別室にも無料で敷ける（N125）', () => {
+    const tile = balance.floors.find((f) => f.id === 'tile')!;
+    const office: Office = { ...base, bought: ['wood', 'tile'], size: { w: 12, h: 6 }, annexes: ['right'] };
+    const out = changeOfficeFloor(core(office, 5, 0), 'right', 'tile', balance);
+    expect(out.ok).toBe(true);
+    expect(out.ok && tile.costPerTile).toBeGreaterThan(0);
   });
 
   it('床と同じ種類に変えるときは、費用なし', () => {

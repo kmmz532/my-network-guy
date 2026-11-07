@@ -200,6 +200,8 @@ export type RoomId = 'main' | OfficeSide;
 export interface Office {
   // 部屋ごとの床の種類（N92）。書いていない部屋は木
   floors?: Partial<Record<RoomId, FloorId>>;
+  // 買い切りの床（一度買えば、どの部屋にも無料で敷ける・N125）
+  bought: FloorId[];
   // 部屋の床の大きさ（別室を含む外側の床の大きさ）。マップは大きさから作る
   size: OfficeSize;
   // 内側の壁のマス（床の内側。機器・家具は置けない）
@@ -228,7 +230,7 @@ export const DESK_ID = 'desk';
 // 席になる家具（机。定義の seat が true のもの。N44 で机だけの品目も席として数える）。定義がなければ DESK_ID だけを机とする
 export const isDeskFurniture = (id: string, env: Env): boolean => (env.furniture?.[id]?.seat ?? false) || id === DESK_ID;
 
-export const emptyOffice = (size: OfficeSize): Office => ({ segments: {},
+export const emptyOffice = (size: OfficeSize): Office => ({ bought: ['wood' as const], segments: {},
   size,
   innerWalls: [],
   doors: [],

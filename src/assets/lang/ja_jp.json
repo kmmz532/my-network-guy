@@ -838,6 +838,7 @@
   "ui.floor.concrete": "コンクリート",
   "ui.floor.linoleum": "リノリウム",
   "ui.floor.locked": "Lv{level}で解禁",
+  "ui.floor.bought": "購入済み",
   "ui.error.floor.locked": "この床は、まだ解禁されていない",
   "ledger.interior": "内装（床の張り替え）",
   "ui.company.funds": "資金",

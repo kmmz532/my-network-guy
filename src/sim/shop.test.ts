@@ -61,6 +61,7 @@ describe('セーブのバージョン移行', () => {
         nodes: [],
         links: [],
         segments: {},
+        bought: ['wood'],
         seq: 0,
         furniture: [
           { uid: 'f0', id: 'desk', x: 2, y: 3 },

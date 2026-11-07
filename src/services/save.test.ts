@@ -40,7 +40,7 @@ const sample: SaveData = {
   rng: 1,
   active: [],
   focus: null,
-  office: { segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 },
+  office: { bought: ['wood' as const], segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 },
   effects: { buildSpeed: 0 },
   staff: [member('s0'), member('s1')],
   staffSeq: 2,

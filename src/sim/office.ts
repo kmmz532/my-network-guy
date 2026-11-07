@@ -96,14 +96,16 @@ export const changeOfficeFloor = (core: Core, room: RoomId, floor: FloorId, bala
   if (level < spec.unlockLevel) return fail('floor.locked');
   if (!(['main', ...core.office.annexes] as RoomId[]).includes(room)) return fail('none');
   if (floorOfRoom(core.office, room) === floor) return { ok: true, core };
-  const cost = spec.costPerTile * roomTileCount(core.office, room);
+  // 床の種類は買い切り。一度買った種類は、どの部屋にも何度でも無料で敷ける（N125）
+  const bought = core.office.bought.includes(floor);
+  const cost = bought ? 0 : spec.costPerTile * roomTileCount(core.office, room);
   if (core.clock.money < cost) return fail('money');
   return {
     ok: true,
     core: {
       ...core,
-      clock: applyMoney(core.clock, -cost, 'interior'),
-      office: { ...core.office, floors: { ...core.office.floors, [room]: floor } },
+      clock: cost > 0 ? applyMoney(core.clock, -cost, 'interior') : core.clock,
+      office: { ...core.office, floors: { ...core.office.floors, [room]: floor }, bought: bought ? core.office.bought : [...core.office.bought, floor] },
     },
   };
 };

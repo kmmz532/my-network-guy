@@ -87,7 +87,7 @@ const start = (): Core => ({
   active: [],
   focus: null,
   // 社員2人は、机に座っている（施工力は1ずつ）
-  office: { segments: {},
+  office: { bought: ['wood' as const], segments: {},
     size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [],
     nodes: [],
     links: [],
@@ -438,7 +438,7 @@ describe('案件の設計中の配線の撤去（費用の戻し）', () => {
 
 describe('自社オフィスのケーブル', () => {
   it('ケーブルのつながったPCを撤去すると、ケーブルも一緒に撤去され、在庫には入らない', () => {
-    let core: Core = { ...start(), owned: { pc_basic: 2, l2_switch_8p: 1 }, office: { segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [{ uid: 'a', id: 'desk', x: 3, y: 4 }, { uid: 'b', id: 'desk', x: 8, y: 4 }], furnitureSeq: 2 } };
+    let core: Core = { ...start(), owned: { pc_basic: 2, l2_switch_8p: 1 }, office: { bought: ['wood' as const], segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [{ uid: 'a', id: 'desk', x: 3, y: 4 }, { uid: 'b', id: 'desk', x: 8, y: 4 }], furnitureSeq: 2 } };
     core = ok(placeInOffice(core, 'pc_basic', 3, 4, map, env)).core;
     core = ok(placeInOffice(core, 'pc_basic', 8, 4, map, env)).core;
     core = ok(connect(core, 'u0', 'u1', 'utp_cat5e', env, 'office')).core;
@@ -454,7 +454,7 @@ describe('自社オフィスの編集', () => {
   const officeStart = (): Core => ({
     ...start(),
     owned: { pc_basic: 2, l2_switch_8p: 1 },
-    office: { segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [desk(3, 4), desk(8, 4)], furnitureSeq: 2 },
+    office: { bought: ['wood' as const], segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [desk(3, 4), desk(8, 4)], furnitureSeq: 2 },
   });
 
   it('自社オフィスでPC2台とスイッチを配線し、IPアドレスを設定できる', () => {
@@ -545,7 +545,7 @@ describe('自社案件', () => {
       ...start(),
       offers: [inhouseOffer],
       owned: { pc_basic: 1 },
-      office: { segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [desk(6, 6)], furnitureSeq: 1 },
+      office: { bought: ['wood' as const], segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [desk(6, 6)], furnitureSeq: 1 },
     };
     const accepted = ok(take(core, inhouse.id)).core;
     expect(cur(ok(placeDevice(accepted, 'pc_basic', 6, 6, map, env)).core)?.nodes).toHaveLength(1);
@@ -556,7 +556,7 @@ describe('自社案件', () => {
       ...start(),
       offers: [inhouseOffer],
       owned: { l2_switch_8p: 1 },
-      office: { segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [{ uid: 'f0', id: 'plant', x: 6, y: 6 }], furnitureSeq: 1 },
+      office: { bought: ['wood' as const], segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [{ uid: 'f0', id: 'plant', x: 6, y: 6 }], furnitureSeq: 1 },
     };
     const accepted = ok(take(core, inhouse.id)).core;
     expect(placeDevice(accepted, 'l2_switch_8p', 6, 6, map, env)).toEqual({ ok: false, reason: 'tile' });
@@ -575,7 +575,7 @@ describe('自社案件', () => {
       ...start(),
       offers: [rewarded],
       owned: { pc_basic: 2 },
-      office: { segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [desk(3, 4), desk(8, 4)], furnitureSeq: 2 },
+      office: { bought: ['wood' as const], segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [desk(3, 4), desk(8, 4)], furnitureSeq: 2 },
     };
     core = ok(take(core, inhouse.id)).core;
     core = ok(placeDevice(core, 'pc_basic', 3, 4, map, env)).core;
@@ -596,7 +596,7 @@ describe('自社案件', () => {
       ...start(),
       offers: [inhouseOffer],
       owned: { pc_basic: 2 },
-      office: { segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [desk(3, 4), desk(8, 4)], furnitureSeq: 2 },
+      office: { bought: ['wood' as const], segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [desk(3, 4), desk(8, 4)], furnitureSeq: 2 },
     };
     core = ok(take(core, inhouse.id)).core;
     core = ok(placeDevice(core, 'pc_basic', 3, 4, map, env)).core;
@@ -737,6 +737,7 @@ describe('IPアドレスとセグメントの設定', () => {
       furniture: [],
       furnitureSeq: 0,
       segments: {},
+      bought: ['wood' as const],
     };
     const core: Core = { ...start(), office };
     expect(setSegment(core, 'a', 0, '192.168.9.0', 30, env, 'office')).toEqual({ ok: false, reason: 'segment.too_small' });

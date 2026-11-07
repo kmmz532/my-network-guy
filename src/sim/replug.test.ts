@@ -84,7 +84,7 @@ const start = (): Core => ({
   offers: [offerOf(c001, 'c001_direct_link'), offerOf(i002, 'i002_office_server'), offerOf(c004, 'c004_web_server')],
   active: [],
   focus: null,
-  office: { segments: {},
+  office: { bought: ['wood' as const], segments: {},
     size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [],
     nodes: [],
     links: [],
