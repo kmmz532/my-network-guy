@@ -8,6 +8,8 @@ export interface Iface {
   port: number;
   ip: string;
   prefix: number;
+  // NAT の役割（N145）: inside（社内の側）・outside（外の側）
+  nat?: 'inside' | 'outside';
   // RIP に参加しているか（N141b）
   rip?: boolean;
   // OSPF に参加しているエリアとコスト（N142・MVP はエリア 0 だけ）
@@ -66,6 +68,8 @@ export interface NetNode {
   bgp?: BgpConfig;
   // 口の設定（機器ごと。設定のない口は既定のモード）
   ports: PortConfig[];
+  // NAPT を行う（inside から outside へ出る通信の送信元を、outside の口のアドレスに変える・N145）
+  napt?: boolean;
   // ホスト名（ターミナルのプロンプトと show running-config に出す。画面の名前とは別。N46）
   hostname?: string;
   // ファイアウォールの規則（ファイアウォールだけが持つ。一覧にない通信は通さない）
@@ -172,4 +176,6 @@ export interface PathResult {
   // 往路で通過した機器のuid（L2スイッチは含めない）
   path: string[];
   failure?: Failure;
+  // NAPT で送信元を書き換えた（N145）: 書き換えた機器・社内のアドレス・外のアドレス
+  nat?: { router: string; insideIp: string; outsideIp: string };
 }

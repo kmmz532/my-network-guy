@@ -338,7 +338,7 @@ const allows = (rules: readonly FirewallRule[] | undefined, srcIp: string, dstIp
   );
 
 // 通信を1方向に届ける。check が true のときは、通り道のファイアウォールの規則を確かめる（戻りの通信は、往路で許した通信の戻りとして確かめない）
-const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffic = { kind: 'ping' }, check = true): PathResult => {
+const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffic = { kind: 'ping' }, check = true, srcIp?: string, dstIp?: string): PathResult => {
   const path: string[] = [];
   const src = topo.node(srcUid);
   const dst = topo.node(dstUid);
@@ -346,7 +346,8 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
 
   if (!src || !dst) return err(fail('ip.unset', srcUid));
 
-  const srcIface = src.interfaces[0];
+  // 送信元・宛先のアドレスを指定したときは、そのインターフェース（省略は最初の口）
+  const srcIface = srcIp === undefined ? src.interfaces[0] : src.interfaces.find((i) => i.ip === srcIp);
   if (!srcIface) return err(fail('ip.unset', src.uid));
   const srcEp: Endpoint = { node: src.uid, port: srcIface.port };
   if (topo.isShut(src.uid, srcIface.port)) return err(fail('port.shutdown', src.uid));
@@ -355,7 +356,7 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
   const srcPeer = topo.linkAt(srcEp)!.peer;
   if (topo.isShut(srcPeer.node, srcPeer.port)) return err(fail('port.shutdown', srcPeer.node));
 
-  const dstIface = dst.interfaces[0];
+  const dstIface = dstIp === undefined ? dst.interfaces[0] : dst.interfaces.find((i) => i.ip === dstIp);
   if (!dstIface) return err(fail('ip.unset', dst.uid));
   const dstEp: Endpoint = { node: dst.uid, port: dstIface.port };
   if (!topo.linkAt(dstEp)) return err(fail('link.unplugged', dst.uid));
@@ -389,13 +390,16 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
   if (!gwMember) return err(fail('gateway.unreachable', src.uid));
 
   let current: Endpoint = gwMember;
+  // 今の送信元のアドレス（NAPT で変わる）と、変換の記録
+  let curSrcIp = srcIface.ip;
+  let natHit: PathResult['nat'];
   for (let hop = 0; hop < MAX_HOPS; hop++) {
     const cur = topo.node(current.node);
     if (!cur) return err(fail('route.none', current.node));
 
     if (cur.uid === dst.uid) {
       path.push(cur.uid);
-      return { ok: true, path };
+      return { ok: true, path, nat: natHit };
     }
     if (!topo.isRouter(cur.uid)) return err(fail('route.none', cur.uid));
     path.push(cur.uid);
@@ -407,12 +411,18 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
     // 直結しているサブネットに宛先があるか
     const connected = cur.interfaces.find((i) => inSubnet(dstIface.ip, i.ip, i.prefix));
     if (connected) {
+      // 直結の外の口へ出るときも、NAPT で送信元を外の口のアドレスに変える（N145）
+      const inIf = cur.interfaces.find((i) => i.port === current.port);
+      if (cur.napt && inIf?.nat === 'inside' && connected.nat === 'outside' && natHit === undefined) {
+        natHit = { router: cur.uid, insideIp: curSrcIp, outsideIp: connected.ip };
+        curSrcIp = connected.ip;
+      }
       const domain = topo.domainOf({ node: cur.uid, port: connected.port });
       if (domain.tooLong) return err(fail('link.too_long', domain.tooLong.node));
       if (domain.loop) return err(fail('link.loop', domain.loop.node));
       if (inDomain(domain, dstEp)) {
         path.push(dst.uid);
-        return { ok: true, path };
+        return { ok: true, path, nat: natHit };
       }
       return err(fail('ip.unreachable', cur.uid));
     }
@@ -425,6 +435,12 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
 
     const egress = cur.interfaces.find((i) => inSubnet(route.nextHop, i.ip, i.prefix));
     if (!egress) return err(fail('route.none', cur.uid));
+    // NAPT: 社内の口（inside）から外の口（outside）へ出る通信の送信元を、外の口のアドレスに変える（N145）
+    const ingress = cur.interfaces.find((i) => i.port === current.port);
+    if (cur.napt && ingress?.nat === 'inside' && egress.nat === 'outside' && natHit === undefined) {
+      natHit = { router: cur.uid, insideIp: curSrcIp, outsideIp: egress.ip };
+      curSrcIp = egress.ip;
+    }
     const egressDomain = topo.domainOf({ node: cur.uid, port: egress.port });
     if (egressDomain.tooLong) return err(fail('link.too_long', egressDomain.tooLong.node));
     if (egressDomain.loop) return err(fail('link.loop', egressDomain.loop.node));
@@ -436,13 +452,28 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
 };
 
 // Ping（ICMP）の判定。往路と復路の両方が通る必要がある
+// 戻りの通信。往路で NAPT を行ったときは、外から変換後のアドレス（外の口）へ届き、NAPT の機器が社内のアドレスへ戻す（N145）
+const backOf = (topo: Topology, dstUid: string, srcUid: string, traffic: Traffic, forward: PathResult): PathResult => {
+  const dst = topo.node(dstUid);
+  const src = topo.node(srcUid);
+  if (!forward.nat) return deliver(topo, dstUid, srcUid, traffic, false);
+  // 往路の宛先のアドレス（戻りの送信元）から、NAPT の機器の外の口へ。そこから社内の口を経て、元の送信元へ
+  const { router, insideIp, outsideIp } = forward.nat;
+  const toRouter = deliver(topo, dstUid, router, traffic, false, undefined, outsideIp);
+  if (!toRouter.ok) return toRouter;
+  const insideIface = topo.node(router)?.interfaces.find((i) => inSubnet(insideIp, i.ip, i.prefix));
+  if (!insideIface || !src || !dst) return { ok: false, path: toRouter.path, failure: fail('route.none', router) };
+  return deliver(topo, router, srcUid, traffic, false, insideIface.ip, undefined);
+};
+
+// Ping（ICMP）の判定。往路と復路の両方が通る必要がある
 export const ping = (net: Network, data: EngineData, srcUid: string, dstUid: string): PathResult => {
   const topo = new Topology(net, data);
   const forward = deliver(topo, srcUid, dstUid, { kind: 'ping' });
   if (!forward.ok) return forward;
-  const back = deliver(topo, dstUid, srcUid, { kind: 'ping' }, false);
+  const back = backOf(topo, dstUid, srcUid, { kind: 'ping' }, forward);
   if (!back.ok) {
-    return { ok: false, path: forward.path, failure: { reason: 'return.failed', node: dstUid, cause: back.failure } };
+    return { ok: false, path: forward.path, failure: { reason: 'return.failed', node: dstUid, cause: back.failure }, nat: forward.nat };
   }
   return forward;
 };
@@ -456,9 +487,9 @@ export const http = (net: Network, data: EngineData, srcUid: string, dstUid: str
   if (!dst || !dst.services.some((s) => s.protocol === 'http' && s.port === port)) {
     return { ok: false, path: forward.path, failure: fail('service.closed', dstUid) };
   }
-  const back = deliver(topo, dstUid, srcUid, { kind: 'http', port }, false);
+  const back = backOf(topo, dstUid, srcUid, { kind: 'http', port }, forward);
   if (!back.ok) {
-    return { ok: false, path: forward.path, failure: { reason: 'return.failed', node: dstUid, cause: back.failure } };
+    return { ok: false, path: forward.path, failure: { reason: 'return.failed', node: dstUid, cause: back.failure }, nat: forward.nat };
   }
   return forward;
 };
