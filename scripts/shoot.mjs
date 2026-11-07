@@ -412,6 +412,27 @@ const scenes = {
     // 結果の報告は、納品から少し遅れて出る（REPORT_DELAY_MS）
     await page.waitForTimeout(4000);
   },
+  // Lv8 に上がる結果画面（解放の多いレベル）。経験値を Lv7 の終わり近くにしてから納品する
+  levelup8: async (page) => {
+    await scenes.pctest(page);
+    // HUD の「Lv 7」になる最大の経験値を探す（レベルの式を画面から読む）
+    const lvAt = async (exp) => {
+      await page.evaluate((e) => window.__game.setState({ companyExp: e }), exp);
+      await page.waitForTimeout(30);
+      return Number((await page.locator('text=/^Lv\\s*\\d+$/').first().textContent()).replace(/\D/g, ''));
+    };
+    let lo = 0;
+    let hi = 1;
+    while ((await lvAt(hi)) < 8) hi *= 2;
+    while (hi - lo > 1) {
+      const mid = Math.floor((lo + hi) / 2);
+      if ((await lvAt(mid)) < 8) lo = mid;
+      else hi = mid;
+    }
+    await lvAt(lo);
+    await page.evaluate(runBuild, true);
+    await page.waitForTimeout(4000);
+  },
   // 2台のPCをつないだ直後（つながった瞬間の光は 450ms なので、操作の直後に撮る）
   connect: async (page) => {
     await scenes.career(page);
