@@ -287,6 +287,26 @@ const scenes = {
     });
     await page.waitForTimeout(500);
   },
+  // 退職の月末の確認（時間を進め、退職の予定の社員が月末に一覧から消えて退職金が出ることを確かめる）。結果は標準出力に出す
+  retireend: async (page) => {
+    await scenes.career(page);
+    page.on('console', (m) => {
+      if (m.text().startsWith('RETIRE ')) console.log(m.text());
+    });
+    await page.evaluate(() => {
+      const g = window.__game;
+      // 採用から十分な月がたっていることにし、1人目に退職を伝える
+      g.setState({ staff: g.getState().staff.map((m) => ({ ...m, hiredMonth: -10 })) });
+      const uid = g.getState().staff[0].uid;
+      const reason = g.getState().noticeRetire(uid);
+      const before = { staff: g.getState().staff.length, money: g.getState().clock.money, reason };
+      g.getState().setSpeed(4);
+      for (let i = 0; i < 40000 && g.getState().clock.paidMonths < 1; i++) g.getState().tick();
+      const after = { staff: g.getState().staff.length, money: g.getState().clock.money, paidMonths: g.getState().clock.paidMonths };
+      console.log('RETIRE ' + JSON.stringify({ before, after }));
+    });
+    await page.waitForTimeout(300);
+  },
   // 退職を伝えた後の社員の詳細（月末に退職する。取り消しの操作を出す）
   staffleaving: async (page) => {
     await scenes.career(page);
