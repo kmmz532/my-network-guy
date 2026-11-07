@@ -5,7 +5,7 @@ import { isPhoneNow } from '../ui/usePhone';
 import { Application, Container, Graphics, Rectangle, Sprite, Text, type FederatedPointerEvent, type Ticker } from 'pixi.js';
 import { staffSpriteName, STAFF_PLACEHOLDER_LOOKS, type GameMap } from '../data/schema';
 import { coreOf, editNetOf, focusedProject, frontDeviceUid, netTargetOf, useGameStore, type Trace, type WireStart } from '../stores/useGameStore';
-import { cableEndAt, grabsCableEnd, linkAt, plugPoints } from './linkHit';
+import { cableEndAt, centerPath, grabsCableEnd, linkAt, plugPoints } from './linkHit';
 import { portLabel } from '../components/devicePorts';
 import { isDragMove } from '../components/rearDrag';
 import { rangeTiles } from './effectRange';
@@ -832,6 +832,24 @@ export class Scene {
       this.g.lineTo(this.wireTo.x, this.wireTo.y);
       this.g.stroke({ width: 2, color: SELECT });
       this.drawWireCost(wireNode, ts);
+    }
+
+    // ケーブルの端を挿し替えるドラッグ中（N107）: つかんだケーブルを強調し、もう一方の端から離した位置まで仮の線を引く
+    const press = this.press;
+    if (press?.dragging && press.target.kind === 'end' && press.at) {
+      const target = press.target;
+      const link = (this.editLinks() ?? []).find((l) => l.uid === target.linkUid);
+      if (link) {
+        const pts = centerPath(link.path, ts);
+        this.g.moveTo(pts[0][0], pts[0][1]);
+        for (const [x, y] of pts.slice(1)) this.g.lineTo(x, y);
+        this.g.stroke({ width: 4, color: 0xffd866, alpha: 0.9 });
+        const plugs = plugPoints(link, ts);
+        const fixed = target.end === 'a' ? plugs.b : plugs.a;
+        this.g.moveTo(fixed.x, fixed.y);
+        this.g.lineTo(press.at.x, press.at.y);
+        this.g.stroke({ width: 2, color: 0xffd866, alpha: 0.7 });
+      }
     }
 
     // 疎通テスト中の機器は LED を速く点滅させる
