@@ -17,6 +17,26 @@
       "unlockLevel": 1
     },
     {
+      "id": "pc_wifi",
+      "category": "pc",
+      "capabilities": [
+        "wireless"
+      ],
+      "price": 110000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 1,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [
+        "wireless"
+      ],
+      "sprite": "device/pc_wifi",
+      "unlockLevel": 8
+    },
+    {
       "id": "laptop",
       "category": "pc",
       "capabilities": [
