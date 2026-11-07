@@ -140,6 +140,8 @@
   "ui.speed.2": "2倍",
   "ui.speed.8": "8倍",
   "ui.speed.4": "4倍",
+  "ui.speed.hint.next": "今 {now}。押すと {next}",
+  "ui.speed.hint.up": "押すと {next}",
   "ui.save": "保存",
   "ui.export": "書き出し",
   "ui.import": "読み込み",

@@ -369,10 +369,15 @@ export function App() {
           {(() => {
             const unlockedSpeeds = unlockedSpeedsOf(levelNow, balance);
             const shown: Speed = speed >= 2 ? speed : ((unlockedSpeeds.find((x) => x >= 2) ?? 2) as Speed);
+            // 押すと変わる倍率（押すたびに解放済みの 2倍・4倍・8倍を回る）。ツールチップに今と次を出す（N130）
+            const next = nextFastSpeed(speed, unlockedSpeeds) as Speed;
+            const hint = speed >= 2 ? t('ui.speed.hint.next', { now: t(`ui.speed.${speed}` as const), next: t(`ui.speed.${next}` as const) }) : t('ui.speed.hint.up', { next: t(`ui.speed.${shown}` as const) });
             return (
-              <Tooltip text={t(`ui.speed.${shown}` as const)}>
-                <button aria-label={t(`ui.speed.${shown}` as const)} style={hudButton(speed >= 2, phone)} onClick={() => { hideTip(); setSpeed(nextFastSpeed(speed, unlockedSpeeds) as Speed); }}>
+              <Tooltip text={hint}>
+                <button aria-label={hint} style={hudButton(speed >= 2, phone)} onClick={() => { hideTip(); setSpeed(next); }}>
                   {Array.from({ length: shown === 2 ? 2 : 3 }, (_, i) => <Icon key={i} name="icon/play" scale={1} />)}
+                  {/* 今の倍率を文字でも出す（4倍と8倍は絵が同じため。N130） */}
+                  <span style={{ marginLeft: 4 }}>{t(`ui.speed.${speed}` as const)}</span>
                 </button>
               </Tooltip>
             );
