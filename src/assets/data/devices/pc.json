@@ -19,7 +19,9 @@
     {
       "id": "laptop",
       "category": "pc",
-      "capabilities": [],
+      "capabilities": [
+        "wireless"
+      ],
       "deskable": true,
       "price": 120000,
       "ports": [

@@ -4,6 +4,7 @@
 import { isFabricPort, isRelayPort, isRoutingCategory, ROUTER_SWITCH_LAN_HOST_PORT } from './category';
 import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, Iface, NetLink, NetNode, Network, PathResult, PortConfig, Route } from './types';
 import { CATEGORY } from '../data/categories';
+import { can } from './capabilities';
 
 const MAX_HOPS = 16;
 
@@ -470,6 +471,32 @@ const backOf = (topo: Topology, dstUid: string, srcUid: string, traffic: Traffic
   return deliver(topo, router, srcUid, traffic, false, insideIface.ip, undefined);
 };
 
+// 電波の範囲（マス。仮の値・WIRELESS.md §3 の減衰は後続）。範囲の中の無線の端末は、最も近いアクセスポイントの LAN に入る（N151）
+export const WIRELESS_RADIUS = 6;
+
+// 無線の端末を、最も近いアクセスポイントへ仮想の配線でつなぐ（段1の仮想の配線）。
+// 端末の口0 に配線がなく、無線の能力を持ち、範囲の中にアクセスポイントがあるとき。アクセスポイントの口は 100 番から、端末ごとに1つ使う
+export const withWireless = (net: Network, data: EngineData): Network => {
+  const aps = net.nodes.filter((n) => data.categoryOf(n.device) === CATEGORY.accessPoint);
+  if (aps.length === 0) return net;
+  const wired = new Set(net.links.flatMap((l) => [`${l.a.node}:${l.a.port}`, `${l.b.node}:${l.b.port}`]));
+  const extra: NetLink[] = [];
+  const nextPort = new Map<string, number>();
+  for (const c of net.nodes) {
+    if (!can(c.device, 'wireless') || wired.has(`${c.uid}:0`)) continue;
+    let best: { ap: NetNode; d: number } | undefined;
+    for (const ap of aps) {
+      const d = Math.abs(ap.x - c.x) + Math.abs(ap.y - c.y);
+      if (d <= WIRELESS_RADIUS && (best === undefined || d < best.d || (d === best.d && ap.uid < best.ap.uid))) best = { ap, d };
+    }
+    if (!best) continue;
+    const port = 100 + (nextPort.get(best.ap.uid) ?? 0);
+    nextPort.set(best.ap.uid, port - 100 + 1);
+    extra.push({ uid: `__wifi_${c.uid}`, cable: 'utp_cat5e', a: { node: best.ap.uid, port }, b: { node: c.uid, port: 0 }, path: [[best.ap.x, best.ap.y], [c.x, c.y]], paid: 0 });
+  }
+  return extra.length === 0 ? net : { ...net, links: [...net.links, ...extra] };
+};
+
 // 静的 NAT（ポートの転送）: 外からルーターの外の口へのポートの通信を、社内のサーバーへ届ける。往路は外→外の口→社内の口→サーバー、復路は逆に戻す（N145）
 const viaStatic = (topo: Topology, srcUid: string, routerUid: string, traffic: Traffic): PathResult | null => {
   const r = topo.node(routerUid);
@@ -492,7 +519,7 @@ const viaStatic = (topo: Topology, srcUid: string, routerUid: string, traffic: T
 
 // Ping（ICMP）の判定。往路と復路の両方が通る必要がある
 export const ping = (net: Network, data: EngineData, srcUid: string, dstUid: string): PathResult => {
-  const topo = new Topology(net, data);
+  const topo = new Topology(withWireless(net, data), data);
   const forward = deliver(topo, srcUid, dstUid, { kind: 'ping' });
   if (!forward.ok) return forward;
   const back = backOf(topo, dstUid, srcUid, { kind: 'ping' }, forward);
@@ -504,7 +531,7 @@ export const ping = (net: Network, data: EngineData, srcUid: string, dstUid: str
 
 // HTTP の判定。往路で宛先に届き、宛先が指定ポートでサービスを待ち受けていて、復路も通ること
 export const http = (net: Network, data: EngineData, srcUid: string, dstUid: string, port: number): PathResult => {
-  const topo = new Topology(net, data);
+  const topo = new Topology(withWireless(net, data), data);
   // 外の口への通信が、静的 NAT で社内のサーバーへ届く場合（N145）
   const nat = viaStatic(topo, srcUid, dstUid, { kind: 'http', port });
   if (nat !== null) return nat;
@@ -523,7 +550,7 @@ export const http = (net: Network, data: EngineData, srcUid: string, dstUid: str
 
 // ネットワーク全体の中で、輪になっているL2ドメインがあれば、その輪の機器（スイッチ）の uid を返す。なければ null（社内のネットワークの障害の表示に使う）
 export const loopNodeOf = (net: Network, data: EngineData): string | null => {
-  const topo = new Topology(net, data);
+  const topo = new Topology(withWireless(net, data), data);
   for (const link of net.links) {
     for (const ep of [link.a, link.b]) {
       const loop = topo.domainOf(ep).loop;
