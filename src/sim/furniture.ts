@@ -84,7 +84,8 @@ export const hire = (core: Core, candidateUid: string, isSeat: (id: string) => b
   // 会社のレベルの上限（人数）に達していれば採用できない（LEVEL.md 3.3）
   if (core.staff.length >= staffCap) return fail('cap');
   // 雇うときに、日勤か夜勤を選ぶ（夜勤は会社のレベルで解放される・N48）
-  const staff: Staff = { ...candidate, uid: `s${core.staffSeq}`, shift };
+  // 採用した月を覚える（退職の条件に使う）。候補は採用の時点で退職の予定はない
+  const staff: Staff = { ...candidate, uid: `s${core.staffSeq}`, shift, hiredMonth: core.clock.paidMonths, leaving: false };
   return {
     ok: true,
     core: {

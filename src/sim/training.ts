@@ -28,6 +28,8 @@ export const startTraining = (core: Core, uid: string, courseId: string, env: Tr
   const course = env.courses[courseId];
   if (!course) return fail('none');
   if (member.training) return fail('training');
+  // 退職の予定の社員は、研修を受けられない（N90）
+  if (member.leaving) return fail('retire.leaving');
   if (crewOf(core).has(uid)) return fail('crew');
   if (core.clock.money < course.cost) return fail('money');
   const untilMinute = core.clock.minute + course.days * minutesPerDay;
@@ -57,6 +59,7 @@ export const takeExam = (core: Core, uid: string, certId: string, roll: number, 
   if (member.level < cert.minLevel) return fail('level');
   if (member.training) return fail('training');
   if (member.certs.includes(certId)) return fail('owned');
+  if (member.leaving) return fail('retire.leaving');
   if (crewOf(core).has(uid)) return fail('crew');
   if (core.clock.money < cert.fee) return fail('money');
   const paid: Core = { ...core, clock: applyMoney(core.clock, -cert.fee, 'exam') };

@@ -7,6 +7,9 @@ import { staffSpriteName } from '../data/schema';
 import { useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
+import { secondaryButton } from './Modal';
+import { Tooltip } from './Tooltip';
+import { retireBlock } from '../sim/retire';
 
 const yen = (n: number) => n.toLocaleString('ja-JP');
 // 社員の一覧の列の幅（名前・職種と level・月給・状態）
@@ -69,8 +72,37 @@ export function StaffBody({ uid, onTraining }: { uid: string; onTraining: () => 
           {t('ui.staff.card.goto')}
         </button>
       </div>
+      <RetireControl uid={uid} />
     </div>
   );
+}
+
+// 退職を伝える・取り消す（N90）。伝えられないときは、理由をツールチップに出す
+function RetireControl({ uid }: { uid: string }) {
+  const state = useGameStore();
+  const member = state.staff.find((m) => m.uid === uid);
+  if (!member) return null;
+  if (member.leaving) {
+    return (
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <span>{t('ui.retire.leaving', { months: balance.retire.payMonths })}</span>
+        <button style={secondaryButton} onClick={() => state.cancelRetire(uid)}>
+          {t('ui.retire.cancel')}
+        </button>
+      </div>
+    );
+  }
+  const reason = retireBlock(state, uid, balance);
+  const button = (
+    <button
+      style={{ ...secondaryButton, cursor: reason === null ? 'pointer' : 'default', opacity: reason === null ? 1 : 0.5 }}
+      disabled={reason !== null}
+      onClick={() => state.noticeRetire(uid)}
+    >
+      {t('ui.retire.notice')}
+    </button>
+  );
+  return reason === null ? button : <Tooltip text={tDyn(`ui.error.${reason}`)}><span style={{ display: 'inline-block' }}>{button}</span></Tooltip>;
 }
 
 // 全社員の一覧。1人1行で名前・職種と level・月給・状態を出し、最後に月給の合計。行を押すとその社員の札を開く

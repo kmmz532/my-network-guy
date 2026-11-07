@@ -24,6 +24,7 @@ import { gameEnv } from '../sim/env';
 import { learnFromPing } from '../network/learn';
 import { rentalOf } from '../network/external';
 import { applyMoney, recordSaving } from '../sim/ledger';
+import { cancelRetire as cancelRetireOp, noticeRetire as noticeRetireOp, settleRetirements } from '../sim/retire';
 import { accountingRate, backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, salesArrivalChance } from '../sim/backOffice';
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
 import type { MacEntry } from '../network/mac';
@@ -331,6 +332,9 @@ export interface GameState {
   expandOffice: (side: ExpandSide) => string | null;
   removeFurniture: (uid: string) => string | null;
   hire: (candidateUid: string, shift: 'day' | 'night') => string | null;
+  // 退職を伝える・取り消す（N90）。伝えられないときは理由の文言の鍵を返す
+  noticeRetire: (uid: string) => string | null;
+  cancelRetire: (uid: string) => string | null;
   // 次の月の募集の職種を指定する（null で指定なし）。人事がいないと指定できない
   setHiringWish: (job: JobId | null) => string | null;
   startTraining: (uid: string, courseId: string) => string | null;
@@ -800,7 +804,7 @@ export const useGameStore = create<GameState>((set, get) => {
         const offers = existing ? s.offers : [...s.offers, offer];
         // 担当は、空いている社員全員（受注の画面と同じ既定）
         const busy = s.active.flatMap((p) => p.crew);
-        const crew = s.staff.filter((m) => !busy.includes(m.uid) && m.training === null).map((m) => m.uid);
+        const crew = s.staff.filter((m) => !busy.includes(m.uid) && m.training === null && !m.leaving).map((m) => m.uid);
         const probe = accept({ ...coreOf(s), offers }, offer.id, balance.office.projectSlots, crew);
         if (!probe.ok) return probe.reason;
         set({ offers });
@@ -1034,6 +1038,9 @@ export const useGameStore = create<GameState>((set, get) => {
         const hrP = backOfficeP(s.staff, 'hr', s.office, { defs: gameEnv.furniture ?? {}, balance, staffUids: s.staff.map((m) => m.uid) });
         if (clock.paidMonths > s.clock.paidMonths) {
           const amount = totalSalary(s.staff, balance.nightPayRate);
+          // 退職の予定の社員は、今月末で退職する（退職金を払い、一覧から外す。今月の給与は上で払い済み・N90）
+          const settled = settleRetirements({ clock: next.clock ?? clock, staff: next.staff ?? s.staff, active: s.active }, balance);
+          next = { ...next, clock: settled.clock, staff: settled.staff, active: settled.active };
           // 毎月1日に、採用の候補を作り直す
           // 募集の職種の指定は、人事がいるときだけ効く。指定は次の1回だけ使う
           const rolled = rollCandidates(levelOf(s.companyExp, balance), clock.paidMonths, s.rng, balance, s.staff.map((m) => m.name), {
@@ -1205,6 +1212,8 @@ export const useGameStore = create<GameState>((set, get) => {
       set({ hiringWish: job });
       return null;
     },
+    noticeRetire: (uid) => apply(noticeRetireOp(coreOf(get()), uid, balance)),
+    cancelRetire: (uid) => apply(cancelRetireOp(coreOf(get()), uid)),
     hire: (candidateUid, shift) => {
       const reason = apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true, staffCapOf(levelOf(get().companyExp, balance), balance), shift));
       if (reason === null) get().grantCompanyExp('hire');

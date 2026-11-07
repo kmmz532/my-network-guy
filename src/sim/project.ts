@@ -439,7 +439,8 @@ export const accept = (core: Core, offerId: string, slots: number, crew: string[
   const busy = new Set(core.active.flatMap((p) => p.crew));
   const free = (uid: string) => {
     const member = core.staff.find((s) => s.uid === uid);
-    return member !== undefined && member.training === null && !busy.has(uid);
+    // 退職の予定の社員は、新しい案件の担当に選べない（月末までは受注済みの案件を続ける・N90）
+    return member !== undefined && member.training === null && !member.leaving && !busy.has(uid);
   };
   if (!crew.every(free)) return fail('crew');
   // 内勤（営業・人事・経理）は、案件の担当に選べない

@@ -36,6 +36,8 @@ export interface Staff {
   salary: number; // 月給（採用時に決まり、変わらない）
   certs: string[]; // 取得した資格のID
   training: { course: string; untilMinute: number } | null; // 受講中の研修
+  hiredMonth: number; // 採用した月（ゲーム内の月の番号。退職の条件に使う・N90）
+  leaving: boolean; // 退職を伝え済み（その月の末日に退職する・N90）
 }
 
 // 見た目の候補。服の色・髪の色・髪型の組み合わせ（4 × 3 × 2 = 24 通り）。
@@ -102,6 +104,8 @@ export const balanceSchema = z.object({
       juniorExpRatePerLevel: z.number().nonnegative(),
     }),
   }),
+  // 退職（N90）。退職金は月給の payMonths か月分。採用から minMonths か月たつまで伝えられない
+  retire: z.object({ payMonths: nonNegativeInt, minMonths: nonNegativeInt }),
   rental: z.object({ monthlyPerCustomer: z.number().int().nonnegative(), levelsPerCustomer: z.number().int().positive() }),
   exp: z.object({ delivery: z.number().nonnegative(), deliveryGapStep: z.number().nonnegative(), deliveryGapMin: z.number().nonnegative(), guide: z.number().nonnegative(), hire: z.number().nonnegative(), expansion: z.number().nonnegative(), furniture: z.number().nonnegative(), dailyCap: z.number().nonnegative() }),
   // 機材の価格の式（N35）: 基本の価格（分類）＋ポート1つあたり（分類）＋機能ごとの加算。機材の定価は、この式の値とそろえる

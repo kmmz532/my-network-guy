@@ -16,6 +16,8 @@ const member = (uid: string): Staff => ({
   salary: 200000,
   certs: [],
   training: null,
+  hiredMonth: 0,
+  leaving: false,
 });
 
 const sample: SaveData = {
@@ -457,5 +459,25 @@ describe('評判（N55）', () => {
   it('v23 の保存は評判を 0 から始めて読み込める（検収の★は残っていない）', () => {
     const { reputation: _r, ...v23 } = sample;
     expect(migrate(23, v23).reputation).toBe(0);
+  });
+});
+
+describe('v33 → v34', () => {
+  // 移行前の社員（採用の月と退職の予定がない形）
+  const strip = (m: Staff) => {
+    const { hiredMonth: _hiredMonth, leaving: _leaving, ...rest } = m;
+    return rest;
+  };
+  const v33 = { ...sample, staff: sample.staff.map(strip), candidates: sample.candidates.map(strip) };
+
+  it('社員と候補に、採用の月0と退職の予定なしを足す（移行前の社員は、いつでも退職させられる）', () => {
+    const out = migrate(33, v33);
+    expect(out.staff.every((m) => m.hiredMonth === 0 && m.leaving === false)).toBe(true);
+    expect(out.candidates.every((m) => m.hiredMonth === 0 && m.leaving === false)).toBe(true);
+  });
+
+  it('移行後の形式は、読み込んで書き出しても元に戻る', () => {
+    const out = migrate(33, v33);
+    expect(importSave(exportSave(out))).toEqual(out);
   });
 });

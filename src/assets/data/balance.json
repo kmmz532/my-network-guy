@@ -134,6 +134,10 @@
       "juniorExpRatePerLevel": 0.05
     }
   },
+  "retire": {
+    "payMonths": 1,
+    "minMonths": 3
+  },
   "rental": {
     "monthlyPerCustomer": 30000,
     "levelsPerCustomer": 3

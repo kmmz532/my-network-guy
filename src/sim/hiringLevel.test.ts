@@ -47,11 +47,13 @@ describe('夜勤の採用（N48）', () => {
       staff: [],
       staffSeq: 0,
       candidates: [candidate],
+      clock: { paidMonths: 2 },
       office: { furniture: [{ uid: 'f0', id: 'desk', x: 1, y: 1 }] },
     } as never;
     const r = hire(core, 'c1_0', (id) => id === 'desk', 2, 'night');
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.core.staff[0].shift).toBe('night');
+    // 採用の月は、採用した時点の月（退職の条件に使う）。採用の時点では退職の予定はない
+    if (r.ok) expect(r.core.staff[0]).toMatchObject({ shift: 'night', hiredMonth: 2, leaving: false });
   });
 
   it('夜勤は会社のレベル10で解放される', () => {

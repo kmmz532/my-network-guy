@@ -44,6 +44,8 @@ export const createStaff = (spec: StaffSpec, rng: number, seq: number, taken: re
     exp: 0,
     salary: spec.salary,
     certs: [],
+    hiredMonth: 0,
+    leaving: false,
     training: null,
   };
   return { staff, rng: quirk.state };

@@ -254,6 +254,26 @@ const scenes = {
     await page.keyboard.press('h');
     await page.waitForTimeout(500);
   },
+  // 社員の詳細（退職の操作を含む）。採用から間もない社員は、退職を伝えられない理由を出す
+  staffdetail: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      g.getState().openWindow('staff', g.getState().staff[0].uid);
+    });
+    await page.waitForTimeout(500);
+  },
+  // 退職を伝えた後の社員の詳細（月末に退職する。取り消しの操作を出す）
+  staffleaving: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      const uid = g.getState().staff[0].uid;
+      g.setState({ staff: g.getState().staff.map((m) => (m.uid === uid ? { ...m, leaving: true } : m)) });
+      g.getState().openWindow('staff', uid);
+    });
+    await page.waitForTimeout(500);
+  },
   // スイッチの機器の画面（設定タブは出ない。背面だけ）。空いている場所に置いて開く
   switch: async (page) => {
     await scenes.career(page);

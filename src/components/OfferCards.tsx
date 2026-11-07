@@ -105,7 +105,7 @@ function CrewPicker({ selected, onChange }: { selected: string[]; onChange: (cre
       <div style={{ marginBottom: 2 }}>{t('ui.offer.crew')}</div>
       {/* 内勤（営業・人事・経理）は担当に出さない */}
       {staff.filter((s) => !isBackOffice(s.job)).map((s) => {
-        const unavailable = busy.includes(s.uid) || s.training !== null;
+        const unavailable = busy.includes(s.uid) || s.training !== null || s.leaving;
         const power = staffPower(s, undefined, office, bonusEnv);
         return (
           <PixelCheck
@@ -161,7 +161,7 @@ function OfferCard({
   const [asking, setAsking] = useState(false);
   // 受注の画面を開いたときの担当（空いている社員全員）
   const [crew, setCrew] = useState<string[]>(() =>
-    staff.filter((s) => !busy.includes(s.uid) && s.training === null && !isBackOffice(s.job)).map((s) => s.uid),
+    staff.filter((s) => !busy.includes(s.uid) && s.training === null && !s.leaving && !isBackOffice(s.job)).map((s) => s.uid),
   );
   // 予想の★の範囲（今の担当で）。担当が決まると変わる
   const blindRange = (() => {

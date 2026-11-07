@@ -62,6 +62,8 @@ describe('施工力', () => {
     salary: 1,
     certs: [],
     training: null,
+    hiredMonth: 0,
+    leaving: false,
   });
   const desk = { uid: 'd', id: 'desk', x: 5, y: 5 };
   const seated = { ...emptyOffice({ w: 5, h: 5 }), furniture: [desk], furnitureSeq: 1 };
@@ -194,7 +196,7 @@ describe('社員の名前が重ならない', () => {
 });
 
 describe('社員の状態', () => {
-  const base: Staff = { uid: 's1', shift: 'day' as const, name: 'staff.name.0', look: 'blue', quirk: 'q1', job: 'network', level: 1, exp: 0, salary: 1, certs: [], training: null };
+  const base: Staff = { uid: 's1', shift: 'day' as const, name: 'staff.name.0', look: 'blue', quirk: 'q1', job: 'network', level: 1, exp: 0, salary: 1, certs: [], training: null, hiredMonth: 0, leaving: false };
   const project = { id: 'p1', baseId: 'c001', params: { n: 2 }, crew: ['s1'] } as unknown as Project;
 
   it('研修中は残りの日数（1日未満は1日）を出す', () => {
