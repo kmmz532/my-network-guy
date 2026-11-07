@@ -8,6 +8,7 @@ const link: NetLink = {
   cable: 'utp_cat5e',
   a: { node: 'pc_a', port: 0 },
   b: { node: 'u0', port: 0 },
+  paid: 0,
   path: [
     [0, 0],
     [4, 0],

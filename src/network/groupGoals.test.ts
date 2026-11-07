@@ -25,7 +25,7 @@ const host = (uid: string, device: string, ip: string): NetNode => ({
 
 const sw = (uid: string): NetNode => ({ ...host(uid, 'l2_switch', '0.0.0.0'), interfaces: [] });
 
-const link = (uid: string, a: string, b: string, bPort: number): NetLink => ({
+const link = (uid: string, a: string, b: string, bPort: number): NetLink => ({ paid: 0,
   uid,
   cable: 'utp_cat5e',
   a: { node: a, port: 0 },

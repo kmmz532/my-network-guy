@@ -53,7 +53,7 @@ const router = (uid: string, interfaces: NetNode['interfaces'], routes: NetNode[
 });
 
 // 長さ length タイルの直線の配線
-const link = (uid: string, a: string, aPort: number, b: string, bPort: number, length = 5): NetLink => ({
+const link = (uid: string, a: string, aPort: number, b: string, bPort: number, length = 5): NetLink => ({ paid: 0,
   uid,
   cable: 'utp_cat5e',
   a: { node: a, port: aPort },

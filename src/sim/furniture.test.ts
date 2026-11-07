@@ -250,7 +250,7 @@ describe('座っている机の移動（N103）', () => {
   const desk = { uid: 'd0', id: 'desk', x: 2, y: 2 };
   const pc = { uid: 'n0', device: 'pc_basic', x: 2, y: 2 } as unknown as NetNode;
   const other = { uid: 'n1', device: 'pc_basic', x: 5, y: 4 } as unknown as NetNode;
-  const link = (uid: string, a: string, b: string, path: [number, number][]) => ({ uid, cable: 'utp', a: { node: a, port: 0 }, b: { node: b, port: 0 }, path });
+  const link = (uid: string, a: string, b: string, path: [number, number][]) => ({ uid, cable: 'utp', a: { node: a, port: 0 }, b: { node: b, port: 0 }, path, paid: 0 });
   const withOffice = (over: Partial<Office>) => ({ ...core().office, furniture: [desk], furnitureSeq: 1, nodes: [] as NetNode[], links: [], ...over }) as Office;
 
   it('机の上の PC は、机と一緒に動く', () => {

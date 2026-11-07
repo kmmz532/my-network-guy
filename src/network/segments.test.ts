@@ -28,6 +28,7 @@ const link = (uid: string, a: string, b: string): NetLink => {
     cable: 'utp_cat5e',
     a: { node: an, port: Number(ap) },
     b: { node: bn, port: Number(bp) },
+    paid: 0,
     path: [
       [0, 0],
       [1, 0],

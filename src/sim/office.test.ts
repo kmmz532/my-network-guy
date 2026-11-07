@@ -34,7 +34,7 @@ const node = (uid: string, x: number, y: number): NetNode => ({
   services: [],
 });
 
-const link = (uid: string, path: [number, number][]): NetLink => ({
+const link = (uid: string, path: [number, number][]): NetLink => ({ paid: 0,
   uid,
   cable: 'utp_cat5e',
   a: { node: 'a', port: 0 },

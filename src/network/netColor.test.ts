@@ -21,7 +21,7 @@ const node = (uid: string, device: string, ifaces: { port: number; ip: string; p
   services: [],
 });
 
-const link = (uid: string, a: [string, number], b: [string, number]): NetLink => ({
+const link = (uid: string, a: [string, number], b: [string, number]): NetLink => ({ paid: 0,
   uid,
   cable: 'utp_cat5e',
   a: { node: a[0], port: a[1] },

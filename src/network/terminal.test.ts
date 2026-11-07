@@ -23,7 +23,7 @@ const pc = (uid: string, ip: string | null, gateway: string | null = null): NetN
 
 const sw = (uid: string): NetNode => ({ ...pc(uid, null), device: 'l2' });
 
-const link = (uid: string, a: string, aPort: number, b: string, bPort: number): NetLink => ({
+const link = (uid: string, a: string, aPort: number, b: string, bPort: number): NetLink => ({ paid: 0,
   uid,
   cable: 'utp_cat5e',
   a: { node: a, port: aPort },

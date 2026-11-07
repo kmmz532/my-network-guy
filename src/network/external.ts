@@ -53,6 +53,7 @@ export const withInternet = (net: Network, data: EngineData): (Network & { inter
       [0, 0],
       [1, 0],
     ],
+    paid: 0,
   };
   return { nodes: [...net.nodes, internet], links: [...net.links, link], segments: net.segments, internetUid: INTERNET_UID };
 };

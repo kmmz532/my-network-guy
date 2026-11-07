@@ -18,7 +18,7 @@ const node = (uid: string, device: string, extra: Partial<NetNode> = {}): NetNod
   ...extra,
 });
 
-const link = (uid: string, a: [string, number], b: [string, number]): NetLink => ({
+const link = (uid: string, a: [string, number], b: [string, number]): NetLink => ({ paid: 0,
   uid,
   cable: 'utp_cat5e',
   a: { node: a[0], port: a[1] },

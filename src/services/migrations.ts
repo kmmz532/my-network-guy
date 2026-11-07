@@ -21,8 +21,9 @@ import firewallJson from '../assets/data/devices/firewall.json';
 import firewallDmzJson from '../assets/data/devices/firewall_dmz.json';
 import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
+import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 38;
+export const SAVE_VERSION = 39;
 
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
@@ -216,6 +217,25 @@ export const migrations: Record<number, Migration> = {
   26: (data) => ({ ...(data as object), deliveries: 0 }),
   // v31 → v32: 依頼に家具（机・棚・飾り）を足す。移行前の依頼は家具を持たない（N76）
   31: (data) => data as object,
+  // v38 → v39: 配線に払った額（paid）を足す。移行前は実際に払った額を記録していないため、割引なしの定価（配線の長さで計算した額）を入れる（N113）。
+  // 定価を引けない配線（ケーブルや機器が見つからない）は、埋めずに例外で止める
+  38: (data) => {
+    const d = data as { active: Project[]; office: Office };
+    const cables = cablesJson.cables as { id: string; pricePerLink: number; pricePerTile: number }[];
+    const withPaid = <T extends { nodes: NetNode[]; links?: NetLink[] }>(net: T): T => ({
+      ...net,
+      ...(net.links === undefined ? {} : { links: net.links.map((l) => {
+        const cable = cables.find((c) => c.id === l.cable);
+        if (!cable) throw new Error(`ケーブル ${l.cable} の定価が見つからない`);
+        const a = net.nodes.find((n) => n.uid === l.a.node);
+        const b = net.nodes.find((n) => n.uid === l.b.node);
+        if (!a || !b) throw new Error(`配線 ${l.uid} の機器が見つからない`);
+        const length = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+        return { ...l, paid: cable.pricePerLink + cable.pricePerTile * length };
+      }) }),
+    });
+    return { ...d, active: d.active.map(withPaid), office: withPaid(d.office) };
+  },
   // v37 → v38: 家具に向き（facing）を足す。移行前の家具は向きを書いていないため、up（今の絵のまま）として扱う（N95）
   37: (data) => data as object,
   // v36 → v37: 社員に level の上限（levelCap）を足す。移行前の社員は、今の level を含む段階の上端を上限にする（今より下がる社員を作らない・N101）。給与は変えない

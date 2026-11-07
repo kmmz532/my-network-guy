@@ -421,6 +421,19 @@ describe('案件の設計中の配線の撤去（費用の戻し）', () => {
     const marked: Core = { ...core, active: core.active.map((x) => (x.id === p.id ? { ...x, inheritedLinks: [link.uid] } : x)) };
     expect(removeLink(marked, link.uid, 'focus', env)).toEqual({ ok: false, reason: 'locked' });
   });
+
+  it('撤去の返金は、配線の時に払った額になる（割引が上がっても下がっても同じ・N113）', () => {
+    // 割引 50% で配線（払うのは定価の半分）
+    let core: Core = { ...ok(take(start(), 'c001_direct_link')).core, purchaseDiscount: 0.5 };
+    core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
+    const linkUid = cur(core)!.links[0].uid;
+    const paid = cur(core)!.cost;
+    expect(paid).toBe(1550);
+    // 割引なしに変えてから撤去しても、払った 1550 だけが戻る（定価の 3100 は戻らない）
+    const after = ok(removeLink({ ...core, purchaseDiscount: 0 }, linkUid, 'focus', env)).core;
+    expect(after.clock.money).toBe(core.clock.money + paid);
+    expect(cur(after)?.cost).toBe(0);
+  });
 });
 
 describe('自社オフィスのケーブル', () => {
@@ -713,6 +726,7 @@ describe('IPアドレスとセグメントの設定', () => {
         [0, 0],
         [1, 0],
       ] as [number, number][],
+      paid: 0,
     });
     // 3台のPCをスイッチでつないだ自社オフィス。/30 には3台分のアドレスがない
     const office = {

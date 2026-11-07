@@ -29,7 +29,7 @@ const pc = (uid: string, ip?: string, gateway: string | null = null): NetNode =>
   gateway,
 });
 
-const link = (uid: string, a: string, aPort: number, b: string, bPort: number): NetLink => ({
+const link = (uid: string, a: string, aPort: number, b: string, bPort: number): NetLink => ({ paid: 0,
   uid,
   cable: 'utp_cat5e',
   a: { node: a, port: aPort },

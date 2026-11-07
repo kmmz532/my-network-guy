@@ -822,6 +822,7 @@ export const connect = (
       [b.x, a.y],
       [b.x, b.y],
     ],
+    paid: cost,
   };
   const links = [...net.links, link];
   const segments = fillSegments({ nodes: net.nodes, links, segments: net.segments }, env.engine);
@@ -845,12 +846,8 @@ export const removeLink = (core: Core, uid: string, target: NetTarget, env: Env)
   if (target === 'focus') {
     const p = focusedOf(core) as Project;
     if ((p.inheritedLinks ?? []).includes(uid)) return fail('locked');
-    const a = net.nodes.find((n) => n.uid === link.a.node);
-    const b = net.nodes.find((n) => n.uid === link.b.node);
-    const cable = env.cables[link.cable];
-    if (!p.built.links.includes(uid) && a && b && cable) {
-      refund = paidCable(core, cableCost(cable, Math.abs(a.x - b.x) + Math.abs(a.y - b.y)));
-    }
+    // 返金は、配線・移動・挿し替えで実際に払った額（割引のあとの額）。撤去の時点の割引では計算しない（N113）
+    if (!p.built.links.includes(uid)) refund = link.paid;
   }
   const links = net.links.filter((l) => l.uid !== uid);
   let next = withNet(core, target, { ...net, links, segments: fillSegments({ nodes: net.nodes, links, segments: net.segments }, env.engine) });
@@ -1043,11 +1040,18 @@ const cablePath = (a: NetNode, b: NetNode): NetLink['path'] => [
   [b.x, b.y],
 ];
 
+// ケーブル1本の定価の増減（delta）を、払う額（paid）と節約（saved）に分ける。増えたときだけ割引が効き、浮いた額は節約に残す。
+// 減ったときは定価のまま返すが、そのケーブルで払った額（paidSoFar）を超えては返さない（N113）
+const paymentFor = (core: Core, delta: number, paidSoFar: number): { paid: number; saved: number } => {
+  if (delta > 0) {
+    const paid = paidCable(core, delta);
+    return { paid, saved: delta - paid };
+  }
+  return { paid: Math.max(delta, -paidSoFar), saved: 0 };
+};
+
 // 配線の費用を払う（正）か返す（負）。案件では案件の費用も増減する。自社オフィスの費用は案件の費用に入れない
-// delta は定価の増減。払う額は割引のあとで、増えたときだけ割引が効く。浮いた額は節約に残す
-const payCable = (core: Core, target: NetTarget, delta: number): Core => {
-  const paid = delta > 0 ? paidCable(core, delta) : delta;
-  const saved = delta > 0 ? delta - paid : 0;
+const payCable = (core: Core, target: NetTarget, paid: number, saved: number): Core => {
   const next = { ...core, clock: recordSaving(applyMoney(core.clock, -paid, 'construction'), saved) };
   if (target !== 'focus') return next;
   const p = focusedOf(next) as Project;
@@ -1076,7 +1080,8 @@ export const moveNode = (core: Core, uid: string, x: number, y: number, env: Env
   const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, x, y } : n));
   const after = new Map(nodes.map((n) => [n.uid, n] as const));
   const before = new Map(net.nodes.map((n) => [n.uid, n] as const));
-  let delta = 0;
+  let paidTotal = 0;
+  let savedTotal = 0;
   const links: NetLink[] = [];
   for (const l of net.links) {
     if (l.a.node !== uid && l.b.node !== uid) {
@@ -1093,10 +1098,12 @@ export const moveNode = (core: Core, uid: string, x: number, y: number, env: Env
     const oldA = before.get(l.a.node)!;
     const oldB = before.get(l.b.node)!;
     const oldLength = Math.abs(oldA.x - oldB.x) + Math.abs(oldA.y - oldB.y);
-    delta += cableCost(cable, length) - cableCost(cable, oldLength);
-    links.push({ ...l, path: cablePath(a, b) });
+    const pay = paymentFor(core, cableCost(cable, length) - cableCost(cable, oldLength), l.paid);
+    paidTotal += pay.paid;
+    savedTotal += pay.saved;
+    links.push({ ...l, path: cablePath(a, b), paid: l.paid + pay.paid });
   }
-  if (delta > 0 && core.clock.money < paidCable(core, delta)) return fail('money');
+  if (paidTotal > 0 && core.clock.money < paidTotal) return fail('money');
 
   const segments = fillSegments({ nodes, links, segments: net.segments }, env.engine);
   let next = withNet(core, target, { nodes, links, seq: net.seq, segments });
@@ -1112,7 +1119,7 @@ export const moveNode = (core: Core, uid: string, x: number, y: number, env: Env
       },
     });
   }
-  return { ok: true, core: payCable(next, target, delta) };
+  return { ok: true, core: payCable(next, target, paidTotal, savedTotal) };
 };
 
 // 配線の片方の端（end）を、ほかの機器（nodeUid）の空いているポートへ挿し替える。相手の機器を変えられる。
@@ -1166,10 +1173,10 @@ export const replugTo = (
   if (lengthCheck !== 'ok') return fail(lengthCheck);
   const oldA = before.get(link.a.node)!;
   const oldB = before.get(link.b.node)!;
-  const delta = cableCost(cable, length) - cableCost(cable, Math.abs(oldA.x - oldB.x) + Math.abs(oldA.y - oldB.y));
-  if (delta > 0 && core.clock.money < paidCable(core, delta)) return fail('money');
+  const pay = paymentFor(core, cableCost(cable, length) - cableCost(cable, Math.abs(oldA.x - oldB.x) + Math.abs(oldA.y - oldB.y)), link.paid);
+  if (pay.paid > 0 && core.clock.money < pay.paid) return fail('money');
 
-  const moved: NetLink = { ...link, [end]: { node: nodeUid, port: to }, path: cablePath(a, b) };
+  const moved: NetLink = { ...link, [end]: { node: nodeUid, port: to }, path: cablePath(a, b), paid: link.paid + pay.paid };
   const links = net.links.map((l) => (l.uid === linkUid ? moved : l));
   const segments = fillSegments({ nodes: net.nodes, links, segments: net.segments }, env.engine);
   let next = withNet(core, target, { ...net, links, segments });
@@ -1178,7 +1185,7 @@ export const replugTo = (
     const p = focusedOf(next) as Project;
     next = withProject(next, { ...p, built: { ...p.built, links: p.built.links.filter((x) => x !== linkUid) } });
   }
-  return { ok: true, core: payCable(next, target, delta) };
+  return { ok: true, core: payCable(next, target, pay.paid, pay.saved) };
 };
 
 // サービスの既定の待ち受けポート（プロトコルごと）。起動するときに使う

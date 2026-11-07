@@ -24,7 +24,7 @@ const host = (uid: string, ip: string, extra: Partial<NetNode> = {}): NetNode =>
 });
 
 const sw: NetNode = { ...host('s', '0.0.0.0'), device: 'l2', interfaces: [] };
-const link = (uid: string, a: string, aPort: number, b: string, bPort: number): NetLink => ({
+const link = (uid: string, a: string, aPort: number, b: string, bPort: number): NetLink => ({ paid: 0,
   uid,
   cable: 'utp_cat5e',
   a: { node: a, port: aPort },

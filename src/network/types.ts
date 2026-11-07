@@ -70,6 +70,8 @@ export interface NetLink {
   a: Endpoint;
   b: Endpoint;
   path: [number, number][];
+  // 実際に払った額（割引のあとの額の合計。配線・移動・挿し替えの差額で増減する）。撤去の返金はこの額を使う（N113）
+  paid: number;
 }
 
 // セグメントの設定（ネットワークアドレスとプレフィックス長）
