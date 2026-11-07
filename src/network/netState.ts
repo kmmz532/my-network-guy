@@ -481,6 +481,8 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
     if (matches.length === 0) {
       // BGP の相手と隣接しない（アドレスか AS 番号が合わない）ときは bgp.no_session（N147）
       if (cur.bgp && cur.bgp.neighbors.some((nb) => !topo.bgpSessionOk(cur, nb.ip, nb.remoteAs))) return err(fail('bgp.no_session', cur.uid));
+      // RIP に参加している機器で経路がないのは、16 ホップ以上で届かない（rip.unreachable・NET.md §6）
+      if (cur.interfaces.some((i) => i.rip === true)) return err(fail('rip.unreachable', cur.uid));
       return err(fail(cur.interfaces.some((i) => i.ospf !== undefined) ? 'ospf.no_neighbor' : 'route.none', cur.uid));
     }
     const route = matches.reduce((best, r) => (r.prefix > best.prefix || (r.prefix === best.prefix && adOf(r) < adOf(best)) ? r : best));

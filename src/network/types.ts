@@ -152,6 +152,8 @@ export const FAILURE_REASONS = [
   'bgp.no_session',
   // 社内のアドレスのまま外の口へ出た（NAPT がない・NET.md §6）
   'nat.private_source',
+  // RIP の経路が 16 ホップ以上で届かない（N141b）
+  'rip.unreachable',
   // 口が停止している（shutdown・N137）
   'port.shutdown',
   // 口の VLAN が通らない（access と trunk の許可の不一致・N137）
