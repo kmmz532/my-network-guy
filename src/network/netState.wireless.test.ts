@@ -1,7 +1,7 @@
 // 電波の範囲（N151）: 範囲の中の無線の端末は、最も近いアクセスポイントの LAN に入る
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping, WIRELESS_RADIUS } from './netState';
+import { ping, WIRELESS_RADIUS, wallsBetween } from './netState';
 import type { Iface, NetNode, Network } from './types';
 
 const f = (port: number, ip: string): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24 });
@@ -36,5 +36,28 @@ describe('電波の範囲（N151）', () => {
 
   it('範囲の外のノート PC は、LAN に入らず届かない', () => {
     expect(ping(build(2 + WIRELESS_RADIUS + 5), gameEnv.engine, 'pc', 'lap').ok).toBe(false);
+  });
+});
+
+describe('壁による減衰（N151）', () => {
+  const engine = (wallAt: (x: number, y: number) => boolean) => ({ ...gameEnv.engine, wallAt });
+  it('壁が1マスなら、距離が伸びる分だけ届く範囲が縮む（届く）', () => {
+    // AP x=2、ノート PC x=5（距離3）。間の x=3 に壁が1つ → 3+2×1=5 ≤ 6
+    expect(ping(build(5), engine((x) => x === 3), 'pc', 'lap').ok).toBe(true);
+  });
+  it('壁が2マスなら、減衰後に範囲の外になり届かない', () => {
+    // 壁が x=3・x=4 → 3+2×2=7 > 6
+    expect(ping(build(5), engine((x) => x === 3 || x === 4), 'pc', 'lap').ok).toBe(false);
+  });
+  it('壁の判定が false のマス（ドアなど）は電波を減衰させない', () => {
+    expect(ping(build(5), engine(() => false), 'pc', 'lap').ok).toBe(true);
+  });
+});
+
+describe('wallsBetween', () => {
+  it('両端を除いて、経路の壁のマスを数える', () => {
+    expect(wallsBetween(() => true, 0, 0, 3, 0)).toBe(2);
+    expect(wallsBetween(() => true, 0, 0, 1, 1)).toBe(1);
+    expect(wallsBetween(() => false, 0, 0, 3, 3)).toBe(0);
   });
 });

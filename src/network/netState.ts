@@ -473,6 +473,25 @@ const backOf = (topo: Topology, dstUid: string, srcUid: string, traffic: Traffic
 
 // 電波の範囲（マス。仮の値・WIRELESS.md §3 の減衰は後続）。範囲の中の無線の端末は、最も近いアクセスポイントの LAN に入る（N151）
 export const WIRELESS_RADIUS = 6;
+// 壁1マスを通るごとに、電波の届く距離から失われるマス数（仮の値・WIRELESS.md §3）
+export const WALL_LOSS = 2;
+
+// アクセスポイントから端末までの経路（x を先、次に y）にある壁のマスの数（両端は数えない）
+export const wallsBetween = (wallAt: (x: number, y: number) => boolean, ax: number, ay: number, cx: number, cy: number): number => {
+  let count = 0;
+  let x = ax;
+  let y = ay;
+  const toward = (v: number, target: number) => (v < target ? v + 1 : v - 1);
+  while (x !== cx) {
+    x = toward(x, cx);
+    if (!(x === cx && y === cy) && wallAt(x, y)) count++;
+  }
+  while (y !== cy) {
+    y = toward(y, cy);
+    if (!(x === cx && y === cy) && wallAt(x, y)) count++;
+  }
+  return count;
+};
 
 // 無線の端末を、最も近いアクセスポイントへ仮想の配線でつなぐ（段1の仮想の配線）。
 // 端末の口0 に配線がなく、無線の能力を持ち、範囲の中にアクセスポイントがあるとき。アクセスポイントの口は 100 番から、端末ごとに1つ使う
@@ -494,7 +513,9 @@ export const withWireless = (net: Network, data: EngineData): Network => {
       const w = ap.wireless;
       const cw = c.wireless;
       if (w?.ssid === undefined || cw?.ssid !== w.ssid || cw.password !== w.password) continue;
-      if (d <= WIRELESS_RADIUS && (best === undefined || d < best.d || (d === best.d && ap.uid < best.ap.uid))) best = { ap, d };
+      // 壁を通るたびに減衰し、減衰後に届く範囲だけが有効（壁の判定がないときは減衰しない）
+      const walls = data.wallAt ? wallsBetween(data.wallAt, ap.x, ap.y, c.x, c.y) : 0;
+      if (d + walls * WALL_LOSS <= WIRELESS_RADIUS && (best === undefined || d < best.d || (d === best.d && ap.uid < best.ap.uid))) best = { ap, d };
     }
     if (!best) continue;
     const port = 100 + (nextPort.get(best.ap.uid) ?? 0);
