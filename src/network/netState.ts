@@ -545,6 +545,8 @@ export const wirelessAssociations = (net: Network, data: EngineData): { ap: NetN
       const w = ap.wireless;
       const cw = c.wireless;
       if (w?.ssid === undefined || cw?.ssid !== w.ssid || cw.password !== w.password) continue;
+      // 無線の MAC フィルター（N153）: 登録のない端末は通さない
+      if (w.macs !== undefined && (c.macSerial === undefined || !w.macs.includes(macOf(data.categoryOf(c.device), c.macSerial, 0)))) continue;
       // 壁を通るたびに減衰し、減衰後に届く範囲だけが有効（壁の判定がないときは減衰しない）
       const walls = data.wallAt ? wallsBetween(data.wallAt, ap.x, ap.y, c.x, c.y) : 0;
       if (d + walls * WALL_LOSS <= WIRELESS_RADIUS && (best === undefined || d < best.d || (d === best.d && ap.uid < best.ap.uid))) best = { ap, d };

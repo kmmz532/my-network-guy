@@ -70,3 +70,12 @@ describe('無線のつながり（画面の点線）', () => {
     expect(wirelessAssociations(build(2 + WIRELESS_RADIUS + 5), gameEnv.engine)).toEqual([]);
   });
 });
+
+describe('無線の MAC フィルター（N153）', () => {
+  it('登録のない端末は、SSID とパスワードが合ってもつながらない', () => {
+    const net = build(2 + 3);
+    const ap = net.nodes.find((x) => x.uid === 'ap')!;
+    const filtered = { ...net, nodes: net.nodes.map((x) => (x.uid === 'ap' ? { ...ap, wireless: { ...ap.wireless, macs: ['02:00:00:00:00:00'] } } : x)) };
+    expect(ping(filtered, gameEnv.engine, 'pc', 'lap').ok).toBe(false);
+  });
+});
