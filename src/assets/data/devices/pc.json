@@ -34,7 +34,7 @@
         "wireless"
       ],
       "sprite": "device/pc_wifi",
-      "unlockLevel": 8
+      "unlockLevel": 12
     },
     {
       "id": "laptop",
