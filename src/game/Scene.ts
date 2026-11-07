@@ -10,7 +10,7 @@ import { portLabel } from '../components/devicePorts';
 import { isDragMove } from '../components/rearDrag';
 import { rangeTiles } from './effectRange';
 import { setMapView } from './mapView';
-import { gameEnv, isPcDevice } from '../sim/env';
+import { engineWithWalls, gameEnv, isPcDevice } from '../sim/env';
 import { moveFurniture, placeFurniture, seatedStaff, unseatedStaff } from '../sim/furniture';
 import { spriteNameOf, type Facing } from '../sim/facing';
 import { dayTintOf, nightnessOf, toHex, type Rgb } from '../sim/dayTint';
@@ -352,10 +352,12 @@ export class Scene {
       this.traceStart = this.realElapsed;
     }
     const shown = this.project();
-    this.compiled = shown ? compiledNet(shown, gameEnv) : null;
-    this.netColors = this.compiled ? networkColors(this.compiled.net, gameEnv.engine) : null;
     const mapId = shown?.contract.map ?? 'office_small';
     const map = s.maps[mapId];
+    // 電波の減衰に、地図の壁を使う（N151）
+    const env = { ...gameEnv, engine: engineWithWalls(gameEnv.engine, map) };
+    this.compiled = shown ? compiledNet(shown, env) : null;
+    this.netColors = this.compiled ? networkColors(this.compiled.net, env.engine) : null;
     if (!map) return;
     // 自社オフィスの部屋は広げると作り直すため、同じIDでもマップが変わったら描き直す
     if (this.tilesId !== mapId || this.map !== map) {

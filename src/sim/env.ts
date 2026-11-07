@@ -1,6 +1,8 @@
 // ゲームデータから、案件の流れと判定に使う環境を作る（実行時のみ使用）。
 import { balance, cables as cableRecord, devices as deviceRecord, furniture as furnitureRecord } from 'virtual:game-data';
 import { isPcIn, type Env } from './project';
+import { tileKind } from '../data/tileKind';
+import type { GameMap } from '../data/schema';
 
 const devices: Env['devices'] = Object.fromEntries(
   Object.values(deviceRecord).map((d) => [
@@ -37,3 +39,7 @@ export const gameEnv: Env = {
 
 // 機器の種類が PC かどうか（N102）
 export const isPcDevice = (device: string): boolean => isPcIn(gameEnv, device);
+
+// 地図の壁のマスを、電波の減衰の判定に渡す（N151）。壁（wall）だけを数え、ドアは通す。地図がないときは壁なし
+export const engineWithWalls = (engine: Env['engine'], map: GameMap | undefined): Env['engine'] =>
+  map ? { ...engine, wallAt: (x, y) => tileKind(map, x, y) === 'wall' } : engine;
