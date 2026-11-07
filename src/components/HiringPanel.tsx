@@ -115,7 +115,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
             />
           )}
           <button
-            style={{ padding: '4px 12px', cursor: 'pointer' }}
+            style={{ ...secondaryButton, whiteSpace: 'nowrap', cursor: full ? 'default' : 'pointer', opacity: full ? 0.5 : 1 }}
             disabled={full}
             onClick={() => {
               const reason = hire(c.uid, shiftOf[c.uid] ?? 'day');

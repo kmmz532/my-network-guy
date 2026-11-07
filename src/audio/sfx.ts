@@ -18,6 +18,10 @@ const context = (): AudioContext | null => {
       const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!AC) return null;
       ctx = new AC();
+      // iOS Safari は、既定の音声セッションだと、サイレントスイッチがオンのとき Web Audio を消す。
+      // 対応している版では「再生」のセッションに切り替え、サイレントでも鳴るようにする（設定の「効果音」で切れる）
+      const session = (navigator as { audioSession?: { type: string } }).audioSession;
+      if (session) session.type = 'playback';
     }
     if (ctx.state === 'suspended') void ctx.resume();
     return ctx;

@@ -23,7 +23,8 @@ function Choice<T extends string | number | boolean>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+    // 選択肢は同じ幅・同じ高さの箱にそろえる（折り返しても段の高さがそろい、指で押しやすい大きさにする）
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(104px, 1fr))', gap: 6 }}>
       {options.map((o) => {
         const on = o.value === value;
         return (
@@ -32,8 +33,12 @@ function Choice<T extends string | number | boolean>({
             aria-pressed={on}
             onClick={() => onChange(o.value)}
             style={{
-              padding: '4px 10px',
+              minHeight: 36,
+              padding: '4px 8px',
+              boxSizing: 'border-box',
               cursor: 'pointer',
+              fontFamily: 'inherit',
+              textAlign: 'center',
               borderRadius: RADIUS.none,
               border: '1px solid #f4f1e6',
               background: on ? '#f4f1e6' : 'transparent',

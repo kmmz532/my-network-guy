@@ -16,17 +16,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>,
 );
 
-// iOS Safari はマップの上のピンチをページの拡大にするため、マップ（canvas）の上だけ止める（マップの拡大・縮小は Scene が行う）。
-// 文字の拡大（ページの拡大）は、それ以外の場所で使えるようにする
+// iOS Safari のピンチ（ページの拡大）を、画面のどこでも止める（マップの拡大・縮小は Scene が指の操作で行う）。
+// touch-action（index.html）は Android 向け。iOS は gesture のイベントで止める
 for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
-  document.addEventListener(
-    type,
-    (e) => {
-      const target = e.target instanceof Element ? e.target : null;
-      if (target?.closest('canvas')) e.preventDefault();
-    },
-    { passive: false },
-  );
+  document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
 }
 
 // ブラウザが空き容量の少ないときにサイトのデータを消さないよう、永続化を要求する（セーブを守る。断られても遊べる）
