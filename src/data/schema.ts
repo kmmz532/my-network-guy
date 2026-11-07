@@ -399,6 +399,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('reach_category'), category: z.string().min(1) }),
   // 無線の端末（無線の能力を持つ機器）が、アクセスポイントに min 台以上つながる（N152）
   z.object({ type: z.literal('wireless_clients'), min: z.number().int().positive() }),
+  // すべての PC どうしが届き、設定した経路（static）を1つも使わない（経路は RIP・OSPF で覚える。N143）
+  z.object({ type: z.literal('no_static_route') }),
   // すべての PC が、名前（ホスト名）で指定の機器へ届く。名前は各 PC が対応表・ネームサーバーで引く（N68）
   z.object({ type: z.literal('reach_by_name'), name: z.string().min(1) }),
   // すべてのPCから、到達できるサーバー（外部）への経路にファイアウォールがある

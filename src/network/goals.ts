@@ -68,6 +68,16 @@ const handlers: { [K in Goal['type']]: Handler } = {
     const ok = wirelessAssociations(net, data).length >= goal.min;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
+  // すべての PC どうしが届き、機器に設定した経路（static）がない（N143）
+  no_static_route: (goal, net, data) => {
+    if (goal.type !== 'no_static_route') throw new Error('no_static_route ハンドラに別の種類が渡された');
+    const pcs = uidsOf(net, data, 'pc');
+    const staticFree = net.nodes.every((n) => n.routes.every((r) => r.protocol !== undefined && r.protocol !== 'static'));
+    let reach = pcs.length >= 2;
+    for (let i = 0; i < pcs.length && reach; i++) for (let j = i + 1; j < pcs.length && reach; j++) reach = ping(net, data, pcs[i], pcs[j]).ok;
+    const ok = staticFree && reach;
+    return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
+  },
   count_device: (goal, net) => {
     if (goal.type !== 'count_device') throw new Error('count_device ハンドラに別の種類が渡された');
     const ok = net.nodes.filter((n) => n.device === goal.device).length >= goal.min;

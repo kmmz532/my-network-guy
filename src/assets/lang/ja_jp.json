@@ -328,6 +328,7 @@
   "goal.blocked": "{from} から {to} への Ping は、ファイアウォールで止められている",
   "goal.firewall": "すべてのPCからサーバーへの経路に、ファイアウォールがある",
   "goal.reach_category": "すべてのPCから{name}に届く",
+  "goal.no_static_route": "すべてのPCがつながり、機器に設定した経路（static）を使わない",
   "goal.wireless_clients": "無線の端末を{min}台以上、アクセスポイントにつなぐ",
   "goal.count_device": "{name}を{min}台以上置く",
   "goal.isolated": "{from} と {to} は、互いに通信できない",
