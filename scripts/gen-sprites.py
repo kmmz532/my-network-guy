@@ -606,6 +606,36 @@ def purple_long(rows):
     return img
 
 
+# 案内の指（16×16）。人差し指を上に立てた手。指先（左上の 5,0 付近）が指す点。press は押した形（指が1画素沈み、袖が見える）
+FINGER_ROWS = [
+    '....kk..........',
+    '...kkkK.........',
+    '...kkkK.........',
+    '...kkkK.........',
+    '...kkkK.........',
+    '...kkkKkk.kk....',
+    '...kkkKkkKkkK...',
+    '.kkkkkKkkKkkKkk.',
+    '.kkkkkkkkkkkKkkK',
+    '.kkkkkkkkkkkkkkK',
+    '.kkkkkkkkkkkkkkK',
+    '..kkkkkkkkkkkkK.',
+    '..KkkkkkkkkkkKK.',
+    '...KKkkkkkkKK...',
+    '....bbbbbbbbb...',
+    '....bbbbbbbbb...',
+]
+
+
+def icon_finger(press=False):
+    rows = FINGER_ROWS
+    if press:
+        # 指を1画素縮め、手全体を1画素下げる（押した形）
+        rows = ['................'] + [rows[0]] + rows[2:15]
+    img = from_rows(rows, {'k': 'k', 'K': 'K', 'b': 'b'})
+    return outline(img)
+
+
 # ---- アイコン（16×16） ----
 
 def icon_mail():
@@ -1548,6 +1578,8 @@ if __name__ == '__main__':
         'undo': icon_undo(),
         'redo': icon_redo(),
         'fit': icon_fit(),
+        'finger': icon_finger(),
+        'finger_press': icon_finger(True),
     }
     for name, img in icons.items():
         save(img, f'icon/{name}.png')
