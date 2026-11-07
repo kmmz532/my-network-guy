@@ -154,6 +154,8 @@ export const FAILURE_REASONS = [
   'nat.private_source',
   // RIP の経路が 16 ホップ以上で届かない（N141b）
   'rip.unreachable',
+  // 外から NAT のルーターの外の口へ来た通信に、静的 NAT の転送先がない（NET.md §6）
+  'nat.no_forward',
   // 口が停止している（shutdown・N137）
   'port.shutdown',
   // 口の VLAN が通らない（access と trunk の許可の不一致・N137）

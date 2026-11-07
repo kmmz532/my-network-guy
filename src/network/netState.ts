@@ -652,6 +652,11 @@ export const http = (net: Network, data: EngineData, srcUid: string, dstUid: str
   const forward = deliver(topo, srcUid, dstUid, { kind: 'http', port });
   if (!forward.ok) return forward;
   const dst = topo.node(dstUid);
+  // 外から、NAT のルーターの外の口へ来た通信に、静的 NAT の転送先がない（nat.no_forward・NET.md §6）
+  if (dst && dst.napt && dst.interfaces.some((i) => i.nat === 'outside') && !dst.statics?.some((s) => s.port === port)) {
+    const srcIp = topo.node(srcUid)?.interfaces[0]?.ip;
+    if (srcIp !== undefined && !isPrivateIp(srcIp)) return { ok: false, path: forward.path, failure: fail('nat.no_forward', dstUid) };
+  }
   if (!dst || !dst.services.some((s) => s.protocol === 'http' && s.port === port)) {
     return { ok: false, path: forward.path, failure: fail('service.closed', dstUid) };
   }
