@@ -28,6 +28,7 @@ import { applyMoney, recordSaving } from '../sim/ledger';
 import { isSpeedUnlocked, unlockedSpeedsOf } from '../sim/speed';
 import { dismissNotice, openOf, promoteNotices, pushNotice, type NoticeItem } from '../ui/notices';
 import { printerArrivalBonusOf } from '../sim/backOffice';
+import { busyStaff, crewBlock } from '../sim/crew';
 import { tDyn } from '../i18n/t';
 import { cancelRetire as cancelRetireOp, noticeRetire as noticeRetireOp, settleRetirements } from '../sim/retire';
 import { accountingRate, backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, salesArrivalChance } from '../sim/backOffice';
@@ -842,8 +843,7 @@ export const useGameStore = create<GameState>((set, get) => {
         const offer = existing ?? { id: fixed.id, kind: 'fixed' as const, baseId: fixed.id, params: {}, contract: fixed, arrivedMinute: s.clock.minute };
         const offers = existing ? s.offers : [...s.offers, offer];
         // 担当は、空いている社員全員（受注の画面と同じ既定）
-        const busy = s.active.flatMap((p) => p.crew);
-        const crew = s.staff.filter((m) => !busy.includes(m.uid) && m.training === null && !m.leaving).map((m) => m.uid);
+        const crew = s.staff.filter((m) => crewBlock(s, m) === null).map((m) => m.uid);
         const probe = accept({ ...coreOf(s), offers }, offer.id, balance.office.projectSlots, crew);
         if (!probe.ok) return probe.reason;
         set({ offers });
@@ -1078,7 +1078,7 @@ export const useGameStore = create<GameState>((set, get) => {
         const rent = days > 0 && !ticked.bankrupt && s.mode === 'career' ? rentalOf(s.office, gameEnv.engine, balance.rental, levelOf(s.companyExp, balance), balance.time.daysPerMonth) : null;
         const rentedClock = rent !== null && rent.daily > 0 ? applyMoney(ticked, rent.daily * days, 'rental') : ticked;
         // システムエンジニアは、担当でない日に開発の収入を得る（担当の日は施工の経験値）
-        const crewUids = new Set(s.active.flatMap((p) => p.crew));
+        const crewUids = busyStaff(s);
         // 机の上の PC（N102）。システムエンジニア・人事・経理は、自分の机に PC がないと働けない（収入・経験値・効果が出ない）
         const pcDesks = pcDesksOf(s.office, isPcDevice);
         const hasPc = (m: Staff): boolean => m.desk !== null && pcDesks.includes(m.desk);

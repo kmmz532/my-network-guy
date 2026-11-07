@@ -23,6 +23,7 @@ import { CATEGORY } from '../data/categories';
 import { Select } from './Select';
 import { levelOf } from '../sim/level';
 import { isBackOffice } from '../sim/backOffice';
+import { crewBlock } from '../sim/crew';
 import { usePhone } from '../ui/usePhone';
 
 // 依頼の一覧。Enter は一番上の依頼の受注（主のボタン）
@@ -100,14 +101,14 @@ export function OfferBody({ onClose }: { onClose: () => void }) {
 function CrewPicker({ selected, onChange }: { selected: string[]; onChange: (crew: string[]) => void }) {
   const staff = useGameStore((s) => s.staff);
   const office = useGameStore((s) => s.office);
-  const busy = useGameStore((s) => s.active.flatMap((p) => p.crew));
+  const active = useGameStore((s) => s.active);
   const bonusEnv = bonusEnvOf({ staff: staff, office: office }, gameEnv);
   return (
     <div style={{ marginTop: 6, fontSize: 13 }}>
       <div style={{ marginBottom: 2 }}>{t('ui.offer.crew')}</div>
       {/* 内勤（営業・人事・経理）は担当に出さない */}
       {staff.filter((s) => !isBackOffice(s.job)).map((s) => {
-        const unavailable = busy.includes(s.uid) || s.training !== null || s.leaving;
+        const unavailable = crewBlock({ active }, s) !== null;
         const power = staffPower(s, undefined, office, bonusEnv);
         return (
           <PixelCheck
@@ -155,7 +156,7 @@ function OfferCard({
 }) {
   const staff = useGameStore((s) => s.staff);
   const office = useGameStore((s) => s.office);
-  const busy = useGameStore((s) => s.active.flatMap((p) => p.crew));
+  const active = useGameStore((s) => s.active);
   const familiarity = useGameStore((s) => s.familiarity);
   // 社員に任せられない理由（任せられるなら null）（N70）
   const delegateReason = delegationReason(familiarity, offer, gameEnv);
@@ -163,7 +164,7 @@ function OfferCard({
   const [asking, setAsking] = useState(false);
   // 受注の画面を開いたときの担当（空いている社員全員）
   const [crew, setCrew] = useState<string[]>(() =>
-    staff.filter((s) => !busy.includes(s.uid) && s.training === null && !s.leaving && !isBackOffice(s.job)).map((s) => s.uid),
+    staff.filter((s) => crewBlock({ active }, s) === null).map((s) => s.uid),
   );
   // 予想の★の範囲（今の担当で）。担当が決まると変わる
   const blindRange = (() => {

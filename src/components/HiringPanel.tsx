@@ -5,6 +5,7 @@ import type { FurnitureId } from '../generated/ids';
 import { staffSpriteName } from '../data/schema';
 import { t, tDyn } from '../i18n/t';
 import { bonusEnvOf, freeDesks } from '../sim/furniture';
+import { busyStaff } from '../sim/crew';
 import { backOfficeP, isBackOffice, jobEffect } from '../sim/backOffice';
 import { jobEffectText } from './jobEffectText';
 import { gameEnv, isPcDevice } from '../sim/env';
@@ -153,7 +154,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
 function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
   const staff = useGameStore((s) => s.staff);
   const money = useGameStore((s) => s.clock.money);
-  const busy = useGameStore((s) => s.active.flatMap((p) => p.crew));
+  const busy = busyStaff({ active: useGameStore((s) => s.active) });
   const startTraining = useGameStore((s) => s.startTraining);
   const takeExam = useGameStore((s) => s.takeExam);
   const yen = (n: number) => n.toLocaleString('ja-JP');
@@ -162,7 +163,7 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
   return (
     <>
       {staff.map((s) => {
-        const onProject = busy.includes(s.uid);
+        const onProject = busy.has(s.uid);
         const locked = s.training !== null || onProject;
         return (
           <div key={s.uid} style={{ background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}>

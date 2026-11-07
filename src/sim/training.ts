@@ -4,6 +4,7 @@ import { applyMoney } from './ledger';
 import type { Balance, CertDef, TrainingCourse } from '../data/schema';
 import { minutesPerDay } from './clock';
 import { fail, type Core, type Outcome } from './project';
+import { busyStaff } from './crew';
 import { gainExp } from './staff';
 
 export interface TrainingEnv {
@@ -14,7 +15,7 @@ export interface TrainingEnv {
 
 
 // 担当の社員（案件を受注中の社員）の uid
-const crewOf = (core: Core): Set<string> => new Set(core.active.flatMap((p) => p.crew));
+const crewOf = (core: Core): Set<string> => busyStaff(core);
 
 // 試験の合格率: min(maxRate, baseRate + perLevel × (level − minLevel))
 export const examPassRate = (level: number, minLevel: number, balance: Balance): number =>

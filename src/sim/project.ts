@@ -1,7 +1,6 @@
 // 案件の流れ（受注・設計・施工・検収・納品）。状態を受け取り、新しい状態を返す純粋関数で書く。
 // 設計は機器の配置・配線・IP設定、施工は社員が作業時間をかけて行い、検収で達成条件を判定する。
 import { applyMoney, recordSaving } from './ledger';
-import { isBackOffice } from './backOffice';
 import type { Balance, Contract, Furniture, FloorId, GameMap, Staff } from '../data/schema';
 import type { Facing } from './facing';
 import { tileKind } from '../data/tileKind';
@@ -48,6 +47,7 @@ import { gainExp, staffPower } from './staff';
 import { blindDelegation, type Stars } from './blindDelegate';
 import { CATEGORY } from '../data/categories';
 import { cableLengthOf, checkCableLength } from './cableLength';
+import { crewBlock } from './crew';
 import { deliveryExpOf, levelOf, type LevelUp } from './level';
 
 export interface Project {
@@ -450,19 +450,12 @@ export const accept = (core: Core, offerId: string, slots: number, crew: string[
   if (!offer) return fail('none');
   // 担当は1人以上。ほかの案件の担当・研修中の社員は選べない
   if (crew.length === 0) return fail('crew');
-  const busy = new Set(core.active.flatMap((p) => p.crew));
+  // 担当の判定は crewBlock だけを使う（内勤・研修・退職の予定・ほかの案件の担当を含む・N117）
   const free = (uid: string) => {
     const member = core.staff.find((s) => s.uid === uid);
-    // 退職の予定の社員は、新しい案件の担当に選べない（月末までは受注済みの案件を続ける・N90）
-    return member !== undefined && member.training === null && !member.leaving && !busy.has(uid);
+    return member !== undefined && crewBlock(core, member) === null;
   };
   if (!crew.every(free)) return fail('crew');
-  // 内勤（営業・人事・経理）は、案件の担当に選べない
-  const isEngineerCrew = (uid: string) => {
-    const member = core.staff.find((s) => s.uid === uid);
-    return member !== undefined && !isBackOffice(member.job);
-  };
-  if (!crew.every(isEngineerCrew)) return fail('crew');
   const inhouse = offer.contract.inhouse;
   if (inhouse && core.active.some((p) => p.contract.inhouse)) return fail('busy');
   const office = core.office;
