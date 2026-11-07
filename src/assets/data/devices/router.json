@@ -10,7 +10,6 @@
         "ospf",
         "bgp",
         "nat",
-        "dhcpServer",
         "dhcpRelay",
         "wan"
       ],
