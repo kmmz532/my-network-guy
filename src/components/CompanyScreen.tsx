@@ -40,6 +40,9 @@ interface Props {
   onDelete: (save: CompanySave) => void;
   onImport: (file: File) => void;
   onNewHere: () => void;
+  // 読み込んだ会社を上書きする一覧か（上書きの確認のあとに、読み込んだ会社を入れる）
+  importing: boolean;
+  onOverwriteWith: (save: CompanySave) => void;
 }
 
 // 社名を入れる欄（新しく始める・名前を変える）。空や長すぎる名前は始められない
@@ -80,7 +83,7 @@ function NameForm({ initial, submitLabel, onSubmit, onCancel }: { initial: strin
 }
 
 export function CompanyScreen(props: Props) {
-  const { view, mode, saves, suggested, notice, onView, onPlay, onStartIn, onRename, onDuplicate, onExport, onDelete, onImport, onNewHere } = props;
+  const { view, mode, saves, suggested, notice, onView, onPlay, onStartIn, onRename, onDuplicate, onExport, onDelete, onImport, onNewHere, importing, onOverwriteWith } = props;
   const close = () => onView(null);
   const toList = (purpose: 'play' | 'overwrite') => onView({ kind: 'list', purpose });
 
@@ -118,7 +121,7 @@ export function CompanyScreen(props: Props) {
             <button style={primaryButton} onClick={() => toList('overwrite')}>
               {t('ui.company.cancel')}
             </button>
-            <button style={dangerButton} onClick={() => onView({ kind: 'name', slot: save.slot, suggested, from: 'overwrite' })}>
+            <button style={dangerButton} onClick={() => (importing ? onOverwriteWith(save) : onView({ kind: 'name', slot: save.slot, suggested, from: 'overwrite' }))}>
               {t('ui.company.overwrite.ok')}
             </button>
           </div>

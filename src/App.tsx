@@ -10,7 +10,7 @@ import { toDate } from './sim/clock';
 import { deleteSlot, listCompanies, moveLegacySlots, saveSlot } from './services/db';
 import { CompanyScreen, type CompanyView } from './components/CompanyScreen';
 import { copyNameOf, freeSlotOf, isNameTaken, isValidCompanyName, latestCompany, suggestCompanyName, uniqueNameFrom, type CompanySave } from './services/companies';
-import type { GameMode } from './services/migrations';
+import type { GameMode, SaveData } from './services/migrations';
 import { createSaveQueue, isAutoSaveDue } from './services/autoSave';
 import { exportSave, importSave } from './services/saveFile';
 import { NoticeToast, ReportModal } from './components/Overlay';
@@ -98,6 +98,8 @@ export function App() {
   const [companyMode, setCompanyMode] = useState<GameMode>('career');
   const [companies, setCompanies] = useState<CompanySave[]>([]);
   const [companyNotice, setCompanyNotice] = useState('');
+  // 枠が全部埋まっているときに読み込んだ会社（上書きする枠を選んでから入れる）
+  const [pendingImport, setPendingImport] = useState<SaveData | null>(null);
   // 自動保存の直列化。実行中に次の要求が来たら、終わってから1回だけ書く（書く内容は実行時点の状態）
   const [autoSaver] = useState(() =>
     createSaveQueue(async () => {
@@ -368,6 +370,17 @@ export function App() {
     setCompanyView({ kind: 'list', purpose: 'play' });
   };
 
+  // 読み込んだ会社を、選んだ会社の枠に入れる（上書きの確認のあと。N133）
+  const overwriteWithPending = async (save: CompanySave) => {
+    if (pendingImport === null) return;
+    const list = await refreshCompanies(companyMode);
+    await saveSlot(save.slot, { ...pendingImport, name: uniqueNameFrom(pendingImport.name, list.filter((s) => s.slot !== save.slot)) });
+    setPendingImport(null);
+    await refreshCompanies(companyMode);
+    setCompanyNotice('');
+    setCompanyView({ kind: 'list', purpose: 'play' });
+  };
+
   // ファイルから読み込む。同じ遊び方の会社だけ。空いた枠に入れ、同じ社名があれば番号を付ける
   const importCompany = async (file: File) => {
     try {
@@ -375,7 +388,13 @@ export function App() {
       if (data.mode !== companyMode) return setCompanyNotice(t('ui.company.import.mode'));
       const list = await refreshCompanies(companyMode);
       const free = freeSlotOf(companyMode, list);
-      if (free === null) return setCompanyNotice(t('ui.company.import.full'));
+      // 空きがなければ、上書きする会社を選ばせる（上書きの確認は N132 と同じ）
+      if (free === null) {
+        setPendingImport(data);
+        setCompanyNotice(t('ui.company.import.full'));
+        setCompanyView({ kind: 'list', purpose: 'overwrite' });
+        return;
+      }
       await saveSlot(free, { ...data, name: uniqueNameFrom(data.name, list) });
       await refreshCompanies(companyMode);
       setCompanyNotice('');
@@ -408,7 +427,11 @@ export function App() {
             saves={companies}
             suggested={suggestCompanyName(companyMode, companies)}
             notice={companyNotice}
-            onView={setCompanyView}
+            onView={(v) => {
+              // 画面を閉じたら、読み込み中の会社は捨てる
+              if (v === null) setPendingImport(null);
+              setCompanyView(v);
+            }}
             onPlay={playSave}
             onStartIn={startIn}
             onRename={renameSave}
@@ -417,6 +440,8 @@ export function App() {
             onDelete={removeSave}
             onImport={importCompany}
             onNewHere={onNewHere}
+            importing={pendingImport !== null}
+            onOverwriteWith={overwriteWithPending}
           />
         )}
       </>
