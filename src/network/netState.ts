@@ -504,13 +504,12 @@ export const wallsBetween = (wallAt: (x: number, y: number) => boolean, ax: numb
 // 端末の口0 に配線がなく、無線の能力を持ち、範囲の中にアクセスポイントがあるとき。アクセスポイントの口は 100 番から、端末ごとに1つ使う
 // 無線の端末は、SSID とパスワードが合い、範囲の中にあるアクセスポイントの中で最も近いものにつながる（N151）。
 // アクセスポイントの無線の VLAN は、つながった端末の口を、その VLAN の access の口として扱う
-export const withWireless = (net: Network, data: EngineData): Network => {
+// 無線の端末とつながるアクセスポイントの組（端末ごとに最も近い、SSID・パスワードの合う、範囲の中のもの）。画面の点線にも使う（N151・N152）
+export const wirelessAssociations = (net: Network, data: EngineData): { ap: NetNode; client: NetNode }[] => {
   const aps = net.nodes.filter((n) => data.categoryOf(n.device) === CATEGORY.accessPoint || data.categoryOf(n.device) === CATEGORY.homeRouter);
-  if (aps.length === 0) return net;
+  if (aps.length === 0) return [];
   const wired = new Set(net.links.flatMap((l) => [`${l.a.node}:${l.a.port}`, `${l.b.node}:${l.b.port}`]));
-  const extra: NetLink[] = [];
-  const nextPort = new Map<string, number>();
-  const apPorts = new Map<string, PortConfig[]>();
+  const out: { ap: NetNode; client: NetNode }[] = [];
   for (const c of net.nodes) {
     if (!can(c.device, 'wireless') || wired.has(`${c.uid}:0`)) continue;
     let best: { ap: NetNode; d: number } | undefined;
@@ -524,13 +523,24 @@ export const withWireless = (net: Network, data: EngineData): Network => {
       const walls = data.wallAt ? wallsBetween(data.wallAt, ap.x, ap.y, c.x, c.y) : 0;
       if (d + walls * WALL_LOSS <= WIRELESS_RADIUS && (best === undefined || d < best.d || (d === best.d && ap.uid < best.ap.uid))) best = { ap, d };
     }
-    if (!best) continue;
-    const port = 100 + (nextPort.get(best.ap.uid) ?? 0);
-    nextPort.set(best.ap.uid, port - 100 + 1);
-    apPorts.set(best.ap.uid, [...(apPorts.get(best.ap.uid) ?? []), { port, mode: 'access', vlan: best.ap.wireless?.vlan ?? 1 }]);
-    extra.push({ uid: `__wifi_${c.uid}`, cable: 'utp_cat5e', a: { node: best.ap.uid, port }, b: { node: c.uid, port: 0 }, path: [[best.ap.x, best.ap.y], [c.x, c.y]], paid: 0 });
+    if (best) out.push({ ap: best.ap, client: c });
   }
-  if (extra.length === 0) return net;
+  return out;
+};
+
+// 無線の端末を、つながるアクセスポイントへ仮想の配線でつなぐ（段1の仮想の配線）。アクセスポイントの口は 100 番から、端末ごとに1つ使う
+export const withWireless = (net: Network, data: EngineData): Network => {
+  const pairs = wirelessAssociations(net, data);
+  if (pairs.length === 0) return net;
+  const extra: NetLink[] = [];
+  const nextPort = new Map<string, number>();
+  const apPorts = new Map<string, PortConfig[]>();
+  for (const { ap, client: c } of pairs) {
+    const port = 100 + (nextPort.get(ap.uid) ?? 0);
+    nextPort.set(ap.uid, port - 100 + 1);
+    apPorts.set(ap.uid, [...(apPorts.get(ap.uid) ?? []), { port, mode: 'access', vlan: ap.wireless?.vlan ?? 1 }]);
+    extra.push({ uid: `__wifi_${c.uid}`, cable: 'utp_cat5e', a: { node: ap.uid, port }, b: { node: c.uid, port: 0 }, path: [[ap.x, ap.y], [c.x, c.y]], paid: 0 });
+  }
   // アクセスポイントの口（つないだ端末の口）に、無線の VLAN を付ける
   const nodes = net.nodes.map((n) => (apPorts.has(n.uid) ? { ...n, ports: [...n.ports, ...apPorts.get(n.uid)!] } : n));
   return { ...net, nodes, links: [...net.links, ...extra] };

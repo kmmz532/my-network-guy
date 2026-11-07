@@ -12,6 +12,8 @@ import { rangeTiles } from './effectRange';
 import { setMapView } from './mapView';
 import { gameEnv, isPcDevice } from '../sim/env';
 import { engineWithWalls } from '../sim/walls';
+import { WALL_LOSS, WIRELESS_RADIUS, wallsBetween, wirelessAssociations } from '../network/engine';
+import type { EngineData } from '../network/types';
 import { moveFurniture, placeFurniture, seatedStaff, unseatedStaff } from '../sim/furniture';
 import { spriteNameOf, type Facing } from '../sim/facing';
 import { dayTintOf, nightnessOf, toHex, type Rgb } from '../sim/dayTint';
@@ -63,7 +65,7 @@ import { isPresentOnShift, minuteInShift } from '../sim/shift';
 import { minutesPerDay as dayMinutes } from '../sim/clock';
 import { metersOf } from '../sim/cableLength';
 import { deskStaffPos, deskTap, staffAt, STAFF_W, wanderStaffPos, type StaffHit } from './staffHit';
-import { isPcCategory } from '../data/categories';
+import { CATEGORY, isPcCategory } from '../data/categories';
 
 // 拡大・縮小ボタンの列は、ツールバーの上の右下の角にある（MapZoomButtons.tsx と同じ寸法。画面の px）
 const ZOOM_BUTTON_W = 44;
@@ -166,6 +168,8 @@ export class Scene {
   private tiles: Container | null = null;
   private tilesId: string | null = null;
   private map: GameMap | null = null;
+  // 画面の計算に使う環境の機器（無線の範囲と点線）
+  private wireEngine: EngineData | null = null;
   // 配線（機器の下）、機器と社員のスプライト、ポート・色・パケットなどの重ね描き（機器の上）
   private bg = new Graphics();
   private sprites = new Container();
@@ -358,6 +362,7 @@ export class Scene {
     // 電波の減衰に、地図の壁を使う（N151）
     const env = { ...gameEnv, engine: engineWithWalls(gameEnv.engine, map) };
     this.compiled = shown ? compiledNet(shown, env) : null;
+    this.wireEngine = env.engine;
     this.netColors = this.compiled ? networkColors(this.compiled.net, env.engine) : null;
     if (!map) return;
     // 自社オフィスの部屋は広げると作り直すため、同じIDでもマップが変わったら描き直す
@@ -892,6 +897,7 @@ export class Scene {
     this.drawFailures(project, ts, failing);
     this.drawPlugMarks(ts);
     this.drawHover(project, ts);
+    this.drawWireless(project, ts, frontDeviceUid(s));
     this.drawEffectRange(ts);
     this.drawPlacePreview(ts);
     this.drawDrag(ts);
@@ -1495,6 +1501,41 @@ export class Scene {
 
   // 配線の到達先: 接続できれば緑、できなければ赤の枠と×
   // 効果のある家具を配置中は、カーソルの位置から効果の範囲を半透明の緑で塗る（範囲のない家具は塗らない）
+  // 選んだアクセスポイントの電波の範囲（薄い円。壁の減衰を含む）と、つながった端末への点線（N152）
+  private drawWireless(project: Project, ts: number, selectedUid: string | null): void {
+    const engine = this.wireEngine;
+    if (!selectedUid || !engine || !this.map) return;
+    const ap = project.nodes.find((n) => n.uid === selectedUid);
+    const apCategory = gameEnv.devices[ap?.device ?? '']?.category;
+    if (!ap || (apCategory !== CATEGORY.accessPoint && apCategory !== CATEGORY.homeRouter)) return;
+    const R = WIRELESS_RADIUS;
+    for (let dy = -R; dy <= R; dy++) {
+      for (let dx = -R; dx <= R; dx++) {
+        const tx = ap.x + dx;
+        const ty = ap.y + dy;
+        if (tx < 0 || ty < 0 || tx >= this.map.width || ty >= this.map.height) continue;
+        const d = Math.abs(dx) + Math.abs(dy);
+        const walls = engine.wallAt ? wallsBetween(engine.wallAt, ap.x, ap.y, tx, ty) : 0;
+        if (d + walls * WALL_LOSS <= R) this.g.rect(tx * ts, ty * ts, ts, ts).fill({ color: 0x62d26f, alpha: 0.12 });
+      }
+    }
+    const pairs = wirelessAssociations({ nodes: project.nodes, links: project.links, segments: project.segments }, engine);
+    for (const { ap: a, client } of pairs) {
+      if (a.uid !== ap.uid) continue;
+      const x0 = a.x * ts + ts / 2;
+      const y0 = a.y * ts + ts / 2;
+      const x1 = client.x * ts + ts / 2;
+      const y1 = client.y * ts + ts / 2;
+      const len = Math.hypot(x1 - x0, y1 - y0);
+      const steps = Math.max(1, Math.floor(len / 6));
+      for (let i = 0; i < steps; i += 2) {
+        const t0 = i / steps;
+        const t1 = Math.min(1, (i + 1) / steps);
+        this.g.moveTo(x0 + (x1 - x0) * t0, y0 + (y1 - y0) * t0).lineTo(x0 + (x1 - x0) * t1, y0 + (y1 - y0) * t1).stroke({ width: 2, color: 0x62d26f, alpha: 0.8 });
+      }
+    }
+  }
+
   private drawEffectRange(ts: number): void {
     const store = useGameStore.getState();
     if (!store.placing || focusedProject(store) || !this.cursorTile) return;

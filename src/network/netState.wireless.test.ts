@@ -61,3 +61,12 @@ describe('wallsBetween', () => {
     expect(wallsBetween(() => false, 0, 0, 3, 3)).toBe(0);
   });
 });
+
+describe('無線のつながり（画面の点線）', () => {
+  it('範囲の中の端末は、つながるアクセスポイントの組になる。範囲の外は組にならない', async () => {
+    const { wirelessAssociations } = await import('./netState');
+    const pairs = wirelessAssociations(build(2 + 3), gameEnv.engine);
+    expect(pairs.map((p) => [p.ap.uid, p.client.uid])).toEqual([['ap', 'lap']]);
+    expect(wirelessAssociations(build(2 + WIRELESS_RADIUS + 5), gameEnv.engine)).toEqual([]);
+  });
+});
