@@ -19,6 +19,7 @@ const member = (uid: string): Staff => ({
   hiredMonth: 0,
   leaving: false,
   desk: null,
+  levelCap: 10,
 });
 
 const sample: SaveData = {
@@ -501,5 +502,18 @@ describe('v34 → v35', () => {
   it('移行後の形式は、読み込んで書き出しても元に戻る', () => {
     const out = migrate(34, v34);
     expect(importSave(exportSave(out))).toEqual(out);
+  });
+});
+
+describe('v36 → v37', () => {
+  const strip = (m: Staff) => {
+    const { levelCap: _levelCap, ...rest } = m;
+    return rest;
+  };
+  it('社員と候補に、今の level を含む段階の上端を上限として足す（給与と level は変えない）', () => {
+    const v36 = { ...sample, staff: [{ ...strip(member('s0')), level: 14 }], candidates: sample.candidates.map(strip) };
+    const out = migrate(36, v36);
+    expect(out.staff[0]).toMatchObject({ level: 14, levelCap: 20, salary: 200000 });
+    expect(out.candidates.every((m) => m.levelCap === 10 || m.levelCap >= m.level)).toBe(true);
   });
 });

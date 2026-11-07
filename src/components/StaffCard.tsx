@@ -2,7 +2,7 @@
 // 状態（待機中・担当中・研修中）は sim/staff.ts の staffStatus で決める。
 import { balance } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
-import { staffPower, staffStatus, totalSalary, type StaffStatus } from '../sim/staff';
+import { raiseAmountOf, staffPower, staffStatus, totalSalary, type StaffStatus } from '../sim/staff';
 import { backOfficeP, countsForBackOffice, effectiveLevelOf, isBackOffice, jobEffect } from '../sim/backOffice';
 import { gameEnv } from '../sim/env';
 import { jobEffectText } from './jobEffectText';
@@ -10,6 +10,7 @@ import { staffSpriteName } from '../data/schema';
 import { useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
+import { useState } from 'react';
 import { secondaryButton } from './Modal';
 import { Tooltip } from './Tooltip';
 import { retireBlock } from '../sim/retire';
@@ -60,7 +61,10 @@ export function StaffBody({ uid, onTraining }: { uid: string; onTraining: () => 
         <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 'bold', fontSize: 15 }}>{tDyn(member.name)}</div>
           <div>{tDyn(`staff.job.${member.job}`)}</div>
-          <div>{t('ui.staff.level', { level: member.level })}</div>
+          <div>
+            {t('ui.staff.level', { level: member.level })}
+            {member.level >= member.levelCap && <span style={{ marginLeft: 6, color: '#ffd866', fontSize: 12 }}>{t('ui.staff.cap')}</span>}
+          </div>
           <div>{t('ui.hiring.salary', { salary: yen(member.salary) })}</div>
         </div>
       </div>
@@ -98,6 +102,38 @@ export function StaffBody({ uid, onTraining }: { uid: string; onTraining: () => 
         </button>
       </div>
       <RetireControl uid={uid} />
+      <RaiseControl uid={uid} />
+    </div>
+  );
+}
+
+// 昇給（N101）。上限に達した社員だけ押せる。押すと、増える月給を確かめてから上げる
+function RaiseControl({ uid }: { uid: string }) {
+  const member = useGameStore((s) => s.staff.find((m) => m.uid === uid));
+  const raise = useGameStore((s) => s.raiseStaff);
+  const [asking, setAsking] = useState(false);
+  if (!member) return null;
+  // 上限に達していなければ、上限の印だけ出す（昇給は出さない）
+  if (member.level < member.levelCap) return null;
+  const amount = raiseAmountOf(member, balance);
+  if (asking) {
+    return (
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <span>{t('ui.staff.raise.confirm', { amount: amount.toLocaleString('ja-JP') })}</span>
+        <button style={secondaryButton} onClick={() => { raise(uid); setAsking(false); }}>
+          {t('ui.staff.raise.yes')}
+        </button>
+        <button style={secondaryButton} onClick={() => setAsking(false)}>
+          {t('ui.staff.raise.no')}
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <button style={secondaryButton} onClick={() => setAsking(true)}>
+        {t('ui.staff.raise')}
+      </button>
     </div>
   );
 }

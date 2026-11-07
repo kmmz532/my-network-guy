@@ -71,6 +71,7 @@
   },
   "staff": {
     "initialCount": 2,
+    "levelCapStep": 10,
     "initialDesks": [
       {
         "x": 2,

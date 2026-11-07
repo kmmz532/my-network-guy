@@ -19,6 +19,7 @@ const member = (uid: string, job: Staff['job'], over: Partial<Staff> = {}): Staf
   hiredMonth: 0,
   leaving: false,
   desk: null,
+  levelCap: 10,
   ...over,
 });
 

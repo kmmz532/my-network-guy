@@ -1,3 +1,4 @@
+import type { Core } from './project';
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
 import type { Balance } from '../data/schema';
@@ -6,7 +7,7 @@ import type { Furniture, Staff } from '../data/schema';
 import { emptyOffice } from './project';
 import type { BonusEnv } from './furniture';
 import { readFileSync } from 'node:fs';
-import { NAME_COUNT, QUIRK_IDS, createStaff, gainExp, hintTier, initialStaff, pickName, rollCandidates, specAt, staffPower, staffStatus, totalSalary, candidateSalaryOf } from './staff';
+import { NAME_COUNT, QUIRK_IDS, candidateSalaryOf, createStaff, gainExp, hintTier, initialStaff, levelCapOf, pickName, raiseAmountOf, raiseStaff, rollCandidates, specAt, staffPower, staffStatus, totalSalary } from './staff';
 import type { Project } from './project';
 
 const balance = balanceJson as unknown as Balance;
@@ -40,8 +41,8 @@ describe('社員を作る', () => {
   });
 
   it('初期の社員以降は network・level 1・月給 monthlySalary', () => {
-    expect(specAt(balance, 2)).toEqual({ job: 'network', level: 1, salary: balance.staff.initial[0].salary });
-    expect(specAt(balance, 0)).toEqual({ job: 'network', level: 1, salary: balance.staff.initial[0].salary });
+    expect(specAt(balance, 2)).toEqual({ job: 'network', level: 1, salary: balance.staff.initial[0].salary, levelCap: 10 });
+    expect(specAt(balance, 0)).toEqual({ job: 'network', level: 1, salary: balance.staff.initial[0].salary, levelCap: 10 });
   });
 });
 
@@ -65,6 +66,7 @@ describe('施工力', () => {
     hiredMonth: 0,
     leaving: false,
     desk: 'd',
+    levelCap: 10,
   });
   const desk = { uid: 'd', id: 'desk', x: 5, y: 5 };
   const seated = { ...emptyOffice({ w: 5, h: 5 }), furniture: [desk], furnitureSeq: 1 };
@@ -197,7 +199,7 @@ describe('社員の名前が重ならない', () => {
 });
 
 describe('社員の状態', () => {
-  const base: Staff = { uid: 's1', shift: 'day' as const, name: 'staff.name.0', look: 'blue', quirk: 'q1', job: 'network', level: 1, exp: 0, salary: 1, certs: [], training: null, hiredMonth: 0, leaving: false, desk: null };
+  const base: Staff = { uid: 's1', shift: 'day' as const, name: 'staff.name.0', look: 'blue', quirk: 'q1', job: 'network', level: 1, exp: 0, salary: 1, certs: [], training: null, hiredMonth: 0, leaving: false, desk: null, levelCap: 10 };
   const project = { id: 'p1', baseId: 'c001', params: { n: 2 }, crew: ['s1'] } as unknown as Project;
 
   it('研修中は残りの日数（1日未満は1日）を出す', () => {
@@ -231,5 +233,45 @@ describe('内勤の給与（N100）', () => {
   it('システムエンジニアとエンジニアは、式のまま', () => {
     expect(candidateSalaryOf('dev', 5, balance)).toBe(400000);
     expect(candidateSalaryOf('network', 5, balance)).toBe(400000);
+  });
+});
+
+describe('社員の上限と昇給（N101）', () => {
+  const member = (over: Partial<Staff> = {}): Staff => ({ ...createStaff({ job: 'network', level: 10, salary: 300000, levelCap: 10 }, 1, 0).staff, ...over });
+
+  it('level は上限まで。上限に達したら経験値をためない（余りを捨てる）', () => {
+    const out = gainExp(member({ level: 9, exp: 0, levelCap: 10 }), 100000, 10);
+    expect(out.level).toBe(10);
+    expect(out.exp).toBe(0);
+    expect(gainExp(member({ level: 10, exp: 0, levelCap: 10 }), 500, 10)).toMatchObject({ level: 10, exp: 0 });
+  });
+
+  it('段階の上端は、level を含む段階の上端（1〜10 は 10、11〜20 は 20）', () => {
+    expect(levelCapOf(1, 10)).toBe(10);
+    expect(levelCapOf(10, 10)).toBe(10);
+    expect(levelCapOf(11, 10)).toBe(20);
+  });
+
+  it('上限に達していなければ昇給できない（staff.notCapped）', () => {
+    const core = { staff: [member({ level: 5, levelCap: 10 })] } as unknown as Core;
+    expect(raiseStaff(core, 's0', balance)).toEqual({ ok: false, reason: 'staff.notCapped' });
+  });
+
+  it('昇給すると上限が10上がり、給与は次の段階の始まりの相場まで上がる', () => {
+    const core = { staff: [member({ level: 10, levelCap: 10, salary: 300000 })] } as unknown as Core;
+    const out = raiseStaff(core, 's0', balance);
+    expect(out.ok).toBe(true);
+    if (!out.ok) return;
+    const after = out.core.staff[0];
+    expect(after.levelCap).toBe(20);
+    expect(after.salary).toBe(candidateSalaryOf('network', 11, balance));
+    expect(raiseAmountOf(member({ level: 10, levelCap: 10, salary: 300000 }), balance)).toBe(after.salary - 300000);
+  });
+
+  it('今の給与が相場より高ければ、給与は変えずに上限だけ上げる（給与は下げない）', () => {
+    const high = member({ level: 10, levelCap: 10, salary: 9000000 });
+    const out = raiseStaff({ staff: [high] } as unknown as Core, 's0', balance);
+    expect(out.ok && out.core.staff[0]).toMatchObject({ levelCap: 20, salary: 9000000 });
+    expect(raiseAmountOf(high, balance)).toBe(0);
   });
 });

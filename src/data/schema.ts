@@ -36,6 +36,7 @@ export interface Staff {
   salary: number; // 月給（採用時に決まり、変わらない）
   certs: string[]; // 取得した資格のID
   training: { course: string; untilMinute: number } | null; // 受講中の研修
+  levelCap: number; // 今の level の上限（10 の倍数の段階の上端。昇給で上がる・N101）
   desk: string | null; // 座っている机（自社オフィスの家具の uid）。辞めた社員の机は空いたままになる（A）
   hiredMonth: number; // 採用した月（ゲーム内の月の番号。退職の条件に使う・N90）
   leaving: boolean; // 退職を伝え済み（その月の末日に退職する・N90）
@@ -131,6 +132,8 @@ export const balanceSchema = z.object({
   freshOffer: z.object({ arrivals: int.positive(), weightFactor: int.positive() }),
   staff: z.object({
     initialCount: int.positive(),
+    // 社員の level の上限の段階（10 の倍数。昇給で1段階ずつ上がる・N101）
+    levelCapStep: int.positive(),
     // ゲーム開始時に置く机の位置（自社オフィスのマス）
     initialDesks: z.array(z.object({ x: nonNegativeInt, y: nonNegativeInt })),
     // ゲーム開始時の社員の職種・level・月給（先頭から順に作る）

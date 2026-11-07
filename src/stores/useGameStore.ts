@@ -12,7 +12,7 @@ import { declineOffer, offerHint, refreshOffers, salesArrival, type OfferEffects
 import { rand } from '../sim/rng';
 import type { Offer } from '../contracts/template';
 import type { FloorId, GameMap, JobId, Staff } from '../data/schema';
-import { gainExp, initialStaff, rollCandidates, staffCapOf, totalSalary } from '../sim/staff';
+import { gainExp, initialStaff, raiseStaff as raiseStaffOp, rollCandidates, staffCapOf, totalSalary } from '../sim/staff';
 import { expAtLevel, levelOf, levelUpsBetween, type UnlockItem } from '../sim/level';
 import { grantDailyExp, type ExpSource } from '../sim/companyExp';
 import { finishTrainings, startTraining as startTrainingOp, takeExam as takeExamOp, type TrainingEnv } from '../sim/training';
@@ -337,6 +337,8 @@ export interface GameState {
   hire: (candidateUid: string, shift: 'day' | 'night') => string | null;
   // 退職を伝える・取り消す（N90）。伝えられないときは理由の文言の鍵を返す
   noticeRetire: (uid: string) => string | null;
+  // 社員の昇給（N101）。上限に達した社員の上限を上げ、給与を次の段階の相場まで上げる
+  raiseStaff: (uid: string) => string | null;
   // 自社の床を張り替える（N92）
   changeFloor: (room: RoomId, floor: FloorId) => string | null;
   cancelRetire: (uid: string) => string | null;
@@ -1228,6 +1230,7 @@ export const useGameStore = create<GameState>((set, get) => {
       return null;
     },
     noticeRetire: (uid) => apply(noticeRetireOp(coreOf(get()), uid, balance)),
+    raiseStaff: (uid) => apply(raiseStaffOp(coreOf(get()), uid, balance)),
     changeFloor: (room, floor) => {
       const reason = apply(changeFloorOp(coreOf(get()), room, floor, balance));
       // 床の絵が変わるので、マップを作り直す（機器と家具はそのまま）

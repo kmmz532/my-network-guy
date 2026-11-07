@@ -1,7 +1,7 @@
 // 社員の生成（STAFF.md「1. 社員のデータ」）。名前・見た目・口癖は乱数の状態から選ぶ。能力の計算は後の段階で加える
 import type { Balance, JobId, Staff } from '../data/schema';
 import { JOB_IDS, STAFF_LOOKS } from '../data/schema';
-import type { Office, Project } from './project';
+import type { Core, Office, Outcome, Project } from './project';
 import { minutesPerDay } from './clock';
 import { furnitureBonus, seatOf, type BonusEnv } from './furniture';
 import { isBackOffice } from './backOffice';
@@ -16,6 +16,8 @@ export interface StaffSpec {
   job: JobId;
   level: number;
   salary: number;
+  // level の上限（省略時は段階の幅 10 で決める・N101）
+  levelCap?: number;
 }
 
 // 名前を1つ選ぶ。taken（在籍中の社員と、同じ回に作る候補の名前）と重ならない名前から選ぶ。
@@ -49,6 +51,7 @@ export const createStaff = (spec: StaffSpec, rng: number, seq: number, taken: re
     leaving: false,
     training: null,
     desk: null,
+    levelCap: spec.levelCap ?? levelCapOf(spec.level, 10),
   };
   return { staff, rng: quirk.state };
 };
@@ -56,8 +59,9 @@ export const createStaff = (spec: StaffSpec, rng: number, seq: number, taken: re
 // 人数の順番（0始まり）に対応する社員の設定。1人目と2人目は staff.initial、3人目以降は network・level 1・月給は初期の1人目と同じ
 export const specAt = (balance: Balance, index: number): StaffSpec => {
   const initial = balance.staff.initial[index];
-  if (initial) return { job: initial.job, level: initial.level, salary: initial.salary };
-  return { job: 'network', level: 1, salary: balance.staff.initial[0].salary };
+  const step = balance.staff.levelCapStep;
+  if (initial) return { job: initial.job, level: initial.level, salary: initial.salary, levelCap: levelCapOf(initial.level, step) };
+  return { job: 'network', level: 1, salary: balance.staff.initial[0].salary, levelCap: levelCapOf(1, step) };
 };
 
 // 新しいゲームの初期の社員（staff.initial の順）
@@ -82,15 +86,35 @@ export const staffPower = (staff: Staff, requires: readonly JobId[] | undefined,
 };
 
 // 経験値を与える。expPerLevel × level に達したら level を上げ、余りは繰り越す
+// level を含む段階の上端（step の倍数）。level 1〜10 なら 10、11〜20 なら 20（N101）
+export const levelCapOf = (level: number, step: number): number => Math.max(step, Math.ceil(level / step) * step);
+
+// 経験値を得る。level は上限（levelCap）まで。上限に達した社員は、経験値をためない（余りを捨てる・N101）
 export const gainExp = (staff: Staff, amount: number, expPerLevel: number): Staff => {
   let level = staff.level;
   let exp = staff.exp + amount;
-  while (exp >= expPerLevel * level) {
+  while (level < staff.levelCap && exp >= expPerLevel * level) {
     exp -= expPerLevel * level;
     level++;
   }
+  if (level >= staff.levelCap) exp = 0;
   return { ...staff, level, exp };
 };
+
+// 昇給（N101）。上限に達した社員の上限を、1段階上げる。給与は、次の段階の始まりの level の相場まで上げる（今の給与が上ならそのまま）。給与は下げない
+export const raiseStaff = (core: Core, uid: string, balance: Balance): Outcome => {
+  const member = core.staff.find((s) => s.uid === uid);
+  if (!member) return { ok: false, reason: 'none' };
+  if (member.level < member.levelCap) return { ok: false, reason: 'staff.notCapped' };
+  const step = balance.staff.levelCapStep;
+  const target = candidateSalaryOf(member.job, member.levelCap + 1, balance);
+  const raised: Staff = { ...member, levelCap: member.levelCap + step, salary: Math.max(member.salary, target) };
+  return { ok: true, core: { ...core, staff: core.staff.map((s) => (s.uid === uid ? raised : s)) } };
+};
+
+// 昇給の確認の額（月給がいくら増えるか）。増えないときは 0
+export const raiseAmountOf = (member: Staff, balance: Balance): number =>
+  Math.max(0, candidateSalaryOf(member.job, member.levelCap + 1, balance) - member.salary);
 
 // 月給の合計（全社員の salary）
 // 夜勤の給与は、日勤の給与に nightPayRate を掛けた額（N48）
@@ -144,7 +168,7 @@ export const rollCandidates = (
     const job = wishIndex >= 0 && i < Math.ceil(count.value / 2) ? { value: wishIndex, state: bonus.state } : randInt(bonus.state, 0, jobs.length - 1);
     const level = 1 + Math.floor(companyLevel / h.candidateLevelStep) + bonus.value + hr.levelBonus;
     const made = createStaff(
-      { job: jobs[job.value], level, salary: candidateSalaryOf(jobs[job.value], level, balance) },
+      { job: jobs[job.value], level, salary: candidateSalaryOf(jobs[job.value], level, balance), levelCap: levelCapOf(level, balance.staff.levelCapStep) },
       job.state,
       0,
       names,
