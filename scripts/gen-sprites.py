@@ -636,6 +636,15 @@ def icon_finger(press=False):
     return outline(img)
 
 
+# 案内の指が押したときの波紋（16×16 の3コマ。小さい輪 → 大きい輪 → 薄い大きい輪）。指先の位置に中心を合わせる
+def icon_tap_ring(frame):
+    img, d = new(16, 16)
+    r = (3, 5, 7)[frame]
+    color = C['e'] if frame < 2 else C['g']
+    d.ellipse([8 - r, 8 - r, 7 + r, 7 + r], outline=color + (255,), width=1 if frame == 2 else 2)
+    return img
+
+
 # ---- アイコン（16×16） ----
 
 def icon_mail():
@@ -1580,6 +1589,9 @@ if __name__ == '__main__':
         'fit': icon_fit(),
         'finger': icon_finger(),
         'finger_press': icon_finger(True),
+        'tap_ring_0': icon_tap_ring(0),
+        'tap_ring_1': icon_tap_ring(1),
+        'tap_ring_2': icon_tap_ring(2),
     }
     for name, img in icons.items():
         save(img, f'icon/{name}.png')
