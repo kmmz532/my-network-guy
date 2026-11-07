@@ -19,7 +19,7 @@ export interface Route {
   prefix: number;
   nextHop: string;
   // 経路の出どころ（static は設定した経路。省略は static）。同じ宛先の長さなら管理距離（AD）の小さいものを使う
-  protocol?: 'static' | 'rip' | 'ospf';
+  protocol?: 'static' | 'rip' | 'ospf' | 'bgp';
 }
 
 export interface Service {
@@ -52,9 +52,18 @@ export interface PortConfig {
   stpCost?: number;
 }
 
+// BGP の設定（MVP は eBGP の隣接と、宛先の広告・AS パスで選ぶ経路。N147）
+export interface BgpConfig {
+  asn: number;
+  neighbors: { ip: string; remoteAs: number }[];
+  networks: { dest: string; prefix: number }[];
+}
+
 export interface NetNode {
   uid: string;
   device: string;
+  // BGP の設定（BGP を動かす機器だけ持つ）
+  bgp?: BgpConfig;
   // 口の設定（機器ごと。設定のない口は既定のモード）
   ports: PortConfig[];
   // ホスト名（ターミナルのプロンプトと show running-config に出す。画面の名前とは別。N46）

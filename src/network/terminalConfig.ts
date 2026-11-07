@@ -24,7 +24,12 @@ export type ConfigAction =
   // RIP・OSPF の有効（router rip / router ospf）。on が false は no router ...（N141b・N143）
   | { kind: 'routing'; proto: 'rip' | 'ospf'; on: boolean }
   // network 文: ip のサブネットのインターフェースを、RIP または OSPF（エリア 0）に参加させる（N143）
-  | { kind: 'network'; proto: 'rip' | 'ospf'; ip: string; area: number | null; on: boolean };
+  | { kind: 'network'; proto: 'rip' | 'ospf'; ip: string; area: number | null; on: boolean }
+  // BGP（N147）: 自分の AS・隣接（neighbor）・広告する宛先（network … mask）
+  | { kind: 'bgp'; op: 'asn'; asn: number }
+  | { kind: 'bgp'; op: 'off' }
+  | { kind: 'bgp'; op: 'neighbor'; ip: string; remoteAs: number }
+  | { kind: 'bgp'; op: 'network'; dest: string; prefix: number };
 
 export type ConfigParse = { kind: 'action'; action: ConfigAction } | { kind: 'error'; text: string } | { kind: 'none' };
 
@@ -54,7 +59,7 @@ const port = (s: string): number | null => (/^\d+$/.test(s) ? Number(s) : null);
 export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   const words = line.trim().split(/\s+/).filter((w) => w !== '');
   const [first, ...rest] = words;
-  if (first !== 'ip' && first !== 'no' && first !== 'hostname' && first !== 'router' && first !== 'network') return { kind: 'none' };
+  if (first !== 'ip' && first !== 'no' && first !== 'hostname' && first !== 'router' && first !== 'network' && first !== 'neighbor') return { kind: 'none' };
   const error = (key: string) => ({ kind: 'error' as const, text: tr(key) });
 
   // router rip / router ospf <番号>（no で止める）
@@ -63,6 +68,21 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   }
   if (first === 'no' && rest[0] === 'router' && (rest[1] === 'rip' || rest[1] === 'ospf')) {
     return { kind: 'action', action: { kind: 'routing', proto: rest[1], on: false } };
+  }
+  // router bgp <AS>・no router bgp・neighbor <IP> remote-as <AS>・network <IP> mask <マスク>（BGP）
+  if (first === 'router' && rest[0] === 'bgp') {
+    if (!/^[0-9]+$/.test(rest[1] ?? '')) return error('ui.terminal.usageBgp');
+    return { kind: 'action', action: { kind: 'bgp', op: 'asn', asn: Number(rest[1]) } };
+  }
+  if (first === 'no' && rest[0] === 'router' && rest[1] === 'bgp') return { kind: 'action', action: { kind: 'bgp', op: 'off' } };
+  if (first === 'neighbor') {
+    if (rest.length !== 3 || rest[1] !== 'remote-as' || !isIp(rest[0]) || !/^[0-9]+$/.test(rest[2])) return error('ui.terminal.usageBgp');
+    return { kind: 'action', action: { kind: 'bgp', op: 'neighbor', ip: rest[0], remoteAs: Number(rest[2]) } };
+  }
+  if (first === 'network' && rest.length === 3 && rest[1] === 'mask' && isIp(rest[0])) {
+    const prefix = maskToPrefix(rest[2]);
+    if (prefix === null) return error('ui.terminal.errIp');
+    return { kind: 'action', action: { kind: 'bgp', op: 'network', dest: rest[0], prefix } };
   }
   // network <IP>（RIP）・network <IP> <ワイルドカード> area <エリア>（OSPF。MVP はエリア 0 だけ）
   if (first === 'network') {

@@ -139,7 +139,61 @@ class Topology {
         out.set(r.uid, [...(out.get(r.uid) ?? []), ...routes]);
       }
     }
+    this.bgpRoutes(out);
     return out;
+  }
+
+  // eBGP（MVP）。相手の AS と、お互いの設定（neighbor）が合い、直接つながっていれば隣接（セッション）になる。
+  // 各機器は自分の network 文の宛先を AS パス [自分の AS] で広告し、受け取った経路は自分の AS を含まないものだけ使う。短い AS パスを選ぶ
+  private bgpRoutes(out: Map<string, Route[]>): void {
+    const routers = [...this.nodes.values()].filter((n) => n.bgp !== undefined && this.isRouter(n.uid));
+    const ownerOf = (ip: string) => routers.find((r) => r.interfaces.some((i) => i.ip === ip));
+    // セッション（学ぶ側 from・広告する側 to・学ぶ側から見た相手のアドレス）
+    const sessions: { from: string; to: string; nextHop: string }[] = [];
+    for (const r of routers) {
+      for (const nb of r.bgp!.neighbors) {
+        const peer = ownerOf(nb.ip);
+        if (!peer || peer.uid === r.uid || peer.bgp!.asn !== nb.remoteAs) continue;
+        const back = peer.bgp!.neighbors.find((x) => x.remoteAs === r.bgp!.asn && r.interfaces.some((i) => i.ip === x.ip));
+        if (!back) continue;
+        const myIface = r.interfaces.find((i) => inSubnet(nb.ip, i.ip, i.prefix));
+        if (!myIface || !this.domainOf({ node: r.uid, port: myIface.port }).members.some((m) => m.node === peer.uid)) continue;
+        sessions.push({ from: r.uid, to: peer.uid, nextHop: nb.ip });
+      }
+    }
+    type Entry = { dest: string; prefix: number; path: number[]; nextHop: string | null };
+    const best = new Map<string, Map<string, Entry>>();
+    const keyOf = (dest: string, prefix: number) => `${dest}/${prefix}`;
+    for (const r of routers) {
+      const table = new Map<string, Entry>();
+      for (const n of r.bgp!.networks) table.set(keyOf(n.dest, n.prefix), { dest: n.dest, prefix: n.prefix, path: [r.bgp!.asn], nextHop: null });
+      best.set(r.uid, table);
+    }
+    for (let round = 0; round < routers.length + 1; round++) {
+      let changed = false;
+      for (const s of sessions) {
+        const learner = routers.find((r) => r.uid === s.from)!;
+        const table = best.get(s.from)!;
+        for (const e of best.get(s.to)!.values()) {
+          if (e.path.includes(learner.bgp!.asn)) continue;
+          const path = [...e.path, learner.bgp!.asn];
+          const k = keyOf(e.dest, e.prefix);
+          const cur = table.get(k);
+          if (cur && (cur.nextHop === null || cur.path.length < path.length || (cur.path.length === path.length && cur.nextHop <= s.nextHop))) continue;
+          table.set(k, { dest: e.dest, prefix: e.prefix, path, nextHop: s.nextHop });
+          changed = true;
+        }
+      }
+      if (!changed) break;
+    }
+    for (const r of routers) {
+      const learned = [...best.get(r.uid)!.values()].filter((e) => e.nextHop !== null);
+      const own = r.interfaces;
+      const routes: Route[] = learned
+        .filter((e) => !own.some((i) => inSubnet(e.dest, i.ip, i.prefix)))
+        .map((e) => ({ dest: e.dest, prefix: e.prefix, nextHop: e.nextHop as string, protocol: 'bgp' as const }));
+      out.set(r.uid, [...(out.get(r.uid) ?? []), ...routes]);
+    }
   }
 
   node(uid: string): NetNode | undefined {
@@ -263,7 +317,7 @@ const fail = (reason: FailureReason, node: string): Failure => ({ reason, node }
 export type Traffic = { kind: 'ping' } | { kind: 'http'; port: number };
 
 // 経路の管理距離（AD）。static 1・OSPF 110・RIP 120
-const adOf = (r: Route): number => (r.protocol === 'ospf' ? 110 : r.protocol === 'rip' ? 120 : 1);
+const adOf = (r: Route): number => (r.protocol === 'ospf' ? 110 : r.protocol === 'rip' ? 120 : r.protocol === 'bgp' ? 20 : 1);
 
 // 規則の送信元・宛先（'any' か「a.b.c.d/nn」）に、IPアドレスが入るか
 const matchNet = (spec: string, ip: string): boolean => {

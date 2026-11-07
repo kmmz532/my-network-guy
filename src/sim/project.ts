@@ -976,6 +976,28 @@ export const setRouting = (core: Core, uid: string, change: { proto: 'rip' | 'os
     target,
   );
 
+// BGP の設定（N147）。router bgp で自分の AS を決め、neighbor と network を足す
+export type BgpOp = { op: 'asn'; asn: number } | { op: 'off' } | { op: 'neighbor'; ip: string; remoteAs: number } | { op: 'network'; dest: string; prefix: number };
+export const setBgp = (core: Core, uid: string, change: BgpOp, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      const cur = node.bgp ?? { asn: 0, neighbors: [], networks: [] };
+      switch (change.op) {
+        case 'asn':
+          return { ...node, bgp: { ...cur, asn: change.asn } };
+        case 'off':
+          return { ...node, bgp: undefined };
+        case 'neighbor':
+          return { ...node, bgp: { ...cur, neighbors: [...cur.neighbors.filter((n) => n.ip !== change.ip), { ip: change.ip, remoteAs: change.remoteAs }] } };
+        case 'network':
+          return { ...node, bgp: { ...cur, networks: [...cur.networks.filter((n) => !(n.dest === change.dest && n.prefix === change.prefix)), { dest: change.dest, prefix: change.prefix }] } };
+      }
+    },
+    target,
+  );
+
 export const setGateway = (core: Core, uid: string, gateway: string | null, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
