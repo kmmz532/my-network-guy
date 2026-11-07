@@ -4,6 +4,7 @@ import { DESK_ID, emptyOffice, officeLocked, type Core, type Office, type Outcom
 import { tileKind } from '../data/tileKind';
 import type { NetLink, NetNode } from '../network/types';
 import cablesData from '../assets/data/cables.json';
+import { rotateFacing } from './facing';
 
 const fail = (reason: string): Outcome => ({ ok: false, reason });
 
@@ -120,6 +121,20 @@ const routeFloor = (map: GameMap, from: { x: number; y: number }, to: { x: numbe
 
 // ケーブルの種類の最大の長さ（マス）。種類がなければ undefined
 const cablesMaxTiles = (cable: string): number | undefined => (cablesData.cables as { id: string; maxLengthTiles: number }[]).find((c) => c.id === cable)?.maxLengthTiles;
+
+// 家具を90度回す（N95）。机の上の機器は机の向きに合わせて絵を変える（機器は向きを持たず、机と同じ向きで描く）
+export const rotateFurniture = (core: Core, uid: string): Outcome => {
+  if (officeLocked(core)) return fail('inhouse');
+  const target = core.office.furniture.find((f) => f.uid === uid);
+  if (!target) return fail('none');
+  return {
+    ok: true,
+    core: {
+      ...core,
+      office: { ...core.office, furniture: core.office.furniture.map((f) => (f.uid === uid ? { ...f, facing: rotateFacing(f.facing ?? 'up') } : f)) },
+    },
+  };
+};
 
 // 自社オフィスの家具を撤去する（在庫に戻る）。机の上にPCがあるときは撤去できない
 export const removeFurniture = (core: Core, uid: string): Outcome => {

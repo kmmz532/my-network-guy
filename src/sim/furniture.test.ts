@@ -1,7 +1,7 @@
 import { EMPTY_FAMILIARITY } from './familiar';
 import { describe, expect, it } from 'vitest';
 import type { GameMap } from '../data/schema';
-import { assignDesks, freeDesks, furnitureBonus, hire, moveFurniture, placeFurniture, removeFurniture, seatedStaff, type BonusEnv } from './furniture';
+import { assignDesks, freeDesks, furnitureBonus, hire, moveFurniture, placeFurniture, removeFurniture, rotateFurniture, seatedStaff, type BonusEnv } from './furniture';
 import type { NetNode } from '../network/types';
 import balanceJson from '../assets/data/balance.json';
 import furnitureJson from '../assets/data/furniture.json';
@@ -276,5 +276,19 @@ describe('座っている机の移動（N103）', () => {
     const fence = [{ uid: 'f1', id: 'plant', x: 0, y: 1 }, { uid: 'f2', id: 'plant', x: 2, y: 1 }, { uid: 'f3', id: 'plant', x: 1, y: 0 }, { uid: 'f4', id: 'plant', x: 1, y: 2 }];
     const office = withOffice({ furniture: [desk, ...fence], furnitureSeq: 5, nodes: [pc, { ...other, x: 1, y: 1 }], links: [link('l0', 'n0', 'n1', [[2, 2], [1, 2], [1, 1]])] });
     expect(reasonOf(moveFurniture({ ...core(), office } as Core, 'd0', 4, 2, map))).toBe('tile');
+  });
+});
+
+describe('家具を回す（N95）', () => {
+  it('家具の向きが90度ずつ変わる（上 → 右 → 手前 → 左）', () => {
+    const c0 = { ...core(), office: { ...core().office, furniture: [{ uid: 'd0', id: 'desk', x: 1, y: 1 }], furnitureSeq: 1 } } as Core;
+    const once = rotateFurniture(c0, 'd0');
+    expect(once.ok && once.core.office.furniture[0].facing).toBe('right');
+    const twice = once.ok ? rotateFurniture(once.core, 'd0') : null;
+    expect(twice?.ok && twice.core.office.furniture[0].facing).toBe('down');
+  });
+
+  it('ない家具は回せない（none）', () => {
+    expect(reasonOf(rotateFurniture(core(), 'nope'))).toBe('none');
   });
 });
