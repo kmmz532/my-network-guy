@@ -698,6 +698,14 @@ def icon_play():
     return outline(img)
 
 
+# 虫めがね（検索の欄の印。飾りのため読み上げの対象にしない・N128）
+def icon_search():
+    img, d = new(16, 16)
+    d.ellipse([2, 2, 10, 10], outline=C['e'] + (255,), width=2)
+    d.line([(9, 9), (13, 13)], fill=C['e'] + (255,), width=3)
+    return outline(img)
+
+
 def icon_menu():
     img, d = new(16, 16)
     for y in (3, 7, 11):
@@ -1492,6 +1500,7 @@ if __name__ == '__main__':
         'close': icon_close(),
         'pause': icon_pause(),
         'play': icon_play(),
+        'search': icon_search(),
         'menu': icon_menu(),
         'cable_utp_cat5e': icon_cable('b'),
         'cable_fiber_sm': icon_cable('f'),
