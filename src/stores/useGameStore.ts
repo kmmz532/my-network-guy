@@ -27,6 +27,7 @@ import { applyMoney, recordSaving } from '../sim/ledger';
 
 import { isSpeedUnlocked, unlockedSpeedsOf } from '../sim/speed';
 import { dismissNotice, openOf, promoteNotices, pushNotice, type NoticeItem } from '../ui/notices';
+import { tDyn } from '../i18n/t';
 import { cancelRetire as cancelRetireOp, noticeRetire as noticeRetireOp, settleRetirements } from '../sim/retire';
 import { accountingRate, backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, salesArrivalChance } from '../sim/backOffice';
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
@@ -585,7 +586,15 @@ const withDelegatedNotice = (prev: GameState, patch: Partial<GameState>): Partia
   };
 };
 
-const withLevelUps = (prev: GameState, patch: Partial<GameState>): Partial<GameState> => withDelegatedNotice(prev, attachLevelUps(prev, patch));
+// 雇える人数が増えたら知らせる（レベルアップで上限が上がったとき・N97）
+const withCapNotice = (prev: GameState, patch: Partial<GameState>): Partial<GameState> => {
+  const before = staffCapOf(levelOf(prev.companyExp, balance), balance);
+  const after = staffCapOf(levelOf(patch.companyExp ?? prev.companyExp, balance), balance);
+  if (after <= before) return patch;
+  return { ...patch, notices: pushNotice(patch.notices ?? prev.notices, 'capRaised', { cap: after }, Date.now()) };
+};
+
+const withLevelUps = (prev: GameState, patch: Partial<GameState>): Partial<GameState> => withCapNotice(prev, withDelegatedNotice(prev, attachLevelUps(prev, patch)));
 
 const attachLevelUps = (prev: GameState, patch: Partial<GameState>): Partial<GameState> => {
   const report = patch.lastReport;
@@ -1087,6 +1096,10 @@ export const useGameStore = create<GameState>((set, get) => {
           // 退職の予定の社員は、今月末で退職する（退職金を払い、一覧から外す。今月の給与は上で払い済み・N90）
           const settled = settleRetirements({ clock: next.clock ?? clock, staff: next.staff ?? s.staff, active: s.active }, balance);
           next = { ...next, clock: settled.clock, staff: settled.staff, active: settled.active };
+          // 退職した社員を知らせる（N97）
+          for (const m of (next.staff ?? s.staff).length < (s.staff.length) ? s.staff.filter((x) => x.leaving) : []) {
+            next = { ...next, notices: pushNotice(next.notices ?? s.notices, 'retired', { name: tDyn(m.name), uid: m.uid }, Date.now()) };
+          }
           // 毎月1日に、採用の候補を作り直す
           // 募集の職種の指定は、人事がいるときだけ効く。指定は次の1回だけ使う
           const rolled = rollCandidates(levelOf(s.companyExp, balance), clock.paidMonths, s.rng, balance, s.staff.map((m) => m.name), {
@@ -1095,7 +1108,7 @@ export const useGameStore = create<GameState>((set, get) => {
           });
           next = {
             ...next,
-            notices: pushNotice(next.notices ?? s.notices, 'salary', { amount }, Date.now()),
+            notices: pushNotice(pushNotice(next.notices ?? s.notices, 'salary', { amount }, Date.now()), 'candidatesRefreshed', {}, Date.now()),
             candidates: rolled.candidates,
             hiringWish: null,
             rng: rolled.rng,
@@ -1103,7 +1116,14 @@ export const useGameStore = create<GameState>((set, get) => {
         }
         // 研修の期日が来た社員は、経験値を得て研修を終える
         const trainedStaff = finishTrainings(coreOf({ ...s, ...next } as GameState), trainingEnv, hrTrainingRate(hrP, balance)).staff;
-        if (trainedStaff !== s.staff) next = { ...next, staff: trainedStaff };
+        if (trainedStaff !== s.staff) {
+          next = { ...next, staff: trainedStaff };
+          // 研修が終わった社員を知らせる（N97）
+          for (const m of trainedStaff) {
+            const before = s.staff.find((x) => x.uid === m.uid);
+            if (before?.training && !m.training) next = { ...next, notices: pushNotice(next.notices ?? s.notices, 'trained', { name: tDyn(m.name), uid: m.uid }, Date.now()) };
+          }
+        }
         const withClock = { ...s, ...next } as GameState;
         // 施工中なら、勤務時間内に作業を進める
         if (!clock.bankrupt && withClock.active.some((p) => p.phase === 'build')) {
@@ -1146,7 +1166,15 @@ export const useGameStore = create<GameState>((set, get) => {
         const refreshed = refresh(merged);
         // 営業の依頼は、通常の到着のあとに、日ごとの確率で届く
         const salesPatch = salesArrivalPatch({ ...merged, ...refreshed } as GameState, days);
-        return { ...withLevelUps(s, next), ...refreshed, ...salesPatch };
+        const result = { ...withLevelUps(s, next), ...refreshed, ...salesPatch };
+        // 出来事の通知（N97）: 営業の依頼が届いた（件数をまとめる）・新しい依頼が届いた
+        const before = refreshed.offers ?? merged.offers;
+        const salesCount = (salesPatch.offers?.length ?? before.length) - before.length;
+        const refreshCount = (refreshed.offers?.length ?? merged.offers.length) - merged.offers.length;
+        let notices = result.notices ?? s.notices;
+        if (salesCount > 0) notices = pushNotice(notices, 'salesArrival', { count: salesCount }, Date.now());
+        if (refreshCount > 0) notices = pushNotice(notices, 'offersRefreshed', {}, Date.now());
+        return { ...result, notices };
       }),
     // 速さを人が変えたら、勤務時間外の自動の早送りは取り消す（覚えた速さには戻さない）
     // サンドボックスは時間を止めたままにする
@@ -1272,8 +1300,16 @@ export const useGameStore = create<GameState>((set, get) => {
     },
     cancelRetire: (uid) => apply(cancelRetireOp(coreOf(get()), uid)),
     hire: (candidateUid, shift) => {
-      const reason = apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true, staffCapOf(levelOf(get().companyExp, balance), balance), shift));
-      if (reason === null) get().grantCompanyExp('hire');
+      const cap = staffCapOf(levelOf(get().companyExp, balance), balance);
+      const reason = apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true, cap, shift));
+      if (reason === null) {
+        get().grantCompanyExp('hire');
+        // 採用した社員を知らせる（名前と職種）。上限ちょうどになったら、そのことも知らせる（N97）
+        const hired = get().staff[get().staff.length - 1];
+        let notices = pushNotice(get().notices, 'hired', { name: tDyn(hired.name), job: tDyn(`staff.job.${hired.job}`), uid: hired.uid }, Date.now());
+        if (get().staff.length >= cap) notices = pushNotice(notices, 'capReached', { cap }, Date.now());
+        set({ notices });
+      }
       return reason;
     },
     connect: (aUid, bUid, cableId, ports = {}) => {
