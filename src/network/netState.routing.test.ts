@@ -29,12 +29,12 @@ const link = (uid: string, a: string, pa: number, b: string, pb: number): NetLin
 
 // PC A(10.0.1.10) — R1 — R2 — PC B(10.0.2.10)。中継のサブネットは 10.0.12.0/24
 const line = (joined: boolean, proto: 'rip' | 'ospf' = 'rip', extra: Route[] = []): Network => {
-  const flag = (ip: string, port: number) => (joined ? (proto === 'rip' ? { rip: true } : { ospf: { area: 0 } }) : {});
+  const flag = () => (joined ? (proto === 'rip' ? { rip: true } : { ospf: { area: 0 } }) : {});
   return {
     nodes: [
       node('pa', 'pc_basic', [iface(0, '10.0.1.10')], '10.0.1.1', [], 0),
-      node('r1', 'router_basic', [iface(0, '10.0.1.1', flag('10.0.1.1', 0)), iface(1, '10.0.12.1', flag('10.0.12.1', 1))], null, extra, 1),
-      node('r2', 'router_basic', [iface(0, '10.0.12.2', flag('10.0.12.2', 0)), iface(1, '10.0.2.1', flag('10.0.2.1', 1))], null, [], 2),
+      node('r1', 'router_basic', [iface(0, '10.0.1.1', flag()), iface(1, '10.0.12.1', flag())], null, extra, 1),
+      node('r2', 'router_basic', [iface(0, '10.0.12.2', flag()), iface(1, '10.0.2.1', flag())], null, [], 2),
       node('pb', 'pc_basic', [iface(0, '10.0.2.10')], '10.0.2.1', [], 3),
     ],
     links: [link('l0', 'pa', 0, 'r1', 0), link('l1', 'r1', 1, 'r2', 0), link('l2', 'r2', 1, 'pb', 0)],
