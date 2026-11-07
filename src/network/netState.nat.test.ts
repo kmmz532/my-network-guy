@@ -27,9 +27,9 @@ describe('NAPT（N145）', () => {
     expect(r.nat).toEqual({ router: 'r', insideIp: '192.168.1.10', outsideIp: '198.51.100.2' });
   });
 
-  it('NAPT がなければ、戻りの通信が社内へ戻れず届かない（外からは社内のアドレスが見えない）', () => {
+  it('NAPT がなければ、社内のアドレスのまま外へ出て届かない（nat.private_source。NET.md §6）', () => {
     const r = ping(build(false), gameEnv.engine, 'pc', 'net');
     expect(r.ok).toBe(false);
-    expect(r.failure?.reason).toBe('return.failed');
+    expect(r.failure?.reason).toBe('nat.private_source');
   });
 });

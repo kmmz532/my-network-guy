@@ -132,6 +132,8 @@
   "warn.vlan.native_mismatch": "直結の両端の trunk の native の VLAN が違う",
   "error.port.security": "登録のない機器がつながったため、スイッチの口が止まった。",
   "error.port.security.fix": "つないだ機器の MAC アドレスを、その口に登録します。",
+  "error.nat.private_source": "社内のアドレスのまま外へ出たため、回線の先で届かない。",
+  "error.nat.private_source.fix": "家庭用ルーターかルーターで NAT（ip nat inside・outside・overload）を設定します。",
   "error.bgp.no_session": "BGP の相手と隣接していない（アドレスか AS 番号が合わない）。",
   "error.bgp.no_session.fix": "相手の IP アドレスと AS 番号を、双方の neighbor で合わせます。",
   "error.ospf.no_neighbor": "OSPF の隣接がなく、宛先への経路を覚えていない。",

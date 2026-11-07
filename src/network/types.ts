@@ -150,6 +150,8 @@ export const FAILURE_REASONS = [
   'ospf.no_neighbor',
   // BGP の相手のアドレスか AS 番号が合わず、隣接しない（N147）
   'bgp.no_session',
+  // 社内のアドレスのまま外の口へ出た（NAPT がない・NET.md §6）
+  'nat.private_source',
   // 口が停止している（shutdown・N137）
   'port.shutdown',
   // 口の VLAN が通らない（access と trunk の許可の不一致・N137）

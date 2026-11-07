@@ -341,6 +341,9 @@ const matchNet = (spec: string, ip: string): boolean => {
   return inSubnet(ip, network, Number(prefix));
 };
 
+// プライベートアドレス（10/8・172.16/12・192.168/16）か
+const isPrivateIp = (ip: string): boolean => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(ip);
+
 // ファイアウォールが、この通信を通すか（規則のどれかに合えば通す。規則がなければ拒否）
 const allows = (rules: readonly FirewallRule[] | undefined, srcIp: string, dstIp: string, traffic: Traffic): boolean =>
   (rules ?? []).some(
@@ -460,6 +463,8 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
         natHit = { router: cur.uid, insideIp: curSrcIp, outsideIp: connected.ip };
         curSrcIp = connected.ip;
       }
+      // 社内のアドレス（プライベート）のまま外の口へ出たら、回線の先で届かない（nat.private_source・NET.md §6）。戻りは確かめない
+      if (check && connected.nat === 'outside' && natHit === undefined && isPrivateIp(curSrcIp)) return err(fail('nat.private_source', cur.uid));
       const domain = topo.domainOf({ node: cur.uid, port: connected.port });
       if (domain.tooLong) return err(fail('link.too_long', domain.tooLong.node));
       if (domain.loop) return err(fail('link.loop', domain.loop.node));
