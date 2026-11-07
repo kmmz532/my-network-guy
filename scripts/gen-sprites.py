@@ -54,6 +54,8 @@ C = {
     'L2': (172, 202, 186),  # 床（リノリウム・影）
     'cb': (206, 160, 104),  # 段ボール
     'CB': (170, 124, 76),   # 段ボール（影）
+    'aq': (96, 200, 214),   # 水色（マルチモードの光ファイバー）
+    'AQ': (58, 146, 168),   # 水色（影）
 }
 
 
@@ -309,9 +311,16 @@ def l2_switch():
         px(d, x, 31, 'l' if i % 2 == 0 else 'B')
         rect(d, x, 32, 1, 2, 'o')
     px(d, 20, 31, 'y')
+    sfp_slot(d, 20, 32)
     rect(d, 3, 37, 3, 1, 'o')
     rect(d, 18, 37, 3, 1, 'o')
     return img
+
+
+def sfp_slot(d, x, y):
+    # 前面の SFP の口（2×2）。RJ45 の黒い口と分けるため、金属の枠を白で描き、中を暗くする
+    rect(d, x, y, 2, 2, 'w')
+    px(d, x + 1, y + 1, 'd')
 
 
 def l2_switch_4p():
@@ -340,12 +349,14 @@ def l3_switch():
     return img
 
 
-def router_box(d, y=20, h=14):
+def router_box(d, y=20, h=14, sfp=False):
     # 赤い箱のルーター。天面（奥行き4）と、前面に電源のLEDとポート
     box3q(d, 1, y, 22, 4, h - 4, 'rh', 'r', shade='R')
     fy = y + 4
     for x in (4, 6):
         px(d, x, fy + 3, 'l')
+    if sfp:
+        sfp_slot(d, 8, fy + 3)
     for i in range(4):
         rect(d, 11 + i * 3, fy + 3, 2, 2, 'o')
 
@@ -353,7 +364,7 @@ def router_box(d, y=20, h=14):
 def router():
     # アンテナのない赤い箱を、低い台に載せる
     img, d = new(24, 40)
-    router_box(d, 19, 14)
+    router_box(d, 19, 14, sfp=True)
     base(d)
     return img
 
@@ -658,6 +669,7 @@ def uplink():
     for x in (8, 10, 12):
         px(d, x, 28, 'l')
     rect(d, 7, 31, 10, 2, 'g')
+    rect(d, 14, 31, 2, 2, 'o')  # 宅内側の RJ45 の口
     return img
 
 
@@ -896,6 +908,88 @@ def icon_fiber():
     rect(d, 14, 11, 2, 2, 'g', 'o')
     px(d, 15, 11, 'S')
     return outline(img)
+
+
+def icon_utp_cat6a():
+    # Cat6A: UTP と同じ形で、被覆を緑にする（Cat5e の青と見分ける）
+    img = icon_utp()
+    pix = img.load()
+    for y in range(16):
+        for x in range(16):
+            if pix[x, y][:3] == C['b']:
+                pix[x, y] = C['G'] + (255,)
+    return img
+
+
+def icon_fiber_mm():
+    # マルチモードの光ファイバー: シングルモードと同じ形で、被覆を水色にする
+    img, d = new(16, 16)
+    d.arc([1, 3, 11, 13], 90, 360, fill=C['aq'] + (255,), width=2)
+    d.line([(6, 12), (9, 12)], fill=C['aq'] + (255,), width=2)
+    rect(d, 9, 9, 5, 6, 'e', 'o')
+    rect(d, 14, 11, 2, 2, 'g', 'o')
+    px(d, 15, 11, 'S')
+    return outline(img)
+
+
+CLOUD_ROWS = [
+    '................',
+    '................',
+    '.....####.......',
+    '....#eeee#......',
+    '...#eeeeee##....',
+    '..#eeeeeeeee#...',
+    '.#eeeeeeeeeee#..',
+    '#eeeeeeeeeeeee#.',
+    '#essssssssssse#.',
+    '.#############..',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+]
+
+
+def icon_internet():
+    # インターネット: 白い雲と、下に3本の線（つながった先が広がる印）
+    img = from_rows(CLOUD_ROWS, {'#': 'o', 'e': 'e', 's': 'sky'})
+    d = ImageDraw.Draw(img)
+    for x in (4, 8, 12):
+        d.line([(x, 10), (x, 13)], fill=C['b'] + (255,))
+    d.line([(4, 13), (12, 13)], fill=C['b'] + (255,))
+    for x in (4, 8, 12):
+        px(d, x, 14, 'o')
+    return img
+
+
+def icon_isp():
+    # ISP のルーター: 奥の雲の前に、赤い箱（ルーター）
+    img = from_rows(CLOUD_ROWS, {'#': 'o', 'e': 'e', 's': 'sky'})
+    d = ImageDraw.Draw(img)
+    rect(d, 3, 8, 10, 6, 'r', 'o')
+    d.line([(4, 9), (11, 9)], fill=C['rh'] + (255,))
+    px(d, 5, 11, 'l')
+    for x in (8, 10):
+        px(d, x, 11, 'o')
+    return img
+
+
+def icon_nat():
+    # NAT（アドレスの書き換え）: 上は右向き、下は左向きの矢印。左右の札の色を変え、書き換わる印にする
+    img, d = new(16, 16)
+    rect(d, 0, 2, 4, 4, 'b', 'o')
+    rect(d, 12, 2, 4, 4, 'f', 'o')
+    d.line([(4, 4), (10, 4)], fill=C['o'] + (255,))
+    for i in range(3):
+        d.line([(10 - i, 4 - i), (10 - i, 4 + i)], fill=C['o'] + (255,))
+    rect(d, 0, 10, 4, 4, 'b', 'o')
+    rect(d, 12, 10, 4, 4, 'f', 'o')
+    d.line([(5, 12), (11, 12)], fill=C['o'] + (255,))
+    for i in range(3):
+        d.line([(5 + i, 12 - i), (5 + i, 12 + i)], fill=C['o'] + (255,))
+    return img
 
 
 def icon_pc_count():
@@ -1584,6 +1678,42 @@ def rear_port_plugged(body, shade):
     return img
 
 
+def rear_sfp_empty():
+    # SFP の口（8×10）。RJ45 より細い金属の枠と、奥の暗い差し込み
+    img, d = new(8, 10)
+    rect(d, 0, 0, 8, 10, 'w', 'o')
+    rect(d, 2, 2, 4, 7, 'o')
+    d.line([(1, 1), (6, 1)], fill=C['g'] + (255,))
+    return img
+
+
+def rear_sfp_fiber(body, shade):
+    # SFP の口に、光の LC コネクター（2つの差し込み）が挿さった状態
+    img = rear_sfp_empty()
+    d = ImageDraw.Draw(img)
+    rect(d, 2, 2, 4, 7, body)
+    for x in (2, 4):
+        rect(d, x, 3, 2, 2, shade)
+    px(d, 2, 3, 'e')
+    px(d, 4, 3, 'e')
+    rect(d, 3, 8, 2, 2, shade)  # ケーブルの根元
+    return img
+
+
+def rear_uplink_line():
+    # 回線の口の背面の、光回線の差し込み（SC。12×10）。工事で固定した印に、ねじ止めの板を左右に描く
+    img, d = new(12, 10)
+    rect(d, 0, 0, 12, 10, 'g', 'o')
+    rect(d, 3, 1, 6, 8, 'b', 'o')
+    rect(d, 5, 3, 2, 3, 'f')
+    px(d, 5, 3, 'y')
+    rect(d, 4, 7, 4, 1, 'B')
+    for x in (1, 10):
+        px(d, x, 2, 'd')
+        px(d, x, 7, 'd')
+    return img
+
+
 def rear_fan():
     # 冷却ファンの格子（16×16）
     img, d = new(16, 16)
@@ -1612,6 +1742,9 @@ if __name__ == '__main__':
         'port_empty': rear_port_empty(),
         'port_utp': rear_port_plugged('b', 'B'),
         'port_fiber': rear_port_plugged('f', 'Y'),
+        'port_sfp_empty': rear_sfp_empty(),
+        'port_sfp_fiber': rear_sfp_fiber('b', 'B'),
+        'uplink_line': rear_uplink_line(),
         'fan': rear_fan(),
         'power': rear_power(),
     }
@@ -1667,6 +1800,11 @@ if __name__ == '__main__':
         'menu': icon_menu(),
         'cable_utp_cat5e': icon_cable('b'),
         'cable_fiber_sm': icon_cable('f'),
+        'cable_fiber_mm': icon_fiber_mm(),
+        'cable_utp_cat6a': icon_utp_cat6a(),
+        'internet': icon_internet(),
+        'isp': icon_isp(),
+        'nat': icon_nat(),
         'pc_count': icon_pc_count(),
         'ok': icon_ok(),
         'device': icon_device(),
