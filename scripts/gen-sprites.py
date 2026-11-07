@@ -409,23 +409,33 @@ def router_switch():
     return img
 
 
-def home_router():
-    # 家庭用ルーター（ルーター・スイッチ・DHCP・ファイアウォールを1台にまとめた箱）: 黒い横長の箱を、低い脚で置く。
-    # 業務用の赤い箱と見分けるため黒にする。前面の左に LED の列（電源・WAN・LAN）、右に盾の印（ファイアウォールを持つ印）
+def home_router(ap=False):
+    # 家庭用ルーター（ルーター・スイッチ・DHCP・NAPT・ファイアウォールを1台にまとめた箱）: 縦置きの黒い箱を、横長の台に立てる。
+    # 業務用の赤い箱と見分けるため黒にする。前面に LED の列（電源・WAN・LAN）と、盾の印（ファイアウォールを持つ印）。
+    # ap=True はアクセスポイント付き: 天面の2本のアンテナと、前面の上の無線の印（扇形）を足す
     img, d = new(24, 40)
-    box3q(d, 2, 22, 20, 4, 9, 'x2', 'x1', edge='x3', shade='o')
-    d.line([(3, 23), (20, 23)], fill=C['x3'] + (255,))  # 天面の奥の縁の光
-    px(d, 4, 30, 'S')                                   # 電源（青）
-    px(d, 6, 30, 'f')                                   # WAN（橙）
-    for x in (8, 10, 12):
-        px(d, x, 30, 'l')                               # LAN
+    if ap:
+        for x in (8, 15):
+            d.line([(x, 2), (x, 9)], fill=C['x1'] + (255,), width=2)
+            px(d, x, 2, 'x3')
+    box3q(d, 7, 9, 10, 2, 25, 'x2', 'x1', edge='x3', shade='o')
+    d.line([(8, 12), (8, 34)], fill=C['x2'] + (255,))  # 前面の左の縁の光
+    if ap:
+        for x, y in ((10, 14), (11, 13), (12, 13), (13, 14), (11, 16), (12, 16)):
+            px(d, x, y, 'e')
+        px(d, 11, 18, 'S')
+        px(d, 12, 18, 'S')
+    # LED（電源・WAN・LAN）
+    px(d, 11, 21, 'S')
+    px(d, 11, 23, 'f')
+    for y in (25, 27):
+        px(d, 11, y, 'l')
     # 盾の印（白）
-    d.line([(16, 28), (19, 28)], fill=C['e'] + (255,))
-    d.line([(16, 29), (16, 30)], fill=C['e'] + (255,))
-    d.line([(19, 29), (19, 30)], fill=C['e'] + (255,))
-    d.line([(17, 31), (18, 31)], fill=C['e'] + (255,))
-    rect(d, 4, 35, 2, 2, 'o')
-    rect(d, 18, 35, 2, 2, 'o')
+    d.line([(10, 29), (13, 29)], fill=C['e'] + (255,))
+    d.line([(10, 30), (10, 31)], fill=C['e'] + (255,))
+    d.line([(13, 30), (13, 31)], fill=C['e'] + (255,))
+    d.line([(11, 32), (12, 32)], fill=C['e'] + (255,))
+    rect(d, 4, 36, 16, 2, 'x2', 'o')                   # 台
     return img
 
 
@@ -1789,6 +1799,7 @@ if __name__ == '__main__':
     save(vpn_router(), 'device/vpn_router.png')
     save(router_switch(), 'device/router_switch.png')
     save(home_router(), 'device/home_router.png')
+    save(home_router(ap=True), 'device/home_router_ap.png')
     save(printer(), 'device/printer_basic.png')
     save(firewall(), 'device/firewall.png')
     save(firewall_dmz(), 'device/firewall_dmz.png')
