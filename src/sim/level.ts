@@ -51,7 +51,7 @@ export interface LevelUp {
   level: number;
   money: number;
   devices: { device: string; count: number }[];
-  unlocks: { kind: 'device' | 'cable' | 'furniture' | 'template' | 'contract'; id: string }[];
+  unlocks: { kind: 'device' | 'cable' | 'furniture' | 'template' | 'contract' | 'speed'; id: string }[];
 }
 
 export interface UnlockItem {

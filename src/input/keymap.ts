@@ -7,6 +7,9 @@ import { frontWindow } from '../ui/windows';
 import { focusVisibleSearch } from '../ui/focusSearch';
 import { focusedProject, frontDeviceUid, useGameStore } from '../stores/useGameStore';
 import type { Speed } from '../stores/useGameStore';
+import { balance } from 'virtual:game-data';
+import { levelOf } from '../sim/level';
+import { unlockedSpeedsOf } from '../sim/speed';
 import { topPopup } from './popupStack';
 import { mapCommands, PAN_KEY_PX } from '../game/mapControl';
 
@@ -48,7 +51,6 @@ let resumeSpeed: Speed = 1;
 useGameStore.subscribe((s) => {
   if (s.speed !== 0) resumeSpeed = s.speed;
 });
-const SPEED_STEPS: Speed[] = [1, 2, 4];
 
 // 配線の途中 → ポップアップ → 失敗の直し方 → 一番手前のウィンドウ → 選択の道具、の順に1つずつ戻す
 const escape = (): boolean => {
@@ -97,14 +99,16 @@ const pause = (): boolean => {
 };
 
 // 速さを1段階変える。停止中は1倍に戻す
+// 速さは解放済みのものだけを順に変える（4倍・8倍は会社のレベルで解放・N99）
 const changeSpeed = (dir: -1 | 1): boolean => {
   const s = useGameStore.getState();
   if (s.speed === 0) {
     s.setSpeed(1);
     return true;
   }
-  const i = SPEED_STEPS.indexOf(s.speed);
-  const next = SPEED_STEPS[i + dir];
+  const steps = unlockedSpeedsOf(levelOf(s.companyExp, balance), balance).filter((x) => x > 0) as Speed[];
+  const i = steps.indexOf(s.speed);
+  const next = steps[i + dir];
   if (i >= 0 && next !== undefined) s.setSpeed(next);
   return true;
 };

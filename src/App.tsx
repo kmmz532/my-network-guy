@@ -36,9 +36,11 @@ import { TitleScreen } from './components/TitleScreen';
 import { mapLoaders } from 'virtual:loaders';
 import { RADIUS } from './ui/theme';
 import { levelOf } from './sim/level';
+import { isSpeedUnlocked, nextFastSpeed, unlockedSpeedsOf } from './sim/speed';
 import { ExpGauge, LevelMark } from './components/CompanyPanel';
 
-const SPEEDS: Speed[] = [0, 1, 2, 4];
+// 速さのボタン: 停止・1倍のあとに、早送り（2倍・4倍・8倍。解放済みを押すたびに切り替える・N99）
+const SPEEDS: Speed[] = [0, 1];
 // 速さを変えたときに画面上部に出す表示は、この時間で消す
 const SPEED_NOTE_MS = 1000;
 // 自動保存の印（ヘッダーの小さなアイコン）は、この時間で消す
@@ -216,7 +218,9 @@ export function App() {
   const startGame = () => {
     setMessage('');
     // 時間を進める初期の速さは設定で決める
-    setSpeed(loadSettings().startSpeed);
+    // 解放されていない速さは、1倍にする（4倍は会社のレベル3で解放される・N99）
+    const wanted = loadSettings().startSpeed;
+    setSpeed(isSpeedUnlocked(wanted, levelOf(useGameStore.getState().companyExp, balance), balance) ? (wanted as Speed) : 1);
     setScreen('game');
   };
 
@@ -356,6 +360,18 @@ export function App() {
               )}
             </button></Tooltip>
           ))}
+          {/* 早送りは、解放済みの 2倍・4倍・8倍を押すたびに切り替え、今の倍率を出す。1倍のボタンで戻る（N99） */}
+          {(() => {
+            const unlockedSpeeds = unlockedSpeedsOf(levelNow, balance);
+            const shown: Speed = speed >= 2 ? speed : ((unlockedSpeeds.find((x) => x >= 2) ?? 2) as Speed);
+            return (
+              <Tooltip text={t(`ui.speed.${shown}` as const)}>
+                <button aria-label={t(`ui.speed.${shown}` as const)} style={hudButton(speed >= 2, phone)} onClick={() => { hideTip(); setSpeed(nextFastSpeed(speed, unlockedSpeeds) as Speed); }}>
+                  {Array.from({ length: shown === 2 ? 2 : 3 }, (_, i) => <Icon key={i} name="icon/play" scale={1} />)}
+                </button>
+              </Tooltip>
+            );
+          })()}
           {nightSpeed !== null && <span style={{ fontSize: 12, alignSelf: 'center' }}>{t('ui.night.fast')}</span>}
         </span>
         )}

@@ -24,6 +24,7 @@ import { gameEnv } from '../sim/env';
 import { learnFromPing } from '../network/learn';
 import { rentalOf } from '../network/external';
 import { applyMoney, recordSaving } from '../sim/ledger';
+import { isSpeedUnlocked, unlockedSpeedsOf } from '../sim/speed';
 import { cancelRetire as cancelRetireOp, noticeRetire as noticeRetireOp, settleRetirements } from '../sim/retire';
 import { accountingRate, backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, salesArrivalChance } from '../sim/backOffice';
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
@@ -125,7 +126,7 @@ export interface ItemDrag {
   y: number;
 }
 
-export type Speed = 0 | 1 | 2 | 4;
+export type Speed = 0 | 1 | 2 | 4 | 8;
 
 // 覚えた位置と大きさを保存する場所（端末ごと。セーブデータには入れない）
 const MEMORY_KEY = 'network-ya.windows.v1';
@@ -551,6 +552,8 @@ export const unlockItems: UnlockItem[] = [
   ...Object.values(furniture).map((f) => ({ kind: 'furniture' as const, id: f.id, unlockLevel: f.unlockLevel })),
   ...contractTemplates.filter((t) => t.announce).map((t) => ({ kind: 'template' as const, id: t.id, unlockLevel: t.unlockLevel })),
   ...contracts.map((c) => ({ kind: 'contract' as const, id: c.id, unlockLevel: c.unlockLevel })),
+  // 早送りの速さ（4倍・8倍。N99）
+  ...Object.entries(balance.time.speedUnlockLevels).map(([id, unlockLevel]) => ({ kind: 'speed' as const, id, unlockLevel })),
 ];
 
 // 納品で会社のレベルが上がったら、上がった各レベルの報酬（お金・機器）を足し、解放の一覧を報告に付ける（N45）
@@ -1094,7 +1097,7 @@ export const useGameStore = create<GameState>((set, get) => {
           building: activeNow.some((p) => p.phase === 'build'),
           speed: s.speed,
           saved: s.nightSpeed,
-          fastest: Math.max(...balance.time.speeds),
+          fastest: Math.max(...unlockedSpeedsOf(levelOf(s.companyExp, balance), balance)),
         });
         if (night.speed !== s.speed || night.saved !== s.nightSpeed) {
           next = { ...next, speed: night.speed as Speed, nightSpeed: night.saved as Speed | null };
@@ -1107,7 +1110,11 @@ export const useGameStore = create<GameState>((set, get) => {
       }),
     // 速さを人が変えたら、勤務時間外の自動の早送りは取り消す（覚えた速さには戻さない）
     // サンドボックスは時間を止めたままにする
-    setSpeed: (speed) => set({ speed: get().mode === 'sandbox' ? 0 : speed, nightSpeed: null }),
+    setSpeed: (speed) => {
+      // 解放されていない早送りには変えない（N99）。サンドボックスは従来どおり止めたまま
+      if (get().mode !== 'sandbox' && !isSpeedUnlocked(speed, levelOf(get().companyExp, balance), balance)) return;
+      set({ speed: get().mode === 'sandbox' ? 0 : (speed as Speed), nightSpeed: null });
+    },
     cacheMap: (map) =>
       set((s) => {
         const maps = { ...s.maps, [map.id]: map };

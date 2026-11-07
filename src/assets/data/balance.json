@@ -7,8 +7,13 @@
       0,
       1,
       2,
-      4
-    ]
+      4,
+      8
+    ],
+    "speedUnlockLevels": {
+      "4": 3,
+      "8": 6
+    }
   },
   "startMoney": 1000000,
   "sellRate": 0.8,

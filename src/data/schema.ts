@@ -65,6 +65,8 @@ export const balanceSchema = z.object({
     gameMinutesPerTick: int.positive(),
     daysPerMonth: int.positive(),
     speeds: z.array(z.number().nonnegative()).min(1),
+    // 早送りの速さが解放されるレベル（N99）。ここにない速さは最初から使える（停止・1倍・2倍）
+    speedUnlockLevels: z.record(z.string(), unlockLevelSchema),
   }),
   startMoney: int,
   // 在庫を売るときの値段（購入時の値段に掛ける割合）
