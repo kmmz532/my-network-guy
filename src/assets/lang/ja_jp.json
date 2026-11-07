@@ -269,6 +269,8 @@
   "category.l3_switch": "L3スイッチ",
   "category.router_switch": "スイッチ付きルーター",
   "category.firewall": "ファイアウォール",
+  "ui.focus.office": "自社オフィス",
+  "ui.focus.label": "画面の対象",
   "ui.node.ownedPc": "{name}のPC",
   "ui.config.name": "名前",
   "ui.task.allPcs": "すべてのPC",

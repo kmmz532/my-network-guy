@@ -12,6 +12,7 @@ import { SAVE_SLOT, slotOf } from './services/slots';
 import { createSaveQueue, isAutoSaveDue } from './services/autoSave';
 import { exportSave, importSave } from './services/saveFile';
 import { NoticeToast, ReportModal } from './components/Overlay';
+import { FocusSwitch } from './components/FocusSwitch';
 import { dangerButton, Modal, primaryButton, secondaryButton } from './components/Modal';
 import { KeyHelp } from './components/KeyHelp';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -397,6 +398,7 @@ export function App() {
       </header>
       {/* 狭い画面では、札をヘッダーの下に置く（ヘッダーの高さは zoom を掛けた画面の座標なので、札の上端は倍率で割って渡す） */}
       <TaskPanel top={phone ? (hudBottom + 6) / (loadSettings().uiScale) : 44} />
+      <FocusSwitch />
       <Windows
         onTraining={() => {
           setHiringTab('staff');

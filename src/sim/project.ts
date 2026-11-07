@@ -427,10 +427,10 @@ const withProject = (core: Core, next: Project): Core => ({
   active: core.active.map((p) => (p.id === next.id ? next : p)),
 });
 
-// 案件を外す（納品・取り消し）。外した案件が対象だったら、残りの先頭の案件に切り替える
+// 案件を外す（納品・取り消し）。外した案件が対象だったら、自社オフィスに戻す（別の案件へ勝手に移らない・N111）
 const removeProject = (core: Core, id: string): Pick<Core, 'active' | 'focus'> => {
   const active = core.active.filter((p) => p.id !== id);
-  return { active, focus: core.focus === id ? (active[0]?.id ?? null) : core.focus };
+  return { active, focus: core.focus === id ? null : core.focus };
 };
 
 // 設計中の案件を取り出す。設計中でなければ理由を返す

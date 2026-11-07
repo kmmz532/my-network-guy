@@ -288,6 +288,8 @@ export interface GameState {
   // 操作の種類
   tool: Tool;
   setTool: (tool: Tool) => void;
+  // 画面の対象を、自社オフィス（null）か進行中の案件に切り替える（N111）。配線の途中と置く予定は取り消す
+  setFocus: (id: string | null) => void;
   // 配線の途中の起点（ポートを選んだ機器）と、ポートの一覧の吹き出し（保存しない）
   wireStart: WireStart | null;
   portMenu: PortMenuState | null;
@@ -941,6 +943,12 @@ export const useGameStore = create<GameState>((set, get) => {
     },
     tool: 'select',
     // 道具を変えると、配線の途中・一覧・置く予定の機材を取り消す。選択の道具以外では機器の画面を閉じる
+    setFocus: (id) => {
+      const s = get();
+      if (id !== null && !s.active.some((p) => p.id === id)) return;
+      if (s.focus === id) return;
+      set({ focus: id, placing: null, wireStart: null, portMenu: null });
+    },
     setTool: (tool) => {
       const s = get();
       if (s.tool === tool && !s.placing) return;
