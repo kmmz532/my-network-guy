@@ -30,6 +30,8 @@ export type ConfigAction =
   | { kind: 'nat'; op: 'napt'; on: boolean }
   | { kind: 'nat'; op: 'static'; port: number; insideIp: string; insidePort: number }
   | { kind: 'nat'; op: 'noStatic'; port: number }
+  // 無線（N151）: wireless ssid <名前> / wireless password <8字以上> / wireless channel <1-13> / wireless vlan <番号>
+  | { kind: 'wireless'; key: 'ssid' | 'password' | 'channel' | 'vlan'; value: string | number }
   // BGP（N147）: 自分の AS・隣接（neighbor）・広告する宛先（network … mask）
   | { kind: 'bgp'; op: 'asn'; asn: number }
   | { kind: 'bgp'; op: 'off' }
@@ -64,7 +66,7 @@ const port = (s: string): number | null => (/^\d+$/.test(s) ? Number(s) : null);
 export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   const words = line.trim().split(/\s+/).filter((w) => w !== '');
   const [first, ...rest] = words;
-  if (first !== 'ip' && first !== 'no' && first !== 'hostname' && first !== 'router' && first !== 'network' && first !== 'neighbor') return { kind: 'none' };
+  if (first !== 'ip' && first !== 'no' && first !== 'hostname' && first !== 'router' && first !== 'network' && first !== 'neighbor' && first !== 'wireless') return { kind: 'none' };
   const error = (key: string) => ({ kind: 'error' as const, text: tr(key) });
 
   // router rip / router ospf <番号>（no で止める）
@@ -73,6 +75,15 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   }
   if (first === 'no' && rest[0] === 'router' && (rest[1] === 'rip' || rest[1] === 'ospf')) {
     return { kind: 'action', action: { kind: 'routing', proto: rest[1], on: false } };
+  }
+  // 無線（N151）
+  if (first === 'wireless') {
+    const [key, value] = rest;
+    if (key === 'ssid' && value !== undefined && value.length <= 32) return { kind: 'action', action: { kind: 'wireless', key: 'ssid', value } };
+    if (key === 'password' && value !== undefined && value.length >= 8) return { kind: 'action', action: { kind: 'wireless', key: 'password', value } };
+    if (key === 'channel' && /^[0-9]+$/.test(value ?? '') && Number(value) >= 1 && Number(value) <= 13) return { kind: 'action', action: { kind: 'wireless', key: 'channel', value: Number(value) } };
+    if (key === 'vlan' && /^[0-9]+$/.test(value ?? '') && Number(value) >= 1) return { kind: 'action', action: { kind: 'wireless', key: 'vlan', value: Number(value) } };
+    return error('ui.terminal.usageWireless');
   }
   // ip nat（NAT・N145）
   if (first === 'ip' && rest[0] === 'nat') {

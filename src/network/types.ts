@@ -68,6 +68,8 @@ export interface NetNode {
   bgp?: BgpConfig;
   // 口の設定（機器ごと。設定のない口は既定のモード）
   ports: PortConfig[];
+  // 無線の設定（N151）。アクセスポイントは SSID・パスワード・チャネル・VLAN を持つ。無線の端末は SSID とパスワードを持ち、合うアクセスポイントにつながる
+  wireless?: { ssid?: string; password?: string; channel?: number; vlan?: number };
   // NAPT を行う（inside から outside へ出る通信の送信元を、outside の口のアドレスに変える・N145）
   napt?: boolean;
   // 静的 NAT（ポートの転送・N145）: 外の口へのこのポートの通信を、社内の宛先（アドレスとポート）へ届ける

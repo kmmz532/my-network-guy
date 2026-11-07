@@ -24,6 +24,7 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
   const setRouting = useGameStore((s) => s.setRouting);
   const setBgp = useGameStore((s) => s.setBgp);
   const setNat = useGameStore((s) => s.setNat);
+  const setWireless = useGameStore((s) => s.setWireless);
   const learnPing = useGameStore((s) => s.learnPing);
   const netKey = useGameStore((s) => s.focus ?? 'office');
   const arp = useGameStore((s) => s.arpTable[`${netKey}:${node.uid}`]);
@@ -57,6 +58,8 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
         return setBgp(node.uid, action);
       case 'nat':
         return setNat(node.uid, action);
+      case 'wireless':
+        return setWireless(node.uid, action.key, action.value);
       default:
         return null;
     }

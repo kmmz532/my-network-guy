@@ -992,6 +992,10 @@ export const setRouting = (core: Core, uid: string, change: { proto: 'rip' | 'os
     target,
   );
 
+// 無線の設定（N151）。SSID・パスワード・チャネル・VLAN
+export const setWireless = (core: Core, uid: string, key: 'ssid' | 'password' | 'channel' | 'vlan', value: string | number, target: NetTarget = 'focus'): Outcome =>
+  editNode(core, uid, (node) => ({ ...node, wireless: { ...(node.wireless ?? {}), [key]: value } }), target);
+
 // NAT の設定（N145）。口の inside・outside、NAPT の有効、静的 NAT（ポートの転送）
 export type NatOp =
   | { op: 'iface'; port: number; nat: 'inside' | 'outside' | null }

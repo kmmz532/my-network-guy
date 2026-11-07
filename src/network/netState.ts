@@ -476,25 +476,36 @@ export const WIRELESS_RADIUS = 6;
 
 // 無線の端末を、最も近いアクセスポイントへ仮想の配線でつなぐ（段1の仮想の配線）。
 // 端末の口0 に配線がなく、無線の能力を持ち、範囲の中にアクセスポイントがあるとき。アクセスポイントの口は 100 番から、端末ごとに1つ使う
+// 無線の端末は、SSID とパスワードが合い、範囲の中にあるアクセスポイントの中で最も近いものにつながる（N151）。
+// アクセスポイントの無線の VLAN は、つながった端末の口を、その VLAN の access の口として扱う
 export const withWireless = (net: Network, data: EngineData): Network => {
   const aps = net.nodes.filter((n) => data.categoryOf(n.device) === CATEGORY.accessPoint);
   if (aps.length === 0) return net;
   const wired = new Set(net.links.flatMap((l) => [`${l.a.node}:${l.a.port}`, `${l.b.node}:${l.b.port}`]));
   const extra: NetLink[] = [];
   const nextPort = new Map<string, number>();
+  const apPorts = new Map<string, PortConfig[]>();
   for (const c of net.nodes) {
     if (!can(c.device, 'wireless') || wired.has(`${c.uid}:0`)) continue;
     let best: { ap: NetNode; d: number } | undefined;
     for (const ap of aps) {
       const d = Math.abs(ap.x - c.x) + Math.abs(ap.y - c.y);
+      // SSID とパスワードが合うこと（どちらかがなければ、つながらない）
+      const w = ap.wireless;
+      const cw = c.wireless;
+      if (w?.ssid === undefined || cw?.ssid !== w.ssid || cw.password !== w.password) continue;
       if (d <= WIRELESS_RADIUS && (best === undefined || d < best.d || (d === best.d && ap.uid < best.ap.uid))) best = { ap, d };
     }
     if (!best) continue;
     const port = 100 + (nextPort.get(best.ap.uid) ?? 0);
     nextPort.set(best.ap.uid, port - 100 + 1);
+    apPorts.set(best.ap.uid, [...(apPorts.get(best.ap.uid) ?? []), { port, mode: 'access', vlan: best.ap.wireless?.vlan ?? 1 }]);
     extra.push({ uid: `__wifi_${c.uid}`, cable: 'utp_cat5e', a: { node: best.ap.uid, port }, b: { node: c.uid, port: 0 }, path: [[best.ap.x, best.ap.y], [c.x, c.y]], paid: 0 });
   }
-  return extra.length === 0 ? net : { ...net, links: [...net.links, ...extra] };
+  if (extra.length === 0) return net;
+  // アクセスポイントの口（つないだ端末の口）に、無線の VLAN を付ける
+  const nodes = net.nodes.map((n) => (apPorts.has(n.uid) ? { ...n, ports: [...n.ports, ...apPorts.get(n.uid)!] } : n));
+  return { ...net, nodes, links: [...net.links, ...extra] };
 };
 
 // 静的 NAT（ポートの転送）: 外からルーターの外の口へのポートの通信を、社内のサーバーへ届ける。往路は外→外の口→社内の口→サーバー、復路は逆に戻す（N145）
