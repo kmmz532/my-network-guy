@@ -194,32 +194,30 @@ def pc_front():
 
 
 def pc_side():
-    # 右向き（社員は右を向き、画面は左の社員の方を向く）: モニターを横から見る。キーボードは画面の前（左）に縦に置く。左向きは左右反転で作る
-    return from_rows([PC_EMPTY] * 14 + [
-        '............AAAAAA......',
-        '............ABBBBA......',
-        '............AAAAAA......',
-        '............ADCCGA......',
-        '............ADCCGA......',
-        '............ADCCGA......',
-        '............ADCCGA......',
-        '............ADCCGA......',
-        '............ADCCGA......',
-        '............ADCCGA......',
-        '..AAAAAAA...ADCCGA......',
-        '..ABBBBBA...ADCCGA......',
-        '..ABGBBBA...ADCCGA......',
-        '..ABBBGBA...ADCCGA......',
-        '..ABGBBBA...ADFCGA......',
-        '..ABBBGBA...AAAAAA......',
-        '..ABGBBBA.....AAA.......',
-        '..ABBBGBA.....AGA.......',
-        '..ABGBBBA..AAAAAAAAA....',
-        '..ABBBGBA..ABBBBBBBA....',
-        '..ABBBBBA..ABBBBBBBA....',
-        '..AGGGGGA..ABBBBBBBA....',
-        '..AAAAAAA..AGGGGGGGA....',
-    ] + [PC_EMPTY] * 3, PC_KEYS)
+    # 右向き（社員は右を向き、画面は左の社員の方を向く）。3/4の見下ろしで、正面の PC を90度回した形。左向きは左右反転で作る
+    # モニターは板を横から見るので、上の縁（奥から手前へ縦に伸びる）と、手前の細い縁だけが見える。画面の面は見えない
+    # キーボードは上の面が縦長に見え、手前に縁の厚みがある。台座も同じく縦長
+    img, d = new(24, 40)
+    # キーボード（モニターの左。社員とモニターの間）
+    rect(d, 2, 25, 7, 11, 'e', 'o')
+    for y in range(27, 34, 2):
+        px(d, 4, y, 'g')
+        px(d, 6, y + 1, 'g')
+    d.line([(3, 35), (7, 35)], fill=C['g'] + (255,))
+    # 台座（上の面が縦長）と首
+    rect(d, 11, 27, 9, 10, 'e', 'o')
+    d.line([(12, 35), (18, 35)], fill=C['g'] + (255,))
+    rect(d, 14, 26, 3, 4, 'g', 'o')
+    # モニター: 少しこちらへ傾け、画面の面（左）を細く見せる。右は背面の筐体、上に天面の縁
+    rect(d, 11, 13, 9, 16, 'w', 'o')
+    rect(d, 12, 14, 7, 2, 'e')
+    rect(d, 12, 16, 4, 11, 's')
+    d.line([(12, 16), (12, 26)], fill=C['S'] + (255,))
+    rect(d, 12, 16, 4, 3, 'S')
+    d.line([(16, 16), (16, 27)], fill=C['o'] + (255,))
+    d.line([(18, 17), (18, 26)], fill=C['g'] + (255,))
+    px(d, 17, 27, 'l')
+    return img
 
 
 def server():
@@ -1147,27 +1145,39 @@ def chair_front():
 
 
 def chair_side():
-    # 右向き（社員は右を向く）: 座面を横から見て、背もたれは左の端に細く立つ。左向きは左右反転で作る
-    seat = from_rows([CHAIR_EMPTY] * 11 + [
-        '....AAAAAAAAAAAAAAAAAAAAAAAA....',
-        '...ABCCCCCCCCCCCCCCCCCCCCCCBA...',
+    # 右向き（社員は右を向く）。3/4の見下ろしで、手前向きの椅子を90度回した形。左向きは左右反転で作る
+    # 座面は丸いので上から見た形は手前向きと同じ。背もたれは座面の左の端に立つ板で、上の縁（奥から手前へ縦に伸びる）と手前の縁が見える
+    seat = from_rows([CHAIR_EMPTY] * 10 + [
+        '.....AAAAAAAAAAAAAAAAAAAAA......',
+        '....ABBBBBBBBBBBBBBBBBBBBBBA....',
+        '...ABBCCCCCCCCCCCCCCCCCCCCBBA...',
+        '...ABBBBBBBBBBBBBBBBBBBBBBBBA...',
         '...ABBBBBBBBBBBBBBBBBBBBBBBBA...',
         '...ABBBBBBBBBBBBBBBBBBBBBBBBA...',
         '...ADBBBBBBBBBBBBBBBBBBBBBBDA...',
         '....ADDDDDDDDDDDDDDDDDDDDDDA....',
         '.....AADDDDDDDDDDDDDDDDDDAA.....',
         '.......AAADDDDDDDDDDDDAAA.......',
-        CHAIR_EMPTY,
     ] + CHAIR_BASE, CHAIR_KEYS)
+    # 背もたれ: 少しこちらへ傾け、外側の背面（左・暗い）と、座る側のクッション（右・明るい）を見せる
     back = [
         CHAIR_EMPTY,
-        '......AAAAAA....................',
-        '.....ABCCCCBA...................',
-    ] + ['.....ADBBBBBA...................'] * 12 + [
-        '.....ADDBBBBA...................',
-        '.....ADDDDDDA...................',
-        '......AAAAAA....................',
-    ] + [CHAIR_EMPTY] * 10
+        '...AAAAAAA......................',
+        '...ADCCCCBA.....................',
+        '...ADBBBBBA.....................',
+        '...ADBDDDBA.....................',
+        '...ADBBBBBA.....................',
+        '...ADBBBBBA.....................',
+        '...ADBDDDBA.....................',
+        '...ADBBBBBA.....................',
+        '...ADBBBBBA.....................',
+        '...ADBDDDBA.....................',
+        '...ADBBBBBA.....................',
+        '...ADBBBBBA.....................',
+        '...ADDBBBBA.....................',
+        '...ADDDDDDA.....................',
+        '....AAAAAA......................',
+    ] + [CHAIR_EMPTY] * 12
     return overlay(seat, back, CHAIR_KEYS)
 
 
