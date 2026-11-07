@@ -525,6 +525,87 @@ def staff(shirt, shade, hair, style, frame):
     return outline(img)
 
 
+# 紫の長髪（手で描いた絵）。写した画素の行。色の文字は PURPLE_KEYS（RGB）で決まる
+PURPLE_KEYS = {
+    'A': (59, 42, 51),
+    'B': (120, 80, 50),
+    'C': (248, 222, 195),
+    'D': (231, 189, 164),
+    'E': (255, 250, 252),
+    'F': (150, 195, 255),
+    'G': (215, 204, 81),
+    'H': (198, 183, 82),
+    'I': (248, 204, 175),
+    'J': (231, 174, 147),
+    'K': (255, 255, 255),
+    'L': (203, 141, 173),
+    'M': (186, 121, 151),
+    'N': (121, 48, 73),
+}
+PURPLE_LONG_ROWS_0 = [
+    '....AAAAAAAA....',
+    '...ABBBBBBBBA...',
+    '...ABBBBBBBBA...',
+    '..ABBBCBBBCBBA..',
+    '..ABBCCBBCCBBA..',
+    '..ABCAABCAADBA..',
+    '..ABAEFCCFEAGH..',
+    '.ABBCEFCCFEDBBA.',
+    '.ABBIICCCCIJBBA.',
+    '.ABBBKCCCCKBBBA.',
+    '..ABLKKKKKKMBA..',
+    '..ACLLKKKKLMCA..',
+    '..ACLLLLLLLMCA..',
+    '..ACLLLLLLLMCA..',
+    '..ACLLLLNNNNCA..',
+    '...ALNNNNNNNA...',
+    '...ANNNNNNNNA...',
+    '...ANNNNNNNNA...',
+    '...ANNNNNNNNA...',
+    '...ANNNNNNNNA...',
+    '...ANNNANNNNA...',
+    '....AAA.ANNNA...',
+    '.........AAA....',
+    '................',
+]
+PURPLE_LONG_ROWS_1 = [
+    '....AAAAAAAA....',
+    '...ABBBBBBBBA...',
+    '...ABBBBBBBBA...',
+    '..ABBBCBBBCBBA..',
+    '..ABBCCBBCCBBA..',
+    '..ABCAABCAADBA..',
+    '..ABAEFCCFEAGH..',
+    '.ABBCEFCCFEDBBA.',
+    '.ABBIICCCCIJBBA.',
+    '.ABBBKCCCCKBBBA.',
+    '..ABLKKKKKKMBA..',
+    '..ACLLKKKKLMCA..',
+    '..ACLLLLLLLMCA..',
+    '..ACLLLLLLLMCA..',
+    '..ACLLLLNNNNCA..',
+    '...ALNNNNNNNA...',
+    '...ANNNNNNNNA...',
+    '...ANNNNNNNNA...',
+    '...ANNNNNNNNA...',
+    '...ANNNNNNNNA...',
+    '...ANNNNANNNA...',
+    '...ANNNA.AAA....',
+    '....AAA.........',
+    '................',
+]
+
+
+# 紫の長髪の絵を、写した画素の行から作る（色は PURPLE_KEYS の RGB）
+def purple_long(rows):
+    img = Image.new('RGBA', (len(rows[0]), len(rows)), (0, 0, 0, 0))
+    for y, row in enumerate(rows):
+        for x, ch in enumerate(row):
+            if ch != '.':
+                img.putpixel((x, y), PURPLE_KEYS[ch] + (255,))
+    return img
+
+
 # ---- アイコン（16×16） ----
 
 def icon_mail():
@@ -1377,6 +1458,9 @@ if __name__ == '__main__':
             for style in HAIR_STYLES:
                 for frame in (0, 1):
                     save(staff(shirt, shade, hair, style, frame), f'staff/{shirt_name}_{hair_name}_{style}_{frame}.png')
+    # 紫の長髪（手で描いた絵を写したもの）
+    save(purple_long(PURPLE_LONG_ROWS_0), 'staff/purple_long_0.png')
+    save(purple_long(PURPLE_LONG_ROWS_1), 'staff/purple_long_1.png')
     icons = {
         'mail': icon_mail(),
         'money': icon_money(),
