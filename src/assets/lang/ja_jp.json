@@ -203,6 +203,8 @@
   "ui.company.play": "始める",
   "ui.company.rename": "社名を変える",
   "ui.company.delete": "消す",
+  "ui.office.title": "オフィス",
+  "ui.office.open": "設備",
   "ui.company.overwrite": "ここに新しく始める",
   "ui.company.name.titleSandbox": "新しいサンドボックスの名前",
   "ui.company.duplicate": "複製する",

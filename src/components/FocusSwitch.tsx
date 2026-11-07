@@ -34,6 +34,12 @@ export function FocusSwitch() {
           </button>
         );
       })}
+      {/* 自社オフィスを見ているときは、オフィスの画面（外部への接続・床・プリンター・貸し出し）を開く（N126） */}
+      {focus === null && (
+        <button onClick={() => useGameStore.getState().openWindow('office', '')} style={{ padding: '2px 8px', cursor: 'pointer', fontFamily: 'inherit', background: '#25406f', color: '#f4f1e6', border: '1px solid #3b2a33' }}>
+          {t('ui.office.open')}
+        </button>
+      )}
     </div>
   );
 }

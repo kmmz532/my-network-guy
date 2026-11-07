@@ -4,8 +4,8 @@
 
 // ウィンドウの種類。機器の画面・社員の札・社員の一覧
 // 依頼とショップも、ウィンドウとして開く（N40）。マップの操作を止めない
-export type WindowKind = 'device' | 'staff' | 'staffList' | 'offers' | 'shop' | 'inventory' | 'company' | 'funds';
-export const WINDOW_KINDS = ['device', 'staff', 'staffList', 'offers', 'shop', 'inventory', 'company', 'funds'] as const satisfies readonly WindowKind[];
+export type WindowKind = 'device' | 'staff' | 'staffList' | 'offers' | 'shop' | 'inventory' | 'company' | 'funds' | 'office';
+export const WINDOW_KINDS = ['device', 'staff', 'staffList', 'offers', 'shop', 'inventory', 'company', 'funds', 'office'] as const satisfies readonly WindowKind[];
 
 export interface Rect {
   x: number;
@@ -57,6 +57,7 @@ const DEFAULT_SIZE: Record<WindowKind, { w: number; h: number }> = {
   inventory: { w: 360, h: 300 },
   company: { w: 340, h: 380 },
   funds: { w: 380, h: 420 },
+  office: { w: 360, h: 320 },
 };
 // 初めて開くときの位置（右上。上端は画面の上の欄の下）
 const DEFAULT_TOP = 44;

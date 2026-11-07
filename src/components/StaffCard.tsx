@@ -181,8 +181,15 @@ export function StaffListBody() {
   const pcDesks = pcDesksOf(state.office, isPcDevice);
   if (state.staff.length === 0) return <div style={{ opacity: 0.7 }}>{t('ui.staff.list.empty')}</div>;
   const head = { fontSize: 12, opacity: 0.7, padding: '0 6px' } as const;
+  // 社員の人数と、PC がなく働けない社内の職種の人数（自社の情報から移した・N126）
+  const night = state.staff.filter((m) => m.shift === 'night').length;
+  const noPcCount = state.staff.filter((m) => (m.job === 'dev' || m.job === 'hr' || m.job === 'accounting') && !(m.desk !== null && pcDesks.includes(m.desk))).length;
   return (
     <div>
+      <div style={{ fontSize: 13, padding: '0 6px 6px' }}>
+        <div>{t('ui.company.staffCount', { total: state.staff.length, day: state.staff.length - night, night })}</div>
+        {noPcCount > 0 && <div style={{ color: '#ffd866' }}>{t('ui.company.noPc.count', { count: noPcCount })}</div>}
+      </div>
       <div style={{ ...head, display: 'grid', gridTemplateColumns: COLUMNS, gap: 6, marginBottom: 4 }}>
         <span>{t('ui.staff.list.col.name')}</span>
         <span>{t('ui.staff.list.col.job')}</span>
