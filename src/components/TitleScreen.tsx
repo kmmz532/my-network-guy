@@ -340,6 +340,9 @@ export function TitleScreen({ onNew, onContinue, onSandbox, message }: Props) {
   const [hasSave, setHasSave] = useState<boolean | null>(null);
   // 矢印キーで選んだボタン。未操作のときは主のボタン（保存データがあれば「続きから」）
   const [picked, setPicked] = useState<number | null>(null);
+  // 保存データがあるときの「新しくプレイ」の確認（押すと保存データを消すため・N-review）
+  const [askNew, setAskNew] = useState(false);
+  const startNew = () => (hasSave === true ? setAskNew(true) : onNew());
 
   useEffect(() => {
     let alive = true;
@@ -352,7 +355,7 @@ export function TitleScreen({ onNew, onContinue, onSandbox, message }: Props) {
   }, []);
 
   const items = [
-    { label: t('ui.title.new'), enabled: true, run: onNew },
+    { label: t('ui.title.new'), enabled: true, run: startNew },
     { label: t('ui.title.continue'), enabled: hasSave === true, run: onContinue },
     { label: t('ui.title.sandbox'), enabled: true, run: onSandbox },
   ];
@@ -371,14 +374,14 @@ export function TitleScreen({ onNew, onContinue, onSandbox, message }: Props) {
       } else if (e.key === 'Enter') {
         e.preventDefault();
         // 保存データを確認中は押させない（確認前に新しく始めて保存を上書きしないため）
-        if (hasSave === null) return;
+        if (hasSave === null || askNew) return;
         const item = items[selected];
         if (item?.enabled) item.run();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selected, hasSave, onNew, onContinue, onSandbox]);
+  }, [selected, hasSave, askNew, onNew, onContinue, onSandbox]);
 
   return (
     <div className="ts-root">
@@ -392,7 +395,18 @@ export function TitleScreen({ onNew, onContinue, onSandbox, message }: Props) {
         <Rack />
 
         <div className="ts-menu" role="group" aria-label={t('ui.title.menu')}>
-          {items.map((item, i) => (
+          {askNew ? (
+            <>
+              <p className="ts-message">{t('ui.title.newConfirm')}</p>
+              <button type="button" className="ts-btn" onClick={onNew}>
+                {t('ui.title.newYes')}
+              </button>
+              <button type="button" className="ts-btn ts-btn-selected" onClick={() => setAskNew(false)}>
+                {t('ui.title.newNo')}
+              </button>
+            </>
+          ) : (
+          items.map((item, i) => (
             <button
               key={i}
               type="button"
@@ -403,7 +417,7 @@ export function TitleScreen({ onNew, onContinue, onSandbox, message }: Props) {
             >
               {item.label}
             </button>
-          ))}
+          )))}
           {hasSave === false && <p className="ts-note">{t('ui.title.none')}</p>}
           {message && message !== t('ui.title.none') && <p className="ts-message">{message}</p>}
         </div>
