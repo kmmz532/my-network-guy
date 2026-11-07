@@ -235,7 +235,7 @@ function OfferCard({
           <Icon name="icon/money" /> {yen(offer.contract.reward.money)}
         </span>
         {/* 断る・受注・任せる。ボタンは1つの並びで折り返さない（スマホで受注が次の行に落ちないように） */}
-        <div style={phone ? { display: 'flex', flexWrap: 'nowrap', gap: 6, width: '100%', alignItems: 'center' } : { display: 'flex', gap: 6, marginLeft: 'auto', flexShrink: 0, alignItems: 'center' }}>
+        <div style={phone ? { display: 'flex', flexWrap: 'nowrap', gap: 6, width: '100%', alignItems: 'center', justifyContent: 'flex-end' } : { display: 'flex', gap: 6, marginLeft: 'auto', flexShrink: 0, alignItems: 'center' }}>
           {asking ? (
             <>
               <span style={{ whiteSpace: 'nowrap' }}>{t('ui.offer.decline.confirm')}</span>
@@ -260,13 +260,14 @@ function OfferCard({
             <>
               {offer.kind === 'template' && (
                 <button
-                  style={{ ...dangerButton, whiteSpace: 'nowrap' }}
+                  // 断るは左端に置き、受注・任せるから離す（押し間違いを防ぐ・N109）
+                  style={{ ...dangerButton, whiteSpace: 'nowrap', ...(phone ? { marginRight: 'auto', minHeight: 44 } : {}) }}
                   onClick={() => (loadSettings().confirmDecline ? setAsking(true) : onDecline())}
                 >
                   {t('ui.offer.decline')}
                 </button>
               )}
-              <button style={{ ...primaryButton, whiteSpace: 'nowrap', ...(phone ? { flex: '1 1 auto' } : {}) }} disabled={!canAccept} onClick={() => onAccept(crew)}>
+              <button style={{ ...primaryButton, whiteSpace: 'nowrap', ...(phone ? { minWidth: 96, minHeight: 44 } : {}) }} disabled={!canAccept} onClick={() => onAccept(crew)}>
                 {t('ui.accept')}
               </button>
               {delegateReason === null && (
