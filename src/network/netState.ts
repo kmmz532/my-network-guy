@@ -636,3 +636,18 @@ export const loopNodeOf = (net: Network, data: EngineData): string | null => {
   }
   return null;
 };
+
+// 同じチャネルのアクセスポイントどうしの重なり（電波が届く範囲の2倍以内で、同じチャネル。N152）。チャネルは未設定なら 1
+export const channelOverlapsOf = (net: Network, data: EngineData): { a: string; b: string }[] => {
+  const aps = net.nodes.filter((n) => data.categoryOf(n.device) === CATEGORY.accessPoint || data.categoryOf(n.device) === CATEGORY.homeRouter);
+  const out: { a: string; b: string }[] = [];
+  for (let i = 0; i < aps.length; i++) {
+    for (let j = i + 1; j < aps.length; j++) {
+      const a = aps[i];
+      const b = aps[j];
+      if ((a.wireless?.channel ?? 1) !== (b.wireless?.channel ?? 1)) continue;
+      if (Math.abs(a.x - b.x) + Math.abs(a.y - b.y) <= WIRELESS_RADIUS * 2) out.push({ a: a.uid, b: b.uid });
+    }
+  }
+  return out;
+};

@@ -134,6 +134,7 @@
   "error.wireless.unassociated.fix": "SSID とパスワードをアクセスポイントと同じにし、電波の範囲（半径6マス・壁は減衰する）の中に置きます。",
   "ui.wireless.connected": "つながっている（{ap}）",
   "ui.wireless.none": "つながっていない。SSID とパスワードがアクセスポイントと同じで、電波の範囲の中にある必要があります。",
+  "ui.wireless.overlap": "同じチャネルの近くのアクセスポイントと電波が重なっている",
   "ui.wireless.clients": "つながっている無線の端末: {n}台",
   "error.port.shutdown": "口が停止している（shutdown）。",
   "error.port.shutdown.fix": "ターミナルで no shutdown を入力すると、口が使えるようになります。",

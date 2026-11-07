@@ -12,7 +12,7 @@ import type { ComboOption } from './comboOptions';
 import type { Compiled } from '../network/compile';
 import { isRelayPort, isRoutingCategory } from '../network/category';
 import { can } from '../network/capabilities';
-import { wirelessAssociations, withWireless } from '../network/netState';
+import { channelOverlapsOf, wirelessAssociations, withWireless } from '../network/netState';
 import { engineWithWalls } from '../sim/walls';
 import { colorOfNetwork, networkColors, UNSET_COLOR } from '../network/netColor';
 import { networkAddress, neighborRouterAddresses, routerAddressesOn, segmentConfigOf, segmentOf, segmentsOf } from '../network/segments';
@@ -377,6 +377,8 @@ function WirelessField({ node, net, readOnly, onError }: { node: NetNode; net: N
   const clients = pairs.filter((p) => p.ap.uid === node.uid).length;
   // アクセスポイントは、つながっている端末の数を出す。端末は、つながった先か、つながっていないことを出す
   const isClient = gameEnv.devices[node.device]?.category !== CATEGORY.accessPoint && gameEnv.devices[node.device]?.category !== CATEGORY.homeRouter;
+  // 同じチャネルで近いアクセスポイントがあれば、注意を出す（N152）
+  const overlapping = channelOverlapsOf(net, engine).some((o) => o.a === node.uid || o.b === node.uid);
   const statusText = status
     ? t('ui.wireless.connected', { ap: nodeLabel(store, status.ap, net.nodes) })
     : isClient
@@ -411,6 +413,7 @@ function WirelessField({ node, net, readOnly, onError }: { node: NetNode; net: N
       {field(t('ui.wireless.ssid'), ssid, setSsid, 'ssid', 'text')}
       {field(t('ui.wireless.password'), password, setPassword, 'password', 'password')}
       <div style={{ fontSize: 12 }}>{statusText}</div>
+      {overlapping && <div style={{ fontSize: 12, color: "#ffd866" }}>{t("ui.wireless.overlap")}</div>}
     </div>
   );
 }
