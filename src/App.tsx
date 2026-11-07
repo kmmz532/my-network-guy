@@ -52,7 +52,7 @@ type Popup = 'menu' | 'help' | 'settings' | 'sandboxResize' | 'sandboxReset' | '
 const hudButton = (on: boolean, phone: boolean) =>
   ({
     padding: '2px 8px',
-    ...(phone ? { minHeight: 36, minWidth: 40 } : {}),
+    ...(phone ? { minHeight: 30, minWidth: 40 } : {}),
     cursor: 'pointer',
     background: on ? '#ffd866' : '#25406f',
     color: on ? '#3b2a33' : '#f4f1e6',
