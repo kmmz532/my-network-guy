@@ -52,8 +52,7 @@ type Popup = 'menu' | 'help' | 'settings' | 'sandboxResize' | 'sandboxReset' | '
 const hudButton = (on: boolean, phone: boolean) =>
   ({
     padding: '2px 8px',
-    // スマホだけ、指で押す場所の幅を 44 px 以上に保つ（高さは低めの 38 px。パソコンは文字の幅に合わせた横長のまま）
-    ...(phone ? { minHeight: 38, minWidth: 44 } : {}),
+    ...(phone ? { minHeight: 36, minWidth: 40 } : {}),
     cursor: 'pointer',
     background: on ? '#ffd866' : '#25406f',
     color: on ? '#3b2a33' : '#f4f1e6',
