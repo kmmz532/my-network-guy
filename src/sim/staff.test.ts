@@ -119,15 +119,25 @@ describe('採用の候補', () => {
     }
   });
 
-  it('level は会社のレベルで上がり、月給は level で決まる', () => {
+  it('候補の level は 1 から今の上限までに散り、月給は level で決まる（上限の近くは1人まで）', () => {
     const h = balance.hiring;
+    const cap = 1 + Math.floor(45 / h.candidateLevelStep);
     for (let seed = 1; seed < 200; seed += 7) {
       const { candidates } = rollCandidates(45, 2, seed, balance);
+      const top = candidates.filter((c) => c.level >= cap);
+      expect(top.length).toBeLessThanOrEqual(1);
       for (const c of candidates) {
-        const base = 1 + Math.floor(45 / h.candidateLevelStep);
-        expect([base, base + 1]).toContain(c.level);
+        expect(c.level).toBeGreaterThanOrEqual(1);
+        expect(c.level).toBeLessThanOrEqual(cap + 1);
         expect(c.salary).toBe(candidateSalaryOf(c.job, c.level, balance));
       }
+    }
+  });
+
+  it('候補の1人目は、必ず新卒（Lv1〜3）', () => {
+    for (let seed = 1; seed < 200; seed += 7) {
+      const { candidates } = rollCandidates(45, 2, seed, balance);
+      if (candidates.length > 0) expect(candidates[0].level).toBeLessThanOrEqual(3);
     }
   });
 
