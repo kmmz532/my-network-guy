@@ -73,7 +73,7 @@ export interface Project {
   // 自社案件で、自社オフィスから引き継いだ機器の uid（取り消しても在庫に戻さない）
   inherited?: string[];
   // 自社案件で、自社オフィスから引き継いだ配線の uid（撤去できない）
-  inheritedLinks?: string[];
+  inheritedLinks: string[];
   phase: 'design' | 'build';
   progress: number;
   total: number;
@@ -82,7 +82,7 @@ export interface Project {
   // 担当の社員（uid）。施工の進みと経験値は担当の社員だけに効く
   crew: string[];
   // セグメントの設定（代表端点の鍵 "uid:port" → ネットワークアドレスとプレフィックス長）
-  segments?: Record<string, SegmentConfig>;
+  segments: Record<string, SegmentConfig>;
   // 最後のテストに合格したか。設計を変えると false に戻る。施工は true のときだけ依頼できる
   testedOk: boolean;
 }
@@ -214,7 +214,7 @@ export interface Office {
   furniture: PlacedFurniture[];
   furnitureSeq: number;
   // セグメントの設定（代表端点の鍵 "uid:port" → 設定）
-  segments?: Record<string, SegmentConfig>;
+  segments: Record<string, SegmentConfig>;
 }
 
 // 自社案件で得た効果の合計
@@ -228,7 +228,7 @@ export const DESK_ID = 'desk';
 // 席になる家具（机。定義の seat が true のもの。N44 で机だけの品目も席として数える）。定義がなければ DESK_ID だけを机とする
 export const isDeskFurniture = (id: string, env: Env): boolean => (env.furniture?.[id]?.seat ?? false) || id === DESK_ID;
 
-export const emptyOffice = (size: OfficeSize): Office => ({
+export const emptyOffice = (size: OfficeSize): Office => ({ segments: {},
   size,
   innerWalls: [],
   doors: [],
@@ -491,7 +491,7 @@ export const accept = (core: Core, offerId: string, slots: number, crew: string[
     due: dueDayOf(core.clock.minute, offer.contract.deadlineDays),
     crew,
     // 自社案件は、自社オフィスのセグメントの設定を引き継ぐ
-    segments: inhouse ? { ...(office.segments ?? {}) } : {},
+    segments: inhouse ? { ...office.segments } : {},
   };
   return {
     ok: true,
@@ -689,11 +689,11 @@ export const netOf = (core: Core, target: NetTarget): Net | string => {
   if (target === 'office') {
     if (officeLocked(core)) return 'inhouse';
     const o = core.office;
-    return { nodes: o.nodes, links: o.links, seq: o.seq, segments: o.segments ?? {} };
+    return { nodes: o.nodes, links: o.links, seq: o.seq, segments: o.segments };
   }
   const p = requireDesign(core);
   if (typeof p === 'string') return p;
-  return { nodes: p.nodes, links: p.links, seq: p.seq, segments: p.segments ?? {} };
+  return { nodes: p.nodes, links: p.links, seq: p.seq, segments: p.segments };
 };
 
 // 対象のネットワークを書き戻す
@@ -845,7 +845,7 @@ export const removeLink = (core: Core, uid: string, target: NetTarget, env: Env)
   let refund = 0;
   if (target === 'focus') {
     const p = focusedOf(core) as Project;
-    if ((p.inheritedLinks ?? []).includes(uid)) return fail('locked');
+    if (p.inheritedLinks.includes(uid)) return fail('locked');
     // 返金は、配線・移動・挿し替えで実際に払った額（割引のあとの額）。撤去の時点の割引では計算しない（N113）
     if (!p.built.links.includes(uid)) refund = link.paid;
   }
@@ -1487,7 +1487,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
     const reputation = core.reputation + stars;
     // 自社案件は、納品したネットワークを自社オフィスとして残し、効果を加える
     const office: Office = p.contract.inhouse
-      ? { ...core.office, nodes: p.nodes, links: p.links, seq: p.seq, segments: p.segments ?? {} }
+      ? { ...core.office, nodes: p.nodes, links: p.links, seq: p.seq, segments: p.segments }
       : core.office;
     const effects = { buildSpeed: core.effects.buildSpeed + (p.contract.effect?.buildSpeed ?? 0) };
     // 報酬の機器はインベントリに入る（自社案件の報酬）
@@ -1506,7 +1506,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
         reputation,
         completed: p.kind === 'fixed' ? [...core.completed, p.baseId] : core.completed,
         // なじみの依頼: ★2以上の納品を数え、設計を型紙として覚える（自社案件は対象外）（N70）
-        familiarity: p.contract.inhouse ? core.familiarity : recordDelivery(core.familiarity, familiarKeyOf(p.kind, p.baseId, p.contract.map), stars, { nodes: p.nodes, links: p.links, segments: p.segments ?? {} }),
+        familiarity: p.contract.inhouse ? core.familiarity : recordDelivery(core.familiarity, familiarKeyOf(p.kind, p.baseId, p.contract.map), stars, { nodes: p.nodes, links: p.links, segments: p.segments }),
         deliveries: core.deliveries + 1,
       },
       report: {

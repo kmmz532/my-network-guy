@@ -40,7 +40,7 @@ const sample: SaveData = {
   rng: 1,
   active: [],
   focus: null,
-  office: { size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 },
+  office: { segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 },
   effects: { buildSpeed: 0 },
   staff: [member('s0'), member('s1')],
   staffSeq: 2,
@@ -133,9 +133,9 @@ describe('v8 → v9', () => {
   const { active: _active, focus: _focus, ...withoutActive } = legacySample;
 
   it('単独の案件は一覧にし、その案件を設計の対象にする', () => {
-    const project = { id: 'c001_direct_link', nodes: [] };
+    const project = { id: 'c001_direct_link', nodes: [], links: [], contract: { inhouse: false } };
     const out = migrate(8, { ...withoutActive, active: project });
-    expect(out.active).toEqual([{ ...project, due: null, crew: ['s0', 's1'], testedOk: false }]);
+    expect(out.active).toMatchObject([{ ...project, due: null, crew: ['s0', 's1'], testedOk: false, segments: {}, inheritedLinks: [] }]);
     expect(out.focus).toBe('c001_direct_link');
   });
 
@@ -150,9 +150,9 @@ describe('v9 → v10', () => {
   const { active: _active, focus: _focus, ...withoutActive } = legacySample;
 
   it('受注中の案件に期日がなければ、期日のない案件として扱う', () => {
-    const project = { id: 'c001_direct_link', nodes: [] };
+    const project = { id: 'c001_direct_link', nodes: [], links: [], contract: { inhouse: false } };
     const out = migrate(9, { ...withoutActive, active: [project], focus: 'c001_direct_link' });
-    expect(out.active[0]).toEqual({ id: 'c001_direct_link', nodes: [], due: null, crew: ['s0', 's1'], testedOk: false });
+    expect(out.active[0]).toMatchObject({ id: 'c001_direct_link', nodes: [], due: null, crew: ['s0', 's1'], testedOk: false, inheritedLinks: [] });
   });
 });
 
@@ -172,7 +172,7 @@ describe('v4 → v5 → v13', () => {
     });
     const v4 = {
       ...legacySample,
-      active: { nodes: [node('a', '192.168.1.10'), node('b', '192.168.1.11'), node('c', '192.168.2.10')] },
+      active: { nodes: [node('a', '192.168.1.10'), node('b', '192.168.1.11'), node('c', '192.168.2.10')], links: [], contract: { inhouse: false } },
     };
     const out = migrate(4, v4);
     const nodes = out.active[0].nodes;
@@ -217,6 +217,7 @@ describe('v12 → v13', () => {
         {
           id: 'x',
           nodes: [pc('pc_a', 0, 1), pc('pc_b', 1, 1), router],
+          contract: { inhouse: false },
           links: [
             {
               uid: 'l0',
@@ -244,8 +245,8 @@ describe('v12 → v13', () => {
   });
 
   it('色を持たない案件は、そのまま残す', () => {
-    const v12 = { ...legacySample, active: [{ id: 'x', nodes: [], links: [] }] };
-    expect(migrate(12, v12).active[0]).toEqual({ id: 'x', nodes: [], links: [], testedOk: false });
+    const v12 = { ...legacySample, active: [{ id: 'x', nodes: [], links: [], contract: { inhouse: false } }] };
+    expect(migrate(12, v12).active[0]).toMatchObject({ id: 'x', nodes: [], links: [], testedOk: false });
   });
 });
 
@@ -271,9 +272,9 @@ describe('v14 → v15', () => {
   const { active: _active, focus: _focus, ...withoutActive } = legacySample;
 
   it('受注中の案件は、テストに合格していないものとして扱う（testedOk: false）', () => {
-    const project = { id: 'c001_direct_link', nodes: [], links: [] };
+    const project = { id: 'c001_direct_link', nodes: [], links: [], contract: { inhouse: false } };
     const out = migrate(14, { ...withoutActive, active: [project], focus: 'c001_direct_link' });
-    expect(out.active).toEqual([{ ...project, testedOk: false }]);
+    expect(out.active).toMatchObject([{ ...project, testedOk: false, inheritedLinks: [] }]);
     expect(out.focus).toBe('c001_direct_link');
   });
 
@@ -303,7 +304,7 @@ describe('v13 → v14', () => {
     const v13 = {
       ...withoutNet,
       office: { ...legacySample.office, nodes: [node('o_srv', 'server_basic')] },
-      active: [{ id: 'x', nodes: [node('a_srv', 'server_basic')], links: [] }],
+      active: [{ id: 'x', nodes: [node('a_srv', 'server_basic')], links: [], contract: { inhouse: false } }],
     };
     const out = migrate(13, v13);
     expect(out.office.nodes[0].services).toEqual([{ protocol: 'http', port: 80 }]);
@@ -314,7 +315,7 @@ describe('v13 → v14', () => {
     const v13 = {
       ...withoutNet,
       office: { ...legacySample.office, nodes: [node('o_srv', 'server_basic', { configLocked: true })] },
-      active: [{ id: 'x', nodes: [node('a_srv', 'server_basic', { configLocked: true })], links: [] }],
+      active: [{ id: 'x', nodes: [node('a_srv', 'server_basic', { configLocked: true })], links: [], contract: { inhouse: false } }],
     };
     const out = migrate(13, v13);
     expect(out.office.nodes[0].services).toEqual([]);
@@ -343,7 +344,7 @@ describe('v16 → v17', () => {
 
   it('部屋の大きさを足したほかは、そのまま残す', () => {
     const out = migrate(16, v16);
-    expect(out.office).toEqual({ ...v16.office, size: { w: 14, h: 8 }, innerWalls: [], doors: [], annexes: [] });
+    expect(out.office).toMatchObject({ ...v16.office, size: { w: 14, h: 8 }, innerWalls: [], doors: [], annexes: [] });
   });
 
   it('移行後の形式は、読み込んで書き出しても元に戻る', () => {
@@ -376,7 +377,7 @@ describe('v17 → v18', () => {
 
   it('内側の壁などのない自社オフィスは、移行後も残りの形式を保つ', () => {
     const out = migrate(17, v17);
-    expect(out.office).toEqual({ ...v17.office, innerWalls: [], doors: [], annexes: [] });
+    expect(out.office).toMatchObject({ ...v17.office, innerWalls: [], doors: [], annexes: [] });
   });
 });
 
@@ -401,7 +402,7 @@ describe('v18 → v19', () => {
 describe('v19 → v20: 機器の対応表（hosts）', () => {
   it('既存の機器には空の対応表を入れる（自社オフィスと案件の両方）', () => {
     const node = { uid: 'n1', device: 'pc_basic', x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [] };
-    const v19 = { ...legacySample, office: { ...legacySample.office, nodes: [node] }, active: [{ ...legacySample.active[0], nodes: [node] }] } as unknown;
+    const v19 = { ...legacySample, office: { ...legacySample.office, nodes: [node] }, active: [{ id: 'p', nodes: [node], links: [], contract: { inhouse: false } }] } as unknown;
     const out = migrate(19, v19);
     expect(out.office.nodes[0]).toMatchObject({ uid: 'n1', hosts: [] });
     expect(out.active[0].nodes[0]).toMatchObject({ uid: 'n1', hosts: [] });
@@ -515,5 +516,19 @@ describe('v36 → v37', () => {
     const out = migrate(36, v36);
     expect(out.staff[0]).toMatchObject({ level: 14, levelCap: 20, salary: 200000 });
     expect(out.candidates.every((m) => m.levelCap === 10 || m.levelCap >= m.level)).toBe(true);
+  });
+});
+
+describe('v39 → v40', () => {
+  const { active: _active, office: _office, ...rest } = sample;
+
+  it('欠けた segments と inheritedLinks を埋める。自社案件は、自社オフィスと同じ uid の配線を引き継いだ配線とする', () => {
+    const office = { size: { w: 7, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [{ uid: 'o0', cable: 'utp_cat5e', a: { node: 'x', port: 0 }, b: { node: 'y', port: 0 }, path: [], paid: 0 }], seq: 1, furniture: [], furnitureSeq: 0 };
+    const inhouse = { id: 'p1', nodes: [], links: [office.links[0], { uid: 'l1', cable: 'utp_cat5e', a: { node: 'x', port: 1 }, b: { node: 'y', port: 1 }, path: [], paid: 0 }], contract: { inhouse: true } };
+    const fixed = { id: 'p2', nodes: [], links: [], contract: { inhouse: false } };
+    const out = migrate(39, { ...rest, office, active: [inhouse, fixed], focus: null });
+    expect(out.active[0]).toMatchObject({ segments: {}, inheritedLinks: ['o0'] });
+    expect(out.active[1]).toMatchObject({ segments: {}, inheritedLinks: [] });
+    expect(out.office.segments).toEqual({});
   });
 });

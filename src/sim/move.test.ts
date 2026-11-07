@@ -77,7 +77,7 @@ const start = (owned: Record<string, number> = {}): Core => ({
   offers: [offerOf(c001, 'c001_direct_link')],
   active: [],
   focus: null,
-  office: {
+  office: { segments: {},
     size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [],
     nodes: [],
     links: [],

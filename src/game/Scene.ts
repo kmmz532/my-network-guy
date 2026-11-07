@@ -336,8 +336,9 @@ export class Scene {
       testedOk: false,
       due: null,
       crew: [],
+      inheritedLinks: [],
       // 自社オフィスのセグメントの設定も渡す（ケーブルの色とネットワークの判定に使う）
-      segments: office.segments ?? {},
+      segments: office.segments,
     };
     this.officeCache = { office, view };
     return view;

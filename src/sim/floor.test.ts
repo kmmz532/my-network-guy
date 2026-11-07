@@ -11,7 +11,7 @@ const ANNEX_DEPTH = 5;
 const ANNEX_STEP = ANNEX_DEPTH + 1;
 
 // 床 6×6 の主の部屋（外側の壁を含むマスの座標は 1〜6）
-const base: Office = {
+const base: Office = { segments: {},
   size: { w: 6, h: 6 },
   innerWalls: [],
   doors: [],

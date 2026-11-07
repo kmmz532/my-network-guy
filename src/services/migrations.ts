@@ -23,7 +23,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 39;
+export const SAVE_VERSION = 40;
 
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
@@ -235,6 +235,18 @@ export const migrations: Record<number, Migration> = {
       }) }),
     });
     return { ...d, active: d.active.map(withPaid), office: withPaid(d.office) };
+  },
+  // v39 → v40: 案件の segments と inheritedLinks、自社オフィスの segments を必須にし、欠けていれば埋める（N114）。
+  // segments は {}。inheritedLinks は自社案件なら、案件の配線のうち自社オフィスの配線と同じ uid のもの（引き継いだ配線）、それ以外は []
+  39: (data) => {
+    const d = data as { active: Project[]; office: Office };
+    const officeLinks = new Set(d.office.links.map((l) => l.uid));
+    const fillProject = (p: Project): Project => ({
+      ...p,
+      segments: p.segments ?? {},
+      inheritedLinks: p.inheritedLinks ?? (p.contract.inhouse ? p.links.filter((l) => officeLinks.has(l.uid)).map((l) => l.uid) : []),
+    });
+    return { ...d, active: d.active.map(fillProject), office: { ...d.office, segments: d.office.segments ?? {} } };
   },
   // v37 → v38: 家具に向き（facing）を足す。移行前の家具は向きを書いていないため、up（今の絵のまま）として扱う（N95）
   37: (data) => data as object,
