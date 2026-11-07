@@ -1,12 +1,11 @@
 // 自社オフィスの家具と社員の規則（純粋関数）。配置と撤去、社員の席の数と雇用を扱う。
 import type { Balance, Furniture, GameMap, Staff } from '../data/schema';
-import { DESK_ID, emptyOffice, officeLocked, type Core, type Office, type Outcome } from './project';
+import { DESK_ID, emptyOffice, fail, officeLocked, type Core, type Office, type Outcome } from './project';
 import { tileKind } from '../data/tileKind';
 import type { NetLink, NetNode } from '../network/types';
 import cablesData from '../assets/data/cables.json';
 import { rotateFacing } from './facing';
 
-const fail = (reason: string): Outcome => ({ ok: false, reason });
 
 // 自社オフィスの初期状態。バランス値の初期の大きさの部屋に、バランス値の初期の机の位置に机を置く
 export const initialOffice = (balance: Balance): Office => {

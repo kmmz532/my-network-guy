@@ -3,7 +3,7 @@
 import { applyMoney } from './ledger';
 import type { Balance, CertDef, TrainingCourse } from '../data/schema';
 import { minutesPerDay } from './clock';
-import type { Core, Outcome } from './project';
+import { fail, type Core, type Outcome } from './project';
 import { gainExp } from './staff';
 
 export interface TrainingEnv {
@@ -12,7 +12,6 @@ export interface TrainingEnv {
   balance: Balance;
 }
 
-const fail = (reason: string): Outcome => ({ ok: false, reason });
 
 // 担当の社員（案件を受注中の社員）の uid
 const crewOf = (core: Core): Set<string> => new Set(core.active.flatMap((p) => p.crew));

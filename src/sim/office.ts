@@ -2,7 +2,7 @@
 // 辺が上限に達したら、その辺の外に別室を足す（1辺に1つまで。別室は広げられない）。
 import { applyMoney } from './ledger';
 import type { Balance, FloorId, GameMap } from '../data/schema';
-import { officeLocked, type Core, type Office, type OfficeCell, type OfficeSide, type OfficeSize, type Outcome, type RoomId } from './project';
+import { fail, officeLocked, type Core, type Office, type OfficeCell, type OfficeSide, type OfficeSize, type Outcome, type RoomId } from './project';
 import { levelOf } from './level';
 
 export type ExpandSide = OfficeSide;
@@ -10,7 +10,6 @@ export type OfficeConfig = Balance['office'];
 // 辺の操作。expand は床を広げる、annex は別室を足す
 export type ExpandAction = 'expand' | 'annex';
 
-const fail = (reason: string): Outcome => ({ ok: false, reason });
 
 // 奥の壁の窓。WINDOW_WIDTH マスの窓を、床の左端から WINDOW_PERIOD マスごとに置く（床の内側に収まるものだけ）
 const WINDOW_PERIOD = 10;

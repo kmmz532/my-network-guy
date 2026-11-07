@@ -3,7 +3,7 @@
 import type { Balance, Staff } from '../data/schema';
 import { ENGINEER_JOB_IDS } from '../data/schema';
 import type { ClockState } from './clock';
-import type { Core, Outcome, Project } from './project';
+import { fail, type Core, type Outcome, type Project } from './project';
 import { applyMoney } from './ledger';
 
 // 判定と月末の処理に使う部分（ゲームの状態のうち、社員・案件・時計）
@@ -13,7 +13,6 @@ interface RetireState {
   active: Project[];
 }
 
-const fail = (reason: string): Outcome => ({ ok: false, reason });
 
 // 退職を伝えられない理由（ui.error.<理由> の文言）。伝えられるなら null
 export const retireBlock = (state: RetireState, uid: string, balance: Balance): string | null => {

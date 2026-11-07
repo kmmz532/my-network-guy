@@ -299,7 +299,8 @@ export interface Env {
 
 export type Outcome = { ok: true; core: Core; report?: Report } | { ok: false; reason: string };
 
-const fail = (reason: string): Outcome => ({ ok: false, reason });
+// 操作の失敗を返す（理由は ui.error.<理由> の鍵と対応する）。失敗の形はここだけで作る（N119）
+export const fail = (reason: string): Outcome => ({ ok: false, reason });
 
 // 配線の定価から、払う額（経理の割引のあと）。割引がなければ定価のまま
 const paidCable = (core: Core, list: number): number => Math.round(list * (1 - core.purchaseDiscount));
