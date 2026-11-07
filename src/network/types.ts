@@ -148,6 +148,8 @@ export const FAILURE_REASONS = [
   'port.security',
   // OSPF に参加しているのに、宛先への経路を得られない（隣接がない。route.none の OSPF の場合・N142）
   'ospf.no_neighbor',
+  // BGP の相手のアドレスか AS 番号が合わず、隣接しない（N147）
+  'bgp.no_session',
   // 口が停止している（shutdown・N137）
   'port.shutdown',
   // 口の VLAN が通らない（access と trunk の許可の不一致・N137）

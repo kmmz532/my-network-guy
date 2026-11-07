@@ -149,6 +149,17 @@ class Topology {
 
   // eBGP（MVP）。相手の AS と、お互いの設定（neighbor）が合い、直接つながっていれば隣接（セッション）になる。
   // 各機器は自分の network 文の宛先を AS パス [自分の AS] で広告し、受け取った経路は自分の AS を含まないものだけ使う。短い AS パスを選ぶ
+  // BGP の隣接が成り立つか（相手のアドレスと AS 番号が合い、相手も自分を相手にし、同じ L2 でつながる・N147）
+  bgpSessionOk(r: NetNode, nbIp: string, remoteAs: number): boolean {
+    const routers = [...this.nodes.values()].filter((n) => n.bgp !== undefined && this.isRouter(n.uid));
+    const peer = routers.find((x) => x.interfaces.some((i) => i.ip === nbIp));
+    if (!peer || peer.uid === r.uid || peer.bgp!.asn !== remoteAs) return false;
+    const back = peer.bgp!.neighbors.find((x) => x.remoteAs === r.bgp!.asn && r.interfaces.some((i) => i.ip === x.ip));
+    if (!back) return false;
+    const myIface = r.interfaces.find((i) => inSubnet(nbIp, i.ip, i.prefix));
+    return myIface !== undefined && this.domainOf({ node: r.uid, port: myIface.port }).members.some((m) => m.node === peer.uid);
+  }
+
   private bgpRoutes(out: Map<string, Route[]>): void {
     const routers = [...this.nodes.values()].filter((n) => n.bgp !== undefined && this.isRouter(n.uid));
     const ownerOf = (ip: string) => routers.find((r) => r.interfaces.some((i) => i.ip === ip));
@@ -156,13 +167,8 @@ class Topology {
     const sessions: { from: string; to: string; nextHop: string }[] = [];
     for (const r of routers) {
       for (const nb of r.bgp!.neighbors) {
-        const peer = ownerOf(nb.ip);
-        if (!peer || peer.uid === r.uid || peer.bgp!.asn !== nb.remoteAs) continue;
-        const back = peer.bgp!.neighbors.find((x) => x.remoteAs === r.bgp!.asn && r.interfaces.some((i) => i.ip === x.ip));
-        if (!back) continue;
-        const myIface = r.interfaces.find((i) => inSubnet(nb.ip, i.ip, i.prefix));
-        if (!myIface || !this.domainOf({ node: r.uid, port: myIface.port }).members.some((m) => m.node === peer.uid)) continue;
-        sessions.push({ from: r.uid, to: peer.uid, nextHop: nb.ip });
+        if (!this.bgpSessionOk(r, nb.ip, nb.remoteAs)) continue;
+        sessions.push({ from: r.uid, to: ownerOf(nb.ip)!.uid, nextHop: nb.ip });
       }
     }
     type Entry = { dest: string; prefix: number; path: number[]; nextHop: string | null };
@@ -467,7 +473,11 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
     // 最長一致で静的ルートを選ぶ
     // 設定した経路（static）と、RIP・OSPF の経路を合わせ、最長一致で選ぶ。同じ長さなら管理距離（AD）の小さい方（static 1・OSPF 110・RIP 120）
     const matches = [...cur.routes, ...topo.routesOf(cur.uid)].filter((r) => inSubnet(dstIface.ip, r.dest, r.prefix));
-    if (matches.length === 0) return err(fail(cur.interfaces.some((i) => i.ospf !== undefined) ? 'ospf.no_neighbor' : 'route.none', cur.uid));
+    if (matches.length === 0) {
+      // BGP の相手と隣接しない（アドレスか AS 番号が合わない）ときは bgp.no_session（N147）
+      if (cur.bgp && cur.bgp.neighbors.some((nb) => !topo.bgpSessionOk(cur, nb.ip, nb.remoteAs))) return err(fail('bgp.no_session', cur.uid));
+      return err(fail(cur.interfaces.some((i) => i.ospf !== undefined) ? 'ospf.no_neighbor' : 'route.none', cur.uid));
+    }
     const route = matches.reduce((best, r) => (r.prefix > best.prefix || (r.prefix === best.prefix && adOf(r) < adOf(best)) ? r : best));
 
     const egress = cur.interfaces.find((i) => inSubnet(route.nextHop, i.ip, i.prefix));
