@@ -8,6 +8,7 @@ import { furnitureOf } from '../contracts/layout';
 import { renameNode } from '../network/nodeName';
 import { nextHostname } from '../network/hostname';
 import { nextMacSerial } from '../network/mac';
+import { isSwitchedRouterCategory } from '../network/category';
 import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
 import { inSubnet, ipToInt, linkLength } from '../network/engine';
@@ -318,7 +319,7 @@ const WIRE_CABLE = 'utp_cat5e';
 
 // 型紙をつなぐ先（N70）: 近くのスイッチかルーターのうち、空きのポートがあるもの。足りない機器は、ここにつなぐ
 const isHubCategory = (category: string): boolean =>
-  category === CATEGORY.l2Switch || category === CATEGORY.router || category === CATEGORY.l3Switch || category === CATEGORY.routerSwitch;
+  category === CATEGORY.l2Switch || category === CATEGORY.router || category === CATEGORY.l3Switch || isSwitchedRouterCategory(category);
 
 const hubFor = (nodes: readonly NetNode[], links: readonly NetLink[], from: NetNode, env: Env): NetNode | null => {
   let best: NetNode | null = null;

@@ -19,6 +19,7 @@ import type { Familiarity } from '../sim/familiar';
 import type { LedgerMonth } from '../sim/ledger';
 import l3Json from '../assets/data/devices/l3_switch.json';
 import routerSwitchJson from '../assets/data/devices/router_switch.json';
+import homeRouterJson from '../assets/data/devices/home_router.json';
 import firewallJson from '../assets/data/devices/firewall.json';
 import firewallDmzJson from '../assets/data/devices/firewall_dmz.json';
 import printerJson from '../assets/data/devices/printer.json';
@@ -42,7 +43,7 @@ const legacyOfficeSize = { w: 14, h: 8 };
 const migrationCategories: Record<string, string> = {};
 // ホスト名の略号に使う種類（全部の機器。v27 の移行で使う）
 const categoryForHost: Record<string, string> = {};
-for (const d of [...pcJson.devices, ...serverJson.devices, ...routerJson.devices, ...switchJson.devices, ...l3Json.devices, ...routerSwitchJson.devices, ...firewallJson.devices, ...firewallDmzJson.devices, ...printerJson.devices]) {
+for (const d of [...pcJson.devices, ...serverJson.devices, ...routerJson.devices, ...switchJson.devices, ...l3Json.devices, ...routerSwitchJson.devices, ...homeRouterJson.devices, ...firewallJson.devices, ...firewallDmzJson.devices, ...printerJson.devices]) {
   categoryForHost[d.id] = d.category;
 }
 // 移行で使う機器の既定のサービス（defaultServices）
@@ -250,7 +251,7 @@ export const migrations: Record<number, Migration> = {
   45: (data) => {
     const d = data as { active: Project[]; office: Office };
     const portTypes = new Map<string, string[]>();
-    for (const x of [...pcJson.devices, ...serverJson.devices, ...routerJson.devices, ...switchJson.devices, ...l3Json.devices, ...routerSwitchJson.devices, ...firewallJson.devices, ...firewallDmzJson.devices, ...printerJson.devices]) {
+    for (const x of [...pcJson.devices, ...serverJson.devices, ...routerJson.devices, ...switchJson.devices, ...l3Json.devices, ...routerSwitchJson.devices, ...homeRouterJson.devices, ...firewallJson.devices, ...firewallDmzJson.devices, ...printerJson.devices]) {
       portTypes.set(x.id, (x.ports as { type: string; count: number }[]).flatMap((p) => Array.from({ length: p.count }, () => p.type)));
     }
     const typeOf = (device: string, port: number) => portTypes.get(device)?.[port] ?? 'rj45';

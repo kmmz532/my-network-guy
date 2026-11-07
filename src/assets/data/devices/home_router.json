@@ -1,0 +1,56 @@
+{
+  "devices": [
+    {
+      "id": "home_router",
+      "category": "home_router",
+      "capabilities": [
+        "routing",
+        "nat",
+        "services",
+        "wan",
+        "firewall"
+      ],
+      "deskable": true,
+      "price": 65000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 5,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [
+        "routing"
+      ],
+      "sprite": "device/home_router",
+      "unlockLevel": 5
+    },
+    {
+      "id": "home_router_ap",
+      "category": "home_router",
+      "capabilities": [
+        "routing",
+        "nat",
+        "services",
+        "wan",
+        "firewall",
+        "wireless"
+      ],
+      "deskable": true,
+      "price": 95000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 5,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [
+        "routing",
+        "wireless"
+      ],
+      "sprite": "device/home_router_ap",
+      "unlockLevel": 7
+    }
+  ]
+}

@@ -7,6 +7,8 @@ export const CATEGORY = {
   router: 'router',
   l3Switch: 'l3_switch',
   routerSwitch: 'router_switch',
+  // 家庭用ルーター（WAN の口1つと内蔵スイッチの LAN 4口。無線の一体型もこの分類・N151 の定義）
+  homeRouter: 'home_router',
   firewall: 'firewall',
   // プリンター（N51b）
   printer: 'printer',

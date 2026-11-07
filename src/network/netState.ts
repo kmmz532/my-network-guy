@@ -1,7 +1,7 @@
 // 疎通判定の計算（N136）。段1 配線 → 段2 L2 ドメイン → 段3 IP と直結 → 段4 静的経路 → 段5 転送（ping・http）の順に読む。
 // L1（配線）→ L2（スイッチによるL2ドメイン）→ L3（IPアドレスとルーティング）の順に確認する。
 // 失敗理由は ID で返し、文言は言語ファイルで表示する。
-import { isFabricPort, isRelayPort, isRoutingCategory, ROUTER_SWITCH_LAN_HOST_PORT } from './category';
+import { isFabricPort, isRelayPort, isRoutingCategory, isSwitchedRouterCategory, ROUTER_SWITCH_LAN_HOST_PORT } from './category';
 import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, Iface, NetLink, NetNode, Network, PathResult, PortConfig, Route } from './types';
 import { CATEGORY } from '../data/categories';
 import { can } from './capabilities';
@@ -65,7 +65,7 @@ class Topology {
       }
     }
     for (const [uid, ports] of this.fabricBy) {
-      if (this.categoryOf(uid) === CATEGORY.routerSwitch && !ports.includes(ROUTER_SWITCH_LAN_HOST_PORT)) ports.push(ROUTER_SWITCH_LAN_HOST_PORT);
+      if (isSwitchedRouterCategory(this.categoryOf(uid)) && !ports.includes(ROUTER_SWITCH_LAN_HOST_PORT)) ports.push(ROUTER_SWITCH_LAN_HOST_PORT);
       this.fabricBy.set(uid, ports);
     }
   }
@@ -500,7 +500,7 @@ export const wallsBetween = (wallAt: (x: number, y: number) => boolean, ax: numb
 // 無線の端末は、SSID とパスワードが合い、範囲の中にあるアクセスポイントの中で最も近いものにつながる（N151）。
 // アクセスポイントの無線の VLAN は、つながった端末の口を、その VLAN の access の口として扱う
 export const withWireless = (net: Network, data: EngineData): Network => {
-  const aps = net.nodes.filter((n) => data.categoryOf(n.device) === CATEGORY.accessPoint);
+  const aps = net.nodes.filter((n) => data.categoryOf(n.device) === CATEGORY.accessPoint || data.categoryOf(n.device) === CATEGORY.homeRouter);
   if (aps.length === 0) return net;
   const wired = new Set(net.links.flatMap((l) => [`${l.a.node}:${l.a.port}`, `${l.b.node}:${l.b.port}`]));
   const extra: NetLink[] = [];

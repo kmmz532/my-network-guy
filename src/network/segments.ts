@@ -1,9 +1,8 @@
 // セグメント（配線とスイッチでつながった機器の集まり）の算出と、セグメントの設定の参照。
 // セグメントは代表端点（セグメント内で最も小さい機器のUIDとポート）の鍵 "uid:port" で設定を持つ。仕様は memo/sim-3.md を参照する。
 import { ipToInt } from './engine';
-import { isFabricPort, isRelayPort, isRoutingCategory, ROUTER_SWITCH_LAN_HOST_PORT } from './category';
+import { isFabricPort, isRelayPort, isRoutingCategory, isSwitchedRouterCategory, ROUTER_SWITCH_LAN_HOST_PORT } from './category';
 import type { EngineData, Endpoint, NetNode, Network, SegmentConfig } from './types';
-import { CATEGORY } from '../data/categories';
 
 // 設定できるプレフィックス長（sim-3 の候補）
 export const PREFIX_MIN = 24;
@@ -57,7 +56,7 @@ export const segmentsOf = (net: Pick<Network, 'nodes' | 'links'>, data: EngineDa
   }
   // スイッチ付きルーターは、LAN の口につながっていれば代表の LAN 口もセグメントに含める（アドレスを持つ口）
   for (const ep of [...endpoints.values()]) {
-    if (!isFabricPort(cat(ep.node), ep.port) || cat(ep.node) !== CATEGORY.routerSwitch) continue;
+    if (!isFabricPort(cat(ep.node), ep.port) || !isSwitchedRouterCategory(cat(ep.node))) continue;
     const host = { node: ep.node, port: ROUTER_SWITCH_LAN_HOST_PORT };
     endpoints.set(epKey(host.node, host.port), host);
   }

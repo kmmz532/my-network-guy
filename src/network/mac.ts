@@ -10,6 +10,7 @@ const VENDOR: Record<string, string> = {
   l3_switch: '02:31:00',
   router: '02:40:00',
   router_switch: '02:41:00',
+  home_router: '02:42:00',
   firewall: '02:50:00',
   printer: '02:60:00',
 };

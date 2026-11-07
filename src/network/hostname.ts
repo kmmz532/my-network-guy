@@ -15,6 +15,7 @@ const ABBR: Record<string, string> = {
   l3_switch: 'L3',
   router: 'R',
   router_switch: 'RSW',
+  home_router: 'HR',
   firewall: 'FW',
   printer: 'PRN',
 };

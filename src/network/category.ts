@@ -8,6 +8,9 @@ import { categoryCan } from './capabilities';
 export const ROUTER_SWITCH_WAN_PORT = 0;
 export const ROUTER_SWITCH_LAN_HOST_PORT = 1;
 
+// 内蔵スイッチを持つルーター（スイッチ付きルーター・家庭用ルーター）。WAN の口0と、内蔵スイッチにつながる LAN の口（1〜）を持つ
+export const isSwitchedRouterCategory = (category: string): boolean => category === CATEGORY.routerSwitch || category === CATEGORY.homeRouter;
+
 // L2スイッチ（口を VLAN に分けられる中継機。ルーティングを持たない）。能力（switchport）で決める（N134）
 export const isL2Category = (category: string): boolean => categoryCan(category, 'switchport') && !categoryCan(category, 'routing');
 
@@ -17,8 +20,8 @@ export const isRoutingCategory = (category: string): boolean => categoryCan(cate
 // 中継（機器の内部のスイッチ）でつながる口。L2スイッチのすべての口と、スイッチ付きルーターの LAN の口
 // 回線終端（uplink）は、口0（ルーター側）と口1（インターネット側）を素通しする（N144）
 export const isFabricPort = (category: string, port: number): boolean =>
-  isL2Category(category) || (category === CATEGORY.routerSwitch && port >= ROUTER_SWITCH_LAN_HOST_PORT) || category === CATEGORY.uplink || category === CATEGORY.accessPoint;
+  isL2Category(category) || (isSwitchedRouterCategory(category) && port >= ROUTER_SWITCH_LAN_HOST_PORT) || category === CATEGORY.uplink || category === CATEGORY.accessPoint;
 
 // 機器の一員として数えない口（中継だけの口）。代表の LAN 口は一員として数える
 export const isRelayPort = (category: string, port: number): boolean =>
-  isL2Category(category) || (category === CATEGORY.routerSwitch && port > ROUTER_SWITCH_LAN_HOST_PORT) || category === CATEGORY.uplink || category === CATEGORY.accessPoint;
+  isL2Category(category) || (isSwitchedRouterCategory(category) && port > ROUTER_SWITCH_LAN_HOST_PORT) || category === CATEGORY.uplink || category === CATEGORY.accessPoint;
