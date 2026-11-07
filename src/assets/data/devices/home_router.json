@@ -11,7 +11,7 @@
         "firewall"
       ],
       "deskable": true,
-      "price": 65000,
+      "price": 80000,
       "ports": [
         {
           "type": "rj45",
@@ -20,7 +20,8 @@
         }
       ],
       "features": [
-        "routing"
+        "routing",
+        "switch"
       ],
       "sprite": "device/home_router",
       "unlockLevel": 5
@@ -37,7 +38,7 @@
         "wireless"
       ],
       "deskable": true,
-      "price": 95000,
+      "price": 110000,
       "ports": [
         {
           "type": "rj45",
@@ -47,6 +48,7 @@
       ],
       "features": [
         "routing",
+        "switch",
         "wireless"
       ],
       "sprite": "device/home_router_ap",
