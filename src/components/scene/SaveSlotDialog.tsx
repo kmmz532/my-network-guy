@@ -1,20 +1,14 @@
 // 会社（セーブの枠）の画面（N132・N133）。一覧・社名の入力・上書きの確認・社名の変更・複製・書き出し・消す確認を1つの部品で出す
 import { useEffect, useState } from 'react';
-import { usePhone } from '../ui/usePhone';
-import { Modal, dangerButton, primaryButton, secondaryButton } from './Modal';
-import { t } from '../i18n/t';
+import { usePhone } from '../../ui/usePhone';
+import { Modal, dangerButton, primaryButton, secondaryButton } from '../Modal';
+import { t } from '../../i18n/t';
 import { balance } from 'virtual:game-data';
-import { levelOf } from '../sim/level';
-import { toDate } from '../sim/clock';
-import { MAX_COMPANY_NAME, isValidCompanyName, sortByRecent, type CompanySave } from '../services/companies';
-import type { GameMode } from '../services/migrations';
-
-export type CompanyView =
-  | { kind: 'list'; purpose: 'play' | 'overwrite' }
-  | { kind: 'name'; slot: number; suggested: string; from: 'new' | 'overwrite' }
-  | { kind: 'rename'; save: CompanySave }
-  | { kind: 'confirmOverwrite'; save: CompanySave }
-  | { kind: 'delete'; save: CompanySave };
+import { levelOf } from '../../sim/level';
+import { toDate } from '../../sim/clock';
+import { MAX_COMPANY_NAME, isValidCompanyName, sortByRecent, type CompanySave } from '../../services/companies';
+import type { GameMode } from '../../services/migrations';
+import type { SaveSlotView } from '../../ui/titleFlow';
 
 // 会社の要約（経営は Lv・年目・月・日。サンドボックスは広さ）。一覧と確認の文言で使う
 export const companySummary = (save: CompanySave): string => {
@@ -27,12 +21,12 @@ const savedAtText = (savedAt: number): string =>
   new Date(savedAt).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 interface Props {
-  view: CompanyView;
+  view: SaveSlotView;
   mode: GameMode;
   saves: readonly CompanySave[];
   suggested: string;
   notice: string;
-  onView: (view: CompanyView | null) => void;
+  onView: (view: SaveSlotView | null) => void;
   onPlay: (save: CompanySave) => void;
   onStartIn: (slot: number, name: string) => void;
   onRename: (save: CompanySave, name: string) => void;
@@ -83,7 +77,7 @@ function NameForm({ initial, submitLabel, onSubmit, onCancel }: { initial: strin
   );
 }
 
-export function CompanyScreen(props: Props) {
+export function SaveSlotDialog(props: Props) {
   // スマホは、行を押すと操作を開く（一覧の行の下に並べる）。開いている行は1つだけ（N133）
   const phone = usePhone();
   const [openSlot, setOpenSlot] = useState<number | null>(null);

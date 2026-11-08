@@ -1,10 +1,10 @@
 // タイトル画面。ゲーム中のオフィスを背景にして、新しく始めるか、保存データから続けるかを選ぶ
 import { useEffect, useState } from 'react';
-import pkg from '../../package.json';
-import { spriteOf, spriteUrl } from '../game/sprites';
-import { t } from '../i18n/t';
-import { listCompanies } from '../services/db';
-import { RADIUS } from '../ui/theme';
+import pkg from '../../../package.json';
+import { spriteOf, spriteUrl } from '../../game/sprites';
+import { t } from '../../i18n/t';
+import { listCompanies } from '../../services/db';
+import { RADIUS } from '../../ui/theme';
 
 interface Props {
   onNew: () => void;

@@ -6,12 +6,8 @@ import { loadLang, t } from './i18n/t';
 import { PixiStage } from './game/PixiStage';
 import { useGameStore, type Speed } from './stores/useGameStore';
 import { useTickLoop } from './stores/useTickLoop';
-import { deleteSlot, listCompanies, moveLegacySlots, saveSlot } from './services/db';
+import { moveLegacySlots } from './services/db';
 import { saveSession, useSaveSession } from './services/saveSession';
-import { CompanyScreen, type CompanyView } from './components/CompanyScreen';
-import { copyNameOf, freeSlotOf, isNameTaken, isValidCompanyName, suggestCompanyName, uniqueNameFrom, type CompanySave } from './services/companies';
-import type { GameMode, SaveData } from './services/migrations';
-import { exportSave, importSave } from './services/saveFile';
 import { NoticeToast, ReportModal } from './components/Overlay';
 import { FocusSwitch } from './components/FocusSwitch';
 import { dangerButton, Modal, primaryButton, secondaryButton } from './components/Modal';
@@ -32,7 +28,7 @@ import { PausedBuildPrompt } from './components/PausedBuildPrompt';
 import { LoopBanner } from './components/LoopBanner';
 import { TabConflict } from './components/TabConflict';
 import { UpdateNotice } from './components/UpdateNotice';
-import { TitleScreen } from './components/TitleScreen';
+import { TitleScene } from './components/scene/TitleScene';
 import { mapLoaders } from 'virtual:loaders';
 import { RADIUS } from './ui/theme';
 import { levelOf } from './sim/level';
@@ -52,11 +48,10 @@ export function App() {
   // 翻訳や地図の読み込みが失敗したときの例外（エラー画面で再読み込みを促す。B9）
   const [loadError, setLoadError] = useState<unknown>(null);
   const [screen, setScreen] = useState<Screen>('title');
+  const [titleOpening, setTitleOpening] = useState<'newCareer' | undefined>(undefined);
   const popup = useUiStore((s) => s.popup);
   const setPopup = useUiStore.getState().setPopup;
   const [message, setMessage] = useState('');
-  // タイトルから新しく始めるサンドボックスの広さを選ぶ画面
-  const [sandboxPick, setSandboxPick] = useState(false);
   const clock = useGameStore((s) => s.clock);
   const speed = useGameStore((s) => s.speed);
   const setSpeed = useGameStore((s) => s.setSpeed);
@@ -67,17 +62,6 @@ export function App() {
   // 今遊んでいる会社の枠（経営もサンドボックスも、その会社の枠へ保存する・N133）。同じ枠の別のタブを見つけるためにも使う
   const activeSlot = useSaveSession((s) => s.slot);
   const saveFailed = useSaveSession((s) => s.failed);
-  // 会社（セーブの枠）の画面。タイトル画面の上に出す（N132・N133）
-  const [companyView, setCompanyView] = useState<CompanyView | null>(null);
-  const [companyMode, setCompanyMode] = useState<GameMode>('career');
-  const [companies, setCompanies] = useState<CompanySave[]>([]);
-  const [companyNotice, setCompanyNotice] = useState('');
-  // 枠が全部埋まっているときに読み込んだ会社（上書きする枠を選んでから入れる）
-  const [pendingImport, setPendingImport] = useState<SaveData | null>(null);
-  const load = useGameStore((s) => s.load);
-  const newGame = useGameStore((s) => s.newGame);
-  const renameCompany = useGameStore((s) => s.renameCompany);
-  const newSandbox = useGameStore((s) => s.newSandbox);
   const resizeSandbox = useGameStore((s) => s.resizeSandbox);
   // サンドボックスの画面。速度のボタン・社員・依頼は出さない
   const sandbox = useGameStore((s) => s.mode) === 'sandbox';
@@ -135,7 +119,8 @@ export function App() {
   if (loadError) throw loadError;
   if (!ready) return null;
 
-  const startGame = () => {
+  // ゲームの場面へ移る（タイトルで会社を決めたあと）
+  const enterGame = () => {
     setMessage('');
     // 保存を、ブラウザが勝手に消さないように頼む（断られても遊べる・N133）
     void navigator.storage?.persist?.();
@@ -143,198 +128,20 @@ export function App() {
     // 解放されていない速さは、1倍にする（4倍は会社のレベル3で解放される・N99）
     const wanted = loadSettings().startSpeed;
     setSpeed(isSpeedUnlocked(wanted, levelOf(useGameStore.getState().companyExp, balance), balance) ? (wanted as Speed) : 1);
+    setTitleOpening(undefined);
     setScreen('game');
   };
 
-  // 会社の一覧を、遊び方ごとに読み直す
-  const refreshCompanies = async (mode: GameMode): Promise<CompanySave[]> => {
-    const list = await listCompanies(mode);
-    setCompanies(list);
-    return list;
+  // タイトルへ戻る。倒産の「やり直す」は、新しく始める流れを開いて戻る
+  const toTitle = (opening?: 'newCareer') => {
+    setPopup(null);
+    setSpeed(0);
+    saveSession.open(null);
+    setTitleOpening(opening);
+    setScreen('title');
   };
 
-  // 会社を開いて遊ぶ（その会社の枠に保存し続ける）
-  const playSave = (save: CompanySave) => {
-    load(save.data);
-    saveSession.open(save.slot);
-    setCompanyView(null);
-    startGame();
-  };
-
-  // 新しく始める（経営）。空いた枠があれば社名を決めて始める。全部埋まっていれば、上書きする会社を選ばせる（N132）
-  const onNew = async () => {
-    setCompanyMode('career');
-    setCompanyNotice('');
-    const list = await refreshCompanies('career');
-    const free = freeSlotOf('career', list);
-    if (free !== null) setCompanyView({ kind: 'name', slot: free, suggested: suggestCompanyName('career', list), from: 'new' });
-    else setCompanyView({ kind: 'list', purpose: 'overwrite' });
-  };
-
-  // 「続きから」は、最後に保存した経営の会社を開く
-  // 「コンティニュー」は会社の一覧を開く（最後に遊んだ会社を先頭に出す。1社だけでも一覧を開く・N157）
-  const onContinue = async () => {
-    setCompanyMode('career');
-    setCompanyNotice('');
-    const list = await refreshCompanies('career');
-    if (list.length === 0) return setMessage(t('ui.title.none'));
-    setCompanyView({ kind: 'list', purpose: 'play' });
-  };
-
-  // サンドボックスは、保存があれば一覧を開き（「新しく作る」も一覧に置く）、なければ広さを選んで始める
-  const onSandbox = async () => {
-    setCompanyMode('sandbox');
-    const list = await refreshCompanies('sandbox');
-    if (list.length > 0) setCompanyView({ kind: 'list', purpose: 'play' });
-    else setSandboxPick(true);
-  };
-
-  // 広さを決めたサンドボックスは、社名を決めてから始める
-  const onSandboxSized = async () => {
-    setCompanyMode('sandbox');
-    const list = await refreshCompanies('sandbox');
-    const free = freeSlotOf('sandbox', list);
-    if (free === null) {
-      setCompanyView({ kind: 'list', purpose: 'overwrite' });
-      return;
-    }
-    setCompanyView({ kind: 'name', slot: free, suggested: suggestCompanyName('sandbox', list), from: 'new' });
-  };
-
-  // 一覧の「新しく作る」: 経営は社名、サンドボックスは広さを選ぶ
-  const onNewHere = () => {
-    setCompanyView(null);
-    if (companyMode === 'sandbox') setSandboxPick(true);
-    else void onNew();
-  };
-
-  // 社名を決めて始める。経営は新しい会社、サンドボックスは広さを決めた今の状態に社名を付ける
-  const startIn = async (slot: number, name: string) => {
-    const trimmed = name.trim();
-    if (companyMode === 'career') newGame(trimmed);
-    else renameCompany(trimmed);
-    saveSession.open(slot);
-    await saveSession.save();
-    setCompanyView(null);
-    startGame();
-  };
-
-  // 社名を変える（同じ遊び方の中で、同じ名前は不可）
-  const renameSave = async (save: CompanySave, name: string) => {
-    const trimmed = name.trim();
-    if (!isValidCompanyName(trimmed)) return setCompanyNotice(t('ui.company.name.hint', { max: 12 }));
-    const list = await refreshCompanies(companyMode);
-    if (isNameTaken(trimmed, list.filter((s) => s.slot !== save.slot))) return setCompanyNotice(t('ui.company.name.taken'));
-    await saveSlot(save.slot, { ...save.data, name: trimmed });
-    await refreshCompanies(companyMode);
-    setCompanyNotice('');
-    setCompanyView({ kind: 'list', purpose: 'play' });
-  };
-
-  // 複製する（空いた枠に同じ会社を写し、社名に「（コピー）」を付ける）
-  const copySave = async (save: CompanySave) => {
-    const list = await refreshCompanies(companyMode);
-    const free = freeSlotOf(companyMode, list);
-    if (free === null) return setCompanyNotice(t('ui.company.copy.full'));
-    await saveSlot(free, { ...save.data, name: copyNameOf(save.data.name, list) });
-    await refreshCompanies(companyMode);
-    setCompanyNotice('');
-  };
-
-  // 書き出す（その会社1つをファイルに保存する）
-  const exportCompany = (save: CompanySave) => {
-    const blob = new Blob([exportSave(save.data)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${save.data.name}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
-
-  // 消す（元に戻せない）。今遊んでいる会社は、ここ（タイトル画面）からしか消せない
-  const removeSave = async (save: CompanySave) => {
-    await deleteSlot(save.slot);
-    await refreshCompanies(companyMode);
-    setCompanyNotice('');
-    setCompanyView({ kind: 'list', purpose: 'play' });
-  };
-
-  // 読み込んだ会社を、選んだ会社の枠に入れる（上書きの確認のあと。N133）
-  const overwriteWithPending = async (save: CompanySave) => {
-    if (pendingImport === null) return;
-    const list = await refreshCompanies(companyMode);
-    await saveSlot(save.slot, { ...pendingImport, name: uniqueNameFrom(pendingImport.name, list.filter((s) => s.slot !== save.slot)) });
-    setPendingImport(null);
-    await refreshCompanies(companyMode);
-    setCompanyNotice('');
-    setCompanyView({ kind: 'list', purpose: 'play' });
-  };
-
-  // ファイルから読み込む。同じ遊び方の会社だけ。空いた枠に入れ、同じ社名があれば番号を付ける
-  const importCompany = async (file: File) => {
-    try {
-      const data = importSave(await file.text());
-      if (data.mode !== companyMode) return setCompanyNotice(t('ui.company.import.mode'));
-      const list = await refreshCompanies(companyMode);
-      const free = freeSlotOf(companyMode, list);
-      // 空きがなければ、上書きする会社を選ばせる（上書きの確認は N132 と同じ）
-      if (free === null) {
-        setPendingImport(data);
-        setCompanyNotice(t('ui.company.import.full'));
-        setCompanyView({ kind: 'list', purpose: 'overwrite' });
-        return;
-      }
-      await saveSlot(free, { ...data, name: uniqueNameFrom(data.name, list) });
-      await refreshCompanies(companyMode);
-      setCompanyNotice('');
-    } catch (e) {
-      setCompanyNotice(t('ui.import.failed', { reason: (e as Error).message }));
-    }
-  };
-
-  if (screen === 'title')
-    return (
-      <>
-        {sandboxPick && (
-          <SandboxSizePanel
-            title={t('ui.sandbox.size.title')}
-            start={t('ui.sandbox.size.start')}
-            onClose={() => setSandboxPick(false)}
-            submit={(size) => {
-              newSandbox(size);
-              setSandboxPick(false);
-              void onSandboxSized();
-              return null;
-            }}
-          />
-        )}
-        <TitleScreen onNew={onNew} onContinue={onContinue} onSandbox={onSandbox} message={message} locked={companyView !== null} />
-        {companyView !== null && (
-          <CompanyScreen
-            view={companyView}
-            mode={companyMode}
-            saves={companies}
-            suggested={suggestCompanyName(companyMode, companies)}
-            notice={companyNotice}
-            onView={(v) => {
-              // 画面を閉じたら、読み込み中の会社は捨てる
-              if (v === null) setPendingImport(null);
-              setCompanyView(v);
-            }}
-            onPlay={playSave}
-            onStartIn={startIn}
-            onRename={renameSave}
-            onDuplicate={copySave}
-            onExport={exportCompany}
-            onDelete={removeSave}
-            onImport={importCompany}
-            onNewHere={onNewHere}
-            importing={pendingImport !== null}
-            onOverwriteWith={overwriteWithPending}
-          />
-        )}
-      </>
-    );
+  if (screen === 'title') return <TitleScene onEnter={enterGame} opening={titleOpening} />;
 
   const onSave = async () => {
     // 倒産した後は保存しない（倒産の前の保存を上書きしない）
@@ -403,12 +210,7 @@ export function App() {
           </button>
           <button
             style={menuButton}
-            onClick={() => {
-              setPopup(null);
-              setSpeed(0);
-              setScreen('title');
-              saveSession.open(null);
-            }}
+            onClick={() => toTitle()}
           >
             {t('ui.title.back')}
           </button>
@@ -464,7 +266,7 @@ export function App() {
           start={t('ui.sandbox.size.start')}
           onClose={() => setPopup(null)}
           submit={(size) => {
-            newSandbox(size);
+            useGameStore.getState().newSandbox(size);
             return null;
           }}
         />
@@ -496,12 +298,12 @@ export function App() {
       <ReportModal />
       {clock.bankrupt && (
         <Modal
-          primary={onNew}
+          primary={() => toTitle('newCareer')}
           backStyle={{ background: 'rgba(20, 20, 30, 0.8)', flexDirection: 'column', gap: 12, color: '#f4f1e6' }}
           boxStyle={{ background: 'none', border: 'none', padding: 0, maxWidth: 'none', alignItems: 'center', display: 'flex', flexDirection: 'column', gap: 12 }}
         >
           <h2 style={{ fontSize: 28, margin: 0 }}>{t('ui.gameover.title')}</h2>
-          <button style={{ ...primaryButton, padding: '10px 24px', fontSize: 16 }} onClick={onNew}>
+          <button style={{ ...primaryButton, padding: '10px 24px', fontSize: 16 }} onClick={() => toTitle('newCareer')}>
             {t('ui.gameover.retry')}
           </button>
         </Modal>
