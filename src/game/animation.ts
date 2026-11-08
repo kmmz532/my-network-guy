@@ -31,3 +31,7 @@ export const pointAt = (points: readonly Point[], cumulative: readonly number[],
   }
   return { ...points[points.length - 1] };
 };
+
+// 2点の距離と中点
+export const distOf = (a: Point, b: Point): number => Math.hypot(a.x - b.x, a.y - b.y);
+export const midOf = (a: Point, b: Point): Point => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });

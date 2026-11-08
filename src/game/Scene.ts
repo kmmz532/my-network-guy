@@ -1,8 +1,7 @@
 // キャンバスの描画と操作。マップ・機器・配線・社員・パケットを描き、クリックで配置・選択、ドラッグで配線する。
 // 描画の状態は store から読むだけで、変更は store の操作を通して行う。
 import { nodeLabel } from '../components/nodeLabel';
-import { isPhoneNow } from '../ui/usePhone';
-import { Application, Container, Graphics, Rectangle, Sprite, Text, type FederatedPointerEvent, type Ticker } from 'pixi.js';
+import { Application, Container, Graphics, Sprite, Text, type FederatedPointerEvent, type Ticker } from 'pixi.js';
 import { staffSpriteName, STAFF_PLACEHOLDER_LOOKS, type GameMap } from '../data/schema';
 import { coreOf, editNetOf, focusedProject, viewingOffice, frontDeviceUid, netTargetOf, useGameStore, type Trace, type WireStart } from '../stores/useGameStore';
 import { cableEndAt, centerPath, grabsCableEnd, linkAt, plugPoints } from './linkHit';
@@ -54,8 +53,9 @@ import { effectText } from './effectText';
 import { t, tDyn } from '../i18n/t';
 import type { FailureReason, NetLink, NetNode } from '../network/types';
 import { CAP as WALL_CAP, drawTileMap } from './TileMap';
-import { fitCamera, fitZoom, panCamera, resizeCamera, screenToMap, stepZoom, zoomCamera, type Camera, type Size } from './camera';
+import { screenToMap } from './camera';
 import { bindMapCommands } from './mapControl';
+import { MapCamera } from './MapCamera';
 import { cumulativeLengths, pointAt, type Point } from './animation';
 import { wanderStep, type Walker } from './wander';
 import { bfsRoute, commuteStep, type Commute } from './commute';
@@ -67,12 +67,6 @@ import { metersOf } from '../sim/cableLength';
 import { deskStaffPos, deskTap, staffAt, STAFF_W, wanderStaffPos, type StaffHit } from './staffHit';
 import { CATEGORY, isPcCategory } from '../data/categories';
 
-// 拡大・縮小ボタンの列は、ツールバーの上の右下の角にある（MapZoomButtons.tsx と同じ寸法。画面の px）
-const ZOOM_BUTTON_W = 44;
-const ZOOM_BUTTONS_H = 3 * 44 + 2 * 6;
-const ZOOM_EDGE = 12;
-const TOOLBAR_H = 56;
-const TOOLBAR_H_PHONE = 84;
 
 const OUTLINE = 0x3b2a33;
 const SELECT = 0xffd866;
@@ -101,7 +95,6 @@ const OVERLAY_EXTENT = 20000;
 const BUILD_SLOTS: [number, number][] = [[-0.56, 0], [0.06, 0], [-0.25, 0.5], [-0.25, -0.5]];
 // 向きごとの椅子の位置のずれ（マス単位）。社員の背中側に椅子を置く（N95）
 const CHAIR_OFFSET: Record<Facing, [number, number]> = { up: [0, 0], down: [0, -0.6], left: [0.3, 0], right: [-0.3, 0] };
-const SANDBOX_OPEN_ZOOM = 2;
 // 失敗の吹き出しを出しておく時間（ms）
 const FLASH_MS = 2500;
 // つながった瞬間に、ケーブルの上を光が走る時間（ms）
@@ -132,16 +125,9 @@ const EXPAND_BUTTON_RATIO = 0.5;
 const EXPAND_LABEL_RATIO = 0.75;
 const EXPAND_IDLE_ALPHA = 0.45;
 const EXPAND_SIDES: readonly ExpandSide[] = ['right', 'bottom', 'left'];
-// 背景を長押ししてから動かせるようになるまで（ms）
-const PAN_LONG_PRESS_MS = 300;
 // 指で置いた機器・家具を持ち上げるまでの長押し（ms）。その前に TOUCH_PAN_PX 以上動けば、マップを移動する
 const TOUCH_HOLD_MS = 400;
 const TOUCH_PAN_PX = 8;
-// ホイールの回転を、拡大・縮小1段階に換算する量（px。行単位のホイールは1行 16 px とする）
-const WHEEL_STEP_PX = 40;
-const WHEEL_LINE_PX = 16;
-// 2本指で、指の間の距離がこの倍率を超えたら1段階拡大・縮小する
-const PINCH_STEP_RATIO = 1.3;
 
 // 機器・家具・ケーブルの端を押したあとの対象。動かさずに離せば押した扱い（click）、動かせばドラッグ
 type PressTarget = { kind: 'node'; uid: string } | { kind: 'furniture'; uid: string } | { kind: 'end'; linkUid: string; end: End };
@@ -211,16 +197,6 @@ export class Scene {
   // 失敗の「？」の押せる範囲（機器の uid → マップの座標の矩形）。描き直すたびに作る
   private helpRects = new Map<string, { x: number; y: number; w: number; h: number }>();
   private unsubscribe: () => void;
-  // マップの拡大・移動の状態（画面上の位置と倍率）と、画面の大きさ（最後に合わせた値）
-  private camera: Camera | null = null;
-  private view: Size = { w: 0, h: 0 };
-  // ホイールの回転量の合計（拡大・縮小の1段階に達するまで溜める）
-  private wheelAcc = 0;
-  // 指の位置（canvas の座標）。2本になったらピンチ（拡大・2本指の移動）
-  private touches = new Map<number, Point>();
-  private pinch: { dist: number; mid: Point } | null = null;
-  // 背景のドラッグ（移動）。長押しのあとに動き出す、または選択の道具で即座に動き出す
-  private pan: { last: Point; active: boolean; timer: number | null } | null = null;
   // 任意の道具で、マウスを乗せている機器と配線（ポートの名前を出すときに使う）
   private hoverAnyNode: string | null = null;
   private hoverAnyLink: string | null = null;
@@ -228,8 +204,24 @@ export class Scene {
   private press: Press | null = null;
   // 自社オフィスの部屋を広げるボタン（右・下・左の辺の外側）。描き直さず、位置と表示だけを更新する
   private expandButtons = new Map<ExpandSide, Container>();
+  // マップの見え方（位置と倍率）と、それを動かす入力
+  private cam: MapCamera;
 
   constructor(private app: Application) {
+    this.cam = new MapCamera({
+      app,
+      content: this.content,
+      map: () => this.map,
+      tileSize: () => this.tileSize(),
+      redraw: () => this.drawObjects(),
+      cancelOperations: () => {
+        this.clearPress();
+        this.resetTip();
+        this.wireFrom = null;
+        this.hover = null;
+        useGameStore.getState().cancelWire();
+      },
+    });
     // インベントリの欄（DOM）から、マスの判定と品目を置けるかを使えるようにする
     setMapView({ tileAtClient: (x, y) => this.tileAtClient(x, y), canPlace: (id, tx, ty) => this.canPlace(id, tx, ty) });
     window.addEventListener('keydown', this.onPressKey, true);
@@ -257,21 +249,21 @@ export class Scene {
     app.canvas.addEventListener('pointerleave', this.onCanvasLeave);
     app.canvas.addEventListener('contextmenu', this.preventMenu);
     // ホイールはブラウザの拡大・スクロールを止めるため passive を外す（Ctrl＋ホイールとピンチも、マップの拡大にする）
-    app.canvas.addEventListener('wheel', this.onWheel, { passive: false });
+    app.canvas.addEventListener('wheel', this.cam.onWheel, { passive: false });
     app.canvas.addEventListener('mousedown', this.preventMiddleScroll);
     // 指の操作は、Pixi の操作より先に受け取る（捕捉の段階）。2本目の指で、配線などの操作を取り消す
-    app.canvas.addEventListener('pointerdown', this.onCanvasPointerDown, true);
-    app.canvas.addEventListener('pointermove', this.onCanvasPointerMove, true);
-    app.canvas.addEventListener('pointerup', this.onCanvasPointerUp, true);
-    app.canvas.addEventListener('pointercancel', this.onCanvasPointerUp, true);
+    app.canvas.addEventListener('pointerdown', this.cam.onPointerDown, true);
+    app.canvas.addEventListener('pointermove', this.cam.onPointerMove, true);
+    app.canvas.addEventListener('pointerup', this.cam.onPointerUp, true);
+    app.canvas.addEventListener('pointercancel', this.cam.onPointerUp, true);
     app.canvas.style.touchAction = 'none';
     app.ticker.add(this.onTick);
     this.unsubscribe = useGameStore.subscribe(() => this.refresh());
     bindMapCommands({
-      zoomIn: () => this.zoomBy(1),
-      zoomOut: () => this.zoomBy(-1),
-      fit: () => this.fit(),
-      pan: (dx, dy) => this.panBy(dx, dy),
+      zoomIn: () => this.cam.zoomBy(1),
+      zoomOut: () => this.cam.zoomBy(-1),
+      fit: () => this.cam.fit(),
+      pan: (dx, dy) => this.cam.panBy(dx, dy),
     });
     this.refresh();
   }
@@ -292,15 +284,15 @@ export class Scene {
     window.removeEventListener('keydown', this.onPressKey, true);
     window.removeEventListener('pointermove', this.onWindowPointerMove);
     bindMapCommands(null);
-    this.endPan();
+    this.cam.endPan();
     this.clearPress();
     this.app.ticker.remove(this.onTick);
-    this.app.canvas.removeEventListener('wheel', this.onWheel);
+    this.app.canvas.removeEventListener('wheel', this.cam.onWheel);
     this.app.canvas.removeEventListener('mousedown', this.preventMiddleScroll);
-    this.app.canvas.removeEventListener('pointerdown', this.onCanvasPointerDown, true);
-    this.app.canvas.removeEventListener('pointermove', this.onCanvasPointerMove, true);
-    this.app.canvas.removeEventListener('pointerup', this.onCanvasPointerUp, true);
-    this.app.canvas.removeEventListener('pointercancel', this.onCanvasPointerUp, true);
+    this.app.canvas.removeEventListener('pointerdown', this.cam.onPointerDown, true);
+    this.app.canvas.removeEventListener('pointermove', this.cam.onPointerMove, true);
+    this.app.canvas.removeEventListener('pointerup', this.cam.onPointerUp, true);
+    this.app.canvas.removeEventListener('pointercancel', this.cam.onPointerUp, true);
     this.app.stage.off('pointerdown', this.onDown);
     this.app.stage.off('pointermove', this.onMove);
     this.app.stage.off('pointerup', this.onUp);
@@ -374,8 +366,7 @@ export class Scene {
       this.tilesId = mapId;
       this.map = map;
       // マップが変わったら全体に合わせる
-      this.camera = null;
-      this.layout();
+      this.cam.reset();
     }
     this.drawObjects();
     this.updateExpandButtons();
@@ -419,7 +410,7 @@ export class Scene {
     });
     // 乗っている間も、マップの移動や配線の操作は続ける。ボタン上の移動では、説明を消さないよう伝えない
     box.on('pointermove', (e) => {
-      if (!this.wireFrom && !this.pan && !this.press) e.stopPropagation();
+      if (!this.wireFrom && !this.cam.panning && !this.press) e.stopPropagation();
     });
     // 拡張のボタンは吹き出しの下に置く（吹き出しの文字を隠さない・B5）。吹き出しより後に足すと上に出るため、吹き出しの位置に差し込む
     this.content.addChildAt(box, this.content.getChildIndex(this.bubbles));
@@ -507,8 +498,7 @@ export class Scene {
     const dt = ticker.deltaMS * useGameStore.getState().speed;
     this.elapsed += dt;
     // 画面の大きさが変わったら、マップの位置と倍率を合わせ直す（resize の順に関係なく、描画の時点で拾う）
-    const view = this.viewSize();
-    if (this.map && (view.w !== this.view.w || view.h !== this.view.h)) this.layout();
+    this.cam.syncSize();
     this.updateWanderers(dt);
     this.updateCommutes(dt);
     this.updateDayTint();
@@ -524,220 +514,9 @@ export class Scene {
     this.drawObjects();
   };
 
-  // マップの位置と倍率を、画面に合わせる。マップが変わったときは全体、画面の大きさが変わったときは倍率を保って合わせ直す（R1）
-  private layout = (): void => {
-    if (!this.map) return;
-    this.app.stage.hitArea = new Rectangle(0, 0, this.app.screen.width, this.app.screen.height);
-    const view = this.viewSize();
-    const map = this.mapSize();
-    // 全体表示のときは、画面の大きさに合わせて測り直す（ヘッダーとツールバーの分を除く）
-    this.camera = this.camera && !this.camera.fit ? resizeCamera(this.camera, map, this.view, view) : this.fitCameraOf(view);
-    this.view = view;
-    this.applyCamera();
-  };
-
-  private viewSize(): Size {
-    return { w: this.app.screen.width, h: this.app.screen.height };
-  }
-
-  // マップの大きさ（マップの座標の px。拡大率は含まない）
-  private mapSize(): Size {
-    const ts = this.tileSize();
-    return { w: (this.map?.width ?? 0) * ts, h: (this.map?.height ?? 0) * ts };
-  }
-
-  private viewCenter(): Point {
-    return { x: this.view.w / 2, y: this.view.h / 2 };
-  }
-
-  // 位置と倍率を描画に反映し、描き直す（文字の大きさは倍率で割るため、画面上では同じ大きさになる）
-  private applyCamera(): void {
-    const cam = this.camera;
-    if (!cam) return;
-    this.content.scale.set(cam.zoom);
-    this.content.position.set(cam.x, cam.y);
-    this.drawObjects();
-  }
-
-  private setCamera(next: Camera): void {
-    const cam = this.camera;
-    if (cam && next.zoom === cam.zoom && next.x === cam.x && next.y === cam.y && next.fit === cam.fit) return;
-    this.camera = next;
-    this.applyCamera();
-  }
-
-  // 拡大（1）・縮小（-1）を1段階。anchor（画面の座標）の下のマップの点は動かさない。省略時は画面の中央
-  private zoomBy(dir: 1 | -1, anchor: Point = this.viewCenter()): void {
-    const cam = this.camera;
-    if (!cam) return;
-    this.setCamera(zoomCamera(cam, this.mapSize(), this.view, stepZoom(cam.zoom, dir), anchor));
-  }
-
-  private fit(): void {
-    if (this.map) this.setCamera(this.fitCameraOf(this.view));
-  }
-
-  // 全体表示で避ける画面の端の分（画面の px）。上はヘッダー、下はツールバー
-  private fitInsets(): { top: number; bottom: number } {
-    const canvas = this.app.canvas.getBoundingClientRect();
-    const header = document.querySelector('header')?.getBoundingClientRect();
-    const bar = document.querySelector('[data-toolbar]')?.getBoundingClientRect();
-    const top = header && header.height > 0 ? Math.max(0, header.bottom - canvas.top) : 0;
-    const bottom = bar && bar.height > 0 ? Math.max(0, canvas.bottom - bar.top) : 0;
-    return { top, bottom };
-  }
-
-  // 拡大・縮小ボタンの列の位置（画面の px）。右下の角で、ツールバーの上に置く
-  private zoomButtonsRect(view: Size): { left: number; top: number; right: number; bottom: number } {
-    const toolbar = isPhoneNow() ? TOOLBAR_H_PHONE : TOOLBAR_H;
-    const right = view.w - ZOOM_EDGE;
-    const bottom = view.h - toolbar - ZOOM_EDGE;
-    return { left: right - ZOOM_BUTTON_W, top: bottom - ZOOM_BUTTONS_H, right, bottom };
-  }
-
-  // 全体に合わせた位置と倍率。自社オフィスは、辺の外側の「+」ボタンが画面に収まるよう、周りを1マス分あける（マップは中央に置く）。
-  // 自社オフィスは、ヘッダーとツールバーの分を除いた範囲に、余白を含めて収まる最大の倍率にする。
-  // 拡大・縮小ボタンの列と重なるときだけ、上へずらし、それでも重なるなら左へずらす
-  private fitCameraOf(view: Size): Camera {
-    const map = this.mapSize();
-    if (this.map?.id !== 'hq') return fitCamera(map, view);
-    const pad = this.tileSize();
-    const padded = { w: map.w + pad * 2, h: map.h + pad * 2 };
-    const insets = this.fitInsets();
-    const area = { w: view.w, h: Math.max(0, view.h - insets.top - insets.bottom) };
-    // サンドボックスは全体表示だと機器が小さすぎるため、開いたときは部屋の一部を拡大する
-    const zoom = useGameStore.getState().mode === 'sandbox' ? Math.max(fitZoom(padded, area), SANDBOX_OPEN_ZOOM) : fitZoom(padded, area);
-    const boxW = padded.w * zoom;
-    const boxH = padded.h * zoom;
-    let left = (area.w - boxW) / 2;
-    let top = insets.top + (area.h - boxH) / 2;
-    const col = this.zoomButtonsRect(view);
-    const overlaps = left < col.right && left + boxW > col.left && top < col.bottom && top + boxH > col.top;
-    if (overlaps) {
-      const up = col.top - boxH;
-      if (up >= insets.top) top = up;
-      else if (col.left - boxW >= 0) left = col.left - boxW;
-    }
-    return {
-      zoom,
-      x: Math.round(left + pad * zoom),
-      y: Math.round(top + pad * zoom),
-      fit: true,
-    };
-  }
-
-  private panBy(dx: number, dy: number): void {
-    const cam = this.camera;
-    if (!cam) return;
-    this.setCamera(panCamera(cam, this.mapSize(), this.view, dx, dy));
-  }
-
-  // canvas の中の位置（CSS の px）
-  private canvasPoint(e: { clientX: number; clientY: number }): Point {
-    const rect = this.app.canvas.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  }
-
   private preventMiddleScroll = (e: MouseEvent): void => {
     if (e.button === 1) e.preventDefault();
   };
-
-  // ホイール・Ctrl＋ホイール・トラックパッドのピンチは、カーソルの位置を中心に拡大・縮小する。ブラウザの拡大は起こさない
-  private onWheel = (e: WheelEvent): void => {
-    e.preventDefault();
-    const dy = e.deltaMode === 1 ? e.deltaY * WHEEL_LINE_PX : e.deltaY;
-    this.wheelAcc += dy;
-    if (Math.abs(this.wheelAcc) < WHEEL_STEP_PX) return;
-    const dir = this.wheelAcc < 0 ? 1 : -1;
-    this.wheelAcc = 0;
-    this.zoomBy(dir, this.canvasPoint(e));
-  };
-
-  // 指の追跡。2本になったらピンチを始める（拡大・縮小と、2本指の移動）
-  private onCanvasPointerDown = (e: PointerEvent): void => {
-    if (e.pointerType !== 'touch') return;
-    this.touches.set(e.pointerId, this.canvasPoint(e));
-    if (this.touches.size === 2) this.startPinch();
-  };
-
-  private onCanvasPointerMove = (e: PointerEvent): void => {
-    if (e.pointerType !== 'touch' || !this.touches.has(e.pointerId)) return;
-    this.touches.set(e.pointerId, this.canvasPoint(e));
-    if (this.pinch && this.touches.size === 2) this.updatePinch();
-  };
-
-  private onCanvasPointerUp = (e: PointerEvent): void => {
-    if (e.pointerType !== 'touch') return;
-    this.touches.delete(e.pointerId);
-    if (this.touches.size < 2) this.pinch = null;
-  };
-
-  // 2本の指の距離と中点を覚え、配線などの途中の操作と背景のドラッグを取り消す
-  private startPinch(): void {
-    const [a, b] = [...this.touches.values()];
-    this.endPan();
-    this.clearPress();
-    this.resetTip();
-    this.wireFrom = null;
-    this.hover = null;
-    useGameStore.getState().cancelWire();
-    this.pinch = { dist: distOf(a, b), mid: midOf(a, b) };
-    this.drawObjects();
-  }
-
-  private updatePinch(): void {
-    const pinch = this.pinch;
-    if (!pinch) return;
-    const [a, b] = [...this.touches.values()];
-    const dist = distOf(a, b);
-    const mid = midOf(a, b);
-    if (dist >= 1 && dist > pinch.dist * PINCH_STEP_RATIO) {
-      this.zoomBy(1, mid);
-      pinch.dist = dist;
-    } else if (dist >= 1 && dist * PINCH_STEP_RATIO < pinch.dist) {
-      this.zoomBy(-1, mid);
-      pinch.dist = dist;
-    }
-    this.panBy(mid.x - pinch.mid.x, mid.y - pinch.mid.y);
-    pinch.mid = mid;
-  }
-
-  // 背景のドラッグを始める。immediate なら即座に動き出し、そうでなければ長押しのあとに動き出す
-  private beginPan(e: FederatedPointerEvent, immediate: boolean): void {
-    this.beginPanAt({ x: e.global.x, y: e.global.y }, immediate);
-  }
-
-  // 画面の座標の位置（at）から背景のドラッグを始める
-  private beginPanAt(at: Point, immediate: boolean): void {
-    this.endPan();
-    const pan: { last: Point; active: boolean; timer: number | null } = {
-      last: at,
-      active: immediate,
-      timer: null,
-    };
-    if (!immediate) {
-      pan.timer = window.setTimeout(() => {
-        pan.timer = null;
-        if (this.pan === pan) pan.active = true;
-      }, PAN_LONG_PRESS_MS);
-    }
-    this.pan = pan;
-  }
-
-  private endPan(): void {
-    if (this.pan?.timer != null) window.clearTimeout(this.pan.timer);
-    this.pan = null;
-  }
-
-  // 背景のドラッグ中は動かす。動き出す前は、基準の位置だけを更新する。動かしたときは true
-  private movePan(e: FederatedPointerEvent): boolean {
-    const pan = this.pan;
-    if (!pan) return false;
-    const p = { x: e.global.x, y: e.global.y };
-    if (pan.active) this.panBy(p.x - pan.last.x, p.y - pan.last.y);
-    pan.last = p;
-    return pan.active;
-  }
 
   // 押した位置が背景か（機器・家具・ケーブル・社員のない場所。マップの外の余白を含む）
   private isBackground(p: Point, tile: { tx: number; ty: number } | null): boolean {
@@ -1429,7 +1208,7 @@ export class Scene {
   // ドット絵の吹き出し（角丸は使わない）。頭（headTop）の上に置き、マップの中に収める。文字は 12 px、最大幅 160 px で折り返す。
   // 枠と尾は画面の 1 px 単位で描き、倍率にかかわらず画面上で同じ大きさにする
   private drawSpeech(message: string, cx: number, headTop: number): void {
-    const map = this.mapSize();
+    const map = this.cam.mapSize();
     const u = 1 / this.content.scale.x;
     const pad = 4 * u;
     const text = new Text({
@@ -1590,9 +1369,7 @@ export class Scene {
   }
 
   private toMapAt(global: Point): { x: number; y: number } {
-    const cam = this.camera;
-    if (!cam) return { x: 0, y: 0 };
-    return screenToMap(global, cam);
+    return this.cam.toMapAt(global);
   }
 
   // 機器を編集できる対象の機器（自社オフィス、または設計中の案件）。編集できなければ null
@@ -1757,11 +1534,11 @@ export class Scene {
 
   private onDown = (e: FederatedPointerEvent): void => {
     // 指が2本のときはピンチが扱う
-    if (this.touches.size >= 2) return;
+    if (this.cam.multiTouch) return;
     if (e.pointerType === 'touch') this.startTouchTip(e);
     // 中ボタンのドラッグは、どの道具でも動かす
     if (e.button === 1) {
-      this.beginPan(e, true);
+      this.cam.beginPan({ x: e.global.x, y: e.global.y }, true);
       return;
     }
     const store = useGameStore.getState();
@@ -1777,7 +1554,7 @@ export class Scene {
     }
     const tile = this.tileOf(p);
     // 背景は、長押しのあとにドラッグで動かす。選択の道具では、そのままドラッグで動かす
-    if (e.button === 0 && !store.placing && this.isBackground(p, tile)) this.beginPan(e, store.tool === 'select' || e.pointerType === 'touch');
+    if (e.button === 0 && !store.placing && this.isBackground(p, tile)) this.cam.beginPan({ x: e.global.x, y: e.global.y }, store.tool === 'select' || e.pointerType === 'touch');
     if (!tile) return;
     // 選択の道具で社員を押すと、社員の札を開く（機器を編集できない状態でも開ける）
     const staffUid = store.tool === 'select' && e.button !== 2 && !store.placing ? staffAt(this.officeStaffHits(), p) : undefined;
@@ -1879,7 +1656,7 @@ export class Scene {
   // 機器の横にポートの一覧を出す。位置は画面の座標（マップの拡大率と配置を反映する）
   private openMenuAt(node: NetNode): void {
     const ts = this.tileSize();
-    const cam = this.camera;
+    const cam = this.cam.current;
     if (!cam) return;
     const at = { x: cam.x + (node.x * ts + ts) * cam.zoom, y: cam.y + (node.y * ts + ts / 2) * cam.zoom };
     const rect = this.app.canvas.getBoundingClientRect();
@@ -1924,8 +1701,8 @@ export class Scene {
       if (press.hold) {
         if (Math.hypot(e.clientX - press.x0, e.clientY - press.y0) < TOUCH_PAN_PX) return true;
         this.clearPress();
-        this.beginPanAt(press.g0, true);
-        this.movePan(e);
+        this.cam.beginPan(press.g0, true);
+        this.cam.movePan({ x: e.global.x, y: e.global.y });
         return true;
       }
       if (!isDragMove(press.x0, press.y0, e.clientX, e.clientY)) return true;
@@ -2014,7 +1791,7 @@ export class Scene {
 
   // 画面の座標（クライアントの座標）のマス。マップの外なら null
   private tileAtClient(clientX: number, clientY: number): { tx: number; ty: number } | null {
-    const cam = this.camera;
+    const cam = this.cam.current;
     if (!cam) return null;
     const rect = this.app.canvas.getBoundingClientRect();
     return this.tileOf(screenToMap({ x: clientX - rect.left, y: clientY - rect.top }, cam));
@@ -2091,8 +1868,8 @@ export class Scene {
   }
 
   private onMove = (e: FederatedPointerEvent): void => {
-    if (this.touches.size >= 2) return;
-    if (this.movePan(e)) return;
+    if (this.cam.multiTouch) return;
+    if (this.cam.movePan({ x: e.global.x, y: e.global.y })) return;
     if (this.pressMove(e)) return;
     if (e.pointerType !== 'touch') this.updateTip(e);
     const p = this.toMap(e);
@@ -2158,7 +1935,7 @@ export class Scene {
 
   private onUp = (e: FederatedPointerEvent): void => {
     if (e.pointerType === 'touch') this.endTouchTip();
-    this.endPan();
+    this.cam.endPan();
     if (this.press) {
       this.finishPress();
       return;
@@ -2181,7 +1958,7 @@ export class Scene {
   };
 
   private dropWire = (): void => {
-    this.endPan();
+    this.cam.endPan();
     this.clearPress();
     this.wireFrom = null;
     this.hover = null;
@@ -2261,8 +2038,6 @@ const mixColor = (color: number, target: number, amount: number): number => {
 const brighten = (color: number): number => mixColor(color, 0xffffff, 0.5);
 
 // 2点の距離（ピンチ）と中点（canvas の座標）
-const distOf = (a: Point, b: Point): number => Math.hypot(a.x - b.x, a.y - b.y);
-const midOf = (a: Point, b: Point): Point => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 
 // 配線の中点（社員が作業する位置）
 const midpoint = (link: NetLink, ts: number): Point => {
