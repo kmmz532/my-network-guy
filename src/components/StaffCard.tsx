@@ -78,7 +78,7 @@ export function StaffBody({ uid, onTraining }: { uid: string; onTraining: () => 
       <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 10px', margin: 0 }}>
         <dt style={label}>{t('ui.staff.card.certs')}</dt>
         <dd style={{ margin: 0 }}>
-          {member.certs.length > 0 ? member.certs.map((id) => tDyn(`cert.${id}.name`)).join('、') : t('ui.staff.card.none')}
+          <CertChips certs={member.certs} />
         </dd>
         <dt style={label}>{t('ui.staff.card.status')}</dt>
         <dd style={{ margin: 0 }}>{statusText(status)}</dd>
@@ -104,13 +104,27 @@ export function StaffBody({ uid, onTraining }: { uid: string; onTraining: () => 
       </dl>
       <div style={{ fontStyle: 'italic', opacity: 0.9 }}>{tDyn(`staff.quirk.${member.quirk}`)}</div>
       <div>
-        <button style={{ padding: '4px 12px', cursor: 'pointer' }} onClick={onTraining}>
+        <button style={secondaryButton} onClick={onTraining}>
           {t('ui.staff.card.goto')}
         </button>
       </div>
       <RetireControl uid={uid} />
       <RaiseControl uid={uid} />
     </div>
+  );
+}
+
+// 持っている資格を、金の縁の札で並べる（なければ「なし」）
+export function CertChips({ certs }: { certs: readonly string[] }) {
+  if (certs.length === 0) return <span style={{ opacity: 0.7, fontSize: 12 }}>{t('ui.staff.card.none')}</span>;
+  return (
+    <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4 }}>
+      {certs.map((id) => (
+        <span key={id} style={{ padding: '0 6px', fontSize: 12, color: '#ffd866', border: '1px solid #ffd866', background: '#3b2a33', borderRadius: RADIUS.none, whiteSpace: 'nowrap' }}>
+          {tDyn(`cert.${id}.name`)}
+        </span>
+      ))}
+    </span>
   );
 }
 

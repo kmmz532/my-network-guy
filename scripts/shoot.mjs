@@ -258,6 +258,25 @@ const scenes = {
     await page.keyboard.press('h');
     await page.waitForTimeout(500);
   },
+  // 自社の情報の画面（社員・資金・外部への接続の要約と、各画面を開く入口）
+  company: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => window.__game.getState().openWindow('company', ''));
+    await page.waitForTimeout(500);
+  },
+  // 採用の画面の社員のタブ（資格の札・研修・受験できる資格）。1人目に資格を持たせ、level を上げて受験できる資格を出す
+  stafftraining: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      const staff = g.getState().staff.map((m, i) => (i === 0 ? { ...m, job: 'network', level: 8, certs: ['net1'] } : m));
+      g.setState({ staff });
+      g.getState().openWindow('staff', staff[0].uid);
+    });
+    await page.waitForTimeout(300);
+    await page.getByRole('button', { name: '研修/資格へ' }).first().click();
+    await page.waitForTimeout(500);
+  },
   // 社員の詳細（退職の操作を含む）。採用から間もない社員は、退職を伝えられない理由を出す
   staffdetail: async (page) => {
     await scenes.career(page);

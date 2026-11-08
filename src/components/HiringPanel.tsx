@@ -19,6 +19,7 @@ import { Modal, primaryButton, secondaryButton } from './Modal';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { RADIUS } from '../ui/theme';
 import { Select } from './Select';
+import { CertChips } from './StaffCard';
 
 export type HiringTab = 'hiring' | 'staff';
 
@@ -154,7 +155,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
   );
 }
 
-// 社員の一覧。研修と資格の受験を行う
+// 社員の一覧。研修と資格の受験を行う。1人ずつ、持っている資格・研修・受験できる資格（費用と合格率）・次に受験できる資格を分けて出す
 function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
   const staff = useGameStore((s) => s.staff);
   const money = useGameStore((s) => s.clock.money);
@@ -164,51 +165,70 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
   const yen = (n: number) => n.toLocaleString('ja-JP');
   const courses = Object.values(training);
   const examList = Object.values(certs);
+  const small = { ...secondaryButton, padding: '2px 8px', fontSize: 12 } as const;
+  const label = { fontSize: 12, color: 'rgba(244, 241, 230, 0.7)', marginTop: 6 } as const;
   return (
     <>
       {staff.map((s) => {
         const onProject = busy.has(s.uid);
         const locked = s.training !== null || onProject;
+        const jobExams = examList.filter((c) => c.job === s.job && !s.certs.includes(c.id));
+        const ready = jobExams.filter((c) => s.level >= c.minLevel);
+        const upcoming = jobExams.filter((c) => s.level < c.minLevel).sort((x, y) => x.minLevel - y.minLevel)[0];
         return (
-          <div key={s.uid} style={{ background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}>
-            <div style={{ fontWeight: 'bold' }}>
-              {tDyn(s.name)}{' '}
-              <span style={{ fontWeight: 'normal', fontSize: 12 }}>
-                {tDyn(`staff.job.${s.job}`)} · {t('ui.staff.level', { level: s.level })}
+          <div key={s.uid} style={{ background: '#1b2f57', border: '1px solid #3b2a33', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+              <span style={{ fontWeight: 'bold' }}>
+                {tDyn(s.name)}{' '}
+                <span style={{ fontWeight: 'normal', fontSize: 12 }}>
+                  {tDyn(`staff.job.${s.job}`)} · {t('ui.staff.level', { level: s.level })}
+                </span>
               </span>
+              {locked && <span style={{ fontSize: 12, color: '#ffd866', whiteSpace: 'nowrap' }}>{s.training ? t('ui.training.busy') : t('ui.training.onProject')}</span>}
             </div>
-            <div style={{ fontSize: 12, opacity: 0.85 }}>
-              {s.training ? t('ui.training.busy') : onProject ? t('ui.training.onProject') : ''}
-              {s.certs.length > 0 && ` · ${s.certs.map((id) => tDyn(`cert.${id}.name`)).join('、')}`}
+            <div style={{ marginTop: 4 }}>
+              <CertChips certs={s.certs} />
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+            <div style={label}>{t('ui.training.label')}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
               {courses.map((c) => (
-                <Tooltip text={t('ui.training.info', { cost: yen(c.cost), days: c.days, exp: c.exp })} key={c.id}><button aria-label={t('ui.training.info', { cost: yen(c.cost), days: c.days, exp: c.exp })} style={{ padding: '2px 8px', cursor: 'pointer', fontSize: 12 }}
-                  disabled={locked || money < c.cost}
-                  
-                  onClick={() => {
-                    const reason = startTraining(s.uid, c.id);
-                    onMessage(reason ? reasonText(reason) : t('ui.training.started'));
-                  }}
-                >
-                  {tDyn(`training.${c.id}.name`)}（{yen(c.cost)}円・{c.days}日）
-                </button></Tooltip>
+                <Tooltip text={t('ui.training.info', { cost: yen(c.cost), days: c.days, exp: c.exp })} key={c.id}>
+                  <button
+                    aria-label={t('ui.training.info', { cost: yen(c.cost), days: c.days, exp: c.exp })}
+                    style={small}
+                    disabled={locked || money < c.cost}
+                    onClick={() => {
+                      const reason = startTraining(s.uid, c.id);
+                      onMessage(reason ? reasonText(reason) : t('ui.training.started'));
+                    }}
+                  >
+                    {tDyn(`training.${c.id}.name`)}（{yen(c.cost)}円・{c.days}日）
+                  </button>
+                </Tooltip>
               ))}
-              {examList
-                .filter((c) => c.job === s.job && s.level >= c.minLevel && !s.certs.includes(c.id))
-                .map((c) => (
-                  <Tooltip text={t('ui.exam.info', { rate: Math.round(examPassRate(s.level, c.minLevel, balance) * 100) })} key={c.id}><button aria-label={t('ui.exam.info', { rate: Math.round(examPassRate(s.level, c.minLevel, balance) * 100) })} style={{ padding: '2px 8px', cursor: 'pointer', fontSize: 12 }}
+            </div>
+            <div style={label}>{t('ui.exam.label')}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
+              {ready.length === 0 && <span style={{ fontSize: 12, opacity: 0.7 }}>{t('ui.exam.none')}</span>}
+              {ready.map((c) => {
+                const rate = Math.round(examPassRate(s.level, c.minLevel, balance) * 100);
+                const text = t('ui.exam.button', { name: tDyn(`cert.${c.id}.name`), fee: yen(c.fee), rate });
+                return (
+                  <button
+                    key={c.id}
+                    style={small}
                     disabled={locked || money < c.fee}
-                    
                     onClick={() => {
                       const reason = takeExam(s.uid, c.id);
                       onMessage(reason ? reasonText(reason) : t('ui.exam.done'));
                     }}
                   >
-                    {t('ui.exam.start')}：{tDyn(`cert.${c.id}.name`)}
-                  </button></Tooltip>
-                ))}
+                    {text}
+                  </button>
+                );
+              })}
             </div>
+            {upcoming && <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{t('ui.exam.next', { name: tDyn(`cert.${upcoming.id}.name`), level: upcoming.minLevel })}</div>}
           </div>
         );
       })}

@@ -80,6 +80,15 @@
         color: inherit;
         letter-spacing: inherit;
       }
+      /* style を指定しないボタンの既定の見た目。文字の色を継ぐため、ブラウザ標準の白い背景のままだと白地に白い文字になる。画面と同じ紺の箱にする（各部品の style が優先する） */
+      button {
+        background: #25406f;
+        border: 1px solid #3b2a33;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default !important;
+      }
       /* ブラウザ標準の部品の見た目（iOS の角丸・影）を消す。見た目は各部品の style で決める */
       button,
       input:not([type='checkbox']):not([type='radio']),
