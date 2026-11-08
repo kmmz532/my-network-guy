@@ -1,7 +1,9 @@
 // 検収結果の失敗表示と、修正方法の吹き出しを描く。
 import { Container, Graphics, Text } from 'pixi.js';
 import { t, tDyn } from '../i18n/t';
+import { focusedProject, useGameStore } from '../stores/useGameStore';
 import type { FailureReason, NetNode } from '../network/types';
+import type { Project } from '../sim/project';
 
 const OUTLINE = 0x3b2a33;
 const FAIL = 0xe84a4a;
@@ -19,6 +21,24 @@ export class FailureRenderer {
   readonly helpRects = new Map<string, { x: number; y: number; w: number; h: number }>();
 
   constructor(private readonly options: FailureRendererOptions) {}
+
+  failuresOf(project: Project): Map<string, FailureReason> {
+    const byNode = new Map<string, FailureReason>();
+    const state = useGameStore.getState();
+    const check = state.check;
+    if (!check || check.projectId !== project.id || project.phase !== 'design' || (!focusedProject(state) && state.mode !== 'sandbox')) return byNode;
+    for (const goal of check.goals) {
+      for (const failure of goal.failures) if (!byNode.has(failure.node)) byNode.set(failure.node, failure.reason);
+    }
+    return byNode;
+  }
+
+  helpAt(point: { x: number; y: number }): string | undefined {
+    for (const [uid, rect] of this.helpRects) {
+      if (point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h) return uid;
+    }
+    return undefined;
+  }
 
   draw(project: { nodes: readonly NetNode[] }, ts: number, byNode: ReadonlyMap<string, FailureReason>): void {
     this.helpRects.clear();

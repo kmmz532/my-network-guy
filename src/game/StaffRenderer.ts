@@ -11,6 +11,7 @@ import { useGameStore } from '../stores/useGameStore';
 import type { Facing } from '../sim/facing';
 import type { Project } from '../sim/project';
 import type { Point } from './animation';
+import type { SpeechRenderer } from './SpeechRenderer';
 
 // 施工中の社員の立つ位置（作業場所からのずれ。マス単位。左・右・下・上の順）
 const BUILD_SLOTS: [number, number][] = [[-0.56, 0], [0.06, 0], [-0.25, 0.5], [-0.25, -0.5]];
@@ -26,7 +27,7 @@ type StaffRendererOptions = {
   elapsed: () => number;
   scale: () => number;
   staffMotion: OfficeStaffMotion;
-  drawSpeech: (message: string, cx: number, headTop: number) => void;
+  speech: SpeechRenderer;
 };
 
 export class StaffRenderer {
@@ -53,7 +54,7 @@ export class StaffRenderer {
       this.drawStaff(at.x, at.y, member.look, member, desk.facing ?? 'up');
       const seconds = elapsed / 1000 + k * 23;
       if (seconds % 60 < 3) {
-        this.options.drawSpeech(tDyn(`staff.quirk.${member.quirk}`), at.x + STAFF_W / 2, at.y);
+        this.options.speech.draw(tDyn(`staff.quirk.${member.quirk}`), at.x + STAFF_W / 2, at.y);
       }
     });
   }

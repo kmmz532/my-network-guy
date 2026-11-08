@@ -20,7 +20,7 @@ import { colorOfLink, networkColors, type NetworkColors } from '../network/netCo
 import type { Compiled, IssueDetail } from '../network/compile';
 import { balance } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
-import type { FailureReason, NetNode } from '../network/types';
+import type { NetNode } from '../network/types';
 import { CAP as WALL_CAP, drawTileMap } from './TileMap';
 import { bindMapCommands } from './mapControl';
 import { addKeyLayer, captureKeys } from '../input/keyRouter';
@@ -43,6 +43,7 @@ import { NetworkRenderer, PACKET_COUNT, PACKET_SPACING_TILES, PACKET_TILES_PER_S
 import { EffectRenderer, FLASH_MS } from './EffectRenderer';
 import { InteractionRenderer } from './InteractionRenderer';
 import { FailureRenderer } from './FailureRenderer';
+import { SpeechRenderer } from './SpeechRenderer';
 
 // Scene 自身が描く拡張ボタン・吹き出し・配線操作表示で共用する輪郭色。
 const OUTLINE = 0x3b2a33;
@@ -113,6 +114,7 @@ export class Scene {
   private effectRenderer: EffectRenderer;
   private interactionRenderer: InteractionRenderer;
   private failureRenderer: FailureRenderer;
+  private speechRenderer: SpeechRenderer;
 
   constructor(private app: Application) {
     const base = { app, content: this.content, map: () => this.map, tileSize: () => this.tileSize() };
@@ -126,12 +128,18 @@ export class Scene {
       tip: this.tip,
       project: () => this.project(),
       staffHits: () => this.officeStaffHits(),
-      helpAt: (p) => this.helpAt(p),
+      helpAt: (p) => this.failureRenderer.helpAt(p),
       redraw: () => this.drawObjects(),
     });
     this.furnitureRenderer = new FurnitureRenderer({
       sprites: this.sprites,
       hoverFurnitureUid: () => this.input.hoverFurnUid,
+    });
+    this.speechRenderer = new SpeechRenderer({
+      bubbles: this.bubbles,
+      mapSize: () => this.cam.mapSize(),
+      scale: () => this.content.scale.x,
+      textResolution: () => this.textResolution(),
     });
     this.staffRenderer = new StaffRenderer({
       sprites: this.sprites,
@@ -140,7 +148,7 @@ export class Scene {
       elapsed: () => this.elapsed,
       scale: () => this.content.scale.x,
       staffMotion: this.staffMotion,
-      drawSpeech: (message, cx, headTop) => this.drawSpeech(message, cx, headTop),
+      speech: this.speechRenderer,
     });
     this.deviceRenderer = new DeviceRenderer({
       background: this.bg,
@@ -620,7 +628,7 @@ export class Scene {
     }
 
     // 失敗の表示があるときは、その機器のIPの表示を出さない（重なるため）
-    const failing = this.failureNodes(project);
+    const failing = this.failureRenderer.failuresOf(project);
     if (s.showIp) {
       this.deviceLabelRenderer.drawAddresses(ts, failing);
       this.deviceLabelRenderer.drawPortNames(project, ts);
@@ -684,27 +692,6 @@ export class Scene {
   // 疎通テストの経路と、パケットの粒。失敗した地点で止まり「×」を出す
   // テストと検収の失敗を、失敗した機器の上に「×」と理由の文で出す。「？」を押すと直し方を出す。
   // 機器ごとに最初の失敗だけを出す（経路が描けない失敗も出す）
-  // 失敗の表示を出す機器（uid → 理由）。設計中の案件の検査結果だけ。機器ごとに最初の失敗
-  private failureNodes(project: Project): Map<string, FailureReason> {
-    const byNode = new Map<string, FailureReason>();
-    const s = useGameStore.getState();
-    const check = s.check;
-    // 案件の設計中、またはサンドボックスの自社オフィス（projectId は hq）の結果を出す
-    if (!check || check.projectId !== project.id || project.phase !== 'design' || (!focusedProject(s) && s.mode !== 'sandbox')) return byNode;
-    for (const goal of check.goals) {
-      for (const f of goal.failures) if (!byNode.has(f.node)) byNode.set(f.node, f.reason);
-    }
-    return byNode;
-  }
-
-  // 押した位置が失敗の「？」なら、その機器の uid を返す（マップの座標）
-  private helpAt(p: { x: number; y: number }): string | undefined {
-    for (const [uid, r] of this.failureRenderer.helpRects) {
-      if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h) return uid;
-    }
-    return undefined;
-  }
-
   private tileSize(): number {
     return this.map?.tileSize ?? 32;
   }
@@ -712,40 +699,6 @@ export class Scene {
   // 文字の解像度（拡大率と画面の密度に合わせ、にじませない）
   private textResolution(): number {
     return Math.max(2, this.content.scale.x * (window.devicePixelRatio || 1));
-  }
-
-  // ドット絵の吹き出し（角丸は使わない）。頭（headTop）の上に置き、マップの中に収める。文字は 12 px、最大幅 160 px で折り返す。
-  // 枠と尾は画面の 1 px 単位で描き、倍率にかかわらず画面上で同じ大きさにする
-  private drawSpeech(message: string, cx: number, headTop: number): void {
-    const map = this.cam.mapSize();
-    const u = 1 / this.content.scale.x;
-    const pad = 4 * u;
-    const text = new Text({
-      text: message,
-      style: { fontFamily: 'sans-serif', fontSize: 12 * u, fill: OUTLINE, align: 'center', wordWrap: true, wordWrapWidth: 160 * u },
-      resolution: this.textResolution(),
-    });
-    const w = text.width + pad * 2;
-    const h = text.height + pad * 2;
-    // 地（尾の先端は頭の少し上）。マップの外に出るときは内側へずらす
-    const left = Math.min(Math.max(cx - w / 2, 0), Math.max(0, map.w - w));
-    const top = Math.max(0, headTop - 4 * u - h);
-    const tailX = Math.min(Math.max(cx, left + 4 * u), left + w - 4 * u);
-    const tailY = top + h + u;
-    const box = new Graphics();
-    // 外枠は角を1 px欠いた形（角の先を立てない）。中の面も同じく角を欠く
-    box.rect(left - u, top, w + 2 * u, h).fill(OUTLINE);
-    box.rect(left, top - u, w, h + 2 * u).fill(OUTLINE);
-    // 吹き出しの地はクリーム色。角を欠いた外枠の内側に敷く。
-    box.rect(left, top + u, w, h - 2 * u).fill(BUBBLE_FILL);
-    box.rect(left + u, top, w - 2 * u, h).fill(BUBBLE_FILL);
-    // 尾（下へ細くなる）
-    box.rect(tailX - 2 * u, tailY, 4 * u, u).fill(OUTLINE);
-    box.rect(tailX - u, tailY + u, 2 * u, u).fill(OUTLINE);
-    this.bubbles.addChild(box);
-    text.anchor.set(0, 0);
-    text.position.set(left + pad, top + pad);
-    this.bubbles.addChild(text);
   }
 
   private flashActive(): boolean {
