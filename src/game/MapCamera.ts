@@ -14,6 +14,7 @@ const ZOOM_EDGE = 12;
 const TOOLBAR_H = 56;
 const TOOLBAR_H_PHONE = 84;
 // サンドボックスを開いたときの倍率の下限
+// サンドボックスを開いたとき（全体表示より大きい倍率）。
 const SANDBOX_OPEN_ZOOM = 2;
 // 背景を長押ししてから動き出すまでの時間（ms）
 const PAN_LONG_PRESS_MS = 300;

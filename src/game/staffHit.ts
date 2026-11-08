@@ -4,7 +4,7 @@
 // 社員のスプライトの大きさ（マップの座標。画面の拡大率では割らない）
 export const STAFF_W = 16;
 export const STAFF_H = 24;
-// 社員のコマ送りの間隔（ms）。打鍵の揺れは2コマで1周期
+// 社員のコマ送りの間隔（ms）。ART.md の 4〜8 fps 相当。打鍵の揺れは2コマで1周期。
 export const STAFF_FRAME_MS = 150;
 
 // 席の社員の上端。机のマス（dx, dy）の1マス下。tap は打鍵の揺れ（0 か 1）

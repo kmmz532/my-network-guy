@@ -9,7 +9,13 @@ import { spriteOf, texture } from './sprites';
 import { tDyn } from '../i18n/t';
 import { useGameStore } from '../stores/useGameStore';
 import type { Facing } from '../sim/facing';
+import type { Project } from '../sim/project';
+import type { Point } from './animation';
 
+// 施工中の社員の立つ位置（作業場所からのずれ。マス単位。左・右・下・上の順）
+const BUILD_SLOTS: [number, number][] = [[-0.56, 0], [0.06, 0], [-0.25, 0.5], [-0.25, -0.5]];
+
+// 社員のスプライト（16×24）の足元（上端からの位置）。
 const STAFF_FOOT = 23;
 const OUTLINE = 0x3b2a33;
 
@@ -62,8 +68,39 @@ export class StaffRenderer {
     });
   }
 
+  drawBuilding(project: Project, ts: number): void {
+    const pending: Point[] = [];
+    for (const node of project.nodes) {
+      if (!project.built.nodes.includes(node.uid)) pending.push({ x: node.x * ts + ts / 2, y: node.y * ts + ts / 2 });
+    }
+    for (const link of project.links) {
+      if (!project.built.links.includes(link.uid)) {
+        const first = link.path[0];
+        const last = link.path[link.path.length - 1];
+        pending.push({ x: ((first[0] + last[0]) / 2) * ts + ts / 2, y: ((first[1] + last[1]) / 2) * ts + ts / 2 });
+      }
+    }
+    const fraction = project.total > 0 ? Math.min(1, project.progress / project.total) : 1;
+    const index = pending.length === 0 ? 0 : Math.min(pending.length - 1, Math.floor(fraction * pending.length));
+    const bob = Math.floor(this.options.elapsed() / STAFF_FRAME_MS) % 2;
+    const staffList = useGameStore.getState().staff;
+    const used = new Map<number, number>();
+    project.crew.forEach((uid, k) => {
+      const member = staffList.find((candidate) => candidate.uid === uid);
+      if (!member) throw new Error(`施工中の担当の社員がいない: ${uid}`);
+      if (pending.length === 0) return;
+      const spot = Math.min(pending.length - 1, index + k);
+      const slot = used.get(spot) ?? 0;
+      used.set(spot, slot + 1);
+      const at = pending[spot];
+      const [dx, dy] = BUILD_SLOTS[slot % BUILD_SLOTS.length];
+      this.drawStaff(at.x + dx * ts, at.y - 24 - bob + dy * ts, member.look, member);
+    });
+  }
+
   drawStaff(x: number, y: number, shirt: string, tag?: { name: string; job: string }, facing?: Facing): void {
     const frame = Math.floor(this.options.elapsed() / (STAFF_FRAME_MS * 2)) % 2;
+    // 社員のスプライトは服の色で区別し、staffSpriteName で絵を選ぶ。
     const tex = texture(spriteOf(`staff/${staffSpriteName(shirt)}_${frame}`));
     if (!tex) return;
     const sprite = new Sprite(tex);

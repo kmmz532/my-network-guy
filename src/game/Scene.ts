@@ -20,7 +20,7 @@ import { colorOfLink, networkColors, type NetworkColors } from '../network/netCo
 import type { Compiled, IssueDetail } from '../network/compile';
 import { balance } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
-import type { FailureReason, NetLink, NetNode } from '../network/types';
+import type { FailureReason, NetNode } from '../network/types';
 import { CAP as WALL_CAP, drawTileMap } from './TileMap';
 import { bindMapCommands } from './mapControl';
 import { addKeyLayer, captureKeys } from '../input/keyRouter';
@@ -39,44 +39,28 @@ import { DeviceRenderer } from './DeviceRenderer';
 import { FurnitureRenderer } from './FurnitureRenderer';
 import { DESK_TOP, DEVICE_FOOT_INSET, isPcOnlyDevice } from './deviceRules';
 import { DeviceLabelRenderer } from './DeviceLabelRenderer';
-import { NetworkRenderer } from './NetworkRenderer';
-import { EffectRenderer } from './EffectRenderer';
+import { NetworkRenderer, PACKET_COUNT, PACKET_SPACING_TILES, PACKET_TILES_PER_SEC } from './NetworkRenderer';
+import { EffectRenderer, FLASH_MS } from './EffectRenderer';
 import { InteractionRenderer } from './InteractionRenderer';
+import { FailureRenderer } from './FailureRenderer';
 
+// Scene 自身が描く拡張ボタン・吹き出し・配線操作表示で共用する輪郭色。
 const OUTLINE = 0x3b2a33;
+// 配線を引く途中の線と、選択状態の表示に使う色。
 const SELECT = 0xffd866;
+// 機器の設定不備を示す「？」の表示色。
 const WARN = 0xffcc33;
-const FAIL = 0xe84a4a;
-// プロトコルごとのパケットの色（ART.md）
-// 社員のスプライト（2人を服の色で区別する）
-// 社員のコマ送りの間隔（ms）。ART.md の 4〜8 fps 相当
-// サンドボックスを開いたとき（全体表示より大きい倍率）
-// 椅子つきの机の ID と、椅子の絵・マスの下端からの位置（B10）
-// 施工中の社員の立つ位置（作業場所からのずれ。マス単位。左・右・下・上の順。N108）
-// 時刻による色の重ね（N75）の大きさ（地図の外まで覆う。マス・画素の単位）
+// 時刻による色の重ね（N75）の大きさ（地図の外まで覆う。マス・画素の単位）。
 const OVERLAY_EXTENT = 20000;
-const BUILD_SLOTS: [number, number][] = [[-0.56, 0], [0.06, 0], [-0.25, 0.5], [-0.25, -0.5]];
-// 向きごとの椅子の位置のずれ（マス単位）。社員の背中側に椅子を置く（N95）
-// 失敗の吹き出しを出しておく時間（ms）
-const FLASH_MS = 2500;
-// つながった瞬間に、ケーブルの上を光が走る時間（ms）
-// 失敗の瞬間の揺れと赤い輪の時間（ms）
-// パケットの速さ（タイル/秒）と、粒の間隔（タイル）。粒の数は3つまで
-const PACKET_TILES_PER_SEC = 3;
-const PACKET_SPACING_TILES = 0.5;
-const PACKET_COUNT = 3;
-// 機器のスプライト（24×40）の足元は、タイルの下端から何 px 上か。足元のY座標で前後を決める
-// 社員のスプライト（16×24）の足元（上端からの位置）
-// 撤去の道具で、マウスを乗せた対象を赤みがかった明るさにする
-const HOT_RED = 0xff6b6b;
-// 吹き出しの地（クリーム色）
+// Scene 内の社員の吹き出しと部屋拡張ボタンの地色。
 const BUBBLE_FILL = 0xf4f1e6;
-// 部屋を広げるボタン（「+」）の大きさは1マスの半分、文字は同じマスの0.75倍。通常は半透明で、マウスを乗せたときだけはっきり出す
+// 撤去の道具で、マウスを乗せた配線を赤みがかった明るさにする。
+const HOT_RED = 0xff6b6b;
+// 部屋を広げるボタン（「+」）の大きさと表示倍率。通常は半透明で、マウスを乗せたときだけはっきり出す。
 const EXPAND_BUTTON_RATIO = 0.5;
 const EXPAND_LABEL_RATIO = 0.75;
 const EXPAND_IDLE_ALPHA = 0.45;
 const EXPAND_SIDES: readonly ExpandSide[] = ['right', 'bottom', 'left'];
-
 
 export class Scene {
   private content = new Container();
@@ -107,7 +91,6 @@ export class Scene {
   // ケーブルの色（ネットワークアドレスごと）。表示だけに使う
   private netColors: NetworkColors | null = null;
   // 失敗の「？」の押せる範囲（機器の uid → マップの座標の矩形）。描き直すたびに作る
-  private helpRects = new Map<string, { x: number; y: number; w: number; h: number }>();
   private unsubscribe: () => void;
   // 自社オフィスの部屋を広げるボタン（右・下・左の辺の外側）。描き直さず、位置と表示だけを更新する
   private expandButtons = new Map<ExpandSide, Container>();
@@ -129,6 +112,7 @@ export class Scene {
   private networkRenderer: NetworkRenderer;
   private effectRenderer: EffectRenderer;
   private interactionRenderer: InteractionRenderer;
+  private failureRenderer: FailureRenderer;
 
   constructor(private app: Application) {
     const base = { app, content: this.content, map: () => this.map, tileSize: () => this.tileSize() };
@@ -196,6 +180,13 @@ export class Scene {
       input: this.input,
       hit: this.hit,
       scale: () => this.content.scale.x,
+    });
+    this.failureRenderer = new FailureRenderer({
+      bubbles: this.bubbles,
+      spriteTopOf: (node, ts) => this.spriteTopOf(node, ts),
+      scale: () => this.content.scale.x,
+      textResolution: () => this.textResolution(),
+      helpUid: () => useGameStore.getState().helpUid,
     });
     // インベントリの欄（DOM）から、マスの判定と品目を置けるかを使えるようにする
     setMapView({ tileAtClient: (x, y) => this.hit.tileAtClient(x, y), canPlace: (id, tx, ty) => this.input.canPlace(id, tx, ty) });
@@ -424,6 +415,7 @@ export class Scene {
       body.clear();
       // 角は少しだけ丸める。半径と線の太さは整数にして、角の丸みが歪んで見えないようにする
       const radius = Math.round(size / 8);
+      // 部屋を広げるボタン（「+」）は1マスの半分。吹き出しと同じクリーム色を使う。
       body.roundRect(0, 0, size, size, radius).fill(BUBBLE_FILL).stroke({ width: 2, color: OUTLINE, alignment: 0 });
       const label = box.getChildAt(1) as Text;
       label.style.fontSize = size * EXPAND_LABEL_RATIO;
@@ -452,6 +444,7 @@ export class Scene {
     const key = `${toHex(tint)}|${map.id}|${ts}`;
     if (key !== this.tintKey) {
       this.tintKey = key;
+      // 時刻による色の重ね（N75）は地図の外まで覆う。
       this.dayOverlay.clear().rect(-OVERLAY_EXTENT, -OVERLAY_EXTENT, 2 * OVERLAY_EXTENT, 2 * OVERLAY_EXTENT).fill(toHex(tint));
     }
     this.nightLights.clear();
@@ -632,13 +625,13 @@ export class Scene {
       this.deviceLabelRenderer.drawAddresses(ts, failing);
       this.deviceLabelRenderer.drawPortNames(project, ts);
     }
-    if (building) this.drawBuilding(project, ts);
+    if (building) this.staffRenderer.drawBuilding(project, ts);
     else if (this.map?.id === 'hq' && !s.showcase) {
       this.staffRenderer.drawDeskStaff(ts);
       this.staffRenderer.drawWanderers(ts);
     }
     for (const trace of this.traces) this.networkRenderer.drawTrace(trace, ts, this.realElapsed, this.traceStart);
-    this.drawFailures(project, ts, failing);
+    this.failureRenderer.draw(project, ts, failing);
     this.interactionRenderer.drawPlugMarks(ts);
     this.effectRenderer.drawHover(project, ts);
     this.networkRenderer.drawWireless(project, ts, frontDeviceUid(s));
@@ -678,37 +671,6 @@ export class Scene {
     );
   }
 
-  // 施工中の社員と進捗バー。施工前の機器と配線を順に回る
-  private drawBuilding(project: Project, ts: number): void {
-    const pending: Point[] = [];
-    for (const n of project.nodes) {
-      if (!project.built.nodes.includes(n.uid)) pending.push({ x: n.x * ts + ts / 2, y: n.y * ts + ts / 2 });
-    }
-    for (const l of project.links) {
-      if (!project.built.links.includes(l.uid)) pending.push(midpoint(l, ts));
-    }
-    const fraction = project.total > 0 ? Math.min(1, project.progress / project.total) : 1;
-    const index = pending.length === 0 ? 0 : Math.min(pending.length - 1, Math.floor(fraction * pending.length));
-    // 担当の社員を全員描く（担当の順。N108）。足踏みのコマで上下に揺れる。同じ作業場所に重なるときは、左・右・下の順にずらす
-    const bob = Math.floor(this.elapsed / STAFF_FRAME_MS) % 2;
-    const staffList = useGameStore.getState().staff;
-    const used = new Map<number, number>();
-    project.crew.forEach((uid, k) => {
-      const member = staffList.find((m) => m.uid === uid);
-      // 担当が社員の一覧にないのは、状態の誤り（予備の絵で描かない）
-      if (!member) throw new Error(`施工中の担当の社員がいない: ${uid}`);
-      if (pending.length === 0) return;
-      const spot = Math.min(pending.length - 1, index + k);
-      const n = used.get(spot) ?? 0;
-      used.set(spot, n + 1);
-      const at = pending[spot];
-      const [dx, dy] = BUILD_SLOTS[n % BUILD_SLOTS.length];
-      this.staffRenderer.drawStaff(at.x + dx * ts, at.y - 24 - bob + dy * ts, member.look, member);
-    });
-
-    // 施工の進み具合は、ツールバーの帯（Toolbar.tsx）だけに出す。マップの下端には描かない（B13。パソコンも1本にそろえる）
-  }
-
   // 社員のスプライト（16×24 px）。2コマで足踏みする
   // tag があれば、頭の上に名札（名前と職種）を出す。社員の名前が分からないときは出さない
   // 社員の絵。向きが左・右のときは、今の絵を左右に反転する（前向きの絵はまだないため。N95）
@@ -735,65 +697,9 @@ export class Scene {
     return byNode;
   }
 
-  private drawFailures(project: Project, ts: number, byNode: ReadonlyMap<string, FailureReason>): void {
-    this.helpRects.clear();
-    const s = useGameStore.getState();
-    if (byNode.size === 0) return;
-    const scale = this.content.scale.x;
-    const resolution = this.textResolution();
-    // 画面上で 12 px の文字。縁取りは細く、背景は付けない
-    const style = (fill: number, bold: boolean) => ({
-      fontFamily: 'sans-serif',
-      fontSize: 12 / scale,
-      fontWeight: bold ? ('bold' as const) : ('normal' as const),
-      fill,
-      stroke: { color: OUTLINE, width: 2 / scale },
-    });
-    const gap = 3 / scale;
-    for (const [uid, reason] of byNode) {
-      const node = project.nodes.find((n) => n.uid === uid);
-      if (!node) continue;
-      const mark = new Text({ text: '×', style: style(FAIL, true), resolution });
-      const message = new Text({ text: tDyn(`error.${reason}`), style: style(0xf4f1e6, false), resolution });
-      const help = new Text({ text: t('ui.fail.help'), style: style(SELECT, true), resolution });
-      const parts = [mark, message, help];
-      const width = parts.reduce((sum, part) => sum + part.width, 0) + gap * (parts.length - 1);
-      // 機器の上端に置く（IPアドレスの表示は出さない）
-      const bottom = this.spriteTopOf(node, ts) + 4 - gap;
-      const cx = node.x * ts + ts / 2;
-      let x = cx - width / 2;
-      for (const part of parts) {
-        part.anchor.set(0, 1);
-        part.position.set(x, bottom);
-        this.bubbles.addChild(part);
-        x += part.width + gap;
-      }
-      this.helpRects.set(uid, {
-        x: help.x - gap,
-        y: bottom - help.height - gap,
-        w: help.width + gap * 2,
-        h: help.height + gap * 2,
-      });
-      // 「？」を押して開いたときは、直し方を機器の上に出す（2〜3行）
-      if (s.helpUid === uid) {
-        const fix = new Text({ text: tDyn(`error.${reason}.fix`), style: style(0xf4f1e6, false), resolution });
-        const pad = 4 / scale;
-        const boxW = fix.width + pad * 2;
-        const boxH = fix.height + pad * 2;
-        const boxX = cx - boxW / 2;
-        const boxY = bottom - help.height - gap * 2 - boxH;
-        const box = new Graphics().roundRect(boxX, boxY, boxW, boxH, 3 / scale).fill({ color: OUTLINE, alpha: 0.92 });
-        this.bubbles.addChild(box);
-        fix.anchor.set(0, 0);
-        fix.position.set(boxX + pad, boxY + pad);
-        this.bubbles.addChild(fix);
-      }
-    }
-  }
-
   // 押した位置が失敗の「？」なら、その機器の uid を返す（マップの座標）
   private helpAt(p: { x: number; y: number }): string | undefined {
-    for (const [uid, r] of this.helpRects) {
+    for (const [uid, r] of this.failureRenderer.helpRects) {
       if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h) return uid;
     }
     return undefined;
@@ -830,6 +736,7 @@ export class Scene {
     // 外枠は角を1 px欠いた形（角の先を立てない）。中の面も同じく角を欠く
     box.rect(left - u, top, w + 2 * u, h).fill(OUTLINE);
     box.rect(left, top - u, w, h + 2 * u).fill(OUTLINE);
+    // 吹き出しの地はクリーム色。角を欠いた外枠の内側に敷く。
     box.rect(left, top + u, w, h - 2 * u).fill(BUBBLE_FILL);
     box.rect(left + u, top, w - 2 * u, h).fill(BUBBLE_FILL);
     // 尾（下へ細くなる）
@@ -863,10 +770,3 @@ const mixColor = (color: number, target: number, amount: number): number => {
 const brighten = (color: number): number => mixColor(color, 0xffffff, 0.5);
 
 // 2点の距離（ピンチ）と中点（canvas の座標）
-
-// 配線の中点（社員が作業する位置）
-const midpoint = (link: NetLink, ts: number): Point => {
-  const a = link.path[0];
-  const b = link.path[link.path.length - 1];
-  return { x: ((a[0] + b[0]) / 2) * ts + ts / 2, y: ((a[1] + b[1]) / 2) * ts + ts / 2 };
-};

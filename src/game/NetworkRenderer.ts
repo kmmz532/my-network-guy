@@ -8,10 +8,13 @@ import type { EngineData } from '../network/types';
 import { cumulativeLengths, pointAt, type Point } from './animation';
 import type { Project } from '../sim/project';
 
+// つながった瞬間に、ケーブルの上を光が走る時間（ms）。
 const PULSE_MS = 450;
-const PACKET_TILES_PER_SEC = 3;
-const PACKET_SPACING_TILES = 0.5;
-const PACKET_COUNT = 3;
+// パケットの速さ（タイル/秒）と、粒の間隔（タイル）。粒の数は3つまで。
+export const PACKET_TILES_PER_SEC = 3;
+export const PACKET_SPACING_TILES = 0.5;
+export const PACKET_COUNT = 3;
+// プロトコルごとのパケットの色（ART.md）。
 const PACKET_COLOR: Record<string, number> = { ping: 0xffffff, http: 0xff8fb0 };
 
 type NetworkRendererOptions = {

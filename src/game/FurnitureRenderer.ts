@@ -8,9 +8,11 @@ import { spriteOf, texture } from './sprites';
 import type { PlacedFurniture } from '../sim/project';
 
 const FACING_SPRITES = new Set(['furniture/desk', 'furniture/chair']);
+// 椅子つきの机の ID と、椅子の絵・マスの下端からの位置
 const CHAIR_FURNITURE = new Set(['desk']);
 const CHAIR_SPRITE = 'furniture/chair';
 const CHAIR_TOP_INSET = 4;
+// 向きごとの椅子の位置のずれ（マス単位）。社員の背中側に椅子を置く
 const CHAIR_OFFSET: Record<Facing, [number, number]> = {
   up: [0, 0],
   down: [0, -0.6],

@@ -10,8 +10,10 @@ import { tDyn } from '../i18n/t';
 const OUTLINE = 0x3b2a33;
 const FAIL = 0xe84a4a;
 const SELECT = 0xffd866;
-const FLASH_MS = 2500;
-const SHAKE_MS = 320;
+// 失敗の吹き出しを出しておく時間（ms）。
+export const FLASH_MS = 2500;
+// 失敗の瞬間の揺れと赤い輪の時間（ms）。
+export const SHAKE_MS = 320;
 
 type EffectRendererOptions = {
   graphics: Graphics;
