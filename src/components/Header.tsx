@@ -1,4 +1,5 @@
-import { RefObject } from "react";
+import { RefObject, useEffect, useState } from "react";
+import { useSaveSession } from "../services/saveSession";
 import { Icon } from "./Icon";
 import { ExpGauge, LevelMark } from "./CompanyPanel";
 import { Speed, useGameStore } from "../stores/useGameStore";
@@ -27,7 +28,20 @@ const hudButton = (on: boolean, phone: boolean) => ({
     borderRadius: RADIUS.chrome,
   }) as const;
 
-const Header = ({ headerRef, saveMark, setPopup }: { headerRef: RefObject<HTMLElement>, saveMark: number | null, setPopup: (popup: 'menu') => void }) => {
+// 自動保存の印（ヘッダーの小さなアイコン）は、この時間で消す
+const SAVE_MARK_MS = 1000;
+
+const Header = ({ headerRef, setPopup }: { headerRef: RefObject<HTMLElement>, setPopup: (popup: 'menu') => void }) => {
+
+    // 自動保存が終わった時刻から、印を出している間だけ値を持つ
+    const savedAt = useSaveSession((s) => s.savedAt);
+    const [saveMark, setSaveMark] = useState<number | null>(null);
+    useEffect(() => {
+        if (savedAt === null) return;
+        setSaveMark(savedAt);
+        const timer = window.setTimeout(() => setSaveMark(null), SAVE_MARK_MS);
+        return () => window.clearTimeout(timer);
+    }, [savedAt]);
 
     const openWindow = useGameStore((s) => s.openWindow);
     const sandbox = useGameStore((s) => s.mode === 'sandbox');

@@ -54,6 +54,10 @@ export function createSaveSession(deps: SaveSessionDeps) {
     open(slot: number | null) {
       view.setState({ slot, savedAt: null, failed: false });
     },
+    // 保存の失敗を知らせたあとに呼ぶ
+    acknowledgeFailure() {
+      view.setState({ failed: false });
+    },
     // メニューの「保存」。倒産した後は保存せず false を返す
     save: writeNow,
     autoSave,

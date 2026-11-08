@@ -6,12 +6,11 @@ import { loadLang, t } from './i18n/t';
 import { PixiStage } from './game/PixiStage';
 import { useGameStore, type Speed } from './stores/useGameStore';
 import { useTickLoop } from './stores/useTickLoop';
-import { toDate } from './sim/clock';
 import { deleteSlot, listCompanies, moveLegacySlots, saveSlot } from './services/db';
+import { saveSession, useSaveSession } from './services/saveSession';
 import { CompanyScreen, type CompanyView } from './components/CompanyScreen';
 import { copyNameOf, freeSlotOf, isNameTaken, isValidCompanyName, suggestCompanyName, uniqueNameFrom, type CompanySave } from './services/companies';
 import type { GameMode, SaveData } from './services/migrations';
-import { createSaveQueue, isAutoSaveDue } from './services/autoSave';
 import { exportSave, importSave } from './services/saveFile';
 import { NoticeToast, ReportModal } from './components/Overlay';
 import { FocusSwitch } from './components/FocusSwitch';
@@ -41,8 +40,6 @@ import Header from './components/Header';
 
 // 速さを変えたときに画面上部に出す表示は、この時間で消す
 const SPEED_NOTE_MS = 1000;
-// 自動保存の印（ヘッダーの小さなアイコン）は、この時間で消す
-const SAVE_MARK_MS = 1000;
 
 type Screen = 'title' | 'game';
 type Popup = 'menu' | 'help' | 'settings' | 'sandboxResize' | 'sandboxReset' | 'sandboxResetConfirm' | null;
@@ -66,12 +63,9 @@ export function App() {
   // 速さを変えたときの短い表示（1秒で消す）
   const [speedNote, setSpeedNote] = useState<{ speed: Speed; id: number } | null>(null);
   const lastSpeed = useRef(speed);
-  // 自動保存の印を出している間だけ値を持つ（自動保存が終わった時刻）
-  const [saveMark, setSaveMark] = useState<number | null>(null);
-  // 今遊んでいる会社の枠（経営もサンドボックスも、その会社の枠へ保存する・N133）
-  const slotRef = useRef<number | null>(null);
-  // 同じ枠（会社）の別のタブを見つけるための、今開いている枠（画面の表示にも使う・N133）
-  const [activeSlot, setActiveSlot] = useState<number | null>(null);
+  // 今遊んでいる会社の枠（経営もサンドボックスも、その会社の枠へ保存する・N133）。同じ枠の別のタブを見つけるためにも使う
+  const activeSlot = useSaveSession((s) => s.slot);
+  const saveFailed = useSaveSession((s) => s.failed);
   // 会社（セーブの枠）の画面。タイトル画面の上に出す（N132・N133）
   const [companyView, setCompanyView] = useState<CompanyView | null>(null);
   const [companyMode, setCompanyMode] = useState<GameMode>('career');
@@ -79,24 +73,7 @@ export function App() {
   const [companyNotice, setCompanyNotice] = useState('');
   // 枠が全部埋まっているときに読み込んだ会社（上書きする枠を選んでから入れる）
   const [pendingImport, setPendingImport] = useState<SaveData | null>(null);
-  // 自動保存の直列化。実行中に次の要求が来たら、終わってから1回だけ書く（書く内容は実行時点の状態）
-  const [autoSaver] = useState(() =>
-    createSaveQueue(async () => {
-      // 倒産した後の状態は保存しない（倒産の前の保存を残し、読み込みで倒産の前からやり直せるようにする）
-      if (useGameStore.getState().clock.bankrupt) return;
-      try {
-        const data = useGameStore.getState().snapshot();
-        // 今遊んでいる会社の枠に保存する（会社ごとの枠なので、ほかの会社を壊さない）
-        if (slotRef.current !== null) await saveSlot(slotRef.current, data);
-        setSaveMark(Date.now());
-      } catch {
-        // 保存できなかったときは印を出さない。保存の失敗は知らせる（黙って続けない・N133）
-        setMessage(t('ui.save.failed'));
-      }
-    }),
-  );
   const load = useGameStore((s) => s.load);
-  const snapshot = useGameStore((s) => s.snapshot);
   const newGame = useGameStore((s) => s.newGame);
   const renameCompany = useGameStore((s) => s.renameCompany);
   const newSandbox = useGameStore((s) => s.newSandbox);
@@ -172,45 +149,15 @@ export function App() {
     Promise.all([loadLang('ja_jp'), ...maps, moveLegacySlots()]).then(() => setReady(true), (e: unknown) => setLoadError(e ?? new Error('読み込みに失敗')));
   }, []);
 
+  // 自動保存に失敗したときは知らせる（黙って続けない・N133）
   useEffect(() => {
-    if (!saveMark) return;
-    const timer = window.setTimeout(() => setSaveMark(null), SAVE_MARK_MS);
-    return () => window.clearTimeout(timer);
-  }, [saveMark]);
+    if (!saveFailed) return;
+    setMessage(t('ui.save.failed'));
+    saveSession.acknowledgeFailure();
+  }, [saveFailed]);
 
-  // 設定が「しない」のときは保存しない。保存の判定は、その時点の設定で行う
-  const autoSaveNow = () => {
-    if (loadSettings().autoSave !== 'off') void autoSaver();
-  };
-
-  // 設定の間隔で、ゲーム内の朝0時を越えたら保存する（時間が戻った読み込みでは保存しない）
-  const lastMinute = useRef(clock.minute);
-  useEffect(() => {
-    const prev = lastMinute.current;
-    lastMinute.current = clock.minute;
-    if (screen === 'game' && isAutoSaveDue(loadSettings().autoSave, prev, clock.minute)) autoSaveNow();
-  }, [clock.minute]);
-
-  // 案件を納品したとき（検収に通った報告が届いたとき）に保存する
-  const lastReport = useGameStore((s) => s.lastReport);
-  useEffect(() => {
-    if (screen === 'game' && lastReport?.passed) autoSaveNow();
-  }, [lastReport]);
-
-  // ページを隠すとき・閉じるときに保存する
-  useEffect(() => {
-    if (screen !== 'game') return;
-    const onVisibility = () => {
-      if (document.visibilityState === 'hidden') autoSaveNow();
-    };
-    const onPageHide = () => autoSaveNow();
-    document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('pagehide', onPageHide);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('pagehide', onPageHide);
-    };
-  }, [screen]);
+  // ゲームの画面にいる間、自動保存の契機を見張る
+  useEffect(() => (screen === 'game' ? saveSession.watch() : undefined), [screen]);
 
   if (loadError) throw loadError;
   if (!ready) return null;
@@ -236,8 +183,7 @@ export function App() {
   // 会社を開いて遊ぶ（その会社の枠に保存し続ける）
   const playSave = (save: CompanySave) => {
     load(save.data);
-    slotRef.current = save.slot;
-    setActiveSlot(save.slot);
+    saveSession.open(save.slot);
     setCompanyView(null);
     startGame();
   };
@@ -294,9 +240,8 @@ export function App() {
     const trimmed = name.trim();
     if (companyMode === 'career') newGame(trimmed);
     else renameCompany(trimmed);
-    slotRef.current = slot;
-    setActiveSlot(slot);
-    await saveSlot(slot, snapshot());
+    saveSession.open(slot);
+    await saveSession.save();
     setCompanyView(null);
     startGame();
   };
@@ -418,20 +363,15 @@ export function App() {
       </>
     );
 
-  const date = toDate(clock.minute, balance);
-
   const onSave = async () => {
     // 倒産した後は保存しない（倒産の前の保存を上書きしない）
-    if (useGameStore.getState().clock.bankrupt) return;
-    const data = snapshot();
-    if (slotRef.current !== null) await saveSlot(slotRef.current, data);
-    setMessage(t('ui.save.done'));
+    if (await saveSession.save()) setMessage(t('ui.save.done'));
   };
 
   const onExport = () => {
-    // 倒産した後の状態は書き出さない
-    if (useGameStore.getState().clock.bankrupt) return;
-    const blob = new Blob([exportSave(snapshot())], { type: 'application/json' });
+    const text = saveSession.exportText();
+    if (text === null) return;
+    const blob = new Blob([text], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'my-network-guy-save.json';
@@ -441,7 +381,7 @@ export function App() {
 
   const onImport = async (file: File) => {
     try {
-      load(importSave(await file.text()));
+      saveSession.importText(await file.text());
       setMessage(t('ui.import.done'));
     } catch (e) {
       setMessage(t('ui.import.failed', { reason: (e as Error).message }));
@@ -455,7 +395,7 @@ export function App() {
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       <TabConflict slot={activeSlot} />
       <PixiStage inventoryOpen={inventoryOpen} />
-      <Header headerRef={headerRef} saveMark={saveMark} setPopup={setPopup} />
+      <Header headerRef={headerRef} setPopup={setPopup} />
       {/* 左上の列: 切り替えのボタンと案件の欄を縦に並べる（位置の数値を部品に持たせない・N121）。狭い画面では、列をヘッダーの下に置く（ヘッダーの高さは zoom を掛けた画面の座標なので、上端は倍率で割って渡す） */}
       <div style={{ position: 'absolute', top: phone ? (hudBottom + 6) / loadSettings().uiScale : 44, left: 8, zIndex: 5, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
         <FocusSwitch />
@@ -509,7 +449,7 @@ export function App() {
               setPopup(null);
               setSpeed(0);
               setScreen('title');
-              setActiveSlot(null);
+              saveSession.open(null);
             }}
           >
             {t('ui.title.back')}
