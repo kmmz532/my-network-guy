@@ -7,15 +7,20 @@ import { suggestCompanyName, type CompanySave } from '../../services/companies';
 import { copyCompany, dbSlotStore, deleteCompany, importCompany, overwriteCompany, renameCompany } from '../../services/companySlots';
 import { exportSave, importSave } from '../../services/saveFile';
 import { saveSession } from '../../services/saveSession';
-import { useGameStore } from '../../stores/useGameStore';
+import { Speed, useGameStore } from '../../stores/useGameStore';
 import { initialTitleState, titleReducer } from '../../ui/titleFlow';
 import { SandboxSizePanel } from '../SandboxSizePanel';
 import { keyRouter } from '../../input/keyRouter';
 import { SaveSlotDialog } from './SaveSlotDialog';
 import { TitleScreen } from './TitleScreen';
+import { loadSettings } from '../../settings/settings';
+import { isSpeedUnlocked } from '../../sim/speed';
+import { levelOf } from '../../sim/level';
+import { balance } from 'virtual:game-data';
+import { useSceneStore } from '../../stores/useSceneStore';
 
 // 会社を開いて遊ぶ・新しく始めるとき、ゲームの場面へ移る
-export function TitleScene({ onEnter, opening }: { onEnter: () => void; opening?: 'newCareer' }) {
+const TitleScene = ({ opening }: { opening?: 'newCareer' }) => {
   const [state, dispatch] = useReducer(titleReducer, initialTitleState);
   const { panel, mode, saves, notice, message, pendingImport } = state;
 
@@ -35,6 +40,18 @@ export function TitleScene({ onEnter, opening }: { onEnter: () => void; opening?
   const onNewHere = () => {
     if (mode === 'sandbox') dispatch({ type: 'openSandboxSize' });
     else void onNew();
+  };
+
+  // ゲームの場面へ移る（タイトルで会社を決めたあと）
+  const onEnter = () => {
+    // 保存を、ブラウザが勝手に消さないように頼む（断られても遊べる・N133）
+    void navigator.storage?.persist?.();
+    // 時間を進める初期の速さは設定で決める
+    // 解放されていない速さは、1倍にする（4倍は会社のレベル3で解放される・N99）
+    const wanted = loadSettings().startSpeed;
+    const game = useGameStore.getState();
+    game.setSpeed(isSpeedUnlocked(wanted, levelOf(game.companyExp, balance), balance) ? (wanted as Speed) : 1);
+    useSceneStore.getState().setScene({ kind: 'game' });
   };
 
   // キー入力の受け口。タイトルの場面は、キーの表（ゲームのキー）を使わない
@@ -155,4 +172,6 @@ export function TitleScene({ onEnter, opening }: { onEnter: () => void; opening?
       )}
     </>
   );
-}
+};
+
+export default TitleScene;

@@ -26,6 +26,8 @@ import { UpdateNotice } from '../UpdateNotice';
 import { Windows } from '../Windows';
 import { GamePopups } from './GamePopups';
 import { TopNotices } from './TopNotices';
+import { useUiStore } from '../../stores/useUiStore';
+import { useSceneStore } from '../../stores/useSceneStore';
 
 // デバッグのパネルは ?debug=1 のときだけ読み込む（N54）
 const DebugPanel = lazy(() => import('../DebugPanel'));
@@ -49,11 +51,20 @@ function GameOver({ onRetry }: { onRetry: () => void }) {
 }
 
 // onExit はタイトルへ戻る。opening を渡すと、戻った先で新しく始める流れを開く
-export function GameScene({ onExit }: { onExit: (opening?: 'newCareer') => void }) {
+const GameScene = () => {
   const phone = usePhone();
   // 今遊んでいる会社の枠。同じ枠の別のタブを見つけるために使う（N133）
   const activeSlot = useSaveSession((s) => s.slot);
   const pausedPrompt = useGameStore((s) => s.pausedPrompt);
+
+  // タイトルへ戻る。倒産の「やり直す」は、新しく始める流れを開いて戻る
+  const onExit = (opening?: 'newCareer') => {
+    useUiStore.getState().setPopup(null);
+    useGameStore.getState().setSpeed(0); // タイトルでは時間を停止する
+    saveSession.open(null);
+    useSceneStore.getState().setScene({ kind: 'title', opening });
+  };
+
 
   // ヘッダーの下端（画面の座標）。狭い画面では案件の札と速さの表示を、ヘッダーの下に置く
   const headerRef = useRef<HTMLElement>(null);
@@ -109,4 +120,6 @@ export function GameScene({ onExit }: { onExit: (opening?: 'newCareer') => void 
       <GameOver onRetry={() => onExit('newCareer')} />
     </div>
   );
-}
+};
+
+export default GameScene;
