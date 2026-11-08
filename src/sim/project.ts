@@ -1655,3 +1655,40 @@ export const isPcIn = (env: Env, device: string): boolean => {
   const category = env.devices[device]?.category;
   return category !== undefined && isPcCategory(category);
 };
+
+// 自社オフィスの回線終端。会社のレベルが balance.featureUnlocks.uplink に届くと、置き場所を選んで1つ置ける（費用なし）。
+// 置いた回線終端は既設の機器として扱う（撤去・設定の変更はできない）。位置は balance.office.uplinkMoveCost を支払って変更できる
+export const OFFICE_UPLINK_UID = 'uplink';
+
+export const officeUplinkOf = (office: Office, env: Env): NetNode | undefined =>
+  office.nodes.find((n) => env.devices[n.device]?.category === CATEGORY.uplink);
+
+export const placeOfficeUplink = (core: Core, x: number, y: number, map: GameMap, env: Env, balance: Balance): Outcome => {
+  if (levelOf(core.companyExp, balance) < balance.featureUnlocks.uplink) return fail('uplink.locked');
+  if (officeLocked(core)) return fail('inhouse');
+  if (officeUplinkOf(core.office, env)) return fail('uplink.placed');
+  if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
+  const office = core.office;
+  const reason = officePlaceReason(office.furniture, office.nodes, 'uplink', x, y, map, env);
+  if (reason) return fail(reason);
+  const node: NetNode = { uid: OFFICE_UPLINK_UID, device: 'uplink', x, y, locked: true, configLocked: true, interfaces: [], gateway: null, routes: [], services: [], ports: [] };
+  return { ok: true, core: { ...core, office: { ...office, nodes: [...office.nodes, node] } } };
+};
+
+// 回線終端の位置を変更する。つながるケーブルは moveNode と同じく引き直し、その差額に加えて移設の費用を支払う
+export const moveOfficeUplink = (core: Core, x: number, y: number, map: GameMap, env: Env, balance: Balance): Outcome => {
+  const uplink = officeUplinkOf(core.office, env);
+  if (!uplink) return fail('none');
+  if (x === uplink.x && y === uplink.y) return { ok: true, core };
+  const cost = balance.office.uplinkMoveCost;
+  if (core.clock.money < cost) return fail('money');
+  const setLocked = (c: Core, locked: boolean): Core => ({
+    ...c,
+    office: { ...c.office, nodes: c.office.nodes.map((n) => (n.uid === uplink.uid ? { ...n, locked } : n)) },
+  });
+  const moved = moveNode(setLocked(core, false), uplink.uid, x, y, env, 'office', map);
+  if (!moved.ok) return moved;
+  if (moved.core.clock.money < cost) return fail('money');
+  const next = setLocked(moved.core, true);
+  return { ok: true, core: { ...next, clock: applyMoney(next.clock, -cost, 'construction') } };
+};

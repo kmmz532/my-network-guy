@@ -229,7 +229,7 @@ export const balanceSchema = z.object({
     moneyPower: z.number().positive(),
   }),
   // 機能の解放のレベル（品目ではないもの）
-  featureUnlocks: z.object({ nightShift: unlockLevelSchema, floorChange: unlockLevelSchema }),
+  featureUnlocks: z.object({ nightShift: unlockLevelSchema, floorChange: unlockLevelSchema, uplink: unlockLevelSchema }),
   // 机の上の PC（N102）。PC があると、現場のエンジニアは自習の経験値・施工力が上がり、営業は効果が上がる（PC がなくても働ける職種は、なくても働く）
   deskPc: z.object({ engineerDailyExpRate: z.number().nonnegative(), engineerPowerBonus: z.number().nonnegative(), salesMultiplier: z.number().positive() }),
   // 自社の床の種類（N92）。見た目だけで、費用は1マスあたり。木は最初から使える
@@ -239,6 +239,8 @@ export const balanceSchema = z.object({
     projectSlots: int.positive(),
     // 新しく始めたときの部屋の床の大きさ（マス）
     initialSize: sizeSchema,
+    // 回線終端の位置を変更する費用
+    uplinkMoveCost: nonNegativeInt,
     // 部屋を広げる費用と上限。費用は baseCost から、買うたびに baseCost の increase 倍ずつ増える（直線）。step マスずつ広がる
     expand: z.object({
       baseCost: nonNegativeInt,

@@ -8,7 +8,7 @@ import { outsideCheck, rentalOf } from '../network/external';
 import { gameEnv } from '../sim/env';
 import { printerArrivalBonusOf } from '../sim/backOffice';
 import { floorOfRoom, roomTileCount } from '../sim/office';
-import type { RoomId } from '../sim/project';
+import { officeUplinkOf, type RoomId } from '../sim/project';
 import type { FloorId } from '../data/schema';
 import { Select } from './Select';
 
@@ -22,8 +22,19 @@ export function OfficeBody() {
   // プリンターが営業の依頼に足す確率（N98）
   const printerBonus = useGameStore((s) => printerArrivalBonusOf(s.office, (d) => gameEnv.devices[d]?.category === 'printer', balance));
   const row = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #3b2a33' } as const;
+  const uplink = officeUplinkOf(office, gameEnv);
+  const setPlacing = useGameStore((s) => s.setPlacing);
   return (
     <div style={{ padding: 12, fontSize: 14, color: '#f4f1e6' }}>
+      {/* 回線終端。解放のレベルに届いてから、置き場所を選んで置く。置いた後は有料で位置を変更できる */}
+      {level >= balance.featureUnlocks.uplink && (
+        <div style={row}>
+          <span>{t('ui.company.uplink')}</span>
+          <button type="button" onClick={() => setPlacing('uplink')}>
+            {uplink ? t('ui.company.uplink.move', { cost: balance.office.uplinkMoveCost.toLocaleString('ja-JP') }) : t('ui.company.uplink.place')}
+          </button>
+        </div>
+      )}
       <div style={row}>
         <span>{t('ui.company.outside')}</span>
         <span>{!outside.attached ? t('ui.company.outside.none') : outside.pcsReachOutside ? t('ui.company.outside.ok') : t('ui.company.outside.ng')}</span>

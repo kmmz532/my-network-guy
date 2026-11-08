@@ -71,6 +71,9 @@ import {
   placeDevice,
   removeNode,
   placeInOffice,
+  placeOfficeUplink,
+  moveOfficeUplink,
+  officeUplinkOf,
   removeFromOffice,
   requestBuild,
   setInterface,
@@ -1284,6 +1287,14 @@ export const useGameStore = create<GameState>((set, get) => {
       if (!focusedProject(get())) {
         const hq = get().maps.hq;
         if (!hq) return 'map';
+        // 回線終端は在庫を持たない。まだなければ置き、置いてあれば有料で位置を変更する
+        if (deviceId === 'uplink') {
+          const core = coreOf(get());
+          const op = officeUplinkOf(core.office, gameEnv) ? moveOfficeUplink : placeOfficeUplink;
+          const reason = recorded(() => apply(op(core, x, y, hq, gameEnv, balance), { tx: x, ty: y }));
+          if (reason === null) set({ placing: null });
+          return reason;
+        }
         return recorded(() => apply(placeInOffice(coreOf(get()), deviceId, x, y, hq, gameEnv, get().mode === 'sandbox'), { tx: x, ty: y }));
       }
       const project = focusedProject(get());

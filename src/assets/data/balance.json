@@ -164,6 +164,7 @@
       "w": 5,
       "h": 5
     },
+    "uplinkMoveCost": 50000,
     "expand": {
       "baseCost": 200000,
       "increase": 0.3,
@@ -290,7 +291,8 @@
   },
   "featureUnlocks": {
     "nightShift": 10,
-    "floorChange": 5
+    "floorChange": 5,
+    "uplink": 50
   },
   "deskPc": {
     "engineerDailyExpRate": 0.5,

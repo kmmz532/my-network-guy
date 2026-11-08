@@ -327,8 +327,8 @@ describe('模範解答: 固定案件', () => {
 
   it('i001 自社オフィスのLAN: 机の2台をスイッチにつなぐ（後の i002 でサーバーをつなげるよう、スイッチを置く）', () => {
     const { core } = buildI001(startCore([fixedOffer(i001), fixedOffer(i002)]));
-    // 回線終端（既設）1つと、机の2台とスイッチ1台
-    expect(core.office.nodes.length).toBe(4);
+    // 机の2台とスイッチ1台（回線終端は解放のレベルまで置かない）
+    expect(core.office.nodes.length).toBe(3);
   });
 
   it('i002 自社オフィスのサーバー: i001 の後の自社オフィスに、サーバーを1台つなぐ', () => {
