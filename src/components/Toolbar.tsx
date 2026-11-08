@@ -102,12 +102,11 @@ export function Toolbar() {
   // 依頼とショップは、マップの操作を止めないウィンドウで開く（N40）
   const onOffers = () => useGameStore.getState().toggleWindow('offers', '');
   const onShop = () => useGameStore.getState().toggleWindow('shop', '');
-  // 雇用の画面を開く（閉じる）。候補がいないときは押せない
+  // 雇用の画面を開く（閉じる）。候補がいなくても開ける（社員のタブがあるため）
   const onHire = () => useUiStore.getState().toggleHiring();
   const hiringOpen = useUiStore((s) => s.hiring !== null);
   const inventoryOpen = useInventoryOpen();
   const offers = useGameStore((s) => s.offers);
-  const candidateCount = useGameStore((s) => s.candidates.length);
   // サンドボックスは案件・依頼がなく、テストと設計の操作だけを出す
   const sandbox = useGameStore((s) => s.mode) === 'sandbox';
   const active = useGameStore(focusedProject);
@@ -286,7 +285,7 @@ export function Toolbar() {
             <Icon name="icon/cart" />
           </button>
           {!sandbox && !design && (
-            <button aria-label={t('ui.staff.hire')} style={{ ...sl(hiringOpen), opacity: candidateCount > 0 ? 1 : 0.4 }} disabled={candidateCount === 0} onClick={() => { closeInventory(); onHire(); }}>
+            <button aria-label={t('ui.staff.hire')} style={sl(hiringOpen)} onClick={() => { closeInventory(); onHire(); }}>
               <Icon name="icon/person" />
             </button>
           )}
@@ -351,7 +350,7 @@ export function Toolbar() {
       </button></Tooltip>
       {!sandbox && (
         // 候補が0人のときは押せない（半透明）
-        <Tooltip text={t('ui.staff.hire')}><button aria-label={t('ui.staff.hire')} style={{ ...sl(hiringOpen), opacity: candidateCount > 0 ? 1 : 0.4 }} disabled={candidateCount === 0} onClick={() => { closeInventory(); onHire(); }}>
+        <Tooltip text={t('ui.staff.hire')}><button aria-label={t('ui.staff.hire')} style={sl(hiringOpen)} onClick={() => { closeInventory(); onHire(); }}>
           <Icon name="icon/person" />
         </button></Tooltip>
       )}
