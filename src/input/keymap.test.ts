@@ -2,8 +2,9 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { bindMapCommands, PAN_KEY_PX } from '../game/mapControl';
 import { useGameStore } from '../stores/useGameStore';
+import { pushPopup } from './popupStack';
 import { useUiStore } from '../stores/useUiStore';
-import { KEYMAP, handleKey, keyName, keyOfAction, tipText, type KeyInput } from './keymap';
+import { ESCAPE_STEPS, KEYMAP, handleKey, keyName, keyOfAction, tipText, type KeyInput } from './keymap';
 
 const LANG = JSON.parse(readFileSync(`${process.cwd()}/src/assets/lang/ja_jp.json`, 'utf-8')) as Record<string, string>;
 
@@ -154,5 +155,69 @@ describe('Space（一時停止と再開）', () => {
     useGameStore.setState({ speed: 2, resumeSpeed: 2, mode: 'career' });
     useGameStore.getState().setSpeed(0);
     expect(useGameStore.getState().resumeSpeed).toBe(2);
+  });
+});
+
+describe('Esc（手前のものから1つずつ戻す）', () => {
+  const calls: string[] = [];
+  const original = {
+    cancelWire: useGameStore.getState().cancelWire,
+    setHelpUid: useGameStore.getState().setHelpUid,
+    closeTab: useGameStore.getState().closeTab,
+    setTool: useGameStore.getState().setTool,
+  };
+  const esc = () => handleKey({ ...input('Escape'), target: null });
+  // 戻す対象をすべて開いた状態にする。戻す処理は記録だけにする
+  const openEverything = () => {
+    calls.length = 0;
+    useGameStore.setState({
+      wireStart: { uid: 'a', port: null },
+      portMenu: null,
+      helpUid: 'a',
+      tool: 'wire',
+      placing: null,
+      windows: [{ id: 1, kind: 'shop', tabs: [''], active: '', z: 1, x: 0, y: 0, w: 10, h: 10 }],
+      cancelWire: () => void calls.push('wire'),
+      setHelpUid: () => void calls.push('help'),
+      closeTab: () => void calls.push('window'),
+      setTool: () => void calls.push('tool'),
+    });
+  };
+  const restore = () => useGameStore.setState({ ...original, wireStart: null, portMenu: null, helpUid: null, tool: 'select', placing: null, windows: [] });
+
+  it('戻す順序は、配線 → ポップアップ → 失敗の直し方 → ウィンドウ → 道具', () => {
+    expect(ESCAPE_STEPS.map((x) => x.id)).toEqual(['wire', 'popup', 'help', 'window', 'tool']);
+  });
+
+  it('1回押すごとに1つだけ戻し、順に手前のものから戻す', () => {
+    openEverything();
+    const release = pushPopup({ close: () => void calls.push('popup') });
+    // 戻したあとは、戻した対象の状態を片づけて次へ進める
+    expect(esc()).toBe(true);
+    useGameStore.setState({ wireStart: null });
+    expect(esc()).toBe(true);
+    release();
+    expect(esc()).toBe(true);
+    useGameStore.setState({ helpUid: null });
+    expect(esc()).toBe(true);
+    useGameStore.setState({ windows: [] });
+    expect(esc()).toBe(true);
+    expect(calls).toEqual(['wire', 'popup', 'help', 'window', 'tool']);
+    restore();
+  });
+
+  it('閉じられないポップアップがあるときは、奥のものも戻さず、処理しない', () => {
+    openEverything();
+    useGameStore.setState({ wireStart: null });
+    const release = pushPopup({});
+    expect(esc()).toBe(false);
+    expect(calls).toEqual([]);
+    release();
+    restore();
+  });
+
+  it('戻すものがなければ処理しない', () => {
+    restore();
+    expect(esc()).toBe(false);
   });
 });

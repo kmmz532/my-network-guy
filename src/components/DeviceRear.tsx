@@ -1,7 +1,7 @@
 // 機器の画面の「背面」タブ。ポートを番号つきで並べ、各ポートのLED・相手の機器とポート・ケーブルの種類を出す。
 // つながったポートを押すと「外す」「挿し替える」を出す。挿し替えでは、空いているポートを押すと、そこへ挿し替える。
 // つながったポートのプラグをドラッグすると、同じ背面の空きポートへ挿し替える（4 px 未満の動きは押したものとして扱う）。
-import { captureKeys } from '../input/keyRouter';
+import { trackDrag } from '../input/trackDrag';
 import { nodeLabel } from './nodeLabel';
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
@@ -13,7 +13,7 @@ import type { NetLink, NetNode } from '../network/types';
 import { loadSettings } from '../settings/settings';
 import { useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, portLabel } from './devicePorts';
-import { isDragMove, portHoverAt, replugTargetAt, type PortBox, type PortHover } from './rearDrag';
+import { portHoverAt, replugTargetAt, type PortBox, type PortHover } from './rearDrag';
 import { RADIUS } from '../ui/theme';
 import { CATEGORY, isPcCategory } from '../data/categories';
 
@@ -25,18 +25,6 @@ const portsPerRowFor = (ports: number): number => (ports > 8 ? 6 : 8);
 
 // プラグの絵（つながっていれば UTP か光、空いていれば空の差し込み口）
 const plugSlot = (link: NetLink | undefined): string => (!link ? 'rear/port_empty' : link.cable.startsWith('fiber') ? 'rear/port_fiber' : 'rear/port_utp');
-
-// ドラッグの途中の記録（押した位置・つかんだプラグ）。動いたかどうかは moved で分かる
-interface Grab {
-  port: number;
-  linkUid: string;
-  end: End;
-  slot: string;
-  pointerId: number;
-  startX: number;
-  startY: number;
-  moved: boolean;
-}
 
 // 画面に出すドラッグの途中の状態（プラグの絵の位置・いま重なっているポート）
 interface Carry {
@@ -64,7 +52,9 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
   // マウスを乗せているポート（明るく描く）
   const [hover, setHover] = useState<number | null>(null);
   // ドラッグ中の記録と、画面に出すプラグの状態
-  const grab = useRef<Grab | null>(null);
+  // 進行中のドラッグを止める（画面を閉じたとき・別のプラグを押したとき）
+  const stopDrag = useRef<(() => void) | null>(null);
+  useEffect(() => () => stopDrag.current?.(), []);
   const [carry, setCarry] = useState<Carry | null>(null);
   // ドラッグの直後に出る click は無視する（ドラッグしたのに「押した」扱いにしない）
   const ignoreClick = useRef(false);
@@ -84,7 +74,6 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
   // 読み取り専用（施工中・案件の既設の機器など）や挿し替え中は、プラグをドラッグできない
   const grabbable = !readOnly && !active;
   const isUsedPort = (port: number) => linkAt(port) !== undefined;
-  const dragging = carry !== null;
 
   // ドラッグのあとに続く click を1回だけ無視する（click が来なかった場合に備えて、次の処理の後に戻す）
   const skipNextClick = () => {
@@ -93,18 +82,6 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
       ignoreClick.current = false;
     }, 0);
   };
-
-  // ドラッグの途中で Esc が押されたら、ドラッグだけを取り消す（ウィンドウを閉じるなどの Esc の処理には渡さない）
-  useEffect(() => {
-    if (!dragging) return;
-    return captureKeys((e) => {
-      if (e.key !== 'Escape') return false;
-      grab.current = null;
-      setCarry(null);
-      skipNextClick();
-      return true;
-    });
-  }, [dragging]);
 
   const press = (port: number) => {
     if (active) {
@@ -135,54 +112,30 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
     if (!grabbable || !link) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    grab.current = {
-      port: p,
-      linkUid: link.uid,
-      end: link.a.node === node.uid ? 'a' : 'b',
-      slot: plugSlot(link),
+    const slot = plugSlot(link);
+    const end: End = link.a.node === node.uid ? 'a' : 'b';
+    stopDrag.current?.();
+    stopDrag.current = trackDrag({
       pointerId: e.pointerId,
       startX: e.clientX,
       startY: e.clientY,
-      moved: false,
-    };
-  };
-
-  const onPlugMove = (e: PointerEvent<HTMLButtonElement>) => {
-    const g = grab.current;
-    if (!g || e.pointerId !== g.pointerId) return;
-    if (!g.moved) {
-      if (!isDragMove(g.startX, g.startY, e.clientX, e.clientY)) return;
-      g.moved = true;
-    }
-    const over = portHoverAt(e.clientX, e.clientY, portBoxes(), isUsedPort);
-    setCarry({ port: g.port, slot: g.slot, x: e.clientX, y: e.clientY, over });
-  };
-
-  const onPlugUp = (e: PointerEvent<HTMLButtonElement>) => {
-    const g = grab.current;
-    if (!g || e.pointerId !== g.pointerId) return;
-    grab.current = null;
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
-    // 動かさずに離したのは「押した」なので、click に任せる
-    if (!g.moved) return;
-    skipNextClick();
-    setCarry(null);
-    // 空いているポートの上で離したときだけ挿し替える。それ以外は何もせず元に戻す
-    const target = replugTargetAt(e.clientX, e.clientY, portBoxes(), isUsedPort);
-    if (target === null) return;
-    const reason = replug(g.linkUid, g.end, target);
-    onError(reason);
-    if (reason === null) setSelected(target);
-  };
-
-  const onPlugCancel = (e: PointerEvent<HTMLButtonElement>) => {
-    const g = grab.current;
-    if (!g || e.pointerId !== g.pointerId) return;
-    grab.current = null;
-    if (g.moved) {
-      skipNextClick();
-      setCarry(null);
-    }
+      onMove: (x, y) => setCarry({ port: p, slot, x, y, over: portHoverAt(x, y, portBoxes(), isUsedPort) }),
+      // 空いているポートの上で離したときだけ挿し替える。それ以外は何もせず元に戻す
+      onDrop: (x, y) => {
+        const target = replugTargetAt(x, y, portBoxes(), isUsedPort);
+        if (target === null) return;
+        const reason = replug(link.uid, end, target);
+        onError(reason);
+        if (reason === null) setSelected(target);
+      },
+      // 動かさずに離したのは「押した」なので、click に任せる。動かしたあとの click は無視する
+      onEnd: ({ dragged }) => {
+        stopDrag.current = null;
+        if (!dragged) return;
+        skipNextClick();
+        setCarry(null);
+      },
+    });
   };
 
   const selectedLink = selected === null ? undefined : linkAt(selected);
@@ -248,9 +201,6 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
                   press(p);
                 }}
                 onPointerDown={onPlugDown(p)}
-                onPointerMove={onPlugMove}
-                onPointerUp={onPlugUp}
-                onPointerCancel={onPlugCancel}
                 onDragStart={(e) => e.preventDefault()}
                 onMouseEnter={() => setHover(p)}
                 onMouseLeave={() => setHover(null)}

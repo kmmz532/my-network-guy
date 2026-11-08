@@ -302,6 +302,36 @@ const scenes = {
     await page.getByRole('button', { name: 'インベントリ' }).first().click();
     await page.waitForTimeout(500);
   },
+  // インベントリの品目をマップへドラッグして置く。ドラッグの途中の Esc は、置かずに取り消す（外れたら例外）
+  drag: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => window.__game.getState().buy('l2_switch_8p'));
+    await page.getByRole('button', { name: 'インベントリ' }).first().click();
+    await page.waitForTimeout(500);
+    const nodes = () => page.evaluate(() => window.__game.getState().office.nodes.length);
+    const item = page.getByRole('button', { name: 'L2スイッチ（8ポート）' }).first();
+    const from = await item.boundingBox();
+    const sx = from.x + from.width / 2;
+    const sy = from.y + from.height / 2;
+    const canvas = await page.locator('canvas').first().boundingBox();
+    const dx = canvas.x + canvas.width * 0.5;
+    const dy = canvas.y + canvas.height * 0.4;
+    // Esc で取り消す
+    await page.mouse.move(sx, sy);
+    await page.mouse.down();
+    await page.mouse.move(dx, dy, { steps: 8 });
+    await page.keyboard.press('Escape');
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    if ((await nodes()) !== 0) throw new Error('ドラッグ: Esc で取り消せず、置かれた');
+    // 離して置く
+    await page.mouse.move(sx, sy);
+    await page.mouse.down();
+    await page.mouse.move(dx, dy, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    if ((await nodes()) !== 1) throw new Error('ドラッグ: 離しても置かれなかった');
+  },
   // インベントリに多くの品目を入れた状態（折り返しとスクロールの確認）
   inventoryFull: async (page) => {
     await scenes.career(page);

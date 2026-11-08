@@ -1,8 +1,8 @@
 // 背面タブのドラッグ（刺さったプラグを、同じ背面の空きポートへ挿し替える）の判定。
 // DOM には触れず、ポートの位置（画面の座標）と離した位置だけから決める。
 
-// これ未満の動きは「押した」とみなし、ドラッグにしない（外す・挿し替えの選択を出す）
-export const DRAG_THRESHOLD_PX = 4;
+// ドラッグのしきい値（押したか、動かしたかの境）は、ドラッグを追う input/trackDrag.ts が持つ
+export { DRAG_THRESHOLD_PX, isDragMove } from '../input/trackDrag';
 
 // ポートの枠（画面の座標。right・bottom は含まない）
 export interface PortBox {
@@ -12,10 +12,6 @@ export interface PortBox {
   right: number;
   bottom: number;
 }
-
-// 押した位置から現在の位置までの距離が、しきい値以上か
-export const isDragMove = (startX: number, startY: number, x: number, y: number): boolean =>
-  Math.hypot(x - startX, y - startY) >= DRAG_THRESHOLD_PX;
 
 // 点の上にあるポートの状態。空いていれば 'free'、埋まっていれば 'used'、どのポートの上でもなければ null
 export type PortHover = { port: number; state: 'free' | 'used' } | null;

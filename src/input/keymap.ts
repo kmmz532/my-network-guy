@@ -40,33 +40,72 @@ const act =
   (): boolean =>
     fn(useGameStore.getState()) !== false;
 
-// 配線の途中 → ポップアップ → 失敗の直し方 → 一番手前のウィンドウ → 選択の道具、の順に1つずつ戻す
+// Esc で1つずつ戻す順序。手前にあるものから戻し、1つ戻したらそこで終える。
+// closed は戻した、next は戻すものがなく次へ、blocked は戻せないものがあるため何もしない（次へ進まない）
+type EscapeResult = 'closed' | 'next' | 'blocked';
+type GameStateNow = ReturnType<typeof useGameStore.getState>;
+interface EscapeStep {
+  id: string;
+  run: (s: GameStateNow) => EscapeResult;
+}
+
+export const ESCAPE_STEPS: readonly EscapeStep[] = [
+  // 配線の途中（起点とポートの一覧）
+  {
+    id: 'wire',
+    run: (s) => {
+      if (!s.wireStart && !s.portMenu) return 'next';
+      s.cancelWire();
+      return 'closed';
+    },
+  },
+  // 一番上のポップアップ。閉じられないポップアップ（破産の画面など）があるときは、Esc で何もしない
+  {
+    id: 'popup',
+    run: () => {
+      const top = topPopup();
+      if (!top) return 'next';
+      if (!top.close) return 'blocked';
+      top.close();
+      return 'closed';
+    },
+  },
+  // 失敗の直し方
+  {
+    id: 'help',
+    run: (s) => {
+      if (!s.helpUid) return 'next';
+      s.setHelpUid(null);
+      return 'closed';
+    },
+  },
+  // 一番手前のウィンドウの、選ばれているタブを閉じる（最後のタブならウィンドウも閉じる）
+  {
+    id: 'window',
+    run: (s) => {
+      const front = frontWindow(s.windows);
+      if (!front) return 'next';
+      s.closeTab(front.id, front.active);
+      return 'closed';
+    },
+  },
+  // 選択以外の道具・配置中の機材を、選択の道具に戻す
+  {
+    id: 'tool',
+    run: (s) => {
+      if (s.tool === 'select' && !s.placing) return 'next';
+      s.setTool('select');
+      return 'closed';
+    },
+  },
+];
+
 const escape = (): boolean => {
   const s = useGameStore.getState();
-  if (s.wireStart || s.portMenu) {
-    s.cancelWire();
-    return true;
-  }
-  const top = topPopup();
-  if (top) {
-    // 閉じられないポップアップ（破産の画面など）は、Esc で何もしない
-    if (!top.close) return false;
-    top.close();
-    return true;
-  }
-  if (s.helpUid) {
-    s.setHelpUid(null);
-    return true;
-  }
-  // 一番手前のウィンドウの、選ばれているタブを閉じる（最後のタブならウィンドウも閉じる）
-  const front = frontWindow(s.windows);
-  if (front) {
-    s.closeTab(front.id, front.active);
-    return true;
-  }
-  if (s.tool !== 'select' || s.placing) {
-    s.setTool('select');
-    return true;
+  for (const step of ESCAPE_STEPS) {
+    const result = step.run(s);
+    if (result === 'closed') return true;
+    if (result === 'blocked') return false;
   }
   return false;
 };

@@ -8,7 +8,7 @@ import { moveFurniture, placeFurniture } from '../sim/furniture';
 import { gameEnv } from '../sim/env';
 import { coreOf, netTargetOf, viewingOffice, useGameStore, type WireStart } from '../stores/useGameStore';
 import { furniture as furnitureData } from 'virtual:game-data';
-import { isDragMove } from '../components/rearDrag';
+import { isDragMove } from '../input/trackDrag';
 import { cableEndAt, grabsCableEnd, linkAt } from './linkHit';
 import { staffAt, type StaffHit } from './staffHit';
 import type { Point } from './animation';

@@ -1,6 +1,6 @@
 // インベントリ。スマホはツールバーの上に横スクロールの帯（strip）、パソコンはウィンドウの中の格子（grid。InventoryBody）で在庫の品目を並べる。
 // 品目を押すと配置の操作に入る。品目をマウス・ペンでドラッグしてマップの上で離すと、そのマスに置く（置けなければ何もしない）
-import { captureKeys } from '../input/keyRouter';
+import { trackDrag } from '../input/trackDrag';
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { devices as catalogDevices, furniture as catalogFurniture, shop as catalogShop } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
@@ -9,7 +9,6 @@ import { inventoryItems, inventoryMode, type InventoryItem } from '../sim/invent
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { mapViewOf } from '../game/mapView';
 import { useGameStore } from '../stores/useGameStore';
-import { isDragMove } from './rearDrag';
 import { Icon } from './Icon';
 import { ItemIcon } from './ItemIcon';
 import { Tooltip } from './Tooltip';
@@ -175,56 +174,20 @@ export function Inventory({
     if (e.button !== 0) return;
     const touch = e.pointerType === 'touch';
     stopRef.current?.();
-    const startX = e.clientX;
-    const startY = e.clientY;
-    let moved = false;
-
-    let releaseKeys = (): void => undefined;
-    const stop = () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onCancel);
-      releaseKeys();
-      stopRef.current = null;
-      setItemDrag(null);
-    };
-    const onMove = (ev: globalThis.PointerEvent) => {
-      if (!moved) {
-        if (!isDragMove(startX, startY, ev.clientX, ev.clientY)) return;
-        // 指では、横に動かしたら欄のスクロール、上に引き出したらドラッグとして扱う
-        if (touch && Math.abs(ev.clientX - startX) > Math.abs(ev.clientY - startY)) {
-          stop();
-          return;
-        }
-        moved = true;
-      }
-      setItemDrag({ id: item.id, x: ev.clientX, y: ev.clientY });
-    };
-    const onUp = (ev: globalThis.PointerEvent) => {
-      const dragged = moved;
-      stop();
-      if (!dragged) return;
-      suppressClick();
-      dropAt(item.id, ev.clientX, ev.clientY);
-    };
-    const onCancel = () => {
-      const dragged = moved;
-      stop();
-      if (dragged) suppressClick();
-    };
-    // ドラッグの途中の Esc は、ドラッグだけを取り消す（ほかの Esc の処理には渡さない）
-    const onKey = (ev: KeyboardEvent): boolean => {
-      if (ev.key !== 'Escape') return false;
-      const dragged = moved;
-      stop();
-      if (dragged) suppressClick();
-      return true;
-    };
-    stopRef.current = stop;
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-    window.addEventListener('pointercancel', onCancel);
-    releaseKeys = captureKeys(onKey);
+    stopRef.current = trackDrag({
+      startX: e.clientX,
+      startY: e.clientY,
+      // 指では、横に動かしたら欄のスクロール、上に引き出したらドラッグとして扱う
+      decide: (dx, dy) => (touch && Math.abs(dx) > Math.abs(dy) ? 'abort' : 'drag'),
+      onMove: (x, y) => setItemDrag({ id: item.id, x, y }),
+      onDrop: (x, y) => dropAt(item.id, x, y),
+      onEnd: ({ dragged, reason }) => {
+        stopRef.current = null;
+        setItemDrag(null);
+        // ドラッグのあとに続く click は無視する（止められただけのときは、click は来ない）
+        if (dragged && reason !== 'stop') suppressClick();
+      },
+    });
   };
 
   if (items.length === 0) {
