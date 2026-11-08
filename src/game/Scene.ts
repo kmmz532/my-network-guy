@@ -1,7 +1,7 @@
 // キャンバスの描画と操作。マップ・機器・配線・社員・パケットを描き、クリックで配置・選択、ドラッグで配線する。
 // 描画の状態は store から読むだけで、変更は store の操作を通して行う。
-import { Application, Container, Graphics, Sprite, Text, type Ticker } from 'pixi.js';
-import { staffSpriteName, STAFF_PLACEHOLDER_LOOKS, type GameMap } from '../data/schema';
+import { Application, Container, Graphics, Text, type Ticker } from 'pixi.js';
+import { type GameMap } from '../data/schema';
 import { focusedProject, viewingOffice, frontDeviceUid, useGameStore, type Trace } from '../stores/useGameStore';
 import { centerPath, plugPoints } from './linkHit';
 import { portLabel } from '../components/devicePorts';
@@ -11,27 +11,21 @@ import { gameEnv, isPcDevice } from '../sim/env';
 import { engineWithWalls } from '../sim/walls';
 import { WALL_LOSS, WIRELESS_RADIUS, wallsBetween, wirelessAssociations, withWireless } from '../network/engine';
 import type { EngineData } from '../network/types';
-import { seatedStaff, unseatedStaff } from '../sim/furniture';
-import { spriteNameOf, type Facing } from '../sim/facing';
+import { type Facing } from '../sim/facing';
 import { dayTintOf, nightnessOf, toHex, type Rgb } from '../sim/dayTint';
 import { loadSettings } from '../settings/settings';
 
 // 向きの絵がある家具（机・椅子）。向きに合わせて絵を切り替える（N95）
-const FACING_SPRITES = new Set(['furniture/desk', 'furniture/chair']);
-// 向きに合わせて絵を変える機器（PC は机と同じ向きにする・N95）
-const FACING_DEVICE_SPRITES = new Set(['device/pc_basic']);
-
 // PC のうち、机の上にしか置けないもの（deskable でない PC。N91）
 const isPcOnlyDevice = (device: string): boolean => isPcDevice(device) && gameEnv.devices[device]?.deskable !== true;
 import { furnitureOf } from '../contracts/layout';
 import { expandActionOf, expansionLocked, officeExpandCostOf, type ExpandSide } from '../sim/office';
 import { levelOf } from '../sim/level';
-import { compiledNet, isDeskFurniture, type PlacedFurniture, type Project } from '../sim/project';
+import { compiledNet, isDeskFurniture, type Project } from '../sim/project';
 import { colorOfLink, networkColors, type NetworkColors } from '../network/netColor';
 import type { Compiled, IssueDetail } from '../network/compile';
-import { spriteOf, texture, visibleTopOfSprite } from './sprites';
-import { balance, devices as deviceData, furniture as furnitureData } from 'virtual:game-data';
-import type { FurnitureId } from '../generated/ids';
+import { visibleTopOfSprite } from './sprites';
+import { balance, devices as deviceData } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import type { FailureReason, NetLink, NetNode } from '../network/types';
 import { CAP as WALL_CAP, drawTileMap } from './TileMap';
@@ -42,11 +36,16 @@ import { MapHit } from './MapHit';
 import { MapInput, PRESS_MS } from './MapInput';
 import { MapTip } from './MapTip';
 import { OfficeStaffMotion, isDesk } from './OfficeStaffMotion';
+import { seatedStaff } from '../sim/furniture';
 import { cumulativeLengths, pointAt, type Point } from './animation';
 import { minutesPerDay as dayMinutes } from '../sim/clock';
 import { metersOf } from '../sim/cableLength';
-import { deskStaffPos, deskTap, STAFF_W, wanderStaffPos, type StaffHit } from './staffHit';
-import { CATEGORY, isPcCategory } from '../data/categories';
+import { type StaffHit } from './staffHit';
+import { StaffRenderer } from './StaffRenderer';
+import { STAFF_FRAME_MS } from './staffHit';
+import { DeviceRenderer } from './DeviceRenderer';
+import { CATEGORY } from '../data/categories';
+import { FurnitureRenderer } from './FurnitureRenderer';
 
 
 const OUTLINE = 0x3b2a33;
@@ -60,18 +59,13 @@ const PACKET_COLOR: Record<string, number> = {
 };
 // 社員のスプライト（2人を服の色で区別する）
 // 社員のコマ送りの間隔（ms）。ART.md の 4〜8 fps 相当
-const FRAME_MS = 150;
 // サンドボックスを開いたとき（全体表示より大きい倍率）
 // 椅子つきの机の ID と、椅子の絵・マスの下端からの位置（B10）
-const CHAIR_FURNITURE = new Set(['desk']);
-const CHAIR_SPRITE = 'furniture/chair';
-const CHAIR_TOP_INSET = 4;
 // 施工中の社員の立つ位置（作業場所からのずれ。マス単位。左・右・下・上の順。N108）
 // 時刻による色の重ね（N75）の大きさ（地図の外まで覆う。マス・画素の単位）
 const OVERLAY_EXTENT = 20000;
 const BUILD_SLOTS: [number, number][] = [[-0.56, 0], [0.06, 0], [-0.25, 0.5], [-0.25, -0.5]];
 // 向きごとの椅子の位置のずれ（マス単位）。社員の背中側に椅子を置く（N95）
-const CHAIR_OFFSET: Record<Facing, [number, number]> = { up: [0, 0], down: [0, -0.6], left: [0.3, 0], right: [-0.3, 0] };
 // 失敗の吹き出しを出しておく時間（ms）
 const FLASH_MS = 2500;
 // つながった瞬間に、ケーブルの上を光が走る時間（ms）
@@ -87,10 +81,8 @@ const DEVICE_FOOT_INSET = 4;
 // PCを載せる位置（天板の中ほど。タイル上端からの距離。furniture/desk.png に合わせる）
 const DESK_TOP = 18;
 // 社員のスプライト（16×24）の足元（上端からの位置）
-const STAFF_FOOT = 23;
 // 撤去の道具で、マウスを乗せた対象を赤みがかった明るさにする
 const HOT_RED = 0xff6b6b;
-const REMOVE_TINT = 0xffb0b0;
 // 吹き出しの地（クリーム色）
 const BUBBLE_FILL = 0xf4f1e6;
 // 部屋を広げるボタン（「+」）の大きさは1マスの半分、文字は同じマスの0.75倍。通常は半透明で、マウスを乗せたときだけはっきり出す
@@ -143,6 +135,9 @@ export class Scene {
   private releaseRotateKey: () => void;
   // 自社オフィスの社員の動き（出勤・休憩・歩き回り）
   private staffMotion = new OfficeStaffMotion();
+  private furnitureRenderer: FurnitureRenderer;
+  private staffRenderer: StaffRenderer;
+  private deviceRenderer: DeviceRenderer;
 
   constructor(private app: Application) {
     const base = { app, content: this.content, map: () => this.map, tileSize: () => this.tileSize() };
@@ -158,6 +153,27 @@ export class Scene {
       staffHits: () => this.officeStaffHits(),
       helpAt: (p) => this.helpAt(p),
       redraw: () => this.drawObjects(),
+    });
+    this.furnitureRenderer = new FurnitureRenderer({
+      sprites: this.sprites,
+      hoverFurnitureUid: () => this.input.hoverFurnUid,
+    });
+    this.staffRenderer = new StaffRenderer({
+      sprites: this.sprites,
+      background: this.bg,
+      bubbles: this.bubbles,
+      elapsed: () => this.elapsed,
+      scale: () => this.content.scale.x,
+      staffMotion: this.staffMotion,
+      drawSpeech: (message, cx, headTop) => this.drawSpeech(message, cx, headTop),
+    });
+    this.deviceRenderer = new DeviceRenderer({
+      background: this.bg,
+      foreground: this.g,
+      sprites: this.sprites,
+      elapsed: () => this.elapsed,
+      deskAt: (x, y) => this.deskAt(x, y),
+      deskFacingAt: (x, y) => this.deskFacingAt(x, y),
     });
     // インベントリの欄（DOM）から、マスの判定と品目を置けるかを使えるようにする
     setMapView({ tileAtClient: (x, y) => this.hit.tileAtClient(x, y), canPlace: (id, tx, ty) => this.input.canPlace(id, tx, ty) });
@@ -444,7 +460,7 @@ export class Scene {
       this.drawObjects();
       return;
     }
-    const frame = Math.floor(this.elapsed / FRAME_MS);
+    const frame = Math.floor(this.elapsed / STAFF_FRAME_MS);
     if (frame === this.frame) return;
     this.frame = frame;
     // 社員はいつもコマ送りで動かす
@@ -573,17 +589,17 @@ export class Scene {
     const slowBlink = Math.floor(this.elapsed / 600) % 2 === 0;
 
     // 自社オフィスの家具は、機材と同じ層で足元のY座標の順に重ねる
-    if (map.id === 'hq') this.drawFurniture(s.office.furniture, ts);
+    if (map.id === 'hq') this.furnitureRenderer.draw(s.office.furniture, ts);
     // 依頼先の家具（机・棚・飾り。N76）は、地図の固定の家具と合わせて描く
-    else this.drawFurniture(furnitureOf(map.furniture, project.contract.furniture), ts);
+    else this.furnitureRenderer.draw(furnitureOf(map.furniture, project.contract.furniture), ts);
 
     for (const node of project.nodes) {
       const dim = building && !isBuilt(node.uid, 'nodes');
       // 配線の起点に選んだ機器は、光る枠で選ばれた状態にする
-      this.drawNode(node, ts, frontDeviceUid(s) === node.uid || s.wireStart?.uid === node.uid, dim, project, this.input.hoverNodeUid === node.uid);
+      this.deviceRenderer.drawNode(node, ts, frontDeviceUid(s) === node.uid || s.wireStart?.uid === node.uid, dim, project, this.input.hoverNodeUid === node.uid);
       const blinkOn = onPath.has(node.uid) ? fastBlink : slowBlink;
       const issue = this.issueOf(node, project);
-      this.drawLed(node, ts, blinkOn, issue?.reason === 'ip.unset');
+      this.deviceRenderer.drawLed(node, ts, blinkOn, issue?.reason === 'ip.unset');
       // IPアドレスのない機器の表示は drawAddresses で出す。そのほかの不備には「？」を出す
       if (issue && issue.reason !== 'ip.unset') this.drawBubble(node, ts, '?', WARN);
     }
@@ -596,8 +612,8 @@ export class Scene {
     }
     if (building) this.drawBuilding(project, ts);
     else if (this.map?.id === 'hq' && !s.showcase) {
-      this.drawDeskStaff(ts);
-      this.drawWanderers(ts);
+      this.staffRenderer.drawDeskStaff(ts);
+      this.staffRenderer.drawWanderers(ts);
     }
     for (const trace of this.traces) this.drawTrace(trace, ts);
     this.drawFailures(project, ts, failing);
@@ -667,80 +683,8 @@ export class Scene {
   }
 
   // 自社オフィスでは、社員が机の前でキーボードを打つ
-  private drawDeskStaff(ts: number): void {
-    // 社員は、自分の机（家具）に座る。机のない社員は歩き回る（drawWanderers）
-    const s = useGameStore.getState();
-    seatedStaff(s.office, s.staff, isDesk).forEach(({ member, desk }, k) => {
-      const look = member.look;
-      const c = this.staffMotion.commuteOf(member.uid);
-      // 退勤して外にいる社員は描かない。出勤・退勤の途中は、通路を歩く姿を描く（机の前の打鍵はしない）
-      if (c?.state === 'away') return;
-      // 休憩の途中（場所へ歩く・休む・戻る）は、その位置に立って描く（机の前の打鍵はしない）
-      const b = this.staffMotion.breakOf(member.uid);
-      if (c?.state === 'seated' && b && b.phase !== 'desk') {
-        const at = wanderStaffPos(b.at.x, b.at.y, ts);
-        this.drawStaff(at.x, at.y, look, member);
-        return;
-      }
-      if (c && c.state !== 'seated') {
-        const at = wanderStaffPos(c.at.x, c.at.y, ts);
-        this.drawStaff(at.x, at.y, look, member);
-        return;
-      }
-      // 机の下の段に座り、打鍵に合わせて小さく揺れる（向きは机と同じ）
-      const at = deskStaffPos(desk.x, desk.y, ts, deskTap(this.elapsed, k));
-      this.drawStaff(at.x, at.y, look, member, desk.facing ?? 'up');
-      // 口癖は、社員ごとにずらした周期で、60秒に3秒だけ頭上に出す（平均60秒に1回）
-      const seconds = this.elapsed / 1000 + k * 23;
-      if (seconds % 60 < 3) {
-        this.drawSpeech(tDyn(`staff.quirk.${member.quirk}`), at.x + STAFF_W / 2, at.y);
-      }
-    });
-  }
-
-  private drawWanderers(ts: number): void {
-    // 歩き手は、机のない社員（officeStaffHits と同じ並び）
-    const s = useGameStore.getState();
-    const unseated = unseatedStaff(s.office, s.staff, isDesk);
-    this.staffMotion.walkers.forEach((w, k) => {
-      const at = wanderStaffPos(w.x, w.y, ts);
-      const member = unseated[k];
-      this.drawStaff(at.x, at.y, member?.look ?? STAFF_PLACEHOLDER_LOOKS[k % STAFF_PLACEHOLDER_LOOKS.length], member);
-    });
-  }
-
   private officeStaffHits(): StaffHit[] {
     return this.staffMotion.hits(this.map, this.elapsed, this.tileSize());
-  }
-
-  // 自社オフィスの家具。スプライトの下端をマスの下端に揃え、1マスより高い分は上へはみ出させる
-  private drawFurniture(furniture: PlacedFurniture[], ts: number): void {
-    for (const f of furniture) {
-      // 家具の絵は定義の sprite を使う（机と椅子・机だけは、同じ机の ID でも絵が違うため）
-      const base = furnitureData[f.id as FurnitureId]?.sprite ?? '';
-      const tex = texture(spriteOf(FACING_SPRITES.has(base) ? spriteNameOf(base, f.facing ?? 'up') : base));
-      if (!tex) continue;
-      const sprite = new Sprite(tex);
-      sprite.position.set(f.x * ts + Math.round((ts - tex.width) / 2), (f.y + 1) * ts - tex.height);
-      // 机の上に置いたPCより後ろに描く。撤去の道具でマウスを乗せた家具は赤みがかった明るさにする
-      sprite.zIndex = (f.y + 1) * ts - DEVICE_FOOT_INSET - 1;
-      sprite.tint = f.uid === this.input.hoverFurnUid ? REMOVE_TINT : 0xffffff;
-      this.sprites.addChild(sprite);
-      // 椅子つきの机は、椅子を机の手前に別の絵で描く（B10）。社員は椅子の上に重なる
-      if (CHAIR_FURNITURE.has(f.id)) this.drawChair(f, ts);
-    }
-  }
-
-  // 机の手前の椅子。マスの下端から少しはみ出す位置に描く（机の天板には載せない）
-  private drawChair(f: PlacedFurniture, ts: number): void {
-    const tex = texture(spriteOf(spriteNameOf(CHAIR_SPRITE, f.facing ?? 'up')));
-    if (!tex) return;
-    const sprite = new Sprite(tex);
-    // 椅子は社員の背中側に描く（up は手前、down は奥、left は右、right は左。N95）
-    const [ox, oy] = CHAIR_OFFSET[f.facing ?? 'up'];
-    sprite.position.set(f.x * ts + Math.round((ts - tex.width) / 2) + Math.round(ox * ts), (f.y + 1) * ts - CHAIR_TOP_INSET + Math.round(oy * ts));
-    sprite.zIndex = (f.y + 1) * ts - DEVICE_FOOT_INSET;
-    this.sprites.addChild(sprite);
   }
 
   // 自社オフィスで、そのマスに机の家具があるか
@@ -749,83 +693,6 @@ export class Scene {
       this.map?.id === 'hq' &&
       useGameStore.getState().office.furniture.some((f) => f.x === x && f.y === y && isDeskFurniture(f.id, gameEnv))
     );
-  }
-
-  // 機器をドット絵で描く。種類ごとに形を変え、ポートは下の辺に並べる（空きは白抜き、使用中は塗りつぶし）
-  private drawNode(node: NetNode, ts: number, selected: boolean, dim: boolean, project: Project, hot: boolean): void {
-    const g = this.g;
-    const category = gameEnv.devices[node.device]?.category ?? 'unknown';
-    const alpha = dim ? 0.5 : 1;
-    const pad = ts * 0.18;
-    const x = node.x * ts + pad;
-    const y = node.y * ts + pad;
-    const size = ts - pad * 2;
-    if (selected) {
-      g.rect(x - 2, y - 2, size + 4, size + 4).stroke({ width: 2, color: SELECT, alpha });
-    }
-    // 機器はスプライト（24×40）で描く。足元（底面の行）をタイルの下寄りに揃え、床に置いた影を添える
-    // PC は、机の上にあれば机と同じ向きの絵にする（N95）
-    const deviceBase = deviceData[node.device as keyof typeof deviceData]?.sprite ?? '';
-    const deskFacing = this.deskFacingAt(node.x, node.y);
-    const deviceSprite = FACING_DEVICE_SPRITES.has(deviceBase) ? spriteNameOf(deviceBase, deskFacing) : deviceBase;
-    const tex = texture(spriteOf(deviceSprite));
-    const foot = node.y * ts + ts - DEVICE_FOOT_INSET;
-    if (!tex) return;
-    const sprite = new Sprite(tex);
-    // スプライトの底面の行（y=37）が足元に来る位置。PCは机の天板に載せ、影は付けない
-    const deskTile = this.deskAt(node.x, node.y);
-    const anyFloor = useGameStore.getState().mode === 'sandbox';
-    const onDesk = deskTile || (isPcOnlyDevice(node.device) && !anyFloor);
-    // 机のないマスに置いたPCには、机も一緒に描く
-    const deskTex = !deskTile && isPcCategory(category) && !anyFloor ? texture('furniture/desk') : undefined;
-    if (deskTex) {
-      const desk = new Sprite(deskTex);
-      desk.position.set(node.x * ts, node.y * ts);
-      desk.alpha = alpha;
-      desk.zIndex = foot - 1;
-      this.sprites.addChild(desk);
-    }
-    const base = onDesk ? node.y * ts + DESK_TOP : foot;
-    sprite.position.set(node.x * ts + (ts - 24) / 2, base - 38);
-    sprite.alpha = alpha;
-    sprite.tint = hot ? REMOVE_TINT : 0xffffff;
-    sprite.zIndex = foot;
-    this.sprites.addChild(sprite);
-    if (!onDesk) this.bg.ellipse(node.x * ts + ts / 2, foot, 10, 3).fill({ color: 0x000000, alpha: 0.25 * alpha });
-
-    // ポート（下の辺）。使用中は塗りつぶし、空きは白抜き
-    const count = gameEnv.devices[node.device]?.portCount ?? 0;
-    const used = new Set<number>();
-    for (const l of project.links) {
-      if (l.a.node === node.uid) used.add(l.a.port);
-      if (l.b.node === node.uid) used.add(l.b.port);
-    }
-    for (let port = 0; port < count; port++) {
-      const px = x + ((port + 0.5) * size) / count - 2;
-      const py = foot + 1;
-      if (used.has(port)) {
-        g.rect(px, py, 4, 3).fill({ color: OUTLINE, alpha });
-      } else {
-        g.rect(px, py, 4, 3).stroke({ width: 1, color: OUTLINE, alpha });
-      }
-    }
-  }
-
-  // 状態LED（小さな点）。IPアドレスが未設定の機器は橙色の点を1秒周期でゆっくり点滅させ、設定済みの機器は緑の点を点灯させる。
-  // そのほかの機器は、通信・待機を表す点滅（黄色）
-  private drawLed(node: NetNode, ts: number, blinkOn: boolean, unset: boolean): void {
-    const pad = ts * 0.18;
-    const size = ts - pad * 2;
-    const x = node.x * ts + pad + size - 5;
-    const y = node.y * ts + pad + 3;
-    if (unset) {
-      const lit = Math.floor(this.elapsed / 500) % 2 === 0;
-      this.g.rect(x, y, 2, 2).fill({ color: lit ? 0xff8c2a : OUTLINE });
-    } else if (node.interfaces.length > 0) {
-      this.g.rect(x, y, 2, 2).fill({ color: 0x62d26f });
-    } else {
-      this.g.rect(x, y, 2, 2).fill({ color: blinkOn ? WARN : OUTLINE });
-    }
   }
 
   private drawBubble(node: NetNode, ts: number, mark: string, color: number): void {
@@ -853,7 +720,7 @@ export class Scene {
     const fraction = project.total > 0 ? Math.min(1, project.progress / project.total) : 1;
     const index = pending.length === 0 ? 0 : Math.min(pending.length - 1, Math.floor(fraction * pending.length));
     // 担当の社員を全員描く（担当の順。N108）。足踏みのコマで上下に揺れる。同じ作業場所に重なるときは、左・右・下の順にずらす
-    const bob = Math.floor(this.elapsed / FRAME_MS) % 2;
+    const bob = Math.floor(this.elapsed / STAFF_FRAME_MS) % 2;
     const staffList = useGameStore.getState().staff;
     const used = new Map<number, number>();
     project.crew.forEach((uid, k) => {
@@ -866,7 +733,7 @@ export class Scene {
       used.set(spot, n + 1);
       const at = pending[spot];
       const [dx, dy] = BUILD_SLOTS[n % BUILD_SLOTS.length];
-      this.drawStaff(at.x + dx * ts, at.y - 24 - bob + dy * ts, member.look, member);
+      this.staffRenderer.drawStaff(at.x + dx * ts, at.y - 24 - bob + dy * ts, member.look, member);
     });
 
     // 施工の進み具合は、ツールバーの帯（Toolbar.tsx）だけに出す。マップの下端には描かない（B13。パソコンも1本にそろえる）
@@ -880,39 +747,6 @@ export class Scene {
     const store = useGameStore.getState();
     if (viewingOffice(store)) return store.office.furniture.find((f) => f.x === x && f.y === y && f.id === 'desk')?.facing ?? 'up';
     return this.project()?.contract?.furniture?.find((f) => f.x === x && f.y === y && f.id === 'desk')?.facing ?? 'up';
-  }
-
-  private drawStaff(x: number, y: number, shirt: string, tag?: { name: string; job: string }, facing?: Facing): void {
-    const frame = Math.floor(this.elapsed / (FRAME_MS * 2)) % 2;
-    const tex = texture(spriteOf(`staff/${staffSpriteName(shirt)}_${frame}`));
-    if (!tex) return;
-    const sprite = new Sprite(tex);
-    const left = Math.round(x);
-    const top = Math.round(y);
-    sprite.position.set(left, top);
-    if (facing === 'left' || facing === 'right') {
-      sprite.scale.x = -1;
-      sprite.position.x = left + STAFF_W;
-    }
-    sprite.zIndex = top + STAFF_FOOT;
-    this.sprites.addChild(sprite);
-    // 足元の影（機器と同じく床に接地していることを示す）
-    this.bg.ellipse(left + 8, top + STAFF_FOOT, 6, 2).fill({ color: 0x000000, alpha: 0.25 });
-    if (tag) this.drawNameTag(left + STAFF_W / 2, top, tag);
-  }
-
-  // 社員の名札（「名前 (職種)」を1行で、頭の上に出す）。IPの表示と同じく、背景は付けず縁取りで読めるようにする
-  private drawNameTag(cx: number, headTop: number, tag: { name: string; job: string }): void {
-    const scale = this.content.scale.x;
-    const fontPx = 11 / scale;
-    const text = new Text({
-      text: `${tDyn(tag.name)} (${tDyn(`staff.job.${tag.job}`)})`,
-      style: { fontFamily: 'monospace', fontSize: fontPx, fill: 0xf4f1e6, align: 'center', stroke: { color: OUTLINE, width: 2 / scale } },
-      resolution: Math.max(2, scale * (window.devicePixelRatio || 1)),
-    });
-    text.anchor.set(0.5, 1);
-    text.position.set(cx, headTop - 2 / scale);
-    this.bubbles.addChild(text);
   }
 
   // 疎通テストの経路と、パケットの粒。失敗した地点で止まり「×」を出す
