@@ -53,6 +53,8 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
 
   const net = compiled.net;
   const engine = gameEnv.engine;
+  // 無線端末の口0も、仮想配線として有線と同じセグメント・ゲートウェイ計算に含める。
+  const topologyNet = withWireless(net, engine);
   const category = gameEnv.devices[node.device]?.category;
 
   const byUid = new Map(net.nodes.map((n) => [n.uid, n]));
@@ -65,8 +67,8 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   const linked =(port: number) => net.links.some((l) => (l.a.node === node.uid && l.a.port === port) || (l.b.node === node.uid && l.b.port === port));
   // ポートのセグメントの設定（配線がなければ undefined）
   const cfgOf = (port: number): SegmentConfig | undefined => {
-    const seg = segmentOf(segmentsOf(net, engine), node.uid, port);
-    return seg ? segmentConfigOf(seg, byUid, net.segments) : undefined;
+    const seg = segmentOf(segmentsOf(topologyNet, engine), node.uid, port);
+    return seg ? segmentConfigOf(seg, new Map(topologyNet.nodes.map((n) => [n.uid, n])), topologyNet.segments) : undefined;
   };
   // 使用中のアドレスに付ける機器の名前（機器の名前とポートの名前）
   const usedName = (usedBy: { node: string; port: number }): string => {
@@ -174,7 +176,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
 
   // ホストのデフォルトゲートウェイ（同じネットワークのルーターのアドレスを候補にする）
   const renderGateway = () => {
-    const routers = routerAddressesOn(net, engine, node.uid, 0);
+    const routers = routerAddressesOn(topologyNet, engine, node.uid, 0);
     // 現在のゲートウェイが候補にない場合も、一覧に残す
     const extra = node.gateway && !routers.includes(node.gateway) ? [node.gateway] : [];
     const gatewayOptions: ComboOption[] = [...routers, ...extra].map((ip) => ({ value: ip, usedBy: null }));
@@ -235,7 +237,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
       const cfg = segmentConfigOf(seg, byUid, net.segments);
       if (cfg) dests.set(`${cfg.network}/${cfg.prefix}`, { network: cfg.network, prefix: cfg.prefix });
     }
-    const hops = neighborRouterAddresses(net, engine, node.uid);
+    const hops = neighborRouterAddresses(topologyNet, engine, node.uid);
     return (
       <div style={sectionStyle}>
         <div>
