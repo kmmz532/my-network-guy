@@ -57,8 +57,12 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
         return setRouting(node.uid, { proto: action.proto, on: action.on, ip: action.ip });
       case 'bgp':
         return setBgp(node.uid, action);
-      case 'nat':
-        return setNat(node.uid, action);
+      case 'nat': {
+        if (action.op !== 'iface') return setNat(node.uid, action);
+        // ターミナルの書き方は口の番号のまま。画面の操作は、その口のインターフェースの id で指定する
+        const iface = node.interfaces.find((i) => i.port === action.port);
+        return setNat(node.uid, { op: 'iface', id: iface?.id ?? '', nat: action.nat });
+      }
       case 'wireless':
         return setWireless(node.uid, action.key, action.value);
       default:

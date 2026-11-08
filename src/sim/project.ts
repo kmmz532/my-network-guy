@@ -1012,7 +1012,7 @@ export const setWireless = (core: Core, uid: string, key: 'ssid' | 'password' | 
 
 // NAT の設定（N145）。口の inside・outside、NAPT の有効、静的 NAT（ポートの転送）
 export type NatOp =
-  | { op: 'iface'; port: number; nat: 'inside' | 'outside' | null }
+  | { op: 'iface'; id: string; nat: 'inside' | 'outside' | null }
   | { op: 'napt'; on: boolean }
   | { op: 'static'; port: number; insideIp: string; insidePort: number }
   | { op: 'noStatic'; port: number };
@@ -1023,8 +1023,8 @@ export const setNat = (core: Core, uid: string, change: NatOp, target: NetTarget
     (node) => {
       switch (change.op) {
         case 'iface': {
-          if (!node.interfaces.some((i) => i.port === change.port)) return 'iface.none';
-          return { ...node, interfaces: node.interfaces.map((i) => (i.port === change.port ? { ...i, nat: change.nat ?? undefined } : i)) };
+          if (!node.interfaces.some((i) => i.id === change.id)) return 'iface.none';
+          return { ...node, interfaces: node.interfaces.map((i) => (i.id === change.id ? { ...i, nat: change.nat ?? undefined } : i)) };
         }
         case 'napt':
           return { ...node, napt: change.on || undefined };

@@ -390,14 +390,14 @@ function NatField({ node, readOnly, onError }: { node: NetNode; readOnly: boolea
         <b>{t('ui.nat.title')}</b>
       </div>
       {node.interfaces.map((i) => (
-        <div key={i.port} style={row}>
+        <div key={i.id} style={row}>
           <span>{t('ui.nat.port', { id: i.id })}</span>
           <PixelSelect<string>
             ariaLabel={t('ui.nat.role')}
             value={i.nat ?? ''}
             disabled={readOnly}
             options={[{ value: '', label: t('ui.nat.none') }, ...NAT_ROLES.map((r) => ({ value: r, label: t(`ui.nat.${r}`) }))]}
-            onChange={(v) => onError(setNat(node.uid, { op: 'iface', port: i.port, nat: v === '' ? null : (v as 'inside' | 'outside') }))}
+            onChange={(v) => onError(setNat(node.uid, { op: 'iface', id: i.id, nat: v === '' ? null : (v as 'inside' | 'outside') }))}
           />
         </div>
       ))}
