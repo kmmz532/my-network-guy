@@ -51,7 +51,7 @@
       "router": 5000,
       "router_switch": 5000,
       "home_router": 5000,
-      "l3_switch": 10000,
+      "l3_switch": 6000,
       "firewall": 5000,
       "pc": 0,
       "server": 0,
