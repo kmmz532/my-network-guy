@@ -7,6 +7,11 @@ import { expAtLevel, levelOf, levelProgressOf, needOf, nextLevel, titleKeyOf } f
 import { unlockItems, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 import { ItemCards, unlockNameOf } from './UnlockList';
+import { Tooltip } from './Tooltip';
+import { tipText } from '../input/keymap';
+import { outsideCheck } from '../network/external';
+import { gameEnv, isPcDevice } from '../sim/env';
+import { pcDesksOf } from '../sim/furniture';
 
 // 増えた経験値の「+N」を出している時間（ms）
 const GAIN_MS = 1500;
@@ -54,6 +59,18 @@ export function CompanyBody() {
   const companyExp = useGameStore((s) => s.companyExp);
   const reputation = useGameStore((s) => s.reputation);
   const deliveries = useGameStore((s) => s.deliveries);
+  const staff = useGameStore((s) => s.staff);
+  const office = useGameStore((s) => s.office);
+  const money = useGameStore((s) => s.clock.money);
+  // 机に PC がなく働けない社内の職種の人数（N102）
+  const noPcCount = useGameStore((s) => {
+    const pcDesks = pcDesksOf(s.office, isPcDevice);
+    return s.staff.filter((m) => (m.job === 'dev' || m.job === 'hr' || m.job === 'accounting') && !(m.desk !== null && pcDesks.includes(m.desk))).length;
+  });
+  const outside = outsideCheck(office, gameEnv.engine);
+  const night = staff.filter((m) => m.shift === 'night').length;
+  const open = (kind: 'staffList' | 'funds' | 'office') => useGameStore.getState().openWindow(kind, '');
+  const link = { background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', textDecoration: 'underline' } as const;
   const level = levelOf(companyExp, balance);
   const next = nextLevel(companyExp, balance);
   const inLevel = companyExp - expAtLevel(level, balance);
@@ -65,7 +82,7 @@ export function CompanyBody() {
   // 次のレベルで解放される職種（採用の候補に出る）
   const jobsUnlockedAt = next ? (Object.keys(balance.hiring.jobUnlockLevels) as (keyof typeof balance.hiring.jobUnlockLevels)[]).filter((j) => balance.hiring.jobUnlockLevels[j] === next.level) : [];
   const row = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #3b2a33' } as const;
-  // 会社の成長だけを出す（社員・お金・オフィスの項目は、それぞれの画面に移した・N126）
+  // 会社の総覧。社員・資金・外部への接続は要約だけを出し、押すとそれぞれの画面を開く（詳細は各画面・N126）
   return (
     <div style={{ padding: 12, fontSize: 14, color: '#f4f1e6' }}>
       <div style={{ ...row, fontSize: 16 }}>
@@ -85,6 +102,35 @@ export function CompanyBody() {
           <Icon name="icon/star" scale={1} />
           {reputation}
         </span>
+      </div>
+      <div style={row}>
+        <span>{t('ui.company.staff')}</span>
+        {/* 社員の一覧を開くボタンはここだけ（採用の画面は候補が0人だと開けない）。キーは H */}
+        <Tooltip text={tipText('keys.staffList', 'staffList')}>
+          <button style={link} onClick={() => open('staffList')}>
+            {t('ui.company.staffCount', { total: staff.length, day: staff.length - night, night })}
+          </button>
+        </Tooltip>
+      </div>
+      {noPcCount > 0 && (
+        <div style={row}>
+          <span>{t('ui.company.noPc')}</span>
+          <button style={{ ...link, color: '#ffd866' }} onClick={() => open('staffList')}>
+            {t('ui.company.noPc.count', { count: noPcCount })}
+          </button>
+        </div>
+      )}
+      <div style={row}>
+        <span>{t('ui.company.funds')}</span>
+        <button style={link} onClick={() => open('funds')}>
+          {money.toLocaleString('ja-JP')}円
+        </button>
+      </div>
+      <div style={row}>
+        <span>{t('ui.company.outside')}</span>
+        <button style={link} onClick={() => open('office')}>
+          {!outside.attached ? t('ui.company.outside.none') : outside.pcsReachOutside ? t('ui.company.outside.ok') : t('ui.company.outside.ng')}
+        </button>
       </div>
       <div style={row}>
         <span>{t('ui.company.delivered')}</span>
