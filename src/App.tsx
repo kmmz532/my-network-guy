@@ -13,7 +13,7 @@ import { useUiStore } from './stores/useUiStore';
 import { GameScene } from './components/scene/GameScene';
 import { TitleScene } from './components/scene/TitleScene';
 
-type Scene = { kind: 'title'; opening?: 'newCareer' } | { kind: 'game' };
+type Scene = { kind: 'title', opening?: 'newCareer' } | { kind: 'game' };
 
 // 起動時に、翻訳とすべての地図を読み込む。依頼の判定は地図の読み込みに依存するため、読み込み中に判定させない
 function loadAssets(): Promise<unknown> {
@@ -29,8 +29,7 @@ export function App() {
   const [scene, setScene] = useState<Scene>({ kind: 'title' });
 
   useEffect(() => {
-    // タイトル画面の間は時間を止める。端末の UI の大きさを反映する
-    useGameStore.getState().setSpeed(0);
+    // 端末のUIの大きさを反映する
     applyUiScale(loadSettings().uiScale);
     loadAssets().then(() => setReady(true), (e: unknown) => setLoadError(e ?? new Error('読み込みに失敗')));
   }, []);
@@ -53,7 +52,7 @@ export function App() {
   // タイトルへ戻る。倒産の「やり直す」は、新しく始める流れを開いて戻る
   const exitToTitle = (opening?: 'newCareer') => {
     useUiStore.getState().setPopup(null);
-    useGameStore.getState().setSpeed(0);
+    useGameStore.getState().setSpeed(0); // タイトルでは時間を停止する
     saveSession.open(null);
     setScene({ kind: 'title', opening });
   };
