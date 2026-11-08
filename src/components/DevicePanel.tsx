@@ -120,7 +120,7 @@ function DeviceView({
       />
       <div style={tabPanelStyle(TAB_COLORS.window.selected)}>
         {error && <div style={{ color: warnColor, marginBottom: 6 }}>{tDyn(`ui.error.${error}`)}</div>}
-        {tab === 'rear' && <DeviceRear node={node} nodes={nodes} links={links} readOnly={readOnly} onError={setError} />}
+        {tab === 'rear' && <DeviceRear node={node} nodes={nodes} links={links} net={compiled.net} readOnly={readOnly} onError={setError} />}
         {tab === 'config' && hasConfig && (
           <DeviceSettings node={node} compiled={compiled} readOnly={readOnly} detailOpen={detailOpen} onToggleDetail={onToggleDetail} onError={setError} />
         )}

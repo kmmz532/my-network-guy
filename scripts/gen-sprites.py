@@ -1730,6 +1730,19 @@ def rear_port_plugged(body, shade):
     return img
 
 
+def rear_plug_mask():
+    img, d = new(12, 10)
+    rect(d, 2, 2, 8, 7, 'o')
+    return img
+
+
+def rear_plug_shade():
+    img, d = new(12, 10)
+    d.line([(2, 2), (9, 2)], fill=(255, 255, 255, 110))
+    d.rectangle([3, 4, 8, 5], fill=(0, 0, 0, 55))
+    return img
+
+
 def rear_sfp_empty():
     # SFP の口（8×10）。RJ45 より細い金属の枠と、奥の暗い差し込み
     img, d = new(8, 10)
@@ -1749,6 +1762,19 @@ def rear_sfp_fiber(body, shade):
     px(d, 2, 3, 'e')
     px(d, 4, 3, 'e')
     rect(d, 3, 8, 2, 2, shade)  # ケーブルの根元
+    return img
+
+
+def rear_sfp_mask():
+    img, d = new(8, 10)
+    rect(d, 2, 2, 4, 7, 'o')
+    return img
+
+
+def rear_sfp_shade():
+    img, d = new(8, 10)
+    d.rectangle([2, 3, 3, 4], fill=(255, 255, 255, 100))
+    d.rectangle([4, 3, 5, 4], fill=(0, 0, 0, 55))
     return img
 
 
@@ -1794,8 +1820,12 @@ if __name__ == '__main__':
         'port_empty': rear_port_empty(),
         'port_utp': rear_port_plugged('b', 'B'),
         'port_fiber': rear_port_plugged('f', 'Y'),
+        'plug_mask': rear_plug_mask(),
+        'plug_shade': rear_plug_shade(),
         'port_sfp_empty': rear_sfp_empty(),
         'port_sfp_fiber': rear_sfp_fiber('b', 'B'),
+        'sfp_mask': rear_sfp_mask(),
+        'sfp_shade': rear_sfp_shade(),
         'uplink_line': rear_uplink_line(),
         'fan': rear_fan(),
         'power': rear_power(),

@@ -16,6 +16,8 @@ export interface NetworkColors {
   index: Map<string, number>;
   // ケーブルの uid → 表すネットワークアドレス（未設定・食い違いは null）
   linkNetwork: Map<string, string | null>;
+  // ケーブルが運ぶネットワーク。現在の単一セグメントは1件、将来のトランクは複数件。
+  linkNetworks?: Map<string, string[]>;
 }
 
 // 色の番号（0 始まり）からパレットの色を引く
@@ -37,6 +39,7 @@ export const networkColors = (net: Network, data: EngineData): NetworkColors => 
   const index = new Map(networks.map((n, i) => [n, i]));
 
   const linkNetwork = new Map<string, string | null>();
+  const linkNetworks = new Map<string, string[]>();
   for (const link of net.links) {
     // スイッチ側の端は members に入らないため、両端のうち設定のあるセグメントを使う（a を優先する）
     const cfg = [link.a, link.b]
@@ -45,6 +48,7 @@ export const networkColors = (net: Network, data: EngineData): NetworkColors => 
       .find((c) => c !== undefined);
     if (!cfg) {
       linkNetwork.set(link.uid, null);
+      linkNetworks.set(link.uid, []);
       continue;
     }
     // 両端の機器（スイッチを除く）のアドレスが、このネットワークに入っていること
@@ -55,9 +59,13 @@ export const networkColors = (net: Network, data: EngineData): NetworkColors => 
       return iface !== undefined && inSubnet(iface.ip, cfg.network, cfg.prefix);
     });
     linkNetwork.set(link.uid, agrees ? cfg.network : null);
+    linkNetworks.set(link.uid, agrees ? [cfg.network] : []);
   }
-  return { index, linkNetwork };
+  return { index, linkNetwork, linkNetworks };
 };
+
+export const networksOfLink = (colors: NetworkColors, linkUid: string): string[] =>
+  colors.linkNetworks?.get(linkUid) ?? (colors.linkNetwork.get(linkUid) ? [colors.linkNetwork.get(linkUid)!] : []);
 
 // ネットワークアドレスの色（番号）。未設定なら undefined
 export const colorOfNetwork = (colors: NetworkColors, network: string | null | undefined): number | undefined => {

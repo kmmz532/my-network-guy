@@ -10,6 +10,9 @@ import { t, tDyn } from '../i18n/t';
 import type { End } from '../sim/project';
 import { gameEnv } from '../sim/env';
 import type { NetLink, NetNode } from '../network/types';
+import type { Network } from '../network/types';
+import { colorOfLink, networkColors, networksOfLink } from '../network/netColor';
+import { withWireless } from '../network/netState';
 import { loadSettings } from '../settings/settings';
 import { useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, portLabel } from './devicePorts';
@@ -24,12 +27,14 @@ const scaleFor = (ports: number): number => (ports > 4 ? 2 : 3);
 const portsPerRowFor = (ports: number): number => (ports > 8 ? 6 : 8);
 
 // プラグの絵（つながっていれば UTP か光、空いていれば空の差し込み口）
-const plugSlot = (link: NetLink | undefined): string => (!link ? 'rear/port_empty' : link.cable.startsWith('fiber') ? 'rear/port_fiber' : 'rear/port_utp');
+const plugSlot = (link: NetLink | undefined): string => (!link ? 'rear/port_empty' : link.cable.startsWith('fiber') ? 'rear/port_sfp_empty' : 'rear/port_empty');
 
 // 画面に出すドラッグの途中の状態（プラグの絵の位置・いま重なっているポート）
 interface Carry {
   port: number;
   slot: string;
+  color: number;
+  fiber: boolean;
   x: number;
   y: number;
   over: PortHover;
@@ -40,11 +45,12 @@ interface Props {
   // 表示する機器とケーブル（機器の画面で選んだ案件、または自社オフィス）
   nodes: NetNode[];
   links: NetLink[];
+  net: Network;
   readOnly: boolean;
   onError: (reason: string | null) => void;
 }
 
-export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
+export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
   const removeLink = useGameStore((s) => s.removeLink);
   const replug = useGameStore((s) => s.replug);
   const [selected, setSelected] = useState<number | null>(null);
@@ -67,6 +73,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
   const SCALE = scaleFor(portCount);
   const portsPerRow = portsPerRowFor(portCount);
   const byUid = new Map(nodes.map((n) => [n.uid, n]));
+  const colors = networkColors(withWireless(net, gameEnv.engine), gameEnv.engine);
   const linkAt = (port: number) =>
     links.find((l) => (l.a.node === node.uid && l.a.port === port) || (l.b.node === node.uid && l.b.port === port));
   // 挿し替え中のケーブルが、まだあるか
@@ -113,13 +120,15 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     const slot = plugSlot(link);
+    const fiber = link.cable.startsWith('fiber');
+    const color = colorOfLink(colors, link.uid);
     const end: End = link.a.node === node.uid ? 'a' : 'b';
     stopDrag.current?.();
     stopDrag.current = trackDrag({
       pointerId: e.pointerId,
       startX: e.clientX,
       startY: e.clientY,
-      onMove: (x, y) => setCarry({ port: p, slot, x, y, over: portHoverAt(x, y, portBoxes(), isUsedPort) }),
+      onMove: (x, y) => setCarry({ port: p, slot, color, fiber, x, y, over: portHoverAt(x, y, portBoxes(), isUsedPort) }),
       // 空いているポートの上で離したときだけ挿し替える。それ以外は何もせず元に戻す
       onDrop: (x, y) => {
         const target = replugTargetAt(x, y, portBoxes(), isUsedPort);
@@ -174,6 +183,8 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
             // ドラッグ中のプラグは、元の差し込み口を空の絵で見せる（LED も消す）
             const lifted = carry?.port === p;
             const slot = lifted ? 'rear/port_empty' : plugSlot(link);
+            const linkColor = link ? colorOfLink(colors, link.uid) : undefined;
+            const fiber = link?.cable.startsWith('fiber') ?? false;
             const lit = !lifted && link !== undefined;
             // 挿し替え中は、空いているポートを光らせて挿し替え先を示す
             const replugFree = active !== null && link === undefined;
@@ -222,7 +233,26 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
               >
                 {/* LED（つながっていれば緑）。2×2 の点を3倍にする */}
                 <span style={{ width: 2 * SCALE, height: 2 * SCALE, background: lit ? '#62d26f' : '#2a2f36' }} />
-                <img src={spriteUrl(spriteOf(slot))} width={12 * SCALE} height={10 * SCALE} alt="" draggable={false} style={{ imageRendering: 'pixelated', display: 'block' }} />
+                <span style={{ position: 'relative', width: (fiber ? 8 : 12) * SCALE, height: 10 * SCALE, display: 'block' }}>
+                  <img src={spriteUrl(spriteOf(slot))} width={(fiber ? 8 : 12) * SCALE} height={10 * SCALE} alt="" draggable={false} style={{ imageRendering: 'pixelated', display: 'block' }} />
+                  {!lifted && link && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundColor: `#${linkColor!.toString(16).padStart(6, '0')}`,
+                        maskImage: `url(${spriteUrl(spriteOf(fiber ? 'rear/sfp_mask' : 'rear/plug_mask'))})`,
+                        WebkitMaskImage: `url(${spriteUrl(spriteOf(fiber ? 'rear/sfp_mask' : 'rear/plug_mask'))})`,
+                        maskSize: '100% 100%',
+                        WebkitMaskSize: '100% 100%',
+                        maskRepeat: 'no-repeat',
+                        WebkitMaskRepeat: 'no-repeat',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  )}
+                  {!lifted && link && <img src={spriteUrl(spriteOf(fiber ? 'rear/sfp_shade' : 'rear/plug_shade'))} width={(fiber ? 8 : 12) * SCALE} height={10 * SCALE} alt="" draggable={false} style={{ position: 'absolute', inset: 0, imageRendering: 'pixelated', display: 'block', pointerEvents: 'none' }} />}
+                </span>
                 <span style={{ color: '#f4f1e6', fontSize: 11, lineHeight: 1 }}>{portLabel(category, p)}</span>
               </button>
             );
@@ -234,22 +264,11 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
       {/* ドラッグ中のプラグ。指やカーソルに付いて動く（画面の上に出し、ポインターの動きを邪魔しない） */}
       {carry &&
         createPortal(
-          <img
-            src={spriteUrl(spriteOf(carry.slot))}
-            alt=""
-            draggable={false}
-            style={{
-              position: 'fixed',
-              left: carry.x / uiScale - plugW / 2,
-              top: carry.y / uiScale - plugH / 2,
-              width: plugW,
-              height: plugH,
-              imageRendering: 'pixelated',
-              pointerEvents: 'none',
-              zIndex: 1000,
-              zoom: 'var(--ui-scale, 1)',
-            }}
-          />,
+          <span style={{ position: 'fixed', left: carry.x / uiScale - plugW / 2, top: carry.y / uiScale - plugH / 2, width: (carry.fiber ? 8 : 12) * SCALE, height: plugH, pointerEvents: 'none', zIndex: 1000, zoom: 'var(--ui-scale, 1)' }}>
+            <img src={spriteUrl(spriteOf(carry.fiber ? 'rear/port_sfp_empty' : 'rear/port_empty'))} alt="" draggable={false} style={{ imageRendering: 'pixelated', display: 'block', width: (carry.fiber ? 8 : 12) * SCALE, height: plugH }} />
+            <span style={{ position: 'absolute', inset: 0, backgroundColor: `#${carry.color.toString(16).padStart(6, '0')}`, maskImage: `url(${spriteUrl(spriteOf(carry.fiber ? 'rear/sfp_mask' : 'rear/plug_mask'))})`, WebkitMaskImage: `url(${spriteUrl(spriteOf(carry.fiber ? 'rear/sfp_mask' : 'rear/plug_mask'))})`, maskSize: '100% 100%', WebkitMaskSize: '100% 100%', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat' }} />
+            <img src={spriteUrl(spriteOf(carry.fiber ? 'rear/sfp_shade' : 'rear/plug_shade'))} alt="" draggable={false} style={{ position: 'absolute', inset: 0, imageRendering: 'pixelated', display: 'block', width: (carry.fiber ? 8 : 12) * SCALE, height: plugH }} />
+          </span>,
           document.body,
         )}
 
@@ -278,7 +297,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
           >
             <span style={{ fontWeight: 'bold', marginRight: 6 }}>{portLabel(category, p)}</span>
             <span style={{ color: link ? '#62d26f' : greyColor }}>{link ? peerName : t('ui.rear.free')}</span>
-            {link && <div style={{ color: greyColor, fontSize: 11 }}>{tDyn(`cable.${link.cable}.name`)}</div>}
+            {link && <div style={{ color: greyColor, fontSize: 11 }}>{tDyn(`cable.${link.cable}.name`)} {networksOfLink(colors, link.uid).map((network) => <span key={network} style={{ marginLeft: 5 }}><span style={{ display: 'inline-block', width: 8, height: 8, background: `#${colorOfLink(colors, link.uid).toString(16).padStart(6, '0')}` }} /> {network}</span>)}</div>}
           </button>
         );
       })}
