@@ -53,7 +53,7 @@ Web ページとしてではなく、ゲームとして設計します。ゲー�
 | `src/sim/` | ルール |
 | `src/network/` | ネットワークの計算 |
 | `src/contracts/` | 案件 |
-| `src/stores/` | ストア |
+| `src/stores/` | ストア。`useGameStore.ts` が基本の状態と毎ティックの処理を持ち、操作は種類ごとの `slices/`（ウィンドウ・設計・社員・オフィス・案件・時間と資金・画面・デバッグ・セッション）に置く。状態から値を引く関数は `gameHelpers.ts`、操作の結果の反映と設計の履歴は `gameOps.ts` |
 | `src/components/` | React の画面 |
 | `src/game/` | Pixi.js の描画 |
 | `src/input/` | キー操作の割り当て（`keymap.ts`） |

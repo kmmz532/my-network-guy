@@ -16,6 +16,12 @@ import { assignDesks, initialOffice, bonusEnvOf } from '../sim/furniture';
 import { type NetTarget, type Core, type Project, type Office, type Report } from '../sim/project';
 import type { GameState } from './useGameStore';
 
+export interface PlannedNet {
+  network: string;
+  prefix: number;
+}
+export const plannedKey = (uid: string, port: number): string => `${uid}:${port}`;
+
 // 機材または家具の定価（どちらにもないIDは undefined）
 export const priceOfItem = (id: string): number | undefined => {
   if (id in furniture) return furniture[id as FurnitureId].price;

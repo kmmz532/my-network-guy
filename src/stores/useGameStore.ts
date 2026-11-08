@@ -1,47 +1,46 @@
 // ゲーム全体の状態。時間・資金・評判・在庫・完了案件・依頼・受注中の案件・速度を持ち、Tick ごとに進める。
-import { loadSettings, saveSettings } from '../settings/settings';
+import type { PlannedNet } from './gameHelpers';
+import { loadSettings } from '../settings/settings';
 import { playDeliver } from '../audio/sfx';
 import { create } from 'zustand';
-import { balance, furniture, guides, levelMilestones } from 'virtual:game-data';
-import type { FurnitureId } from '../generated/ids';
+import { balance } from 'virtual:game-data';
 import { advanceTick, initialClock, minutesPerDay, minutesPerMonth, toDate, type ClockState } from '../sim/clock';
 import { isOnShift } from '../sim/shift';
 import { nightSpeedStep } from '../sim/nightSpeed';
-import { buyDevice, sellDevice } from '../sim/shop';
-import { declineOffer } from '../contracts/offers';
-import { rand } from '../sim/rng';
 import type { Offer } from '../contracts/template';
-import type { FloorId, GameMap, JobId, Staff } from '../data/schema';
-import { gainExp, raiseStaff as raiseStaffOp, rollCandidates, staffCapOf, totalSalary } from '../sim/staff';
-import { expAtLevel, levelOf, levelUpsBetween } from '../sim/level';
-import { grantDailyExp, type ExpSource } from '../sim/companyExp';
-import { finishTrainings, startTraining as startTrainingOp, takeExam as takeExamOp } from '../sim/training';
-import { DEFAULT_COMPANY_NAME, type GameMode, type SaveData } from '../services/migrations';
-import { resizeSandboxOffice, sandboxClock, sandboxOffice, sandboxTest } from '../sim/sandbox';
+import type { GameMap, JobId, Staff } from '../data/schema';
+import { gainExp, rollCandidates, totalSalary } from '../sim/staff';
+import { levelOf } from '../sim/level';
+import { finishTrainings } from '../sim/training';
+import { DEFAULT_COMPANY_NAME, type GameMode } from '../services/migrations';
 import { gameEnv, isPcDevice } from '../sim/env';
-import { learnFromPing } from '../network/learn';
 import { rentalOf } from '../network/external';
-import { applyMoney, recordSaving } from '../sim/ledger';
+import { applyMoney } from '../sim/ledger';
 
-import { isSpeedUnlocked, unlockedSpeedsOf } from '../sim/speed';
-import { dismissNotice, openOf, promoteNotices, pushNotice, type NoticeItem } from '../ui/notices';
-import { busyStaff, crewBlock } from '../sim/crew';
+import { unlockedSpeedsOf } from '../sim/speed';
+import { pushNotice, type NoticeItem } from '../ui/notices';
+import { busyStaff } from '../sim/crew';
 import { tDyn } from '../i18n/t';
-import { cancelRetire as cancelRetireOp, noticeRetire as noticeRetireOp, settleRetirements } from '../sim/retire';
+import { settleRetirements } from '../sim/retire';
 import { backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice } from '../sim/backOffice';
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
 import type { MacEntry } from '../network/mac';
-import { changeOfficeFloor as changeFloorOp, type ExpandSide, expandOffice as expandOfficeOp, mapOfOffice } from '../sim/office';
-import { type DesignEntry, type History, OFFICE_HISTORY_KEY, projectHistoryKey } from '../sim/history';
-import { useUiStore } from './useUiStore';
+import { mapOfOffice } from '../sim/office';
+import { type DesignEntry, type History } from '../sim/history';
 import { createWindowsSlice, type WindowsSlice } from './slices/windowsSlice';
 import { createDesignSlice, type DesignSlice } from './slices/designSlice';
-import { createOps } from './gameOps';
+import { createStaffSlice, type StaffSlice } from './slices/staffSlice';
+import { createOfficeSlice, type OfficeSlice } from './slices/officeSlice';
+import { createContractSlice, type ContractSlice } from './slices/contractSlice';
+import { createEconomySlice, type EconomySlice } from './slices/economySlice';
+import { createUiSlice, type UiSlice } from './slices/uiSlice';
+import { createDebugSlice, type DebugSlice } from './slices/debugSlice';
+import { createSessionSlice, type SessionSlice } from './slices/sessionSlice';
 export { frontDeviceUid, viewportNow } from './slices/windowsSlice';
-import { hire as hireOp, initialOffice, placeFurniture as placeFurnitureOp, moveFurniture as moveFurnitureOp, removeFurniture as removeFurnitureOp, bonusEnvOf, pcDesksOf, rotateFurniture as rotateFurnitureOp } from '../sim/furniture';
-import { type RoomId, abandon, accept, acceptDelegated as acceptDelegatedOp, delegateBlind as delegateBlindOp, applyBlueprint as applyBlueprintOp, advanceBuild, placeDevice, placeInOffice, placeOfficeUplink, moveOfficeUplink, officeUplinkOf, requestBuild, type Outcome, type Project, type Office, type OfficeSize, type Effects, noEffects, type GoalCheck, type Report, type Trace, testDesign } from '../sim/project';
+import { initialOffice, bonusEnvOf, pcDesksOf } from '../sim/furniture';
+import { advanceBuild, type Project, type Office, type Effects, noEffects, type GoalCheck, type Report, type Trace } from '../sim/project';
 
-import { SANDBOX_EXPAND_CONFIG, editNetOf, focusedProject, coreOf, newRng, newStart, offerEnv, priceOfItem, purchaseDiscountOf, refresh, reportState, salesArrivalPatch, trainingEnv, unlockItems, withLevelUps } from './gameHelpers';
+import { coreOf, newStart, refresh, reportState, salesArrivalPatch, trainingEnv, withLevelUps } from './gameHelpers';
 export { coreOf, editNetOf, focusedProject, netTargetOf, offerHintOf, purchaseDiscountOf, unlockItems, viewingOffice } from './gameHelpers';
 export type { Trace };
 // 道具: 選択（機器の画面を開く）・配線・撤去
@@ -70,13 +69,10 @@ export interface ItemDrag {
 
 export type Speed = 0 | 1 | 2 | 4 | 8;
 
-export interface PlannedNet {
-  network: string;
-  prefix: number;
-}
-export const plannedKey = (uid: string, port: number): string => `${uid}:${port}`;
+export type { PlannedNet } from './gameHelpers';
+export { plannedKey } from './gameHelpers';
 
-export interface GameState extends WindowsSlice, DesignSlice {
+export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, OfficeSlice, ContractSlice, EconomySlice, UiSlice, DebugSlice, SessionSlice {
   // 詳しくで選んだネットワーク（画面の状態。セーブには入らない）。キーは plannedKey
   planned: Record<string, PlannedNet>;
   // 遊び方（career は案件の経営ゲーム、sandbox は自由に設計する練習場）。セーブデータに入る
@@ -127,52 +123,19 @@ export interface GameState extends WindowsSlice, DesignSlice {
   guidesDone: string[];
   // 案内が光らせている機器の uid（マップの描画は別の担当。保存しない）
   guideTarget: string | null;
-  setGuideTarget: (uid: string | null) => void;
-  // デバッグ（N54）: お金・経験値・レベル・在庫・時刻を、既存の仕組みで変える
-  debugAddMoney: (amount: number) => void;
-  debugSetCompanyLevel: (level: number) => void;
-  debugAddOwned: (device: string, count: number) => void;
-  debugSetMinute: (minute: number) => void;
-  // 案内を終えた案件として記録する
-  markGuideDone: (contractId: string) => void;
-  // 納品以外の経験値（案内・採用・拡張・家具。1日の上限あり。N55）
-  grantCompanyExp: (source: ExpSource) => void;
-  // デバッグ（N54）: 案内の進みを最初に戻す
-  debugResetGuides: () => void;
-  // デバッグ（N54）: 依頼を今すぐ引き直す（届く時刻を今に合わせ、判定を1回行う）
-  debugRefreshOffers: () => void;
-  // デバッグ（N54）: 施工中の案件を、時間を進めて最後まで進める（検収の結果が出るまで）
-  debugFinishBuild: () => void;
-  // デバッグ（N54）: 案内を指定の手順から出す（案件を受注して設計に入る）。受注できないときは理由を返し、何も変えない
-  debugStartGuide: (contractId: string, step: number) => string | null;
-  // デバッグ（N54）: 案内を終わった扱いにする（経験値は増やさない）
-  debugMarkGuideDone: (contractId: string) => void;
-  // 案内の開始の指定を、Guide が受け取ったあとに消す
-  debugConsumeGuide: () => void;
   speed: Speed;
   // 勤務時間外の早送りで、自動で変える前の速さ（自動で変えていなければ null。保存しない）
   nightSpeed: Speed | null;
   // 時間が止まっているときの施工の確認を開いているか（保存しない）
   pausedPrompt: boolean;
-  // 確認の答え。mode は 1倍で進める（play）か止めたまま（stay）。remember なら設定に残す
-  answerPausedBuild: (mode: 'play' | 'stay', remember: boolean) => void;
   // 読み込み済みのマップ（保存しない）
   maps: Record<string, GameMap>;
   // 直近の検収結果（保存しない）
   lastReport: Report | null;
-  dismissReport: () => void;
   // 画面に出す通知の列（給与の支払いなど。N96）。保存しない
   notices: NoticeItem[];
-  // 通知を押して閉じる（開く画面があれば開く）
-  openNotice: (id: number) => void;
-  dismissNotice: (id: number) => void;
-  // 期限の過ぎた通知を消し、待っている通知を出す
-  tickNotices: () => void;
   // 設計の取り消しの履歴（案件ごと・自社オフィスごと）。保存しない
   histories: Record<string, History<DesignEntry>>;
-  // 設計の操作を1つ元に戻す・やり直す（戻せなければ何もしない）
-  undo: () => void;
-  redo: () => void;
   // 資金か在庫が足りず、元に戻せなかった・やり直せなかったとき、その種類（保存しない）
   historyError: 'undo' | 'redo' | null;
   // 直近に失敗した操作の理由（保存しない）
@@ -187,110 +150,41 @@ export interface GameState extends WindowsSlice, DesignSlice {
   showcase: Project | null;
   // 操作の種類
   tool: Tool;
-  setTool: (tool: Tool) => void;
-  // 画面の対象を、自社オフィス（null）か進行中の案件に切り替える（N111）。配線の途中と置く予定は取り消す
-  setFocus: (id: string | null) => void;
   // 配線の途中の起点（ポートを選んだ機器）と、ポートの一覧の吹き出し（保存しない）
   wireStart: WireStart | null;
   portMenu: PortMenuState | null;
-  // 配線の道具で機器を押したとき、ポートの一覧を開く（起点を選ぶか、相手を選ぶかは起点の有無で決まる）
-  openPortMenu: (uid: string, x: number, y: number) => void;
-  // ポートの一覧で選んだポート（null は「おまかせ」）。起点なら起点にし、相手なら配線する
-  pickPort: (port: number | null) => void;
-  // 配線の途中（起点と一覧）を取り消す
-  cancelWire: () => void;
   // 最後のテストまたは検収の判定（案件ごと）。設計を変えると消える（保存しない）
   check: { projectId: string; goals: GoalCheck[] } | null;
   // 失敗の直し方を開いている機器（保存しない）
   helpUid: string | null;
-  setHelpUid: (uid: string | null) => void;
   // 施工を断られた回数。テストのボタンを1秒光らせるために使う（保存しない）
   testNudge: number;
-  // テストを押す。失敗したら理由を返す
-  test: () => string | null;
   // 機器の名前とIPアドレスを表示するか、案件の内容を開いているか（保存しない）
   showIp: boolean;
-  setShowIp: (on: boolean) => void;
   taskOpen: boolean;
-  setTaskOpen: (open: boolean) => void;
   // 失敗した操作の理由を、失敗した地点（マップのタイル）に出す
   flash: { key: string; tx: number; ty: number; at: number } | null;
   // 直近につないだ2つの機器と時刻。つながった瞬間に、ケーブルの上を光が走らせる（画面だけの表示）
   linkPulse: { a: string; b: string; at: number } | null;
   // 給与を払えない月に、払う前に時間を止めた月（paidMonths の値）。同じ月は、もう止めない（保存しない）
   payWarned: number | null;
-  setPlacing: (deviceId: string | null) => void;
   // インベントリの欄から品目をドラッグしている間の位置（保存しない）
   itemDrag: ItemDrag | null;
-  setItemDrag: (drag: ItemDrag | null) => void;
-  setWireCable: (cableId: string) => void;
   tick: () => void;
-  setSpeed: (speed: Speed) => void;
   cacheMap: (map: GameMap) => void;
-  // 購入に成功したら true
-  buy: (deviceId: string) => boolean;
-  // 在庫を1台売ったら true（サンドボックスでは売らない）
-  sell: (deviceId: string) => boolean;
-  // 案件の流れの操作。失敗したら理由を返す（成功なら null）
-  accept: (offerId: string, crew: string[]) => string | null;
-  // 設計中の案件に型紙を写す（N70）
-  useBlueprint: () => string | null;
-  // 型紙なしで任せる（結果は乱数。N94）
-  delegateBlind: (offerId: string, crew: string[]) => string | null;
-  // 社員に任せて受注する（N70）。任せられない理由は delegationReason で分かる
-  acceptDelegated: (offerId: string, crew: string[]) => string | null;
-  place: (deviceId: string, x: number, y: number) => string | null;
-  // 自社オフィスの家具と社員。失敗したら理由を返す
-  placeFurniture: (id: string, x: number, y: number) => string | null;
-  // 自社オフィスの部屋の辺を買って2マス広げる（確認なし。取り消しの対象外）。失敗したら理由を返す
-  expandOffice: (side: ExpandSide) => string | null;
-  removeFurniture: (uid: string) => string | null;
-  hire: (candidateUid: string, shift: 'day' | 'night') => string | null;
-  // 退職を伝える・取り消す（N90）。伝えられないときは理由の文言の鍵を返す
-  noticeRetire: (uid: string) => string | null;
-  // 家具を90度回す（N95）
-  rotateFurniture: (uid: string) => string | null;
-  // 社員の昇給（N101）。上限に達した社員の上限を上げ、給与を次の段階の相場まで上げる
-  raiseStaff: (uid: string) => string | null;
-  // 自社の床を張り替える（N92）
-  changeFloor: (room: RoomId, floor: FloorId) => string | null;
-  cancelRetire: (uid: string) => string | null;
-  // 次の月の募集の職種を指定する（null で指定なし）。人事がいないと指定できない
-  setHiringWish: (job: JobId | null) => string | null;
-  startTraining: (uid: string, courseId: string) => string | null;
-  takeExam: (uid: string, certId: string) => string | null;
-  // 詳しくで選んだ、まだ設定のないポートのネットワーク（null で消す）。配線・セグメントの設定のときに使う
-  setPlanned: (uid: string, port: number, net: PlannedNet | null) => void;
-  // まとめて届いた知らせを消す（依頼の一覧を開いたとき）
-  clearOfferBurst: () => void;
-  // 定型案件の依頼を断る（固定案件は断れない）
-  declineOffer: (id: string) => void;
-  moveFurniture: (uid: string, x: number, y: number) => string | null;
-  // ping が通ったときに、ARP と MAC の表へ覚える（N69）
-  learnPing: (srcUid: string, dstUid: string) => void;
-  // 施工を依頼する。時間が止まっていて設定が「確認する」なら、確認を開いて null を返す
-  requestBuild: () => string | null;
-  abandon: () => string | null;
-  load: (save: SaveData) => void;
-  snapshot: () => SaveData;
-  // 最初から始める（資金・在庫・依頼などを初期状態に戻す）
-  newGame: (name: string) => void;
-  // 社名を変える（前後の空白を除く。空なら変えない・N133）
-  renameCompany: (name: string) => void;
-  // サンドボックスを新しく始める（案件・依頼・社員はなく、時間は止めたまま）
-  // サンドボックスを新しく始める（大きさを省くと既定の大きさ）。資金・機器は捨てる
-  newSandbox: (size?: OfficeSize) => void;
-  // サンドボックスの床の大きさを変える。狭めてはみ出す機器・家具があれば理由を返す
-  resizeSandbox: (size: OfficeSize) => string | null;
 }
 
 export const useGameStore = create<GameState>((set, get, api) => {
-  const ops = createOps(set, get);
-  const { apply, buildNow, dropHistory, recorded, stepHistory } = ops;
-
   return {
     ...createWindowsSlice(set, get, api),
     ...createDesignSlice(set, get, api),
+    ...createStaffSlice(set, get, api),
+    ...createOfficeSlice(set, get, api),
+    ...createContractSlice(set, get, api),
+    ...createEconomySlice(set, get, api),
+    ...createUiSlice(set, get, api),
+    ...createDebugSlice(set, get, api),
+    ...createSessionSlice(set, get, api),
     mode: 'career',
     name: DEFAULT_COMPANY_NAME,
     clock: initialClock(balance),
@@ -320,106 +214,13 @@ export const useGameStore = create<GameState>((set, get, api) => {
     effects: noEffects(),
     guidesDone: [],
     guideTarget: null,
-    setGuideTarget: (uid) => set({ guideTarget: uid }),
-    debugAddMoney: (amount) => set((s) => ({ clock: { ...s.clock, money: s.clock.money + amount } })),
-    debugSetCompanyLevel: (level) => {
-      const s = get();
-      const exp = expAtLevel(level, balance);
-      const ups = levelUpsBetween(levelOf(s.companyExp, balance), levelOf(exp, balance), balance, levelMilestones, unlockItems);
-      const owned = { ...s.owned };
-      for (const u of ups) for (const d of u.devices) owned[d.device] = (owned[d.device] ?? 0) + d.count;
-      set({
-        companyExp: exp,
-        owned,
-        clock: applyMoney(s.clock, ups.reduce((sum, u) => sum + u.money, 0), 'reward'),
-      });
-    },
-    debugAddOwned: (device, count) => set((s) => ({ owned: { ...s.owned, [device]: (s.owned[device] ?? 0) + count } })),
-    debugSetMinute: (minute) => set((s) => ({ clock: { ...s.clock, minute } })),
-    markGuideDone: (contractId) => {
-      if (get().guidesDone.includes(contractId)) return;
-      set((s) => ({ guidesDone: [...s.guidesDone, contractId] }));
-      get().grantCompanyExp('guide');
-    },
-    debugResetGuides: () => set({ guidesDone: [] }),
-    debugRefreshOffers: () => set((s) => refresh({ ...s, nextOfferMinute: s.clock.minute })),
-    debugFinishBuild: () => {
-      // 施工の進みは時間で決まるため、既存の tick を速い速さで回す（速さは終わったら戻す）
-      const before = get().speed;
-      set({ speed: 4, nightSpeed: null });
-      for (let i = 0; i < 200000 && get().lastReport === null && get().active.some((p) => p.phase === 'build'); i++) get().tick();
-      set({ speed: before });
-    },
-    debugStartGuide: (contractId, step) => {
-      const s = get();
-      const steps = guides[contractId];
-      // 手順の番号（1〜手順の数）と案件を確かめてから動く
-      if (!steps || step < 1 || step > steps.length) return 'none';
-      const fixed = offerEnv(s.maps).fixed.find((c) => c.id === contractId);
-      if (!fixed) return 'none';
-      const focused = focusedProject(s);
-      if (!(focused && focused.baseId === contractId && focused.phase === 'design')) {
-        // 依頼の一覧になければ、この案件の依頼を作る。受注できるかを先に確かめ、できないときは何も変えない
-        const existing = s.offers.find((o) => o.kind === 'fixed' && o.baseId === contractId);
-        const offer = existing ?? { id: fixed.id, kind: 'fixed' as const, baseId: fixed.id, params: {}, contract: fixed, arrivedMinute: s.clock.minute };
-        const offers = existing ? s.offers : [...s.offers, offer];
-        // 担当は、空いている社員全員（受注の画面と同じ既定）
-        const crew = s.staff.filter((m) => crewBlock(s, m) === null).map((m) => m.uid);
-        const probe = accept({ ...coreOf(s), offers }, offer.id, balance.office.projectSlots, crew);
-        if (!probe.ok) return probe.reason;
-        set({ offers });
-        const reason = get().accept(offer.id, crew);
-        if (reason) return reason;
-      }
-      set((st) => ({ guidesDone: st.guidesDone.filter((g) => g !== contractId), debugGuide: { id: contractId, step } }));
-      return null;
-    },
-    debugMarkGuideDone: (contractId) =>
-      // 経験値は増やさない（既存の markGuideDone は案内の経験値を入れるため使わない）
-      set((st) => (st.guidesDone.includes(contractId) ? {} : { guidesDone: [...st.guidesDone, contractId] })),
-    debugConsumeGuide: () => set({ debugGuide: null }),
-    grantCompanyExp: (source) => {
-      const s = get();
-      // サンドボックスは育成がないため、経験値は入れない
-      if (s.mode === 'sandbox') return;
-      const r = grantDailyExp(s, source, s.clock.minute, balance);
-      if (r.gained === 0) return;
-      // 納品と同じく、上がったレベルの報酬（お金・機器）を受け取る
-      const ups = levelUpsBetween(levelOf(s.companyExp, balance), levelOf(r.companyExp, balance), balance, levelMilestones, unlockItems);
-      const owned = { ...s.owned };
-      for (const u of ups) for (const d of u.devices) owned[d.device] = (owned[d.device] ?? 0) + d.count;
-      set({
-        companyExp: r.companyExp,
-        expDay: r.expDay,
-        expToday: r.expToday,
-        owned,
-        clock: applyMoney(s.clock, ups.reduce((sum, u) => sum + u.money, 0), 'reward'),
-      });
-    },
-    speed: 1,
+    speed: 0,
     nightSpeed: null,
     pausedPrompt: false,
     maps: { hq: mapOfOffice(initialOffice(balance)) },
     lastReport: null,
     notices: [],
-    dismissReport: () => set({ lastReport: null, showcase: null, traces: [] }),
-    dismissNotice: (id) => set((s) => ({ notices: dismissNotice(s.notices, id) })),
-    tickNotices: () => set((s) => ({ notices: promoteNotices(s.notices, Date.now()) })),
-    openNotice: (id) => {
-      const item = get().notices.find((n) => n.id === id);
-      if (!item) return;
-      const open = openOf(item.kind);
-      const s = get();
-      if (open === 'funds') s.openWindow('funds', '');
-      else if (open === 'offers') s.openWindow('offers', '');
-      else if (open === 'staff' && typeof item.params.uid === 'string') s.openWindow('staff', item.params.uid);
-      else if (open === 'staff' || open === 'staffList') s.openWindow('staffList', '');
-      else if (open === 'hiring') useUiStore.getState().openHiring('hiring');
-      set((st) => ({ notices: dismissNotice(st.notices, id) }));
-    },
     histories: {},
-    undo: () => stepHistory('undo'),
-    redo: () => stepHistory('redo'),
     historyError: null,
     lastError: null,
     placing: null,
@@ -428,94 +229,17 @@ export const useGameStore = create<GameState>((set, get, api) => {
     showcase: null,
     check: null,
     helpUid: null,
-    setHelpUid: (uid) => set({ helpUid: uid }),
     testNudge: 0,
-    test: () => {
-      const s = get();
-      // サンドボックスは、案件の達成条件なしで、PC とサーバーの疎通を判定する
-      if (s.mode === 'sandbox') {
-        const sr = sandboxTest(s.office, gameEnv);
-        if (!sr) {
-          set({ lastError: 'none' });
-          return 'none';
-        }
-        set({
-          lastError: null,
-          traces: sr.traces,
-          check: { projectId: 'hq', goals: sr.goals },
-          helpUid: null,
-        });
-        return null;
-      }
-      const r = testDesign(coreOf(get()), { ...gameEnv, mapOf: (id) => get().maps[id] });
-      if (!r.ok) {
-        set({ lastError: r.reason });
-        return r.reason;
-      }
-      set({
-        lastError: null,
-        active: r.core.active,
-        traces: r.result.traces,
-        check: { projectId: r.core.focus ?? '', goals: r.result.goals },
-        helpUid: null,
-      });
-      return null;
-    },
     tool: 'select',
-    // 道具を変えると、配線の途中・一覧・置く予定の機材を取り消す。選択の道具以外では機器の画面を閉じる
-    setFocus: (id) => {
-      const s = get();
-      if (id !== null && !s.active.some((p) => p.id === id)) return;
-      if (s.focus === id) return;
-      set({ focus: id, placing: null, wireStart: null, portMenu: null });
-    },
-    setTool: (tool) => {
-      const s = get();
-      if (s.tool === tool && !s.placing) return;
-      set({ tool, placing: null, wireStart: null, portMenu: null });
-    },
     wireStart: null,
     portMenu: null,
-    openPortMenu: (uid, x, y) =>
-      set((s) => ({
-        portMenu: { uid, x, y, role: s.wireStart && s.wireStart.uid !== uid ? 'to' : 'from' },
-      })),
-    pickPort: (port) => {
-      const s = get();
-      const menu = s.portMenu;
-      if (!menu) return;
-      if (menu.role === 'from') {
-        set({ wireStart: { uid: menu.uid, port }, portMenu: null });
-        return;
-      }
-      const start = s.wireStart;
-      if (!start) {
-        set({ portMenu: null });
-        return;
-      }
-      // 配線できたら途中を終える。できなければ起点を残し、理由を出す
-      const reason = get().connect(start.uid, menu.uid, s.wireCable, {
-        a: start.port ?? undefined,
-        b: port ?? undefined,
-      });
-      set({ portMenu: null, wireStart: reason === null ? null : start });
-    },
-    cancelWire: () => set({ wireStart: null, portMenu: null }),
     // 名前とIPアドレスの表示は端末ごとの設定に保存する（設定の画面と同じ値）
     showIp: loadSettings().showIp,
-    setShowIp: (on) => {
-      set({ showIp: on });
-      saveSettings({ showIp: on });
-    },
     taskOpen: true,
-    setTaskOpen: (open) => set({ taskOpen: open }),
     flash: null,
     linkPulse: null,
     payWarned: null,
-    setPlacing: (deviceId) => set({ placing: deviceId }),
     itemDrag: null,
-    setItemDrag: (itemDrag) => set({ itemDrag }),
-    setWireCable: (cableId) => set({ wireCable: cableId }),
     tick: () =>
       set((s) => {
         // 納品の結果画面を開いている間は、時間を止める（閉じると、今の速度で続きから進む）
@@ -660,396 +384,11 @@ export const useGameStore = create<GameState>((set, get, api) => {
         }
         return { ...result, notices };
       }),
-    // 速さを人が変えたら、勤務時間外の自動の早送りは取り消す（覚えた速さには戻さない）
-    // サンドボックスは時間を止めたままにする
-    setSpeed: (speed) => {
-      // 解放されていない早送りには変えない（N99）。サンドボックスは従来どおり止めたまま
-      if (get().mode !== 'sandbox' && !isSpeedUnlocked(speed, levelOf(get().companyExp, balance), balance)) return;
-      set({ speed: get().mode === 'sandbox' ? 0 : (speed as Speed), nightSpeed: null });
-    },
     cacheMap: (map) =>
       set((s) => {
         const maps = { ...s.maps, [map.id]: map };
         return { maps, ...refresh({ ...s, maps }) };
       }),
-    buy: (deviceId) => {
-      const s = get();
-      // 機材・家具の定価。どちらにもないIDは買えない（黙って0円にしない）
-      const listPrice = priceOfItem(deviceId);
-      if (listPrice === undefined) return false;
-      // サンドボックスは購入の費用を 0 とする（在庫は増える）
-      const price = s.mode === 'sandbox' ? 0 : Math.round(listPrice * (1 - purchaseDiscountOf(s)));
-      const result = buyDevice(s.clock.money, s.owned, deviceId, price);
-      if (!result.ok) return false;
-      // 購入は費用に入れない。案件の費用は納品のときに、置かれている機器の定価と配線の費用から決める
-      // 割引で浮いた額は、節約として帳簿に残す（資金は変えない）
-      set({ clock: recordSaving(applyMoney(s.clock, result.money - s.clock.money, 'purchase'), s.mode === 'sandbox' ? 0 : listPrice - price), owned: result.owned });
-      return true;
-    },
-    sell: (deviceId) => {
-      const s = get();
-      if (s.mode === 'sandbox') return false;
-      const price = priceOfItem(deviceId);
-      if (price === undefined) return false;
-      const result = sellDevice(s.clock.money, s.owned, deviceId, price, balance.sellRate);
-      if (!result.ok) return false;
-      set({ clock: applyMoney(s.clock, result.money - s.clock.money, 'sale'), owned: result.owned });
-      return true;
-    },
-    useBlueprint: () => recorded(() => apply(applyBlueprintOp(coreOf(get()), gameEnv))),
-    delegateBlind: (offerId, crew) => {
-      const s = get();
-      const r = delegateBlindOp(coreOf(s), offerId, crew, gameEnv, s.rng, balance.office.projectSlots);
-      if (!r.ok) {
-        set({ lastError: r.reason });
-        return r.reason;
-      }
-      const reason = apply({ ok: true, core: r.core });
-      if (reason === null) set({ rng: r.rng });
-      return reason;
-    },
-    acceptDelegated: (offerId, crew) => {
-      const reason = apply(acceptDelegatedOp(coreOf(get()), offerId, balance.office.projectSlots, crew, gameEnv));
-      // 型紙で任せた依頼は、利用者が設計しないため時間を止めない（N110）
-      return reason;
-    },
-    accept: (offerId, crew) => {
-      const inhouse = get().offers.find((o) => o.id === offerId)?.contract.inhouse === true;
-      const reason = apply(accept(coreOf(get()), offerId, balance.office.projectSlots, crew));
-      // 自社案件は自社オフィスを引き継ぐ。取り消しで自社オフィスを戻すと引き継いだ内容が壊れるため、自社オフィスの履歴は消す
-      if (reason === null && inhouse) dropHistory(OFFICE_HISTORY_KEY);
-      // 設定がオンなら、受注して設計に入ったときに時間を止める（配線は時間に追われずに進める）
-      if (reason === null && get().speed !== 0 && loadSettings().designPause) get().setSpeed(0);
-      return reason;
-    },
-    // 在庫の機材・家具を配置する（購入はショップで行う）。案件がなければ自社オフィスに置く
-    place: (deviceId, x, y) => {
-      if (deviceId in furniture) return get().placeFurniture(deviceId, x, y);
-      if (!focusedProject(get())) {
-        const hq = get().maps.hq;
-        if (!hq) return 'map';
-        // 回線終端は在庫を持たない。まだなければ置き、置いてあれば有料で位置を変更する
-        if (deviceId === 'uplink') {
-          const core = coreOf(get());
-          const op = officeUplinkOf(core.office, gameEnv) ? moveOfficeUplink : placeOfficeUplink;
-          const reason = recorded(() => apply(op(core, x, y, hq, gameEnv, balance), { tx: x, ty: y }));
-          if (reason === null) set({ placing: null });
-          return reason;
-        }
-        return recorded(() => apply(placeInOffice(coreOf(get()), deviceId, x, y, hq, gameEnv, get().mode === 'sandbox'), { tx: x, ty: y }));
-      }
-      const project = focusedProject(get());
-      if (!project) return 'map';
-      const map = get().maps[project.contract.map];
-      if (!map) return 'map';
-      return recorded(() => apply(placeDevice(coreOf(get()), deviceId, x, y, map, gameEnv), { tx: x, ty: y }));
-    },
-    expandOffice: (side) => {
-      const office = get().office;
-      // 失敗の吹き出しは、広げる辺の内側の壁のマスに出す（広げる前の大きさで決める）
-      const at = {
-        tx: side === 'right' ? office.size.w + 1 : side === 'left' ? 0 : Math.floor((office.size.w + 2) / 2),
-        ty: side === 'bottom' ? office.size.h + 1 : Math.floor((office.size.h + 2) / 2),
-      };
-      // サンドボックスは、解放（レベル）も費用も問わず広げる。拡張の上限は通常と同じ（N59）。費用は、資金を変えないよう一時的に大きな資金で計算してから戻す
-      const sandboxExpand = get().mode === 'sandbox';
-      const core = coreOf(get());
-      const outcome = sandboxExpand
-        ? expandOfficeOp({ ...core, clock: { ...core.clock, money: Number.MAX_SAFE_INTEGER } }, side, SANDBOX_EXPAND_CONFIG, 0)
-        : expandOfficeOp(core, side, balance.office, levelOf(get().companyExp, balance));
-      const restored: Outcome = outcome.ok && sandboxExpand ? { ...outcome, core: { ...outcome.core, clock: { ...outcome.core.clock, money: core.clock.money } } } : outcome;
-      const reason = apply(restored, at);
-      if (reason !== null) return reason;
-      get().grantCompanyExp('expansion');
-      // 部屋の大きさが変わったので、マップを作り直す。広げる前の操作の取り消しは、座標が合わないため消す
-      dropHistory(OFFICE_HISTORY_KEY);
-      set((s) => ({ maps: { ...s.maps, hq: mapOfOffice(s.office) } }));
-      return null;
-    },
-    placeFurniture: (id, x, y) => {
-      const hq = get().maps.hq;
-      if (!hq) return 'map';
-      const reason = recorded(() => apply(placeFurnitureOp(coreOf(get()), id, x, y, hq), { tx: x, ty: y }));
-      if (reason === null) get().grantCompanyExp('furniture');
-      return reason;
-    },
-    removeFurniture: (uid) => {
-      const f = get().office.furniture.find((x) => x.uid === uid);
-      return recorded(() => apply(removeFurnitureOp(coreOf(get()), uid), f ? { tx: f.x, ty: f.y } : undefined));
-    },
-    setHiringWish: (job) => {
-      const s = get();
-      const hrP = backOfficeP(s.staff, 'hr', s.office, bonusEnvOf({ staff: s.staff, office: s.office }, gameEnv));
-      if (hrP <= 0) return 'ui.error.hr';
-      set({ hiringWish: job });
-      return null;
-    },
-    noticeRetire: (uid) => apply(noticeRetireOp(coreOf(get()), uid, balance)),
-    raiseStaff: (uid) => apply(raiseStaffOp(coreOf(get()), uid, balance)),
-    rotateFurniture: (uid) => apply(rotateFurnitureOp(coreOf(get()), uid)),
-    changeFloor: (room, floor) => {
-      const reason = apply(changeFloorOp(coreOf(get()), room, floor, balance));
-      // 床の絵が変わるので、マップを作り直す（機器と家具はそのまま）
-      if (reason === null) set((s) => ({ maps: { ...s.maps, hq: mapOfOffice(s.office) } }));
-      return reason;
-    },
-    cancelRetire: (uid) => apply(cancelRetireOp(coreOf(get()), uid)),
-    hire: (candidateUid, shift) => {
-      const cap = staffCapOf(levelOf(get().companyExp, balance), balance);
-      const reason = apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true, cap, shift));
-      if (reason === null) {
-        get().grantCompanyExp('hire');
-        // 採用した社員を知らせる（名前と職種）。上限ちょうどになったら、そのことも知らせる（N97）
-        const hired = get().staff[get().staff.length - 1];
-        let notices = pushNotice(get().notices, 'hired', { name: tDyn(hired.name), job: tDyn(`staff.job.${hired.job}`), uid: hired.uid }, Date.now());
-        if (get().staff.length >= cap) notices = pushNotice(notices, 'capReached', { cap }, Date.now());
-        set({ notices });
-      }
-      return reason;
-    },
-    startTraining: (uid, courseId) => apply(startTrainingOp(coreOf(get()), uid, courseId, trainingEnv)),
-    takeExam: (uid, certId) => {
-      // 合否は乱数で決める。乱数は受験のときだけ進める
-      const s = get();
-      const roll = rand(s.rng);
-      const reason = apply(takeExamOp(coreOf(s), uid, certId, roll.value, trainingEnv));
-      if (reason === null) set({ rng: roll.state });
-      return reason;
-    },
-    clearOfferBurst: () => set({ offerBurst: 0 }),
-    declineOffer: (id) => set({ offers: declineOffer(get().offers, id) }),
-    setPlanned: (uid, port, net) =>
-      set((s) => {
-        const key = plannedKey(uid, port);
-        const next = { ...s.planned };
-        if (net) next[key] = net;
-        else delete next[key];
-        return { planned: next };
-      }),
-    moveFurniture: (uid, x, y) => {
-      const hq = get().maps.hq;
-      if (!hq) return 'map';
-      return recorded(() => apply(moveFurnitureOp(coreOf(get()), uid, x, y, hq), { tx: x, ty: y }));
-    },
-    learnPing: (srcUid, dstUid) => {
-      const s = get();
-      const net = editNetOf(s);
-      if (!net) return;
-      const r = learnFromPing(net.nodes, net.links, gameEnv.engine, srcUid, dstUid);
-      if (r.arp === null && r.macs.length === 0) return;
-      const netKey = s.focus ?? 'office';
-      const arpKey = `${netKey}:${srcUid}`;
-      const arp = r.arp === null ? (s.arpTable[arpKey] ?? []) : [...(s.arpTable[arpKey] ?? []).filter((x) => x.ip !== r.arp?.ip), r.arp];
-      const macTable = { ...s.macTable };
-      for (const { switchUid, entry } of r.macs) {
-        const k = `${netKey}:${switchUid}`;
-        macTable[k] = [...(macTable[k] ?? []).filter((x) => x.port !== entry.port), entry];
-      }
-      set({ arpTable: { ...s.arpTable, [arpKey]: arp }, macTable });
-    },
-    requestBuild: () => {
-      const s = get();
-      // 時間が止まっているときは、設定に従って確認を出すか、速さを決めてから施工を依頼する
-      if (s.speed === 0 && requestBuild(coreOf(s), gameEnv).ok) {
-        const mode = loadSettings().pausedBuild;
-        if (mode === 'ask') {
-          set({ pausedPrompt: true });
-          return null;
-        }
-        if (mode === 'play') get().setSpeed(1);
-      }
-      return buildNow();
-    },
-    answerPausedBuild: (mode, remember) => {
-      set({ pausedPrompt: false });
-      if (remember) saveSettings({ pausedBuild: mode });
-      if (mode === 'play') get().setSpeed(1);
-      buildNow();
-    },
-    abandon: () => {
-      const focusId = focusedProject(get())?.id;
-      const reason = apply(abandon(coreOf(get())));
-      if (reason === null && focusId) dropHistory(projectHistoryKey(focusId));
-      return reason;
-    },
-    load: (save) =>
-      set({
-        mode: save.mode,
-        name: save.name,
-        clock: save.clock,
-        companyExp: save.companyExp,
-        reputation: save.reputation,
-        expDay: save.expDay,
-        expToday: save.expToday,
-        owned: save.owned,
-        completed: save.completed,
-        deliveries: save.deliveries,
-        familiarity: save.familiarity,
-        offers: save.offers as Offer[],
-        nextOfferMinute: save.nextOfferMinute,
-        offerSeq: save.offerSeq,
-        newArrivals: save.newArrivals,
-        rng: save.rng,
-        active: save.active,
-        focus: save.focus,
-        office: save.office,
-        effects: save.effects,
-        staff: save.staff,
-        staffSeq: save.staffSeq,
-        candidates: save.candidates,
-        guidesDone: save.guidesDone,
-        maps: { ...get().maps, hq: mapOfOffice(save.office) },
-        guideTarget: null,
-        lastReport: null,
-        showcase: null,
-        traces: [],
-        wireStart: null,
-        portMenu: null,
-        check: null,
-        helpUid: null,
-        histories: {},
-        historyError: null,
-        windows: [],
-      }),
-    renameCompany: (name) => {
-      const trimmed = name.trim();
-      if (trimmed !== '') set({ name: trimmed });
-    },
-    newGame: (name) =>
-      set((s) => {
-        const base: Partial<GameState> = {
-          mode: 'career',
-          name,
-          clock: initialClock(balance),
-          companyExp: 0,
-          reputation: 0,
-          expDay: 0,
-          expToday: 0,
-          owned: { ...balance.initialStock },
-          completed: [],
-          deliveries: 0,
-          familiarity: EMPTY_FAMILIARITY,
-          offers: [],
-          nextOfferMinute: 0,
-          offerSeq: 0,
-          newArrivals: {},
-          offerBurst: 0,
-          ...newStart(),
-          candidates: [],
-          active: [],
-          focus: null,
-          office: initialOffice(balance),
-          effects: noEffects(),
-          guidesDone: [],
-          maps: { ...s.maps, hq: mapOfOffice(initialOffice(balance)) },
-          guideTarget: null,
-          lastReport: null,
-          lastError: null,
-          traces: [],
-          showcase: null,
-          check: null,
-          helpUid: null,
-          histories: {},
-          historyError: null,
-          windows: [],
-          placing: null,
-          wireStart: null,
-          portMenu: null,
-          speed: 1,
-          nightSpeed: null,
-          pausedPrompt: false,
-        };
-        // 新しく始めたら、最初の依頼をすぐ届ける
-        return { ...base, ...refresh({ ...s, ...base } as GameState) };
-      }),
-    newSandbox: (size) =>
-      set((s) => {
-        const office = sandboxOffice(size);
-        return {
-          mode: 'sandbox',
-          clock: sandboxClock(initialClock(balance)),
-          companyExp: 0,
-          reputation: 0,
-          expDay: 0,
-          expToday: 0,
-          owned: {},
-          completed: [],
-          deliveries: 0,
-          familiarity: EMPTY_FAMILIARITY,
-          offers: [],
-          nextOfferMinute: 0,
-          offerSeq: 0,
-          newArrivals: {},
-          offerBurst: 0,
-          rng: newRng(),
-          staff: [],
-          staffSeq: 0,
-          candidates: [],
-          active: [],
-          focus: null,
-          office,
-          effects: noEffects(),
-          guidesDone: [],
-          guideTarget: null,
-          maps: { ...s.maps, hq: mapOfOffice(office) },
-          speed: 0,
-          nightSpeed: null,
-          pausedPrompt: false,
-          lastReport: null,
-          lastError: null,
-          notices: [],
-          flash: null,
-          traces: [],
-          showcase: null,
-          check: null,
-          helpUid: null,
-          histories: {},
-          historyError: null,
-          windows: [],
-          placing: null,
-          wireStart: null,
-          portMenu: null,
-        };
-      }),
-    resizeSandbox: (size) => {
-      if (get().mode !== 'sandbox') return 'none';
-      const office = get().office;
-      const result = resizeSandboxOffice(office, size);
-      if (!result.ok) return result.reason;
-      // 床の大きさが変わったので、マップを作り直す。広げる前の操作の取り消しは、座標が合わないため消す
-      dropHistory(OFFICE_HISTORY_KEY);
-      set({ office: result.office, maps: { ...get().maps, hq: mapOfOffice(result.office) } });
-      return null;
-    },
-    snapshot: () => {
-      const s = get();
-      return {
-        mode: s.mode,
-        name: s.name,
-        clock: s.clock,
-        companyExp: s.companyExp,
-        reputation: s.reputation,
-        expDay: s.expDay,
-        expToday: s.expToday,
-        owned: s.owned,
-        completed: s.completed,
-        deliveries: s.deliveries,
-        familiarity: s.familiarity,
-        offers: s.offers,
-        nextOfferMinute: s.nextOfferMinute,
-        offerSeq: s.offerSeq,
-        newArrivals: s.newArrivals,
-        rng: s.rng,
-        active: s.active,
-        focus: s.focus,
-        office: s.office,
-        effects: s.effects,
-        staff: s.staff,
-        staffSeq: s.staffSeq,
-        candidates: s.candidates,
-        guidesDone: s.guidesDone,
-      };
-    },
   };
 });
 

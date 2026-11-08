@@ -6,9 +6,8 @@ import { autoAssign } from '../sim/autoAssign';
 import { emptyHistory, entryOf, historyKeyOf, projectHistoryKey, push as pushHistory, redo as redoHistory, stepDesign, undo as undoHistory } from '../sim/history';
 import { requestBuild, type NetTarget, type Outcome } from '../sim/project';
 
-import { coreOf, focusedProject, reportState, withLevelUps } from './gameHelpers';
-import type { GameState, PlannedNet } from './useGameStore';
-import { plannedKey } from './useGameStore';
+import { plannedKey, type PlannedNet, coreOf, focusedProject, reportState, withLevelUps } from './gameHelpers';
+import type { GameState } from './useGameStore';
 import type { StoreApi } from 'zustand';
 
 type Set = StoreApi<GameState>['setState'];

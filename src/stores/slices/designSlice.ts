@@ -2,9 +2,10 @@
 import { playConnect, playFail } from '../../audio/sfx';
 import type { FirewallRule, Route } from '../../network/types';
 import { gameEnv } from '../../sim/env';
+import { sandboxTest } from '../../sim/sandbox';
 
 import { closeRef } from '../../ui/windows';
-import { type PortChoice, connect, removeNode, removeFromOffice, setInterface, setSvi, setPortMode, setGateway, setRouting, setBgp, setNat, type NatOp, setWireless, type BgpOp, setFirewallRules, setSegment, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, replug, moveNode, replugTo, addRoute, removeRoute, removeLink, type End } from '../../sim/project';
+import { type PortChoice, connect, removeNode, removeFromOffice, setInterface, setSvi, setPortMode, setGateway, setRouting, setBgp, setNat, type NatOp, setWireless, type BgpOp, setFirewallRules, setSegment, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, replug, moveNode, replugTo, addRoute, removeRoute, removeLink, testDesign, type End } from '../../sim/project';
 
 import { coreOf, focusedProject, netTargetOf } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
@@ -12,6 +13,11 @@ import type { StateCreator } from 'zustand';
 import { createOps } from '../gameOps';
 
 export interface DesignSlice {
+  // 設計の操作を1つ元に戻す・やり直す（戻せなければ何もしない）
+  undo: () => void;
+  redo: () => void;
+  // テストを押す。失敗したら理由を返す
+  test: () => string | null;
   connect: (aUid: string, bUid: string, cableId: string, ports?: PortChoice) => string | null;
   removeLink: (uid: string) => string | null;
   removeNode: (uid: string) => string | null;
@@ -50,8 +56,41 @@ export interface DesignSlice {
 }
 
 export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (set, get) => {
-  const { apply, recorded, tileOf, withAutoIp } = createOps(set, get);
+  const { apply, recorded, stepHistory, tileOf, withAutoIp } = createOps(set, get);
   return {
+    undo: () => stepHistory('undo'),
+    redo: () => stepHistory('redo'),
+    test: () => {
+      const s = get();
+      // サンドボックスは、案件の達成条件なしで、PC とサーバーの疎通を判定する
+      if (s.mode === 'sandbox') {
+        const sr = sandboxTest(s.office, gameEnv);
+        if (!sr) {
+          set({ lastError: 'none' });
+          return 'none';
+        }
+        set({
+          lastError: null,
+          traces: sr.traces,
+          check: { projectId: 'hq', goals: sr.goals },
+          helpUid: null,
+        });
+        return null;
+      }
+      const r = testDesign(coreOf(get()), { ...gameEnv, mapOf: (id) => get().maps[id] });
+      if (!r.ok) {
+        set({ lastError: r.reason });
+        return r.reason;
+      }
+      set({
+        lastError: null,
+        active: r.core.active,
+        traces: r.result.traces,
+        check: { projectId: r.core.focus ?? '', goals: r.result.goals },
+        helpUid: null,
+      });
+      return null;
+    },
     connect: (aUid, bUid, cableId, ports = {}) => {
       const reason = recorded(() => apply(withAutoIp(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get()), ports), netTargetOf(get())), tileOf(bUid)));
       // つながった音と、つなげなかった音（効果音の設定がオフのときは鳴らない）
