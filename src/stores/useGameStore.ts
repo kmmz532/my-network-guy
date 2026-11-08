@@ -77,6 +77,8 @@ import {
   removeFromOffice,
   requestBuild,
   setInterface,
+  setSvi,
+  setPortMode,
   setGateway,
   setRouting,
   setBgp,
@@ -376,6 +378,8 @@ export interface GameState {
   removeNode: (uid: string) => string | null;
   // 機器の設定（設計中のみ）。失敗したら理由を返す
   setIface: (uid: string, port: number, ip: string, prefix?: number) => string | null;
+  setSvi: (uid: string, vlan: number, ip: string, prefix?: number) => string | null;
+  setPortMode: (uid: string, port: number, mode: { kind: 'access'; vlan: number } | { kind: 'routed' }) => string | null;
   setGateway: (uid: string, gateway: string | null) => string | null;
   setRouting: (uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string }) => string | null;
   setBgp: (uid: string, change: BgpOp) => string | null;
@@ -1401,6 +1405,10 @@ export const useGameStore = create<GameState>((set, get) => {
     },
     setIface: (uid, port, ip, prefix = 24) =>
       recorded(() => apply(setInterface(coreOf(get()), uid, port, ip, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
+    setSvi: (uid, vlan, ip, prefix = 24) =>
+      recorded(() => apply(setSvi(coreOf(get()), uid, vlan, ip, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
+    setPortMode: (uid, port, mode) =>
+      recorded(() => apply(setPortMode(coreOf(get()), uid, port, mode, gameEnv, netTargetOf(get())), tileOf(uid))),
     setGateway: (uid, gateway) => recorded(() => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid))),
     setRouting: (uid, change) => recorded(() => apply(setRouting(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
     setBgp: (uid, change) => recorded(() => apply(setBgp(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),

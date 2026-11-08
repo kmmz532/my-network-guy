@@ -34,6 +34,7 @@ import type {
   NetLink,
   NetNode,
   PathResult,
+  PortConfig,
   Route,
   SegmentConfig,
   Service,
@@ -50,7 +51,7 @@ import { blindDelegation, type Stars } from './blindDelegate';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { cableLengthOf, checkCableLength } from './cableLength';
 import { busyStaff, crewBlock } from './crew';
-import { makeIface } from '../network/iface';
+import { makeIface, makeSvi } from '../network/iface';
 import { can } from '../network/capabilities';
 import { deliveryExpOf, levelOf, type LevelUp } from './level';
 
@@ -985,6 +986,55 @@ export const setInterface = (
   const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, interfaces } : n));
   const segments = fillSegments({ nodes, links: net.links, segments: net.segments }, env.engine);
   return { ok: true, core: withNet(core, target, { ...net, nodes, segments }) };
+};
+
+// SVI（VLAN のインターフェース・N138）を設定する。ip が '' なら外す。SVI を持てるのは sviMax の機器だけ
+export const setSvi = (core: Core, uid: string, vlan: number, ip: string, prefix: number, env: Env, target: NetTarget = 'focus'): Outcome => {
+  const net = netOf(core, target);
+  if (typeof net === 'string') return fail(net);
+  const node = net.nodes.find((n) => n.uid === uid);
+  if (!node) return fail('none');
+  if (node.configLocked) return fail('locked');
+  if (!can(node.device, 'svi')) return fail('svi.none');
+  if (!Number.isInteger(vlan) || vlan < 1 || vlan > 4094) return fail('vlan.range');
+  if (ip !== '' && !isIp(ip)) return fail('ip');
+  const others = node.interfaces.filter((i) => !(i.kind === 'svi' && i.vlan === vlan));
+  const interfaces: Iface[] = ip === '' ? others : [...others, makeSvi(vlan, ip, prefix)];
+  if (interfaces.filter((i) => i.kind === 'svi').length > sviMaxOf(env, node.device)) return fail('svi.max');
+  const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, interfaces } : n));
+  const segments = fillSegments({ nodes, links: net.links, segments: net.segments }, env.engine);
+  return { ok: true, core: withNet(core, target, { ...net, nodes, segments }) };
+};
+
+// 機器の SVI の上限（機器の定義の sviMax。持てない機器は 0）
+const sviMaxOf = (env: Env, device: string): number => (env.devices[device] as { sviMax?: number } | undefined)?.sviMax ?? 0;
+
+// 口の VLAN（access）か、ルーターの口（routed・no switchport）を設定する（N137・N138）
+export const setPortMode = (
+  core: Core,
+  uid: string,
+  port: number,
+  mode: { kind: 'access'; vlan: number } | { kind: 'routed' },
+  env: Env,
+  target: NetTarget = 'focus',
+): Outcome => {
+  const net = netOf(core, target);
+  if (typeof net === 'string') return fail(net);
+  const node = net.nodes.find((n) => n.uid === uid);
+  if (!node) return fail('none');
+  if (node.configLocked) return fail('locked');
+  if (!Number.isInteger(port) || port < 0 || port >= (env.devices[node.device]?.portCount ?? 0)) return fail('port.none');
+  if (mode.kind === 'access') {
+    if (!can(node.device, 'switchport')) return fail('port.mode');
+    if (!Number.isInteger(mode.vlan) || mode.vlan < 1 || mode.vlan > 4094) return fail('vlan.range');
+  } else if (!can(node.device, 'routedPort')) {
+    return fail('port.mode');
+  }
+  const prev = (node.ports ?? []).find((p) => p.port === port);
+  const next: PortConfig = mode.kind === 'access' ? { ...prev, port, mode: 'access', vlan: mode.vlan } : { ...prev, port, mode: 'routed', vlan: undefined };
+  const ports = [...(node.ports ?? []).filter((p) => p.port !== port), next];
+  const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, ports } : n));
+  return { ok: true, core: withNet(core, target, { ...net, nodes }) };
 };
 
 // デフォルトゲートウェイを設定する。null で外す

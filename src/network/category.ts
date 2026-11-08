@@ -8,9 +8,14 @@ export const SVI_PORT_BASE = 1000;
 export const sviPortOf = (vlan: number): number => SVI_PORT_BASE + vlan;
 export const isSviPort = (port: number): boolean => port >= SVI_PORT_BASE;
 
-// L3スイッチの access・trunk の口は、L2 と同じく機器の内部のスイッチ（ファブリック）につなぐ（N138）。routed の口は、ルーターの口として経路を持つ
-export const isL3FabricPort = (category: string, cfg: PortConfig | undefined): boolean =>
-  category === CATEGORY.l3Switch && (cfg?.mode === 'access' || cfg?.mode === 'trunk');
+// L3スイッチの口の扱い（N138）: 設定の access・trunk は機器の内部のスイッチ（ファブリック）につなぐ。設定がなく IP もない口は既定の access（VLAN 1）。
+// routed の設定、または IP を持つ口（設定がなければ）は、ルーターの口として経路を持つ（今までと同じ動き）
+export const isL3FabricPort = (category: string, port: number, cfg: PortConfig | undefined, hasIp: boolean): boolean => {
+  // SVI の仮想の口は、口の扱いの対象ではない
+  if (category !== CATEGORY.l3Switch || isSviPort(port)) return false;
+  if (cfg !== undefined) return cfg.mode === 'access' || cfg.mode === 'trunk';
+  return !hasIp;
+};
 // L2スイッチは中継だけを行い、機器の一員にはならない。
 // ルーター系（router・l3_switch・router_switch・firewall。ファイアウォールは2ポートで、通過する経路の印になる）は、ポートごとにネットワークの入口になり、経路を持つ。
 // スイッチ付きルーターは、WAN の口（ポート0）と LAN の口（ポート1〜4）を持つ。LAN の口は内部でスイッチとして1つのセグメントになり、代表の LAN 口（ポート1）がそのアドレスを持つ。

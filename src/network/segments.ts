@@ -47,11 +47,14 @@ export const segmentsOf = (net: Pick<Network, 'nodes' | 'links'>, data: EngineDa
   const cat = (uid: string) => categoryOf.get(uid) ?? '';
   const nodeOf = new Map(net.nodes.map((n) => [n.uid, n]));
   // 口が機器の内部のスイッチにつながるか（L3スイッチの access・trunk の口を含む・N138）
-  const fabricOf = (uid: string, port: number): boolean => isFabricPort(cat(uid), port) || isL3FabricPort(cat(uid), nodeOf.get(uid)?.ports?.find((p) => p.port === port));
+  const cfgOf = (uid: string, port: number) => nodeOf.get(uid)?.ports?.find((p) => p.port === port);
+  const hasIpOf = (uid: string, port: number): boolean => (nodeOf.get(uid)?.interfaces ?? []).some((i) => i.kind === 'port' && i.port === port);
+  const l3Fabric = (uid: string, port: number): boolean => isL3FabricPort(cat(uid), port, cfgOf(uid, port), hasIpOf(uid, port));
+  const fabricOf = (uid: string, port: number): boolean => isFabricPort(cat(uid), port) || l3Fabric(uid, port);
   // L3スイッチの access の口は VLAN ごとにまとめる（SVI と同じ VLAN のセグメントになる）。L2 と trunk は機器ごと
   const fabricKey = (uid: string, port: number): string => {
-    const cfg = nodeOf.get(uid)?.ports?.find((p) => p.port === port);
-    return cat(uid) === 'l3_switch' && cfg?.mode === 'access' ? `${uid}#${cfg.vlan ?? 1}` : uid;
+    const cfg = cfgOf(uid, port);
+    return cat(uid) === 'l3_switch' && l3Fabric(uid, port) && (cfg === undefined || cfg.mode === 'access') ? `${uid}#${cfg?.vlan ?? 1}` : uid;
   };
 
   const endpoints = new Map<string, Endpoint>();
@@ -97,7 +100,7 @@ export const segmentsOf = (net: Pick<Network, 'nodes' | 'links'>, data: EngineDa
   }
   const segments: Segment[] = [];
   for (const eps of groups.values()) {
-    const members = eps.filter((ep) => !isRelayPort(cat(ep.node), ep.port) && !isL3FabricPort(cat(ep.node), nodeOf.get(ep.node)?.ports?.find((p) => p.port === ep.port))).sort(byEndpoint);
+    const members = eps.filter((ep) => !isRelayPort(cat(ep.node), ep.port) && !l3Fabric(ep.node, ep.port)).sort(byEndpoint);
     if (members.length === 0) continue;
     segments.push({ key: epKey(members[0].node, members[0].port), members });
   }

@@ -14,6 +14,10 @@ import { isValidHostname } from './hostname';
 
 export type ConfigAction =
   | { kind: 'iface'; port: number; ip: string; prefix: number }
+  // SVI（VLAN のインターフェース・N138）: ip address vlan <番号> <IP> <マスク> / no ip address vlan <番号>（ip が空なら外す）
+  | { kind: 'svi'; vlan: number; ip: string; prefix: number }
+  // 口のモード（N137・N138）: switchport <ポート> access vlan <番号> / no switchport <ポート>（routed）
+  | { kind: 'portMode'; port: number; mode: { kind: 'access'; vlan: number } | { kind: 'routed' } }
   | { kind: 'gateway'; gateway: string | null }
   | { kind: 'addRoute'; route: Route }
   | { kind: 'removeRoute'; dest: string; prefix: number }
@@ -62,11 +66,13 @@ export const maskToPrefix = (mask: string): number | null => {
 export const isHostName = (s: string): boolean => isValidHostname(s);
 
 const port = (s: string): number | null => (/^\d+$/.test(s) ? Number(s) : null);
+// VLAN の番号（1〜4094）
+const vlanNumber = (s: string): number | null => (/^\d+$/.test(s) && Number(s) >= 1 && Number(s) <= 4094 ? Number(s) : null);
 
 export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   const words = line.trim().split(/\s+/).filter((w) => w !== '');
   const [first, ...rest] = words;
-  if (first !== 'ip' && first !== 'no' && first !== 'hostname' && first !== 'router' && first !== 'network' && first !== 'neighbor' && first !== 'wireless') return { kind: 'none' };
+  if (first !== 'ip' && first !== 'no' && first !== 'hostname' && first !== 'router' && first !== 'network' && first !== 'neighbor' && first !== 'wireless' && first !== 'switchport') return { kind: 'none' };
   const error = (key: string) => ({ kind: 'error' as const, text: tr(key) });
 
   // router rip / router ospf <番号>（no で止める）
@@ -126,6 +132,36 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   }
   if (first === 'no' && rest[0] === 'network' && rest.length === 2 && isIp(rest[1])) {
     return { kind: 'action', action: { kind: 'network', proto: 'rip', ip: rest[1], area: null, on: false } };
+  }
+
+  if (first === 'ip' && rest[0] === 'address' && rest[1] === 'vlan') {
+    if (rest.length !== 5) return error('ui.terminal.usageSvi');
+    const v = vlanNumber(rest[2]);
+    if (v === null) return error('ui.terminal.errVlan');
+    if (!isIp(rest[3])) return error('ui.terminal.errIp');
+    const prefix = maskToPrefix(rest[4]);
+    if (prefix === null) return error('ui.terminal.errMask');
+    return { kind: 'action', action: { kind: 'svi', vlan: v, ip: rest[3], prefix } };
+  }
+  if (first === 'no' && rest[0] === 'ip' && rest[1] === 'address' && rest[2] === 'vlan') {
+    if (rest.length !== 4) return error('ui.terminal.usageSvi');
+    const v = vlanNumber(rest[3]);
+    if (v === null) return error('ui.terminal.errVlan');
+    return { kind: 'action', action: { kind: 'svi', vlan: v, ip: '', prefix: 24 } };
+  }
+  if (first === 'switchport') {
+    if (rest.length !== 4 || rest[1] !== 'access' || rest[2] !== 'vlan') return error('ui.terminal.usageSwitchport');
+    const p = port(rest[0]);
+    if (p === null) return error('ui.terminal.errPort');
+    const v = vlanNumber(rest[3]);
+    if (v === null) return error('ui.terminal.errVlan');
+    return { kind: 'action', action: { kind: 'portMode', port: p, mode: { kind: 'access', vlan: v } } };
+  }
+  if (first === 'no' && rest[0] === 'switchport') {
+    if (rest.length !== 2) return error('ui.terminal.usageSwitchport');
+    const p = port(rest[1]);
+    if (p === null) return error('ui.terminal.errPort');
+    return { kind: 'action', action: { kind: 'portMode', port: p, mode: { kind: 'routed' } } };
   }
 
   if (first === 'ip' && rest[0] === 'address') {

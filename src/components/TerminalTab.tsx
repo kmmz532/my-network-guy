@@ -25,6 +25,8 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
   const setRouting = useGameStore((s) => s.setRouting);
   const setBgp = useGameStore((s) => s.setBgp);
   const setNat = useGameStore((s) => s.setNat);
+  const setSvi = useGameStore((s) => s.setSvi);
+  const setPortMode = useGameStore((s) => s.setPortMode);
   const setWireless = useGameStore((s) => s.setWireless);
   const learnPing = useGameStore((s) => s.learnPing);
   const netKey = useGameStore((s) => s.focus ?? 'office');
@@ -35,6 +37,10 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
     switch (action.kind) {
       case 'iface':
         return setIface(node.uid, action.port, action.ip, action.prefix);
+      case 'svi':
+        return setSvi(node.uid, action.vlan, action.ip, action.prefix);
+      case 'portMode':
+        return setPortMode(node.uid, action.port, action.mode);
       case 'gateway':
         return setGateway(node.uid, action.gateway);
       case 'addRoute':

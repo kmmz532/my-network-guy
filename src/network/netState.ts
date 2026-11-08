@@ -222,7 +222,12 @@ class Topology {
 
   // 口が機器の内部のスイッチにつながるか（その口から同じL2ドメインへ中継される）
   isFabric(uid: string, port: number): boolean {
-    return isFabricPort(this.categoryOf(uid), port) || isL3FabricPort(this.categoryOf(uid), this.portCfg(uid, port));
+    return isFabricPort(this.categoryOf(uid), port) || isL3FabricPort(this.categoryOf(uid), port, this.portCfg(uid, port), this.hasIpOn(uid, port));
+  }
+
+  // 口に IP のインターフェースがあるか（L3スイッチの口の扱いに使う）
+  hasIpOn(uid: string, port: number): boolean {
+    return (this.nodes.get(uid)?.interfaces ?? []).some((i) => i.kind === 'port' && i.port === port);
   }
 
   // 機器の SVI（VLAN のインターフェース）
@@ -232,7 +237,7 @@ class Topology {
 
   // 口が機器の一員として数えられないか（中継だけの口）
   isRelay(uid: string, port: number): boolean {
-    return isRelayPort(this.categoryOf(uid), port) || isL3FabricPort(this.categoryOf(uid), this.portCfg(uid, port));
+    return isRelayPort(this.categoryOf(uid), port) || isL3FabricPort(this.categoryOf(uid), port, this.portCfg(uid, port), this.hasIpOn(uid, port));
   }
 
   isRouter(uid: string): boolean {
@@ -272,7 +277,7 @@ class Topology {
     if (isSviPort(port)) return port - SVI_PORT_BASE === vlan;
     const cfg = this.portCfg(uid, port);
     // 設定のない口（機器の口）は、届いたフレームをそのまま受け取る
-    if (cfg === undefined) return true;
+    if (cfg === undefined) return !isL3FabricPort(this.categoryOf(uid), port, undefined, this.hasIpOn(uid, port)) || vlan === 1;
     if (cfg.mode === 'trunk') return cfg.allowed === undefined || cfg.allowed.includes(vlan);
     return (cfg.vlan ?? 1) === vlan;
   }
