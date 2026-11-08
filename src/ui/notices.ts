@@ -26,6 +26,7 @@ export const NOTICE_KINDS = {
   retired: { key: 'ui.notice.retired', open: 'staffList', sticky: false },
   // 上限に達して、昇給を待っている社員（N101）
   raiseWaiting: { key: 'ui.notice.raiseWaiting', open: 'staff', sticky: false },
+  pcMissing: { key: 'ui.notice.pcMissing', open: 'staffList', sticky: false },
 } as const satisfies Record<string, NoticeSpec>;
 
 export type NoticeKind = keyof typeof NOTICE_KINDS;

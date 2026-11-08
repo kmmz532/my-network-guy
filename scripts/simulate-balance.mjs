@@ -7,6 +7,7 @@ const DATA = new URL('../src/assets/data/', import.meta.url).pathname.replace(/^
 const read = (p) => JSON.parse(readFileSync(join(DATA, p), 'utf-8'));
 
 const balance = read('balance.json');
+const jobs = read('jobs.json').jobs;
 const devices = Object.fromEntries(
   readdirSync(join(DATA, 'devices')).flatMap((f) => read(`devices/${f}`).devices).map((d) => [d.id, d]),
 );
@@ -38,6 +39,12 @@ const plans = [
 
 const designScale = Number(process.argv[2] ?? 1);
 const { build, staff, time } = balance;
+for (const job of jobs) {
+  if (!Number.isInteger(job.unlockLevel) || job.unlockLevel < 1) throw new Error(`${job.id}: 解放レベルが不正です`);
+  if (job.pc === 'bonus' && !job.pcBonus) throw new Error(`${job.id}: PC の効果がありません`);
+  if (job.pc !== 'bonus' && job.pcBonus) throw new Error(`${job.id}: PC の効果が不要です`);
+}
+console.log(`職種定義: ${jobs.length}件（解放レベル・PC 条件を確認）`);
 const workMinutesPerDay = (build.workEndHour - build.workStartHour) * 60;
 const minutesPerDay = 24 * 60;
 const minutesPerMonth = time.daysPerMonth * minutesPerDay;

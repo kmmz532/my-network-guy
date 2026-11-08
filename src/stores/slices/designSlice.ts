@@ -2,6 +2,10 @@
 import { playConnect, playFail } from '../../audio/sfx';
 import type { FirewallRule, Route } from '../../network/types';
 import { gameEnv } from '../../sim/env';
+import { isPcDevice } from '../../sim/env';
+import { pcDesksOf } from '../../sim/furniture';
+import { missingPcCount } from '../../sim/backOffice';
+import { pushNotice } from '../../ui/notices';
 import { sandboxTest } from '../../sim/sandbox';
 
 import { closeRef } from '../../ui/windows';
@@ -57,6 +61,8 @@ export interface DesignSlice {
 
 export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (set, get) => {
   const { apply, recorded, stepHistory, tileOf, withAutoIp } = createOps(set, get);
+  const missingPc = (state: GameState): number =>
+    missingPcCount(state.staff, { pcDesks: pcDesksOf(state.office, isPcDevice), defs: gameEnv.furniture ?? {}, balance: gameEnv.balance, staff: state.staff });
   return {
     undo: () => stepHistory('undo'),
     redo: () => stepHistory('redo'),
@@ -104,6 +110,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
     },
     removeLink: (uid) => recorded(() => apply(removeLink(coreOf(get()), uid, netTargetOf(get()), gameEnv))),
     removeNode: (uid) => {
+      const before = missingPc(get());
       const reason = recorded(() => {
         if (!focusedProject(get())) {
           const n = get().office.nodes.find((x) => x.uid === uid);
@@ -113,6 +120,10 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       });
       // 撤去した機器のタブは閉じる（最後のタブならウィンドウも閉じる）
       if (reason === null) set((s) => ({ windows: closeRef({ windows: s.windows, seq: s.windowSeq }, 'device', uid).windows }));
+      if (reason === null) {
+        const after = missingPc(get());
+        if (after > before) set((s) => ({ notices: pushNotice(s.notices, 'pcMissing', { count: after }, Date.now()) }));
+      }
       return reason;
     },
     setIface: (uid, port, ip, prefix = 24) =>
@@ -135,9 +146,15 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       recorded(() => apply(replug(coreOf(get()), linkUid, end, port, gameEnv, netTargetOf(get())))),
     // 移動の地図は、設計中の案件のマップ（なければ自社オフィスの hq）
     moveNode: (uid, x, y) => {
+      const before = missingPc(get());
       const map = get().maps[focusedProject(get())?.contract.map ?? 'hq'];
       if (!map) return 'map';
-      return recorded(() => apply(moveNode(coreOf(get()), uid, x, y, gameEnv, netTargetOf(get()), map, get().mode === 'sandbox'), tileOf(uid)));
+      const reason = recorded(() => apply(moveNode(coreOf(get()), uid, x, y, gameEnv, netTargetOf(get()), map, get().mode === 'sandbox'), tileOf(uid)));
+      if (reason === null) {
+        const after = missingPc(get());
+        if (after > before) set((s) => ({ notices: pushNotice(s.notices, 'pcMissing', { count: after }, Date.now()) }));
+      }
+      return reason;
     },
     replugTo: (linkUid, end, nodeUid, port) =>
       recorded(() => apply(replugTo(coreOf(get()), linkUid, end, nodeUid, port, gameEnv, netTargetOf(get())), tileOf(nodeUid))),

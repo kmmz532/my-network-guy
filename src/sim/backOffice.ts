@@ -1,7 +1,7 @@
 // 内勤（営業・人事・経理。担当には出さず、社内の仕事で会社に効果を与える）の効果の計算。純粋な関数。
 // 効果の強さは、その職種の内勤（日勤・席の係数と家具の補正を掛けた実効 level）の合計 P で決まる。
 import type { Balance, JobId, Staff } from '../data/schema';
-import { jobOf, isBackOfficeJob } from './jobs';
+import { jobOf, isBackOfficeJob, requiresPc } from './jobs';
 import type { Office } from './project';
 import { furnitureBonus, seatOf, type BonusEnv } from './furniture';
 
@@ -20,6 +20,9 @@ export const effectiveLevelOf = (s: Staff, office: Office, env: BonusEnv): numbe
 
 // 社員の机に PC があるか（N102）
 export const hasPcAt = (s: Staff, env: BonusEnv): boolean => s.desk !== null && env.pcDesks.includes(s.desk);
+
+export const missingPcCount = (staff: readonly Staff[], env: BonusEnv): number =>
+  staff.filter((member) => requiresPc(member.job) && !hasPcAt(member, env)).length;
 
 // 内勤の効果に数える寄与（N102）。日勤で研修中でないことが前提。
 // 人事・経理は PC のある机の社員だけ。営業は PC がなくても数え、PC があると jobs.json の effectRate 倍になる。

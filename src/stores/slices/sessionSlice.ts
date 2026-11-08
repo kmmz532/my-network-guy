@@ -10,6 +10,10 @@ import { mapOfOffice } from '../../sim/office';
 import { OFFICE_HISTORY_KEY } from '../../sim/history';
 import { initialOffice } from '../../sim/furniture';
 import { type OfficeSize, noEffects } from '../../sim/project';
+import { gameEnv, isPcDevice } from '../../sim/env';
+import { pcDesksOf } from '../../sim/furniture';
+import { missingPcCount } from '../../sim/backOffice';
+import { pushNotice } from '../../ui/notices';
 
 import { newRng, newStart, refresh } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
@@ -34,7 +38,12 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
   const { dropHistory } = createOps(set, get);
   return {
     load: (save) =>
-      set({
+      set(() => {
+        const missing = save.mode === 'career'
+          ? missingPcCount(save.staff, { pcDesks: pcDesksOf(save.office, isPcDevice), defs: gameEnv.furniture ?? {}, balance: gameEnv.balance, staff: save.staff })
+          : 0;
+        const notices = missing > 0 ? pushNotice([], 'pcMissing', { count: missing }, Date.now()) : [];
+        return {
         mode: save.mode,
         name: save.name,
         clock: save.clock,
@@ -71,6 +80,8 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
         histories: {},
         historyError: null,
         windows: [],
+        notices,
+      };
       }),
     renameCompany: (name) => {
       const trimmed = name.trim();

@@ -72,6 +72,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
   // 夜勤の解放（会社のレベル）と、候補ごとに選んだ区分
   const nightOpen = levelOf(companyExp, balance) >= balance.featureUnlocks.nightShift;
   const [shiftOf, setShiftOf] = useState<Record<string, 'day' | 'night'>>({});
+  const [confirmUid, setConfirmUid] = useState<string | null>(null);
   // 空いている机がなければ、採用できない（座っている社員の机は、辞めるまで空かない）
   const freeSeats = freeDesks(office, allStaff, (id) => furniture[id as FurnitureId]?.seat === true);
   const full = freeSeats.length === 0;
@@ -105,7 +106,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
         return (
         <div
           key={c.uid}
-          style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}
+          style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}
         >
           <Icon name={`staff/${staffSpriteName(c.look)}_0`} scale={2} />
           <div style={{ flex: 1 }}>
@@ -145,12 +146,25 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
             style={{ ...secondaryButton, whiteSpace: 'nowrap', cursor: full ? 'default' : 'pointer', opacity: full ? 0.5 : 1 }}
             disabled={full}
             onClick={() => {
+              if (requiresPc(c.job) && !nextDeskHasPc && !full) {
+                setConfirmUid(c.uid);
+                return;
+              }
               const reason = hire(c.uid, shiftOf[c.uid] ?? 'day');
               onMessage(reason ? reasonText(reason) : '');
             }}
           >
             {t('ui.hiring.hire')}
           </button>
+          {confirmUid === c.uid && requiresPc(c.job) && !nextDeskHasPc && !full && (
+            <div style={{ position: 'absolute', right: 12, bottom: 42, zIndex: 1, maxWidth: 260, padding: 8, background: '#1b2f57', border: '1px solid #ffd866' }}>
+              <div style={{ fontSize: 12, marginBottom: 6 }}>{t('ui.hiring.noPc.confirm')}</div>
+              <button style={{ ...secondaryButton, marginRight: 6 }} onClick={() => { setConfirmUid(null); const reason = hire(c.uid, shiftOf[c.uid] ?? 'day'); onMessage(reason ? reasonText(reason) : ''); }}>
+                {t('ui.hiring.hire')}
+              </button>
+              <button style={secondaryButton} onClick={() => setConfirmUid(null)}>{t('ui.panel.close')}</button>
+            </div>
+          )}
         </div>
         );
       })}
