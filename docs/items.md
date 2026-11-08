@@ -25,7 +25,7 @@
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/router_sfp.png" width="72" alt="SFP対応ルーター"> | SFP対応ルーター | 65,000円 | LAN 4口・SFP 1口 | ルーティング | Lv16 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/router_switch.png" width="72" alt="スイッチ付きルーター"> | スイッチ付きルーター | 80,000円 | WAN 1口、LAN 4口 | ルーティング、スイッチ | Lv9 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/home_router.png" width="72" alt="家庭用ルーター"> | 家庭用ルーター | 80,000円 | WAN 1口、LAN 4口 | ルーティング、スイッチ、ファイアウォール | Lv20 |
-| <img style="image-rendering: pixelated" src="../src/assets/sprites/device/home_router_ap.png" width="72" alt="無線つき家庭用ルーター"> | 無線つき家庭用ルーター | 110,000円 | WAN 1口、LAN 4口 | ルーティング、スイッチ、ファイアウォール、無線 | Lv30 |
+| <img style="image-rendering: pixelated" src="../src/assets/sprites/device/home_router_ap.png" width="72" alt="無線付き家庭用ルーター"> | 無線付き家庭用ルーター | 110,000円 | WAN 1口、LAN 4口 | ルーティング、スイッチ、ファイアウォール、無線 | Lv30 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/firewall.png" width="72" alt="ファイアウォール"> | ファイアウォール | 120,000円 | 2口（内側・外側） | ルーティング、ファイアウォール | Lv27 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/firewall_dmz.png" width="72" alt="DMZ付きファイアウォール"> | DMZ付きファイアウォール | 125,000円 | 3口（外部・社内・公開用サーバー） | ルーティング、ファイアウォール | Lv36 |
 
