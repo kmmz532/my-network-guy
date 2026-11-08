@@ -13,6 +13,7 @@ import { totalSalary, unlockedJobsOf } from '../sim/staff';
 import { levelOf } from '../sim/level';
 import { examPassRate } from '../sim/training';
 import { useGameStore } from '../stores/useGameStore';
+import { useUiStore } from '../stores/useUiStore';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
 import { Modal, primaryButton, secondaryButton } from './Modal';
@@ -21,11 +22,13 @@ import { RADIUS } from '../ui/theme';
 import { Select } from './Select';
 import { CertChips } from './StaffCard';
 
-export type HiringTab = 'hiring' | 'staff';
-
-// tab は開くときのタブ。社員の札の「研修・資格へ」から開くときは staff にする
-export function HiringPanel({ tab, onTab, onClose }: { tab: HiringTab; onTab: (tab: HiringTab) => void; onClose: () => void }) {
+// 開くタブは useUiStore の hiring が決める。社員の札の「研修・資格へ」から開くときは staff
+export function HiringPanel() {
+  const tab = useUiStore((s) => s.hiring);
+  const onTab = useUiStore.getState().setHiringTab;
+  const onClose = useUiStore.getState().closeHiring;
   const [message, setMessage] = useState('');
+  if (tab === null) return null;
   // Enter は閉じる（主のボタン）
   return (
     <Modal onClose={onClose} primary={onClose} boxStyle={{ width: 'min(420px, calc(100% - 32px))' }}>

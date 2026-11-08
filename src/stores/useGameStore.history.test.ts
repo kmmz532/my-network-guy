@@ -4,7 +4,7 @@ import officeJson from '../assets/data/maps/office_small.json';
 import c001 from '../assets/data/contracts/c001_direct_link.json';
 import type { Contract, GameMap } from '../data/schema';
 import type { Offer } from '../contracts/template';
-import { handleKey, type UiActions } from '../input/keymap';
+import { handleKey } from '../input/keymap';
 import { projectHistoryKey } from '../sim/history';
 import { useGameStore } from './useGameStore';
 
@@ -16,7 +16,6 @@ const offer: Offer = {
   params: {},
   contract: c001 as unknown as Contract,
 };
-const ui: UiActions = { togglePopup: () => {}, toggleInventory: () => {} };
 const st = () => useGameStore.getState();
 
 // 自社オフィスで、机2つ（(3,4) と (8,4)）と在庫を用意する
@@ -122,7 +121,7 @@ describe('自社オフィスの取り消し・やり直し', () => {
   it('Ctrl+Z と Ctrl+Y（Ctrl+Shift+Z）で戻す・やり直す', () => {
     st().place('l2_switch_8p', 6, 6);
     const key = (k: string, shiftKey = false) =>
-      handleKey({ key: k, ctrlKey: true, metaKey: false, shiftKey, altKey: false, target: null }, ui);
+      handleKey({ key: k, ctrlKey: true, metaKey: false, shiftKey, altKey: false, target: null });
     expect(key('z')).toBe(true);
     expect(st().office.nodes).toHaveLength(0);
     // Ctrl+Shift+Z もやり直す
@@ -138,7 +137,6 @@ describe('自社オフィスの取り消し・やり直し', () => {
     st().place('l2_switch_8p', 6, 6);
     const handled = handleKey(
       { key: 'z', ctrlKey: true, metaKey: false, shiftKey: false, altKey: false, target: { tagName: 'INPUT', isContentEditable: false } as unknown as EventTarget },
-      ui,
     );
     expect(handled).toBe(false);
     expect(st().office.nodes).toHaveLength(1);

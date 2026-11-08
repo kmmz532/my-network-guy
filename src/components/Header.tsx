@@ -1,5 +1,6 @@
 import { RefObject, useEffect, useState } from "react";
 import { useSaveSession } from "../services/saveSession";
+import { useUiStore } from "../stores/useUiStore";
 import { Icon } from "./Icon";
 import { ExpGauge, LevelMark } from "./CompanyPanel";
 import { Speed, useGameStore } from "../stores/useGameStore";
@@ -31,7 +32,7 @@ const hudButton = (on: boolean, phone: boolean) => ({
 // 自動保存の印（ヘッダーの小さなアイコン）は、この時間で消す
 const SAVE_MARK_MS = 1000;
 
-const Header = ({ headerRef, setPopup }: { headerRef: RefObject<HTMLElement>, setPopup: (popup: 'menu') => void }) => {
+const Header = ({ headerRef }: { headerRef: RefObject<HTMLElement> }) => {
 
     // 自動保存が終わった時刻から、印を出している間だけ値を持つ
     const savedAt = useSaveSession((s) => s.savedAt);
@@ -150,7 +151,7 @@ const Header = ({ headerRef, setPopup }: { headerRef: RefObject<HTMLElement>, se
             <Icon name="icon/save" scale={1} />
             </span>
         </Tooltip>
-        <button style={{ ...hudButton(false, phone), display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setPopup('menu')}>
+        <button style={{ ...hudButton(false, phone), display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => useUiStore.getState().setPopup('menu')}>
             <Icon name="icon/menu" scale={1} />
         </button>
         </div>

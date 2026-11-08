@@ -9,6 +9,7 @@ import { gameEnv, isPcDevice } from '../sim/env';
 import { jobEffectText } from './jobEffectText';
 import { staffSpriteName } from '../data/schema';
 import { useGameStore } from '../stores/useGameStore';
+import { useUiStore } from '../stores/useUiStore';
 import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
 import { useState } from 'react';
@@ -37,7 +38,7 @@ export function StaffTitle({ uid }: { uid: string }) {
 }
 
 // 社員の札。見た目・名前・職種・level・経験値・月給・資格・状態・口癖と、研修・資格へのボタン
-export function StaffBody({ uid, onTraining }: { uid: string; onTraining: () => void }) {
+export function StaffBody({ uid }: { uid: string }) {
   const state = useGameStore();
   const member = state.staff.find((m) => m.uid === uid);
   if (!member) return null;
@@ -104,7 +105,7 @@ export function StaffBody({ uid, onTraining }: { uid: string; onTraining: () => 
       </dl>
       <div style={{ fontStyle: 'italic', opacity: 0.9 }}>{tDyn(`staff.quirk.${member.quirk}`)}</div>
       <div>
-        <button style={secondaryButton} onClick={onTraining}>
+        <button style={secondaryButton} onClick={() => useUiStore.getState().openHiring('staff')}>
           {t('ui.staff.card.goto')}
         </button>
       </div>

@@ -118,7 +118,7 @@ function TabStrip({
   );
 }
 
-export function Windows({ onTraining }: { onTraining: () => void }) {
+export function Windows() {
   const state = useGameStore();
   const vp = useViewport();
   const narrow = isNarrow(vp);
@@ -177,7 +177,7 @@ export function Windows({ onTraining }: { onTraining: () => void }) {
           onClose={() => state.closeWindow(w.id)}
         >
           {w.kind === 'device' && <DeviceBody uid={w.active} />}
-          {w.kind === 'staff' && <StaffBody uid={w.active} onTraining={onTraining} />}
+          {w.kind === 'staff' && <StaffBody uid={w.active} />}
           {w.kind === 'staffList' && <StaffListBody />}
           {w.kind === 'offers' && <OfferBody onClose={() => state.closeWindow(w.id)} />}
           {w.kind === 'shop' && <ShopBody />}

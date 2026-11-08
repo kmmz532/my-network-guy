@@ -49,6 +49,7 @@ import {
   stepDesign,
   undo as undoHistory,
 } from '../sim/history';
+import { useUiStore } from './useUiStore';
 import { type WindowItem, type WindowKind, type WindowMemory, closeRef, closeWindow as closeWindowOp, focusWindow as focusWindowOp, frontWindow, moveWindow as moveWindowOp, openWindow as openWindowOp, toggleWindow as toggleWindowOp, closeTab as closeTabOp, fitWindows as fitWindowsOp, selectTab as selectTabOp, reorderTab as reorderTabOp, parseMemory, remember, resizeWindow as resizeWindowOp, placeWindow as placeWindowOp, type Rect, type Viewport } from '../ui/windows';
 import { isPhoneNow } from '../ui/usePhone';
 import {
@@ -261,8 +262,6 @@ export interface GameState {
   dismissNotice: (id: number) => void;
   // 期限の過ぎた通知を消し、待っている通知を出す
   tickNotices: () => void;
-  // 採用の画面を開く要求（押した数が増える。画面の部品が見て開く）
-  hiringRequest: number;
   // 設計の取り消しの履歴（案件ごと・自社オフィスごと）。保存しない
   histories: Record<string, History<DesignEntry>>;
   // 設計の操作を1つ元に戻す・やり直す（戻せなければ何もしない）
@@ -905,7 +904,6 @@ export const useGameStore = create<GameState>((set, get) => {
     maps: { hq: mapOfOffice(initialOffice(balance)) },
     lastReport: null,
     notices: [],
-    hiringRequest: 0,
     dismissReport: () => set({ lastReport: null, showcase: null, traces: [] }),
     dismissNotice: (id) => set((s) => ({ notices: dismissNotice(s.notices, id) })),
     tickNotices: () => set((s) => ({ notices: promoteNotices(s.notices, Date.now()) })),
@@ -918,7 +916,7 @@ export const useGameStore = create<GameState>((set, get) => {
       else if (open === 'offers') s.openWindow('offers', '');
       else if (open === 'staff' && typeof item.params.uid === 'string') s.openWindow('staff', item.params.uid);
       else if (open === 'staff' || open === 'staffList') s.openWindow('staffList', '');
-      else if (open === 'hiring') set((st) => ({ hiringRequest: st.hiringRequest + 1 }));
+      else if (open === 'hiring') useUiStore.getState().openHiring('hiring');
       set((st) => ({ notices: dismissNotice(st.notices, id) }));
     },
     histories: {},

@@ -22,6 +22,8 @@ import { Tooltip } from './Tooltip';
 import { Inventory, inventoryCatalog } from './Inventory';
 import { RADIUS } from '../ui/theme';
 import { usePhone } from '../ui/usePhone';
+import { useUiStore } from '../stores/useUiStore';
+import { setInventoryOpen, useInventoryOpen } from '../ui/inventoryOpen';
 
 const bar = {
   position: 'absolute',
@@ -96,22 +98,14 @@ const TOOLS: { id: Tool; name: LangKey; action: string; icon: string }[] = [
   { id: 'remove', name: 'ui.tool.remove', action: 'tool.remove', icon: 'icon/trash' },
 ];
 
-export function Toolbar({
-  onOffers,
-  onShop,
-  onHire,
-  hiringOpen,
-  inventoryOpen,
-  setInventoryOpen,
-}: {
-  onOffers: () => void;
-  onShop: () => void;
+export function Toolbar() {
+  // 依頼とショップは、マップの操作を止めないウィンドウで開く（N40）
+  const onOffers = () => useGameStore.getState().toggleWindow('offers', '');
+  const onShop = () => useGameStore.getState().toggleWindow('shop', '');
   // 雇用の画面を開く（閉じる）。候補がいないときは押せない
-  onHire: () => void;
-  hiringOpen: boolean;
-  inventoryOpen: boolean;
-  setInventoryOpen: (open: boolean) => void;
-}) {
+  const onHire = () => useUiStore.getState().toggleHiring();
+  const hiringOpen = useUiStore((s) => s.hiring !== null);
+  const inventoryOpen = useInventoryOpen();
   const offers = useGameStore((s) => s.offers);
   const candidateCount = useGameStore((s) => s.candidates.length);
   // サンドボックスは案件・依頼がなく、テストと設計の操作だけを出す

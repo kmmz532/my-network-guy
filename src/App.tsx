@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { DEBUG_ENABLED } from './debug';
-import { isPhoneNow, usePhone } from './ui/usePhone';
+import { usePhone } from './ui/usePhone';
 import { balance } from 'virtual:game-data';
 import { loadLang, t } from './i18n/t';
 import { PixiStage } from './game/PixiStage';
@@ -25,7 +25,8 @@ import { Guide } from './components/Guide';
 import { TaskPanel } from './components/TaskPanel';
 import { Windows } from './components/Windows';
 import { PortMenu } from './components/PortMenu';
-import { HiringPanel, type HiringTab } from './components/HiringPanel';
+import { HiringPanel } from './components/HiringPanel';
+import { useUiStore } from './stores/useUiStore';
 import { TooltipHost } from './components/Tooltip';
 import { PausedBuildPrompt } from './components/PausedBuildPrompt';
 import { LoopBanner } from './components/LoopBanner';
@@ -42,7 +43,6 @@ import Header from './components/Header';
 const SPEED_NOTE_MS = 1000;
 
 type Screen = 'title' | 'game';
-type Popup = 'menu' | 'help' | 'settings' | 'sandboxResize' | 'sandboxReset' | 'sandboxResetConfirm' | null;
 
 // デバッグのパネルは ?debug=1 のときだけ読み込む（N54）
 const DebugPanel = lazy(() => import('./components/DebugPanel'));
@@ -52,7 +52,8 @@ export function App() {
   // 翻訳や地図の読み込みが失敗したときの例外（エラー画面で再読み込みを促す。B9）
   const [loadError, setLoadError] = useState<unknown>(null);
   const [screen, setScreen] = useState<Screen>('title');
-  const [popup, setPopup] = useState<Popup>(null);
+  const popup = useUiStore((s) => s.popup);
+  const setPopup = useUiStore.getState().setPopup;
   const [message, setMessage] = useState('');
   // タイトルから新しく始めるサンドボックスの広さを選ぶ画面
   const [sandboxPick, setSandboxPick] = useState(false);
@@ -81,29 +82,11 @@ export function App() {
   // サンドボックスの画面。速度のボタン・社員・依頼は出さない
   const sandbox = useGameStore((s) => s.mode) === 'sandbox';
   const office = useGameStore((s) => s.office);
-  // 社員の人数。雇えなかった理由をHUDに出す
-  const [hiring, setHiring] = useState(false);
-  const [hiringTab, setHiringTab] = useState<HiringTab>('hiring');
-  // 通知の「採用」から開く要求（N96）
-  const hiringRequest = useGameStore((s) => s.hiringRequest);
-  useEffect(() => {
-    if (hiringRequest === 0) return;
-    setHiringTab('hiring');
-    setHiring(true);
-  }, [hiringRequest]);
   const cacheMap = useGameStore((s) => s.cacheMap);
-  // インベントリの開け閉め（ツールバーと E キーで使う）。スマホは帯（この状態）、パソコンはウィンドウ（ウィンドウの一覧）で持つ
-  const [inventoryStripOpen, setInventoryStripOpen] = useState(false);
-  const inventoryWindowOpen = useGameStore((s) => s.windows.some((w) => w.kind === 'inventory'));
   // ヘッダーの下端（画面の座標）。狭い画面では案件の札と速さの表示を、ヘッダーの下に置く
   const headerRef = useRef<HTMLElement>(null);
   const [hudBottom, setHudBottom] = useState(0);
   const phone = usePhone();
-  const inventoryOpen = phone ? inventoryStripOpen : inventoryWindowOpen;
-  const setInventoryOpen = (open: boolean) => {
-    if (isPhoneNow()) setInventoryStripOpen(open);
-    else if (open !== useGameStore.getState().windows.some((w) => w.kind === 'inventory')) useGameStore.getState().toggleWindow('inventory', '');
-  };
   useLayoutEffect(() => {
     const el = headerRef.current;
     if (!el) return;
@@ -128,17 +111,7 @@ export function App() {
     return () => window.clearTimeout(timer);
   }, [speed]);
   // キーの表は、ゲームの画面が開いている間だけ効く。M・S・? はポップアップを、E はインベントリを開け閉めする
-  useKeymap(screen === 'game', {
-    // 依頼とショップは、マップの操作を止めないウィンドウで開く（N40）
-    togglePopup: (name) => {
-      if (name === 'offers' || name === 'shop') useGameStore.getState().toggleWindow(name, '');
-      else setPopup((p) => (p === name ? null : name));
-    },
-    toggleInventory: () => {
-      if (isPhoneNow()) setInventoryStripOpen((v) => !v);
-      else useGameStore.getState().toggleWindow('inventory', '');
-    },
-  });
+  useKeymap(screen === 'game');
 
   useEffect(() => {
     // タイトル画面の間は時間を止める。端末の UI の大きさを反映する
@@ -394,38 +367,23 @@ export function App() {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       <TabConflict slot={activeSlot} />
-      <PixiStage inventoryOpen={inventoryOpen} />
-      <Header headerRef={headerRef} setPopup={setPopup} />
+      <PixiStage />
+      <Header headerRef={headerRef} />
       {/* 左上の列: 切り替えのボタンと案件の欄を縦に並べる（位置の数値を部品に持たせない・N121）。狭い画面では、列をヘッダーの下に置く（ヘッダーの高さは zoom を掛けた画面の座標なので、上端は倍率で割って渡す） */}
       <div style={{ position: 'absolute', top: phone ? (hudBottom + 6) / loadSettings().uiScale : 44, left: 8, zIndex: 5, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
         <FocusSwitch />
         <TaskPanel />
       </div>
-      <Windows
-        onTraining={() => {
-          setHiringTab('staff');
-          setHiring(true);
-        }}
-      />
+      <Windows />
       <PortMenu />
-      <Toolbar
-        onOffers={() => useGameStore.getState().toggleWindow('offers', '')}
-        onShop={() => useGameStore.getState().toggleWindow('shop', '')}
-        hiringOpen={hiring}
-        onHire={() => {
-          setHiringTab('hiring');
-          setHiring(!hiring);
-        }}
-        inventoryOpen={inventoryOpen}
-        setInventoryOpen={setInventoryOpen}
-      />
+      <Toolbar />
       <Guide />
       {DEBUG_ENABLED && (
         <Suspense fallback={null}>
           <DebugPanel />
         </Suspense>
       )}
-      {hiring && <HiringPanel tab={hiringTab} onTab={setHiringTab} onClose={() => setHiring(false)} />}
+      <HiringPanel />
       <TooltipHost />
       {popup === 'menu' && (
         <Modal onClose={() => setPopup(null)} boxStyle={{ minWidth: 200 }}>

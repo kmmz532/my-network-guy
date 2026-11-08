@@ -1,5 +1,6 @@
 // マップの上の拡大・縮小ボタン（右下の角の内側、ツールバーの上）。キーの `+` `-` `0` と同じ命令を呼ぶ（mapControl.ts）
 // ツールバーは高さ 56 px（ボタン 44 px と余白）。UIの大きさ（--ui-scale）の拡大を、この部品にも掛ける
+import { useInventoryOpen } from '../ui/inventoryOpen';
 import { t, tDyn } from '../i18n/t';
 import { historyKeyOf } from '../sim/history';
 import { focusedProject } from '../stores/useGameStore';
@@ -57,8 +58,9 @@ function PhoneHistoryButtons() {
   );
 }
 
-export function MapZoomButtons({ inventoryOpen = false }: { inventoryOpen?: boolean }) {
+export function MapZoomButtons() {
   const phone = usePhone();
+  const inventoryOpen = useInventoryOpen();
   // スマホでウィンドウを開いているときは、下のシートと重なるので出さない（マップはドラッグで動かせる）
   const sheetOpen = useGameStore((s) => s.windows.length > 0);
   if (phone && sheetOpen) return null;

@@ -11,15 +11,9 @@ import { balance } from 'virtual:game-data';
 import { levelOf } from '../sim/level';
 import { unlockedSpeedsOf } from '../sim/speed';
 import { topPopup } from './popupStack';
+import { useUiStore } from '../stores/useUiStore';
+import { toggleInventory } from '../ui/inventoryOpen';
 import { mapCommands, PAN_KEY_PX } from '../game/mapControl';
-
-// 画面の上のポップアップ・欄を開け閉めする操作（App が渡す）
-export interface UiActions {
-  // ポップアップを開く。同じものが開いていれば閉じる
-  togglePopup: (name: 'offers' | 'shop' | 'help') => void;
-  // インベントリの欄を開け閉めする
-  toggleInventory: () => void;
-}
 
 export interface KeyInput {
   key: string;
@@ -37,7 +31,7 @@ export interface KeyBinding {
   // 動作の名前の文言キー
   name: LangKey;
   // 実行する。処理したら true。空（undefined）の行は、まだ動作がない（別の担当が入れる）
-  run?: (ui: UiActions) => boolean;
+  run?: () => boolean;
 }
 
 // ストアの操作を行う。戻り値が false のときは処理しなかったとみなす
@@ -165,9 +159,9 @@ export const KEYMAP: KeyBinding[] = [
   { key: 'B', id: 'build', name: 'ui.build', run: onlyWhileDesigning(() => useGameStore.getState().requestBuild()) },
   { key: 'I', id: 'showIp', name: 'ui.showIp', run: act((s) => s.setShowIp(!s.showIp)) },
   // 依頼と社員の一覧は、サンドボックスでは出さない
-  { key: 'M', id: 'offers', name: 'ui.offer.title', run: (ui) => (useGameStore.getState().mode === 'sandbox' ? false : (ui.togglePopup('offers'), true)) },
-  { key: 'S', id: 'shop', name: 'ui.shop.title', run: (ui) => (ui.togglePopup('shop'), true) },
-  { key: 'E', id: 'inventory', name: 'ui.inventory.title', run: (ui) => (ui.toggleInventory(), true) },
+  { key: 'M', id: 'offers', name: 'ui.offer.title', run: () => (useGameStore.getState().mode === 'sandbox' ? false : (useGameStore.getState().toggleWindow('offers', ''), true)) },
+  { key: 'S', id: 'shop', name: 'ui.shop.title', run: () => (useGameStore.getState().toggleWindow('shop', ''), true) },
+  { key: 'E', id: 'inventory', name: 'ui.inventory.title', run: () => (toggleInventory(), true) },
   { key: 'H', id: 'staffList', name: 'keys.staffList', run: () => { const s = useGameStore.getState(); if (s.mode === 'sandbox') return false; s.openWindow('staffList', ''); return true; } },
   // マップの拡大・縮小と移動（mapControl.ts の命令を呼ぶ）
   { key: '+', id: 'zoomIn', name: 'keys.zoomIn', run: () => (mapCommands.zoomIn(), true) },
@@ -178,7 +172,7 @@ export const KEYMAP: KeyBinding[] = [
   { key: '↓', id: 'moveMap', name: 'keys.moveMap', run: () => (mapCommands.pan(0, -PAN_KEY_PX), true) },
   { key: '←', id: 'moveMap', name: 'keys.moveMap', run: () => (mapCommands.pan(PAN_KEY_PX, 0), true) },
   { key: '→', id: 'moveMap', name: 'keys.moveMap', run: () => (mapCommands.pan(-PAN_KEY_PX, 0), true) },
-  { key: '?', id: 'help', name: 'keys.help', run: (ui) => (ui.togglePopup('help'), true) },
+  { key: '?', id: 'help', name: 'keys.help', run: () => (useUiStore.getState().togglePopup('help'), true) },
   // 検索の欄（ショップ・インベントリのウィンドウの上）に移る。欄がなければ何もしない
   { key: '/', id: 'search', name: 'keys.search', run: () => focusVisibleSearch() },
 ];
@@ -218,7 +212,7 @@ const ZOOM_KEYS = new Map<string, string>([['+', '+'], ['=', '+'], ['-', '-'], [
 const INPUT_KEYS = ['Enter', 'Esc', 'Tab', 'Shift+Tab'];
 
 // キーを処理する。処理したら true（呼び出し側で既定の動作を止める）
-export function handleKey(e: KeyInput & { target: EventTarget | null }, ui: UiActions): boolean {
+export function handleKey(e: KeyInput & { target: EventTarget | null }): boolean {
   if (e.altKey) return false;
   const pressed = keyName(e);
   // Ctrl+Shift+Z は Ctrl+Y と同じ（やり直す）
@@ -235,5 +229,5 @@ export function handleKey(e: KeyInput & { target: EventTarget | null }, ui: UiAc
   if (name === 'Space' && target?.tagName === 'BUTTON') target.blur();
   const binding = KEYMAP.find((b) => b.key === name);
   if (!binding?.run) return false;
-  return binding.run(ui);
+  return binding.run();
 }

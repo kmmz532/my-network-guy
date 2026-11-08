@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { bindMapCommands, PAN_KEY_PX } from '../game/mapControl';
-import { KEYMAP, handleKey, keyName, keyOfAction, tipText, type KeyInput, type UiActions } from './keymap';
+import { useGameStore } from '../stores/useGameStore';
+import { useUiStore } from '../stores/useUiStore';
+import { KEYMAP, handleKey, keyName, keyOfAction, tipText, type KeyInput } from './keymap';
 
 const LANG = JSON.parse(readFileSync(`${process.cwd()}/src/assets/lang/ja_jp.json`, 'utf-8')) as Record<string, string>;
 
@@ -13,15 +15,6 @@ const input = (key: string, mods: Partial<KeyInput> = {}): KeyInput => ({
   altKey: false,
   ...mods,
 });
-
-const fakeUi = () => {
-  const calls: string[] = [];
-  const ui: UiActions = {
-    togglePopup: (name) => calls.push(`popup:${name}`),
-    toggleInventory: () => calls.push('inventory'),
-  };
-  return { ui, calls };
-};
 
 const target = (tagName: string, extra: Record<string, unknown> = {}) => ({ tagName, isContentEditable: false, ...extra }) as unknown as EventTarget;
 
@@ -80,29 +73,35 @@ describe('KEYMAP（CORE.md「キー操作」の表）', () => {
   });
 });
 
+const inventoryCalls = vi.hoisted(() => [] as string[]);
+vi.mock('../ui/inventoryOpen', () => ({ toggleInventory: () => inventoryCalls.push('inventory') }));
+
 describe('handleKey（キーの処理）', () => {
-  it('ポップアップのキーは UI の操作を呼ぶ', () => {
-    const { ui, calls } = fakeUi();
-    expect(handleKey({ ...input('?'), target: null }, ui)).toBe(true);
-    expect(handleKey({ ...input('m'), target: null }, ui)).toBe(true);
-    expect(handleKey({ ...input('E'), target: null }, ui)).toBe(true);
-    expect(calls).toEqual(['popup:help', 'popup:offers', 'inventory']);
+  it('ポップアップのキーは画面の開け閉めを呼ぶ', () => {
+    inventoryCalls.length = 0;
+    useUiStore.setState({ popup: null });
+    const windowCalls: string[] = [];
+    useGameStore.setState({ toggleWindow: (kind) => windowCalls.push(kind) });
+    expect(handleKey({ ...input('?'), target: null })).toBe(true);
+    expect(useUiStore.getState().popup).toBe('help');
+    expect(handleKey({ ...input('m'), target: null })).toBe(true);
+    expect(windowCalls).toEqual(['offers']);
+    expect(handleKey({ ...input('E'), target: null })).toBe(true);
+    expect(inventoryCalls).toEqual(['inventory']);
   });
 
   it('入力欄にいるときは Enter・Esc・Tab 以外を無視する', () => {
-    const { ui, calls } = fakeUi();
-    expect(handleKey({ ...input('m'), target: target('INPUT') }, ui)).toBe(false);
-    expect(handleKey({ ...input('?'), target: target('TEXTAREA') }, ui)).toBe(false);
-    expect(calls).toEqual([]);
+    useUiStore.setState({ popup: null });
+    expect(handleKey({ ...input('m'), target: target('INPUT') })).toBe(false);
+    expect(handleKey({ ...input('?'), target: target('TEXTAREA') })).toBe(false);
+    expect(useUiStore.getState().popup).toBeNull();
   });
 
   it('動作がない行（Tab など）は処理しない（既定の動作に任せる）', () => {
-    const { ui } = fakeUi();
-    expect(handleKey({ ...input('Tab'), target: null }, ui)).toBe(false);
+    expect(handleKey({ ...input('Tab'), target: null })).toBe(false);
   });
 
   it('+ - 0 と矢印キーは、マップの命令を呼ぶ（Ctrl と組み合わせても同じ）', () => {
-    const { ui } = fakeUi();
     const calls: string[] = [];
     bindMapCommands({
       zoomIn: () => calls.push('in'),
@@ -111,13 +110,13 @@ describe('handleKey（キーの処理）', () => {
       pan: (dx, dy) => calls.push(`pan:${dx},${dy}`),
     });
     try {
-      expect(handleKey({ ...input('+'), target: null }, ui)).toBe(true);
-      expect(handleKey({ ...input('-'), target: null }, ui)).toBe(true);
-      expect(handleKey({ ...input('0'), target: null }, ui)).toBe(true);
-      expect(handleKey({ ...input('='), target: null }, ui)).toBe(true);
-      expect(handleKey({ ...input('-', { ctrlKey: true }), target: null }, ui)).toBe(true);
-      expect(handleKey({ ...input('0', { ctrlKey: true }), target: null }, ui)).toBe(true);
-      expect(handleKey({ ...input('ArrowLeft'), target: null }, ui)).toBe(true);
+      expect(handleKey({ ...input('+'), target: null })).toBe(true);
+      expect(handleKey({ ...input('-'), target: null })).toBe(true);
+      expect(handleKey({ ...input('0'), target: null })).toBe(true);
+      expect(handleKey({ ...input('='), target: null })).toBe(true);
+      expect(handleKey({ ...input('-', { ctrlKey: true }), target: null })).toBe(true);
+      expect(handleKey({ ...input('0', { ctrlKey: true }), target: null })).toBe(true);
+      expect(handleKey({ ...input('ArrowLeft'), target: null })).toBe(true);
       expect(calls).toEqual(['in', 'out', 'fit', 'in', 'out', 'fit', `pan:${PAN_KEY_PX},0`]);
     } finally {
       bindMapCommands(null);
@@ -125,18 +124,16 @@ describe('handleKey（キーの処理）', () => {
   });
 
   it('入力欄では Ctrl+- などを奪わない', () => {
-    const { ui } = fakeUi();
-    expect(handleKey({ ...input('-', { ctrlKey: true }), target: target('INPUT') }, ui)).toBe(false);
+    expect(handleKey({ ...input('-', { ctrlKey: true }), target: target('INPUT') })).toBe(false);
   });
 
   it('Alt を伴うキーは無視する', () => {
-    const { ui, calls } = fakeUi();
-    expect(handleKey({ ...input('?', { altKey: true }), target: null }, ui)).toBe(false);
-    expect(calls).toEqual([]);
+    useUiStore.setState({ popup: null });
+    expect(handleKey({ ...input('?', { altKey: true }), target: null })).toBe(false);
+    expect(useUiStore.getState().popup).toBeNull();
   });
 
   it('ボタンの上の Enter は、ボタンのクリックに任せる', () => {
-    const { ui } = fakeUi();
-    expect(handleKey({ ...input('Enter'), target: target('BUTTON') }, ui)).toBe(false);
+    expect(handleKey({ ...input('Enter'), target: target('BUTTON') })).toBe(false);
   });
 });
