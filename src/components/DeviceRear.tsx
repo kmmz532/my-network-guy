@@ -11,7 +11,7 @@ import type { End } from '../sim/project';
 import { gameEnv } from '../sim/env';
 import type { NetLink, NetNode } from '../network/types';
 import type { Network } from '../network/types';
-import { colorOfLink, networkColors, networksOfLink } from '../network/netColor';
+import { colorOfLink, colorOfNetwork, networkColors, networkLabelOf, networksOfLink } from '../network/netColor';
 import { withWireless } from '../network/netState';
 import { loadSettings } from '../settings/settings';
 import { useGameStore } from '../stores/useGameStore';
@@ -33,7 +33,7 @@ const plugSlot = (link: NetLink | undefined): string => (!link ? 'rear/port_empt
 interface Carry {
   port: number;
   slot: string;
-  color: number;
+  networks: string[];
   fiber: boolean;
   x: number;
   y: number;
@@ -121,14 +121,14 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
     e.currentTarget.setPointerCapture(e.pointerId);
     const slot = plugSlot(link);
     const fiber = link.cable.startsWith('fiber');
-    const color = colorOfLink(colors, link.uid);
+    const networks = networksOfLink(colors, link.uid);
     const end: End = link.a.node === node.uid ? 'a' : 'b';
     stopDrag.current?.();
     stopDrag.current = trackDrag({
       pointerId: e.pointerId,
       startX: e.clientX,
       startY: e.clientY,
-      onMove: (x, y) => setCarry({ port: p, slot, color, fiber, x, y, over: portHoverAt(x, y, portBoxes(), isUsedPort) }),
+      onMove: (x, y) => setCarry({ port: p, slot, networks, fiber, x, y, over: portHoverAt(x, y, portBoxes(), isUsedPort) }),
       // 空いているポートの上で離したときだけ挿し替える。それ以外は何もせず元に戻す
       onDrop: (x, y) => {
         const target = replugTargetAt(x, y, portBoxes(), isUsedPort);
@@ -183,7 +183,12 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
             // ドラッグ中のプラグは、元の差し込み口を空の絵で見せる（LED も消す）
             const lifted = carry?.port === p;
             const slot = lifted ? 'rear/port_empty' : plugSlot(link);
-            const linkColor = link ? colorOfLink(colors, link.uid) : undefined;
+            const linkNetworks = link ? networksOfLink(colors, link.uid) : [];
+            const stripeNetworks = linkNetworks.slice(0, 3);
+            const stripeColors = stripeNetworks.map((network) => colorOfNetwork(colors, network) ?? colorOfLink(colors, link!.uid));
+            const stripeBackground = stripeColors.length > 1
+              ? `repeating-linear-gradient(90deg, ${stripeColors.map((color, i) => `#${color.toString(16).padStart(6, '0')} ${i * 100 / stripeColors.length}% ${(i + 1) * 100 / stripeColors.length}%`).join(', ')})`
+              : `#${(stripeColors[0] ?? colorOfLink(colors, link?.uid ?? '')).toString(16).padStart(6, '0')}`;
             const fiber = link?.cable.startsWith('fiber') ?? false;
             const lit = !lifted && link !== undefined;
             // 挿し替え中は、空いているポートを光らせて挿し替え先を示す
@@ -240,7 +245,7 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
                       style={{
                         position: 'absolute',
                         inset: 0,
-                        backgroundColor: `#${linkColor!.toString(16).padStart(6, '0')}`,
+                        background: stripeBackground,
                         maskImage: `url(${spriteUrl(spriteOf(fiber ? 'rear/sfp_mask' : 'rear/plug_mask'))})`,
                         WebkitMaskImage: `url(${spriteUrl(spriteOf(fiber ? 'rear/sfp_mask' : 'rear/plug_mask'))})`,
                         maskSize: '100% 100%',
@@ -252,6 +257,7 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
                     />
                   )}
                   {!lifted && link && <img src={spriteUrl(spriteOf(fiber ? 'rear/sfp_shade' : 'rear/plug_shade'))} width={(fiber ? 8 : 12) * SCALE} height={10 * SCALE} alt="" draggable={false} style={{ position: 'absolute', inset: 0, imageRendering: 'pixelated', display: 'block', pointerEvents: 'none' }} />}
+                  {!lifted && linkNetworks.length > 3 && <span style={{ position: 'absolute', right: 1, bottom: 0, color: '#f4f1e6', fontSize: Math.max(8, SCALE * 3), lineHeight: 1, textShadow: '1px 1px #3b2a33', pointerEvents: 'none' }}>…</span>}
                 </span>
                 <span style={{ color: '#f4f1e6', fontSize: 11, lineHeight: 1 }}>{portLabel(category, p)}</span>
               </button>
@@ -266,7 +272,8 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
         createPortal(
           <span style={{ position: 'fixed', left: carry.x / uiScale - plugW / 2, top: carry.y / uiScale - plugH / 2, width: (carry.fiber ? 8 : 12) * SCALE, height: plugH, pointerEvents: 'none', zIndex: 1000, zoom: 'var(--ui-scale, 1)' }}>
             <img src={spriteUrl(spriteOf(carry.fiber ? 'rear/port_sfp_empty' : 'rear/port_empty'))} alt="" draggable={false} style={{ imageRendering: 'pixelated', display: 'block', width: (carry.fiber ? 8 : 12) * SCALE, height: plugH }} />
-            <span style={{ position: 'absolute', inset: 0, backgroundColor: `#${carry.color.toString(16).padStart(6, '0')}`, maskImage: `url(${spriteUrl(spriteOf(carry.fiber ? 'rear/sfp_mask' : 'rear/plug_mask'))})`, WebkitMaskImage: `url(${spriteUrl(spriteOf(carry.fiber ? 'rear/sfp_mask' : 'rear/plug_mask'))})`, maskSize: '100% 100%', WebkitMaskSize: '100% 100%', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat' }} />
+            <span style={{ position: 'absolute', inset: 0, background: carry.networks.length > 1 ? `repeating-linear-gradient(90deg, ${carry.networks.slice(0, 3).map((network, i, shown) => `#${(colorOfNetwork(colors, network) ?? colorOfLink(colors, '')).toString(16).padStart(6, '0')} ${i * 100 / shown.length}% ${(i + 1) * 100 / shown.length}%`).join(', ')})` : `#${(colorOfNetwork(colors, carry.networks[0]) ?? colorOfLink(colors, '')).toString(16).padStart(6, '0')}`, maskImage: `url(${spriteUrl(spriteOf(carry.fiber ? 'rear/sfp_mask' : 'rear/plug_mask'))})`, WebkitMaskImage: `url(${spriteUrl(spriteOf(carry.fiber ? 'rear/sfp_mask' : 'rear/plug_mask'))})`, maskSize: '100% 100%', WebkitMaskSize: '100% 100%', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat' }} />
+            {carry.networks.length > 3 && <span style={{ position: 'absolute', right: 1, bottom: 0, color: '#f4f1e6', fontSize: Math.max(8, SCALE * 3), lineHeight: 1, textShadow: '1px 1px #3b2a33' }}>…</span>}
             <img src={spriteUrl(spriteOf(carry.fiber ? 'rear/sfp_shade' : 'rear/plug_shade'))} alt="" draggable={false} style={{ position: 'absolute', inset: 0, imageRendering: 'pixelated', display: 'block', width: (carry.fiber ? 8 : 12) * SCALE, height: plugH }} />
           </span>,
           document.body,
@@ -297,7 +304,7 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
           >
             <span style={{ fontWeight: 'bold', marginRight: 6 }}>{portLabel(category, p)}</span>
             <span style={{ color: link ? '#62d26f' : greyColor }}>{link ? peerName : t('ui.rear.free')}</span>
-            {link && <div style={{ color: greyColor, fontSize: 11 }}>{tDyn(`cable.${link.cable}.name`)} {networksOfLink(colors, link.uid).map((network) => <span key={network} style={{ marginLeft: 5 }}><span style={{ display: 'inline-block', width: 8, height: 8, background: `#${colorOfLink(colors, link.uid).toString(16).padStart(6, '0')}` }} /> {network}</span>)}</div>}
+            {link && <div style={{ color: greyColor, fontSize: 11 }}>{tDyn(`cable.${link.cable}.name`)} {networksOfLink(colors, link.uid).map((network) => <span key={network} style={{ marginLeft: 5 }}><span style={{ display: 'inline-block', width: 8, height: 8, background: `#${(colorOfNetwork(colors, network) ?? colorOfLink(colors, link.uid)).toString(16).padStart(6, '0')}` }} /> {networkLabelOf(colors, network)}</span>)}</div>}
           </button>
         );
       })}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NET_PALETTE, UNSET_COLOR, colorOfLink, colorOfNetwork, networkColors } from './netColor';
+import { NET_PALETTE, UNSET_COLOR, colorOfLink, colorOfNetwork, networkColors, networkLabelOf } from './netColor';
 import { neighborRouterAddresses, routerAddressesOn } from './segments';
 import type { Iface } from './types';
 import type { EngineData, NetLink, NetNode, Network } from './types';
@@ -47,6 +47,7 @@ describe('ネットワークごとの色', () => {
     expect(colors.index.get('192.168.1.0')).toBe(1);
     expect(colorOfLink(colors, 'l0')).toBe(NET_PALETTE[1]);
     expect(colorOfLink(colors, 'l1')).toBe(NET_PALETTE[0]);
+    expect(networkLabelOf(colors, '192.168.1.0')).toBe('192.168.1.0/24');
   });
 
   it('パレットを使い切ったら、番号を循環させる', () => {

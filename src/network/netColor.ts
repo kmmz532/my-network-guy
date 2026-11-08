@@ -18,6 +18,7 @@ export interface NetworkColors {
   linkNetwork: Map<string, string | null>;
   // ケーブルが運ぶネットワーク。現在の単一セグメントは1件、将来のトランクは複数件。
   linkNetworks?: Map<string, string[]>;
+  networkPrefix?: Map<string, number>;
 }
 
 // 色の番号（0 始まり）からパレットの色を引く
@@ -29,14 +30,22 @@ export const networkColors = (net: Network, data: EngineData): NetworkColors => 
   const segs = segmentsOf(net, data);
   const cfgOf = new Map<string, SegmentConfig>();
   const segOf = new Map<string, Segment>();
+  const vlanOfNetwork = new Map<string, number>();
   for (const seg of segs) {
     const cfg = segmentConfigOf(seg, byUid, net.segments);
     if (cfg) cfgOf.set(seg.key, cfg);
+    if (cfg) {
+      const vlan = seg.members
+        .map((m) => byUid.get(m.node)?.ports.find((p) => p.port === m.port))
+        .find((p) => p?.mode === 'access')?.vlan;
+      if (vlan !== undefined) vlanOfNetwork.set(cfg.network, vlan);
+    }
     for (const m of seg.members) segOf.set(epKey(m.node, m.port), seg);
   }
 
   const networks = [...new Set([...cfgOf.values()].map((c) => c.network))].sort((a, b) => ipToInt(a) - ipToInt(b));
   const index = new Map(networks.map((n, i) => [n, i]));
+  const networkPrefix = new Map([...cfgOf.values()].map((cfg) => [cfg.network, cfg.prefix]));
 
   const linkNetwork = new Map<string, string | null>();
   const linkNetworks = new Map<string, string[]>();
@@ -59,13 +68,33 @@ export const networkColors = (net: Network, data: EngineData): NetworkColors => 
       return iface !== undefined && inSubnet(iface.ip, cfg.network, cfg.prefix);
     });
     linkNetwork.set(link.uid, agrees ? cfg.network : null);
-    linkNetworks.set(link.uid, agrees ? [cfg.network] : []);
+    if (!agrees) {
+      linkNetworks.set(link.uid, []);
+      continue;
+    }
+    const endpoints = [link.a, link.b];
+    const carries = (endpoint: (typeof link.a), vlan: number): boolean => {
+      const port = byUid.get(endpoint.node)?.ports.find((p) => p.port === endpoint.port);
+      if (port?.mode === 'trunk') return port.allowed === undefined || port.allowed.includes(vlan);
+      return (port?.vlan ?? 1) === vlan;
+    };
+    const trunk = endpoints.some((endpoint) => byUid.get(endpoint.node)?.ports.find((p) => p.port === endpoint.port)?.mode === 'trunk');
+    const carried = trunk
+      ? networks.filter((network) => {
+          const vlan = vlanOfNetwork.get(network);
+          return vlan === undefined || endpoints.every((endpoint) => carries(endpoint, vlan));
+        })
+      : [cfg.network];
+    linkNetworks.set(link.uid, carried.length > 0 ? carried : [cfg.network]);
   }
-  return { index, linkNetwork, linkNetworks };
+  return { index, linkNetwork, linkNetworks, networkPrefix };
 };
 
 export const networksOfLink = (colors: NetworkColors, linkUid: string): string[] =>
   colors.linkNetworks?.get(linkUid) ?? (colors.linkNetwork.get(linkUid) ? [colors.linkNetwork.get(linkUid)!] : []);
+
+export const networkLabelOf = (colors: NetworkColors, network: string): string =>
+  `${network}/${colors.networkPrefix?.get(network) ?? 24}`;
 
 // ネットワークアドレスの色（番号）。未設定なら undefined
 export const colorOfNetwork = (colors: NetworkColors, network: string | null | undefined): number | undefined => {
