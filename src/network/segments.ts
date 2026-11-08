@@ -1,7 +1,7 @@
 // セグメント（配線とスイッチでつながった機器の集まり）の算出と、セグメントの設定の参照。
 // セグメントは代表端点（セグメント内で最も小さい機器のUIDとポート）の鍵 "uid:port" で設定を持つ。仕様は memo/sim-3.md を参照する。
 import { ipToInt } from './engine';
-import { isFabricPort, isRelayPort, isRoutingCategory, isSwitchedRouterCategory, ROUTER_SWITCH_LAN_HOST_PORT } from './category';
+import { isFabricPort, isL3FabricPort, isRelayPort, isRoutingCategory, isSwitchedRouterCategory, ROUTER_SWITCH_LAN_HOST_PORT, sviPortOf } from './category';
 import type { EngineData, Endpoint, NetNode, Network, SegmentConfig } from './types';
 
 // 設定できるプレフィックス長（sim-3 の候補）
@@ -45,6 +45,14 @@ export const segmentsOf = (net: Pick<Network, 'nodes' | 'links'>, data: EngineDa
   };
   const categoryOf = new Map(net.nodes.map((n) => [n.uid, data.categoryOf(n.device)]));
   const cat = (uid: string) => categoryOf.get(uid) ?? '';
+  const nodeOf = new Map(net.nodes.map((n) => [n.uid, n]));
+  // 口が機器の内部のスイッチにつながるか（L3スイッチの access・trunk の口を含む・N138）
+  const fabricOf = (uid: string, port: number): boolean => isFabricPort(cat(uid), port) || isL3FabricPort(cat(uid), nodeOf.get(uid)?.ports?.find((p) => p.port === port));
+  // L3スイッチの access の口は VLAN ごとにまとめる（SVI と同じ VLAN のセグメントになる）。L2 と trunk は機器ごと
+  const fabricKey = (uid: string, port: number): string => {
+    const cfg = nodeOf.get(uid)?.ports?.find((p) => p.port === port);
+    return cat(uid) === 'l3_switch' && cfg?.mode === 'access' ? `${uid}#${cfg.vlan ?? 1}` : uid;
+  };
 
   const endpoints = new Map<string, Endpoint>();
   for (const link of net.links) {
@@ -63,11 +71,23 @@ export const segmentsOf = (net: Pick<Network, 'nodes' | 'links'>, data: EngineDa
   // 機器の内部のスイッチにつながる口は、同じ機器のものすべてを同じセグメントにする
   const fabricFirst = new Map<string, string>();
   for (const ep of endpoints.values()) {
-    if (!isFabricPort(cat(ep.node), ep.port)) continue;
+    if (!fabricOf(ep.node, ep.port)) continue;
     const k = epKey(ep.node, ep.port);
-    const first = fabricFirst.get(ep.node);
+    const fk = fabricKey(ep.node, ep.port);
+    const first = fabricFirst.get(fk);
     if (first) union(k, first);
-    else fabricFirst.set(ep.node, k);
+    else fabricFirst.set(fk, k);
+  }
+  // SVI（VLAN のインターフェース・N138）は、同じ VLAN の口のセグメントに入る
+  for (const node of net.nodes) {
+    for (const i of node.interfaces) {
+      if (i.kind !== 'svi' || i.vlan === undefined) continue;
+      const k = epKey(node.uid, sviPortOf(i.vlan));
+      endpoints.set(k, { node: node.uid, port: sviPortOf(i.vlan) });
+      const first = fabricFirst.get(`${node.uid}#${i.vlan}`);
+      if (first) union(k, first);
+      else fabricFirst.set(`${node.uid}#${i.vlan}`, k);
+    }
   }
 
   const groups = new Map<string, Endpoint[]>();
@@ -77,7 +97,7 @@ export const segmentsOf = (net: Pick<Network, 'nodes' | 'links'>, data: EngineDa
   }
   const segments: Segment[] = [];
   for (const eps of groups.values()) {
-    const members = eps.filter((ep) => !isRelayPort(cat(ep.node), ep.port)).sort(byEndpoint);
+    const members = eps.filter((ep) => !isRelayPort(cat(ep.node), ep.port) && !isL3FabricPort(cat(ep.node), nodeOf.get(ep.node)?.ports?.find((p) => p.port === ep.port))).sort(byEndpoint);
     if (members.length === 0) continue;
     segments.push({ key: epKey(members[0].node, members[0].port), members });
   }

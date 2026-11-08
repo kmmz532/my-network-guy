@@ -2,6 +2,7 @@
 // PC・サーバー・プリンターは eth（eth0）、ネットワーク機器は g0/（g0/1）
 import { devices } from 'virtual:game-data';
 import type { Iface } from './types';
+import { sviPortOf } from './category';
 
 const ENDPOINT_CATEGORIES = new Set(['pc', 'server', 'printer']);
 
@@ -9,6 +10,16 @@ export const ifacePrefixOf = (device: string): string => {
   const category = (devices[device as keyof typeof devices] as { category?: string } | undefined)?.category;
   return category !== undefined && ENDPOINT_CATEGORIES.has(category) ? 'eth' : 'g0/';
 };
+
+// VLAN のインターフェース（SVI・N138）。名前は vlan10 の形
+export const makeSvi = (vlan: number, ip: string, prefix: number): Iface => ({
+  id: `vlan${vlan}`,
+  kind: 'svi',
+  port: sviPortOf(vlan),
+  vlan,
+  ip,
+  prefix,
+});
 
 export const makeIface = (device: string, port: number, ip: string, prefix: number): Iface => ({
   id: `${ifacePrefixOf(device)}${port}`,

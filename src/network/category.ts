@@ -1,6 +1,16 @@
 // 機器の種類ごとの扱い（配線・判定・背面の表示で共通に使う）
 import { CATEGORY } from '../data/categories';
 import { categoryCan } from './capabilities';
+import type { PortConfig } from './types';
+
+// SVI（VLAN のインターフェース・N138）は口を持たないため、判定の中だけ仮想の口の番号（1000 + VLAN）で表す
+export const SVI_PORT_BASE = 1000;
+export const sviPortOf = (vlan: number): number => SVI_PORT_BASE + vlan;
+export const isSviPort = (port: number): boolean => port >= SVI_PORT_BASE;
+
+// L3スイッチの access・trunk の口は、L2 と同じく機器の内部のスイッチ（ファブリック）につなぐ（N138）。routed の口は、ルーターの口として経路を持つ
+export const isL3FabricPort = (category: string, cfg: PortConfig | undefined): boolean =>
+  category === CATEGORY.l3Switch && (cfg?.mode === 'access' || cfg?.mode === 'trunk');
 // L2スイッチは中継だけを行い、機器の一員にはならない。
 // ルーター系（router・l3_switch・router_switch・firewall。ファイアウォールは2ポートで、通過する経路の印になる）は、ポートごとにネットワークの入口になり、経路を持つ。
 // スイッチ付きルーターは、WAN の口（ポート0）と LAN の口（ポート1〜4）を持つ。LAN の口は内部でスイッチとして1つのセグメントになり、代表の LAN 口（ポート1）がそのアドレスを持つ。

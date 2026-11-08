@@ -1,7 +1,7 @@
 // 疎通判定の計算（N136）。段1 配線 → 段2 L2 ドメイン → 段3 IP と直結 → 段4 静的経路 → 段5 転送（ping・http）の順に読む。
 // L1（配線）→ L2（スイッチによるL2ドメイン）→ L3（IPアドレスとルーティング）の順に確認する。
 // 失敗理由は ID で返し、文言は言語ファイルで表示する。
-import { isFabricPort, isRelayPort, isRoutingCategory, isSwitchedRouterCategory, ROUTER_SWITCH_LAN_HOST_PORT } from './category';
+import { isFabricPort, isL3FabricPort, isRelayPort, isRoutingCategory, isSviPort, isSwitchedRouterCategory, ROUTER_SWITCH_LAN_HOST_PORT, SVI_PORT_BASE } from './category';
 import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, Iface, NetLink, NetNode, Network, PathResult, PortConfig, Route } from './types';
 import { CATEGORY } from '../data/categories';
 import { can } from './capabilities';
@@ -222,12 +222,17 @@ class Topology {
 
   // 口が機器の内部のスイッチにつながるか（その口から同じL2ドメインへ中継される）
   isFabric(uid: string, port: number): boolean {
-    return isFabricPort(this.categoryOf(uid), port);
+    return isFabricPort(this.categoryOf(uid), port) || isL3FabricPort(this.categoryOf(uid), this.portCfg(uid, port));
+  }
+
+  // 機器の SVI（VLAN のインターフェース）
+  svisOf(uid: string): Iface[] {
+    return (this.nodes.get(uid)?.interfaces ?? []).filter((i) => i.kind === 'svi');
   }
 
   // 口が機器の一員として数えられないか（中継だけの口）
   isRelay(uid: string, port: number): boolean {
-    return isRelayPort(this.categoryOf(uid), port);
+    return isRelayPort(this.categoryOf(uid), port) || isL3FabricPort(this.categoryOf(uid), this.portCfg(uid, port));
   }
 
   isRouter(uid: string): boolean {
@@ -255,6 +260,8 @@ class Topology {
 
   // 口に入るフレームの VLAN（access は設定の VLAN、trunk は untagged の native）
   vlanOf(uid: string, port: number): number {
+    // SVI は、その VLAN の中にいる（N138）
+    if (isSviPort(port)) return port - SVI_PORT_BASE;
     const cfg = this.portCfg(uid, port);
     if (cfg?.mode === 'trunk') return cfg.native ?? 1;
     return cfg?.vlan ?? 1;
@@ -262,6 +269,7 @@ class Topology {
 
   // 口がその VLAN のフレームを通すか（access は同じ VLAN、trunk は許可された VLAN）
   carries(uid: string, port: number, vlan: number): boolean {
+    if (isSviPort(port)) return port - SVI_PORT_BASE === vlan;
     const cfg = this.portCfg(uid, port);
     // 設定のない口（機器の口）は、届いたフレームをそのまま受け取る
     if (cfg === undefined) return true;
@@ -312,10 +320,13 @@ class Topology {
           queue.push({ ep: peer, vlan: peerVlan });
         }
       }
-      // 機器の内部のスイッチに入ったら、同じ VLAN を通す口をすべてたどる
-      if (this.isFabric(ep.node, ep.port)) {
+      // 機器の内部のスイッチに入ったら、同じ VLAN を通す口をすべてたどる。SVI（VLAN のインターフェース）は、同じ VLAN のスイッチの中に入る（N138）
+      if (this.isFabric(ep.node, ep.port) || isSviPort(ep.port)) {
         for (const port of this.fabricBy.get(ep.node) ?? []) {
           queue.push({ ep: { node: ep.node, port }, vlan });
+        }
+        for (const svi of this.svisOf(ep.node)) {
+          if (svi.vlan === vlan) queue.push({ ep: { node: ep.node, port: svi.port }, vlan });
         }
       }
     }

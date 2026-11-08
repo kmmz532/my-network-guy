@@ -3,9 +3,12 @@
 export interface Iface {
   // 名前（eth0・g0/1 など。画面とターミナルで同じ名前を出す）
   id: string;
-  // 種類: port（口のインターフェース）・svi・sub・lan（内蔵スイッチ）。今は port だけを使う
-  kind: 'port';
+  // 種類: port（口のインターフェース）・svi（VLAN のインターフェース・N138）。sub・lan は後続
+  kind: 'port' | 'svi';
+  // 口の番号（svi は判定の中だけの仮想の口・SVI_PORT_BASE + VLAN）
   port: number;
+  // svi のときの VLAN 番号
+  vlan?: number;
   ip: string;
   prefix: number;
   // NAT の役割（N145）: inside（社内の側）・outside（外の側）
