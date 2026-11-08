@@ -50,8 +50,9 @@ import {
   undo as undoHistory,
 } from '../sim/history';
 import { useUiStore } from './useUiStore';
-import { type WindowItem, type WindowKind, type WindowMemory, closeRef, closeWindow as closeWindowOp, focusWindow as focusWindowOp, frontWindow, moveWindow as moveWindowOp, openWindow as openWindowOp, toggleWindow as toggleWindowOp, closeTab as closeTabOp, fitWindows as fitWindowsOp, selectTab as selectTabOp, reorderTab as reorderTabOp, parseMemory, remember, resizeWindow as resizeWindowOp, placeWindow as placeWindowOp, type Rect, type Viewport } from '../ui/windows';
-import { isPhoneNow } from '../ui/usePhone';
+import { closeRef } from '../ui/windows';
+import { createWindowsSlice, type WindowsSlice } from './slices/windowsSlice';
+export { frontDeviceUid, viewportNow } from './slices/windowsSlice';
 import {
   assignDesks,
   hire as hireOp,
@@ -145,32 +146,13 @@ export interface ItemDrag {
 
 export type Speed = 0 | 1 | 2 | 4 | 8;
 
-// 覚えた位置と大きさを保存する場所（端末ごと。セーブデータには入れない）
-const MEMORY_KEY = 'network-ya.windows.v1';
-const readMemory = (): WindowMemory => {
-  try {
-    return parseMemory(window.localStorage.getItem(MEMORY_KEY));
-  } catch {
-    return {};
-  }
-};
-const writeMemory = (memory: WindowMemory): void => {
-  try {
-    window.localStorage.setItem(MEMORY_KEY, JSON.stringify(memory));
-  } catch {
-    // 保存できなくても、画面の操作は続けられる
-  }
-};
-
-export const viewportNow = (): Viewport => ({ w: window.innerWidth, h: window.innerHeight, phone: isPhoneNow() });
-
 export interface PlannedNet {
   network: string;
   prefix: number;
 }
 export const plannedKey = (uid: string, port: number): string => `${uid}:${port}`;
 
-export interface GameState {
+export interface GameState extends WindowsSlice {
   // 詳しくで選んだネットワーク（画面の状態。セーブには入らない）。キーは plannedKey
   planned: Record<string, PlannedNet>;
   // 遊び方（career は案件の経営ゲーム、sandbox は自由に設計する練習場）。セーブデータに入る
@@ -271,25 +253,6 @@ export interface GameState {
   historyError: 'undo' | 'redo' | null;
   // 直近に失敗した操作の理由（保存しない）
   lastError: string | null;
-  // 開いているウィンドウ（機器の画面・社員の札）。保存しない。手前ほど z が大きい
-  windows: WindowItem[];
-  windowSeq: number;
-  // 種類ごとに最後に置いた位置と大きさ（localStorage に保存する）
-  windowMemory: WindowMemory;
-  openWindow: (kind: WindowKind, ref: string) => void;
-  toggleWindow: (kind: WindowKind, ref: string) => void;
-  closeWindow: (id: number) => void;
-  closeTab: (id: number, ref: string) => void;
-  // 画面の大きさが変わったとき、開いているウィンドウを画面の中に収める（覚える位置は変えない）
-  fitWindows: () => void;
-  selectTab: (id: number, ref: string) => void;
-  // ウィンドウのタブを並べ替える（from から to の位置へ）
-  reorderTab: (id: number, from: number, to: number) => void;
-  focusWindow: (id: number) => void;
-  moveWindow: (id: number, x: number, y: number) => void;
-  resizeWindow: (id: number, w: number, h: number) => void;
-  // 位置と大きさを、辺のドラッグの結果のまま置く（N57）
-  placeWindow: (id: number, rect: Rect) => void;
   // 配置モードで置く機材（null なら配置しない）
   placing: string | null;
   // 配線に使うケーブル
@@ -451,13 +414,6 @@ const newRng = () => Math.floor(Math.random() * 0x7fffffff) + 1;
 // 研修と資格の定義（ゲームデータ）
 const trainingEnv: TrainingEnv = { courses: trainingRecord, certs: certRecord, balance };
 
-// 一番手前のウィンドウが機器の画面なら、その選ばれているタブの機器の uid（マップの選択の枠に使う）
-export const frontDeviceUid = (s: { windows: WindowItem[] }): string | null => {
-  const front = frontWindow(s.windows);
-  return front?.kind === 'device' ? front.active : null;
-};
-
-// 配線・設定の対象。設計・表示している案件があればその案件、なければ自社オフィス
 export const netTargetOf = (s: { active: Project[]; focus: string | null }): NetTarget =>
   focusedProject(s) ? 'focus' : 'office';
 
@@ -657,15 +613,7 @@ const reportState = (report: Report | undefined): Partial<GameState> => {
 };
 
 // 動かした・大きさを変えたウィンドウの位置を覚え、端末に保存する
-const rememberWin = (memory: WindowMemory, windows: WindowItem[], id: number): WindowMemory => {
-  const win = windows.find((w) => w.id === id);
-  if (!win) return memory;
-  const next = remember(memory, win);
-  writeMemory(next);
-  return next;
-};
-
-export const useGameStore = create<GameState>((set, get) => {
+export const useGameStore = create<GameState>((set, get, api) => {
   // 配線・セグメントの設定の後に、IPアドレスの自動割り当てをかける（設定がオフなら何もしない）。同じ操作として取り消しに残る
   // 詳しくで選んだネットワークを、そのセグメントのポートから探す
   const plannedOf = (seg: { members: { node: string; port: number }[] }): PlannedNet | undefined => {
@@ -793,6 +741,7 @@ export const useGameStore = create<GameState>((set, get) => {
   };
 
   return {
+    ...createWindowsSlice(set, get, api),
     mode: 'career',
     name: DEFAULT_COMPANY_NAME,
     clock: initialClock(balance),
@@ -924,9 +873,6 @@ export const useGameStore = create<GameState>((set, get) => {
     redo: () => stepHistory('redo'),
     historyError: null,
     lastError: null,
-    windows: [],
-    windowSeq: 0,
-    windowMemory: readMemory(),
     placing: null,
     wireCable: 'utp_cat5e',
     traces: [],
@@ -1017,62 +963,6 @@ export const useGameStore = create<GameState>((set, get) => {
     flash: null,
     linkPulse: null,
     payWarned: null,
-    openWindow: (kind, ref) => {
-      const s = get();
-      const list = openWindowOp({ windows: s.windows, seq: s.windowSeq }, kind, ref, viewportNow(), s.windowMemory);
-      set({ windows: list.windows, windowSeq: list.seq });
-    },
-    toggleWindow: (kind, ref) => {
-      const s = get();
-      const list = toggleWindowOp({ windows: s.windows, seq: s.windowSeq }, kind, ref, viewportNow(), s.windowMemory);
-      set({ windows: list.windows, windowSeq: list.seq });
-    },
-    closeWindow: (id) => {
-      const list = closeWindowOp({ windows: get().windows, seq: get().windowSeq }, id);
-      set({ windows: list.windows });
-    },
-    fitWindows: () => {
-      const s = get();
-      const list = fitWindowsOp({ windows: s.windows, seq: s.windowSeq }, viewportNow());
-      if (list.windows !== s.windows) set({ windows: list.windows });
-    },
-    closeTab: (id, ref) => {
-      const list = closeTabOp({ windows: get().windows, seq: get().windowSeq }, id, ref);
-      set({ windows: list.windows });
-    },
-    selectTab: (id, ref) => {
-      const list = selectTabOp({ windows: get().windows, seq: get().windowSeq }, id, ref);
-      set({ windows: list.windows });
-    },
-    reorderTab: (id, from, to) => {
-      const list = reorderTabOp({ windows: get().windows, seq: get().windowSeq }, id, from, to);
-      set({ windows: list.windows });
-    },
-    focusWindow: (id) => {
-      const list = focusWindowOp({ windows: get().windows, seq: get().windowSeq }, id);
-      set({ windows: list.windows });
-    },
-    moveWindow: (id, x, y) => {
-      const s = get();
-      const vp = viewportNow();
-      const list = moveWindowOp({ windows: s.windows, seq: s.windowSeq }, id, x, y, vp);
-      if (list.windows === s.windows) return;
-      set({ windows: list.windows, windowMemory: rememberWin(s.windowMemory, list.windows, id) });
-    },
-    placeWindow: (id, rect) => {
-      const s = get();
-      const vp = viewportNow();
-      const list = placeWindowOp({ windows: s.windows, seq: s.windowSeq }, id, rect, vp);
-      if (list.windows === s.windows) return;
-      set({ windows: list.windows, windowMemory: rememberWin(s.windowMemory, list.windows, id) });
-    },
-    resizeWindow: (id, w, h) => {
-      const s = get();
-      const vp = viewportNow();
-      const list = resizeWindowOp({ windows: s.windows, seq: s.windowSeq }, id, w, h, vp);
-      if (list.windows === s.windows) return;
-      set({ windows: list.windows, windowMemory: rememberWin(s.windowMemory, list.windows, id) });
-    },
     setPlacing: (deviceId) => set({ placing: deviceId }),
     itemDrag: null,
     setItemDrag: (itemDrag) => set({ itemDrag }),
