@@ -6,9 +6,9 @@ import { t } from '../../i18n/t';
 import { PixiStage } from '../../game/PixiStage';
 import { useKeymap } from '../../input/useKeymap';
 import { saveSession, useSaveSession } from '../../services/saveSession';
+import { tickLoop } from '../../services/tickLoop';
 import { loadSettings } from '../../settings/settings';
 import { useGameStore } from '../../stores/useGameStore';
-import { useTickLoop } from '../../stores/useTickLoop';
 import { usePhone } from '../../ui/usePhone';
 import { FocusSwitch } from '../FocusSwitch';
 import { Guide } from '../Guide';
@@ -74,7 +74,7 @@ export function GameScene({ onExit }: { onExit: (opening?: 'newCareer') => void 
   // 上の列の上端。狭い画面ではヘッダーの下に置く（ヘッダーの高さは zoom を掛けた画面の座標なので、倍率で割って渡す）
   const hudTop = phone ? (hudBottom + 6) / loadSettings().uiScale : 44;
 
-  useTickLoop();
+  useEffect(() => tickLoop.watch(), []);
   // キーの表は、ゲームの場面にいる間だけ効く
   useKeymap();
   // ゲームの場面にいる間、自動保存の契機を見張る

@@ -4,25 +4,12 @@ import { loadSettings } from '../settings/settings';
 import { playDeliver } from '../audio/sfx';
 import { create } from 'zustand';
 import { balance } from 'virtual:game-data';
-import { advanceTick, initialClock, minutesPerDay, minutesPerMonth, toDate, type ClockState } from '../sim/clock';
-import { isOnShift } from '../sim/shift';
-import { nightSpeedStep } from '../sim/nightSpeed';
+import { initialClock, type ClockState } from '../sim/clock';
 import type { Offer } from '../contracts/template';
 import type { GameMap, JobId, Staff } from '../data/schema';
-import { gainExp, rollCandidates, totalSalary } from '../sim/staff';
-import { levelOf } from '../sim/level';
-import { finishTrainings } from '../sim/training';
 import { DEFAULT_COMPANY_NAME, type GameMode } from '../services/migrations';
-import { gameEnv, isPcDevice } from '../sim/env';
-import { rentalOf } from '../network/external';
-import { applyMoney } from '../sim/ledger';
 
-import { unlockedSpeedsOf } from '../sim/speed';
-import { pushNotice, type NoticeItem } from '../ui/notices';
-import { busyStaff } from '../sim/crew';
-import { tDyn } from '../i18n/t';
-import { settleRetirements } from '../sim/retire';
-import { backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice } from '../sim/backOffice';
+import { type NoticeItem } from '../ui/notices';
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
 import type { MacEntry } from '../network/mac';
 import { mapOfOffice } from '../sim/office';
@@ -37,10 +24,11 @@ import { createUiSlice, type UiSlice } from './slices/uiSlice';
 import { createDebugSlice, type DebugSlice } from './slices/debugSlice';
 import { createSessionSlice, type SessionSlice } from './slices/sessionSlice';
 export { frontDeviceUid, viewportNow } from './slices/windowsSlice';
-import { initialOffice, bonusEnvOf, pcDesksOf } from '../sim/furniture';
-import { advanceBuild, type Project, type Office, type Effects, noEffects, type GoalCheck, type Report, type Trace } from '../sim/project';
+import { initialOffice } from '../sim/furniture';
+import { type Project, type Office, type Effects, noEffects, type GoalCheck, type Report, type Trace } from '../sim/project';
 
-import { coreOf, newStart, refresh, reportState, salesArrivalPatch, trainingEnv, withLevelUps } from './gameHelpers';
+import { runTick } from './tickSystems';
+import { newStart, refresh } from './gameHelpers';
 export { coreOf, editNetOf, focusedProject, netTargetOf, offerHintOf, purchaseDiscountOf, unlockItems, viewingOffice } from './gameHelpers';
 export type { Trace };
 // 道具: 選択（機器の画面を開く）・配線・撤去
@@ -240,150 +228,7 @@ export const useGameStore = create<GameState>((set, get, api) => {
     linkPulse: null,
     payWarned: null,
     itemDrag: null,
-    tick: () =>
-      set((s) => {
-        // 納品の結果画面を開いている間は、時間を止める（閉じると、今の速度で続きから進む）
-        if (s.showcase) return {};
-        // 給与を払えない月は、給与が払われる直前に一度だけ時間を止める（設定でオフにできる）。止めた後の再開では止めず、そのまま払う
-        const payday = (s.clock.paidMonths + 1) * minutesPerMonth(balance);
-        if (
-          s.speed > 0 &&
-          !s.clock.bankrupt &&
-          loadSettings().payPause &&
-          s.payWarned !== s.clock.paidMonths &&
-          s.clock.minute + balance.time.gameMinutesPerTick >= payday &&
-          s.clock.money < totalSalary(s.staff, balance.nightPayRate)
-        ) {
-          return { speed: 0, payWarned: s.clock.paidMonths, notices: pushNotice(s.notices, 'payPause', {}, Date.now()) };
-        }
-        const ticked = advanceTick(s.clock, balance, totalSalary(s.staff, balance.nightPayRate));
-        // 貸し出しの収入（日が替わるたびに、その日の分を受け取る。障害の日は入らない）。月末に漏れがあれば評判が1下がる
-        const days = Math.floor(ticked.minute / minutesPerDay) - Math.floor(s.clock.minute / minutesPerDay);
-        const months = ticked.paidMonths - s.clock.paidMonths;
-        const rent = days > 0 && !ticked.bankrupt && s.mode === 'career' ? rentalOf(s.office, gameEnv.engine, balance.rental, levelOf(s.companyExp, balance), balance.time.daysPerMonth) : null;
-        const rentedClock = rent !== null && rent.daily > 0 ? applyMoney(ticked, rent.daily * days, 'rental') : ticked;
-        // システムエンジニアは、担当でない日に開発の収入を得る（担当の日は施工の経験値）
-        const crewUids = busyStaff(s);
-        // 机の上の PC（N102）。システムエンジニア・人事・経理は、自分の机に PC がないと働けない（収入・経験値・効果が出ない）
-        const pcDesks = pcDesksOf(s.office, isPcDevice);
-        const hasPc = (m: Staff): boolean => m.desk !== null && pcDesks.includes(m.desk);
-        const devIdle = days > 0 && s.mode === 'career' ? s.staff.filter((m) => m.job === 'dev' && m.training === null && !crewUids.has(m.uid) && hasPc(m)) : [];
-        const devIncome = devIdle.reduce((sum, m) => sum + devDailyIncome(m, balance) * days, 0);
-        const clock = devIncome > 0 ? applyMoney(rentedClock, devIncome, 'dev') : rentedClock;
-        // 内勤は、出勤した日ごとに経験値を得る（施工の経験値は得ない）。日が替わるたびに受け取る
-        // 内勤と、担当でない日のシステムエンジニアは、日ごとに経験値を得る
-        const devIdleUids = new Set(devIdle.map((m) => m.uid));
-        // 日ごとの経験値（N102）: 内勤は出勤した日（営業はPCがなくても、人事・経理とシステムエンジニアは PC のある机のみ）。現場のエンジニアは、担当でない日に PC があれば自習で少し
-        const dailyExpOf = (m: Staff): number | null => {
-          if (devIdleUids.has(m.uid)) return balance.backOffice.dailyExp * days;
-          if (isBackOffice(m.job)) return m.shift === 'day' && m.training === null && (m.job === 'sales' || hasPc(m)) ? balance.backOffice.dailyExp * days : null;
-          if (m.job !== 'dev' && m.training === null && !crewUids.has(m.uid) && hasPc(m)) return balance.backOffice.dailyExp * balance.deskPc.engineerDailyExpRate * days;
-          return null;
-        };
-        const backOfficeStaff = days > 0 && s.mode === 'career' ? s.staff.map((m) => {
-          const exp = dailyExpOf(m);
-          return exp === null ? m : gainExp(m, exp, balance.staff.expPerLevel);
-        }) : s.staff;
-        let next: Partial<GameState> = {
-          clock,
-          ...(rent?.penalty && months > 0 ? { reputation: Math.max(0, s.reputation - months) } : {}),
-          ...(backOfficeStaff !== s.staff ? { staff: backOfficeStaff } : {}),
-        };
-        // 月末に給与を払ったら知らせる
-        // 人事の効果（候補・研修・新人の施工）の大きさ。内勤の実効 level の合計
-        const hrP = backOfficeP(s.staff, 'hr', s.office, bonusEnvOf({ staff: s.staff, office: s.office }, gameEnv));
-        if (clock.paidMonths > s.clock.paidMonths) {
-          const amount = totalSalary(s.staff, balance.nightPayRate);
-          // 退職の予定の社員は、今月末で退職する（退職金を払い、一覧から外す。今月の給与は上で払い済み・N90）
-          const settled = settleRetirements({ clock: next.clock ?? clock, staff: next.staff ?? s.staff, active: s.active }, balance);
-          next = { ...next, clock: settled.clock, staff: settled.staff, active: settled.active };
-          // 退職した社員を知らせる（N97）
-          for (const m of (next.staff ?? s.staff).length < (s.staff.length) ? s.staff.filter((x) => x.leaving) : []) {
-            next = { ...next, notices: pushNotice(next.notices ?? s.notices, 'retired', { name: tDyn(m.name), uid: m.uid }, Date.now()) };
-          }
-          // 毎月1日に、採用の候補を作り直す
-          // 募集の職種の指定は、人事がいるときだけ効く。指定は次の1回だけ使う
-          const rolled = rollCandidates(levelOf(s.companyExp, balance), clock.paidMonths, s.rng, balance, s.staff.map((m) => m.name), {
-            ...hrCandidateBonus(hrP, balance),
-            ...(hrP > 0 && s.hiringWish !== null ? { wish: s.hiringWish } : {}),
-          });
-          next = {
-            ...next,
-            notices: pushNotice(pushNotice(next.notices ?? s.notices, 'salary', { amount }, Date.now()), 'candidatesRefreshed', {}, Date.now()),
-            candidates: rolled.candidates,
-            hiringWish: null,
-            rng: rolled.rng,
-          };
-        }
-        // 研修の期日が来た社員は、経験値を得て研修を終える
-        const trainedStaff = finishTrainings(coreOf({ ...s, ...next } as GameState), trainingEnv, hrTrainingRate(hrP, balance)).staff;
-        if (trainedStaff !== s.staff) {
-          next = { ...next, staff: trainedStaff };
-          // 研修が終わった社員を知らせる（N97）
-          for (const m of trainedStaff) {
-            const before = s.staff.find((x) => x.uid === m.uid);
-            if (before?.training && !m.training) next = { ...next, notices: pushNotice(next.notices ?? s.notices, 'trained', { name: tDyn(m.name), uid: m.uid }, Date.now()) };
-          }
-        }
-        const withClock = { ...s, ...next } as GameState;
-        // 施工中なら、勤務時間内に作業を進める
-        if (!clock.bankrupt && withClock.active.some((p) => p.phase === 'build')) {
-          const hour = toDate(clock.minute, balance).hour;
-          const r = advanceBuild(coreOf(withClock), { ...gameEnv, mapOf: (id) => s.maps[id] }, hour, hrJuniorRate(hrP, balance));
-          if (r.ok) {
-            next = {
-              ...next,
-              clock: r.core.clock,
-              companyExp: r.core.companyExp,
-              reputation: r.core.reputation,
-              completed: r.core.completed,
-              deliveries: r.core.deliveries,
-              familiarity: r.core.familiarity,
-              active: r.core.active,
-              focus: r.core.focus,
-              staff: r.core.staff,
-              office: r.core.office,
-              effects: r.core.effects,
-              ...reportState(r.report),
-            };
-          }
-        }
-        // 勤務時間外に施工中なら最速にし、勤務時間になるか施工が終わったら元の速さへ戻す
-        const activeNow = next.active ?? s.active;
-        // 勤務中の社員が1人もいなければ早送りする（夜勤の社員がいるときは、夜も速さを変えない・N48）
-        const minuteOfDay = clock.minute % minutesPerDay;
-        const staffNow = next.staff ?? s.staff;
-        const night = nightSpeedStep({
-          working: staffNow.some((m) => isOnShift(minuteOfDay, m.shift, balance)),
-          building: activeNow.some((p) => p.phase === 'build'),
-          speed: s.speed,
-          saved: s.nightSpeed,
-          fastest: Math.max(...unlockedSpeedsOf(levelOf(s.companyExp, balance), balance)),
-        });
-        if (night.speed !== s.speed || night.saved !== s.nightSpeed) {
-          next = { ...next, speed: night.speed as Speed, nightSpeed: night.saved as Speed | null };
-        }
-        const merged = { ...s, ...next } as GameState;
-        const refreshed = refresh(merged);
-        // 営業の依頼は、通常の到着のあとに、日ごとの確率で届く
-        const salesPatch = salesArrivalPatch({ ...merged, ...refreshed } as GameState, days);
-        const result = { ...withLevelUps(s, next), ...refreshed, ...salesPatch };
-        // 出来事の通知（N97）: 営業の依頼が届いた（件数をまとめる）・新しい依頼が届いた
-        const before = refreshed.offers ?? merged.offers;
-        const salesCount = (salesPatch.offers?.length ?? before.length) - before.length;
-        const refreshCount = (refreshed.offers?.length ?? merged.offers.length) - merged.offers.length;
-        let notices = result.notices ?? s.notices;
-        if (salesCount > 0) notices = pushNotice(notices, 'salesArrival', { count: salesCount }, Date.now());
-        if (refreshCount > 0) notices = pushNotice(notices, 'offersRefreshed', {}, Date.now());
-        // 上限に達して、昇給を待っている社員（N97・N101）。この時間で上限に達した社員だけ知らせる
-        for (const m of result.staff ?? s.staff) {
-          const before = s.staff.find((x) => x.uid === m.uid);
-          if (before && before.level < before.levelCap && m.level >= m.levelCap) {
-            notices = pushNotice(notices, 'raiseWaiting', { name: tDyn(m.name), uid: m.uid }, Date.now());
-          }
-        }
-        return { ...result, notices };
-      }),
+    tick: () => set((s) => runTick(s, { now: Date.now(), payPause: loadSettings().payPause })),
     cacheMap: (map) =>
       set((s) => {
         const maps = { ...s.maps, [map.id]: map };

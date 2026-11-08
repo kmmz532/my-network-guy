@@ -53,11 +53,11 @@ Web ページとしてではなく、ゲームとして設計します。ゲー�
 | `src/sim/` | ルール |
 | `src/network/` | ネットワークの計算 |
 | `src/contracts/` | 案件 |
-| `src/stores/` | ストア。`useGameStore.ts` が基本の状態と毎ティックの処理を持ち、操作は種類ごとの `slices/`（ウィンドウ・設計・社員・オフィス・案件・時間と資金・画面・デバッグ・セッション）に置く。状態から値を引く関数は `gameHelpers.ts`、操作の結果の反映と設計の履歴は `gameOps.ts` |
+| `src/stores/` | ストア。`useGameStore.ts` が基本の状態と毎ティックの処理を持ち、操作は種類ごとの `slices/`（ウィンドウ・設計・社員・オフィス・案件・時間と資金・画面・デバッグ・セッション）に置く。状態から値を引く関数は `gameHelpers.ts`、操作の結果の反映と設計の履歴は `gameOps.ts`、毎ティックの処理は順序の決まった系として `tickSystems.ts` |
 | `src/components/` | React の画面 |
 | `src/game/` | Pixi.js の描画 |
 | `src/input/` | キー操作の割り当て（`keymap.ts`） |
-| `src/services/` | セーブ（IndexedDB、JSON ファイル）と移行 |
+| `src/services/` | セーブ（IndexedDB、JSON ファイル）と移行、時間を進めるループ（`tickLoop.ts`） |
 | `src/settings/` | 端末ごとの設定（UI の大きさ、時間の速さなど） |
 | `src/ui/` | ウィンドウ、ポップアップ、スマホ向けの表示 |
 | `src/i18n/` | 翻訳キーと `t()` 関数 |
