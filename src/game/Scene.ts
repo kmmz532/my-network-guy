@@ -23,8 +23,6 @@ const FACING_SPRITES = new Set(['furniture/desk', 'furniture/chair']);
 // 向きに合わせて絵を変える機器（PC は机と同じ向きにする・N95）
 const FACING_DEVICE_SPRITES = new Set(['device/pc_basic']);
 
-// 席になる家具（机）かどうか（社員が座る）
-const isDesk = (id: string): boolean => isDeskFurniture(id, gameEnv);
 // PC のうち、机の上にしか置けないもの（deskable でない PC。N91）
 const isPcOnlyDevice = (device: string): boolean => isPcDevice(device) && gameEnv.devices[device]?.deskable !== true;
 import { furnitureOf } from '../contracts/layout';
@@ -45,7 +43,6 @@ import {
 import { colorOfLink, networkColors, type NetworkColors } from '../network/netColor';
 import type { Compiled, IssueDetail } from '../network/compile';
 import { spriteOf, texture, visibleTopOfSprite } from './sprites';
-import { tileKind } from '../data/tileKind';
 import { balance, devices as deviceData, furniture as furnitureData } from 'virtual:game-data';
 import type { FurnitureId } from '../generated/ids';
 import { hideTip, showTipAt } from '../components/Tooltip';
@@ -56,12 +53,8 @@ import { CAP as WALL_CAP, drawTileMap } from './TileMap';
 import { screenToMap } from './camera';
 import { bindMapCommands } from './mapControl';
 import { MapCamera } from './MapCamera';
+import { OfficeStaffMotion, isDesk } from './OfficeStaffMotion';
 import { cumulativeLengths, pointAt, type Point } from './animation';
-import { wanderStep, type Walker } from './wander';
-import { bfsRoute, commuteStep, type Commute } from './commute';
-import { breakMoveStep, deskMove, type BreakMove } from './breakMove';
-import { breakAt, breakPlanOf } from '../sim/breaks';
-import { isPresentOnShift, minuteInShift } from '../sim/shift';
 import { minutesPerDay as dayMinutes } from '../sim/clock';
 import { metersOf } from '../sim/cableLength';
 import { deskStaffPos, deskTap, staffAt, STAFF_W, wanderStaffPos, type StaffHit } from './staffHit';
@@ -80,10 +73,6 @@ const PACKET_COLOR: Record<string, number> = {
 // 社員のスプライト（2人を服の色で区別する）
 // 社員のコマ送りの間隔（ms）。ART.md の 4〜8 fps 相当
 const FRAME_MS = 150;
-// 出勤・退勤で1フレームに歩かせる時間の上限（ms）
-const COMMUTE_MAX_FRAME_MS = 100;
-// 休憩の場所にする家具（自社オフィス）
-const BREAK_FURNITURE = ['coffee', 'water', 'sofa'];
 // サンドボックスを開いたとき（全体表示より大きい倍率）
 // 椅子つきの机の ID と、椅子の絵・マスの下端からの位置（B10）
 const CHAIR_FURNITURE = new Set(['desk']);
@@ -188,12 +177,6 @@ export class Scene {
   private compiled: Compiled | null = null;
   // ケーブルの色（ネットワークアドレスごと）。表示だけに使う
   private netColors: NetworkColors | null = null;
-  // 席のない社員（自社オフィスを歩き回る）。位置は保存しない
-  private wanderers: Walker[] = [];
-  // 机の社員の出勤・退勤の状態（キーは社員の uid）
-  private commutes = new Map<string, Commute>();
-  // 休憩の動き（キーは社員の uid。机にいる社員は desk）
-  private breaks = new Map<string, BreakMove>();
   // 失敗の「？」の押せる範囲（機器の uid → マップの座標の矩形）。描き直すたびに作る
   private helpRects = new Map<string, { x: number; y: number; w: number; h: number }>();
   private unsubscribe: () => void;
@@ -206,6 +189,8 @@ export class Scene {
   private expandButtons = new Map<ExpandSide, Container>();
   // マップの見え方（位置と倍率）と、それを動かす入力
   private cam: MapCamera;
+  // 自社オフィスの社員の動き（出勤・休憩・歩き回り）
+  private staffMotion = new OfficeStaffMotion();
 
   constructor(private app: Application) {
     this.cam = new MapCamera({
@@ -499,8 +484,7 @@ export class Scene {
     this.elapsed += dt;
     // 画面の大きさが変わったら、マップの位置と倍率を合わせ直す（resize の順に関係なく、描画の時点で拾う）
     this.cam.syncSize();
-    this.updateWanderers(dt);
-    this.updateCommutes(dt);
+    this.staffMotion.update(this.map, dt);
     this.updateDayTint();
     // パケットは滑らかに動かす。それ以外はコマ送り（ART.md）
     if (this.traceActive() || this.flashActive() || this.pulseActive() || this.pressActive()) {
@@ -746,11 +730,11 @@ export class Scene {
     const s = useGameStore.getState();
     seatedStaff(s.office, s.staff, isDesk).forEach(({ member, desk }, k) => {
       const look = member.look;
-      const c = this.commutes.get(member.uid);
+      const c = this.staffMotion.commuteOf(member.uid);
       // 退勤して外にいる社員は描かない。出勤・退勤の途中は、通路を歩く姿を描く（机の前の打鍵はしない）
       if (c?.state === 'away') return;
       // 休憩の途中（場所へ歩く・休む・戻る）は、その位置に立って描く（机の前の打鍵はしない）
-      const b = this.breaks.get(member.uid);
+      const b = this.staffMotion.breakOf(member.uid);
       if (c?.state === 'seated' && b && b.phase !== 'desk') {
         const at = wanderStaffPos(b.at.x, b.at.y, ts);
         this.drawStaff(at.x, at.y, look, member);
@@ -772,118 +756,19 @@ export class Scene {
     });
   }
 
-  // 机の社員の出勤と退勤。終業（workEndHour）になると机からドアへ歩いて外に出て、始業（workStartHour）になるとドアから机へ歩いて入る（自社オフィスのみ）
-  private updateCommutes(dt: number): void {
-    const map = this.map;
-    if (!map || map.id !== 'hq') return;
-    const s = useGameStore.getState();
-    // 出社は始業の少し前から（席に着いているのは始業まで）。事務所にいる時刻の間は、出勤の途中か机にいる
-    // 出入り口は、マップの最初のドアのマス。ドアがない最初の部屋では、下の壁の手前の中央の床を出入り口にする
-    let door: Point = { x: Math.floor(map.width / 2), y: map.height - 2 };
-    outer: for (let y = 0; y < map.height; y++) {
-      for (let x = 0; x < map.width; x++) {
-        if (tileKind(map, x, y) === 'door') {
-          door = { x, y };
-          break outer;
-        }
-      }
-    }
-    const passable = (x: number, y: number): boolean => {
-      const kind = tileKind(map, x, y);
-      return kind === 'floor' || kind === 'door';
-    };
-    const route = (from: Point, to: Point): Point[] | null => bfsRoute(from, to, passable);
-    const seated = seatedStaff(s.office, s.staff, isDesk);
-    // 休憩の場所（コーヒー・水・ソファ）。なければ、床の数か所を歩き回る
-    const restSpots = s.office.furniture.filter((f) => BREAK_FURNITURE.includes(f.id)).map((f): Point => ({ x: f.x, y: f.y }));
-    const floor: Point[] = [];
-    for (let y = 0; y < map.height; y++) for (let x = 0; x < map.width; x++) if (tileKind(map, x, y) === 'floor') floor.push({ x, y });
-    const minuteOfDay = s.clock.minute % dayMinutes;
-    const day = Math.floor(s.clock.minute / dayMinutes);
-    const frameDt = Math.min(dt, COMMUTE_MAX_FRAME_MS);
-    const seen = new Set<string>();
-    seated.forEach(({ member, desk: f }, k) => {
-      seen.add(member.uid);
-      // 出社と退社は、社員の勤務の区分（日勤・夜勤）で決まる（N48）
-      const present = isPresentOnShift(minuteOfDay, member.shift, balance);
-      const cur = this.commutes.get(member.uid) ?? { state: present ? 'seated' : 'away', at: { x: f.x, y: f.y }, path: [] };
-      // 1フレームで進みすぎないよう、歩かせる時間を上限で抑える（フレームが飛んだときに一気に歩き終えない）
-      const next = commuteStep(cur, frameDt, present, { x: f.x, y: f.y }, door, route);
-      this.commutes.set(member.uid, next);
-      // 休憩は、机にいる社員だけ。休憩の場所は、社員ごとに決まった場所（なければ床の決まった場所）
-      const plan = breakPlanOf(member.uid, day, balance, member.shift);
-      const onBreak = next.state === 'seated' && breakAt(minuteInShift(minuteOfDay, member.shift, balance), plan) !== null;
-      const spot =
-        restSpots.length > 0
-          ? restSpots[k % restSpots.length]
-          : (floor[(k * 7) % Math.max(1, floor.length)] ?? { x: f.x, y: f.y });
-      const prev = this.breaks.get(member.uid) ?? deskMove({ x: f.x, y: f.y });
-      this.breaks.set(
-        member.uid,
-        next.state === 'seated' ? breakMoveStep(prev, frameDt, onBreak, { x: f.x, y: f.y }, spot, route) : deskMove({ x: f.x, y: f.y }),
-      );
-    });
-    for (const uid of [...this.commutes.keys()]) if (!seen.has(uid)) this.commutes.delete(uid);
-    for (const uid of [...this.breaks.keys()]) if (!seen.has(uid)) this.breaks.delete(uid);
-  }
-
-  // 席の数を超えた社員は、歩き回る。人数に合わせて歩き手を増減し、床の上を歩かせる（自社オフィスのみ）
-  private updateWanderers(dt: number): void {
-    const map = this.map;
-    if (!map || map.id !== 'hq') {
-      this.wanderers = [];
-      return;
-    }
-    const s = useGameStore.getState();
-    const count = unseatedStaff(s.office, s.staff, isDesk).length;
-    const floor: Point[] = [];
-    for (let y = 0; y < map.height; y++) {
-      for (let x = 0; x < map.width; x++) {
-        const kind = tileKind(map, x, y);
-        if (kind === 'floor' || kind === 'door') floor.push({ x, y });
-      }
-    }
-    while (this.wanderers.length < count) {
-      const start = floor.length ? floor[Math.floor(Math.random() * floor.length)] : { x: 0, y: 0 };
-      this.wanderers.push({ x: start.x, y: start.y, path: [], pause: 0 });
-    }
-    this.wanderers.length = count;
-    this.wanderers = this.wanderers.map((w) => wanderStep(w, dt, floor, Math.random));
-  }
-
   private drawWanderers(ts: number): void {
     // 歩き手は、机のない社員（officeStaffHits と同じ並び）
     const s = useGameStore.getState();
     const unseated = unseatedStaff(s.office, s.staff, isDesk);
-    this.wanderers.forEach((w, k) => {
+    this.staffMotion.walkers.forEach((w, k) => {
       const at = wanderStaffPos(w.x, w.y, ts);
       const member = unseated[k];
       this.drawStaff(at.x, at.y, member?.look ?? STAFF_PLACEHOLDER_LOOKS[k % STAFF_PLACEHOLDER_LOOKS.length], member);
     });
   }
 
-  // 自社オフィスに描いている社員の位置と uid。席の社員は席の順（雇用の順）、歩き回る社員は席の数の後の社員
-  // 描いていないとき（納品の結果、施工中、ほかのマップ）は空
   private officeStaffHits(): StaffHit[] {
-    const s = useGameStore.getState();
-    if (this.map?.id !== 'hq' || s.showcase || focusedProject(s)?.phase === 'build') return [];
-    const ts = this.tileSize();
-    const hits: StaffHit[] = [];
-    seatedStaff(s.office, s.staff, isDesk).forEach(({ member, desk: f }, k) => {
-      // 外にいる社員と、歩いている社員は、机の前にいないので選べない
-      const c = this.commutes.get(member.uid);
-      if (c && c.state !== 'seated') return;
-      // 休憩の途中の社員は、机の前にいないので選べない
-      const b = this.breaks.get(member.uid);
-      if (b && b.phase !== 'desk') return;
-      hits.push({ uid: member.uid, ...deskStaffPos(f.x, f.y, ts, deskTap(this.elapsed, k)) });
-    });
-    const unseated = unseatedStaff(s.office, s.staff, isDesk);
-    this.wanderers.forEach((w, k) => {
-      const member = unseated[k];
-      if (member) hits.push({ uid: member.uid, ...wanderStaffPos(w.x, w.y, ts) });
-    });
-    return hits;
+    return this.staffMotion.hits(this.map, this.elapsed, this.tileSize());
   }
 
   // 自社オフィスの家具。スプライトの下端をマスの下端に揃え、1マスより高い分は上へはみ出させる
