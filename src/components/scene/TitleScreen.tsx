@@ -64,12 +64,6 @@ const CSS = `
     0 3px 0 #3b2a33,
     0 -3px 0 #3b2a33;
 }
-.ts-subtitle {
-  margin: 12px 0 0;
-  font-size: 14px;
-  color: #ffeea8;
-  text-shadow: 2px 2px 0 #3b2a33;
-}
 @media (max-width: 540px) {
   /* 「わたしのネットワーク屋」（11字。1字がちょうど 1em）を、左右の余白 16px と文字の影 3px に加え、字の幅の違い（フォントの代わり・端末の差）の余裕 0.5字ぶんを除いた幅に1行で収める */
   .ts-title {
@@ -81,7 +75,7 @@ const CSS = `
   position: relative;
   width: 100%;
   max-width: 360px;
-  margin-top: 48px;
+  margin-top: 24px;
 }
 .ts-rack-devices {
   position: relative;
@@ -103,14 +97,14 @@ const CSS = `
   z-index: 0;
   left: 36px;
   right: 36px;
-  top: 59px;
+  top: 70px;
   height: 2px;
   background: #62d26f;
 }
 .ts-packet {
   position: absolute;
   z-index: 0;
-  top: 58px;
+  top: 69px;
   left: 36px;
   width: 4px;
   height: 4px;
@@ -179,16 +173,16 @@ const CSS = `
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  margin-top: 40px;
+  margin-top: 24px;
 }
 .ts-btn {
   position: relative;
   box-sizing: border-box;
   width: 240px;
-  padding: 10px 12px 10px 36px;
+  padding: 10px 12px 10px 12px;
   font-family: 'DotGothic16', inherit;
   font-size: 20px;
-  text-align: left;
+  text-align: center;
   color: #3b2a33;
   background: #f4f1e6;
   border: 2px solid #3b2a33;
@@ -200,7 +194,7 @@ const CSS = `
 .ts-btn::before {
   content: '';
   position: absolute;
-  left: 14px;
+  left: 24px;
   top: 50%;
   margin-top: -6px;
   border-left: 9px solid transparent;
@@ -388,7 +382,6 @@ export function TitleScreen({ onNew, onContinue, onSandbox, message, locked = fa
       <div className="ts-shade" />
       <div className="ts-content">
         <h1 className="ts-title ts-display">{t('ui.title.name')}</h1>
-        <p className="ts-subtitle ts-display">{t('ui.title.subtitle')}</p>
 
         <Rack />
 
