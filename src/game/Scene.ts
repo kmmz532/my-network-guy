@@ -4,19 +4,14 @@ import { Application, Container, Graphics, Text, type Ticker } from 'pixi.js';
 import { type GameMap } from '../data/schema';
 import { focusedProject, viewingOffice, frontDeviceUid, useGameStore, type Trace } from '../stores/useGameStore';
 import { centerPath, plugPoints } from './linkHit';
-import { rangeTiles } from './effectRange';
 import { setMapView } from './mapView';
-import { gameEnv, isPcDevice } from '../sim/env';
+import { gameEnv } from '../sim/env';
 import { engineWithWalls } from '../sim/walls';
-import { WALL_LOSS, WIRELESS_RADIUS, wallsBetween, wirelessAssociations, withWireless } from '../network/engine';
+import { withWireless } from '../network/engine';
 import type { EngineData } from '../network/types';
 import { type Facing } from '../sim/facing';
 import { dayTintOf, nightnessOf, toHex, type Rgb } from '../sim/dayTint';
 import { loadSettings } from '../settings/settings';
-
-// 向きの絵がある家具（机・椅子）。向きに合わせて絵を切り替える（N95）
-// PC のうち、机の上にしか置けないもの（deskable でない PC。N91）
-const isPcOnlyDevice = (device: string): boolean => isPcDevice(device) && gameEnv.devices[device]?.deskable !== true;
 import { furnitureOf } from '../contracts/layout';
 import { expandActionOf, expansionLocked, officeExpandCostOf, type ExpandSide } from '../sim/office';
 import { levelOf } from '../sim/level';
@@ -31,31 +26,28 @@ import { bindMapCommands } from './mapControl';
 import { addKeyLayer, captureKeys } from '../input/keyRouter';
 import { MapCamera } from './MapCamera';
 import { MapHit } from './MapHit';
-import { MapInput, PRESS_MS } from './MapInput';
+import { MapInput } from './MapInput';
 import { MapTip } from './MapTip';
 import { OfficeStaffMotion, isDesk } from './OfficeStaffMotion';
 import { seatedStaff } from '../sim/furniture';
-import { cumulativeLengths, pointAt, type Point } from './animation';
+import { cumulativeLengths, type Point } from './animation';
 import { minutesPerDay as dayMinutes } from '../sim/clock';
-import { metersOf } from '../sim/cableLength';
 import { type StaffHit } from './staffHit';
 import { StaffRenderer } from './StaffRenderer';
 import { STAFF_FRAME_MS } from './staffHit';
 import { DeviceRenderer } from './DeviceRenderer';
-import { CATEGORY } from '../data/categories';
 import { FurnitureRenderer } from './FurnitureRenderer';
+import { DESK_TOP, DEVICE_FOOT_INSET, isPcOnlyDevice } from './deviceRules';
 import { DeviceLabelRenderer } from './DeviceLabelRenderer';
-
+import { NetworkRenderer } from './NetworkRenderer';
+import { EffectRenderer } from './EffectRenderer';
+import { InteractionRenderer } from './InteractionRenderer';
 
 const OUTLINE = 0x3b2a33;
 const SELECT = 0xffd866;
 const WARN = 0xffcc33;
 const FAIL = 0xe84a4a;
 // プロトコルごとのパケットの色（ART.md）
-const PACKET_COLOR: Record<string, number> = {
-  ping: 0xffffff,
-  http: 0xff8fb0,
-};
 // 社員のスプライト（2人を服の色で区別する）
 // 社員のコマ送りの間隔（ms）。ART.md の 4〜8 fps 相当
 // サンドボックスを開いたとき（全体表示より大きい倍率）
@@ -68,17 +60,12 @@ const BUILD_SLOTS: [number, number][] = [[-0.56, 0], [0.06, 0], [-0.25, 0.5], [-
 // 失敗の吹き出しを出しておく時間（ms）
 const FLASH_MS = 2500;
 // つながった瞬間に、ケーブルの上を光が走る時間（ms）
-const PULSE_MS = 450;
 // 失敗の瞬間の揺れと赤い輪の時間（ms）
-const SHAKE_MS = 320;
 // パケットの速さ（タイル/秒）と、粒の間隔（タイル）。粒の数は3つまで
 const PACKET_TILES_PER_SEC = 3;
 const PACKET_SPACING_TILES = 0.5;
 const PACKET_COUNT = 3;
 // 機器のスプライト（24×40）の足元は、タイルの下端から何 px 上か。足元のY座標で前後を決める
-const DEVICE_FOOT_INSET = 4;
-// PCを載せる位置（天板の中ほど。タイル上端からの距離。furniture/desk.png に合わせる）
-const DESK_TOP = 18;
 // 社員のスプライト（16×24）の足元（上端からの位置）
 // 撤去の道具で、マウスを乗せた対象を赤みがかった明るさにする
 const HOT_RED = 0xff6b6b;
@@ -139,6 +126,9 @@ export class Scene {
   private staffRenderer: StaffRenderer;
   private deviceRenderer: DeviceRenderer;
   private deviceLabelRenderer: DeviceLabelRenderer;
+  private networkRenderer: NetworkRenderer;
+  private effectRenderer: EffectRenderer;
+  private interactionRenderer: InteractionRenderer;
 
   constructor(private app: Application) {
     const base = { app, content: this.content, map: () => this.map, tileSize: () => this.tileSize() };
@@ -185,6 +175,27 @@ export class Scene {
       tool: () => useGameStore.getState().tool,
       hoverLink: () => this.input.hoverAnyLink,
       hoverNode: () => this.input.hoverAnyNode,
+    });
+    this.networkRenderer = new NetworkRenderer({
+      graphics: this.g,
+      map: () => this.map,
+      wireEngine: () => this.wireEngine,
+      tracePath: (trace) => this.tracePath(trace),
+    });
+    this.effectRenderer = new EffectRenderer({
+      graphics: this.g,
+      bubbles: this.bubbles,
+      input: this.input,
+      map: () => this.map,
+      scale: () => this.content.scale.x,
+      textResolution: () => this.textResolution(),
+    });
+    this.interactionRenderer = new InteractionRenderer({
+      graphics: this.g,
+      bubbles: this.bubbles,
+      input: this.input,
+      hit: this.hit,
+      scale: () => this.content.scale.x,
     });
     // インベントリの欄（DOM）から、マスの判定と品目を置けるかを使えるようにする
     setMapView({ tileAtClient: (x, y) => this.hit.tileAtClient(x, y), canPlace: (id, tx, ty) => this.input.canPlace(id, tx, ty) });
@@ -467,7 +478,7 @@ export class Scene {
     this.staffMotion.update(this.map, dt);
     this.updateDayTint();
     // パケットは滑らかに動かす。それ以外はコマ送り（ART.md）
-    if (this.traceActive() || this.flashActive() || this.pulseActive() || this.input.pressActive()) {
+    if (this.traceActive() || this.flashActive() || this.networkRenderer.pulseActive() || this.input.pressActive()) {
       this.drawObjects();
       return;
     }
@@ -562,9 +573,9 @@ export class Scene {
     }
 
     // つながった瞬間の光（配線の上に描く）
-    this.drawLinkPulse(project, ts);
+    this.networkRenderer.drawLinkPulse(project, ts);
     // 押した機器の輪
-    this.drawPressFx(project, ts);
+    this.effectRenderer.drawPressFx(project, ts);
 
     // 配線の線。ドラッグ中、または起点を選んだあとは、起点の機器からカーソルまで伸ばす
     const wireUid = this.input.wireFrom ?? s.wireStart?.uid ?? null;
@@ -573,7 +584,7 @@ export class Scene {
       this.g.moveTo(wireNode.x * ts + ts / 2, wireNode.y * ts + ts / 2);
       this.g.lineTo(this.input.wireTo.x, this.input.wireTo.y);
       this.g.stroke({ width: 2, color: SELECT });
-      this.drawWireCost(wireNode, ts);
+      this.interactionRenderer.drawWireCost(wireNode, ts);
     }
 
     // ケーブルの端を挿し替えるドラッグ中（N107）: つかんだケーブルを強調し、もう一方の端から離した位置まで仮の線を引く
@@ -626,15 +637,15 @@ export class Scene {
       this.staffRenderer.drawDeskStaff(ts);
       this.staffRenderer.drawWanderers(ts);
     }
-    for (const trace of this.traces) this.drawTrace(trace, ts);
+    for (const trace of this.traces) this.networkRenderer.drawTrace(trace, ts, this.realElapsed, this.traceStart);
     this.drawFailures(project, ts, failing);
-    this.drawPlugMarks(ts);
-    this.drawHover(project, ts);
-    this.drawWireless(project, ts, frontDeviceUid(s));
-    this.drawEffectRange(ts);
-    this.drawPlacePreview(ts);
-    this.drawDrag(ts);
-    this.drawFlash(ts);
+    this.interactionRenderer.drawPlugMarks(ts);
+    this.effectRenderer.drawHover(project, ts);
+    this.networkRenderer.drawWireless(project, ts, frontDeviceUid(s));
+    this.effectRenderer.drawEffectRange(ts);
+    this.interactionRenderer.drawPlacePreview(ts);
+    this.interactionRenderer.drawDrag(ts);
+    this.effectRenderer.drawFlash(ts);
   }
 
   private clearBubbles(): void {
@@ -709,34 +720,6 @@ export class Scene {
   }
 
   // 疎通テストの経路と、パケットの粒。失敗した地点で止まり「×」を出す
-  private drawTrace(trace: Trace, ts: number): void {
-    const route = this.tracePath(trace);
-    if (!route) return;
-    const { pts: path, nodeAt } = route;
-    const cumulative = cumulativeLengths(path);
-    const total = cumulative[cumulative.length - 1];
-
-    // 失敗した地点までの道のり。復路の失敗は往路の終点で止まる（失敗の印は drawFailures で機器の上に出す）
-    const failure = trace.result.failure;
-    let stop = total;
-    if (failure) {
-      const uids = trace.result.path;
-      const idx = failure.reason === 'return.failed' ? uids.length - 1 : uids.indexOf(failure.node);
-      stop = idx >= 0 && idx < nodeAt.length ? cumulative[nodeAt[idx]] : 0;
-    }
-
-    const elapsed = this.realElapsed - this.traceStart;
-    const travelled = (elapsed / 1000) * PACKET_TILES_PER_SEC * ts;
-    const color = PACKET_COLOR[trace.kind] ?? 0xffffff;
-    for (let i = 0; i < PACKET_COUNT; i++) {
-      const behind = travelled - i * PACKET_SPACING_TILES * ts;
-      if (behind < 0) continue;
-      const p = pointAt(path, cumulative, Math.min(behind, stop));
-      this.g.rect(p.x - 1.5, p.y - 1.5, 3, 3).fill({ color });
-    }
-
-  }
-
   // テストと検収の失敗を、失敗した機器の上に「×」と理由の文で出す。「？」を押すと直し方を出す。
   // 機器ごとに最初の失敗だけを出す（経路が描けない失敗も出す）
   // 失敗の表示を出す機器（uid → 理由）。設計中の案件の検査結果だけ。機器ごとに最初の失敗
@@ -863,224 +846,7 @@ export class Scene {
     return f !== null && Date.now() - f.at < FLASH_MS;
   }
 
-  private pulseActive(): boolean {
-    const p = useGameStore.getState().linkPulse;
-    return p !== null && Date.now() - p.at < PULSE_MS;
-  }
-
-  // つながった瞬間: 新しいケーブルの上を、明るい光の粒が端から端へ走る。両端の機器は、一瞬だけ光の輪で囲む
-  private drawLinkPulse(project: Project, ts: number): void {
-    const p = useGameStore.getState().linkPulse;
-    if (!p || !this.pulseActive()) return;
-    const link = project.links.find(
-      (l) => (l.a.node === p.a && l.b.node === p.b) || (l.a.node === p.b && l.b.node === p.a),
-    );
-    if (!link || link.path.length < 2) return;
-    const pts = link.path.map(([x, y]) => ({ x: x * ts + ts / 2, y: y * ts + ts / 2 }));
-    // 折れ線の全長に対して、いまの位置を求める
-    const seg: number[] = [0];
-    for (let i = 1; i < pts.length; i++) {
-      seg.push(seg[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
-    }
-    const total = seg[seg.length - 1];
-    const k = Math.min(1, (Date.now() - p.at) / PULSE_MS);
-    const target = total * k;
-    let i = 1;
-    while (i < seg.length - 1 && seg[i] < target) i++;
-    const span = seg[i] - seg[i - 1] || 1;
-    const r = (target - seg[i - 1]) / span;
-    const x = pts[i - 1].x + (pts[i].x - pts[i - 1].x) * r;
-    const y = pts[i - 1].y + (pts[i].y - pts[i - 1].y) * r;
-    this.g.circle(x, y, ts / 5).fill({ color: 0xffd866, alpha: 0.9 });
-    this.g.circle(x, y, ts / 5 + 3).stroke({ width: 2, color: 0xffd866, alpha: 0.5 });
-    // 両端の機器の周りに、光の輪が広がって消える
-    for (const end of [pts[0], pts[pts.length - 1]]) {
-      this.g.circle(end.x, end.y, ts * (0.4 + 0.4 * k)).stroke({ width: 2, color: 0xffd866, alpha: 1 - k });
-    }
-  }
-
-  // 配線の到達先: 接続できれば緑、できなければ赤の枠と×
-  // 効果のある家具を配置中は、カーソルの位置から効果の範囲を半透明の緑で塗る（範囲のない家具は塗らない）
-  // 選んだアクセスポイントの電波の範囲（薄い円。壁の減衰を含む）と、つながった端末への点線（N152）
-  private drawWireless(project: Project, ts: number, selectedUid: string | null): void {
-    const engine = this.wireEngine;
-    if (!selectedUid || !engine || !this.map) return;
-    const ap = project.nodes.find((n) => n.uid === selectedUid);
-    const apCategory = gameEnv.devices[ap?.device ?? '']?.category;
-    if (!ap || (apCategory !== CATEGORY.accessPoint && apCategory !== CATEGORY.homeRouter)) return;
-    const R = WIRELESS_RADIUS;
-    for (let dy = -R; dy <= R; dy++) {
-      for (let dx = -R; dx <= R; dx++) {
-        const tx = ap.x + dx;
-        const ty = ap.y + dy;
-        if (tx < 0 || ty < 0 || tx >= this.map.width || ty >= this.map.height) continue;
-        const d = Math.abs(dx) + Math.abs(dy);
-        const walls = engine.wallAt ? wallsBetween(engine.wallAt, ap.x, ap.y, tx, ty) : 0;
-        if (d + walls * WALL_LOSS <= R) this.g.rect(tx * ts, ty * ts, ts, ts).fill({ color: 0x62d26f, alpha: 0.12 });
-      }
-    }
-    const pairs = wirelessAssociations({ nodes: project.nodes, links: project.links, segments: project.segments }, engine);
-    for (const { ap: a, client } of pairs) {
-      if (a.uid !== ap.uid) continue;
-      const x0 = a.x * ts + ts / 2;
-      const y0 = a.y * ts + ts / 2;
-      const x1 = client.x * ts + ts / 2;
-      const y1 = client.y * ts + ts / 2;
-      const len = Math.hypot(x1 - x0, y1 - y0);
-      const steps = Math.max(1, Math.floor(len / 6));
-      for (let i = 0; i < steps; i += 2) {
-        const t0 = i / steps;
-        const t1 = Math.min(1, (i + 1) / steps);
-        this.g.moveTo(x0 + (x1 - x0) * t0, y0 + (y1 - y0) * t0).lineTo(x0 + (x1 - x0) * t1, y0 + (y1 - y0) * t1).stroke({ width: 2, color: 0x62d26f, alpha: 0.8 });
-      }
-    }
-  }
-
-  private drawEffectRange(ts: number): void {
-    const store = useGameStore.getState();
-    if (!store.placing || focusedProject(store) || !this.input.cursorTile) return;
-    const range = gameEnv.furniture?.[store.placing]?.effect?.range;
-    if (range === undefined || !this.map) return;
-    for (const { tx, ty } of rangeTiles(this.input.cursorTile.tx, this.input.cursorTile.ty, range, this.map.width, this.map.height)) {
-      this.g.rect(tx * ts, ty * ts, ts, ts).fill({ color: 0x62d26f, alpha: 0.35 });
-    }
-  }
-
-  private drawHover(project: Project, ts: number): void {
-    if (!this.input.hover) return;
-    const node = project.nodes.find((n) => n.uid === this.input.hover!.uid);
-    if (!node) return;
-    const ok = this.input.hover.reason === null;
-    const color = ok ? 0x62d26f : FAIL;
-    const x = node.x * ts;
-    const y = node.y * ts;
-    this.g.rect(x + 1, y + 1, ts - 2, ts - 2).stroke({ width: 2, color });
-    if (!ok) {
-      this.g.moveTo(x + 8, y + 8).lineTo(x + ts - 8, y + ts - 8).moveTo(x + ts - 8, y + 8).lineTo(x + 8, y + ts - 8);
-      this.g.stroke({ width: 2, color: FAIL });
-    }
-  }
-
-  // 操作の失敗を、失敗した地点に吹き出しで出す
-  private drawFlash(ts: number): void {
-    const f = useGameStore.getState().flash;
-    if (!f || !this.flashActive()) return;
-    const scale = this.content.scale.x;
-    const text = new Text({
-      text: tDyn(f.key),
-      style: { fontFamily: 'sans-serif', fontSize: 12 / scale, fill: 0xffd866, stroke: { color: OUTLINE, width: 3 / scale } },
-      resolution: this.textResolution(),
-    });
-    text.anchor.set(0.5, 1);
-    // 失敗の瞬間は、地点に赤い輪が広がり、吹き出しが左右に小さく揺れる（すぐ収まる）
-    const age = Date.now() - f.at;
-    const shake = age < SHAKE_MS ? Math.sin((age / SHAKE_MS) * Math.PI * 4) * 3 * (1 - age / SHAKE_MS) : 0;
-    text.position.set(f.tx * ts + ts / 2 + shake, f.ty * ts - 4);
-    this.bubbles.addChild(text);
-    if (age < SHAKE_MS) {
-      const k = age / SHAKE_MS;
-      this.g.circle(f.tx * ts + ts / 2, f.ty * ts + ts / 2, ts * (0.35 + 0.3 * k)).stroke({ width: 2, color: FAIL, alpha: 1 - k });
-    }
-  }
-
-
-
   // 押した機器の周りに、小さな輪が広がって消える（ボタンを押したのが分かるように）
-  private drawPressFx(project: Project, ts: number): void {
-    const fx = this.input.pressFx;
-    if (!fx || !this.input.pressActive()) return;
-    const node = project.nodes.find((n) => n.uid === fx.uid);
-    if (!node) return;
-    const k = (Date.now() - fx.at) / PRESS_MS;
-    this.g.circle(node.x * ts + ts / 2, node.y * ts + ts / 2, ts * (0.35 + 0.3 * k)).stroke({ width: 2, color: 0xffd866, alpha: 1 - k });
-  }
-
-  // ---- 機器・家具の移動、ケーブルの端の挿し替え（押してから動かす）----
-
-  // マスの枠。置ける（明るく・緑の枠）か、置けない（暗く・赤の枠）かを示す
-  private drawTileState(tx: number, ty: number, ts: number, ok: boolean): void {
-    const x = tx * ts;
-    const y = ty * ts;
-    this.g.rect(x, y, ts, ts).fill({ color: ok ? 0xffffff : 0x000000, alpha: ok ? 0.3 : 0.45 });
-    this.g.rect(x + 1, y + 1, ts - 2, ts - 2).stroke({ width: 2, color: ok ? 0x62d26f : FAIL });
-  }
-
-  // インベントリの欄からドラッグ中、または配置中は、カーソルのマスを置けるかで示す
-  private drawPlacePreview(ts: number): void {
-    const s = useGameStore.getState();
-    const id = s.itemDrag?.id ?? s.placing;
-    if (!id) return;
-    const tile = s.itemDrag ? this.hit.tileAtClient(s.itemDrag.x, s.itemDrag.y) : this.input.cursorTile;
-    if (!tile) return;
-    this.drawTileState(tile.tx, tile.ty, ts, this.input.canPlace(id, tile.tx, tile.ty));
-  }
-
-  // ドラッグ中の表示。機器・家具は移す先のマスを示し、ケーブルの端は挿し替える先の機器を示して、仮の線を引く
-  private drawDrag(ts: number): void {
-    const press = this.input.press;
-    if (!press?.dragging || !press.at) return;
-    const at = press.at;
-    const target = press.target;
-    if (target.kind === 'node' || target.kind === 'furniture') {
-      const tile = this.hit.tileOf(at);
-      if (!tile) return;
-      const ok = target.kind === 'node' ? this.input.canMoveNode(target.uid, tile.tx, tile.ty) : this.input.canMoveFurniture(target.uid, tile.tx, tile.ty);
-      this.drawTileState(tile.tx, tile.ty, ts, ok);
-      return;
-    }
-    const link = this.hit.editLinks()?.find((l) => l.uid === target.linkUid);
-    if (!link) return;
-    const other = this.hit.editNodes()?.find((n) => n.uid === (target.end === 'a' ? link.b.node : link.a.node));
-    const node = this.hit.nodeNear(at, this.hit.editNodes() ?? []);
-    const ok = node !== undefined && this.input.canReplug(target.linkUid, target.end, node.uid);
-    if (node) this.drawTileState(node.x, node.y, ts, ok);
-    if (other) {
-      this.g.moveTo(other.x * ts + ts / 2, other.y * ts + ts / 2);
-      this.g.lineTo(at.x, at.y);
-      this.g.stroke({ width: 2, color: ok ? SELECT : FAIL });
-    }
-  }
-
-  // マウスを乗せたケーブルの両端に、つかめる差し込み口の印を出す（選択と配線の道具で、押していないとき）
-  private drawPlugMarks(ts: number): void {
-    const s = useGameStore.getState();
-    if (this.input.press || s.placing || (s.tool !== 'select' && s.tool !== 'wire')) return;
-    const link = this.hit.editLinks()?.find((l) => l.uid === this.input.hoverAnyLink);
-    if (!link) return;
-    const size = 6 / this.content.scale.x;
-    const plugs = plugPoints(link, ts);
-    for (const plug of [plugs.a, plugs.b]) {
-      this.g.rect(plug.x - size / 2, plug.y - size / 2, size, size).fill({ color: SELECT });
-      this.g.rect(plug.x - size / 2, plug.y - size / 2, size, size).stroke({ width: 1 / this.content.scale.x, color: OUTLINE });
-    }
-  }
-
-  // 配線中のカーソルの横に、ケーブルの長さと費用を出す。カーソルが機器の上なら、その機器までの長さ
-  private drawWireCost(from: NetNode, ts: number): void {
-    const store = useGameStore.getState();
-    const cable = gameEnv.cables[store.wireCable];
-    const nodes = this.hit.editNodes();
-    const tile = this.hit.tileOf(this.input.wireTo);
-    if (!cable || !tile || !nodes) return;
-    const end = this.hit.nodeNear(this.input.wireTo, nodes);
-    const length = Math.abs(from.x - (end?.x ?? tile.tx)) + Math.abs(from.y - (end?.y ?? tile.ty));
-    if (length < 1) return;
-    const cost = cable.pricePerLink + cable.pricePerTile * length;
-    const scale = this.content.scale.x;
-    // 長さはメートルで出す。上限を超えたら赤くし、配線できないことを示す（N49）
-    const meters = metersOf(length, balance.metersPerTile);
-    const limit = metersOf(cable.maxLengthTiles, balance.metersPerTile);
-    const over = length > cable.maxLengthTiles;
-    const text = new Text({
-      text: t('ui.wire.cost', { length: meters, limit, cost: cost.toLocaleString('ja-JP') }),
-      style: { fontFamily: 'sans-serif', fontSize: 12 / scale, fill: over ? 0xff8a7a : 0xf4f1e6, stroke: { color: OUTLINE, width: 2 / scale } },
-      resolution: Math.max(2, scale * (window.devicePixelRatio || 1)),
-    });
-    text.anchor.set(0, 1);
-    text.position.set(this.input.wireTo.x + ts * 0.25, this.input.wireTo.y - ts * 0.25);
-    this.bubbles.addChild(text);
-  }
-
 }
 
 // 色を target へ amount（0〜1）の割合で混ぜる

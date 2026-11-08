@@ -1,7 +1,7 @@
 // ネットワーク機器を描く。機器本体・机・ポート・選択枠・LEDを受け持つ。
 import { Container, Graphics, Sprite } from 'pixi.js';
 import { devices as deviceData } from 'virtual:game-data';
-import { gameEnv, isPcDevice } from '../sim/env';
+import { gameEnv } from '../sim/env';
 import { isPcCategory } from '../data/categories';
 import { spriteNameOf } from '../sim/facing';
 import type { Facing } from '../sim/facing';
@@ -9,12 +9,11 @@ import type { Project } from '../sim/project';
 import type { NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
 import { spriteOf, texture } from './sprites';
+import { DESK_TOP, DEVICE_FOOT_INSET, isPcOnlyDevice } from './deviceRules';
 
 const OUTLINE = 0x3b2a33;
 const SELECT = 0xffd866;
 const WARN = 0xffcc33;
-const DEVICE_FOOT_INSET = 4;
-const DESK_TOP = 18;
 const REMOVE_TINT = 0xffb0b0;
 const FACING_DEVICE_SPRITES = new Set(['device/pc_basic']);
 
@@ -94,5 +93,3 @@ export class DeviceRenderer {
     }
   }
 }
-
-const isPcOnlyDevice = (device: string): boolean => isPcDevice(device) && gameEnv.devices[device]?.deskable !== true;
