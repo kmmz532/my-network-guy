@@ -55,8 +55,8 @@ type Popup = 'menu' | 'help' | 'settings' | 'sandboxResize' | 'sandboxReset' | '
 // 上部の操作の見た目。パソコンは文字の幅に合わせた横長で低いボタン。スマホは指で押すため 44 px 以上にする（M4・B11）
 const hudButton = (on: boolean, phone: boolean) =>
   ({
-    padding: '2px 8px',
-    ...(phone ? { minHeight: 30, minWidth: 40 } : {}),
+    padding: '4px 8px',
+    ...(phone ? { minHeight: 28, minWidth: 28 } : {}),
     cursor: 'pointer',
     background: on ? '#ffd866' : '#25406f',
     color: on ? '#3b2a33' : '#f4f1e6',
@@ -485,20 +485,22 @@ export function App() {
           top: 0,
           left: 0,
           right: 0,
-          padding: phone ? '2px 8px' : '6px 12px',
+          padding: phone ? '2px 4px' : '4px 8px',
           background: 'rgba(47, 79, 143, 0.75)',
           color: '#f4f1e6',
           display: 'flex',
-          flexWrap: 'wrap',
+          flexWrap: 'nowrap',
           alignItems: 'center',
-          gap: phone ? '2px 10px' : 14,
+          gap: phone ? '2px 4px' : 8,
           zoom: 'var(--ui-scale, 1)',
         }}
       >
+        {/* 左側: 資金・会社・日付・速度。狭いときは左側の中で折り返し、右側（設定の入口）は上の段に残す */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: phone ? '2px 4px' : 8, flex: '1 1 auto', minWidth: 0 }}>
         {/* お金を押すと、資金の画面を開く（サンドボックスは資金がないため、開かない） */}
         {sandbox ? (
           <span>
-            <Icon name="icon/money" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} /> ∞
+            <Icon name="icon/money" scale={1.5} /> ∞
           </span>
         ) : (
           <button
@@ -506,7 +508,7 @@ export function App() {
             onClick={() => openWindow('funds', '')}
             style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
           >
-            <Icon name="icon/money" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} /> {clock.money.toLocaleString('ja-JP')}
+            <Icon name="icon/money" scale={1.5} /> {clock.money.toLocaleString('ja-JP')}
           </button>
         )}
         {!sandbox && (
@@ -517,20 +519,23 @@ export function App() {
         </button>
         )}
         {!sandbox && (
-        <span>
-          <Icon name="icon/calendar" scale={1.5} style={{ verticalAlign: 'middle', marginTop: '-4px' }} /> {t('ui.hud.date', { year: date.year, month: date.month, day: date.day, hour: date.hour })}
+        <span style={{ marginLeft: '8px' }}>
+          {/* <Icon name="icon/calendar" scale={1.5} />  */}
+          {t('ui.hud.date', { year: date.year, month: date.month, day: date.day })}
         </span>
         )}
         {!sandbox && (
         <span style={{ display: 'flex', gap: 4 }}>
           {SPEEDS.map((s) => (
-            <Tooltip text={s === 0 ? tipText('ui.speed.0', 'pause', !phone) : t(`ui.speed.${s}` as const)} key={s}><button aria-label={t(`ui.speed.${s}` as const)} style={hudButton(speed === s, phone)}  onClick={() => { hideTip(); setSpeed(s); }}>
+            <Tooltip text={s === 0 ? tipText('ui.speed.0', 'pause', !phone) : t(`ui.speed.${s}` as const)} key={s}>
+              <button aria-label={t(`ui.speed.${s}` as const)} style={{ ...hudButton(speed === s, phone), display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { hideTip(); setSpeed(s); }}>
               {s === 0 ? (
                 <Icon name="icon/pause" scale={1} />
               ) : (
                 Array.from({ length: s === 4 ? 3 : s }, (_, i) => <Icon key={i} name="icon/play" scale={1} />)
               )}
-            </button></Tooltip>
+              </button>
+            </Tooltip>
           ))}
           {/* 早送りは、解放済みの 2倍・4倍・8倍を押すたびに切り替え、今の倍率を出す。1倍のボタンで戻る（N99） */}
           {(() => {
@@ -541,20 +546,21 @@ export function App() {
             const hint = speed >= 2 ? t('ui.speed.hint.next', { now: t(`ui.speed.${speed}` as const), next: t(`ui.speed.${next}` as const) }) : t('ui.speed.hint.up', { next: t(`ui.speed.${shown}` as const) });
             return (
               <Tooltip text={hint}>
-                <button aria-label={hint} style={hudButton(speed >= 2, phone)} onClick={() => { hideTip(); setSpeed(next); }}>
+                <button aria-label={hint} style={{ ...hudButton(speed >= 2, phone), display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { hideTip(); setSpeed(next); }}>
                   {Array.from({ length: shown === 2 ? 2 : 3 }, (_, i) => <Icon key={i} name="icon/play" scale={1} />)}
-                  {/* 今の倍率を文字でも出す（4倍と8倍は絵が同じため。N130） */}
-                  <span style={{ marginLeft: 4 }}>{t(`ui.speed.${speed}` as const)}</span>
                 </button>
               </Tooltip>
             );
           })()}
-          {nightSpeed !== null && <span style={{ fontSize: 12, alignSelf: 'center' }}>{t('ui.night.fast')}</span>}
+          <span style={{ fontSize: 12, alignSelf: 'center' }}>{nightSpeed === null ? t(`ui.speed.${speed}`) : t('ui.night.fast')}</span>
         </span>
         )}
+        </div>
+        {/* 右側: 自動保存の印と、設定（メニュー）の入口。いつも右上に出す */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: phone ? '2px 4px' : 8, flexShrink: 0, marginLeft: 'auto', alignSelf: 'flex-start' }}>
         {/* 自動保存の印。文字は出さず、ツールチップだけ */}
         {/* 印を出していないときも場所を空けておく（出し入れでメニューボタンが動かないように） */}
-        <Tooltip text={t('ui.autosave.mark')} style={{ marginLeft: 'auto' }}>
+        <Tooltip text={t('ui.autosave.mark')}>
           <span
             role={saveMark !== null ? 'status' : undefined}
             aria-label={saveMark !== null ? t('ui.autosave.mark') : undefined}
@@ -564,9 +570,10 @@ export function App() {
             <Icon name="icon/save" scale={1} />
           </span>
         </Tooltip>
-        <button style={hudButton(false, phone)} onClick={() => setPopup('menu')}>
+        <button style={{ ...hudButton(false, phone), display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setPopup('menu')}>
           <Icon name="icon/menu" scale={1} />
         </button>
+        </div>
       </header>
       {/* 左上の列: 切り替えのボタンと案件の欄を縦に並べる（位置の数値を部品に持たせない・N121）。狭い画面では、列をヘッダーの下に置く（ヘッダーの高さは zoom を掛けた画面の座標なので、上端は倍率で割って渡す） */}
       <div style={{ position: 'absolute', top: phone ? (hudBottom + 6) / loadSettings().uiScale : 44, left: 8, zIndex: 5, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>

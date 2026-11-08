@@ -180,7 +180,7 @@
   "error.firewall.denied.fix": "ファイアウォールの規則に、この通信を許可する行を追加してください。",
   "error.service.closed": "宛先でサービスが動いていない。",
   "error.service.closed.fix": "宛先のサーバーを選び、サービスタブでHTTPを起動してください。",
-  "ui.hud.date": "{year}年目 {month}月{day}日 {hour}時",
+  "ui.hud.date": "{year}年目{month}月{day}日",
   "ui.speed.0": "停止",
   "ui.speed.1": "1倍",
   "ui.speed.2": "2倍",
