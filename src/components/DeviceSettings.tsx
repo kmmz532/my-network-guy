@@ -275,6 +275,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
       {!isRoutingCategory(category ?? '') && renderGateway()}
       {/* ファイアウォールも経路を持つ（直列の構成で、戻りの経路を置くため）。規則と静的ルートの両方を出す（N-fw） */}
       {isRoutingCategory(category ?? '') && renderRoutes()}
+      {isRoutingCategory(category ?? '') && <NatField node={node} readOnly={locked} onError={onError} />}
       {category === CATEGORY.firewall && renderFirewallRules()}
     </div>
   );
@@ -361,6 +362,73 @@ function RouteAdd({
         options={[{ value: '', label: t('ui.config.routeNext') }, ...hops.map((ip) => ({ value: ip, label: ip }))]}
         onChange={(v) => pick(dest, v)}
       />
+    </div>
+  );
+}
+
+// NAT の設定（N146）: 口ごとの inside・outside、NAPT の有効、静的 NAT（ポートの転送）
+const NAT_ROLES = ['inside', 'outside'] as const;
+function NatField({ node, readOnly, onError }: { node: NetNode; readOnly: boolean; onError: (reason: string | null) => void }) {
+  const setNat = useGameStore((s) => s.setNat);
+  const [port, setPort] = useState('80');
+  const [insideIp, setInsideIp] = useState('');
+  const [insidePort, setInsidePort] = useState('80');
+  const statics = node.statics ?? [];
+  const addStatic = () => {
+    const p = Number(port);
+    const ip = Number(insidePort);
+    if (!isIpText(insideIp) || !Number.isInteger(p) || p < 1 || p > 65535 || !Number.isInteger(ip) || ip < 1 || ip > 65535) {
+      onError('nat.static_invalid');
+      return;
+    }
+    onError(setNat(node.uid, { op: 'static', port: p, insideIp, insidePort: ip }));
+    setInsideIp('');
+  };
+  return (
+    <div style={sectionStyle}>
+      <div>
+        <b>{t('ui.nat.title')}</b>
+      </div>
+      {node.interfaces.map((i) => (
+        <div key={i.port} style={row}>
+          <span>{t('ui.nat.port', { id: i.id })}</span>
+          <PixelSelect<string>
+            ariaLabel={t('ui.nat.role')}
+            value={i.nat ?? ''}
+            disabled={readOnly}
+            options={[{ value: '', label: t('ui.nat.none') }, ...NAT_ROLES.map((r) => ({ value: r, label: t(`ui.nat.${r}`) }))]}
+            onChange={(v) => onError(setNat(node.uid, { op: 'iface', port: i.port, nat: v === '' ? null : (v as 'inside' | 'outside') }))}
+          />
+        </div>
+      ))}
+      <div style={row}>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <input type="checkbox" aria-label={t('ui.nat.napt')} checked={node.napt === true} disabled={readOnly} onChange={(e) => onError(setNat(node.uid, { op: 'napt', on: e.target.checked }))} />
+          {t('ui.nat.napt')}
+        </label>
+      </div>
+      <div style={{ fontWeight: 'bold', marginTop: 6 }}>{t('ui.nat.statics')}</div>
+      {statics.length === 0 && <div style={{ color: greyColor }}>{t('ui.nat.noStatic')}</div>}
+      {statics.map((s) => (
+        <div key={s.port} style={row}>
+          <span>{t('ui.nat.staticItem', { port: s.port, ip: s.insideIp, insidePort: s.insidePort })}</span>
+          {!readOnly && (
+            <button style={dangerButton} onClick={() => onError(setNat(node.uid, { op: 'noStatic', port: s.port }))}>
+              {t('ui.config.remove')}
+            </button>
+          )}
+        </div>
+      ))}
+      {!readOnly && (
+        <div style={row}>
+          <input aria-label={t('ui.nat.outPort')} style={{ ...inputStyle, width: 60 }} value={port} onChange={(e) => setPort(e.target.value)} />
+          <input aria-label={t('ui.nat.insideIp')} style={{ ...inputStyle, width: 110 }} value={insideIp} placeholder="192.168.1.10" onChange={(e) => setInsideIp(e.target.value)} />
+          <input aria-label={t('ui.nat.insidePort')} style={{ ...inputStyle, width: 60 }} value={insidePort} onChange={(e) => setInsidePort(e.target.value)} />
+          <button style={buttonStyle} onClick={addStatic}>
+            {t('ui.fw.add')}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
