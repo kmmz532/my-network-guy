@@ -10,6 +10,7 @@ import { saveSession } from '../../services/saveSession';
 import { useGameStore } from '../../stores/useGameStore';
 import { initialTitleState, titleReducer } from '../../ui/titleFlow';
 import { SandboxSizePanel } from '../SandboxSizePanel';
+import { keyRouter } from '../../input/keyRouter';
 import { SaveSlotDialog } from './SaveSlotDialog';
 import { TitleScreen } from './TitleScreen';
 
@@ -36,6 +37,8 @@ export function TitleScene({ onEnter, opening }: { onEnter: () => void; opening?
     else void onNew();
   };
 
+  // キー入力の受け口。タイトルの場面は、キーの表（ゲームのキー）を使わない
+  useEffect(() => keyRouter.attach(window, { table: false }), []);
   useEffect(() => {
     if (opening === 'newCareer') void onNew();
   }, []);

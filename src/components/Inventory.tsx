@@ -1,5 +1,6 @@
 // インベントリ。スマホはツールバーの上に横スクロールの帯（strip）、パソコンはウィンドウの中の格子（grid。InventoryBody）で在庫の品目を並べる。
 // 品目を押すと配置の操作に入る。品目をマウス・ペンでドラッグしてマップの上で離すと、そのマスに置く（置けなければ何もしない）
+import { captureKeys } from '../input/keyRouter';
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { devices as catalogDevices, furniture as catalogFurniture, shop as catalogShop } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
@@ -178,11 +179,12 @@ export function Inventory({
     const startY = e.clientY;
     let moved = false;
 
+    let releaseKeys = (): void => undefined;
     const stop = () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onCancel);
-      window.removeEventListener('keydown', onKey, true);
+      releaseKeys();
       stopRef.current = null;
       setItemDrag(null);
     };
@@ -211,19 +213,18 @@ export function Inventory({
       if (dragged) suppressClick();
     };
     // ドラッグの途中の Esc は、ドラッグだけを取り消す（ほかの Esc の処理には渡さない）
-    const onKey = (ev: KeyboardEvent) => {
-      if (ev.key !== 'Escape') return;
-      ev.preventDefault();
-      ev.stopImmediatePropagation();
+    const onKey = (ev: KeyboardEvent): boolean => {
+      if (ev.key !== 'Escape') return false;
       const dragged = moved;
       stop();
       if (dragged) suppressClick();
+      return true;
     };
     stopRef.current = stop;
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onCancel);
-    window.addEventListener('keydown', onKey, true);
+    releaseKeys = captureKeys(onKey);
   };
 
   if (items.length === 0) {

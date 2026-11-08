@@ -179,6 +179,34 @@ const scenes = {
     }
     await page.waitForTimeout(500);
   },
+  // キー入力の受け口。タイトルの矢印・Enter、ゲームの Space・数字キー・Esc が受け口を通って効くことを、状態で確かめる（外れたら例外）
+  keys: async (page) => {
+    const expect = (label, ok) => {
+      if (!ok) throw new Error(`キー入力: ${label}`);
+    };
+    // タイトル: Enter で主のボタン（新しくプレイ）が押され、社名の入力が出る
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(500);
+    expect('タイトルの Enter', (await page.getByRole('button', { name: '始める' }).count()) > 0);
+    await page.getByRole('button', { name: '始める' }).first().click();
+    await page.waitForTimeout(1500);
+    const state = () => page.evaluate(() => ({ speed: window.__game.getState().speed, tool: window.__game.getState().tool, resume: window.__game.getState().resumeSpeed }));
+    const first = await state();
+    expect('ゲームの場面に入った', first.speed !== 0 || first.resume > 0);
+    // Space: 一時停止と、止める前の速さへの復帰
+    await page.evaluate(() => window.__game.getState().setSpeed(2));
+    await page.keyboard.press('Space');
+    expect('Space で停止', (await state()).speed === 0);
+    await page.keyboard.press('Space');
+    expect('Space で再開（2倍に戻る）', (await state()).speed === 2);
+    // 数字キーで道具を切り替える
+    await page.keyboard.press('2');
+    expect('2 で配線の道具', (await state()).tool === 'wire');
+    await page.keyboard.press('Escape');
+    expect('Esc で選択の道具に戻る', (await state()).tool === 'select');
+  },
   // 依頼の一覧
   offers: async (page) => {
     await scenes.career(page);

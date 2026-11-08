@@ -137,3 +137,22 @@ describe('handleKey（キーの処理）', () => {
     expect(handleKey({ ...input('Enter'), target: target('BUTTON') })).toBe(false);
   });
 });
+
+describe('Space（一時停止と再開）', () => {
+  it('停止から戻るときは、止める前の速さに戻す。速さはゲームの状態が覚える', () => {
+    useGameStore.setState({ speed: 1, resumeSpeed: 1, mode: 'career' });
+    useGameStore.getState().setSpeed(2);
+    expect(useGameStore.getState().resumeSpeed).toBe(2);
+    expect(handleKey({ ...input(' '), target: null })).toBe(true);
+    expect(useGameStore.getState().speed).toBe(0);
+    expect(useGameStore.getState().resumeSpeed).toBe(2);
+    expect(handleKey({ ...input(' '), target: null })).toBe(true);
+    expect(useGameStore.getState().speed).toBe(2);
+  });
+
+  it('停止（0）に変えても、戻る速さは変えない', () => {
+    useGameStore.setState({ speed: 2, resumeSpeed: 2, mode: 'career' });
+    useGameStore.getState().setSpeed(0);
+    expect(useGameStore.getState().resumeSpeed).toBe(2);
+  });
+});

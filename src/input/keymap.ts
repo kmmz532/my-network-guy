@@ -40,12 +40,6 @@ const act =
   (): boolean =>
     fn(useGameStore.getState()) !== false;
 
-// 一時停止から戻る先の速さ。停止以外の速さを変えたときに覚える
-let resumeSpeed: Speed = 1;
-useGameStore.subscribe((s) => {
-  if (s.speed !== 0) resumeSpeed = s.speed;
-});
-
 // 配線の途中 → ポップアップ → 失敗の直し方 → 一番手前のウィンドウ → 選択の道具、の順に1つずつ戻す
 const escape = (): boolean => {
   const s = useGameStore.getState();
@@ -88,7 +82,7 @@ const enter = (): boolean => {
 // 一時停止と再開。停止からは、止める前の速さに戻す
 const pause = (): boolean => {
   const s = useGameStore.getState();
-  s.setSpeed(s.speed === 0 ? resumeSpeed : 0);
+  s.setSpeed(s.speed === 0 ? s.resumeSpeed : 0);
   return true;
 };
 

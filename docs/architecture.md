@@ -46,6 +46,16 @@ Web ページとしてではなく、ゲームとして設計します。ゲー�
 
 新しく書くコードと、手を入れたコードは、この規則に合わせます。
 
+## キー入力の受け口
+
+`window` への `keydown` の登録は `src/input/keyRouter.ts` の1か所だけです。キーは次の順に受け、先に処理したものが次へ渡しません。
+
+1. 横取り（`captureKeys`）: ドラッグ中、一覧を開いている間など、一時的にキーを奪う処理。あとから登録したものが先に受けます。DOM の要素より先に受け、受けたキーは要素に渡しません。
+2. 場面の層（`addKeyLayer`）: 場面が持つキー（タイトルの Enter・矢印、マップの R など）。
+3. キーの表（`KEYMAP`）: ゲームの場面だけです。ポップアップ、ウィンドウ、道具の順は `keymap.ts` の Esc の処理が持ちます。
+
+部品は、`window` に直接 `keydown` を登録せず、1 か 2 に登録します。
+
 ## ディレクトリ
 
 | パス | 備考 |
@@ -55,8 +65,8 @@ Web ページとしてではなく、ゲームとして設計します。ゲー�
 | `src/contracts/` | 案件 |
 | `src/stores/` | ストア。`useGameStore.ts` が基本の状態と毎ティックの処理を持ち、操作は種類ごとの `slices/`（ウィンドウ・設計・社員・オフィス・案件・時間と資金・画面・デバッグ・セッション）に置く。状態から値を引く関数は `gameHelpers.ts`、操作の結果の反映と設計の履歴は `gameOps.ts`、毎ティックの処理は順序の決まった系として `tickSystems.ts` |
 | `src/components/` | React の画面 |
-| `src/game/` | Pixi.js の描画 |
-| `src/input/` | キー操作の割り当て（`keymap.ts`） |
+| `src/game/` | Pixi.js の描画と、マップへの入力。`Scene.ts` が描画を持ち、カメラ（`MapCamera`）、位置の判定（`MapHit`）、ポインタ入力（`MapInput`）、マップ上の説明（`MapTip`）、社員の動き（`OfficeStaffMotion`）に分ける |
+| `src/input/` | キー入力の受け口（`keyRouter.ts`）とキー操作の割り当て（`keymap.ts`） |
 | `src/services/` | セーブ（IndexedDB、JSON ファイル）と移行、時間を進めるループ（`tickLoop.ts`） |
 | `src/settings/` | 端末ごとの設定（UI の大きさ、時間の速さなど） |
 | `src/ui/` | ウィンドウ、ポップアップ、スマホ向けの表示 |

@@ -36,6 +36,7 @@ import { t, tDyn } from '../i18n/t';
 import type { FailureReason, NetLink, NetNode } from '../network/types';
 import { CAP as WALL_CAP, drawTileMap } from './TileMap';
 import { bindMapCommands } from './mapControl';
+import { addKeyLayer, captureKeys } from '../input/keyRouter';
 import { MapCamera } from './MapCamera';
 import { MapHit } from './MapHit';
 import { MapInput, PRESS_MS } from './MapInput';
@@ -137,6 +138,9 @@ export class Scene {
   private hit: MapHit;
   private tip: MapTip;
   private input: MapInput;
+  // ドラッグ中の Esc を横取りする登録の解除
+  private releaseKeys: () => void;
+  private releaseRotateKey: () => void;
   // 自社オフィスの社員の動き（出勤・休憩・歩き回り）
   private staffMotion = new OfficeStaffMotion();
 
@@ -157,7 +161,7 @@ export class Scene {
     });
     // インベントリの欄（DOM）から、マスの判定と品目を置けるかを使えるようにする
     setMapView({ tileAtClient: (x, y) => this.hit.tileAtClient(x, y), canPlace: (id, tx, ty) => this.input.canPlace(id, tx, ty) });
-    window.addEventListener('keydown', this.input.onPressKey, true);
+    this.releaseKeys = captureKeys(this.input.onPressKey);
     window.addEventListener('pointermove', this.input.onWindowPointerMove);
     app.stage.addChild(this.content);
     this.content.addChild(this.bg);
@@ -178,7 +182,7 @@ export class Scene {
     app.stage.on('pointerup', this.input.onUp);
     app.stage.on('pointerupoutside', this.input.dropWire);
     // R キーで、マウスを乗せた家具（自社オフィスの机など）を90度回す（N95）
-    window.addEventListener('keydown', this.onRotateKey);
+    this.releaseRotateKey = addKeyLayer(this.onRotateKey);
     app.canvas.addEventListener('pointerleave', this.input.onCanvasLeave);
     app.canvas.addEventListener('contextmenu', this.preventMenu);
     // ホイールはブラウザの拡大・スクロールを止めるため passive を外す（Ctrl＋ホイールとピンチも、マップの拡大にする）
@@ -202,19 +206,20 @@ export class Scene {
   }
 
   // R キーで、マウスを乗せた家具を回す（自社オフィスのみ）
-  private onRotateKey = (e: KeyboardEvent): void => {
-    if ((e.key !== 'r' && e.key !== 'R') || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (this.input.hoverFurnUid === null || this.map?.id !== 'hq') return;
+  private onRotateKey = (e: KeyboardEvent): boolean => {
+    if ((e.key !== 'r' && e.key !== 'R') || e.ctrlKey || e.metaKey || e.altKey) return false;
+    if (this.input.hoverFurnUid === null || this.map?.id !== 'hq') return false;
     const target = e.target instanceof HTMLElement ? e.target : null;
-    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return false;
     useGameStore.getState().rotateFurniture(this.input.hoverFurnUid);
+    return true;
   };
 
   destroy(): void {
-    window.removeEventListener('keydown', this.onRotateKey);
+    this.releaseRotateKey();
     this.unsubscribe();
     setMapView(null);
-    window.removeEventListener('keydown', this.input.onPressKey, true);
+    this.releaseKeys();
     window.removeEventListener('pointermove', this.input.onWindowPointerMove);
     bindMapCommands(null);
     this.cam.endPan();

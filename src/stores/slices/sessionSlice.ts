@@ -117,6 +117,7 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
           wireStart: null,
           portMenu: null,
           speed: 1,
+          resumeSpeed: 1,
           nightSpeed: null,
           pausedPrompt: false,
         };
@@ -154,6 +155,7 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
           guideTarget: null,
           maps: { ...s.maps, hq: mapOfOffice(office) },
           speed: 0,
+          resumeSpeed: 1,
           nightSpeed: null,
           pausedPrompt: false,
           lastReport: null,

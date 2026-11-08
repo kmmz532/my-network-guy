@@ -290,12 +290,11 @@ export class MapInput {
   }
 
   // ドラッグの途中の Esc は、ドラッグだけを取り消す（ほかの Esc の処理には渡さない）
-  onPressKey = (e: KeyboardEvent): void => {
-    if (e.key !== 'Escape' || !this.press?.dragging) return;
-    e.preventDefault();
-    e.stopImmediatePropagation();
+  onPressKey = (e: KeyboardEvent): boolean => {
+    if (e.key !== 'Escape' || !this.press?.dragging) return false;
     this.clearPress();
     this.host.redraw();
+    return true;
   };
 
   // 離した位置で、機器・家具を移す、またはケーブルの端を別の機器へ挿す。判定は sim の純粋関数と同じ

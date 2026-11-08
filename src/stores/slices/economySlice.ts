@@ -46,7 +46,7 @@ export const createEconomySlice: StateCreator<GameState, [], [], EconomySlice> =
     setSpeed: (speed) => {
       // 解放されていない早送りには変えない（N99）。サンドボックスは従来どおり止めたまま
       if (get().mode !== 'sandbox' && !isSpeedUnlocked(speed, levelOf(get().companyExp, balance), balance)) return;
-      set({ speed: get().mode === 'sandbox' ? 0 : (speed as Speed), nightSpeed: null });
+      set({ speed: get().mode === 'sandbox' ? 0 : (speed as Speed), nightSpeed: null, ...(speed !== 0 && get().mode !== 'sandbox' ? { resumeSpeed: speed } : {}) });
     },
     buy: (deviceId) => {
       const s = get();

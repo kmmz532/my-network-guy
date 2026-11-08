@@ -4,7 +4,7 @@ import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 're
 import { DEBUG_ENABLED } from '../../debug';
 import { t } from '../../i18n/t';
 import { PixiStage } from '../../game/PixiStage';
-import { useKeymap } from '../../input/useKeymap';
+import { keyRouter } from '../../input/keyRouter';
 import { saveSession, useSaveSession } from '../../services/saveSession';
 import { tickLoop } from '../../services/tickLoop';
 import { loadSettings } from '../../settings/settings';
@@ -75,8 +75,8 @@ export function GameScene({ onExit }: { onExit: (opening?: 'newCareer') => void 
   const hudTop = phone ? (hudBottom + 6) / loadSettings().uiScale : 44;
 
   useEffect(() => tickLoop.watch(), []);
-  // キーの表は、ゲームの場面にいる間だけ効く
-  useKeymap();
+  // キー入力の受け口とキーの表は、ゲームの場面にいる間だけ効く
+  useEffect(() => keyRouter.attach(window, { table: true }), []);
   // ゲームの場面にいる間、自動保存の契機を見張る
   useEffect(() => saveSession.watch(), []);
 

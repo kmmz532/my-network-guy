@@ -1,6 +1,7 @@
 // ブラウザ標準の部品の代わりに使う、画面の中の選択の部品（ART.md の角と色の決まり）。
 // PixelCheck: チェックボックス。中の入力欄は残し（キーボードと読み上げのため）、見た目だけを箱と線にする。
 // PixelSelect: 一覧から1つ選ぶ部品。開くと、ボタンの下に一覧を出す。Esc と、外を押すと閉じる。
+import { captureKeys } from '../input/keyRouter';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { RADIUS } from '../ui/theme';
 
@@ -77,16 +78,15 @@ export function PixelSelect<T extends string | number>({
       if (!ref.current?.contains(e.target as Node)) setOpen(false);
     };
     // 一覧を開いているあいだの Esc は、一覧を閉じるだけにする（ほかの画面は閉じない）
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      e.stopPropagation();
+    const releaseKeys = captureKeys((e) => {
+      if (e.key !== 'Escape') return false;
       setOpen(false);
-    };
+      return true;
+    });
     window.addEventListener('pointerdown', onDown);
-    window.addEventListener('keydown', onKey, true);
     return () => {
       window.removeEventListener('pointerdown', onDown);
-      window.removeEventListener('keydown', onKey, true);
+      releaseKeys();
     };
   }, [open]);
 

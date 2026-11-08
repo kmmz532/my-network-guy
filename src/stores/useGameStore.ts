@@ -114,6 +114,8 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   speed: Speed;
   // 勤務時間外の早送りで、自動で変える前の速さ（自動で変えていなければ null。保存しない）
   nightSpeed: Speed | null;
+  // 一時停止から戻る先の速さ。停止以外の速さに変えたときに覚える（保存しない）
+  resumeSpeed: Speed;
   // 時間が止まっているときの施工の確認を開いているか（保存しない）
   pausedPrompt: boolean;
   // 読み込み済みのマップ（保存しない）
@@ -204,6 +206,7 @@ export const useGameStore = create<GameState>((set, get, api) => {
     guideTarget: null,
     speed: 0,
     nightSpeed: null,
+    resumeSpeed: 1,
     pausedPrompt: false,
     maps: { hq: mapOfOffice(initialOffice(balance)) },
     lastReport: null,

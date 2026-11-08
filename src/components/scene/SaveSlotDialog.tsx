@@ -1,4 +1,5 @@
 // 会社（セーブの枠）の画面（N132・N133）。一覧・社名の入力・上書きの確認・社名の変更・複製・書き出し・消す確認を1つの部品で出す
+import { addKeyLayer } from '../../input/keyRouter';
 import { useEffect, useState } from 'react';
 import { usePhone } from '../../ui/usePhone';
 import { Modal, dangerButton, primaryButton, secondaryButton } from '../Modal';
@@ -85,14 +86,11 @@ export function SaveSlotDialog(props: Props) {
   useEffect(() => {
     if (props.view.kind !== 'list' || props.view.purpose !== 'play' || props.saves.length === 0) return;
     const first = sortByRecent(props.saves)[0];
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && !phone) {
-        e.preventDefault();
-        props.onPlay(first);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return addKeyLayer((e) => {
+      if (e.key !== 'Enter' || phone) return false;
+      props.onPlay(first);
+      return true;
+    });
   }, [props.view, props.saves, phone]);
   const { view, mode, saves, suggested, notice, onView, onPlay, onStartIn, onRename, onDuplicate, onExport, onDelete, onImport, onNewHere, importing, onOverwriteWith } = props;
   const close = () => onView(null);

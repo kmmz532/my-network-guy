@@ -1,4 +1,5 @@
 // タイトル画面。ゲーム中のオフィスを背景にして、新しく始めるか、保存データから続けるかを選ぶ
+import { addKeyLayer } from '../../input/keyRouter';
 import { useEffect, useState } from 'react';
 import pkg from '../../../package.json';
 import { spriteOf, spriteUrl } from '../../game/sprites';
@@ -360,26 +361,24 @@ export function TitleScreen({ onNew, onContinue, onSandbox, message, locked = fa
   const selected = picked ?? primary;
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      // 会社の画面を開いている間は、タイトルのキー操作を止める（Enter は会社の画面が受ける）
-      if (locked) return;
+    // 会社の画面を開いている間は、タイトルのキー操作を止める（Enter は会社の画面が受ける）
+    return addKeyLayer((e) => {
+      if (locked) return false;
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-        e.preventDefault();
         const enabled = items.flatMap((item, i) => (item.enabled ? [i] : []));
         const pos = Math.max(0, enabled.indexOf(selected));
         const step = e.key === 'ArrowUp' ? -1 : 1;
         const next = (pos + step + enabled.length) % enabled.length;
         setPicked(enabled[next]);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        // 保存データを確認中は押させない（確認前に新しく始めて保存を上書きしないため）
-        if (hasSave === null) return;
-        const item = items[selected];
-        if (item?.enabled) item.run();
+        return true;
       }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+      if (e.key !== 'Enter') return false;
+      // 保存データを確認中は押させない（確認前に新しく始めて保存を上書きしないため）
+      if (hasSave === null) return true;
+      const item = items[selected];
+      if (item?.enabled) item.run();
+      return true;
+    });
   }, [selected, hasSave, onNew, onContinue, onSandbox, locked]);
 
   return (
