@@ -1,0 +1,117 @@
+// 機器・配線・設定の設計の操作。成功したものは履歴に積み、失敗したら理由を返す。
+import { playConnect, playFail } from '../../audio/sfx';
+import type { FirewallRule, Route } from '../../network/types';
+import { gameEnv } from '../../sim/env';
+
+import { closeRef } from '../../ui/windows';
+import { type PortChoice, connect, removeNode, removeFromOffice, setInterface, setSvi, setPortMode, setGateway, setRouting, setBgp, setNat, type NatOp, setWireless, type BgpOp, setFirewallRules, setSegment, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, replug, moveNode, replugTo, addRoute, removeRoute, removeLink, type End } from '../../sim/project';
+
+import { coreOf, focusedProject, netTargetOf } from '../gameHelpers';
+import type { GameState } from '../useGameStore';
+import type { StateCreator } from 'zustand';
+import { createOps } from '../gameOps';
+
+export interface DesignSlice {
+  connect: (aUid: string, bUid: string, cableId: string, ports?: PortChoice) => string | null;
+  removeLink: (uid: string) => string | null;
+  removeNode: (uid: string) => string | null;
+  // 機器の設定（設計中のみ）。失敗したら理由を返す
+  setIface: (uid: string, port: number, ip: string, prefix?: number) => string | null;
+  setSvi: (uid: string, vlan: number, ip: string, prefix?: number) => string | null;
+  setPortMode: (uid: string, port: number, mode: { kind: 'access'; vlan: number } | { kind: 'routed' }) => string | null;
+  setGateway: (uid: string, gateway: string | null) => string | null;
+  setRouting: (uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string }) => string | null;
+  setBgp: (uid: string, change: BgpOp) => string | null;
+  setNat: (uid: string, change: NatOp) => string | null;
+  setWireless: (uid: string, key: 'ssid' | 'password' | 'channel' | 'vlan', value: string | number) => string | null;
+  // ファイアウォールの規則を置き換える（N38）
+  setFirewallRules: (uid: string, rules: FirewallRule[]) => string | null;
+  // セグメント（ポートが属するネットワーク）のアドレスを設定する
+  setSegment: (uid: string, port: number, network: string, prefix: number) => string | null;
+  // 配線の片方の端を、同じ機器の別のポートへ挿し替える
+  replug: (linkUid: string, end: End, port: number) => string | null;
+  // 機器・家具を別のマスへ動かす（配置と同じ判定。ケーブルは付いたまま、費用の差額を払う）。失敗したら理由を返す
+  moveNode: (uid: string, x: number, y: number) => string | null;
+  // ケーブルの端を、別の機器の空いているポートへ挿す（port が null なら空いている最小の番号）
+  replugTo: (linkUid: string, end: End, nodeUid: string, port: number | null) => string | null;
+  // サービスを起動（on）・停止する
+  setService: (uid: string, protocol: 'http', on: boolean) => string | null;
+  setName: (uid: string, name: string) => string | null;
+  // ホスト名を付ける（null で外す）（N46）
+  setHostname: (uid: string, hostname: string | null) => string | null;
+  setNameServer: (uid: string, ip: string | null) => string | null;
+  setDnsRole: (uid: string, on: boolean) => string | null;
+  autoRegisterZone: (uid: string) => string | null;
+  // 対応表（名前と IPアドレス）の登録と削除。失敗したら理由を返す
+  setHost: (uid: string, name: string, ip: string) => string | null;
+  removeHost: (uid: string, name: string) => string | null;
+  addRoute: (uid: string, route: Route) => string | null;
+  removeRoute: (uid: string, index: number) => string | null;
+}
+
+export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (set, get) => {
+  const { apply, recorded, tileOf, withAutoIp } = createOps(set, get);
+  return {
+    connect: (aUid, bUid, cableId, ports = {}) => {
+      const reason = recorded(() => apply(withAutoIp(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get()), ports), netTargetOf(get())), tileOf(bUid)));
+      // つながった音と、つなげなかった音（効果音の設定がオフのときは鳴らない）
+      if (reason === null) {
+        playConnect();
+        set({ linkPulse: { a: aUid, b: bUid, at: Date.now() } });
+      } else {
+        playFail();
+      }
+      return reason;
+    },
+    removeLink: (uid) => recorded(() => apply(removeLink(coreOf(get()), uid, netTargetOf(get()), gameEnv))),
+    removeNode: (uid) => {
+      const reason = recorded(() => {
+        if (!focusedProject(get())) {
+          const n = get().office.nodes.find((x) => x.uid === uid);
+          return apply(removeFromOffice(coreOf(get()), uid, gameEnv), n ? { tx: n.x, ty: n.y } : undefined);
+        }
+        return apply(removeNode(coreOf(get()), uid, gameEnv), tileOf(uid));
+      });
+      // 撤去した機器のタブは閉じる（最後のタブならウィンドウも閉じる）
+      if (reason === null) set((s) => ({ windows: closeRef({ windows: s.windows, seq: s.windowSeq }, 'device', uid).windows }));
+      return reason;
+    },
+    setIface: (uid, port, ip, prefix = 24) =>
+      recorded(() => apply(setInterface(coreOf(get()), uid, port, ip, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
+    setSvi: (uid, vlan, ip, prefix = 24) =>
+      recorded(() => apply(setSvi(coreOf(get()), uid, vlan, ip, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
+    setPortMode: (uid, port, mode) =>
+      recorded(() => apply(setPortMode(coreOf(get()), uid, port, mode, gameEnv, netTargetOf(get())), tileOf(uid))),
+    setGateway: (uid, gateway) => recorded(() => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid))),
+    setRouting: (uid, change) => recorded(() => apply(setRouting(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
+    setBgp: (uid, change) => recorded(() => apply(setBgp(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
+    setNat: (uid, change) => recorded(() => apply(setNat(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
+    setWireless: (uid, key, value) => recorded(() => apply(setWireless(coreOf(get()), uid, key, value, netTargetOf(get())), tileOf(uid))),
+    setFirewallRules: (uid, rules) => recorded(() => apply(setFirewallRules(coreOf(get()), uid, rules, netTargetOf(get())), tileOf(uid))),
+    setSegment: (uid, port, network, prefix) =>
+      recorded(() =>
+        apply(withAutoIp(setSegment(coreOf(get()), uid, port, network, prefix, gameEnv, netTargetOf(get())), netTargetOf(get())), tileOf(uid)),
+      ),
+    replug: (linkUid, end, port) =>
+      recorded(() => apply(replug(coreOf(get()), linkUid, end, port, gameEnv, netTargetOf(get())))),
+    // 移動の地図は、設計中の案件のマップ（なければ自社オフィスの hq）
+    moveNode: (uid, x, y) => {
+      const map = get().maps[focusedProject(get())?.contract.map ?? 'hq'];
+      if (!map) return 'map';
+      return recorded(() => apply(moveNode(coreOf(get()), uid, x, y, gameEnv, netTargetOf(get()), map, get().mode === 'sandbox'), tileOf(uid)));
+    },
+    replugTo: (linkUid, end, nodeUid, port) =>
+      recorded(() => apply(replugTo(coreOf(get()), linkUid, end, nodeUid, port, gameEnv, netTargetOf(get())), tileOf(nodeUid))),
+    setService: (uid, protocol, on) =>
+      recorded(() => apply(setService(coreOf(get()), uid, protocol, on, netTargetOf(get())), tileOf(uid))),
+    setHostname: (uid, hostname) => recorded(() => apply(setHostnameOp(coreOf(get()), uid, hostname, netTargetOf(get())), tileOf(uid))),
+    setNameServer: (uid, ip) => recorded(() => apply(setNameServerOp(coreOf(get()), uid, ip, netTargetOf(get())), tileOf(uid))),
+    setDnsRole: (uid, on) => recorded(() => apply(setDnsRoleOp(coreOf(get()), uid, on, netTargetOf(get())), tileOf(uid))),
+    autoRegisterZone: (uid) => recorded(() => apply(autoRegisterZoneOp(coreOf(get()), uid, netTargetOf(get())), tileOf(uid))),
+    setName: (uid, name) => recorded(() => apply(setNameOp(coreOf(get()), uid, name, netTargetOf(get())), tileOf(uid))),
+    setHost: (uid, name, ip) => recorded(() => apply(setHostOp(coreOf(get()), uid, name, ip, netTargetOf(get())), tileOf(uid))),
+    removeHost: (uid, name) => recorded(() => apply(removeHostOp(coreOf(get()), uid, name, netTargetOf(get())), tileOf(uid))),
+    addRoute: (uid, route) => recorded(() => apply(addRoute(coreOf(get()), uid, route, netTargetOf(get())), tileOf(uid))),
+    removeRoute: (uid, index) => recorded(() => apply(removeRoute(coreOf(get()), uid, index, netTargetOf(get())), tileOf(uid))),
+  };
+};

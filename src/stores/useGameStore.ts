@@ -1,6 +1,6 @@
 // ゲーム全体の状態。時間・資金・評判・在庫・完了案件・依頼・受注中の案件・速度を持ち、Tick ごとに進める。
 import { loadSettings, saveSettings } from '../settings/settings';
-import { playConnect, playDeliver, playFail } from '../audio/sfx';
+import { playDeliver } from '../audio/sfx';
 import { create } from 'zustand';
 import { balance, furniture, guides, levelMilestones } from 'virtual:game-data';
 import type { FurnitureId } from '../generated/ids';
@@ -16,7 +16,6 @@ import { gainExp, raiseStaff as raiseStaffOp, rollCandidates, staffCapOf, totalS
 import { expAtLevel, levelOf, levelUpsBetween } from '../sim/level';
 import { grantDailyExp, type ExpSource } from '../sim/companyExp';
 import { finishTrainings, startTraining as startTrainingOp, takeExam as takeExamOp } from '../sim/training';
-import type { FirewallRule, Route } from '../network/types';
 import { DEFAULT_COMPANY_NAME, type GameMode, type SaveData } from '../services/migrations';
 import { resizeSandboxOffice, sandboxClock, sandboxOffice, sandboxTest } from '../sim/sandbox';
 import { gameEnv, isPcDevice } from '../sim/env';
@@ -32,29 +31,17 @@ import { cancelRetire as cancelRetireOp, noticeRetire as noticeRetireOp, settleR
 import { backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice } from '../sim/backOffice';
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
 import type { MacEntry } from '../network/mac';
-import { autoAssign } from '../sim/autoAssign';
 import { changeOfficeFloor as changeFloorOp, type ExpandSide, expandOffice as expandOfficeOp, mapOfOffice } from '../sim/office';
-import {
-  type DesignEntry,
-  type History,
-  OFFICE_HISTORY_KEY,
-  emptyHistory,
-  entryOf,
-  historyKeyOf,
-  projectHistoryKey,
-  push as pushHistory,
-  redo as redoHistory,
-  stepDesign,
-  undo as undoHistory,
-} from '../sim/history';
+import { type DesignEntry, type History, OFFICE_HISTORY_KEY, projectHistoryKey } from '../sim/history';
 import { useUiStore } from './useUiStore';
-import { closeRef } from '../ui/windows';
 import { createWindowsSlice, type WindowsSlice } from './slices/windowsSlice';
+import { createDesignSlice, type DesignSlice } from './slices/designSlice';
+import { createOps } from './gameOps';
 export { frontDeviceUid, viewportNow } from './slices/windowsSlice';
 import { hire as hireOp, initialOffice, placeFurniture as placeFurnitureOp, moveFurniture as moveFurnitureOp, removeFurniture as removeFurnitureOp, bonusEnvOf, pcDesksOf, rotateFurniture as rotateFurnitureOp } from '../sim/furniture';
-import { type PortChoice, type RoomId, abandon, accept, acceptDelegated as acceptDelegatedOp, delegateBlind as delegateBlindOp, applyBlueprint as applyBlueprintOp, advanceBuild, connect, placeDevice, removeNode, placeInOffice, placeOfficeUplink, moveOfficeUplink, officeUplinkOf, removeFromOffice, requestBuild, setInterface, setSvi, setPortMode, setGateway, setRouting, setBgp, setNat, type NatOp, setWireless, type BgpOp, setFirewallRules, setSegment, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, replug, moveNode, replugTo, addRoute, removeRoute, removeLink, type End, type NetTarget, type Outcome, type Project, type Office, type OfficeSize, type Effects, noEffects, type GoalCheck, type Report, type Trace, testDesign } from '../sim/project';
+import { type RoomId, abandon, accept, acceptDelegated as acceptDelegatedOp, delegateBlind as delegateBlindOp, applyBlueprint as applyBlueprintOp, advanceBuild, placeDevice, placeInOffice, placeOfficeUplink, moveOfficeUplink, officeUplinkOf, requestBuild, type Outcome, type Project, type Office, type OfficeSize, type Effects, noEffects, type GoalCheck, type Report, type Trace, testDesign } from '../sim/project';
 
-import { SANDBOX_EXPAND_CONFIG, editNetOf, focusedProject, coreOf, netTargetOf, newRng, newStart, offerEnv, priceOfItem, purchaseDiscountOf, refresh, reportState, salesArrivalPatch, trainingEnv, unlockItems, withLevelUps } from './gameHelpers';
+import { SANDBOX_EXPAND_CONFIG, editNetOf, focusedProject, coreOf, newRng, newStart, offerEnv, priceOfItem, purchaseDiscountOf, refresh, reportState, salesArrivalPatch, trainingEnv, unlockItems, withLevelUps } from './gameHelpers';
 export { coreOf, editNetOf, focusedProject, netTargetOf, offerHintOf, purchaseDiscountOf, unlockItems, viewingOffice } from './gameHelpers';
 export type { Trace };
 // 道具: 選択（機器の画面を開く）・配線・撤去
@@ -89,7 +76,7 @@ export interface PlannedNet {
 }
 export const plannedKey = (uid: string, port: number): string => `${uid}:${port}`;
 
-export interface GameState extends WindowsSlice {
+export interface GameState extends WindowsSlice, DesignSlice {
   // 詳しくで選んだネットワーク（画面の状態。セーブには入らない）。キーは plannedKey
   planned: Record<string, PlannedNet>;
   // 遊び方（career は案件の経営ゲーム、sandbox は自由に設計する練習場）。セーブデータに入る
@@ -272,50 +259,15 @@ export interface GameState extends WindowsSlice {
   setHiringWish: (job: JobId | null) => string | null;
   startTraining: (uid: string, courseId: string) => string | null;
   takeExam: (uid: string, certId: string) => string | null;
-  connect: (aUid: string, bUid: string, cableId: string, ports?: PortChoice) => string | null;
-  removeLink: (uid: string) => string | null;
-  removeNode: (uid: string) => string | null;
-  // 機器の設定（設計中のみ）。失敗したら理由を返す
-  setIface: (uid: string, port: number, ip: string, prefix?: number) => string | null;
-  setSvi: (uid: string, vlan: number, ip: string, prefix?: number) => string | null;
-  setPortMode: (uid: string, port: number, mode: { kind: 'access'; vlan: number } | { kind: 'routed' }) => string | null;
-  setGateway: (uid: string, gateway: string | null) => string | null;
-  setRouting: (uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string }) => string | null;
-  setBgp: (uid: string, change: BgpOp) => string | null;
-  setNat: (uid: string, change: NatOp) => string | null;
-  setWireless: (uid: string, key: 'ssid' | 'password' | 'channel' | 'vlan', value: string | number) => string | null;
-  // ファイアウォールの規則を置き換える（N38）
-  setFirewallRules: (uid: string, rules: FirewallRule[]) => string | null;
-  // セグメント（ポートが属するネットワーク）のアドレスを設定する
-  setSegment: (uid: string, port: number, network: string, prefix: number) => string | null;
   // 詳しくで選んだ、まだ設定のないポートのネットワーク（null で消す）。配線・セグメントの設定のときに使う
   setPlanned: (uid: string, port: number, net: PlannedNet | null) => void;
   // まとめて届いた知らせを消す（依頼の一覧を開いたとき）
   clearOfferBurst: () => void;
   // 定型案件の依頼を断る（固定案件は断れない）
   declineOffer: (id: string) => void;
-  // 配線の片方の端を、同じ機器の別のポートへ挿し替える
-  replug: (linkUid: string, end: End, port: number) => string | null;
-  // 機器・家具を別のマスへ動かす（配置と同じ判定。ケーブルは付いたまま、費用の差額を払う）。失敗したら理由を返す
-  moveNode: (uid: string, x: number, y: number) => string | null;
   moveFurniture: (uid: string, x: number, y: number) => string | null;
-  // ケーブルの端を、別の機器の空いているポートへ挿す（port が null なら空いている最小の番号）
-  replugTo: (linkUid: string, end: End, nodeUid: string, port: number | null) => string | null;
-  // サービスを起動（on）・停止する
-  setService: (uid: string, protocol: 'http', on: boolean) => string | null;
-  setName: (uid: string, name: string) => string | null;
-  // ホスト名を付ける（null で外す）（N46）
-  setHostname: (uid: string, hostname: string | null) => string | null;
-  setNameServer: (uid: string, ip: string | null) => string | null;
-  setDnsRole: (uid: string, on: boolean) => string | null;
   // ping が通ったときに、ARP と MAC の表へ覚える（N69）
   learnPing: (srcUid: string, dstUid: string) => void;
-  autoRegisterZone: (uid: string) => string | null;
-  // 対応表（名前と IPアドレス）の登録と削除。失敗したら理由を返す
-  setHost: (uid: string, name: string, ip: string) => string | null;
-  removeHost: (uid: string, name: string) => string | null;
-  addRoute: (uid: string, route: Route) => string | null;
-  removeRoute: (uid: string, index: number) => string | null;
   // 施工を依頼する。時間が止まっていて設定が「確認する」なら、確認を開いて null を返す
   requestBuild: () => string | null;
   abandon: () => string | null;
@@ -333,134 +285,12 @@ export interface GameState extends WindowsSlice {
 }
 
 export const useGameStore = create<GameState>((set, get, api) => {
-  // 配線・セグメントの設定の後に、IPアドレスの自動割り当てをかける（設定がオフなら何もしない）。同じ操作として取り消しに残る
-  // 詳しくで選んだネットワークを、そのセグメントのポートから探す
-  const plannedOf = (seg: { members: { node: string; port: number }[] }): PlannedNet | undefined => {
-    for (const m of seg.members) {
-      const p = get().planned[plannedKey(m.node, m.port)];
-      if (p) return p;
-    }
-    return undefined;
-  };
-  const withAutoIp = (o: Outcome, target: NetTarget): Outcome =>
-    o.ok ? { ...o, core: autoAssign(o.core, gameEnv, target, loadSettings().autoIp, plannedOf) } : o;
-
-  // 案件の操作の結果を状態に反映する。失敗なら理由を返す
-  // 機器の位置（失敗の吹き出しを出す場所）
-  const tileOf = (uid: string) => {
-    const n = focusedProject(get())?.nodes.find((x) => x.uid === uid) ?? get().office.nodes.find((x) => x.uid === uid);
-    return n ? { tx: n.x, ty: n.y } : undefined;
-  };
-
-  // 設計の操作を履歴に積む。操作の前後の状態から、資金・在庫・費用の差分を取って積む。操作が成功したときだけ積む
-  const recorded = (run: () => string | null): string | null => {
-    const key = historyKeyOf(focusedProject(get()));
-    const before = coreOf(get());
-    const reason = run();
-    if (reason === null) {
-      const entry = entryOf(before, coreOf(get()));
-      set((s) => ({
-        histories: { ...s.histories, [key]: pushHistory(s.histories[key] ?? emptyHistory(), entry) },
-        historyError: null,
-      }));
-    }
-    return reason;
-  };
-
-  // 履歴を消す（施工の依頼・取り消し・自社案件の受注）
-  const dropHistory = (key: string) =>
-    set((s) => ({ histories: Object.fromEntries(Object.entries(s.histories).filter(([k]) => k !== key)) }));
-
-  // 元に戻す・やり直す。いまの設計の対象の履歴を1つ動かし、差分を反映する。資金か在庫が足りなければ戻さず、理由を残す
-  const stepHistory = (dir: 'undo' | 'redo') => {
-    const s = get();
-    const core = coreOf(s);
-    const key = historyKeyOf(focusedProject(s));
-    const h = s.histories[key];
-    if (!h) return;
-    const r = dir === 'undo' ? undoHistory(h) : redoHistory(h);
-    if (!r) return;
-    const res = stepDesign(core, r.entry, dir);
-    if (!res.ok) {
-      if (res.reason === dir) set({ historyError: dir });
-      return;
-    }
-    const next = res.core;
-    // テストの結果と、選んでいる途中の配線・ポップアップは、戻した設計では無効になる
-    set({
-      clock: next.clock,
-      owned: next.owned,
-      active: next.active,
-      office: next.office,
-      histories: { ...s.histories, [key]: r.history },
-      historyError: null,
-      check: null,
-      helpUid: null,
-      lastError: null,
-      wireStart: null,
-      portMenu: null,
-    });
-  };
-
-  const apply = (outcome: Outcome, at?: { tx: number; ty: number }): string | null => {
-    if (!outcome.ok) {
-      const flash = at ? { key: `ui.error.${outcome.reason}`, ...at, at: Date.now() } : null;
-      set({ lastError: outcome.reason, ...(flash ? { flash } : {}) });
-      return outcome.reason;
-    }
-    const c = outcome.core;
-    // サンドボックスは資金を減らさない（費用は差し引かない）。床の機器・配線を変えたら、テストの結果は無効になる
-    const sandbox = get().mode === 'sandbox';
-    // 設計（機器・配線・セグメント）を変えたら、最後のテストの結果は無効になる
-    const before = focusedProject(get());
-    const after = focusedProject(c);
-    const redesigned =
-      before !== null &&
-      after !== null &&
-      before.id === after.id &&
-      (before.nodes !== after.nodes || before.links !== after.links || before.segments !== after.segments);
-    set(withLevelUps(get(), {
-      lastError: null,
-      ...(redesigned || (sandbox && c.office !== get().office) ? { check: null, helpUid: null } : {}),
-      clock: sandbox ? get().clock : c.clock,
-      companyExp: c.companyExp,
-      reputation: c.reputation,
-      owned: c.owned,
-      completed: c.completed,
-      deliveries: c.deliveries,
-      familiarity: c.familiarity,
-      offers: c.offers,
-      active: c.active,
-      focus: c.focus,
-      office: c.office,
-      effects: c.effects,
-      staff: c.staff,
-      staffSeq: c.staffSeq,
-      candidates: c.candidates,
-      ...reportState(outcome.report),
-    }));
-    return null;
-  };
-
-  // 施工を依頼する（確認を通したあとの処理）
-  const buildNow = (): string | null => {
-    const focusId = focusedProject(get())?.id;
-    const r = requestBuild(coreOf(get()), gameEnv);
-    // テストに合格していないと施工を依頼できない。案内を出し、テストのボタンを光らせる
-    if (!r.ok && r.reason === 'untested') {
-      const at = Date.now();
-      set({ lastError: r.reason, testNudge: at });
-      return r.reason;
-    }
-    set({ traces: [] });
-    const reason = apply(r);
-    // 施工を依頼したら、その案件の履歴は消す（施工後は戻せない）
-    if (reason === null && focusId) dropHistory(projectHistoryKey(focusId));
-    return reason;
-  };
+  const ops = createOps(set, get);
+  const { apply, buildNow, dropHistory, recorded, stepHistory } = ops;
 
   return {
     ...createWindowsSlice(set, get, api),
+    ...createDesignSlice(set, get, api),
     mode: 'career',
     name: DEFAULT_COMPANY_NAME,
     clock: initialClock(balance),
@@ -977,18 +807,6 @@ export const useGameStore = create<GameState>((set, get, api) => {
       }
       return reason;
     },
-    connect: (aUid, bUid, cableId, ports = {}) => {
-      const reason = recorded(() => apply(withAutoIp(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get()), ports), netTargetOf(get())), tileOf(bUid)));
-      // つながった音と、つなげなかった音（効果音の設定がオフのときは鳴らない）
-      if (reason === null) {
-        playConnect();
-        set({ linkPulse: { a: aUid, b: bUid, at: Date.now() } });
-      } else {
-        playFail();
-      }
-      return reason;
-    },
-    removeLink: (uid) => recorded(() => apply(removeLink(coreOf(get()), uid, netTargetOf(get()), gameEnv))),
     startTraining: (uid, courseId) => apply(startTrainingOp(coreOf(get()), uid, courseId, trainingEnv)),
     takeExam: (uid, certId) => {
       // 合否は乱数で決める。乱数は受験のときだけ進める
@@ -998,30 +816,6 @@ export const useGameStore = create<GameState>((set, get, api) => {
       if (reason === null) set({ rng: roll.state });
       return reason;
     },
-    removeNode: (uid) => {
-      const reason = recorded(() => {
-        if (!focusedProject(get())) {
-          const n = get().office.nodes.find((x) => x.uid === uid);
-          return apply(removeFromOffice(coreOf(get()), uid, gameEnv), n ? { tx: n.x, ty: n.y } : undefined);
-        }
-        return apply(removeNode(coreOf(get()), uid, gameEnv), tileOf(uid));
-      });
-      // 撤去した機器のタブは閉じる（最後のタブならウィンドウも閉じる）
-      if (reason === null) set((s) => ({ windows: closeRef({ windows: s.windows, seq: s.windowSeq }, 'device', uid).windows }));
-      return reason;
-    },
-    setIface: (uid, port, ip, prefix = 24) =>
-      recorded(() => apply(setInterface(coreOf(get()), uid, port, ip, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
-    setSvi: (uid, vlan, ip, prefix = 24) =>
-      recorded(() => apply(setSvi(coreOf(get()), uid, vlan, ip, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
-    setPortMode: (uid, port, mode) =>
-      recorded(() => apply(setPortMode(coreOf(get()), uid, port, mode, gameEnv, netTargetOf(get())), tileOf(uid))),
-    setGateway: (uid, gateway) => recorded(() => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid))),
-    setRouting: (uid, change) => recorded(() => apply(setRouting(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
-    setBgp: (uid, change) => recorded(() => apply(setBgp(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
-    setNat: (uid, change) => recorded(() => apply(setNat(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
-    setWireless: (uid, key, value) => recorded(() => apply(setWireless(coreOf(get()), uid, key, value, netTargetOf(get())), tileOf(uid))),
-    setFirewallRules: (uid, rules) => recorded(() => apply(setFirewallRules(coreOf(get()), uid, rules, netTargetOf(get())), tileOf(uid))),
     clearOfferBurst: () => set({ offerBurst: 0 }),
     declineOffer: (id) => set({ offers: declineOffer(get().offers, id) }),
     setPlanned: (uid, port, net) =>
@@ -1032,29 +826,11 @@ export const useGameStore = create<GameState>((set, get, api) => {
         else delete next[key];
         return { planned: next };
       }),
-    setSegment: (uid, port, network, prefix) =>
-      recorded(() =>
-        apply(withAutoIp(setSegment(coreOf(get()), uid, port, network, prefix, gameEnv, netTargetOf(get())), netTargetOf(get())), tileOf(uid)),
-      ),
-    replug: (linkUid, end, port) =>
-      recorded(() => apply(replug(coreOf(get()), linkUid, end, port, gameEnv, netTargetOf(get())))),
-    // 移動の地図は、設計中の案件のマップ（なければ自社オフィスの hq）
-    moveNode: (uid, x, y) => {
-      const map = get().maps[focusedProject(get())?.contract.map ?? 'hq'];
-      if (!map) return 'map';
-      return recorded(() => apply(moveNode(coreOf(get()), uid, x, y, gameEnv, netTargetOf(get()), map, get().mode === 'sandbox'), tileOf(uid)));
-    },
     moveFurniture: (uid, x, y) => {
       const hq = get().maps.hq;
       if (!hq) return 'map';
       return recorded(() => apply(moveFurnitureOp(coreOf(get()), uid, x, y, hq), { tx: x, ty: y }));
     },
-    replugTo: (linkUid, end, nodeUid, port) =>
-      recorded(() => apply(replugTo(coreOf(get()), linkUid, end, nodeUid, port, gameEnv, netTargetOf(get())), tileOf(nodeUid))),
-    setService: (uid, protocol, on) =>
-      recorded(() => apply(setService(coreOf(get()), uid, protocol, on, netTargetOf(get())), tileOf(uid))),
-    setHostname: (uid, hostname) => recorded(() => apply(setHostnameOp(coreOf(get()), uid, hostname, netTargetOf(get())), tileOf(uid))),
-    setNameServer: (uid, ip) => recorded(() => apply(setNameServerOp(coreOf(get()), uid, ip, netTargetOf(get())), tileOf(uid))),
     learnPing: (srcUid, dstUid) => {
       const s = get();
       const net = editNetOf(s);
@@ -1071,13 +847,6 @@ export const useGameStore = create<GameState>((set, get, api) => {
       }
       set({ arpTable: { ...s.arpTable, [arpKey]: arp }, macTable });
     },
-    setDnsRole: (uid, on) => recorded(() => apply(setDnsRoleOp(coreOf(get()), uid, on, netTargetOf(get())), tileOf(uid))),
-    autoRegisterZone: (uid) => recorded(() => apply(autoRegisterZoneOp(coreOf(get()), uid, netTargetOf(get())), tileOf(uid))),
-    setName: (uid, name) => recorded(() => apply(setNameOp(coreOf(get()), uid, name, netTargetOf(get())), tileOf(uid))),
-    setHost: (uid, name, ip) => recorded(() => apply(setHostOp(coreOf(get()), uid, name, ip, netTargetOf(get())), tileOf(uid))),
-    removeHost: (uid, name) => recorded(() => apply(removeHostOp(coreOf(get()), uid, name, netTargetOf(get())), tileOf(uid))),
-    addRoute: (uid, route) => recorded(() => apply(addRoute(coreOf(get()), uid, route, netTargetOf(get())), tileOf(uid))),
-    removeRoute: (uid, index) => recorded(() => apply(removeRoute(coreOf(get()), uid, index, netTargetOf(get())), tileOf(uid))),
     requestBuild: () => {
       const s = get();
       // 時間が止まっているときは、設定に従って確認を出すか、速さを決めてから施工を依頼する
