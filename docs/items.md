@@ -15,7 +15,7 @@
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/server_basic.png" width="72" alt="サーバー"> | サーバー | 300,000円 | LAN 1口 | サービス（HTTP 80番を標準で提供） | Lv6 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/gpu_server.png" width="72" alt="GPUサーバー"> | GPUサーバー | 1,200,000円 | LAN 1口 | サービス、GPU | Lv32 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/printer_basic.png" width="72" alt="プリンター"> | プリンター | 30,000円 | LAN 1口 | - | Lv3 |
-| <img style="image-rendering: pixelated" src="../src/assets/sprites/device/l2_switch_4p.png" width="72" alt="4ポートスイッチ"> | 4ポートスイッチ | 6,000円 | LAN 4口 | - | Lv1 |
+| <img style="image-rendering: pixelated" src="../src/assets/sprites/device/l2_switch_4p.png" width="72" alt="L2スイッチ（4ポート）"> | L2スイッチ（4ポート） | 6,000円 | LAN 4口 | - | Lv1 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/l2_switch_8p.png" width="72" alt="L2スイッチ（8ポート）"> | L2スイッチ（8ポート） | 12,000円 | LAN 8口 | - | Lv2 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/l2_switch_8p.png" width="72" alt="L2スイッチ（16ポート）"> | L2スイッチ（16ポート） | 24,000円 | LAN 16口 | - | Lv10 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/l2_switch_8p.png" width="72" alt="L2スイッチ（24ポート）"> | L2スイッチ（24ポート） | 36,000円 | LAN 24口 | - | Lv23 |
