@@ -747,9 +747,11 @@ export const macTableOf = (net: Network, data: EngineData, uid: string): { port:
 };
 
 // 通れば通るが直すべき設定（警告・NET.md §6）: 直結の両端の口の VLAN が違う access（vlan.mismatch）、両端の native が違う trunk（vlan.native_mismatch）
-export const warningsOf = (net: Network): { id: 'vlan.mismatch' | 'vlan.native_mismatch'; a: string; b: string }[] => {
+export type VlanWarning = { id: 'vlan.mismatch' | 'vlan.native_mismatch'; a: string; b: string };
+
+export const warningsOf = (net: Network): VlanWarning[] => {
   const cfgOf = (uid: string, port: number): PortConfig | undefined => net.nodes.find((n) => n.uid === uid)?.ports.find((p) => p.port === port);
-  const out: { id: 'vlan.mismatch' | 'vlan.native_mismatch'; a: string; b: string }[] = [];
+  const out: VlanWarning[] = [];
   for (const l of net.links) {
     const ca = cfgOf(l.a.node, l.a.port);
     const cb = cfgOf(l.b.node, l.b.port);

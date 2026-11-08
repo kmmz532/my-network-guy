@@ -53,6 +53,7 @@ import { cableLengthOf, checkCableLength } from './cableLength';
 import { busyStaff, crewBlock } from './crew';
 import { makeIface, makeSvi } from '../network/iface';
 import { can } from '../network/capabilities';
+import { warningsOf, type VlanWarning } from '../network/netState';
 import { deliveryExpOf, levelOf, type LevelUp } from './level';
 
 export interface Project {
@@ -116,6 +117,7 @@ export interface TestResult {
   passed: boolean;
   goals: GoalCheck[];
   traces: Trace[];
+  warnings: VlanWarning[];
 }
 
 // 検収で判定した経路（画面にパケットとして流す）
@@ -165,7 +167,7 @@ export interface Report {
   designIssues?: number;
   traces: Trace[];
   // 不合格のとき、達成条件ごとの判定（マップの「×」と案件の欄で使う）
-  check?: { projectId: string; goals: GoalCheck[] };
+  check?: { projectId: string; goals: GoalCheck[]; warnings?: VlanWarning[] };
   stars?: 1 | 2 | 3;
   money?: number;
   // 評判の増え分（報酬の評判と★による評判の合計）
@@ -1527,7 +1529,7 @@ export const testDesign = (core: Core, env: Env): TestOutcome => {
   const p = requireDesign(core);
   if (typeof p === 'string') return { ok: false, reason: p };
   const j = judge(p, env);
-  const result: TestResult = { passed: j.passed, goals: j.goals, traces: j.traces };
+  const result: TestResult = { passed: j.passed, goals: j.goals, traces: j.traces, warnings: warningsOf(p) };
   return { ok: true, core: withProject(core, { ...p, testedOk: j.passed }), result };
 };
 
@@ -1679,7 +1681,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
   return {
     ok: true,
     core: withProject(core, next),
-    report: { passed: false, traces, failures, check: { projectId: p.id, goals: j.goals } },
+    report: { passed: false, traces, failures, check: { projectId: p.id, goals: j.goals, warnings: warningsOf(p) } },
   };
 };
 

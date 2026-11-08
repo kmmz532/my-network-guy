@@ -39,6 +39,7 @@ export function TaskPanel() {
 
   // 最後のテスト（または検収）の結果。この案件のものだけを使う。結果がなければ ok は null（未判定）
   const result = check && check.projectId === active.id ? check.goals : null;
+  const warnings = check && check.projectId === active.id ? (check.warnings ?? []) : [];
   const goals = active.contract.goals.map((goal, i) => {
     const g = result?.[i];
     return { text: goalText(goal, (id) => labelOfUid(useGameStore.getState(), id, active.nodes)), ok: g ? g.ok : null, node: g?.failures[0]?.node ?? null };
@@ -143,6 +144,21 @@ export function TaskPanel() {
               );
             })}
           </ul>
+          {warnings.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontWeight: 'bold', color: '#ffd866' }}>{t('ui.check.warnings')}</div>
+              <ul style={{ listStyle: 'none', margin: '2px 0 0', padding: 0 }}>
+                {warnings.map((warning, i) => (
+                  <li key={`${warning.id}-${warning.a}-${warning.b}-${i}`} style={{ marginTop: 4, color: '#ffd866' }}>
+                    <span>{tDyn(`warn.${warning.id}`)}</span>
+                    <div style={{ fontSize: 11, opacity: 0.9 }}>
+                      {labelOfUid(useGameStore.getState(), warning.a, active.nodes)} / {labelOfUid(useGameStore.getState(), warning.b, active.nodes)}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {steps.length > 0 && (
             <>
               <div style={{ marginTop: 8, fontWeight: 'bold' }}>{t('ui.task.steps')}</div>

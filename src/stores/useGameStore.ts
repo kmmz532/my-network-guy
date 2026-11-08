@@ -29,6 +29,7 @@ import { type Project, type Office, type Effects, noEffects, type GoalCheck, typ
 
 import { runTick } from './tickSystems';
 import { newStart, refresh } from './gameHelpers';
+import type { VlanWarning } from '../network/netState';
 export { coreOf, editNetOf, focusedProject, netTargetOf, offerHintOf, purchaseDiscountOf, unlockItems, viewingOffice } from './gameHelpers';
 export type { Trace };
 // 道具: 選択（機器の画面を開く）・配線・撤去
@@ -144,7 +145,7 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   wireStart: WireStart | null;
   portMenu: PortMenuState | null;
   // 最後のテストまたは検収の判定（案件ごと）。設計を変えると消える（保存しない）
-  check: { projectId: string; goals: GoalCheck[] } | null;
+  check: { projectId: string; goals: GoalCheck[]; warnings?: VlanWarning[] } | null;
   // 失敗の直し方を開いている機器（保存しない）
   helpUid: string | null;
   // 施工を断られた回数。テストのボタンを1秒光らせるために使う（保存しない）

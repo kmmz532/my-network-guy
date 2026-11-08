@@ -474,6 +474,7 @@
   "ui.build.offHours": "勤務時間外（{hour}時に再開）",
   "ui.cable.price": "¥{link}＋¥{tile}/マス",
   "ui.check.open": "機器を開く",
+  "ui.check.warnings": "設定の警告",
   "ui.combo.keyboard": "キーボードで入力…",
   "ui.company.cancel": "やめる",
   "ui.company.copy.full": "空いている枠がないため、複製できません",

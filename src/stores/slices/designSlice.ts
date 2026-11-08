@@ -78,7 +78,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
         set({
           lastError: null,
           traces: sr.traces,
-          check: { projectId: 'hq', goals: sr.goals },
+          check: { projectId: 'hq', goals: sr.goals, warnings: sr.warnings },
           helpUid: null,
         });
         return null;
@@ -92,7 +92,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
         lastError: null,
         active: r.core.active,
         traces: r.result.traces,
-        check: { projectId: r.core.focus ?? '', goals: r.result.goals },
+        check: { projectId: r.core.focus ?? '', goals: r.result.goals, warnings: r.result.warnings },
         helpUid: null,
       });
       return null;
