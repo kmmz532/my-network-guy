@@ -16,6 +16,7 @@ import { useState } from 'react';
 import { secondaryButton } from './Modal';
 import { Tooltip } from './Tooltip';
 import { retireBlock } from '../sim/retire';
+import { isDevJob, requiresPc } from '../sim/jobs';
 
 const yen = (n: number) => n.toLocaleString('ja-JP');
 // 社員の一覧の列の幅（名前・職種と level・月給・状態）
@@ -49,7 +50,7 @@ export function StaffBody({ uid }: { uid: string }) {
   const contribution = backOfficeContributionOf(member, state.office, env);
   const effect = back
     ? jobEffect(member.job, member, contribution, backOfficeP(state.staff, member.job, state.office, env) - contribution, balance)
-    : member.job === 'dev'
+    : isDevJob(member.job)
       ? jobEffect(member.job, member, contribution, 0, balance)
       : null;
   // 次の level までの経験値（level n から n+1 に上がるのに expPerLevel × n）
@@ -90,16 +91,16 @@ export function StaffBody({ uid }: { uid: string }) {
             <dd style={{ margin: 0 }}>{staffPower(member, undefined, state.office, env).toFixed(2)}</dd>
           </>
         )}
-        {(member.job === 'dev' || member.job === 'hr' || member.job === 'accounting') && (
+        {requiresPc(member.job) && (
           <>
             <dt style={label}>{t('ui.staff.card.pc')}</dt>
             <dd style={{ margin: 0 }}>{hasPcAt(member, env) ? t('ui.staff.pc.yes') : t('ui.staff.pc.no')}</dd>
           </>
         )}
-        {(back || member.job === 'dev') && (
+        {(back || isDevJob(member.job)) && (
           <>
             <dt style={label}>{t('ui.staff.card.effect')}</dt>
-            <dd style={{ margin: 0 }}>{effect && (contribution > 0 || member.job === 'dev') ? jobEffectText(effect) : t('ui.effect.job.none')}</dd>
+            <dd style={{ margin: 0 }}>{effect && (contribution > 0 || isDevJob(member.job)) ? jobEffectText(effect) : t('ui.effect.job.none')}</dd>
           </>
         )}
       </dl>
@@ -198,7 +199,7 @@ export function StaffListBody() {
   const head = { fontSize: 12, opacity: 0.7, padding: '0 6px' } as const;
   // 社員の人数と、PC がなく働けない社内の職種の人数（自社の情報から移した・N126）
   const night = state.staff.filter((m) => m.shift === 'night').length;
-  const noPcCount = state.staff.filter((m) => (m.job === 'dev' || m.job === 'hr' || m.job === 'accounting') && !(m.desk !== null && pcDesks.includes(m.desk))).length;
+  const noPcCount = state.staff.filter((m) => requiresPc(m.job) && !(m.desk !== null && pcDesks.includes(m.desk))).length;
   return (
     <div>
       <div style={{ fontSize: 13, padding: '0 6px 6px' }}>
@@ -243,7 +244,7 @@ export function StaffListBody() {
             <span>
               {statusText(status)}
               {m.level >= m.levelCap && <span style={{ marginLeft: 4, color: '#ffd866' }}>{t('ui.staff.cap')}</span>}
-              {(m.job === 'dev' || m.job === 'hr' || m.job === 'accounting') && !(m.desk !== null && pcDesks.includes(m.desk)) && (
+              {requiresPc(m.job) && !(m.desk !== null && pcDesks.includes(m.desk)) && (
                 <span style={{ marginLeft: 4, color: '#ffd866' }}>{t('ui.staff.pc.no.short')}</span>
               )}
             </span>

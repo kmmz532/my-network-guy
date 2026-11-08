@@ -227,15 +227,6 @@
     "salaryPerLevel": 50000,
     "backOfficeSalaryRate": 0.85,
     "minSalary": 200000,
-    "jobUnlockLevels": {
-      "network": 2,
-      "infra": 5,
-      "security": 7,
-      "sales": 3,
-      "hr": 4,
-      "accounting": 8,
-      "dev": 6
-    },
     "staffCapByLevel": [
       [
         1,
@@ -293,11 +284,6 @@
     "nightShift": 10,
     "floorChange": 5,
     "uplink": 50
-  },
-  "deskPc": {
-    "engineerDailyExpRate": 0.5,
-    "engineerPowerBonus": 0.05,
-    "salesMultiplier": 1.2
   },
   "floors": [
     { "id": "wood", "unlockLevel": 1, "costPerTile": 0 },

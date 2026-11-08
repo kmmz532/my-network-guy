@@ -9,6 +9,7 @@ import type { Furniture } from '../data/schema';
 import type { Office } from './project';
 import { staffPower } from './staff';
 import type { Staff } from '../data/schema';
+import { jobOf } from './jobs';
 
 const balance = balanceJson as unknown as Balance;
 
@@ -112,11 +113,11 @@ describe('机の上の PC（N102）', () => {
     expect(backOfficeP([member('hr', 'd0')], 'hr', office, envWith(['d0']))).toBeGreaterThan(0);
   });
 
-  it('営業は、PC がなくても数え、PC があると効果が deskPc.salesMultiplier 倍になる', () => {
+  it('営業は、PC がなくても数え、PC があると職種定義の係数で効果が上がる', () => {
     const without = backOfficeP([member('sales', 'd0')], 'sales', office, envWith([]));
     const withPc = backOfficeP([member('sales', 'd0')], 'sales', office, envWith(['d0']));
     expect(without).toBeGreaterThan(0);
-    expect(withPc).toBeCloseTo(without * balance.deskPc.salesMultiplier);
+    expect(withPc).toBeCloseTo(without * (jobOf('sales').pcBonus?.effectRate ?? 1));
   });
 
   it('机のない社員は、PC があっても人事・経理に数えない', () => {
@@ -126,7 +127,7 @@ describe('机の上の PC（N102）', () => {
   it('現場のエンジニアは、PC があると施工力が上がる（システムエンジニアは上がらない）', () => {
     const base = staffPower(member('network', 'd0'), undefined, office, envWith([]));
     const pc = staffPower(member('network', 'd0'), undefined, office, envWith(['d0']));
-    expect(pc).toBeCloseTo(base * (1 + balance.deskPc.engineerPowerBonus));
+    expect(pc).toBeCloseTo(base * (1 + (jobOf('network').pcBonus?.buildRate ?? 0)));
     const dev = staffPower(member('dev', 'd0'), undefined, office, envWith(['d0']));
     expect(dev).toBeCloseTo(staffPower(member('dev', 'd0'), undefined, office, envWith([])));
   });

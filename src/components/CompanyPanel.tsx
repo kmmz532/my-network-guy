@@ -12,6 +12,7 @@ import { tipText } from '../input/keymap';
 import { outsideCheck } from '../network/external';
 import { gameEnv, isPcDevice } from '../sim/env';
 import { pcDesksOf } from '../sim/furniture';
+import { JOB_DEFS, requiresPc } from '../sim/jobs';
 
 // 増えた経験値の「+N」を出している時間（ms）
 const GAIN_MS = 1500;
@@ -65,7 +66,7 @@ export function CompanyBody() {
   // 机に PC がなく働けない社内の職種の人数（N102）
   const noPcCount = useGameStore((s) => {
     const pcDesks = pcDesksOf(s.office, isPcDevice);
-    return s.staff.filter((m) => (m.job === 'dev' || m.job === 'hr' || m.job === 'accounting') && !(m.desk !== null && pcDesks.includes(m.desk))).length;
+    return s.staff.filter((m) => requiresPc(m.job) && !(m.desk !== null && pcDesks.includes(m.desk))).length;
   });
   const outside = outsideCheck(office, gameEnv.engine);
   const night = staff.filter((m) => m.shift === 'night').length;
@@ -80,7 +81,7 @@ export function CompanyBody() {
   const devices = unlocks.filter((x) => x.kind === 'device' || x.kind === 'furniture').map((x) => ({ kind: x.kind as 'device' | 'furniture', id: x.id }));
   const others = unlocks.filter((x) => x.kind !== 'device' && x.kind !== 'furniture');
   // 次のレベルで解放される職種（採用の候補に出る）
-  const jobsUnlockedAt = next ? (Object.keys(balance.hiring.jobUnlockLevels) as (keyof typeof balance.hiring.jobUnlockLevels)[]).filter((j) => balance.hiring.jobUnlockLevels[j] === next.level) : [];
+  const jobsUnlockedAt = next ? JOB_DEFS.filter((job) => job.unlockLevel === next.level).map((job) => job.id) : [];
   const row = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #3b2a33' } as const;
   // 会社の総覧。社員・資金・外部への接続は要約だけを出し、押すとそれぞれの画面を開く（詳細は各画面・N126）
   return (

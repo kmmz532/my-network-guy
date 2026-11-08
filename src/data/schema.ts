@@ -205,16 +205,6 @@ export const balanceSchema = z.object({
     // 内勤（営業・人事・経理）の給与は、エンジニアの式に掛ける係数。下限は minSalary（N100）
     backOfficeSalaryRate: z.number().positive(),
     minSalary: nonNegativeInt,
-    // 職種ごとの解放のレベル（解放された職種だけが採用の候補に出る）
-    jobUnlockLevels: z.object({
-      network: unlockLevelSchema,
-      infra: unlockLevelSchema,
-      security: unlockLevelSchema,
-      sales: unlockLevelSchema,
-      hr: unlockLevelSchema,
-      accounting: unlockLevelSchema,
-      dev: unlockLevelSchema,
-    }),
     // 社員の人数の上限（会社のレベル以上での上限。[レベル, 上限] の組）
     staffCapByLevel: z.array(z.tuple([unlockLevelSchema, int.positive()])),
     // 候補の能力は、会社のレベルの何段階ごとに1上がるか
@@ -230,8 +220,6 @@ export const balanceSchema = z.object({
   }),
   // 機能の解放のレベル（品目ではないもの）
   featureUnlocks: z.object({ nightShift: unlockLevelSchema, floorChange: unlockLevelSchema, uplink: unlockLevelSchema }),
-  // 机の上の PC（N102）。PC があると、現場のエンジニアは自習の経験値・施工力が上がり、営業は効果が上がる（PC がなくても働ける職種は、なくても働く）
-  deskPc: z.object({ engineerDailyExpRate: z.number().nonnegative(), engineerPowerBonus: z.number().nonnegative(), salesMultiplier: z.number().positive() }),
   // 自社の床の種類（N92）。見た目だけで、費用は1マスあたり。木は最初から使える
   floors: z.array(z.object({ id: floorIdSchema, unlockLevel: unlockLevelSchema, costPerTile: nonNegativeInt })),
   office: z.object({

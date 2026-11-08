@@ -21,6 +21,7 @@ import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { RADIUS } from '../ui/theme';
 import { Select } from './Select';
 import { CertChips } from './StaffCard';
+import { requiresPc } from '../sim/jobs';
 
 // 開くタブは useUiStore の hiring が決める。社員の札の「研修・資格へ」から開くときは staff
 export function HiringPanel() {
@@ -67,7 +68,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
   const wish = useGameStore((s) => s.hiringWish);
   const setHiringWish = useGameStore((s) => s.setHiringWish);
   const hrP = backOfficeP(allStaff, 'hr', office, bonusEnvOf({ staff: allStaff, office: office }, gameEnv));
-  const jobsOpen = unlockedJobsOf(levelOf(companyExp, balance), balance);
+  const jobsOpen = unlockedJobsOf(levelOf(companyExp, balance));
   // 夜勤の解放（会社のレベル）と、候補ごとに選んだ区分
   const nightOpen = levelOf(companyExp, balance) >= balance.featureUnlocks.nightShift;
   const [shiftOf, setShiftOf] = useState<Record<string, 'day' | 'night'>>({});
@@ -122,7 +123,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
               <span style={{ opacity: 0.8 }}> {t('ui.hiring.salaryTotal', { total: yen(totalSalary(allStaff, balance.nightPayRate) + c.salary) })}</span>
             </div>
             {/* PC が要る職種は、次に座る机に PC がないと働けない（採用はできる）（N102） */}
-            {(c.job === 'dev' || c.job === 'hr' || c.job === 'accounting') && !nextDeskHasPc && !full && (
+            {requiresPc(c.job) && !nextDeskHasPc && !full && (
               <div style={{ fontSize: 12, color: '#ffd866' }}>{t('ui.hiring.noPc')}</div>
             )}
             {/* 内勤は、雇うと増える効果を1行で出す */}

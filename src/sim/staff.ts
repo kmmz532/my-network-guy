@@ -1,11 +1,12 @@
 // 社員の生成（STAFF.md「1. 社員のデータ」）。名前・見た目・口癖は乱数の状態から選ぶ。能力の計算は後の段階で加える
 import type { Balance, JobId, Staff } from '../data/schema';
-import { ENGINEER_JOB_IDS, JOB_IDS, STAFF_LOOKS } from '../data/schema';
+import { STAFF_LOOKS } from '../data/schema';
 import type { Core, Office, Outcome, Project } from './project';
 import { minutesPerDay } from './clock';
 import { furnitureBonus, seatOf, type BonusEnv } from './furniture';
 import { hasPcAt, isBackOffice } from './backOffice';
 import { randInt } from './rng';
+import { JOB_DEFS, isFieldEngineerJob, pcBonusOf } from './jobs';
 
 // 名前の候補（言語ファイルの staff.name.0 〜 staff.name.59）の数
 export const NAME_COUNT = 91;
@@ -83,8 +84,8 @@ export const staffPower = (staff: Staff, requires: readonly JobId[] | undefined,
   const seated = seatOf(office, staff.desk, env.defs) !== null;
   const seatFactor = seated ? 1 : bonus.seatless;
   // 現場のエンジニア（システムエンジニア以外）は、机に PC があると施工力が上がる（図面・手順書の準備・N102）
-  const fieldEngineer = (ENGINEER_JOB_IDS as readonly string[]).includes(staff.job) && staff.job !== 'dev';
-  const pcFactor = fieldEngineer && hasPcAt(staff, env) ? 1 + env.balance.deskPc.engineerPowerBonus : 1;
+  const fieldEngineer = isFieldEngineerJob(staff.job);
+  const pcFactor = fieldEngineer && hasPcAt(staff, env) ? 1 + (pcBonusOf(staff.job).buildRate ?? 0) : 1;
   return staff.level * jobFactor * seatFactor * (1 + bonus.power) * pcFactor;
 };
 
@@ -128,8 +129,8 @@ export const totalSalary = (staff: readonly Staff[], nightPayRate: number): numb
 // 候補の uid は "c" + 月 + "_" + 順番。採用するときに社員の uid へ付け替える。
 // taken は在籍中の社員の名前。候補どうしも名前が重ならない
 // 会社のレベルで解放された職種（採用の候補に出る職種）
-export const unlockedJobsOf = (companyLevel: number, balance: Balance): JobId[] =>
-  JOB_IDS.filter((j) => balance.hiring.jobUnlockLevels[j] <= companyLevel);
+export const unlockedJobsOf = (companyLevel: number): JobId[] =>
+  JOB_DEFS.filter((j) => j.unlockLevel <= companyLevel).map((j) => j.id);
 
 // 社員の人数の上限（会社のレベル以上での上限のうち、最も新しいもの）。どの上限にも届かないレベルは 0
 export const staffCapOf = (companyLevel: number, balance: Balance): number => {
@@ -157,7 +158,7 @@ export const rollCandidates = (
   hr: { extraCount: number; levelBonus: number; wish?: JobId } = { extraCount: 0, levelBonus: 0 },
 ): { candidates: Staff[]; rng: number } => {
   const h = balance.hiring;
-  const jobs = unlockedJobsOf(companyLevel, balance);
+  const jobs = unlockedJobsOf(companyLevel);
   // 解放された職種がなければ、候補は出ない（Lv1 では採用の画面は開けない）
   if (jobs.length === 0) return { candidates: [], rng };
   const count = randInt(rng, 0, h.maxCandidates + hr.extraCount);

@@ -15,6 +15,7 @@ import { applyMoney } from '../sim/ledger';
 import { unlockedSpeedsOf } from '../sim/speed';
 import { pushNotice } from '../ui/notices';
 import { busyStaff } from '../sim/crew';
+import { isDevJob, isFieldEngineerJob, jobOf } from '../sim/jobs';
 import { tDyn } from '../i18n/t';
 import { settleRetirements } from '../sim/retire';
 import { backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice } from '../sim/backOffice';
@@ -73,7 +74,7 @@ export const clockSystem = (s: GameState): ClockStep => {
   // 机の上の PC（N102）。システムエンジニア・人事・経理は、自分の机に PC がないと働けない（収入・経験値・効果が出ない）
   const pcDesks = pcDesksOf(s.office, isPcDevice);
   const hasPc = (m: Staff): boolean => m.desk !== null && pcDesks.includes(m.desk);
-  const devIdle = days > 0 && s.mode === 'career' ? s.staff.filter((m) => m.job === 'dev' && m.training === null && !crewUids.has(m.uid) && hasPc(m)) : [];
+  const devIdle = days > 0 && s.mode === 'career' ? s.staff.filter((m) => isDevJob(m.job) && m.training === null && !crewUids.has(m.uid) && hasPc(m)) : [];
   const devIncome = devIdle.reduce((sum, m) => sum + devDailyIncome(m, balance) * days, 0);
   const clock = devIncome > 0 ? applyMoney(rentedClock, devIncome, 'dev') : rentedClock;
   return {
@@ -92,8 +93,10 @@ export const clockSystem = (s: GameState): ClockStep => {
 export const dailyExpSystem = (s: GameState, c: ClockStep): Staff[] => {
   const dailyExpOf = (m: Staff): number | null => {
     if (c.devIdleUids.has(m.uid)) return balance.backOffice.dailyExp * c.days;
-    if (isBackOffice(m.job)) return m.shift === 'day' && m.training === null && (m.job === 'sales' || c.hasPc(m)) ? balance.backOffice.dailyExp * c.days : null;
-    if (m.job !== 'dev' && m.training === null && !c.crewUids.has(m.uid) && c.hasPc(m)) return balance.backOffice.dailyExp * balance.deskPc.engineerDailyExpRate * c.days;
+    if (isBackOffice(m.job)) return m.shift === 'day' && m.training === null && (jobOf(m.job).effect === 'sales' || c.hasPc(m)) ? balance.backOffice.dailyExp * c.days : null;
+    if (isFieldEngineerJob(m.job) && m.training === null && !c.crewUids.has(m.uid) && c.hasPc(m)) {
+      return balance.backOffice.dailyExp * (jobOf(m.job).pcBonus?.idleExpRate ?? 0) * c.days;
+    }
     return null;
   };
   if (!(c.days > 0 && s.mode === 'career')) return s.staff;

@@ -1,7 +1,7 @@
 // 社員の退職（N90）。退職を伝えると、その月の末日に退職する。判定と月末の処理は純粋な関数。
 // 退職の予定の社員は、月末までは通常どおり働く。新しい案件の担当と研修には選べない（担当の選択・研修の開始で止める）。
 import type { Balance, Staff } from '../data/schema';
-import { ENGINEER_JOB_IDS } from '../data/schema';
+import { isFieldEngineerJob } from './jobs';
 import type { ClockState } from './clock';
 import { fail, type Core, type Outcome, type Project } from './project';
 import { applyMoney } from './ledger';
@@ -24,7 +24,7 @@ export const retireBlock = (state: RetireState, uid: string, balance: Balance): 
   // 1か月に1人まで。退職の予定の社員がいれば、今月すでに伝えている（予定は月末に消えるため）
   if (state.staff.some((s) => s.leaving)) return 'retire.already';
   // 退職するとエンジニア枠が0人になる場合は伝えられない（案件を受けられなくなるため）
-  const engineersLeft = state.staff.filter((s) => s.uid !== uid && !s.leaving && (ENGINEER_JOB_IDS as readonly string[]).includes(s.job)).length;
+  const engineersLeft = state.staff.filter((s) => s.uid !== uid && !s.leaving && isFieldEngineerJob(s.job)).length;
   if (engineersLeft === 0) return 'retire.noEngineer';
   // 受注中の案件の担当がこの社員だけなら伝えられない（月末に担当が0人になり、案件が止まるため）
   if (state.active.some((p) => p.crew.length === 1 && p.crew[0] === uid)) return 'retire.soleCrew';

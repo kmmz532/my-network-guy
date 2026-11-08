@@ -9,9 +9,9 @@ const balance = balanceJson as unknown as Balance;
 
 describe('会社のレベルによる採用', () => {
   it('職種は、解放のレベルに届いたものだけ（Lv1 はネットワークだけ、Lv5 でインフラ）', () => {
-    expect(unlockedJobsOf(1, balance)).toEqual([]);
-    expect(unlockedJobsOf(2, balance)).toEqual(['network']);
-    expect(unlockedJobsOf(5, balance)).toEqual(['network', 'infra', 'sales', 'hr']);
+    expect(unlockedJobsOf(1)).toEqual([]);
+    expect(unlockedJobsOf(2)).toEqual(['network']);
+    expect(unlockedJobsOf(5)).toEqual(['network', 'infra', 'sales', 'hr']);
   });
 
   it('人数の上限は、会社のレベル以上での最も新しい上限', () => {

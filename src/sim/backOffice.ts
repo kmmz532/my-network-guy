@@ -1,11 +1,11 @@
 // 内勤（営業・人事・経理。担当には出さず、社内の仕事で会社に効果を与える）の効果の計算。純粋な関数。
 // 効果の強さは、その職種の内勤（日勤・席の係数と家具の補正を掛けた実効 level）の合計 P で決まる。
 import type { Balance, JobId, Staff } from '../data/schema';
-import { BACK_OFFICE_JOB_IDS } from '../data/schema';
+import { jobOf, isBackOfficeJob } from './jobs';
 import type { Office } from './project';
 import { furnitureBonus, seatOf, type BonusEnv } from './furniture';
 
-export const isBackOffice = (job: JobId): boolean => (BACK_OFFICE_JOB_IDS as readonly JobId[]).includes(job);
+export const isBackOffice = (job: JobId): boolean => isBackOfficeJob(job);
 
 // 内勤の効果に数えるか（日勤で、研修中でない）
 export const countsForBackOffice = (s: Staff): boolean => s.shift === 'day' && s.training === null;
@@ -22,11 +22,12 @@ export const effectiveLevelOf = (s: Staff, office: Office, env: BonusEnv): numbe
 export const hasPcAt = (s: Staff, env: BonusEnv): boolean => s.desk !== null && env.pcDesks.includes(s.desk);
 
 // 内勤の効果に数える寄与（N102）。日勤で研修中でないことが前提。
-// 人事・経理は PC のある机の社員だけ。営業は PC がなくても数え、PC があると効果が deskPc.salesMultiplier 倍になる
+// 人事・経理は PC のある机の社員だけ。営業は PC がなくても数え、PC があると jobs.json の effectRate 倍になる。
 export const backOfficeContributionOf = (s: Staff, office: Office, env: BonusEnv): number => {
   if (!countsForBackOffice(s)) return 0;
-  if (s.job === 'sales') return effectiveLevelOf(s, office, env) * (hasPcAt(s, env) ? env.balance.deskPc.salesMultiplier : 1);
-  if (s.job === 'hr' || s.job === 'accounting') return hasPcAt(s, env) ? effectiveLevelOf(s, office, env) : 0;
+  const definition = jobOf(s.job);
+  if (definition.effect === 'sales') return effectiveLevelOf(s, office, env) * (hasPcAt(s, env) ? (definition.pcBonus?.effectRate ?? 1) : 1);
+  if (definition.pc === 'required') return hasPcAt(s, env) ? effectiveLevelOf(s, office, env) : 0;
   return 0;
 };
 

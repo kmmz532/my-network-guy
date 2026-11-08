@@ -9,6 +9,7 @@ import type { LevelUp } from '../sim/level';
 import { Modal, primaryButton } from './Modal';
 import { RADIUS } from '../ui/theme';
 import { openOf, visibleNotices } from '../ui/notices';
+import { JOB_DEFS } from '../sim/jobs';
 
 // 既存の import 先（modalBack・modalBox）を保つため、部品の定義は Modal.tsx にあり、ここから出す
 export { modalBack, modalBox } from './Modal';
@@ -72,8 +73,7 @@ function EvaluationRows({ report }: { report: Report }) {
 
 // 納品の結果。★・報酬・評判の数字のみ。不合格はマップ上の「×」と吹き出しで示すため出さない
 // 職種の解放（そのレベルで採用の候補に出る職種）
-const jobsAt = (level: number): (keyof typeof balance.hiring.jobUnlockLevels)[] =>
-  (Object.keys(balance.hiring.jobUnlockLevels) as (keyof typeof balance.hiring.jobUnlockLevels)[]).filter((j) => balance.hiring.jobUnlockLevels[j] === level);
+const jobsAt = (level: number): string[] => JOB_DEFS.filter((job) => job.unlockLevel === level).map((job) => job.id);
 
 // レベルアップの札の単位（1つのレベルなら1つ、2つ以上のレベルが一度に上がったら1つにまとめる）（N131）
 const levelUpBlocks = (ups: readonly LevelUp[]) => {
