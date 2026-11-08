@@ -2,8 +2,9 @@
 // 何を出すかは titleFlow の値が決める。保存の読み書きはここで行い、結果を titleFlow に渡す。
 import { useEffect, useReducer } from 'react';
 import { t } from '../../i18n/t';
-import { deleteSlot, listCompanies, saveSlot } from '../../services/db';
-import { copyNameOf, freeSlotOf, isNameTaken, isValidCompanyName, suggestCompanyName, uniqueNameFrom, type CompanySave } from '../../services/companies';
+import { listCompanies } from '../../services/db';
+import { suggestCompanyName, type CompanySave } from '../../services/companies';
+import { copyCompany, dbSlotStore, deleteCompany, importCompany, overwriteCompany, renameCompany } from '../../services/companySlots';
 import { exportSave, importSave } from '../../services/saveFile';
 import { saveSession } from '../../services/saveSession';
 import { useGameStore } from '../../stores/useGameStore';
@@ -58,27 +59,23 @@ export function TitleScene({ onEnter, opening }: { onEnter: () => void; opening?
 
   // 社名を変える（同じ遊び方の中で、同じ名前は不可）
   const renameSave = async (save: CompanySave, name: string) => {
-    const trimmed = name.trim();
-    if (!isValidCompanyName(trimmed)) return dispatch({ type: 'notice', notice: t('ui.company.name.hint', { max: 12 }) });
-    const list = await listCompanies(mode);
-    if (isNameTaken(trimmed, list.filter((s) => s.slot !== save.slot))) {
-      dispatch({ type: 'listed', saves: list });
+    const result = await renameCompany(dbSlotStore, mode, save, name);
+    if (result.kind === 'invalid') return dispatch({ type: 'notice', notice: t('ui.company.name.hint', { max: 12 }) });
+    if (result.kind === 'taken') {
+      dispatch({ type: 'listed', saves: result.saves });
       return dispatch({ type: 'notice', notice: t('ui.company.name.taken') });
     }
-    await saveSlot(save.slot, { ...save.data, name: trimmed });
-    dispatch({ type: 'refreshed', saves: await listCompanies(mode), view: { kind: 'list', purpose: 'play' } });
+    dispatch({ type: 'refreshed', saves: result.saves, view: { kind: 'list', purpose: 'play' } });
   };
 
-  // 複製する（空いた枠に同じ会社を写し、社名に「（コピー）」を付ける）
+  // 複製する（空いた枠に同じ会社を写し、社名に「（コピー）」を付ける）。空きがなければ知らせを出す
   const copySave = async (save: CompanySave) => {
-    const list = await listCompanies(mode);
-    const free = freeSlotOf(mode, list);
-    if (free === null) {
-      dispatch({ type: 'listed', saves: list });
+    const result = await copyCompany(dbSlotStore, mode, save);
+    if (result.kind === 'full') {
+      dispatch({ type: 'listed', saves: result.saves });
       return dispatch({ type: 'notice', notice: t('ui.company.copy.full') });
     }
-    await saveSlot(free, { ...save.data, name: copyNameOf(save.data.name, list) });
-    dispatch({ type: 'refreshed', saves: await listCompanies(mode) });
+    dispatch({ type: 'refreshed', saves: result.saves });
   };
 
   // 書き出す（その会社1つをファイルに保存する）
@@ -93,29 +90,25 @@ export function TitleScene({ onEnter, opening }: { onEnter: () => void; opening?
 
   // 消す（元に戻せない）。今遊んでいる会社は、ここ（タイトル画面）からしか消せない
   const removeSave = async (save: CompanySave) => {
-    await deleteSlot(save.slot);
-    dispatch({ type: 'refreshed', saves: await listCompanies(mode), view: { kind: 'list', purpose: 'play' } });
+    const saves = await deleteCompany(dbSlotStore, mode, save);
+    dispatch({ type: 'refreshed', saves, view: { kind: 'list', purpose: 'play' } });
   };
 
   // 読み込んだ会社を、選んだ会社の枠に入れる（上書きの確認のあと。N133）
   const overwriteWithPending = async (save: CompanySave) => {
     if (pendingImport === null) return;
-    const list = await listCompanies(mode);
-    await saveSlot(save.slot, { ...pendingImport, name: uniqueNameFrom(pendingImport.name, list.filter((s) => s.slot !== save.slot)) });
-    dispatch({ type: 'importDone', saves: await listCompanies(mode) });
+    const saves = await overwriteCompany(dbSlotStore, mode, save, pendingImport);
+    dispatch({ type: 'importDone', saves });
   };
 
   // ファイルから読み込む。同じ遊び方の会社だけ。空いた枠に入れ、同じ社名があれば番号を付ける
-  const importCompany = async (file: File) => {
+  const importFromFile = async (file: File) => {
     try {
-      const data = importSave(await file.text());
-      if (data.mode !== mode) return dispatch({ type: 'notice', notice: t('ui.company.import.mode') });
-      const list = await listCompanies(mode);
-      const free = freeSlotOf(mode, list);
+      const result = await importCompany(dbSlotStore, mode, importSave(await file.text()));
+      if (result.kind === 'wrongMode') return dispatch({ type: 'notice', notice: t('ui.company.import.mode') });
       // 空きがなければ、上書きする会社を選ばせる（上書きの確認は N132 と同じ）
-      if (free === null) return dispatch({ type: 'importHeld', data, saves: list, notice: t('ui.company.import.full') });
-      await saveSlot(free, { ...data, name: uniqueNameFrom(data.name, list) });
-      dispatch({ type: 'refreshed', saves: await listCompanies(mode) });
+      if (result.kind === 'held') return dispatch({ type: 'importHeld', data: result.data, saves: result.saves, notice: t('ui.company.import.full') });
+      dispatch({ type: 'refreshed', saves: result.saves });
     } catch (e) {
       dispatch({ type: 'notice', notice: t('ui.import.failed', { reason: (e as Error).message }) });
     }
@@ -151,7 +144,7 @@ export function TitleScene({ onEnter, opening }: { onEnter: () => void; opening?
           onDuplicate={copySave}
           onExport={exportCompany}
           onDelete={removeSave}
-          onImport={importCompany}
+          onImport={importFromFile}
           onNewHere={onNewHere}
           importing={pendingImport !== null}
           onOverwriteWith={overwriteWithPending}
