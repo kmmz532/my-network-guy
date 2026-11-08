@@ -20,7 +20,7 @@
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/l2_switch_8p.png" width="72" alt="L2スイッチ（16ポート）"> | L2スイッチ（16ポート） | 24,000円 | LAN 16口 | - | Lv10 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/l2_switch_8p.png" width="72" alt="L2スイッチ（24ポート）"> | L2スイッチ（24ポート） | 36,000円 | LAN 24口 | - | Lv23 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/access_point.png" width="72" alt="アクセスポイント"> | アクセスポイント | 33,000円 | LAN 1口 | 無線 | Lv25 |
-| <img style="image-rendering: pixelated" src="../src/assets/sprites/device/l3_switch.png" width="72" alt="L3スイッチ"> | L3スイッチ | 150,000円 | LAN 8口 | ルーティング、L3（ポートごとにネットワークを持つ） | Lv20 |
+| <img style="image-rendering: pixelated" src="../src/assets/sprites/device/l3_switch.png" width="72" alt="L3スイッチ"> | L3スイッチ | 170,000円 | LAN 8口・SFP 2口 | ルーティング、L3（VLAN ごとの SVI で中継する） | Lv20 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/router_basic.png" width="72" alt="ルーター"> | ルーター | 60,000円 | LAN 4口 | ルーティング | Lv4 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/router_sfp.png" width="72" alt="SFP対応ルーター"> | SFP対応ルーター | 65,000円 | LAN 4口・SFP 1口 | ルーティング | Lv16 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/router_switch.png" width="72" alt="スイッチ付きルーター"> | スイッチ付きルーター | 80,000円 | WAN 1口、LAN 4口 | ルーティング、スイッチ | Lv9 |
@@ -79,7 +79,7 @@ L2スイッチは、同じネットワーク内の機器をまとめてつなぎ
 | --- | --- | --- |
 | `routing` | 経路を持ち、異なるネットワークを中継する | 40,000円 |
 | `switch` | スイッチとして同じネットワークの機器をつなぐ | 15,000円 |
-| `layer3` | ポートごとにネットワークを持つ（L3） | 30,000円 |
+| `layer3` | VLAN ごとのネットワーク（SVI）で中継する（L3） | 30,000円 |
 | `firewall` | 通過する通信を規則で止める | 70,000円 |
 | `portable` | 持ち運びできる | 40,000円 |
 | `service` | サービスを待ち受ける | 100,000円 |
