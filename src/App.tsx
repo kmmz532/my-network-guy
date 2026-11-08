@@ -14,6 +14,7 @@ export const App = () => {
 
   // 翻訳や地図の読み込みが失敗したときの例外（エラー画面で再読み込みを促す）
   const [loadError, setLoadError] = useState<unknown>(null);
+  const scene = useSceneStore((s) => s.scene);
 
   // 起動時のみ実行
   useEffect(() => {
@@ -31,8 +32,6 @@ export const App = () => {
   if (loadError) throw loadError;
   if (!ready) return null;
 
-  const scene = useSceneStore((s) => s.scene);
-  
   // 画面分岐
   switch (scene.kind) {
     case 'title':
