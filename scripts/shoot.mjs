@@ -131,8 +131,53 @@ const scenes = {
   // サンドボックス
   sandbox: async (page) => {
     await page.getByText('サンドボックス').click();
+    // 部屋の広さを選ぶ画面、社名を入れる画面の順に、どちらも「始める」を押す
     await page.getByRole('button', { name: '始める' }).click();
+    await page.waitForTimeout(500);
+    const start = page.getByRole('button', { name: '始める' });
+    if ((await start.count()) > 0) await start.first().click();
     await page.waitForTimeout(1500);
+  },
+  // マップのポインタ操作（ホイール・中ボタンの移動・各道具での押す・ドラッグ・乗せる）を一通り行う。位置は決め打ちせず、画面全体を走査する。
+  // 例外や console のエラーが出ないことを --check で確かめる
+  pointer: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      g.getState().buy('l2_switch_8p');
+      g.getState().buy('l2_switch_8p');
+      let n = 0;
+      for (let y = 2; y < 8 && n < 2; y++) for (let x = 2; x < 10 && n < 2; x++) if (g.getState().place('l2_switch_8p', x, y) === null) n++;
+    });
+    const box = await page.locator('canvas').first().boundingBox();
+    // ヘッダーとツールバーのボタンを押さないよう、マップの中央寄りを走査する
+    const at = (fx, fy) => [box.x + box.width * (0.25 + 0.5 * fx), box.y + box.height * (0.15 + 0.6 * fy)];
+    const [cx, cy] = at(0.5, 0.5);
+    await page.mouse.move(cx, cy);
+    await page.mouse.wheel(0, -120);
+    await page.mouse.wheel(0, 240);
+    await page.mouse.wheel(0, -120);
+    await page.mouse.down({ button: 'middle' });
+    await page.mouse.move(cx + 40, cy + 20, { steps: 4 });
+    await page.mouse.up({ button: 'middle' });
+    for (const key of ['1', '2', '3', '1']) {
+      await page.keyboard.press(key);
+      for (let i = 1; i < 8; i++) {
+        for (let j = 1; j < 6; j++) {
+          const [x, y] = at(i / 8, j / 6);
+          await page.mouse.move(x, y);
+          await page.mouse.click(x, y);
+        }
+      }
+      // ドラッグの途中で Esc を押して、取り消す
+      const [x0, y0] = at(0.3, 0.4);
+      await page.mouse.move(x0, y0);
+      await page.mouse.down();
+      await page.mouse.move(x0 + 80, y0 + 40, { steps: 6 });
+      await page.keyboard.press('Escape');
+      await page.mouse.up();
+    }
+    await page.waitForTimeout(500);
   },
   // 依頼の一覧
   offers: async (page) => {

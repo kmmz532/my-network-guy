@@ -906,7 +906,7 @@
   "ui.staff.status.idle": "待機中",
   "ui.staff.status.project": "「{project}」を担当中",
   "ui.staff.status.training": "研修中（残り{days}日）",
-  "ui.tab.conflict.body": "同じゲームを別のタブで開いています。両方で遊ぶと、セーブが互いに上書きされます。遊ぶタブを1つに決めてください。",
+  "ui.tab.conflict.body": "同じゲームを別のタブで開いています。両方で遊ぶと、セーブが互いに上書きされます。遊ぶタブを1つにしてください。",
   "ui.tab.conflict.continue": "このタブで続ける",
   "ui.tab.conflict.title": "別のタブで開いています",
   "ui.task.allPcs": "すべてのPC",
