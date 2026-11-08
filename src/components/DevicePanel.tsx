@@ -6,7 +6,9 @@ import { useState } from 'react';
 import { devices as deviceData } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import { compile, type Compiled } from '../network/compile';
-import type { NetLink, NetNode } from '../network/types';
+import type { NetLink, NetNode, Network } from '../network/types';
+import { seenSourcesOf } from '../network/netState';
+import { engineWithWalls } from '../sim/walls';
 import { gameEnv } from '../sim/env';
 import { focusedProject, useGameStore, type GameState } from '../stores/useGameStore';
 import { RearTab as DeviceRear } from './DeviceRear';
@@ -122,15 +124,37 @@ function DeviceView({
         {tab === 'config' && hasConfig && (
           <DeviceSettings node={node} compiled={compiled} readOnly={readOnly} detailOpen={detailOpen} onToggleDetail={onToggleDetail} onError={setError} />
         )}
-        {tab === 'service' && isServer && <ServiceTab node={node} nodes={nodes} readOnly={readOnly} onError={setError} />}
+        {tab === 'service' && isServer && <ServiceTab node={node} nodes={nodes} net={compiled.net} readOnly={readOnly} onError={setError} />}
         {tab === 'terminal' && <TerminalTab node={node} nodes={nodes} links={links} readOnly={readOnly} />}
       </div>
     </div>
   );
 }
 
+// アクセスしてきたアドレス（N146）: 届いた HTTP の送信元を、サーバーから見たアドレスで出す。NAPT で書き換えた通信は外のアドレス
+function SeenSources({ node, nodes, net }: { node: NetNode; nodes: NetNode[]; net: Network }) {
+  const store = useGameStore.getState();
+  // 画面の判定と同じ電波・壁の計算を使う
+  const engine = engineWithWalls(gameEnv.engine, store.maps[focusedProject(store)?.contract.map ?? 'hq']);
+  const http = node.services.find((s) => s.protocol === 'http');
+  if (!http) return null;
+  const clients = nodes.filter((n) => gameEnv.engine.categoryOf(n.device) === CATEGORY.pc).map((n) => n.uid);
+  const byUid = new Map(nodes.map((n) => [n.uid, n]));
+  const seen = seenSourcesOf(net, engine, node.uid, http.port, clients);
+  return (
+    <div style={{ marginTop: 6, fontSize: 13 }}>
+      <b>{t('ui.service.seen')}</b>
+      {seen.length === 0 && <div style={{ color: greyColor }}>{t('ui.service.seenNone')}</div>}
+      {seen.map((s) => {
+        const client = byUid.get(s.client);
+        return client ? <div key={s.client}>{t('ui.service.seenItem', { name: nodeLabel(store, client, nodes), ip: s.seenIp })}</div> : null;
+      })}
+    </div>
+  );
+}
+
 // サービスタブ（サーバーだけ）。HTTP を起動・停止する
-function ServiceTab({ node, nodes, readOnly, onError }: { node: NetNode; nodes: NetNode[]; readOnly: boolean; onError: (reason: string | null) => void }) {
+function ServiceTab({ node, nodes, net, readOnly, onError }: { node: NetNode; nodes: NetNode[]; net: Network; readOnly: boolean; onError: (reason: string | null) => void }) {
   const setService = useGameStore((s) => s.setService);
   const setDnsRole = useGameStore((s) => s.setDnsRole);
   const autoRegisterZone = useGameStore((s) => s.autoRegisterZone);
@@ -169,6 +193,7 @@ function ServiceTab({ node, nodes, readOnly, onError }: { node: NetNode; nodes: 
           {running ? t('ui.service.stop') : t('ui.service.start')}
         </button>
       </div>
+      {running && <SeenSources node={node} nodes={nodes} net={net} />}
       {node.configLocked && <div style={{ marginTop: 6 }}>{t('ui.service.locked')}</div>}
     </div>
   );

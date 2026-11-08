@@ -1,7 +1,7 @@
 // NAPT（N145）: 社内から外へ出る通信の送信元を外の口のアドレスに変え、戻りを社内へ戻す
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping } from './netState';
+import { ping, seenSourcesOf } from './netState';
 import type { Iface, NetNode, Network } from './types';
 
 const f = (port: number, ip: string, nat?: 'inside' | 'outside', prefix = 24): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix, ...(nat ? { nat } : {}) });
@@ -31,5 +31,26 @@ describe('NAPT（N145）', () => {
     const r = ping(build(false), gameEnv.engine, 'pc', 'net');
     expect(r.ok).toBe(false);
     expect(r.failure?.reason).toBe('nat.private_source');
+  });
+});
+
+describe('アクセスしてきたアドレス（N146）', () => {
+  // build() の外のネットワークのノードを、HTTP のサーバー（外の側）に置き換える
+  const withServer = (napt: boolean): Network => {
+    const base = build(napt);
+    return {
+      ...base,
+      nodes: base.nodes.map((node) =>
+        node.uid === 'net' ? { ...node, device: 'server_basic', services: [{ protocol: 'http' as const, port: 80 }] } : node,
+      ),
+    };
+  };
+
+  it('NAPT で書き換えた通信は、サーバーから外のアドレスに見える', () => {
+    expect(seenSourcesOf(withServer(true), gameEnv.engine, 'net', 80, ['pc'])).toEqual([{ client: 'pc', seenIp: '198.51.100.2' }]);
+  });
+
+  it('NAPT がなければ届かないため、サーバーには何も見えない', () => {
+    expect(seenSourcesOf(withServer(false), gameEnv.engine, 'net', 80, ['pc'])).toEqual([]);
   });
 });
