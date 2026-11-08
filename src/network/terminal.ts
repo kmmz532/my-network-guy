@@ -88,6 +88,18 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       if (routes.length === 0) return [out(tr('ui.terminal.ripNone'))];
       return routes.map((r) => out(tr('ui.terminal.ripRoute', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop })));
     }
+    if (sub === 'ip nat translations') {
+      // 設定から決まる変換（静的 NAT の転送と、NAPT の変換先）を出す。通信ごとの変換は保存しないため出さない（N146）
+      const outside = node.interfaces.find((i) => i.nat === 'outside');
+      const statics = node.statics ?? [];
+      if (!node.napt && statics.length === 0) return [out(tr('ui.terminal.natNone'))];
+      if (!outside) return [err(tr('ui.terminal.natNoOutside'))];
+      const lines: TerminalLine[] = statics.map((s) =>
+        out(tr('ui.terminal.natStatic', { outsideIp: outside.ip, outsidePort: s.port, insideIp: s.insideIp, insidePort: s.insidePort })),
+      );
+      if (node.napt) lines.push(out(tr('ui.terminal.natNapt', { outsideIp: outside.ip })));
+      return lines;
+    }
     if (sub === 'ip ospf neighbor') {
       const neighbors = ospfNeighborsOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
       if (neighbors.length === 0) return [out(tr('ui.terminal.ospfNone'))];
@@ -172,7 +184,8 @@ const WORDS: Record<string, string[]> = {
   '': ['help', 'show', 'ping', 'traceroute', 'ip', 'no', 'hostname', 'clear'],
   show: ['ip', 'interfaces', 'running-config', 'mac'],
   'show mac': ['address-table'],
-  'show ip': ['route', 'ospf'],
+  'show ip': ['route', 'ospf', 'nat'],
+  'show ip nat': ['translations'],
   'show ip rip': ['database'],
   'show ip ospf': ['neighbor'],
   ip: ['address', 'default-gateway', 'route'],

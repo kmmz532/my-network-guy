@@ -257,3 +257,33 @@ describe('show running-config に無線と RIP（N151・N141b）', () => {
     expect(texts.join(' ')).not.toContain('secret');
   });
 });
+
+describe('show ip nat translations（N146）', () => {
+  const router = (extra: Partial<NetNode>): NetNode => ({
+    ...pc('r1', null),
+    device: 'router_basic',
+    interfaces: [
+      { id: 'g0/0', kind: 'port', port: 0, ip: '192.168.1.1', prefix: 24, nat: 'inside' },
+      { id: 'g0/1', kind: 'port', port: 1, ip: '203.0.113.2', prefix: 30, nat: 'outside' },
+    ],
+    ...extra,
+  } as NetNode);
+
+  it('NAT の設定がなければ、その旨を出す', () => {
+    const r = router({});
+    expect(runTerminal('show ip nat translations', { node: r, nodes: [r], links: [], data }, tr)).toEqual([{ text: 'ui.terminal.natNone', kind: 'out' }]);
+  });
+
+  it('静的 NAT の転送と NAPT の変換先を、外の口のアドレスで出す', () => {
+    const r = router({ napt: true, statics: [{ port: 80, insideIp: '192.168.1.10', insidePort: 8080 }] });
+    expect(runTerminal('show ip nat translations', { node: r, nodes: [r], links: [], data }, tr).map((l) => l.text)).toEqual([
+      `ui.terminal.natStatic ${JSON.stringify({ outsideIp: '203.0.113.2', outsidePort: 80, insideIp: '192.168.1.10', insidePort: 8080 })}`,
+      `ui.terminal.natNapt ${JSON.stringify({ outsideIp: '203.0.113.2' })}`,
+    ]);
+  });
+
+  it('外の口がなければ失敗の行を出す', () => {
+    const r = router({ napt: true, interfaces: [] });
+    expect(runTerminal('show ip nat translations', { node: r, nodes: [r], links: [], data }, tr)).toEqual([{ text: 'ui.terminal.natNoOutside', kind: 'err' }]);
+  });
+});
