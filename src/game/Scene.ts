@@ -4,7 +4,6 @@ import { Application, Container, Graphics, Text, type Ticker } from 'pixi.js';
 import { type GameMap } from '../data/schema';
 import { focusedProject, viewingOffice, frontDeviceUid, useGameStore, type Trace } from '../stores/useGameStore';
 import { centerPath, plugPoints } from './linkHit';
-import { portLabel } from '../components/devicePorts';
 import { rangeTiles } from './effectRange';
 import { setMapView } from './mapView';
 import { gameEnv, isPcDevice } from '../sim/env';
@@ -24,8 +23,7 @@ import { levelOf } from '../sim/level';
 import { compiledNet, isDeskFurniture, type Project } from '../sim/project';
 import { colorOfLink, networkColors, type NetworkColors } from '../network/netColor';
 import type { Compiled, IssueDetail } from '../network/compile';
-import { visibleTopOfSprite } from './sprites';
-import { balance, devices as deviceData } from 'virtual:game-data';
+import { balance } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import type { FailureReason, NetLink, NetNode } from '../network/types';
 import { CAP as WALL_CAP, drawTileMap } from './TileMap';
@@ -46,6 +44,7 @@ import { STAFF_FRAME_MS } from './staffHit';
 import { DeviceRenderer } from './DeviceRenderer';
 import { CATEGORY } from '../data/categories';
 import { FurnitureRenderer } from './FurnitureRenderer';
+import { DeviceLabelRenderer } from './DeviceLabelRenderer';
 
 
 const OUTLINE = 0x3b2a33;
@@ -135,9 +134,11 @@ export class Scene {
   private releaseRotateKey: () => void;
   // 自社オフィスの社員の動き（出勤・休憩・歩き回り）
   private staffMotion = new OfficeStaffMotion();
+  // 置き物・社員・機器・機器ラベルは、それぞれの renderer に描画を委ねる
   private furnitureRenderer: FurnitureRenderer;
   private staffRenderer: StaffRenderer;
   private deviceRenderer: DeviceRenderer;
+  private deviceLabelRenderer: DeviceLabelRenderer;
 
   constructor(private app: Application) {
     const base = { app, content: this.content, map: () => this.map, tileSize: () => this.tileSize() };
@@ -174,6 +175,16 @@ export class Scene {
       elapsed: () => this.elapsed,
       deskAt: (x, y) => this.deskAt(x, y),
       deskFacingAt: (x, y) => this.deskFacingAt(x, y),
+    });
+    this.deviceLabelRenderer = new DeviceLabelRenderer({
+      bubbles: this.bubbles,
+      scale: () => this.content.scale.x,
+      textResolution: () => this.textResolution(),
+      compiled: () => this.compiled,
+      spriteTopOf: (node, ts) => this.spriteTopOf(node, ts),
+      tool: () => useGameStore.getState().tool,
+      hoverLink: () => this.input.hoverAnyLink,
+      hoverNode: () => this.input.hoverAnyNode,
     });
     // インベントリの欄（DOM）から、マスの判定と品目を置けるかを使えるようにする
     setMapView({ tileAtClient: (x, y) => this.hit.tileAtClient(x, y), canPlace: (id, tx, ty) => this.input.canPlace(id, tx, ty) });
@@ -601,14 +612,14 @@ export class Scene {
       const issue = this.issueOf(node, project);
       this.deviceRenderer.drawLed(node, ts, blinkOn, issue?.reason === 'ip.unset');
       // IPアドレスのない機器の表示は drawAddresses で出す。そのほかの不備には「？」を出す
-      if (issue && issue.reason !== 'ip.unset') this.drawBubble(node, ts, '?', WARN);
+      if (issue && issue.reason !== 'ip.unset') this.deviceLabelRenderer.drawBubble(node, ts, '?', WARN);
     }
 
     // 失敗の表示があるときは、その機器のIPの表示を出さない（重なるため）
     const failing = this.failureNodes(project);
     if (s.showIp) {
-      this.drawAddresses(project, ts, failing);
-      this.drawPortNames(project, ts);
+      this.deviceLabelRenderer.drawAddresses(ts, failing);
+      this.deviceLabelRenderer.drawPortNames(project, ts);
     }
     if (building) this.drawBuilding(project, ts);
     else if (this.map?.id === 'hq' && !s.showcase) {
@@ -643,45 +654,6 @@ export class Scene {
     return (onDesk ? node.y * ts + DESK_TOP : node.y * ts + ts - DEVICE_FOOT_INSET) - 38;
   }
 
-  // IPアドレスとプレフィックス長を、機器のスプライトの上端に重ねて出す。画面上の高さが約11pxになるよう拡大率で割る
-  private drawAddresses(project: Project, ts: number, failing: ReadonlyMap<string, FailureReason>): void {
-    const compiled = this.compiled;
-    if (!compiled) return;
-    const scale = this.content.scale.x;
-    // 画面上で 11 px の文字にする。拡大率で割り、解像度を拡大率と画面の密度に合わせて、にじませない
-    const fontPx = 11 / scale;
-    const dpr = window.devicePixelRatio || 1;
-    // 上の段（Y座標の小さい機器）のラベルを前面に出すため、Y座標の大きい順に描く
-    const nodes = [...compiled.net.nodes].sort((a, b) => b.y - a.y);
-    for (const node of nodes) {
-      // IPアドレスが2つ以上ある機器（スイッチ付きルーターの WAN と LAN）は、ポート名を添えて1行ずつ読めるようにする
-      const category = gameEnv.devices[node.device]?.category;
-      const ips = node.interfaces.map((i) => (node.interfaces.length > 1 ? `${portLabel(category, i.port)} ${i.ip}/${i.prefix}` : `${i.ip}/${i.prefix}`));
-      // IPアドレスのない機器は、未設定の印（灰色の「IP ---」）だけを出す
-      const unset = ips.length === 0 && compiled.issues[node.uid]?.reason === 'ip.unset';
-      if (ips.length === 0 && !unset) continue;
-      // 失敗の表示が出ている機器は、IPの表示を出さない
-      if (failing.has(node.uid)) continue;
-      // 3行を超えるときは2行に抑え、残りを「ほか n件」にまとめる
-      const lines = unset ? [t('ui.ip.blank')] : ips.length > 3 ? [...ips.slice(0, 2), t('ui.ip.more', { count: ips.length - 2 })] : ips;
-      const text = new Text({
-        text: lines.join('\n'),
-        // 背景は付けず、縁取りで文字を読めるようにする
-        // 行の高さを文字の大きさの1.3倍にし、行どうしが重ならないようにする
-        style: { fontFamily: 'monospace', fontSize: fontPx, lineHeight: fontPx * 1.3, fill: unset ? 0x9a9a9a : 0xf4f1e6, align: 'center', stroke: { color: OUTLINE, width: 2 / scale } },
-        resolution: Math.max(2, scale * dpr),
-      });
-      text.anchor.set(0.5, 1);
-      // 画像の上の透明な部分を飛ばし、見えている部分の上にラベルを置く（PCは上の透明部が多いため）
-      const visibleTop = visibleTopOfSprite(deviceData[node.device as keyof typeof deviceData]?.sprite ?? '');
-      const bottom = this.spriteTopOf(node, ts) + visibleTop + 4;
-      const cx = node.x * ts + ts / 2;
-      text.position.set(cx, bottom);
-      this.bubbles.addChild(text);
-    }
-    void project;
-  }
-
   // 自社オフィスでは、社員が机の前でキーボードを打つ
   private officeStaffHits(): StaffHit[] {
     return this.staffMotion.hits(this.map, this.elapsed, this.tileSize());
@@ -693,19 +665,6 @@ export class Scene {
       this.map?.id === 'hq' &&
       useGameStore.getState().office.furniture.some((f) => f.x === x && f.y === y && isDeskFurniture(f.id, gameEnv))
     );
-  }
-
-  private drawBubble(node: NetNode, ts: number, mark: string, color: number): void {
-    const scale = this.content.scale.x;
-    // 文字は倍率で割り、画面上で 12 px にする
-    const text = new Text({
-      text: mark,
-      style: { fontFamily: 'sans-serif', fontSize: 12 / scale, fontWeight: 'bold', fill: color, stroke: { color: OUTLINE, width: 3 / scale } },
-      resolution: this.textResolution(),
-    });
-    text.anchor.set(0.5, 1);
-    text.position.set(node.x * ts + ts / 2, node.y * ts - 2);
-    this.bubbles.addChild(text);
   }
 
   // 施工中の社員と進捗バー。施工前の機器と配線を順に回る
@@ -1122,37 +1081,6 @@ export class Scene {
     this.bubbles.addChild(text);
   }
 
-  // ケーブルの両端に、つないだポートの名前を出す（IPの表示と同じく showIp のときだけ）。
-  // 配線の道具を選んでいるとき、またはケーブルか機器にマウスを乗せたときだけ出す
-  private drawPortNames(project: Project, ts: number): void {
-    const s = useGameStore.getState();
-    const nodes = new Map(project.nodes.map((n) => [n.uid, n] as const));
-    for (const link of project.links) {
-      const relevant = s.tool === 'wire' || link.uid === this.input.hoverAnyLink || link.a.node === this.input.hoverAnyNode || link.b.node === this.input.hoverAnyNode;
-      if (!relevant) continue;
-      // マス単位の折れ線を、画面の中心（マップの座標）に直す。a の機器から始まる
-      const pts: Point[] = link.path.map(([x, y]) => ({ x: x * ts + ts / 2, y: y * ts + ts / 2 }));
-      this.portName(nodes.get(link.a.node), link.a.port, pts, ts);
-      this.portName(nodes.get(link.b.node), link.b.port, [...pts].reverse(), ts);
-    }
-  }
-
-  // ポートの名前を1つ描く。pts は、機器の中心（先頭）から始まる折れ線（マップの座標）。
-  // ポートが1つの機器には出さない。線の上で、機器から1マス先に置く
-  private portName(node: NetNode | undefined, port: number, pts: readonly Point[], ts: number): void {
-    if (!node || pts.length < 2) return;
-    if ((gameEnv.devices[node.device]?.portCount ?? 0) <= 1) return;
-    const at = pointAt(pts, cumulativeLengths(pts), ts);
-    const scale = this.content.scale.x;
-    const text = new Text({
-      text: portLabel(gameEnv.devices[node.device]?.category, port),
-      style: { fontFamily: 'sans-serif', fontSize: 11 / scale, fill: 0xf4f1e6, stroke: { color: OUTLINE, width: 2 / scale } },
-      resolution: this.textResolution(),
-    });
-    text.anchor.set(0.5, 0.5);
-    text.position.set(at.x, at.y);
-    this.bubbles.addChild(text);
-  }
 }
 
 // 色を target へ amount（0〜1）の割合で混ぜる

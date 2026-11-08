@@ -1,3 +1,4 @@
+// ネットワーク機器を描く。機器本体・机・ポート・選択枠・LEDを受け持つ。
 import { Container, Graphics, Sprite } from 'pixi.js';
 import { devices as deviceData } from 'virtual:game-data';
 import { gameEnv, isPcDevice } from '../sim/env';

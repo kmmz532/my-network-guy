@@ -1,3 +1,4 @@
+// 配置された家具を描く。向き・椅子・撤去時のホバー表示を受け持つ。
 import { Container, Sprite } from 'pixi.js';
 import { furniture as furnitureData } from 'virtual:game-data';
 import type { FurnitureId } from '../generated/ids';

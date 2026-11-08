@@ -1,3 +1,4 @@
+// 社員を描く。着席・歩行・施工中の位置と、社員の名札を受け持つ。
 import { Container, Graphics, Sprite, Text } from 'pixi.js';
 import { staffSpriteName, STAFF_PLACEHOLDER_LOOKS } from '../data/schema';
 import { seatedStaff, unseatedStaff } from '../sim/furniture';
