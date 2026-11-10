@@ -29,6 +29,7 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
   const setPortMode = useGameStore((s) => s.setPortMode);
   const setWireless = useGameStore((s) => s.setWireless);
   const learnPing = useGameStore((s) => s.learnPing);
+  const showTrace = useGameStore((s) => s.showTrace);
   const netKey = useGameStore((s) => s.focus ?? 'office');
   const arp = useGameStore((s) => s.arpTable[`${netKey}:${node.uid}`]);
   const macTable = useGameStore((s) => s.macTable[`${netKey}:${node.uid}`]);
@@ -105,7 +106,21 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
     } else if (parsed.kind === 'error') {
       out = [{ text: parsed.text, kind: 'err' }];
     } else {
-      out = runTerminal(line, { node, nodes, links, data: engineWithWalls(gameEnv.engine, state.maps[focusedProject(state)?.contract.map ?? 'hq']), nameOf: (n) => nodeLabel(state, n, nodes), arp, macTable, onReach: (dst) => learnPing(node.uid, dst) }, tr);
+      out = runTerminal(
+        line,
+        {
+          node,
+          nodes,
+          links,
+          data: engineWithWalls(gameEnv.engine, state.maps[focusedProject(state)?.contract.map ?? 'hq']),
+          nameOf: (n) => nodeLabel(state, n, nodes),
+          arp,
+          macTable,
+          onReach: (dst) => learnPing(node.uid, dst),
+          onTrace: showTrace,
+        },
+        tr,
+      );
     }
     setHistory((h) => [...h, { text: `> ${line}`, kind: 'out' }, ...out]);
   };

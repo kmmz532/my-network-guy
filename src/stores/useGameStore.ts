@@ -123,6 +123,8 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   maps: Record<string, GameMap>;
   // 直近の検収結果（保存しない）
   lastReport: Report | null;
+  // ターミナルなどから実行した通信を画面に流す（保存しない）
+  showTrace: (trace: Trace) => void;
   // 画面に出す通知の列（給与の支払いなど。N96）。保存しない
   notices: NoticeItem[];
   // 設計の取り消しの履歴（案件ごと・自社オフィスごと）。保存しない
@@ -211,6 +213,7 @@ export const useGameStore = create<GameState>((set, get, api) => {
     pausedPrompt: false,
     maps: { hq: mapOfOffice(initialOffice(balance)) },
     lastReport: null,
+    showTrace: (trace) => set({ traces: [trace] }),
     notices: [],
     histories: {},
     historyError: null,

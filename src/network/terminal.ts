@@ -9,6 +9,7 @@ import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
 import { learnedRoutesOf, macTableOf, ospfNeighborsOf } from './netState';
+import type { Trace } from '../sim/project';
 
 export interface TerminalContext {
   node: NetNode;
@@ -23,6 +24,8 @@ export interface TerminalContext {
   macTable?: MacEntry[];
   // 通信が届いたときに呼ぶ（宛先の機器の uid）。画面が ARP と MAC の表を覚えるために使う（N69）
   onReach?: (dstUid: string) => void;
+  // ping・traceroute の経路を画面上でパケットとして流す
+  onTrace?: (trace: Trace) => void;
 }
 
 export type Tr = (key: string, params?: Record<string, string | number>) => string;
@@ -164,6 +167,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
     const target = ctx.nodes.find((n) => n.interfaces.some((i) => i.ip === ip));
     if (!target) return [err(tr('ui.terminal.noHost', { ip: given }))];
     const result = ping({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid, target.uid);
+    ctx.onTrace?.({ kind: 'ping', src: node.uid, dst: target.uid, result });
     if (result.ok) ctx.onReach?.(target.uid);
     if (cmd === 'ping') {
       if (result.ok) return [...header, out(tr('ui.terminal.pingOk', { ip: given }))];

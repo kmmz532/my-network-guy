@@ -71,6 +71,14 @@ describe('ターミナルのコマンド', () => {
     expect(lines[1].text).toBe('error.link.unplugged');
   });
 
+  it('ping は成功・失敗にかかわらず画面表示用の経路を通知する', () => {
+    const traces: Array<{ src: string; dst: string; result: { ok: boolean } }> = [];
+    const ctx = { node: nodes[0], nodes, links, data, onTrace: (trace: (typeof traces)[number]) => traces.push(trace) };
+    runTerminal('ping 192.168.1.11', ctx, tr);
+    expect(traces).toHaveLength(1);
+    expect(traces[0]).toMatchObject({ src: 'a', dst: 'b', result: { ok: true } });
+  });
+
   it('引数が合わない・宛先がない・知らないコマンドは、理由を出す', () => {
     const ctx = { node: nodes[0], nodes, links, data };
     expect(runTerminal('ping', ctx, tr)).toEqual([{ text: 'ui.terminal.usagePing', kind: 'err' }]);
