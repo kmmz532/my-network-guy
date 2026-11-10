@@ -727,7 +727,12 @@ export const channelOverlapsOf = (net: Network, data: EngineData): { a: string; 
 };
 
 // 機器が動的経路（RIP・OSPF）で覚えた経路（show ip rip database・show ip route に使う）
-export const learnedRoutesOf = (net: Network, data: EngineData, uid: string, protocol: 'rip' | 'ospf'): Route[] => new Topology(net, data).routesOf(uid).filter((r) => r.protocol === protocol);
+export const learnedRoutesOf = (
+  net: Network,
+  data: EngineData,
+  uid: string,
+  protocol: 'rip' | 'ospf' | 'bgp',
+): Route[] => new Topology(net, data).routesOf(uid).filter((r) => r.protocol === protocol);
 
 // スイッチの MAC の表（show mac address-table）: 口ごとに、同じ L2 のドメインにつながった端末の MAC（段2の計算の結果。ping の学習ではない・NET.md §5.10）
 export const macTableOf = (net: Network, data: EngineData, uid: string): { port: number; mac: string }[] => {

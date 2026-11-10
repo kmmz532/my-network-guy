@@ -74,6 +74,11 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       );
       if (node.gateway) lines.push(out(tr('ui.terminal.routeStatic', { dest: '0.0.0.0', prefix: 0, nextHop: node.gateway })));
       for (const r of node.routes) lines.push(out(tr('ui.terminal.routeStatic', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop })));
+      for (const protocol of ['rip', 'ospf', 'bgp'] as const) {
+        for (const r of learnedRoutesOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid, protocol)) {
+          lines.push(out(tr(`ui.terminal.route${protocol[0].toUpperCase()}${protocol.slice(1)}`, { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop })));
+        }
+      }
       return lines.length > 0 ? lines : [out(tr('ui.terminal.noRoute'))];
     }
     if (sub === 'mac address-table') {
