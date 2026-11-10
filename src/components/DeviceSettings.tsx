@@ -5,6 +5,7 @@ import { nodeLabel } from './nodeLabel';
 import { useState } from 'react';
 import { t, tDyn } from '../i18n/t';
 import { AddressInput } from './AddressInput';
+import { ComboBox } from './ComboBox';
 import { PixelSelect } from './PixelControls';
 import { primaryButton } from './Modal';
 import { dangerButton } from './Modal';
@@ -23,7 +24,7 @@ import { coreOf, focusedProject, netTargetOf, plannedKey, useGameStore } from '.
 import { buttonStyle, greyColor, hexColor, inputStyle, isIpText, portLabel, sectionStyle, unsetColor } from './devicePorts';
 import { CATEGORY } from '../data/categories';
 
-// ネットワークアドレスの候補（sim-3: 192.168.<n>.0）と、プレフィックス長の候補（/24〜/30）
+// ネットワークの既定候補（入力欄から任意のネットワークも指定できる）
 const NETWORK_CHOICES = Array.from({ length: 16 }, (_, i) => `192.168.${i + 1}.0`);
 const PREFIX_CHOICES = [24, 25, 26, 27, 28, 29, 30];
 
@@ -81,9 +82,22 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   // セグメントの設定は、配線のときと同じく IPアドレスから補う（fillSegments）
   const commitIp = (port: number, ip: string): string | null => {
     const cfg = cfgOf(port);
-    const prefix = cfg ? cfg.prefix : (planned[plannedKey(node.uid, port)]?.prefix ?? PLANNED_PREFIX);
+    const plan = planned[plannedKey(node.uid, port)];
+    const prefix = cfg ? cfg.prefix : (plan?.prefix ?? PLANNED_PREFIX);
     const reason = setIface(node.uid, port, ip, prefix);
-    if (!reason) setPlanned(node.uid, port, null);
+    if (reason) return reason;
+    // 未設定または初期値の /24 なら、入力した IP からネットワークを決める。
+    // /25〜/30 や、詳しく設定した別ネットワークはプレイヤーの指定を優先する。
+    const canAutoSet =
+      prefix === PLANNED_PREFIX &&
+      (!plan || (plan.network === PLANNED_NETWORK && plan.prefix === PLANNED_PREFIX)) &&
+      (!cfg || (cfg.network === PLANNED_NETWORK && cfg.prefix === PLANNED_PREFIX));
+    if (canAutoSet) {
+      const autoNetwork = networkAddress(ip, prefix);
+      const segmentReason = setSegment(node.uid, port, autoNetwork, prefix);
+      if (segmentReason) return segmentReason;
+    }
+    setPlanned(node.uid, port, null);
     return reason;
   };
 
@@ -118,7 +132,10 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
       setPlanned(node.uid, port, next);
       if (iface) onError(setIface(node.uid, port, ''));
     };
-    const networks = cfg && !NETWORK_CHOICES.includes(cfg.network) ? [...NETWORK_CHOICES, cfg.network] : NETWORK_CHOICES;
+    const networkOptions: ComboOption[] = [
+      ...NETWORK_CHOICES,
+      ...(NETWORK_CHOICES.includes(shown.network) ? [] : [shown.network]),
+    ].map((network) => ({ value: network, usedBy: null }));
     return (
       <div key={port} style={unlinkedRouter ? { ...sectionStyle, opacity: 0.45 } : sectionStyle}>
         {heading}
@@ -147,15 +164,17 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
         </div>
         {detailOpen && (
           <div style={row}>
-            <PixelSelect<string>
-              ariaLabel={t('ui.config.network')}
+            <ComboBox
+              label={t('ui.config.network')}
               value={shown.network}
+              options={networkOptions}
               disabled={locked || unlinkedRouter}
-              options={networks.map((n) => ({ value: n, label: n }))}
-              onChange={(v) => {
-                // 設定があれば、セグメントのネットワークを変える。なければ、詳しくで選んだ値として覚える
-                if (cfg) onError(setSegment(node.uid, port, v, cfg.prefix));
-                else changePlanned({ ...shown, network: v });
+              isValid={(network) => isIpText(network) && networkAddress(network, shown.prefix) === network}
+              formatError={t('ui.error.ip')}
+              onCommit={(network) => {
+                if (cfg) return setSegment(node.uid, port, network, cfg.prefix);
+                changePlanned({ ...shown, network });
+                return null;
               }}
             />
             <PixelSelect<number>
