@@ -17,6 +17,7 @@
   "category.router": "ルーター",
   "category.router_switch": "スイッチ付きルーター",
   "category.server": "サーバー",
+  "category.uplink": "回線終端",
   "cert.net1.name": "ネットワーク技術者 初級",
   "cert.sec1.name": "セキュリティ技術者 初級",
   "contract.c001_direct_link.hint": "2台を同じネットワークのアドレスにしよう（例: 192.168.1.10 と 192.168.1.11）",
