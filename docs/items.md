@@ -19,6 +19,7 @@
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/l3_switch.png" width="72" alt="L3スイッチ"> | L3スイッチ | 130,000円 | LAN 8口・SFP 2口 | ルーティング、L3（VLAN ごとの SVI で中継する） | Lv20 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/router_basic.png" width="72" alt="ルーター"> | ルーター | 60,000円 | LAN 4口 | ルーティング | Lv4 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/router_sfp.png" width="72" alt="SFP対応ルーター"> | SFP対応ルーター | 65,000円 | LAN 4口・SFP 1口 | ルーティング | Lv16 |
+| <img style="image-rendering: pixelated" src="../src/assets/sprites/device/vpn_router.png" width="72" alt="エッジルーター"> | エッジルーター | 70,000円 | LAN 4口・SFP 2口 | ルーティング、BGP | Lv30 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/router_switch.png" width="72" alt="スイッチ付きルーター"> | スイッチ付きルーター | 80,000円 | WAN 1口、LAN 4口 | ルーティング、スイッチ | Lv9 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/home_router.png" width="72" alt="家庭用ルーター"> | 家庭用ルーター | 80,000円 | WAN 1口、LAN 4口 | ルーティング、スイッチ、ファイアウォール | Lv20 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/home_router_ap.png" width="72" alt="無線付き家庭用ルーター"> | 無線付き家庭用ルーター | 110,000円 | WAN 1口、LAN 4口 | ルーティング、スイッチ、ファイアウォール、無線 | Lv30 |
@@ -35,6 +36,17 @@ L2スイッチは、同じネットワーク内の機器をまとめてつなぎ
 アクセスポイントは、有線の LAN につなぎ、電波の届く範囲にある無線対応の機器を同じネットワークに結びます。電波は壁で弱まります。無線対応のパソコンは、ケーブルの代わりに電波でアクセスポイントにつながります。
 
 ファイアウォールは、通過する通信を規則で止めたり、通したりします。外部と内部の間に置きます。DMZ付きファイアウォールは、公開用のサーバーを、社内のネットワークから分けて守ります。
+
+### 動的ルーティングに対応する機器
+
+| 機器 | RIP | OSPF | BGP |
+| --- | --- | --- | --- |
+| ルーター | ○ | ○ | — |
+| SFP対応ルーター | ○ | ○ | — |
+| エッジルーター | ○ | ○ | ○ |
+| L3スイッチ | ○ | ○ | — |
+
+RIP と OSPF は、複数のルーターや L3 スイッチが経路を自動的に覚えるための機能です。BGP は AS 番号と隣接相手を設定して、組織や ISP など別のネットワークとの経路を交換する機能です。業務用ルーターは社内向け、エッジルーターは外部接続向けで、BGPはエッジルーターだけが対応します。現在のゲームでは、OSPF のエリアはエリア 0 のみです。スイッチ付きルーター、家庭用ルーター、ファイアウォール、L2スイッチは、これらの動的ルーティングには対応していません。
 
 ## 家具
 家具はポートや配線を使いません。オフィスの中に置いて、社員の施工力などを変えます。

@@ -8,7 +8,6 @@
         "subif",
         "routing",
         "ospf",
-        "bgp",
         "nat",
         "dhcpRelay",
         "wan",
@@ -37,7 +36,6 @@
         "subif",
         "routing",
         "ospf",
-        "bgp",
         "nat",
         "dhcpRelay",
         "wan",
@@ -62,6 +60,40 @@
       ],
       "sprite": "device/router_sfp",
       "unlockLevel": 16
+    },
+    {
+      "id": "edge_router",
+      "category": "router",
+      "capabilities": [
+        "routedPort",
+        "subif",
+        "routing",
+        "ospf",
+        "bgp",
+        "nat",
+        "dhcpRelay",
+        "wan",
+        "rip"
+      ],
+      "deskable": false,
+      "price": 70000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 4,
+          "speedMbps": 1000
+        },
+        {
+          "type": "sfp",
+          "count": 2,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [
+        "routing"
+      ],
+      "sprite": "device/edge_router",
+      "unlockLevel": 30
     }
   ]
 }

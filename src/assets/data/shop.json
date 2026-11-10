@@ -16,6 +16,12 @@
       "device": "router_basic"
     },
     {
+      "device": "router_sfp"
+    },
+    {
+      "device": "edge_router"
+    },
+    {
       "cable": "fiber_sm"
     },
     {
