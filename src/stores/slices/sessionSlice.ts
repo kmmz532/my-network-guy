@@ -68,6 +68,7 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
         staffSeq: save.staffSeq,
         candidates: save.candidates,
         guidesDone: save.guidesDone,
+        sandboxLesson: save.sandboxLesson,
         maps: { ...get().maps, hq: mapOfOffice(save.office) },
         guideTarget: null,
         lastReport: null,
@@ -113,6 +114,7 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
           office: initialOffice(balance),
           effects: noEffects(),
           guidesDone: [],
+          sandboxLesson: null,
           maps: { ...s.maps, hq: mapOfOffice(initialOffice(balance)) },
           guideTarget: null,
           lastReport: null,
@@ -163,6 +165,7 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
           office,
           effects: noEffects(),
           guidesDone: [],
+          sandboxLesson: null,
           guideTarget: null,
           maps: { ...s.maps, hq: mapOfOffice(office) },
           speed: 0,
@@ -222,6 +225,7 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
         staffSeq: s.staffSeq,
         candidates: s.candidates,
         guidesDone: s.guidesDone,
+        sandboxLesson: s.sandboxLesson,
       };
     },
   };

@@ -26,7 +26,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 46;
+export const SAVE_VERSION = 47;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -119,12 +119,22 @@ export interface SaveData {
   candidates: Staff[];
   // 初めての概念の案内を終えた（または飛ばした）固定案件のID
   guidesDone: string[];
+  // サンドボックスで開いている教材（なければ null）
+  sandboxLesson: SandboxLesson | null;
+}
+
+export interface SandboxLesson {
+  id: string;
+  step: number;
+  done: boolean;
 }
 
 type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v46 → v47: サンドボックスで開いている教材を追加する。移行前は開いていない
+  46: (data) => ({ ...(data as object), sandboxLesson: null }),
   // v1 → v2: 在庫と完了案件を追加する
   1: (data) => ({ ...(data as object), owned: {}, completed: [] }),
   // v2 → v3: 依頼と乱数の状態を追加する
@@ -421,6 +431,12 @@ const isOfficeSize = (value: unknown): boolean => {
   return typeof s === 'object' && s !== null && Number.isInteger(s.w) && Number.isInteger(s.h);
 };
 
+const isSandboxLesson = (value: unknown): boolean => {
+  if (value === null) return true;
+  const l = value as { id?: unknown; step?: unknown; done?: unknown } | undefined;
+  return typeof l === 'object' && typeof l.id === 'string' && Number.isInteger(l.step) && typeof l.done === 'boolean';
+};
+
 // 依頼の形（保存の中身の検査。案件の本体は、読み込みのあとで案件の定義と照らす）
 const isOfferShape = (value: unknown): boolean => {
   const o = value as Record<string, unknown> | null;
@@ -481,6 +497,7 @@ export const isSaveData = (value: unknown): value is SaveData => {
     Array.isArray(v.candidates) &&
     Array.isArray(v.guidesDone) &&
     v.guidesDone.every((id) => typeof id === 'string') &&
+    isSandboxLesson(v.sandboxLesson) &&
     Array.isArray((v.office as { furniture?: unknown } | undefined)?.furniture) &&
     isOfficeSize((v.office as { size?: unknown }).size) &&
     Array.isArray((v.office as { innerWalls?: unknown }).innerWalls) &&

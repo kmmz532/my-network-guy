@@ -47,6 +47,7 @@ const sample: SaveData = {
   staffSeq: 2,
   candidates: [],
   guidesDone: ['c001_direct_link'],
+  sandboxLesson: null,
 };
 
 // v21 までの形（評判 reputation）。古い版から移行するテストの入力に使う
@@ -582,5 +583,14 @@ describe('v45 → v46（光ファイバーは SFP の口だけ）', () => {
   it('SFP の口がない機器（PC）につながる光ファイバーは、LAN ケーブルに置き換える', () => {
     const out = migrate(45, { ...rest, active: [], office: { ...sample.office, nodes: [mk('p', 'pc_basic', 0), mk('s1', 'l3_switch', 2)], links: [fiber('f', 'p', 0, 's1', 0)] } });
     expect(out.office.links[0].cable).toBe('utp_cat5e');
+  });
+});
+
+describe('v46 → v47（サンドボックスの教材）', () => {
+  it('開いている教材は null に移行し、形が正しくなければ拒否する', () => {
+    const { sandboxLesson: _l, ...v46 } = sample;
+    expect(migrate(46, v46).sandboxLesson).toBeNull();
+    expect(migrate(SAVE_VERSION, { ...sample, sandboxLesson: { id: 'ospf_three_sites', step: 2, done: false } }).sandboxLesson?.step).toBe(2);
+    expect(() => migrate(SAVE_VERSION, { ...sample, sandboxLesson: { id: 1 } })).toThrow();
   });
 });

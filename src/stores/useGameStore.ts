@@ -7,7 +7,7 @@ import { balance } from 'virtual:game-data';
 import { initialClock, type ClockState } from '../sim/clock';
 import type { Offer } from '../contracts/template';
 import type { GameMap, JobId, Staff } from '../data/schema';
-import { DEFAULT_COMPANY_NAME, type GameMode } from '../services/migrations';
+import { DEFAULT_COMPANY_NAME, type GameMode, type SandboxLesson } from '../services/migrations';
 
 import { type NoticeItem } from '../ui/notices';
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
@@ -77,6 +77,8 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   expToday: number;
   // デバッグ（N54）: 案内を開始する手順（一度だけ使う。保存しない）
   debugGuide: { id: string; step: number } | null;
+  // サンドボックスで開いている教材（null は自由な設計。セーブに入る）
+  sandboxLesson: SandboxLesson | null;
   owned: Record<string, number>;
   completed: string[];
   // 納品した案件の数（N66）
@@ -186,6 +188,7 @@ export const useGameStore = create<GameState>((set, get, api) => {
     expDay: 0,
     expToday: 0,
     debugGuide: null,
+    sandboxLesson: null,
     owned: { ...balance.initialStock },
     completed: [],
     deliveries: 0,
