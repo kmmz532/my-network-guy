@@ -1,10 +1,10 @@
 // 候補つきの入力欄（コンボボックス）。欄を押すと候補の一覧が欄の下に開き、打った文字で始まる候補に絞る。
 // 確定は、候補を押したとき・Enter（強調した候補がなければ打った値）・欄を離れたとき。
 // 形が正しくなければ理由を赤い文字で出し、直前の値に戻す。Esc は一覧を閉じて入力前の値に戻す。
-// スマホでは、欄を押してもキーボードを開かず候補だけを開く（N62）。一覧の下端の「キーボードで入力…」を押したときだけ、キーボードを出す。
+// スマホ・タッチの端末では、欄を押してもキーボードを開かず候補だけを開く（N62）。一覧の下端の「キーボードで入力…」を押したときだけ、キーボードを出す。
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { t, tDyn } from '../i18n/t';
-import { usePhone } from '../ui/usePhone';
+import { useCoarsePointer, usePhone } from '../ui/usePhone';
 import { filterOptions, isSelectable, listHeight, moveActive, pickOnCommit, placeAbove, type ComboOption } from './comboOptions';
 import { inputStyle, unsetColor } from './devicePorts';
 import { OptionList, ROW_PX, LIST_MAX, type OptionAnchor } from './OptionList';
@@ -36,6 +36,8 @@ export function ComboBox({ label, value, options, disabled, isValid, formatError
   const id = useId();
   const listId = `${id}-list`;
   const phone = usePhone();
+  // 指で操作する端末（iPad など、画面が広くても）は、キーボードを開かない
+  const touch = useCoarsePointer();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   // 打ってから確定するまでは、打った文字で候補を絞る
@@ -50,7 +52,7 @@ export function ComboBox({ label, value, options, disabled, isValid, formatError
   // キーボードを出すために欄のフォーカスを付け直すとき、欄を離れた扱いで確定しないための印
   const skipBlurCommit = useRef(false);
   // スマホで候補が1つ以上あるとき、欄を押してもキーボードを開かない（候補だけを開く）
-  const keyboardOff = phone && !keyboard && options.length > 0;
+  const keyboardOff = (phone || touch) && !keyboard && options.length > 0;
 
   // 外から値が変わったとき（候補から選んだときなど）は欄を揃える
   useEffect(() => {

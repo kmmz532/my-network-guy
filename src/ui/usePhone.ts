@@ -18,3 +18,17 @@ export function usePhone(): boolean {
   }, []);
   return phone;
 }
+
+// 指で操作する端末か（画面の大きさに関係なく、タッチの端末。iPad など）。キーボードを開くかどうかの判定に使う
+export const COARSE_QUERY = '(pointer: coarse)';
+
+export function useCoarsePointer(): boolean {
+  const [coarse, setCoarse] = useState(() => window.matchMedia(COARSE_QUERY).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(COARSE_QUERY);
+    const onChange = () => setCoarse(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return coarse;
+}
