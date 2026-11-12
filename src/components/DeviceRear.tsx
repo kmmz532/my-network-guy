@@ -7,7 +7,7 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { spriteOf, spriteUrl } from '../game/sprites';
 import { t, tDyn } from '../i18n/t';
-import type { End } from '../sim/project';
+import { portTypeOf, type End } from '../sim/project';
 import { gameEnv } from '../sim/env';
 import type { NetLink, NetNode } from '../network/types';
 import type { Network } from '../network/types';
@@ -27,7 +27,8 @@ const scaleFor = (ports: number): number => (ports > 4 ? 2 : 3);
 const portsPerRowFor = (ports: number): number => (ports > 8 ? 6 : 8);
 
 // プラグの絵（つながっていれば UTP か光、空いていれば空の差し込み口）
-const plugSlot = (link: NetLink | undefined): string => (!link ? 'rear/port_empty' : link.cable.startsWith('fiber') ? 'rear/port_sfp_empty' : 'rear/port_empty');
+// 差し込み口の絵。SFP の口は、挿していなくても SFP の絵で描く（口の種類は定義どおり）
+const plugSlot = (link: NetLink | undefined, sfp: boolean): string => (!link ? (sfp ? 'rear/port_sfp_empty' : 'rear/port_empty') : link.cable.startsWith('fiber') ? 'rear/port_sfp_empty' : 'rear/port_empty');
 
 // 画面に出すドラッグの途中の状態（プラグの絵の位置・いま重なっているポート）
 interface Carry {
@@ -119,7 +120,7 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
     if (!grabbable || !link) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    const slot = plugSlot(link);
+    const slot = plugSlot(link, portTypeOf(gameEnv, node.device, p) === 'sfp');
     const fiber = link.cable.startsWith('fiber');
     const networks = networksOfLink(colors, link.uid);
     const end: End = link.a.node === node.uid ? 'a' : 'b';
@@ -182,7 +183,7 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
             const link = linkAt(p);
             // ドラッグ中のプラグは、元の差し込み口を空の絵で見せる（LED も消す）
             const lifted = carry?.port === p;
-            const slot = lifted ? 'rear/port_empty' : plugSlot(link);
+            const slot = lifted ? (portTypeOf(gameEnv, node.device, p) === 'sfp' ? 'rear/port_sfp_empty' : 'rear/port_empty') : plugSlot(link, portTypeOf(gameEnv, node.device, p) === 'sfp');
             const linkNetworks = link ? networksOfLink(colors, link.uid) : [];
             const stripeNetworks = linkNetworks.slice(0, 3);
             const stripeColors = stripeNetworks.map((network) => colorOfNetwork(colors, network) ?? colorOfLink(colors, link!.uid));

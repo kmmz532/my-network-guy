@@ -745,10 +745,11 @@ const usedPorts = (links: readonly NetLink[], node: NetNode): Set<number> => {
   return used;
 };
 
-// 機器の空いているポートのうち、最も小さい番号を返す
-const freePort = (links: NetLink[], node: NetNode, env: Env): number | null => {
+// 機器の空いているポートのうち、ケーブルの口の種類と合う最も小さい番号を返す（合う口がなければ、空きの最小番号。種類の不一致は配線の判定が理由を出す）
+const freePort = (links: NetLink[], node: NetNode, env: Env, cablePort: string): number | null => {
   const used = usedPorts(links, node);
   const count = env.devices[node.device].portCount;
+  for (let port = 0; port < count; port++) if (!used.has(port) && portTypeOf(env, node.device, port) === cablePort) return port;
   for (let port = 0; port < count; port++) if (!used.has(port)) return port;
   return null;
 };
@@ -763,8 +764,8 @@ export interface PortChoice {
 // 機器の口の種類（定義にない機器・口は rj45）
 export const portTypeOf = (env: Env, device: string, port: number): string => env.devices[device]?.portTypes?.[port] ?? 'rj45';
 
-const choosePort = (links: NetLink[], node: NetNode, env: Env, want: number | undefined): number | string => {
-  if (want === undefined) return freePort(links, node, env) ?? 'port';
+const choosePort = (links: NetLink[], node: NetNode, env: Env, want: number | undefined, cablePort: string): number | string => {
+  if (want === undefined) return freePort(links, node, env, cablePort) ?? 'port';
   const count = env.devices[node.device].portCount;
   if (!Number.isInteger(want) || want < 0 || want >= count) return 'port';
   return usedPorts(links, node).has(want) ? 'portUsed' : want;
@@ -795,12 +796,12 @@ export const checkConnect = (
     env.devices[x.device]?.category === 'uplink' && !can(y.device, 'wan') ? 'uplink.no_wan' : null;
   const uplinkBad = uplinkRule(a, b) ?? uplinkRule(b, a);
   if (uplinkBad) return uplinkBad;
-  const portA = choosePort(net.links, a, env, ports.a);
-  if (typeof portA === 'string') return portA;
-  const portB = choosePort(net.links, b, env, ports.b);
-  if (typeof portB === 'string') return portB;
   // ケーブルの口の種類（光ファイバーは sfp の口だけ）が、両端の口と合うか（N-sfp）
   const cablePort = cable.port ?? 'rj45';
+  const portA = choosePort(net.links, a, env, ports.a, cablePort);
+  if (typeof portA === 'string') return portA;
+  const portB = choosePort(net.links, b, env, ports.b, cablePort);
+  if (typeof portB === 'string') return portB;
   if (portTypeOf(env, a.device, portA) !== cablePort || portTypeOf(env, b.device, portB) !== cablePort) return 'cable.port_type';
   return null;
 };
@@ -835,8 +836,8 @@ export const connect = (
   const length = cableLengthOf(a, b);
   const listCost = cableCost(cable, length);
   const cost = paidCable(core, listCost);
-  const chosenA = choosePort(net.links, a, env, ports.a);
-  const chosenB = choosePort(net.links, b, env, ports.b);
+  const chosenA = choosePort(net.links, a, env, ports.a, cable.port ?? 'rj45');
+  const chosenB = choosePort(net.links, b, env, ports.b, cable.port ?? 'rj45');
   if (typeof chosenA === 'string') return fail(chosenA);
   if (typeof chosenB === 'string') return fail(chosenB);
   const portA = chosenA;

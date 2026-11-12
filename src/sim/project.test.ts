@@ -976,3 +976,37 @@ describe('任せて受注したときの画面の対象（N111）', () => {
     expect(keepFocus(before, { ok: false, reason: 'crew' })).toEqual({ ok: false, reason: 'crew' });
   });
 });
+
+describe('SFP の口（口の種類）', () => {
+  // router_sfp は RJ45 の4口の後に SFP の1口（口の番号 4）
+  const sfpEnv: Env = {
+    ...env,
+    devices: { ...env.devices, router_sfp: { ...env.devices.router_sfp, portTypes: ['rj45', 'rj45', 'rj45', 'rj45', 'sfp'] } },
+    cables: { ...env.cables, fiber_sm: { ...env.cables.fiber_sm, port: 'sfp' }, utp_cat5e: { ...env.cables.utp_cat5e, port: 'rj45' } },
+  };
+  const withRouters = (): { core: Core; r1: string; r2: string } => {
+    let core: Core = ok(take({ ...start(), owned: { router_sfp: 2 } }, 'c001_direct_link')).core;
+    core = ok(placeDevice(core, 'router_sfp', 6, 6, map, sfpEnv)).core;
+    core = ok(placeDevice(core, 'router_sfp', 7, 6, map, sfpEnv)).core;
+    const [r1, r2] = focusedOf(core)!.nodes.filter((n) => n.device === 'router_sfp').map((n) => n.uid);
+    return { core, r1, r2 };
+  };
+
+  it('光ファイバーは、ポートを指定しなくても SFP の口につながる', () => {
+    const { core, r1, r2 } = withRouters();
+    const next = ok(connect(core, r1, r2, 'fiber_sm', sfpEnv)).core;
+    expect(focusedOf(next)!.links[0]).toMatchObject({ a: { port: 4 }, b: { port: 4 } });
+  });
+
+  it('LAN ケーブルは、ポートを指定しなくても RJ45 の口につながる', () => {
+    const { core, r1, r2 } = withRouters();
+    const next = ok(connect(core, r1, r2, 'utp_cat5e', sfpEnv)).core;
+    expect(focusedOf(next)!.links[0]).toMatchObject({ a: { port: 0 }, b: { port: 0 } });
+  });
+
+  it('UTP を SFP の口に指定すると、口の種類の不一致で拒否する', () => {
+    const { core, r1, r2 } = withRouters();
+    expect(checkConnect(core, r1, r2, 'utp_cat5e', sfpEnv, 'focus', { a: 4 })).toBe('cable.port_type');
+    expect(connect(core, r1, r2, 'utp_cat5e', sfpEnv, 'focus', { b: 4 })).toEqual({ ok: false, reason: 'cable.port_type' });
+  });
+});
