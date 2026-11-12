@@ -31,6 +31,7 @@ import type {
   FailureReason,
   FirewallRule,
   Iface,
+  IspLine,
   NetLink,
   NetNode,
   PathResult,
@@ -1086,6 +1087,18 @@ export const setOspf = (core: Core, uid: string, change: OspfOp, target: NetTarg
       const prev = node.ospf ?? {};
       const next = change.op === 'routerId' ? { ...prev, routerId: change.ip ?? undefined } : { ...prev, defaultOriginate: change.on };
       return { ...node, ospf: next };
+    },
+    target,
+  );
+
+// 回線終端の回線の情報（ISP の名前・アドレス・AS 番号）。回線終端だけに設定できる
+export const setIsp = (core: Core, uid: string, line: IspLine, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      if (!isIp(line.ispIp)) return 'ip';
+      return { ...node, isp: line };
     },
     target,
   );

@@ -1,6 +1,6 @@
 // 機器・配線・設定の設計の操作。成功したものは履歴に積み、失敗したら理由を返す。
 import { playConnect, playFail } from '../../audio/sfx';
-import type { FirewallRule, Route } from '../../network/types';
+import type { FirewallRule, IspLine, Route } from '../../network/types';
 import { gameEnv } from '../../sim/env';
 import { isPcDevice } from '../../sim/env';
 import { pcDesksOf } from '../../sim/furniture';
@@ -12,7 +12,7 @@ import { lessonLinks, lessonNodes } from '../../sim/lesson';
 import { mapOfOffice } from '../../sim/office';
 
 import { closeRef } from '../../ui/windows';
-import { type PortChoice, connect, removeNode, removeFromOffice, setInterface, setSvi, setPortMode, setGateway, setRouting, setOspf, type OspfOp, setBgp, setNat, type NatOp, setWireless, type BgpOp, setFirewallRules, setSegment, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, replug, moveNode, replugTo, addRoute, removeRoute, removeLink, testDesign, emptyOffice, type End } from '../../sim/project';
+import { type PortChoice, connect, removeNode, removeFromOffice, setInterface, setSvi, setPortMode, setGateway, setRouting, setOspf, setIsp, type OspfOp, setBgp, setNat, type NatOp, setWireless, type BgpOp, setFirewallRules, setSegment, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, replug, moveNode, replugTo, addRoute, removeRoute, removeLink, testDesign, emptyOffice, type End } from '../../sim/project';
 
 import { coreOf, focusedProject, netTargetOf } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
@@ -43,6 +43,7 @@ export interface DesignSlice {
   setGateway: (uid: string, gateway: string | null) => string | null;
   setRouting: (uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; area?: number }) => string | null;
   setOspf: (uid: string, change: OspfOp) => string | null;
+  setIsp: (uid: string, line: IspLine) => string | null;
   setBgp: (uid: string, change: BgpOp) => string | null;
   setNat: (uid: string, change: NatOp) => string | null;
   setWireless: (uid: string, key: 'ssid' | 'password' | 'channel' | 'vlan', value: string | number) => string | null;
@@ -162,6 +163,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
     setPortMode: (uid, port, mode) =>
       recorded(() => apply(setPortMode(coreOf(get()), uid, port, mode, gameEnv, netTargetOf(get())), tileOf(uid))),
     setGateway: (uid, gateway) => recorded(() => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid))),
+    setIsp: (uid, line) => recorded(() => apply(setIsp(coreOf(get()), uid, line, netTargetOf(get())), tileOf(uid))),
     setOspf: (uid, change) => recorded(() => apply(setOspf(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
     setRouting: (uid, change) => recorded(() => apply(setRouting(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
     setBgp: (uid, change) => recorded(() => apply(setBgp(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
