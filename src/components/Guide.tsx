@@ -2,7 +2,7 @@
 // 操作は縛らない。条件を満たしたら次の手順へ進み、最後まで行くか「飛ばす」で案件の案内を終える（guidesDone に入る）
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { usePhone } from '../ui/usePhone';
-import { devices, guides } from 'virtual:game-data';
+import { devices, guides, lessons } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import { loadSettings } from '../settings/settings';
 import { currentGuideStep, type GuideState } from '../sim/guide';
@@ -82,11 +82,20 @@ export function Guide() {
   const scrolledFor = useRef<string | null>(null);
 
   // 設計中の案件の、まだ終えていない案内だけを出す。案内を出さない設定のときは出さない
-  const id = project?.phase === 'design' ? project.baseId : null;
-  const steps =
-    id !== null && !guidesDone.includes(id) && loadSettings().guide
+  // 教材を開いているとき（案件がない）は、教材の手順を出す。教材は何度でもやり直せるため guidesDone に入れず、sandboxLesson.done に覚える
+  const sandboxLesson = useGameStore((s) => s.sandboxLesson);
+  const lessonCommands = useGameStore((s) => s.lessonCommands);
+  const finishLessonGuide = useGameStore((s) => s.finishLessonGuide);
+  const lesson = project === null && sandboxLesson !== null && !sandboxLesson.done ? lessons.find((l) => l.id === sandboxLesson.id) : undefined;
+  const id = lesson ? `lesson:${lesson.id}` : project?.phase === 'design' ? project.baseId : null;
+  const steps = lesson
+    ? loadSettings().guide
+      ? lesson.guide.map((s, i) => ({ key: `lesson.${lesson.id}.step.${i + 1}`, target: s.target, done: s.done }))
+      : null
+    : id !== null && !guidesDone.includes(id) && loadSettings().guide
       ? (guides[id] ?? null)
       : null;
+  const lessonGoals = lesson && check !== null && check.projectId === 'hq' ? check.goals.map((g) => g.ok) : [];
 
   const nodes = project ? project.nodes : officeNodes;
   const links = project ? project.links : officeLinks;
@@ -98,6 +107,8 @@ export function Guide() {
     testPassed: project !== null && check !== null && check.projectId === project.id && check.goals.length > 0 && check.goals.every((g) => g.ok),
     openRefs: windows.filter((w) => w.kind === 'device').flatMap((w) => w.tabs),
     categoryOf,
+    commands: lessonCommands,
+    lessonGoals,
   };
 
   // デバッグの指定の手順（N54）は、表示の計算に直接使う（効果で上書きすると、下の効果が古い値に戻すため）
@@ -111,13 +122,14 @@ export function Guide() {
   useEffect(() => {
     if (id === null || steps === null) return;
     if (current === null) {
-      markGuideDone(id);
+      if (lesson) finishLessonGuide();
+      else markGuideDone(id);
       // 案内を終えたら、デバッグの開始の指定も消す（別の案件の案内に残さない）
       if (debugGuide !== null && debugGuide.id === id) debugConsumeGuide();
       return;
     }
     if (progress.id !== id || progress.index !== currentIndex) setProgress({ id, index: currentIndex });
-  }, [id, steps, currentIndex, progress.id, progress.index, markGuideDone, debugGuide, debugConsumeGuide]);
+  }, [id, steps, currentIndex, progress.id, progress.index, markGuideDone, lesson, finishLessonGuide, debugGuide, debugConsumeGuide]);
 
   const step = current ? current.step : null;
   // 対象が機器（案件の機器の ref）なら、マップの機器を光らせるため、ストアに置く（描画は行わない）
@@ -180,7 +192,7 @@ export function Guide() {
   }, [glowName, measureGlow]);
 
   if (id === null || step === null) return null;
-  const skip = () => markGuideDone(id);
+  const skip = () => (lesson ? finishLessonGuide() : markGuideDone(id));
   // スマホの吹き出しは、HUD と案件の欄の下に置く（ツールバー・インベントリ・シートの操作の欄とは重ならない）
   const topBelowHud = phone ? belowHud() : 0;
 

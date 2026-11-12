@@ -28,6 +28,11 @@ export interface DesignSlice {
   // 教材を開く（今の構成を教材の初期の構成に置き換える）・終える（構成は残す）
   openLesson: (id: string) => void;
   closeLesson: () => void;
+  // 教材を開いている間にターミナルで打った命令（保存しない。案内の cmd 条件に使う）
+  lessonCommands: string[];
+  recordLessonCommand: (line: string) => void;
+  // 教材の案内を終えた（飛ばした）
+  finishLessonGuide: () => void;
   connect: (aUid: string, bUid: string, cableId: string, ports?: PortChoice) => string | null;
   removeLink: (uid: string) => string | null;
   removeNode: (uid: string) => string | null;
@@ -78,9 +83,14 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       const lesson = lessons.find((l) => l.id === id);
       if (!lesson) throw new Error(`教材 ${id} がない`);
       const office = { ...emptyOffice(lesson.size), nodes: lessonNodes(lesson), links: lessonLinks(lesson) };
-      set({ office, maps: { ...s.maps, hq: mapOfOffice(office) }, sandboxLesson: { id, step: 0, done: false }, check: null, helpUid: null, traces: [] });
+      set({ office, maps: { ...s.maps, hq: mapOfOffice(office) }, sandboxLesson: { id, step: 0, done: false }, lessonCommands: [], check: null, helpUid: null, traces: [] });
     },
-    closeLesson: () => set({ sandboxLesson: null }),
+    closeLesson: () => set({ sandboxLesson: null, lessonCommands: [] }),
+    lessonCommands: [],
+    recordLessonCommand: (line) => {
+      if (get().sandboxLesson) set((s) => ({ lessonCommands: [...s.lessonCommands, line] }));
+    },
+    finishLessonGuide: () => set((s) => (s.sandboxLesson ? { sandboxLesson: { ...s.sandboxLesson, done: true } } : {})),
     test: () => {
       const s = get();
       // サンドボックスは、案件の達成条件なしで、PC とサーバーの疎通を判定する

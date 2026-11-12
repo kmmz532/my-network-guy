@@ -89,6 +89,7 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
     setCommands((c) => (c[c.length - 1] === line ? c : [...c, line]));
     setRecall(null);
     setInput('');
+    useGameStore.getState().recordLessonCommand(line);
     if (line === 'clear') {
       setHistory([]);
       return;
