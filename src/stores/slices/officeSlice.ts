@@ -7,6 +7,7 @@ import { gameEnv } from '../../sim/env';
 import { changeOfficeFloor as changeFloorOp, type ExpandSide, expandOffice as expandOfficeOp, mapOfOffice } from '../../sim/office';
 import { OFFICE_HISTORY_KEY } from '../../sim/history';
 import { placeFurniture as placeFurnitureOp, moveFurniture as moveFurnitureOp, removeFurniture as removeFurnitureOp, rotateFurniture as rotateFurnitureOp } from '../../sim/furniture';
+import { clearsPlacing } from '../../sim/shop';
 import { type RoomId, placeDevice, placeInOffice, placeOfficeUplink, moveOfficeUplink, officeUplinkOf, type Outcome } from '../../sim/project';
 
 import { SANDBOX_EXPAND_CONFIG, coreOf, focusedProject } from '../gameHelpers';
@@ -30,6 +31,12 @@ export interface OfficeSlice {
 
 export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (set, get) => {
   const { apply, dropHistory, recorded } = createOps(set, get);
+  // 置いて在庫が0になったら、選んでいる品目を外す
+  const releaseWhenEmpty = (deviceId: string, reason: string | null): string | null => {
+    const s = get();
+    if (reason === null && clearsPlacing(s.owned, deviceId, s.mode === 'sandbox')) set({ placing: null });
+    return reason;
+  };
   return {
     // 在庫の機材・家具を配置する（購入はショップで行う）。案件がなければ自社オフィスに置く
     place: (deviceId, x, y) => {
@@ -45,13 +52,13 @@ export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (
           if (reason === null) set({ placing: null });
           return reason;
         }
-        return recorded(() => apply(placeInOffice(coreOf(get()), deviceId, x, y, hq, gameEnv, get().mode === 'sandbox'), { tx: x, ty: y }));
+        return releaseWhenEmpty(deviceId, recorded(() => apply(placeInOffice(coreOf(get()), deviceId, x, y, hq, gameEnv, get().mode === 'sandbox'), { tx: x, ty: y })));
       }
       const project = focusedProject(get());
       if (!project) return 'map';
       const map = get().maps[project.contract.map];
       if (!map) return 'map';
-      return recorded(() => apply(placeDevice(coreOf(get()), deviceId, x, y, map, gameEnv), { tx: x, ty: y }));
+      return releaseWhenEmpty(deviceId, recorded(() => apply(placeDevice(coreOf(get()), deviceId, x, y, map, gameEnv), { tx: x, ty: y })));
     },
     expandOffice: (side) => {
       const office = get().office;

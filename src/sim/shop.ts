@@ -62,3 +62,6 @@ export const sellDevice = (
   const next = { ...owned, [deviceId]: count - 1 };
   return { ok: true, money: money + Math.floor(price * rate), owned: next };
 };
+
+// 置いたあと、選んでいる品目を外すか。在庫が0になったときだけ外す（サンドボックスは在庫が無限のため外さない）
+export const clearsPlacing = (owned: Readonly<Record<string, number>>, deviceId: string, sandbox: boolean): boolean => !sandbox && (owned[deviceId] ?? 0) === 0;
