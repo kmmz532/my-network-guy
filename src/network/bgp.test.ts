@@ -69,3 +69,25 @@ describe('iBGP', () => {
     expect(bgpTableOf(ibgp(true), data, 'r3')!.candidates).toEqual([]);
   });
 });
+
+describe('BGP のターミナル', () => {
+  it('neighbor の next-hop-self・local-preference・med・prepend を読む', async () => {
+    const { parseConfig } = await import('./terminalConfig');
+    const tr = (k: string) => k;
+    expect(parseConfig('neighbor 10.0.1.2 next-hop-self', tr)).toEqual({ kind: 'action', action: { kind: 'bgp', op: 'attr', ip: '10.0.1.2', key: 'nextHopSelf', value: true } });
+    expect(parseConfig('no neighbor 10.0.1.2 next-hop-self', tr)).toEqual({ kind: 'action', action: { kind: 'bgp', op: 'attr', ip: '10.0.1.2', key: 'nextHopSelf', value: false } });
+    expect(parseConfig('neighbor 10.0.1.2 local-preference 200', tr)).toEqual({ kind: 'action', action: { kind: 'bgp', op: 'attr', ip: '10.0.1.2', key: 'localPref', value: 200 } });
+    expect(parseConfig('neighbor 10.0.1.2 prepend 2', tr)).toEqual({ kind: 'action', action: { kind: 'bgp', op: 'attr', ip: '10.0.1.2', key: 'prepend', value: 2 } });
+  });
+  it('show ip bgp summary は隣接の状態を、show ip bgp は最適経路の印を出す', async () => {
+    const { runTerminal } = await import('./terminal');
+    const net = twoIsps({});
+    const ctx = { node: net.nodes[0], nodes: net.nodes, links: net.links, data };
+    const tr = (k: string, p?: Record<string, unknown>) => (p ? `${k} ${JSON.stringify(p)}` : k);
+    const summary = runTerminal('show ip bgp summary', ctx, tr);
+    expect(summary).toHaveLength(2);
+    expect(summary[0].text).toContain('ui.terminal.bgpEstablished');
+    const table = runTerminal('show ip bgp', ctx, tr);
+    expect(table.some((l) => l.text.includes('"mark":">*"'))).toBe(true);
+  });
+});

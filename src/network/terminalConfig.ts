@@ -45,6 +45,9 @@ export type ConfigAction =
   | { kind: 'bgp'; op: 'asn'; asn: number }
   | { kind: 'bgp'; op: 'off' }
   | { kind: 'bgp'; op: 'neighbor'; ip: string; remoteAs: number }
+  // neighbor <IP> next-hop-self・local-preference|med|prepend <値>（ゲーム独自の書き方。ルートマップは扱わない）
+  | { kind: 'bgp'; op: 'attr'; ip: string; key: 'nextHopSelf'; value: boolean }
+  | { kind: 'bgp'; op: 'attr'; ip: string; key: 'localPref' | 'med' | 'prepend'; value: number }
   | { kind: 'bgp'; op: 'network'; dest: string; prefix: number };
 
 export type ConfigParse = { kind: 'action'; action: ConfigAction } | { kind: 'error'; text: string } | { kind: 'none' };
@@ -133,6 +136,13 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     return { kind: 'action', action: { kind: 'bgp', op: 'asn', asn: Number(rest[1]) } };
   }
   if (first === 'no' && rest[0] === 'router' && rest[1] === 'bgp') return { kind: 'action', action: { kind: 'bgp', op: 'off' } };
+  if (first === 'neighbor' && isIp(rest[0] ?? '') && rest[1] === 'next-hop-self' && rest.length === 2) return { kind: 'action', action: { kind: 'bgp', op: 'attr', ip: rest[0], key: 'nextHopSelf', value: true } };
+  if (first === 'no' && rest[0] === 'neighbor' && isIp(rest[1] ?? '') && rest[2] === 'next-hop-self' && rest.length === 3) return { kind: 'action', action: { kind: 'bgp', op: 'attr', ip: rest[1], key: 'nextHopSelf', value: false } };
+  if (first === 'neighbor' && isIp(rest[0] ?? '') && rest.length === 3 && /^[0-9]+$/.test(rest[2])) {
+    const keys = { 'local-preference': 'localPref', med: 'med', prepend: 'prepend' } as const;
+    const key = keys[rest[1] as keyof typeof keys];
+    if (key !== undefined) return { kind: 'action', action: { kind: 'bgp', op: 'attr', ip: rest[0], key, value: Number(rest[2]) } };
+  }
   if (first === 'neighbor') {
     if (rest.length !== 3 || rest[1] !== 'remote-as' || !isIp(rest[0]) || !/^[0-9]+$/.test(rest[2])) return error('ui.terminal.usageBgp');
     return { kind: 'action', action: { kind: 'bgp', op: 'neighbor', ip: rest[0], remoteAs: Number(rest[2]) } };

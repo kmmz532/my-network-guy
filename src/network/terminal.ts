@@ -8,7 +8,7 @@ import { isIp } from './terminalConfig';
 import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
-import { adOf, learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
+import { adOf, bgpTableOf, learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
 import type { Trace } from '../sim/project';
 import { framesOf } from './frames';
 import { isL2Category, isRoutingCategory } from './category';
@@ -115,6 +115,20 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       if (node.napt) lines.push(out(tr('ui.terminal.natNapt', { outsideIp: outside.ip })));
       // 4 つの欄（内部グローバル・内部ローカル・外部ローカル・外部グローバル）の見出しを先頭に出す
       return [out(tr('ui.terminal.natHeader')), ...lines];
+    }
+    if (sub === 'ip bgp summary' || sub === 'ip bgp') {
+      const bgp = bgpTableOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
+      if (!bgp) return [err(tr('ui.terminal.bgpOff'))];
+      if (sub === 'ip bgp summary') {
+        if (bgp.sessions.length === 0) return [out(tr('ui.terminal.bgpNone'))];
+        return bgp.sessions.map((s) =>
+          out(tr('ui.terminal.bgpSession', { ip: s.ip, as: s.remoteAs, kind: tr(s.ebgp ? 'ui.terminal.bgpEbgp' : 'ui.terminal.bgpIbgp'), state: s.status.state === 'established' ? tr('ui.terminal.bgpEstablished') : tr(`ui.terminal.bgpIdle.${s.status.reason}`) })),
+        );
+      }
+      const lines = bgp.candidates.map((c) =>
+        out(tr('ui.terminal.bgpRoute', { mark: `${c.best ? '>' : ' '}${c.valid ? '*' : ' '}`, dest: c.dest, prefix: c.prefix, nextHop: c.nextHop ?? '0.0.0.0', lp: c.localPref, med: c.med, path: c.path.join(' ') || 'i' })),
+      );
+      return lines.length > 0 ? [out(tr('ui.terminal.bgpHeader')), ...lines] : [out(tr('ui.terminal.bgpNone'))];
     }
     if (sub === 'ip ospf neighbor') {
       const neighbors = ospfNeighborsOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
