@@ -419,9 +419,11 @@ export const acceptDelegated = (core: Core, offerId: string, slots: number, crew
 
 // 案件で最初から置かれている機器
 const fixedNodes = (contract: Contract): NetNode[] =>
-  contract.placed.map((p) => ({
+  contract.placed.map((p, i) => ({
     uid: p.ref,
     device: p.device,
+    // MAC アドレスの連番。置いた順に振る（プレイヤーが置く機器は nextMacSerial で振る）
+    macSerial: i + 1,
     ports: [],
     ...(p.name ? { name: p.name } : {}),
     x: p.x,
@@ -1757,7 +1759,7 @@ export const placeOfficeUplink = (core: Core, x: number, y: number, map: GameMap
   const office = core.office;
   const reason = officePlaceReason(office.furniture, office.nodes, 'uplink', x, y, map, env);
   if (reason) return fail(reason);
-  const node: NetNode = { uid: OFFICE_UPLINK_UID, device: 'uplink', x, y, locked: true, configLocked: true, interfaces: [], gateway: null, routes: [], services: [], ports: [] };
+  const node: NetNode = { uid: OFFICE_UPLINK_UID, device: 'uplink', macSerial: nextMacSerial(office.nodes), x, y, locked: true, configLocked: true, interfaces: [], gateway: null, routes: [], services: [], ports: [] };
   return { ok: true, core: { ...core, office: { ...office, nodes: [...office.nodes, node] } } };
 };
 

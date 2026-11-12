@@ -7,9 +7,11 @@ import type { EngineData, NetLink, NetNode } from '../network/types';
 
 // 教材の置かれた機器。機器の uid は教材の ref と同じにする（案内の条件・達成条件が ref で指すため）
 export const lessonNodes = (lesson: Lesson): NetNode[] =>
-  lesson.placed.map((p) => ({
+  lesson.placed.map((p, i) => ({
     uid: p.ref,
     device: p.device,
+    // MAC アドレスの連番。置いた順に振る
+    macSerial: i + 1,
     ports: [],
     ...(p.name ? { name: p.name } : {}),
     x: p.x,

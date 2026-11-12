@@ -26,7 +26,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 47;
+export const SAVE_VERSION = 48;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -133,6 +133,15 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v47 → v48: MAC アドレスの連番がない機器に、置いた順に連番を振る（案件にあらかじめ置かれた機器と、回線終端には付いていなかった）
+  47: (data) => {
+    const d = data as { active: { nodes: NetNode[] }[]; office: { nodes: NetNode[] } };
+    const serial = (nodes: NetNode[]): NetNode[] => {
+      let next = nodes.reduce((max, n) => Math.max(max, n.macSerial ?? 0), 0) + 1;
+      return nodes.map((n) => (n.macSerial !== undefined ? n : { ...n, macSerial: next++ }));
+    };
+    return { ...d, active: d.active.map((p) => ({ ...p, nodes: serial(p.nodes) })), office: { ...d.office, nodes: serial(d.office.nodes) } };
+  },
   // v46 → v47: サンドボックスで開いている教材を追加する。移行前は開いていない
   46: (data) => ({ ...(data as object), sandboxLesson: null }),
   // v1 → v2: 在庫と完了案件を追加する

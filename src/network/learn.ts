@@ -16,7 +16,10 @@ export interface LearnedPing {
 const macOfIp = (nodes: readonly NetNode[], ip: string, categoryOf: (device: string) => string): string | null => {
   for (const n of nodes) {
     const port = n.interfaces.find((i) => i.ip === ip);
-    if (port) return macOf(categoryOf(n.device), n.macSerial ?? 0, port.port);
+    if (port) {
+      if (n.macSerial === undefined) throw new Error(`MAC アドレスの連番がない機器: ${n.uid}`);
+      return macOf(categoryOf(n.device), n.macSerial, port.port);
+    }
   }
   return null;
 };

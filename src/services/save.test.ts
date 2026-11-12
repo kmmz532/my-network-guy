@@ -594,3 +594,11 @@ describe('v46 → v47（サンドボックスの教材）', () => {
     expect(() => migrate(SAVE_VERSION, { ...sample, sandboxLesson: { id: 1 } })).toThrow();
   });
 });
+
+describe('v47 → v48（MAC アドレスの連番）', () => {
+  it('連番のない機器に、既にある連番に続けて置いた順に振る', () => {
+    const n = (uid: string, macSerial?: number) => ({ uid, device: 'pc_basic', x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [], ...(macSerial ? { macSerial } : {}) });
+    const out = migrate(47, { ...sample, office: { ...sample.office, nodes: [n('a', 3), n('b'), n('c')] }, active: [] });
+    expect(out.office.nodes.map((x) => x.macSerial)).toEqual([3, 4, 5]);
+  });
+});

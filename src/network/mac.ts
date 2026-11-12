@@ -95,7 +95,8 @@ export const learnedOnPath = (
       if (!end || isSwitch(end)) continue;
       const ports = portsBetween(uid, other);
       if (!ports) continue;
-      out.push({ switchUid: uid, entry: { mac: macOf(categoryOf(end.device), end.macSerial ?? 0, ports.yPort), port: ports.xPort } });
+      if (end.macSerial === undefined) throw new Error(`MAC アドレスの連番がない機器: ${end.uid}`);
+      out.push({ switchUid: uid, entry: { mac: macOf(categoryOf(end.device), end.macSerial, ports.yPort), port: ports.xPort } });
     }
   });
   return out;

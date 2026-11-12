@@ -35,4 +35,9 @@ describe('教材（学習モード）', () => {
     expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false, false]);
     expect(lessonGoalResults(l.goals, withOspf(lessonNodes(l)), links, engine)).toEqual([true, true]);
   });
+
+  it('教材の機器に、MAC アドレスの連番が置いた順に振られる', () => {
+    const nodes = lessonNodes(lesson('ospf_three_sites'));
+    expect(nodes.map((n) => n.macSerial)).toEqual(nodes.map((_, i) => i + 1));
+  });
 });
