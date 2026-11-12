@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { duplicateRouterIds, electDr, ospfRouterId } from './ospf';
-import { ospfMismatchesOf, ospfNeighborsOf } from './netState';
+import { learnedRoutesOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
 import { evaluateGoal } from './goals';
 import type { EngineData, Iface, NetLink, NetNode, Network } from './types';
 
@@ -78,5 +78,22 @@ describe('OSPF の隣接', () => {
     const r = evaluateGoal({ type: 'ping', from: 'pa', to: 'pb' }, net, data);
     expect(r[0].ok).toBe(false);
     expect(r[0].failure?.reason).toBe('ospf.no_neighbor');
+  });
+});
+
+describe('既定の経路の配布', () => {
+  it('default-information originate を設定した機器へ向かう 0.0.0.0/0 を、ほかのルーターが OSPF で覚える', () => {
+    const o = { area: 0 };
+    const mk = (originate: boolean): Network => ({
+      nodes: [
+        node('r1', 'router', [f(0, '10.0.12.1', o)]),
+        node('r2', 'router', [f(0, '10.0.12.2', o)], originate ? { ospf: { defaultOriginate: true } } : {}),
+      ],
+      links: [link('l', 'r1', 0, 'r2', 0)],
+      segments: {},
+    });
+    const routes = (net: Network) => learnedRoutesOf(net, data, 'r1', 'ospf');
+    expect(routes(mk(true))).toContainEqual({ dest: '0.0.0.0', prefix: 0, nextHop: '10.0.12.2', protocol: 'ospf' });
+    expect(routes(mk(false)).some((r) => r.prefix === 0)).toBe(false);
   });
 });

@@ -29,6 +29,11 @@ export type ConfigAction =
   | { kind: 'routing'; proto: 'rip' | 'ospf'; on: boolean }
   // network 文: ip のサブネットのインターフェースを、RIP または OSPF（エリア 0）に参加させる（N143）
   | { kind: 'network'; proto: 'rip' | 'ospf'; ip: string; area: number | null; on: boolean }
+  // OSPF の機器・インターフェースの設定: router-id <IP>・no router-id・default-information originate・no default-information originate・
+  // ip ospf cost|priority|hello-interval|dead-interval <口> <値>
+  | { kind: 'ospf'; op: 'routerId'; ip: string | null }
+  | { kind: 'ospf'; op: 'defaultOriginate'; on: boolean }
+  | { kind: 'ospf'; op: 'iface'; port: number; key: 'cost' | 'priority' | 'hello' | 'dead'; value: number }
   // NAT（N145）: ip nat inside|outside <ポート> / no ip nat <ポート> / ip nat napt / no ip nat napt / ip nat static <外のポート> <社内のIP> <社内のポート> / no ip nat static <外のポート>
   | { kind: 'nat'; op: 'iface'; port: number; nat: 'inside' | 'outside' | null }
   | { kind: 'nat'; op: 'napt'; on: boolean }
@@ -72,7 +77,7 @@ const vlanNumber = (s: string): number | null => (/^\d+$/.test(s) && Number(s) >
 export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   const words = line.trim().split(/\s+/).filter((w) => w !== '');
   const [first, ...rest] = words;
-  if (first !== 'ip' && first !== 'no' && first !== 'hostname' && first !== 'router' && first !== 'network' && first !== 'neighbor' && first !== 'wireless' && first !== 'switchport') return { kind: 'none' };
+  if (first !== 'ip' && first !== 'no' && first !== 'hostname' && first !== 'router' && first !== 'router-id' && first !== 'default-information' && first !== 'network' && first !== 'neighbor' && first !== 'wireless' && first !== 'switchport') return { kind: 'none' };
   const error = (key: string) => ({ kind: 'error' as const, text: tr(key) });
 
   // router rip / router ospf <番号>（no で止める）
@@ -81,6 +86,23 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   }
   if (first === 'no' && rest[0] === 'router' && (rest[1] === 'rip' || rest[1] === 'ospf')) {
     return { kind: 'action', action: { kind: 'routing', proto: rest[1], on: false } };
+  }
+  // OSPF の機器・インターフェースの設定
+  if (first === 'router-id') {
+    if (rest.length !== 1 || !isIp(rest[0])) return error('ui.terminal.usageOspf');
+    return { kind: 'action', action: { kind: 'ospf', op: 'routerId', ip: rest[0] } };
+  }
+  if (first === 'no' && rest[0] === 'router-id') return { kind: 'action', action: { kind: 'ospf', op: 'routerId', ip: null } };
+  if (first === 'default-information' || (first === 'no' && rest[0] === 'default-information')) {
+    const tail = first === 'no' ? rest.slice(1) : rest;
+    if (tail.length !== 1 || tail[0] !== 'originate') return error('ui.terminal.usageOspf');
+    return { kind: 'action', action: { kind: 'ospf', op: 'defaultOriginate', on: first !== 'no' } };
+  }
+  if (first === 'ip' && rest[0] === 'ospf') {
+    const keys = { cost: 'cost', priority: 'priority', 'hello-interval': 'hello', 'dead-interval': 'dead' } as const;
+    const key = keys[rest[1] as keyof typeof keys];
+    if (key === undefined || rest.length !== 4 || !/^[0-9]+$/.test(rest[2]) || !/^[0-9]+$/.test(rest[3])) return error('ui.terminal.usageOspf');
+    return { kind: 'action', action: { kind: 'ospf', op: 'iface', port: Number(rest[2]), key, value: Number(rest[3]) } };
   }
   // 無線（N151）
   if (first === 'wireless') {
@@ -123,9 +145,9 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   // network <IP>（RIP）・network <IP> <ワイルドカード> area <エリア>（OSPF。MVP はエリア 0 だけ）
   if (first === 'network') {
     if (rest.length === 1 && isIp(rest[0])) return { kind: 'action', action: { kind: 'network', proto: 'rip', ip: rest[0], area: null, on: true } };
-    if (rest.length === 4 && isIp(rest[0]) && isIp(rest[1]) && rest[2] === 'area' && /^[0-9]+$/.test(rest[3])) {
-      const area = Number(rest[3]);
-      if (area !== 0) return error('ui.terminal.errArea');
+    if (rest.length === 4 && isIp(rest[0]) && isIp(rest[1]) && rest[2] === 'area' && (/^[0-9]+$/.test(rest[3]) || isIp(rest[3]))) {
+      // エリアは整数と、試験の書き方の 0.0.0.0 の両方を受け付ける
+      const area = isIp(rest[3]) ? rest[3].split('.').reduce((a, x) => a * 256 + Number(x), 0) : Number(rest[3]);
       return { kind: 'action', action: { kind: 'network', proto: 'ospf', ip: rest[0], area, on: true } };
     }
     return error('ui.terminal.usageNetwork');

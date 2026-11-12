@@ -23,6 +23,7 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
   const removeHost = useGameStore((s) => s.removeHost);
   const setNameServer = useGameStore((s) => s.setNameServer);
   const setRouting = useGameStore((s) => s.setRouting);
+  const setOspf = useGameStore((s) => s.setOspf);
   const setBgp = useGameStore((s) => s.setBgp);
   const setNat = useGameStore((s) => s.setNat);
   const setSvi = useGameStore((s) => s.setSvi);
@@ -61,7 +62,13 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
       case 'routing':
         return setRouting(node.uid, { proto: action.proto, on: action.on });
       case 'network':
-        return setRouting(node.uid, { proto: action.proto, on: action.on, ip: action.ip });
+        return setRouting(node.uid, { proto: action.proto, on: action.on, ip: action.ip, ...(action.area !== null ? { area: action.area } : {}) });
+      case 'ospf': {
+        if (action.op !== 'iface') return setOspf(node.uid, action);
+        // ターミナルの書き方は口の番号のまま。画面の操作は、その口のインターフェースの id で指定する
+        const iface = node.interfaces.find((i) => i.port === action.port);
+        return setOspf(node.uid, { op: 'iface', id: iface?.id ?? '', key: action.key, value: action.value });
+      }
       case 'bgp':
         return setBgp(node.uid, action);
       case 'nat': {

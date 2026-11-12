@@ -133,6 +133,8 @@ class Topology {
           const hop = first.get(o.uid);
           if (hop === undefined) continue;
           const metric = dist.get(o.uid) as number;
+          // 既定の経路の配布（default-information originate）: 配る機器への最短の道を、0.0.0.0/0 の経路にする
+          if (proto === 'ospf' && o.ospf?.defaultOriginate === true) routes.push({ dest: '0.0.0.0', prefix: 0, nextHop: hop, protocol: 'ospf' });
           // RIP は 16 以上で届かない（rip.unreachable）
           if (proto === 'rip' && metric >= 16) continue;
           for (const oi of o.interfaces) {

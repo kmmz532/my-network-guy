@@ -1047,7 +1047,7 @@ export const setPortMode = (
 
 // デフォルトゲートウェイを設定する。null で外す
 // RIP・OSPF の参加（N141b・N142・N143）。network 文は、そのサブネットのインターフェースを参加させる。router rip / ospf は、参加を止める（on が false のとき全部）
-export const setRouting = (core: Core, uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string }, target: NetTarget = 'focus'): Outcome =>
+export const setRouting = (core: Core, uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; area?: number }, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
     uid,
@@ -1056,10 +1056,34 @@ export const setRouting = (core: Core, uid: string, change: { proto: 'rip' | 'os
       const interfaces = node.interfaces.map((i) => {
         if (!touches(i)) return i;
         if (change.proto === 'rip') return { ...i, rip: change.on };
-        return change.on ? { ...i, ospf: { area: 0, cost: i.ospf?.cost } } : { ...i, ospf: undefined };
+        return change.on ? { ...i, ospf: { ...i.ospf, area: change.area ?? i.ospf?.area ?? 0 } } : { ...i, ospf: undefined };
       });
       if (change.ip !== undefined && change.on && !node.interfaces.some(touches)) return 'iface.none';
       return { ...node, interfaces };
+    },
+    target,
+  );
+
+// OSPF の機器・インターフェースの設定（ルーター ID・既定の経路の配布・コスト・優先度・Hello・デッド）
+export type OspfOp =
+  | { op: 'routerId'; ip: string | null }
+  | { op: 'defaultOriginate'; on: boolean }
+  | { op: 'iface'; id: string; key: 'cost' | 'priority' | 'hello' | 'dead'; value: number };
+export const setOspf = (core: Core, uid: string, change: OspfOp, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      if (change.op === 'iface') {
+        const iface = node.interfaces.find((i) => i.id === change.id);
+        if (!iface) return 'iface.none';
+        if (iface.ospf === undefined) return 'ospf.not_joined';
+        const ospf = { ...iface.ospf, [change.key]: change.value };
+        return { ...node, interfaces: node.interfaces.map((i) => (i.id === change.id ? { ...i, ospf } : i)) };
+      }
+      const prev = node.ospf ?? {};
+      const next = change.op === 'routerId' ? { ...prev, routerId: change.ip ?? undefined } : { ...prev, defaultOriginate: change.on };
+      return { ...node, ospf: next };
     },
     target,
   );

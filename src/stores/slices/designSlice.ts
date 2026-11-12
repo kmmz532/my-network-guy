@@ -12,7 +12,7 @@ import { lessonLinks, lessonNodes } from '../../sim/lesson';
 import { mapOfOffice } from '../../sim/office';
 
 import { closeRef } from '../../ui/windows';
-import { type PortChoice, connect, removeNode, removeFromOffice, setInterface, setSvi, setPortMode, setGateway, setRouting, setBgp, setNat, type NatOp, setWireless, type BgpOp, setFirewallRules, setSegment, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, replug, moveNode, replugTo, addRoute, removeRoute, removeLink, testDesign, emptyOffice, type End } from '../../sim/project';
+import { type PortChoice, connect, removeNode, removeFromOffice, setInterface, setSvi, setPortMode, setGateway, setRouting, setOspf, type OspfOp, setBgp, setNat, type NatOp, setWireless, type BgpOp, setFirewallRules, setSegment, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, replug, moveNode, replugTo, addRoute, removeRoute, removeLink, testDesign, emptyOffice, type End } from '../../sim/project';
 
 import { coreOf, focusedProject, netTargetOf } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
@@ -41,7 +41,8 @@ export interface DesignSlice {
   setSvi: (uid: string, vlan: number, ip: string, prefix?: number) => string | null;
   setPortMode: (uid: string, port: number, mode: { kind: 'access'; vlan: number } | { kind: 'routed' }) => string | null;
   setGateway: (uid: string, gateway: string | null) => string | null;
-  setRouting: (uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string }) => string | null;
+  setRouting: (uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; area?: number }) => string | null;
+  setOspf: (uid: string, change: OspfOp) => string | null;
   setBgp: (uid: string, change: BgpOp) => string | null;
   setNat: (uid: string, change: NatOp) => string | null;
   setWireless: (uid: string, key: 'ssid' | 'password' | 'channel' | 'vlan', value: string | number) => string | null;
@@ -159,6 +160,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
     setPortMode: (uid, port, mode) =>
       recorded(() => apply(setPortMode(coreOf(get()), uid, port, mode, gameEnv, netTargetOf(get())), tileOf(uid))),
     setGateway: (uid, gateway) => recorded(() => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid))),
+    setOspf: (uid, change) => recorded(() => apply(setOspf(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
     setRouting: (uid, change) => recorded(() => apply(setRouting(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
     setBgp: (uid, change) => recorded(() => apply(setBgp(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
     setNat: (uid, change) => recorded(() => apply(setNat(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
