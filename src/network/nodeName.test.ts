@@ -47,6 +47,16 @@ describe('機器の名前', () => {
     expect(nodeName(named, [named], ctx({ '1,1': '田中' }))).toBe('受付');
   });
 
+  it('同じ種類でも品目が違えば、品目の名前で呼び、品目ごとに番号を振る', () => {
+    const DEVICE: Record<string, string> = { router_basic: 'ルーター', router_sfp: 'SFP対応ルーター', edge_router: 'エッジルーター' };
+    const withDevice: NameContext = { ...ctx(), categoryOf: () => 'router', categoryLabel: () => 'ルーター', deviceLabel: (d) => DEVICE[d] ?? d };
+    const routers = [node('r1', 'router_basic'), node('r2', 'router_sfp'), node('r3', 'edge_router'), node('r4', 'edge_router')];
+    expect(nodeName(routers[0], routers, withDevice)).toBe('ルーター1');
+    expect(nodeName(routers[1], routers, withDevice)).toBe('SFP対応ルーター1');
+    expect(nodeName(routers[2], routers, withDevice)).toBe('エッジルーター1');
+    expect(nodeName(routers[3], routers, withDevice)).toBe('エッジルーター2');
+  });
+
   it('名前を空にすると、既定の名前に戻る', () => {
     const renamed = renameNode(node('e', 'pc_basic', 0, 0, '受付'), '  ');
     expect(renamed.name).toBeUndefined();

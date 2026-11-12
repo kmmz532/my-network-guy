@@ -8,6 +8,7 @@ import { focusedProject, type GameState } from '../stores/useGameStore';
 const contextFor = (state: GameState, office: boolean): NameContext => ({
   categoryOf: (device) => gameEnv.devices[device]?.category ?? 'unknown',
   categoryLabel: (category) => tDyn(`category.${category}`),
+  deviceLabel: (device) => tDyn(`device.${device}.name`),
   ownedPc: (owner) => t('ui.node.ownedPc', { name: owner }),
   ownerAt: office
     ? (x, y) => {
@@ -39,6 +40,7 @@ export const offerNodeName = (offer: { contract: { placed: { ref: string; device
   return nodeName(node, placed, {
     categoryOf: (device) => gameEnv.devices[device]?.category ?? 'unknown',
     categoryLabel: (category) => tDyn(`category.${category}`),
+    deviceLabel: (device) => tDyn(`device.${device}.name`),
     ownedPc: (owner) => t('ui.node.ownedPc', { name: owner }),
   });
 };

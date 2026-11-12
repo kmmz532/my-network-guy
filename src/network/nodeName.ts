@@ -9,6 +9,8 @@ export interface NameContext {
   categoryOf: (device: string) => string;
   // 種類の短い呼び名（「PC」「サーバー」「L3スイッチ」など）。種類ごとに番号を振る
   categoryLabel: (category: string) => string;
+  // 品目の名前（「エッジルーター」「SFP対応ルーター」など）。あれば、PC 以外はこれを使い、品目ごとに番号を振る
+  deviceLabel?: (device: string) => string;
   // 「{name}のPC」の文言
   ownedPc: (owner: string) => string;
   // その位置の机に座る社員の名前（自社オフィスだけ。なければ null）
@@ -22,6 +24,13 @@ export const nodeName = (node: NetNode, nodes: readonly NetNode[], ctx: NameCont
   if (isPcCategory(category)) {
     const owner = ctx.ownerAt?.(node.x, node.y) ?? null;
     if (owner) return ctx.ownedPc(owner);
+  }
+  if (ctx.deviceLabel && !isPcCategory(category)) {
+    // 同じ種類でも品目が違えば別の名前になる（エッジルーターと SFP対応ルーターなど）
+    const label = ctx.deviceLabel(node.device);
+    const sameDevice = nodes.filter((n) => n.device === node.device);
+    const index = sameDevice.findIndex((n) => n.uid === node.uid);
+    return `${label}${index + 1}`;
   }
   const same = nodes.filter((n) => ctx.categoryOf(n.device) === category);
   const index = same.findIndex((n) => n.uid === node.uid);
