@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { framesOf, type FrameContext } from './frames';
 import { macOf } from './mac';
-import type { NetLink, NetNode, PathResult } from './types';
+import type { NetLink, NetNode, PathResult, PortConfig } from './types';
 
 const node = (uid: string, device: string, macSerial: number, ifaces: { port: number; ip: string }[]): NetNode =>
   ({ uid, device, macSerial, interfaces: ifaces, ports: [], x: 0, y: 0, locked: false, configLocked: false, gateway: null, routes: [], services: [] }) as unknown as NetNode;
@@ -61,5 +61,46 @@ describe('ホップごとのフレーム', () => {
 
   it('経路が失敗していれば、フレームは出さない', () => {
     expect(framesOf(ctxOf([], []), { ok: false, path: [] })).toEqual([]);
+  });
+});
+
+describe('VLAN・NAT・HTTP のフレーム', () => {
+  const sw = (uid: string, cfg: PortConfig[]): NetNode => ({ ...node(uid, 'l2_switch', 3, []), ports: cfg }) as NetNode;
+  it('トランクの区間だけに 802.1Q のタグが付く（native VLAN は付かない）', () => {
+    const nodes = [
+      node('p1', 'pc', 1, [{ port: 0, ip: '10.0.20.1' }]),
+      sw('s1', [{ port: 0, mode: 'access', vlan: 20 }, { port: 1, mode: 'trunk', native: 1 }]),
+      sw('s2', [{ port: 1, mode: 'trunk', native: 1 }, { port: 0, mode: 'access', vlan: 20 }]),
+      node('p2', 'pc', 2, [{ port: 0, ip: '10.0.20.2' }]),
+    ];
+    const links = [link('l1', 'p1', 0, 's1', 0), link('l2', 's1', 1, 's2', 1), link('l3', 's2', 0, 'p2', 0)];
+    const frames = framesOf(ctxOf(nodes, links), ok(['p1', 'p2']));
+    expect(frames.map((f) => f.l2.vlan)).toEqual([null, 20, null]);
+  });
+
+  it('NAPT を通ると、変換の後のフレームは外のアドレスになり、変換の前の値が付く', () => {
+    const nodes = [
+      node('p1', 'pc', 1, [{ port: 0, ip: '10.0.1.10' }]),
+      node('r1', 'router', 4, [{ port: 0, ip: '10.0.1.1' }, { port: 1, ip: '203.0.113.1' }]),
+      node('srv', 'pc', 5, [{ port: 0, ip: '198.51.100.8' }]),
+    ];
+    const links = [link('l1', 'p1', 0, 'r1', 0), link('l2', 'r1', 1, 'srv', 0)];
+    const result: PathResult = { ok: true, path: ['p1', 'r1', 'srv'], nat: { router: 'r1', insideIp: '10.0.1.10', outsideIp: '203.0.113.1' } };
+    const frames = framesOf(ctxOf(nodes, links), result, { kind: 'http', port: 80 });
+    expect(frames[0].l3.srcIp).toBe('10.0.1.10');
+    expect(frames[1].l3.srcIp).toBe('203.0.113.1');
+    expect(frames[1].nat?.before).toMatchObject({ srcIp: '10.0.1.10', dstIp: '198.51.100.8' });
+    expect(frames[0].nat).toBeUndefined();
+  });
+
+  it('HTTP は TCP で、宛先のポートは指定どおり。送信元は一時ポート（49152 以上）で、同じ通信なら同じ値', () => {
+    const nodes = [node('p1', 'pc', 1, [{ port: 0, ip: '10.0.0.1' }]), node('p2', 'pc', 2, [{ port: 0, ip: '10.0.0.2' }])];
+    const ctx = ctxOf(nodes, [link('l1', 'p1', 0, 'p2', 0)]);
+    const a = framesOf(ctx, ok(['p1', 'p2']), { kind: 'http', port: 80 });
+    const b = framesOf(ctx, ok(['p1', 'p2']), { kind: 'http', port: 80 });
+    expect(a[0].l3.proto).toBe('tcp');
+    expect(a[0].l4?.dstPort).toBe(80);
+    expect(a[0].l4!.srcPort).toBeGreaterThanOrEqual(49152);
+    expect(a[0].l4).toEqual(b[0].l4);
   });
 });
