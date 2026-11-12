@@ -3,6 +3,8 @@ import type { Goal, Lesson } from '../data/schema';
 import { evaluateGoal } from '../network/goals';
 import { compile } from '../network/compile';
 import { makeIface } from '../network/iface';
+import { fillSegments } from '../network/segments';
+import type { SegmentConfig } from '../network/types';
 import type { EngineData, NetLink, NetNode } from '../network/types';
 
 // 教材の置かれた機器。機器の uid は教材の ref と同じにする（案内の条件・達成条件が ref で指すため）
@@ -24,6 +26,10 @@ export const lessonNodes = (lesson: Lesson): NetNode[] =>
     routes: [],
     services: (p.config?.services ?? []).map((s) => ({ ...s })),
   }));
+
+// 教材の網の設定。IP アドレスから補う（色は保存された設定から決まる。補わないと、教材を開いた直後のケーブルが灰色のまま）
+export const lessonSegments = (nodes: NetNode[], links: NetLink[], engine: EngineData): Record<string, SegmentConfig> =>
+  fillSegments({ nodes, links, segments: {} }, engine);
 
 // 教材の配線済みのケーブル。配線の長さは機器の間の最短の経路（直線）で足りるものとして、端のマスだけを持つ
 export const lessonLinks = (lesson: Lesson): NetLink[] =>

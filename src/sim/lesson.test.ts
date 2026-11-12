@@ -3,7 +3,8 @@ import { cables, devices, lessons } from 'virtual:game-data';
 import ja from '../assets/lang/ja_jp.json';
 import type { Lesson } from '../data/schema';
 import type { EngineData, NetNode } from '../network/types';
-import { lessonGoalResults, lessonLinks, lessonNodes } from './lesson';
+import { lessonGoalResults, lessonLinks, lessonNodes, lessonSegments } from './lesson';
+import { segmentConfigOf, segmentsOf } from '../network/segments';
 
 const engine: EngineData = {
   categoryOf: (device) => devices[device as keyof typeof devices]?.category ?? 'unknown',
@@ -63,5 +64,20 @@ describe('教材（学習モード）', () => {
       lessonNodes(l).map((n) => (n.uid === 'SW1' || n.uid === 'SW2' ? { ...n, ports: ports([[0, 10], [1, 20]], allowed) } : n));
     expect(lessonGoalResults(l.goals, solved([10, 20]), links, engine)).toEqual([true, true, true]);
     expect(lessonGoalResults(l.goals, solved([10]), links, engine)).toEqual([true, false, true]);
+  });
+});
+
+describe('教材を開いた直後の網の設定', () => {
+  it('ルーターのある網には、開いた直後から設定（ケーブルの色）がある', () => {
+    const l = lesson('ospf_three_sites');
+    const nodes = lessonNodes(l);
+    const links = lessonLinks(l);
+    const segments = lessonSegments(nodes, links, engine);
+    const byUid = new Map(nodes.map((n) => [n.uid, n]));
+    const routerSegs = segmentsOf({ nodes, links }, engine).filter((seg) =>
+      seg.members.some((m) => engine.categoryOf(byUid.get(m.node)?.device ?? '') === 'router'),
+    );
+    expect(routerSegs.length).toBeGreaterThan(0);
+    for (const seg of routerSegs) expect(segmentConfigOf(seg, byUid, segments)).toBeDefined();
   });
 });

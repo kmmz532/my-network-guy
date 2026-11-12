@@ -8,9 +8,8 @@ import { missingPcCount } from '../../sim/backOffice';
 import { pushNotice } from '../../ui/notices';
 import { sandboxTest } from '../../sim/sandbox';
 import { lessons } from 'virtual:game-data';
-import { lessonLinks, lessonNodes } from '../../sim/lesson';
+import { lessonLinks, lessonNodes, lessonSegments } from '../../sim/lesson';
 import { mapOfOffice } from '../../sim/office';
-import { fillSegments } from '../../network/segments';
 
 import { closeRef } from '../../ui/windows';
 import { type PortChoice, connect, removeNode, removeFromOffice, setInterface, setSvi, setPortMode, type PortModeChange, setGateway, setRouting, setOspf, setIsp, setStp, type StpOp, type OspfOp, setBgp, setNat, type NatOp, setWireless, type BgpOp, setFirewallRules, setSegment, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, replug, moveNode, replugTo, addRoute, removeRoute, removeLink, testDesign, emptyOffice, type End } from '../../sim/project';
@@ -89,7 +88,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       // 教材の機器は IP アドレスから網の設定を補う（色は保存された設定から決まるため、補わないと灰色のまま）
       const nodes = lessonNodes(lesson);
       const links = lessonLinks(lesson);
-      const office = { ...emptyOffice(lesson.size), nodes, links, segments: fillSegments({ nodes, links, segments: {} }, gameEnv.engine) };
+      const office = { ...emptyOffice(lesson.size), nodes, links, segments: lessonSegments(nodes, links, gameEnv.engine) };
       set({ office, maps: { ...s.maps, hq: mapOfOffice(office) }, sandboxLesson: { id, step: 0, done: false }, lessonCommands: [], check: null, helpUid: null, traces: [] });
     },
     closeLesson: () => set({ sandboxLesson: null, lessonCommands: [] }),
