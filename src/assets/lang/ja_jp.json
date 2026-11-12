@@ -271,6 +271,7 @@
   "goal.ping_all": "{nodes} が相互に Ping で通信できる",
   "goal.reach_by_name": "すべてのPCから {name} の名前で届く",
   "goal.reach_category": "すべてのPCから{name}に届く",
+  "goal.survive_uplink_failure": "回線を1本止めても、すべてのPCが外部へつながる",
   "goal.wireless_clients": "無線の端末を{min}台以上、アクセスポイントにつなぐ",
   "guide.c001_direct_link.1": "配線の道具を選ぼう",
   "guide.c001_direct_link.2": "2台のPCをLANでつなぐ",

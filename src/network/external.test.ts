@@ -100,3 +100,41 @@ describe('サーバーの貸し出しの収入', () => {
     expect(customersOf(10, 3)).toBe(4);
   });
 });
+
+describe('2社の ISP（回線終端ごと）', () => {
+  const data2: EngineData = { ...data, categoryOf: (d) => (d === 'router_basic' ? 'router' : data.categoryOf(d)) };
+  const two = (): Network => ({
+    nodes: [
+      node('r', 'rt', {
+        interfaces: [
+          { id: 'g0/0', kind: 'port', port: 0, ip: '198.51.100.2', prefix: 24 },
+          { id: 'g0/1', kind: 'port', port: 1, ip: '192.168.1.1', prefix: 24 },
+          { id: 'g0/2', kind: 'port', port: 2, ip: '203.0.113.2', prefix: 24 },
+        ],
+        bgp: { asn: 64512, neighbors: [{ ip: '198.51.100.1', remoteAs: 65001 }, { ip: '203.0.113.1', remoteAs: 65002 }], networks: [] },
+      }),
+      node('a', 'pc', { interfaces: [{ id: 'g0/0', kind: 'port', port: 0, ip: '192.168.1.10', prefix: 24 }], gateway: '192.168.1.1' }),
+      node('u1', 'up', { isp: { name: 'ISP-A', network: '198.51.100.0', prefix: 24, ispIp: '198.51.100.1', asn: 65001 } }),
+      node('u2', 'up', { isp: { name: 'ISP-B', network: '203.0.113.0', prefix: 24, ispIp: '203.0.113.1', asn: 65002 } }),
+    ],
+    links: [link('l1', 'a', 0, 'r', 1), link('l0', 'r', 0, 'u1', 0), link('l2', 'r', 2, 'u2', 0)],
+  });
+  it('回線終端ごとに ISP を加え、それぞれの AS 番号と BGP の隣接を持つ', () => {
+    const w = withInternet(two(), data2);
+    expect(w?.internetUids).toEqual(['__internet', '__internet_u2']);
+    expect(w?.nodes.find((n) => n.uid === '__internet_u2')?.bgp?.asn).toBe(65002);
+  });
+  it('どちらの ISP からも外部の経路を BGP で覚え、PC が外部へ届く', async () => {
+    const { bgpTableOf } = await import('./netState');
+    const w = withInternet(two(), data2)!;
+    const best = bgpTableOf(w, data2, 'r')!.candidates.filter((c) => c.dest === '192.0.2.0');
+    expect(best.map((c) => c.from).sort()).toEqual(['198.51.100.1', '203.0.113.1']);
+    expect(best.find((c) => c.best)?.from).toBe('198.51.100.1');
+    expect(outsideCheck(two(), data2).pcsReachOutside).toBe(true);
+  });
+  it('survive_uplink_failure: 回線が2本あれば合格、1本だけなら不合格', async () => {
+    const { evaluateGoal } = await import('./goals');
+    expect(evaluateGoal({ type: 'survive_uplink_failure' }, two(), data2)[0].ok).toBe(true);
+    expect(evaluateGoal({ type: 'survive_uplink_failure' }, office(), data2)[0].ok).toBe(false);
+  });
+});

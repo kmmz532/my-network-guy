@@ -29,42 +29,61 @@ export interface OutsideCheck {
   servers: number;
 }
 
-// ネットワークに仮想のインターネットを加える（N144）。回線終端（uplink）の口1（ISP 側）につなぐ。
-// 回線終端の口0 がルーターの WAN の口につながっていなければ、外部へ届かない（回線が要る）。回線終端がなければ null
-export const withInternet = (net: Network, data: EngineData): (Network & { internetUid: string }) | null => {
-  const uplink = net.nodes.find((n) => data.categoryOf(n.device) === CATEGORY.uplink);
-  if (!uplink) return null;
-  const routerLink = net.links.find((l) => (l.a.node === uplink.uid && l.a.port === UPLINK_ROUTER_PORT) || (l.b.node === uplink.uid && l.b.port === UPLINK_ROUTER_PORT));
-  if (!routerLink) return null;
-  const routerEnd = routerLink.a.node === uplink.uid ? routerLink.b : routerLink.a;
-  const router = net.nodes.find((n) => n.uid === routerEnd.node);
-  if (!router || !isRoutingCategory(data.categoryOf(router.device))) return null;
-  // 戻りの経路: 外部の側の既定のゲートウェイは、つないだルーターの WAN の IPアドレス（WAN に IPアドレスがなければ戻れない）
-  const wanIp = router.interfaces.find((i) => i.port === routerEnd.port)?.ip ?? null;
-  const internet: NetNode = { ports: [],
-    uid: INTERNET_UID,
-    device: 'internet',
-    x: 0,
-    y: 0,
-    locked: true,
-    configLocked: true,
-    interfaces: [makeIface('internet', 0, INTERNET_IP, INTERNET_PREFIX)],
-    gateway: wanIp,
-    routes: [],
-    services: [],
-  };
-  const link: NetLink = {
-    uid: '__internet_link',
-    cable: 'utp_cat5e',
-    a: { node: uplink.uid, port: UPLINK_ISP_PORT },
-    b: { node: INTERNET_UID, port: 0 },
-    path: [
-      [0, 0],
-      [1, 0],
-    ],
-    paid: 0,
-  };
-  return { nodes: [...net.nodes, internet], links: [...net.links, link], segments: net.segments, internetUid: INTERNET_UID };
+// ISP が BGP で広告する「インターネット」のネットワーク（TEST-NET-1）
+export const INTERNET_NETWORK = '192.0.2.0';
+export const INTERNET_NETWORK_PREFIX = 24;
+// BGP の ISP は、ルーターとして動かす（BGP の計算がルーターだけを対象にするため）
+const ISP_ROUTER_DEVICE = 'router_basic';
+
+// 回線終端（uplink）ごとに、仮想の ISP（とインターネット）を加える（N144・NET.md §5.5）。回線終端の口1（ISP 側）につなぐ。
+// 回線終端の口0 がルーターの WAN の口につながっていなければ、その回線は使えない。使える回線がなければ null。
+// 最初の回線の ISP は INTERNET_UID、2つ目からは __internet_<回線終端の uid>。ISP の情報は回線終端の isp（省略すると既定の ISP）
+export const withInternet = (net: Network, data: EngineData): (Network & { internetUid: string; internetUids: string[] }) | null => {
+  const nodes: NetNode[] = [];
+  const links: NetLink[] = [];
+  const uids: string[] = [];
+  for (const uplink of net.nodes.filter((n) => data.categoryOf(n.device) === CATEGORY.uplink)) {
+    const routerLink = net.links.find((l) => (l.a.node === uplink.uid && l.a.port === UPLINK_ROUTER_PORT) || (l.b.node === uplink.uid && l.b.port === UPLINK_ROUTER_PORT));
+    if (!routerLink) continue;
+    const routerEnd = routerLink.a.node === uplink.uid ? routerLink.b : routerLink.a;
+    const router = net.nodes.find((n) => n.uid === routerEnd.node);
+    if (!router || !isRoutingCategory(data.categoryOf(router.device))) continue;
+    // 戻りの経路: 外部の側の既定のゲートウェイは、つないだルーターの WAN の IPアドレス（WAN に IPアドレスがなければ戻れない）
+    const wanIp = router.interfaces.find((i) => i.port === routerEnd.port)?.ip ?? null;
+    const uid = uids.length === 0 ? INTERNET_UID : `${INTERNET_UID}_${uplink.uid}`;
+    const line = uplink.isp;
+    const bgp = line?.asn !== undefined && router.bgp && wanIp ? { asn: line.asn, neighbors: [{ ip: wanIp, remoteAs: router.bgp.asn }], networks: [{ dest: INTERNET_NETWORK, prefix: INTERNET_NETWORK_PREFIX }] } : undefined;
+    nodes.push({
+      ports: [],
+      uid,
+      device: bgp ? ISP_ROUTER_DEVICE : 'internet',
+      // MAC アドレスの連番は、ISP ごとに大きな値から振る（機器の連番と重ならない）
+      macSerial: 0xf000 + uids.length,
+      x: 0,
+      y: 0,
+      locked: true,
+      configLocked: true,
+      interfaces: [makeIface(bgp ? ISP_ROUTER_DEVICE : 'internet', 0, line?.ispIp ?? INTERNET_IP, line?.prefix ?? INTERNET_PREFIX)],
+      gateway: wanIp,
+      routes: [],
+      services: [],
+      ...(bgp ? { bgp } : {}),
+    });
+    links.push({
+      uid: uids.length === 0 ? '__internet_link' : `__internet_link_${uplink.uid}`,
+      cable: 'utp_cat5e',
+      a: { node: uplink.uid, port: UPLINK_ISP_PORT },
+      b: { node: uid, port: 0 },
+      path: [
+        [0, 0],
+        [1, 0],
+      ],
+      paid: 0,
+    });
+    uids.push(uid);
+  }
+  if (uids.length === 0) return null;
+  return { nodes: [...net.nodes, ...nodes], links: [...net.links, ...links], segments: net.segments, internetUid: uids[0], internetUids: uids };
 };
 
 // 外部への接続と、公開しているサーバー、社内への漏れを調べる
@@ -73,10 +92,10 @@ export const outsideCheck = (net: Network, data: EngineData): OutsideCheck => {
   if (!withNet) return { attached: false, pcsReachOutside: false, exposedServers: [], leaks: false, servers: 0 };
   const pcs = net.nodes.filter((n) => isPcCategory(data.categoryOf(n.device)));
   const servers = net.nodes.filter((n) => data.categoryOf(n.device) === 'server' && n.services.some((s) => s.protocol === 'http' && s.port === PUBLIC_PORT));
-  const pcsReachOutside = pcs.length > 0 && pcs.every((pc) => ping(withNet, data, pc.uid, INTERNET_UID).ok);
+  const pcsReachOutside = pcs.length > 0 && pcs.every((pc) => withNet.internetUids.some((isp) => ping(withNet, data, pc.uid, isp).ok));
   // 外から社内の PC へ届くか（届けば、公開のサーバーがあっても収入はない）
-  const leaks = pcs.some((pc) => ping(withNet, data, INTERNET_UID, pc.uid).ok);
-  const exposedServers = leaks ? [] : servers.filter((s) => http(withNet, data, INTERNET_UID, s.uid, PUBLIC_PORT).ok).map((s) => s.uid);
+  const leaks = pcs.some((pc) => withNet.internetUids.some((isp) => ping(withNet, data, isp, pc.uid).ok));
+  const exposedServers = leaks ? [] : servers.filter((s) => withNet.internetUids.some((isp) => http(withNet, data, isp, s.uid, PUBLIC_PORT).ok)).map((s) => s.uid);
   return { attached: true, pcsReachOutside, exposedServers, leaks, servers: servers.length };
 };
 

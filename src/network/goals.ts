@@ -2,6 +2,7 @@
 import type { Contract, Goal } from '../data/schema';
 import { http, ping, wirelessAssociations } from './engine';
 import { ospfNeighborsOf } from './netState';
+import { outsideCheck } from './external';
 import { resolveName } from './resolve';
 import type { EngineData, Failure, Network, PathResult } from './types';
 
@@ -77,6 +78,14 @@ const handlers: { [K in Goal['type']]: Handler } = {
     let reach = pcs.length >= 2;
     for (let i = 0; i < pcs.length && reach; i++) for (let j = i + 1; j < pcs.length && reach; j++) reach = ping(net, data, pcs[i], pcs[j]).ok;
     const ok = staticFree && reach;
+    return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
+  },
+  // 回線終端が2つ以上あり、どれか1つ（とその配線）を除いても、すべての PC が外部へ届く
+  survive_uplink_failure: (goal, net, data) => {
+    if (goal.type !== 'survive_uplink_failure') throw new Error('survive_uplink_failure ハンドラに別の種類が渡された');
+    const uplinks = net.nodes.filter((n) => data.categoryOf(n.device) === 'uplink');
+    const without = (uid: string): Network => ({ ...net, nodes: net.nodes.filter((n) => n.uid !== uid), links: net.links.filter((l) => l.a.node !== uid && l.b.node !== uid) });
+    const ok = uplinks.length >= 2 && uplinks.every((u) => outsideCheck(without(u.uid), data).pcsReachOutside);
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // 指定した機器が DR になっている（同じネットワークの隣接の相手から見て、その機器が FULL/DR）

@@ -74,9 +74,20 @@ export interface BgpConfig {
   networks: { dest: string; prefix: number }[];
 }
 
+// 回線の情報。asn があれば、ISP は BGP で経路をやり取りする（自社のルーターの AS 番号を相手として持つ）
+export interface IspLine {
+  name: string;
+  network: string;
+  prefix: number;
+  ispIp: string;
+  asn?: number;
+}
+
 export interface NetNode {
   uid: string;
   device: string;
+  // 回線終端（uplink）の回線の情報（ISP の名前・回線のネットワーク・ISP 側のアドレス・ISP の AS 番号）。省略すると、既定の ISP（198.51.100.1/24）
+  isp?: IspLine;
   // OSPF の機器ごとの設定（routerId は省略すると自動。defaultOriginate は既定の経路を配る）
   ospf?: { routerId?: string; defaultOriginate?: boolean };
   // BGP の設定（BGP を動かす機器だけ持つ）
