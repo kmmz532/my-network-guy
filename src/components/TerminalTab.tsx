@@ -12,6 +12,9 @@ import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { secondaryButton } from './Modal';
 import { warnColor } from './devicePorts';
 
+const NO_LINES: TerminalLine[] = [];
+const NO_COMMANDS: string[] = [];
+
 export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; nodes: NetNode[]; links: NetLink[]; readOnly: boolean }) {
   const state = useGameStore();
   const setIface = useGameStore((s) => s.setIface);
@@ -85,20 +88,20 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
   };
 
   const [input, setInput] = useState('');
-  const [history, setHistory] = useState<TerminalLine[]>([]);
-  // 入力した行の履歴と、↑↓で今指している位置（null は新しい入力）
-  const [commands, setCommands] = useState<string[]>([]);
+  // 出力と命令の履歴は機器ごとにストアに持つ（画面を閉じても残る）。↑↓で今指している位置は画面の中だけで持つ（null は新しい入力）
+  const history = useGameStore((s) => s.terminalLog[node.uid] ?? NO_LINES);
+  const commands = useGameStore((s) => s.terminalCommands[node.uid] ?? NO_COMMANDS);
   const [recall, setRecall] = useState<number | null>(null);
 
   const run = () => {
     const line = input.trim();
     if (line === '') return;
-    setCommands((c) => (c[c.length - 1] === line ? c : [...c, line]));
+    useGameStore.getState().recordTerminalCommand(node.uid, line);
     setRecall(null);
     setInput('');
     useGameStore.getState().recordLessonCommand(line);
     if (line === 'clear') {
-      setHistory([]);
+      useGameStore.getState().clearTerminalLog(node.uid);
       return;
     }
     const tr = (key: string, params?: Record<string, string | number>) => tDyn(key, params);
@@ -130,7 +133,7 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
         tr,
       );
     }
-    setHistory((h) => [...h, { text: `> ${line}`, kind: 'out' }, ...out]);
+    useGameStore.getState().appendTerminal(node.uid, [{ text: `> ${line}`, kind: 'out' }, ...out]);
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {

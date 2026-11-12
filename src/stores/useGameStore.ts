@@ -1,4 +1,5 @@
 // ゲーム全体の状態。時間・資金・評判・在庫・完了案件・依頼・受注中の案件・速度を持ち、Tick ごとに進める。
+import type { TerminalLine } from '../network/terminal';
 import type { PlannedNet } from './gameHelpers';
 import { loadSettings } from '../settings/settings';
 import { playDeliver } from '../audio/sfx';
@@ -158,6 +159,9 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   showIp: boolean;
   // 機器の名前をマップに出すか（端末ごとの設定に保存する）
   showNames: boolean;
+  // 機器ごとの端末の出力と、打った命令（保存しない。機器を撤去すると消す）
+  terminalLog: Record<string, TerminalLine[]>;
+  terminalCommands: Record<string, string[]>;
   taskOpen: boolean;
   // 失敗した操作の理由を、失敗した地点（マップのタイル）に出す
   flash: { key: string; tx: number; ty: number; at: number } | null;
@@ -236,6 +240,8 @@ export const useGameStore = create<GameState>((set, get, api) => {
     // 名前とIPアドレスの表示は端末ごとの設定に保存する（設定の画面と同じ値）
     showIp: loadSettings().showIp,
     showNames: loadSettings().showNames,
+    terminalLog: {},
+    terminalCommands: {},
     taskOpen: true,
     flash: null,
     linkPulse: null,

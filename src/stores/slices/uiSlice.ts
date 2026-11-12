@@ -1,4 +1,6 @@
 // 画面の状態（道具・配線の途中・通知・結果・表示の切り替え）の操作。
+import type { TerminalLine } from '../../network/terminal';
+import { appendLog, pushCommand } from '../../network/terminalLog';
 import { saveSettings } from '../../settings/settings';
 import { gameEnv } from '../../sim/env';
 import { learnFromPing } from '../../network/learn';
@@ -29,6 +31,11 @@ export interface UiSlice {
   setHelpUid: (uid: string | null) => void;
   setShowIp: (on: boolean) => void;
   setShowNames: (on: boolean) => void;
+  // 端末の記録（機器ごと）。出力の追加・命令の履歴・出力だけの消去・機器の撤去
+  appendTerminal: (uid: string, lines: TerminalLine[]) => void;
+  recordTerminalCommand: (uid: string, line: string) => void;
+  clearTerminalLog: (uid: string) => void;
+  dropTerminal: (uid: string) => void;
   setTaskOpen: (open: boolean) => void;
   setPlacing: (deviceId: string | null) => void;
   setItemDrag: (drag: ItemDrag | null) => void;
@@ -102,6 +109,17 @@ export const createUiSlice: StateCreator<GameState, [], [], UiSlice> = (set, get
       set({ showNames: on });
       saveSettings({ showNames: on });
     },
+    appendTerminal: (uid, lines) => set((s) => ({ terminalLog: { ...s.terminalLog, [uid]: appendLog(s.terminalLog[uid] ?? [], lines) } })),
+    recordTerminalCommand: (uid, line) => set((s) => ({ terminalCommands: { ...s.terminalCommands, [uid]: pushCommand(s.terminalCommands[uid] ?? [], line) } })),
+    clearTerminalLog: (uid) => set((s) => ({ terminalLog: { ...s.terminalLog, [uid]: [] } })),
+    dropTerminal: (uid) =>
+      set((s) => {
+        const log = { ...s.terminalLog };
+        const commands = { ...s.terminalCommands };
+        delete log[uid];
+        delete commands[uid];
+        return { terminalLog: log, terminalCommands: commands };
+      }),
     setTaskOpen: (open) => set({ taskOpen: open }),
     setPlacing: (deviceId) => set({ placing: deviceId }),
     setItemDrag: (itemDrag) => set({ itemDrag }),

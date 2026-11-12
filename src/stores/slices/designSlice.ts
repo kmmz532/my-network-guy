@@ -147,6 +147,8 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       });
       // 撤去した機器のタブは閉じる（最後のタブならウィンドウも閉じる）
       if (reason === null) set((s) => ({ windows: closeRef({ windows: s.windows, seq: s.windowSeq }, 'device', uid).windows }));
+      // 撤去した機器の端末の出力と履歴も消す
+      if (reason === null) get().dropTerminal(uid);
       if (reason === null) {
         const after = missingPc(get());
         if (after > before) set((s) => ({ notices: pushNotice(s.notices, 'pcMissing', { count: after }, Date.now()) }));
