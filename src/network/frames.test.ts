@@ -104,3 +104,26 @@ describe('VLAN・NAT・HTTP のフレーム', () => {
     expect(a[0].l4).toEqual(b[0].l4);
   });
 });
+
+describe('復路と静的 NAT のフレーム', () => {
+  it('復路のフレームは、往路と逆向きに出る（宛先と送信元が入れ替わる）', () => {
+    const nodes = [node('p1', 'pc', 1, [{ port: 0, ip: '10.0.0.1' }]), node('p2', 'pc', 2, [{ port: 0, ip: '10.0.0.2' }])];
+    const frames = framesOf(ctxOf(nodes, [link('l1', 'p1', 0, 'p2', 0)]), { ok: true, path: ['p1', 'p2'], back: ['p2', 'p1'] });
+    expect(frames).toHaveLength(2);
+    expect(frames[1]).toMatchObject({ from: 'p2', to: 'p1', l3: { srcIp: '10.0.0.2', dstIp: '10.0.0.1' } });
+  });
+
+  it('静的 NAT は往路の宛先を、変換したルーターの後で社内のアドレスに変える', () => {
+    const nodes = [
+      node('p1', 'pc', 1, [{ port: 0, ip: '203.0.113.50' }]),
+      node('r1', 'router', 4, [{ port: 0, ip: '203.0.113.1' }, { port: 1, ip: '10.0.2.1' }]),
+      node('srv', 'pc', 5, [{ port: 0, ip: '10.0.2.5' }]),
+    ];
+    const links = [link('l1', 'p1', 0, 'r1', 0), link('l2', 'r1', 1, 'srv', 0)];
+    const result: PathResult = { ok: true, path: ['p1', 'r1', 'srv'], staticNat: { router: 'r1', insideIp: '10.0.2.5', outsideIp: '203.0.113.1' } };
+    const frames = framesOf(ctxOf(nodes, links), result, { kind: 'http', port: 80 });
+    expect(frames[0].l3.dstIp).toBe('203.0.113.1');
+    expect(frames[1].l3.dstIp).toBe('10.0.2.5');
+    expect(frames[1].nat?.before).toMatchObject({ dstIp: '203.0.113.1' });
+  });
+});

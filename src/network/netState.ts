@@ -535,7 +535,8 @@ const backOf = (topo: Topology, dstUid: string, srcUid: string, traffic: Traffic
   if (!toRouter.ok) return toRouter;
   const insideIface = topo.node(router)?.interfaces.find((i) => inSubnet(insideIp, i.ip, i.prefix));
   if (!insideIface || !src || !dst) return { ok: false, path: toRouter.path, failure: fail('route.none', router) };
-  return deliver(topo, router, srcUid, traffic, false, insideIface.ip, undefined);
+  const rest = deliver(topo, router, srcUid, traffic, false, insideIface.ip, undefined);
+  return rest.ok ? { ...rest, path: [...toRouter.path, ...rest.path.slice(1)] } : rest;
 };
 
 // 電波の範囲（マス。仮の値・WIRELESS.md §3 の減衰は後続）。範囲の中の無線の端末は、最も近いアクセスポイントの LAN に入る（N151）
@@ -647,7 +648,7 @@ const viaStatic = (topo: Topology, srcUid: string, routerUid: string, traffic: T
   if (!server.services.some((s) => s.protocol === 'http' && s.port === map.insidePort)) return { ok: false, path: toRouter.path, failure: fail('service.closed', server.uid) };
   const back = deliver(topo, server.uid, routerUid, traffic, false, map.insideIp, inside.ip);
   if (!back.ok) return { ok: false, path: toRouter.path, failure: { reason: 'return.failed', node: server.uid, cause: back.failure } };
-  return { ok: true, path: [...toRouter.path, ...toServer.path.slice(1)] };
+  return { ok: true, path: [...toRouter.path, ...toServer.path.slice(1)], staticNat: { router: routerUid, insideIp: map.insideIp, outsideIp: outside.ip } };
 };
 
 // Ping（ICMP）の判定。往路と復路の両方が通る必要がある
@@ -659,7 +660,7 @@ export const ping = (net: Network, data: EngineData, srcUid: string, dstUid: str
   if (!back.ok) {
     return { ok: false, path: forward.path, failure: { reason: 'return.failed', node: dstUid, cause: back.failure }, nat: forward.nat };
   }
-  return forward;
+  return { ...forward, back: back.path };
 };
 
 // HTTP の判定。往路で宛先に届き、宛先が指定ポートでサービスを待ち受けていて、復路も通ること
@@ -683,7 +684,7 @@ export const http = (net: Network, data: EngineData, srcUid: string, dstUid: str
   if (!back.ok) {
     return { ok: false, path: forward.path, failure: { reason: 'return.failed', node: dstUid, cause: back.failure }, nat: forward.nat };
   }
-  return forward;
+  return { ...forward, back: back.path };
 };
 
 // サーバーが、各クライアントからの HTTP で見るアドレス（N146）。NAPT で送信元を書き換えた通信は外のアドレス、書き換えなければクライアントのアドレス。届かない通信は含めない

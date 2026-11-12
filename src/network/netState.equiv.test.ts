@@ -4,7 +4,12 @@ import fc from 'fast-check';
 import { gameEnv } from '../sim/env';
 import * as legacy from './__oracle__/engineLegacy';
 import * as staged from './netState';
-import type { Network, NetNode, NetLink } from './types';
+import type { Network, NetNode, NetLink, PathResult } from './types';
+
+const withoutBack = (r: PathResult): Omit<PathResult, 'back'> => {
+  const { back: _back, ...rest } = r;
+  return rest;
+};
 
 // l3_switch は基準と比べない。IP のない L3 の口は、N138 で既定の access（VLAN 1）に変えたため、基準（N136 の時点）と結果が違う。L3 の挙動は svi.test.ts で確かめる
 const DEVICES = ['pc_basic', 'router_basic', 'l2_switch_8p', 'server_basic'] as const;
@@ -59,8 +64,9 @@ describe('段に分けた計算は、基準と同じ結果（N136）', () => {
         for (const src of net.nodes) {
           for (const dst of net.nodes) {
             if (src.uid === dst.uid) continue;
-            expect(staged.ping(net, gameEnv.engine, src.uid, dst.uid)).toEqual(legacy.ping(net, gameEnv.engine, src.uid, dst.uid));
-            expect(staged.http(net, gameEnv.engine, src.uid, dst.uid, 80)).toEqual(legacy.http(net, gameEnv.engine, src.uid, dst.uid, 80));
+            // 復路の経路（back）は後から加えた項目で、旧の計算にはないため比べない
+            expect(withoutBack(staged.ping(net, gameEnv.engine, src.uid, dst.uid))).toEqual(legacy.ping(net, gameEnv.engine, src.uid, dst.uid));
+            expect(withoutBack(staged.http(net, gameEnv.engine, src.uid, dst.uid, 80))).toEqual(legacy.http(net, gameEnv.engine, src.uid, dst.uid, 80));
           }
         }
         expect(staged.loopNodeOf(net, gameEnv.engine)).toEqual(legacy.loopNodeOf(net, gameEnv.engine));

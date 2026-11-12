@@ -206,4 +206,8 @@ export interface PathResult {
   failure?: Failure;
   // NAPT で送信元を書き換えた（N145）: 書き換えた機器・社内のアドレス・外のアドレス
   nat?: { router: string; insideIp: string; outsideIp: string };
+  // 静的 NAT で、外から社内のサーバーへの宛先を変換した（宛先の変換: 外のアドレス → 社内のアドレス）
+  staticNat?: { router: string; insideIp: string; outsideIp: string };
+  // 復路の経路（機器の uid の列）。復路まで通ったときだけ持つ
+  back?: string[];
 }
