@@ -19,6 +19,7 @@ const ABBR: Record<string, string> = {
   firewall: 'FW',
   printer: 'PRN',
   access_point: 'AP',
+  uplink: 'UL',
 };
 
 export const hostLabelOf = (category: string): string => {

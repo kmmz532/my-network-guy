@@ -14,6 +14,7 @@ const VENDOR: Record<string, string> = {
   firewall: '02:50:00',
   printer: '02:60:00',
   access_point: '02:70:00',
+  uplink: '02:80:00',
 };
 
 const hex2 = (n: number): string => n.toString(16).padStart(2, '0');

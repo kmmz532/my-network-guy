@@ -1010,3 +1010,13 @@ describe('SFP の口（口の種類）', () => {
     expect(connect(core, r1, r2, 'utp_cat5e', sfpEnv, 'focus', { b: 4 })).toEqual({ ok: false, reason: 'cable.port_type' });
   });
 });
+
+describe('サンドボックスの回線終端', () => {
+  it('回線終端は、サンドボックスで2つ置ける（2社の ISP を試すため）', () => {
+    const uplinkEnv: Env = { ...env, devices: { ...env.devices, uplink: { category: 'uplink', price: 0, portCount: 2 } } };
+    let core: Core = { ...start(), owned: { uplink: 2 } };
+    core = ok(placeInOffice(core, 'uplink', 3, 4, map, uplinkEnv, true)).core;
+    core = ok(placeInOffice(core, 'uplink', 8, 4, map, uplinkEnv, true)).core;
+    expect(core.office.nodes.filter((n) => n.device === 'uplink')).toHaveLength(2);
+  });
+});
