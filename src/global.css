@@ -1,15 +1,21 @@
-/* 全体に当てる入力欄の見た目。:where() で包み、部品の style で上書きできるようにする。
-   色・枠は文字を打つ入力欄だけに当てる（チェックボックス・ラジオ・スライダー・ファイルは対象外）。
-   ボタンは書体の継承だけを当て、色・枠・大きさは部品ごとに任せる。 */
+/* 全体に当てる部品の基本の見た目。すべて :where() で包み、部品の style で上書きできるようにする。
+   ボタンは書体・色の継承だけ（色・枠・大きさは部品ごとに違うため、ここには置かない）。
+   文字を打つ入力欄（種類の指定なし・text・number・search・password・select・textarea）だけ、凹んだ枠と背景・文字の色を当てる。
+   チェックボックス・ラジオ・スライダー・ファイルの入力は対象外。 */
 
 :where(button, input, select, textarea) {
   font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
 }
 
 :where(input:not([type]), input[type='text'], input[type='number'], input[type='search'], input[type='password'], select, textarea) {
   background: #f4f1e6;
   color: #3b2a33;
-  border: 2px inset #3b2a33;
+  /* 上と左を濃く、下と右を明るくした2色の枠（凹んだ見た目） */
+  border-style: solid;
+  border-width: 2px;
+  border-color: #3b2a33 #f4f1e6 #f4f1e6 #3b2a33;
   padding: 1px 4px;
 }
 

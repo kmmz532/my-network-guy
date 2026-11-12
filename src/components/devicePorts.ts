@@ -32,9 +32,11 @@ export const panelStyle = {
   zIndex: 4,
 } as const;
 
-export const inputStyle = { width: 120, background: '#f4f1e6', color: '#3b2a33', border: '1px solid #3b2a33', padding: '1px 4px' } as const;
+// 色・枠・余白は全体の CSS（src/global.css）から当てる。ここには配置の幅だけを置く
+export const inputStyle = { width: 120 } as const;
 
-export const selectStyle = { background: '#f4f1e6', color: '#3b2a33', border: '1px solid #3b2a33', padding: '1px 2px', maxWidth: 150 } as const;
+// 色・枠・余白は全体の CSS から当てる。ここには配置の最大の幅だけを置く
+export const selectStyle = { maxWidth: 150 } as const;
 
 export const buttonStyle = { cursor: 'pointer', padding: '2px 8px', background: '#25406f', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: RADIUS.none } as const;
 
