@@ -79,7 +79,7 @@ const jobsAt = (level: number): string[] => JOB_DEFS.filter((job) => job.unlockL
 const levelUpBlocks = (ups: readonly LevelUp[]) => {
   if (ups.length === 0) return [];
   const cardsOf = (u: LevelUp, level: number): { kind: UnlockCardKind; id: string }[] => [
-    ...u.unlocks.map((x) => ({ kind: x.kind as UnlockCardKind, id: x.id })),
+    ...u.unlocks.map((x) => ({ kind: x.kind as UnlockCardKind, id: x.id, level })),
     ...(balance.office.expand.unlockLevels.includes(level) ? [{ kind: 'expansion' as const, id: 'expansion' }] : []),
   ];
   if (ups.length === 1) {

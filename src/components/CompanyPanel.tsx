@@ -6,7 +6,7 @@ import { t, tDyn } from '../i18n/t';
 import { expAtLevel, levelOf, levelProgressOf, needOf, nextLevel, titleKeyOf } from '../sim/level';
 import { unlockItems, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
-import { ItemCards, unlockNameOf } from './UnlockList';
+import { UnlockCards, unlockNameOf } from './UnlockList';
 import { Tooltip } from './Tooltip';
 import { tipText } from '../input/keymap';
 import { outsideCheck } from '../network/external';
@@ -140,7 +140,7 @@ export function CompanyBody() {
       <div style={{ paddingTop: 8 }}>
         <div style={{ color: '#ffd866' }}>{next ? t('ui.company.next', { level: next.level }) : t('ui.company.max')}</div>
         {next && unlocks.length === 0 && <div style={{ opacity: 0.85 }}>{t('ui.company.nothing')}</div>}
-        {devices.length > 0 && <ItemCards items={devices} />}
+        {devices.length > 0 && <UnlockCards items={devices.map((d) => ({ ...d, level: next?.level }))} />}
         {others.length > 0 && <div style={{ marginTop: 4 }}>{others.map((x) => unlockNameOf(x)).join('・')}</div>}
         {/* 職種（採用の候補に出る職種）も、解放のレベルで案内する（N84） */}
         {jobsUnlockedAt.length > 0 && <div style={{ marginTop: 4 }}>{t('ui.company.jobs', { jobs: jobsUnlockedAt.map((j) => tDyn(`staff.job.${j}`)).join('・') })}</div>}

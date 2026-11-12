@@ -3,6 +3,7 @@ import { contractTemplates } from 'virtual:game-data';
 import { pcCountRangeOf } from '../contracts/template';
 import { tDyn } from '../i18n/t';
 import { ItemIcon } from './ItemIcon';
+import { Tooltip } from './Tooltip';
 import { Icon } from './Icon';
 import { itemSpriteOf } from './itemSprite';
 import { RADIUS } from '../ui/theme';
@@ -61,10 +62,18 @@ const markOf: Record<Exclude<UnlockCardKind, 'device' | 'furniture'>, string> = 
 const cardNameOf = (x: { kind: UnlockCardKind; id: string }): string => (x.kind === 'expansion' ? tDyn('report.levelUp.expansion') : unlockNameOf(x as { kind: Exclude<UnlockCardKind, 'expansion'>; id: string }));
 
 // 解放の札を、種類ごとに同じ形で並べる。札は名前の途中で折り返さず、札の単位で折り返す（N131）
-export function UnlockCards({ items }: { items: { kind: UnlockCardKind; id: string; count?: number }[] }) {
+// 機器・家具で解放のレベルが分かるものは、絵だけを並べ、名前と解放のレベルは札（ツールチップ）で出す
+export function UnlockCards({ items }: { items: { kind: UnlockCardKind; id: string; count?: number; level?: number }[] }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 4 }}>
-      {items.map((x, i) => (
+      {items.map((x, i) =>
+        (x.kind === 'device' || x.kind === 'furniture') && x.level !== undefined ? (
+          <Tooltip key={`${x.kind}_${x.id}_${i}`} text={`${cardNameOf(x)}（Lv ${x.level}）`}>
+            <span style={{ display: 'flex', padding: '2px 6px', background: '#25406f', border: '1px solid #3b2a33', borderRadius: RADIUS.chrome }}>
+              <ItemIcon name={itemSpriteOf(x.kind, x.id)} box={{ width: 36, height: 36 }} maxScale={2} />
+            </span>
+          </Tooltip>
+        ) : (
         <div
           key={`${x.kind}_${x.id}_${i}`}
           style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', background: '#25406f', border: '1px solid #3b2a33', borderRadius: RADIUS.chrome, whiteSpace: 'nowrap' }}
@@ -79,7 +88,8 @@ export function UnlockCards({ items }: { items: { kind: UnlockCardKind; id: stri
             {x.count !== undefined ? ` ×${x.count}` : ''}
           </span>
         </div>
-      ))}
+        ),
+      )}
     </div>
   );
 }
