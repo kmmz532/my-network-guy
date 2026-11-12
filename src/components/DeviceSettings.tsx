@@ -201,7 +201,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
                     defaultValue={value}
                     key={`${iface.id}-${key}-${value}`}
                     disabled={locked || unlinkedRouter}
-                    style={{ width: 56 }}
+                    style={{ ...inputStyle, width: 56 }}
                     onBlur={(e) => {
                       const v = Number(e.target.value);
                       if (!Number.isInteger(v) || v < min || v === value) return;
@@ -356,7 +356,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
             key={`rid-${node.ospf?.routerId ?? ''}`}
             defaultValue={node.ospf?.routerId ?? ''}
             disabled={locked}
-            style={{ width: 110 }}
+            style={{ ...inputStyle, width: 110 }}
             onBlur={(e) => {
               const v = e.target.value.trim();
               if (v === (node.ospf?.routerId ?? '')) return;
@@ -432,7 +432,7 @@ function FirewallRuleAdd({ onAdd }: { onAdd: (rule: { src: string; dst: string; 
         onChange={(v) => setService(v as 'any' | 'ping' | 'http')}
       />
       {service === 'http' && (
-        <input aria-label={t('ui.fw.port')} value={port} onChange={(e) => setPort(e.target.value)} style={{ width: 56 }} />
+        <input aria-label={t('ui.fw.port')} value={port} onChange={(e) => setPort(e.target.value)} style={{ ...inputStyle, width: 56 }} />
       )}
       <button style={primaryButton} onClick={add}>
         {t('ui.fw.add')}
