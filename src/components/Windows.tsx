@@ -13,6 +13,7 @@ import { ShopBody } from './ShopCards';
 import { InventoryBody } from './Inventory';
 import { CompanyBody } from './CompanyPanel';
 import { FundsBody } from './FundsPanel';
+import { FramesBody } from './FramesPanel';
 import { primaryButton } from './Modal';
 import { Tabs, TAB_COLORS } from './Tabs';
 import { TrimmedIcon } from './Icon';
@@ -66,6 +67,7 @@ const tabLabel = (kind: WindowKind, ref: string): ReactNode => {
       </span>
     );
   }
+  if (kind === 'frames') return <b style={{ whiteSpace: 'nowrap' }}>{t('ui.frames.title')}</b>;
   if (kind === 'funds') {
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -184,6 +186,7 @@ export function Windows() {
           {w.kind === 'inventory' && <InventoryBody />}
           {w.kind === 'company' && <CompanyBody />}
           {w.kind === 'funds' && <FundsBody />}
+          {w.kind === 'frames' && <FramesBody />}
           {w.kind === 'office' && <OfficeBody />}
           {/* スマホでは、本文の下に閉じるボタンを置く（パソコンは窓の×で閉じる） */}
           {narrow && (

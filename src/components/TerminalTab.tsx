@@ -152,6 +152,8 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
     }
   };
 
+  const hasTraces = useGameStore((s) => s.traces.length > 0);
+  const openWindow = useGameStore((s) => s.openWindow);
   return (
     <div>
       <div
@@ -164,6 +166,11 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
           </div>
         ))}
       </div>
+      {hasTraces && (
+        <button type="button" style={{ ...secondaryButton, marginBottom: 6 }} onClick={() => openWindow('frames', '')}>
+          {t('ui.frames.open')}
+        </button>
+      )}
       <form
         onSubmit={(e) => {
           e.preventDefault();

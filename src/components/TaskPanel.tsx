@@ -27,6 +27,7 @@ export function TaskPanel() {
   const lessonId = useGameStore((s) => s.sandboxLesson?.id ?? null);
   const closeLesson = useGameStore((s) => s.closeLesson);
   const officeNodes = useGameStore((s) => s.office.nodes);
+  const hasTraces = useGameStore((s) => s.traces.length > 0);
   const activeId = active?.id ?? null;
   // 同じ依頼の型紙があるか（「型紙を使う」を出す。N70）
   const hasBlueprint = useGameStore((s) => (active ? s.familiarity.blueprints[familiarKeyOf(active.kind, active.baseId, active.contract.map)] !== undefined : false));
@@ -61,6 +62,7 @@ export function TaskPanel() {
             );
           })}
         </ul>
+        {hasTraces && <button style={{ ...secondaryButton, marginTop: 8, marginRight: 6 }} onClick={() => openWindow('frames', '')}>{t('ui.frames.open')}</button>}
         <button style={{ ...secondaryButton, marginTop: 8 }} onClick={closeLesson}>{t('ui.lesson.end')}</button>
       </aside>
     );
@@ -173,6 +175,11 @@ export function TaskPanel() {
               );
             })}
           </ul>
+          {hasTraces && (
+            <button style={{ ...secondaryButton, marginTop: 8 }} onClick={() => openWindow('frames', '')}>
+              {t('ui.frames.open')}
+            </button>
+          )}
           {warnings.length > 0 && (
             <div style={{ marginTop: 8 }}>
               <div style={{ fontWeight: 'bold', color: '#ffd866' }}>{t('ui.check.warnings')}</div>
