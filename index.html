@@ -106,6 +106,12 @@
           font-size: 16px !important;
         }
       }
+      /* 機器の端末の出力は、文字の選択とコピーを許す（画面全体は選択を止めている） */
+      [data-terminal-output],
+      [data-terminal-output] * {
+        -webkit-user-select: text;
+        user-select: text;
+      }
       /* エラーの文言（報告に使うため）は、文字の選択とコピーを許す */
       [role='alert'],
       [role='alert'] * {

@@ -168,6 +168,7 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
     <div>
       <div
         aria-live="polite"
+        data-terminal-output
         style={{ fontFamily: 'monospace', fontSize: 12, height: 160, overflowY: 'auto', background: '#0f1d33', padding: 6, marginBottom: 6 }}
       >
         {history.map((l, i) => (
