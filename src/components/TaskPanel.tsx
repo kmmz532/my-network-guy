@@ -10,6 +10,7 @@ import { secondaryButton } from './Modal';
 import { familiarKeyOf } from '../sim/familiar';
 import { usePhone } from '../ui/usePhone';
 import { useEffect, useState } from 'react';
+import { lessons } from 'virtual:game-data';
 
 // 最初の案件（c001）の手順。配線・疎通・施工依頼の順に、済んだものに印を付ける
 const FIRST_CONTRACT = 'c001_direct_link';
@@ -23,6 +24,9 @@ export function TaskPanel() {
   const openWindow = useGameStore((s) => s.openWindow);
   const setTool = useGameStore((s) => s.setTool);
   const phone = usePhone();
+  const lessonId = useGameStore((s) => s.sandboxLesson?.id ?? null);
+  const closeLesson = useGameStore((s) => s.closeLesson);
+  const officeNodes = useGameStore((s) => s.office.nodes);
   const activeId = active?.id ?? null;
   // 同じ依頼の型紙があるか（「型紙を使う」を出す。N70）
   const hasBlueprint = useGameStore((s) => (active ? s.familiarity.blueprints[familiarKeyOf(active.kind, active.baseId, active.contract.map)] !== undefined : false));
@@ -35,7 +39,32 @@ export function TaskPanel() {
   useEffect(() => {
     setBlueprintError(null);
   }, [activeId]);
-  if (!active) return null;
+  if (!active) {
+    const lesson = lessonId === null ? undefined : lessons.find((l) => l.id === lessonId);
+    if (!lesson) return null;
+    // 教材: 案件と同じ欄に、題名・依頼文・達成条件（最後のテストの結果）を出す
+    const lessonResult = check && check.projectId === 'hq' ? check.goals : null;
+    return (
+      <aside data-task-panel style={{ width: 260, background: 'rgba(47, 79, 143, 0.92)', color: '#f4f1e6', border: '2px solid #3b2a33', borderRadius: RADIUS.chrome, fontSize: 13, zIndex: 4, zoom: 'var(--ui-scale, 1)', padding: 8 }}>
+        <div style={{ fontWeight: 'bold' }}>{tDyn(`lesson.${lesson.id}.title`)}</div>
+        <div style={{ opacity: 0.85, lineHeight: 1.5, marginTop: 4 }}>{tDyn(`lesson.${lesson.id}.brief`)}</div>
+        <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>
+          {lesson.goals.map((goal, i) => {
+            const ok = lessonResult?.[i] ? lessonResult[i].ok : null;
+            return (
+              <li key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginTop: 4 }}>
+                <span style={{ opacity: ok === null ? 0.25 : 1, flexShrink: 0 }}>
+                  <Icon name={ok === false ? 'icon/close' : 'icon/ok'} scale={1} />
+                </span>
+                <span style={{ opacity: ok === true ? 0.7 : 1 }}>{goalText(goal, (id) => labelOfUid(useGameStore.getState(), id, officeNodes))}</span>
+              </li>
+            );
+          })}
+        </ul>
+        <button style={{ ...secondaryButton, marginTop: 8 }} onClick={closeLesson}>{t('ui.lesson.end')}</button>
+      </aside>
+    );
+  }
 
   // 最後のテスト（または検収）の結果。この案件のものだけを使う。結果がなければ ok は null（未判定）
   const result = check && check.projectId === active.id ? check.goals : null;

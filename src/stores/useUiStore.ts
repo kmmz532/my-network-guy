@@ -4,7 +4,7 @@ import { create } from 'zustand';
 
 export type HiringTab = 'hiring' | 'staff';
 
-export type Popup = 'menu' | 'help' | 'settings' | 'sandboxResize' | 'sandboxReset' | 'sandboxResetConfirm';
+export type Popup = 'menu' | 'help' | 'settings' | 'sandboxResize' | 'sandboxReset' | 'sandboxResetConfirm' | 'lessons';
 
 interface UiState {
   // 開いている採用の画面のタブ（閉じていれば null）

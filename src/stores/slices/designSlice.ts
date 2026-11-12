@@ -7,9 +7,12 @@ import { pcDesksOf } from '../../sim/furniture';
 import { missingPcCount } from '../../sim/backOffice';
 import { pushNotice } from '../../ui/notices';
 import { sandboxTest } from '../../sim/sandbox';
+import { lessons } from 'virtual:game-data';
+import { lessonLinks, lessonNodes } from '../../sim/lesson';
+import { mapOfOffice } from '../../sim/office';
 
 import { closeRef } from '../../ui/windows';
-import { type PortChoice, connect, removeNode, removeFromOffice, setInterface, setSvi, setPortMode, setGateway, setRouting, setBgp, setNat, type NatOp, setWireless, type BgpOp, setFirewallRules, setSegment, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, replug, moveNode, replugTo, addRoute, removeRoute, removeLink, testDesign, type End } from '../../sim/project';
+import { type PortChoice, connect, removeNode, removeFromOffice, setInterface, setSvi, setPortMode, setGateway, setRouting, setBgp, setNat, type NatOp, setWireless, type BgpOp, setFirewallRules, setSegment, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, replug, moveNode, replugTo, addRoute, removeRoute, removeLink, testDesign, emptyOffice, type End } from '../../sim/project';
 
 import { coreOf, focusedProject, netTargetOf } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
@@ -22,6 +25,9 @@ export interface DesignSlice {
   redo: () => void;
   // テストを押す。失敗したら理由を返す
   test: () => string | null;
+  // 教材を開く（今の構成を教材の初期の構成に置き換える）・終える（構成は残す）
+  openLesson: (id: string) => void;
+  closeLesson: () => void;
   connect: (aUid: string, bUid: string, cableId: string, ports?: PortChoice) => string | null;
   removeLink: (uid: string) => string | null;
   removeNode: (uid: string) => string | null;
@@ -66,11 +72,21 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
   return {
     undo: () => stepHistory('undo'),
     redo: () => stepHistory('redo'),
+    openLesson: (id) => {
+      const s = get();
+      if (s.mode !== 'sandbox') throw new Error('教材はサンドボックスだけで開ける');
+      const lesson = lessons.find((l) => l.id === id);
+      if (!lesson) throw new Error(`教材 ${id} がない`);
+      const office = { ...emptyOffice(lesson.size), nodes: lessonNodes(lesson), links: lessonLinks(lesson) };
+      set({ office, maps: { ...s.maps, hq: mapOfOffice(office) }, sandboxLesson: { id, step: 0, done: false }, check: null, helpUid: null, traces: [] });
+    },
+    closeLesson: () => set({ sandboxLesson: null }),
     test: () => {
       const s = get();
       // サンドボックスは、案件の達成条件なしで、PC とサーバーの疎通を判定する
       if (s.mode === 'sandbox') {
-        const sr = sandboxTest(s.office, gameEnv);
+        const lesson = s.sandboxLesson ? lessons.find((l) => l.id === s.sandboxLesson?.id) : undefined;
+        const sr = sandboxTest(s.office, gameEnv, lesson?.goals);
         if (!sr) {
           set({ lastError: 'none' });
           return 'none';

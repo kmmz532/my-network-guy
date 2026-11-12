@@ -9,6 +9,7 @@ import { dangerButton, Modal, secondaryButton } from '../Modal';
 import { KeyHelp } from '../KeyHelp';
 import { SandboxSizePanel } from '../SandboxSizePanel';
 import { SettingsPanel } from '../SettingsPanel';
+import { LessonPicker } from '../LessonPicker';
 
 // メニューの項目。ボタンとファイルを選ぶラベルで、文字の大きさと見た目をそろえる
 const menuButton = { ...secondaryButton, display: 'block', width: '100%', margin: '4px 0', padding: '6px 12px', fontSize: 13, lineHeight: 1.4, boxSizing: 'border-box' } as const;
@@ -72,6 +73,9 @@ export function GamePopups({ onExit }: { onExit: () => void }) {
           </button>
           {sandbox && (
             <>
+              <button style={menuButton} onClick={() => setPopup('lessons')}>
+                {t('ui.lesson.open')}
+              </button>
               <button style={menuButton} onClick={() => setPopup('sandboxResize')}>
                 {t('ui.sandbox.size.change')}
               </button>
@@ -123,6 +127,7 @@ export function GamePopups({ onExit }: { onExit: () => void }) {
           }}
         />
       )}
+      {popup === 'lessons' && <LessonPicker onClose={() => setPopup(null)} />}
       {popup === 'help' && <KeyHelp onClose={() => setPopup(null)} />}
       {popup === 'settings' && <SettingsPanel onClose={() => setPopup(null)} onOpenKeys={() => setPopup('help')} />}
     </>
