@@ -23,6 +23,7 @@ import { addressCandidates, PLANNED_NETWORK, PLANNED_PREFIX, plannedAddressCandi
 import { coreOf, focusedProject, netTargetOf, plannedKey, useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, hexColor, inputStyle, isIpText, portLabel, sectionStyle, unsetColor } from './devicePorts';
 import { CATEGORY } from '../data/categories';
+import { BgpField } from './BgpField';
 
 // ネットワークの既定候補（入力欄から任意のネットワークも指定できる）
 const NETWORK_CHOICES = Array.from({ length: 16 }, (_, i) => `192.168.${i + 1}.0`);
@@ -387,6 +388,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
       {/* ファイアウォールも経路を持つ（直列の構成で、戻りの経路を置くため）。規則と静的ルートの両方を出す（N-fw） */}
       {isRoutingCategory(category ?? '') && renderRoutes()}
       {isRoutingCategory(category ?? '') && node.interfaces.some((i) => i.ospf !== undefined) && renderOspf()}
+      {can(node.device, 'bgp') && <BgpField key={`bgp-${node.uid}`} node={node} readOnly={locked} onError={onError} />}
       {isRoutingCategory(category ?? '') && <NatField node={node} readOnly={locked} onError={onError} />}
       {category === CATEGORY.firewall && renderFirewallRules()}
     </div>

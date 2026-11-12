@@ -1122,7 +1122,7 @@ export const setNat = (core: Core, uid: string, change: NatOp, target: NetTarget
   );
 
 // BGP の設定（N147）。router bgp で自分の AS を決め、neighbor と network を足す
-export type BgpOp = { op: 'asn'; asn: number } | { op: 'off' } | { op: 'neighbor'; ip: string; remoteAs: number } | { op: 'attr'; ip: string; key: 'nextHopSelf'; value: boolean } | { op: 'attr'; ip: string; key: 'localPref' | 'med' | 'prepend'; value: number } | { op: 'network'; dest: string; prefix: number };
+export type BgpOp = { op: 'asn'; asn: number } | { op: 'off' } | { op: 'neighbor'; ip: string; remoteAs: number } | { op: 'removeNeighbor'; ip: string } | { op: 'removeNetwork'; dest: string; prefix: number } | { op: 'attr'; ip: string; key: 'nextHopSelf'; value: boolean } | { op: 'attr'; ip: string; key: 'localPref' | 'med' | 'prepend'; value: number } | { op: 'network'; dest: string; prefix: number };
 export const setBgp = (core: Core, uid: string, change: BgpOp, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
@@ -1136,6 +1136,10 @@ export const setBgp = (core: Core, uid: string, change: BgpOp, target: NetTarget
           return { ...node, bgp: undefined };
         case 'neighbor':
           return { ...node, bgp: { ...cur, neighbors: [...cur.neighbors.filter((n) => n.ip !== change.ip), { ...cur.neighbors.find((n) => n.ip === change.ip), ip: change.ip, remoteAs: change.remoteAs }] } };
+        case 'removeNeighbor':
+          return { ...node, bgp: { ...cur, neighbors: cur.neighbors.filter((n) => n.ip !== change.ip) } };
+        case 'removeNetwork':
+          return { ...node, bgp: { ...cur, networks: cur.networks.filter((n) => !(n.dest === change.dest && n.prefix === change.prefix)) } };
         case 'attr': {
           if (!cur.neighbors.some((n) => n.ip === change.ip)) return 'bgp.no_neighbor';
           return { ...node, bgp: { ...cur, neighbors: cur.neighbors.map((n) => (n.ip === change.ip ? { ...n, [change.key]: change.value } : n)) } };
