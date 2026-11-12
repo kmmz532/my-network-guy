@@ -1,6 +1,7 @@
 // 案件の達成条件（goals）の判定ハンドラ。種類ごとにハンドラを登録し、案件データから呼び出す。
 import type { Contract, Goal } from '../data/schema';
 import { http, ping, wirelessAssociations } from './engine';
+import { ospfNeighborsOf } from './netState';
 import { resolveName } from './resolve';
 import type { EngineData, Failure, Network, PathResult } from './types';
 
@@ -76,6 +77,13 @@ const handlers: { [K in Goal['type']]: Handler } = {
     let reach = pcs.length >= 2;
     for (let i = 0; i < pcs.length && reach; i++) for (let j = i + 1; j < pcs.length && reach; j++) reach = ping(net, data, pcs[i], pcs[j]).ok;
     const ok = staticFree && reach;
+    return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
+  },
+  // 指定した機器が DR になっている（同じネットワークの隣接の相手から見て、その機器が FULL/DR）
+  ospf_dr: (goal, net, data) => {
+    if (goal.type !== 'ospf_dr') throw new Error('ospf_dr ハンドラに別の種類が渡された');
+    const peers = ospfNeighborsOf(net, data, goal.node);
+    const ok = peers.some((p) => ospfNeighborsOf(net, data, p.uid).some((q) => q.uid === goal.node && q.state === 'FULL/DR'));
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   count_device: (goal, net) => {

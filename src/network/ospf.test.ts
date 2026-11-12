@@ -136,3 +136,33 @@ describe('ルーター ID の重複の警告', () => {
     expect(warningsOf(net)).toEqual([{ id: 'ospf.duplicate_router_id', a: 'a', b: 'b' }]);
   });
 });
+
+describe('ospf_dr と、静的経路との競合', () => {
+  it('ospf_dr: ルーター ID が最大の機器が DR のとき合格する', () => {
+    expect(evaluateGoal({ type: 'ospf_dr', node: 'r3' }, shared(), data)[0].ok).toBe(true);
+    expect(evaluateGoal({ type: 'ospf_dr', node: 'r1' }, shared(), data)[0].ok).toBe(false);
+  });
+
+  // R1・R2・R3 の三角形。PC2 は R2 の先。R1 から R2 へは直結（OSPF で最短）と、R3 経由がある
+  const triangle = (staticVia: string | null): Network => {
+    const o = { area: 0 };
+    const r1 = node('r1', 'router', [f(0, '10.0.1.1', o), f(1, '10.0.12.1', o, 30), f(2, '10.0.13.1', o, 30)], staticVia ? { routes: [{ dest: '10.0.2.0', prefix: 24, nextHop: staticVia }] } : {});
+    return {
+      nodes: [
+        node('pc1', 'pc', [f(0, '10.0.1.10')], { gateway: '10.0.1.1' }),
+        r1,
+        node('r2', 'router', [f(0, '10.0.12.2', o, 30), f(1, '10.0.23.2', o, 30), f(2, '10.0.2.1', o)]),
+        node('r3', 'router', [f(0, '10.0.13.3', o, 30), f(1, '10.0.23.3', o, 30)]),
+        node('pc2', 'pc', [f(0, '10.0.2.10')], { gateway: '10.0.2.1' }),
+      ],
+      links: [link('a', 'pc1', 0, 'r1', 0), link('b', 'r1', 1, 'r2', 0), link('c', 'r1', 2, 'r3', 0), link('d', 'r2', 1, 'r3', 1), link('e', 'r2', 2, 'pc2', 0)],
+      segments: {},
+    };
+  };
+  it('OSPF だけなら直結の R2 を通り、同じ宛先の静的経路（管理距離 1）があれば静的が優先される', () => {
+    const viaOspf = evaluateGoal({ type: 'ping', from: 'pc1', to: 'pc2' }, triangle(null), data)[0];
+    expect(viaOspf.result.path).not.toContain('r3');
+    const viaStatic = evaluateGoal({ type: 'ping', from: 'pc1', to: 'pc2' }, triangle('10.0.13.3'), data)[0];
+    expect(viaStatic.result.path).toContain('r3');
+  });
+});
