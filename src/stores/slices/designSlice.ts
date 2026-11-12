@@ -146,7 +146,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       const reason = recorded(() => {
         if (!focusedProject(get())) {
           const n = get().office.nodes.find((x) => x.uid === uid);
-          return apply(removeFromOffice(coreOf(get()), uid, gameEnv), n ? { tx: n.x, ty: n.y } : undefined);
+          return apply(removeFromOffice(coreOf(get()), uid, gameEnv, get().mode === 'sandbox'), n ? { tx: n.x, ty: n.y } : undefined);
         }
         return apply(removeNode(coreOf(get()), uid, gameEnv), tileOf(uid));
       });

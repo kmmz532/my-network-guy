@@ -52,7 +52,7 @@ export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (
           if (reason === null) set({ placing: null });
           return reason;
         }
-        return releaseWhenEmpty(deviceId, recorded(() => apply(placeInOffice(coreOf(get()), deviceId, x, y, hq, gameEnv, get().mode === 'sandbox'), { tx: x, ty: y })));
+        return releaseWhenEmpty(deviceId, recorded(() => apply(placeInOffice(coreOf(get()), deviceId, x, y, hq, gameEnv, get().mode === 'sandbox', get().mode === 'sandbox'), { tx: x, ty: y })));
       }
       const project = focusedProject(get());
       if (!project) return 'map';
@@ -85,13 +85,13 @@ export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (
     placeFurniture: (id, x, y) => {
       const hq = get().maps.hq;
       if (!hq) return 'map';
-      const reason = recorded(() => apply(placeFurnitureOp(coreOf(get()), id, x, y, hq), { tx: x, ty: y }));
+      const reason = recorded(() => apply(placeFurnitureOp(coreOf(get()), id, x, y, hq, get().mode === 'sandbox'), { tx: x, ty: y }));
       if (reason === null) get().grantCompanyExp('furniture');
       return reason;
     },
     removeFurniture: (uid) => {
       const f = get().office.furniture.find((x) => x.uid === uid);
-      return recorded(() => apply(removeFurnitureOp(coreOf(get()), uid), f ? { tx: f.x, ty: f.y } : undefined));
+      return recorded(() => apply(removeFurnitureOp(coreOf(get()), uid, get().mode === 'sandbox'), f ? { tx: f.x, ty: f.y } : undefined));
     },
     rotateFurniture: (uid) => apply(rotateFurnitureOp(coreOf(get()), uid)),
     changeFloor: (room, floor) => {

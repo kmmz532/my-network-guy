@@ -349,8 +349,8 @@ export class MapInput {
     const core = coreOf(s);
     const hq = s.maps.hq;
     if (!hq) return false;
-    if (id in furnitureData) return placeFurniture(core, id, tx, ty, hq).ok;
-    if (viewingOffice(s)) return placeInOffice(core, id, tx, ty, hq, gameEnv, s.mode === 'sandbox').ok;
+    if (id in furnitureData) return placeFurniture(core, id, tx, ty, hq, s.mode === 'sandbox').ok;
+    if (viewingOffice(s)) return placeInOffice(core, id, tx, ty, hq, gameEnv, s.mode === 'sandbox', s.mode === 'sandbox').ok;
     const map = this.host.map();
     return map !== null && placeDevice(core, id, tx, ty, map, gameEnv).ok;
   }

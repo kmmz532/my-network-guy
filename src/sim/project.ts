@@ -620,10 +620,11 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
 };
 
 // 案件がないときに、在庫の機材を自社オフィスへ置く。配線は自社案件と同じ規則で行う
-export const placeInOffice = (core: Core, deviceId: string, x: number, y: number, map: GameMap, env: Env, anyFloor = false): Outcome => {
+// sandbox のときは在庫を数えない（置いても在庫は減らず、撤去しても増えない）
+export const placeInOffice = (core: Core, deviceId: string, x: number, y: number, map: GameMap, env: Env, anyFloor = false, sandbox = false): Outcome => {
   if (officeLocked(core)) return fail('inhouse');
   if (!env.devices[deviceId]) return fail('none');
-  if ((core.owned[deviceId] ?? 0) < 1) return fail('stock');
+  if (!sandbox && (core.owned[deviceId] ?? 0) < 1) return fail('stock');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
   const office = core.office;
   const reason = officePlaceReason(office.furniture, office.nodes, deviceId, x, y, map, env, anyFloor);
@@ -647,13 +648,13 @@ export const placeInOffice = (core: Core, deviceId: string, x: number, y: number
     core: {
       ...core,
       office: { ...office, nodes: [...office.nodes, node], seq: office.seq + 1 },
-      owned: { ...core.owned, [deviceId]: core.owned[deviceId] - 1 },
+      owned: sandbox ? core.owned : { ...core.owned, [deviceId]: core.owned[deviceId] - 1 },
     },
   };
 };
 
 // 自社オフィスの機器を在庫に戻す。つながるケーブルも一緒に撤去する（ケーブルは在庫を持たない）
-export const removeFromOffice = (core: Core, uid: string, env: Env): Outcome => {
+export const removeFromOffice = (core: Core, uid: string, env: Env, sandbox = false): Outcome => {
   if (officeLocked(core)) return fail('inhouse');
   const node = core.office.nodes.find((n) => n.uid === uid);
   if (!node) return fail('none');
@@ -666,7 +667,7 @@ export const removeFromOffice = (core: Core, uid: string, env: Env): Outcome => 
     core: {
       ...core,
       office: { ...core.office, nodes, links, segments },
-      owned: { ...core.owned, [node.device]: (core.owned[node.device] ?? 0) + 1 },
+      owned: sandbox ? core.owned : { ...core.owned, [node.device]: (core.owned[node.device] ?? 0) + 1 },
     },
   };
 };

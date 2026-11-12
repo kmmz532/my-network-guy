@@ -1020,3 +1020,19 @@ describe('サンドボックスの回線終端', () => {
     expect(core.office.nodes.filter((n) => n.device === 'uplink')).toHaveLength(2);
   });
 });
+
+describe('サンドボックスの在庫', () => {
+  it('サンドボックスでは、置いても撤去しても在庫が変わらない。経営モードは撤去で1つ戻る', () => {
+    const sandboxCore: Core = { ...start(), owned: {} };
+    const placed = ok(placeInOffice(sandboxCore, 'l2_switch_8p', 3, 4, map, env, false, true)).core;
+    expect(placed.owned).toEqual({});
+    const uid = placed.office.nodes.find((n) => n.device === 'l2_switch_8p')!.uid;
+    expect(ok(removeFromOffice(placed, uid, env, true)).core.owned).toEqual({});
+
+    const careerCore: Core = { ...start(), owned: { l2_switch_8p: 1 } };
+    const careerPlaced = ok(placeInOffice(careerCore, 'l2_switch_8p', 3, 4, map, env)).core;
+    expect(careerPlaced.owned).toEqual({ l2_switch_8p: 0 });
+    const careerUid = careerPlaced.office.nodes.find((n) => n.device === 'l2_switch_8p')!.uid;
+    expect(ok(removeFromOffice(careerPlaced, careerUid, env)).core.owned).toEqual({ l2_switch_8p: 1 });
+  });
+});

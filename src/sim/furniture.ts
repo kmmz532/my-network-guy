@@ -15,9 +15,10 @@ export const initialOffice = (balance: Balance): Office => {
 };
 
 // 自社オフィスの家具を置く。在庫があり、家具のない床のマスで、機材もないときだけ置ける
-export const placeFurniture = (core: Core, id: string, x: number, y: number, map: GameMap): Outcome => {
+// sandbox のときは在庫を数えない（置いても在庫は減らず、撤去しても増えない）
+export const placeFurniture = (core: Core, id: string, x: number, y: number, map: GameMap, sandbox = false): Outcome => {
   if (officeLocked(core)) return fail('inhouse');
-  if ((core.owned[id] ?? 0) < 1) return fail('stock');
+  if (!sandbox && (core.owned[id] ?? 0) < 1) return fail('stock');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
   if (tileKind(map, x, y) !== 'floor') return fail('tile');
   const office = core.office;
@@ -32,7 +33,7 @@ export const placeFurniture = (core: Core, id: string, x: number, y: number, map
         furniture: [...office.furniture, { uid: `f${office.furnitureSeq}`, id, x, y }],
         furnitureSeq: office.furnitureSeq + 1,
       },
-      owned: { ...core.owned, [id]: core.owned[id] - 1 },
+      owned: sandbox ? core.owned : { ...core.owned, [id]: core.owned[id] - 1 },
     },
   };
 };
@@ -137,7 +138,7 @@ export const rotateFurniture = (core: Core, uid: string): Outcome => {
 };
 
 // 自社オフィスの家具を撤去する（在庫に戻る）。机の上にPCがあるときは撤去できない
-export const removeFurniture = (core: Core, uid: string): Outcome => {
+export const removeFurniture = (core: Core, uid: string, sandbox = false): Outcome => {
   if (officeLocked(core)) return fail('inhouse');
   const target = core.office.furniture.find((f) => f.uid === uid);
   if (!target) return fail('none');
@@ -149,7 +150,7 @@ export const removeFurniture = (core: Core, uid: string): Outcome => {
     core: {
       ...core,
       office: { ...core.office, furniture: core.office.furniture.filter((f) => f.uid !== uid) },
-      owned: { ...core.owned, [target.id]: (core.owned[target.id] ?? 0) + 1 },
+      owned: sandbox ? core.owned : { ...core.owned, [target.id]: (core.owned[target.id] ?? 0) + 1 },
     },
   };
 };
