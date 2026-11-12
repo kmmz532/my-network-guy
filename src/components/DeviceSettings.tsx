@@ -46,6 +46,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   const setGateway = useGameStore((s) => s.setGateway);
   const setSegment = useGameStore((s) => s.setSegment);
   const setRouting = useGameStore((s) => s.setRouting);
+  const setOspf = useGameStore((s) => s.setOspf);
   const addRoute = useGameStore((s) => s.addRoute);
   const removeRoute = useGameStore((s) => s.removeRoute);
   const setFirewallRules = useGameStore((s) => s.setFirewallRules);
@@ -166,6 +167,47 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
               />
               {t('ui.config.ripJoin')}
             </label>
+          </div>
+        )}
+        {iface && isRoutingCategory(category ?? '') && (
+          <div style={{ ...row, flexWrap: 'wrap', gap: 6 }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <input
+                type="checkbox"
+                aria-label={t('ui.config.ospfJoin')}
+                checked={iface.ospf !== undefined}
+                disabled={locked || unlinkedRouter}
+                onChange={(e) => onError(setRouting(node.uid, { proto: 'ospf', on: e.target.checked, ip: iface.ip }))}
+              />
+              {t('ui.config.ospfJoin')}
+            </label>
+            {iface.ospf !== undefined &&
+              (
+                [
+                  ['area', 'ui.config.ospfArea', iface.ospf.area, 0],
+                  ['cost', 'ui.config.ospfCost', iface.ospf.cost ?? 1, 1],
+                  ['priority', 'ui.config.ospfPriority', iface.ospf.priority ?? 1, 0],
+                  ['hello', 'ui.config.ospfHello', iface.ospf.hello ?? 10, 1],
+                  ['dead', 'ui.config.ospfDead', iface.ospf.dead ?? 40, 1],
+                ] as const
+              ).map(([key, label, value, min]) => (
+                <label key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+                  {t(label)}
+                  <input
+                    type="number"
+                    min={min}
+                    defaultValue={value}
+                    key={`${iface.id}-${key}-${value}`}
+                    disabled={locked || unlinkedRouter}
+                    style={{ width: 56 }}
+                    onBlur={(e) => {
+                      const v = Number(e.target.value);
+                      if (!Number.isInteger(v) || v < min || v === value) return;
+                      onError(key === 'area' ? setRouting(node.uid, { proto: 'ospf', on: true, ip: iface.ip, area: v }) : setOspf(node.uid, { op: 'iface', id: iface.id, key, value: v }));
+                    }}
+                  />
+                </label>
+              ))}
           </div>
         )}
         <div style={{ ...row, fontSize: 12 }}>
@@ -302,6 +344,39 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
     );
   };
 
+  // OSPF に参加しているルーターだけに出す（ルーター ID・既定の経路の配布）
+  const renderOspf = () => (
+    <div style={sectionStyle}>
+      <div style={{ ...row, flexWrap: 'wrap', gap: 6 }}>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+          {t('ui.config.ospfRouterId')}
+          <input
+            key={`rid-${node.ospf?.routerId ?? ''}`}
+            defaultValue={node.ospf?.routerId ?? ''}
+            disabled={locked}
+            style={{ width: 110 }}
+            onBlur={(e) => {
+              const v = e.target.value.trim();
+              if (v === (node.ospf?.routerId ?? '')) return;
+              if (v !== '' && !isIpText(v)) return onError('ip');
+              onError(setOspf(node.uid, { op: 'routerId', ip: v === '' ? null : v }));
+            }}
+          />
+        </label>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+          <input
+            type="checkbox"
+            aria-label={t('ui.config.ospfDefault')}
+            checked={node.ospf?.defaultOriginate === true}
+            disabled={locked}
+            onChange={(e) => onError(setOspf(node.uid, { op: 'defaultOriginate', on: e.target.checked }))}
+          />
+          {t('ui.config.ospfDefault')}
+        </label>
+      </div>
+    </div>
+  );
+
   return (
     <div>
       <NameField key={node.uid} node={node} nodes={net.nodes} readOnly={readOnly} onError={onError} />
@@ -311,6 +386,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
       {!isRoutingCategory(category ?? '') && renderGateway()}
       {/* ファイアウォールも経路を持つ（直列の構成で、戻りの経路を置くため）。規則と静的ルートの両方を出す（N-fw） */}
       {isRoutingCategory(category ?? '') && renderRoutes()}
+      {isRoutingCategory(category ?? '') && node.interfaces.some((i) => i.ospf !== undefined) && renderOspf()}
       {isRoutingCategory(category ?? '') && <NatField node={node} readOnly={locked} onError={onError} />}
       {category === CATEGORY.firewall && renderFirewallRules()}
     </div>
