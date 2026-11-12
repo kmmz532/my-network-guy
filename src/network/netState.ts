@@ -6,6 +6,7 @@ import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, Iface,
 import { CATEGORY } from '../data/categories';
 import { can } from './capabilities';
 import { macOf } from './mac';
+import { computeBgp, type BgpEnv, type BgpResult } from './bgp';
 import { duplicateRouterIds, electDr, ospfMismatch, ospfPriorityOf, ospfRouterId, type DrCandidate, type OspfMismatch } from './ospf';
 
 const MAX_HOPS = 16;
@@ -164,48 +165,37 @@ class Topology {
     return myIface !== undefined && this.domainOf({ node: r.uid, port: myIface.port }).members.some((m) => m.node === peer.uid);
   }
 
+  // BGP の計算結果（セッション・候補の経路）。段4の動的経路（static・RIP・OSPF）が決まった後に求める
+  bgpOf(uid: string): BgpResult | undefined {
+    this.routesOf(uid);
+    return this.bgpResult?.get(uid);
+  }
+
+  private bgpResult?: Map<string, BgpResult>;
+
   private bgpRoutes(out: Map<string, Route[]>): void {
     const routers = [...this.nodes.values()].filter((n) => n.bgp !== undefined && this.isRouter(n.uid));
-    const ownerOf = (ip: string) => routers.find((r) => r.interfaces.some((i) => i.ip === ip));
-    // セッション（学ぶ側 from・広告する側 to・学ぶ側から見た相手のアドレス）
-    const sessions: { from: string; to: string; nextHop: string }[] = [];
+    const igp = (r: NetNode): Route[] => [...r.routes, ...(out.get(r.uid) ?? [])];
+    const covers = (ip: string, route: Route) => inSubnet(ip, route.dest, route.prefix);
+    const env: BgpEnv = {
+      direct: (r, ip) =>
+        r.interfaces.some(
+          (i) => inSubnet(ip, i.ip, i.prefix) && this.domainOf({ node: r.uid, port: i.port }).members.some((m) => this.nodes.get(m.node)?.interfaces.some((x) => x.ip === ip)),
+        ),
+      reaches: (r, ip) => r.interfaces.some((i) => inSubnet(ip, i.ip, i.prefix)) || igp(r).some((route) => covers(ip, route)),
+    };
+    this.bgpResult = computeBgp(routers, env);
     for (const r of routers) {
-      for (const nb of r.bgp!.neighbors) {
-        if (!this.bgpSessionOk(r, nb.ip, nb.remoteAs)) continue;
-        sessions.push({ from: r.uid, to: ownerOf(nb.ip)!.uid, nextHop: nb.ip });
-      }
-    }
-    type Entry = { dest: string; prefix: number; path: number[]; nextHop: string | null };
-    const best = new Map<string, Map<string, Entry>>();
-    const keyOf = (dest: string, prefix: number) => `${dest}/${prefix}`;
-    for (const r of routers) {
-      const table = new Map<string, Entry>();
-      for (const n of r.bgp!.networks) table.set(keyOf(n.dest, n.prefix), { dest: n.dest, prefix: n.prefix, path: [r.bgp!.asn], nextHop: null });
-      best.set(r.uid, table);
-    }
-    for (let round = 0; round < routers.length + 1; round++) {
-      let changed = false;
-      for (const s of sessions) {
-        const learner = routers.find((r) => r.uid === s.from)!;
-        const table = best.get(s.from)!;
-        for (const e of best.get(s.to)!.values()) {
-          if (e.path.includes(learner.bgp!.asn)) continue;
-          const path = [...e.path, learner.bgp!.asn];
-          const k = keyOf(e.dest, e.prefix);
-          const cur = table.get(k);
-          if (cur && (cur.nextHop === null || cur.path.length < path.length || (cur.path.length === path.length && cur.nextHop <= s.nextHop))) continue;
-          table.set(k, { dest: e.dest, prefix: e.prefix, path, nextHop: s.nextHop });
-          changed = true;
-        }
-      }
-      if (!changed) break;
-    }
-    for (const r of routers) {
-      const learned = [...best.get(r.uid)!.values()].filter((e) => e.nextHop !== null);
       const own = r.interfaces;
-      const routes: Route[] = learned
-        .filter((e) => !own.some((i) => inSubnet(e.dest, i.ip, i.prefix)))
-        .map((e) => ({ dest: e.dest, prefix: e.prefix, nextHop: e.nextHop as string, protocol: 'bgp' as const }));
+      const routes: Route[] = [];
+      for (const c of this.bgpResult.get(r.uid)!.candidates) {
+        if (!c.best || c.local || c.nextHop === null) continue;
+        if (own.some((i) => inSubnet(c.dest, i.ip, i.prefix))) continue;
+        // ネクストホップが直結でなければ、それを覆す経路（静的・OSPF・RIP）の次のホップに置き換える
+        const direct = own.some((i) => inSubnet(c.nextHop!, i.ip, i.prefix));
+        const via = direct ? undefined : igp(r).filter((route) => covers(c.nextHop!, route)).sort((a, b) => b.prefix - a.prefix)[0];
+        routes.push({ dest: c.dest, prefix: c.prefix, nextHop: via ? via.nextHop : c.nextHop, protocol: 'bgp', metric: c.path.length, ...(c.ebgp ? {} : { ibgp: true }) });
+      }
       out.set(r.uid, [...(out.get(r.uid) ?? []), ...routes]);
     }
   }
@@ -352,7 +342,7 @@ const fail = (reason: FailureReason, node: string): Failure => ({ reason, node }
 export type Traffic = { kind: 'ping' } | { kind: 'http'; port: number };
 
 // 経路の管理距離（AD）。static 1・OSPF 110・RIP 120
-export const adOf = (r: Route): number => (r.protocol === 'ospf' ? 110 : r.protocol === 'rip' ? 120 : r.protocol === 'bgp' ? 20 : 1);
+export const adOf = (r: Route): number => (r.protocol === 'ospf' ? 110 : r.protocol === 'rip' ? 120 : r.protocol === 'bgp' ? (r.ibgp ? 200 : 20) : 1);
 
 // 規則の送信元・宛先（'any' か「a.b.c.d/nn」）に、IPアドレスが入るか
 const matchNet = (spec: string, ip: string): boolean => {
@@ -500,7 +490,10 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
     const matches = [...cur.routes, ...topo.routesOf(cur.uid)].filter((r) => inSubnet(dstIface.ip, r.dest, r.prefix));
     if (matches.length === 0) {
       // BGP の相手と隣接しない（アドレスか AS 番号が合わない）ときは bgp.no_session（N147）
-      if (cur.bgp && cur.bgp.neighbors.some((nb) => !topo.bgpSessionOk(cur, nb.ip, nb.remoteAs))) return err(fail('bgp.no_session', cur.uid));
+      const bgp = cur.bgp ? topo.bgpOf(cur.uid) : undefined;
+      // 経路は学んだが、ネクストホップに届かない（iBGP の next-hop-self がない）ときは bgp.nexthop_unreachable
+      if (bgp?.candidates.some((c) => !c.valid && inSubnet(dstIface.ip, c.dest, c.prefix))) return err(fail('bgp.nexthop_unreachable', cur.uid));
+      if (bgp?.sessions.some((x) => x.status.state !== 'established')) return err(fail('bgp.no_session', cur.uid));
       // RIP に参加している機器で経路がないのは、16 ホップ以上で届かない（rip.unreachable・NET.md §6）
       if (cur.interfaces.some((i) => i.rip === true)) return err(fail('rip.unreachable', cur.uid));
       // OSPF のエリア 0 に接していないエリアだけに参加している機器は、経路がエリア 0 へ届かない（ospf.area_detached・NET.md §6）
@@ -823,3 +816,6 @@ export const warningsOf = (net: Network): VlanWarning[] => {
   for (const uids of duplicateRouterIds(net.nodes)) out.push({ id: 'ospf.duplicate_router_id', a: uids[0], b: uids[1] });
   return out;
 };
+
+// BGP の計算結果（show ip bgp・show ip bgp summary に出す）。BGP を動かしていない機器は undefined
+export const bgpTableOf = (net: Network, data: EngineData, uid: string): BgpResult | undefined => new Topology(net, data).bgpOf(uid);

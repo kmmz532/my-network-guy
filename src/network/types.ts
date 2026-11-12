@@ -30,6 +30,8 @@ export interface Route {
   metric?: number;
   // OSPF で、自分が参加していないエリアの経路（エリアの間の経路。O IA）
   interArea?: boolean;
+  // iBGP で学んだ経路（管理距離 200）
+  ibgp?: boolean;
 }
 
 export interface Service {
@@ -67,7 +69,8 @@ export interface PortConfig {
 // BGP の設定（MVP は eBGP の隣接と、宛先の広告・AS パスで選ぶ経路。N147）
 export interface BgpConfig {
   asn: number;
-  neighbors: { ip: string; remoteAs: number }[];
+  // nextHopSelf: iBGP の相手へ、自分のアドレスをネクストホップにして広告する。localPref・med: この相手から受け取る経路の属性。prepend: この相手へ広告するときに自分の AS を足す回数
+  neighbors: { ip: string; remoteAs: number; nextHopSelf?: boolean; localPref?: number; med?: number; prepend?: number }[];
   networks: { dest: string; prefix: number }[];
 }
 
@@ -160,6 +163,8 @@ export const FAILURE_REASONS = [
   'ospf.no_neighbor',
   // BGP の相手のアドレスか AS 番号が合わず、隣接しない（N147）
   'bgp.no_session',
+  // iBGP で学んだ経路のネクストホップに届かない（next-hop-self がない・NET.md §5.5）
+  'bgp.nexthop_unreachable',
   // 社内のアドレスのまま外の口へ出た（NAPT がない・NET.md §6）
   'nat.private_source',
   // RIP の経路が 16 ホップ以上で届かない（N141b）
