@@ -16,7 +16,8 @@ export interface Iface {
   // RIP に参加しているか（N141b）
   rip?: boolean;
   // OSPF に参加しているエリアとコスト（N142・MVP はエリア 0 だけ）
-  ospf?: { area: number; cost?: number };
+  // priority は DR の選出の優先度（既定 1。0 は選ばれない）、hello・dead は秒（既定 10・40）
+  ospf?: { area: number; cost?: number; priority?: number; hello?: number; dead?: number };
 }
 
 export interface Route {
@@ -69,6 +70,8 @@ export interface BgpConfig {
 export interface NetNode {
   uid: string;
   device: string;
+  // OSPF の機器ごとの設定（routerId は省略すると自動。defaultOriginate は既定の経路を配る）
+  ospf?: { routerId?: string; defaultOriginate?: boolean };
   // BGP の設定（BGP を動かす機器だけ持つ）
   bgp?: BgpConfig;
   // 口の設定（機器ごと。設定のない口は既定のモード）

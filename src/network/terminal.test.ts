@@ -228,10 +228,11 @@ describe('show ip ospf neighbor（N143）', () => {
     expect(lines[0].text).toContain('10.0.0.2');
   });
 
-  it('エリアが違えば隣接はなく、その旨を出す', () => {
+  it('エリアが違えば隣接はなく、合わない理由を出す', () => {
     const nodes = [router('r1', '10.0.0.1', 0), router('r2', '10.0.0.2', 1)];
     const lines = runTerminal('show ip ospf neighbor', { node: nodes[0], nodes, links: [link('r1', 'r2')], data: ospfData }, tr);
-    expect(lines).toEqual([{ text: 'ui.terminal.ospfNone', kind: 'out' }]);
+    expect(lines).toHaveLength(1);
+    expect(lines[0].text).toContain('ui.terminal.ospfMismatch');
   });
 });
 

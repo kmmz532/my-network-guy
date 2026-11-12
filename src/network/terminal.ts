@@ -8,7 +8,7 @@ import { isIp } from './terminalConfig';
 import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
-import { learnedRoutesOf, macTableOf, ospfNeighborsOf } from './netState';
+import { learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
 import type { Trace } from '../sim/project';
 import { framesOf } from './frames';
 import { isL2Category, isRoutingCategory } from './category';
@@ -112,8 +112,14 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
     }
     if (sub === 'ip ospf neighbor') {
       const neighbors = ospfNeighborsOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
-      if (neighbors.length === 0) return [out(tr('ui.terminal.ospfNone'))];
-      return neighbors.map((nb) => out(tr('ui.terminal.ospfNeighbor', { name: name(ctx.nodes.find((n) => n.uid === nb.uid) ?? node), ip: nb.neighborIp, port: nb.port })));
+      const nameOfUid = (uid: string) => name(ctx.nodes.find((n) => n.uid === uid) ?? node);
+      if (neighbors.length === 0) {
+        // 隣接がないときは、条件が合わなかった相手と理由を出す
+        const mismatches = ospfMismatchesOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
+        if (mismatches.length === 0) return [out(tr('ui.terminal.ospfNone'))];
+        return mismatches.map((m) => out(tr('ui.terminal.ospfMismatch', { name: nameOfUid(m.uid), ip: m.neighborIp, reason: tr(`ui.terminal.ospfMismatch.${m.mismatch}`) })));
+      }
+      return neighbors.map((nb) => out(tr('ui.terminal.ospfNeighbor', { name: nameOfUid(nb.uid), ip: nb.neighborIp, port: nb.port, routerId: nb.routerId, priority: nb.priority, state: nb.state })));
     }
     if (sub === 'interfaces') {
       const peers = peersOf(ctx);
