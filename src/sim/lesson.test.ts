@@ -40,4 +40,14 @@ describe('教材（学習モード）', () => {
     const nodes = lessonNodes(lesson('ospf_three_sites'));
     expect(nodes.map((n) => n.macSerial)).toEqual(nodes.map((_, i) => i + 1));
   });
+
+  it('2社の ISP と BGP: 初めは隣接がなく、BGP を設定すると両方の回線を使える', () => {
+    const l = lesson('bgp_two_isps');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)[0]).toBe(false);
+    const solved = lessonNodes(l).map((n) =>
+      n.uid === 'R1' ? { ...n, bgp: { asn: 64512, neighbors: [{ ip: '198.51.100.1', remoteAs: 65001 }, { ip: '203.0.113.1', remoteAs: 65002 }], networks: [] } } : n,
+    );
+    expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true, true]);
+  });
 });

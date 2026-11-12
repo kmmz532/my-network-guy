@@ -363,6 +363,8 @@ export const placedSchema = z.object({
   y: nonNegativeInt,
   locked: z.boolean(),
   config: placedConfigSchema.optional(),
+  // 回線終端の回線の情報（ISP の名前・回線のネットワーク・ISP 側のアドレス・ISP の AS 番号）
+  isp: z.object({ name: z.string(), network: z.string(), prefix: z.number().int().min(8).max(30), ispIp: z.string(), asn: z.number().int().positive().optional() }).optional(),
   // 場所の名前（「受付のPC」など。画面の機器の名前になる。なければ「PC-1」などの仮の名前）
   name: z.string().min(1).max(24).optional(),
 });
@@ -393,6 +395,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('wireless_clients'), min: z.number().int().positive() }),
   // すべての PC どうしが届き、設定した経路（static）を1つも使わない（経路は RIP・OSPF で覚える。N143）
   z.object({ type: z.literal('no_static_route') }),
+  // 指定したルーターの BGP の隣接が、min 本以上確立している
+  z.object({ type: z.literal('bgp_established'), node: z.string().min(1), min: z.number().int().positive() }),
   // 回線終端（uplink）が2つ以上あり、どれか1つを失っても、すべての PC が外部へ届く
   z.object({ type: z.literal('survive_uplink_failure') }),
   // 指定した機器が、同じネットワークの OSPF の指定ルーター（DR）に選ばれている

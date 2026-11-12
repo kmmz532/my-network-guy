@@ -20,6 +20,7 @@ export const lessonNodes = (lesson: Lesson): NetNode[] =>
     configLocked: p.config?.locked ?? false,
     interfaces: (p.config?.interfaces ?? []).map((i) => makeIface(p.device, i.port, i.ip, i.prefix)),
     gateway: p.config?.gateway ?? null,
+    ...(p.isp ? { isp: p.isp } : {}),
     routes: [],
     services: (p.config?.services ?? []).map((s) => ({ ...s })),
   }));

@@ -15,6 +15,8 @@ export const goalText = (goal: Goal, nameOf: (id: string) => string = (id) => id
           ? { name: tDyn(`category.${goal.category}`) }
         : goal.type === 'wireless_clients'
           ? { min: goal.min }
+        : goal.type === 'bgp_established'
+          ? { node: nameOf(goal.node), min: goal.min }
         : goal.type === 'survive_uplink_failure'
           ? {}
         : goal.type === 'ospf_dr'

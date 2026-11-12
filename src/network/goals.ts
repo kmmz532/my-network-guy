@@ -1,8 +1,8 @@
 // 案件の達成条件（goals）の判定ハンドラ。種類ごとにハンドラを登録し、案件データから呼び出す。
 import type { Contract, Goal } from '../data/schema';
 import { http, ping, wirelessAssociations } from './engine';
-import { ospfNeighborsOf } from './netState';
-import { outsideCheck } from './external';
+import { bgpTableOf, ospfNeighborsOf } from './netState';
+import { outsideCheck, withInternet } from './external';
 import { resolveName } from './resolve';
 import type { EngineData, Failure, Network, PathResult } from './types';
 
@@ -78,6 +78,14 @@ const handlers: { [K in Goal['type']]: Handler } = {
     let reach = pcs.length >= 2;
     for (let i = 0; i < pcs.length && reach; i++) for (let j = i + 1; j < pcs.length && reach; j++) reach = ping(net, data, pcs[i], pcs[j]).ok;
     const ok = staticFree && reach;
+    return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
+  },
+  // 指定したルーターの BGP の隣接が min 本以上確立している（回線の先の ISP も含めて数える）
+  bgp_established: (goal, net, data) => {
+    if (goal.type !== 'bgp_established') throw new Error('bgp_established ハンドラに別の種類が渡された');
+    const withNet = withInternet(net, data) ?? net;
+    const sessions = bgpTableOf(withNet, data, goal.node)?.sessions ?? [];
+    const ok = sessions.filter((s) => s.status.state === 'established').length >= goal.min;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // 回線終端が2つ以上あり、どれか1つ（とその配線）を除いても、すべての PC が外部へ届く

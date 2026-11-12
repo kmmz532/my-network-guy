@@ -1,0 +1,162 @@
+{
+  "id": "bgp_two_isps",
+  "topic": "routing",
+  "order": 30,
+  "size": {
+    "w": 15,
+    "h": 10
+  },
+  "placed": [
+    {
+      "ref": "PC1",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.1.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.0.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "PC1"
+    },
+    {
+      "ref": "R1",
+      "device": "edge_router",
+      "x": 6,
+      "y": 5,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.1.1",
+            "prefix": 24
+          },
+          {
+            "port": 1,
+            "ip": "198.51.100.2",
+            "prefix": 24
+          },
+          {
+            "port": 2,
+            "ip": "203.0.113.2",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "R1"
+    },
+    {
+      "ref": "U1",
+      "device": "uplink",
+      "x": 11,
+      "y": 3,
+      "locked": true,
+      "isp": {
+        "name": "ISP-A",
+        "network": "198.51.100.0",
+        "prefix": 24,
+        "ispIp": "198.51.100.1",
+        "asn": 65001
+      },
+      "name": "ISP-A"
+    },
+    {
+      "ref": "U2",
+      "device": "uplink",
+      "x": 11,
+      "y": 7,
+      "locked": true,
+      "isp": {
+        "name": "ISP-B",
+        "network": "203.0.113.0",
+        "prefix": 24,
+        "ispIp": "203.0.113.1",
+        "asn": 65002
+      },
+      "name": "ISP-B"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PC1",
+        "port": 0
+      },
+      "b": {
+        "ref": "R1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "R1",
+        "port": 1
+      },
+      "b": {
+        "ref": "U1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "R1",
+        "port": 2
+      },
+      "b": {
+        "ref": "U2",
+        "port": 0
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "bgp_established",
+      "node": "R1",
+      "min": 2
+    },
+    {
+      "type": "survive_uplink_failure"
+    }
+  ],
+  "guide": [
+    {
+      "target": "R1",
+      "done": "open:R1"
+    },
+    {
+      "target": "R1",
+      "done": "cmd:router bgp"
+    },
+    {
+      "target": "R1",
+      "done": "goal:1"
+    },
+    {
+      "target": "R1",
+      "done": "cmd:show ip bgp summary"
+    },
+    {
+      "target": "R1",
+      "done": "cmd:show ip bgp"
+    },
+    {
+      "target": "R1",
+      "done": "down:R1:1"
+    }
+  ]
+}
