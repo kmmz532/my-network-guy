@@ -4,7 +4,7 @@ import { balance } from 'virtual:game-data';
 import { useGameStore } from '../stores/useGameStore';
 import type { Report } from '../sim/project';
 import { Icon } from './Icon';
-import { ItemCards, UnlockCards, type UnlockCardKind } from './UnlockList';
+import { RewardPictures, UnlockCards, type UnlockCardKind } from './UnlockList';
 import type { LevelUp } from '../sim/level';
 import { Modal, primaryButton } from './Modal';
 import { RADIUS } from '../ui/theme';
@@ -157,7 +157,7 @@ export function ReportModal() {
             {block.devices.length > 0 && (
               <div>
                 {t('report.rewardDevices')}
-                <ItemCards items={block.devices.map((d) => ({ kind: 'device' as const, id: d.device, count: d.count }))} />
+                <RewardPictures items={block.devices.map((d) => ({ kind: 'device' as const, id: d.device, count: d.count }))} />
               </div>
             )}
             {block.cards.length > 0 && (
@@ -172,7 +172,7 @@ export function ReportModal() {
         {(report.rewardDevices ?? []).length > 0 && (
           <div style={{ fontSize: 14, marginTop: 6 }}>
             <div>{t('report.rewardDevices')}</div>
-            <ItemCards items={(report.rewardDevices ?? []).map((r) => ({ kind: 'device' as const, id: r.device, count: r.count }))} />
+            <RewardPictures items={(report.rewardDevices ?? []).map((r) => ({ kind: 'device' as const, id: r.device, count: r.count }))} />
           </div>
         )}
         <EvaluationRows report={report} />

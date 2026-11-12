@@ -62,6 +62,22 @@ const markOf: Record<Exclude<UnlockCardKind, 'device' | 'furniture'>, string> = 
 const cardNameOf = (x: { kind: UnlockCardKind; id: string }): string => (x.kind === 'expansion' ? tDyn('report.levelUp.expansion') : unlockNameOf(x as { kind: Exclude<UnlockCardKind, 'expansion'>; id: string }));
 
 // 解放の札を、種類ごとに同じ形で並べる。札は名前の途中で折り返さず、札の単位で折り返す（N131）
+// 受け取る機器を絵で並べる。台数は絵の右下に出し、名前は札（ツールチップ）で出す
+export function RewardPictures({ items }: { items: { kind: 'device'; id: string; count: number }[] }) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 4 }}>
+      {items.map((x) => (
+        <Tooltip key={x.id} text={`${tDyn(`device.${x.id}.name`)} ×${x.count}`}>
+          <span style={{ position: 'relative', display: 'flex', padding: '2px 6px', background: '#25406f', border: '1px solid #3b2a33', borderRadius: RADIUS.chrome }}>
+            <ItemIcon name={itemSpriteOf('device', x.id)} box={{ width: 36, height: 36 }} maxScale={2} />
+            <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>{x.count}</span>
+          </span>
+        </Tooltip>
+      ))}
+    </div>
+  );
+}
+
 // 機器・家具で解放のレベルが分かるものは、絵だけを並べ、名前と解放のレベルは札（ツールチップ）で出す
 export function UnlockCards({ items }: { items: { kind: UnlockCardKind; id: string; count?: number; level?: number }[] }) {
   return (
