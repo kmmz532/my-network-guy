@@ -30,6 +30,12 @@ export type ConfigAction =
   | { kind: 'routing'; proto: 'rip' | 'ospf'; on: boolean }
   // network 文: ip のサブネットのインターフェースを、RIP または OSPF（エリア 0）に参加させる（N143）
   | { kind: 'network'; proto: 'rip' | 'ospf'; ip: string; area: number | null; on: boolean }
+  // VRRP: vrrp <口> <VRID> ip <IP>・priority <値>・preempt（no で解除）・track <追跡の口> decrement <値>・no vrrp <口> <VRID>
+  | { kind: 'vrrp'; op: 'ip'; port: number; vrid: number; ip: string }
+  | { kind: 'vrrp'; op: 'priority'; port: number; vrid: number; value: number }
+  | { kind: 'vrrp'; op: 'preempt'; port: number; vrid: number; on: boolean }
+  | { kind: 'vrrp'; op: 'track'; port: number; vrid: number; trackPort: number; decrement: number }
+  | { kind: 'vrrp'; op: 'remove'; port: number; vrid: number }
   // スパニングツリー: spanning-tree priority <0〜61440 の4096刻み>・spanning-tree cost <口> <値>
   | { kind: 'stp'; op: 'priority'; value: number }
   | { kind: 'stp'; op: 'cost'; port: number; value: number }
@@ -84,7 +90,7 @@ const vlanNumber = (s: string): number | null => (/^\d+$/.test(s) && Number(s) >
 export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   const words = line.trim().split(/\s+/).filter((w) => w !== '');
   const [first, ...rest] = words;
-  if (first !== 'ip' && first !== 'no' && first !== 'hostname' && first !== 'spanning-tree' && first !== 'router' && first !== 'router-id' && first !== 'default-information' && first !== 'network' && first !== 'neighbor' && first !== 'wireless' && first !== 'switchport') return { kind: 'none' };
+  if (first !== 'ip' && first !== 'no' && first !== 'hostname' && first !== 'vrrp' && first !== 'spanning-tree' && first !== 'router' && first !== 'router-id' && first !== 'default-information' && first !== 'network' && first !== 'neighbor' && first !== 'wireless' && first !== 'switchport') return { kind: 'none' };
   const error = (key: string) => ({ kind: 'error' as const, text: tr(key) });
 
   // router rip / router ospf <番号>（no で止める）
@@ -93,6 +99,29 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   }
   if (first === 'no' && rest[0] === 'router' && (rest[1] === 'rip' || rest[1] === 'ospf')) {
     return { kind: 'action', action: { kind: 'routing', proto: rest[1], on: false } };
+  }
+  // VRRP
+  const vrrpArgs = (w: string[]) => {
+    const p = port(w[0] ?? '');
+    const vrid = /^[0-9]+$/.test(w[1] ?? '') ? Number(w[1]) : null;
+    return p === null || vrid === null || vrid < 1 || vrid > 255 ? null : { p, vrid };
+  };
+  if (first === 'vrrp') {
+    const a = vrrpArgs(rest);
+    if (!a) return error('ui.terminal.usageVrrp');
+    const [, , key, v1, kw, v2] = rest;
+    if (key === 'ip' && rest.length === 4 && isIp(v1)) return { kind: 'action', action: { kind: 'vrrp', op: 'ip', port: a.p, vrid: a.vrid, ip: v1 } };
+    if (key === 'priority' && rest.length === 4 && /^[0-9]+$/.test(v1)) return { kind: 'action', action: { kind: 'vrrp', op: 'priority', port: a.p, vrid: a.vrid, value: Number(v1) } };
+    if (key === 'preempt' && rest.length === 3) return { kind: 'action', action: { kind: 'vrrp', op: 'preempt', port: a.p, vrid: a.vrid, on: true } };
+    if (key === 'track' && rest.length === 6 && port(v1) !== null && kw === 'decrement' && /^[0-9]+$/.test(v2)) return { kind: 'action', action: { kind: 'vrrp', op: 'track', port: a.p, vrid: a.vrid, trackPort: Number(v1), decrement: Number(v2) } };
+    return error('ui.terminal.usageVrrp');
+  }
+  if (first === 'no' && rest[0] === 'vrrp') {
+    const a = vrrpArgs(rest.slice(1));
+    if (!a) return error('ui.terminal.usageVrrp');
+    if (rest.length === 3) return { kind: 'action', action: { kind: 'vrrp', op: 'remove', port: a.p, vrid: a.vrid } };
+    if (rest.length === 4 && rest[3] === 'preempt') return { kind: 'action', action: { kind: 'vrrp', op: 'preempt', port: a.p, vrid: a.vrid, on: false } };
+    return error('ui.terminal.usageVrrp');
   }
   // スパニングツリー
   if (first === 'spanning-tree') {

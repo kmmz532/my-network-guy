@@ -28,6 +28,7 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
   const setRouting = useGameStore((s) => s.setRouting);
   const setOspf = useGameStore((s) => s.setOspf);
   const setStp = useGameStore((s) => s.setStp);
+  const setVrrp = useGameStore((s) => s.setVrrp);
   const setBgp = useGameStore((s) => s.setBgp);
   const setNat = useGameStore((s) => s.setNat);
   const setSvi = useGameStore((s) => s.setSvi);
@@ -77,6 +78,16 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
         return setBgp(node.uid, action);
       case 'stp':
         return setStp(node.uid, action);
+      case 'vrrp': {
+        // ターミナルの書き方は口の番号のまま。画面の操作は、その口のインターフェースの id で指定する
+        const idOf = (port: number) => node.interfaces.find((i) => i.port === port)?.id ?? '';
+        const id = idOf(action.port);
+        if (action.op === 'ip') return setVrrp(node.uid, { op: 'ip', id, vrid: action.vrid, ip: action.ip });
+        if (action.op === 'priority') return setVrrp(node.uid, { op: 'priority', id, vrid: action.vrid, value: action.value });
+        if (action.op === 'preempt') return setVrrp(node.uid, { op: 'preempt', id, vrid: action.vrid, on: action.on });
+        if (action.op === 'track') return setVrrp(node.uid, { op: 'track', id, vrid: action.vrid, iface: idOf(action.trackPort), decrement: action.decrement });
+        return setVrrp(node.uid, { op: 'remove', id, vrid: action.vrid });
+      }
       case 'nat': {
         if (action.op !== 'iface') return setNat(node.uid, action);
         // ターミナルの書き方は口の番号のまま。画面の操作は、その口のインターフェースの id で指定する

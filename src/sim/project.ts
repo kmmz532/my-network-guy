@@ -26,6 +26,7 @@ import {
   segmentsOf,
   type Segment,
 } from '../network/segments';
+import type { VrrpGroup } from '../network/vrrp';
 import type {
   EngineData,
   FailureReason,
@@ -1111,6 +1112,50 @@ export const setOspf = (core: Core, uid: string, change: OspfOp, target: NetTarg
       const prev = node.ospf ?? {};
       const next = change.op === 'routerId' ? { ...prev, routerId: change.ip ?? undefined } : { ...prev, defaultOriginate: change.on };
       return { ...node, ospf: next };
+    },
+    target,
+  );
+
+// VRRP の設定（グループの作成・仮想の IP アドレス・優先度・プリエンプト・追跡・削除）。ip で、グループがなければ作る（優先度 100・プリエンプトあり）
+export type VrrpOp =
+  | { op: 'ip'; id: string; vrid: number; ip: string }
+  | { op: 'priority'; id: string; vrid: number; value: number }
+  | { op: 'preempt'; id: string; vrid: number; on: boolean }
+  | { op: 'track'; id: string; vrid: number; iface: string; decrement: number }
+  | { op: 'remove'; id: string; vrid: number };
+export const setVrrp = (core: Core, uid: string, change: VrrpOp, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      if (!can(node.device, 'vrrp')) return 'vrrp.unsupported';
+      const iface = node.interfaces.find((i) => i.id === change.id);
+      if (!iface) return 'iface.none';
+      if (!Number.isInteger(change.vrid) || change.vrid < 1 || change.vrid > 255) return 'vrrp.vrid';
+      const groups = iface.vrrp ?? [];
+      const cur = groups.find((g) => g.vrid === change.vrid);
+      let next: VrrpGroup[];
+      if (change.op === 'ip') {
+        if (!isIp(change.ip) || !inSubnet(change.ip, iface.ip, iface.prefix)) return 'vrrp.vip';
+        next = cur ? groups.map((g) => (g.vrid === change.vrid ? { ...g, ip: change.ip } : g)) : [...groups, { vrid: change.vrid, ip: change.ip, priority: 100, preempt: true }];
+      } else if (change.op === 'remove') {
+        if (!cur) return 'vrrp.none';
+        next = groups.filter((g) => g.vrid !== change.vrid);
+      } else {
+        if (!cur) return 'vrrp.none';
+        if (change.op === 'priority' && (!Number.isInteger(change.value) || change.value < 1 || change.value > 254)) return 'vrrp.priority';
+        if (change.op === 'track' && (!Number.isInteger(change.decrement) || change.decrement < 1 || change.decrement > 253 || !node.interfaces.some((i) => i.id === change.iface))) return 'vrrp.track';
+        next = groups.map((g) =>
+          g.vrid !== change.vrid
+            ? g
+            : change.op === 'priority'
+              ? { ...g, priority: change.value }
+              : change.op === 'preempt'
+                ? { ...g, preempt: change.on }
+                : { ...g, track: [...(g.track ?? []).filter((t) => t.iface !== change.iface), { iface: change.iface, decrement: change.decrement }] },
+        );
+      }
+      return { ...node, interfaces: node.interfaces.map((i) => (i.id === change.id ? { ...i, vrrp: next.length > 0 ? next : undefined } : i)) };
     },
     target,
   );

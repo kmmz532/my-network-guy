@@ -6,7 +6,7 @@ import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, Iface,
 import { CATEGORY } from '../data/categories';
 import { can } from './capabilities';
 import { macOf } from './mac';
-import { electVrrpMaster, type VrrpMember } from './vrrp';
+import { effectivePriority, electVrrpMaster, type VrrpMember } from './vrrp';
 import { computeStp, type StpResult } from './stp';
 import { computeBgp, type BgpEnv, type BgpResult } from './bgp';
 import { duplicateRouterIds, electDr, ospfMismatch, ospfPriorityOf, ospfRouterId, type DrCandidate, type OspfMismatch } from './ospf';
@@ -257,8 +257,13 @@ class Topology {
   // インターフェースの VRRP のグループ（vrid）の、マスターの機器。同じブロードキャストドメインで同じ VRID を持つ動いているインターフェースの中から選ぶ。
   // 動いているものがなければ null（全員が止まっている）
   vrrpMaster(uid: string, port: number, vrid: number): string | null {
+    return electVrrpMaster(this.vrrpMembers(uid, port, vrid));
+  }
+
+  // 同じブロードキャストドメインで、同じ VRID のグループを持つインターフェース（自分を含む）
+  vrrpMembers(uid: string, port: number, vrid: number): VrrpMember[] {
     const self = this.ifaceAt(uid, port);
-    if (!self?.vrrp?.some((g) => g.vrid === vrid)) return null;
+    if (!self?.vrrp?.some((g) => g.vrid === vrid)) return [];
     const eps: Endpoint[] = [{ node: uid, port }, ...this.domainOf({ node: uid, port }).members];
     const seen = new Set<string>();
     const members: VrrpMember[] = [];
@@ -282,7 +287,7 @@ class Topology {
         up: !this.isShut(ep.node, ep.port) && peer !== undefined,
       });
     }
-    return electVrrpMaster(members);
+    return members;
   }
 
   // この口が、仮想の IP アドレス ip のマスターか
@@ -884,6 +889,30 @@ export const warningsOf = (net: Network): VlanWarning[] => {
   // 同じルーター ID の OSPF のルーター（組ごとに1件）
   for (const uids of duplicateRouterIds(net.nodes)) out.push({ id: 'ospf.duplicate_router_id', a: uids[0], b: uids[1] });
   return out;
+};
+
+// VRRP の状態（show vrrp に出す）。インターフェースのグループごとに、状態・仮想の IP アドレス・有効な優先度
+export interface VrrpStatus {
+  iface: string;
+  vrid: number;
+  ip: string;
+  priority: number;
+  preempt: boolean;
+  state: 'Master' | 'Backup' | 'Init';
+  master: string | null;
+}
+export const vrrpStatusOf = (net: Network, data: EngineData, uid: string): VrrpStatus[] => {
+  const topo = new Topology(net, data);
+  const node = topo.node(uid);
+  if (!node) return [];
+  return node.interfaces.flatMap((i) =>
+    (i.vrrp ?? []).map((g) => {
+      const members = topo.vrrpMembers(uid, i.port, g.vrid);
+      const master = electVrrpMaster(members);
+      const me = members.find((m) => m.uid === uid);
+      return { iface: i.id, vrid: g.vrid, ip: g.ip, priority: me ? effectivePriority(me) : g.priority, preempt: g.preempt, state: master === uid ? 'Master' : master === null || !me?.up ? 'Init' : 'Backup', master } as VrrpStatus;
+    }),
+  );
 };
 
 // スパニングツリーの計算結果（show spanning-tree に出す）

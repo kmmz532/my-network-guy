@@ -8,7 +8,7 @@ import { isIp } from './terminalConfig';
 import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
-import { adOf, bgpTableOf, stpOf, learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
+import { adOf, bgpTableOf, stpOf, vrrpStatusOf, learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
 import type { Trace } from '../sim/project';
 import { framesOf } from './frames';
 import { isL2Category, isRoutingCategory } from './category';
@@ -115,6 +115,11 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       if (node.napt) lines.push(out(tr('ui.terminal.natNapt', { outsideIp: outside.ip })));
       // 4 つの欄（内部グローバル・内部ローカル・外部ローカル・外部グローバル）の見出しを先頭に出す
       return [out(tr('ui.terminal.natHeader')), ...lines];
+    }
+    if (sub === 'vrrp') {
+      const groups = vrrpStatusOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
+      if (groups.length === 0) return [out(tr('ui.terminal.vrrpNone'))];
+      return groups.map((g) => out(tr('ui.terminal.vrrpGroup', { iface: g.iface, vrid: g.vrid, state: g.state, ip: g.ip, priority: g.priority, preempt: tr(g.preempt ? 'ui.terminal.vrrpPreemptOn' : 'ui.terminal.vrrpPreemptOff') })));
     }
     if (sub === 'spanning-tree') {
       const net = { nodes: ctx.nodes, links: ctx.links };
