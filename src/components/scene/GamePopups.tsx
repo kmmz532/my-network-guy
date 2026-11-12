@@ -10,6 +10,7 @@ import { KeyHelp } from '../KeyHelp';
 import { SandboxSizePanel } from '../SandboxSizePanel';
 import { SettingsPanel } from '../SettingsPanel';
 import { LessonPicker } from '../LessonPicker';
+import { readSandboxFile, writeSandboxFile } from '../../sim/sandboxFile';
 
 // メニューの項目。ボタンとファイルを選ぶラベルで、文字の大きさと見た目をそろえる
 const menuButton = { ...secondaryButton, display: 'block', width: '100%', margin: '4px 0', padding: '6px 12px', fontSize: 13, lineHeight: 1.4, boxSizing: 'border-box' } as const;
@@ -19,6 +20,8 @@ export function GamePopups({ onExit }: { onExit: () => void }) {
   const setPopup = useUiStore.getState().setPopup;
   const sandbox = useGameStore((s) => s.mode) === 'sandbox';
   const officeSize = useGameStore((s) => s.office.size);
+  const office = useGameStore((s) => s.office);
+  const loadSandboxOffice = useGameStore((s) => s.loadSandboxOffice);
   // メニューに出す知らせ（保存・読み込みの結果）
   const [message, setMessage] = useState('');
 
@@ -44,6 +47,27 @@ export function GamePopups({ onExit }: { onExit: () => void }) {
     a.download = 'my-network-guy-save.json';
     a.click();
     URL.revokeObjectURL(a.href);
+  };
+
+  // サンドボックスの構成を、JSON のファイルとして書き出す
+  const onSandboxExport = () => {
+    const blob = new Blob([writeSandboxFile(office)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'network-ya-sandbox.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  // サンドボックスの構成を読み込む。形が合わなければ読み込まずに理由を出す
+  const onSandboxImport = async (file: File) => {
+    const result = readSandboxFile(await file.text());
+    if (!result.ok) {
+      setMessage(t('ui.sandboxFile.failed', { reason: t(`ui.sandboxFile.reason.${result.reason}`) }));
+      return;
+    }
+    const error = loadSandboxOffice(result.office);
+    setMessage(error === null ? t('ui.sandboxFile.done') : t('ui.sandboxFile.failed', { reason: t('ui.sandboxFile.reason.mode') }));
   };
 
   const onImport = async (file: File) => {
@@ -73,6 +97,13 @@ export function GamePopups({ onExit }: { onExit: () => void }) {
           </button>
           {sandbox && (
             <>
+              <button style={menuButton} onClick={onSandboxExport}>
+                {t('ui.sandboxFile.export')}
+              </button>
+              <label style={{ ...menuButton, textAlign: 'center' }}>
+                {t('ui.sandboxFile.import')}
+                <input type="file" accept="application/json" style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && onSandboxImport(e.target.files[0])} />
+              </label>
               <button style={menuButton} onClick={() => setPopup('lessons')}>
                 {t('ui.lesson.open')}
               </button>

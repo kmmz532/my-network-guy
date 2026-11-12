@@ -9,7 +9,7 @@ import { EMPTY_FAMILIARITY } from '../../sim/familiar';
 import { mapOfOffice } from '../../sim/office';
 import { OFFICE_HISTORY_KEY } from '../../sim/history';
 import { initialOffice } from '../../sim/furniture';
-import { type OfficeSize, noEffects } from '../../sim/project';
+import { type Office, type OfficeSize, noEffects } from '../../sim/project';
 import { gameEnv, isPcDevice } from '../../sim/env';
 import { pcDesksOf } from '../../sim/furniture';
 import { missingPcCount } from '../../sim/backOffice';
@@ -32,6 +32,8 @@ export interface SessionSlice {
   newSandbox: (size?: OfficeSize) => void;
   // サンドボックスの床の大きさを変える。狭めてはみ出す機器・家具があれば理由を返す
   resizeSandbox: (size: OfficeSize) => string | null;
+  // 読み込んだサンドボックスの構成に置き換える（サンドボックスのときだけ）。広げる前の操作の取り消しは消す
+  loadSandboxOffice: (office: Office) => string | null;
 }
 
 export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> = (set, get) => {
@@ -196,6 +198,12 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
       // 床の大きさが変わったので、マップを作り直す。広げる前の操作の取り消しは、座標が合わないため消す
       dropHistory(OFFICE_HISTORY_KEY);
       set({ office: result.office, maps: { ...get().maps, hq: mapOfOffice(result.office) } });
+      return null;
+    },
+    loadSandboxOffice: (office) => {
+      if (get().mode !== 'sandbox') return 'none';
+      dropHistory(OFFICE_HISTORY_KEY);
+      set({ office, maps: { ...get().maps, hq: mapOfOffice(office) }, placing: null, wireStart: null, portMenu: null });
       return null;
     },
     snapshot: () => {
