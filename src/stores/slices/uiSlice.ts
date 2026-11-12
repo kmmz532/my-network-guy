@@ -28,6 +28,7 @@ export interface UiSlice {
   cancelWire: () => void;
   setHelpUid: (uid: string | null) => void;
   setShowIp: (on: boolean) => void;
+  setShowNames: (on: boolean) => void;
   setTaskOpen: (open: boolean) => void;
   setPlacing: (deviceId: string | null) => void;
   setItemDrag: (drag: ItemDrag | null) => void;
@@ -96,6 +97,10 @@ export const createUiSlice: StateCreator<GameState, [], [], UiSlice> = (set, get
     setShowIp: (on) => {
       set({ showIp: on });
       saveSettings({ showIp: on });
+    },
+    setShowNames: (on) => {
+      set({ showNames: on });
+      saveSettings({ showNames: on });
     },
     setTaskOpen: (open) => set({ taskOpen: open }),
     setPlacing: (deviceId) => set({ placing: deviceId }),

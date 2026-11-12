@@ -76,6 +76,8 @@ export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; on
     };
   }, []);
   const showIp = useGameStore((s) => s.showIp);
+  const showNames = useGameStore((s) => s.showNames);
+  const setShowNames = useGameStore((s) => s.setShowNames);
   const setShowIp = useGameStore((s) => s.setShowIp);
 
   const update = (patch: Partial<Settings>) => {
@@ -114,6 +116,16 @@ export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; on
           ]}
           value={showIp}
           onChange={setShowIp}
+        />
+      </Row>
+      <Row label={t('ui.settings.showNames')}>
+        <Choice
+          options={[
+            { value: true, label: t('ui.settings.showNames.on') },
+            { value: false, label: t('ui.settings.showNames.off') },
+          ]}
+          value={showNames}
+          onChange={setShowNames}
         />
       </Row>
       <Row label={t('ui.settings.speed')}>

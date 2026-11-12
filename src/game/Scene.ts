@@ -3,6 +3,7 @@
 import { Application, Container, Graphics, Text, type Ticker } from 'pixi.js';
 import { type GameMap } from '../data/schema';
 import { focusedProject, viewingOffice, frontDeviceUid, useGameStore, type Trace } from '../stores/useGameStore';
+import { nodeLabel } from '../components/nodeLabel';
 import { centerPath, plugPoints } from './linkHit';
 import { setMapView } from './mapView';
 import { gameEnv } from '../sim/env';
@@ -167,6 +168,12 @@ export class Scene {
       tool: () => useGameStore.getState().tool,
       hoverLink: () => this.input.hoverAnyLink,
       hoverNode: () => this.input.hoverAnyNode,
+      nameOf: (node) => {
+        const state = useGameStore.getState();
+        const nodes = focusedProject(state)?.nodes ?? state.office.nodes;
+        return nodeLabel(state, node, nodes);
+      },
+      guideTarget: () => useGameStore.getState().guideTarget,
     });
     this.networkRenderer = new NetworkRenderer({
       graphics: this.g,
@@ -633,6 +640,8 @@ export class Scene {
       this.deviceLabelRenderer.drawAddresses(ts, failing);
       this.deviceLabelRenderer.drawPortNames(project, ts);
     }
+    // 機器の名前は IP の表示とは別に出す。マップを縮小して1マスが 16 px 未満のときは出さない（文字が読めないため）
+    if (s.showNames && ts * this.content.scale.x >= 16) this.deviceLabelRenderer.drawNames(ts, failing, s.showIp);
     if (building) this.staffRenderer.drawBuilding(project, ts);
     else if (this.map?.id === 'hq' && !s.showcase) {
       this.staffRenderer.drawDeskStaff(ts);

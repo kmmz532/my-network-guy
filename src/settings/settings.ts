@@ -24,6 +24,8 @@ export interface Settings {
   guide: boolean;
   // 機器の名前とIPアドレスを画面に出すか（ストアの showIp と同じ値）
   showIp: boolean;
+  // 機器の名前をマップに出すか（IP の表示とは別。既定は出す）
+  showNames: boolean;
   // 時間を進める初期の速さ（案件を始めたとき・新しいゲームを始めたとき）
   startSpeed: StartSpeed;
   // 時間が止まっているときの施工の扱い（「今後この確認を出さない」で変える）
@@ -50,6 +52,7 @@ export const DEFAULT_SETTINGS: Settings = {
   uiScale: 1,
   guide: true,
   showIp: true,
+  showNames: true,
   startSpeed: 1,
   pausedBuild: 'ask',
   autoSave: 'daily',
@@ -81,6 +84,7 @@ export function parseSettings(raw: string | null): Settings {
     uiScale: (UI_SCALES as readonly unknown[]).includes(d.uiScale) ? (d.uiScale as UiScale) : DEFAULT_SETTINGS.uiScale,
     guide: typeof d.guide === 'boolean' ? d.guide : DEFAULT_SETTINGS.guide,
     showIp: typeof d.showIp === 'boolean' ? d.showIp : DEFAULT_SETTINGS.showIp,
+    showNames: typeof d.showNames === 'boolean' ? d.showNames : DEFAULT_SETTINGS.showNames,
     startSpeed: (START_SPEEDS as readonly unknown[]).includes(d.startSpeed)
       ? (d.startSpeed as StartSpeed)
       : DEFAULT_SETTINGS.startSpeed,

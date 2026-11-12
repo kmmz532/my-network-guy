@@ -156,6 +156,8 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   testNudge: number;
   // 機器の名前とIPアドレスを表示するか、案件の内容を開いているか（保存しない）
   showIp: boolean;
+  // 機器の名前をマップに出すか（端末ごとの設定に保存する）
+  showNames: boolean;
   taskOpen: boolean;
   // 失敗した操作の理由を、失敗した地点（マップのタイル）に出す
   flash: { key: string; tx: number; ty: number; at: number } | null;
@@ -233,6 +235,7 @@ export const useGameStore = create<GameState>((set, get, api) => {
     portMenu: null,
     // 名前とIPアドレスの表示は端末ごとの設定に保存する（設定の画面と同じ値）
     showIp: loadSettings().showIp,
+    showNames: loadSettings().showNames,
     taskOpen: true,
     flash: null,
     linkPulse: null,
