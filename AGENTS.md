@@ -17,8 +17,3 @@
   - 改名・削除: `rename <old> <new>`・`del <key>`
 - 他の言語の過不足は `npm run check:lang`（言語ごとの足りない・余分・置換の食い違いの件数）、`node scripts/lang.mjs missing <言語>` で確認する。
 - `node scripts/lang.mjs unused` は参照されていないらしいキーの目安を出す。組み立てたキーを拾い切れないため、消す前に grep で確認する。
-
-## memo
-
-- `memo/` は作業のメモで、コミットしない（`.git/info/exclude` で除外している）。
-- ソース・試験・コミットメッセージから memo を参照しない（`pre-task.md`・`§3.1`・`NET.md §5.12` などを書かない）。コメントには規則の中身だけを書く。
