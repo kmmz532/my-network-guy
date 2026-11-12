@@ -50,4 +50,18 @@ describe('教材（学習モード）', () => {
     );
     expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true, true]);
   });
+
+  it('VLAN の2フロア: 初めは部署の間も通じ、VLAN とトランクの設定で分かれる。許可から VLAN 20 を外すと経理が止まる', () => {
+    const l = lesson('vlan_two_floors');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([true, true, false]);
+    const ports = (access: [number, number][], trunkAllowed: number[]) => [
+      ...access.map(([port, vlan]) => ({ port, mode: 'access' as const, vlan })),
+      { port: 7, mode: 'trunk' as const, allowed: trunkAllowed },
+    ];
+    const solved = (allowed: number[]) =>
+      lessonNodes(l).map((n) => (n.uid === 'SW1' || n.uid === 'SW2' ? { ...n, ports: ports([[0, 10], [1, 20]], allowed) } : n));
+    expect(lessonGoalResults(l.goals, solved([10, 20]), links, engine)).toEqual([true, true, true]);
+    expect(lessonGoalResults(l.goals, solved([10]), links, engine)).toEqual([true, false, true]);
+  });
 });
