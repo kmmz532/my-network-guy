@@ -553,6 +553,7 @@
   "ui.config.prefix": "プレフィックス長",
   "ui.config.readOnly": "設計中のみ変更できる。",
   "ui.config.remove": "削除",
+  "ui.config.ripJoin": "RIP に参加",
   "ui.config.routeDest": "宛先ネットワーク",
   "ui.config.routeItem": "{dest}/{prefix} → {next}",
   "ui.config.routeNext": "ネクストホップ",

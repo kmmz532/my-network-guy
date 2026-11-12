@@ -45,6 +45,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   const setIface = useGameStore((s) => s.setIface);
   const setGateway = useGameStore((s) => s.setGateway);
   const setSegment = useGameStore((s) => s.setSegment);
+  const setRouting = useGameStore((s) => s.setRouting);
   const addRoute = useGameStore((s) => s.addRoute);
   const removeRoute = useGameStore((s) => s.removeRoute);
   const setFirewallRules = useGameStore((s) => s.setFirewallRules);
@@ -153,6 +154,20 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
             onCommit={(ip) => commitIp(port, ip)}
           />
         </div>
+        {iface && isRoutingCategory(category ?? '') && (
+          <div style={row}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <input
+                type="checkbox"
+                aria-label={t('ui.config.ripJoin')}
+                checked={iface.rip === true}
+                disabled={locked || unlinkedRouter}
+                onChange={(e) => onError(setRouting(node.uid, { proto: 'rip', on: e.target.checked, ip: iface.ip }))}
+              />
+              {t('ui.config.ripJoin')}
+            </label>
+          </div>
+        )}
         <div style={{ ...row, fontSize: 12 }}>
           <span style={{ color: greyColor, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <span style={{ display: 'inline-block', width: 10, height: 10, background: hexColor(color), border: '1px solid #3b2a33' }} />
