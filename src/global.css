@@ -1,0 +1,20 @@
+/* 全体に当てる入力欄の見た目。:where() で包み、部品の style で上書きできるようにする。
+   色・枠は文字を打つ入力欄だけに当てる（チェックボックス・ラジオ・スライダー・ファイルは対象外）。
+   ボタンは書体の継承だけを当て、色・枠・大きさは部品ごとに任せる。 */
+
+:where(button, input, select, textarea) {
+  font: inherit;
+}
+
+:where(input:not([type]), input[type='text'], input[type='number'], input[type='search'], input[type='password'], select, textarea) {
+  background: #f4f1e6;
+  color: #3b2a33;
+  border: 2px inset #3b2a33;
+  padding: 1px 4px;
+}
+
+/* 背景との明るさの比は 4.5:1 以上（#f4f1e6 に対して 5.68:1） */
+:where(input:not([type]), input[type='text'], input[type='number'], input[type='search'], input[type='password'], textarea)::placeholder {
+  color: #6b5a64;
+  opacity: 1;
+}

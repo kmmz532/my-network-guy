@@ -4,6 +4,7 @@ import { App } from './App';
 import { ErrorScreen } from './components/ErrorScreen';
 import { useGameStore } from './stores/useGameStore';
 import { isApplyingUpdate, watchUpdates } from './pwa/update';
+import './global.css';
 
 // 開発中と撮影用のビルド（VITE_SHOOT）だけ、画面の確認の自動化から状態を操作できるようにする（通常の本番のビルドには含めない）
 if (import.meta.env.DEV || import.meta.env.VITE_SHOOT) (window as unknown as { __game: typeof useGameStore }).__game = useGameStore;
