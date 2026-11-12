@@ -202,8 +202,6 @@
   "error.nat.private_source.fix": "家庭用ルーターかルーターで NAT（ip nat inside・outside・overload）を設定します。",
   "error.ospf.area_detached": "エリア 0 に接していないエリアの経路が、エリア 0 へ届かない。",
   "error.ospf.area_detached.fix": "エリア 0 のルーターと、このエリアのルーターを、エリアの境界で接続します。",
-  "error.ospf.hello_mismatch": "Hello・デッドの間隔が違い、OSPF の隣接が成立しない。",
-  "error.ospf.hello_mismatch.fix": "両端の ip ospf hello-interval と dead-interval をそろえる。",
   "error.ospf.no_neighbor": "OSPF の隣接がなく、宛先への経路を覚えていない。",
   "error.ospf.no_neighbor.fix": "同じエリアの OSPF の口を、隣の機器の口とつなぎ、同じサブネットにそろえます。",
   "error.port.security": "登録のない機器がつながったため、スイッチの口が止まった。",
