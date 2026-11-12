@@ -1,4 +1,7 @@
 // 配置された機器と配線の形式（セーブデータとシミュレーションの入力を兼ねる）
+import type { VrrpGroup } from './vrrp';
+export type { VrrpGroup } from './vrrp';
+
 // インターフェース（IPアドレスを持つ場所）。口（port）とは別に、名前（id）と種類（kind）を持つ（N135）
 export interface Iface {
   // 名前（eth0・g0/1 など。画面とターミナルで同じ名前を出す）
@@ -15,6 +18,8 @@ export interface Iface {
   nat?: 'inside' | 'outside';
   // RIP に参加しているか（N141b）
   rip?: boolean;
+  // VRRP のグループ（NET.md §5.12）。routed の口・SVI・サブインターフェースごとに持つ
+  vrrp?: VrrpGroup[];
   // OSPF に参加しているエリアとコスト（N142・MVP はエリア 0 だけ）
   // priority は DR の選出の優先度（既定 1。0 は選ばれない）、hello・dead は秒（既定 10・40）
   ospf?: { area: number; cost?: number; priority?: number; hello?: number; dead?: number };
@@ -176,6 +181,8 @@ export const FAILURE_REASONS = [
   'ospf.no_neighbor',
   // BGP の相手のアドレスか AS 番号が合わず、隣接しない（N147）
   'bgp.no_session',
+  // 同じ VRID の全員が止まっている（仮想の IP アドレスをゲートウェイにした端末からの通信・NET.md §5.12）
+  'vrrp.no_master',
   // iBGP で学んだ経路のネクストホップに届かない（next-hop-self がない・NET.md §5.5）
   'bgp.nexthop_unreachable',
   // 社内のアドレスのまま外の口へ出た（NAPT がない・NET.md §6）

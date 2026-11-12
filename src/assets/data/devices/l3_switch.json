@@ -12,7 +12,8 @@
         "routing",
         "ospf",
         "dhcpRelay",
-        "rip"
+        "rip",
+        "vrrp"
       ],
       "sviMax": 16,
       "price": 130000,

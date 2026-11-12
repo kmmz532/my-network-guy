@@ -224,6 +224,8 @@
   "error.uplink.no_wan.fix": "ルーターなど、回線をつなげられる機器を回線終端につなぎます。",
   "error.vlan.not_allowed": "この口は、そのVLANを通さない。",
   "error.vlan.not_allowed.fix": "口の VLAN（access）か、trunk の許可のVLANを確かめます。",
+  "error.vrrp.no_master": "VRRP の仮想の IP アドレスのマスターがいない（同じ VRID のルーターがすべて止まっている）。",
+  "error.vrrp.no_master.fix": "VRRP のグループのルーターの口を、1台以上動かします。",
   "error.wireless.unassociated": "無線でアクセスポイントにつながっていない。",
   "error.wireless.unassociated.fix": "SSID とパスワードをアクセスポイントと同じにし、電波の範囲（半径6マス・壁は減衰する）の中に置きます。",
   "furniture.bookshelf.desc": "書類や資料を並べる棚。",

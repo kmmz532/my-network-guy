@@ -11,7 +11,8 @@
         "nat",
         "dhcpRelay",
         "wan",
-        "rip"
+        "rip",
+        "vrrp"
       ],
       "deskable": true,
       "price": 60000,
@@ -39,7 +40,8 @@
         "nat",
         "dhcpRelay",
         "wan",
-        "rip"
+        "rip",
+        "vrrp"
       ],
       "deskable": true,
       "price": 65000,
@@ -73,7 +75,8 @@
         "nat",
         "dhcpRelay",
         "wan",
-        "rip"
+        "rip",
+        "vrrp"
       ],
       "deskable": false,
       "price": 70000,

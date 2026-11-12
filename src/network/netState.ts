@@ -6,6 +6,7 @@ import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, Iface,
 import { CATEGORY } from '../data/categories';
 import { can } from './capabilities';
 import { macOf } from './mac';
+import { electVrrpMaster, type VrrpMember } from './vrrp';
 import { computeStp, type StpResult } from './stp';
 import { computeBgp, type BgpEnv, type BgpResult } from './bgp';
 import { duplicateRouterIds, electDr, ospfMismatch, ospfPriorityOf, ospfRouterId, type DrCandidate, type OspfMismatch } from './ospf';
@@ -253,6 +254,43 @@ class Topology {
     return this.nodes.get(uid)?.ports?.find((p) => p.port === port);
   }
 
+  // インターフェースの VRRP のグループ（vrid）の、マスターの機器。同じブロードキャストドメインで同じ VRID を持つ動いているインターフェースの中から選ぶ。
+  // 動いているものがなければ null（全員が止まっている）
+  vrrpMaster(uid: string, port: number, vrid: number): string | null {
+    const self = this.ifaceAt(uid, port);
+    if (!self?.vrrp?.some((g) => g.vrid === vrid)) return null;
+    const eps: Endpoint[] = [{ node: uid, port }, ...this.domainOf({ node: uid, port }).members];
+    const seen = new Set<string>();
+    const members: VrrpMember[] = [];
+    for (const ep of eps) {
+      if (seen.has(ep.node)) continue;
+      const iface = this.ifaceAt(ep.node, ep.port);
+      const group = iface?.vrrp?.find((g) => g.vrid === vrid);
+      if (!iface || !group) continue;
+      seen.add(ep.node);
+      const peer = this.linkAt(ep)?.peer;
+      const down = (i: Iface) => {
+        const linked = this.linkAt({ node: ep.node, port: i.port });
+        return this.isShut(ep.node, i.port) || !linked || this.isShut(linked.peer.node, linked.peer.port);
+      };
+      const owner = this.nodes.get(ep.node)!;
+      members.push({
+        uid: ep.node,
+        realIp: iface.ip,
+        group,
+        downTracked: (group.track ?? []).filter((t) => owner.interfaces.some((i) => i.id === t.iface && down(i))).map((t) => t.iface),
+        up: !this.isShut(ep.node, ep.port) && peer !== undefined,
+      });
+    }
+    return electVrrpMaster(members);
+  }
+
+  // この口が、仮想の IP アドレス ip のマスターか
+  vrrpOwns(uid: string, port: number, ip: string): boolean {
+    const group = this.ifaceAt(uid, port)?.vrrp?.find((g) => g.ip === ip);
+    return group !== undefined && this.vrrpMaster(uid, port, group.vrid) === uid;
+  }
+
   // スパニングツリーの結果（stp を持つスイッチの間のリンクで、ブロッキングの口を決める）
   private stpResult?: StpResult;
   stp(): StpResult {
@@ -450,8 +488,12 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
 
   // 異なるサブネット: デフォルトゲートウェイを経由する
   if (!src.gateway) return err(fail('gateway.unset', src.uid));
-  const gwMember = srcDomain.members.find((m) => topo.ifaceAt(m.node, m.port)?.ip === src.gateway);
-  if (!gwMember) return err(fail('gateway.unreachable', src.uid));
+  const gwMember = srcDomain.members.find((m) => topo.ifaceAt(m.node, m.port)?.ip === src.gateway || topo.vrrpOwns(m.node, m.port, src.gateway as string));
+  if (!gwMember) {
+    // 仮想の IP アドレスの持ち主（マスター）がいない: 同じ VRID の全員が止まっている
+    if (topo.allNodes().some((n) => n.interfaces.some((i) => i.vrrp?.some((g) => g.ip === src.gateway)))) return err(fail('vrrp.no_master', src.uid));
+    return err(fail('gateway.unreachable', src.uid));
+  }
 
   let current: Endpoint = gwMember;
   // 今の送信元のアドレス（NAPT で変わる）と、変換の記録
@@ -813,7 +855,7 @@ export const macTableOf = (net: Network, data: EngineData, uid: string): { port:
 };
 
 // 通れば通るが直すべき設定（警告・NET.md §6）: 直結の両端の口の VLAN が違う access（vlan.mismatch）、両端の native が違う trunk（vlan.native_mismatch）
-export type VlanWarning = { id: 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id'; a: string; b: string };
+export type VlanWarning = { id: 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch'; a: string; b: string };
 
 export const warningsOf = (net: Network): VlanWarning[] => {
   const cfgOf = (uid: string, port: number): PortConfig | undefined => net.nodes.find((n) => n.uid === uid)?.ports.find((p) => p.port === port);
@@ -824,6 +866,20 @@ export const warningsOf = (net: Network): VlanWarning[] => {
     if (!ca || !cb) continue;
     if (ca.mode === 'access' && cb.mode === 'access' && (ca.vlan ?? 1) !== (cb.vlan ?? 1)) out.push({ id: 'vlan.mismatch', a: l.a.node, b: l.b.node });
     if (ca.mode === 'trunk' && cb.mode === 'trunk' && (ca.native ?? 1) !== (cb.native ?? 1)) out.push({ id: 'vlan.native_mismatch', a: l.a.node, b: l.b.node });
+  }
+  // VRRP: 同じネットワーク・同じ VRID で仮想の IP アドレスが違う（組ごとに1件）と、端末のゲートウェイが仮想ではなく実の IP アドレス
+  const groups = net.nodes.flatMap((n) => n.interfaces.flatMap((i) => (i.vrrp ?? []).map((g) => ({ uid: n.uid, iface: i, g }))));
+  for (let x = 0; x < groups.length; x++) {
+    for (let y = x + 1; y < groups.length; y++) {
+      const a = groups[x];
+      const b = groups[y];
+      if (a.uid !== b.uid && a.g.vrid === b.g.vrid && a.g.ip !== b.g.ip && inSubnet(a.iface.ip, b.iface.ip, b.iface.prefix)) out.push({ id: 'vrrp.vip_mismatch', a: a.uid, b: b.uid });
+    }
+  }
+  for (const n of net.nodes) {
+    if (!n.gateway || n.interfaces.some((i) => i.vrrp !== undefined)) continue;
+    const owner = groups.find((x) => x.iface.ip === n.gateway);
+    if (owner) out.push({ id: 'vrrp.gateway_real_ip', a: n.uid, b: owner.uid });
   }
   // 同じルーター ID の OSPF のルーター（組ごとに1件）
   for (const uids of duplicateRouterIds(net.nodes)) out.push({ id: 'ospf.duplicate_router_id', a: uids[0], b: uids[1] });
