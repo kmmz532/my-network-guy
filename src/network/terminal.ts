@@ -8,7 +8,7 @@ import { isIp } from './terminalConfig';
 import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
-import { learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
+import { adOf, learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
 import type { Trace } from '../sim/project';
 import { framesOf } from './frames';
 import { isL2Category, isRoutingCategory } from './category';
@@ -77,11 +77,14 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       const lines: TerminalLine[] = node.interfaces.map((i) =>
         out(tr('ui.terminal.routeConnected', { net: networkAddress(i.ip, i.prefix), prefix: i.prefix, port: i.port })),
       );
-      if (node.gateway) lines.push(out(tr('ui.terminal.routeStatic', { dest: '0.0.0.0', prefix: 0, nextHop: node.gateway })));
-      for (const r of node.routes) lines.push(out(tr('ui.terminal.routeStatic', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop })));
+      // 静的経路は S（既定の経路は S*）。各行に [管理距離/メトリック] を出す
+      const ad = adOf({ dest: '', prefix: 0, nextHop: '', protocol: 'static' });
+      if (node.gateway) lines.push(out(tr('ui.terminal.routeStaticDefault', { dest: '0.0.0.0', prefix: 0, nextHop: node.gateway, ad, metric: 0 })));
+      for (const r of node.routes) lines.push(out(tr(r.prefix === 0 ? 'ui.terminal.routeStaticDefault' : 'ui.terminal.routeStatic', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop, ad, metric: 0 })));
       for (const protocol of ['rip', 'ospf', 'bgp'] as const) {
         for (const r of learnedRoutesOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid, protocol)) {
-          lines.push(out(tr(`ui.terminal.route${protocol[0].toUpperCase()}${protocol.slice(1)}`, { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop })));
+          const key = protocol === 'ospf' && r.interArea ? 'ui.terminal.routeOspfIa' : `ui.terminal.route${protocol[0].toUpperCase()}${protocol.slice(1)}`;
+          lines.push(out(tr(key, { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop, ad: adOf(r), metric: r.metric ?? 0 })));
         }
       }
       return lines.length > 0 ? lines : [out(tr('ui.terminal.noRoute'))];

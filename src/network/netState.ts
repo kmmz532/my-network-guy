@@ -6,7 +6,7 @@ import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, Iface,
 import { CATEGORY } from '../data/categories';
 import { can } from './capabilities';
 import { macOf } from './mac';
-import { electDr, ospfMismatch, ospfPriorityOf, ospfRouterId, type DrCandidate, type OspfMismatch } from './ospf';
+import { duplicateRouterIds, electDr, ospfMismatch, ospfPriorityOf, ospfRouterId, type DrCandidate, type OspfMismatch } from './ospf';
 
 const MAX_HOPS = 16;
 
@@ -134,13 +134,14 @@ class Topology {
           if (hop === undefined) continue;
           const metric = dist.get(o.uid) as number;
           // 既定の経路の配布（default-information originate）: 配る機器への最短の道を、0.0.0.0/0 の経路にする
-          if (proto === 'ospf' && o.ospf?.defaultOriginate === true) routes.push({ dest: '0.0.0.0', prefix: 0, nextHop: hop, protocol: 'ospf' });
+          if (proto === 'ospf' && o.ospf?.defaultOriginate === true) routes.push({ dest: '0.0.0.0', prefix: 0, nextHop: hop, protocol: 'ospf', metric });
           // RIP は 16 以上で届かない（rip.unreachable）
           if (proto === 'rip' && metric >= 16) continue;
           for (const oi of o.interfaces) {
             if (!joined(oi)) continue;
             if (own.some((x) => inSubnet(oi.ip, x.ip, x.prefix))) continue;
-            routes.push({ dest: networkOf(oi.ip, oi.prefix), prefix: oi.prefix, nextHop: hop, protocol: proto });
+            const interArea = proto === 'ospf' && !own.some((x) => x.ospf?.area === oi.ospf?.area);
+            routes.push({ dest: networkOf(oi.ip, oi.prefix), prefix: oi.prefix, nextHop: hop, protocol: proto, metric, ...(interArea ? { interArea: true } : {}) });
           }
         }
         out.set(r.uid, [...(out.get(r.uid) ?? []), ...routes]);
@@ -351,7 +352,7 @@ const fail = (reason: FailureReason, node: string): Failure => ({ reason, node }
 export type Traffic = { kind: 'ping' } | { kind: 'http'; port: number };
 
 // 経路の管理距離（AD）。static 1・OSPF 110・RIP 120
-const adOf = (r: Route): number => (r.protocol === 'ospf' ? 110 : r.protocol === 'rip' ? 120 : r.protocol === 'bgp' ? 20 : 1);
+export const adOf = (r: Route): number => (r.protocol === 'ospf' ? 110 : r.protocol === 'rip' ? 120 : r.protocol === 'bgp' ? 20 : 1);
 
 // 規則の送信元・宛先（'any' か「a.b.c.d/nn」）に、IPアドレスが入るか
 const matchNet = (spec: string, ip: string): boolean => {
@@ -806,7 +807,7 @@ export const macTableOf = (net: Network, data: EngineData, uid: string): { port:
 };
 
 // 通れば通るが直すべき設定（警告・NET.md §6）: 直結の両端の口の VLAN が違う access（vlan.mismatch）、両端の native が違う trunk（vlan.native_mismatch）
-export type VlanWarning = { id: 'vlan.mismatch' | 'vlan.native_mismatch'; a: string; b: string };
+export type VlanWarning = { id: 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id'; a: string; b: string };
 
 export const warningsOf = (net: Network): VlanWarning[] => {
   const cfgOf = (uid: string, port: number): PortConfig | undefined => net.nodes.find((n) => n.uid === uid)?.ports.find((p) => p.port === port);
@@ -818,5 +819,7 @@ export const warningsOf = (net: Network): VlanWarning[] => {
     if (ca.mode === 'access' && cb.mode === 'access' && (ca.vlan ?? 1) !== (cb.vlan ?? 1)) out.push({ id: 'vlan.mismatch', a: l.a.node, b: l.b.node });
     if (ca.mode === 'trunk' && cb.mode === 'trunk' && (ca.native ?? 1) !== (cb.native ?? 1)) out.push({ id: 'vlan.native_mismatch', a: l.a.node, b: l.b.node });
   }
+  // 同じルーター ID の OSPF のルーター（組ごとに1件）
+  for (const uids of duplicateRouterIds(net.nodes)) out.push({ id: 'ospf.duplicate_router_id', a: uids[0], b: uids[1] });
   return out;
 };

@@ -26,6 +26,10 @@ export interface Route {
   nextHop: string;
   // 経路の出どころ（static は設定した経路。省略は static）。同じ宛先の長さなら管理距離（AD）の小さいものを使う
   protocol?: 'static' | 'rip' | 'ospf' | 'bgp';
+  // 動的経路のメトリック（RIP は跳ね数、OSPF はコストの合計）。show ip route の [管理距離/メトリック] に出す
+  metric?: number;
+  // OSPF で、自分が参加していないエリアの経路（エリアの間の経路。O IA）
+  interArea?: boolean;
 }
 
 export interface Service {

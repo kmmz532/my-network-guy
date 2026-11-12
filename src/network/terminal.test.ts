@@ -122,7 +122,7 @@ describe('確認のコマンド（段階2）', () => {
     const lines = runTerminal('show ip route', ctx(nodes[0]), tr);
     expect(lines.map((l) => l.text)).toEqual([
       'ui.terminal.routeConnected {"net":"192.168.1.0","prefix":24,"port":0}',
-      'ui.terminal.routeStatic {"dest":"0.0.0.0","prefix":0,"nextHop":"192.168.1.1"}',
+      'ui.terminal.routeStaticDefault {"dest":"0.0.0.0","prefix":0,"nextHop":"192.168.1.1","ad":1,"metric":0}',
     ]);
   });
 
