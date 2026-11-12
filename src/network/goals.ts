@@ -88,6 +88,17 @@ const handlers: { [K in Goal['type']]: Handler } = {
     const ok = sessions.filter((s) => s.status.state === 'established').length >= goal.min;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
+  // 指定した機器のどれか1台の電源を切っても、残りの PC・サーバーがすべて互いに届く
+  survive_device_failure: (goal, net, data) => {
+    if (goal.type !== 'survive_device_failure') throw new Error('survive_device_failure ハンドラに別の種類が渡された');
+    const ok = goal.nodes.every((uid) => {
+      const off: Network = { ...net, nodes: net.nodes.map((n) => (n.uid === uid ? { ...n, powered: false } : n)) };
+      const ends = off.nodes.filter((n) => n.uid !== uid && (data.categoryOf(n.device) === 'pc' || data.categoryOf(n.device) === 'server')).map((n) => n.uid);
+      for (let i = 0; i < ends.length; i++) for (let j = i + 1; j < ends.length; j++) if (!ping(off, data, ends[i], ends[j]).ok) return false;
+      return ends.length >= 2;
+    });
+    return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
+  },
   // 回線終端が2つ以上あり、どれか1つ（とその配線）を除いても、すべての PC が外部へ届く
   survive_uplink_failure: (goal, net, data) => {
     if (goal.type !== 'survive_uplink_failure') throw new Error('survive_uplink_failure ハンドラに別の種類が渡された');

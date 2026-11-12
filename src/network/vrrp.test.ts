@@ -99,3 +99,18 @@ describe('VRRP のターミナル', () => {
     expect(show('r2')[0].text).toContain('"state":"Backup"');
   });
 });
+
+describe('survive_device_failure（機器の電源）', () => {
+  it('VRRP でゲートウェイを冗長にすると、ルーターのどちらを止めても届く。実の IP アドレスのゲートウェイでは、止めると届かない', async () => {
+    const { evaluateGoal } = await import('./goals');
+    const goal = { type: 'survive_device_failure' as const, nodes: ['r1', 'r2'] };
+    expect(evaluateGoal(goal, build(), data)[0].ok).toBe(true);
+    const real: Network = { ...build(), nodes: build().nodes.map((n) => (n.uid === 'pc' ? { ...n, gateway: '192.168.1.1' } : n.uid === 'srv' ? { ...n, gateway: '10.0.9.1' } : n)) };
+    expect(evaluateGoal(goal, real, data)[0].ok).toBe(false);
+  });
+  it('電源を切ったマスターは、バックアップが引き継ぐ', () => {
+    const net = build();
+    const off: Network = { ...net, nodes: net.nodes.map((n) => (n.uid === 'r1' ? { ...n, powered: false } : n)) };
+    expect(via(off).path).toContain('r2');
+  });
+});

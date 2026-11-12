@@ -1116,6 +1116,10 @@ export const setOspf = (core: Core, uid: string, change: OspfOp, target: NetTarg
     target,
   );
 
+// 機器の電源の入・切（障害の再現・VRRP の引き継ぎの確認に使う）。切った機器は、すべての口が停止したものとして扱う
+export const setPower = (core: Core, uid: string, on: boolean, target: NetTarget = 'focus'): Outcome =>
+  editNode(core, uid, (node) => ({ ...node, powered: on ? undefined : false }), target);
+
 // VRRP の設定（グループの作成・仮想の IP アドレス・優先度・プリエンプト・追跡・削除）。ip で、グループがなければ作る（優先度 100・プリエンプトあり）
 export type VrrpOp =
   | { op: 'ip'; id: string; vrid: number; ip: string }

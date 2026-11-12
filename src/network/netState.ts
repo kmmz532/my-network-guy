@@ -310,7 +310,8 @@ class Topology {
 
   // 口が停止しているか（shutdown）
   isShut(uid: string, port: number): boolean {
-    return this.portCfg(uid, port)?.shutdown === true;
+    // 電源を切った機器は、すべての口が停止している
+    return this.nodes.get(uid)?.powered === false || this.portCfg(uid, port)?.shutdown === true;
   }
 
   // 口に入るフレームの VLAN（access は設定の VLAN、trunk は untagged の native）

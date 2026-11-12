@@ -93,6 +93,8 @@ export interface NetNode {
   device: string;
   // 回線終端（uplink）の回線の情報（ISP の名前・回線のネットワーク・ISP 側のアドレス・ISP の AS 番号）。省略すると、既定の ISP（198.51.100.1/24）
   isp?: IspLine;
+  // 機器の電源。false なら、すべての口が停止したものとして扱う（省略は入）
+  powered?: boolean;
   // スパニングツリーのブリッジ優先度（既定 32768、4096 刻み。小さいほどルートになりやすい）
   stpPriority?: number;
   // OSPF の機器ごとの設定（routerId は省略すると自動。defaultOriginate は既定の経路を配る）

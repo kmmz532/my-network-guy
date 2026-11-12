@@ -21,7 +21,7 @@ export interface StpResult {
 const keyOf = (uid: string, port: number) => `${uid}:${port}`;
 
 export const computeStp = (nodes: readonly NetNode[], links: readonly NetLink[], isStpSwitch: (node: NetNode) => boolean): StpResult => {
-  const bridges = nodes.filter(isStpSwitch);
+  const bridges = nodes.filter((n) => n.powered !== false && isStpSwitch(n));
   const byUid = new Map(bridges.map((n) => [n.uid, n]));
   const empty: StpResult = { root: null, roles: new Map(), rootCost: new Map() };
   if (bridges.length === 0) return empty;

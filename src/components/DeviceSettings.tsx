@@ -50,6 +50,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   const setSegment = useGameStore((s) => s.setSegment);
   const setRouting = useGameStore((s) => s.setRouting);
   const setOspf = useGameStore((s) => s.setOspf);
+  const setPower = useGameStore((s) => s.setPower);
   const addRoute = useGameStore((s) => s.addRoute);
   const removeRoute = useGameStore((s) => s.removeRoute);
   const setFirewallRules = useGameStore((s) => s.setFirewallRules);
@@ -384,6 +385,12 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   return (
     <div>
       <NameField key={node.uid} node={node} nodes={net.nodes} readOnly={readOnly} onError={onError} />
+      {category !== CATEGORY.uplink && (
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, margin: '4px 0' }}>
+          <input type="checkbox" aria-label={t('ui.config.power')} checked={node.powered !== false} disabled={readOnly} onChange={(e) => onError(setPower(node.uid, e.target.checked))} />
+          {t('ui.config.power')}
+        </label>
+      )}
       {can(node.device, 'wireless') && <WirelessField key={`w-${node.uid}`} node={node} net={net} readOnly={readOnly} onError={onError} />}
       {node.configLocked && <div style={{ marginBottom: 6 }}>{t('ui.config.locked')}</div>}
       {ports.map(renderPort)}

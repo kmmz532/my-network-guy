@@ -167,6 +167,8 @@ const conditionDone = (c: Condition, s: GuideState): boolean => {
     case 'down': {
       const n = node(c.ref);
       if (!n) return false;
+      // 電源を切った機器は、すべての口を止めたものとして扱う
+      if (c.port === null && n.powered === false) return true;
       const ports = linkedPorts(n.uid, s.links);
       const isDown = (port: number) => n.ports.some((cfg) => cfg.port === port && cfg.shutdown === true);
       return c.port === null ? ports.length > 0 && ports.every(isDown) : isDown(c.port);
