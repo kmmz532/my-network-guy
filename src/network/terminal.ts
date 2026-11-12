@@ -113,7 +113,8 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
         out(tr('ui.terminal.natStatic', { outsideIp: outside.ip, outsidePort: s.port, insideIp: s.insideIp, insidePort: s.insidePort })),
       );
       if (node.napt) lines.push(out(tr('ui.terminal.natNapt', { outsideIp: outside.ip })));
-      return lines;
+      // 4 つの欄（内部グローバル・内部ローカル・外部ローカル・外部グローバル）の見出しを先頭に出す
+      return [out(tr('ui.terminal.natHeader')), ...lines];
     }
     if (sub === 'ip ospf neighbor') {
       const neighbors = ospfNeighborsOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
