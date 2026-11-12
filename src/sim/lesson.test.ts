@@ -80,4 +80,25 @@ describe('教材を開いた直後の網の設定', () => {
     expect(routerSegs.length).toBeGreaterThan(0);
     for (const seg of routerSegs) expect(segmentConfigOf(seg, byUid, segments)).toBeDefined();
   });
+
+  it('VRRP の教材: 初めは届かず、両側に VRRP を設定すると、どちらのルーターを止めても届く', () => {
+    const l = lesson('vrrp_pair');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false, false]);
+    const group = (vrid: number, ip: string, priority: number) => [{ vrid, ip, priority, preempt: true }];
+    const solved = lessonNodes(l).map((n) =>
+      n.uid === 'R1' || n.uid === 'R2'
+        ? { ...n, interfaces: n.interfaces.map((i) => ({ ...i, vrrp: i.port === 0 ? group(1, '192.168.1.254', n.uid === 'R1' ? 110 : 100) : group(2, '10.0.9.254', n.uid === 'R1' ? 110 : 100) })) }
+        : n,
+    );
+    expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true, true]);
+  });
+
+  it('スパニングツリーの教材: 初めは SW1 がルート。SW2 の優先度を下げると SW2 がルートになる', () => {
+    const l = lesson('stp_triangle');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([true, false]);
+    const solved = lessonNodes(l).map((n) => (n.uid === 'SW2' ? { ...n, stpPriority: 4096 } : n));
+    expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true, true]);
+  });
 });

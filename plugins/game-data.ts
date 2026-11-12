@@ -246,6 +246,8 @@ const goalRefs = (goal: Goal): string[] => {
       return [];
     case 'survive_uplink_failure':
       return [];
+    case 'stp_root':
+      return [goal.node];
     case 'survive_device_failure':
       return goal.nodes;
     case 'bgp_established':

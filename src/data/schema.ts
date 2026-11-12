@@ -399,6 +399,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('bgp_established'), node: z.string().min(1), min: z.number().int().positive() }),
   // 指定した機器のどれか1台の電源を切っても、残りの PC・サーバーがすべて互いに届く
   z.object({ type: z.literal('survive_device_failure'), nodes: z.array(z.string().min(1)).min(1) }),
+  // 指定したスイッチが、スパニングツリーのルートブリッジになっている
+  z.object({ type: z.literal('stp_root'), node: z.string().min(1) }),
   // 回線終端（uplink）が2つ以上あり、どれか1つを失っても、すべての PC が外部へ届く
   z.object({ type: z.literal('survive_uplink_failure') }),
   // 指定した機器が、同じネットワークの OSPF の指定ルーター（DR）に選ばれている

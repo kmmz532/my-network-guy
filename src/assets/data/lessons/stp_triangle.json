@@ -1,0 +1,167 @@
+{
+  "id": "stp_triangle",
+  "topic": "redundancy",
+  "order": 10,
+  "size": {
+    "w": 15,
+    "h": 10
+  },
+  "placed": [
+    {
+      "ref": "PC1",
+      "device": "pc_basic",
+      "x": 1,
+      "y": 8,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "PC1"
+    },
+    {
+      "ref": "PC2",
+      "device": "pc_basic",
+      "x": 13,
+      "y": 8,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "PC2"
+    },
+    {
+      "ref": "SW1",
+      "device": "l2_switch_8p",
+      "x": 3,
+      "y": 5,
+      "locked": false,
+      "name": "SW1"
+    },
+    {
+      "ref": "SW2",
+      "device": "l2_switch_8p",
+      "x": 7,
+      "y": 2,
+      "locked": false,
+      "name": "SW2"
+    },
+    {
+      "ref": "SW3",
+      "device": "l2_switch_8p",
+      "x": 11,
+      "y": 5,
+      "locked": false,
+      "name": "SW3"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PC1",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 2
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PC2",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW3",
+        "port": 2
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "SW1",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW2",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "SW2",
+        "port": 1
+      },
+      "b": {
+        "ref": "SW3",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "SW1",
+        "port": 1
+      },
+      "b": {
+        "ref": "SW3",
+        "port": 1
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": [
+        "PC1",
+        "PC2"
+      ]
+    },
+    {
+      "type": "stp_root",
+      "node": "SW2"
+    }
+  ],
+  "guide": [
+    {
+      "target": "SW1",
+      "done": "open:SW1"
+    },
+    {
+      "target": "SW1",
+      "done": "cmd:show spanning-tree"
+    },
+    {
+      "target": "SW2",
+      "done": "cmd:spanning-tree priority"
+    },
+    {
+      "target": "test",
+      "done": "goal:2"
+    },
+    {
+      "target": "SW1",
+      "done": "cmd:show spanning-tree"
+    }
+  ]
+}
