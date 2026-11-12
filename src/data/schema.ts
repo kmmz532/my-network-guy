@@ -580,6 +580,28 @@ export const guidesFileSchema = z.object({
   ),
 });
 
+// 教材（学習モード。サンドボックスで開く、報酬・期限・費用のない小さな案件）。機器は ref で指す。
+// 題名・依頼文・案内の文言は言語ファイルの lesson.<id>.title・lesson.<id>.brief・lesson.<id>.step.<n>（n は1から）
+export const LESSON_TOPICS = ['l2', 'routing', 'redundancy', 'service', 'nat', 'wireless', 'security'] as const;
+const lessonEndSchema = z.object({ ref: z.string().min(1), port: nonNegativeInt });
+export const lessonSchema = z.object({
+  id: z.string().min(1),
+  topic: z.enum(LESSON_TOPICS),
+  order: int,
+  size: z.object({ w: int.positive(), h: int.positive() }),
+  placed: z.array(placedSchema).min(1),
+  links: z.array(z.object({ cable: z.string().min(1), a: lessonEndSchema, b: lessonEndSchema })),
+  goals: z.array(goalSchema).min(1),
+  guide: z
+    .array(
+      z.object({
+        target: z.string().min(1),
+        done: z.string().refine((v) => parseCondition(v) !== null, '完了の条件の書式が正しくない'),
+      }),
+    )
+    .min(1),
+});
+
 // 研修の課程（STAFF.md「4. 育成」）。受講中は担当に選べず、期日に経験値を得る
 export const trainingFileSchema = z.object({
   courses: z.array(
@@ -617,6 +639,7 @@ export type Contract = z.infer<typeof contractSchema>;
 export type ContractTemplate = z.infer<typeof templateSchema>;
 export type GameMap = z.infer<typeof mapSchema>;
 export type Lang = z.infer<typeof langSchema>;
+export type Lesson = z.infer<typeof lessonSchema>;
 export type GuideFile = z.infer<typeof guidesFileSchema>['guides'][number];
 
 // 会社のレベルの節目の報酬（N45）。解放は書かない（解放は品目の unlockLevel）

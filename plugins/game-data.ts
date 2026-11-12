@@ -14,6 +14,7 @@ import {
   devicesFileSchema,
   furnitureFileSchema,
   guidesFileSchema,
+  lessonSchema,
   langSchema,
   levelsFileSchema,
   mapSchema,
@@ -27,6 +28,7 @@ import {
   type Device,
   type Furniture,
   type GuideFile,
+  type Lesson,
   type Goal,
   type GameMap,
   type Lang,
@@ -39,6 +41,7 @@ const BASE_LANG = 'ja_jp';
 // 案内の1手順の文言の最大の文字数（CORE.md「4. 最初の20分の流れ」）
 const GUIDE_TEXT_MAX = 20;
 // 案内の文言のキー（案件ごとの i 番目の手順。0から数える）
+const lessonKey = (id: string, part: string): string => `lesson.${id}.${part}`;
 const guideKey = (contract: string, index: number): string => `guide.${contract}.${index + 1}`;
 
 // 実行時に存在が必要な翻訳キー（ID以外から導出されない固定のもの）
@@ -71,6 +74,7 @@ interface GameData {
   contracts: Contract[];
   templates: ContractTemplate[];
   guides: GuideFile[];
+  lessons: Lesson[];
   maps: GameMap[];
   langs: Record<string, Lang>;
   missingFilled: Record<string, number>;
@@ -156,6 +160,14 @@ const loadData = (dataDir: string, langDir: string, spriteDir: string): GameData
   const levelMilestones = parseWith(levelsFileSchema, readJson(join(dataDir, 'levels.json')), 'levels.json').milestones;
   const guides = parseWith(guidesFileSchema, readJson(join(dataDir, 'guides.json')), 'guides.json').guides;
 
+  const lessons = jsonFiles(join(dataDir, 'lessons')).map((file) => {
+    const lesson = parseWith(lessonSchema, readJson(file), file);
+    if (lesson.id !== basename(file, '.json')) {
+      throw new GameDataError([`${file}: id（${lesson.id}）がファイル名と一致しない`]);
+    }
+    return lesson;
+  });
+
   const contractsDir = join(dataDir, 'contracts');
   const contracts = jsonFiles(contractsDir).map((file) => {
     const contract = parseWith(contractSchema, readJson(file), file);
@@ -193,6 +205,7 @@ const loadData = (dataDir: string, langDir: string, spriteDir: string): GameData
     contracts,
     templates,
     guides,
+    lessons,
     maps,
     langs,
     missingFilled: {},
@@ -267,6 +280,25 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
       data.contracts.some((c) => c.id === g.contract),
       `guides.json: 固定案件 ${g.contract} がない`,
     );
+  }
+
+  // 教材: ref の重複・配線の端の機器と口・機材とケーブルの ID を確かめる
+  unique(data.lessons, (l) => l.id, 'lessons/');
+  for (const l of data.lessons) {
+    const refs = new Set(l.placed.map((p) => p.ref));
+    ensure(refs.size === l.placed.length, `lessons/${l.id}.json: ref が重複している`);
+    for (const p of l.placed) {
+      ensure(deviceIds.has(p.device), `lessons/${l.id}.json: ${p.ref} の機材 ${p.device} がない`);
+    }
+    for (const k of l.links) {
+      ensure(cableIds.has(k.cable), `lessons/${l.id}.json: ケーブル ${k.cable} がない`);
+      for (const end of [k.a, k.b]) {
+        const placed = l.placed.find((p) => p.ref === end.ref);
+        const device = placed ? data.devices.find((d) => d.id === placed.device) : undefined;
+        const ports = device ? device.ports.reduce((sum, port) => sum + port.count, 0) : 0;
+        ensure(placed !== undefined && end.port < ports, `lessons/${l.id}.json: 配線の端 ${end.ref}:${end.port} がない`);
+      }
+    }
   }
 
   // 家具のIDは機材・ケーブルのIDと重複させない（在庫の表を共通で使うため）
@@ -403,6 +435,12 @@ const fillLanguages = (data: GameData): void => {
   for (const g of data.guides) {
     g.steps.forEach((_, i) => required.add(guideKey(g.contract, i)));
   }
+  for (const l of data.lessons) {
+    required.add(lessonKey(l.id, 'title'));
+    required.add(lessonKey(l.id, 'brief'));
+    l.guide.forEach((_, i) => required.add(lessonKey(l.id, `step.${i + 1}`)));
+    for (const g of l.goals) required.add(`goal.${g.type}`);
+  }
   for (const g of [...data.contracts.flatMap((c) => c.goals), ...data.templates.flatMap((t) => t.goals)]) {
     required.add(`goal.${g.type}`);
   }
@@ -486,6 +524,7 @@ const gameDataModule = (data: GameData): string => {
     `export const levelMilestones = ${JSON.stringify(data.levelMilestones)};`,
     `export const contracts = ${JSON.stringify(data.contracts)};`,
     `export const contractTemplates = ${JSON.stringify(data.templates)};`,
+    `export const lessons = ${JSON.stringify(data.lessons)};`,
     `export const guides = ${JSON.stringify(
       Object.fromEntries(
         data.guides.map((g) => [

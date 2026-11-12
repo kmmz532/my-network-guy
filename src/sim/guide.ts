@@ -20,6 +20,11 @@ export interface GuideStep {
 //   placed:<カテゴリ>   そのカテゴリの機器を置いている
 //   owned:<機材ID>      在庫に機材がある（ショップで買った）
 //   test:pass           いま設計中の案件のテストに合格している
+//   cmd:<命令の頭>      ターミナルでその命令を打った（教材を開いている間の履歴）
+//   down:<ref>[:<口>]   機器の口をすべて、または指定の口を shutdown した
+//   frames:open         パケットの中身の欄を開いた
+//   goal:<n>            教材の n 番目（1から）の達成条件を満たした
+//   answer:<問いの id>  発展の問いに正しく答えた
 export type Condition =
   | { kind: 'tool'; tool: string }
   | { kind: 'links'; min: number }
@@ -31,7 +36,12 @@ export type Condition =
   | { kind: 'open'; ref: string }
   | { kind: 'placed'; category: string }
   | { kind: 'owned'; device: string }
-  | { kind: 'test' };
+  | { kind: 'test' }
+  | { kind: 'cmd'; prefix: string }
+  | { kind: 'down'; ref: string; port: number | null }
+  | { kind: 'frames' }
+  | { kind: 'goal'; n: number }
+  | { kind: 'answer'; id: string };
 
 const GUIDE_TOOLS = ['select', 'wire', 'remove'];
 
@@ -65,6 +75,20 @@ export const parseCondition = (text: string): Condition | null => {
       return { kind: 'owned', device: value };
     case 'test':
       return value === 'pass' ? { kind: 'test' } : null;
+    case 'cmd':
+      return { kind: 'cmd', prefix: value };
+    case 'down': {
+      const d = /^([^:]+)(?::(\d+))?$/.exec(value);
+      return d ? { kind: 'down', ref: d[1], port: d[2] === undefined ? null : Number(d[2]) } : null;
+    }
+    case 'frames':
+      return value === 'open' ? { kind: 'frames' } : null;
+    case 'goal': {
+      const n = /^(\d+)$/.exec(value);
+      return n && Number(n[1]) >= 1 ? { kind: 'goal', n: Number(n[1]) } : null;
+    }
+    case 'answer':
+      return { kind: 'answer', id: value };
     default:
       return null;
   }
@@ -85,6 +109,14 @@ export interface GuideState {
   openRefs: string[];
   // 機材のカテゴリ（ゲームデータから作る）
   categoryOf: (device: string) => string;
+  // 教材を開いている間に打ったターミナルの命令（教材の外では省く）
+  commands?: string[];
+  // パケットの中身の欄を開いたか
+  framesOpened?: boolean;
+  // 教材の達成条件ごとの、最後のテストの結果（順は教材の goals）
+  lessonGoals?: boolean[];
+  // 正しく答えた発展の問いの id
+  answers?: string[];
 }
 
 // 機器のつながっているポート（配線の両端のうち、この機器のもの）
@@ -130,6 +162,21 @@ const conditionDone = (c: Condition, s: GuideState): boolean => {
       return (s.owned[c.device] ?? 0) > 0;
     case 'test':
       return s.testPassed;
+    case 'cmd':
+      return (s.commands ?? []).some((cmd) => cmd.trim().startsWith(c.prefix));
+    case 'down': {
+      const n = node(c.ref);
+      if (!n) return false;
+      const ports = linkedPorts(n.uid, s.links);
+      const isDown = (port: number) => n.ports.some((cfg) => cfg.port === port && cfg.shutdown === true);
+      return c.port === null ? ports.length > 0 && ports.every(isDown) : isDown(c.port);
+    }
+    case 'frames':
+      return s.framesOpened === true;
+    case 'goal':
+      return s.lessonGoals?.[c.n - 1] === true;
+    case 'answer':
+      return (s.answers ?? []).includes(c.id);
   }
 };
 

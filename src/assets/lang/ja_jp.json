@@ -1035,5 +1035,13 @@
   "ui.wireless.password": "パスワード",
   "ui.wireless.ssid": "SSID",
   "warn.vlan.mismatch": "直結の両端の access のVLANが違い、2つのVLANが混ざっている",
-  "warn.vlan.native_mismatch": "直結の両端の trunk の native のVLANが違う"
+  "warn.vlan.native_mismatch": "直結の両端の trunk の native のVLANが違う",
+  "lesson.ospf_three_sites.brief": "3拠点のルーターに OSPF を設定し、静的経路を使わずに全拠点を通信させてください。アドレスは設定済みで、経路だけが未設定です。",
+  "lesson.ospf_three_sites.step.1": "まず R1 を開きましょう。",
+  "lesson.ospf_three_sites.step.2": "ターミナルで show ip route を打って、いまの経路を確認しましょう。",
+  "lesson.ospf_three_sites.step.3": "3台で router ospf を設定し、network に area 0 を指定します。全拠点が通じればテストに合格します。",
+  "lesson.ospf_three_sites.step.4": "show ip ospf neighbor で、隣接が確立していることを確認しましょう。",
+  "lesson.ospf_three_sites.step.5": "R1 と R2 の間の口を shutdown して、1本切ってみましょう。",
+  "lesson.ospf_three_sites.step.6": "traceroute で、R3 を迂回する経路に変わったことを確かめましょう。",
+  "lesson.ospf_three_sites.title": "OSPF の3拠点"
 }

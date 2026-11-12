@@ -140,3 +140,23 @@ describe('実際の案内のデータ', () => {
     }
   });
 });
+
+describe('学習の条件', () => {
+  const step = (done: string): GuideStep => ({ key: 'k', target: 't', done });
+  it('cmd・goal・frames・answer は、状態にあれば完了する', () => {
+    expect(parseCondition('cmd:show ip route')).toEqual({ kind: 'cmd', prefix: 'show ip route' });
+    expect(guideStepDone(step('cmd:show ip route'), base())).toBe(false);
+    expect(guideStepDone(step('cmd:show ip route'), { ...base(), commands: ['show ip route 10.0.0.0'] })).toBe(true);
+    expect(guideStepDone(step('goal:2'), { ...base(), lessonGoals: [true, false] })).toBe(false);
+    expect(guideStepDone(step('goal:1'), { ...base(), lessonGoals: [true, false] })).toBe(true);
+    expect(guideStepDone(step('frames:open'), { ...base(), framesOpened: true })).toBe(true);
+    expect(guideStepDone(step('answer:q1'), { ...base(), answers: ['q1'] })).toBe(true);
+  });
+  it('down は、指定した口を shutdown していれば完了する', () => {
+    const r = node('r1', 'router_basic', { ports: [{ port: 1, mode: 'routed', shutdown: true }] });
+    const state = { ...base(), nodes: [r], links: [link('l', ['r1', 1], ['pc_a', 0])] };
+    expect(guideStepDone(step('down:r1:1'), state)).toBe(true);
+    expect(guideStepDone(step('down:r1:2'), state)).toBe(false);
+    expect(guideStepDone(step('down:r1'), state)).toBe(true);
+  });
+});
