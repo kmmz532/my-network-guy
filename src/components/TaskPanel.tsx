@@ -16,6 +16,9 @@ import { lessons } from 'virtual:game-data';
 const FIRST_CONTRACT = 'c001_direct_link';
 
 // top は札の上端（ヘッダーの下）。狭い画面では、案件を受けたときに畳んだ状態（件名だけ）で出す
+// 案件の欄の折りたたみの見出し（案件と教材で同じ）
+const foldHeaderStyle = { display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '4px 8px', background: 'transparent', color: 'inherit', border: 'none', cursor: 'pointer', fontWeight: 'bold', textAlign: 'left' } as const;
+
 export function TaskPanel() {
   const active = useGameStore(focusedProject);
   const open = useGameStore((s) => s.taskOpen);
@@ -46,28 +49,38 @@ export function TaskPanel() {
     // 教材: 案件と同じ欄に、題名・依頼文・達成条件（最後のテストの結果）を出す
     const lessonResult = check && check.projectId === 'hq' ? check.goals : null;
     return (
-      <aside data-task-panel style={{ width: 260, background: 'rgba(47, 79, 143, 0.92)', color: '#f4f1e6', border: '2px solid #3b2a33', borderRadius: RADIUS.chrome, fontSize: 13, zIndex: 4, zoom: 'var(--ui-scale, 1)', padding: 8 }}>
-        <div style={{ fontWeight: 'bold' }}>{tDyn(`lesson.${lesson.id}.title`)}</div>
-        <div style={{ opacity: 0.85, lineHeight: 1.5, marginTop: 4 }}>{tDyn(`lesson.${lesson.id}.brief`)}</div>
-        <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>
-          {lesson.goals.map((goal, i) => {
-            const ok = lessonResult?.[i] ? lessonResult[i].ok : null;
-            return (
-              <li key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginTop: 4 }}>
-                <span style={{ opacity: ok === null ? 0.25 : 1, flexShrink: 0 }}>
-                  <Icon name={ok === false ? 'icon/close' : 'icon/ok'} scale={1} />
-                </span>
-                <span style={{ opacity: ok === true ? 0.7 : 1 }}>{goalText(goal, (id) => labelOfUid(useGameStore.getState(), id, officeNodes))}</span>
-              </li>
-            );
-          })}
-        </ul>
-        {hasTraces && <button style={{ ...secondaryButton, marginTop: 8, marginRight: 6 }} onClick={() => openWindow('frames', '')}>{t('ui.frames.open')}</button>}
-        <button style={{ ...secondaryButton, marginTop: 8 }} onClick={closeLesson}>{t('ui.lesson.end')}</button>
+      <aside data-task-panel style={{ width: open ? 260 : 'auto', background: 'rgba(47, 79, 143, 0.92)', color: '#f4f1e6', border: '2px solid #3b2a33', borderRadius: RADIUS.chrome, fontSize: 13, zIndex: 4, zoom: 'var(--ui-scale, 1)' }}>
+        {/* 案件の欄と同じ折りたたみの見出し（教材の題名を出す） */}
+        <button onClick={() => setOpen(!open)} style={foldHeaderStyle}>
+          <span style={{ width: 10 }}>{open ? '▾' : '▸'}</span>
+          <Icon name="icon/mail" scale={1} />
+          {(open || phone) && <span style={phone && !open ? { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : undefined}>{tDyn(`lesson.${lesson.id}.title`)}</span>}
+        </button>
+        {open && (
+          <div style={{ padding: '0 8px 8px' }}>
+            <div style={{ opacity: 0.85, lineHeight: 1.5 }}>{tDyn(`lesson.${lesson.id}.brief`)}</div>
+            <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>
+              {lesson.goals.map((goal, i) => {
+                const ok = lessonResult?.[i] ? lessonResult[i].ok : null;
+                return (
+                  <li key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginTop: 4 }}>
+                    <span style={{ opacity: ok === null ? 0.25 : 1, flexShrink: 0 }}>
+                      <Icon name={ok === false ? 'icon/close' : 'icon/ok'} scale={1} />
+                    </span>
+                    <span style={{ opacity: ok === true ? 0.7 : 1 }}>{goalText(goal, (id) => labelOfUid(useGameStore.getState(), id, officeNodes))}</span>
+                  </li>
+                );
+              })}
+            </ul>
+            {hasTraces && <button style={{ ...secondaryButton, marginTop: 8, marginRight: 6 }} onClick={() => openWindow('frames', '')}>{t('ui.frames.open')}</button>}
+            <button style={{ ...secondaryButton, marginTop: 8 }} onClick={closeLesson}>{t('ui.lesson.end')}</button>
+          </div>
+        )}
       </aside>
     );
   }
 
+  // 最後のテスト
   // 最後のテスト（または検収）の結果。この案件のものだけを使う。結果がなければ ok は null（未判定）
   const result = check && check.projectId === active.id ? check.goals : null;
   const warnings = check && check.projectId === active.id ? (check.warnings ?? []) : [];
