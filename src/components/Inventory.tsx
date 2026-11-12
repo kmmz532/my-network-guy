@@ -90,7 +90,8 @@ export function InventoryBody() {
   const [tab, setTab] = useState<InventoryTab>('all');
   // 検索は選んでいるタブの中で絞り込む。「すべて」は全分類から探す（N67）
   const [query, setQuery] = useState('');
-  const all = inventoryItems(inventoryMode(phase, showcase), owned, inventoryCatalog);
+  const sandbox = useGameStore((s) => s.mode) === 'sandbox';
+  const all = inventoryItems(inventoryMode(phase, showcase), owned, inventoryCatalog, sandbox);
   const inTab = tab === 'all' ? all : all.filter((item) => item.kind === tab);
   const items = inTab.filter((item) => matchesQuery(query, itemSearchFields(item)));
   // 品目を押すと配置に入る。同じ品目をもう一度押すと配置を終える（ウィンドウは開いたまま）
@@ -120,7 +121,7 @@ export function InventoryBody() {
         {query !== '' && items.length === 0 ? (
           <div style={{ padding: 8 }}>{t('ui.search.none')}</div>
         ) : (
-          <Inventory layout="grid" items={items} owned={owned} placing={placing} onPick={pick} onShop={() => useGameStore.getState().openWindow('shop', '')} />
+          <Inventory layout="grid" items={items} owned={owned} sandbox={sandbox} placing={placing} onPick={pick} onShop={() => useGameStore.getState().openWindow('shop', '')} />
         )}
       </div>
     </div>
@@ -131,6 +132,7 @@ export function Inventory({
   layout = 'strip',
   items,
   owned,
+  sandbox = false,
   placing,
   onPick,
   onShop,
@@ -139,6 +141,8 @@ export function Inventory({
   layout?: 'strip' | 'grid';
   items: InventoryItem[];
   owned: Record<string, number>;
+  // サンドボックスは在庫の数を ∞ で出す
+  sandbox?: boolean;
   placing: string | null;
   onPick: (item: InventoryItem) => void;
   onShop: () => void;
@@ -224,7 +228,7 @@ ${t('ui.inventory.blocked.design')}` : name} key={key}>
               >
                 <ItemIcon name={spriteOf(item)} box={{ width: 40, height: 40 }} maxScale={2} />
                 <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>
-                  {owned[item.id] ?? 0}
+                  {sandbox ? '∞' : (owned[item.id] ?? 0)}
                 </span>
               </button>
             </Tooltip>

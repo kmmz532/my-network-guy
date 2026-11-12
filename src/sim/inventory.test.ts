@@ -48,3 +48,13 @@ describe('インベントリの欄に並べる品目（B1）', () => {
     expect(() => inventoryItems('office', { nope: 1 }, catalog)).toThrow('unknown inventory item: nope');
   });
 });
+
+describe('サンドボックスのインベントリ', () => {
+  const catalog = { devices: { pc: {}, sw: {} }, furniture: { desk: {} }, shopOrder: ['pc', 'sw', 'desk'] };
+  it('サンドボックスは在庫がなくても、解放済みの全品目を並べる', () => {
+    expect(inventoryItems('office', {}, catalog, true).map((i) => i.id)).toEqual(['pc', 'sw', 'desk']);
+  });
+  it('経営モードは、持っている品目だけを並べる', () => {
+    expect(inventoryItems('office', {}, catalog)).toEqual([]);
+  });
+});

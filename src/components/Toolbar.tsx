@@ -184,7 +184,7 @@ export function Toolbar() {
   // インベントリの在庫の合計（機材と家具の個数の和）
   const stockTotal = Object.values(owned).reduce((sum, n) => sum + n, 0);
   const mode = inventoryMode(active?.phase ?? null, showcase !== null);
-  const inventoryItemList = inventoryItems(mode, owned, inventoryCatalog);
+  const inventoryItemList = inventoryItems(mode, owned, inventoryCatalog, sandbox);
   const inventoryOpenable = mode !== 'closed';
 
   // 品目を選ぶと配置に入る。同じ品目をもう一度押すと配置を終えて欄を閉じる
@@ -309,7 +309,7 @@ export function Toolbar() {
         </div>
       </footer>
       {inventoryOpen && inventoryOpenable && (
-        <Inventory items={inventoryItemList} owned={owned} placing={placing} onPick={pickInventoryItem} onShop={onShop} />
+        <Inventory items={inventoryItemList} owned={owned} sandbox={sandbox} placing={placing} onPick={pickInventoryItem} onShop={onShop} />
       )}
       </>
     );

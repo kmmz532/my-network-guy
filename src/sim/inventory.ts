@@ -21,9 +21,12 @@ export const inventoryMode = (activePhase: 'design' | 'build' | null, showcase: 
 
 // 欄に並べる品目。機材を先、家具を後に並べる（店の並び順。店にないものは、その後に ID の順）。設計中の家具は並べたうえで使えない印を付ける（自社オフィスの家具は、設計中は置けない）。
 // 定義（機材・家具）にない ID を持っていたら例外にする（黙って消さない。R5）
-export const inventoryItems = (mode: InventoryMode, owned: Record<string, number>, catalog: Catalog): InventoryItem[] => {
+// sandbox のときは、解放済みの全品目（店の並び順のすべて）を並べる（在庫の数は使わない）
+export const inventoryItems = (mode: InventoryMode, owned: Record<string, number>, catalog: Catalog, sandbox = false): InventoryItem[] => {
   if (mode === 'closed') return [];
-  const held = Object.entries(owned).filter(([, n]) => n > 0).map(([id]) => id);
+  const held = sandbox
+    ? catalog.shopOrder.filter((id) => id in catalog.devices || id in catalog.furniture)
+    : Object.entries(owned).filter(([, n]) => n > 0).map(([id]) => id);
   const { devices, furniture } = inventoryCatalogOf(held, catalog);
   const asDevices: InventoryItem[] = devices.map((id) => ({ kind: 'device', id }));
   const asFurniture: InventoryItem[] = furniture.map((id) => (mode === 'design' ? { kind: 'furniture', id, blocked: 'design' } : { kind: 'furniture', id }));
