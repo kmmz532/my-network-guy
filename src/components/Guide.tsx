@@ -8,6 +8,7 @@ import { loadSettings } from '../settings/settings';
 import { currentGuideStep, type GuideState } from '../sim/guide';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { RADIUS } from '../ui/theme';
+import { staffSpriteName } from '../data/schema';
 import { Icon } from './Icon';
 import { secondaryButton } from './Modal';
 
@@ -37,7 +38,7 @@ const categoryOf = (device: string): string =>
   (devices as Record<string, { category: string } | undefined>)[device]?.category ?? '';
 
 // 案内（吹き出し・ボタンの強調枠）の重なり順。ウィンドウ（4）・案件の欄（4）・マップの操作（5）より下に置き、開いた画面の操作の邪魔をしない（スマホで吹き出しが窓の上に出ていた）
-const GUIDE_Z = 3;
+const GUIDE_Z = 6;
 
 export function Guide() {
   const project = useGameStore(focusedProject);
@@ -48,7 +49,8 @@ export function Guide() {
   const check = useGameStore((s) => s.check);
   const windows = useGameStore((s) => s.windows);
   const guidesDone = useGameStore((s) => s.guidesDone);
-  const staffLook = useGameStore((s) => s.staff[0]?.look ?? 'blue');
+  // 吹き出しの顔の絵の名前。社員の見た目は絵の名前に変換して使う。社員のいないサンドボックスでは既定の見た目で出す
+  const staffLook = useGameStore((s) => staffSpriteName(s.staff[0]?.look ?? 'blue'));
   const setGuideTarget = useGameStore((s) => s.setGuideTarget);
   const markGuideDone = useGameStore((s) => s.markGuideDone);
   // 案件ごとに、完了した手順の数を覚える（画面の中だけ。条件を満たした手順は戻らない）

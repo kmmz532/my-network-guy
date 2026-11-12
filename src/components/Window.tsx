@@ -48,7 +48,7 @@ const RESIZE_HANDLES: { name: string; edges: Edges; cursor: string; style: CSSPr
 
 const frame = {
   position: 'absolute',
-  zIndex: 4,
+  zIndex: 5,
   display: 'flex',
   flexDirection: 'column',
   boxSizing: 'border-box',
