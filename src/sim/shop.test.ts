@@ -11,6 +11,13 @@ describe('ショップ', () => {
     expect(isUnlocked({ device: 'router_basic' } as never, 1, defs, true)).toBe(true);
   });
 
+  it('サンドボックス専用の品目（回線終端）は、サンドボックスの店にだけ並ぶ', () => {
+    const defs = { devices: { uplink: { unlockLevel: 99 } }, furniture: {}, cables: {} };
+    const uplink = { device: 'uplink', sandboxOnly: true } as never;
+    expect(isUnlocked(uplink, 99, defs)).toBe(false);
+    expect(isUnlocked(uplink, 99, defs, true)).toBe(true);
+  });
+
   it('資金が足りないと購入しない', () => {
     expect(buyDevice(100, {}, 'pc_basic', 200)).toEqual({ ok: false, reason: 'money' });
   });

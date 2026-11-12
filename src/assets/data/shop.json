@@ -1,6 +1,10 @@
 {
   "items": [
     {
+      "device": "uplink",
+      "sandboxOnly": true
+    },
+    {
       "device": "pc_basic"
     },
     {

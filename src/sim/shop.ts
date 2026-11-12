@@ -28,8 +28,11 @@ export const unlockLevelOfItem = (item: ShopItem, defs: ItemDefs): number => {
 };
 
 // 店に並べるか（会社のレベルが解放のレベル以上。サンドボックスは全部）
-export const isUnlocked = (item: ShopItem, level: number, defs: ItemDefs, sandbox = false): boolean =>
-  sandbox || unlockLevelOfItem(item, defs) <= level;
+export const isUnlocked = (item: ShopItem, level: number, defs: ItemDefs, sandbox = false): boolean => {
+  // サンドボックス専用の品目は、サンドボックスの中だけに並ぶ（経営モードの解放のレベルは見ない）
+  if (item.sandboxOnly) return sandbox;
+  return sandbox || unlockLevelOfItem(item, defs) <= level;
+};
 
 export type BuyResult = { ok: true; money: number; owned: Record<string, number> } | { ok: false; reason: 'money' };
 

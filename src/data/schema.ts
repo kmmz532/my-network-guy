@@ -334,6 +334,8 @@ export const shopFileSchema = z.object({
           device: z.string().min(1).optional(),
           cable: z.string().min(1).optional(),
           furniture: z.string().min(1).optional(),
+          // サンドボックスだけに並べる（経営モードでは、解放のレベルに関係なく並べない）
+          sandboxOnly: z.boolean().optional(),
         })
         .refine((item) => [item.device, item.cable, item.furniture].filter((v) => v !== undefined).length === 1, {
           message: 'device・cable・furniture のどれか1つだけを指定する',
