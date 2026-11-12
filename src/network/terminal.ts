@@ -55,10 +55,12 @@ const macOfPort = (ctx: TerminalContext, port: number): string => {
 };
 
 export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): TerminalLine[] => {
-  const words = line.trim().split(/\s+/).filter((w) => w !== '');
-  if (words.length === 0) return [];
   const out = (text: string): TerminalLine => ({ text, kind: 'out' });
   const err = (text: string): TerminalLine => ({ text, kind: 'err' });
+  const expanded = expandAbbrev(line);
+  if (!expanded.ok) return [err(tr('ui.terminal.ambiguous'))];
+  const words = expanded.line.split(/\s+/).filter((w) => w !== '');
+  if (words.length === 0) return [];
   const name = (n: NetNode) => (ctx.nameOf ? ctx.nameOf(n) : n.uid);
   const [cmd, ...args] = words;
   const { node } = ctx;
@@ -227,6 +229,32 @@ const WORDS: Record<string, string[]> = {
   ip: ['address', 'default-gateway', 'route'],
   no: ['ip', 'hostname'],
   'no ip': ['default-gateway', 'route'],
+};
+
+// 略記を正式な語に直す（Cisco と同じく、語が一意に決まるときだけ）。その語のあとに続く語も、同じ表で直す。
+// 一意に決まらない略記があれば ambiguous を返し、何も展開しない。表にない語は、そのまま残す
+export type Expanded = { ok: true; line: string } | { ok: false; reason: 'ambiguous' };
+export const expandAbbrev = (line: string): Expanded => {
+  const words = line.trim().split(/\s+/).filter((w) => w !== '');
+  const out: string[] = [];
+  let context = '';
+  for (const word of words) {
+    const candidates = (WORDS[context] ?? []).filter((w) => w.startsWith(word));
+    if (candidates.includes(word)) {
+      out.push(word);
+      context = context === '' ? word : `${context} ${word}`;
+    } else if (candidates.length === 1) {
+      out.push(candidates[0]);
+      context = context === '' ? candidates[0] : `${context} ${candidates[0]}`;
+    } else if (candidates.length > 1) {
+      return { ok: false, reason: 'ambiguous' };
+    } else {
+      // 表にない語（機器の名前・アドレスなど）は、そのまま残す。以降は表で直さない
+      out.push(word);
+      context = '\u0000';
+    }
+  }
+  return { ok: true, line: out.join(' ') };
 };
 
 // 入力の行を補完する。候補が1つなら続きを書き足して末尾に空白を付け、複数なら共通の続きまで書き足す。候補がなければ変えない
