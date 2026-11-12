@@ -110,6 +110,7 @@ export function Guide() {
     openRefs: windows.filter((w) => w.kind === 'device').flatMap((w) => w.tabs),
     categoryOf,
     commands: lessonCommands,
+    framesOpened: windows.some((w) => w.kind === 'frames'),
     lessonGoals,
   };
 
