@@ -295,3 +295,41 @@ describe('show ip nat translations（N146）', () => {
     expect(runTerminal('show ip nat translations', { node: r, nodes: [r], links: [], data }, tr)).toEqual([{ text: 'ui.terminal.natNoOutside', kind: 'err' }]);
   });
 });
+
+describe('traceroute の表示', () => {
+  // 2台のルーターを越える構成。r2 は口1のアドレスを先に並べ、先頭のアドレスを出していないかを確かめる
+  const routerData: EngineData = {
+    categoryOf: (device) => ({ pc: 'pc', router: 'router' })[device] ?? 'unknown',
+    maxLengthOf: () => 30,
+  };
+  const router = (uid: string, ifaces: { port: number; ip: string }[], routes: { dest: string; prefix: number; nextHop: string }[], serial: number): NetNode => ({ ports: [],
+    uid,
+    device: 'router',
+    x: 0,
+    y: 0,
+    locked: false,
+    configLocked: false,
+    interfaces: ifaces.map((i) => ({ id: `g0/${i.port}`, kind: 'port', port: i.port, ip: i.ip, prefix: 24 })) as NetNode['interfaces'],
+    gateway: null,
+    routes,
+    services: [],
+    macSerial: serial,
+  });
+  const routerNodes = [
+    pc('a', '192.168.1.10', '192.168.1.1'),
+    router('r1', [{ port: 0, ip: '192.168.1.1' }, { port: 1, ip: '10.0.0.1' }], [{ dest: '192.168.2.0', prefix: 24, nextHop: '10.0.0.2' }], 2),
+    router('r2', [{ port: 1, ip: '192.168.2.1' }, { port: 0, ip: '10.0.0.2' }], [{ dest: '192.168.1.0', prefix: 24, nextHop: '10.0.0.1' }], 3),
+    pc('c', '192.168.2.10', '192.168.2.1'),
+  ];
+  const routerLinks = [link('l1', 'a', 0, 'r1', 0), link('l2', 'r1', 1, 'r2', 0), link('l3', 'r2', 1, 'c', 0)];
+
+  it('各行に、そこへ届いたときに受け取った口のアドレスを出す', () => {
+    const ctx = { node: routerNodes[0], nodes: routerNodes, links: routerLinks, data: routerData };
+    const lines = runTerminal('traceroute 192.168.2.10', ctx, tr).map((l) => l.text);
+    expect(lines).toEqual([
+      'ui.terminal.hop {"n":1,"ip":"192.168.1.1","name":"r1"}',
+      'ui.terminal.hop {"n":2,"ip":"10.0.0.2","name":"r2"}',
+      'ui.terminal.hop {"n":3,"ip":"192.168.2.10","name":"c"}',
+    ]);
+  });
+});

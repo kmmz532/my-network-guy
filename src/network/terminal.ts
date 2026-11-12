@@ -10,6 +10,8 @@ import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
 import { learnedRoutesOf, macTableOf, ospfNeighborsOf } from './netState';
 import type { Trace } from '../sim/project';
+import { framesOf } from './frames';
+import { isL2Category, isRoutingCategory } from './category';
 
 export interface TerminalContext {
   node: NetNode;
@@ -175,9 +177,25 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       return [...header, err(tr('ui.terminal.pingNg')), err(tr(`error.${reason}`))];
     }
     // traceroute: 通った機器を1台ずつ、送信元の次から出す。届かなければ止まった場所と理由を出す
+    // 各機器のアドレスは、そこへ届いたフレームを受けた口のアドレス（実機と同じく、受け取った口を出す）
+    const categoryOfUid = (uid: string): string => {
+      const device = ctx.nodes.find((n) => n.uid === uid)?.device ?? '';
+      return ctx.data.categoryOf(device);
+    };
+    const frameCtx = {
+      nodes: ctx.nodes,
+      links: ctx.links,
+      categoryOf: (device: string) => ctx.data.categoryOf(device),
+      isSwitch: (uid: string) => isL2Category(categoryOfUid(uid)),
+      isRouter: (uid: string) => isRoutingCategory(categoryOfUid(uid)),
+    };
+    const frames = framesOf(frameCtx, { ok: true, path: result.path });
     const hops = result.path.slice(1).map((uid, i) => {
       const hop = ctx.nodes.find((n) => n.uid === uid);
-      const hopIp = hop?.interfaces[0]?.ip ?? '-';
+      const arrival = frames.find((f) => f.to === uid);
+      const arrivalLink = arrival ? ctx.links.find((l) => l.uid === arrival.link) : undefined;
+      const port = arrivalLink ? (arrivalLink.a.node === uid ? arrivalLink.a.port : arrivalLink.b.port) : undefined;
+      const hopIp = hop?.interfaces.find((iface) => iface.port === port)?.ip ?? '-';
       return out(tr('ui.terminal.hop', { n: i + 1, ip: hopIp, name: hop ? name(hop) : uid }));
     });
     if (result.ok) return [...header, ...hops];
