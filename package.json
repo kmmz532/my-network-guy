@@ -15,7 +15,9 @@
     "bump": "node scripts/bump.mjs patch",
     "bump:patch": "node scripts/bump.mjs patch",
     "bump:minor": "node scripts/bump.mjs minor",
-    "bump:major": "node scripts/bump.mjs major"
+    "bump:major": "node scripts/bump.mjs major",
+    "json": "node scripts/json.mjs",
+    "check:json": "node scripts/json.mjs check"
   },
   "dependencies": {
     "dexie": "^3.2.7",
