@@ -27,6 +27,7 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
   const setNameServer = useGameStore((s) => s.setNameServer);
   const setRouting = useGameStore((s) => s.setRouting);
   const setOspf = useGameStore((s) => s.setOspf);
+  const setStp = useGameStore((s) => s.setStp);
   const setBgp = useGameStore((s) => s.setBgp);
   const setNat = useGameStore((s) => s.setNat);
   const setSvi = useGameStore((s) => s.setSvi);
@@ -74,6 +75,8 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
       }
       case 'bgp':
         return setBgp(node.uid, action);
+      case 'stp':
+        return setStp(node.uid, action);
       case 'nat': {
         if (action.op !== 'iface') return setNat(node.uid, action);
         // ターミナルの書き方は口の番号のまま。画面の操作は、その口のインターフェースの id で指定する

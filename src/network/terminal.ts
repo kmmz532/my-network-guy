@@ -8,7 +8,7 @@ import { isIp } from './terminalConfig';
 import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
-import { adOf, bgpTableOf, learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
+import { adOf, bgpTableOf, stpOf, learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
 import type { Trace } from '../sim/project';
 import { framesOf } from './frames';
 import { isL2Category, isRoutingCategory } from './category';
@@ -115,6 +115,15 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       if (node.napt) lines.push(out(tr('ui.terminal.natNapt', { outsideIp: outside.ip })));
       // 4 つの欄（内部グローバル・内部ローカル・外部ローカル・外部グローバル）の見出しを先頭に出す
       return [out(tr('ui.terminal.natHeader')), ...lines];
+    }
+    if (sub === 'spanning-tree') {
+      const net = { nodes: ctx.nodes, links: ctx.links };
+      const stp = stpOf(net, ctx.data);
+      if (stp.root === null || !stp.rootCost.has(node.uid)) return [err(tr('ui.terminal.stpOff'))];
+      const lines = [out(tr(stp.root === node.uid ? 'ui.terminal.stpIsRoot' : 'ui.terminal.stpRoot', { root: name(ctx.nodes.find((n) => n.uid === stp.root) ?? node), cost: stp.rootCost.get(node.uid) ?? 0 }))];
+      const mine = [...stp.roles.entries()].filter(([k]) => k.startsWith(`${node.uid}:`)).map(([k, role]) => ({ port: Number(k.split(':')[1]), role })).sort((a, b) => a.port - b.port);
+      for (const p of mine) lines.push(out(tr(`ui.terminal.stpPort.${p.role}`, { port: p.port })));
+      return lines;
     }
     if (sub === 'vlan brief' || sub === 'vlan') {
       // 口ごとの VLAN の設定（設定のない口は既定の VLAN 1）

@@ -12,7 +12,8 @@ const withoutBack = (r: PathResult): Omit<PathResult, 'back'> => {
 };
 
 // l3_switch は基準と比べない。IP のない L3 の口は、N138 で既定の access（VLAN 1）に変えたため、基準（N136 の時点）と結果が違う。L3 の挙動は svi.test.ts で確かめる
-const DEVICES = ['pc_basic', 'router_basic', 'l2_switch_8p', 'server_basic'] as const;
+// スイッチは stp を持たない4ポートにする。stp を持つスイッチはスパニングツリーで輪を断つため、基準（輪は link.loop）と結果が違う。スパニングツリーの挙動は stp.test.ts で確かめる
+const DEVICES = ['pc_basic', 'router_basic', 'l2_switch_4p', 'server_basic'] as const;
 const IPS = ['10.0.0.1', '10.0.0.2', '10.0.0.3', '10.0.1.1', '10.0.1.2'];
 
 const networkArb: fc.Arbitrary<Network> = fc

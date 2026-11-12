@@ -1114,6 +1114,26 @@ export const setOspf = (core: Core, uid: string, change: OspfOp, target: NetTarg
     target,
   );
 
+// スパニングツリーの設定（ブリッジ優先度・口のコスト）。stp を持つスイッチだけ
+export type StpOp = { op: 'priority'; value: number } | { op: 'cost'; port: number; value: number };
+export const setStp = (core: Core, uid: string, change: StpOp, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      if (!can(node.device, 'stp')) return 'port.mode';
+      if (change.op === 'priority') {
+        if (!Number.isInteger(change.value) || change.value < 0 || change.value > 61440 || change.value % 4096 !== 0) return 'stp.priority';
+        return { ...node, stpPriority: change.value };
+      }
+      if (!Number.isInteger(change.value) || change.value < 1) return 'stp.cost';
+      const prev = node.ports.find((p) => p.port === change.port);
+      const next: PortConfig = { mode: 'access', ...prev, port: change.port, stpCost: change.value };
+      return { ...node, ports: [...node.ports.filter((p) => p.port !== change.port), next] };
+    },
+    target,
+  );
+
 // 回線終端の回線の情報（ISP の名前・アドレス・AS 番号）。回線終端だけに設定できる
 export const setIsp = (core: Core, uid: string, line: IspLine, target: NetTarget = 'focus'): Outcome =>
   editNode(

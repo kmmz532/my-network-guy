@@ -6,6 +6,7 @@ import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, Iface,
 import { CATEGORY } from '../data/categories';
 import { can } from './capabilities';
 import { macOf } from './mac';
+import { computeStp, type StpResult } from './stp';
 import { computeBgp, type BgpEnv, type BgpResult } from './bgp';
 import { duplicateRouterIds, electDr, ospfMismatch, ospfPriorityOf, ospfRouterId, type DrCandidate, type OspfMismatch } from './ospf';
 
@@ -252,6 +253,18 @@ class Topology {
     return this.nodes.get(uid)?.ports?.find((p) => p.port === port);
   }
 
+  // スパニングツリーの結果（stp を持つスイッチの間のリンクで、ブロッキングの口を決める）
+  private stpResult?: StpResult;
+  stp(): StpResult {
+    this.stpResult ??= computeStp([...this.nodes.values()], [...this.linkByEndpoint.values()].map((x) => x.link).filter((l, i, all) => all.indexOf(l) === i), (n) => can(n.device, 'stp'));
+    return this.stpResult;
+  }
+
+  // スパニングツリーが止めている口（ブロッキング）か
+  isStpBlocked(uid: string, port: number): boolean {
+    return this.stp().roles.get(`${uid}:${port}`) === 'blocking';
+  }
+
   // 口が停止しているか（shutdown）
   isShut(uid: string, port: number): boolean {
     return this.portCfg(uid, port)?.shutdown === true;
@@ -294,7 +307,7 @@ class Topology {
       if (visited.has(k)) continue;
       visited.add(k);
       // 停止している口と、その VLAN を通さない口は、ドメインに入らない
-      if (this.isShut(ep.node, ep.port) || !this.carries(ep.node, ep.port, vlan)) continue;
+      if (this.isShut(ep.node, ep.port) || this.isStpBlocked(ep.node, ep.port) || !this.carries(ep.node, ep.port, vlan)) continue;
       devices.add(ep.node);
 
       // 機器の口（設定なし）は、届いたフレームの VLAN に属する。設定のある access の口は、その VLAN の口だけ数える
@@ -310,7 +323,7 @@ class Topology {
         // 相手が access の口なら、フレームはその口の VLAN になる（機器側の口には VLAN の設定がないため）
         const cfgPeer = this.portCfg(peer.node, peer.port);
         const peerVlan = cfgPeer?.mode === 'access' ? this.vlanOf(peer.node, peer.port) : vlan;
-        if (!this.isShut(peer.node, peer.port) && this.carries(peer.node, peer.port, peerVlan)) {
+        if (!this.isShut(peer.node, peer.port) && !this.isStpBlocked(peer.node, peer.port) && this.carries(peer.node, peer.port, peerVlan)) {
           // 配線は、実際にたどったものだけを数える（輪の判定に使う）
           cables.add(link.uid);
           if (!tooLong && linkLength(link.path) > this.data.maxLengthOf(link.cable)) {
@@ -816,6 +829,9 @@ export const warningsOf = (net: Network): VlanWarning[] => {
   for (const uids of duplicateRouterIds(net.nodes)) out.push({ id: 'ospf.duplicate_router_id', a: uids[0], b: uids[1] });
   return out;
 };
+
+// スパニングツリーの計算結果（show spanning-tree に出す）
+export const stpOf = (net: Network, data: EngineData): StpResult => new Topology(net, data).stp();
 
 // BGP の計算結果（show ip bgp・show ip bgp summary に出す）。BGP を動かしていない機器は undefined
 export const bgpTableOf = (net: Network, data: EngineData, uid: string): BgpResult | undefined => new Topology(net, data).bgpOf(uid);

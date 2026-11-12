@@ -88,6 +88,8 @@ export interface NetNode {
   device: string;
   // 回線終端（uplink）の回線の情報（ISP の名前・回線のネットワーク・ISP 側のアドレス・ISP の AS 番号）。省略すると、既定の ISP（198.51.100.1/24）
   isp?: IspLine;
+  // スパニングツリーのブリッジ優先度（既定 32768、4096 刻み。小さいほどルートになりやすい）
+  stpPriority?: number;
   // OSPF の機器ごとの設定（routerId は省略すると自動。defaultOriginate は既定の経路を配る）
   ospf?: { routerId?: string; defaultOriginate?: boolean };
   // BGP の設定（BGP を動かす機器だけ持つ）
