@@ -116,6 +116,20 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       // 4 つの欄（内部グローバル・内部ローカル・外部ローカル・外部グローバル）の見出しを先頭に出す
       return [out(tr('ui.terminal.natHeader')), ...lines];
     }
+    if (sub === 'vlan brief' || sub === 'vlan') {
+      // 口ごとの VLAN の設定（設定のない口は既定の VLAN 1）
+      const cfgs = [...node.ports].sort((a, b) => a.port - b.port);
+      if (cfgs.length === 0) return [out(tr('ui.terminal.vlanNone'))];
+      return cfgs.map((c) =>
+        out(
+          c.mode === 'access'
+            ? tr('ui.terminal.vlanAccess', { port: c.port, vlan: c.vlan ?? 1 })
+            : c.mode === 'trunk'
+              ? tr('ui.terminal.vlanTrunk', { port: c.port, allowed: c.allowed === undefined ? tr('ui.terminal.vlanAll') : c.allowed.join(','), native: c.native ?? 1 })
+              : tr('ui.terminal.vlanRouted', { port: c.port }),
+        ),
+      );
+    }
     if (sub === 'ip bgp summary' || sub === 'ip bgp') {
       const bgp = bgpTableOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
       if (!bgp) return [err(tr('ui.terminal.bgpOff'))];

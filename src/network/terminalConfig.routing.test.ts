@@ -27,3 +27,12 @@ describe('RIP・OSPF の設定コマンド', () => {
     expect(parseConfig('network 10.0.1.0 0.0.0.255 area 0.0.0.1', tr)).toEqual({ kind: 'action', action: { kind: 'network', proto: 'ospf', ip: '10.0.1.0', area: 1, on: true } });
   });
 });
+
+describe('switchport trunk', () => {
+  it('trunk の許可する VLAN と native を読む', () => {
+    expect(parseConfig('switchport 1 trunk', tr)).toEqual({ kind: 'action', action: { kind: 'portMode', port: 1, mode: { kind: 'trunk' } } });
+    expect(parseConfig('switchport 1 trunk allowed 10,20 native 10', tr)).toEqual({ kind: 'action', action: { kind: 'portMode', port: 1, mode: { kind: 'trunk', allowed: [10, 20], native: 10 } } });
+    expect(parseConfig('switchport 1 trunk allowed all', tr)).toEqual({ kind: 'action', action: { kind: 'portMode', port: 1, mode: { kind: 'trunk', allowed: null } } });
+    expect(parseConfig('switchport 1 trunk allowed 0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errVlan' });
+  });
+});

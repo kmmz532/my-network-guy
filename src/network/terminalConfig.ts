@@ -17,7 +17,8 @@ export type ConfigAction =
   // SVI（VLAN のインターフェース・N138）: ip address vlan <番号> <IP> <マスク> / no ip address vlan <番号>（ip が空なら外す）
   | { kind: 'svi'; vlan: number; ip: string; prefix: number }
   // 口のモード（N137・N138）: switchport <ポート> access vlan <番号> / no switchport <ポート>（routed）
-  | { kind: 'portMode'; port: number; mode: { kind: 'access'; vlan: number } | { kind: 'routed' } }
+  // trunk: switchport <ポート> trunk [allowed <番号,番号…|all>] [native <番号>]
+  | { kind: 'portMode'; port: number; mode: { kind: 'access'; vlan: number } | { kind: 'routed' } | { kind: 'trunk'; allowed?: number[] | null; native?: number } }
   | { kind: 'gateway'; gateway: string | null }
   | { kind: 'addRoute'; route: Route }
   | { kind: 'removeRoute'; dest: string; prefix: number }
@@ -180,6 +181,29 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     const v = vlanNumber(rest[3]);
     if (v === null) return error('ui.terminal.errVlan');
     return { kind: 'action', action: { kind: 'svi', vlan: v, ip: '', prefix: 24 } };
+  }
+  if (first === 'switchport' && rest[1] === 'trunk') {
+    const p = port(rest[0]);
+    if (p === null) return error('ui.terminal.errPort');
+    const mode: { kind: 'trunk'; allowed?: number[] | null; native?: number } = { kind: 'trunk' };
+    let i = 2;
+    while (i < rest.length) {
+      if (rest[i] === 'allowed' && rest[i + 1] !== undefined) {
+        if (rest[i + 1] === 'all') mode.allowed = null;
+        else {
+          const list = rest[i + 1].split(',').map(vlanNumber);
+          if (list.some((v) => v === null)) return error('ui.terminal.errVlan');
+          mode.allowed = list as number[];
+        }
+        i += 2;
+      } else if (rest[i] === 'native' && rest[i + 1] !== undefined) {
+        const v = vlanNumber(rest[i + 1]);
+        if (v === null) return error('ui.terminal.errVlan');
+        mode.native = v;
+        i += 2;
+      } else return error('ui.terminal.usageSwitchport');
+    }
+    return { kind: 'action', action: { kind: 'portMode', port: p, mode } };
   }
   if (first === 'switchport') {
     if (rest.length !== 4 || rest[1] !== 'access' || rest[2] !== 'vlan') return error('ui.terminal.usageSwitchport');

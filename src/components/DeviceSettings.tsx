@@ -25,6 +25,7 @@ import { buttonStyle, greyColor, hexColor, inputStyle, isIpText, portLabel, sect
 import { CATEGORY } from '../data/categories';
 import { BgpField } from './BgpField';
 import { IspField } from './IspField';
+import { VlanPortField } from './VlanPortField';
 
 // ネットワークの既定候補（入力欄から任意のネットワークも指定できる）
 const NETWORK_CHOICES = Array.from({ length: 16 }, (_, i) => `192.168.${i + 1}.0`);
@@ -143,6 +144,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
     return (
       <div key={port} style={unlinkedRouter ? { ...sectionStyle, opacity: 0.45 } : sectionStyle}>
         {heading}
+        {can(node.device, 'switchport') && <VlanPortField node={node} port={port} readOnly={locked} onError={onError} />}
         <div>
           {t('ui.config.ip')}: {iface ? <b>{iface.ip}</b> : <span style={{ color: unsetColor }}>{t('ui.config.unset')}</span>}
         </div>

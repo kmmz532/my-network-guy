@@ -12,7 +12,7 @@ import { lessonLinks, lessonNodes } from '../../sim/lesson';
 import { mapOfOffice } from '../../sim/office';
 
 import { closeRef } from '../../ui/windows';
-import { type PortChoice, connect, removeNode, removeFromOffice, setInterface, setSvi, setPortMode, setGateway, setRouting, setOspf, setIsp, type OspfOp, setBgp, setNat, type NatOp, setWireless, type BgpOp, setFirewallRules, setSegment, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, replug, moveNode, replugTo, addRoute, removeRoute, removeLink, testDesign, emptyOffice, type End } from '../../sim/project';
+import { type PortChoice, connect, removeNode, removeFromOffice, setInterface, setSvi, setPortMode, type PortModeChange, setGateway, setRouting, setOspf, setIsp, type OspfOp, setBgp, setNat, type NatOp, setWireless, type BgpOp, setFirewallRules, setSegment, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, replug, moveNode, replugTo, addRoute, removeRoute, removeLink, testDesign, emptyOffice, type End } from '../../sim/project';
 
 import { coreOf, focusedProject, netTargetOf } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
@@ -39,7 +39,7 @@ export interface DesignSlice {
   // 機器の設定（設計中のみ）。失敗したら理由を返す
   setIface: (uid: string, port: number, ip: string, prefix?: number) => string | null;
   setSvi: (uid: string, vlan: number, ip: string, prefix?: number) => string | null;
-  setPortMode: (uid: string, port: number, mode: { kind: 'access'; vlan: number } | { kind: 'routed' }) => string | null;
+  setPortMode: (uid: string, port: number, mode: PortModeChange) => string | null;
   setGateway: (uid: string, gateway: string | null) => string | null;
   setRouting: (uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; area?: number }) => string | null;
   setOspf: (uid: string, change: OspfOp) => string | null;

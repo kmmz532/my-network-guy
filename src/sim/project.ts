@@ -1020,12 +1020,18 @@ export const setSvi = (core: Core, uid: string, vlan: number, ip: string, prefix
 // 機器の SVI の上限（機器の定義の sviMax。持てない機器は 0）
 const sviMaxOf = (env: Env, device: string): number => (env.devices[device] as { sviMax?: number } | undefined)?.sviMax ?? 0;
 
-// 口の VLAN（access）か、ルーターの口（routed・no switchport）を設定する（N137・N138）
+// 口のモードの変更。trunk の allowed は null で全 VLAN を許可、native は省略すると今の値（なければ 1）を保つ
+export type PortModeChange =
+  | { kind: 'access'; vlan: number }
+  | { kind: 'routed' }
+  | { kind: 'trunk'; allowed?: number[] | null; native?: number };
+
+// 口の VLAN（access）・トランク（trunk）か、ルーターの口（routed・no switchport）を設定する（N137・N138）
 export const setPortMode = (
   core: Core,
   uid: string,
   port: number,
-  mode: { kind: 'access'; vlan: number } | { kind: 'routed' },
+  mode: PortModeChange,
   env: Env,
   target: NetTarget = 'focus',
 ): Outcome => {
@@ -1038,11 +1044,28 @@ export const setPortMode = (
   if (mode.kind === 'access') {
     if (!can(node.device, 'switchport')) return fail('port.mode');
     if (!Number.isInteger(mode.vlan) || mode.vlan < 1 || mode.vlan > 4094) return fail('vlan.range');
+  } else if (mode.kind === 'trunk') {
+    if (!can(node.device, 'switchport')) return fail('port.mode');
+    const vlans = [...(mode.allowed ?? []), ...(mode.native === undefined ? [] : [mode.native])];
+    if (vlans.some((v) => !Number.isInteger(v) || v < 1 || v > 4094)) return fail('vlan.range');
   } else if (!can(node.device, 'routedPort')) {
     return fail('port.mode');
   }
   const prev = (node.ports ?? []).find((p) => p.port === port);
-  const next: PortConfig = mode.kind === 'access' ? { ...prev, port, mode: 'access', vlan: mode.vlan } : { ...prev, port, mode: 'routed', vlan: undefined };
+  const prevTrunk = prev?.mode === 'trunk' ? prev : undefined;
+  const next: PortConfig =
+    mode.kind === 'access'
+      ? { ...prev, port, mode: 'access', vlan: mode.vlan, allowed: undefined, native: undefined }
+      : mode.kind === 'trunk'
+        ? {
+            ...prev,
+            port,
+            mode: 'trunk',
+            vlan: undefined,
+            allowed: mode.allowed === undefined ? prevTrunk?.allowed : (mode.allowed ?? undefined),
+            native: mode.native ?? prevTrunk?.native,
+          }
+        : { ...prev, port, mode: 'routed', vlan: undefined, allowed: undefined, native: undefined };
   const ports = [...(node.ports ?? []).filter((p) => p.port !== port), next];
   const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, ports } : n));
   return { ok: true, core: withNet(core, target, { ...net, nodes }) };
