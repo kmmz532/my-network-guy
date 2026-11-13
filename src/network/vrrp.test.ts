@@ -8,7 +8,7 @@ import type { VrrpGroup } from './vrrp';
 const data = gameEnv.engine;
 const f = (port: number, ip: string, vrrp?: VrrpGroup[]): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24, ...(vrrp ? { vrrp } : {}) });
 const node = (uid: string, device: string, serial: number, extra: Partial<NetNode> = {}): NetNode =>
-  ({ uid, device, macSerial: serial, x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [], ...extra }) as NetNode;
+  ({ uid, device, macSerial: serial, x: 0, y: 0, locked: false, configLocked: extra.gateway !== undefined, interfaces: [], gateway: null, routes: [], services: [], ports: [], ...extra }) as NetNode;
 const link = (uid: string, a: string, pa: number, b: string, pb: number): NetLink => ({ uid, cable: 'utp_cat5e', a: { node: a, port: pa }, b: { node: b, port: pb }, path: [[0, 0], [1, 0]], paid: 0 });
 const shut = (port: number): PortConfig => ({ port, mode: 'routed', shutdown: true });
 const g = (vrid: number, ip: string, priority = 100, extra: Partial<VrrpGroup> = {}): VrrpGroup => ({ vrid, ip, priority, preempt: true, ...extra });

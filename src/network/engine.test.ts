@@ -193,7 +193,7 @@ describe('ping: L1 / L2 / L3', () => {
 
   it('ゲートウェイのアドレスに誰もいないとgateway.unreachable', () => {
     const net: Network = {
-      nodes: [pc('a', '192.168.1.10', '192.168.1.1'), pc('b', '192.168.2.10', '192.168.2.1')],
+      nodes: [pc('a', '192.168.1.10', '192.168.1.1'), pc('b', '192.168.2.10', '192.168.2.1')].map((n) => ({ ...n, configLocked: true })),
       links: [link('l1', 'a', 0, 'b', 0)],
     };
     expect(ping(net, data, 'a', 'b').failure?.reason).toBe('gateway.unreachable');
@@ -247,7 +247,7 @@ describe('ping: 復路', () => {
     const net: Network = {
       nodes: [
         pc('a', '192.168.1.10', '192.168.1.1'),
-        pc('b', '192.168.2.10'),
+        { ...pc('b', '192.168.2.10'), configLocked: true },
         router('r', [
           { id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 },
           { id: "g0/1", kind: "port", port: 1, ip: '192.168.2.1', prefix: 24 },

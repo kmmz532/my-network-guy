@@ -844,7 +844,7 @@ const viaStatic = (topo: Topology, srcUid: string, routerUid: string, traffic: T
 
 // Ping（ICMP）の判定。往路と復路の両方が通る必要がある
 export const ping = (net: Network, data: EngineData, srcUid: string, dstUid: string): PathResult => {
-  const topo = new Topology(withWireless(net, data), data);
+  const topo = analyze(net, data).topology;
   const forward = deliver(topo, srcUid, dstUid, { kind: 'ping' });
   if (!forward.ok) return forward;
   const back = backOf(topo, dstUid, srcUid, { kind: 'ping' }, forward);
@@ -856,7 +856,7 @@ export const ping = (net: Network, data: EngineData, srcUid: string, dstUid: str
 
 // HTTP の判定。往路で宛先に届き、宛先が指定ポートでサービスを待ち受けていて、復路も通ること
 export const http = (net: Network, data: EngineData, srcUid: string, dstUid: string, port: number): PathResult => {
-  const topo = new Topology(withWireless(net, data), data);
+  const topo = analyze(net, data).topology;
   // 外の口への通信が、静的 NAT で社内のサーバーへ届く場合（N145）
   const nat = viaStatic(topo, srcUid, dstUid, { kind: 'http', port });
   if (nat !== null) return nat;

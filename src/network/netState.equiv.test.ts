@@ -4,6 +4,7 @@ import fc from 'fast-check';
 import { gameEnv } from '../sim/env';
 import * as legacy from './__oracle__/engineLegacy';
 import * as staged from './netState';
+import { compile } from './compile';
 import type { Network, NetNode, NetLink, PathResult } from './types';
 
 const withoutBack = (r: PathResult): Omit<PathResult, 'back'> => {
@@ -61,13 +62,16 @@ const networkArb: fc.Arbitrary<Network> = fc
 describe('段に分けた計算は、基準と同じ結果（N136）', () => {
   it('ping・http・ループの判定が、ランダムなネットワークで一致する', () => {
     fc.assert(
-      fc.property(networkArb, (net) => {
+      fc.property(networkArb, (raw) => {
+        // 段に分けた計算は、中で compile を通すため、基準にも compile を通した構成を渡す
+        const net = raw;
+        const compiled = compile(raw, gameEnv.engine).net;
         for (const src of net.nodes) {
           for (const dst of net.nodes) {
             if (src.uid === dst.uid) continue;
             // 復路の経路（back）は後から加えた項目で、旧の計算にはないため比べない
-            expect(withoutBack(staged.ping(net, gameEnv.engine, src.uid, dst.uid))).toEqual(legacy.ping(net, gameEnv.engine, src.uid, dst.uid));
-            expect(withoutBack(staged.http(net, gameEnv.engine, src.uid, dst.uid, 80))).toEqual(legacy.http(net, gameEnv.engine, src.uid, dst.uid, 80));
+            expect(withoutBack(staged.ping(net, gameEnv.engine, src.uid, dst.uid))).toEqual(legacy.ping(compiled, gameEnv.engine, src.uid, dst.uid));
+            expect(withoutBack(staged.http(net, gameEnv.engine, src.uid, dst.uid, 80))).toEqual(legacy.http(compiled, gameEnv.engine, src.uid, dst.uid, 80));
           }
         }
         expect(staged.loopNodeOf(net, gameEnv.engine)).toEqual(legacy.loopNodeOf(net, gameEnv.engine));
