@@ -1,5 +1,6 @@
 // 役割で指す目標（isolated・http_from）と、ひな形の $role:<役割> の置き換え
 import { describe, expect, it } from 'vitest';
+import { analyze } from './engine/analyze';
 import { evaluateGoal } from './goals';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 import { instantiateTemplate } from '../contracts/template';
@@ -57,23 +58,23 @@ const twoNets = (bridged: boolean): Network => ({
 describe('isolated', () => {
   const goal: Goal = { type: 'isolated', from: ['guest_1', 'guest_2'], to: ['staff_1', 'staff_2'] };
   it('別のスイッチに分けていれば合格（組ごとに判定する）', () => {
-    const results = evaluateGoal(goal, twoNets(false), data);
+    const results = evaluateGoal(goal, analyze(twoNets(false), data));
     expect(results).toHaveLength(4);
     expect(results.every((r) => r.ok)).toBe(true);
   });
   it('1か所でも通信できれば不合格', () => {
-    expect(evaluateGoal(goal, twoNets(true), data).some((r) => !r.ok)).toBe(true);
+    expect(evaluateGoal(goal, analyze(twoNets(true), data)).some((r) => !r.ok)).toBe(true);
   });
 });
 
 describe('http_from', () => {
   const goal = { type: 'http_from' as const, nodes: ['staff_1', 'staff_2'], port: 80 };
   it('指定の PC からサーバーを閲覧できれば合格。ほかの PC は問わない', () => {
-    expect(evaluateGoal(goal, twoNets(false), data).every((r) => r.ok)).toBe(true);
+    expect(evaluateGoal(goal, analyze(twoNets(false), data)).every((r) => r.ok)).toBe(true);
   });
   it('指定の PC から届かなければ不合格', () => {
     const g = { ...goal, nodes: ['guest_1'] };
-    expect(evaluateGoal(g, twoNets(false), data).every((r) => !r.ok)).toBe(true);
+    expect(evaluateGoal(g, analyze(twoNets(false), data)).every((r) => !r.ok)).toBe(true);
   });
 });
 
@@ -157,14 +158,14 @@ describe('銀行の支店の守り（模範解答で解ける）', () => {
   const allowWeb = { src: '192.168.1.0/24', dst: '192.168.2.20/32', service: 'http' as const, port: 80 };
 
   it('窓口からサーバーへの http だけを許せば、すべての目標を満たす', () => {
-    const results = goals.flatMap((g) => evaluateGoal(g, bank([allowWeb]), bankData));
+    const results = goals.flatMap((g) => evaluateGoal(g, analyze(bank([allowWeb]), bankData)));
     expect(results.filter((r) => !r.ok).map((r) => `${r.goal.type} ${r.src}→${r.dst} ${r.failure?.reason ?? ''}`)).toEqual([]);
   });
   it('規則がなければ、窓口からサーバーを閲覧できない', () => {
-    expect(evaluateGoal(goals[0], bank([]), bankData).some((r) => !r.ok)).toBe(true);
+    expect(evaluateGoal(goals[0], analyze(bank([]), bankData)).some((r) => !r.ok)).toBe(true);
   });
   it('すべて許すと、窓口から事務室へ届いてしまい不合格', () => {
-    expect(evaluateGoal(goals[1], bank([{ src: 'any', dst: 'any', service: 'any' }]), bankData).some((r) => !r.ok)).toBe(true);
+    expect(evaluateGoal(goals[1], analyze(bank([{ src: 'any', dst: 'any', service: 'any' }]), bankData)).some((r) => !r.ok)).toBe(true);
   });
 });
 
@@ -172,8 +173,8 @@ describe('count_device', () => {
   it('指定の型の機器の台数で判定する（同じカテゴリの別の型は数えない）', () => {
     const goal: Goal = { type: 'count_device', device: 'gpu_server', min: 1 };
     const net = twoNets(false);
-    expect(evaluateGoal(goal, net, data)[0].ok).toBe(false);
+    expect(evaluateGoal(goal, analyze(net, data))[0].ok).toBe(false);
     const withGpu: Network = { ...net, nodes: [...net.nodes, host('gpu', 'gpu_server', '192.168.1.40')] };
-    expect(evaluateGoal(goal, withGpu, data)[0].ok).toBe(true);
+    expect(evaluateGoal(goal, analyze(withGpu, data))[0].ok).toBe(true);
   });
 });

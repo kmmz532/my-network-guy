@@ -79,7 +79,7 @@ describe('OSPF の隣接', () => {
       links: [link('a', 'pa', 0, 'r1', 0), link('b', 'r1', 1, 'r2', 0), link('c', 'r2', 1, 'pb', 0)],
       segments: {},
     };
-    const r = evaluateGoal({ type: 'ping', from: 'pa', to: 'pb' }, net, data);
+    const r = evaluateGoal({ type: 'ping', from: 'pa', to: 'pb' }, analyze(net, data));
     expect(r[0].ok).toBe(false);
     expect(r[0].failure?.reason).toBe('ospf.no_neighbor');
   });
@@ -116,7 +116,7 @@ describe('エリアの間の経路（ABR）', () => {
     segments: {},
   });
   it('ABR を通して、エリア 1 とエリア 0 の経路が互いに届く', () => {
-    expect(evaluateGoal({ type: 'ping', from: 'pc1', to: 'pc3' }, abr(), data)[0].ok).toBe(true);
+    expect(evaluateGoal({ type: 'ping', from: 'pc1', to: 'pc3' }, analyze(abr(), data))[0].ok).toBe(true);
   });
   it('自分が参加していないエリアの経路は O IA になる（ABR の隣は同じエリアなので O）', () => {
     const r1 = learnedRoutesOf(analyze(abr(), data), 'r1', 'ospf');
@@ -143,8 +143,8 @@ describe('ルーター ID の重複の警告', () => {
 
 describe('ospf_dr と、静的経路との競合', () => {
   it('ospf_dr: ルーター ID が最大の機器が DR のとき合格する', () => {
-    expect(evaluateGoal({ type: 'ospf_dr', node: 'r3' }, shared(), data)[0].ok).toBe(true);
-    expect(evaluateGoal({ type: 'ospf_dr', node: 'r1' }, shared(), data)[0].ok).toBe(false);
+    expect(evaluateGoal({ type: 'ospf_dr', node: 'r3' }, analyze(shared(), data))[0].ok).toBe(true);
+    expect(evaluateGoal({ type: 'ospf_dr', node: 'r1' }, analyze(shared(), data))[0].ok).toBe(false);
   });
 
   // R1・R2・R3 の三角形。PC2 は R2 の先。R1 から R2 へは直結（OSPF で最短）と、R3 経由がある
@@ -164,9 +164,9 @@ describe('ospf_dr と、静的経路との競合', () => {
     };
   };
   it('OSPF だけなら直結の R2 を通り、同じ宛先の静的経路（管理距離 1）があれば静的が優先される', () => {
-    const viaOspf = evaluateGoal({ type: 'ping', from: 'pc1', to: 'pc2' }, triangle(null), data)[0];
+    const viaOspf = evaluateGoal({ type: 'ping', from: 'pc1', to: 'pc2' }, analyze(triangle(null), data))[0];
     expect(viaOspf.result.path).not.toContain('r3');
-    const viaStatic = evaluateGoal({ type: 'ping', from: 'pc1', to: 'pc2' }, triangle('10.0.13.3'), data)[0];
+    const viaStatic = evaluateGoal({ type: 'ping', from: 'pc1', to: 'pc2' }, analyze(triangle('10.0.13.3'), data))[0];
     expect(viaStatic.result.path).toContain('r3');
   });
 });

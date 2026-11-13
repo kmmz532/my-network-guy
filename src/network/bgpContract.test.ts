@@ -1,5 +1,6 @@
 // 案件 b001（2社の ISP）: 境界ルーターを2つの回線終端へつなぎ、BGP で2本の隣接を作ると合格する。片方の隣接がなければ不合格
 import { describe, expect, it } from 'vitest';
+import { analyze } from './engine/analyze';
 import contractJson from '../assets/data/contracts/b001_two_isps.json';
 import { gameEnv } from '../sim/env';
 import type { Contract } from '../data/schema';
@@ -60,14 +61,14 @@ const solved = (neighborB: boolean): Network => ({
 describe('案件 b001: 2社の ISP', () => {
   it('置いたままでは不合格', () => {
     const net: Network = { nodes: contract.placed.map((p) => node(p.ref)), links: [], segments: {} };
-    expect(contract.goals.flatMap((g) => evaluateGoal(g, net, data)).some((r) => r.ok)).toBe(false);
+    expect(contract.goals.flatMap((g) => evaluateGoal(g, analyze(net, data))).some((r) => r.ok)).toBe(false);
   });
   it('2社の ISP と eBGP の隣接を張ると、2つの達成条件を満たす', () => {
-    const results = contract.goals.map((g) => evaluateGoal(g, solved(true), data).every((r) => r.ok));
+    const results = contract.goals.map((g) => evaluateGoal(g, analyze(solved(true), data)).every((r) => r.ok));
     expect(results).toEqual([true, true]);
   });
   it('片方の ISP との隣接がなければ、不合格（隣接が1本、回線の冗長にならない）', () => {
-    const results = contract.goals.map((g) => evaluateGoal(g, solved(false), data).every((r) => r.ok));
+    const results = contract.goals.map((g) => evaluateGoal(g, analyze(solved(false), data)).every((r) => r.ok));
     expect(results[0]).toBe(false);
   });
 });

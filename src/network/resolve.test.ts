@@ -1,5 +1,6 @@
 // 名前の解決（N68）。対応表 → ネームサーバーの順、ネームサーバーまで届かなければ失敗
 import { describe, expect, it } from 'vitest';
+import { analyze } from './engine/analyze';
 import { resolveName } from './resolve';
 import { evaluateGoal } from './goals';
 import type { EngineData, NetLink, NetNode } from './types';
@@ -94,13 +95,13 @@ describe('目標 reach_by_name', () => {
 
   it('すべての PC が名前で届けば合格する', () => {
     const net = build(false);
-    const results = evaluateGoal({ type: 'reach_by_name', name: 'fileserver' }, net, dataWithServer);
+    const results = evaluateGoal({ type: 'reach_by_name', name: 'fileserver' }, analyze(net, dataWithServer));
     expect(results.map((r) => r.ok)).toEqual([true, true]);
   });
 
   it('名前を引けなければ、理由は「名前を解決できない」', () => {
     const net = build(true);
-    const results = evaluateGoal({ type: 'reach_by_name', name: 'fileserver' }, net, dataWithServer);
+    const results = evaluateGoal({ type: 'reach_by_name', name: 'fileserver' }, analyze(net, dataWithServer));
     expect(results.every((r) => !r.ok)).toBe(true);
     expect(results[0].failure?.reason).toBe('name.unresolved');
   });

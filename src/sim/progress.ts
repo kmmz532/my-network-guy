@@ -14,7 +14,7 @@ import { blindDelegation } from './blindDelegate';
 import { busyStaff, crewBlock } from './crew';
 import { warningsOf } from '../network/netState';
 import { deliveryExpOf, levelOf } from './level';
-import { BlindOutcome, BlindPlan, Core, Env, GoalCheck, Office, Outcome, Project, ReportFailure, TestOutcome, TestResult, Trace, compiledNet, connect, delegationReason, designIssues, fail, fixedNodes, focusedOf, hubFor, isPcIn, keepFocus, projectCostOf, requireDesign, withProject } from './project';
+import { BlindOutcome, BlindPlan, Core, Env, GoalCheck, Office, Outcome, Project, ReportFailure, TestOutcome, TestResult, Trace, connect, delegationReason, designIssues, stateOfProject, fail, fixedNodes, focusedOf, hubFor, isPcIn, keepFocus, projectCostOf, requireDesign, withProject } from './project';
 
 // 増えた機器を型紙につなぐときのケーブル（一番安いもの）
 const WIRE_CABLE = 'utp_cat5e';
@@ -211,7 +211,7 @@ export const advanceBuild = (core: Core, env: Env, hour: number, juniorRate = 1)
 // 設計を判定する（テストと検収で同じ判定を使う）。達成条件ごとに、失敗した機器と理由をまとめる
 const judge = (p: Project, env: Env) => {
   const engine = engineWithWalls(env.engine, env.mapOf?.(p.contract.map));
-  const result = evaluateContract(p.contract, compiledNet(p, { ...env, engine }).net, engine);
+  const result = evaluateContract(p.contract, stateOfProject(p, { ...env, engine }));
   const traces: Trace[] = result.results.map((r) => {
     const goal = p.contract.goals.indexOf(r.goal);
     return { kind: r.kind, src: r.src, dst: r.dst, result: r.result, ...(goal >= 0 ? { goal } : {}) };

@@ -50,7 +50,7 @@ describe('無線の方式', () => {
     expect(warningsOf(build('wpa2wpa3', 'laptop'), data).map((w) => w.id)).toContain('wlan.transition');
   });
   it('達成条件 wireless_secure: WPA2・WPA3 は合格、WEP・暗号化なし・移行モードは不合格', () => {
-    const ok = (s: WirelessSecurity | undefined) => evaluateGoal({ type: 'wireless_secure', ssid: 'home' }, build(s, 'laptop'), data).every((r) => r.ok);
+    const ok = (s: WirelessSecurity | undefined) => evaluateGoal({ type: 'wireless_secure', ssid: 'home' }, analyze(build(s, 'laptop'), data)).every((r) => r.ok);
     expect([undefined, 'wpa2', 'wpa3'].map((s) => ok(s as WirelessSecurity | undefined))).toEqual([true, true, true]);
     expect((['wep', 'open', 'wpa2wpa3'] as const).map(ok)).toEqual([false, false, false]);
   });

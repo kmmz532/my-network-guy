@@ -2,7 +2,7 @@
 // 費用は差し引かず、設計は施工の待ちなしで反映する。テストは、PC とサーバーどうしの ping と、PC からサーバーへの HTTP を判定する。
 import type { Goal } from '../data/schema';
 import { evaluateGoal } from '../network/goals';
-import { compile } from '../network/compile';
+import { analyze } from '../network/engine/analyze';
 import { warningsOf } from '../network/netState';
 import type { NetNode } from '../network/types';
 import type { ClockState } from './clock';
@@ -58,8 +58,8 @@ const testGoals = (nodes: NetNode[], categoryOf: (device: string) => string): Go
 export const sandboxTest = (office: Office, env: Env, lessonGoals?: Goal[]): TestResult | null => {
   const goals = lessonGoals ?? testGoals(office.nodes, deviceCategory);
   if (goals.length === 0) return null;
-  const net = compile({ nodes: office.nodes, links: office.links, segments: office.segments }, env.engine).net;
-  const results = goals.flatMap((goal) => evaluateGoal(goal, net, env.engine));
+  const state = analyze({ nodes: office.nodes, links: office.links, segments: office.segments }, env.engine);
+  const results = goals.flatMap((goal) => evaluateGoal(goal, state));
   const checks: GoalCheck[] = goals.map((goal) => {
     const rs = results.filter((r) => r.goal === goal);
     const seen = new Set<string>();
@@ -77,6 +77,6 @@ export const sandboxTest = (office: Office, env: Env, lessonGoals?: Goal[]): Tes
     passed: results.every((r) => r.ok),
     goals: checks,
     traces: results.map((r) => ({ kind: r.kind, src: r.src, dst: r.dst, result: r.result })),
-    warnings: warningsOf(net, env.engine),
+    warnings: warningsOf(state.net, env.engine),
   };
 };

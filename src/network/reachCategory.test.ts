@@ -1,5 +1,6 @@
 // 目標 reach_category（N51b。プリンターの共有）: すべての PC が、そのカテゴリの機器のどれか1台へ届くこと
 import { describe, expect, it } from 'vitest';
+import { analyze } from './engine/analyze';
 import { evaluateGoal } from './goals';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
@@ -44,19 +45,19 @@ const goal = { type: 'reach_category', category: 'printer' } as const;
 
 describe('reach_category', () => {
   it('すべての PC がプリンターに届けば合格', () => {
-    const results = evaluateGoal(goal, star(true), data);
+    const results = evaluateGoal(goal, analyze(star(true), data));
     expect(results).toHaveLength(2);
     expect(results.every((r) => r.ok)).toBe(true);
   });
 
   it('プリンターがつながっていなければ不合格', () => {
-    const results = evaluateGoal(goal, star(false), data);
+    const results = evaluateGoal(goal, analyze(star(false), data));
     expect(results.some((r) => !r.ok)).toBe(true);
   });
 
   it('プリンターがなければ不合格（判定する機器がない）', () => {
     const net = star(true);
     const withoutPrinter: Network = { ...net, nodes: net.nodes.filter((n) => n.device !== 'printer'), links: net.links.filter((l) => l.uid !== 'l3') };
-    expect(evaluateGoal(goal, withoutPrinter, data).every((r) => !r.ok)).toBe(true);
+    expect(evaluateGoal(goal, analyze(withoutPrinter, data)).every((r) => !r.ok)).toBe(true);
   });
 });

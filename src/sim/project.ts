@@ -13,11 +13,13 @@ import { engineWithWalls } from './walls';
 import type { Offer } from '../contracts/template';
 
 import { ipToInt } from '../network/engine';
-import { compile, type IssueDetail } from '../network/compile';
+import type { IssueDetail } from '../network/compile';
+import { analyze } from '../network/engine/analyze';
+import type { NetworkState } from '../network/engine/state';
 import { fillSegments, intToIp, segmentConfigOf, segmentOf, segmentsOf, type Segment } from '../network/segments';
 
 import type { DhcpPool } from '../network/dhcp';
-import type { EngineData, FailureReason, NetLink, NetNode, PathResult, SegmentConfig, HostEntry } from '../network/types';
+import type { EngineData, FailureReason, NetLink, NetNode, Network, PathResult, SegmentConfig, HostEntry } from '../network/types';
 
 import type { ClockState } from './clock';
 
@@ -662,10 +664,12 @@ export const plannedAddressCandidates = (core: Core, network: string, prefix: nu
 };
 
 // 色と配線から生成したネットワーク（判定・表示に使う）→ 配線とセグメントの設定から生成したネットワーク
-export const compiledNet = (p: Project, env: Env) => compile({ nodes: p.nodes, links: p.links, segments: p.segments }, env.engine);
+export const stateOfProject = (p: Project, env: Env): NetworkState => analyze({ nodes: p.nodes, links: p.links, segments: p.segments }, env.engine);
+
+export const compiledNet = (p: Project, env: Env): Network => stateOfProject(p, env).net;
 
 // 設計時点の不備（機器の uid -> 不備の内容）
-export const designIssues = (p: Project, env: Env): Record<string, IssueDetail> => compiledNet(p, env).issues;
+export const designIssues = (p: Project, env: Env): Record<string, IssueDetail> => stateOfProject(p, env).issues;
 
 export type TestOutcome = { ok: true; core: Core; result: TestResult } | { ok: false; reason: string };
 

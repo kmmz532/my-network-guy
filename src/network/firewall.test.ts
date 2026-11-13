@@ -85,7 +85,7 @@ describe('ファイアウォールの規則', () => {
 
   it('blocked は、規則で止められているときだけ合格する', () => {
     const goal = { type: 'blocked' as const, from: 'web', to: 'a' };
-    expect(evaluateGoal(goal, network([allowWeb]), data)[0].ok).toBe(true);
-    expect(evaluateGoal(goal, network([{ src: 'any', dst: 'any', service: 'any' }]), data)[0].ok).toBe(false);
+    expect(evaluateGoal(goal, analyze(network([allowWeb]), data))[0].ok).toBe(true);
+    expect(evaluateGoal(goal, analyze(network([{ src: 'any', dst: 'any', service: 'any' }]), data))[0].ok).toBe(false);
   });
 });

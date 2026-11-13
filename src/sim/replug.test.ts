@@ -18,7 +18,7 @@ import { evaluateContract } from '../network/goals';
 import { compile } from '../network/compile';
 import { initialStaff } from './staff';
 import { autoAssign } from './autoAssign';
-import { compiledNet, connect, focusedOf, type Core, type Env } from './project';
+import { connect, focusedOf, stateOfProject, type Core, type Env } from './project';
 import { accept, advanceBuild, requestBuild, testDesign } from './progress';
 import { placeDevice, placeInOffice, replug } from './placement';
 import { setInterface, setService, setSegment } from './netEdit';
@@ -152,7 +152,7 @@ describe('サービスの起動と停止（setService）', () => {
     core = ok(setSegment(core, 'u0', 0, '192.168.1.0', 24, env)).core;
     core = autoAssign(core, env, 'focus', true);
     const contract = i002 as unknown as Contract;
-    const passed = (c: Core) => evaluateContract(contract, compiledNet(cur(c), env).net, env.engine).passed;
+    const passed = (c: Core) => evaluateContract(contract, stateOfProject(cur(c), env)).passed;
     expect(passed(core)).toBe(true);
     core = ok(setService(core, 'u1', 'http', false)).core;
     expect(cur(core).nodes.find((n) => n.uid === 'u1')!.services).toEqual([]);

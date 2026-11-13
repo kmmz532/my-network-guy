@@ -1,5 +1,6 @@
 // 外部（インターネット）の判定（N71・N72）
 import { describe, expect, it } from 'vitest';
+import { analyze } from './engine/analyze';
 import { customersOf, outsideCheck, rentalOf, withInternet } from './external';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
@@ -131,7 +132,7 @@ describe('2社の ISP（回線終端ごと）', () => {
   });
   it('survive_uplink_failure: 回線が2本あれば合格、1本だけなら不合格', async () => {
     const { evaluateGoal } = await import('./goals');
-    expect(evaluateGoal({ type: 'survive_uplink_failure' }, two(), data)[0].ok).toBe(true);
-    expect(evaluateGoal({ type: 'survive_uplink_failure' }, office(), data)[0].ok).toBe(false);
+    expect(evaluateGoal({ type: 'survive_uplink_failure' }, analyze(two(), data))[0].ok).toBe(true);
+    expect(evaluateGoal({ type: 'survive_uplink_failure' }, analyze(office(), data))[0].ok).toBe(false);
   });
 });

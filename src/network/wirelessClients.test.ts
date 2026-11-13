@@ -17,13 +17,13 @@ const net = (clients: number, password = WIFI.password): Network => ({
 
 describe('wireless_clients', () => {
   it('つながった端末が必要な数あれば合格', () => {
-    expect(evaluateGoal({ type: 'wireless_clients', min: 2 }, net(2), data).every((r) => r.ok)).toBe(true);
+    expect(evaluateGoal({ type: 'wireless_clients', min: 2 }, analyze(net(2), data)).every((r) => r.ok)).toBe(true);
   });
   it('つながる端末が足りなければ不合格', () => {
-    expect(evaluateGoal({ type: 'wireless_clients', min: 2 }, net(1), data).every((r) => r.ok)).toBe(false);
+    expect(evaluateGoal({ type: 'wireless_clients', min: 2 }, analyze(net(1), data)).every((r) => r.ok)).toBe(false);
   });
   it('パスワードが違う端末はつながらない（数えない）', () => {
-    expect(evaluateGoal({ type: 'wireless_clients', min: 1 }, net(1, 'wrong'), data).every((r) => r.ok)).toBe(false);
+    expect(evaluateGoal({ type: 'wireless_clients', min: 1 }, analyze(net(1, 'wrong'), data)).every((r) => r.ok)).toBe(false);
   });
 });
 

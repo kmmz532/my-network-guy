@@ -1,7 +1,7 @@
 // 教材（学習モード）の初期の構成と、達成条件の判定。画面・ストアに依存しない純粋関数
 import type { Goal, Lesson } from '../data/schema';
 import { evaluateGoal } from '../network/goals';
-import { compile } from '../network/compile';
+import { analyze } from '../network/engine/analyze';
 import { makeIface } from '../network/iface';
 import { fillSegments } from '../network/segments';
 import type { SegmentConfig } from '../network/types';
@@ -45,9 +45,9 @@ export const lessonLinks = (lesson: Lesson): NetLink[] =>
 
 // 教材の達成条件を、構成に対して判定する（教材の goals の順）。条件ごとに、すべての通信が通れば true
 export const lessonGoalResults = (goals: Goal[], nodes: NetNode[], links: NetLink[], engine: EngineData): boolean[] => {
-  const net = compile({ nodes, links, segments: {} }, engine).net;
+  const state = analyze({ nodes, links, segments: {} }, engine);
   return goals.map((goal) => {
-    const rs = evaluateGoal(goal, net, engine);
+    const rs = evaluateGoal(goal, state);
     return rs.length > 0 && rs.every((r) => r.ok);
   });
 };

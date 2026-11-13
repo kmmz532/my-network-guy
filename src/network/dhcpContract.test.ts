@@ -1,5 +1,6 @@
 // 案件 d001（DHCP・20台）: 部屋ごとのネットワークにルーターのリレーを設定し、サーバーのプールから配ると合格する。リレーがなければ不合格
 import { describe, expect, it } from 'vitest';
+import { analyze } from './engine/analyze';
 import contractJson from '../assets/data/contracts/d001_dhcp_office.json';
 import { gameEnv } from '../sim/env';
 import type { Contract } from '../data/schema';
@@ -58,9 +59,9 @@ describe('案件 d001: 社員 20 台のアドレスを自動で配る', () => {
     expect(pcs.every((p) => p.config?.interfaces.every((i) => i.dhcp === true))).toBe(true);
   });
   it('プールとリレーを設定すると、2つの達成条件を満たす', () => {
-    expect(contract.goals.map((g) => evaluateGoal(g, solved(true), data).every((r) => r.ok))).toEqual([true, true]);
+    expect(contract.goals.map((g) => evaluateGoal(g, analyze(solved(true), data)).every((r) => r.ok))).toEqual([true, true]);
   });
   it('リレーがなければ、ルーターの先の PC は受け取れず不合格', () => {
-    expect(contract.goals.map((g) => evaluateGoal(g, solved(false), data).every((r) => r.ok))).toEqual([false, false]);
+    expect(contract.goals.map((g) => evaluateGoal(g, analyze(solved(false), data)).every((r) => r.ok))).toEqual([false, false]);
   });
 });

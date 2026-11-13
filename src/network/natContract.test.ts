@@ -1,5 +1,6 @@
 // 案件 n001（NAPT）: ルーターで NAPT を設定すると、社内の PC が回線の先へ届く。NAPT がなければ届かない
 import { describe, expect, it } from 'vitest';
+import { analyze } from './engine/analyze';
 import contractJson from '../assets/data/contracts/n001_napt_office.json';
 import { gameEnv } from '../sim/env';
 import type { Contract } from '../data/schema';
@@ -39,10 +40,10 @@ const solved = (napt: boolean): Network => ({
 
 describe('案件 n001: 事務所をインターネットへつなぐ', () => {
   it('置いただけでは不合格', () => {
-    expect(evaluateGoal(contract.goals[0], { nodes: contract.placed.map(base), links: [], segments: {} }, data).every((r) => r.ok)).toBe(false);
+    expect(evaluateGoal(contract.goals[0], analyze({ nodes: contract.placed.map(base), links: [], segments: {} }, data)).every((r) => r.ok)).toBe(false);
   });
   it('NAPT を設定すると合格し、NAPT がなければ不合格（社内のアドレスのまま外へ出る）', () => {
-    expect(evaluateGoal(contract.goals[0], solved(true), data).every((r) => r.ok)).toBe(true);
-    expect(evaluateGoal(contract.goals[0], solved(false), data).every((r) => r.ok)).toBe(false);
+    expect(evaluateGoal(contract.goals[0], analyze(solved(true), data)).every((r) => r.ok)).toBe(true);
+    expect(evaluateGoal(contract.goals[0], analyze(solved(false), data)).every((r) => r.ok)).toBe(false);
   });
 });

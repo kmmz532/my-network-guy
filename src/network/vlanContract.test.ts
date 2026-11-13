@@ -1,5 +1,6 @@
 // 案件 v001・v003（VLAN）: 設定で VLAN を分けると合格し、置いただけ・分けないままでは不合格
 import { describe, expect, it } from 'vitest';
+import { analyze } from './engine/analyze';
 import v1Json from '../assets/data/contracts/v001_one_switch_two_depts.json';
 import v3Json from '../assets/data/contracts/v003_five_depts.json';
 import { gameEnv } from '../sim/env';
@@ -27,7 +28,7 @@ const nodesOf = (c: Contract): NetNode[] =>
 const sw = (uid: string, device: string, ports: PortConfig[], interfaces: NetNode['interfaces'] = []): NetNode =>
   ({ uid, device, macSerial: 90, ports, x: 0, y: 0, locked: false, configLocked: false, interfaces, gateway: null, routes: [], services: [] }) as NetNode;
 const link = (uid: string, a: string, pa: number, b: string, pb: number): NetLink => ({ uid, cable: 'utp_cat5e', a: { node: a, port: pa }, b: { node: b, port: pb }, path: [[0, 0], [1, 0]], paid: 0 });
-const passes = (c: Contract, net: Network) => c.goals.map((g) => evaluateGoal(g, net, data).every((r) => r.ok));
+const passes = (c: Contract, net: Network) => c.goals.map((g) => evaluateGoal(g, analyze(net, data)).every((r) => r.ok));
 
 describe('案件 v001: 営業と経理を分ける', () => {
   const c = v1Json as unknown as Contract;

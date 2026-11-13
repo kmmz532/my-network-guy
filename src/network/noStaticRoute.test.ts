@@ -1,5 +1,6 @@
 // 目標 no_static_route（N143）: すべての PC どうしが届き、設定した経路（static）がない
 import { describe, expect, it } from 'vitest';
+import { analyze } from './engine/analyze';
 import { evaluateGoal } from './goals';
 import type { EngineData, NetLink, NetNode, Network, Route } from './types';
 
@@ -23,9 +24,9 @@ const net = (staticRoute: boolean): Network => ({
 
 describe('no_static_route（N143）', () => {
   it('経路が動的（OSPF）で、PC どうしが届けば合格', () => {
-    expect(evaluateGoal({ type: 'no_static_route' }, net(false), data).every((r) => r.ok)).toBe(true);
+    expect(evaluateGoal({ type: 'no_static_route' }, analyze(net(false), data)).every((r) => r.ok)).toBe(true);
   });
   it('設定した経路（static）があれば不合格', () => {
-    expect(evaluateGoal({ type: 'no_static_route' }, net(true), data).every((r) => r.ok)).toBe(false);
+    expect(evaluateGoal({ type: 'no_static_route' }, analyze(net(true), data)).every((r) => r.ok)).toBe(false);
   });
 });

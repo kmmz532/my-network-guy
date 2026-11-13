@@ -107,9 +107,9 @@ describe('survive_device_failure（機器の電源）', () => {
   it('VRRP でゲートウェイを冗長にすると、ルーターのどちらを止めても届く。実の IP アドレスのゲートウェイでは、止めると届かない', async () => {
     const { evaluateGoal } = await import('./goals');
     const goal = { type: 'survive_device_failure' as const, nodes: ['r1', 'r2'] };
-    expect(evaluateGoal(goal, build(), data)[0].ok).toBe(true);
+    expect(evaluateGoal(goal, analyze(build(), data))[0].ok).toBe(true);
     const real: Network = { ...build(), nodes: build().nodes.map((n) => (n.uid === 'host' ? { ...n, gateway: '192.168.1.1' } : n.uid === 'srv' ? { ...n, gateway: '10.0.9.1' } : n)) };
-    expect(evaluateGoal(goal, real, data)[0].ok).toBe(false);
+    expect(evaluateGoal(goal, analyze(real, data))[0].ok).toBe(false);
   });
   it('電源を切ったマスターは、バックアップが引き継ぐ', () => {
     const net = build();
