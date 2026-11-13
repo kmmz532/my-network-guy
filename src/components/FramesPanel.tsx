@@ -17,10 +17,11 @@ const cell = (value: string | number, changed: boolean) => (
 
 const portText = (f: Frame) => (f.l4 ? `${f.l4.srcPort}→${f.l4.dstPort}` : '-');
 
-export function FramesBody() {
+// goal が あれば、その達成条件の通信から開く（案件の欄の行から開いたとき）
+export function FramesBody({ goal }: { goal?: number }) {
   const state = useGameStore();
   const traces = useGameStore((s) => s.traces);
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(() => Math.max(0, traces.findIndex((tr) => goal !== undefined && tr.goal === goal)));
   const [hop, setHop] = useState<number | null>(null);
   const target = focusedProject(state);
   const nodes = target ? target.nodes : state.office.nodes;

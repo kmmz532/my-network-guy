@@ -30,7 +30,8 @@ export function TaskPanel() {
   const lessonId = useGameStore((s) => s.sandboxLesson?.id ?? null);
   const closeLesson = useGameStore((s) => s.closeLesson);
   const officeNodes = useGameStore((s) => s.office.nodes);
-  const hasTraces = useGameStore((s) => s.traces.length > 0);
+  const traces = useGameStore((s) => s.traces);
+  const hasTraces = traces.length > 0;
   const activeId = active?.id ?? null;
   // 同じ依頼の型紙があるか（「型紙を使う」を出す。N70）
   const hasBlueprint = useGameStore((s) => (active ? s.familiarity.blueprints[familiarKeyOf(active.kind, active.baseId, active.contract.map)] !== undefined : false));
@@ -184,6 +185,11 @@ export function TaskPanel() {
                     <span style={{ opacity: g.ok === null ? 0.25 : 1, flexShrink: 0 }}>{icon}</span>
                   )}
                   <span style={{ opacity: g.ok === true ? 0.7 : 1 }}>{g.text}</span>
+                  {traces.some((tr) => tr.goal === i) && (
+                    <button style={{ ...secondaryButton, padding: '0 6px', flexShrink: 0 }} onClick={() => openWindow('frames', String(i))}>
+                      {t('ui.frames.goal')}
+                    </button>
+                  )}
                 </li>
               );
             })}

@@ -138,6 +138,21 @@ const scenes = {
     if ((await start.count()) > 0) await start.first().click();
     await page.waitForTimeout(1500);
   },
+  // 教材を開き、閉じて、もう一度開く（ケーブルの色が初回と同じに付くかを撮影で確かめる）
+  lessonreopen: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      g.openLesson('ospf_three_sites');
+      g.test();
+      window.__game.getState().openLesson('ospf_three_sites');
+      window.__game.getState().test();
+      window.__game.getState().closeLesson();
+    });
+    await page.waitForTimeout(500);
+    await page.evaluate(() => window.__game.getState().openLesson('ospf_three_sites'));
+    await page.waitForTimeout(1000);
+  },
   // マップのポインタ操作（ホイール・中ボタンの移動・各道具での押す・ドラッグ・乗せる）を一通り行う。位置は決め打ちせず、画面全体を走査する。
   // 例外や console のエラーが出ないことを --check で確かめる
   pointer: async (page) => {

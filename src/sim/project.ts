@@ -129,6 +129,8 @@ export interface Trace {
   src: string;
   dst: string;
   result: PathResult;
+  // 判定した達成条件の番号（案件の goals の位置）。ターミナルの ping など達成条件でないものは持たない
+  goal?: number;
 }
 
 // 案件の費用の内訳。機器は、案件で自分で置いた機器（既設でも引き継いだものでもない）の定価の合計。配線は、配線の費用の合計
@@ -1727,7 +1729,10 @@ export const advanceBuild = (core: Core, env: Env, hour: number, juniorRate = 1)
 const judge = (p: Project, env: Env) => {
   const engine = engineWithWalls(env.engine, env.mapOf?.(p.contract.map));
   const result = evaluateContract(p.contract, compiledNet(p, { ...env, engine }).net, engine);
-  const traces: Trace[] = result.results.map((r) => ({ kind: r.kind, src: r.src, dst: r.dst, result: r.result }));
+  const traces: Trace[] = result.results.map((r) => {
+    const goal = p.contract.goals.indexOf(r.goal);
+    return { kind: r.kind, src: r.src, dst: r.dst, result: r.result, ...(goal >= 0 ? { goal } : {}) };
+  });
   const goals: GoalCheck[] = p.contract.goals.map((goal) => {
     const rs = result.results.filter((r) => r.goal === goal);
     const seen = new Set<string>();
