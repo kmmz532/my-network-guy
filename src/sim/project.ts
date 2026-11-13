@@ -576,9 +576,9 @@ const placeReason = (
 };
 
 // 在庫から機器を1台配置する。自社案件では自社オフィスと同じ規則に従い、ほかの案件では床（PCは机の上も可）に置ける。
-// 家庭用ルーターの出荷時の設定（NET.md §4・N148 の DHCP は後続）: LAN の口（1）に 192.168.1.1/24、社内側の口、NAPT 有効。無線つきは SSID とパスワードも持つ。ほかの機器は何も持たない
+// 家庭用ルーターの出荷時の設定（NET.md §4）: LAN の口（1）に 192.168.1.1/24・社内側の口・NAPT 有効・DHCP（192.168.1.100〜199 を配る）。無線つきは SSID とパスワードも持つ。ほかの機器は何も持たない
 const FACTORY_WIFI = { ssid: 'HOME', password: 'home1234' };
-export const factoryConfigOf = (env: Env, deviceId: string): Pick<NetNode, 'interfaces' | 'napt' | 'wireless' | 'rules'> => {
+export const factoryConfigOf = (env: Env, deviceId: string): Pick<NetNode, 'interfaces' | 'napt' | 'wireless' | 'rules' | 'dhcpPools'> => {
   const category = env.devices[deviceId]?.category;
   if (category !== CATEGORY.homeRouter) return { interfaces: [] };
   const lan = { ...makeIface(deviceId, 1, '192.168.1.1', 24), nat: 'inside' as const };
@@ -587,6 +587,7 @@ export const factoryConfigOf = (env: Env, deviceId: string): Pick<NetNode, 'inte
     interfaces: [lan],
     napt: true,
     rules: [{ src: '192.168.1.0/24', dst: 'any', service: 'any' }],
+    dhcpPools: [{ network: '192.168.1.0', prefix: 24, start: '192.168.1.100', end: '192.168.1.199', gateway: '192.168.1.1', dns: '192.168.1.1' }],
     ...wireless,
   };
 };
