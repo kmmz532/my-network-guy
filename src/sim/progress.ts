@@ -384,7 +384,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
   return {
     ok: true,
     core: withProject(core, next),
-    report: { passed: false, traces, failures, check: { projectId: p.id, goals: j.goals, warnings: warningsOf(p) } },
+    report: { passed: false, traces, failures, check: { projectId: p.id, goals: j.goals, warnings: warningsOf(p, env.engine) } },
   };
 };
 

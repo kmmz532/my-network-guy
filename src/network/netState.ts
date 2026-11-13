@@ -786,7 +786,7 @@ export const ospfPeersOf = (topo: Topology, uid: string): OspfPeer[] => {
 // 通れば通るが直すべき設定（警告・NET.md §6）: 直結の両端の口の VLAN が違う access（vlan.mismatch）、両端の native が違う trunk（vlan.native_mismatch）
 export type VlanWarning = { id: 'wlan.open' | 'wlan.weak_cipher' | 'wlan.transition' | 'dhcp.multiple_servers' | 'lag.mismatch' | 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch'; a: string; b: string };
 
-export const warningsOf = (net: Network, data?: EngineData): VlanWarning[] => {
+export const warningsOf = (net: Network, data: EngineData): VlanWarning[] => {
   const cfgOf = (uid: string, port: number): PortConfig | undefined => net.nodes.find((n) => n.uid === uid)?.ports.find((p) => p.port === port);
   const out: VlanWarning[] = [];
   for (const l of net.links) {
@@ -797,23 +797,19 @@ export const warningsOf = (net: Network, data?: EngineData): VlanWarning[] => {
     if (ca.mode === 'trunk' && cb.mode === 'trunk' && (ca.native ?? 1) !== (cb.native ?? 1)) out.push({ id: 'vlan.native_mismatch', a: l.a.node, b: l.b.node });
   }
   // 無線: 暗号化のない SSID・弱い暗号（WEP・WPA）・WPA2/WPA3 の移行モード（アクセスポイントごとに1件）
-  if (data) {
-    for (const ap of accessPointsOf(net, data)) {
-      if (ap.wireless?.ssid === undefined) continue;
-      const s = ap.wireless.security ?? 'wpa2';
-      const id = s === 'open' ? 'wlan.open' : s === 'wep' || s === 'wpa' ? 'wlan.weak_cipher' : s === 'wpa2wpa3' ? 'wlan.transition' : null;
-      if (id) out.push({ id, a: ap.uid, b: ap.uid });
-    }
+  for (const ap of accessPointsOf(net, data)) {
+    if (ap.wireless?.ssid === undefined) continue;
+    const s = ap.wireless.security ?? 'wpa2';
+    const id = s === 'open' ? 'wlan.open' : s === 'wep' || s === 'wpa' ? 'wlan.weak_cipher' : s === 'wpa2wpa3' ? 'wlan.transition' : null;
+    if (id) out.push({ id, a: ap.uid, b: ap.uid });
   }
   // DHCP: 同じドメインに DHCP サーバーが2台以上ある（サーバーの組ごとに1件）
-  if (data) {
-    const pairs = new Set<string>();
-    for (const m of dhcpOf(analyze(net, data)).multiple) {
-      const key = [...m.servers].sort().join('|');
-      if (pairs.has(key)) continue;
-      pairs.add(key);
-      out.push({ id: 'dhcp.multiple_servers', a: m.servers[0], b: m.servers[1] });
-    }
+  const pairs = new Set<string>();
+  for (const m of dhcpOf(analyze(net, data)).multiple) {
+    const key = [...m.servers].sort().join('|');
+    if (pairs.has(key)) continue;
+    pairs.add(key);
+    out.push({ id: 'dhcp.multiple_servers', a: m.servers[0], b: m.servers[1] });
   }
   // リンクアグリゲーション: まとまらない口がある2台（組ごとに1件）
   const lag = computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'), (n, port) => portSpeed(n.device, port));

@@ -137,7 +137,7 @@ describe('ルーター ID の重複の警告', () => {
       links: [link('l', 'a', 0, 'b', 0)],
       segments: {},
     };
-    expect(warningsOf(net)).toEqual([{ id: 'ospf.duplicate_router_id', a: 'a', b: 'b' }]);
+    expect(warningsOf(net, data)).toEqual([{ id: 'ospf.duplicate_router_id', a: 'a', b: 'b' }]);
   });
 });
 

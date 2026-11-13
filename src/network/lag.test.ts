@@ -8,6 +8,8 @@ import { stpOf } from './query/stp';
 import { computeLags, lacpCompatible } from './lag';
 import type { Iface, NetLink, NetNode, Network, PortConfig } from './types';
 
+const warnings = (n: Network) => warningsOf(n, gameEnv.engine);
+
 const data = gameEnv.engine;
 const f = (ip: string): Iface => ({ id: 'eth0', kind: 'port', port: 0, ip, prefix: 24 });
 const node = (uid: string, device: string, serial: number, extra: Partial<NetNode> = {}): NetNode =>
@@ -44,7 +46,7 @@ describe('リンクアグリゲーションの計算', () => {
   it('2本をまとめると、輪にならず（link.loop にならない）通信でき、警告もない', () => {
     const net = pair([], [{ lacp: 'passive' }, { lacp: 'passive' }]);
     expect(ping(analyze(net, data), 'p1', 'p2').ok).toBe(true);
-    expect(warningsOf(net).filter((w) => w.id === 'lag.mismatch')).toHaveLength(0);
+    expect(warnings(net).filter((w) => w.id === 'lag.mismatch')).toHaveLength(0);
     // スパニングツリーの輪としても数えない（止める口がない）
     expect([...stpOf(analyze(net, data)).roles.values()].filter((r) => r === 'blocking')).toHaveLength(0);
   });
@@ -57,27 +59,27 @@ describe('リンクアグリゲーションの計算', () => {
   });
   it('両端を passive にするとまとまらず、2本の輪をスパニングツリーが断つ。警告 lag.mismatch を出す', () => {
     const net = pair([{ lacp: 'passive' }, { lacp: 'passive' }], [{ lacp: 'passive' }, { lacp: 'passive' }]);
-    expect(warningsOf(net)).toContainEqual({ id: 'lag.mismatch', a: 'sw1', b: 'sw2' });
+    expect(warnings(net)).toContainEqual({ id: 'lag.mismatch', a: 'sw1', b: 'sw2' });
     expect([...stpOf(analyze(net, data)).roles.values()].filter((r) => r === 'blocking')).toHaveLength(1);
     expect(ping(analyze(net, data), 'p1', 'p2').ok).toBe(true);
   });
   it('チャネルの番号が違う・片側だけの設定はまとまらない', () => {
-    expect(warningsOf(pair([{ channelGroup: 2 }], [])).some((w) => w.id === 'lag.mismatch')).toBe(true);
-    expect(warningsOf(pair([{ channelGroup: undefined, lacp: undefined }], [])).some((w) => w.id === 'lag.mismatch')).toBe(true);
+    expect(warnings(pair([{ channelGroup: 2 }], [])).some((w) => w.id === 'lag.mismatch')).toBe(true);
+    expect(warnings(pair([{ channelGroup: undefined, lacp: undefined }], [])).some((w) => w.id === 'lag.mismatch')).toBe(true);
   });
   it('口の VLAN が一致しない口は個別の口として残る', () => {
     const net = pair([{ vlan: 10 }, {}], [{ vlan: 20 }, {}]);
-    expect(warningsOf(net)).toContainEqual({ id: 'lag.mismatch', a: 'sw1', b: 'sw2' });
+    expect(warnings(net)).toContainEqual({ id: 'lag.mismatch', a: 'sw1', b: 'sw2' });
   });
   it('trunk の許可する VLAN が違えば、まとまらない', () => {
     const t = (allowed: number[]): Partial<PortConfig> => ({ mode: 'trunk', allowed });
-    expect(warningsOf(pair([t([10, 20]), t([10, 20])], [t([10, 20]), t([10, 20])])).some((w) => w.id === 'lag.mismatch')).toBe(false);
-    expect(warningsOf(pair([t([10, 20]), t([10, 20])], [t([10, 20]), t([10, 30])])).some((w) => w.id === 'lag.mismatch')).toBe(true);
+    expect(warnings(pair([t([10, 20]), t([10, 20])], [t([10, 20]), t([10, 20])])).some((w) => w.id === 'lag.mismatch')).toBe(false);
+    expect(warnings(pair([t([10, 20]), t([10, 20])], [t([10, 20]), t([10, 30])])).some((w) => w.id === 'lag.mismatch')).toBe(true);
   });
   it('lag の能力のない機器では、まとめない（設定があっても無視する）', () => {
     const net = pair([], []);
     const poor: Network = { ...net, nodes: net.nodes.map((n) => (n.uid === 'sw1' ? { ...n, device: 'l2_switch_4p' } : n)) };
-    expect(warningsOf(poor).some((w) => w.id === 'lag.mismatch')).toBe(false);
+    expect(warnings(poor).some((w) => w.id === 'lag.mismatch')).toBe(false);
     // まとまらないため、2本の輪はスパニングツリーに任される（4 ポートのスイッチは stp を持たない）
     expect(ping(analyze(poor, data), 'p1', 'p2').ok).toBe(false);
   });
