@@ -27,6 +27,7 @@ import { BgpField } from './BgpField';
 import { IspField } from './IspField';
 import { VlanPortField } from './VlanPortField';
 import { VrrpField } from './VrrpField';
+import { DhcpPoolField, DhcpPortField } from './DhcpField';
 
 // ネットワークの既定候補（入力欄から任意のネットワークも指定できる）
 const NETWORK_CHOICES = Array.from({ length: 16 }, (_, i) => `192.168.${i + 1}.0`);
@@ -150,6 +151,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
         <div>
           {t('ui.config.ip')}: {iface ? <b>{iface.ip}</b> : <span style={{ color: unsetColor }}>{t('ui.config.unset')}</span>}
         </div>
+        <DhcpPortField node={node} port={port} iface={iface} client={!isRoutingCategory(category ?? '') && !can(node.device, 'switchport')} disabled={locked || unlinkedRouter} onError={onError} />
         <div style={row}>
           <AddressInput
             label={t('ui.config.ip')}
@@ -400,6 +402,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
       {/* ファイアウォールも経路を持つ（直列の構成で、戻りの経路を置くため）。規則と静的ルートの両方を出す（N-fw） */}
       {isRoutingCategory(category ?? '') && renderRoutes()}
       {isRoutingCategory(category ?? '') && node.interfaces.some((i) => i.ospf !== undefined) && renderOspf()}
+      {can(node.device, 'services') && <DhcpPoolField key={`dhcp-${node.uid}`} node={node} disabled={locked} onError={onError} />}
       {category === CATEGORY.uplink && <IspField key={`isp-${node.uid}`} node={node} readOnly={locked} onError={onError} />}
       {can(node.device, 'bgp') && <BgpField key={`bgp-${node.uid}`} node={node} readOnly={locked} onError={onError} />}
       {isRoutingCategory(category ?? '') && <NatField node={node} readOnly={locked} onError={onError} />}
