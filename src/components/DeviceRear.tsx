@@ -9,7 +9,6 @@ import { spriteOf, spriteUrl } from '../game/sprites';
 import { t, tDyn } from '../i18n/t';
 import { portTypeOf, type End } from '../sim/project';
 import type { NetLink, NetNode } from '../network/types';
-import type { Network } from '../network/types';
 import { colorOfLink, colorOfNetwork, networkLabelOf, networksOfLink } from '../network/netColor';
 import { networkColors, portStatesOf } from '../network/public';
 import { stpOf } from '../network/public';
@@ -47,7 +46,6 @@ interface Props {
   // 表示する機器とケーブル（機器の画面で選んだ案件、または自社オフィス）
   nodes: NetNode[];
   links: NetLink[];
-  net: Network;
   readOnly: boolean;
   onError: (reason: string | null) => void;
 }

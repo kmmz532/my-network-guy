@@ -2,9 +2,6 @@
   "src/components/DevicePanel.tsx": {
     "local/no-category": {
       "count": 2
-    },
-    "local/no-engine-in-view": {
-      "count": 1
     }
   },
   "src/components/DeviceRear.tsx": {

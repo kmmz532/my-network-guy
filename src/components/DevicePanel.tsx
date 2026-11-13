@@ -4,13 +4,9 @@ import { nodeLabel } from './nodeLabel';
 import { duplicateHostnames } from '../sim/project';
 import { useState } from 'react';
 import { t, tDyn } from '../i18n/t';
-import { compile, type Compiled } from '../network/compile';
-import type { NetLink, NetNode, Network } from '../network/types';
-import { seenSourcesOf } from '../network/public';
-import { analyze } from '../network/engine/analyze';
-import { engineWithWalls } from '../sim/walls';
-import { gameEnv } from '../sim/env';
-import { focusedProject, useGameStore, type GameState } from '../stores/useGameStore';
+import type { NetLink, NetNode } from '../network/types';
+import { seenSourcesOf, type NetworkState } from '../network/public';
+import { focusedProject, netOfDevice, useGameStore, type GameState } from '../stores/useGameStore';
 import { RearTab as DeviceRear } from './DeviceRear';
 import { DeviceSettings } from './DeviceSettings';
 import { TrimmedIcon } from './Icon';
@@ -60,14 +56,13 @@ export function DeviceBody({ uid }: { uid: string }) {
   const [detailOpen, setDetailOpen] = useState(false);
   const found = findDevice(state, uid);
   if (!found) return null;
-  const compiled = compile(found.source, gameEnv.engine);
   return (
     <DeviceView
       key={found.node.uid}
       node={found.node}
       nodes={found.source.nodes}
       links={found.source.links as NetLink[]}
-      compiled={compiled}
+      netState={netOfDevice(state, uid)}
       readOnly={found.readOnly}
       detailOpen={detailOpen}
       onToggleDetail={() => setDetailOpen((v) => !v)}
@@ -79,7 +74,7 @@ function DeviceView({
   node,
   nodes,
   links,
-  compiled,
+  netState,
   readOnly,
   detailOpen,
   onToggleDetail,
@@ -87,7 +82,7 @@ function DeviceView({
   node: NetNode;
   nodes: NetNode[];
   links: NetLink[];
-  compiled: Compiled;
+  netState: NetworkState;
   readOnly: boolean;
   detailOpen: boolean;
   onToggleDetail: () => void;
@@ -99,7 +94,7 @@ function DeviceView({
   const isServer = category === CATEGORY.server;
   // 設定できるもの（IPアドレスなど）がない機器（L2 スイッチ）は、設定タブを出さない
   const hasConfig = category !== CATEGORY.l2Switch;
-  const issue = compiled.issues[node.uid];
+  const issue = netState.issues[node.uid];
 
   return (
     <div>
@@ -121,11 +116,11 @@ function DeviceView({
       />
       <div style={tabPanelStyle(TAB_COLORS.window.selected)}>
         {error && <div style={{ color: warnColor, marginBottom: 6 }}>{tDyn(`ui.error.${error}`)}</div>}
-        {tab === 'rear' && <DeviceRear node={node} nodes={nodes} links={links} net={compiled.net} readOnly={readOnly} onError={setError} />}
+        {tab === 'rear' && <DeviceRear node={node} nodes={nodes} links={links} readOnly={readOnly} onError={setError} />}
         {tab === 'config' && hasConfig && (
-          <DeviceSettings node={node} compiled={compiled} readOnly={readOnly} detailOpen={detailOpen} onToggleDetail={onToggleDetail} onError={setError} />
+          <DeviceSettings node={node} readOnly={readOnly} detailOpen={detailOpen} onToggleDetail={onToggleDetail} onError={setError} />
         )}
-        {tab === 'service' && isServer && <ServiceTab node={node} nodes={nodes} net={compiled.net} readOnly={readOnly} onError={setError} />}
+        {tab === 'service' && isServer && <ServiceTab node={node} nodes={nodes} state={netState} readOnly={readOnly} onError={setError} />}
         {tab === 'terminal' && <TerminalTab node={node} nodes={nodes} links={links} readOnly={readOnly} />}
       </div>
     </div>
@@ -133,15 +128,13 @@ function DeviceView({
 }
 
 // アクセスしてきたアドレス（N146）: 届いた HTTP の送信元を、サーバーから見たアドレスで出す。NAPT で書き換えた通信は外のアドレス
-function SeenSources({ node, nodes, net }: { node: NetNode; nodes: NetNode[]; net: Network }) {
+function SeenSources({ node, nodes, state }: { node: NetNode; nodes: NetNode[]; state: NetworkState }) {
   const store = useGameStore.getState();
-  // 画面の判定と同じ電波・壁の計算を使う
-  const engine = engineWithWalls(gameEnv.engine, store.maps[focusedProject(store)?.contract.map ?? 'hq']);
   const http = node.services.find((s) => s.protocol === 'http');
   if (!http) return null;
   const clients = nodes.filter((n) => isPcCategory(deviceCategory(n.device))).map((n) => n.uid);
   const byUid = new Map(nodes.map((n) => [n.uid, n]));
-  const seen = seenSourcesOf(analyze(net, engine), node.uid, http.port, clients);
+  const seen = seenSourcesOf(state, node.uid, http.port, clients);
   return (
     <div style={{ marginTop: 6, fontSize: 13 }}>
       <b>{t('ui.service.seen')}</b>
@@ -155,7 +148,7 @@ function SeenSources({ node, nodes, net }: { node: NetNode; nodes: NetNode[]; ne
 }
 
 // サービスタブ（サーバーだけ）。HTTP を起動・停止する
-function ServiceTab({ node, nodes, net, readOnly, onError }: { node: NetNode; nodes: NetNode[]; net: Network; readOnly: boolean; onError: (reason: string | null) => void }) {
+function ServiceTab({ node, nodes, state, readOnly, onError }: { node: NetNode; nodes: NetNode[]; state: NetworkState; readOnly: boolean; onError: (reason: string | null) => void }) {
   const setService = useGameStore((s) => s.setService);
   const setDnsRole = useGameStore((s) => s.setDnsRole);
   const autoRegisterZone = useGameStore((s) => s.autoRegisterZone);
@@ -194,7 +187,7 @@ function ServiceTab({ node, nodes, net, readOnly, onError }: { node: NetNode; no
           {running ? t('ui.service.stop') : t('ui.service.start')}
         </button>
       </div>
-      {running && <SeenSources node={node} nodes={nodes} net={net} />}
+      {running && <SeenSources node={node} nodes={nodes} state={state} />}
       {node.configLocked && <div style={{ marginTop: 6 }}>{t('ui.service.locked')}</div>}
     </div>
   );

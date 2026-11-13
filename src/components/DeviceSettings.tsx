@@ -10,7 +10,6 @@ import { PixelSelect } from './PixelControls';
 import { primaryButton } from './Modal';
 import { dangerButton } from './Modal';
 import type { ComboOption } from './comboOptions';
-import type { Compiled } from '../network/compile';
 import { isRelayPort, isRoutingCategory } from '../network/category';
 import { can } from '../network/capabilities';
 import { wirelessAssociations } from '../network/netState';
@@ -40,7 +39,6 @@ const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', m
 
 interface Props {
   node: NetNode;
-  compiled: Compiled;
   readOnly: boolean;
   // 「詳しく」を開いているか。機器の画面を閉じるまで親が覚える
   detailOpen: boolean;
