@@ -31,7 +31,6 @@ const strip = {
   background: 'rgba(47, 79, 143, 0.95)',
   color: '#f4f1e6',
   border: '2px solid #3b2a33',
-  borderRadius: RADIUS.chrome,
   zoom: 'var(--ui-scale, 1)',
 } as const;
 
@@ -41,7 +40,7 @@ const itemStyle = (active: boolean) =>
     width: 52,
     height: 52,
     padding: 2,
-    border: `2px solid ${active ? '#ffd866' : '#3b2a33'}`,
+    border: `1px solid ${active ? '#ffd866' : '#3b2a33'}`,
     background: active ? '#3a5fa8' : '#25406f',
     borderRadius: RADIUS.none,
     touchAction: 'pan-x',
@@ -58,8 +57,9 @@ const grid = {
   display: 'flex',
   flexWrap: 'wrap',
   alignContent: 'flex-start',
-  gap: 6,
+  gap: 4,
   color: '#f4f1e6',
+  marginTop: 4,
 } as const;
 
 const spriteOf = (item: InventoryItem): string => itemSpriteOf(item.kind, item.id);

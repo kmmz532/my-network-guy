@@ -1,26 +1,166 @@
-/* 全体に当てる部品の基本の見た目。すべて :where() で包み、部品の style で上書きできるようにする。
-   ボタンは書体・色の継承だけ（色・枠・大きさは部品ごとに違うため、ここには置かない）。
-   文字を打つ入力欄（種類の指定なし・text・number・search・password・select・textarea）だけ、凹んだ枠と背景・文字の色を当てる。
-   チェックボックス・ラジオ・スライダー・ファイルの入力は対象外。 */
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #2f4f8f;
+  font-family: 'DotGothic16', sans-serif;
+  overscroll-behavior: none;
+  touch-action: pan-x pan-y;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#root {
+  position: fixed;
+  inset: 0;
+  height: 100%;
+}
+
+@supports (height: 100dvh) {
+  #root {
+    height: 100dvh;
+  }
+}
+
+/* ノッチ・角丸の画面（iPhone など）では、画面の端に安全な余白を取り、時計やノッチの下に UI を置かない（viewport-fit=cover と組み合わせる） */
+#root {
+  box-sizing: border-box;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
 
 :where(button, input, select, textarea) {
   font: inherit;
-  color: inherit;
   letter-spacing: inherit;
-}
-
-:where(input:not([type]), input[type='text'], input[type='number'], input[type='search'], input[type='password'], select, textarea) {
   background: #f4f1e6;
   color: #3b2a33;
-  /* 上と左を濃く、下と右を明るくした2色の枠（凹んだ見た目） */
   border-style: solid;
   border-width: 2px;
-  border-color: #3b2a33 #f4f1e6 #f4f1e6 #3b2a33;
-  padding: 1px 4px;
+  border-color: #3b2a33 #bcb9af #bcb9af #3b2a33;
+  padding-left: 4px;
+  padding-right: 4px;
+  outline: none;
+}
+
+:where(button:focus, input:focus, select:focus, textarea:focus) {
+  background: #d8eaff;
+  border-color: #392a3b #afb4bc #afb4bc #392a3b;
 }
 
 /* 背景との明るさの比は 4.5:1 以上（#f4f1e6 に対して 5.68:1） */
 :where(input:not([type]), input[type='text'], input[type='number'], input[type='search'], input[type='password'], textarea)::placeholder {
   color: #6b5a64;
   opacity: 1;
+}
+
+/* 入力欄では文字の選択を許す */
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* style を指定しないボタンの既定の見た目。文字の色を継ぐため、ブラウザ標準の白い背景のままだと白地に白い文字になる。画面と同じ紺の箱にする（各部品の style が優先する） */
+button {
+  background: #25406f;
+  border: 1px solid #3b2a33;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default !important;
+}
+
+/* ブラウザ標準の部品の見た目（iOS の角丸・影）を消す。見た目は各部品の style で決める */
+button, input:not([type='checkbox']):not([type='radio']), select, textarea {
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 0;
+}
+
+select {
+  background: #f4f1e6 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%233b2a33' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg%3E") no-repeat right 3px center;
+  background-size: 6px 8px;
+  padding-right: 12px;
+}
+
+select:disabled {
+  opacity: 0.5;
+  cursor: default !important;
+}
+
+select:focus {
+  background-color: #d8eaff;
+  border-color: #392a3b #afb4bc #afb4bc #392a3b;
+}
+
+/* スマホ: 文字が 16px 未満の入力欄は、iOS がフォーカス時にページを拡大するため、16px に上げる */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* 機器の端末の出力は、文字の選択とコピーを許す（画面全体は選択を止めている） */
+[data-terminal-output], [data-terminal-output] * {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* エラーの文言（報告に使うため）は、文字の選択とコピーを許す */
+[role='alert'], [role='alert'] * {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* スクロールバーは、ゲームの部品と同じドット絵（細い溝と、角のつまみ）。Firefox は scrollbar-color、Chromium と Safari は ::-webkit-scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #7f9cc9 #1d3664;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1d3664;
+  border-left: 2px solid #3b2a33;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #7f9cc9;
+  border: 2px solid #1d3664;
+  border-radius: 0;
+}
+
+/* スマホ（指で触る画面）は、スクロールバーを出さない（指で動かす）。端で切れていることは、一覧の上下の影で示す */
+@media (pointer: coarse) {
+  * {
+    scrollbar-width: none;
+  }
+
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
+/* 一覧の上下の影: 端までスクロールしていないときだけ見える影（local の背景を使う） */
+.scroll-edge {
+  background:
+    linear-gradient(#25406f 30%, rgba(37, 64, 111, 0)) top / 100% 24px no-repeat local,
+    linear-gradient(rgba(37, 64, 111, 0), #25406f 70%) bottom / 100% 24px no-repeat local,
+    linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0)) top / 100% 8px no-repeat scroll,
+    linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.45)) bottom / 100% 8px no-repeat scroll;
+}
+
+/* UI の画像（アイコン・スプライト）は選択も、ブラウザのドラッグ（画像のドラッグ）もさせない */
+img {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
 }

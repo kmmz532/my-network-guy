@@ -30,140 +30,22 @@
     <!-- タイトル画面の題名に使うドット風の書体（読み込めないときは既定のゴシック体） -->
     <!-- 書体（DotGothic16）は同梱する（オフラインでも同じ見た目で遊べるように。SIL Open Font License 1.1、public/fonts/OFL.txt） -->
     <link rel="stylesheet" href="./fonts/dotgothic16.css" />
-    <style>
-      /* ブラウザ既定の body の余白（8px）を消し、白い枠と二重のスクロールバーを防ぐ */
-      html,
-      body {
-        margin: 0;
-        height: 100%;
-        overflow: hidden;
-        background: #2f4f8f;
-        /* 画面全体の書体（16ドット）。タイトルと同じ書体にそろえる。日本語が読めない環境では、標準の書体に戻す */
-        font-family: 'DotGothic16', sans-serif;
-        /* スマホ: 引っ張っての再読み込み・ダブルタップ拡大・長押しの文字選択と呼び出しメニューを止める */
-        overscroll-behavior: none;
-        /* pan-x pan-y にして、指の2本のピンチ（ページの拡大）とダブルタップの拡大を止める（マップは canvas 側で操作する） */
-        touch-action: pan-x pan-y;
-        -webkit-tap-highlight-color: transparent;
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        user-select: none;
-      }
-      /* スマホのブラウザは、100vh がアドレスバーの裏まで含む。ツールバーが隠れないよう、見えている範囲に固定する */
-      #root {
-        position: fixed;
-        inset: 0;
-        height: 100%;
-      }
-      @supports (height: 100dvh) {
-        #root {
-          height: 100dvh;
-        }
-      }
-      /* ノッチ・角丸の画面（iPhone など）では、画面の端に安全な余白を取り、時計やノッチの下に UI を置かない（viewport-fit=cover と組み合わせる） */
-      #root {
-        box-sizing: border-box;
-        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-      }
-      /* 入力欄では文字の選択を許す */
-      input,
-      textarea {
-        -webkit-user-select: text;
-        user-select: text;
-      }
-      /* ボタンと入力欄も、画面と同じ書体・大きさ・色を継ぐ（ブラウザは既定で標準の書体に戻すため。N158） */
-      button,
-      input,
-      select,
-      textarea {
-        font: inherit;
-        color: inherit;
-        letter-spacing: inherit;
-      }
-      /* style を指定しないボタンの既定の見た目。文字の色を継ぐため、ブラウザ標準の白い背景のままだと白地に白い文字になる。画面と同じ紺の箱にする（各部品の style が優先する） */
-      button {
-        background: #25406f;
-        border: 1px solid #3b2a33;
-      }
-      button:disabled {
-        opacity: 0.5;
-        cursor: default !important;
-      }
-      /* ブラウザ標準の部品の見た目（iOS の角丸・影）を消す。見た目は各部品の style で決める */
-      button,
-      input:not([type='checkbox']):not([type='radio']),
-      select,
-      textarea {
-        -webkit-appearance: none;
-        appearance: none;
-        border-radius: 0;
-      }
-      /* スマホ: 文字が 16px 未満の入力欄は、iOS がフォーカス時にページを拡大するため、16px に上げる */
-      @media (pointer: coarse) {
-        input,
-        select,
-        textarea {
-          font-size: 16px !important;
-        }
-      }
-      /* 機器の端末の出力は、文字の選択とコピーを許す（画面全体は選択を止めている） */
-      [data-terminal-output],
-      [data-terminal-output] * {
-        -webkit-user-select: text;
-        user-select: text;
-      }
-      /* エラーの文言（報告に使うため）は、文字の選択とコピーを許す */
-      [role='alert'],
-      [role='alert'] * {
-        -webkit-user-select: text;
-        user-select: text;
-      }
-      /* スクロールバーは、ゲームの部品と同じドット絵（細い溝と、角のつまみ）。Firefox は scrollbar-color、Chromium と Safari は ::-webkit-scrollbar */
-      * {
-        scrollbar-width: thin;
-        scrollbar-color: #7f9cc9 #1d3664;
-      }
-      ::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #1d3664;
-        border-left: 2px solid #3b2a33;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #7f9cc9;
-        border: 2px solid #1d3664;
-        border-radius: 0;
-      }
-      /* スマホ（指で触る画面）は、スクロールバーを出さない（指で動かす）。端で切れていることは、一覧の上下の影で示す */
-      @media (pointer: coarse) {
-        * {
-          scrollbar-width: none;
-        }
-        ::-webkit-scrollbar {
-          width: 0;
-          height: 0;
-        }
-      }
-      /* 一覧の上下の影: 端までスクロールしていないときだけ見える影（local の背景を使う） */
-      .scroll-edge {
-        background:
-          linear-gradient(#25406f 30%, rgba(37, 64, 111, 0)) top / 100% 24px no-repeat local,
-          linear-gradient(rgba(37, 64, 111, 0), #25406f 70%) bottom / 100% 24px no-repeat local,
-          linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0)) top / 100% 8px no-repeat scroll,
-          linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.45)) bottom / 100% 8px no-repeat scroll;
-      }
-      /* UI の画像（アイコン・スプライト）は選択も、ブラウザのドラッグ（画像のドラッグ）もさせない */
-      img {
-        user-select: none;
-        -webkit-user-select: none;
-        -webkit-user-drag: none;
-      }
-    </style>
   </head>
   <body>
     <div id="root"></div>
+    <script type="module">
+      // 開発中は、以前のプレビューで登録したサービスワーカーがViteの資材を横取りしないよう、Reactより先に解除する。
+      if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+        const hadController = navigator.serviceWorker.controller !== null;
+        navigator.serviceWorker.getRegistrations().then(async (registrations) => {
+          await Promise.all(registrations.map((registration) => registration.unregister()));
+          await Promise.all((await caches.keys()).map((key) => caches.delete(key)));
+          if (hadController) window.location.reload();
+        }).catch((error) => {
+          console.error('開発中のサービスワーカーを解除できませんでした', error);
+        });
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

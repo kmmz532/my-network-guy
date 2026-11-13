@@ -45,6 +45,31 @@ export function TaskPanel() {
   useEffect(() => {
     setBlueprintError(null);
   }, [activeId]);
+
+  // 最後のテスト
+  // 最後のテスト（または検収）の結果。この案件のものだけを使う。結果がなければ ok は null（未判定）
+  const result = active && check && check.projectId === active.id ? check.goals : null;
+  const warnings = active && check && check.projectId === active.id ? (check.warnings ?? []) : [];
+  const goals = active
+    ? active.contract.goals.map((goal, i) => {
+        const g = result?.[i];
+        return { text: goalText(goal, (id) => labelOfUid(useGameStore.getState(), id, active.nodes)), ok: g ? g.ok : null, node: g?.failures[0]?.node ?? null, term: g?.failures[0] ? (GLOSSARY_OF_FAILURE[g.failures[0].reason] ?? null) : null };
+      })
+    : [];
+  // 用語: 初めて出すときは説明を出し、記録する。2回目からは「用語の説明を見る」で開く
+  const termsShown = useGameStore((s) => s.termsShown);
+  const markTermShown = useGameStore((s) => s.markTermShown);
+  const [openTerm, setOpenTerm] = useState<string | null>(null);
+  const firstShownHere = useRef(new Set<string>());
+  const failingTerms = goals.filter((g) => g.ok === false && g.term).map((g) => g.term as string);
+  useEffect(() => {
+    for (const term of failingTerms) {
+      if (!termsShown.includes(term)) markTermShown(term);
+      firstShownHere.current.add(term);
+    }
+    // failingTerms は描画のたびに作り直すため、用語の並びだけで判定する
+  }, [failingTerms.join(','), termsShown, markTermShown]);
+
   if (!active) {
     const lesson = lessonId === null ? undefined : lessons.find((l) => l.id === lessonId);
     if (!lesson) return null;
@@ -81,28 +106,6 @@ export function TaskPanel() {
       </aside>
     );
   }
-
-  // 最後のテスト
-  // 最後のテスト（または検収）の結果。この案件のものだけを使う。結果がなければ ok は null（未判定）
-  const result = check && check.projectId === active.id ? check.goals : null;
-  const warnings = check && check.projectId === active.id ? (check.warnings ?? []) : [];
-  const goals = active.contract.goals.map((goal, i) => {
-    const g = result?.[i];
-    return { text: goalText(goal, (id) => labelOfUid(useGameStore.getState(), id, active.nodes)), ok: g ? g.ok : null, node: g?.failures[0]?.node ?? null, term: g?.failures[0] ? (GLOSSARY_OF_FAILURE[g.failures[0].reason] ?? null) : null };
-  });
-  // 用語: 初めて出すときは説明を出し、記録する。2回目からは「用語の説明を見る」で開く
-  const termsShown = useGameStore((s) => s.termsShown);
-  const markTermShown = useGameStore((s) => s.markTermShown);
-  const [openTerm, setOpenTerm] = useState<string | null>(null);
-  const firstShownHere = useRef(new Set<string>());
-  const failingTerms = goals.filter((g) => g.ok === false && g.term).map((g) => g.term as string);
-  useEffect(() => {
-    for (const term of failingTerms) {
-      if (!termsShown.includes(term)) markTermShown(term);
-      firstShownHere.current.add(term);
-    }
-    // failingTerms は描画のたびに作り直すため、用語の並びだけで判定する
-  }, [failingTerms.join(','), termsShown, markTermShown]);
 
   const hintKey = `contract.${active.baseId}.hint`;
   const hasHint = hasKey(hintKey);

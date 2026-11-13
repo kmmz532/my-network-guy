@@ -39,5 +39,10 @@ const swVersion = (): Plugin => {
 export default defineConfig(({ command }) => ({
   define: { __BUILD_ID__: JSON.stringify(command === 'build' ? buildId : 'dev') },
   base: '/my-network-guy/',
+  server: {
+    headers: {
+      'Cache-Control': 'no-store',
+    },
+  },
   plugins: [gameData(), react(), swVersion()],
 }));

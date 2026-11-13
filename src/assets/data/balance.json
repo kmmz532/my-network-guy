@@ -269,9 +269,9 @@
     "maxRate": 0.9
   },
   "tooltip": {
-    "hoverMs": 300,
-    "longPressMs": 400,
-    "touchHideMs": 1500
+    "hoverMs": 100,
+    "longPressMs": 100,
+    "touchHideMs": 1000
   },
   "level": {
     "max": 999,

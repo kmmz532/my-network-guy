@@ -30,9 +30,9 @@ export const unlockNameOf = (x: { kind: 'device' | 'cable' | 'furniture' | 'temp
 // 機器・家具の札（絵・名前・台数）。札は横に並び、収まらなければ折り返す
 export function ItemCards({ items }: { items: { kind: 'device' | 'furniture'; id: string; count?: number }[] }) {
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 4 }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
       {items.map((x) => (
-        <div key={`${x.kind}_${x.id}`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', background: '#25406f', border: '1px solid #3b2a33', borderRadius: RADIUS.chrome }}>
+        <div key={`${x.kind}_${x.id}`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 2px', background: '#25406f', border: '1px solid #3b2a33' }}>
           <ItemIcon name={itemSpriteOf(x.kind, x.id)} box={{ width: 36, height: 36 }} maxScale={2} />
           <span>
             {tDyn(`${x.kind}.${x.id}.name`)}
@@ -65,10 +65,10 @@ const cardNameOf = (x: { kind: UnlockCardKind; id: string }): string => (x.kind 
 // 受け取る機器を絵で並べる。台数は絵の右下に出し、名前は札（ツールチップ）で出す
 export function RewardPictures({ items }: { items: { kind: 'device'; id: string; count: number }[] }) {
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 4 }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 4, marginTop: 4 }}>
       {items.map((x) => (
         <Tooltip key={x.id} text={`${tDyn(`device.${x.id}.name`)} ×${x.count}`}>
-          <span style={{ position: 'relative', display: 'flex', padding: '2px 6px', background: '#25406f', border: '1px solid #3b2a33', borderRadius: RADIUS.chrome }}>
+          <span style={{ position: 'relative', display: 'flex', padding: '2px 2px', background: '#25406f', border: '1px solid #3b2a33' }}>
             <ItemIcon name={itemSpriteOf('device', x.id)} box={{ width: 36, height: 36 }} maxScale={2} />
             <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>{x.count}</span>
           </span>
@@ -81,18 +81,18 @@ export function RewardPictures({ items }: { items: { kind: 'device'; id: string;
 // 機器・家具で解放のレベルが分かるものは、絵だけを並べ、名前と解放のレベルは札（ツールチップ）で出す
 export function UnlockCards({ items }: { items: { kind: UnlockCardKind; id: string; count?: number; level?: number }[] }) {
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 4 }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
       {items.map((x, i) =>
         (x.kind === 'device' || x.kind === 'furniture') && x.level !== undefined ? (
-          <Tooltip key={`${x.kind}_${x.id}_${i}`} text={`${cardNameOf(x)}（Lv ${x.level}）`}>
-            <span style={{ display: 'flex', padding: '2px 6px', background: '#25406f', border: '1px solid #3b2a33', borderRadius: RADIUS.chrome }}>
+          <Tooltip key={`${x.kind}_${x.id}_${i}`} text={`${cardNameOf(x)}`}>
+            <span style={{ display: 'flex', padding: '2px 2px', background: '#25406f', border: '1px solid #3b2a33' }}>
               <ItemIcon name={itemSpriteOf(x.kind, x.id)} box={{ width: 36, height: 36 }} maxScale={2} />
             </span>
           </Tooltip>
         ) : (
         <div
           key={`${x.kind}_${x.id}_${i}`}
-          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 6px', background: '#25406f', border: '1px solid #3b2a33', borderRadius: RADIUS.chrome, whiteSpace: 'nowrap' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 2px', background: '#25406f', border: '1px solid #3b2a33', whiteSpace: 'nowrap' }}
         >
           {x.kind === 'device' || x.kind === 'furniture' ? (
             <ItemIcon name={itemSpriteOf(x.kind, x.id)} box={{ width: 36, height: 36 }} maxScale={2} />
