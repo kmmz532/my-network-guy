@@ -25,6 +25,10 @@ export function VrrpField({ node, iface, net, disabled, onError }: Props) {
   const setVrrp = useGameStore((s) => s.setVrrp);
   const [vrid, setVrid] = useState('');
   const [ip, setIp] = useState('');
+  // 追跡の追加（追跡する口と、止まったときに下げる値）
+  const [trackIface, setTrackIface] = useState('');
+  const [decrement, setDecrement] = useState('10');
+  const others = node.interfaces.filter((i) => i.id !== iface.id);
   const status = vrrpStatusOf(net, gameEnv.engine, node.uid).filter((s) => s.iface === iface.id);
   const groups = iface.vrrp ?? [];
   const addable = /^\d+$/.test(vrid) && isIpText(ip);
@@ -67,6 +71,27 @@ export function VrrpField({ node, iface, net, disabled, onError }: Props) {
             <button style={buttonStyle} disabled={disabled} onClick={() => onError(setVrrp(node.uid, { op: 'remove', id: iface.id, vrid: g.vrid }))}>
               {t('ui.config.vrrpRemove')}
             </button>
+            {(g.track ?? []).map((tr) => (
+              <span key={tr.iface} style={{ color: greyColor }}>{t('ui.config.vrrpTrackLine', { iface: tr.iface, decrement: tr.decrement })}</span>
+            ))}
+            {others.length > 0 && (
+              <>
+                <select aria-label={t('ui.config.vrrpTrackIface')} value={trackIface} disabled={disabled} onChange={(e) => setTrackIface(e.target.value)}>
+                  <option value="">{t('ui.config.vrrpTrack')}</option>
+                  {others.map((o) => (
+                    <option key={o.id} value={o.id}>{o.id}</option>
+                  ))}
+                </select>
+                <input aria-label={t('ui.config.vrrpTrackDecrement')} type="number" min={1} max={253} value={decrement} disabled={disabled} style={{ ...inputStyle, width: 56 }} onChange={(e) => setDecrement(e.target.value)} />
+                <button
+                  style={buttonStyle}
+                  disabled={disabled || trackIface === '' || !/^\d+$/.test(decrement)}
+                  onClick={() => onError(setVrrp(node.uid, { op: 'track', id: iface.id, vrid: g.vrid, iface: trackIface, decrement: Number(decrement) }))}
+                >
+                  {t('ui.config.vrrpTrackAdd')}
+                </button>
+              </>
+            )}
           </div>
         );
       })}

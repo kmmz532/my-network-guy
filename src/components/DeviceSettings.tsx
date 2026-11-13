@@ -27,6 +27,7 @@ import { BgpField } from './BgpField';
 import { IspField } from './IspField';
 import { VlanPortField } from './VlanPortField';
 import { VrrpField } from './VrrpField';
+import { ChannelField } from './ChannelField';
 import { DhcpPoolField, DhcpPortField } from './DhcpField';
 
 // ネットワークの既定候補（入力欄から任意のネットワークも指定できる）
@@ -148,6 +149,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
       <div key={port} style={unlinkedRouter ? { ...sectionStyle, opacity: 0.45 } : sectionStyle}>
         {heading}
         {can(node.device, 'switchport') && <VlanPortField node={node} port={port} readOnly={locked} onError={onError} />}
+        {can(node.device, 'lag') && <ChannelField node={node} port={port} disabled={locked || unlinkedRouter} onError={onError} />}
         <div>
           {t('ui.config.ip')}: {iface ? <b>{iface.ip}</b> : <span style={{ color: unsetColor }}>{t('ui.config.unset')}</span>}
         </div>
