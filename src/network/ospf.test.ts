@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { duplicateRouterIds, electDr, ospfRouterId } from './ospf';
-import { learnedRoutesOf, ospfNeighborsOf, warningsOf } from './netState';
+import { learnedRoutesOf, warningsOf } from './netState';
+import { ospfNeighborsOf } from './query/ospfNeighbors';
 import { ospfMismatchesOf } from './query/ospfMismatches';
 import { analyze } from './engine/analyze';
 import { evaluateGoal } from './goals';
@@ -47,22 +48,22 @@ const shared = (hello3 = 10, p2 = 1): Network => ({
 
 describe('OSPF の隣接', () => {
   it('3台が同じネットワークにいると、ルーター ID が大きい R3 が DR、次の R2 が BDR', () => {
-    const n = ospfNeighborsOf(shared(), data, 'r1');
+    const n = ospfNeighborsOf(analyze(shared(), data), 'r1');
     expect(n.find((x) => x.uid === 'r3')?.state).toBe('FULL/DR');
     expect(n.find((x) => x.uid === 'r2')?.state).toBe('FULL/BDR');
     expect(n.find((x) => x.uid === 'r3')?.routerId).toBe('10.0.0.3');
   });
   it('優先度を上げた R2 が DR になる', () => {
-    const n = ospfNeighborsOf(shared(10, 100), data, 'r1');
+    const n = ospfNeighborsOf(analyze(shared(10, 100), data), 'r1');
     expect(n.find((x) => x.uid === 'r2')?.state).toBe('FULL/DR');
   });
   it('2台だけのネットワークは FULL/- になる', () => {
     const net: Network = { nodes: [node('a', 'router_basic', [f(0, '10.0.0.1', { area: 0 })]), node('b', 'router_basic', [f(0, '10.0.0.2', { area: 0 })])], links: [link('l', 'a', 0, 'b', 0)], segments: {} };
-    expect(ospfNeighborsOf(net, data, 'a')[0].state).toBe('FULL/-');
+    expect(ospfNeighborsOf(analyze(net, data), 'a')[0].state).toBe('FULL/-');
   });
   it('Hello の間隔が違う相手とは隣接にならず、理由が分かる', () => {
     const net = shared(30);
-    expect(ospfNeighborsOf(net, data, 'r1').map((x) => x.uid)).toEqual(['r2']);
+    expect(ospfNeighborsOf(analyze(net, data), 'r1').map((x) => x.uid)).toEqual(['r2']);
     expect(ospfMismatchesOf(analyze(net, data), 'r1')).toEqual([expect.objectContaining({ uid: 'r3', mismatch: 'hello' })]);
   });
   it('Hello の間隔が違うと、経路が届かず ospf.no_neighbor になる', () => {

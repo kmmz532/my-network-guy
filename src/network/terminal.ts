@@ -11,7 +11,8 @@ import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
 import { bgpTableOf } from './query/bgpTable';
-import { adOf, dhcpOf, lagBundlesOf, vrrpStatusOf, learnedRoutesOf, macTableOf, ospfNeighborsOf } from './netState';
+import { adOf, dhcpOf, lagBundlesOf, vrrpStatusOf, learnedRoutesOf, macTableOf } from './netState';
+import { ospfNeighborsOf } from './query/ospfNeighbors';
 import { ospfMismatchesOf } from './query/ospfMismatches';
 import type { Trace } from '../sim/project';
 import { framesOf } from './frames';
@@ -181,7 +182,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       return lines.length > 0 ? [out(tr('ui.terminal.bgpHeader')), ...lines] : [out(tr('ui.terminal.bgpNone'))];
     }
     if (sub === 'ip ospf neighbor') {
-      const neighbors = ospfNeighborsOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
+      const neighbors = ospfNeighborsOf(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data), node.uid);
       const nameOfUid = (uid: string) => name(ctx.nodes.find((n) => n.uid === uid) ?? node);
       if (neighbors.length === 0) {
         // 隣接がないときは、条件が合わなかった相手と理由を出す

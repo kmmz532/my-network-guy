@@ -1,7 +1,8 @@
 // 案件の達成条件（goals）の判定ハンドラ。種類ごとにハンドラを登録し、案件データから呼び出す。
 import type { Contract, Goal } from '../data/schema';
 import { http, ping, wirelessAssociations } from './engine';
-import { accessPointsOf, dhcpOf, lagBundlesOf, ospfNeighborsOf } from './netState';
+import { accessPointsOf, dhcpOf, lagBundlesOf } from './netState';
+import { ospfNeighborsOf } from './query/ospfNeighbors';
 import { analyze } from './engine/analyze';
 import { bgpTableOf } from './query/bgpTable';
 import { stpOf } from './query/stp';
@@ -143,8 +144,8 @@ const handlers: { [K in Goal['type']]: Handler } = {
   // 指定した機器が DR になっている（同じネットワークの隣接の相手から見て、その機器が FULL/DR）
   ospf_dr: (goal, net, data) => {
     if (goal.type !== 'ospf_dr') throw new Error('ospf_dr ハンドラに別の種類が渡された');
-    const peers = ospfNeighborsOf(net, data, goal.node);
-    const ok = peers.some((p) => ospfNeighborsOf(net, data, p.uid).some((q) => q.uid === goal.node && q.state === 'FULL/DR'));
+    const peers = ospfNeighborsOf(analyze(net, data), goal.node);
+    const ok = peers.some((p) => ospfNeighborsOf(analyze(net, data), p.uid).some((q) => q.uid === goal.node && q.state === 'FULL/DR'));
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   count_device: (goal, net) => {
