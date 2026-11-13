@@ -8,6 +8,7 @@ import { can } from './capabilities';
 import { macOf } from './mac';
 import { effectivePriority, electVrrpMaster, type VrrpMember } from './vrrp';
 import { computeStp, type StpResult } from './stp';
+import { computeLags, type LagResult } from './lag';
 import { computeBgp, type BgpEnv, type BgpResult } from './bgp';
 import { duplicateRouterIds, electDr, ospfMismatch, ospfPriorityOf, ospfRouterId, type DrCandidate, type OspfMismatch } from './ospf';
 
@@ -51,6 +52,10 @@ class Topology {
   private linkByEndpoint = new Map<string, { link: NetLink; peer: Endpoint }>();
   // 機器の内部のスイッチ（中継の口）でつながる口。スイッチ付きルーターは代表の LAN 口を必ず含める
   private fabricBy = new Map<string, number[]>();
+  // リンクアグリゲーション（段1）: まとまった物理のリンクは1本の論理リンクとして扱う（輪の判定・スパニングツリー）
+  private lag: LagResult;
+  // 論理リンクごとの、スパニングツリーの代表の配線（止まっていない最初の配線）。まとまっていない配線は含まない
+  private stpRep = new Map<string, string>();
 
   constructor(
     net: Network,
@@ -68,6 +73,11 @@ class Topology {
         ports.push(Number(port));
         this.fabricBy.set(node, ports);
       }
+    }
+    this.lag = computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'));
+    for (const b of this.lag.bundles) {
+      const rep = b.links.find((l) => !this.isShut(l.a.node, l.a.port) && !this.isShut(l.b.node, l.b.port)) ?? b.links[0];
+      for (const l of b.links) this.stpRep.set(l.uid, rep.uid);
     }
     for (const [uid, ports] of this.fabricBy) {
       if (isSwitchedRouterCategory(this.categoryOf(uid)) && !ports.includes(ROUTER_SWITCH_LAN_HOST_PORT)) ports.push(ROUTER_SWITCH_LAN_HOST_PORT);
@@ -299,13 +309,20 @@ class Topology {
   // スパニングツリーの結果（stp を持つスイッチの間のリンクで、ブロッキングの口を決める）
   private stpResult?: StpResult;
   stp(): StpResult {
-    this.stpResult ??= computeStp([...this.nodes.values()], [...this.linkByEndpoint.values()].map((x) => x.link).filter((l, i, all) => all.indexOf(l) === i), (n) => can(n.device, 'stp'));
+    // まとまった物理のリンクは、代表の1本だけを渡す（論理リンクは1本）
+    const links = [...this.linkByEndpoint.values()].map((x) => x.link).filter((l, i, all) => all.indexOf(l) === i && (this.stpRep.get(l.uid) ?? l.uid) === l.uid);
+    this.stpResult ??= computeStp([...this.nodes.values()], links, (n) => can(n.device, 'stp'));
     return this.stpResult;
   }
 
   // スパニングツリーが止めている口（ブロッキング）か
   isStpBlocked(uid: string, port: number): boolean {
-    return this.stp().roles.get(`${uid}:${port}`) === 'blocking';
+    // まとまった口は、代表の口の役割に従う
+    const linked = this.linkAt({ node: uid, port });
+    const rep = linked ? this.stpRep.get(linked.link.uid) : undefined;
+    const repLink = rep === undefined ? undefined : this.lag.bundles.flatMap((b) => b.links).find((l) => l.uid === rep);
+    const end = repLink === undefined ? { node: uid, port } : repLink.a.node === uid ? repLink.a : repLink.b;
+    return this.stp().roles.get(`${end.node}:${end.port}`) === 'blocking';
   }
 
   // 口が停止しているか（shutdown）
@@ -369,7 +386,7 @@ class Topology {
         const peerVlan = cfgPeer?.mode === 'access' ? this.vlanOf(peer.node, peer.port) : vlan;
         if (!this.isShut(peer.node, peer.port) && !this.isStpBlocked(peer.node, peer.port) && this.carries(peer.node, peer.port, peerVlan)) {
           // 配線は、実際にたどったものだけを数える（輪の判定に使う）
-          cables.add(link.uid);
+          cables.add(this.lag.representative.get(link.uid) ?? link.uid);
           if (!tooLong && linkLength(link.path) > this.data.maxLengthOf(link.cable)) {
             tooLong = ep;
           }
@@ -861,7 +878,7 @@ export const macTableOf = (net: Network, data: EngineData, uid: string): { port:
 };
 
 // 通れば通るが直すべき設定（警告・NET.md §6）: 直結の両端の口の VLAN が違う access（vlan.mismatch）、両端の native が違う trunk（vlan.native_mismatch）
-export type VlanWarning = { id: 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch'; a: string; b: string };
+export type VlanWarning = { id: 'lag.mismatch' | 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch'; a: string; b: string };
 
 export const warningsOf = (net: Network): VlanWarning[] => {
   const cfgOf = (uid: string, port: number): PortConfig | undefined => net.nodes.find((n) => n.uid === uid)?.ports.find((p) => p.port === port);
@@ -872,6 +889,16 @@ export const warningsOf = (net: Network): VlanWarning[] => {
     if (!ca || !cb) continue;
     if (ca.mode === 'access' && cb.mode === 'access' && (ca.vlan ?? 1) !== (cb.vlan ?? 1)) out.push({ id: 'vlan.mismatch', a: l.a.node, b: l.b.node });
     if (ca.mode === 'trunk' && cb.mode === 'trunk' && (ca.native ?? 1) !== (cb.native ?? 1)) out.push({ id: 'vlan.native_mismatch', a: l.a.node, b: l.b.node });
+  }
+  // リンクアグリゲーション: まとまらない口がある2台（組ごとに1件）
+  const lag = computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'));
+  const lagPairs = new Set<string>();
+  for (const l of net.links) {
+    if (!lag.mismatched.has(l.uid)) continue;
+    const pair = [l.a.node, l.b.node].sort().join('|');
+    if (lagPairs.has(pair)) continue;
+    lagPairs.add(pair);
+    out.push({ id: 'lag.mismatch', a: l.a.node, b: l.b.node });
   }
   // VRRP: 同じネットワーク・同じ VRID で仮想の IP アドレスが違う（組ごとに1件）と、端末のゲートウェイが仮想ではなく実の IP アドレス
   const groups = net.nodes.flatMap((n) => n.interfaces.flatMap((i) => (i.vrrp ?? []).map((g) => ({ uid: n.uid, iface: i, g }))));

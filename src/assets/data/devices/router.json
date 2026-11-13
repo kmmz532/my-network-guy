@@ -12,7 +12,8 @@
         "dhcpRelay",
         "wan",
         "rip",
-        "vrrp"
+        "vrrp",
+        "lag"
       ],
       "deskable": true,
       "price": 60000,
@@ -41,7 +42,8 @@
         "dhcpRelay",
         "wan",
         "rip",
-        "vrrp"
+        "vrrp",
+        "lag"
       ],
       "deskable": true,
       "price": 65000,
@@ -76,7 +78,8 @@
         "dhcpRelay",
         "wan",
         "rip",
-        "vrrp"
+        "vrrp",
+        "lag"
       ],
       "deskable": false,
       "price": 70000,

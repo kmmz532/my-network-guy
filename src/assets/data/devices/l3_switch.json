@@ -13,7 +13,8 @@
         "ospf",
         "dhcpRelay",
         "rip",
-        "vrrp"
+        "vrrp",
+        "lag"
       ],
       "sviMax": 16,
       "price": 130000,

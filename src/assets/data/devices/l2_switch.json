@@ -26,7 +26,8 @@
         "switchport",
         "vlan",
         "stp",
-        "svi"
+        "svi",
+        "lag"
       ],
       "sviMax": 1,
       "deskable": true,
@@ -49,7 +50,8 @@
         "switchport",
         "vlan",
         "stp",
-        "svi"
+        "svi",
+        "lag"
       ],
       "sviMax": 1,
       "price": 24000,
@@ -71,7 +73,8 @@
         "switchport",
         "vlan",
         "stp",
-        "svi"
+        "svi",
+        "lag"
       ],
       "sviMax": 1,
       "price": 36000,

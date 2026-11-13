@@ -67,6 +67,9 @@ export interface PortConfig {
   native?: number;
   shutdown?: boolean;
   stpCost?: number;
+  // リンクアグリゲーション（NET.md §5.1）: チャネルの番号と、まとめるモード。両端が同じ番号で、モードが組み合わさるとまとまる
+  channelGroup?: number;
+  lacp?: 'active' | 'passive' | 'on';
   // ポートセキュリティ（N153）: 登録した MAC アドレスの機器だけを通す。省略なら制限しない
   macs?: string[];
 }
