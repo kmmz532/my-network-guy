@@ -48,6 +48,14 @@ html, body {
   border-color: #392a3b #afb4bc #afb4bc #392a3b;
 }
 
+:where(button:disabled, input:disabled, select:disabled, textarea:disabled) {
+  background: #f4f1e6;
+  border-color: #3b2a33 #bcb9af #bcb9af #3b2a33;
+  color: #3b2a33;
+  opacity: 0.5;
+  cursor: default !important;
+}
+
 /* 背景との明るさの比は 4.5:1 以上（#f4f1e6 に対して 5.68:1） */
 :where(input:not([type]), input[type='text'], input[type='number'], input[type='search'], input[type='password'], textarea)::placeholder {
   color: #6b5a64;
