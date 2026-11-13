@@ -4,7 +4,7 @@ import { gameEnv } from '../sim/env';
 
 import { autoAssign } from '../sim/autoAssign';
 import { emptyHistory, entryOf, historyKeyOf, projectHistoryKey, push as pushHistory, redo as redoHistory, stepDesign, undo as undoHistory } from '../sim/history';
-import { requestBuild, type NetTarget, type Outcome } from '../sim/project';
+import { requestBuild, writeBackDhcp, type NetTarget, type Outcome } from '../sim/project';
 
 import { plannedKey, type PlannedNet, coreOf, focusedProject, reportState, withLevelUps } from './gameHelpers';
 import type { GameState } from './useGameStore';
@@ -88,7 +88,8 @@ export const createOps = (set: Set, get: () => GameState) => {
       set({ lastError: outcome.reason, ...(flash ? { flash } : {}) });
       return outcome.reason;
     }
-    const c = outcome.core;
+    // 自動（DHCP）の口の受け取ったアドレスを、機器へ書き戻す
+    const c = writeBackDhcp(outcome.core, { ...gameEnv, mapOf: (id) => get().maps[id] });
     // サンドボックスは資金を減らさない（費用は差し引かない）。床の機器・配線を変えたら、テストの結果は無効になる
     const sandbox = get().mode === 'sandbox';
     // 設計（機器・配線・セグメント）を変えたら、最後のテストの結果は無効になる

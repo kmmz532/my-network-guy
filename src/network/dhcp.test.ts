@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
 import { dhcpOf, dhcpWriteBack, ping } from './netState';
+import { writeBackDhcp, type Core } from '../sim/project';
 import type { Iface, NetLink, NetNode, Network } from './types';
 
 const data = gameEnv.engine;
@@ -115,5 +116,15 @@ describe('DHCP の前回のアドレス', () => {
     const gone: Network = { ...written, nodes: written.nodes.map((n) => (n.uid === 'srv' ? { ...n, dhcpPools: undefined } : n)) };
     expect(dhcpWriteBack(gone.nodes, gone.links, gone.segments, data)).toBe(gone.nodes);
     expect(gone.nodes.find((n) => n.uid === 'p1')?.interfaces[0].ip).toBe('192.168.1.100');
+  });
+});
+
+describe('DHCP の書き戻し（store）', () => {
+  it('操作の確定のあとに、受け取ったアドレスを機器へ書き戻す。書き戻すものがなければ同じ core を返す', () => {
+    const net = office(['p1', 'p2']);
+    const core = { office: { nodes: net.nodes, links: net.links, segments: net.segments ?? {} }, active: [] } as unknown as Core;
+    const written = writeBackDhcp(core, gameEnv);
+    expect(written.office.nodes.find((n) => n.uid === 'p2')?.interfaces[0].ip).toBe('192.168.1.101');
+    expect(writeBackDhcp(written, gameEnv)).toBe(written);
   });
 });

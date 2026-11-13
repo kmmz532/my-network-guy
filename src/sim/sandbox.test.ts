@@ -4,6 +4,7 @@ import balanceJson from '../assets/data/balance.json';
 import cablesJson from '../assets/data/cables.json';
 import pcJson from '../assets/data/devices/pc.json';
 import routerJson from '../assets/data/devices/router.json';
+import uplinkJson from '../assets/data/devices/uplink.json';
 import switchJson from '../assets/data/devices/l2_switch.json';
 import serverJson from '../assets/data/devices/server.json';
 import shopJson from '../assets/data/shop.json';
@@ -19,7 +20,7 @@ import { placeFurniture } from './furniture';
 const balance = balanceJson as unknown as Balance;
 
 const devices: Env['devices'] = {};
-for (const d of [...pcJson.devices, ...switchJson.devices, ...routerJson.devices, ...serverJson.devices]) {
+for (const d of [...pcJson.devices, ...switchJson.devices, ...routerJson.devices, ...serverJson.devices, ...uplinkJson.devices]) {
   devices[d.id] = {
     category: d.category,
     price: d.price,
@@ -68,6 +69,17 @@ const place = (c: Core, device: string, x: number, y: number, floor = true): Cor
   if (!r.ok) throw new Error(`置けない: ${r.reason}`);
   return r.core;
 };
+
+describe('サンドボックスの回線終端', () => {
+  it('回線終端は在庫がなくても、複数置ける（2社の ISP の教材のため）', () => {
+    const c0 = core();
+    const r1 = placeInOffice(c0, 'uplink', 1, 1, mapOf(c0.office), env, true, true);
+    if (!r1.ok) throw new Error(r1.reason);
+    const r2 = placeInOffice(r1.core, 'uplink', 2, 1, mapOf(r1.core.office), env, true, true);
+    if (!r2.ok) throw new Error(r2.reason);
+    expect(r2.core.office.nodes.filter((n) => n.device === 'uplink')).toHaveLength(2);
+  });
+});
 
 describe('サンドボックスの床', () => {
   it('床は既定の 15 × 10 の1部屋で、機器も家具もない', () => {

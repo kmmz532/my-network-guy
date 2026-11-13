@@ -1,6 +1,5 @@
 // 案件の流れ（受注・設計・施工・検収・納品）。状態を受け取り、新しい状態を返す純粋関数で書く。
 // 設計は機器の配置・配線・IP設定、施工は社員が作業時間をかけて行い、検収で達成条件を判定する。
-import { cables as cableRecord, devices as deviceRecord } from 'virtual:game-data';
 import { applyMoney, recordSaving } from './ledger';
 import type { Balance, Contract, Furniture, FloorId, GameMap, Staff } from '../data/schema';
 import type { Facing } from './facing';
@@ -730,15 +729,21 @@ export const netOf = (core: Core, target: NetTarget): Net | string => {
 };
 
 // 対象のネットワークを書き戻す
-// 書き戻しの計算に使う判定のデータ（env.ts は project.ts を読み込むため、ここで同じものを組む）
-const writeBackEngine = {
-  categoryOf: (device: string) => (deviceRecord as Record<string, { category: string } | undefined>)[device]?.category ?? 'unknown',
-  maxLengthOf: (cable: string) => (cableRecord as Record<string, { maxLengthTiles: number } | undefined>)[cable]?.maxLengthTiles ?? 0,
+// 受け取れた自動（DHCP）の口のアドレスを、前回のアドレスとして機器へ書き戻す（NET.md §5.7）。store が操作を確定するたびに呼ぶ。
+// 判定のデータは、ping などと同じ（案件の地図の壁を含む）ものを使う。書き戻すものがなければ同じ core を返す
+export const writeBackDhcp = (core: Core, env: Env): Core => {
+  const officeNodes = dhcpWriteBack(core.office.nodes, core.office.links, core.office.segments, engineWithWalls(env.engine, env.mapOf?.('hq')));
+  let changed = officeNodes !== core.office.nodes;
+  const active = core.active.map((p) => {
+    const nodes = dhcpWriteBack(p.nodes, p.links, p.segments, engineWithWalls(env.engine, env.mapOf?.(p.contract.map)));
+    if (nodes === p.nodes) return p;
+    changed = true;
+    return { ...p, nodes: [...nodes] };
+  });
+  return changed ? { ...core, office: { ...core.office, nodes: [...officeNodes] }, active } : core;
 };
 
-export const withNet = (core: Core, target: NetTarget, rawNet: Net): Core => {
-  // 受け取れた自動（DHCP）の口のアドレスを、前回のアドレスとして機器へ書き戻す（NET.md §5.7）
-  const net: Net = { ...rawNet, nodes: [...dhcpWriteBack(rawNet.nodes, rawNet.links, rawNet.segments, writeBackEngine)] };
+export const withNet = (core: Core, target: NetTarget, net: Net): Core => {
   if (target === 'office') {
     return { ...core, office: { ...core.office, nodes: net.nodes, links: net.links, seq: net.seq, segments: net.segments } };
   }
