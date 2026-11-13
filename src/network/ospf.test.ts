@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { duplicateRouterIds, electDr, ospfRouterId } from './ospf';
-import { learnedRoutesOf, warningsOf } from './netState';
+import { warningsOf } from './netState';
+import { learnedRoutesOf } from './query/learnedRoutes';
 import { ospfNeighborsOf } from './query/ospfNeighbors';
 import { ospfMismatchesOf } from './query/ospfMismatches';
 import { analyze } from './engine/analyze';
@@ -95,7 +96,7 @@ describe('既定の経路の配布', () => {
       links: [link('l', 'r1', 0, 'r2', 0)],
       segments: {},
     });
-    const routes = (net: Network) => learnedRoutesOf(net, data, 'r1', 'ospf');
+    const routes = (net: Network) => learnedRoutesOf(analyze(net, data), 'r1', 'ospf');
     expect(routes(mk(true))).toContainEqual(expect.objectContaining({ dest: '0.0.0.0', prefix: 0, nextHop: '10.0.12.2', protocol: 'ospf' }));
     expect(routes(mk(false)).some((r) => r.prefix === 0)).toBe(false);
   });
@@ -118,10 +119,10 @@ describe('エリアの間の経路（ABR）', () => {
     expect(evaluateGoal({ type: 'ping', from: 'pc1', to: 'pc3' }, abr(), data)[0].ok).toBe(true);
   });
   it('自分が参加していないエリアの経路は O IA になる（ABR の隣は同じエリアなので O）', () => {
-    const r1 = learnedRoutesOf(abr(), data, 'r1', 'ospf');
+    const r1 = learnedRoutesOf(analyze(abr(), data), 'r1', 'ospf');
     expect(r1.find((r) => r.dest === '10.0.3.0')?.interArea).toBe(true);
     expect(r1.find((r) => r.dest === '10.0.23.0')?.interArea).toBe(true);
-    const r2 = learnedRoutesOf(abr(), data, 'r2', 'ospf');
+    const r2 = learnedRoutesOf(analyze(abr(), data), 'r2', 'ospf');
     expect(r2.some((r) => r.interArea)).toBe(false);
   });
 });

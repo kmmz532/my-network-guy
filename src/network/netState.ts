@@ -875,13 +875,6 @@ export const channelOverlapsOf = (net: Network, _data: EngineData): { a: string;
   return out;
 };
 
-// 機器が動的経路（RIP・OSPF）で覚えた経路（show ip rip database・show ip route に使う）
-export const learnedRoutesOf = (
-  net: Network,
-  data: EngineData,
-  uid: string,
-  protocol: 'rip' | 'ospf' | 'bgp',
-): Route[] => analyze(net, data).topology.routesOf(uid).filter((r) => r.protocol === protocol);
 
 // 通れば通るが直すべき設定（警告・NET.md §6）: 直結の両端の口の VLAN が違う access（vlan.mismatch）、両端の native が違う trunk（vlan.native_mismatch）
 export type VlanWarning = { id: 'wlan.open' | 'wlan.weak_cipher' | 'wlan.transition' | 'dhcp.multiple_servers' | 'lag.mismatch' | 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch'; a: string; b: string };

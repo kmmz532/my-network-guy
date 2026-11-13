@@ -11,7 +11,8 @@ import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
 import { bgpTableOf } from './query/bgpTable';
-import { adOf, dhcpOf, learnedRoutesOf } from './netState';
+import { adOf, dhcpOf } from './netState';
+import { learnedRoutesOf } from './query/learnedRoutes';
 import { lagBundlesOf } from './query/lagBundles';
 import { macTableOf } from './query/macTable';
 import { vrrpStatusOf } from './query/vrrpStatus';
@@ -93,7 +94,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       if (node.gateway) lines.push(out(tr('ui.terminal.routeStaticDefault', { dest: '0.0.0.0', prefix: 0, nextHop: node.gateway, ad, metric: 0 })));
       for (const r of node.routes) lines.push(out(tr(r.prefix === 0 ? 'ui.terminal.routeStaticDefault' : 'ui.terminal.routeStatic', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop, ad, metric: 0 })));
       for (const protocol of ['rip', 'ospf', 'bgp'] as const) {
-        for (const r of learnedRoutesOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid, protocol)) {
+        for (const r of learnedRoutesOf(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data), node.uid, protocol)) {
           const key = protocol === 'ospf' && r.interArea ? 'ui.terminal.routeOspfIa' : `ui.terminal.route${protocol[0].toUpperCase()}${protocol.slice(1)}`;
           lines.push(out(tr(key, { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop, ad: adOf(r), metric: r.metric ?? 0 })));
         }
@@ -108,7 +109,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       return entries.map((e) => out(tr('ui.terminal.macEntry', { port: e.port, mac: e.mac })));
     }
     if (sub === 'ip rip database') {
-      const routes = learnedRoutesOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid, 'rip');
+      const routes = learnedRoutesOf(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data), node.uid, 'rip');
       if (routes.length === 0) return [out(tr('ui.terminal.ripNone'))];
       return routes.map((r) => out(tr('ui.terminal.ripRoute', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop })));
     }

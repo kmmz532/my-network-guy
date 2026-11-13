@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { learnedRoutesOf } from './netState';
-import { bgpTableOf } from './query/bgpTable';
+import { learnedRoutesOf } from './query/learnedRoutes';
 import { analyze } from './engine/analyze';
+import { bgpTableOf } from './query/bgpTable';
 import type { BgpConfig, Iface, NetNode, Network } from './types';
 
 const f = (port: number, ip: string): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24 });
@@ -61,10 +61,10 @@ describe('iBGP', () => {
     const c = bgpTableOf(analyze(ibgp(false), data), 'r2')!.candidates.find((x) => x.dest === DEST.dest);
     expect(c?.nextHop).toBe('10.0.1.2');
     expect(c?.valid).toBe(false);
-    expect(learnedRoutesOf(ibgp(false), data, 'r2', 'bgp')).toEqual([]);
+    expect(learnedRoutesOf(analyze(ibgp(false), data), 'r2', 'bgp')).toEqual([]);
   });
   it('next-hop-self があれば、iBGP の経路（管理距離 200）として使える', () => {
-    const routes = learnedRoutesOf(ibgp(true), data, 'r2', 'bgp');
+    const routes = learnedRoutesOf(analyze(ibgp(true), data), 'r2', 'bgp');
     expect(routes).toEqual([expect.objectContaining({ dest: DEST.dest, nextHop: '10.0.12.1', ibgp: true })]);
   });
   it('iBGP で学んだ経路は、別の iBGP の相手へ伝えない', () => {
