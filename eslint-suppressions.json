@@ -242,11 +242,6 @@
       "count": 1
     }
   },
-  "src/network/terminal.ts": {
-    "local/no-handmade-engine-data": {
-      "count": 1
-    }
-  },
   "src/services/companies.test.ts": {
     "local/no-mode-branch": {
       "count": 11

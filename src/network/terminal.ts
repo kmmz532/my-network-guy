@@ -257,7 +257,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
     const frameCtx = {
       nodes: ctx.nodes,
       links: ctx.links,
-      categoryOf: (device: string) => deviceCategory(device),
+      categoryOf: deviceCategory,
       isSwitch: (uid: string) => isL2Category(categoryOfUid(uid)),
       isRouter: (uid: string) => isRoutingCategory(categoryOfUid(uid)),
     };
