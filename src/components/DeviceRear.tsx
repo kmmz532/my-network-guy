@@ -12,7 +12,8 @@ import { gameEnv } from '../sim/env';
 import type { NetLink, NetNode } from '../network/types';
 import type { Network } from '../network/types';
 import { colorOfLink, colorOfNetwork, networkColors, networkLabelOf, networksOfLink } from '../network/netColor';
-import { portStatesOf, withWireless } from '../network/netState';
+import { withWireless } from '../network/netState';
+import { portStatesOf } from '../network/public';
 import { analyze } from '../network/engine/analyze';
 import { stpOf } from '../network/public';
 import { loadSettings } from '../settings/settings';
@@ -77,7 +78,7 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
   const SCALE = scaleFor(portCount);
   const portsPerRow = portsPerRowFor(portCount);
   const byUid = new Map(nodes.map((n) => [n.uid, n]));
-  const states = new Map(portStatesOf(net, gameEnv.engine, node.uid).map((s) => [s.port, s]));
+  const states = new Map(portStatesOf(analyze(net, gameEnv.engine), node.uid).map((s) => [s.port, s]));
   const isRootBridge = stpOf(analyze(net, gameEnv.engine)).root === node.uid;
   const colors = networkColors(withWireless(net, gameEnv.engine), gameEnv.engine);
   const linkAt = (port: number) =>

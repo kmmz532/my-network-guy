@@ -6,3 +6,4 @@ export { ospfMismatchesOf } from './query/ospfMismatches';
 export { ospfNeighborsOf } from './query/ospfNeighbors';
 export { vrrpStatusOf } from './query/vrrpStatus';
 export { macTableOf } from './query/macTable';
+export { portStatesOf, type PortState } from './query/portStates';

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping, portStatesOf, warningsOf } from './netState';
+import { ping, warningsOf } from './netState';
+import { portStatesOf } from './query/portStates';
 import { analyze } from './engine/analyze';
 import { stpOf } from './query/stp';
 import { computeLags, lacpCompatible } from './lag';
@@ -101,14 +102,14 @@ describe('リンクアグリゲーションのターミナル', () => {
 
 describe('口の状態（背面の画面）', () => {
   it('まとまった口は bundled、まとまらない口は bundled でなく、止めた口は shutdown になる', () => {
-    expect(portStatesOf(pair([], []), data, 'sw1').find((s) => s.port === 0)?.channel).toEqual({ group: 1, bundled: true });
+    expect(portStatesOf(analyze(pair([], []), data), 'sw1').find((s) => s.port === 0)?.channel).toEqual({ group: 1, bundled: true });
     const split = pair([{ lacp: 'passive' }, { lacp: 'passive' }], [{ lacp: 'passive' }, { lacp: 'passive' }]);
-    const states = portStatesOf(split, data, 'sw1');
+    const states = portStatesOf(analyze(split, data), 'sw1');
     expect(states.find((s) => s.port === 0)?.channel).toEqual({ group: 1, bundled: false });
     // 輪はスパニングツリーが1本を止める
-    expect(states.filter((s) => s.stp === 'blocking').length + portStatesOf(split, data, 'sw2').filter((s) => s.stp === 'blocking').length).toBe(1);
+    expect(states.filter((s) => s.stp === 'blocking').length + portStatesOf(analyze(split, data), 'sw2').filter((s) => s.stp === 'blocking').length).toBe(1);
     const shut: Network = { ...split, nodes: split.nodes.map((n) => (n.uid === 'sw1' ? { ...n, ports: n.ports.map((p) => (p.port === 0 ? { ...p, shutdown: true } : p)) } : n)) };
-    expect(portStatesOf(shut, data, 'sw1').find((s) => s.port === 0)?.shutdown).toBe(true);
+    expect(portStatesOf(analyze(shut, data), 'sw1').find((s) => s.port === 0)?.shutdown).toBe(true);
   });
 });
 

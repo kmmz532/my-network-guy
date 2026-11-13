@@ -3,7 +3,9 @@
 import { can } from '../network/capabilities';
 import { compile } from '../network/compile';
 import { colorOfLink, networkColors } from '../network/netColor';
-import { http, ping, portStatesOf, warningsOf, withWireless } from '../network/netState';
+import { http, ping, warningsOf, withWireless } from '../network/netState';
+import { portStatesOf } from '../network/query/portStates';
+import { analyze } from '../network/engine/analyze';
 import { runTerminal } from '../network/terminal';
 import type { EngineData, Network } from '../network/types';
 
@@ -62,7 +64,7 @@ export const recordOf = (input: Network, engine: EngineData) => {
     https,
     shows,
     colors: net.links.map((l) => ({ link: l.uid, color: colorOfLink(colors, l.uid) })),
-    ports: net.nodes.map((n) => ({ node: n.uid, ports: [...portStatesOf(net, engine, n.uid)].sort((a, b) => a.port - b.port) })),
+    ports: net.nodes.map((n) => ({ node: n.uid, ports: [...portStatesOf(analyze(net, engine), n.uid)].sort((a, b) => a.port - b.port) })),
     issues: Object.entries(compiled.issues).sort(([a], [b]) => a.localeCompare(b)),
     warnings: warningsOf(net, engine),
   };

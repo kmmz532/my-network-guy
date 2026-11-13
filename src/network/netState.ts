@@ -969,32 +969,3 @@ export const dhcpWriteBack = <T extends { uid: string; interfaces: Iface[] }>(no
 export const dhcpOf = (net: Network, data: EngineData): DhcpResult => analyze(net, data).dhcp;
 
 // BGP の計算結果（show ip bgp・show ip bgp summary に出す）。BGP を動かしていない機器は undefined
-// 機器の口ごとの状態（背面の画面に出す）: 停止・スパニングツリーの役割・リンクアグリゲーションのチャネル
-export interface PortState {
-  port: number;
-  shutdown: boolean;
-  // スパニングツリーの役割（スパニングツリーの対象でない口は undefined。まとまった口は代表の口の役割に従う）
-  stp?: 'root' | 'designated' | 'blocking';
-  // リンクアグリゲーションのチャネルの番号と、まとまっているか
-  channel?: { group: number; bundled: boolean };
-}
-export const portStatesOf = (net: Network, data: EngineData, uid: string): PortState[] => {
-  const topo = analyze(net, data).topology;
-  const node = topo.node(uid);
-  if (!node) return [];
-  const roles = topo.stp().roles;
-  const bundled = new Set(lagBundlesOf(net, uid, data).flatMap((b) => b.links.map((l) => l.uid)));
-  return net.links
-    .filter((l) => l.a.node === uid || l.b.node === uid)
-    .map((l) => {
-      const port = l.a.node === uid ? l.a.port : l.b.port;
-      const cfg = topo.portCfg(uid, port);
-      const role = topo.isStpBlocked(uid, port) ? 'blocking' : roles.get(`${uid}:${port}`);
-      return {
-        port,
-        shutdown: topo.isShut(uid, port),
-        ...(role === undefined ? {} : { stp: role }),
-        ...(cfg?.channelGroup === undefined ? {} : { channel: { group: cfg.channelGroup, bundled: bundled.has(l.uid) } }),
-      };
-    });
-};
