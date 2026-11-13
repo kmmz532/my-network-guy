@@ -9,7 +9,7 @@ import { useGameStore } from './useGameStore';
 const st = () => useGameStore.getState();
 const colorsOf = (): number[] => {
   const o = st().office;
-  const net = analyze({ nodes: o.nodes, links: o.links, segments: o.segments }, gameEnv.engine).addressing.completed;
+  const net = analyze({ nodes: o.nodes, links: o.links, plans: o.plans }, gameEnv.engine).addressing.completed;
   const colors = networkColors(analyze(net, gameEnv.engine));
   return o.links.map((l) => colorOfLink(colors, l.uid));
 };

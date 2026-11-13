@@ -19,7 +19,7 @@ const lan = (): Network => ({
     n('pc2', 'pc_basic', [f(0, '192.168.1.20')], 2),
   ],
   links: [l('l0', 'pc1', 0, 'hr', 1), l('l1', 'pc2', 0, 'hr', 2)],
-  segments: {},
+  plans: {},
 });
 
 describe('家庭用ルーターの内蔵スイッチ', () => {

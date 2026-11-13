@@ -1,7 +1,7 @@
 // セーブデータのバージョン管理。形式を変えたら SAVE_VERSION を上げ、migrations[n]（n → n+1 の変換）を追加する。
 import type { Effects, Office, Project } from '../sim/project';
-import type { EngineData, NetLink, NetNode, Service } from '../network/types';
-import { fillSegments } from '../network/segments';
+import type { EngineData, NetLink, NetNode, NetworkPlan, Service } from '../network/types';
+import { legacyFillSegments, segmentsToPlans } from './legacySegments';
 import { isRoutingCategory } from '../network/category';
 
 import { colorsFromConfig, legacyInterfaces } from './legacyColors';
@@ -26,7 +26,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 49;
+export const SAVE_VERSION = 50;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -58,12 +58,12 @@ const migrationEngine: EngineData = { wallAt: () => false };
 const colorsToSegments = <T extends { nodes: NetNode[]; links?: NetLink[] }>(x: T): T => {
   if (!x.nodes.some((n) => (n as NetNode & { colors?: unknown }).colors !== undefined)) return x;
   const links = x.links ?? [];
-  const nodes = legacyInterfaces(x.nodes, links, migrationEngine).map((n) => {
+  const nodes = legacyInterfaces(x.nodes, links).map((n) => {
     const copy = { ...n };
     delete (copy as { colors?: unknown }).colors;
     return copy;
   });
-  return { ...x, nodes, links, segments: fillSegments({ nodes, links }, migrationEngine) };
+  return { ...x, nodes, links, segments: legacyFillSegments({ nodes, links }) };
 };
 
 // サービスが空のサーバーに、機材の既定のサービスを入れる。設定を変えられない機器は変えない
@@ -132,6 +132,25 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v49 → v50: アドレスの計画を、セグメント（L2 スイッチの VLAN では分けない）の鍵から L2 ドメイン（VLAN で分ける）の鍵へ付け替え、segments を plans に改める。
+  // 付け替えの規則は segmentsToPlans。自社オフィス・受注中の案件・なじみの依頼の型紙が持つ
+  49: (data) => {
+    type Legacy = { nodes: NetNode[]; links: NetLink[]; segments?: Record<string, NetworkPlan> };
+    const rekey = <T extends Legacy>(x: T, data: EngineData): Omit<T, 'segments'> & { plans: Record<string, NetworkPlan> } => {
+      const { segments, ...rest } = x;
+      return { ...rest, plans: segmentsToPlans(x, segments ?? {}, data) };
+    };
+    const d = data as { active: (Legacy & { contract: { map: string } })[]; office: Legacy; familiarity: { counts: object; blueprints: Record<string, { stars: number; design: Legacy }> } };
+    return {
+      ...d,
+      office: rekey(d.office, migrationEngine),
+      active: d.active.map((p) => rekey(p, migrationEngine)),
+      familiarity: {
+        ...d.familiarity,
+        blueprints: Object.fromEntries(Object.entries(d.familiarity.blueprints).map(([k, b]) => [k, { ...b, design: rekey(b.design, migrationEngine) }])),
+      },
+    };
+  },
   // v48 → v49: 用語の説明を出し終えたもの（案件の欄に初めて出したときに記録する）。移行前は1つも出していない
   48: (data) => ({ ...(data as object), termsShown: [] }),
   // v47 → v48: MAC アドレスの連番がない機器に、置いた順に連番を振る（案件にあらかじめ置かれた機器と、回線終端には付いていなかった）
@@ -345,9 +364,9 @@ export const migrations: Record<number, Migration> = {
   // v39 → v40: 案件の segments と inheritedLinks、自社オフィスの segments を必須にし、欠けていれば埋める（N114）。
   // segments は {}。inheritedLinks は自社案件なら、案件の配線のうち自社オフィスの配線と同じ uid のもの（引き継いだ配線）、それ以外は []
   39: (data) => {
-    const d = data as { active: Project[]; office: Office };
+    const d = data as { active: (Project & { segments?: object })[]; office: Office & { segments?: object } };
     const officeLinks = new Set(d.office.links.map((l) => l.uid));
-    const fillProject = (p: Project): Project => ({
+    const fillProject = (p: Project & { segments?: object }) => ({
       ...p,
       segments: p.segments ?? {},
       inheritedLinks: p.inheritedLinks ?? (p.contract.inhouse ? p.links.filter((l) => officeLinks.has(l.uid)).map((l) => l.uid) : []),

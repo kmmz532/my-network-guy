@@ -10,6 +10,12 @@ describe('サンドボックスの構成のファイル', () => {
     expect(result).toEqual({ ok: true, office });
   });
 
+  it('版1のファイルは、セグメントの鍵の設定を L2 ドメインの鍵の計画に付け替えて読み込む', () => {
+    const { plans, ...rest } = sandboxOffice();
+    const v1 = JSON.stringify({ format: 'network-ya.sandbox', version: 1, office: { ...rest, segments: plans } });
+    expect(readSandboxFile(v1)).toEqual({ ok: true, office: sandboxOffice() });
+  });
+
   it('JSON として読めないファイルは、json の理由を返す', () => {
     expect(readSandboxFile('{not json')).toEqual({ ok: false, reason: 'json' });
   });
@@ -20,13 +26,13 @@ describe('サンドボックスの構成のファイル', () => {
   });
 
   it('版が違うファイルは、version の理由を返す', () => {
-    const newer = JSON.stringify({ format: 'network-ya.sandbox', version: 2, office: sandboxOffice() });
+    const newer = JSON.stringify({ format: 'network-ya.sandbox', version: 3, office: sandboxOffice() });
     expect(readSandboxFile(newer)).toEqual({ ok: false, reason: 'version' });
   });
 
   it('中身の形が合わないファイルは、読み込まずに shape の理由を返す', () => {
     const office = { ...sandboxOffice(), nodes: [{ device: 'pc_basic', x: 1, y: 1 }] };
-    const broken = JSON.stringify({ format: 'network-ya.sandbox', version: 1, office });
+    const broken = JSON.stringify({ format: 'network-ya.sandbox', version: 2, office });
     expect(readSandboxFile(broken)).toEqual({ ok: false, reason: 'shape' });
   });
 });

@@ -15,7 +15,7 @@ const node = (uid: string, device: string, x: number, y: number): NetNode => ({ 
   routes: [],
   services: [],
 });
-const design: Blueprint = { nodes: [node('pc_1', 'pc_basic', 1, 1), node('sw', 'l2_switch_8p', 3, 1)], links: [], segments: {} };
+const design: Blueprint = { nodes: [node('pc_1', 'pc_basic', 1, 1), node('sw', 'l2_switch_8p', 3, 1)], links: [], plans: {} };
 
 describe('なじみの依頼の組', () => {
   it('固定の案件は ID、テンプレートはひな形と地図の組で数える', () => {

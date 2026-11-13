@@ -31,7 +31,7 @@ const resetOffice = () => {
       nodes: [],
       links: [],
       seq: 0,
-      segments: {},
+      plans: {},
       furniture: [
         { uid: 'f3_4', id: 'desk', x: 3, y: 4 },
         { uid: 'f8_4', id: 'desk', x: 8, y: 4 },

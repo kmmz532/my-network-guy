@@ -68,7 +68,7 @@ export class NetworkRenderer {
         }
       }
     }
-    const pairs = wirelessAssociations({ nodes: project.nodes, links: project.links, segments: project.segments }, engine);
+    const pairs = wirelessAssociations({ nodes: project.nodes, links: project.links, plans: project.plans }, engine);
     for (const { ap: source, client } of pairs) {
       if (source.uid !== ap.uid) continue;
       const x0 = source.x * ts + ts / 2;

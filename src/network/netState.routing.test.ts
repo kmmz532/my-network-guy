@@ -39,7 +39,7 @@ const line = (joined: boolean, proto: 'rip' | 'ospf' = 'rip', extra: Route[] = [
       node('pb', 'pc_basic', [iface(0, '10.0.2.10')], '10.0.2.1', [], 3),
     ],
     links: [link('l0', 'pa', 0, 'r1', 0), link('l1', 'r1', 1, 'r2', 0), link('l2', 'r2', 1, 'pb', 0)],
-    segments: {},
+    plans: {},
   };
 };
 

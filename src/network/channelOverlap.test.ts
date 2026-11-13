@@ -7,7 +7,7 @@ import type { EngineData, NetNode, Network } from './types';
 const data: EngineData = { wallAt: () => false };
 const ap = (uid: string, x: number, channel?: number): NetNode =>
   ({ uid, device: 'access_point', x, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [], wireless: { ssid: 'HOME', password: 'p', ...(channel === undefined ? {} : { channel }) } }) as NetNode;
-const net = (nodes: NetNode[]): Network => ({ nodes, links: [], segments: {} });
+const net = (nodes: NetNode[]): Network => ({ nodes, links: [], plans: {} });
 
 describe('チャネルの重なり（N152）', () => {
   it('同じチャネルで近いアクセスポイントは重なる', () => {

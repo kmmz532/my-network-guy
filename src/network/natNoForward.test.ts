@@ -16,7 +16,7 @@ const build = (statics: NonNullable<NetNode['statics']>): Network => ({
     n('srv', 'server_basic', [f(0, '192.168.1.10')], 2, { gateway: '192.168.1.1', services: [{ protocol: 'http', port: 80 }] }),
   ],
   links: [l('l0', 'ext', 0, 'hr', 0), l('l1', 'hr', 1, 'srv', 0)],
-  segments: {},
+  plans: {},
 });
 
 describe('nat.no_forward（NET.md §6）', () => {

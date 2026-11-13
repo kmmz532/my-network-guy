@@ -1,9 +1,13 @@
 // サンドボックスの構成の書き出しと読み込み（JSON のファイル）。読み込んだ内容は形を検証し、合わなければ読み込まずに理由を返す。
 import { z } from 'zod';
 import type { Office } from './project';
+import { segmentsToPlans } from '../services/legacySegments';
+import { gameEnv } from './env';
 
 export const SANDBOX_FILE_FORMAT = 'network-ya.sandbox';
-export const SANDBOX_FILE_VERSION = 1;
+// 版2でアドレスの計画を L2 ドメインの鍵（plans）にした。版1のファイル（セグメントの鍵の segments）は読み込むときに付け替える
+export const SANDBOX_FILE_VERSION = 2;
+const SANDBOX_FILE_VERSION_SEGMENTS = 1;
 
 const int = z.number().int();
 const cell = z.object({ x: int, y: int });
@@ -22,8 +26,10 @@ const officeSchema = z.object({
   seq: int.min(0),
   furniture: z.array(z.object({ uid: z.string().min(1), id: z.string().min(1), x: int, y: int })),
   furnitureSeq: int.min(0),
-  segments: z.record(z.string(), z.unknown()),
+  plans: z.record(z.string(), z.unknown()),
 });
+const planSchema = z.object({ network: z.string(), prefix: int });
+const officeV1Schema = officeSchema.omit({ plans: true }).extend({ segments: z.record(z.string(), planSchema) });
 
 const fileSchema = z.object({
   format: z.literal(SANDBOX_FILE_FORMAT),
@@ -48,6 +54,12 @@ export const readSandboxFile = (text: string): ReadSandboxResult => {
   if (typeof data !== 'object' || data === null) return { ok: false, reason: 'format' };
   const head = data as Record<string, unknown>;
   if (head.format !== SANDBOX_FILE_FORMAT) return { ok: false, reason: 'format' };
+  if (head.version === SANDBOX_FILE_VERSION_SEGMENTS) {
+    const old = z.object({ format: z.literal(SANDBOX_FILE_FORMAT), version: z.literal(SANDBOX_FILE_VERSION_SEGMENTS), office: officeV1Schema }).safeParse(data);
+    if (!old.success) return { ok: false, reason: 'shape' };
+    const { segments, ...rest } = old.data.office as unknown as Office & { segments: Office['plans'] };
+    return { ok: true, office: { ...rest, plans: segmentsToPlans(rest, segments, gameEnv.engine) } };
+  }
   if (head.version !== SANDBOX_FILE_VERSION) return { ok: false, reason: 'version' };
   const parsed = fileSchema.safeParse(data);
   if (!parsed.success) return { ok: false, reason: 'shape' };

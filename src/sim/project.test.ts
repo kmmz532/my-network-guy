@@ -18,7 +18,7 @@ import { autoAssign } from './autoAssign';
 import { focusedOf, checkConnect, connect, addressCandidates, plannedAddressCandidates, designIssues, type Core, type Env } from './project';
 import { abandon, accept, advanceBuild, requestBuild, testDesign } from './progress';
 import { placeDevice, placeInOffice, removeFromOffice, removeLink, removeNode } from './placement';
-import { setInterface, setSegment, setGateway, setService } from './netEdit';
+import { setInterface, setPlan, setGateway, setService } from './netEdit';
 
 const balance = balanceJson as unknown as Balance;
 const map = officeJson as unknown as GameMap;
@@ -50,7 +50,7 @@ const start = (): Core => ({
   active: [],
   focus: null,
   // 社員2人は、机に座っている（施工力は1ずつ）
-  office: { bought: ['wood' as const], segments: {},
+  office: { bought: ['wood' as const], plans: {},
     size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [],
     nodes: [],
     links: [],
@@ -405,7 +405,7 @@ describe('案件の設計中の配線の撤去（費用の戻し）', () => {
 
 describe('自社オフィスのケーブル', () => {
   it('ケーブルのつながったPCを撤去すると、ケーブルも一緒に撤去され、在庫には入らない', () => {
-    let core: Core = { ...start(), owned: { pc_basic: 2, l2_switch_8p: 1 }, office: { bought: ['wood' as const], segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [{ uid: 'a', id: 'desk', x: 3, y: 4 }, { uid: 'b', id: 'desk', x: 8, y: 4 }], furnitureSeq: 2 } };
+    let core: Core = { ...start(), owned: { pc_basic: 2, l2_switch_8p: 1 }, office: { bought: ['wood' as const], plans: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [{ uid: 'a', id: 'desk', x: 3, y: 4 }, { uid: 'b', id: 'desk', x: 8, y: 4 }], furnitureSeq: 2 } };
     core = ok(placeInOffice(core, 'pc_basic', 3, 4, map, env)).core;
     core = ok(placeInOffice(core, 'pc_basic', 8, 4, map, env)).core;
     core = ok(connect(core, 'u0', 'u1', 'utp_cat5e', env, 'office')).core;
@@ -421,7 +421,7 @@ describe('自社オフィスの編集', () => {
   const officeStart = (): Core => ({
     ...start(),
     owned: { pc_basic: 2, l2_switch_8p: 1 },
-    office: { bought: ['wood' as const], segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [desk(3, 4), desk(8, 4)], furnitureSeq: 2 },
+    office: { bought: ['wood' as const], plans: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [desk(3, 4), desk(8, 4)], furnitureSeq: 2 },
   });
 
   it('自社オフィスでPC2台とスイッチを配線し、IPアドレスを設定できる', () => {
@@ -512,7 +512,7 @@ describe('自社案件', () => {
       ...start(),
       offers: [inhouseOffer],
       owned: { pc_basic: 1 },
-      office: { bought: ['wood' as const], segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [desk(6, 6)], furnitureSeq: 1 },
+      office: { bought: ['wood' as const], plans: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [desk(6, 6)], furnitureSeq: 1 },
     };
     const accepted = ok(take(core, inhouse.id)).core;
     expect(cur(ok(placeDevice(accepted, 'pc_basic', 6, 6, map, env)).core)?.nodes).toHaveLength(1);
@@ -523,7 +523,7 @@ describe('自社案件', () => {
       ...start(),
       offers: [inhouseOffer],
       owned: { l2_switch_8p: 1 },
-      office: { bought: ['wood' as const], segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [{ uid: 'f0', id: 'plant', x: 6, y: 6 }], furnitureSeq: 1 },
+      office: { bought: ['wood' as const], plans: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [{ uid: 'f0', id: 'plant', x: 6, y: 6 }], furnitureSeq: 1 },
     };
     const accepted = ok(take(core, inhouse.id)).core;
     expect(placeDevice(accepted, 'l2_switch_8p', 6, 6, map, env)).toEqual({ ok: false, reason: 'tile' });
@@ -542,7 +542,7 @@ describe('自社案件', () => {
       ...start(),
       offers: [rewarded],
       owned: { pc_basic: 2 },
-      office: { bought: ['wood' as const], segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [desk(3, 4), desk(8, 4)], furnitureSeq: 2 },
+      office: { bought: ['wood' as const], plans: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [desk(3, 4), desk(8, 4)], furnitureSeq: 2 },
     };
     core = ok(take(core, inhouse.id)).core;
     core = ok(placeDevice(core, 'pc_basic', 3, 4, map, env)).core;
@@ -563,7 +563,7 @@ describe('自社案件', () => {
       ...start(),
       offers: [inhouseOffer],
       owned: { pc_basic: 2 },
-      office: { bought: ['wood' as const], segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [desk(3, 4), desk(8, 4)], furnitureSeq: 2 },
+      office: { bought: ['wood' as const], plans: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [desk(3, 4), desk(8, 4)], furnitureSeq: 2 },
     };
     core = ok(take(core, inhouse.id)).core;
     core = ok(placeDevice(core, 'pc_basic', 3, 4, map, env)).core;
@@ -615,7 +615,7 @@ describe('IPアドレスとセグメントの設定', () => {
     let core = wired();
     expect(designIssues(cur(core)!, env)).toEqual({ pc_a: { reason: 'ip.unset' }, pc_b: { reason: 'ip.unset' } });
     core = ok(setInterface(core, 'pc_a', 0, '192.168.7.10', 24, env)).core;
-    expect(cur(core)?.segments).toEqual({ 'pc_a:0': { network: '192.168.7.0', prefix: 24 } });
+    expect(cur(core)?.plans).toEqual({ 'pc_a:0': { network: '192.168.7.0', prefix: 24 } });
     expect(designIssues(cur(core)!, env)).toEqual({ pc_b: { reason: 'ip.unset' } });
   });
 
@@ -625,30 +625,30 @@ describe('IPアドレスとセグメントの設定', () => {
     expect(designIssues(cur(core)!, env).pc_b).toEqual({ reason: 'ip.out_of_segment', ip: '10.0.0.1', segment: '192.168.7.0/24' });
   });
 
-  it('setSegment はネットワークの設定だけを行い、機器のアドレスは振らない（振るのは autoAssign）', () => {
-    const core = ok(setSegment(wired(), 'pc_a', 0, '192.168.5.0', 24, env)).core;
-    expect(cur(core)?.segments).toEqual({ 'pc_a:0': { network: '192.168.5.0', prefix: 24 } });
+  it('setPlan はネットワークの設定だけを行い、機器のアドレスは振らない（振るのは autoAssign）', () => {
+    const core = ok(setPlan(wired(), 'pc_a', 0, '192.168.5.0', 24, env)).core;
+    expect(cur(core)?.plans).toEqual({ 'pc_a:0': { network: '192.168.5.0', prefix: 24 } });
     const ips = Object.fromEntries(cur(core)!.nodes.map((n) => [n.uid, n.interfaces[0]?.ip]));
     expect(ips).toEqual({ pc_a: undefined, pc_b: undefined });
     expect(designIssues(cur(core)!, env)).toMatchObject({ pc_a: { reason: 'ip.unset' } });
   });
 
   it('ネットワークを設定してから autoAssign を呼ぶと、ホストに空いているアドレスを .10 から順に割り当てる', () => {
-    const core = autoIpOn(ok(setSegment(wired(), 'pc_a', 0, '192.168.5.0', 24, env)).core);
+    const core = autoIpOn(ok(setPlan(wired(), 'pc_a', 0, '192.168.5.0', 24, env)).core);
     const ips = Object.fromEntries(cur(core)!.nodes.map((n) => [n.uid, n.interfaces[0]?.ip]));
     expect(ips).toEqual({ pc_a: '192.168.5.10', pc_b: '192.168.5.11' });
     expect(designIssues(cur(core)!, env)).toEqual({});
   });
 
-  it('setSegment は範囲外になった既存のアドレスを変えない（そのまま残り、設計の不備になる）', () => {
+  it('setPlan は範囲外になった既存のアドレスを変えない（そのまま残り、設計の不備になる）', () => {
     let core = ok(setInterface(wired(), 'pc_a', 0, '192.168.5.11', 24, env)).core;
-    core = ok(setSegment(core, 'pc_a', 0, '10.1.0.0', 24, env)).core;
+    core = ok(setPlan(core, 'pc_a', 0, '10.1.0.0', 24, env)).core;
     const ips = Object.fromEntries(cur(core)!.nodes.map((n) => [n.uid, n.interfaces[0]?.ip]));
     expect(ips).toEqual({ pc_a: '192.168.5.11', pc_b: undefined });
   });
 
   it('アドレスの候補は、使用中のアドレスに使っている機器を付けて一覧にする', () => {
-    const core = autoIpOn(ok(setSegment(wired(), 'pc_a', 0, '192.168.5.0', 24, env)).core);
+    const core = autoIpOn(ok(setPlan(wired(), 'pc_a', 0, '192.168.5.0', 24, env)).core);
     const list = addressCandidates(core, 'pc_a', 0, env);
     expect(list).toHaveLength(254);
     expect(list[0]).toEqual({ ip: '192.168.5.1', usedBy: null });
@@ -661,14 +661,14 @@ describe('IPアドレスとセグメントの設定', () => {
   });
 
   it('ネットワークの形式が正しくない、またはプレフィックス長が候補の外なら設定できない', () => {
-    expect(setSegment(wired(), 'pc_a', 0, '192.168.5.1', 24, env)).toEqual({ ok: false, reason: 'ip' });
-    expect(setSegment(wired(), 'pc_a', 0, '192.168.5.0', 16, env)).toEqual({ ok: false, reason: 'ip' });
+    expect(setPlan(wired(), 'pc_a', 0, '192.168.5.1', 24, env)).toEqual({ ok: false, reason: 'ip' });
+    expect(setPlan(wired(), 'pc_a', 0, '192.168.5.0', 16, env)).toEqual({ ok: false, reason: 'ip' });
   });
 
   it('案件で設定が固定された機器を含むセグメントは、ネットワークを変えられない', () => {
     const core = wired();
     const locked = { ...core, active: core.active.map((p) => ({ ...p, nodes: p.nodes.map((n) => ({ ...n, configLocked: true })) })) };
-    expect(setSegment(locked, 'pc_a', 0, '192.168.5.0', 24, env)).toEqual({ ok: false, reason: 'locked' });
+    expect(setPlan(locked, 'pc_a', 0, '192.168.5.0', 24, env)).toEqual({ ok: false, reason: 'locked' });
   });
 
   it('ホスト数に対してアドレスが足りないネットワークは設定できない（segment.too_small）', () => {
@@ -704,12 +704,12 @@ describe('IPアドレスとセグメントの設定', () => {
       seq: 4,
       furniture: [],
       furnitureSeq: 0,
-      segments: {},
+      plans: {},
       bought: ['wood' as const],
     };
     const core: Core = { ...start(), office };
-    expect(setSegment(core, 'a', 0, '192.168.9.0', 30, env, 'office')).toEqual({ ok: false, reason: 'segment.too_small' });
-    expect(setSegment(core, 'a', 0, '192.168.9.0', 24, env, 'office').ok).toBe(true);
+    expect(setPlan(core, 'a', 0, '192.168.9.0', 30, env, 'office')).toEqual({ ok: false, reason: 'segment.too_small' });
+    expect(setPlan(core, 'a', 0, '192.168.9.0', 24, env, 'office').ok).toBe(true);
   });
 });
 
@@ -787,13 +787,13 @@ describe('配線の前のIPアドレス（PC・サーバー）', () => {
   it('配線していないPCにIPアドレスを設定でき、セグメントはまだ作られない', () => {
     const core = ok(setInterface(unwired(), 'pc_a', 0, '192.168.1.10', 24, env)).core;
     expect(cur(core)?.nodes.find((n) => n.uid === 'pc_a')?.interfaces).toEqual([{ id: "eth0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }]);
-    expect(cur(core)?.segments ?? {}).toEqual({});
+    expect(cur(core)?.plans ?? {}).toEqual({});
   });
 
   it('配線すると、入力したアドレスの /24 がセグメントの設定になる', () => {
     let core = ok(setInterface(unwired(), 'pc_a', 0, '192.168.1.10', 24, env)).core;
     core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
-    expect(cur(core)?.segments).toEqual({ 'pc_a:0': { network: '192.168.1.0', prefix: 24 } });
+    expect(cur(core)?.plans).toEqual({ 'pc_a:0': { network: '192.168.1.0', prefix: 24 } });
     expect(designIssues(cur(core)!, env)).toEqual({ pc_b: { reason: 'ip.unset' } });
   });
 
@@ -801,7 +801,7 @@ describe('配線の前のIPアドレス（PC・サーバー）', () => {
     let core = ok(setInterface(unwired(), 'pc_a', 0, '192.168.1.10', 24, env)).core;
     core = ok(setInterface(core, 'pc_b', 0, '192.168.1.11', 24, env)).core;
     core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
-    expect(cur(core)?.segments).toEqual({ 'pc_a:0': { network: '192.168.1.0', prefix: 24 } });
+    expect(cur(core)?.plans).toEqual({ 'pc_a:0': { network: '192.168.1.0', prefix: 24 } });
     expect(designIssues(cur(core)!, env)).toEqual({});
     const r = testDesign(core, env);
     if (!r.ok) throw new Error(r.reason);
@@ -820,7 +820,7 @@ describe('配線の前のIPアドレス（PC・サーバー）', () => {
   it('設定の前と後で候補の範囲と順は同じ（.1 からブロードキャストの1つ前まで）', () => {
     const linked = ok(connect(unwired(), 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
     const before = plannedAddressCandidates(linked, '192.168.5.0', 24);
-    const after = addressCandidates(ok(setSegment(linked, 'pc_a', 0, '192.168.5.0', 24, env)).core, 'pc_a', 0, env);
+    const after = addressCandidates(ok(setPlan(linked, 'pc_a', 0, '192.168.5.0', 24, env)).core, 'pc_a', 0, env);
     expect(after.map((c) => c.ip)).toEqual(before.map((c) => c.ip));
     expect(before[0].ip).toBe('192.168.5.1');
     expect(before[before.length - 1].ip).toBe('192.168.5.254');

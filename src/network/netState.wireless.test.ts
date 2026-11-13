@@ -21,7 +21,7 @@ const build = (laptopX: number): Network => ({
     n('lap', 'laptop', [f(0, '192.168.1.20')], '192.168.1.1', laptopX, 0, WIFI),
   ],
   links: [l('l0', 'pc', 0, 'sw', 0), l('l1', 'sw', 1, 'ap', 0)],
-  segments: {},
+  plans: {},
 });
 
 describe('電波の範囲（N151）', () => {

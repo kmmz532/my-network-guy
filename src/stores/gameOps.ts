@@ -100,7 +100,7 @@ export const createOps = (set: Set, get: () => GameState) => {
       before !== null &&
       after !== null &&
       before.id === after.id &&
-      (before.nodes !== after.nodes || before.links !== after.links || before.segments !== after.segments);
+      (before.nodes !== after.nodes || before.links !== after.links || before.plans !== after.plans);
     set(withLevelUps(get(), {
       lastError: null,
       ...(redesigned || (sandbox && c.office !== get().office) ? { check: null, helpUid: null } : {}),

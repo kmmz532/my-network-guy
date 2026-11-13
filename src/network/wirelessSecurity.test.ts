@@ -22,7 +22,7 @@ const build = (security: WirelessSecurity | undefined, device: string, password 
     n('cl', device, [f(0, '192.168.1.20')], 4, { ssid: 'home', password }),
   ],
   links: [l('a', 'pc', 0, 'sw', 0), l('b', 'sw', 1, 'ap', 0)],
-  segments: {},
+  plans: {},
 });
 
 describe('無線の方式', () => {

@@ -8,10 +8,10 @@ import { stageRouting } from './routing';
 import { assignDhcp, type DhcpResult } from '../../dhcp';
 import { electVrrpMaster, type VrrpMember } from '../../vrrp';
 import { isL2Category, isRelayPort, isRoutingCategory } from '../../category';
-import { epKey, hostCapacity, segmentConfigOf, type Segment } from '../../segments';
-import type { Iface, NetNode, Network, SegmentConfig } from '../../types';
+import { epKey, hostCapacity, planFor } from '../../segments';
+import type { Iface, NetNode, Network, NetworkPlan } from '../../types';
 import { deviceCategory } from '../../../registry/query';
-import type { L2Layer } from './l2';
+import type { L2Layer, PlanDomain } from './l2';
 import type { LinkLayer } from './links';
 
 // 機器の不備の種類（sim-3 の失敗の理由）
@@ -60,21 +60,21 @@ export interface AddressLayer {
   vrrpOwns(uid: string, port: number, ip: string): boolean;
 }
 
-const label = (cfg: SegmentConfig): string => `${cfg.network}/${cfg.prefix}`;
+const label = (cfg: NetworkPlan): string => `${cfg.network}/${cfg.prefix}`;
 
-const complete = (input: Network, segs: Segment[]): { net: Network; issues: Record<string, IssueDetail> } => {
+const complete = (input: Network, segs: readonly PlanDomain[]): { net: Network; issues: Record<string, IssueDetail> } => {
   const byUid = new Map(input.nodes.map((n) => [n.uid, n]));
   const cat = (n: NetNode) => deviceCategory(n.device);
   const fixed = (n: NetNode) => n.configLocked && n.interfaces.length > 0;
   const ifaceOf = (n: NetNode, port: number): Iface | undefined => n.interfaces.find((i) => i.port === port);
 
-  // セグメントごとの設定と、端点からセグメントを引く表
-  const cfgOf = new Map<string, SegmentConfig>();
-  const segOf = new Map<string, Segment>();
+  // L2 ドメインごとの計画と、端点から L2 ドメインを引く表（無線の端末は含めない。端点が複数のドメインに入るときは鍵の小さい方）
+  const cfgOf = new Map<string, NetworkPlan>();
+  const segOf = new Map<string, PlanDomain>();
   for (const seg of segs) {
-    const cfg = segmentConfigOf(seg, byUid, input.segments);
+    const cfg = planFor(seg, byUid, input.plans);
     if (cfg) cfgOf.set(seg.key, cfg);
-    for (const m of seg.members) segOf.set(epKey(m.node, m.port), seg);
+    for (const m of seg.members) if (!segOf.has(epKey(m.node, m.port))) segOf.set(epKey(m.node, m.port), seg);
   }
 
   const issues: Record<string, IssueDetail> = {};
@@ -134,7 +134,7 @@ const complete = (input: Network, segs: Segment[]): { net: Network; issues: Reco
   }
 
   // ホストのデフォルトゲートウェイは、同じセグメントにあるルーターのポートのアドレス（最も小さいもの）
-  const routerIpsOf = (seg: Segment): string[] =>
+  const routerIpsOf = (seg: PlanDomain): string[] =>
     seg.members
       .filter((m) => isRoutingCategory(cat(byUid.get(m.node)!)))
       .map((m) => ifaceOf(byUid.get(m.node)!, m.port)?.ip)
@@ -175,7 +175,7 @@ const complete = (input: Network, segs: Segment[]): { net: Network; issues: Reco
     return { ...n, interfaces, gateway: gatewayOf.get(n.uid) ?? null, routes: n.routes };
   });
 
-  return { net: { nodes, links: input.links, segments: input.segments }, issues };
+  return { net: { nodes, links: input.links, plans: input.plans }, issues };
 };
 
 // VRRP の持ち主。同じブロードキャストドメインで同じ VRID を持つ、動いているインターフェースの中から選ぶ
@@ -248,8 +248,8 @@ const withLeases = (net: Network, dhcp: DhcpResult): Network => ({
 });
 
 export const stageAddressing = (input: Network, links: LinkLayer, l2: L2Layer): AddressLayer => {
-  // セグメントは保存の配線から求める（無線の仮想の配線は入れない）
-  const { net: completed, issues } = complete(input, l2.segments);
+  // 計画は L2 ドメインで引く。無線の端末は計画の不備とゲートウェイの補完の対象にしない
+  const { net: completed, issues } = complete(input, l2.planDomains);
   // 無線の仮想の配線と口の設定は、配線の層の構成から取り、補完を入れた機器に重ねる
   const portsOf = new Map(links.net.nodes.map((n) => [n.uid, n.ports]));
   const before: Network = { ...completed, nodes: completed.nodes.map((n) => (portsOf.get(n.uid) === n.ports ? n : { ...n, ports: portsOf.get(n.uid) ?? n.ports })), links: links.net.links };

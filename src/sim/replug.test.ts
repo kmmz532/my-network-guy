@@ -21,7 +21,7 @@ import { autoAssign } from './autoAssign';
 import { connect, focusedOf, stateOfProject, type Core, type Env } from './project';
 import { accept, advanceBuild, requestBuild, testDesign } from './progress';
 import { placeDevice, placeInOffice, replug } from './placement';
-import { setInterface, setService, setSegment } from './netEdit';
+import { setInterface, setService, setPlan } from './netEdit';
 
 const balance = balanceJson as unknown as Balance;
 const map = officeJson as unknown as GameMap;
@@ -53,7 +53,7 @@ const start = (): Core => ({
   offers: [offerOf(c001, 'c001_direct_link'), offerOf(i002, 'i002_office_server'), offerOf(c004, 'c004_web_server')],
   active: [],
   focus: null,
-  office: { bought: ['wood' as const], segments: {},
+  office: { bought: ['wood' as const], plans: {},
     size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [],
     nodes: [],
     links: [],
@@ -149,7 +149,7 @@ describe('サービスの起動と停止（setService）', () => {
   it('停止すると HTTP の判定が不合格になり、起動すると合格になる', () => {
     let core = officeServer();
     core = ok(connect(core, 'u0', 'u1', 'utp_cat5e', env)).core;
-    core = ok(setSegment(core, 'u0', 0, '192.168.1.0', 24, env)).core;
+    core = ok(setPlan(core, 'u0', 0, '192.168.1.0', 24, env)).core;
     core = autoAssign(core, env, 'focus', true);
     const contract = i002 as unknown as Contract;
     const passed = (c: Core) => evaluateContract(contract, stateOfProject(cur(c), env)).passed;
@@ -175,10 +175,10 @@ describe('サーバーを置いて配線しIPを設定すると HTTP に合格�
     core = ok(placeDevice(core, 'pc_basic', 3, 3, map, env)).core;
     core = ok(placeDevice(core, 'server_basic', 6, 6, map, env)).core;
     core = ok(connect(core, 'u0', 'u1', 'utp_cat5e', env)).core;
-    core = ok(setSegment(core, 'u0', 0, '192.168.1.0', 24, env)).core;
+    core = ok(setPlan(core, 'u0', 0, '192.168.1.0', 24, env)).core;
     core = ok(setInterface(core, 'u1', 0, '192.168.1.10', 24, env)).core;
     core = ok(setInterface(core, 'u0', 0, '192.168.1.11', 24, env)).core;
-    expect(analyze({ nodes: cur(core).nodes, links: cur(core).links, segments: cur(core).segments }, env.engine).addressing.issues).toEqual({});
+    expect(analyze({ nodes: cur(core).nodes, links: cur(core).links, plans: cur(core).plans }, env.engine).addressing.issues).toEqual({});
     const tested = testDesign(core, env);
     if (!tested.ok || !tested.result.passed) throw new Error('テストに合格しない');
     core = ok(requestBuild(tested.core, env)).core;

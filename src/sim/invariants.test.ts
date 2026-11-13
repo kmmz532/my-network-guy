@@ -39,7 +39,7 @@ const start = (): Core => ({
   active: [],
   focus: null,
   office: { bought: ['wood' as const],
-    segments: {},
+    plans: {},
     size: { w: 5, h: 5 },
     innerWalls: [],
     doors: [],

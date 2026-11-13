@@ -55,12 +55,12 @@ const solved = (neighborB: boolean): Network => ({
     link('4', 'edge', 1, 'isp_a', 0),
     link('5', 'edge', 2, 'isp_b', 0),
   ],
-  segments: {},
+  plans: {},
 });
 
 describe('案件 b001: 2社の ISP', () => {
   it('置いたままでは不合格', () => {
-    const net: Network = { nodes: contract.placed.map((p) => node(p.ref)), links: [], segments: {} };
+    const net: Network = { nodes: contract.placed.map((p) => node(p.ref)), links: [], plans: {} };
     expect(contract.goals.flatMap((g) => evaluateGoal(g, analyze(net, data))).some((r) => r.ok)).toBe(false);
   });
   it('2社の ISP と eBGP の隣接を張ると、2つの達成条件を満たす', () => {

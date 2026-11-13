@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { balance, lessons } from 'virtual:game-data';
 import { gameEnv } from '../sim/env';
-import { lessonLinks, lessonNodes, lessonSegments } from '../sim/lesson';
+import { lessonLinks, lessonNodes, lessonPlans } from '../sim/lesson';
 import { initialOffice, moveFurniture, placeFurniture, removeFurniture } from '../sim/furniture';
 import { sandboxClock, sandboxOffice } from '../sim/sandbox';
 import { buyDevice, sellDevice } from '../sim/shop';
@@ -65,7 +65,7 @@ const lessonCore = (): Core => {
     params: {},
     nodes,
     links,
-    segments: lessonSegments(nodes, links, env.engine),
+    plans: lessonPlans(nodes, links, env.engine),
     seq: nodes.length + 1,
     cost: 0,
     rework: 0,

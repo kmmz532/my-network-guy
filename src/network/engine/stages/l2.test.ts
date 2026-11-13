@@ -11,7 +11,7 @@ const node = (uid: string, device: string, serial: number, extra: Partial<NetNod
 const link = (uid: string, a: string, pa: number, b: string, pb: number): NetLink =>
   ({ uid, cable: 'utp_cat5e', a: { node: a, port: pa }, b: { node: b, port: pb }, path: [[0, 0], [1, 0]], paid: 0 });
 const access = (port: number, vlan: number): PortConfig => ({ port, mode: 'access', vlan });
-const layers = (net: Network) => stageL2(net, stageLinks(net, world), net, world);
+const layers = (net: Network) => stageL2(net, stageLinks(net, world));
 
 describe('stageL2', () => {
   it('VLAN が違う口は別のドメインになり、鍵は最も小さい端点になる', () => {
@@ -23,7 +23,7 @@ describe('stageL2', () => {
         node('p3', 'pc_basic', 4),
       ],
       links: [link('a', 'p1', 0, 'sw', 0), link('b', 'p2', 0, 'sw', 1), link('c', 'p3', 0, 'sw', 2)],
-      segments: {},
+      plans: {},
     };
     const l2 = layers(net);
     const d10 = l2.domainOf({ node: 'p1', port: 0 });
@@ -37,7 +37,7 @@ describe('stageL2', () => {
     const net: Network = {
       nodes: [node('sw1', 'l2_switch_8p', 1), node('sw2', 'l2_switch_8p', 2), node('sw3', 'l2_switch_8p', 3)],
       links: [link('a', 'sw1', 0, 'sw2', 0), link('b', 'sw1', 1, 'sw3', 0), link('c', 'sw2', 1, 'sw3', 1)],
-      segments: {},
+      plans: {},
     };
     const l2 = layers(net);
     expect(l2.stp().root).toBe('sw1');
@@ -49,7 +49,7 @@ describe('stageL2', () => {
     const net: Network = {
       nodes: [node('ap1', 'access_point', 1), node('ap2', 'access_point', 2), node('ap3', 'access_point', 3)],
       links: [link('a', 'ap1', 0, 'ap2', 0), link('b', 'ap2', 1, 'ap3', 0), link('c', 'ap3', 1, 'ap1', 1)],
-      segments: {},
+      plans: {},
     };
     expect(layers(net).domainOf({ node: 'ap1', port: 0 }).loop).toBeDefined();
   });

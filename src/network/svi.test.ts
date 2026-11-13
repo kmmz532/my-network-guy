@@ -34,7 +34,7 @@ const build = (svi: boolean): Network => {
   return {
     nodes: [pc('pc1', '192.168.10.10', '192.168.10.1'), pc('pc2', '192.168.10.11', '192.168.10.1'), pc('pc3', '192.168.20.10', '192.168.20.1'), l3],
     links: [link('l1', 'pc1', 0, 'l3', 0), link('l2', 'pc2', 0, 'l3', 1), link('l3x', 'pc3', 0, 'l3', 2)],
-    segments: {},
+    plans: {},
   };
 };
 

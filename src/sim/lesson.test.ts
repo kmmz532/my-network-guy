@@ -4,12 +4,12 @@ import { deviceCategory } from '../registry/query';
 import ja from '../assets/lang/ja_jp.json';
 import type { Lesson } from '../data/schema';
 import type { EngineData } from '../network/types';
-import { lessonGoalResults, lessonLinks, lessonNodes, lessonSegments } from './lesson';
-import { segmentConfigOf } from '../network/segments';
+import { lessonGoalResults, lessonLinks, lessonNodes, lessonPlans } from './lesson';
+import { planFor } from '../network/segments';
 import { analyze } from '../network/engine/analyze';
 import type { Network } from '../network/types';
 
-const segmentsOf = (net: Network, data: EngineData) => analyze(net, data).l2.segments;
+const domainsOf = (net: Network, data: EngineData) => analyze(net, data).l2.planDomains;
 
 import { solutions } from '../__golden__/solutions';
 
@@ -71,13 +71,13 @@ describe('教材を開いた直後の網の設定', () => {
     const l = lesson('ospf_three_sites');
     const nodes = lessonNodes(l);
     const links = lessonLinks(l);
-    const segments = lessonSegments(nodes, links, engine);
+    const segments = lessonPlans(nodes, links, engine);
     const byUid = new Map(nodes.map((n) => [n.uid, n]));
-    const routerSegs = segmentsOf({ nodes, links }, engine).filter((seg) =>
+    const routerSegs = domainsOf({ nodes, links }, engine).filter((seg) =>
       seg.members.some((m) => deviceCategory(byUid.get(m.node)?.device ?? '') === 'router'),
     );
     expect(routerSegs.length).toBeGreaterThan(0);
-    for (const seg of routerSegs) expect(segmentConfigOf(seg, byUid, segments)).toBeDefined();
+    for (const seg of routerSegs) expect(planFor(seg, byUid, segments)).toBeDefined();
   });
 
   it('VRRP の教材: 初めは届かず、両側に VRRP を設定すると、どちらのルーターを止めても届く', () => {

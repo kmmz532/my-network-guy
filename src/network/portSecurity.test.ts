@@ -16,7 +16,7 @@ const build = (macs?: string[]): Network => {
     { uid: 'l0', cable: 'utp_cat5e', a: { node: 'a', port: 0 }, b: { node: 'sw', port: 1 }, path: [[0, 0], [1, 0]], paid: 0 },
     { uid: 'l1', cable: 'utp_cat5e', a: { node: 'b', port: 0 }, b: { node: 'sw', port: 2 }, path: [[0, 0], [1, 0]], paid: 0 },
   ];
-  return { nodes: [host('a', '192.168.1.10', 1, 0), sw, host('b', '192.168.1.20', 2, 2)], links, segments: {} };
+  return { nodes: [host('a', '192.168.1.10', 1, 0), sw, host('b', '192.168.1.20', 2, 2)], links, plans: {} };
 };
 const macA = macOf('pc', 1, 0);
 

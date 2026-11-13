@@ -49,7 +49,7 @@ const solved = (helper: boolean): Network => {
       ...left.map((p, i) => link(`l${p.ref}`, p.ref, 0, 'swl', i + 1)),
       ...right.map((p, i) => link(`l${p.ref}`, p.ref, 0, 'swr', i + 1)),
     ],
-    segments: {},
+    plans: {},
   };
 };
 

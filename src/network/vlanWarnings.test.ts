@@ -10,7 +10,7 @@ const warnings = (n: Network) => warningsOf(analyze(n, gameEnv.engine));
 const sw = (uid: string, ports: PortConfig[]): NetNode => ({ uid, device: 'l2_switch_8p', x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports }) as NetNode;
 const net = (a: PortConfig, b: PortConfig): Network => {
   const links: NetLink[] = [{ uid: 'l', cable: 'utp_cat5e', a: { node: 'a', port: a.port }, b: { node: 'b', port: b.port }, path: [[0, 0], [1, 0]], paid: 0 }];
-  return { nodes: [sw('a', [a]), sw('b', [b])], links, segments: {} };
+  return { nodes: [sw('a', [a]), sw('b', [b])], links, plans: {} };
 };
 
 describe('警告（VLAN）', () => {

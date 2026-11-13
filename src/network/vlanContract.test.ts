@@ -35,7 +35,7 @@ describe('案件 v001: 営業と経理を分ける', () => {
   const net = (vlans: [number, number, number, number]): Network => ({
     nodes: [...nodesOf(c), sw('sw', 'l2_switch_8p', vlans.map((vlan, port) => ({ port, mode: 'access' as const, vlan })))],
     links: ['sales_a', 'sales_b', 'acc_a', 'acc_b'].map((ref, i) => link(`l${i}`, ref, 0, 'sw', i)),
-    segments: {},
+    plans: {},
   });
   it('VLAN を分けなければ、通じるが分離の条件を満たさない', () => {
     expect(passes(c, net([1, 1, 1, 1]))).toEqual([true, true, false]);
@@ -62,7 +62,7 @@ describe('案件 v003: 部署の間をつなぎ、来客用を切り離す', () 
         ]),
       ],
       links: refs.map((ref, i) => link(`l${i}`, ref, 0, 'l3', i)),
-      segments: {},
+      plans: {},
     };
   };
   it('VLAN ごとの SVI で部署の間が通じ、SVI のない来客用の VLAN は切り離される', () => {
@@ -72,6 +72,6 @@ describe('案件 v003: 部署の間をつなぎ、来客用を切り離す', () 
     expect(passes(c, net(true))).toEqual([true, true]);
   });
   it('置いただけでは不合格', () => {
-    expect(passes(c, { nodes: nodesOf(c), links: [], segments: {} })[0]).toBe(false);
+    expect(passes(c, { nodes: nodesOf(c), links: [], plans: {} })[0]).toBe(false);
   });
 });

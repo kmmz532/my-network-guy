@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { NET_PALETTE, UNSET_COLOR, colorOfLink, colorOfNetwork, networkLabelOf } from './netColor';
 import { networkColors } from './query/networkColors';
 import { analyze } from './engine/analyze';
-import { neighborRouterAddresses, routerAddressesOn } from './segments';
+import { neighborRouterAddresses, routerAddressesOn } from './query/plans';
 import type { Iface } from './types';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
@@ -39,7 +39,7 @@ describe('ネットワークごとの色', () => {
         node('pc_d', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '10.0.0.6', prefix: 24 }]),
       ],
       links: [link('l0', ['pc_a', 0], ['pc_b', 0]), link('l1', ['pc_c', 0], ['pc_d', 0])],
-      segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 }, 'pc_c:0': { network: '10.0.0.0', prefix: 24 } },
+      plans: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 }, 'pc_c:0': { network: '10.0.0.0', prefix: 24 } },
     };
     const colors = networkColors(analyze(net, data));
     expect(colors.index.get('10.0.0.0')).toBe(0);
@@ -57,7 +57,7 @@ describe('ネットワークごとの色', () => {
     const net: Network = {
       nodes: [node('pc_a', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }]), node('pc_b', 'pc_basic')],
       links: [link('l0', ['pc_a', 0], ['pc_b', 0])],
-      segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
+      plans: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
     };
     const colors = networkColors(analyze(net, data));
     expect(colors.linkNetwork.get('l0')).toBeNull();
@@ -71,7 +71,7 @@ describe('ネットワークごとの色', () => {
         node('pc_b', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '10.0.0.12', prefix: 24 }]),
       ],
       links: [link('l0', ['pc_a', 0], ['pc_b', 0])],
-      segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
+      plans: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
     };
     expect(colorOfLink(networkColors(analyze(net, data)), 'l0')).toBe(UNSET_COLOR);
   });
@@ -84,7 +84,7 @@ describe('ネットワークごとの色', () => {
         node('sw', 'l2_switch_8p'),
       ],
       links: [link('l0', ['pc_a', 0], ['sw', 0]), link('l1', ['pc_b', 0], ['sw', 1])],
-      segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
+      plans: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
     };
     const colors = networkColors(analyze(net, data));
     expect(colorOfLink(colors, 'l0')).toBe(NET_PALETTE[0]);
@@ -102,12 +102,12 @@ describe('ネットワークごとの色', () => {
     const swSideA: Network = {
       nodes,
       links: [link('l0', ['sw', 0], ['rt', 0]), link('l1', ['sw', 1], ['pc_a', 0])],
-      segments,
+      plans: segments,
     };
     const routerSideA: Network = {
       nodes,
       links: [link('l0', ['rt', 0], ['sw', 0]), link('l1', ['pc_a', 0], ['sw', 1])],
-      segments,
+      plans: segments,
     };
     for (const net of [swSideA, routerSideA]) {
       const colors = networkColors(analyze(net, data));
@@ -126,7 +126,7 @@ describe('ネットワークごとの色', () => {
         node('sw', 'l2_switch_8p'),
       ],
       links: [link('l0', ['sw', 0], ['pc_a', 0]), link('l1', ['sw', 1], ['pc_b', 0])],
-      segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
+      plans: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
     };
     const colors = networkColors(analyze(net, data));
     expect(colorOfLink(colors, 'l0')).toBe(NET_PALETTE[0]);
@@ -146,15 +146,15 @@ describe('ルーターのアドレスの候補', () => {
   };
 
   it('ホストと同じセグメントのルーターのアドレスを候補にする', () => {
-    expect(routerAddressesOn(analyze(net, data).l2.segments, net, 'pc_a', 0)).toEqual(['192.168.1.1']);
+    expect(routerAddressesOn(analyze(net, data), 'pc_a', 0)).toEqual(['192.168.1.1']);
   });
 
   it('ルーターがいないセグメントの候補は空になる', () => {
     const noRouter: Network = { nodes: [node('pc_a', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.9.11', prefix: 24 }]), node('pc_b', 'pc_basic')], links: [link('l0', ['pc_a', 0], ['pc_b', 0])] };
-    expect(routerAddressesOn(analyze(noRouter, data).l2.segments, noRouter, 'pc_a', 0)).toEqual([]);
+    expect(routerAddressesOn(analyze(noRouter, data), 'pc_a', 0)).toEqual([]);
   });
 
   it('ネクストホップは、つながるセグメントにいるほかのルーターのアドレス', () => {
-    expect(neighborRouterAddresses(analyze(net, data).l2.segments, net, 'rt')).toEqual(['10.0.0.2']);
+    expect(neighborRouterAddresses(analyze(net, data), 'rt')).toEqual(['10.0.0.2']);
   });
 });

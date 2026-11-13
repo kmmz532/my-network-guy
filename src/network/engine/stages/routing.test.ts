@@ -25,13 +25,13 @@ const net: Network = {
     }),
   ],
   links: [link('l0', 'r1', 0, 'r2', 0), link('l1', 'r2', 1, 'r3', 0)],
-  segments: {},
+  plans: {},
 };
 
 describe('stageRouting', () => {
   it('静的・OSPF・BGP の経路が1件ずつ出る', () => {
     const links = stageLinks(net, gameEnv.engine);
-    const routing = stageRouting(links.net, stageL2(links.net, links, net, gameEnv.engine));
+    const routing = stageRouting(links.net, stageL2(links.net, links));
     const routes = routing.routesOf('r2');
     expect(routes.map((r) => [r.dest, r.protocol ?? 'static'])).toEqual([
       ['10.9.0.0', 'static'],

@@ -29,7 +29,7 @@ const copyBlueprint = (core: Core, p: Project, bp: Blueprint, env: Env): Outcome
     ...p,
     nodes: [...bp.nodes, ...missing],
     links: [...bp.links],
-    segments: { ...bp.segments },
+    plans: { ...bp.plans },
     seq: Math.max(p.seq, ...numbers) + 1,
     // 固定の機器は、依頼の時点で置かれている（施工済みとして扱う）。型紙の配線と増えた配線は、施工が必要
     built: { nodes: fixed.map((n) => n.uid), links: [] },
@@ -126,7 +126,7 @@ export const accept = (core: Core, offerId: string, slots: number, crew: string[
     due: dueDayOf(core.clock.minute, offer.contract.deadlineDays),
     crew,
     // 自社案件は、自社オフィスのセグメントの設定を引き継ぐ
-    segments: inhouse ? { ...office.segments } : {},
+    plans: inhouse ? { ...office.plans } : {},
   };
   return {
     ok: true,
@@ -336,7 +336,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
     const reputation = core.reputation + stars;
     // 自社案件は、納品したネットワークを自社オフィスとして残し、効果を加える
     const office: Office = p.contract.inhouse
-      ? { ...core.office, nodes: p.nodes, links: p.links, seq: p.seq, segments: p.segments }
+      ? { ...core.office, nodes: p.nodes, links: p.links, seq: p.seq, plans: p.plans }
       : core.office;
     const effects = { buildSpeed: core.effects.buildSpeed + (p.contract.effect?.buildSpeed ?? 0) };
     // 報酬の機器はインベントリに入る（自社案件の報酬）
@@ -355,7 +355,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
         reputation,
         completed: p.kind === 'fixed' ? [...core.completed, p.baseId] : core.completed,
         // なじみの依頼: ★2以上の納品を数え、設計を型紙として覚える（自社案件は対象外）（N70）
-        familiarity: p.contract.inhouse ? core.familiarity : recordDelivery(core.familiarity, familiarKeyOf(p.kind, p.baseId, p.contract.map), stars, { nodes: p.nodes, links: p.links, segments: p.segments }),
+        familiarity: p.contract.inhouse ? core.familiarity : recordDelivery(core.familiarity, familiarKeyOf(p.kind, p.baseId, p.contract.map), stars, { nodes: p.nodes, links: p.links, plans: p.plans }),
         deliveries: core.deliveries + 1,
       },
       report: {

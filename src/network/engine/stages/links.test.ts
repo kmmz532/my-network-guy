@@ -5,6 +5,7 @@ import { cableMaxLength } from '../../../registry/query';
 import type { Iface, NetLink, NetNode, Network, PortConfig } from '../../types';
 import { stageLinks } from './links';
 import { analyze } from '../analyze';
+import { planDomainOf, planOf } from '../../query/plans';
 
 const world = gameEnv.engine;
 const node = (uid: string, device: string, serial: number, extra: Partial<NetNode> = {}): NetNode =>
@@ -19,29 +20,30 @@ describe('stageLinks', () => {
     const net: Network = {
       nodes: [node('ap', 'access_point', 1, { x: 2, wireless: wifi }), node('lap', 'laptop', 2, { x: 4, wireless: wifi })],
       links: [],
-      segments: {},
+      plans: {},
     };
     const layer = stageLinks(net, world);
     expect(layer.associations.map((p) => [p.ap.uid, p.client.uid])).toEqual([['ap', 'lap']]);
     expect(layer.net.links.map((l) => l.uid)).toEqual(['__wifi_lap']);
   });
 
-  it('画面のためのセグメントには、無線の端末がアクセスポイントと同じセグメントに入る', () => {
+  it('無線の端末は、アクセスポイントの L2 ドメインの計画を引く（鍵には使わない）', () => {
     const wifi = { ssid: 'home', password: 'pass1234' };
     const net: Network = {
       nodes: [node('ap', 'access_point', 1, { x: 2, wireless: wifi }), node('lap', 'laptop', 2, { x: 4, wireless: wifi }), node('pc', 'pc_basic', 3)],
       links: [link('w', 'pc', 0, 'ap', 0)],
-      segments: {},
+      plans: { 'pc:0': { network: '192.168.1.0', prefix: 24 } },
     };
-    const seg = analyze(net, world).viewSegments.find((s) => s.members.some((m) => m.node === 'lap'));
-    expect(seg?.members.map((m) => m.node).sort()).toEqual(['lap', 'pc']);
+    const state = analyze(net, world);
+    expect(planDomainOf(state, { node: 'lap', port: 0 })).toEqual({ key: 'pc:0', members: [{ node: 'pc', port: 0 }], wireless: [{ node: 'lap', port: 0 }] });
+    expect(planOf(state, { node: 'lap', port: 0 })).toEqual({ network: '192.168.1.0', prefix: 24 });
   });
 
   it('同じ2台の間の2本の配線は、1つの論理リンクにまとまる', () => {
     const net: Network = {
       nodes: [node('sw1', 'l2_switch_8p', 1, { ports: [lag(0), lag(1)] }), node('sw2', 'l2_switch_8p', 2, { ports: [lag(0), lag(1)] })],
       links: [link('x', 'sw1', 0, 'sw2', 0), link('y', 'sw1', 1, 'sw2', 1)],
-      segments: {},
+      plans: {},
     };
     const layer = stageLinks(net, world);
     expect(layer.lag.bundles).toHaveLength(1);
@@ -55,7 +57,7 @@ describe('stageLinks', () => {
         node('sw2', 'l2_switch_8p', 2, { powered: false }),
       ],
       links: [link('x', 'sw1', 0, 'sw2', 0)],
-      segments: {},
+      plans: {},
     };
     const layer = stageLinks(net, world);
     expect(layer.isShut('sw1', 0)).toBe(true);
@@ -68,7 +70,7 @@ describe('stageLinks', () => {
     const net: Network = {
       nodes: [node('sw1', 'l2_switch_8p', 1), node('sw2', 'l2_switch_8p', 2)],
       links: [link('near', 'sw1', 0, 'sw2', 0), link('far', 'sw1', 1, 'sw2', 1, [[0, 0], [far, 0]])],
-      segments: {},
+      plans: {},
     };
     const layer = stageLinks(net, world);
     expect([...layer.tooLong]).toEqual(['far']);

@@ -27,7 +27,7 @@ const twoIsps = (opts: { prependA?: number; localPrefA?: number }): Network => (
     router('b', [f(0, '10.0.2.2')], { asn: 300, neighbors: [{ ip: '10.0.2.1', remoteAs: 100 }], networks: [DEST] }),
   ],
   links: [link('l1', 'r0', 0, 'a', 0), link('l2', 'r0', 1, 'b', 0)],
-  segments: {},
+  plans: {},
 });
 
 const chosen = (net: Network) => bgpTableOf(analyze(net, data), 'r0')!.candidates.find((c) => c.best && c.dest === DEST.dest);
@@ -53,7 +53,7 @@ const ibgp = (nextHopSelf: boolean): Network => ({
     router('r3', [f(0, '10.0.23.3')], { asn: 100, neighbors: [{ ip: '10.0.23.2', remoteAs: 100 }], networks: [] }),
   ],
   links: [link('l1', 'isp', 0, 'r1', 0), link('l2', 'r1', 1, 'r2', 0), link('l3', 'r2', 1, 'r3', 0)],
-  segments: {},
+  plans: {},
 });
 
 describe('iBGP', () => {

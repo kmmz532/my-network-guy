@@ -19,7 +19,7 @@ const build = (): Network => ({
     n('pb', [f(0, '10.0.2.10')], 3),
   ],
   links: [l('l0', 'pa', 0, 'r1', 0), l('l1', 'r1', 1, 'r2', 0), l('l2', 'r2', 1, 'pb', 0)],
-  segments: {},
+  plans: {},
 });
 
 describe('ospf.no_neighbor（N142）', () => {

@@ -31,7 +31,7 @@ const link = (uid: string, a: string, pa: number, b: string, pb: number): NetLin
 const oneSwitch = (cfgA: PortConfig[] = [], cfgB: PortConfig[] = []): Network => ({
   nodes: [node('pa', 'pc_basic', '10.0.0.1', [], 0), node('pb', 'pc_basic', '10.0.0.2', [], 2), node('sw', 'l2_switch_8p', null, [...cfgA, ...cfgB], 1)],
   links: [link('l0', 'pa', 0, 'sw', 0), link('l1', 'pb', 0, 'sw', 1)],
-  segments: {},
+  plans: {},
 });
 
 describe('口の設定と VLAN（N137）', () => {
@@ -67,7 +67,7 @@ describe('口の設定と VLAN（N137）', () => {
         node('s2', 'l2_switch_8p', null, [{ port: 0, mode: 'access', vlan: 10 }, { port: 1, mode: 'trunk', allowed, native: 1 }], 3),
       ],
       links: [link('l0', 'pa', 0, 's1', 0), link('l1', 'pb', 0, 's2', 0), link('t', 's1', 1, 's2', 1)],
-      segments: {},
+      plans: {},
     });
     expect(ping(analyze(build([10]), gameEnv.engine), 'pa', 'pb').ok).toBe(true);
     expect(ping(analyze(build([20]), gameEnv.engine), 'pa', 'pb').ok).toBe(false);

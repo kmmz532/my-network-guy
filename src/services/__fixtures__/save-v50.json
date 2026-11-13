@@ -1,0 +1,1283 @@
+{
+  "sandbox": {
+    "saveVersion": 50,
+    "data": {
+      "mode": "sandbox",
+      "name": "サンプル工房",
+      "clock": {
+        "minute": 540,
+        "money": 1000000000000,
+        "paidMonths": 0,
+        "bankrupt": false,
+        "ledger": null
+      },
+      "companyExp": 0,
+      "reputation": 0,
+      "expDay": 0,
+      "expToday": 0,
+      "owned": {},
+      "completed": [],
+      "deliveries": 0,
+      "familiarity": {
+        "counts": {},
+        "blueprints": {}
+      },
+      "offers": [],
+      "nextOfferMinute": 0,
+      "offerSeq": 0,
+      "newArrivals": {},
+      "rng": 693388713,
+      "active": [],
+      "focus": null,
+      "office": {
+        "bought": [
+          "wood"
+        ],
+        "size": {
+          "w": 15,
+          "h": 10
+        },
+        "innerWalls": [],
+        "doors": [],
+        "annexes": [],
+        "nodes": [
+          {
+            "uid": "srv",
+            "device": "server_basic",
+            "macSerial": 1,
+            "x": 1,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [
+              {
+                "id": "eth0",
+                "kind": "port",
+                "port": 0,
+                "ip": "10.0.0.2",
+                "prefix": 24
+              }
+            ],
+            "gateway": "10.0.0.1",
+            "routes": [],
+            "services": [],
+            "ports": [],
+            "dhcpPools": [
+              {
+                "network": "192.168.1.0",
+                "prefix": 24,
+                "start": "192.168.1.100",
+                "end": "192.168.1.150",
+                "gateway": "192.168.1.254"
+              }
+            ]
+          },
+          {
+            "uid": "r1",
+            "device": "router_basic",
+            "macSerial": 2,
+            "x": 3,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [
+              {
+                "id": "g0/0",
+                "kind": "port",
+                "port": 0,
+                "ip": "10.0.0.1",
+                "prefix": 24
+              },
+              {
+                "id": "g0/1",
+                "kind": "port",
+                "port": 1,
+                "ip": "192.168.1.1",
+                "prefix": 24,
+                "helper": "10.0.0.2",
+                "vrrp": [
+                  {
+                    "vrid": 1,
+                    "ip": "192.168.1.254",
+                    "priority": 110,
+                    "preempt": true
+                  }
+                ]
+              }
+            ],
+            "gateway": null,
+            "routes": [],
+            "services": [],
+            "ports": []
+          },
+          {
+            "uid": "r2",
+            "device": "router_basic",
+            "macSerial": 3,
+            "x": 3,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [
+              {
+                "id": "g0/1",
+                "kind": "port",
+                "port": 1,
+                "ip": "192.168.1.2",
+                "prefix": 24,
+                "vrrp": [
+                  {
+                    "vrid": 1,
+                    "ip": "192.168.1.254",
+                    "priority": 100,
+                    "preempt": true
+                  }
+                ]
+              }
+            ],
+            "gateway": null,
+            "routes": [],
+            "services": [],
+            "ports": []
+          },
+          {
+            "uid": "sw1",
+            "device": "l2_switch_8p",
+            "macSerial": 4,
+            "x": 5,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [],
+            "gateway": null,
+            "routes": [],
+            "services": [],
+            "ports": [
+              {
+                "port": 0,
+                "mode": "access",
+                "channelGroup": 1,
+                "lacp": "active"
+              },
+              {
+                "port": 1,
+                "mode": "access",
+                "channelGroup": 1,
+                "lacp": "active"
+              }
+            ]
+          },
+          {
+            "uid": "sw2",
+            "device": "l2_switch_8p",
+            "macSerial": 5,
+            "x": 7,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [],
+            "gateway": null,
+            "routes": [],
+            "services": [],
+            "ports": [
+              {
+                "port": 0,
+                "mode": "access",
+                "channelGroup": 1,
+                "lacp": "passive"
+              },
+              {
+                "port": 1,
+                "mode": "access",
+                "channelGroup": 1,
+                "lacp": "passive"
+              }
+            ]
+          },
+          {
+            "uid": "pc1",
+            "device": "pc_basic",
+            "macSerial": 6,
+            "x": 9,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [
+              {
+                "id": "eth0",
+                "kind": "port",
+                "port": 0,
+                "ip": "192.168.1.100",
+                "prefix": 24,
+                "dhcp": true
+              }
+            ],
+            "gateway": null,
+            "routes": [],
+            "services": [],
+            "ports": []
+          },
+          {
+            "uid": "ap",
+            "device": "access_point",
+            "macSerial": 7,
+            "x": 11,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [],
+            "gateway": null,
+            "routes": [],
+            "services": [],
+            "ports": [],
+            "wireless": {
+              "ssid": "sample",
+              "password": "sample-pass",
+              "security": "wpa2wpa3"
+            }
+          },
+          {
+            "uid": "lap",
+            "device": "laptop",
+            "macSerial": 8,
+            "x": 12,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [
+              {
+                "id": "eth0",
+                "kind": "port",
+                "port": 0,
+                "ip": "192.168.1.101",
+                "prefix": 24,
+                "dhcp": true
+              }
+            ],
+            "gateway": null,
+            "routes": [],
+            "services": [],
+            "ports": [],
+            "wireless": {
+              "ssid": "sample",
+              "password": "sample-pass"
+            }
+          }
+        ],
+        "links": [
+          {
+            "uid": "a",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "srv",
+              "port": 0
+            },
+            "b": {
+              "node": "r1",
+              "port": 0
+            },
+            "path": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "paid": 0
+          },
+          {
+            "uid": "b",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "r1",
+              "port": 1
+            },
+            "b": {
+              "node": "sw1",
+              "port": 7
+            },
+            "path": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "paid": 0
+          },
+          {
+            "uid": "c",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "r2",
+              "port": 1
+            },
+            "b": {
+              "node": "sw1",
+              "port": 6
+            },
+            "path": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "paid": 0
+          },
+          {
+            "uid": "d",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "sw1",
+              "port": 0
+            },
+            "b": {
+              "node": "sw2",
+              "port": 0
+            },
+            "path": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "paid": 0
+          },
+          {
+            "uid": "e",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "sw1",
+              "port": 1
+            },
+            "b": {
+              "node": "sw2",
+              "port": 1
+            },
+            "path": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "paid": 0
+          },
+          {
+            "uid": "f",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "sw2",
+              "port": 2
+            },
+            "b": {
+              "node": "pc1",
+              "port": 0
+            },
+            "path": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "paid": 0
+          },
+          {
+            "uid": "g",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "sw2",
+              "port": 3
+            },
+            "b": {
+              "node": "ap",
+              "port": 0
+            },
+            "path": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "paid": 0
+          }
+        ],
+        "seq": 20,
+        "furniture": [],
+        "furnitureSeq": 0,
+        "plans": {
+          "pc1:0": {
+            "network": "192.168.1.0",
+            "prefix": 24
+          },
+          "r1:0": {
+            "network": "10.0.0.0",
+            "prefix": 24
+          }
+        }
+      },
+      "effects": {
+        "buildSpeed": 0
+      },
+      "staff": [],
+      "staffSeq": 0,
+      "candidates": [],
+      "guidesDone": [],
+      "termsShown": [],
+      "sandboxLesson": null
+    }
+  },
+  "career": {
+    "saveVersion": 50,
+    "data": {
+      "mode": "career",
+      "name": "サンプル社",
+      "clock": {
+        "minute": 540,
+        "money": 1000000,
+        "paidMonths": 0,
+        "bankrupt": false,
+        "ledger": []
+      },
+      "companyExp": 0,
+      "reputation": 0,
+      "expDay": 0,
+      "expToday": 0,
+      "owned": {
+        "pc_basic": 2,
+        "plant": 1
+      },
+      "completed": [],
+      "deliveries": 0,
+      "familiarity": {
+        "counts": {},
+        "blueprints": {}
+      },
+      "offers": [
+        {
+          "id": "c001_direct_link",
+          "kind": "fixed",
+          "baseId": "c001_direct_link",
+          "params": {},
+          "contract": {
+            "id": "c001_direct_link",
+            "stage": 1,
+            "unlockLevel": 1,
+            "order": 10,
+            "requires": [],
+            "jobs": [
+              "network"
+            ],
+            "map": "office_small",
+            "budget": 5000,
+            "deadlineDays": 3,
+            "placed": [
+              {
+                "ref": "pc_a",
+                "device": "pc_basic",
+                "x": 3,
+                "y": 4,
+                "locked": true,
+                "name": "所長のPC"
+              },
+              {
+                "ref": "pc_b",
+                "device": "pc_basic",
+                "x": 10,
+                "y": 4,
+                "locked": true,
+                "name": "事務員のPC"
+              }
+            ],
+            "goals": [
+              {
+                "type": "ping",
+                "from": "pc_a",
+                "to": "pc_b"
+              }
+            ],
+            "reward": {
+              "money": 45000
+            },
+            "inhouse": false,
+            "manualIp": true
+          },
+          "arrivedMinute": 540
+        }
+      ],
+      "nextOfferMinute": 2880,
+      "offerSeq": 0,
+      "newArrivals": {},
+      "rng": 1932048087,
+      "active": [],
+      "focus": null,
+      "office": {
+        "bought": [
+          "wood"
+        ],
+        "size": {
+          "w": 5,
+          "h": 5
+        },
+        "innerWalls": [],
+        "doors": [],
+        "annexes": [],
+        "nodes": [
+          {
+            "uid": "srv",
+            "device": "server_basic",
+            "macSerial": 1,
+            "x": 1,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [
+              {
+                "id": "eth0",
+                "kind": "port",
+                "port": 0,
+                "ip": "10.0.0.2",
+                "prefix": 24
+              }
+            ],
+            "gateway": "10.0.0.1",
+            "routes": [],
+            "services": [],
+            "ports": [],
+            "dhcpPools": [
+              {
+                "network": "192.168.1.0",
+                "prefix": 24,
+                "start": "192.168.1.100",
+                "end": "192.168.1.150",
+                "gateway": "192.168.1.254"
+              }
+            ]
+          },
+          {
+            "uid": "r1",
+            "device": "router_basic",
+            "macSerial": 2,
+            "x": 3,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [
+              {
+                "id": "g0/0",
+                "kind": "port",
+                "port": 0,
+                "ip": "10.0.0.1",
+                "prefix": 24
+              },
+              {
+                "id": "g0/1",
+                "kind": "port",
+                "port": 1,
+                "ip": "192.168.1.1",
+                "prefix": 24,
+                "helper": "10.0.0.2",
+                "vrrp": [
+                  {
+                    "vrid": 1,
+                    "ip": "192.168.1.254",
+                    "priority": 110,
+                    "preempt": true
+                  }
+                ]
+              }
+            ],
+            "gateway": null,
+            "routes": [],
+            "services": [],
+            "ports": []
+          },
+          {
+            "uid": "r2",
+            "device": "router_basic",
+            "macSerial": 3,
+            "x": 3,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [
+              {
+                "id": "g0/1",
+                "kind": "port",
+                "port": 1,
+                "ip": "192.168.1.2",
+                "prefix": 24,
+                "vrrp": [
+                  {
+                    "vrid": 1,
+                    "ip": "192.168.1.254",
+                    "priority": 100,
+                    "preempt": true
+                  }
+                ]
+              }
+            ],
+            "gateway": null,
+            "routes": [],
+            "services": [],
+            "ports": []
+          },
+          {
+            "uid": "sw1",
+            "device": "l2_switch_8p",
+            "macSerial": 4,
+            "x": 5,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [],
+            "gateway": null,
+            "routes": [],
+            "services": [],
+            "ports": [
+              {
+                "port": 0,
+                "mode": "access",
+                "channelGroup": 1,
+                "lacp": "active"
+              },
+              {
+                "port": 1,
+                "mode": "access",
+                "channelGroup": 1,
+                "lacp": "active"
+              }
+            ]
+          },
+          {
+            "uid": "sw2",
+            "device": "l2_switch_8p",
+            "macSerial": 5,
+            "x": 7,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [],
+            "gateway": null,
+            "routes": [],
+            "services": [],
+            "ports": [
+              {
+                "port": 0,
+                "mode": "access",
+                "channelGroup": 1,
+                "lacp": "passive"
+              },
+              {
+                "port": 1,
+                "mode": "access",
+                "channelGroup": 1,
+                "lacp": "passive"
+              }
+            ]
+          },
+          {
+            "uid": "pc1",
+            "device": "pc_basic",
+            "macSerial": 6,
+            "x": 9,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [
+              {
+                "id": "eth0",
+                "kind": "port",
+                "port": 0,
+                "ip": "192.168.1.100",
+                "prefix": 24,
+                "dhcp": true
+              }
+            ],
+            "gateway": null,
+            "routes": [],
+            "services": [],
+            "ports": []
+          },
+          {
+            "uid": "ap",
+            "device": "access_point",
+            "macSerial": 7,
+            "x": 11,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [],
+            "gateway": null,
+            "routes": [],
+            "services": [],
+            "ports": [],
+            "wireless": {
+              "ssid": "sample",
+              "password": "sample-pass",
+              "security": "wpa2wpa3"
+            }
+          },
+          {
+            "uid": "lap",
+            "device": "laptop",
+            "macSerial": 8,
+            "x": 12,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [
+              {
+                "id": "eth0",
+                "kind": "port",
+                "port": 0,
+                "ip": "192.168.1.101",
+                "prefix": 24,
+                "dhcp": true
+              }
+            ],
+            "gateway": null,
+            "routes": [],
+            "services": [],
+            "ports": [],
+            "wireless": {
+              "ssid": "sample",
+              "password": "sample-pass"
+            }
+          }
+        ],
+        "links": [
+          {
+            "uid": "a",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "srv",
+              "port": 0
+            },
+            "b": {
+              "node": "r1",
+              "port": 0
+            },
+            "path": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "paid": 0
+          },
+          {
+            "uid": "b",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "r1",
+              "port": 1
+            },
+            "b": {
+              "node": "sw1",
+              "port": 7
+            },
+            "path": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "paid": 0
+          },
+          {
+            "uid": "c",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "r2",
+              "port": 1
+            },
+            "b": {
+              "node": "sw1",
+              "port": 6
+            },
+            "path": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "paid": 0
+          },
+          {
+            "uid": "d",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "sw1",
+              "port": 0
+            },
+            "b": {
+              "node": "sw2",
+              "port": 0
+            },
+            "path": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "paid": 0
+          },
+          {
+            "uid": "e",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "sw1",
+              "port": 1
+            },
+            "b": {
+              "node": "sw2",
+              "port": 1
+            },
+            "path": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "paid": 0
+          },
+          {
+            "uid": "f",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "sw2",
+              "port": 2
+            },
+            "b": {
+              "node": "pc1",
+              "port": 0
+            },
+            "path": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "paid": 0
+          },
+          {
+            "uid": "g",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "sw2",
+              "port": 3
+            },
+            "b": {
+              "node": "ap",
+              "port": 0
+            },
+            "path": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ]
+            ],
+            "paid": 0
+          }
+        ],
+        "seq": 20,
+        "furniture": [
+          {
+            "uid": "f0",
+            "id": "desk",
+            "x": 2,
+            "y": 3
+          },
+          {
+            "uid": "f1",
+            "id": "desk",
+            "x": 4,
+            "y": 3
+          }
+        ],
+        "furnitureSeq": 2,
+        "plans": {
+          "pc1:0": {
+            "network": "192.168.1.0",
+            "prefix": 24
+          },
+          "r1:0": {
+            "network": "10.0.0.0",
+            "prefix": 24
+          }
+        }
+      },
+      "effects": {
+        "buildSpeed": 0
+      },
+      "staff": [
+        {
+          "uid": "s0",
+          "shift": "day",
+          "name": "staff.name.15",
+          "look": "green_dark_long",
+          "quirk": "q10",
+          "job": "network",
+          "level": 1,
+          "exp": 0,
+          "salary": 200000,
+          "certs": [],
+          "hiredMonth": 0,
+          "leaving": false,
+          "training": null,
+          "desk": "f0",
+          "levelCap": 10
+        },
+        {
+          "uid": "s1",
+          "shift": "day",
+          "name": "staff.name.60",
+          "look": "blue_brown_long",
+          "quirk": "q7",
+          "job": "infra",
+          "level": 1,
+          "exp": 0,
+          "salary": 200000,
+          "certs": [],
+          "hiredMonth": 0,
+          "leaving": false,
+          "training": null,
+          "desk": "f1",
+          "levelCap": 10
+        }
+      ],
+      "staffSeq": 2,
+      "candidates": [],
+      "guidesDone": [],
+      "termsShown": [],
+      "sandboxLesson": null
+    }
+  },
+  "lesson": {
+    "saveVersion": 50,
+    "data": {
+      "mode": "sandbox",
+      "name": "サンプル教材",
+      "clock": {
+        "minute": 540,
+        "money": 1000000000000,
+        "paidMonths": 0,
+        "bankrupt": false,
+        "ledger": null
+      },
+      "companyExp": 0,
+      "reputation": 0,
+      "expDay": 0,
+      "expToday": 0,
+      "owned": {},
+      "completed": [],
+      "deliveries": 0,
+      "familiarity": {
+        "counts": {},
+        "blueprints": {}
+      },
+      "offers": [],
+      "nextOfferMinute": 0,
+      "offerSeq": 0,
+      "newArrivals": {},
+      "rng": 1463652079,
+      "active": [],
+      "focus": null,
+      "office": {
+        "bought": [
+          "wood"
+        ],
+        "size": {
+          "w": 15,
+          "h": 10
+        },
+        "innerWalls": [],
+        "doors": [],
+        "annexes": [],
+        "nodes": [
+          {
+            "uid": "SRV",
+            "device": "server_basic",
+            "macSerial": 1,
+            "ports": [],
+            "name": "SRV",
+            "x": 1,
+            "y": 3,
+            "locked": true,
+            "configLocked": true,
+            "interfaces": [
+              {
+                "id": "eth0",
+                "kind": "port",
+                "port": 0,
+                "ip": "10.0.1.2",
+                "prefix": 24
+              }
+            ],
+            "gateway": "10.0.1.1",
+            "routes": [],
+            "services": []
+          },
+          {
+            "uid": "R1",
+            "device": "router_basic",
+            "macSerial": 2,
+            "ports": [],
+            "name": "R1",
+            "x": 5,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [
+              {
+                "id": "g0/0",
+                "kind": "port",
+                "port": 0,
+                "ip": "10.0.1.1",
+                "prefix": 24
+              },
+              {
+                "id": "g0/1",
+                "kind": "port",
+                "port": 1,
+                "ip": "192.168.1.1",
+                "prefix": 24
+              }
+            ],
+            "gateway": null,
+            "routes": [],
+            "services": []
+          },
+          {
+            "uid": "SW1",
+            "device": "l2_switch_8p",
+            "macSerial": 3,
+            "ports": [],
+            "name": "SW1",
+            "x": 9,
+            "y": 3,
+            "locked": false,
+            "configLocked": false,
+            "interfaces": [],
+            "gateway": null,
+            "routes": [],
+            "services": []
+          },
+          {
+            "uid": "PC1",
+            "device": "pc_basic",
+            "macSerial": 4,
+            "ports": [],
+            "name": "PC1",
+            "x": 12,
+            "y": 1,
+            "locked": true,
+            "configLocked": true,
+            "interfaces": [
+              {
+                "id": "eth0",
+                "kind": "port",
+                "port": 0,
+                "ip": "0.0.0.0",
+                "prefix": 24,
+                "dhcp": true
+              }
+            ],
+            "gateway": null,
+            "routes": [],
+            "services": []
+          },
+          {
+            "uid": "PC2",
+            "device": "pc_basic",
+            "macSerial": 5,
+            "ports": [],
+            "name": "PC2",
+            "x": 12,
+            "y": 6,
+            "locked": true,
+            "configLocked": true,
+            "interfaces": [
+              {
+                "id": "eth0",
+                "kind": "port",
+                "port": 0,
+                "ip": "0.0.0.0",
+                "prefix": 24,
+                "dhcp": true
+              }
+            ],
+            "gateway": null,
+            "routes": [],
+            "services": []
+          }
+        ],
+        "links": [
+          {
+            "uid": "lesson_link_1",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "SRV",
+              "port": 0
+            },
+            "b": {
+              "node": "R1",
+              "port": 0
+            },
+            "path": [
+              [
+                1,
+                3
+              ],
+              [
+                5,
+                3
+              ]
+            ],
+            "paid": 0
+          },
+          {
+            "uid": "lesson_link_2",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "R1",
+              "port": 1
+            },
+            "b": {
+              "node": "SW1",
+              "port": 0
+            },
+            "path": [
+              [
+                5,
+                3
+              ],
+              [
+                9,
+                3
+              ]
+            ],
+            "paid": 0
+          },
+          {
+            "uid": "lesson_link_3",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "PC1",
+              "port": 0
+            },
+            "b": {
+              "node": "SW1",
+              "port": 1
+            },
+            "path": [
+              [
+                12,
+                1
+              ],
+              [
+                9,
+                3
+              ]
+            ],
+            "paid": 0
+          },
+          {
+            "uid": "lesson_link_4",
+            "cable": "utp_cat5e",
+            "a": {
+              "node": "PC2",
+              "port": 0
+            },
+            "b": {
+              "node": "SW1",
+              "port": 2
+            },
+            "path": [
+              [
+                12,
+                6
+              ],
+              [
+                9,
+                3
+              ]
+            ],
+            "paid": 0
+          }
+        ],
+        "seq": 0,
+        "furniture": [],
+        "furnitureSeq": 0,
+        "plans": {}
+      },
+      "effects": {
+        "buildSpeed": 0
+      },
+      "staff": [],
+      "staffSeq": 0,
+      "candidates": [],
+      "guidesDone": [],
+      "termsShown": [],
+      "sandboxLesson": {
+        "id": "dhcp_relay",
+        "step": 0,
+        "done": false
+      }
+    }
+  }
+}

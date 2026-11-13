@@ -26,7 +26,7 @@ const pair = (a: Partial<PortConfig>[], b: Partial<PortConfig>[], extraLinks: Ne
     node('p2', 'pc_basic', 11, { interfaces: [f('192.168.1.12')] }),
   ],
   links: [link('x', 'sw1', 0, 'sw2', 0), link('y', 'sw1', 1, 'sw2', 1), link('d', 'p1', 0, 'sw1', 2), link('e', 'p2', 0, 'sw2', 2), ...extraLinks],
-  segments: {},
+  plans: {},
 });
 
 describe('リンクアグリゲーションの組み合わせ', () => {

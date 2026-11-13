@@ -19,7 +19,7 @@ const net = (remoteAs: number): Network => ({
     n('pb', 'pc_basic', [f(0, '10.0.2.10')], 3, { gateway: '10.0.2.1' }),
   ],
   links: [l('l0', 'pa', 0, 'r1', 0), l('l1', 'r1', 1, 'r2', 0), l('l2', 'r2', 1, 'pb', 0)],
-  segments: {},
+  plans: {},
 });
 
 describe('bgp.no_session（N147）', () => {

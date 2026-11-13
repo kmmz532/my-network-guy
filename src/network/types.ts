@@ -166,17 +166,20 @@ export interface NetLink {
   paid: number;
 }
 
-// セグメントの設定（ネットワークアドレスとプレフィックス長）
-export interface SegmentConfig {
+// アドレスの計画（L2 ドメインのネットワークアドレスとプレフィックス長）
+export interface NetworkPlan {
   network: string;
   prefix: number;
 }
 
+// L2 ドメインの鍵（ドメインの中で配線でつながった最も小さい機器の uid と口の番号、"uid:port"）
+export type DomainKey = string;
+
 export interface Network {
   nodes: NetNode[];
   links: NetLink[];
-  // セグメントの設定（代表端点の鍵 "uid:port" → 設定）。省略すると設定はない
-  segments?: Record<string, SegmentConfig>;
+  // アドレスの計画（L2 ドメインの鍵 → 計画）。省略すると計画はない
+  plans?: Record<DomainKey, NetworkPlan>;
 }
 
 // 判定に必要な、世界ごとに違うデータ（機器・ケーブルの定義は登録表から引く）

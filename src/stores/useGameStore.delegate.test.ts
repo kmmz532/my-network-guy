@@ -30,7 +30,7 @@ const bareBlueprint = {
     services: [],
   })),
   links: [],
-  segments: {},
+  plans: {},
 };
 
 const withFamiliarity = (f: Familiarity) => useGameStore.setState({ offers: [offer], active: [], focus: null, familiarity: f });
@@ -76,7 +76,7 @@ describe('増えた機器をつないで任せる', () => {
   const onePc = {
     nodes: [bareBlueprint.nodes[0]],
     links: [],
-    segments: {},
+    plans: {},
   };
   const aSwitch = {
     uid: 'sw1',

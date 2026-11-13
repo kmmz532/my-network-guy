@@ -20,7 +20,7 @@ describe('教材（初期の構成と正解の構成）', () => {
       it(`${lesson.id} ${stage}`, async () => {
         const nodes = stage === 'solved' ? solutions[lesson.id](lessonNodes(lesson)) : lessonNodes(lesson);
         const links = lessonLinks(lesson);
-        const net: Network = { nodes, links, segments: {} };
+        const net: Network = { nodes, links, plans: {} };
         await expect(json({ goals: lessonGoalResults(lesson.goals, nodes, links, engine), ...recordOf(net, engine) })).toMatchFileSnapshot(snap(`lesson-${lesson.id}-${stage}`));
       });
     }

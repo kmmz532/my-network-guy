@@ -194,7 +194,7 @@ const startNetwork = analyzeCore({ office: startOffice, active: [], focus: null 
 // 計算の入力（自社オフィスの機器と配線、設計中の案件の機器と配線、地図）が変わったかを見る。参照が同じなら計算し直さない
 const netKeyOf = (s: GameState) => {
   const p = focusedProject(s);
-  return [s.office.nodes, s.office.links, s.office.segments, s.maps, s.focus, p?.nodes, p?.links, p?.segments, p?.contract.map, s.showcase];
+  return [s.office.nodes, s.office.links, s.office.plans, s.maps, s.focus, p?.nodes, p?.links, p?.plans, p?.contract.map, s.showcase];
 };
 
 export const useGameStore = create<GameState>((set, get, api) => {

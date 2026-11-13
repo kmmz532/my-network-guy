@@ -44,7 +44,7 @@ const shared = (hello3 = 10, p2 = 1): Network => ({
     node('r3', 'router_basic', [f(0, '10.0.0.3', { area: 0, hello: hello3 })]),
   ],
   links: [link('l1', 'r1', 0, 'sw', 0), link('l2', 'r2', 0, 'sw', 1), link('l3', 'r3', 0, 'sw', 2)],
-  segments: {},
+  plans: {},
 });
 
 describe('OSPF の隣接', () => {
@@ -59,7 +59,7 @@ describe('OSPF の隣接', () => {
     expect(n.find((x) => x.uid === 'r2')?.state).toBe('FULL/DR');
   });
   it('2台だけのネットワークは FULL/- になる', () => {
-    const net: Network = { nodes: [node('a', 'router_basic', [f(0, '10.0.0.1', { area: 0 })]), node('b', 'router_basic', [f(0, '10.0.0.2', { area: 0 })])], links: [link('l', 'a', 0, 'b', 0)], segments: {} };
+    const net: Network = { nodes: [node('a', 'router_basic', [f(0, '10.0.0.1', { area: 0 })]), node('b', 'router_basic', [f(0, '10.0.0.2', { area: 0 })])], links: [link('l', 'a', 0, 'b', 0)], plans: {} };
     expect(ospfNeighborsOf(analyze(net, data), 'a')[0].state).toBe('FULL/-');
   });
   it('Hello の間隔が違う相手とは隣接にならず、理由が分かる', () => {
@@ -77,7 +77,7 @@ describe('OSPF の隣接', () => {
         node('pb', 'pc_basic', [f(0, '10.0.2.10')], { gateway: '10.0.2.1' }),
       ],
       links: [link('a', 'pa', 0, 'r1', 0), link('b', 'r1', 1, 'r2', 0), link('c', 'r2', 1, 'pb', 0)],
-      segments: {},
+      plans: {},
     };
     const r = evaluateGoal({ type: 'ping', from: 'pa', to: 'pb' }, analyze(net, data));
     expect(r[0].ok).toBe(false);
@@ -94,7 +94,7 @@ describe('既定の経路の配布', () => {
         node('r2', 'router_basic', [f(0, '10.0.12.2', o)], originate ? { ospf: { defaultOriginate: true } } : {}),
       ],
       links: [link('l', 'r1', 0, 'r2', 0)],
-      segments: {},
+      plans: {},
     });
     const routes = (net: Network) => learnedRoutesOf(analyze(net, data), 'r1', 'ospf');
     expect(routes(mk(true))).toContainEqual(expect.objectContaining({ dest: '0.0.0.0', prefix: 0, nextHop: '10.0.12.2', protocol: 'ospf' }));
@@ -113,7 +113,7 @@ describe('エリアの間の経路（ABR）', () => {
       node('pc3', 'pc_basic', [f(0, '10.0.3.10')], { gateway: '10.0.3.1' }),
     ],
     links: [link('a', 'pc1', 0, 'r1', 0), link('b', 'r1', 1, 'r2', 0), link('c', 'r2', 1, 'r3', 0), link('d', 'r3', 1, 'pc3', 0)],
-    segments: {},
+    plans: {},
   });
   it('ABR を通して、エリア 1 とエリア 0 の経路が互いに届く', () => {
     expect(evaluateGoal({ type: 'ping', from: 'pc1', to: 'pc3' }, analyze(abr(), data))[0].ok).toBe(true);
@@ -135,7 +135,7 @@ describe('ルーター ID の重複の警告', () => {
         node('b', 'router_basic', [f(0, '10.0.0.2', { area: 0 })], { ospf: { routerId: '9.9.9.9' } }),
       ],
       links: [link('l', 'a', 0, 'b', 0)],
-      segments: {},
+      plans: {},
     };
     expect(warningsOf(analyze(net, data))).toEqual([{ id: 'ospf.duplicate_router_id', a: 'a', b: 'b' }]);
   });
@@ -160,7 +160,7 @@ describe('ospf_dr と、静的経路との競合', () => {
         node('pc2', 'pc_basic', [f(0, '10.0.2.10')], { gateway: '10.0.2.1' }),
       ],
       links: [link('a', 'pc1', 0, 'r1', 0), link('b', 'r1', 1, 'r2', 0), link('c', 'r1', 2, 'r3', 0), link('d', 'r2', 1, 'r3', 1), link('e', 'r2', 2, 'pc2', 0)],
-      segments: {},
+      plans: {},
     };
   };
   it('OSPF だけなら直結の R2 を通り、同じ宛先の静的経路（管理距離 1）があれば静的が優先される', () => {

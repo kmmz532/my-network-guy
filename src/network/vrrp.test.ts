@@ -25,7 +25,7 @@ const build = (r1: Partial<NetNode> = {}, r2: Partial<NetNode> = {}, r1Track = f
     node('srv', 'server_basic', 6, { interfaces: [{ id: 'eth0', kind: 'port', port: 0, ip: '10.0.9.10', prefix: 24 }], gateway: '10.0.9.254', services: [] }),
   ],
   links: [link('a', 'host', 0, 'sw1', 0), link('b', 'sw1', 1, 'r1', 0), link('c', 'sw1', 2, 'r2', 0), link('d', 'r1', 1, 'sw2', 0), link('e', 'r2', 1, 'sw2', 1), link('f', 'srv', 0, 'sw2', 2)],
-  segments: {},
+  plans: {},
 });
 const via = (net: Network) => ping(analyze(net, data), 'host', 'srv');
 

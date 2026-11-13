@@ -16,7 +16,7 @@ const build = (napt: boolean): Network => ({
     n('pc', 'pc_basic', [f(0, '192.168.1.10')], 2, { gateway: '192.168.1.1' }),
   ],
   links: [l('l0', 'ext', 0, 'hr', 0), l('l1', 'hr', 1, 'pc', 0)],
-  segments: {},
+  plans: {},
 });
 
 describe('nat.private_source（NET.md §6）', () => {

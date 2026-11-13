@@ -1,6 +1,6 @@
 // なじみの依頼（N70）。同じ依頼の組（固定の案件は案件の ID、テンプレートはひな形と地図の組）を、★2以上で納品した回数と、納品した設計（型紙）を覚える。
 // 3回納品した組は、4回目から社員に任せられる。型紙は組ごとに1つ（★が同じか多ければ上書き）。
-import type { NetLink, NetNode, SegmentConfig } from '../network/types';
+import type { NetLink, NetNode, NetworkPlan } from '../network/types';
 
 // 任せられるようになる納品の回数（★2以上）
 export const DELEGATE_MIN_COUNT = 3;
@@ -11,7 +11,7 @@ export const DELEGATED_EXP_DIVISOR = 2;
 export interface Blueprint {
   nodes: NetNode[];
   links: NetLink[];
-  segments: Record<string, SegmentConfig>;
+  plans: Record<string, NetworkPlan>;
 }
 
 export interface Familiarity {

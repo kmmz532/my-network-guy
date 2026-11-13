@@ -1,13 +1,14 @@
 import { renameNode } from '../network/nodeName';
 import { inSubnet, ipToInt } from '../network/engine';
-import { PREFIX_MAX, PREFIX_MIN, fillSegments, hostCapacity, networkAddress } from '../network/segments';
+import { PREFIX_MAX, PREFIX_MIN, hostCapacity, networkAddress } from '../network/segments';
+import { fillPlans } from '../network/query/plans';
 import type { VrrpGroup } from '../network/vrrp';
 import type { FirewallRule, Iface, IspLine, NetNode, PortConfig, Route, Service } from '../network/types';
 import { WIRELESS_SECURITIES } from '../network/types';
 import { makeIface, makeSvi } from '../network/iface';
 import { can } from '../network/capabilities';
 import { registries } from '../registry/game';
-import { BgpOp, Project, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, StpOp, VrrpOp, fail, netOf, segmentAt, withNet, zoneFromNodes } from './project';
+import { BgpOp, Project, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, StpOp, VrrpOp, fail, netOf, planDomainAt, withNet, zoneFromNodes } from './project';
 import { portCountOf } from '../registry/query';
 import { analyze } from '../network/engine/analyze';
 import type { NetworkState } from '../network/engine/state';
@@ -101,8 +102,8 @@ export const setInterface = (
       ? node.interfaces.filter((i) => i.port !== port)
       : [...node.interfaces.filter((i) => i.port !== port), makeIface(node.device, port, ip, prefix)];
   const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, interfaces } : n));
-  const segments = fillSegments({ nodes, links: net.links, segments: net.segments }, env.engine);
-  return { ok: true, core: withNet(core, target, { ...net, nodes, segments }) };
+  const plans = fillPlans(analyze({ nodes, links: net.links, plans: net.plans }, env.engine));
+  return { ok: true, core: withNet(core, target, { ...net, nodes, plans }) };
 };
 
 // SVI（VLAN のインターフェース・N138）を設定する。ip が '' なら外す。SVI を持てるのは sviMax の機器だけ
@@ -119,8 +120,8 @@ export const setSvi = (core: Core, uid: string, vlan: number, ip: string, prefix
   const interfaces: Iface[] = ip === '' ? others : [...others, makeSvi(vlan, ip, prefix)];
   if (interfaces.filter((i) => i.kind === 'svi').length > sviMaxOf(node.device)) return fail('svi.max');
   const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, interfaces } : n));
-  const segments = fillSegments({ nodes, links: net.links, segments: net.segments }, env.engine);
-  return { ok: true, core: withNet(core, target, { ...net, nodes, segments }) };
+  const plans = fillPlans(analyze({ nodes, links: net.links, plans: net.plans }, env.engine));
+  return { ok: true, core: withNet(core, target, { ...net, nodes, plans }) };
 };
 
 // 機器の SVI の上限（機器の定義の sviMax。持てない機器は 0）
@@ -457,10 +458,10 @@ export const setService = (
     target,
   );
 
-// セグメントのネットワークを設定する。設定だけを行い、機器のアドレスは変えない（未設定のアドレスは IPアドレスの自動割り当て autoAssign が振る）。
-// 案件で設定が固定された機器を含むセグメントは変えられない。
-// 対象は、機器のポートが属するセグメント（配線がなければ none）
-export const setSegment = (
+// 機器の口が属する L2 ドメインのアドレスの計画を設定する。計画だけを行い、機器のアドレスは変えない（未設定のアドレスは IPアドレスの自動割り当て autoAssign が振る）。
+// 案件で設定が固定された機器を含むドメインは変えられない。
+// 対象は、機器の口が属する L2 ドメイン（無線の端末は、つながるアクセスポイントのドメイン。配線がなければ none）
+export const setPlan = (
   core: Core,
   uid: string,
   port: number,
@@ -471,14 +472,14 @@ export const setSegment = (
 ): Outcome => {
   const net = netOf(core, target);
   if (typeof net === 'string') return fail(net);
-  const seg = segmentAt(net, env, uid, port);
-  if (!seg) return fail('none');
+  const domain = planDomainAt(net, env, uid, port);
+  if (!domain) return fail('none');
   const byUid = new Map(net.nodes.map((n) => [n.uid, n]));
-  if (seg.members.some((m) => byUid.get(m.node)?.configLocked)) return fail('locked');
+  if (domain.members.some((m) => byUid.get(m.node)?.configLocked)) return fail('locked');
   if (!isIp(network) || prefix < PREFIX_MIN || prefix > PREFIX_MAX || networkAddress(network, prefix) !== network) return fail('ip');
-  if (seg.members.length > hostCapacity(prefix)) return fail('segment.too_small');
-  const segments = { ...net.segments, [seg.key]: { network, prefix } };
-  return { ok: true, core: withNet(core, target, { ...net, segments }) };
+  if (domain.members.length > hostCapacity(prefix)) return fail('segment.too_small');
+  const plans = { ...net.plans, [domain.key]: { network, prefix } };
+  return { ok: true, core: withNet(core, target, { ...net, plans }) };
 };
 
 // 機器の並びの計算の結果（自社オフィスと、設計中の案件）。核の状態が変わるたびに、ストアがこの関数で求め直す
@@ -488,15 +489,15 @@ export const analyzeCore = (
   maps: Record<string, GameMap>,
 ): { office: NetworkState; focus: NetworkState | null; showcase: NetworkState | null } => {
   const office = analyze(
-    { nodes: core.office.nodes, links: core.office.links, segments: core.office.segments },
+    { nodes: core.office.nodes, links: core.office.links, plans: core.office.plans },
     engineWithWalls(env.engine, maps.hq),
   );
   const p = core.focus === null ? null : (core.active.find((q) => q.id === core.focus) ?? null);
   const focus = p === null ? null : analyze(
-    { nodes: p.nodes, links: p.links, segments: p.segments },
+    { nodes: p.nodes, links: p.links, plans: p.plans },
     engineWithWalls(env.engine, maps[p.contract.map]),
   );
   const q = core.showcase ?? null;
-  const showcase = q === null ? null : analyze({ nodes: q.nodes, links: q.links, segments: q.segments }, engineWithWalls(env.engine, maps[q.contract.map]));
+  const showcase = q === null ? null : analyze({ nodes: q.nodes, links: q.links, plans: q.plans }, engineWithWalls(env.engine, maps[q.contract.map]));
   return { office, focus, showcase };
 };

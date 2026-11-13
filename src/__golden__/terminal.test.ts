@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { lessons } from 'virtual:game-data';
 import { gameEnv } from '../sim/env';
-import { lessonLinks, lessonNodes, lessonSegments } from '../sim/lesson';
+import { lessonLinks, lessonNodes, lessonPlans } from '../sim/lesson';
 import { focusedOf, fail, type Core, type Outcome, type Project } from '../sim/project';
 import { addRoute, removeRoute, removeHost, setBgp, setChannel, setDhcp, setGateway, setHost, setHostname, setInterface, setNameServer, setNat, setOspf, setPortMode, setRouting, setStp, setSvi, setVrrp, setWireless } from '../sim/netEdit';
 import { analyze } from '../network/engine/analyze';
@@ -87,7 +87,7 @@ const runScene = (lessonId: string, text: string) => {
   if (!lesson) throw new Error(`教材 ${lessonId} がない`);
   const nodes = lessonNodes(lesson);
   const links: NetLink[] = lessonLinks(lesson);
-  const segments = lessonSegments(nodes, links, gameEnv.engine);
+  const segments = lessonPlans(nodes, links, gameEnv.engine);
   // 教材の構成を、設計中の案件として持つ（設定の操作は焦点の案件を対象にする）
   const project = { id: 'p', kind: 'fixed', baseId: lessonId, params: {}, nodes, links, segments, seq: nodes.length + 1, testedOk: false, built: { nodes: [], links: [] }, inheritedLinks: [], phase: 'design', contract: { inhouse: false, map: 'hq', furniture: [] } } as unknown as Project;
   let core = { active: [project], focus: 'p', owned: {} } as unknown as Core;
@@ -116,7 +116,7 @@ const runScene = (lessonId: string, text: string) => {
     } else if (parsed.kind === 'error') {
       log.push({ line, result: 'error', text: parsed.text });
     } else {
-      const state = analyze({ nodes: current.nodes, links: current.links, segments: current.segments }, gameEnv.engine);
+      const state = analyze({ nodes: current.nodes, links: current.links, plans: current.plans }, gameEnv.engine);
       const out = runTerminal(line, { node, nodes: current.nodes, links: current.links, data: gameEnv.engine, state }, tr);
       log.push({ line, lines: out.map((l) => `${l.kind}:${l.text}`) });
     }

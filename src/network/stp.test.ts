@@ -21,7 +21,7 @@ const triangle = (priority3?: number): Network => ({
     node('p2', 'pc_basic', 11, { interfaces: [f('192.168.1.12')] }),
   ],
   links: [link('a', 'sw1', 0, 'sw2', 0), link('b', 'sw1', 1, 'sw3', 0), link('c', 'sw2', 1, 'sw3', 1), link('d', 'p1', 0, 'sw1', 2), link('e', 'p2', 0, 'sw3', 2)],
-  segments: {},
+  plans: {},
 });
 
 describe('スパニングツリー', () => {

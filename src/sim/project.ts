@@ -16,10 +16,12 @@ import { ipToInt } from '../network/engine';
 import type { IssueDetail } from '../network/engine/stages/addressing';
 import { analyze } from '../network/engine/analyze';
 import type { NetworkState } from '../network/engine/state';
-import { fillSegments, intToIp, segmentConfigOf, segmentOf, type Segment } from '../network/segments';
+import { intToIp, planFor } from '../network/segments';
+import { fillPlans, planDomainOf } from '../network/query/plans';
+import type { PlanDomain } from '../network/engine/stages/l2';
 
 import type { DhcpPool } from '../network/dhcp';
-import type { EngineData, FailureReason, NetLink, NetNode, Network, PathResult, SegmentConfig, HostEntry } from '../network/types';
+import type { EngineData, FailureReason, NetLink, NetNode, Network, PathResult, NetworkPlan, HostEntry } from '../network/types';
 
 import type { ClockState } from './clock';
 
@@ -72,7 +74,7 @@ export interface Project {
   // 担当の社員（uid）。施工の進みと経験値は担当の社員だけに効く
   crew: string[];
   // セグメントの設定（代表端点の鍵 "uid:port" → ネットワークアドレスとプレフィックス長）
-  segments: Record<string, SegmentConfig>;
+  plans: Record<string, NetworkPlan>;
   // 最後のテストに合格したか。設計を変えると false に戻る。施工は true のときだけ依頼できる
   testedOk: boolean;
 }
@@ -209,7 +211,7 @@ export interface Office {
   furniture: PlacedFurniture[];
   furnitureSeq: number;
   // セグメントの設定（代表端点の鍵 "uid:port" → 設定）
-  segments: Record<string, SegmentConfig>;
+  plans: Record<string, NetworkPlan>;
 }
 
 // 自社案件で得た効果の合計
@@ -223,7 +225,7 @@ export const DESK_ID = 'desk';
 // 席になる家具（机。定義の seat が true のもの。N44 で机だけの品目も席として数える）。定義がなければ DESK_ID だけを机とする
 export const isDeskFurniture = (id: string, env: Env): boolean => (env.furniture?.[id]?.seat ?? false) || id === DESK_ID;
 
-export const emptyOffice = (size: OfficeSize): Office => ({ bought: ['wood' as const], segments: {},
+export const emptyOffice = (size: OfficeSize): Office => ({ bought: ['wood' as const], plans: {},
   size,
   innerWalls: [],
   doors: [],
@@ -387,7 +389,7 @@ export interface Net {
   nodes: NetNode[];
   links: NetLink[];
   seq: number;
-  segments: Record<string, SegmentConfig>;
+  plans: Record<string, NetworkPlan>;
 }
 
 // 対象のネットワークを取り出す。設計中の案件でない、または自社オフィスが案件に使われていれば理由を返す
@@ -395,21 +397,21 @@ export const netOf = (core: Core, target: NetTarget): Net | string => {
   if (target === 'office') {
     if (officeLocked(core)) return 'inhouse';
     const o = core.office;
-    return { nodes: o.nodes, links: o.links, seq: o.seq, segments: o.segments };
+    return { nodes: o.nodes, links: o.links, seq: o.seq, plans: o.plans };
   }
   const p = requireDesign(core);
   if (typeof p === 'string') return p;
-  return { nodes: p.nodes, links: p.links, seq: p.seq, segments: p.segments };
+  return { nodes: p.nodes, links: p.links, seq: p.seq, plans: p.plans };
 };
 
 // 対象のネットワークを書き戻す
 // 受け取れた自動（DHCP）の口のアドレスを、前回のアドレスとして機器へ書き戻す（NET.md §5.7）。store が操作を確定するたびに呼ぶ。
 // 判定のデータは、ping などと同じ（案件の地図の壁を含む）ものを使う。書き戻すものがなければ同じ core を返す
 export const writeBackDhcp = (core: Core, env: Env): Core => {
-  const officeNodes = dhcpWriteBack(core.office.nodes, core.office.links, core.office.segments, engineWithWalls(env.engine, env.mapOf?.('hq')));
+  const officeNodes = dhcpWriteBack(core.office.nodes, core.office.links, core.office.plans, engineWithWalls(env.engine, env.mapOf?.('hq')));
   let changed = officeNodes !== core.office.nodes;
   const active = core.active.map((p) => {
-    const nodes = dhcpWriteBack(p.nodes, p.links, p.segments, engineWithWalls(env.engine, env.mapOf?.(p.contract.map)));
+    const nodes = dhcpWriteBack(p.nodes, p.links, p.plans, engineWithWalls(env.engine, env.mapOf?.(p.contract.map)));
     if (nodes === p.nodes) return p;
     changed = true;
     return { ...p, nodes: [...nodes] };
@@ -419,16 +421,16 @@ export const writeBackDhcp = (core: Core, env: Env): Core => {
 
 export const withNet = (core: Core, target: NetTarget, net: Net): Core => {
   if (target === 'office') {
-    return { ...core, office: { ...core.office, nodes: net.nodes, links: net.links, seq: net.seq, segments: net.segments } };
+    return { ...core, office: { ...core.office, nodes: net.nodes, links: net.links, seq: net.seq, plans: net.plans } };
   }
   const p = focusedOf(core) as Project;
   // 設計を変えたので、最後のテストの結果は無効になる
-  return withProject(core, { ...p, nodes: net.nodes, links: net.links, seq: net.seq, segments: net.segments, testedOk: false });
+  return withProject(core, { ...p, nodes: net.nodes, links: net.links, seq: net.seq, plans: net.plans, testedOk: false });
 };
 
-// 機器のポートが属するセグメント（配線がなければ undefined）
-export const segmentAt = (net: Net, env: Env, uid: string, port: number): Segment | undefined =>
-  segmentOf(analyze(net, env.engine).l2.segments, uid, port);
+// 機器の口が属する計画の単位の L2 ドメイン（配線がなければ undefined）
+export const planDomainAt = (net: Net, env: Env, uid: string, port: number): PlanDomain | undefined =>
+  planDomainOf(analyze(net, env.engine), { node: uid, port });
 
 // 機器のポートのうち、ケーブルがつながっている番号の集合
 const usedPorts = (links: readonly NetLink[], node: NetNode): Set<number> => {
@@ -550,8 +552,8 @@ export const connect = (
     paid: cost,
   };
   const links = [...net.links, link];
-  const segments = fillSegments({ nodes: net.nodes, links, segments: net.segments }, env.engine);
-  let next = withNet(core, target, { nodes: net.nodes, links, seq: net.seq + 1, segments });
+  const plans = fillPlans(analyze({ nodes: net.nodes, links, plans: net.plans }, env.engine));
+  let next = withNet(core, target, { nodes: net.nodes, links, seq: net.seq + 1, plans });
   if (target === 'focus') {
     const p = focusedOf(next) as Project;
     next = withProject(next, { ...p, cost: p.cost + cost });
@@ -645,9 +647,9 @@ const addressRange = (
 export const addressCandidates = (core: Core, uid: string, port: number, env: Env, target: NetTarget = 'focus'): AddressCandidate[] => {
   const net = netOf(core, target);
   if (typeof net === 'string') return [];
-  const seg = segmentAt(net, env, uid, port);
-  if (!seg) return [];
-  const cfg = segmentConfigOf(seg, new Map(net.nodes.map((n) => [n.uid, n])), net.segments);
+  const domain = planDomainAt(net, env, uid, port);
+  if (!domain) return [];
+  const cfg = planFor(domain, new Map(net.nodes.map((n) => [n.uid, n])), net.plans);
   if (!cfg) return [];
   return addressRange(cfg.network, cfg.prefix, net.nodes);
 };
@@ -665,7 +667,7 @@ export const plannedAddressCandidates = (core: Core, network: string, prefix: nu
 };
 
 // 色と配線から生成したネットワーク（判定・表示に使う）→ 配線とセグメントの設定から生成したネットワーク
-export const stateOfProject = (p: Project, env: Env): NetworkState => analyze({ nodes: p.nodes, links: p.links, segments: p.segments }, env.engine);
+export const stateOfProject = (p: Project, env: Env): NetworkState => analyze({ nodes: p.nodes, links: p.links, plans: p.plans }, env.engine);
 
 export const compiledNet = (p: Project, env: Env): Network => stateOfProject(p, env).addressing.net;
 

@@ -42,7 +42,7 @@ describe('毎ティックの系', () => {
   });
 
   it('納品の結果を開いている間は何も変えない', () => {
-    useGameStore.setState({ showcase: { nodes: [], links: [], segments: {}, contract: { map: 'hq' } } as never });
+    useGameStore.setState({ showcase: { nodes: [], links: [], plans: {}, contract: { map: 'hq' } } as never });
     expect(runTick(st(), { now: 1, payPause: false })).toEqual({});
   });
 });

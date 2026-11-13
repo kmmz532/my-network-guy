@@ -5,7 +5,7 @@ import { useGameStore } from './useGameStore';
 const st = () => useGameStore.getState();
 
 describe('画面の対象の切り替え（N111）', () => {
-  beforeEach(() => useGameStore.setState({ active: [{ id: 'p1', nodes: [], links: [], segments: {}, contract: { map: 'hq' } } as never], focus: 'p1', wireStart: { uid: 'n1', port: null } as never, placing: 'pc_basic' }));
+  beforeEach(() => useGameStore.setState({ active: [{ id: 'p1', nodes: [], links: [], plans: {}, contract: { map: 'hq' } } as never], focus: 'p1', wireStart: { uid: 'n1', port: null } as never, placing: 'pc_basic' }));
 
   it('自社オフィス（null）と案件を行き来できる', () => {
     st().setFocus(null);

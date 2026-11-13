@@ -18,7 +18,7 @@ const build = (fwRoutes: NetNode['routes']): Network => ({
     n('pb', 'pc_basic', [f(0, '10.0.2.10')], '10.0.2.1', [], [], 3),
   ],
   links: [l('l0', 'pa', 0, 'r', 0), l('l1', 'r', 1, 'fw', 0), l('l2', 'fw', 1, 'pb', 0)],
-  segments: {},
+  plans: {},
 });
 
 describe('ファイアウォールの静的ルート（直列の構成）', () => {

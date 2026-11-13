@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { SAVE_VERSION, isSaveData, migrate, type SaveData } from './migrations';
 import type { Staff } from '../data/schema';
 import { exportSave, importSave } from './saveFile';
+import { gameEnv } from '../sim/env';
+import { recordOf } from '../__golden__/record';
+import type { NetLink, NetNode, NetworkPlan } from '../network/types';
 
 const member = (uid: string): Staff => ({
   shift: 'day',
@@ -41,7 +44,7 @@ const sample: SaveData = {
   rng: 1,
   active: [],
   focus: null,
-  office: { bought: ['wood' as const], segments: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 },
+  office: { bought: ['wood' as const], plans: {}, size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 },
   effects: { buildSpeed: 0 },
   staff: [member('s0'), member('s1')],
   staffSeq: 2,
@@ -138,7 +141,7 @@ describe('v8 → v9', () => {
   it('単独の案件は一覧にし、その案件を設計の対象にする', () => {
     const project = { id: 'c001_direct_link', nodes: [], links: [], contract: { inhouse: false } };
     const out = migrate(8, { ...withoutActive, active: project });
-    expect(out.active).toMatchObject([{ ...project, due: null, crew: ['s0', 's1'], testedOk: false, segments: {}, inheritedLinks: [] }]);
+    expect(out.active).toMatchObject([{ ...project, due: null, crew: ['s0', 's1'], testedOk: false, plans: {}, inheritedLinks: [] }]);
     expect(out.focus).toBe('c001_direct_link');
   });
 
@@ -243,7 +246,7 @@ describe('v12 → v13', () => {
     expect(b.interfaces).toEqual([{ id: "eth0", kind: "port", port: 0, ip: '192.168.101.12', prefix: 24 }]);
     expect(b.gateway).toBeNull();
     expect(r.interfaces).toEqual([{ id: "g0/0", kind: "port", port: 0, ip: '192.168.101.1', prefix: 24 }]);
-    expect(out.active[0].segments).toEqual({ 'pc_a:0': { network: '192.168.101.0', prefix: 24 } });
+    expect(out.active[0].plans).toEqual({ 'pc_a:0': { network: '192.168.101.0', prefix: 24 } });
     expect([a, b, r].some((n) => 'colors' in n)).toBe(false);
   });
 
@@ -530,9 +533,9 @@ describe('v39 → v40', () => {
     const inhouse = { id: 'p1', nodes: [], links: [office.links[0], { uid: 'l1', cable: 'utp_cat5e', a: { node: 'x', port: 1 }, b: { node: 'y', port: 1 }, path: [], paid: 0 }], contract: { inhouse: true } };
     const fixed = { id: 'p2', nodes: [], links: [], contract: { inhouse: false } };
     const out = migrate(39, { ...rest, office, active: [inhouse, fixed], focus: null });
-    expect(out.active[0]).toMatchObject({ segments: {}, inheritedLinks: ['o0'] });
-    expect(out.active[1]).toMatchObject({ segments: {}, inheritedLinks: [] });
-    expect(out.office.segments).toEqual({});
+    expect(out.active[0]).toMatchObject({ plans: {}, inheritedLinks: ['o0'] });
+    expect(out.active[1]).toMatchObject({ plans: {}, inheritedLinks: [] });
+    expect(out.office.plans).toEqual({});
   });
 });
 
@@ -601,5 +604,43 @@ describe('v47 → v48（MAC アドレスの連番）', () => {
     const n = (uid: string, macSerial?: number) => ({ uid, device: 'pc_basic', x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [], ...(macSerial ? { macSerial } : {}) });
     const out = migrate(47, { ...sample, office: { ...sample.office, nodes: [n('a', 3), n('b'), n('c')] }, active: [] });
     expect(out.office.nodes.map((x) => x.macSerial)).toEqual([3, 4, 5]);
+  });
+});
+
+describe('v49 → v50（アドレスの計画を L2 ドメインの鍵にする）', () => {
+  type Port = { port: number; mode: 'access' | 'trunk'; vlan?: number };
+  const n = (uid: string, device: string, ip: string | null, ports: Port[] = [], port = 0) => ({
+    uid, device, x: 0, y: 0, locked: false, configLocked: false, macSerial: uid.charCodeAt(0), ports, routes: [], services: [], gateway: null,
+    interfaces: ip === null ? [] : [{ id: 'eth0', kind: 'port' as const, port, ip, prefix: 24 }],
+  });
+  const l = (uid: string, a: [string, number], b: [string, number]) => ({ uid, cable: 'utp_cat5e', a: { node: a[0], port: a[1] }, b: { node: b[0], port: b[1] }, path: [[0, 0], [1, 0]] as [number, number][], paid: 0 });
+  const { plans: _plans, ...office49 } = sample.office;
+  const at49 = (nodes: NetNode[], links: NetLink[], segments: Record<string, NetworkPlan>) =>
+    migrate(49, { ...sample, office: { ...office49, nodes, links, segments }, active: [] });
+
+  it('VLAN を分けていない構成では、移行の前後で計算の結果（疎通・不備・色）が同じ', () => {
+    const nodes = [
+      n('a', 'pc_basic', '192.168.1.10'), n('b', 'pc_basic', '192.168.1.11'), n('c', 'pc_basic', '10.0.0.10'),
+      n('s', 'l2_switch_8p', null), n('r', 'router_basic', '192.168.1.1', [], 1),
+    ] as NetNode[];
+    const links = [l('l0', ['a', 0], ['s', 0]), l('l1', ['b', 0], ['s', 1]), l('l2', ['r', 1], ['s', 2]), l('l3', ['c', 0], ['r', 0])] as NetLink[];
+    // 古い鍵の設定（範囲の外のアドレスの機器と、もう無い鍵を含む）
+    const segments = { 'a:0': { network: '192.168.1.0', prefix: 24 }, 'c:0': { network: '172.16.0.0', prefix: 24 }, 'x:0': { network: '10.9.9.0', prefix: 24 } };
+    const out = at49(nodes, links, segments);
+    expect(out.office.plans).toEqual({ 'a:0': segments['a:0'], 'c:0': segments['c:0'] });
+    const before = recordOf({ nodes, links, plans: segments }, gameEnv.engine);
+    const after = recordOf({ nodes: out.office.nodes, links: out.office.links, plans: out.office.plans }, gameEnv.engine);
+    expect(after.pings).toEqual(before.pings);
+    expect(after.issues).toEqual(before.issues);
+    expect(after.colors).toEqual(before.colors);
+  });
+
+  it('VLAN で分かれる構成では、計画の範囲にアドレスのある口を含むドメインにだけ写す', () => {
+    const sw = n('s', 'l2_switch_8p', null, [{ port: 0, mode: 'access', vlan: 10 }, { port: 1, mode: 'access', vlan: 10 }, { port: 2, mode: 'access', vlan: 20 }]);
+    const nodes = [n('a', 'pc_basic', '192.168.10.10'), n('b', 'pc_basic', '192.168.10.11'), n('c', 'pc_basic', '192.168.20.10'), sw] as NetNode[];
+    const links = [l('l0', ['a', 0], ['s', 0]), l('l1', ['b', 0], ['s', 1]), l('l2', ['c', 0], ['s', 2])] as NetLink[];
+    expect(at49(nodes, links, { 'a:0': { network: '192.168.10.0', prefix: 24 } }).office.plans).toEqual({ 'a:0': { network: '192.168.10.0', prefix: 24 } });
+    expect(at49(nodes, links, { 'a:0': { network: '192.168.20.0', prefix: 24 } }).office.plans).toEqual({ 'c:0': { network: '192.168.20.0', prefix: 24 } });
+    expect(at49(nodes, links, { 'a:0': { network: '172.16.0.0', prefix: 24 } }).office.plans).toEqual({});
   });
 });

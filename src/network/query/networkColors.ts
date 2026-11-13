@@ -1,21 +1,23 @@
 import { inSubnet, ipToInt } from '../engine';
-import { epKey, segmentConfigOf, type Segment } from '../segments';
+import { epKey, planFor } from '../segments';
 import { isL2Category, isRelayPort } from '../category';
-import type { SegmentConfig } from '../types';
+import type { NetworkPlan } from '../types';
+import type { PlanDomain } from '../engine/stages/l2';
 import { deviceCategory } from '../../registry/query';
 import type { NetworkState } from '../engine/state';
 import type { NetworkColors } from '../netColor';
 
-// 設定されたセグメントのネットワークごとに色を決め、ケーブルがどのネットワークを表すかを求める
+// 計画のある L2 ドメインのネットワークごとに色を決め、ケーブルがどのネットワークを表すかを求める
 export const networkColors = (state: NetworkState): NetworkColors => {
   const net = state.net;
   const byUid = new Map(net.nodes.map((n) => [n.uid, n]));
-  const segs = state.viewSegments;
-  const cfgOf = new Map<string, SegmentConfig>();
-  const segOf = new Map<string, Segment>();
+  // 無線の端末も、仮想の配線でアクセスポイントのドメインに入れる
+  const segs = state.l2.planDomains;
+  const cfgOf = new Map<string, NetworkPlan>();
+  const segOf = new Map<string, PlanDomain>();
   const vlanOfNetwork = new Map<string, number>();
   for (const seg of segs) {
-    const cfg = segmentConfigOf(seg, byUid, net.segments);
+    const cfg = planFor(seg, byUid, net.plans);
     if (cfg) cfgOf.set(seg.key, cfg);
     if (cfg) {
       const vlan = seg.members
@@ -23,7 +25,7 @@ export const networkColors = (state: NetworkState): NetworkColors => {
         .find((p) => p?.mode === 'access')?.vlan;
       if (vlan !== undefined) vlanOfNetwork.set(cfg.network, vlan);
     }
-    for (const m of seg.members) segOf.set(epKey(m.node, m.port), seg);
+    for (const m of [...seg.members, ...seg.wireless]) if (!segOf.has(epKey(m.node, m.port))) segOf.set(epKey(m.node, m.port), seg);
   }
 
   const networks = [...new Set([...cfgOf.values()].map((c) => c.network))].sort((a, b) => ipToInt(a) - ipToInt(b));
@@ -33,7 +35,7 @@ export const networkColors = (state: NetworkState): NetworkColors => {
   const linkNetwork = new Map<string, string | null>();
   const linkNetworks = new Map<string, string[]>();
   for (const link of net.links) {
-    // スイッチ側の端は members に入らないため、両端のうち設定のあるセグメントを使う（a を優先する）
+    // スイッチ側の端は members に入らないため、両端のうち計画のあるドメインを使う（a を優先する）
     const cfg = [link.a, link.b]
       .map((ep) => segOf.get(epKey(ep.node, ep.port)))
       .map((seg) => (seg ? cfgOf.get(seg.key) : undefined))

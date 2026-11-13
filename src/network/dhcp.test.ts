@@ -23,7 +23,7 @@ const office = (clients: string[], srvPool = pool): Network => ({
     ...clients.map((c, i) => client(c, 10 + i)),
   ],
   links: [link('s', 'sw', 0, 'srv', 0), ...clients.map((c, i) => link(`l${c}`, 'sw', i + 1, c, 0))],
-  segments: {},
+  plans: {},
 });
 
 describe('DHCP', () => {
@@ -73,7 +73,7 @@ describe('DHCP', () => {
         client('p1', 10),
       ],
       links: [link('a', 'srv', 0, 'r1', 0), link('b', 'r1', 1, 'p1', 0)],
-      segments: {},
+      plans: {},
     };
     expect(dhcpOf(analyze(net, data)).leases[0]).toMatchObject({ uid: 'p1', ip: '192.168.1.100' });
     const noHelper: Network = { ...net, nodes: net.nodes.map((n) => (n.uid === 'r1' ? { ...n, interfaces: n.interfaces.map((i) => ({ ...i, helper: undefined })) } : n)) };
@@ -103,21 +103,21 @@ describe('DHCP のターミナル', () => {
 describe('DHCP の前回のアドレス', () => {
   it('書き戻したあとは、PC を1台消しても、ほかの PC のアドレスは変わらない。書き戻しのあとに計算しても結果は同じ', () => {
     const net = office(['p1', 'p2']);
-    const saved = dhcpWriteBack(net.nodes, net.links, net.segments, data);
+    const saved = dhcpWriteBack(net.nodes, net.links, net.plans, data);
     const written: Network = { ...net, nodes: [...saved] };
     expect(written.nodes.find((n) => n.uid === 'p2')?.interfaces[0].ip).toBe('192.168.1.101');
     expect(dhcpOf(analyze(written, data)).leases.map((l) => l.ip)).toEqual(['192.168.1.100', '192.168.1.101']);
-    expect(dhcpWriteBack(written.nodes, written.links, written.segments, data)).toBe(written.nodes);
+    expect(dhcpWriteBack(written.nodes, written.links, written.plans, data)).toBe(written.nodes);
     const removed: Network = { ...written, nodes: written.nodes.filter((n) => n.uid !== 'p1'), links: written.links.filter((l) => l.uid !== 'lp1') };
     expect(dhcpOf(analyze(removed, data)).leases).toMatchObject([{ uid: 'p2', ip: '192.168.1.101' }]);
   });
   it('前回のアドレスがプールの範囲外になれば、取り直す。受け取れない間は前回のアドレスを書き換えない', () => {
     const net = office(['p1']);
-    const written: Network = { ...net, nodes: [...dhcpWriteBack(net.nodes, net.links, net.segments, data)] };
+    const written: Network = { ...net, nodes: [...dhcpWriteBack(net.nodes, net.links, net.plans, data)] };
     const moved: Network = { ...written, nodes: written.nodes.map((n) => (n.uid === 'srv' ? { ...n, dhcpPools: [{ ...pool, start: '192.168.1.150', end: '192.168.1.160' }] } : n)) };
     expect(dhcpOf(analyze(moved, data)).leases[0].ip).toBe('192.168.1.150');
     const gone: Network = { ...written, nodes: written.nodes.map((n) => (n.uid === 'srv' ? { ...n, dhcpPools: undefined } : n)) };
-    expect(dhcpWriteBack(gone.nodes, gone.links, gone.segments, data)).toBe(gone.nodes);
+    expect(dhcpWriteBack(gone.nodes, gone.links, gone.plans, data)).toBe(gone.nodes);
     expect(gone.nodes.find((n) => n.uid === 'p1')?.interfaces[0].ip).toBe('192.168.1.100');
   });
 });
@@ -125,7 +125,7 @@ describe('DHCP の前回のアドレス', () => {
 describe('DHCP の書き戻し（store）', () => {
   it('操作の確定のあとに、受け取ったアドレスを機器へ書き戻す。書き戻すものがなければ同じ core を返す', () => {
     const net = office(['p1', 'p2']);
-    const core = { office: { nodes: net.nodes, links: net.links, segments: net.segments ?? {} }, active: [] } as unknown as Core;
+    const core = { office: { nodes: net.nodes, links: net.links, plans: net.plans ?? {} }, active: [] } as unknown as Core;
     const written = writeBackDhcp(core, gameEnv);
     expect(written.office.nodes.find((n) => n.uid === 'p2')?.interfaces[0].ip).toBe('192.168.1.101');
     expect(writeBackDhcp(written, gameEnv)).toBe(written);

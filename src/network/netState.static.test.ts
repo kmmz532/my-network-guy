@@ -18,7 +18,7 @@ const build = (statics: NonNullable<NetNode['statics']>): Network => ({
     n('srv', 'server_basic', [f(0, '192.168.1.20')], '192.168.1.1', { services: [{ protocol: 'http', port: 80 }] }, 2),
   ],
   links: [l('l0', 'net', 0, 'r', 0), l('l1', 'r', 1, 'srv', 0)],
-  segments: {},
+  plans: {},
 });
 
 describe('静的 NAT（N145）', () => {

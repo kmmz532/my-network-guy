@@ -85,7 +85,7 @@ export const withInternet = (net: Network, _data: EngineData): (Network & { inte
     uids.push(uid);
   }
   if (uids.length === 0) return null;
-  return { nodes: [...net.nodes, ...nodes], links: [...net.links, ...links], segments: net.segments, internetUid: uids[0], internetUids: uids };
+  return { nodes: [...net.nodes, ...nodes], links: [...net.links, ...links], plans: net.plans, internetUid: uids[0], internetUids: uids };
 };
 
 // 外部への接続と、公開しているサーバー、社内への漏れを調べる

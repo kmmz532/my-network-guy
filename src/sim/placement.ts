@@ -4,7 +4,8 @@ import { tileKind } from '../data/tileKind';
 import { furnitureOf } from '../contracts/layout';
 import { nextHostname } from '../network/hostname';
 import { nextMacSerial } from '../network/mac';
-import { fillSegments } from '../network/segments';
+import { fillPlans } from '../network/query/plans';
+import { analyze } from '../network/engine/analyze';
 import type { NetLink, NetNode, Service } from '../network/types';
 import { isPcCategory } from '../data/categories';
 import { cableLengthOf, checkCableLength } from './cableLength';
@@ -143,12 +144,12 @@ export const removeFromOffice = (core: Core, uid: string, env: Env, sandbox = fa
   const removed = core.office.links.filter((l) => l.a.node === uid || l.b.node === uid);
   const nodes = core.office.nodes.filter((n) => n.uid !== uid);
   const links = core.office.links.filter((l) => !removed.includes(l));
-  const segments = fillSegments({ nodes, links, segments: core.office.segments }, env.engine);
+  const plans = fillPlans(analyze({ nodes, links, plans: core.office.plans }, env.engine));
   return {
     ok: true,
     core: {
       ...core,
-      office: { ...core.office, nodes, links, segments },
+      office: { ...core.office, nodes, links, plans },
       owned: sandbox ? core.owned : { ...core.owned, [node.device]: (core.owned[node.device] ?? 0) + 1 },
     },
   };
@@ -171,7 +172,7 @@ export const removeNode = (core: Core, uid: string, env: Env): Outcome => {
     nodes,
     links,
     testedOk: false,
-    segments: fillSegments({ nodes, links, segments: p.segments }, env.engine),
+    plans: fillPlans(analyze({ nodes, links, plans: p.plans }, env.engine)),
     built: {
       nodes: p.built.nodes.filter((x) => x !== uid),
       links: p.built.links.filter((x) => !removedUids.includes(x)),
@@ -196,7 +197,7 @@ export const removeLink = (core: Core, uid: string, target: NetTarget, env: Env)
     if (!p.built.links.includes(uid)) refund = link.paid;
   }
   const links = net.links.filter((l) => l.uid !== uid);
-  let next = withNet(core, target, { ...net, links, segments: fillSegments({ nodes: net.nodes, links, segments: net.segments }, env.engine) });
+  let next = withNet(core, target, { ...net, links, plans: fillPlans(analyze({ nodes: net.nodes, links, plans: net.plans }, env.engine)) });
   if (target === 'focus') {
     const p = focusedOf(next) as Project;
     next = withProject(next, { ...p, cost: p.cost - refund, built: { ...p.built, links: p.built.links.filter((x) => x !== uid) } });
@@ -228,8 +229,8 @@ export const replug = (core: Core, linkUid: string, end: End, port: number, env:
   if (used) return fail('portUsed');
   const moved: NetLink = { ...link, [end]: { node: node.uid, port } };
   const links = net.links.map((l) => (l.uid === linkUid ? moved : l));
-  const segments = fillSegments({ nodes: net.nodes, links, segments: net.segments }, env.engine);
-  return { ok: true, core: withNet(core, target, { ...net, links, segments }) };
+  const plans = fillPlans(analyze({ nodes: net.nodes, links, plans: net.plans }, env.engine));
+  return { ok: true, core: withNet(core, target, { ...net, links, plans }) };
 };
 
 // 2つの機器の位置をつなぐ配線の経路（折れ点を1つ入れたL字。connect と同じ形）
@@ -304,8 +305,8 @@ export const moveNode = (core: Core, uid: string, x: number, y: number, env: Env
   }
   if (paidTotal > 0 && core.clock.money < paidTotal) return fail('money');
 
-  const segments = fillSegments({ nodes, links, segments: net.segments }, env.engine);
-  let next = withNet(core, target, { nodes, links, seq: net.seq, segments });
+  const plans = fillPlans(analyze({ nodes, links, plans: net.plans }, env.engine));
+  let next = withNet(core, target, { nodes, links, seq: net.seq, plans });
   if (project) {
     // 動かした機器とつながるケーブルは、施工前に戻す
     const p = focusedOf(next) as Project;
@@ -377,8 +378,8 @@ export const replugTo = (
 
   const moved: NetLink = { ...link, [end]: { node: nodeUid, port: to }, path: cablePath(a, b), paid: link.paid + pay.paid };
   const links = net.links.map((l) => (l.uid === linkUid ? moved : l));
-  const segments = fillSegments({ nodes: net.nodes, links, segments: net.segments }, env.engine);
-  let next = withNet(core, target, { ...net, links, segments });
+  const plans = fillPlans(analyze({ nodes: net.nodes, links, plans: net.plans }, env.engine));
+  let next = withNet(core, target, { ...net, links, plans });
   if (project) {
     // 挿し替えたケーブルは、施工前に戻す
     const p = focusedOf(next) as Project;

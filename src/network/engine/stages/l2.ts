@@ -3,8 +3,7 @@ import { isFabricPort, isL3FabricPort, isRelayPort, isRoutingCategory, isSviPort
 import { can } from '../../capabilities';
 import { macOf } from '../../mac';
 import { computeStp, type StpResult } from '../../stp';
-import { segmentsOf, type Segment } from '../../segments';
-import type { EngineData, Endpoint, Iface, NetLink, NetNode, Network, PortConfig } from '../../types';
+import type { Endpoint, Iface, NetLink, NetNode, Network, PortConfig } from '../../types';
 import { deviceCategory } from '../../../registry/query';
 import type { LinkLayer } from './links';
 
@@ -37,13 +36,25 @@ export interface L2Layer {
   linkAt(ep: Endpoint): { link: NetLink; peer: Endpoint } | undefined;
   // スイッチの MAC の表（口ごとに、同じ L2 ドメインにつながった端末の MAC）
   macTable(uid: string): { port: number; mac: string }[];
-  // セグメント（配線とスイッチでつながった機器の集まり）。保存の構成から求め、無線の仮想の配線は含まない
-  readonly segments: Segment[];
+  // アドレスの計画の単位にする L2 ドメインの一覧（鍵の昇順）
+  readonly planDomains: readonly PlanDomain[];
 }
+
+// アドレスの計画の単位にする L2 ドメイン。VLAN で分かれ、口の停止・電源・スパニングツリーでは分かれない（設定で決まる範囲）
+export interface PlanDomain {
+  // 計画の鍵: 配線でつながった機器の端点のうち最も小さいもの（"uid:port"）
+  key: string;
+  // 配線でつながった機器の端点（uid・口の昇順）
+  members: Endpoint[];
+  // 無線の仮想の配線でつながった端末の端点（uid の昇順）
+  wireless: Endpoint[];
+}
+
+const byEndpoint = (a: Endpoint, b: Endpoint): number => (a.node < b.node ? -1 : a.node > b.node ? 1 : a.port - b.port);
 
 const key = (ep: Endpoint) => `${ep.node}:${ep.port}`;
 
-export const stageL2 = (net: Network, links: LinkLayer, input: Network, world: EngineData): L2Layer => {
+export const stageL2 = (net: Network, links: LinkLayer): L2Layer => {
   const nodes = new Map<string, NetNode>();
   for (const node of net.nodes) nodes.set(node.uid, node);
   const catOf = (uid: string): string => {
@@ -123,7 +134,9 @@ export const stageL2 = (net: Network, links: LinkLayer, input: Network, world: E
     return (cfg.vlan ?? 1) === vlan;
   };
 
-  const domainOf = (start: Endpoint): L2Domain => {
+  // operational が false のときは、口の停止とスパニングツリーを見ない（アドレスの計画の範囲）
+  const traverse = (start: Endpoint, operational: boolean): L2Domain => {
+    const blocked = (uid: string, port: number): boolean => operational && (links.isShut(uid, port) || isStpBlocked(uid, port));
     const members: Endpoint[] = [];
     const visited = new Set<string>();
     const startVlan = vlanOf(start.node, start.port);
@@ -140,7 +153,7 @@ export const stageL2 = (net: Network, links: LinkLayer, input: Network, world: E
       if (visited.has(k)) continue;
       visited.add(k);
       // 停止している口と、その VLAN を通さない口は、ドメインに入らない
-      if (links.isShut(ep.node, ep.port) || isStpBlocked(ep.node, ep.port) || !carries(ep.node, ep.port, vlan)) continue;
+      if (blocked(ep.node, ep.port) || !carries(ep.node, ep.port, vlan)) continue;
       devices.add(ep.node);
 
       // 機器の口（設定なし）は、届いたフレームの VLAN に属する。設定のある access の口は、その VLAN の口だけ数える
@@ -156,7 +169,7 @@ export const stageL2 = (net: Network, links: LinkLayer, input: Network, world: E
         // 相手が access の口なら、フレームはその口の VLAN になる（機器側の口には VLAN の設定がないため）
         const cfgPeer = portCfg(peer.node, peer.port);
         const peerVlan = cfgPeer?.mode === 'access' ? vlanOf(peer.node, peer.port) : vlan;
-        if (!links.isShut(peer.node, peer.port) && !isStpBlocked(peer.node, peer.port) && carries(peer.node, peer.port, peerVlan)) {
+        if (!blocked(peer.node, peer.port) && carries(peer.node, peer.port, peerVlan)) {
           // 配線は、実際にたどったものだけを数える（輪の判定に使う）
           cables.add(links.lag.representative.get(link.uid) ?? link.uid);
           if (!tooLong && links.tooLong.has(link.uid)) {
@@ -179,6 +192,7 @@ export const stageL2 = (net: Network, links: LinkLayer, input: Network, world: E
     const loop = cables.size >= devices.size ? (relay ?? start) : undefined;
     return { members, tooLong, loop };
   };
+  const domainOf = (start: Endpoint): L2Domain => traverse(start, true);
 
   const keyOf = (domain: L2Domain): string | null => {
     let best: Endpoint | undefined;
@@ -202,6 +216,33 @@ export const stageL2 = (net: Network, links: LinkLayer, input: Network, world: E
     return out;
   };
 
-  const segments = segmentsOf(input, world);
-  return { stp, isStpBlocked, domainOf, keyOf, isFabric, isRelay, vlanOf, carries, linkAt, macTable, segments };
+  // 計画の単位: 機器の口（配線の端と SVI）から広げ、まだどのドメインにも入っていない口だけを始点にする。
+  // 無線の端末は、つながるアクセスポイントのドメインに入るが、鍵には使わない（配線でつながった機器がなければ計画を持たない）
+  const wirelessEps = new Set(links.associations.map((a) => key({ node: a.client.uid, port: 0 })));
+  const starts = new Map<string, Endpoint>();
+  for (const ep of [...net.links.flatMap((l) => [l.a, l.b]), ...[...nodes.keys()].flatMap((uid) => svisOf(uid).map((i) => ({ node: uid, port: i.port })))]) {
+    if (!isRelay(ep.node, ep.port)) starts.set(key(ep), ep);
+  }
+  const covered = new Set<string>();
+  const planDomains: PlanDomain[] = [];
+  for (const start of [...starts.values()].sort(byEndpoint)) {
+    if (covered.has(key(start))) continue;
+    const found = traverse(start, false).members;
+    for (const m of found) covered.add(key(m));
+    const members = found.filter((m) => !wirelessEps.has(key(m))).sort(byEndpoint);
+    if (members.length === 0) continue;
+    const k = key(members[0]);
+    const wireless = found.filter((m) => wirelessEps.has(key(m)));
+    // 同じ鍵のドメインを先に見つけていれば（始点によってたどれる範囲が違うとき）、1つにまとめる
+    const same = planDomains.find((d) => d.key === k);
+    if (same === undefined) {
+      planDomains.push({ key: k, members, wireless: wireless.sort(byEndpoint) });
+      continue;
+    }
+    const has = (list: Endpoint[], m: Endpoint) => list.some((x) => key(x) === key(m));
+    same.members = [...same.members, ...members.filter((m) => !has(same.members, m))].sort(byEndpoint);
+    same.wireless = [...same.wireless, ...wireless.filter((m) => !has(same.wireless, m))].sort(byEndpoint);
+  }
+  planDomains.sort((a, b) => (a.key < b.key ? -1 : 1));
+  return { stp, isStpBlocked, domainOf, keyOf, isFabric, isRelay, vlanOf, carries, linkAt, macTable, planDomains };
 };

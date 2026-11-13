@@ -18,7 +18,7 @@ const home = (): Network => ({
     n('pc', 'pc_basic', [f(0, '192.168.1.10')], '192.168.1.1', 2),
   ],
   links: [l('l0', 'ext', 0, 'hr', 0), l('l1', 'hr', 1, 'pc', 0)],
-  segments: {},
+  plans: {},
 });
 
 describe('家庭用ルーターの既定の規則（外から始まる通信）', () => {

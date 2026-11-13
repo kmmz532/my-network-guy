@@ -27,7 +27,7 @@ describe('セーブの fixture', () => {
       it(`${file} の ${name}: 最新版まで移行でき、検証に通り、ネットワークの計算が例外なく動く`, () => {
         const data = migrate(entry.saveVersion, entry.data);
         expect(isSaveData(data)).toBe(true);
-        const net = { nodes: data.office.nodes, links: data.office.links, segments: data.office.segments };
+        const net = { nodes: data.office.nodes, links: data.office.links, plans: data.office.plans };
         // 端末は、スイッチの口もルーテッドポートも持たない機器
         const ends = net.nodes.filter((n) => n.interfaces.length > 0 && !can(n.device, 'switchport') && !can(n.device, 'routedPort')).map((n) => n.uid);
         for (const a of ends) for (const b of ends) if (a !== b) ping(analyze(net, gameEnv.engine), a, b);

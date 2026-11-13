@@ -12,7 +12,7 @@ const node = (uid: string, device: string, x: number, wireless?: NetNode['wirele
 const net = (clients: number, password = WIFI.password): Network => ({
   nodes: [node('ap', 'access_point', 0, WIFI), ...Array.from({ length: clients }, (_, i) => node(`c${i}`, 'laptop', 1 + i % 3, { ssid: WIFI.ssid, password }))],
   links: [],
-  segments: {},
+  plans: {},
 });
 
 describe('wireless_clients', () => {
@@ -30,7 +30,7 @@ describe('wireless_clients', () => {
 describe('つながっていない無線の端末（N152）', () => {
   it('ケーブルの失敗ではなく、無線のつながらない失敗を返す', async () => {
     const { gameEnv } = await import('../sim/env');
-    const n: Network = { nodes: [node('ap', 'access_point', 0, WIFI), { ...node('lap', 'laptop', 1), interfaces: [{ id: 'g0/0', kind: 'port', port: 0, ip: '192.168.1.20', prefix: 24 }] }], links: [], segments: {} };
+    const n: Network = { nodes: [node('ap', 'access_point', 0, WIFI), { ...node('lap', 'laptop', 1), interfaces: [{ id: 'g0/0', kind: 'port', port: 0, ip: '192.168.1.20', prefix: 24 }] }], links: [], plans: {} };
     const r = ping(analyze(n, gameEnv.engine), 'lap', 'ap');
     expect(r.failure?.reason).toBe('wireless.unassociated');
   });

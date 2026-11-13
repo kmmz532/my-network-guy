@@ -6,7 +6,7 @@ import { nodeName, type NameContext } from './nodeName';
 import { deviceCategory } from '../registry/query';
 import type { EngineData, Iface, NetLink, NetNode, Network, Route } from './types';
 
-const segmentsOf = (net: Network, data: EngineData) => analyze(net, data).l2.segments;
+const domainsOf = (net: Network, data: EngineData) => analyze(net, data).l2.planDomains;
 
 
 const data: EngineData = { wallAt: () => false };
@@ -46,7 +46,7 @@ describe('スイッチ付きルーターのセグメント', () => {
       nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), node('rs', 'router_switch', [{ id: "g0/1", kind: "port", port: 1, ip: '192.168.1.1', prefix: 24 }])],
       links: [link('l1', 'a', 0, 'rs', 1), link('l2', 'b', 0, 'rs', 3)],
     };
-    const segs = segmentsOf(net, data);
+    const segs = domainsOf(net, data);
     expect(segs).toHaveLength(1);
     expect(segs[0].members).toEqual([
       { node: 'a', port: 0 },
@@ -60,7 +60,7 @@ describe('スイッチ付きルーターのセグメント', () => {
       nodes: [pc('a', '192.168.1.10'), node('rs', 'router_switch')],
       links: [link('l1', 'a', 0, 'rs', 3)],
     };
-    const segs = segmentsOf(net, data);
+    const segs = domainsOf(net, data);
     expect(segs).toHaveLength(1);
     expect(segs[0].members).toEqual([
       { node: 'a', port: 0 },
@@ -73,7 +73,7 @@ describe('スイッチ付きルーターのセグメント', () => {
       nodes: [pc('a', '192.168.1.10'), pc('b', '10.0.0.10'), node('rs', 'router_switch')],
       links: [link('l1', 'a', 0, 'rs', 1), link('l2', 'b', 0, 'rs', 0)],
     };
-    expect(segmentsOf(net, data)).toHaveLength(2);
+    expect(domainsOf(net, data)).toHaveLength(2);
   });
 });
 
@@ -133,7 +133,7 @@ describe('スイッチ付きルーターとL3スイッチの設定の判定', ()
     const net: Network = {
       nodes: [pc('a', '192.168.1.10'), node('rs', 'router_switch', [{ id: "g0/1", kind: "port", port: 1, ip: '192.168.1.1', prefix: 24 }])],
       links: [link('l1', 'a', 0, 'rs', 3)],
-      segments: { 'a:0': { network: '192.168.1.0', prefix: 24 } },
+      plans: { 'a:0': { network: '192.168.1.0', prefix: 24 } },
     };
     const { completed: compiled, issues } = analyze(net, data).addressing;
     expect(compiled.nodes.find((n) => n.uid === 'a')?.gateway).toBe('192.168.1.1');

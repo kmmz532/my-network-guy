@@ -48,7 +48,7 @@ describe('登録にない機器の取り除き', () => {
   });
 
   it('型紙の機器と配線、依頼と案件の契約の配置する機器も、未知のものを取り除く', () => {
-    const design = { nodes: [node('a', 'pc_basic'), node('g', 'ghost_device')], links: [link('l1', 'a', 'g')], segments: {} };
+    const design = { nodes: [node('a', 'pc_basic'), node('g', 'ghost_device')], links: [link('l1', 'a', 'g')], plans: {} };
     const data = {
       ...saveOf({ active: [{ id: 'p1', nodes: [], links: [], contract: { placed: [{ ref: 'r', device: 'ghost_device' }, { ref: 'q', device: 'pc_basic' }] } } as unknown as SaveData['active'][number]] }),
       familiarity: { counts: {}, blueprints: { k: { stars: 2, design } } },

@@ -25,8 +25,8 @@ export function findDevice(state: GameState, uid: string) {
   const inProject = project?.nodes.find((n) => n.uid === uid);
   if (!inProject && active) return null;
   const source = inProject && project
-    ? { nodes: project.nodes, links: project.links, segments: project.segments }
-    : { nodes: state.office.nodes, links: state.office.links, segments: state.office.segments };
+    ? { nodes: project.nodes, links: project.links, plans: project.plans }
+    : { nodes: state.office.nodes, links: state.office.links, plans: state.office.plans };
   const node = source.nodes.find((n) => n.uid === uid);
   if (!node) return null;
   // 案件を表示しているときは設計中だけ変更できる。自社オフィスは、納品の結果を表示していなければ変更できる

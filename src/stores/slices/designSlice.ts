@@ -8,14 +8,14 @@ import { missingPcCount } from '../../sim/backOffice';
 import { pushNotice } from '../../ui/notices';
 import { sandboxTest } from '../../sim/sandbox';
 import { lessons } from 'virtual:game-data';
-import { lessonLinks, lessonNodes, lessonSegments } from '../../sim/lesson';
+import { lessonLinks, lessonNodes, lessonPlans } from '../../sim/lesson';
 import { mapOfOffice } from '../../sim/office';
 
 import { closeRef } from '../../ui/windows';
 import { type PortChoice, connect, type PortModeChange, type StpOp, type ChannelOp, type DhcpOp, type VrrpOp, type OspfOp, type NatOp, type BgpOp, emptyOffice, type End } from '../../sim/project';
 import { testDesign } from '../../sim/progress';
 import { removeNode, removeFromOffice, replug, moveNode, replugTo, removeLink } from '../../sim/placement';
-import { setInterface, setSvi, setPortMode, setGateway, setRouting, setOspf, setIsp, setPower, setStp, setChannel, setDhcp, setVrrp, setBgp, setNat, setWireless, setFirewallRules, setSegment, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, addRoute, removeRoute } from '../../sim/netEdit';
+import { setInterface, setSvi, setPortMode, setGateway, setRouting, setOspf, setIsp, setPower, setStp, setChannel, setDhcp, setVrrp, setBgp, setNat, setWireless, setFirewallRules, setPlan, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, addRoute, removeRoute } from '../../sim/netEdit';
 
 import { coreOf, focusedProject, netTargetOf } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
@@ -58,7 +58,7 @@ export interface DesignSlice {
   // ファイアウォールの規則を置き換える（N38）
   setFirewallRules: (uid: string, rules: FirewallRule[]) => string | null;
   // セグメント（ポートが属するネットワーク）のアドレスを設定する
-  setSegment: (uid: string, port: number, network: string, prefix: number) => string | null;
+  setPlan: (uid: string, port: number, network: string, prefix: number) => string | null;
   // 配線の片方の端を、同じ機器の別のポートへ挿し替える
   replug: (linkUid: string, end: End, port: number) => string | null;
   // 機器・家具を別のマスへ動かす（配置と同じ判定。ケーブルは付いたまま、費用の差額を払う）。失敗したら理由を返す
@@ -95,7 +95,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       // 教材の機器は IP アドレスから網の設定を補う（色は保存された設定から決まるため、補わないと灰色のまま）
       const nodes = lessonNodes(lesson);
       const links = lessonLinks(lesson);
-      const office = { ...emptyOffice(lesson.size), nodes, links, segments: lessonSegments(nodes, links, gameEnv.engine) };
+      const office = { ...emptyOffice(lesson.size), nodes, links, plans: lessonPlans(nodes, links, gameEnv.engine) };
       set({ office, maps: { ...s.maps, hq: mapOfOffice(office) }, sandboxLesson: { id, step: 0, done: false }, lessonCommands: [], check: null, helpUid: null, traces: [] });
     },
     closeLesson: () => set({ sandboxLesson: null, lessonCommands: [] }),
@@ -186,9 +186,9 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
     setNat: (uid, change) => recorded(() => apply(setNat(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
     setWireless: (uid, key, value) => recorded(() => apply(setWireless(coreOf(get()), uid, key, value, netTargetOf(get())), tileOf(uid))),
     setFirewallRules: (uid, rules) => recorded(() => apply(setFirewallRules(coreOf(get()), uid, rules, netTargetOf(get())), tileOf(uid))),
-    setSegment: (uid, port, network, prefix) =>
+    setPlan: (uid, port, network, prefix) =>
       recorded(() =>
-        apply(withAutoIp(setSegment(coreOf(get()), uid, port, network, prefix, gameEnv, netTargetOf(get())), netTargetOf(get())), tileOf(uid)),
+        apply(withAutoIp(setPlan(coreOf(get()), uid, port, network, prefix, gameEnv, netTargetOf(get())), netTargetOf(get())), tileOf(uid)),
       ),
     replug: (linkUid, end, port) =>
       recorded(() => apply(replug(coreOf(get()), linkUid, end, port, gameEnv, netTargetOf(get())))),

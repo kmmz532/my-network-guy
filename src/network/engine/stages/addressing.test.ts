@@ -1,7 +1,7 @@
 import { analyze } from '../analyze';
 import { describe, expect, it } from 'vitest';
 import { ping } from '../../engine';
-import type { EngineData, Iface, NetLink, NetNode, Network, Route, SegmentConfig } from '../../types';
+import type { EngineData, Iface, NetLink, NetNode, Network, Route, NetworkPlan } from '../../types';
 
 const data: EngineData = { wallAt: () => false };
 
@@ -48,14 +48,14 @@ const link = (uid: string, a: string, b: string): NetLink => {
   };
 };
 
-const seg = (network: string, prefix = 24): SegmentConfig => ({ network, prefix });
+const seg = (network: string, prefix = 24): NetworkPlan => ({ network, prefix });
 
 describe('セグメントの設定から機器の設定を作る', () => {
   it('同じセグメントのPCは、スイッチを経由して疎通する', () => {
     const net: Network = {
       nodes: [pc('a', '192.168.1.11'), sw('s'), pc('b', '192.168.1.12')],
       links: [link('l0', 'a:0', 's:0'), link('l1', 's:1', 'b:0')],
-      segments: { 'a:0': seg('192.168.1.0') },
+      plans: { 'a:0': seg('192.168.1.0') },
     };
     const { net: out, issues } = addressing(net);
     expect(issues).toEqual({});
@@ -66,7 +66,7 @@ describe('セグメントの設定から機器の設定を作る', () => {
     const net: Network = {
       nodes: [pc('a', '192.168.1.11'), router('r', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 }])],
       links: [link('l0', 'a:0', 'r:0')],
-      segments: { 'a:0': seg('192.168.1.0') },
+      plans: { 'a:0': seg('192.168.1.0') },
     };
     const { net: out, issues } = addressing(net);
     expect(issues).toEqual({});
@@ -84,7 +84,7 @@ describe('セグメントの設定から機器の設定を作る', () => {
         pc('c', '192.168.2.11'),
       ],
       links: [link('l0', 'a:0', 'r:0'), link('l1', 'r:1', 'c:0')],
-      segments: { 'a:0': seg('192.168.1.0'), 'c:0': seg('192.168.2.0') },
+      plans: { 'a:0': seg('192.168.1.0'), 'c:0': seg('192.168.2.0') },
     };
     const { net: out, issues } = addressing(net);
     expect(issues).toEqual({});
@@ -104,7 +104,7 @@ describe('セグメントの設定から機器の設定を作る', () => {
     const net: Network = {
       nodes: [pc('a', '192.168.1.11'), pc('b', '192.168.1.12')],
       links: [link('l0', 'a:0', 'b:0')],
-      segments: { 'a:0': seg('192.168.1.0', 25) },
+      plans: { 'a:0': seg('192.168.1.0', 25) },
     };
     const { net: out } = addressing(net);
     expect(out.nodes.find((n) => n.uid === 'a')?.interfaces[0].prefix).toBe(25);
@@ -132,7 +132,7 @@ describe('機器の不備（issues）', () => {
     const net: Network = {
       nodes: [pc('a', '192.168.2.11'), pc('b', '192.168.1.12')],
       links: [link('l0', 'a:0', 'b:0')],
-      segments: { 'a:0': seg('192.168.1.0') },
+      plans: { 'a:0': seg('192.168.1.0') },
     };
     expect(addressing(net).issues.a).toEqual({ reason: 'ip.out_of_segment', ip: '192.168.2.11', segment: '192.168.1.0/24' });
   });
@@ -142,7 +142,7 @@ describe('機器の不備（issues）', () => {
       nodes: [pc('a', '192.168.1.1'), pc('b', '192.168.1.2'), pc('c', '192.168.1.3'), sw('s')],
       links: [link('l0', 'a:0', 's:0'), link('l1', 'b:0', 's:1'), link('l2', 'c:0', 's:2')],
       // /30 は使えるアドレスが2つだけ
-      segments: { 'a:0': seg('192.168.1.0', 30) },
+      plans: { 'a:0': seg('192.168.1.0', 30) },
     };
     const { issues } = addressing(net);
     expect(issues).toEqual({
@@ -156,7 +156,7 @@ describe('機器の不備（issues）', () => {
     const net: Network = {
       nodes: [pc('a', '192.168.1.11'), pc('b', '192.168.1.12'), pc('c', '192.168.1.21'), pc('d', '192.168.1.22')],
       links: [link('l0', 'a:0', 'b:0'), link('l1', 'c:0', 'd:0')],
-      segments: { 'a:0': seg('192.168.1.0', 24), 'c:0': seg('192.168.1.0', 25) },
+      plans: { 'a:0': seg('192.168.1.0', 24), 'c:0': seg('192.168.1.0', 25) },
     };
     const { issues } = addressing(net);
     expect(Object.values(issues).map((i) => i.reason)).toEqual(['segment.overlap', 'segment.overlap', 'segment.overlap', 'segment.overlap']);
@@ -182,7 +182,7 @@ describe('機器の不備（issues）', () => {
     const net: Network = {
       nodes: [pc('a', '192.168.1.11'), pc('b', '192.168.1.12'), pc('c', '192.168.2.11'), pc('d', '192.168.2.12')],
       links: [link('l0', 'a:0', 'b:0'), link('l1', 'c:0', 'd:0')],
-      segments: { 'a:0': seg('192.168.1.0'), 'c:0': seg('192.168.2.0') },
+      plans: { 'a:0': seg('192.168.1.0'), 'c:0': seg('192.168.2.0') },
     };
     const { issues } = addressing(net);
     expect(Object.keys(issues).sort()).toEqual(['a', 'b', 'c', 'd']);
@@ -193,14 +193,14 @@ describe('機器の不備（issues）', () => {
     const net: Network = {
       nodes: [pc('a', '192.168.1.11'), pc('b', '192.168.1.12')],
       links: [link('l0', 'a:0', 'b:0')],
-      segments: { 'a:0': seg('192.168.1.0') },
+      plans: { 'a:0': seg('192.168.1.0') },
     };
     expect(addressing(net).issues).toEqual({});
   });
   it('設定を固定したルーターの既定のゲートウェイは残し、固定しないルーターでは消す', () => {
     const fixedRouter = { ...router('r1', [{ id: 'g0/0', kind: 'port', port: 0, ip: '203.0.113.1', prefix: 24 }]), gateway: '203.0.113.2', configLocked: true };
     const freeRouter = { ...router('r2', [{ id: 'g0/0', kind: 'port', port: 0, ip: '203.0.113.3', prefix: 24 }]), gateway: '203.0.113.2' };
-    const out = addressing({ nodes: [fixedRouter, freeRouter], links: [], segments: {} }).net.nodes;
+    const out = addressing({ nodes: [fixedRouter, freeRouter], links: [], plans: {} }).net.nodes;
     expect(out.find((n) => n.uid === 'r1')?.gateway).toBe('203.0.113.2');
     expect(out.find((n) => n.uid === 'r2')?.gateway).toBeNull();
   });
@@ -213,13 +213,13 @@ describe('アドレスの層', () => {
 
   it('L2 スイッチの口に入ったアドレスは除く', () => {
     const s = node('s', 'l2_switch_8p', [{ id: 'g0/0', kind: 'port', port: 0, ip: '192.168.1.5', prefix: 24 }]);
-    const layer = layerOf({ nodes: [pc('a', '192.168.1.11'), s], links: [link('l0', 'a:0', 's:1')], segments: { 'a:0': seg('192.168.1.0') } });
+    const layer = layerOf({ nodes: [pc('a', '192.168.1.11'), s], links: [link('l0', 'a:0', 's:1')], plans: { 'a:0': seg('192.168.1.0') } });
     expect(layer.net.nodes.find((n) => n.uid === 's')?.interfaces).toEqual([]);
   });
 
   it('同じドメインの DHCP サーバーから、プールの最も小さいアドレスとゲートウェイを受け取る', () => {
     const srv: NetNode = { ...node('srv', 'server_basic', [{ id: 'eth0', kind: 'port', port: 0, ip: '192.168.1.2', prefix: 24 }]), dhcpPools: [pool(1)] };
-    const layer = layerOf({ nodes: [auto('a'), sw('s'), srv], links: [link('l0', 'a:0', 's:0'), link('l1', 'srv:0', 's:1')], segments: {} });
+    const layer = layerOf({ nodes: [auto('a'), sw('s'), srv], links: [link('l0', 'a:0', 's:0'), link('l1', 'srv:0', 's:1')], plans: {} });
     expect(layer.dhcp.leases).toEqual([{ uid: 'a', port: 0, ip: '192.168.1.100', prefix: 24, gateway: '192.168.1.1', server: 'srv' }]);
     const a = layer.net.nodes.find((n) => n.uid === 'a');
     expect([a?.interfaces[0].ip, a?.gateway]).toEqual(['192.168.1.100', '192.168.1.1']);
@@ -232,10 +232,10 @@ describe('アドレスの層', () => {
       { id: 'g0/1', kind: 'port', port: 1, ip: '192.168.2.1', prefix: 24, helper: '10.0.0.2' },
     ]);
     const nodes = [auto('a'), r, srv];
-    const reached = layerOf({ nodes, links: [link('l0', 'a:0', 'r:1'), link('l1', 'r:0', 'srv:0')], segments: {} });
+    const reached = layerOf({ nodes, links: [link('l0', 'a:0', 'r:1'), link('l1', 'r:0', 'srv:0')], plans: {} });
     expect(reached.dhcp.leases.map((l) => [l.uid, l.ip, l.server])).toEqual([['a', '192.168.2.100', 'srv']]);
     // サーバーへの配線がなければ、リレーは届かない
-    const cut = layerOf({ nodes, links: [link('l0', 'a:0', 'r:1')], segments: {} });
+    const cut = layerOf({ nodes, links: [link('l0', 'a:0', 'r:1')], plans: {} });
     expect(cut.dhcp.failed).toEqual([{ uid: 'a', port: 0, reason: 'dhcp.no_offer' }]);
   });
 
@@ -244,7 +244,7 @@ describe('アドレスの層', () => {
     const layer = layerOf({
       nodes: [pc('a', '192.168.1.11'), sw('s'), vr('r1', '192.168.1.2', 110), vr('r2', '192.168.1.3', 100)],
       links: [link('l0', 'a:0', 's:0'), link('l1', 'r1:0', 's:1'), link('l2', 'r2:0', 's:2')],
-      segments: { 'a:0': seg('192.168.1.0') },
+      plans: { 'a:0': seg('192.168.1.0') },
     });
     expect([layer.vrrpOwns('r1', 0, '192.168.1.1'), layer.vrrpOwns('r2', 0, '192.168.1.1')]).toEqual([true, false]);
   });

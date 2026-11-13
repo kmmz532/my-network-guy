@@ -35,12 +35,12 @@ const solved = (napt: boolean): Network => ({
     { uid: 'sw', device: 'l2_switch_4p', macSerial: 51, ports: [], x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [] } as NetNode,
   ],
   links: [link('w', 'r1', 0, 'line', 0), link('a', 'r1', 1, 'sw', 0), link('b', 'sw', 1, 'staff_a', 0), link('c', 'sw', 2, 'staff_b', 0)],
-  segments: {},
+  plans: {},
 });
 
 describe('案件 n001: 事務所をインターネットへつなぐ', () => {
   it('置いただけでは不合格', () => {
-    expect(evaluateGoal(contract.goals[0], analyze({ nodes: contract.placed.map(base), links: [], segments: {} }, data)).every((r) => r.ok)).toBe(false);
+    expect(evaluateGoal(contract.goals[0], analyze({ nodes: contract.placed.map(base), links: [], plans: {} }, data)).every((r) => r.ok)).toBe(false);
   });
   it('NAPT を設定すると合格し、NAPT がなければ不合格（社内のアドレスのまま外へ出る）', () => {
     expect(evaluateGoal(contract.goals[0], analyze(solved(true), data)).every((r) => r.ok)).toBe(true);

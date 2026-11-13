@@ -19,7 +19,7 @@ const build = (napt: boolean): Network => ({
     n('net', 'internet', [f(0, '198.51.100.1')], null, [], false, 2),
   ],
   links: [l('l0', 'pc', 0, 'r', 1), l('l1', 'r', 0, 'net', 0)],
-  segments: {},
+  plans: {},
 });
 
 describe('NAPT（N145）', () => {

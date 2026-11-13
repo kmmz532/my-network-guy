@@ -20,7 +20,7 @@ import { autoAssign } from './autoAssign';
 import { connect, focusedOf, type Core, type Env } from './project';
 import { accept } from './progress';
 import { placeDevice, placeInOffice } from './placement';
-import { setGateway, setInterface, setSegment } from './netEdit';
+import { setGateway, setInterface, setPlan } from './netEdit';
 import { buyDevice } from './shop';
 import { deviceDef } from '../registry/query';
 
@@ -133,14 +133,14 @@ describe('IPアドレスの自動割り当て（autoAssign）', () => {
     core = ok(connect(core, 'pc_a', 'pc_b', UTP, env, 'focus')).core;
     core = autoAssign(core, env, 'focus', true);
     expect(ipsOf(core)).toMatchObject({ pc_a: '192.168.1.10', pc_b: '192.168.1.11', pc_c: undefined });
-    expect(focusedOf(core)!.segments).toEqual({ 'pc_a:0': { network: '192.168.1.0', prefix: 24 } });
+    expect(focusedOf(core)!.plans).toEqual({ 'pc_a:0': { network: '192.168.1.0', prefix: 24 } });
   });
 
   it('振る相手がいないセグメント（ルーターだけ）には、ネットワークを決めない', () => {
     const { core: base, sw } = officeWithSwitch();
     const router = place(buy(base, ROUTER), ROUTER, 6, 6);
     const core = wireAuto(router.core, router.uid, sw);
-    expect(focusedOf(core)!.segments).toEqual({});
+    expect(focusedOf(core)!.plans).toEqual({});
     expect(nodeOf(core, router.uid).interfaces).toEqual([]);
   });
 
@@ -251,7 +251,7 @@ describe('IPアドレスの自動割り当て（自社オフィス・サンド�
 
   it('サンドボックス: ネットワークを設定すると、つないだ PC に .10 から順に振る（ゲートウェイは未設定のまま）', () => {
     const { core: base, a, b } = sandboxWired();
-    const set = ok(setSegment(base, a, 0, '192.168.7.0', 24, env, 'office')).core;
+    const set = ok(setPlan(base, a, 0, '192.168.7.0', 24, env, 'office')).core;
     const core = autoAssign(set, env, 'office', true);
     expect(officeNode(core, a).interfaces).toEqual([{ id: "eth0", kind: "port", port: 0, ip: '192.168.7.10', prefix: 24 }]);
     expect(officeNode(core, b).interfaces).toEqual([{ id: "eth0", kind: "port", port: 0, ip: '192.168.7.11', prefix: 24 }]);
@@ -260,7 +260,7 @@ describe('IPアドレスの自動割り当て（自社オフィス・サンド�
 
   it('自社オフィス（案件なし）: 設定がオンなら、ネットワークの決まったセグメントの PC に振る', () => {
     const { core: base, a, b } = sandboxWired();
-    const set = ok(setSegment(base, b, 0, '10.0.0.0', 24, env, 'office')).core;
+    const set = ok(setPlan(base, b, 0, '10.0.0.0', 24, env, 'office')).core;
     const on = autoAssign(set, env, 'office', true);
     expect(officeNode(on, a).interfaces).toEqual([{ id: "eth0", kind: "port", port: 0, ip: '10.0.0.10', prefix: 24 }]);
     expect(officeNode(on, b).interfaces).toEqual([{ id: "eth0", kind: "port", port: 0, ip: '10.0.0.11', prefix: 24 }]);
@@ -268,7 +268,7 @@ describe('IPアドレスの自動割り当て（自社オフィス・サンド�
 
   it('設定がオフなら、サンドボックスでも振らない', () => {
     const { core: base, a } = sandboxWired();
-    const set = ok(setSegment(base, a, 0, '192.168.7.0', 24, env, 'office')).core;
+    const set = ok(setPlan(base, a, 0, '192.168.7.0', 24, env, 'office')).core;
     expect(autoAssign(set, env, 'office', false)).toBe(set);
     expect(officeNode(set, a).interfaces).toEqual([]);
   });

@@ -5,9 +5,11 @@ import { makeIface } from '../network/iface';
 // ルーターのポートが未設定なら .1 を振る（ホストのゲートウェイも .1 になる）。
 // 設定がオフのとき、または案件が manualIp のときは何もしない。
 import { inSubnet, ipToInt } from '../network/engine';
-import { intToIp, networkAddress, routerAddressesOn, segmentConfigOf, type Segment } from '../network/segments';
+import { intToIp, networkAddress, planFor } from '../network/segments';
+import { routerAddressesOn } from '../network/query/plans';
+import type { PlanDomain } from '../network/engine/stages/l2';
 import { analyze } from '../network/engine/analyze';
-import type { NetNode, SegmentConfig } from '../network/types';
+import type { NetNode, NetworkPlan } from '../network/types';
 import { focusedOf, netOf, withNet, type Core, type Env, type NetTarget } from './project';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { deviceCategory } from '../registry/query';
@@ -27,7 +29,7 @@ export const autoAssign = (
   env: Env,
   target: NetTarget,
   enabled: boolean,
-  planned: (seg: Segment) => SegmentConfig | undefined = () => undefined,
+  planned: (seg: PlanDomain) => NetworkPlan | undefined = () => undefined,
 ): Core => {
   if (!enabled) return core;
   if (target === 'focus' && focusedOf(core)?.contract.manualIp) return core;
@@ -40,7 +42,7 @@ export const autoAssign = (
   for (const n of net.nodes) for (const i of n.interfaces) used.add(ipToInt(i.ip));
 
   let nodes: NetNode[] = net.nodes;
-  let segments: Record<string, SegmentConfig> = net.segments;
+  let plans: Record<string, NetworkPlan> = net.plans;
   let changed = false;
   const nodeMap = (): Map<string, NetNode> => new Map(nodes.map((n) => [n.uid, n]));
   const categoryOf = (uid: string): string => {
@@ -49,16 +51,16 @@ export const autoAssign = (
   };
 
   // 既に使われているネットワーク（設定済みのセグメント・機器のアドレスのネットワーク）
-  const networksInUse = (): SegmentConfig[] => {
-    const cfgs: SegmentConfig[] = [];
-    for (const seg of analyze({ nodes, links: net.links }, env.engine).l2.segments) {
-      const cfg = segmentConfigOf(seg, nodeMap(), segments);
+  const networksInUse = (): NetworkPlan[] => {
+    const cfgs: NetworkPlan[] = [];
+    for (const seg of analyze({ nodes, links: net.links }, env.engine).l2.planDomains) {
+      const cfg = planFor(seg, nodeMap(), plans);
       if (cfg) cfgs.push(cfg);
     }
-    return [...cfgs, ...Object.values(segments)];
+    return [...cfgs, ...Object.values(plans)];
   };
   // ほかと重ならない 192.168.N.0/24 を、N の小さい順に選ぶ
-  const pickDefaultNetwork = (): SegmentConfig | undefined => {
+  const pickDefaultNetwork = (): NetworkPlan | undefined => {
     const inUse = networksInUse();
     for (let n = 1; n <= 255; n++) {
       const network = `192.168.${n}.0`;
@@ -68,7 +70,7 @@ export const autoAssign = (
     return undefined;
   };
   // セグメントにIPアドレスのあるポート（ルーターなど）があれば、その /24 をセグメントのネットワークにする
-  const ifaceConfigOf = (seg: Segment): SegmentConfig | undefined => {
+  const ifaceConfigOf = (seg: PlanDomain): NetworkPlan | undefined => {
     for (const m of seg.members) {
       const iface = nodeMap().get(m.node)?.interfaces.find((i) => i.port === m.port);
       if (iface) return { network: networkAddress(iface.ip, DEFAULT_PREFIX), prefix: DEFAULT_PREFIX };
@@ -76,21 +78,21 @@ export const autoAssign = (
     return undefined;
   };
 
-  for (const seg of analyze(net, env.engine).l2.segments) {
+  for (const seg of analyze(net, env.engine).l2.planDomains) {
     const hostsUnset = seg.members.some((m) => {
       const node = nodeMap().get(m.node);
       if (!node || node.configLocked) return false;
       const category = deviceCategory(node.device);
       return (isPcCategory(category) || category === CATEGORY.server) && !node.interfaces.some((i) => i.port === m.port);
     });
-    let cfg = segmentConfigOf(seg, nodeMap(), segments) ?? ifaceConfigOf(seg);
+    let cfg = planFor(seg, nodeMap(), plans) ?? ifaceConfigOf(seg);
     let defaulted = false;
     if (!cfg) {
       // ネットワークが決まっていないセグメントは、振る相手（IPのない PC・サーバー）があるときだけ既定を決める
       if (!hostsUnset) continue;
       cfg = planned(seg) ?? pickDefaultNetwork();
       if (!cfg) continue;
-      segments = { ...segments, [seg.key]: cfg };
+      plans = { ...plans, [seg.key]: cfg };
       changed = true;
       defaulted = true;
     }
@@ -136,7 +138,7 @@ export const autoAssign = (
       // ゲートウェイが未設定で、同じセグメントにルーターのアドレスがあれば、それにする
       const gateway =
         node.gateway === null
-          ? (routerAddressesOn(analyze({ nodes: before, links: net.links }, env.engine).l2.segments, { nodes: before }, m.node, m.port).find((r) =>
+          ? (routerAddressesOn(analyze({ nodes: before, links: net.links }, env.engine), m.node, m.port).find((r) =>
               inSubnet(r, cfg.network, cfg.prefix),
             ) ?? null)
           : node.gateway;
@@ -145,5 +147,5 @@ export const autoAssign = (
   }
 
   if (!changed) return core;
-  return withNet(core, target, { ...net, nodes, segments });
+  return withNet(core, target, { ...net, nodes, plans });
 };
