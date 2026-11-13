@@ -20,5 +20,5 @@
 ## 検査
 
 - 完了の条件は `npm run verify`（型・ESLint・全試験・JSON・言語ファイル・仕様との突き合わせ）の合格とする。
-- コミットの前の hook（`.git/hooks/pre-commit`）は `npm run verify:hook`（変更に関わる試験だけを動かす）を実行する。`npm install` の `prepare` が書き込む。`--no-verify` は使わない。
+- コミットの前の hook（`.git/hooks/pre-commit`）は、ステージしたファイルだけを見る（`src/**/*.{ts,tsx}` の ESLint と、JSON の重複キーの検査）。作業ツリー全体は見ない。`npm install` の `prepare` が書き込む。`--no-verify` は使わない。
 - `npm run check:spec` は、仕様（`memo/NET.md`）とコードの食い違いを調べる。今ある食い違いは `scripts/spec-baseline.json` に記録してあり、記録にない食い違いだけを誤りにする。食い違いを解消したら `node scripts/check-spec.mjs --update` で記録から消す。

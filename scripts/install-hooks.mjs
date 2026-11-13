@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // コミットの前の hook（.git/hooks/pre-commit）を書き込む。npm install の prepare から呼ぶ。
-// hook は `npm run verify:hook`（変更に関わる試験だけを動かす検査）を実行し、落ちればコミットを止める。--no-verify は使わない。
+// hook は scripts/pre-commit.mjs（ステージしたファイルの eslint と JSON の検査）を実行し、落ちればコミットを止める。--no-verify は使わない。
 import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
@@ -11,7 +11,7 @@ if (!existsSync(gitDir)) process.exit(0);
 const hooks = join(gitDir, 'hooks');
 mkdirSync(hooks, { recursive: true });
 const file = join(hooks, 'pre-commit');
-writeFileSync(file, '#!/bin/sh\nnpm run verify:hook\n');
+writeFileSync(file, '#!/bin/sh\nnode scripts/pre-commit.mjs\n');
 try {
   chmodSync(file, 0o755);
 } catch {

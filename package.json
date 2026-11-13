@@ -22,7 +22,6 @@
     "check:lang": "node scripts/lang.mjs status",
     "check:spec": "node scripts/check-spec.mjs",
     "verify": "tsc --noEmit && eslint src && vitest run && npm run check:json && npm run check:lang && npm run check:spec",
-    "verify:hook": "tsc --noEmit && eslint src && vitest run --changed && npm run check:json && npm run check:lang && npm run check:spec",
     "prepare": "node scripts/install-hooks.mjs"
   },
   "dependencies": {

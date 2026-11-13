@@ -16,5 +16,5 @@ jobs:
       - run: npm ci
       - name: 生成と型の検査（npm run build は生成物を作ってから tsc を行う）
         run: npm run build
-      - name: 単体テスト
-        run: npx vitest run
+      - name: 検査（型・ESLint・全試験・JSON・言語ファイル・仕様との突き合わせ）
+        run: npm run verify
