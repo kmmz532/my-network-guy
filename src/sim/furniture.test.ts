@@ -58,6 +58,7 @@ const core = (over: Partial<Core> = {}): Core => ({
   staffSeq: 1,
   candidates: [],
   guidesDone: [],
+  termsShown: [],
   ...over,
 });
 

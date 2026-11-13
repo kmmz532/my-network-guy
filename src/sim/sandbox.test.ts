@@ -59,6 +59,7 @@ const core = (office: Office = sandboxOffice(), owned: Record<string, number> = 
   staffSeq: 0,
   candidates: [],
   guidesDone: [],
+  termsShown: [],
 });
 
 const mapOf = (office: Office): GameMap => mapOfOffice(office);

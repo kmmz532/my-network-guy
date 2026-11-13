@@ -41,6 +41,8 @@ describe('セーブのバージョン移行', () => {
       reputation: 0,
       expDay: 0,
       expToday: 0,
+      // 用語の記録は移行前は空（v49）
+      termsShown: [],
       // 遊び方は移行で案件の経営ゲーム（career）になる
       mode: 'career',
       name: 'パケットカンパニー',

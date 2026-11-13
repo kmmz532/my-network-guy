@@ -115,6 +115,7 @@ const startCore = (offers: Offer[]): Core => ({
   staffSeq: 2,
   candidates: [],
   guidesDone: [],
+  termsShown: [],
 });
 
 // 操作が成功したことを確かめ、成功の結果を返す（失敗なら例外）

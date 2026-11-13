@@ -48,6 +48,7 @@ const sample: SaveData = {
   candidates: [],
   guidesDone: ['c001_direct_link'],
   sandboxLesson: null,
+  termsShown: [],
 };
 
 // v21 までの形（評判 reputation）。古い版から移行するテストの入力に使う

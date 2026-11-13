@@ -65,6 +65,7 @@ const start = (): Core => ({
   staffSeq: 2,
   candidates: [],
   guidesDone: [],
+  termsShown: [],
 });
 
 // 操作の種類。番号は、いまある機器・配線の一覧を巡回して使う

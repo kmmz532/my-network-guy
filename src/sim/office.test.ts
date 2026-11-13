@@ -74,6 +74,7 @@ const core = (money: number, over: Partial<Office> = {}, active: Project[] = [])
   staffSeq: 0,
   candidates: [],
   guidesDone: [],
+  termsShown: [],
 });
 
 describe('部屋のマップ', () => {

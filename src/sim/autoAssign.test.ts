@@ -73,6 +73,7 @@ const startCore = (offers: Offer[]): Core => ({
   staffSeq: 2,
   candidates: [],
   guidesDone: [],
+  termsShown: [],
 });
 
 const ok = <T extends { ok: boolean }>(r: T): Extract<T, { ok: true }> => {

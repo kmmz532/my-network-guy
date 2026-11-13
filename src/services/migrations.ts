@@ -26,7 +26,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 48;
+export const SAVE_VERSION = 49;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -121,6 +121,8 @@ export interface SaveData {
   guidesDone: string[];
   // サンドボックスで開いている教材（なければ null）
   sandboxLesson: SandboxLesson | null;
+  // 初めて出した用語（用語集の ID）。出したものは2回目から出さない
+  termsShown: string[];
 }
 
 export interface SandboxLesson {
@@ -133,6 +135,8 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v48 → v49: 用語の説明を出し終えたもの（案件の欄に初めて出したときに記録する）。移行前は1つも出していない
+  48: (data) => ({ ...(data as object), termsShown: [] }),
   // v47 → v48: MAC アドレスの連番がない機器に、置いた順に連番を振る（案件にあらかじめ置かれた機器と、回線終端には付いていなかった）
   47: (data) => {
     const d = data as { active: { nodes: NetNode[] }[]; office: { nodes: NetNode[] } };
@@ -507,6 +511,8 @@ export const isSaveData = (value: unknown): value is SaveData => {
     Array.isArray(v.guidesDone) &&
     v.guidesDone.every((id) => typeof id === 'string') &&
     isSandboxLesson(v.sandboxLesson) &&
+    Array.isArray(v.termsShown) &&
+    v.termsShown.every((id) => typeof id === 'string') &&
     Array.isArray((v.office as { furniture?: unknown } | undefined)?.furniture) &&
     isOfficeSize((v.office as { size?: unknown }).size) &&
     Array.isArray((v.office as { innerWalls?: unknown }).innerWalls) &&

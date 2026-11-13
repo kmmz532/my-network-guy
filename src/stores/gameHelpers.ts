@@ -120,6 +120,7 @@ export const coreOf = (s: GameState): Core => ({
   candidates: s.candidates,
   focus: s.focus,
   guidesDone: s.guidesDone,
+  termsShown: s.termsShown,
 });
 
 // 依頼の一覧に出す案内（次の依頼までの日数と、届かない理由）

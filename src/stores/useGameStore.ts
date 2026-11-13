@@ -113,6 +113,8 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   hiringWish: JobId | null;
   // 初めての概念の案内を終えた（または飛ばした）固定案件のID（セーブデータに入る）
   guidesDone: string[];
+  // 初めて出した用語（用語集の ID。セーブデータに入る）
+  termsShown: string[];
   // 案内が光らせている機器の uid（マップの描画は別の担当。保存しない）
   guideTarget: string | null;
   speed: Speed;
@@ -145,6 +147,8 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   // パケットの中身の欄で選んでいる通信と区間（hop）。マップのパケットをその区間の位置で止める。欄を閉じたら null
   frameView: { trace: number; hop: number } | null;
   setFrameView: (view: { trace: number; hop: number } | null) => void;
+  // 用語を初めて出したことを記録する（2回目から出さない）
+  markTermShown: (id: string) => void;
   // 納品した直後の案件（結果を閉じるまでマップに表示する）
   showcase: Project | null;
   // 操作の種類
@@ -218,6 +222,7 @@ export const useGameStore = create<GameState>((set, get, api) => {
     office: initialOffice(balance),
     effects: noEffects(),
     guidesDone: [],
+    termsShown: [],
     guideTarget: null,
     speed: 0,
     nightSpeed: null,
@@ -235,6 +240,7 @@ export const useGameStore = create<GameState>((set, get, api) => {
     traces: [],
     frameView: null,
     setFrameView: (view) => set({ frameView: view }),
+    markTermShown: (id) => set((s) => (s.termsShown.includes(id) ? {} : { termsShown: [...s.termsShown, id] })),
     showcase: null,
     check: null,
     helpUid: null,

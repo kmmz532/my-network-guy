@@ -35,6 +35,7 @@ const core = (): Core => ({
   staffSeq: 2,
   candidates: [],
   guidesDone: [],
+  termsShown: [],
 });
 
 // 社員 s0 を、職種 network・level 3 にする

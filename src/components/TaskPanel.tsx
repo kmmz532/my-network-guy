@@ -9,7 +9,8 @@ import { RADIUS } from '../ui/theme';
 import { secondaryButton } from './Modal';
 import { familiarKeyOf } from '../sim/familiar';
 import { usePhone } from '../ui/usePhone';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { GLOSSARY_OF_FAILURE } from '../network/glossaryOf';
 import { lessons } from 'virtual:game-data';
 
 // 最初の案件（c001）の手順。配線・疎通・施工依頼の順に、済んだものに印を付ける
@@ -87,8 +88,22 @@ export function TaskPanel() {
   const warnings = check && check.projectId === active.id ? (check.warnings ?? []) : [];
   const goals = active.contract.goals.map((goal, i) => {
     const g = result?.[i];
-    return { text: goalText(goal, (id) => labelOfUid(useGameStore.getState(), id, active.nodes)), ok: g ? g.ok : null, node: g?.failures[0]?.node ?? null };
+    return { text: goalText(goal, (id) => labelOfUid(useGameStore.getState(), id, active.nodes)), ok: g ? g.ok : null, node: g?.failures[0]?.node ?? null, term: g?.failures[0] ? (GLOSSARY_OF_FAILURE[g.failures[0].reason] ?? null) : null };
   });
+  // 用語: 初めて出すときは説明を出し、記録する。2回目からは「用語の説明を見る」で開く
+  const termsShown = useGameStore((s) => s.termsShown);
+  const markTermShown = useGameStore((s) => s.markTermShown);
+  const [openTerm, setOpenTerm] = useState<string | null>(null);
+  const firstShownHere = useRef(new Set<string>());
+  const failingTerms = goals.filter((g) => g.ok === false && g.term).map((g) => g.term as string);
+  useEffect(() => {
+    for (const term of failingTerms) {
+      if (!termsShown.includes(term)) markTermShown(term);
+      firstShownHere.current.add(term);
+    }
+    // failingTerms は描画のたびに作り直すため、用語の並びだけで判定する
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [failingTerms.join(','), termsShown, markTermShown]);
 
   const hintKey = `contract.${active.baseId}.hint`;
   const hasHint = hasKey(hintKey);
@@ -168,7 +183,7 @@ export function TaskPanel() {
               // × は失敗した機器を選び、機器の画面を開く（失敗の機器がないものは押せない）
               const icon = <Icon name={g.ok === false ? 'icon/close' : 'icon/ok'} scale={1} />;
               return (
-                <li key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginTop: 4 }}>
+                <li key={i} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'flex-start', marginTop: 4 }}>
                   {g.ok === false && g.node ? (
                     <button
                       aria-label={t('ui.check.open')}
@@ -189,6 +204,16 @@ export function TaskPanel() {
                     <button style={{ ...secondaryButton, padding: '0 6px', flexShrink: 0 }} onClick={() => openWindow('frames', String(i))}>
                       {t('ui.frames.goal')}
                     </button>
+                  )}
+                  {g.ok === false && g.term && (
+                    // 初めて出すとき（この表示の中でも）と、開いたときだけ説明を出す。それ以外は「説明を見る」で開く
+                    termsShown.includes(g.term) && !firstShownHere.current.has(g.term) && openTerm !== g.term ? (
+                      <button style={{ ...secondaryButton, padding: '0 6px', flexShrink: 0, fontSize: 12 }} onClick={() => setOpenTerm(g.term)}>
+                        {t('ui.glossary.open')}
+                      </button>
+                    ) : (
+                      <div style={{ flexBasis: '100%', paddingLeft: 22, fontSize: 12, opacity: 0.85 }}>{tDyn(`glossary.${g.term}`)}</div>
+                    )
                   )}
                 </li>
               );

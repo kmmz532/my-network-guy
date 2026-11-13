@@ -93,6 +93,7 @@ const start = (owned: Record<string, number> = {}): Core => ({
   staffSeq: 2,
   candidates: [],
   guidesDone: [],
+  termsShown: [],
 });
 
 const ok = <T extends { ok: boolean }>(r: T): T & { ok: true } => {
