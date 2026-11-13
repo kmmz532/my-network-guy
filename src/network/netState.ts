@@ -51,9 +51,6 @@ interface DomainResult {
   loop?: Endpoint;
 }
 
-// DHCP の割り当ての結果を、網（同じオブジェクト）ごとに覚える。ping を網の全組に行うとき、解決を1回で済ませる
-const dhcpCache = new WeakMap<Network, { dhcp: DhcpResult; net: Network }>();
-
 export class Topology {
   private nodes = new Map<string, NetNode>();
   private linkByEndpoint = new Map<string, { link: NetLink; peer: Endpoint }>();
@@ -73,12 +70,7 @@ export class Topology {
     resolveDhcp = true,
   ) {
     // 自動（DHCP）の口は、割り当てたアドレスを入れた機器で計算する。割り当ては、アドレスのない状態の配線（L2）から求める
-    const cached = resolveDhcp ? dhcpCache.get(net) : undefined;
-    if (cached) {
-      this.dhcp = cached.dhcp;
-      net = cached.net;
-    } else if (resolveDhcp && net.nodes.some((n) => n.interfaces.some((i) => i.dhcp === true))) {
-      const original = net;
+    if (resolveDhcp && net.nodes.some((n) => n.interfaces.some((i) => i.dhcp === true))) {
       const base = new Topology(net, data, false);
       this.dhcp = assignDhcp(net.nodes, {
         domainOf: (uid, port) => base.domainOf({ node: uid, port }).members,
@@ -108,7 +100,6 @@ export class Topology {
           };
         }),
       };
-      dhcpCache.set(original, { dhcp: this.dhcp, net });
     }
     for (const node of net.nodes) this.nodes.set(node.uid, node);
     for (const link of net.links) {
