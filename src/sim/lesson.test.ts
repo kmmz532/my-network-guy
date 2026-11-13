@@ -115,4 +115,17 @@ describe('教材を開いた直後の網の設定', () => {
     expect(lessonGoalResults(l.goals, withMode('active', 'active'), links, engine)).toEqual([true, true]);
     expect(lessonGoalResults(l.goals, withMode('passive', 'passive'), links, engine)).toEqual([true, false]);
   });
+
+  it('DHCP の教材: 初めは受け取れず、サーバーのプールとルーターのリレーを設定すると、届く。リレーを外すと受け取れない', () => {
+    const l = lesson('dhcp_relay');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false, false]);
+    const pool = { network: '192.168.1.0', prefix: 24, start: '192.168.1.100', end: '192.168.1.150', gateway: '192.168.1.1' };
+    const solved = (helper: boolean) =>
+      lessonNodes(l).map((n) =>
+        n.uid === 'SRV' ? { ...n, dhcpPools: [pool] } : n.uid === 'R1' && helper ? { ...n, interfaces: n.interfaces.map((i) => (i.port === 1 ? { ...i, helper: '10.0.1.2' } : i)) } : n,
+      );
+    expect(lessonGoalResults(l.goals, solved(true), links, engine)).toEqual([true, true]);
+    expect(lessonGoalResults(l.goals, solved(false), links, engine)).toEqual([false, false]);
+  });
 });

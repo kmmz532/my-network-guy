@@ -1,0 +1,191 @@
+{
+  "id": "dhcp_relay",
+  "topic": "service",
+  "order": 30,
+  "size": {
+    "w": 15,
+    "h": 10
+  },
+  "placed": [
+    {
+      "ref": "SRV",
+      "device": "server_basic",
+      "x": 1,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.1.2",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.0.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "SRV"
+    },
+    {
+      "ref": "R1",
+      "device": "router_basic",
+      "x": 5,
+      "y": 3,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.1.1",
+            "prefix": 24
+          },
+          {
+            "port": 1,
+            "ip": "192.168.1.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "R1"
+    },
+    {
+      "ref": "SW1",
+      "device": "l2_switch_8p",
+      "x": 9,
+      "y": 3,
+      "locked": false,
+      "name": "SW1"
+    },
+    {
+      "ref": "PC1",
+      "device": "pc_basic",
+      "x": 12,
+      "y": 1,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "PC1"
+    },
+    {
+      "ref": "PC2",
+      "device": "pc_basic",
+      "x": 12,
+      "y": 6,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "PC2"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "SRV",
+        "port": 0
+      },
+      "b": {
+        "ref": "R1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "R1",
+        "port": 1
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PC1",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PC2",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 2
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "dhcp_all",
+      "nodes": [
+        "PC1",
+        "PC2"
+      ]
+    },
+    {
+      "type": "ping_all",
+      "nodes": [
+        "PC1",
+        "PC2",
+        "SRV"
+      ]
+    }
+  ],
+  "guide": [
+    {
+      "target": "SRV",
+      "done": "open:SRV"
+    },
+    {
+      "target": "SRV",
+      "done": "cmd:ip dhcp pool"
+    },
+    {
+      "target": "R1",
+      "done": "cmd:ip helper-address"
+    },
+    {
+      "target": "test",
+      "done": "goal:2"
+    },
+    {
+      "target": "SRV",
+      "done": "cmd:show ip dhcp binding"
+    }
+  ]
+}

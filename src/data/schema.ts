@@ -347,6 +347,8 @@ const interfaceSchema = z.object({
   port: nonNegativeInt,
   ip: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/),
   prefix: z.number().int().min(0).max(32),
+  // 自動（DHCP）で受け取る口（ip は前回のアドレスの初期値）
+  dhcp: z.literal(true).optional(),
 });
 
 const placedConfigSchema = z.object({
