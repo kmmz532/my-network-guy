@@ -23,7 +23,7 @@ const onInitialize = () => {
 export const App = () => {
   const [ready, setReady] = useState(false);
 
-  // 翻訳や地図の読み込みが失敗したときの例外（エラー画面で再読み込みを促す）
+  // 読み込みが失敗したときのエラー保存（エラー画面表示に利用する）
   const [loadError, setLoadError] = useState<unknown>(null);
   const scene = useSceneStore((s) => s.scene);
 
