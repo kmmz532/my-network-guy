@@ -1,6 +1,8 @@
+import { analyze } from './engine/analyze';
+import { dhcpOf } from './query/dhcp';
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { dhcpOf, dhcpWriteBack, ping } from './netState';
+import { dhcpWriteBack, ping } from './netState';
 import { writeBackDhcp, type Core } from '../sim/project';
 import type { Iface, NetLink, NetNode, Network } from './types';
 
@@ -26,12 +28,12 @@ const office = (clients: string[], srvPool = pool): Network => ({
 describe('DHCP', () => {
   it('同じドメインのサーバーのプールから、小さいアドレスから順に配り、通信できる', () => {
     const net = office(['p1', 'p2']);
-    expect(dhcpOf(net, data).leases.map((l) => [l.uid, l.ip])).toEqual([['p1', '192.168.1.100'], ['p2', '192.168.1.101']]);
+    expect(dhcpOf(analyze(net, data)).leases.map((l) => [l.uid, l.ip])).toEqual([['p1', '192.168.1.100'], ['p2', '192.168.1.101']]);
     expect(ping(net, data, 'p1', 'p2').ok).toBe(true);
   });
   it('プールが足りなければ dhcp.exhausted、サーバーがなければ dhcp.no_offer', () => {
     const net = office(['p1', 'p2', 'p3']);
-    expect(dhcpOf(net, data).failed).toEqual([{ uid: 'p3', port: 0, reason: 'dhcp.exhausted' }]);
+    expect(dhcpOf(analyze(net, data)).failed).toEqual([{ uid: 'p3', port: 0, reason: 'dhcp.exhausted' }]);
     expect(ping(net, data, 'p3', 'p1').failure?.reason).toBe('dhcp.exhausted');
     const none: Network = { ...net, nodes: net.nodes.map((n) => (n.uid === 'srv' ? { ...n, dhcpPools: undefined } : n)) };
     expect(ping(none, data, 'p1', 'p2').failure?.reason).toBe('dhcp.no_offer');
@@ -43,14 +45,14 @@ describe('DHCP', () => {
       nodes: [...net.nodes, node('srv2', 'home_router', 0, { interfaces: [st('192.168.1.1')], dhcpPools: [{ ...pool, start: '192.168.1.50', end: '192.168.1.60' }] })],
       links: [...net.links, link('r', 'sw', 5, 'srv2', 0)],
     };
-    const r = dhcpOf(two, data);
+    const r = dhcpOf(analyze(two, data));
     expect(r.leases[0]).toMatchObject({ ip: '192.168.1.50', server: 'srv2' });
     expect(r.multiple).toHaveLength(1);
   });
   it('除外の範囲のアドレスは配らない', () => {
     const net = office(['p1']);
     const excluding: Network = { ...net, nodes: net.nodes.map((n) => (n.uid === 'srv' ? { ...n, dhcpPools: [{ ...pool, excluded: [{ start: '192.168.1.100', end: '192.168.1.100' }] }] } : n)) };
-    expect(dhcpOf(excluding, data).leases[0].ip).toBe('192.168.1.101');
+    expect(dhcpOf(analyze(excluding, data)).leases[0].ip).toBe('192.168.1.101');
   });
   it('手動のアドレスと重なる DHCP のアドレスは ip.duplicate.dhcp になる', () => {
     const net = office(['p1']);
@@ -59,7 +61,7 @@ describe('DHCP', () => {
       nodes: [...net.nodes, node('m', 'pc_basic', 1, { interfaces: [st('192.168.1.100')] })],
       links: [...net.links, link('lm', 'sw', 2, 'm', 0)],
     };
-    expect(dhcpOf(manual, data).leases.map((l) => l.ip)).toEqual(['192.168.1.100']);
+    expect(dhcpOf(analyze(manual, data)).leases.map((l) => l.ip)).toEqual(['192.168.1.100']);
     expect(ping(manual, data, 'p1', 'm').failure?.reason).toBe('ip.duplicate.dhcp');
   });
   it('ルーターを越えるときは、リレー（helper）を設定したルーターの口のサブネットのプールから配る', () => {
@@ -72,9 +74,9 @@ describe('DHCP', () => {
       links: [link('a', 'srv', 0, 'r1', 0), link('b', 'r1', 1, 'p1', 0)],
       segments: {},
     };
-    expect(dhcpOf(net, data).leases[0]).toMatchObject({ uid: 'p1', ip: '192.168.1.100' });
+    expect(dhcpOf(analyze(net, data)).leases[0]).toMatchObject({ uid: 'p1', ip: '192.168.1.100' });
     const noHelper: Network = { ...net, nodes: net.nodes.map((n) => (n.uid === 'r1' ? { ...n, interfaces: n.interfaces.map((i) => ({ ...i, helper: undefined })) } : n)) };
-    expect(dhcpOf(noHelper, data).failed[0].reason).toBe('dhcp.no_offer');
+    expect(dhcpOf(analyze(noHelper, data)).failed[0].reason).toBe('dhcp.no_offer');
   });
 });
 
@@ -103,16 +105,16 @@ describe('DHCP の前回のアドレス', () => {
     const saved = dhcpWriteBack(net.nodes, net.links, net.segments, data);
     const written: Network = { ...net, nodes: [...saved] };
     expect(written.nodes.find((n) => n.uid === 'p2')?.interfaces[0].ip).toBe('192.168.1.101');
-    expect(dhcpOf(written, data).leases.map((l) => l.ip)).toEqual(['192.168.1.100', '192.168.1.101']);
+    expect(dhcpOf(analyze(written, data)).leases.map((l) => l.ip)).toEqual(['192.168.1.100', '192.168.1.101']);
     expect(dhcpWriteBack(written.nodes, written.links, written.segments, data)).toBe(written.nodes);
     const removed: Network = { ...written, nodes: written.nodes.filter((n) => n.uid !== 'p1'), links: written.links.filter((l) => l.uid !== 'lp1') };
-    expect(dhcpOf(removed, data).leases).toMatchObject([{ uid: 'p2', ip: '192.168.1.101' }]);
+    expect(dhcpOf(analyze(removed, data)).leases).toMatchObject([{ uid: 'p2', ip: '192.168.1.101' }]);
   });
   it('前回のアドレスがプールの範囲外になれば、取り直す。受け取れない間は前回のアドレスを書き換えない', () => {
     const net = office(['p1']);
     const written: Network = { ...net, nodes: [...dhcpWriteBack(net.nodes, net.links, net.segments, data)] };
     const moved: Network = { ...written, nodes: written.nodes.map((n) => (n.uid === 'srv' ? { ...n, dhcpPools: [{ ...pool, start: '192.168.1.150', end: '192.168.1.160' }] } : n)) };
-    expect(dhcpOf(moved, data).leases[0].ip).toBe('192.168.1.150');
+    expect(dhcpOf(analyze(moved, data)).leases[0].ip).toBe('192.168.1.150');
     const gone: Network = { ...written, nodes: written.nodes.map((n) => (n.uid === 'srv' ? { ...n, dhcpPools: undefined } : n)) };
     expect(dhcpWriteBack(gone.nodes, gone.links, gone.segments, data)).toBe(gone.nodes);
     expect(gone.nodes.find((n) => n.uid === 'p1')?.interfaces[0].ip).toBe('192.168.1.100');

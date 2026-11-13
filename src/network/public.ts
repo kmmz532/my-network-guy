@@ -9,3 +9,4 @@ export { macTableOf } from './query/macTable';
 export { portStatesOf, type PortState } from './query/portStates';
 export { lagBundlesOf } from './query/lagBundles';
 export { learnedRoutesOf } from './query/learnedRoutes';
+export { dhcpOf } from './query/dhcp';

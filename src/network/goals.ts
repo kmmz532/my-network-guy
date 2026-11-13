@@ -1,7 +1,8 @@
+import { dhcpOf } from './query/dhcp';
 // 案件の達成条件（goals）の判定ハンドラ。種類ごとにハンドラを登録し、案件データから呼び出す。
 import type { Contract, Goal } from '../data/schema';
 import { http, ping, wirelessAssociations } from './engine';
-import { accessPointsOf, dhcpOf } from './netState';
+import { accessPointsOf } from './netState';
 import { lagBundlesOf } from './query/lagBundles';
 import { ospfNeighborsOf } from './query/ospfNeighbors';
 import { analyze } from './engine/analyze';
@@ -206,7 +207,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
   // 指定した端末がすべて自動（DHCP）で、アドレスを受け取っている
   dhcp_all: (goal, net, data) => {
     if (goal.type !== 'dhcp_all') throw new Error('dhcp_all ハンドラに別の種類が渡された');
-    const r = dhcpOf(net, data);
+    const r = dhcpOf(analyze(net, data));
     const ok = goal.nodes.every((uid) => {
       const n = net.nodes.find((x) => x.uid === uid);
       return n !== undefined && n.interfaces.length > 0 && n.interfaces.every((i) => i.dhcp === true) && r.leases.some((l) => l.uid === uid) && !r.failed.some((f) => f.uid === uid);

@@ -1,3 +1,4 @@
+import { dhcpOf } from './query/dhcp';
 // 機器のターミナルのコマンド。入力の行を受け取り、出力の行を返す（画面には出さない純粋な関数）。
 // 確認のコマンド: help・show ip・show ip route・show interfaces・show running-config・ping・traceroute。
 // 補完（Tab）と、clear・hostname は、それぞれ別の関数で扱う（ここでは help の文言だけ）。
@@ -11,7 +12,7 @@ import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
 import { bgpTableOf } from './query/bgpTable';
-import { adOf, dhcpOf } from './netState';
+import { adOf } from './netState';
 import { learnedRoutesOf } from './query/learnedRoutes';
 import { lagBundlesOf } from './query/lagBundles';
 import { macTableOf } from './query/macTable';
@@ -133,7 +134,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
     }
     if (sub === 'ip dhcp binding') {
       // 配ったアドレス（このサーバーが配ったもの）。割り当ては毎回計算で求める（NET.md §5.7）
-      const leases = dhcpOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data).leases.filter((l) => l.server === node.uid);
+      const leases = dhcpOf(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data)).leases.filter((l) => l.server === node.uid);
       if (leases.length === 0) return [out(tr('ui.terminal.dhcpNone'))];
       return leases.map((l) => out(tr('ui.terminal.dhcpBinding', { ip: l.ip, name: name(ctx.nodes.find((n) => n.uid === l.uid) ?? node), port: l.port })));
     }

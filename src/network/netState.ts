@@ -1,3 +1,4 @@
+import { dhcpOf } from './query/dhcp';
 // 疎通判定の計算（N136）。段1 配線 → 段2 L2 ドメイン → 段3 IP と直結 → 段4 静的経路 → 段5 転送（ping・http）の順に読む。
 // L1（配線）→ L2（スイッチによるL2ドメイン）→ L3（IPアドレスとルーティング）の順に確認する。
 // 失敗理由は ID で返し、文言は言語ファイルで表示する。
@@ -901,7 +902,7 @@ export const warningsOf = (net: Network, data?: EngineData): VlanWarning[] => {
   // DHCP: 同じドメインに DHCP サーバーが2台以上ある（サーバーの組ごとに1件）
   if (data) {
     const pairs = new Set<string>();
-    for (const m of dhcpOf(net, data).multiple) {
+    for (const m of dhcpOf(analyze(net, data)).multiple) {
       const key = [...m.servers].sort().join('|');
       if (pairs.has(key)) continue;
       pairs.add(key);
@@ -937,12 +938,10 @@ export const warningsOf = (net: Network, data?: EngineData): VlanWarning[] => {
   return out;
 };
 
-
-// DHCP の割り当て（show ip dhcp binding・警告・達成条件に使う）
 // 受け取れた自動の口の ip・prefix を機器へ書き戻す（前回のアドレスとして保存する。NET.md §5.7）。変わる機器がなければ同じ配列を返す
 export const dhcpWriteBack = <T extends { uid: string; interfaces: Iface[] }>(nodes: readonly T[], links: readonly NetLink[], segments: Network['segments'], data: EngineData): readonly T[] => {
   if (!nodes.some((n) => n.interfaces.some((i) => i.dhcp === true))) return nodes;
-  const leases = dhcpOf({ nodes: nodes as unknown as NetNode[], links: [...links], segments }, data).leases;
+  const leases = analyze({ nodes: nodes as unknown as NetNode[], links: [...links], segments }, data).dhcp.leases;
   let changed = false;
   const next = nodes.map((n) => {
     const interfaces = n.interfaces.map((i) => {
@@ -956,6 +955,5 @@ export const dhcpWriteBack = <T extends { uid: string; interfaces: Iface[] }>(no
   return changed ? next : nodes;
 };
 
-export const dhcpOf = (net: Network, data: EngineData): DhcpResult => analyze(net, data).dhcp;
 
 // BGP の計算結果（show ip bgp・show ip bgp summary に出す）。BGP を動かしていない機器は undefined
