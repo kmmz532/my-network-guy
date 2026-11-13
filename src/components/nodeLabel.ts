@@ -3,10 +3,11 @@ import { t, tDyn } from '../i18n/t';
 import { nodeName, type NameContext } from '../network/nodeName';
 import type { NetNode } from '../network/types';
 import { gameEnv } from '../sim/env';
+import { deviceCategory } from '../registry/query';
 import { focusedProject, type GameState } from '../stores/useGameStore';
 
 const contextFor = (state: GameState, office: boolean): NameContext => ({
-  categoryOf: (device) => gameEnv.devices[device]?.category ?? 'unknown',
+  categoryOf: deviceCategory,
   categoryLabel: (category) => tDyn(`category.${category}`),
   deviceLabel: (device) => tDyn(`device.${device}.name`),
   ownedPc: (owner) => t('ui.node.ownedPc', { name: owner }),
@@ -38,7 +39,7 @@ export const offerNodeName = (offer: { contract: { placed: { ref: string; device
   const node = placed.find((n) => n.uid === ref);
   if (!node) return ref;
   return nodeName(node, placed, {
-    categoryOf: (device) => gameEnv.devices[device]?.category ?? 'unknown',
+    categoryOf: deviceCategory,
     categoryLabel: (category) => tDyn(`category.${category}`),
     deviceLabel: (device) => tDyn(`device.${device}.name`),
     ownedPc: (owner) => t('ui.node.ownedPc', { name: owner }),

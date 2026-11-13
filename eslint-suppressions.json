@@ -84,17 +84,6 @@
       "count": 2
     }
   },
-  "src/components/nodeLabel.ts": {
-    "local/no-category": {
-      "count": 2
-    },
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
-      "count": 2
-    }
-  },
   "src/components/scene/GamePopups.tsx": {
     "local/no-mode-branch": {
       "count": 2
