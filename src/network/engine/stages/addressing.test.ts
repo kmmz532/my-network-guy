@@ -62,6 +62,42 @@ describe('セグメントの設定から機器の設定を作る', () => {
     expect(ping(analyze(out, data), 'a', 'b').ok).toBe(true);
   });
 
+  it('プレフィックス /23 のセグメントには PC を300台まで置ける', () => {
+    const ips = Array.from({ length: 300 }, (_, i) => `192.168.${Math.floor(i / 254)}.${(i % 254) + 1}`);
+    const nodes = ips.map((ip, i) => pc(`p${i}`, ip));
+    const links = nodes.map((_, i) => link(`l${i}`, `p${i}:0`, `s:${i}`));
+    const net: Network = {
+      nodes: [...nodes, sw('s')],
+      links,
+      plans: { 'p0:0': seg('192.168.0.0', 23) },
+    };
+    const { net: out, issues } = addressing(net);
+    expect(issues).toEqual({});
+    expect(ping(analyze(out, data), 'p0', 'p299').ok).toBe(true);
+  }, 60_000);
+
+  it('/31 の回線では、2台のルーターのアドレスをどちらも使って疎通する', () => {
+    const r1 = router('r1', [{ id: 'g0/0', kind: 'port', port: 0, ip: '10.0.0.0', prefix: 31 }]);
+    const r2 = router('r2', [{ id: 'g0/0', kind: 'port', port: 0, ip: '10.0.0.1', prefix: 31 }]);
+    const net: Network = {
+      nodes: [r1, r2],
+      links: [link('l0', 'r1:0', 'r2:0')],
+      plans: { 'r1:0': seg('10.0.0.0', 31) },
+    };
+    const { net: out, issues } = addressing(net);
+    expect(issues).toEqual({});
+    expect(ping(analyze(out, data), 'r1', 'r2').ok).toBe(true);
+  });
+
+  it('/32 のセグメントに2台目の機器を置くと segment.too_small になる', () => {
+    const net: Network = {
+      nodes: [pc('a', '192.168.1.1'), pc('b', '192.168.1.1')],
+      links: [link('l0', 'a:0', 'b:0')],
+      plans: { 'a:0': seg('192.168.1.1', 32) },
+    };
+    expect(addressing(net).issues.a).toEqual({ reason: 'segment.too_small', segment: '192.168.1.1/32' });
+  });
+
   it('ホストのゲートウェイは、同じセグメントにあるルーターのアドレスになる', () => {
     const net: Network = {
       nodes: [pc('a', '192.168.1.11'), router('r', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 }])],

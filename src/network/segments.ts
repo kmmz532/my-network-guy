@@ -4,9 +4,9 @@ import { ipToInt } from './engine';
 import type { DomainKey, NetNode, NetworkPlan } from './types';
 import type { PlanDomain } from './engine/stages/l2';
 
-// 設定できるプレフィックス長（sim-3 の候補）
-export const PREFIX_MIN = 24;
-export const PREFIX_MAX = 30;
+// 設定できるプレフィックス長（現実と同じ /0〜/32）
+export const PREFIX_MIN = 0;
+export const PREFIX_MAX = 32;
 
 export const epKey = (node: string, port: number): string => `${node}:${port}`;
 
@@ -17,8 +17,8 @@ export const intToIp = (n: number): string => [24, 16, 8, 0].map((s) => (n >>> s
 // IPアドレスとプレフィックス長から、ネットワークアドレスを求める
 export const networkAddress = (ip: string, prefix: number): string => intToIp((ipToInt(ip) & maskOf(prefix)) >>> 0);
 
-// ホストに割り当てられるアドレスの数（ネットワークアドレスとブロードキャストアドレスを除く）
-export const hostCapacity = (prefix: number): number => Math.max(0, 2 ** (32 - prefix) - 2);
+// ホストに割り当てられるアドレスの数。/31 は1対1の回線（RFC 3021）としてネットワークアドレスとブロードキャストアドレスを持たず、/32 は機器1台だけのネットワーク
+export const hostCapacity = (prefix: number): number => (prefix >= 31 ? 2 ** (32 - prefix) : 2 ** (32 - prefix) - 2);
 
 // L2 ドメインの計画。案件で設定が固定された機器（配線の設定が固定された機器）を含むときは、その機器のアドレスから決める。
 // そのほかは保存された計画を使う

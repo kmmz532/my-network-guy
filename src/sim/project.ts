@@ -626,7 +626,10 @@ export interface AddressCandidate {
   usedBy: { node: string; port: number } | null;
 }
 
-// ネットワーク（先頭アドレスと prefix）で使えるアドレスの一覧。ネットワークアドレスとブロードキャストアドレスを除き、.1 から順に並べる。
+// 候補の一覧の上限（先頭から並べる）。/8 のような広いネットワークで全部を並べないため
+const MAX_ADDRESS_CANDIDATES = 256;
+
+// ネットワーク（先頭アドレスと prefix）で使えるアドレスの一覧。ネットワークアドレスとブロードキャストアドレスを除き、.1 から順に並べる（/31・/32 は全部）。
 // 設定の前でも後でも同じ範囲・同じ順になる。使用中のアドレスには、使っている機器とポートを付ける（同じネットワーク内のすべての機器を見る）
 const addressRange = (
   network: string,
@@ -635,10 +638,13 @@ const addressRange = (
 ): AddressCandidate[] => {
   const base = ipToInt(network);
   const size = 2 ** (32 - prefix);
+  const point = prefix >= 31;
+  const first = point ? 0 : 1;
+  const last = point ? size - 1 : size - 2;
   const owners = new Map<number, { node: string; port: number }>();
   for (const n of nodes) for (const i of n.interfaces) owners.set(ipToInt(i.ip), { node: n.uid, port: i.port });
   const list: AddressCandidate[] = [];
-  for (let h = 1; h <= size - 2; h++) list.push({ ip: intToIp(base + h), usedBy: owners.get(base + h) ?? null });
+  for (let h = first; h <= last && list.length < MAX_ADDRESS_CANDIDATES; h++) list.push({ ip: intToIp(base + h), usedBy: owners.get(base + h) ?? null });
   return list;
 };
 

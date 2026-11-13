@@ -133,6 +133,7 @@ describe('アドレスの計算', () => {
   it('ホストに使えるアドレスの数を求める（ネットワークアドレスとブロードキャストを除く）', () => {
     expect(hostCapacity(24)).toBe(254);
     expect(hostCapacity(30)).toBe(2);
-    expect(hostCapacity(32)).toBe(0);
+    expect(hostCapacity(31)).toBe(2);
+    expect(hostCapacity(32)).toBe(1);
   });
 });

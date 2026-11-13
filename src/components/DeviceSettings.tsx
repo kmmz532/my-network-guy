@@ -15,7 +15,7 @@ import { can } from '../network/capabilities';
 import { wirelessAssociations } from '../network/engine/stages/links';
 import { channelOverlapsOf, networkColors, type NetworkState } from '../network/public';
 import { colorOfNetwork, UNSET_COLOR } from '../network/netColor';
-import { networkAddress, planFor } from '../network/segments';
+import { networkAddress, planFor, PREFIX_MAX, PREFIX_MIN } from '../network/segments';
 import { neighborRouterAddresses, planOf, routerAddressesOn } from '../network/query/plans';
 import type { NetNode, NetworkPlan } from '../network/types';
 import { gameEnv } from '../sim/env';
@@ -34,7 +34,7 @@ import { portCountOf, deviceCategory } from '../registry/query';
 
 // ネットワークの既定候補（入力欄から任意のネットワークも指定できる）
 const NETWORK_CHOICES = Array.from({ length: 16 }, (_, i) => `192.168.${i + 1}.0`);
-const PREFIX_CHOICES = [24, 25, 26, 27, 28, 29, 30];
+const PREFIX_CHOICES = Array.from({ length: PREFIX_MAX - PREFIX_MIN + 1 }, (_, i) => PREFIX_MIN + i);
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
 
