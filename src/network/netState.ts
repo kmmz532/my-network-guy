@@ -81,14 +81,19 @@ class Topology {
         ...net,
         nodes: net.nodes.map((n) => {
           const mine = this.dhcp.leases.filter((l) => l.uid === n.uid);
-          if (mine.length === 0) return n;
+          // 受け取れない口は 169.254.x.y/16（機器の連番から決める）。保存してある前回のアドレスは書き換えない
+          const failed = this.dhcp.failed.filter((f) => f.uid === n.uid);
+          if (mine.length === 0 && failed.length === 0) return n;
           return {
             ...n,
             interfaces: n.interfaces.map((i) => {
               const l = i.dhcp === true ? mine.find((x) => x.port === i.port) : undefined;
+              if (i.dhcp === true && l === undefined && failed.some((f) => f.port === i.port)) return { ...i, ip: `169.254.${((n.macSerial ?? 0) >> 8) & 255}.${((n.macSerial ?? 0) & 255) || 1}`, prefix: 16 };
               return l ? { ...i, ip: l.ip, prefix: l.prefix } : i;
             }),
-            gateway: n.gateway ?? mine.find((l) => l.gateway)?.gateway ?? null,
+            // 自動の間は、手で入れたゲートウェイとネームサーバーは使わない（プールの値で置き換える）
+            gateway: mine.find((l) => l.gateway)?.gateway ?? null,
+            nameServer: mine.find((l) => l.dns)?.dns,
           };
         }),
       };
@@ -503,7 +508,7 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
   const srcIface = srcIp === undefined ? src.interfaces[0] : src.interfaces.find((i) => i.ip === srcIp);
   if (!srcIface) return err(fail('ip.unset', src.uid));
   // 自動（DHCP）の口がアドレスを受け取れなかった
-  if (srcIface.dhcp === true && srcIface.ip === '') return err(fail(topo.dhcp.failed.find((f) => f.uid === src.uid && f.port === srcIface.port)?.reason ?? 'dhcp.no_offer', src.uid));
+  if (srcIface.dhcp === true && topo.dhcp.failed.some((f) => f.uid === src.uid && f.port === srcIface.port)) return err(fail(topo.dhcp.failed.find((f) => f.uid === src.uid && f.port === srcIface.port)?.reason ?? 'dhcp.no_offer', src.uid));
   const srcEp: Endpoint = { node: src.uid, port: srcIface.port };
   if (topo.isShut(src.uid, srcIface.port)) return err(fail('port.shutdown', src.uid));
   if (!topo.linkAt(srcEp)) return err(fail(unpluggedReason(topo, src.uid), src.uid));
@@ -993,6 +998,23 @@ export const lagBundlesOf = (net: Network, uid: string): LagBundle[] =>
   computeLags(net.nodes, net.links, (n) => can(n.device, 'lag')).bundles.filter((b) => b.a === uid || b.b === uid);
 
 // DHCP の割り当て（show ip dhcp binding・警告・達成条件に使う）
+// 受け取れた自動の口の ip・prefix を機器へ書き戻す（前回のアドレスとして保存する。NET.md §5.7）。変わる機器がなければ同じ配列を返す
+export const dhcpWriteBack = <T extends { uid: string; interfaces: Iface[] }>(nodes: readonly T[], links: readonly NetLink[], segments: Network['segments'], data: EngineData): readonly T[] => {
+  if (!nodes.some((n) => n.interfaces.some((i) => i.dhcp === true))) return nodes;
+  const leases = dhcpOf({ nodes: nodes as unknown as NetNode[], links: [...links], segments }, data).leases;
+  let changed = false;
+  const next = nodes.map((n) => {
+    const interfaces = n.interfaces.map((i) => {
+      const l = i.dhcp === true ? leases.find((x) => x.uid === n.uid && x.port === i.port) : undefined;
+      if (!l || (l.ip === i.ip && l.prefix === i.prefix)) return i;
+      changed = true;
+      return { ...i, ip: l.ip, prefix: l.prefix };
+    });
+    return interfaces.some((i, k) => i !== n.interfaces[k]) ? { ...n, interfaces } : n;
+  });
+  return changed ? next : nodes;
+};
+
 export const dhcpOf = (net: Network, data: EngineData): DhcpResult => new Topology(net, data).dhcp;
 
 export const stpOf = (net: Network, data: EngineData): StpResult => new Topology(net, data).stp();

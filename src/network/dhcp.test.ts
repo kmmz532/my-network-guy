@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { dhcpOf, ping } from './netState';
+import { dhcpOf, dhcpWriteBack, ping } from './netState';
 import type { Iface, NetLink, NetNode, Network } from './types';
 
 const data = gameEnv.engine;
@@ -78,5 +78,27 @@ describe('DHCP のターミナル', () => {
     const net = office(['p1']);
     const lines = runTerminal('show ip dhcp binding', { node: net.nodes[1], nodes: net.nodes, links: net.links, data }, tr);
     expect(lines[0].text).toContain('192.168.1.100');
+  });
+});
+
+describe('DHCP の前回のアドレス', () => {
+  it('書き戻したあとは、PC を1台消しても、ほかの PC のアドレスは変わらない。書き戻しのあとに計算しても結果は同じ', () => {
+    const net = office(['p1', 'p2']);
+    const saved = dhcpWriteBack(net.nodes, net.links, net.segments, data);
+    const written: Network = { ...net, nodes: [...saved] };
+    expect(written.nodes.find((n) => n.uid === 'p2')?.interfaces[0].ip).toBe('192.168.1.101');
+    expect(dhcpOf(written, data).leases.map((l) => l.ip)).toEqual(['192.168.1.100', '192.168.1.101']);
+    expect(dhcpWriteBack(written.nodes, written.links, written.segments, data)).toBe(written.nodes);
+    const removed: Network = { ...written, nodes: written.nodes.filter((n) => n.uid !== 'p1'), links: written.links.filter((l) => l.uid !== 'lp1') };
+    expect(dhcpOf(removed, data).leases).toMatchObject([{ uid: 'p2', ip: '192.168.1.101' }]);
+  });
+  it('前回のアドレスがプールの範囲外になれば、取り直す。受け取れない間は前回のアドレスを書き換えない', () => {
+    const net = office(['p1']);
+    const written: Network = { ...net, nodes: [...dhcpWriteBack(net.nodes, net.links, net.segments, data)] };
+    const moved: Network = { ...written, nodes: written.nodes.map((n) => (n.uid === 'srv' ? { ...n, dhcpPools: [{ ...pool, start: '192.168.1.150', end: '192.168.1.160' }] } : n)) };
+    expect(dhcpOf(moved, data).leases[0].ip).toBe('192.168.1.150');
+    const gone: Network = { ...written, nodes: written.nodes.map((n) => (n.uid === 'srv' ? { ...n, dhcpPools: undefined } : n)) };
+    expect(dhcpWriteBack(gone.nodes, gone.links, gone.segments, data)).toBe(gone.nodes);
+    expect(gone.nodes.find((n) => n.uid === 'p1')?.interfaces[0].ip).toBe('192.168.1.100');
   });
 });

@@ -1,5 +1,6 @@
 // 案件の流れ（受注・設計・施工・検収・納品）。状態を受け取り、新しい状態を返す純粋関数で書く。
 // 設計は機器の配置・配線・IP設定、施工は社員が作業時間をかけて行い、検収で達成条件を判定する。
+import { cables as cableRecord, devices as deviceRecord } from 'virtual:game-data';
 import { applyMoney, recordSaving } from './ledger';
 import type { Balance, Contract, Furniture, FloorId, GameMap, Staff } from '../data/schema';
 import type { Facing } from './facing';
@@ -56,7 +57,7 @@ import { cableLengthOf, checkCableLength } from './cableLength';
 import { busyStaff, crewBlock } from './crew';
 import { makeIface, makeSvi } from '../network/iface';
 import { can } from '../network/capabilities';
-import { warningsOf, type VlanWarning } from '../network/netState';
+import { dhcpWriteBack, warningsOf, type VlanWarning } from '../network/netState';
 import { deliveryExpOf, levelOf, type LevelUp } from './level';
 
 export interface Project {
@@ -728,7 +729,15 @@ export const netOf = (core: Core, target: NetTarget): Net | string => {
 };
 
 // 対象のネットワークを書き戻す
-export const withNet = (core: Core, target: NetTarget, net: Net): Core => {
+// 書き戻しの計算に使う判定のデータ（env.ts は project.ts を読み込むため、ここで同じものを組む）
+const writeBackEngine = {
+  categoryOf: (device: string) => (deviceRecord as Record<string, { category: string } | undefined>)[device]?.category ?? 'unknown',
+  maxLengthOf: (cable: string) => (cableRecord as Record<string, { maxLengthTiles: number } | undefined>)[cable]?.maxLengthTiles ?? 0,
+};
+
+export const withNet = (core: Core, target: NetTarget, rawNet: Net): Core => {
+  // 受け取れた自動（DHCP）の口のアドレスを、前回のアドレスとして機器へ書き戻す（NET.md §5.7）
+  const net: Net = { ...rawNet, nodes: [...dhcpWriteBack(rawNet.nodes, rawNet.links, rawNet.segments, writeBackEngine)] };
   if (target === 'office') {
     return { ...core, office: { ...core.office, nodes: net.nodes, links: net.links, seq: net.seq, segments: net.segments } };
   }
@@ -1201,11 +1210,11 @@ export const setDhcp = (core: Core, uid: string, change: DhcpOp, env: Env, targe
         if (!portOk(change.port)) return 'port.none';
         if (can(node.device, 'switchport') && !can(node.device, 'routedPort')) return 'dhcp.unsupported';
         const others = node.interfaces.filter((i) => i.port !== change.port);
-        return { ...node, interfaces: [...others, { ...makeIface(node.device, change.port, '', 24), dhcp: true }] };
+        return { ...node, interfaces: [...others, { ...makeIface(node.device, change.port, '0.0.0.0', 24), dhcp: true }] };
       }
       if (change.op === 'helper') {
         if (!can(node.device, 'dhcpRelay')) return 'dhcp.unsupported';
-        const iface = node.interfaces.find((i) => i.port === change.port && i.ip !== '');
+        const iface = node.interfaces.find((i) => i.port === change.port && i.dhcp !== true);
         if (!iface) return 'iface.none';
         if (change.ip !== null && !isIp(change.ip)) return 'ip';
         return { ...node, interfaces: node.interfaces.map((i) => (i === iface ? { ...i, helper: change.ip ?? undefined } : i)) };

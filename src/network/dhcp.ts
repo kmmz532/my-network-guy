@@ -1,6 +1,7 @@
 // DHCP の割り当て（純粋関数。NET.md §5.7）。自動（dhcp）のインターフェースごとに、同じブロードキャストドメインのサーバー、
 // なければリレー（helper）先のサーバーのプールから、使われていない最も小さいアドレスを配る。
-// 割り当ては毎回計算で求める（保存しない）。クライアントは機器の連番の順に配る
+// クライアントは機器の連番の順に、前回のアドレス（iface.ip）が今のプールの範囲内で先の口に取られていなければそれを使い、なければ空いている最も小さいアドレスを配る。
+// 受け取れた口の ip・prefix は、store が機器へ書き戻す（dhcpWriteBack）ため、機器を消しても後ろの機器のアドレスは動かない
 import { ipToInt, inSubnet } from './engine';
 import type { Endpoint, Iface, NetNode } from './types';
 
@@ -41,7 +42,8 @@ export interface DhcpEnv {
   reaches: (routerUid: string, routerIp: string, serverUid: string, serverIp: string) => boolean;
 }
 
-const ifaceOn = (node: NetNode, port: number): Iface | undefined => node.interfaces.find((i) => i.port === port && i.ip !== '');
+// サーバー・ルーターの、アドレスのある口（自動の口は含めない）
+const ifaceOn = (node: NetNode, port: number): Iface | undefined => node.interfaces.find((i) => i.port === port && i.dhcp !== true);
 
 // プールの範囲のアドレスを小さい順に出す
 const addressesOf = (pool: DhcpPool): string[] => {
@@ -90,7 +92,9 @@ export const assignDhcp = (nodes: readonly NetNode[], env: DhcpEnv): DhcpResult 
       const { server, pool } = found[0];
       const key = `${server.uid}|${pool.network}/${pool.prefix}`;
       const taken = used.get(key) ?? used.set(key, new Set()).get(key)!;
-      const ip = addressesOf(pool).find((a) => !taken.has(a));
+      const addresses = addressesOf(pool);
+      const previous = iface.ip;
+      const ip = addresses.includes(previous) && !taken.has(previous) ? previous : addresses.find((a) => !taken.has(a));
       if (ip === undefined) {
         result.failed.push({ uid: client.uid, port: iface.port, reason: 'dhcp.exhausted' });
         continue;
