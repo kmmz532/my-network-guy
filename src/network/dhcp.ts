@@ -13,6 +13,8 @@ export interface DhcpPool {
   end: string;
   gateway?: string;
   dns?: string;
+  // 配らない範囲（両端を含む）。ルーター・サーバーの固定のアドレスを避けるために使う
+  excluded?: { start: string; end: string }[];
 }
 
 export interface DhcpLease {
@@ -45,10 +47,14 @@ export interface DhcpEnv {
 // サーバー・ルーターの、アドレスのある口（自動の口は含めない）
 const ifaceOn = (node: NetNode, port: number): Iface | undefined => node.interfaces.find((i) => i.port === port && i.dhcp !== true);
 
-// プールの範囲のアドレスを小さい順に出す
+// プールの範囲のアドレスを小さい順に出す（除外の範囲は出さない）
 const addressesOf = (pool: DhcpPool): string[] => {
+  const excluded = (pool.excluded ?? []).map((r) => [ipToInt(r.start), ipToInt(r.end)]);
   const out: string[] = [];
-  for (let n = ipToInt(pool.start); n <= ipToInt(pool.end); n++) out.push([24, 16, 8, 0].map((s) => (n >>> s) & 255).join('.'));
+  for (let n = ipToInt(pool.start); n <= ipToInt(pool.end); n++) {
+    if (excluded.some(([a, b]) => n >= a && n <= b)) continue;
+    out.push([24, 16, 8, 0].map((s) => (n >>> s) & 255).join('.'));
+  }
   return out;
 };
 

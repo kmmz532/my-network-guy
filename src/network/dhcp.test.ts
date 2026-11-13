@@ -46,6 +46,11 @@ describe('DHCP', () => {
     expect(r.leases[0]).toMatchObject({ ip: '192.168.1.50', server: 'srv2' });
     expect(r.multiple).toHaveLength(1);
   });
+  it('除外の範囲のアドレスは配らない', () => {
+    const net = office(['p1']);
+    const excluding: Network = { ...net, nodes: net.nodes.map((n) => (n.uid === 'srv' ? { ...n, dhcpPools: [{ ...pool, excluded: [{ start: '192.168.1.100', end: '192.168.1.100' }] }] } : n)) };
+    expect(dhcpOf(excluding, data).leases[0].ip).toBe('192.168.1.101');
+  });
   it('手動のアドレスと重なる DHCP のアドレスは ip.duplicate.dhcp になる', () => {
     const net = office(['p1']);
     const manual: Network = {

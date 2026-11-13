@@ -1227,6 +1227,7 @@ export const setDhcp = (core: Core, uid: string, change: DhcpOp, env: Env, targe
       const p = change.pool;
       if (![p.network, p.start, p.end].every(isIp) || ipToInt(p.start) > ipToInt(p.end) || !inSubnet(p.start, p.network, p.prefix) || !inSubnet(p.end, p.network, p.prefix)) return 'dhcp.pool';
       if ((p.gateway !== undefined && !isIp(p.gateway)) || (p.dns !== undefined && !isIp(p.dns))) return 'dhcp.pool';
+      if ((p.excluded ?? []).some((r) => ![r.start, r.end].every(isIp) || ipToInt(r.start) > ipToInt(r.end))) return 'dhcp.pool';
       return { ...node, dhcpPools: [...(node.dhcpPools ?? []).filter((x) => x.network !== p.network), p] };
     },
     target,
