@@ -26,10 +26,13 @@ import { createDebugSlice, type DebugSlice } from './slices/debugSlice';
 import { createSessionSlice, type SessionSlice } from './slices/sessionSlice';
 export { frontDeviceUid, viewportNow } from './slices/windowsSlice';
 import { initialOffice } from '../sim/furniture';
+import { gameEnv } from '../sim/env';
+import { analyzeCore } from '../sim/netEdit';
+import type { NetworkState } from '../network/engine/state';
 import { type Project, type Office, type Effects, noEffects, type GoalCheck, type Report, type Trace } from '../sim/project';
 
 import { runTick } from './tickSystems';
-import { newStart, refresh } from './gameHelpers';
+import { focusedProject, newStart, refresh } from './gameHelpers';
 import type { VlanWarning } from '../network/netState';
 export { coreOf, editNetOf, focusedProject, netTargetOf, offerHintOf, purchaseDiscountOf, unlockItems, viewingOffice } from './gameHelpers';
 export type { Trace };
@@ -103,6 +106,8 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   focus: string | null;
   // 自社オフィスのネットワークと、自社案件で得た効果
   office: Office;
+  // 自社オフィスと設計中の案件の、ネットワークの計算の結果（保存しない。核が変わるたびに求め直す）
+  network: { office: NetworkState; focus: NetworkState | null };
   effects: Effects;
   // 雇用中の社員と、社員の uid の連番
   staff: Staff[];
@@ -182,6 +187,16 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   cacheMap: (map: GameMap) => void;
 }
 
+// 起動時の計算の結果。ストアの初期値と同じ値から求める
+const startOffice = initialOffice(balance);
+const startNetwork = analyzeCore({ office: startOffice, active: [], focus: null }, gameEnv, { hq: mapOfOffice(startOffice) });
+
+// 計算の入力（自社オフィスの機器と配線、設計中の案件の機器と配線、地図）が変わったかを見る。参照が同じなら計算し直さない
+const netKeyOf = (s: GameState) => {
+  const p = focusedProject(s);
+  return [s.office.nodes, s.office.links, s.office.segments, s.maps, s.focus, p?.nodes, p?.links, p?.segments, p?.contract.map];
+};
+
 export const useGameStore = create<GameState>((set, get, api) => {
   return {
     ...createWindowsSlice(set, get, api),
@@ -219,7 +234,8 @@ export const useGameStore = create<GameState>((set, get, api) => {
     hiringWish: null,
     active: [],
     focus: null,
-    office: initialOffice(balance),
+    office: startOffice,
+    network: startNetwork,
     effects: noEffects(),
     guidesDone: [],
     termsShown: [],
@@ -265,6 +281,14 @@ export const useGameStore = create<GameState>((set, get, api) => {
         return { maps, ...refresh({ ...s, maps }) };
       }),
   };
+});
+
+// 核（機器・配線・地図）を置き換える処理はすべてここで拾い、ネットワークの計算の結果を求め直す
+useGameStore.subscribe((s, prev) => {
+  const next = netKeyOf(s);
+  const before = netKeyOf(prev);
+  if (next.every((v, i) => v === before[i])) return;
+  useGameStore.setState({ network: analyzeCore(s, gameEnv, s.maps) });
 });
 
 // 検収に合格して納品したら、ジングルを鳴らす（状態の変化を見て鳴らすので、計算の部分は音を知らない）

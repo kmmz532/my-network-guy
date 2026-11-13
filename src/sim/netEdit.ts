@@ -9,6 +9,10 @@ import { can } from '../network/capabilities';
 import { registries } from '../registry/game';
 import { BgpOp, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, StpOp, VrrpOp, fail, netOf, segmentAt, withNet, zoneFromNodes } from './project';
 import { portCountOf } from '../registry/query';
+import { analyze } from '../network/engine/analyze';
+import type { NetworkState } from '../network/engine/state';
+import type { GameMap } from '../data/schema';
+import { engineWithWalls } from './walls';
 
 // 機器の設定を書き換える。配線の設定が固定された機器は変えられない。
 const editNode = (core: Core, uid: string, edit: (n: NetNode) => NetNode | string, target: NetTarget = 'focus'): Outcome => {
@@ -475,4 +479,22 @@ export const setSegment = (
   if (seg.members.length > hostCapacity(prefix)) return fail('segment.too_small');
   const segments = { ...net.segments, [seg.key]: { network, prefix } };
   return { ok: true, core: withNet(core, target, { ...net, segments }) };
+};
+
+// 機器の並びの計算の結果（自社オフィスと、設計中の案件）。核の状態が変わるたびに、ストアがこの関数で求め直す
+export const analyzeCore = (
+  core: Pick<Core, 'office' | 'active' | 'focus'>,
+  env: Env,
+  maps: Record<string, GameMap>,
+): { office: NetworkState; focus: NetworkState | null } => {
+  const office = analyze(
+    { nodes: core.office.nodes, links: core.office.links, segments: core.office.segments },
+    engineWithWalls(env.engine, maps.hq),
+  );
+  const p = core.focus === null ? null : (core.active.find((q) => q.id === core.focus) ?? null);
+  const focus = p === null ? null : analyze(
+    { nodes: p.nodes, links: p.links, segments: p.segments },
+    engineWithWalls(env.engine, maps[p.contract.map]),
+  );
+  return { office, focus };
 };
