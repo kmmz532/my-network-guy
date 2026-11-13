@@ -405,6 +405,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('survive_device_failure'), nodes: z.array(z.string().min(1)).min(1) }),
   // 指定した機器が、物理のリンク min 本以上を1本の論理リンクにまとめている（リンクアグリゲーション）
   z.object({ type: z.literal('lag_bundled'), node: z.string().min(1), min: z.number().int().min(2) }),
+  // 社内のすべての PC が、回線の先（インターネット）へ届く（NAPT で社内のアドレスを外のアドレスに変える）
+  z.object({ type: z.literal('outside_reachable') }),
   // 指定した SSID のアクセスポイントがすべて WPA2 以上で、無線の警告（暗号化なし・弱い暗号・移行モード）がない
   z.object({ type: z.literal('wireless_secure'), ssid: z.string().min(1) }),
   // 指定したスイッチが、スパニングツリーのルートブリッジになっている

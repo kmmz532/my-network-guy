@@ -94,6 +94,15 @@ const handlers: { [K in Goal['type']]: Handler } = {
     const ok = lagBundlesOf(net, goal.node, data).some((b) => b.links.length >= goal.min);
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
+  // 社内のすべての PC が、回線の先（インターネット）へ届く
+  outside_reachable: (goal, net, data) => {
+    if (goal.type !== 'outside_reachable') throw new Error('outside_reachable ハンドラに別の種類が渡された');
+    // 回線終端につながるルーターは、NAPT（外側の口と内側の口・ip nat napt）を設定している
+    const lineRouters = net.nodes.filter((n) => net.links.some((l) => (l.a.node === n.uid && net.nodes.some((u) => u.uid === l.b.node && data.categoryOf(u.device) === 'uplink')) || (l.b.node === n.uid && net.nodes.some((u) => u.uid === l.a.node && data.categoryOf(u.device) === 'uplink'))));
+    const nat = lineRouters.length > 0 && lineRouters.every((r) => r.napt === true && r.interfaces.some((i) => i.nat === 'outside') && r.interfaces.some((i) => i.nat === 'inside'));
+    const ok = nat && outsideCheck(net, data).pcsReachOutside;
+    return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
+  },
   // 指定した SSID のアクセスポイントがすべて WPA2 以上で、無線の警告（暗号化なし・弱い暗号・移行モード）がない
   wireless_secure: (goal, net, data) => {
     if (goal.type !== 'wireless_secure') throw new Error('wireless_secure ハンドラに別の種類が渡された');

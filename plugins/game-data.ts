@@ -260,6 +260,7 @@ const goalRefs = (goal: Goal): string[] => {
     case 'dhcp_all':
       return goal.nodes;
     case 'wireless_secure':
+    case 'outside_reachable':
       return [];
     case 'isolated':
     case 'blocked_all':

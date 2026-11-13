@@ -1,0 +1,79 @@
+{
+  "id": "n001_napt_office",
+  "stage": 2,
+  "order": 150,
+  "requires": [
+    "c005_two_sites"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_rooms",
+  "budget": 150000,
+  "deadlineDays": 10,
+  "placed": [
+    {
+      "ref": "staff_a",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "社員のPC1"
+    },
+    {
+      "ref": "staff_b",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "社員のPC2"
+    },
+    {
+      "ref": "line",
+      "device": "uplink",
+      "x": 18,
+      "y": 5,
+      "locked": true,
+      "isp": {
+        "name": "ISP-A",
+        "network": "198.51.100.0",
+        "prefix": 24,
+        "ispIp": "198.51.100.1"
+      },
+      "name": "回線終端"
+    }
+  ],
+  "goals": [
+    {
+      "type": "outside_reachable"
+    }
+  ],
+  "reward": {
+    "money": 380000
+  },
+  "unlockLevel": 10
+}

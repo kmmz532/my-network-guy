@@ -147,4 +147,14 @@ describe('教材を開いた直後の網の設定', () => {
     expect(lessonGoalResults(l.goals, withSecurity('wpa2wpa3'), links, engine)).toEqual([true, false]);
     expect(lessonGoalResults(l.goals, withSecurity('wpa2'), links, engine)).toEqual([true, true]);
   });
+
+  it('NAPT の教材: 初めは外へ届かず、外の口・内側の口・NAPT を設定すると届く', () => {
+    const l = lesson('napt_office');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false]);
+    const solved = lessonNodes(l).map((n) =>
+      n.uid === 'R1' ? { ...n, napt: true, interfaces: n.interfaces.map((i) => ({ ...i, nat: i.port === 0 ? ('outside' as const) : ('inside' as const) })) } : n,
+    );
+    expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true]);
+  });
 });
