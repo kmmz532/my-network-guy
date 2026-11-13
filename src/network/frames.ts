@@ -3,6 +3,7 @@
 import { macOf, l2Path } from './mac';
 import type { NetLink, NetNode, PathResult, PortConfig } from './types';
 import type { Traffic } from './netState';
+import { vrrpMac } from './vrrp';
 
 export interface Frame {
   link: string;
@@ -79,6 +80,14 @@ const l2LegOf = (ctx: FrameContext, a: string, b: string): string[] => {
   return p;
 };
 
+// 次のホップが、仮想の IP アドレス（VRRP）を宛先のゲートウェイ・次のホップにして届けるルーターなら、その仮想 MAC（NET.md §5.12）。
+// 送る側のゲートウェイか静的経路の次のホップが、受け取るルーターの VRRP のグループの仮想 IP アドレスと同じときに限る
+const virtualMacTo = (from: NetNode, to: NetNode): string | null => {
+  const nextHops = [from.gateway, ...from.routes.map((r) => r.nextHop)];
+  const group = to.interfaces.flatMap((i) => i.vrrp ?? []).find((g) => nextHops.includes(g.ip));
+  return group ? vrrpMac(group.vrid) : null;
+};
+
 // 経路の両端の IP アドレス（始めの機器の送り出す口と、終わりの機器の受け取る口）
 const endToEndIps = (ctx: FrameContext, path: readonly string[]): { srcIp: string; dstIp: string } => {
   const first = nodeOf(ctx, path[0]);
@@ -143,7 +152,8 @@ const legFrames = (ctx: FrameContext, path: string[], traffic: Traffic, tr: Tran
     const lastLink = linkBetween(ctx, nodes[nodes.length - 2], nodes[nodes.length - 1]);
     // 区間の MAC は、送り出す L3 の機器の口と、受け取る L3 の機器の口（ルーターを越えるたびに付け替わる）
     const srcMac = macOn(ctx, from, portOn(firstLink, from.uid));
-    const dstMac = macOn(ctx, to, portOn(lastLink, to.uid));
+    // 最後の機器でないルーターへ、仮想の IP アドレスのゲートウェイで送るときは、宛先の MAC は仮想 MAC
+    const dstMac = ctx.isRouter(to.uid) && i + 2 < path.length ? (virtualMacTo(from, to) ?? macOn(ctx, to, portOn(lastLink, to.uid))) : macOn(ctx, to, portOn(lastLink, to.uid));
     const vlan = carriedVlanOf(ctx, firstLink, from.uid);
     const addr = addrAt(i);
     const l4 = portsAt(i);

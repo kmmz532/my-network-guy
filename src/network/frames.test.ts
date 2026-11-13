@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { framesOf, type FrameContext } from './frames';
 import { macOf } from './mac';
+import { vrrpMac } from './vrrp';
 import type { NetLink, NetNode, PathResult, PortConfig } from './types';
 
 const node = (uid: string, device: string, macSerial: number, ifaces: { port: number; ip: string }[]): NetNode =>
@@ -125,5 +126,20 @@ describe('復路と静的 NAT のフレーム', () => {
     expect(frames[0].l3.dstIp).toBe('203.0.113.1');
     expect(frames[1].l3.dstIp).toBe('10.0.2.5');
     expect(frames[1].nat?.before).toMatchObject({ dstIp: '203.0.113.1' });
+  });
+});
+
+describe('VRRP の仮想 MAC', () => {
+  it('ゲートウェイが仮想の IP アドレスなら、ルーターへ向かうフレームの宛先の MAC は仮想 MAC になる', () => {
+    const r1 = { ...node('r1', 'router', 4, [{ port: 0, ip: '10.0.1.1' }, { port: 1, ip: '10.0.2.1' }]) };
+    r1.interfaces = [{ id: 'g0', kind: 'port', port: 0, ip: '10.0.1.1', prefix: 24, vrrp: [{ vrid: 7, ip: '10.0.1.254', priority: 110, preempt: true }] }, r1.interfaces[1]];
+    const p1 = { ...node('p1', 'pc', 1, [{ port: 0, ip: '10.0.1.10' }]), gateway: '10.0.1.254' };
+    const nodes = [p1, r1, node('p2', 'pc', 2, [{ port: 0, ip: '10.0.2.10' }])];
+    const frames = framesOf(ctxOf(nodes, [link('l1', 'p1', 0, 'r1', 0), link('l2', 'r1', 1, 'p2', 0)]), ok(['p1', 'r1', 'p2']));
+    expect(frames[0].l2.dstMac).toBe(vrrpMac(7));
+    expect(frames[1].l2.dstMac).toBe(macOf('pc', 2, 0));
+    // 実の IP アドレスをゲートウェイにしていれば、実の MAC
+    const real = framesOf(ctxOf([{ ...p1, gateway: '10.0.1.1' }, r1, nodes[2]], [link('l1', 'p1', 0, 'r1', 0), link('l2', 'r1', 1, 'p2', 0)]), ok(['p1', 'r1', 'p2']));
+    expect(real[0].l2.dstMac).toBe(macOf('router', 4, 0));
   });
 });
