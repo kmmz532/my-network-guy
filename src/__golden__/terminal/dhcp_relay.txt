@@ -1,0 +1,20 @@
+# 場面: 教材 dhcp_relay の初期の構成（DHCP のサーバーと、中継するルーター）
+@R1
+show ip route
+ip helper-address 1 10.0.1.2
+ip helper-address 0 10.0.1.2 extra
+ip helper-address 1 abc
+no ip helper-address 1
+ip dhcp pool 192.168.1.0 255.255.255.0 192.168.1.100 192.168.1.199 gateway 192.168.1.1 dns 10.0.1.2
+ip dhcp pool 192.168.1.0 255.255.255.0 192.168.1.100 192.168.1.199 gateway
+ip dhcp pool 192.168.1.0 255.0.255.0 192.168.1.100 192.168.1.199
+no ip dhcp pool 192.168.1.0
+@SRV
+ip dhcp pool 192.168.1.0 255.255.255.0 192.168.1.100 192.168.1.199
+show ip dhcp binding
+ip address 0 10.0.1.2 255.255.255.0
+@PC1
+ip address 0 dhcp
+ip address 0 dhcp extra
+show ip dhcp binding
+show running-config

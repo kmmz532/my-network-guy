@@ -1,0 +1,32 @@
+# 場面: 教材 napt_office の初期の構成（社内の PC と、外につながるルーター）
+# 気づいた点: PC1 の ip default-gateway は、設定が固定された機器のため locked で失敗する。
+@R1
+show ip nat translations
+ip nat inside 0
+ip nat outside 1
+ip nat napt
+show ip nat translations
+ip nat static 0 192.168.1.10 80
+ip nat static 0 192.168.1.10 x
+show ip nat translations
+no ip nat static 0
+no ip nat napt
+no ip nat 1
+ip nat foo 0
+no ip nat napt
+ip nat napt
+router rip
+network 10.0.1.0
+network 192.168.1.0
+no network 192.168.1.0
+network 10.0.1.0 mask 255.255.255.0
+show ip rip database
+show ip route
+no router rip
+ip route 0.0.0.0 0.0.0.0 198.51.100.1
+no ip route 0.0.0.0 0.0.0.0
+ip default-gateway 198.51.100.1
+show ip route
+@PC1
+show ip nat translations
+ip default-gateway 192.168.1.1

@@ -1,0 +1,379 @@
+{
+  "log": [
+    {
+      "node": "R1"
+    },
+    {
+      "line": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "line": "vrrp 1 1 ip 192.168.1.1",
+      "result": "fail",
+      "reason": "vrrp.vip"
+    },
+    {
+      "line": "vrrp 1 1 priority 120",
+      "result": "fail",
+      "reason": "vrrp.none"
+    },
+    {
+      "line": "vrrp 1 1 priority abc",
+      "result": "error",
+      "text": "ui.terminal.usageVrrp"
+    },
+    {
+      "line": "vrrp 1 1 preempt",
+      "result": "fail",
+      "reason": "vrrp.none"
+    },
+    {
+      "line": "vrrp 1 1 track 1 decrement 30",
+      "result": "fail",
+      "reason": "vrrp.none"
+    },
+    {
+      "line": "vrrp 1 1 track 1 decrement x",
+      "result": "error",
+      "text": "ui.terminal.usageVrrp"
+    },
+    {
+      "line": "vrrp 1 300 ip 192.168.1.254",
+      "result": "error",
+      "text": "ui.terminal.usageVrrp"
+    },
+    {
+      "line": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "line": "no vrrp 1 1 preempt",
+      "result": "fail",
+      "reason": "vrrp.none"
+    },
+    {
+      "line": "no vrrp 1 1",
+      "result": "fail",
+      "reason": "vrrp.none"
+    },
+    {
+      "line": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "line": "no vrrp 1",
+      "result": "error",
+      "text": "ui.terminal.usageVrrp"
+    },
+    {
+      "node": "R2"
+    },
+    {
+      "line": "vrrp 1 1 ip 192.168.1.1",
+      "result": "fail",
+      "reason": "vrrp.vip"
+    },
+    {
+      "line": "vrrp 1 1 priority 100",
+      "result": "fail",
+      "reason": "vrrp.none"
+    },
+    {
+      "line": "vrrp 1 1 preempt",
+      "result": "fail",
+      "reason": "vrrp.none"
+    },
+    {
+      "line": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    }
+  ],
+  "network": {
+    "nodes": [
+      {
+        "uid": "PC1",
+        "device": "pc_basic",
+        "macSerial": 1,
+        "ports": [],
+        "name": "PC1",
+        "x": 1,
+        "y": 5,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "192.168.1.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.254",
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "R1",
+        "device": "router_basic",
+        "macSerial": 3,
+        "ports": [],
+        "name": "R1",
+        "x": 6,
+        "y": 3,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [
+          {
+            "id": "g0/0",
+            "kind": "port",
+            "port": 0,
+            "ip": "192.168.1.1",
+            "prefix": 24
+          },
+          {
+            "id": "g0/1",
+            "kind": "port",
+            "port": 1,
+            "ip": "10.0.9.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "R2",
+        "device": "router_basic",
+        "macSerial": 4,
+        "ports": [],
+        "name": "R2",
+        "x": 6,
+        "y": 7,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [
+          {
+            "id": "g0/0",
+            "kind": "port",
+            "port": 0,
+            "ip": "192.168.1.2",
+            "prefix": 24
+          },
+          {
+            "id": "g0/1",
+            "kind": "port",
+            "port": 1,
+            "ip": "10.0.9.2",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "SRV",
+        "device": "server_basic",
+        "macSerial": 6,
+        "ports": [],
+        "name": "SRV",
+        "x": 12,
+        "y": 5,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "10.0.9.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.0.9.254",
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "SW1",
+        "device": "l2_switch_8p",
+        "macSerial": 2,
+        "ports": [],
+        "name": "SW1",
+        "x": 3,
+        "y": 5,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "SW2",
+        "device": "l2_switch_8p",
+        "macSerial": 5,
+        "ports": [],
+        "name": "SW2",
+        "x": 9,
+        "y": 5,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      }
+    ],
+    "links": [
+      {
+        "uid": "lesson_link_1",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "PC1",
+          "port": 0
+        },
+        "b": {
+          "node": "SW1",
+          "port": 0
+        },
+        "path": [
+          [
+            1,
+            5
+          ],
+          [
+            3,
+            5
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_2",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "SW1",
+          "port": 1
+        },
+        "b": {
+          "node": "R1",
+          "port": 0
+        },
+        "path": [
+          [
+            3,
+            5
+          ],
+          [
+            6,
+            3
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_3",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "SW1",
+          "port": 2
+        },
+        "b": {
+          "node": "R2",
+          "port": 0
+        },
+        "path": [
+          [
+            3,
+            5
+          ],
+          [
+            6,
+            7
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_4",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "R1",
+          "port": 1
+        },
+        "b": {
+          "node": "SW2",
+          "port": 0
+        },
+        "path": [
+          [
+            6,
+            3
+          ],
+          [
+            9,
+            5
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_5",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "R2",
+          "port": 1
+        },
+        "b": {
+          "node": "SW2",
+          "port": 1
+        },
+        "path": [
+          [
+            6,
+            7
+          ],
+          [
+            9,
+            5
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_6",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "SRV",
+          "port": 0
+        },
+        "b": {
+          "node": "SW2",
+          "port": 2
+        },
+        "path": [
+          [
+            12,
+            5
+          ],
+          [
+            9,
+            5
+          ]
+        ],
+        "paid": 0
+      }
+    ]
+  }
+}

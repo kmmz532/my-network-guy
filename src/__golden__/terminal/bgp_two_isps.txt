@@ -1,0 +1,21 @@
+# 場面: 教材 bgp_two_isps の初期の構成（2社の ISP につながるルーター）
+@R1
+show ip bgp summary
+show ip bgp
+router bgp 65001
+neighbor 198.51.100.1 remote-as 65100
+neighbor 203.0.113.1 remote-as 65200
+neighbor 10.0.1.2 remote-as 65001
+neighbor 10.0.1.2 next-hop-self
+neighbor 10.0.1.2 local-preference 200
+neighbor 198.51.100.1 med 10
+neighbor 198.51.100.1 prepend 2
+no neighbor 10.0.1.2 next-hop-self
+neighbor 1.2.3 remote-as 1
+network 10.0.1.0 mask 255.255.255.0
+network 10.0.1.0 mask 255.0.255.0
+show ip bgp summary
+show ip bgp
+no router bgp
+router bgp abc
+router bgp 65001

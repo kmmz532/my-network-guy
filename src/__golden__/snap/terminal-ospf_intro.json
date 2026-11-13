@@ -1,0 +1,580 @@
+{
+  "log": [
+    {
+      "node": "R1"
+    },
+    {
+      "line": "show",
+      "lines": [
+        "err:ui.terminal.unknown {\"cmd\":\"show\"}"
+      ]
+    },
+    {
+      "line": "help",
+      "lines": [
+        "out:ui.terminal.help"
+      ]
+    },
+    {
+      "line": "show ip",
+      "lines": [
+        "out:ui.terminal.ifLine {\"port\":0,\"ip\":\"10.0.1.1\",\"prefix\":24}",
+        "out:ui.terminal.ifLine {\"port\":1,\"ip\":\"10.0.12.1\",\"prefix\":30}"
+      ]
+    },
+    {
+      "line": "sh ip r",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.12.0\",\"prefix\":30,\"port\":1}"
+      ]
+    },
+    {
+      "line": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.12.0\",\"prefix\":30,\"port\":1}"
+      ]
+    },
+    {
+      "line": "show interfaces",
+      "lines": [
+        "out:ui.terminal.ifLinkedIp {\"port\":0,\"ip\":\"10.0.1.1\",\"prefix\":24,\"peer\":\"PC1\"}",
+        "out:ui.terminal.mac {\"port\":0,\"mac\":\"02:40:00:00:02:00\"}",
+        "out:ui.terminal.ifLinkedIp {\"port\":1,\"ip\":\"10.0.12.1\",\"prefix\":30,\"peer\":\"R2\"}",
+        "out:ui.terminal.mac {\"port\":1,\"mac\":\"02:40:00:00:02:01\"}"
+      ]
+    },
+    {
+      "line": "show running-config",
+      "lines": [
+        "out:ui.terminal.cfgInterface {\"port\":0}",
+        "out:ui.terminal.cfgInterface {\"port\":1}",
+        "out:ui.terminal.cfgAddress {\"ip\":\"10.0.1.1\",\"prefix\":24}",
+        "out:ui.terminal.cfgAddress {\"ip\":\"10.0.12.1\",\"prefix\":30}"
+      ]
+    },
+    {
+      "line": "show arp",
+      "lines": [
+        "out:ui.terminal.noArp"
+      ]
+    },
+    {
+      "line": "show hosts",
+      "lines": [
+        "out:ui.terminal.noHosts"
+      ]
+    },
+    {
+      "line": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "line": "show xyz",
+      "lines": [
+        "err:ui.terminal.unknown {\"cmd\":\"show xyz\"}"
+      ]
+    },
+    {
+      "line": "configure terminal",
+      "lines": [
+        "err:ui.terminal.unknown {\"cmd\":\"configure\"}"
+      ]
+    },
+    {
+      "line": "conf t",
+      "lines": [
+        "err:ui.terminal.unknown {\"cmd\":\"conf\"}"
+      ]
+    },
+    {
+      "line": "interface g0/1",
+      "lines": [
+        "err:ui.terminal.unknown {\"cmd\":\"interface\"}"
+      ]
+    },
+    {
+      "line": "int g0/1",
+      "lines": [
+        "err:ui.terminal.unknown {\"cmd\":\"int\"}"
+      ]
+    },
+    {
+      "line": "exit",
+      "lines": [
+        "err:ui.terminal.unknown {\"cmd\":\"exit\"}"
+      ]
+    },
+    {
+      "line": "end",
+      "lines": [
+        "err:ui.terminal.unknown {\"cmd\":\"end\"}"
+      ]
+    },
+    {
+      "line": "router ospf 1",
+      "result": "done"
+    },
+    {
+      "line": "router ospf",
+      "result": "done"
+    },
+    {
+      "line": "no router ospf",
+      "result": "done"
+    },
+    {
+      "line": "router ospf",
+      "result": "done"
+    },
+    {
+      "line": "router-id 1.1.1.1",
+      "result": "done"
+    },
+    {
+      "line": "no router-id",
+      "result": "done"
+    },
+    {
+      "line": "router-id 1.1.1",
+      "result": "error",
+      "text": "ui.terminal.usageOspf"
+    },
+    {
+      "line": "ip ospf cost 0 10",
+      "result": "done"
+    },
+    {
+      "line": "ip ospf priority 0 5",
+      "result": "done"
+    },
+    {
+      "line": "ip ospf hello-interval 0 10",
+      "result": "done"
+    },
+    {
+      "line": "ip ospf dead-interval 0 40",
+      "result": "done"
+    },
+    {
+      "line": "ip ospf cost 9 10",
+      "result": "fail",
+      "reason": "iface.none"
+    },
+    {
+      "line": "ip ospf cost 0 x",
+      "result": "error",
+      "text": "ui.terminal.usageOspf"
+    },
+    {
+      "line": "network 10.0.12.0 0.0.0.3 area 0",
+      "result": "done"
+    },
+    {
+      "line": "network 10.0.1.0 0.0.0.255 area 0.0.0.0",
+      "result": "done"
+    },
+    {
+      "line": "network 10.0.1.0 0.0.0.255 area x",
+      "result": "error",
+      "text": "ui.terminal.usageNetwork"
+    },
+    {
+      "line": "network 10.0.1.0",
+      "result": "done"
+    },
+    {
+      "line": "default-information originate",
+      "result": "done"
+    },
+    {
+      "line": "no default-information originate",
+      "result": "done"
+    },
+    {
+      "line": "default-information",
+      "result": "error",
+      "text": "ui.terminal.usageOspf"
+    },
+    {
+      "line": "ip address 0 10.0.5.1 255.255.255.0",
+      "result": "done"
+    },
+    {
+      "line": "ip address 0 10.0.5.1 255.0.255.0",
+      "result": "error",
+      "text": "ui.terminal.errMask"
+    },
+    {
+      "line": "ip address 0 10.0.5.1",
+      "result": "error",
+      "text": "ui.terminal.usageIpAddress"
+    },
+    {
+      "line": "ip address 9 10.0.5.1 255.255.255.0",
+      "result": "done"
+    },
+    {
+      "line": "no ip address vlan 1",
+      "result": "fail",
+      "reason": "svi.none"
+    },
+    {
+      "line": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "line": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.12.0\",\"prefix\":30,\"port\":1}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.5.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.5.0\",\"prefix\":24,\"port\":9}"
+      ]
+    },
+    {
+      "node": "PC1"
+    },
+    {
+      "line": "ping 10.0.2.10",
+      "lines": [
+        "err:ui.terminal.pingNg",
+        "err:error.gateway.unreachable"
+      ]
+    },
+    {
+      "line": "ping PC2",
+      "lines": [
+        "err:ui.terminal.noResolve {\"name\":\"PC2\"}"
+      ]
+    },
+    {
+      "line": "ping",
+      "lines": [
+        "err:ui.terminal.usagePing"
+      ]
+    },
+    {
+      "line": "traceroute 10.0.2.10",
+      "lines": [
+        "err:ui.terminal.traceNg",
+        "err:error.gateway.unreachable"
+      ]
+    },
+    {
+      "line": "traceroute 10.9.9.9",
+      "lines": [
+        "err:ui.terminal.noHost {\"ip\":\"10.9.9.9\"}"
+      ]
+    },
+    {
+      "line": "ping 10.9.9.9",
+      "lines": [
+        "err:ui.terminal.noHost {\"ip\":\"10.9.9.9\"}"
+      ]
+    },
+    {
+      "line": "ip default-gateway 10.0.1.1",
+      "result": "fail",
+      "reason": "locked"
+    },
+    {
+      "line": "ip default-gateway x",
+      "result": "error",
+      "text": "ui.terminal.errIp"
+    },
+    {
+      "line": "no ip default-gateway",
+      "result": "fail",
+      "reason": "locked"
+    },
+    {
+      "line": "show ip",
+      "lines": [
+        "out:ui.terminal.ifLine {\"port\":0,\"ip\":\"10.0.1.10\",\"prefix\":24}",
+        "out:ui.terminal.gateway {\"gateway\":\"10.0.1.1\"}"
+      ]
+    },
+    {
+      "line": "ip host PC2 10.0.2.10",
+      "result": "fail",
+      "reason": "locked"
+    },
+    {
+      "line": "ip host PC2 x",
+      "result": "error",
+      "text": "ui.terminal.errIp"
+    },
+    {
+      "line": "show hosts",
+      "lines": [
+        "out:ui.terminal.noHosts"
+      ]
+    },
+    {
+      "line": "ping PC2",
+      "lines": [
+        "err:ui.terminal.noResolve {\"name\":\"PC2\"}"
+      ]
+    },
+    {
+      "line": "no ip host PC2",
+      "result": "fail",
+      "reason": "locked"
+    },
+    {
+      "line": "ping PC2",
+      "lines": [
+        "err:ui.terminal.noResolve {\"name\":\"PC2\"}"
+      ]
+    },
+    {
+      "line": "hostname PC1-NEW",
+      "result": "fail",
+      "reason": "locked"
+    },
+    {
+      "line": "hostname 1bad",
+      "result": "error",
+      "text": "ui.terminal.errHostname"
+    },
+    {
+      "line": "no hostname",
+      "result": "fail",
+      "reason": "locked"
+    },
+    {
+      "line": "ip name-server 10.0.2.1",
+      "result": "fail",
+      "reason": "locked"
+    },
+    {
+      "line": "no ip name-server",
+      "result": "fail",
+      "reason": "locked"
+    },
+    {
+      "line": "ip route 10.0.9.0 255.255.255.0 10.0.1.1",
+      "result": "fail",
+      "reason": "locked"
+    },
+    {
+      "line": "ip route 10.0.9.0 255.0.255.0 10.0.1.1",
+      "result": "error",
+      "text": "ui.terminal.errMask"
+    },
+    {
+      "line": "no ip route 10.0.9.0 255.255.255.0",
+      "result": "fail",
+      "reason": "ui.terminal.noRouteToRemove"
+    },
+    {
+      "line": "no ip route 10.0.9.0 255.255.255.0 extra",
+      "result": "error",
+      "text": "ui.terminal.usageNoRoute"
+    },
+    {
+      "line": "ip address 0 dhcp",
+      "result": "fail",
+      "reason": "locked"
+    }
+  ],
+  "network": {
+    "nodes": [
+      {
+        "uid": "PC1",
+        "device": "pc_basic",
+        "macSerial": 1,
+        "ports": [],
+        "name": "PC1",
+        "x": 1,
+        "y": 4,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "10.0.1.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.0.1.1",
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "PC2",
+        "device": "pc_basic",
+        "macSerial": 4,
+        "ports": [],
+        "name": "PC2",
+        "x": 13,
+        "y": 4,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "10.0.2.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.0.2.1",
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "R1",
+        "device": "router_basic",
+        "macSerial": 2,
+        "ports": [],
+        "name": "R1",
+        "x": 4,
+        "y": 4,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [
+          {
+            "id": "g0/1",
+            "kind": "port",
+            "port": 1,
+            "ip": "10.0.12.1",
+            "prefix": 30,
+            "ospf": {
+              "area": 0
+            }
+          },
+          {
+            "id": "g0/0",
+            "kind": "port",
+            "port": 0,
+            "ip": "10.0.5.1",
+            "prefix": 24
+          },
+          {
+            "id": "g0/9",
+            "kind": "port",
+            "port": 9,
+            "ip": "10.0.5.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": [],
+        "ospf": {
+          "defaultOriginate": false
+        }
+      },
+      {
+        "uid": "R2",
+        "device": "router_basic",
+        "macSerial": 3,
+        "ports": [],
+        "name": "R2",
+        "x": 9,
+        "y": 4,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [
+          {
+            "id": "g0/0",
+            "kind": "port",
+            "port": 0,
+            "ip": "10.0.2.1",
+            "prefix": 24
+          },
+          {
+            "id": "g0/1",
+            "kind": "port",
+            "port": 1,
+            "ip": "10.0.12.2",
+            "prefix": 30
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      }
+    ],
+    "links": [
+      {
+        "uid": "lesson_link_1",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "PC1",
+          "port": 0
+        },
+        "b": {
+          "node": "R1",
+          "port": 0
+        },
+        "path": [
+          [
+            1,
+            4
+          ],
+          [
+            4,
+            4
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_2",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "R1",
+          "port": 1
+        },
+        "b": {
+          "node": "R2",
+          "port": 1
+        },
+        "path": [
+          [
+            4,
+            4
+          ],
+          [
+            9,
+            4
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_3",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "R2",
+          "port": 0
+        },
+        "b": {
+          "node": "PC2",
+          "port": 0
+        },
+        "path": [
+          [
+            9,
+            4
+          ],
+          [
+            13,
+            4
+          ]
+        ],
+        "paid": 0
+      }
+    ]
+  }
+}

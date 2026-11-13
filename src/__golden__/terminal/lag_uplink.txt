@@ -1,0 +1,16 @@
+# 場面: 教材 lag_uplink の初期の構成（2台のスイッチを複数の配線でつなぐ）
+@SW1
+show etherchannel summary
+channel-group 0 1 mode active
+channel-group 1 1 mode passive
+channel-group 2 1 mode on
+channel-group 3 1 mode bogus
+channel-group 4 mode active
+channel-group 4 2 mode active
+show etherchannel summary
+no channel-group 1
+no channel-group
+show etherchannel summary
+@SW2
+channel-group 0 1 mode active
+show etherchannel summary

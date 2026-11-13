@@ -1,0 +1,271 @@
+{
+  "log": [
+    {
+      "node": "AP1"
+    },
+    {
+      "line": "show running-config",
+      "lines": [
+        "out:ui.terminal.cfgWireless {\"ssid\":\"office\"}"
+      ]
+    },
+    {
+      "line": "wireless ssid OFFICE-NET",
+      "result": "done"
+    },
+    {
+      "line": "wireless ssid",
+      "result": "error",
+      "text": "ui.terminal.usageWireless"
+    },
+    {
+      "line": "wireless password short",
+      "result": "error",
+      "text": "ui.terminal.usageWireless"
+    },
+    {
+      "line": "wireless password longerpass123",
+      "result": "done"
+    },
+    {
+      "line": "wireless channel 6",
+      "result": "done"
+    },
+    {
+      "line": "wireless channel 14",
+      "result": "error",
+      "text": "ui.terminal.usageWireless"
+    },
+    {
+      "line": "wireless channel x",
+      "result": "error",
+      "text": "ui.terminal.usageWireless"
+    },
+    {
+      "line": "wireless vlan 10",
+      "result": "done"
+    },
+    {
+      "line": "wireless vlan 0",
+      "result": "error",
+      "text": "ui.terminal.usageWireless"
+    },
+    {
+      "line": "wireless security wpa2",
+      "result": "done"
+    },
+    {
+      "line": "wireless security wpa2-wpa3",
+      "result": "done"
+    },
+    {
+      "line": "wireless security wep",
+      "result": "done"
+    },
+    {
+      "line": "wireless security nope",
+      "result": "error",
+      "text": "ui.terminal.usageWireless"
+    },
+    {
+      "line": "wireless foo bar",
+      "result": "error",
+      "text": "ui.terminal.usageWireless"
+    },
+    {
+      "line": "show running-config",
+      "lines": [
+        "out:ui.terminal.cfgWireless {\"ssid\":\"OFFICE-NET\"}"
+      ]
+    },
+    {
+      "line": "show mac address-table",
+      "lines": [
+        "err:ui.terminal.noMacTable"
+      ]
+    },
+    {
+      "node": "PC1"
+    },
+    {
+      "line": "show running-config",
+      "lines": [
+        "out:ui.terminal.cfgInterface {\"port\":0}",
+        "out:ui.terminal.cfgAddress {\"ip\":\"192.168.1.10\",\"prefix\":24}"
+      ]
+    },
+    {
+      "line": "ping 192.168.1.22",
+      "lines": [
+        "err:ui.terminal.pingNg",
+        "err:error.wireless.unassociated"
+      ]
+    }
+  ],
+  "network": {
+    "nodes": [
+      {
+        "uid": "AP1",
+        "device": "access_point",
+        "macSerial": 3,
+        "ports": [],
+        "name": "AP1",
+        "x": 7,
+        "y": 3,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "wireless": {
+          "ssid": "OFFICE-NET",
+          "password": "longerpass123",
+          "security": "wep",
+          "channel": 6,
+          "vlan": 10
+        },
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "NEW",
+        "device": "laptop",
+        "macSerial": 5,
+        "ports": [],
+        "name": "NEW",
+        "x": 10,
+        "y": 5,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "192.168.1.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "wireless": {
+          "ssid": "office",
+          "password": "office-pass"
+        },
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "OLD",
+        "device": "pc_wifi",
+        "macSerial": 4,
+        "ports": [],
+        "name": "OLD",
+        "x": 10,
+        "y": 2,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "192.168.1.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "wireless": {
+          "ssid": "office",
+          "password": "office-pass"
+        },
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "PC1",
+        "device": "pc_basic",
+        "macSerial": 1,
+        "ports": [],
+        "name": "PC1",
+        "x": 1,
+        "y": 5,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "192.168.1.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "SW1",
+        "device": "l2_switch_8p",
+        "macSerial": 2,
+        "ports": [],
+        "name": "SW1",
+        "x": 4,
+        "y": 5,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      }
+    ],
+    "links": [
+      {
+        "uid": "lesson_link_1",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "PC1",
+          "port": 0
+        },
+        "b": {
+          "node": "SW1",
+          "port": 0
+        },
+        "path": [
+          [
+            1,
+            5
+          ],
+          [
+            4,
+            5
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_2",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "SW1",
+          "port": 1
+        },
+        "b": {
+          "node": "AP1",
+          "port": 0
+        },
+        "path": [
+          [
+            4,
+            5
+          ],
+          [
+            7,
+            3
+          ]
+        ],
+        "paid": 0
+      }
+    ]
+  }
+}

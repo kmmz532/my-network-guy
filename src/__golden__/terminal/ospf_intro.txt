@@ -1,0 +1,75 @@
+# 場面: 教材 ospf_intro の初期の構成（架空の拠点の2台のルーター）
+# 気づいた点: configure terminal・conf t・interface・int・exit・end はモードを持たないため、すべて未知の命令になる（省略形 conf・int も未対応）。router ospf 1 は後ろの番号を無視して done になる。show 単独も未知の命令になる。
+# 「@」の行で、命令を打つ機器を選ぶ
+@R1
+show
+help
+show ip
+sh ip r
+show ip route
+show interfaces
+show running-config
+show arp
+show hosts
+show ip ospf neighbor
+show xyz
+configure terminal
+conf t
+interface g0/1
+int g0/1
+exit
+end
+router ospf 1
+router ospf
+no router ospf
+router ospf
+router-id 1.1.1.1
+no router-id
+router-id 1.1.1
+ip ospf cost 0 10
+ip ospf priority 0 5
+ip ospf hello-interval 0 10
+ip ospf dead-interval 0 40
+ip ospf cost 9 10
+ip ospf cost 0 x
+network 10.0.12.0 0.0.0.3 area 0
+network 10.0.1.0 0.0.0.255 area 0.0.0.0
+network 10.0.1.0 0.0.0.255 area x
+network 10.0.1.0
+default-information originate
+no default-information originate
+default-information
+ip address 0 10.0.5.1 255.255.255.0
+ip address 0 10.0.5.1 255.0.255.0
+ip address 0 10.0.5.1
+ip address 9 10.0.5.1 255.255.255.0
+no ip address vlan 1
+show ip ospf neighbor
+show ip route
+@PC1
+ping 10.0.2.10
+ping PC2
+ping
+traceroute 10.0.2.10
+traceroute 10.9.9.9
+ping 10.9.9.9
+ip default-gateway 10.0.1.1
+ip default-gateway x
+no ip default-gateway
+show ip
+ip host PC2 10.0.2.10
+ip host PC2 x
+show hosts
+ping PC2
+no ip host PC2
+ping PC2
+hostname PC1-NEW
+hostname 1bad
+no hostname
+ip name-server 10.0.2.1
+no ip name-server
+ip route 10.0.9.0 255.255.255.0 10.0.1.1
+ip route 10.0.9.0 255.0.255.0 10.0.1.1
+no ip route 10.0.9.0 255.255.255.0
+no ip route 10.0.9.0 255.255.255.0 extra
+ip address 0 dhcp

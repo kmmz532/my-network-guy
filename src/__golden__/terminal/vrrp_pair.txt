@@ -1,0 +1,20 @@
+# 場面: 教材 vrrp_pair の初期の構成（冗長にした2台のルーター）
+@R1
+show vrrp
+vrrp 1 1 ip 192.168.1.1
+vrrp 1 1 priority 120
+vrrp 1 1 priority abc
+vrrp 1 1 preempt
+vrrp 1 1 track 1 decrement 30
+vrrp 1 1 track 1 decrement x
+vrrp 1 300 ip 192.168.1.254
+show vrrp
+no vrrp 1 1 preempt
+no vrrp 1 1
+show vrrp
+no vrrp 1
+@R2
+vrrp 1 1 ip 192.168.1.1
+vrrp 1 1 priority 100
+vrrp 1 1 preempt
+show vrrp

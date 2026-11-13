@@ -1,0 +1,324 @@
+{
+  "log": [
+    {
+      "node": "SW1"
+    },
+    {
+      "line": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"SW1\",\"cost\":0}",
+        "out:ui.terminal.stpPort.designated {\"port\":0}",
+        "out:ui.terminal.stpPort.designated {\"port\":1}"
+      ]
+    },
+    {
+      "line": "spanning-tree priority 4096",
+      "result": "done"
+    },
+    {
+      "line": "spanning-tree priority 4000",
+      "result": "error",
+      "text": "ui.terminal.errStpPriority"
+    },
+    {
+      "line": "spanning-tree priority 65536",
+      "result": "error",
+      "text": "ui.terminal.errStpPriority"
+    },
+    {
+      "line": "spanning-tree cost 0 19",
+      "result": "done"
+    },
+    {
+      "line": "spanning-tree cost 1 0",
+      "result": "error",
+      "text": "ui.terminal.usageStp"
+    },
+    {
+      "line": "spanning-tree cost 1 19",
+      "result": "done"
+    },
+    {
+      "line": "spanning-tree cost x 19",
+      "result": "error",
+      "text": "ui.terminal.usageStp"
+    },
+    {
+      "line": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"SW1\",\"cost\":0}",
+        "out:ui.terminal.stpPort.designated {\"port\":0}",
+        "out:ui.terminal.stpPort.designated {\"port\":1}"
+      ]
+    },
+    {
+      "line": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:02:00\"}"
+      ]
+    },
+    {
+      "node": "SW2"
+    },
+    {
+      "line": "spanning-tree priority 8192",
+      "result": "done"
+    },
+    {
+      "line": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpRoot {\"root\":\"SW1\",\"cost\":4}",
+        "out:ui.terminal.stpPort.root {\"port\":0}",
+        "out:ui.terminal.stpPort.designated {\"port\":1}"
+      ]
+    },
+    {
+      "line": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:02:00\"}"
+      ]
+    },
+    {
+      "node": "PC1"
+    },
+    {
+      "line": "show spanning-tree",
+      "lines": [
+        "err:ui.terminal.stpOff"
+      ]
+    }
+  ],
+  "network": {
+    "nodes": [
+      {
+        "uid": "PC1",
+        "device": "pc_basic",
+        "macSerial": 1,
+        "ports": [],
+        "name": "PC1",
+        "x": 1,
+        "y": 8,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "192.168.1.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "PC2",
+        "device": "pc_basic",
+        "macSerial": 2,
+        "ports": [],
+        "name": "PC2",
+        "x": 13,
+        "y": 8,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "192.168.1.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "SW1",
+        "device": "l2_switch_8p",
+        "macSerial": 3,
+        "ports": [
+          {
+            "mode": "access",
+            "port": 0,
+            "stpCost": 19
+          },
+          {
+            "mode": "access",
+            "port": 1,
+            "stpCost": 19
+          }
+        ],
+        "name": "SW1",
+        "x": 3,
+        "y": 5,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "routes": [],
+        "services": [],
+        "stpPriority": 4096
+      },
+      {
+        "uid": "SW2",
+        "device": "l2_switch_8p",
+        "macSerial": 4,
+        "ports": [],
+        "name": "SW2",
+        "x": 7,
+        "y": 2,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "routes": [],
+        "services": [],
+        "stpPriority": 8192
+      },
+      {
+        "uid": "SW3",
+        "device": "l2_switch_8p",
+        "macSerial": 5,
+        "ports": [],
+        "name": "SW3",
+        "x": 11,
+        "y": 5,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      }
+    ],
+    "links": [
+      {
+        "uid": "lesson_link_1",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "PC1",
+          "port": 0
+        },
+        "b": {
+          "node": "SW1",
+          "port": 2
+        },
+        "path": [
+          [
+            1,
+            8
+          ],
+          [
+            3,
+            5
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_2",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "PC2",
+          "port": 0
+        },
+        "b": {
+          "node": "SW3",
+          "port": 2
+        },
+        "path": [
+          [
+            13,
+            8
+          ],
+          [
+            11,
+            5
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_3",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "SW1",
+          "port": 0
+        },
+        "b": {
+          "node": "SW2",
+          "port": 0
+        },
+        "path": [
+          [
+            3,
+            5
+          ],
+          [
+            7,
+            2
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_4",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "SW2",
+          "port": 1
+        },
+        "b": {
+          "node": "SW3",
+          "port": 0
+        },
+        "path": [
+          [
+            7,
+            2
+          ],
+          [
+            11,
+            5
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_5",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "SW1",
+          "port": 1
+        },
+        "b": {
+          "node": "SW3",
+          "port": 1
+        },
+        "path": [
+          [
+            3,
+            5
+          ],
+          [
+            11,
+            5
+          ]
+        ],
+        "paid": 0
+      }
+    ]
+  }
+}

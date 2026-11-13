@@ -1,0 +1,408 @@
+{
+  "log": [
+    {
+      "node": "SW1"
+    },
+    {
+      "line": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "line": "show vlan",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "line": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:03:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:04:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:03:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:04:00\"}",
+        "out:ui.terminal.macEntry {\"port\":7,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":7,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":7,\"mac\":\"02:10:00:00:03:00\"}",
+        "out:ui.terminal.macEntry {\"port\":7,\"mac\":\"02:10:00:00:04:00\"}"
+      ]
+    },
+    {
+      "line": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"SW1\",\"cost\":0}",
+        "out:ui.terminal.stpPort.designated {\"port\":7}"
+      ]
+    },
+    {
+      "line": "switchport 0 access vlan 10",
+      "result": "done"
+    },
+    {
+      "line": "switchport 1 access vlan 0",
+      "result": "error",
+      "text": "ui.terminal.errVlan"
+    },
+    {
+      "line": "switchport 1 trunk allowed 10,20 native 1",
+      "result": "done"
+    },
+    {
+      "line": "switchport 2 trunk allowed all native 10",
+      "result": "done"
+    },
+    {
+      "line": "switchport 2 trunk allowed 1,x",
+      "result": "error",
+      "text": "ui.terminal.errVlan"
+    },
+    {
+      "line": "switchport 2 trunk bogus",
+      "result": "error",
+      "text": "ui.terminal.usageSwitchport"
+    },
+    {
+      "line": "switchport 3 access vlan 10",
+      "result": "done"
+    },
+    {
+      "line": "switchport x access vlan 10",
+      "result": "error",
+      "text": "ui.terminal.errPort"
+    },
+    {
+      "line": "switchport 3 access 10",
+      "result": "error",
+      "text": "ui.terminal.usageSwitchport"
+    },
+    {
+      "line": "no switchport 3",
+      "result": "fail",
+      "reason": "port.mode"
+    },
+    {
+      "line": "ip address vlan 10 192.168.10.1 255.255.255.0",
+      "result": "done"
+    },
+    {
+      "line": "ip address vlan 10 192.168.10.1 255.0.255.0",
+      "result": "error",
+      "text": "ui.terminal.errMask"
+    },
+    {
+      "line": "no ip address vlan 10",
+      "result": "done"
+    },
+    {
+      "line": "ip address vlan 10",
+      "result": "error",
+      "text": "ui.terminal.usageSvi"
+    },
+    {
+      "line": "show ip route",
+      "lines": [
+        "out:ui.terminal.noRoute"
+      ]
+    },
+    {
+      "node": "SW2"
+    },
+    {
+      "line": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "line": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:03:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:04:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:04:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:03:00\"}",
+        "out:ui.terminal.macEntry {\"port\":7,\"mac\":\"02:10:00:00:03:00\"}",
+        "out:ui.terminal.macEntry {\"port\":7,\"mac\":\"02:10:00:00:04:00\"}"
+      ]
+    },
+    {
+      "line": "ping 192.168.1.11",
+      "lines": [
+        "err:ui.terminal.pingNg",
+        "err:error.ip.unset"
+      ]
+    }
+  ],
+  "network": {
+    "nodes": [
+      {
+        "uid": "K1",
+        "device": "pc_basic",
+        "macSerial": 2,
+        "ports": [],
+        "name": "K1",
+        "x": 2,
+        "y": 6,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "192.168.1.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "K2",
+        "device": "pc_basic",
+        "macSerial": 4,
+        "ports": [],
+        "name": "K2",
+        "x": 12,
+        "y": 6,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "192.168.1.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "S1",
+        "device": "pc_basic",
+        "macSerial": 1,
+        "ports": [],
+        "name": "S1",
+        "x": 2,
+        "y": 2,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "192.168.1.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "S2",
+        "device": "pc_basic",
+        "macSerial": 3,
+        "ports": [],
+        "name": "S2",
+        "x": 12,
+        "y": 2,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "192.168.1.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "SW1",
+        "device": "l2_switch_8p",
+        "macSerial": 5,
+        "ports": [
+          {
+            "port": 0,
+            "mode": "access",
+            "vlan": 10
+          },
+          {
+            "port": 1,
+            "mode": "trunk",
+            "allowed": [
+              10,
+              20
+            ],
+            "native": 1
+          },
+          {
+            "port": 2,
+            "mode": "trunk",
+            "native": 10
+          },
+          {
+            "port": 3,
+            "mode": "access",
+            "vlan": 10
+          }
+        ],
+        "name": "SW1",
+        "x": 5,
+        "y": 4,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "SW2",
+        "device": "l2_switch_8p",
+        "macSerial": 6,
+        "ports": [],
+        "name": "SW2",
+        "x": 9,
+        "y": 4,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      }
+    ],
+    "links": [
+      {
+        "uid": "lesson_link_1",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "S1",
+          "port": 0
+        },
+        "b": {
+          "node": "SW1",
+          "port": 0
+        },
+        "path": [
+          [
+            2,
+            2
+          ],
+          [
+            5,
+            4
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_2",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "K1",
+          "port": 0
+        },
+        "b": {
+          "node": "SW1",
+          "port": 1
+        },
+        "path": [
+          [
+            2,
+            6
+          ],
+          [
+            5,
+            4
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_3",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "S2",
+          "port": 0
+        },
+        "b": {
+          "node": "SW2",
+          "port": 0
+        },
+        "path": [
+          [
+            12,
+            2
+          ],
+          [
+            9,
+            4
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_4",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "K2",
+          "port": 0
+        },
+        "b": {
+          "node": "SW2",
+          "port": 1
+        },
+        "path": [
+          [
+            12,
+            6
+          ],
+          [
+            9,
+            4
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_5",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "SW1",
+          "port": 7
+        },
+        "b": {
+          "node": "SW2",
+          "port": 7
+        },
+        "path": [
+          [
+            5,
+            4
+          ],
+          [
+            9,
+            4
+          ]
+        ],
+        "paid": 0
+      }
+    ]
+  }
+}

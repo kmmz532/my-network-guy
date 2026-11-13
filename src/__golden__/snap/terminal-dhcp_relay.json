@@ -1,0 +1,311 @@
+{
+  "log": [
+    {
+      "node": "R1"
+    },
+    {
+      "line": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"192.168.1.0\",\"prefix\":24,\"port\":1}"
+      ]
+    },
+    {
+      "line": "ip helper-address 1 10.0.1.2",
+      "result": "done"
+    },
+    {
+      "line": "ip helper-address 0 10.0.1.2 extra",
+      "result": "error",
+      "text": "ui.terminal.usageDhcp"
+    },
+    {
+      "line": "ip helper-address 1 abc",
+      "result": "error",
+      "text": "ui.terminal.usageDhcp"
+    },
+    {
+      "line": "no ip helper-address 1",
+      "result": "done"
+    },
+    {
+      "line": "ip dhcp pool 192.168.1.0 255.255.255.0 192.168.1.100 192.168.1.199 gateway 192.168.1.1 dns 10.0.1.2",
+      "result": "fail",
+      "reason": "dhcp.unsupported"
+    },
+    {
+      "line": "ip dhcp pool 192.168.1.0 255.255.255.0 192.168.1.100 192.168.1.199 gateway",
+      "result": "error",
+      "text": "ui.terminal.usageDhcp"
+    },
+    {
+      "line": "ip dhcp pool 192.168.1.0 255.0.255.0 192.168.1.100 192.168.1.199",
+      "result": "error",
+      "text": "ui.terminal.usageDhcp"
+    },
+    {
+      "line": "no ip dhcp pool 192.168.1.0",
+      "result": "fail",
+      "reason": "dhcp.unsupported"
+    },
+    {
+      "node": "SRV"
+    },
+    {
+      "line": "ip dhcp pool 192.168.1.0 255.255.255.0 192.168.1.100 192.168.1.199",
+      "result": "fail",
+      "reason": "locked"
+    },
+    {
+      "line": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    },
+    {
+      "line": "ip address 0 10.0.1.2 255.255.255.0",
+      "result": "fail",
+      "reason": "locked"
+    },
+    {
+      "node": "PC1"
+    },
+    {
+      "line": "ip address 0 dhcp",
+      "result": "fail",
+      "reason": "locked"
+    },
+    {
+      "line": "ip address 0 dhcp extra",
+      "result": "error",
+      "text": "ui.terminal.errIp"
+    },
+    {
+      "line": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    },
+    {
+      "line": "show running-config",
+      "lines": [
+        "out:ui.terminal.cfgInterface {\"port\":0}",
+        "out:ui.terminal.cfgAddress {\"ip\":\"0.0.0.0\",\"prefix\":24}"
+      ]
+    }
+  ],
+  "network": {
+    "nodes": [
+      {
+        "uid": "PC1",
+        "device": "pc_basic",
+        "macSerial": 4,
+        "ports": [],
+        "name": "PC1",
+        "x": 12,
+        "y": 1,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "PC2",
+        "device": "pc_basic",
+        "macSerial": 5,
+        "ports": [],
+        "name": "PC2",
+        "x": 12,
+        "y": 6,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "R1",
+        "device": "router_basic",
+        "macSerial": 2,
+        "ports": [],
+        "name": "R1",
+        "x": 5,
+        "y": 3,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [
+          {
+            "id": "g0/0",
+            "kind": "port",
+            "port": 0,
+            "ip": "10.0.1.1",
+            "prefix": 24
+          },
+          {
+            "id": "g0/1",
+            "kind": "port",
+            "port": 1,
+            "ip": "192.168.1.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "SRV",
+        "device": "server_basic",
+        "macSerial": 1,
+        "ports": [],
+        "name": "SRV",
+        "x": 1,
+        "y": 3,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "10.0.1.2",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.0.1.1",
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "SW1",
+        "device": "l2_switch_8p",
+        "macSerial": 3,
+        "ports": [],
+        "name": "SW1",
+        "x": 9,
+        "y": 3,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      }
+    ],
+    "links": [
+      {
+        "uid": "lesson_link_1",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "SRV",
+          "port": 0
+        },
+        "b": {
+          "node": "R1",
+          "port": 0
+        },
+        "path": [
+          [
+            1,
+            3
+          ],
+          [
+            5,
+            3
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_2",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "R1",
+          "port": 1
+        },
+        "b": {
+          "node": "SW1",
+          "port": 0
+        },
+        "path": [
+          [
+            5,
+            3
+          ],
+          [
+            9,
+            3
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_3",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "PC1",
+          "port": 0
+        },
+        "b": {
+          "node": "SW1",
+          "port": 1
+        },
+        "path": [
+          [
+            12,
+            1
+          ],
+          [
+            9,
+            3
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_4",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "PC2",
+          "port": 0
+        },
+        "b": {
+          "node": "SW1",
+          "port": 2
+        },
+        "path": [
+          [
+            12,
+            6
+          ],
+          [
+            9,
+            3
+          ]
+        ],
+        "paid": 0
+      }
+    ]
+  }
+}

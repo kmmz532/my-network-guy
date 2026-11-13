@@ -1,0 +1,22 @@
+# 場面: 教材 wifi_security の初期の構成（無線の親機と、無線の端末）
+@AP1
+show running-config
+wireless ssid OFFICE-NET
+wireless ssid
+wireless password short
+wireless password longerpass123
+wireless channel 6
+wireless channel 14
+wireless channel x
+wireless vlan 10
+wireless vlan 0
+wireless security wpa2
+wireless security wpa2-wpa3
+wireless security wep
+wireless security nope
+wireless foo bar
+show running-config
+show mac address-table
+@PC1
+show running-config
+ping 192.168.1.22

@@ -1,0 +1,18 @@
+# 場面: 教材 stp_triangle の初期の構成（三角形につないだ3台のスイッチ）
+@SW1
+show spanning-tree
+spanning-tree priority 4096
+spanning-tree priority 4000
+spanning-tree priority 65536
+spanning-tree cost 0 19
+spanning-tree cost 1 0
+spanning-tree cost 1 19
+spanning-tree cost x 19
+show spanning-tree
+show mac address-table
+@SW2
+spanning-tree priority 8192
+show spanning-tree
+show mac address-table
+@PC1
+show spanning-tree

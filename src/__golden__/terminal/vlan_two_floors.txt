@@ -1,0 +1,25 @@
+# 場面: 教材 vlan_two_floors の初期の構成（2台のスイッチ）
+@SW1
+show vlan brief
+show vlan
+show mac address-table
+show spanning-tree
+switchport 0 access vlan 10
+switchport 1 access vlan 0
+switchport 1 trunk allowed 10,20 native 1
+switchport 2 trunk allowed all native 10
+switchport 2 trunk allowed 1,x
+switchport 2 trunk bogus
+switchport 3 access vlan 10
+switchport x access vlan 10
+switchport 3 access 10
+no switchport 3
+ip address vlan 10 192.168.10.1 255.255.255.0
+ip address vlan 10 192.168.10.1 255.0.255.0
+no ip address vlan 10
+ip address vlan 10
+show ip route
+@SW2
+show vlan brief
+show mac address-table
+ping 192.168.1.11
