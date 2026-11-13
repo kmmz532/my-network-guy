@@ -180,17 +180,6 @@
       "count": 1
     }
   },
-  "src/network/frames.test.ts": {
-    "local/no-category": {
-      "count": 2
-    },
-    "local/no-handmade-engine-data": {
-      "count": 1
-    },
-    "local/no-unknown-fallback": {
-      "count": 1
-    }
-  },
   "src/network/frames.ts": {
     "local/no-category": {
       "count": 1
@@ -224,17 +213,6 @@
   "src/network/netState.ts": {
     "local/no-category": {
       "count": 19
-    }
-  },
-  "src/network/nodeName.test.ts": {
-    "local/no-category": {
-      "count": 2
-    },
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
-      "count": 1
     }
   },
   "src/network/pcWifi.test.ts": {
@@ -287,11 +265,6 @@
   },
   "src/sim/env.ts": {
     "local/no-category": {
-      "count": 1
-    }
-  },
-  "src/sim/guide.test.ts": {
-    "local/no-handmade-engine-data": {
       "count": 1
     }
   },

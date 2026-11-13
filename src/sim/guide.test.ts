@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { guides } from 'virtual:game-data';
 import ja from '../assets/lang/ja_jp.json';
 import type { NetLink, NetNode } from '../network/types';
+import { deviceCategory } from '../registry/query';
 import { currentGuideStep, guideStepDone, parseCondition, type GuideState, type GuideStep } from './guide';
 
 const node = (uid: string, device: string, extra: Partial<NetNode> = {}): NetNode => ({
@@ -27,7 +28,6 @@ const link = (uid: string, a: [string, number], b: [string, number]): NetLink =>
   path: [],
 });
 
-const categories: Record<string, string> = { pc_basic: 'pc', router_basic: 'router', l2_switch_8p: 'l2_switch' };
 
 const base = (): GuideState => ({
   tool: 'select',
@@ -36,7 +36,7 @@ const base = (): GuideState => ({
   owned: {},
   testPassed: false,
   openRefs: [],
-  categoryOf: (device) => categories[device] ?? '',
+  categoryOf: deviceCategory,
 });
 
 const c001 = guides['c001_direct_link'] as GuideStep[];

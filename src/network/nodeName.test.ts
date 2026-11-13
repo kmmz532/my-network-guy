@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { deviceCategory } from '../registry/query';
 import { nodeName, renameNode, type NameContext } from './nodeName';
 import type { NetNode } from './types';
 
@@ -16,10 +17,9 @@ const node = (uid: string, device: string, x = 0, y = 0, name?: string): NetNode
   ...(name ? { name } : {}),
 });
 
-const CATEGORY: Record<string, string> = { pc_basic: 'pc', server_basic: 'server', l2_switch_8p: 'l2_switch' };
 const LABEL: Record<string, string> = { pc: 'PC', server: 'サーバー', l2_switch: 'スイッチ' };
 const ctx = (owners: Record<string, string> = {}): NameContext => ({
-  categoryOf: (d) => CATEGORY[d] ?? 'unknown',
+  categoryOf: deviceCategory,
   categoryLabel: (c) => LABEL[c] ?? c,
   ownedPc: (owner) => `${owner}のPC`,
   ownerAt: (x, y) => owners[`${x},${y}`] ?? null,
@@ -49,7 +49,7 @@ describe('機器の名前', () => {
 
   it('同じ種類でも品目が違えば、品目の名前で呼び、品目ごとに番号を振る', () => {
     const DEVICE: Record<string, string> = { router_basic: 'ルーター', router_sfp: 'SFP対応ルーター', edge_router: 'エッジルーター' };
-    const withDevice: NameContext = { ...ctx(), categoryOf: () => 'router', categoryLabel: () => 'ルーター', deviceLabel: (d) => DEVICE[d] ?? d };
+    const withDevice: NameContext = { ...ctx(), categoryLabel: () => 'ルーター', deviceLabel: (d) => DEVICE[d] ?? d };
     const routers = [node('r1', 'router_basic'), node('r2', 'router_sfp'), node('r3', 'edge_router'), node('r4', 'edge_router')];
     expect(nodeName(routers[0], routers, withDevice)).toBe('ルーター1');
     expect(nodeName(routers[1], routers, withDevice)).toBe('SFP対応ルーター1');
