@@ -9,6 +9,17 @@ import { useSceneStore } from './stores/useSceneStore';
 import GameScene from './components/scene/GameScene';
 import TitleScene from './components/scene/TitleScene';
 
+// 起動時
+const onInitialize = () => {
+  // 端末のUIの大きさを反映する
+  applyUiScale(loadSettings().uiScale);
+
+  // 翻訳とすべての地図を読み込む
+  const { cacheMap } = useGameStore.getState();
+  const maps = Object.values(mapLoaders).map((load) => load().then((m) => cacheMap(m.default)));
+  return Promise.all([loadLang('ja_jp'), ...maps, moveLegacySlots()]).then(() => undefined);
+};
+
 export const App = () => {
   const [ready, setReady] = useState(false);
 
@@ -16,15 +27,8 @@ export const App = () => {
   const [loadError, setLoadError] = useState<unknown>(null);
   const scene = useSceneStore((s) => s.scene);
 
-  // 起動時のみ実行
   useEffect(() => {
-    // 端末のUIの大きさを反映する
-    applyUiScale(loadSettings().uiScale);
-
-    // 起動時に、翻訳とすべての地図を読み込む (依頼判定は地図の読み込みに依存するため、読み込み中に判定させない)
-    const { cacheMap } = useGameStore.getState();
-    const maps = Object.values(mapLoaders).map((load) => load().then((m) => cacheMap(m.default)));
-    Promise.all([loadLang('ja_jp'), ...maps, moveLegacySlots()])
+    onInitialize()
       .then(() => setReady(true))
       .catch((e: unknown) => setLoadError(e ?? new Error('読み込みに失敗')));
   }, []);
