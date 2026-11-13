@@ -1,4 +1,4 @@
-// 段A 配線: 無線の結びつきと仮想の配線、論理リンク（LAG）、口の停止、配線の長さの超過
+// 配線の層: 無線の結びつきと仮想の配線、論理リンク（LAG）、口の停止、配線の長さの超過
 import { CATEGORY } from '../../../data/categories';
 import { cableMaxLength, deviceCategory, portSpeed } from '../../../registry/query';
 import { can } from '../../capabilities';
@@ -37,7 +37,7 @@ export const wallsBetween = (wallAt: (x: number, y: number) => boolean, ax: numb
   return count;
 };
 
-// 無線の端末を、最も近いアクセスポイントへ仮想の配線でつなぐ（段1の仮想の配線）。
+// 無線の端末を、最も近いアクセスポイントへ仮想の配線でつなぐ（仮想の配線）。
 // 端末の口0 に配線がなく、無線の能力を持ち、範囲の中にアクセスポイントがあるとき。アクセスポイントの口は 100 番から、端末ごとに1つ使う
 // 無線の端末は、SSID とパスワードが合い、範囲の中にあるアクセスポイントの中で最も近いものにつながる（N151）。
 // アクセスポイントの無線の VLAN は、つながった端末の口を、その VLAN の access の口として扱う
@@ -76,7 +76,7 @@ export const wirelessAssociations = (net: Network, data: EngineData): { ap: NetN
   return out;
 };
 
-// 無線の端末を、つながるアクセスポイントへ仮想の配線でつなぐ（段1の仮想の配線）。アクセスポイントの口は 100 番から、端末ごとに1つ使う
+// 無線の端末を、つながるアクセスポイントへ仮想の配線でつなぐ（仮想の配線）。アクセスポイントの口は 100 番から、端末ごとに1つ使う
 export const withWireless = (net: Network, data: EngineData): Network => {
   const pairs = wirelessAssociations(net, data);
   if (pairs.length === 0) return net;

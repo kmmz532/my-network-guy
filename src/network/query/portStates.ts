@@ -14,14 +14,14 @@ export const portStatesOf = (state: NetworkState, uid: string): PortState[] => {
   const topo = state.topology;
   const node = topo.node(uid);
   if (!node) return [];
-  const roles = topo.stp().roles;
+  const roles = state.l2.stp().roles;
   const bundled = new Set(lagBundlesOf(state, uid).flatMap((b) => b.links.map((l) => l.uid)));
   return state.input.links
     .filter((l) => l.a.node === uid || l.b.node === uid)
     .map((l) => {
       const port = l.a.node === uid ? l.a.port : l.b.port;
       const cfg = topo.portCfg(uid, port);
-      const role = topo.isStpBlocked(uid, port) ? 'blocking' : roles.get(`${uid}:${port}`);
+      const role = state.l2.isStpBlocked(uid, port) ? 'blocking' : roles.get(`${uid}:${port}`);
       return {
         port,
         shutdown: state.links.isShut(uid, port),

@@ -194,7 +194,7 @@
   },
   "src/network/netState.ts": {
     "local/no-category": {
-      "count": 12
+      "count": 6
     }
   },
   "src/network/pcWifi.test.ts": {

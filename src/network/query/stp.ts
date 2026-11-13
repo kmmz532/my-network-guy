@@ -2,4 +2,4 @@
 import type { NetworkState } from '../engine/state';
 import type { StpResult } from '../stp';
 
-export const stpOf = (state: NetworkState): StpResult => state.topology.stp();
+export const stpOf = (state: NetworkState): StpResult => state.l2.stp();

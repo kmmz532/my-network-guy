@@ -1,17 +1,17 @@
 // 疎通判定の計算（N136）。段1 配線 → 段2 L2 ドメイン → 段3 IP と直結 → 段4 静的経路 → 段5 転送（ping・http）の順に読む。
 // L1（配線）→ L2（スイッチによるL2ドメイン）→ L3（IPアドレスとルーティング）の順に確認する。
 // 失敗理由は ID で返し、文言は言語ファイルで表示する。
-import { isFabricPort, isL3FabricPort, isRelayPort, isRoutingCategory, isSviPort, isSwitchedRouterCategory, ROUTER_SWITCH_LAN_HOST_PORT, SVI_PORT_BASE } from './category';
+import { isRoutingCategory } from './category';
 import { analyze } from './engine/analyze';
 import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, Iface, NetLink, NetNode, Network, PathResult, PortConfig, Route } from './types';
 import { CATEGORY } from '../data/categories';
 import { can } from './capabilities';
 import { macOf } from './mac';
 import { electVrrpMaster, type VrrpMember } from './vrrp';
-import { computeStp, type StpResult } from './stp';
+import type { StpResult } from './stp';
 import { assignDhcp, type DhcpResult } from './dhcp';
-import type { LagResult } from './lag';
 import type { LinkLayer } from './engine/stages/links';
+import type { L2Domain, L2Layer } from './engine/stages/l2';
 import { computeBgp, type BgpEnv, type BgpResult } from './bgp';
 import { ospfMismatch, type OspfMismatch } from './ospf';
 import { deviceCategory } from '../registry/query';
@@ -34,26 +34,8 @@ const networkOf = (ip: string, prefix: number): string => {
 export const inSubnet = (ip: string, network: string, prefix: number): boolean =>
   ((ipToInt(ip) & maskOf(prefix)) >>> 0) === ((ipToInt(network) & maskOf(prefix)) >>> 0);
 
-const key = (ep: Endpoint) => `${ep.node}:${ep.port}`;
-
-interface DomainResult {
-  members: Endpoint[];
-  // 配線が上限長を超えていた場合、その配線の端点
-  tooLong?: Endpoint;
-  // 配線がループしている場合（同じL2ドメインに、来た道以外の配線で既にたどった口がつながる）、そのループの端点
-  loop?: Endpoint;
-}
-
 export class Topology {
   private nodes = new Map<string, NetNode>();
-  private linkByEndpoint = new Map<string, { link: NetLink; peer: Endpoint }>();
-  // 機器の内部のスイッチ（中継の口）でつながる口。スイッチ付きルーターは代表の LAN 口を必ず含める
-  private fabricBy = new Map<string, number[]>();
-  // リンクアグリゲーション（段1）: まとまった物理のリンクは1本の論理リンクとして扱う（輪の判定・スパニングツリー）
-  private lag: LagResult;
-  // 論理リンクごとの、スパニングツリーの代表の配線（止まっていない最初の配線）。まとまっていない配線は含まない
-  private stpRep = new Map<string, string>();
-
   // DHCP の割り当ての結果（自動の口がなければ空）
   dhcp: DhcpResult = { leases: [], failed: [], multiple: [] };
 
@@ -61,11 +43,12 @@ export class Topology {
     net: Network,
     data: EngineData,
     private links: LinkLayer,
+    private l2: L2Layer,
     resolveDhcp = true,
   ) {
     // 自動（DHCP）の口は、割り当てたアドレスを入れた機器で計算する。割り当ては、アドレスのない状態の配線（L2）から求める
     if (resolveDhcp && net.nodes.some((n) => n.interfaces.some((i) => i.dhcp === true))) {
-      const base = new Topology(net, data, links, false);
+      const base = new Topology(net, data, links, l2, false);
       this.dhcp = assignDhcp(net.nodes, {
         domainOf: (uid, port) => base.domainOf({ node: uid, port }).members,
         // リレーのルーターが、サーバー側の口（サーバーのアドレスと同じサブネットの口。なければリレーの口）から届くか
@@ -96,27 +79,6 @@ export class Topology {
       };
     }
     for (const node of net.nodes) this.nodes.set(node.uid, node);
-    for (const link of net.links) {
-      this.linkByEndpoint.set(key(link.a), { link, peer: link.b });
-      this.linkByEndpoint.set(key(link.b), { link, peer: link.a });
-    }
-    for (const ep of this.linkByEndpoint.keys()) {
-      const [node, port] = ep.split(':');
-      if (this.isFabric(node, Number(port))) {
-        const ports = this.fabricBy.get(node) ?? [];
-        ports.push(Number(port));
-        this.fabricBy.set(node, ports);
-      }
-    }
-    this.lag = links.lag;
-    for (const b of this.lag.bundles) {
-      const rep = b.links.find((l) => !this.isShut(l.a.node, l.a.port) && !this.isShut(l.b.node, l.b.port)) ?? b.links[0];
-      for (const l of b.links) this.stpRep.set(l.uid, rep.uid);
-    }
-    for (const [uid, ports] of this.fabricBy) {
-      if (isSwitchedRouterCategory(this.categoryOf(uid)) && !ports.includes(ROUTER_SWITCH_LAN_HOST_PORT)) ports.push(ROUTER_SWITCH_LAN_HOST_PORT);
-      this.fabricBy.set(uid, ports);
-    }
   }
 
   // 段4の動的経路（RIP・OSPF の MVP）。RIP・OSPF に参加したインターフェースどうしが、同じ L2 ドメインでつながる隣接をたどり、
@@ -260,9 +222,9 @@ export class Topology {
     return node ? deviceCategory(node.device) : '';
   }
 
-  // 口が機器の内部のスイッチにつながるか（その口から同じL2ドメインへ中継される）
+  // 口が機器の内部のスイッチにつながるか
   isFabric(uid: string, port: number): boolean {
-    return isFabricPort(this.categoryOf(uid), port) || isL3FabricPort(this.categoryOf(uid), port, this.portCfg(uid, port), this.hasIpOn(uid, port));
+    return this.l2.isFabric(uid, port);
   }
 
   // 口に IP のインターフェースがあるか（L3スイッチの口の扱いに使う）
@@ -277,7 +239,7 @@ export class Topology {
 
   // 口が機器の一員として数えられないか（中継だけの口）
   isRelay(uid: string, port: number): boolean {
-    return isRelayPort(this.categoryOf(uid), port) || isL3FabricPort(this.categoryOf(uid), port, this.portCfg(uid, port), this.hasIpOn(uid, port));
+    return this.l2.isRelay(uid, port);
   }
 
   isRouter(uid: string): boolean {
@@ -286,7 +248,7 @@ export class Topology {
 
   // 端点に配線があるか（L1）
   linkAt(ep: Endpoint): { link: NetLink; peer: Endpoint } | undefined {
-    return this.linkByEndpoint.get(key(ep));
+    return this.l2.linkAt(ep);
   }
 
   ifaceAt(uid: string, port: number) {
@@ -340,23 +302,13 @@ export class Topology {
     return group !== undefined && this.vrrpMaster(uid, port, group.vrid) === uid;
   }
 
-  // スパニングツリーの結果（stp を持つスイッチの間のリンクで、ブロッキングの口を決める）
-  private stpResult?: StpResult;
   stp(): StpResult {
-    // まとまった物理のリンクは、代表の1本だけを渡す（論理リンクは1本）
-    const links = [...this.linkByEndpoint.values()].map((x) => x.link).filter((l, i, all) => all.indexOf(l) === i && (this.stpRep.get(l.uid) ?? l.uid) === l.uid);
-    this.stpResult ??= computeStp([...this.nodes.values()], links, (n) => can(n.device, 'stp'));
-    return this.stpResult;
+    return this.l2.stp();
   }
 
   // スパニングツリーが止めている口（ブロッキング）か
   isStpBlocked(uid: string, port: number): boolean {
-    // まとまった口は、代表の口の役割に従う
-    const linked = this.linkAt({ node: uid, port });
-    const rep = linked ? this.stpRep.get(linked.link.uid) : undefined;
-    const repLink = rep === undefined ? undefined : this.lag.bundles.flatMap((b) => b.links).find((l) => l.uid === rep);
-    const end = repLink === undefined ? { node: uid, port } : repLink.a.node === uid ? repLink.a : repLink.b;
-    return this.stp().roles.get(`${end.node}:${end.port}`) === 'blocking';
+    return this.l2.isStpBlocked(uid, port);
   }
 
   // 口が停止しているか（shutdown）
@@ -365,81 +317,19 @@ export class Topology {
     return this.links.isShut(uid, port);
   }
 
-  // 口に入るフレームの VLAN（access は設定の VLAN、trunk は untagged の native）
+  // 口に入るフレームの VLAN
   vlanOf(uid: string, port: number): number {
-    // SVI は、その VLAN の中にいる（N138）
-    if (isSviPort(port)) return port - SVI_PORT_BASE;
-    const cfg = this.portCfg(uid, port);
-    if (cfg?.mode === 'trunk') return cfg.native ?? 1;
-    return cfg?.vlan ?? 1;
+    return this.l2.vlanOf(uid, port);
   }
 
-  // 口がその VLAN のフレームを通すか（access は同じ VLAN、trunk は許可された VLAN）
+  // 口がその VLAN のフレームを通すか
   carries(uid: string, port: number, vlan: number): boolean {
-    if (isSviPort(port)) return port - SVI_PORT_BASE === vlan;
-    const cfg = this.portCfg(uid, port);
-    // 設定のない口（機器の口）は、届いたフレームをそのまま受け取る
-    if (cfg === undefined) return !isL3FabricPort(this.categoryOf(uid), port, undefined, this.hasIpOn(uid, port)) || vlan === 1;
-    if (cfg.mode === 'trunk') return cfg.allowed === undefined || cfg.allowed.includes(vlan);
-    return (cfg.vlan ?? 1) === vlan;
+    return this.l2.carries(uid, port, vlan);
   }
 
-  // 端点と同じL2ドメインに属する機器の端点を集める（N137: VLAN ごとに、口の設定を見て広がる）。スイッチは中継するだけで、結果には含めない。
-  domainOf(start: Endpoint): DomainResult {
-    const members: Endpoint[] = [];
-    const visited = new Set<string>();
-    const startVlan = this.vlanOf(start.node, start.port);
-    const queue: { ep: Endpoint; vlan: number }[] = [{ ep: start, vlan: startVlan }];
-    // 同じL2ドメインの配線の数と機器の数。機器を頂点、配線を辺と見て、辺が頂点以上あれば輪になっている
-    const cables = new Set<string>();
-    const devices = new Set<string>();
-    let relay: Endpoint | undefined;
-    let tooLong: Endpoint | undefined;
-
-    while (queue.length) {
-      const { ep, vlan } = queue.shift()!;
-      const k = `${key(ep)}@${vlan}`;
-      if (visited.has(k)) continue;
-      visited.add(k);
-      // 停止している口と、その VLAN を通さない口は、ドメインに入らない
-      if (this.isShut(ep.node, ep.port) || this.isStpBlocked(ep.node, ep.port) || !this.carries(ep.node, ep.port, vlan)) continue;
-      devices.add(ep.node);
-
-      // 機器の口（設定なし）は、届いたフレームの VLAN に属する。設定のある access の口は、その VLAN の口だけ数える
-      const cfgMember = this.portCfg(ep.node, ep.port);
-      // 同じ機器の口は、VLAN が違っても1回だけ数える（ドメインの機器の一覧に重複させない）
-      if (!this.isRelay(ep.node, ep.port) && (cfgMember === undefined || this.vlanOf(ep.node, ep.port) === vlan) && !members.some((m) => key(m) === key(ep))) {
-        members.push(ep);
-      }
-      if (this.isFabric(ep.node, ep.port)) relay ??= ep;
-      const linked = this.linkAt(ep);
-      if (linked) {
-        const { link, peer } = linked;
-        // 相手が access の口なら、フレームはその口の VLAN になる（機器側の口には VLAN の設定がないため）
-        const cfgPeer = this.portCfg(peer.node, peer.port);
-        const peerVlan = cfgPeer?.mode === 'access' ? this.vlanOf(peer.node, peer.port) : vlan;
-        if (!this.isShut(peer.node, peer.port) && !this.isStpBlocked(peer.node, peer.port) && this.carries(peer.node, peer.port, peerVlan)) {
-          // 配線は、実際にたどったものだけを数える（輪の判定に使う）
-          cables.add(this.lag.representative.get(link.uid) ?? link.uid);
-          if (!tooLong && this.links.tooLong.has(link.uid)) {
-            tooLong = ep;
-          }
-          queue.push({ ep: peer, vlan: peerVlan });
-        }
-      }
-      // 機器の内部のスイッチに入ったら、同じ VLAN を通す口をすべてたどる。SVI（VLAN のインターフェース）は、同じ VLAN のスイッチの中に入る（N138）
-      if (this.isFabric(ep.node, ep.port) || isSviPort(ep.port)) {
-        for (const port of this.fabricBy.get(ep.node) ?? []) {
-          queue.push({ ep: { node: ep.node, port }, vlan });
-        }
-        for (const svi of this.svisOf(ep.node)) {
-          if (svi.vlan === vlan) queue.push({ ep: { node: ep.node, port: svi.port }, vlan });
-        }
-      }
-    }
-    // 輪になっていれば、輪の中のスイッチ（なければ始点）を示す
-    const loop = cables.size >= devices.size ? (relay ?? start) : undefined;
-    return { members, tooLong, loop };
+  // 端点と同じL2ドメインに属する機器の端点
+  domainOf(start: Endpoint): L2Domain {
+    return this.l2.domainOf(start);
   }
 }
 
@@ -539,7 +429,7 @@ export const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic:
   const sameIp = srcDomain.members.filter((m) => topo.ifaceAt(m.node, m.port)?.ip === srcIface.ip);
   if (sameIp.length > 1) return err(fail(duplicateReason(topo, sameIp), src.uid));
 
-  const inDomain = (domain: DomainResult, ep: Endpoint) =>
+  const inDomain = (domain: L2Domain, ep: Endpoint) =>
     domain.members.some((m) => m.node === ep.node && m.port === ep.port);
 
   // 同じサブネット: 同じL2ドメインに宛先があるか

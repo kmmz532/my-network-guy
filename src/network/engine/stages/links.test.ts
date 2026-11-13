@@ -1,4 +1,4 @@
-// 段A 配線の層: 無線の仮想の配線・論理リンク・停止した口・長さの超過
+// 配線の層: 無線の仮想の配線・論理リンク・停止した口・長さの超過
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../../../sim/env';
 import { cableMaxLength } from '../../../registry/query';
