@@ -836,19 +836,6 @@ export const http = (net: Network, data: EngineData, srcUid: string, dstUid: str
   return { ...forward, back: back.path };
 };
 
-// サーバーが、各クライアントからの HTTP で見るアドレス（N146）。NAPT で送信元を書き換えた通信は外のアドレス、書き換えなければクライアントのアドレス。届かない通信は含めない
-export interface SeenSource {
-  client: string;
-  seenIp: string;
-}
-export const seenSourcesOf = (net: Network, data: EngineData, serverUid: string, port: number, clientUids: readonly string[]): SeenSource[] =>
-  clientUids.flatMap((client) => {
-    const r = http(net, data, client, serverUid, port);
-    if (!r.ok) return [];
-    const ip = r.nat?.outsideIp ?? net.nodes.find((n) => n.uid === client)?.interfaces[0]?.ip;
-    return ip === undefined ? [] : [{ client, seenIp: ip }];
-  });
-
 // ネットワーク全体の中で、輪になっているL2ドメインがあれば、その輪の機器（スイッチ）の uid を返す。なければ null（社内のネットワークの障害の表示に使う）
 export const loopNodeOf = (net: Network, data: EngineData): string | null => {
   const topo = analyze(net, data).topology;

@@ -6,7 +6,8 @@ import { useState } from 'react';
 import { t, tDyn } from '../i18n/t';
 import { compile, type Compiled } from '../network/compile';
 import type { NetLink, NetNode, Network } from '../network/types';
-import { seenSourcesOf } from '../network/netState';
+import { seenSourcesOf } from '../network/public';
+import { analyze } from '../network/engine/analyze';
 import { engineWithWalls } from '../sim/walls';
 import { gameEnv } from '../sim/env';
 import { focusedProject, useGameStore, type GameState } from '../stores/useGameStore';
@@ -140,7 +141,7 @@ function SeenSources({ node, nodes, net }: { node: NetNode; nodes: NetNode[]; ne
   if (!http) return null;
   const clients = nodes.filter((n) => isPcCategory(deviceCategory(n.device))).map((n) => n.uid);
   const byUid = new Map(nodes.map((n) => [n.uid, n]));
-  const seen = seenSourcesOf(net, engine, node.uid, http.port, clients);
+  const seen = seenSourcesOf(analyze(net, engine), node.uid, http.port, clients);
   return (
     <div style={{ marginTop: 6, fontSize: 13 }}>
       <b>{t('ui.service.seen')}</b>
