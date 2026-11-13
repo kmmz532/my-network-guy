@@ -7,19 +7,15 @@ import { nodeLabel } from '../components/nodeLabel';
 import { centerPath, plugPoints } from './linkHit';
 import { setMapView } from './mapView';
 import { gameEnv } from '../sim/env';
-import { engineWithWalls } from '../sim/walls';
-import { analyze } from '../network/engine/analyze';
-import type { EngineData } from '../network/types';
 import { type Facing } from '../sim/facing';
 import { dayTintOf, nightnessOf, toHex, type Rgb } from '../sim/dayTint';
 import { loadSettings } from '../settings/settings';
 import { furnitureOf } from '../contracts/layout';
 import { expandActionOf, expansionLocked, officeExpandCostOf, type ExpandSide } from '../sim/office';
 import { levelOf } from '../sim/level';
-import { compiledNet, isDeskFurniture, type Project } from '../sim/project';
+import { isDeskFurniture, type Project } from '../sim/project';
 import { colorOfLink, type NetworkColors } from '../network/netColor';
-import { networkColors } from '../network/public';
-import type { Compiled, IssueDetail } from '../network/compile';
+import { networkColors, type NetworkState } from '../network/public';
 import { balance } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import type { NetNode } from '../network/types';
@@ -73,7 +69,7 @@ export class Scene {
   private tilesId: string | null = null;
   private map: GameMap | null = null;
   // 画面の計算に使う環境の機器（無線の範囲と点線）
-  private wireEngine: EngineData | null = null;
+  private wireEngine: NetworkState['world'] | null = null;
   // 配線（機器の下）、機器と社員のスプライト、ポート・色・パケットなどの重ね描き（機器の上）
   private bg = new Graphics();
   private sprites = new Container();
@@ -92,7 +88,7 @@ export class Scene {
   // 実時間の経過（ms）。ゲームの速度に関係なく進む（疎通テストの流れに使う。時間を止めていても流れが動く）
   private realElapsed = 0;
   // 配線と設定から生成したネットワーク（不備の表示に使う）
-  private compiled: Compiled | null = null;
+  private compiled: { net: NetworkState['net']; issues: NetworkState['issues'] } | null = null;
   // ケーブルの色（ネットワークアドレスごと）。表示だけに使う
   private netColors: NetworkColors | null = null;
   // 失敗の「？」の押せる範囲（機器の uid → マップの座標の矩形）。描き直すたびに作る
@@ -326,6 +322,12 @@ export class Scene {
     return view;
   }
 
+  // 表示している案件に対応する、ストアの計算の結果
+  private networkOf(s: ReturnType<typeof useGameStore.getState>): NetworkState | null {
+    if (focusedProject(s)) return s.network.focus;
+    return s.showcase ? s.network.showcase : s.network.office;
+  }
+
   // 表示するマップを選び、タイルを描き直す。マップが読み込まれていなければ何もしない
   private refresh(): void {
     const s = useGameStore.getState();
@@ -336,12 +338,11 @@ export class Scene {
     const shown = this.project();
     const mapId = shown?.contract.map ?? 'office_small';
     const map = s.maps[mapId];
-    // 電波の減衰に、地図の壁を使う（N151）
-    const env = { ...gameEnv, engine: engineWithWalls(gameEnv.engine, map) };
-    this.compiled = shown ? compiledNet(shown, env) : null;
-    this.wireEngine = env.engine;
-    // 無線の端末は、つながったアクセスポイントの LAN の色で塗る（ケーブルがないので、仮想の配線を足して数える）
-    this.netColors = this.compiled ? networkColors(analyze(this.compiled.net, env.engine)) : null;
+    // 表示している構成の計算の結果は、ストアのものを読む（無線の端末の仮想の配線と DHCP の割り当てを含む）
+    const state = shown ? this.networkOf(s) : null;
+    this.compiled = state ? { net: state.net, issues: state.issues } : null;
+    this.wireEngine = state ? state.world : null;
+    this.netColors = state ? networkColors(state) : null;
     if (!map) return;
     // 自社オフィスの部屋は広げると作り直すため、同じIDでもマップが変わったら描き直す
     if (this.tilesId !== mapId || this.map !== map) {
@@ -669,7 +670,7 @@ export class Scene {
   }
 
   // 設計中の案件の機器の不備（機器の uid で引く）。設計中でなければ undefined
-  private issueOf(node: NetNode, project: Project): IssueDetail | undefined {
+  private issueOf(node: NetNode, project: Project): NetworkState['issues'][string] | undefined {
     if (project.phase !== 'design' || !focusedProject(useGameStore.getState())) return undefined;
     return this.compiled?.issues[node.uid];
   }

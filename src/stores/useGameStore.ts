@@ -107,7 +107,7 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   // 自社オフィスのネットワークと、自社案件で得た効果
   office: Office;
   // 自社オフィスと設計中の案件の、ネットワークの計算の結果（保存しない。核が変わるたびに求め直す）
-  network: { office: NetworkState; focus: NetworkState | null };
+  network: { office: NetworkState; focus: NetworkState | null; showcase: NetworkState | null };
   effects: Effects;
   // 雇用中の社員と、社員の uid の連番
   staff: Staff[];
@@ -194,7 +194,7 @@ const startNetwork = analyzeCore({ office: startOffice, active: [], focus: null 
 // 計算の入力（自社オフィスの機器と配線、設計中の案件の機器と配線、地図）が変わったかを見る。参照が同じなら計算し直さない
 const netKeyOf = (s: GameState) => {
   const p = focusedProject(s);
-  return [s.office.nodes, s.office.links, s.office.segments, s.maps, s.focus, p?.nodes, p?.links, p?.segments, p?.contract.map];
+  return [s.office.nodes, s.office.links, s.office.segments, s.maps, s.focus, p?.nodes, p?.links, p?.segments, p?.contract.map, s.showcase];
 };
 
 export const useGameStore = create<GameState>((set, get, api) => {

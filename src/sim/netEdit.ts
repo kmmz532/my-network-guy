@@ -7,7 +7,7 @@ import { WIRELESS_SECURITIES } from '../network/types';
 import { makeIface, makeSvi } from '../network/iface';
 import { can } from '../network/capabilities';
 import { registries } from '../registry/game';
-import { BgpOp, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, StpOp, VrrpOp, fail, netOf, segmentAt, withNet, zoneFromNodes } from './project';
+import { BgpOp, Project, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, StpOp, VrrpOp, fail, netOf, segmentAt, withNet, zoneFromNodes } from './project';
 import { portCountOf } from '../registry/query';
 import { analyze } from '../network/engine/analyze';
 import type { NetworkState } from '../network/engine/state';
@@ -483,10 +483,10 @@ export const setSegment = (
 
 // 機器の並びの計算の結果（自社オフィスと、設計中の案件）。核の状態が変わるたびに、ストアがこの関数で求め直す
 export const analyzeCore = (
-  core: Pick<Core, 'office' | 'active' | 'focus'>,
+  core: Pick<Core, 'office' | 'active' | 'focus'> & { showcase?: Project | null },
   env: Env,
   maps: Record<string, GameMap>,
-): { office: NetworkState; focus: NetworkState | null } => {
+): { office: NetworkState; focus: NetworkState | null; showcase: NetworkState | null } => {
   const office = analyze(
     { nodes: core.office.nodes, links: core.office.links, segments: core.office.segments },
     engineWithWalls(env.engine, maps.hq),
@@ -496,5 +496,7 @@ export const analyzeCore = (
     { nodes: p.nodes, links: p.links, segments: p.segments },
     engineWithWalls(env.engine, maps[p.contract.map]),
   );
-  return { office, focus };
+  const q = core.showcase ?? null;
+  const showcase = q === null ? null : analyze({ nodes: q.nodes, links: q.links, segments: q.segments }, engineWithWalls(env.engine, maps[q.contract.map]));
+  return { office, focus, showcase };
 };
