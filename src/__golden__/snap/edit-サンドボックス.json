@@ -1,0 +1,1257 @@
+{
+  "mode": "サンドボックス",
+  "log": [
+    {
+      "step": "購入: PC（pc_basic）",
+      "result": "ok",
+      "state": {
+        "money": 999999920000,
+        "owned": [
+          [
+            "pc_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [],
+          "links": [],
+          "furniture": []
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "購入: PC（pc_basic）をもう1台",
+      "result": "ok",
+      "state": {
+        "money": 999999840000,
+        "owned": [
+          [
+            "pc_basic",
+            2
+          ]
+        ],
+        "office": {
+          "nodes": [],
+          "links": [],
+          "furniture": []
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "購入: 8ポートのスイッチ（l2_switch_8p）",
+      "result": "ok",
+      "state": {
+        "money": 999999828000,
+        "owned": [
+          [
+            "l2_switch_8p",
+            1
+          ],
+          [
+            "pc_basic",
+            2
+          ]
+        ],
+        "office": {
+          "nodes": [],
+          "links": [],
+          "furniture": []
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "購入: 8ポートのスイッチ（l2_switch_8p）をもう1台",
+      "result": "ok",
+      "state": {
+        "money": 999999816000,
+        "owned": [
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ]
+        ],
+        "office": {
+          "nodes": [],
+          "links": [],
+          "furniture": []
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "購入: ルーター（router_basic）",
+      "result": "ok",
+      "state": {
+        "money": 999999756000,
+        "owned": [
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [],
+          "links": [],
+          "furniture": []
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "購入: 48ポートのスイッチ（l2_switch_24p）",
+      "result": "ok",
+      "state": {
+        "money": 999999720000,
+        "owned": [
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [],
+          "links": [],
+          "furniture": []
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "購入: 机（desk）",
+      "result": "ok",
+      "state": {
+        "money": 999999690000,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [],
+          "links": [],
+          "furniture": []
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "購入: 資金の足りない機器（価格は試験の値。資金を超える）",
+      "result": "ok",
+      "state": {
+        "money": 999989690000,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [],
+          "links": [],
+          "furniture": []
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "家具の配置: 机（desk）を(6,3)へ",
+      "result": "ok",
+      "state": {
+        "money": 999989690000,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [],
+          "links": [],
+          "furniture": [
+            "f0:desk@6,3"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "機器の配置: PC を机の上(2,3)へ",
+      "result": "ok",
+      "state": {
+        "money": 999989690000,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3"
+          ],
+          "links": [],
+          "furniture": [
+            "f0:desk@6,3"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "機器の配置: PC を床(6,6)へ",
+      "result": "ok",
+      "state": {
+        "money": 999989690000,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3",
+            "u1:pc_basic@6,6"
+          ],
+          "links": [],
+          "furniture": [
+            "f0:desk@6,3"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "機器の配置: スイッチを床(5,6)へ",
+      "result": "ok",
+      "state": {
+        "money": 999989690000,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3",
+            "u1:pc_basic@6,6",
+            "u2:l2_switch_8p@5,6"
+          ],
+          "links": [],
+          "furniture": [
+            "f0:desk@6,3"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "機器の配置: 同じマスへもう1台のスイッチ",
+      "result": "tile",
+      "state": {
+        "money": 999989690000,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3",
+            "u1:pc_basic@6,6",
+            "u2:l2_switch_8p@5,6"
+          ],
+          "links": [],
+          "furniture": [
+            "f0:desk@6,3"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "機器の配置: ルーターを床(8,6)へ",
+      "result": "ok",
+      "state": {
+        "money": 999989690000,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3",
+            "u1:pc_basic@6,6",
+            "u2:l2_switch_8p@5,6",
+            "u3:router_basic@8,6"
+          ],
+          "links": [],
+          "furniture": [
+            "f0:desk@6,3"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "配線: PC とスイッチ（utp_cat5e）",
+      "result": "ok",
+      "state": {
+        "money": 999989687200,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3",
+            "u1:pc_basic@6,6",
+            "u2:l2_switch_8p@5,6",
+            "u3:router_basic@8,6"
+          ],
+          "links": [
+            "l4:utp_cat5e u0.0-u2.0"
+          ],
+          "furniture": [
+            "f0:desk@6,3"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "配線: 同じ2台をもう一度つなぐ",
+      "result": "port",
+      "state": {
+        "money": 999989687200,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3",
+            "u1:pc_basic@6,6",
+            "u2:l2_switch_8p@5,6",
+            "u3:router_basic@8,6"
+          ],
+          "links": [
+            "l4:utp_cat5e u0.0-u2.0"
+          ],
+          "furniture": [
+            "f0:desk@6,3"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "機器の移動: スイッチを(5,7)へ",
+      "result": "ok",
+      "state": {
+        "money": 999989686900,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3",
+            "u1:pc_basic@6,6",
+            "u2:l2_switch_8p@5,7",
+            "u3:router_basic@8,6"
+          ],
+          "links": [
+            "l4:utp_cat5e u0.0-u2.0"
+          ],
+          "furniture": [
+            "f0:desk@6,3"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "機器の移動: スイッチを置けないマス(8,6)へ（ルーターがある）",
+      "result": "tile",
+      "state": {
+        "money": 999989686900,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3",
+            "u1:pc_basic@6,6",
+            "u2:l2_switch_8p@5,7",
+            "u3:router_basic@8,6"
+          ],
+          "links": [
+            "l4:utp_cat5e u0.0-u2.0"
+          ],
+          "furniture": [
+            "f0:desk@6,3"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "設定: PC の口0に 192.168.1.10/24",
+      "result": "ok",
+      "state": {
+        "money": 999989686900,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3",
+            "u1:pc_basic@6,6",
+            "u2:l2_switch_8p@5,7",
+            "u3:router_basic@8,6"
+          ],
+          "links": [
+            "l4:utp_cat5e u0.0-u2.0"
+          ],
+          "furniture": [
+            "f0:desk@6,3"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "設定: PC の口0に不正なアドレス",
+      "result": "ip",
+      "state": {
+        "money": 999989686900,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3",
+            "u1:pc_basic@6,6",
+            "u2:l2_switch_8p@5,7",
+            "u3:router_basic@8,6"
+          ],
+          "links": [
+            "l4:utp_cat5e u0.0-u2.0"
+          ],
+          "furniture": [
+            "f0:desk@6,3"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "設定: PC のホスト名を pc-1 に",
+      "result": "ok",
+      "state": {
+        "money": 999989686900,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3",
+            "u1:pc_basic@6,6",
+            "u2:l2_switch_8p@5,7",
+            "u3:router_basic@8,6"
+          ],
+          "links": [
+            "l4:utp_cat5e u0.0-u2.0"
+          ],
+          "furniture": [
+            "f0:desk@6,3"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "配線の撤去: PC とスイッチの配線",
+      "result": "ok",
+      "state": {
+        "money": 999989686900,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3",
+            "u1:pc_basic@6,6",
+            "u2:l2_switch_8p@5,7",
+            "u3:router_basic@8,6"
+          ],
+          "links": [],
+          "furniture": [
+            "f0:desk@6,3"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "配線: 撤去のあと、もう一度つなぐ",
+      "result": "ok",
+      "state": {
+        "money": 999989683800,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3",
+            "u1:pc_basic@6,6",
+            "u2:l2_switch_8p@5,7",
+            "u3:router_basic@8,6"
+          ],
+          "links": [
+            "l5:utp_cat5e u0.0-u2.0"
+          ],
+          "furniture": [
+            "f0:desk@6,3"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "購入: 植物（plant）",
+      "result": "ok",
+      "state": {
+        "money": 999989675800,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "plant",
+            1
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3",
+            "u1:pc_basic@6,6",
+            "u2:l2_switch_8p@5,7",
+            "u3:router_basic@8,6"
+          ],
+          "links": [
+            "l5:utp_cat5e u0.0-u2.0"
+          ],
+          "furniture": [
+            "f0:desk@6,3"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "家具の配置: 植物（plant）を(3,6)へ",
+      "result": "ok",
+      "state": {
+        "money": 999989675800,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "plant",
+            1
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3",
+            "u1:pc_basic@6,6",
+            "u2:l2_switch_8p@5,7",
+            "u3:router_basic@8,6"
+          ],
+          "links": [
+            "l5:utp_cat5e u0.0-u2.0"
+          ],
+          "furniture": [
+            "f0:desk@6,3",
+            "f1:plant@3,6"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "家具の移動: 植物を(3,7)へ",
+      "result": "ok",
+      "state": {
+        "money": 999989675800,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_24p",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "plant",
+            1
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3",
+            "u1:pc_basic@6,6",
+            "u2:l2_switch_8p@5,7",
+            "u3:router_basic@8,6"
+          ],
+          "links": [
+            "l5:utp_cat5e u0.0-u2.0"
+          ],
+          "furniture": [
+            "f0:desk@6,3",
+            "f1:plant@3,7"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "売却: 48ポートのスイッチ（l2_switch_24p）",
+      "result": "ok",
+      "state": {
+        "money": 999989704600,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "plant",
+            1
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u0:pc_basic@2,3",
+            "u1:pc_basic@6,6",
+            "u2:l2_switch_8p@5,7",
+            "u3:router_basic@8,6"
+          ],
+          "links": [
+            "l5:utp_cat5e u0.0-u2.0"
+          ],
+          "furniture": [
+            "f0:desk@6,3",
+            "f1:plant@3,7"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "機器の撤去: PC",
+      "result": "ok",
+      "state": {
+        "money": 999989704600,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "plant",
+            1
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u1:pc_basic@6,6",
+            "u2:l2_switch_8p@5,7",
+            "u3:router_basic@8,6"
+          ],
+          "links": [],
+          "furniture": [
+            "f0:desk@6,3",
+            "f1:plant@3,7"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "機器の撤去: スイッチ（配線も一緒に）",
+      "result": "ok",
+      "state": {
+        "money": 999989704600,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "plant",
+            1
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u1:pc_basic@6,6",
+            "u3:router_basic@8,6"
+          ],
+          "links": [],
+          "furniture": [
+            "f0:desk@6,3",
+            "f1:plant@3,7"
+          ]
+        },
+        "project": null
+      }
+    },
+    {
+      "step": "家具の撤去: 植物",
+      "result": "ok",
+      "state": {
+        "money": 999989704600,
+        "owned": [
+          [
+            "desk",
+            1
+          ],
+          [
+            "gpu_server",
+            1
+          ],
+          [
+            "l2_switch_8p",
+            2
+          ],
+          [
+            "pc_basic",
+            2
+          ],
+          [
+            "plant",
+            1
+          ],
+          [
+            "router_basic",
+            1
+          ]
+        ],
+        "office": {
+          "nodes": [
+            "u1:pc_basic@6,6",
+            "u3:router_basic@8,6"
+          ],
+          "links": [],
+          "furniture": [
+            "f0:desk@6,3"
+          ]
+        },
+        "project": null
+      }
+    }
+  ]
+}
