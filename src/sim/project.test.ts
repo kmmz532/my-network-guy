@@ -15,30 +15,8 @@ import type { NetNode } from '../network/types';
 import type { Offer } from '../contracts/template';
 import { initialStaff } from './staff';
 import { autoAssign } from './autoAssign';
-import {
-  abandon,
-  accept,
-  focusedOf,
-  advanceBuild,
-  checkConnect,
-  connect,
-  placeDevice,
-  placeInOffice,
-  removeFromOffice,
-  removeLink,
-  removeNode,
-  setInterface,
-  setSegment,
-  addressCandidates,
-  plannedAddressCandidates,
-  designIssues,
-  requestBuild,
-  setGateway,
-  setService,
-  testDesign,
-  type Core,
-  type Env,
-} from './project';
+import { abandon, accept, focusedOf, advanceBuild, checkConnect, connect, placeDevice, placeInOffice, removeFromOffice, removeLink, removeNode, addressCandidates, plannedAddressCandidates, designIssues, requestBuild, testDesign, type Core, type Env } from './project';
+import { setInterface, setSegment, setGateway, setService } from './netEdit';
 
 const balance = balanceJson as unknown as Balance;
 const map = officeJson as unknown as GameMap;

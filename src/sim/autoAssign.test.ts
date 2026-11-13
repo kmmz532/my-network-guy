@@ -17,7 +17,8 @@ import { initialStaff } from './staff';
 import { initialOffice } from './furniture';
 import { entryOf, stepDesign } from './history';
 import { autoAssign } from './autoAssign';
-import { accept, connect, focusedOf, placeDevice, placeInOffice, setGateway, setInterface, setSegment, type Core, type Env } from './project';
+import { accept, connect, focusedOf, placeDevice, placeInOffice, type Core, type Env } from './project';
+import { setGateway, setInterface, setSegment } from './netEdit';
 import { buyDevice } from './shop';
 
 const balance = balanceJson as unknown as Balance;

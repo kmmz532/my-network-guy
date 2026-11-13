@@ -5,45 +5,20 @@ import type { Balance, Contract, Furniture, FloorId, GameMap, Staff } from '../d
 import type { Facing } from './facing';
 import { tileKind } from '../data/tileKind';
 import { furnitureOf } from '../contracts/layout';
-import { renameNode } from '../network/nodeName';
+
 import { nextHostname } from '../network/hostname';
 import { nextMacSerial } from '../network/mac';
 import { isSwitchedRouterCategory } from '../network/category';
 import { engineWithWalls } from './walls';
 import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
-import { inSubnet, ipToInt, linkLength } from '../network/engine';
+import { ipToInt, linkLength } from '../network/engine';
 import { compile, type IssueDetail } from '../network/compile';
-import {
-  PREFIX_MAX,
-  PREFIX_MIN,
-  fillSegments,
-  hostCapacity,
-  intToIp,
-  networkAddress,
-  segmentConfigOf,
-  segmentOf,
-  segmentsOf,
-  type Segment,
-} from '../network/segments';
-import type { VrrpGroup } from '../network/vrrp';
+import { fillSegments, intToIp, segmentConfigOf, segmentOf, segmentsOf, type Segment } from '../network/segments';
+
 import type { DhcpPool } from '../network/dhcp';
-import type {
-  EngineData,
-  FailureReason,
-  FirewallRule,
-  Iface,
-  IspLine,
-  NetLink,
-  NetNode,
-  PathResult,
-  PortConfig,
-  Route,
-  SegmentConfig,
-  Service,
-  HostEntry,
-} from '../network/types';
-import { WIRELESS_SECURITIES } from '../network/types';
+import type { EngineData, FailureReason, NetLink, NetNode, PathResult, SegmentConfig, Service, HostEntry } from '../network/types';
+
 import type { ClockState } from './clock';
 import { isOnShift } from './shift';
 import { rate, rewardRateOf } from './rating';
@@ -55,7 +30,7 @@ import { blindDelegation, type Stars } from './blindDelegate';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { cableLengthOf, checkCableLength } from './cableLength';
 import { busyStaff, crewBlock } from './crew';
-import { makeIface, makeSvi } from '../network/iface';
+import { makeIface } from '../network/iface';
 import { can } from '../network/capabilities';
 import { dhcpWriteBack, warningsOf, type VlanWarning } from '../network/netState';
 import { deliveryExpOf, levelOf, type LevelUp } from './level';
@@ -712,6 +687,29 @@ export const removeNode = (core: Core, uid: string, env: Env): Outcome => {
 // 自社オフィスの編集を止めているか。自社案件を受注中は、自社オフィスの機器と配線を案件が使うため、直接編集しない
 export const officeLocked = (core: Core): boolean => core.active.some((p) => p.contract.inhouse);
 
+// 編集する対象。focus の案件（設計中）か、自社オフィス
+export type NetTarget = 'focus' | 'office';
+
+// 対象のネットワーク（機器・配線・採番・セグメントの設定）。案件・自社オフィスのどちらも同じ形で扱う
+export interface Net {
+  nodes: NetNode[];
+  links: NetLink[];
+  seq: number;
+  segments: Record<string, SegmentConfig>;
+}
+
+// 対象のネットワークを取り出す。設計中の案件でない、または自社オフィスが案件に使われていれば理由を返す
+export const netOf = (core: Core, target: NetTarget): Net | string => {
+  if (target === 'office') {
+    if (officeLocked(core)) return 'inhouse';
+    const o = core.office;
+    return { nodes: o.nodes, links: o.links, seq: o.seq, segments: o.segments };
+  }
+  const p = requireDesign(core);
+  if (typeof p === 'string') return p;
+  return { nodes: p.nodes, links: p.links, seq: p.seq, segments: p.segments };
+};
+
 // 対象のネットワークを書き戻す
 // 受け取れた自動（DHCP）の口のアドレスを、前回のアドレスとして機器へ書き戻す（NET.md §5.7）。store が操作を確定するたびに呼ぶ。
 // 判定のデータは、ping などと同じ（案件の地図の壁を含む）ものを使う。書き戻すものがなければ同じ core を返す
@@ -727,8 +725,17 @@ export const writeBackDhcp = (core: Core, env: Env): Core => {
   return changed ? { ...core, office: { ...core.office, nodes: [...officeNodes] }, active } : core;
 };
 
+export const withNet = (core: Core, target: NetTarget, net: Net): Core => {
+  if (target === 'office') {
+    return { ...core, office: { ...core.office, nodes: net.nodes, links: net.links, seq: net.seq, segments: net.segments } };
+  }
+  const p = focusedOf(core) as Project;
+  // 設計を変えたので、最後のテストの結果は無効になる
+  return withProject(core, { ...p, nodes: net.nodes, links: net.links, seq: net.seq, segments: net.segments, testedOk: false });
+};
+
 // 機器のポートが属するセグメント（配線がなければ undefined）
-const segmentAt = (net: Net, env: Env, uid: string, port: number): Segment | undefined =>
+export const segmentAt = (net: Net, env: Env, uid: string, port: number): Segment | undefined =>
   segmentOf(segmentsOf(net, env.engine), uid, port);
 
 // 機器のポートのうち、ケーブルがつながっている番号の集合
@@ -890,6 +897,60 @@ export const removeLink = (core: Core, uid: string, target: NetTarget, env: Env)
     },
   };
 };
+
+// 名前と IPアドレスの表を、同じ案件（自社オフィス）の機器から作る。ホスト名のある機器の、最初の IPアドレスを登録する（N68）
+export const zoneFromNodes = (nodes: readonly NetNode[]): HostEntry[] =>
+  nodes.flatMap((n) => (n.hostname && n.interfaces[0] ? [{ name: n.hostname, ip: n.interfaces[0].ip }] : []));
+
+// 同じホスト名が2つ以上ある名前の一覧（DNS の自動登録の警告に使う）
+export const duplicateHostnames = (nodes: readonly NetNode[]): string[] => {
+  const count = new Map<string, number>();
+  for (const n of nodes) if (n.hostname) count.set(n.hostname, (count.get(n.hostname) ?? 0) + 1);
+  return [...count].filter(([, c]) => c > 1).map(([name]) => name);
+};
+
+// 口のモードの変更。trunk の allowed は null で全 VLAN を許可、native は省略すると今の値（なければ 1）を保つ
+export type PortModeChange =
+  | { kind: 'access'; vlan: number }
+  | { kind: 'routed' }
+  | { kind: 'trunk'; allowed?: number[] | null; native?: number };
+
+// OSPF の機器・インターフェースの設定（ルーター ID・既定の経路の配布・コスト・優先度・Hello・デッド）
+export type OspfOp =
+  | { op: 'routerId'; ip: string | null }
+  | { op: 'defaultOriginate'; on: boolean }
+  | { op: 'iface'; id: string; key: 'cost' | 'priority' | 'hello' | 'dead'; value: number };
+
+// VRRP の設定（グループの作成・仮想の IP アドレス・優先度・プリエンプト・追跡・削除）。ip で、グループがなければ作る（優先度 100・プリエンプトあり）
+export type VrrpOp =
+  | { op: 'ip'; id: string; vrid: number; ip: string }
+  | { op: 'priority'; id: string; vrid: number; value: number }
+  | { op: 'preempt'; id: string; vrid: number; on: boolean }
+  | { op: 'track'; id: string; vrid: number; iface: string; decrement: number }
+  | { op: 'remove'; id: string; vrid: number };
+
+// スパニングツリーの設定（ブリッジ優先度・口のコスト）。stp を持つスイッチだけ
+export type StpOp = { op: 'priority'; value: number } | { op: 'cost'; port: number; value: number };
+
+// DHCP の設定（NET.md §5.7）: 口を自動にする（client）・リレー先（helper）・プール（pool・noPool）
+export type DhcpOp =
+  | { op: 'client'; port: number }
+  | { op: 'helper'; port: number; ip: string | null }
+  | { op: 'pool'; pool: DhcpPool }
+  | { op: 'noPool'; network: string };
+
+// リンクアグリゲーションの設定（口のチャネルの番号と、まとめるモード）。lag を持つ機器だけ。group が null なら解除
+export type ChannelOp = { port: number; group: number | null; lacp?: 'active' | 'passive' | 'on' };
+
+// NAT の設定（N145）。口の inside・outside、NAPT の有効、静的 NAT（ポートの転送）
+export type NatOp =
+  | { op: 'iface'; id: string; nat: 'inside' | 'outside' | null }
+  | { op: 'napt'; on: boolean }
+  | { op: 'static'; port: number; insideIp: string; insidePort: number }
+  | { op: 'noStatic'; port: number };
+
+// BGP の設定（N147）。router bgp で自分の AS を決め、neighbor と network を足す
+export type BgpOp = { op: 'asn'; asn: number } | { op: 'off' } | { op: 'neighbor'; ip: string; remoteAs: number } | { op: 'removeNeighbor'; ip: string } | { op: 'removeNetwork'; dest: string; prefix: number } | { op: 'attr'; ip: string; key: 'nextHopSelf'; value: boolean } | { op: 'attr'; ip: string; key: 'localPref' | 'med' | 'prepend'; value: number } | { op: 'network'; dest: string; prefix: number };
 
 // 配線の片方の端（a か b）を、同じ機器の別のポートへ挿し替える。埋まったポートには挿せない。
 // ケーブルの長さは変わらないため費用は変えない。ポートのIPアドレスは、ポートの番号に付いたまま残す。
@@ -1070,9 +1131,6 @@ export const replugTo = (
   }
   return { ok: true, core: payCable(next, target, pay.paid, pay.saved) };
 };
-
-// サービスの既定の待ち受けポート（プロトコルごと）。起動するときに使う
-const DEFAULT_SERVICE_PORT: Record<Service['protocol'], number> = { http: 80 };
 
 // アドレスの候補（セグメントで使えるアドレスの一覧）。使用中のアドレスには、使っている機器とポートを付ける
 export interface AddressCandidate {

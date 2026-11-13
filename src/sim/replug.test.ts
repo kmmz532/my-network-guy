@@ -18,23 +18,8 @@ import { evaluateContract } from '../network/goals';
 import { compile } from '../network/compile';
 import { initialStaff } from './staff';
 import { autoAssign } from './autoAssign';
-import {
-  accept,
-  advanceBuild,
-  compiledNet,
-  connect,
-  focusedOf,
-  placeDevice,
-  placeInOffice,
-  replug,
-  requestBuild,
-  setInterface,
-  setService,
-  setSegment,
-  testDesign,
-  type Core,
-  type Env,
-} from './project';
+import { accept, advanceBuild, compiledNet, connect, focusedOf, placeDevice, placeInOffice, replug, requestBuild, testDesign, type Core, type Env } from './project';
+import { setInterface, setService, setSegment } from './netEdit';
 
 const balance = balanceJson as unknown as Balance;
 const map = officeJson as unknown as GameMap;

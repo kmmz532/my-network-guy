@@ -12,7 +12,8 @@ import { lessonLinks, lessonNodes, lessonSegments } from '../../sim/lesson';
 import { mapOfOffice } from '../../sim/office';
 
 import { closeRef } from '../../ui/windows';
-import { type PortChoice, connect, removeNode, removeFromOffice, setInterface, setSvi, setPortMode, type PortModeChange, setGateway, setRouting, setOspf, setIsp, setPower, setStp, type StpOp, setChannel, type ChannelOp, setDhcp, type DhcpOp, setVrrp, type VrrpOp, type OspfOp, setBgp, setNat, type NatOp, setWireless, type BgpOp, setFirewallRules, setSegment, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, replug, moveNode, replugTo, addRoute, removeRoute, removeLink, testDesign, emptyOffice, type End } from '../../sim/project';
+import { type PortChoice, connect, removeNode, removeFromOffice, type PortModeChange, type StpOp, type ChannelOp, type DhcpOp, type VrrpOp, type OspfOp, type NatOp, type BgpOp, replug, moveNode, replugTo, removeLink, testDesign, emptyOffice, type End } from '../../sim/project';
+import { setInterface, setSvi, setPortMode, setGateway, setRouting, setOspf, setIsp, setPower, setStp, setChannel, setDhcp, setVrrp, setBgp, setNat, setWireless, setFirewallRules, setSegment, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, addRoute, removeRoute } from '../../sim/netEdit';
 
 import { coreOf, focusedProject, netTargetOf } from '../gameHelpers';
 import type { GameState } from '../useGameStore';

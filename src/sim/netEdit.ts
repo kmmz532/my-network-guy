@@ -1,96 +1,12 @@
-import { applyMoney, recordSaving } from './ledger';
-import type { Balance, Contract, Furniture, FloorId, GameMap, Staff } from '../data/schema';
-import type { Facing } from './facing';
-import { tileKind } from '../data/tileKind';
-import { furnitureOf } from '../contracts/layout';
 import { renameNode } from '../network/nodeName';
-import { nextHostname } from '../network/hostname';
-import { nextMacSerial } from '../network/mac';
-import { isSwitchedRouterCategory } from '../network/category';
-import { engineWithWalls } from './walls';
-import type { Offer } from '../contracts/template';
-import { evaluateContract } from '../network/goals';
-import { inSubnet, ipToInt, linkLength } from '../network/engine';
-import { compile, type IssueDetail } from '../network/compile';
-import {
-  PREFIX_MAX,
-  PREFIX_MIN,
-  fillSegments,
-  hostCapacity,
-  intToIp,
-  networkAddress,
-  segmentConfigOf,
-  segmentOf,
-  segmentsOf,
-  type Segment,
-} from '../network/segments';
+import { inSubnet, ipToInt } from '../network/engine';
+import { PREFIX_MAX, PREFIX_MIN, fillSegments, hostCapacity, networkAddress } from '../network/segments';
 import type { VrrpGroup } from '../network/vrrp';
-import type { DhcpPool } from '../network/dhcp';
-import type {
-  EngineData,
-  FailureReason,
-  FirewallRule,
-  Iface,
-  IspLine,
-  NetLink,
-  NetNode,
-  PathResult,
-  PortConfig,
-  Route,
-  SegmentConfig,
-  Service,
-  HostEntry,
-} from '../network/types';
+import type { FirewallRule, Iface, IspLine, NetNode, PortConfig, Route, Service } from '../network/types';
 import { WIRELESS_SECURITIES } from '../network/types';
-import type { ClockState } from './clock';
-import { isOnShift } from './shift';
-import { rate, rewardRateOf } from './rating';
-import { DELEGATE_MIN_COUNT, DELEGATED_EXP_DIVISOR, DELEGATED_STAR_CAP, familiarKeyOf, missingFixed, positionsMatch, recordDelivery, type Blueprint, type Familiarity } from './familiar';
-import { dueDayOf, lateDaysOf, lateFactor } from './deadline';
-import { bonusEnvOf, furnitureBonus, type BonusEnv } from './furniture';
-import { gainExp, staffPower } from './staff';
-import { blindDelegation, type Stars } from './blindDelegate';
-import { CATEGORY, isPcCategory } from '../data/categories';
-import { cableLengthOf, checkCableLength } from './cableLength';
-import { busyStaff, crewBlock } from './crew';
 import { makeIface, makeSvi } from '../network/iface';
 import { can } from '../network/capabilities';
-import { dhcpWriteBack, warningsOf, type VlanWarning } from '../network/netState';
-import { deliveryExpOf, levelOf, type LevelUp } from './level';
-
-
-
-// 編集する対象。focus の案件（設計中）か、自社オフィス
-export type NetTarget = 'focus' | 'office';
-
-// 対象のネットワーク（機器・配線・採番・セグメントの設定）。案件・自社オフィスのどちらも同じ形で扱う
-export interface Net {
-  nodes: NetNode[];
-  links: NetLink[];
-  seq: number;
-  segments: Record<string, SegmentConfig>;
-}
-
-// 対象のネットワークを取り出す。設計中の案件でない、または自社オフィスが案件に使われていれば理由を返す
-export const netOf = (core: Core, target: NetTarget): Net | string => {
-  if (target === 'office') {
-    if (officeLocked(core)) return 'inhouse';
-    const o = core.office;
-    return { nodes: o.nodes, links: o.links, seq: o.seq, segments: o.segments };
-  }
-  const p = requireDesign(core);
-  if (typeof p === 'string') return p;
-  return { nodes: p.nodes, links: p.links, seq: p.seq, segments: p.segments };
-};
-
-export const withNet = (core: Core, target: NetTarget, net: Net): Core => {
-  if (target === 'office') {
-    return { ...core, office: { ...core.office, nodes: net.nodes, links: net.links, seq: net.seq, segments: net.segments } };
-  }
-  const p = focusedOf(core) as Project;
-  // 設計を変えたので、最後のテストの結果は無効になる
-  return withProject(core, { ...p, nodes: net.nodes, links: net.links, seq: net.seq, segments: net.segments, testedOk: false });
-};
+import { BgpOp, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, StpOp, VrrpOp, fail, netOf, segmentAt, withNet, zoneFromNodes } from './project';
 
 // 機器の設定を書き換える。配線の設定が固定された機器は変えられない。
 const editNode = (core: Core, uid: string, edit: (n: NetNode) => NetNode | string, target: NetTarget = 'focus'): Outcome => {
@@ -116,17 +32,6 @@ export const setNameServer = (core: Core, uid: string, ip: string | null, target
 // DNS の役割を付ける（zone は空から）。外すと表も消える（N68）
 export const setDnsRole = (core: Core, uid: string, on: boolean, target: NetTarget = 'focus'): Outcome =>
   editNode(core, uid, (node) => ({ ...node, dns: on ? (node.dns ?? { zone: [] }) : undefined }), target);
-
-// 名前と IPアドレスの表を、同じ案件（自社オフィス）の機器から作る。ホスト名のある機器の、最初の IPアドレスを登録する（N68）
-export const zoneFromNodes = (nodes: readonly NetNode[]): HostEntry[] =>
-  nodes.flatMap((n) => (n.hostname && n.interfaces[0] ? [{ name: n.hostname, ip: n.interfaces[0].ip }] : []));
-
-// 同じホスト名が2つ以上ある名前の一覧（DNS の自動登録の警告に使う）
-export const duplicateHostnames = (nodes: readonly NetNode[]): string[] => {
-  const count = new Map<string, number>();
-  for (const n of nodes) if (n.hostname) count.set(n.hostname, (count.get(n.hostname) ?? 0) + 1);
-  return [...count].filter(([, c]) => c > 1).map(([name]) => name);
-};
 
 // 「自動で登録する」: 対象のネットワークの機器から DNS の表を作り直す（DNS の役割のある機器だけ）
 export const autoRegisterZone = (core: Core, uid: string, target: NetTarget = 'focus'): Outcome => {
@@ -161,6 +66,7 @@ export const removeHost = (core: Core, uid: string, name: string, target: NetTar
 
 // IPアドレスの書式（各区切りは 0〜255）
 const isIp = (s: string): boolean => /^\d{1,3}(\.\d{1,3}){3}$/.test(s) && s.split('.').every((n) => Number(n) <= 255);
+
 // 「a.b.c.d/nn」（ネットワークの指定）
 const isCidr = (s: string): boolean => {
   const [ip, prefix] = s.split('/');
@@ -213,12 +119,6 @@ export const setSvi = (core: Core, uid: string, vlan: number, ip: string, prefix
 
 // 機器の SVI の上限（機器の定義の sviMax。持てない機器は 0）
 const sviMaxOf = (env: Env, device: string): number => (env.devices[device] as { sviMax?: number } | undefined)?.sviMax ?? 0;
-
-// 口のモードの変更。trunk の allowed は null で全 VLAN を許可、native は省略すると今の値（なければ 1）を保つ
-export type PortModeChange =
-  | { kind: 'access'; vlan: number }
-  | { kind: 'routed' }
-  | { kind: 'trunk'; allowed?: number[] | null; native?: number };
 
 // 口の VLAN（access）・トランク（trunk）か、ルーターの口（routed・no switchport）を設定する（N137・N138）
 export const setPortMode = (
@@ -284,11 +184,6 @@ export const setRouting = (core: Core, uid: string, change: { proto: 'rip' | 'os
     target,
   );
 
-// OSPF の機器・インターフェースの設定（ルーター ID・既定の経路の配布・コスト・優先度・Hello・デッド）
-export type OspfOp =
-  | { op: 'routerId'; ip: string | null }
-  | { op: 'defaultOriginate'; on: boolean }
-  | { op: 'iface'; id: string; key: 'cost' | 'priority' | 'hello' | 'dead'; value: number };
 export const setOspf = (core: Core, uid: string, change: OspfOp, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
@@ -312,13 +207,6 @@ export const setOspf = (core: Core, uid: string, change: OspfOp, target: NetTarg
 export const setPower = (core: Core, uid: string, on: boolean, target: NetTarget = 'focus'): Outcome =>
   editNode(core, uid, (node) => ({ ...node, powered: on ? undefined : false }), target);
 
-// VRRP の設定（グループの作成・仮想の IP アドレス・優先度・プリエンプト・追跡・削除）。ip で、グループがなければ作る（優先度 100・プリエンプトあり）
-export type VrrpOp =
-  | { op: 'ip'; id: string; vrid: number; ip: string }
-  | { op: 'priority'; id: string; vrid: number; value: number }
-  | { op: 'preempt'; id: string; vrid: number; on: boolean }
-  | { op: 'track'; id: string; vrid: number; iface: string; decrement: number }
-  | { op: 'remove'; id: string; vrid: number };
 export const setVrrp = (core: Core, uid: string, change: VrrpOp, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
@@ -356,8 +244,6 @@ export const setVrrp = (core: Core, uid: string, change: VrrpOp, target: NetTarg
     target,
   );
 
-// スパニングツリーの設定（ブリッジ優先度・口のコスト）。stp を持つスイッチだけ
-export type StpOp = { op: 'priority'; value: number } | { op: 'cost'; port: number; value: number };
 export const setStp = (core: Core, uid: string, change: StpOp, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
@@ -376,12 +262,6 @@ export const setStp = (core: Core, uid: string, change: StpOp, target: NetTarget
     target,
   );
 
-// DHCP の設定（NET.md §5.7）: 口を自動にする（client）・リレー先（helper）・プール（pool・noPool）
-export type DhcpOp =
-  | { op: 'client'; port: number }
-  | { op: 'helper'; port: number; ip: string | null }
-  | { op: 'pool'; pool: DhcpPool }
-  | { op: 'noPool'; network: string };
 export const setDhcp = (core: Core, uid: string, change: DhcpOp, env: Env, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
@@ -415,8 +295,6 @@ export const setDhcp = (core: Core, uid: string, change: DhcpOp, env: Env, targe
     target,
   );
 
-// リンクアグリゲーションの設定（口のチャネルの番号と、まとめるモード）。lag を持つ機器だけ。group が null なら解除
-export type ChannelOp = { port: number; group: number | null; lacp?: 'active' | 'passive' | 'on' };
 export const setChannel = (core: Core, uid: string, change: ChannelOp, env: Env, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
@@ -460,12 +338,6 @@ export const setWireless = (core: Core, uid: string, key: 'ssid' | 'password' | 
     target,
   );
 
-// NAT の設定（N145）。口の inside・outside、NAPT の有効、静的 NAT（ポートの転送）
-export type NatOp =
-  | { op: 'iface'; id: string; nat: 'inside' | 'outside' | null }
-  | { op: 'napt'; on: boolean }
-  | { op: 'static'; port: number; insideIp: string; insidePort: number }
-  | { op: 'noStatic'; port: number };
 export const setNat = (core: Core, uid: string, change: NatOp, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
@@ -487,8 +359,6 @@ export const setNat = (core: Core, uid: string, change: NatOp, target: NetTarget
     target,
   );
 
-// BGP の設定（N147）。router bgp で自分の AS を決め、neighbor と network を足す
-export type BgpOp = { op: 'asn'; asn: number } | { op: 'off' } | { op: 'neighbor'; ip: string; remoteAs: number } | { op: 'removeNeighbor'; ip: string } | { op: 'removeNetwork'; dest: string; prefix: number } | { op: 'attr'; ip: string; key: 'nextHopSelf'; value: boolean } | { op: 'attr'; ip: string; key: 'localPref' | 'med' | 'prepend'; value: number } | { op: 'network'; dest: string; prefix: number };
 export const setBgp = (core: Core, uid: string, change: BgpOp, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
@@ -558,6 +428,9 @@ export const addRoute = (core: Core, uid: string, route: Route, target: NetTarge
 // ルーターの静的ルートを削除する
 export const removeRoute = (core: Core, uid: string, index: number, target: NetTarget = 'focus'): Outcome =>
   editNode(core, uid, (node) => ({ ...node, routes: node.routes.filter((_, i) => i !== index) }), target);
+
+// サービスの既定の待ち受けポート（プロトコルごと）。起動するときに使う
+const DEFAULT_SERVICE_PORT: Record<Service['protocol'], number> = { http: 80 };
 
 // サービスを起動する（on）または停止する（off）。配線の設定が固定された機器は変えられない
 export const setService = (
