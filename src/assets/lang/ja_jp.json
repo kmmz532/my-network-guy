@@ -785,7 +785,6 @@
   "ui.frames.col.ttl": "TTL",
   "ui.frames.col.vlan": "VLAN",
   "ui.frames.goal": "通信の中身を見る",
-  "ui.glossary.open": "用語の説明を見る",
   "ui.frames.next": "次へ",
   "ui.frames.none": "表示できる通信がありません。テストか ping を実行してください。",
   "ui.frames.open": "パケットの中身を見る",
