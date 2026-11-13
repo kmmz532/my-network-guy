@@ -10,9 +10,7 @@ export const analyze = (input: Network, world: EngineData): NetworkState => {
   const links = stageLinks(input, world);
   // L2 の層は、アドレスの層の結果を読まない（口にアドレスが残るかの規則を、配線の層の構成に当てて求める）
   const l2 = stageL2(links.net, links);
-  const addressing = stageAddressing(input, world, links);
-  const topology = new Topology(addressing.net, world, links, l2);
-  // DHCP の割り当てを入れた機器の列（Topology の中で解決したもの）
-  const net: Network = { ...addressing.net, nodes: topology.allNodes() };
-  return { input, world, net, topology, links, l2, addressing, dhcp: topology.dhcp };
+  const addressing = stageAddressing(input, world, links, l2);
+  const topology = new Topology(links, l2, addressing);
+  return { input, world, net: addressing.net, topology, links, l2, addressing };
 };

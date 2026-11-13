@@ -7,9 +7,9 @@ import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, Iface,
 import { CATEGORY } from '../data/categories';
 import { can } from './capabilities';
 import { macOf } from './mac';
-import { electVrrpMaster, type VrrpMember } from './vrrp';
 import type { StpResult } from './stp';
-import { assignDhcp, type DhcpResult } from './dhcp';
+import type { DhcpResult } from './dhcp';
+import type { AddressLayer } from './engine/stages/addressing';
 import type { LinkLayer } from './engine/stages/links';
 import type { L2Domain, L2Layer } from './engine/stages/l2';
 import { computeBgp, type BgpEnv, type BgpResult } from './bgp';
@@ -36,49 +36,19 @@ export const inSubnet = (ip: string, network: string, prefix: number): boolean =
 
 export class Topology {
   private nodes = new Map<string, NetNode>();
-  // DHCP の割り当ての結果（自動の口がなければ空）
-  dhcp: DhcpResult = { leases: [], failed: [], multiple: [] };
 
+  // 機器の列は、アドレスの層の実効の構成（補完と DHCP の割り当てを入れたもの）から取る
   constructor(
-    net: Network,
-    data: EngineData,
     private links: LinkLayer,
     private l2: L2Layer,
-    resolveDhcp = true,
+    private addressing: AddressLayer,
   ) {
-    // 自動（DHCP）の口は、割り当てたアドレスを入れた機器で計算する。割り当ては、アドレスのない状態の配線（L2）から求める
-    if (resolveDhcp && net.nodes.some((n) => n.interfaces.some((i) => i.dhcp === true))) {
-      const base = new Topology(net, data, links, l2, false);
-      this.dhcp = assignDhcp(net.nodes, {
-        domainOf: (uid, port) => base.domainOf({ node: uid, port }).members,
-        // リレーのルーターが、サーバー側の口（サーバーのアドレスと同じサブネットの口。なければリレーの口）から届くか
-        reaches: (routerUid, routerIp, serverUid, serverIp) => {
-          const toward = base.node(routerUid)?.interfaces.find((i) => i.ip !== '' && inSubnet(serverIp, i.ip, i.prefix));
-          return deliver(base, routerUid, serverUid, { kind: 'ping' }, false, toward?.ip ?? routerIp, serverIp).ok;
-        },
-      });
-      net = {
-        ...net,
-        nodes: net.nodes.map((n) => {
-          const mine = this.dhcp.leases.filter((l) => l.uid === n.uid);
-          // 受け取れない口は 169.254.x.y/16（機器の連番から決める）。保存してある前回のアドレスは書き換えない
-          const failed = this.dhcp.failed.filter((f) => f.uid === n.uid);
-          if (mine.length === 0 && failed.length === 0) return n;
-          return {
-            ...n,
-            interfaces: n.interfaces.map((i) => {
-              const l = i.dhcp === true ? mine.find((x) => x.port === i.port) : undefined;
-              if (i.dhcp === true && l === undefined && failed.some((f) => f.port === i.port)) return { ...i, ip: `169.254.${((n.macSerial ?? 0) >> 8) & 255}.${((n.macSerial ?? 0) & 255) || 1}`, prefix: 16 };
-              return l ? { ...i, ip: l.ip, prefix: l.prefix } : i;
-            }),
-            // 自動の間は、手で入れたゲートウェイとネームサーバーは使わない（プールの値で置き換える）
-            gateway: mine.find((l) => l.gateway)?.gateway ?? null,
-            nameServer: mine.find((l) => l.dns)?.dns,
-          };
-        }),
-      };
-    }
-    for (const node of net.nodes) this.nodes.set(node.uid, node);
+    for (const node of addressing.net.nodes) this.nodes.set(node.uid, node);
+  }
+
+  // DHCP の割り当ての結果（自動の口がなければ空）
+  get dhcp(): DhcpResult {
+    return this.addressing.dhcp;
   }
 
   // 段4の動的経路（RIP・OSPF の MVP）。RIP・OSPF に参加したインターフェースどうしが、同じ L2 ドメインでつながる隣接をたどり、
@@ -260,46 +230,9 @@ export class Topology {
     return this.nodes.get(uid)?.ports?.find((p) => p.port === port);
   }
 
-  // インターフェースの VRRP のグループ（vrid）の、マスターの機器。同じブロードキャストドメインで同じ VRID を持つ動いているインターフェースの中から選ぶ。
-  // 動いているものがなければ null（全員が止まっている）
-  vrrpMaster(uid: string, port: number, vrid: number): string | null {
-    return electVrrpMaster(this.vrrpMembers(uid, port, vrid));
-  }
-
-  // 同じブロードキャストドメインで、同じ VRID のグループを持つインターフェース（自分を含む）
-  vrrpMembers(uid: string, port: number, vrid: number): VrrpMember[] {
-    const self = this.ifaceAt(uid, port);
-    if (!self?.vrrp?.some((g) => g.vrid === vrid)) return [];
-    const eps: Endpoint[] = [{ node: uid, port }, ...this.domainOf({ node: uid, port }).members];
-    const seen = new Set<string>();
-    const members: VrrpMember[] = [];
-    for (const ep of eps) {
-      if (seen.has(ep.node)) continue;
-      const iface = this.ifaceAt(ep.node, ep.port);
-      const group = iface?.vrrp?.find((g) => g.vrid === vrid);
-      if (!iface || !group) continue;
-      seen.add(ep.node);
-      const peer = this.linkAt(ep)?.peer;
-      const down = (i: Iface) => {
-        const linked = this.linkAt({ node: ep.node, port: i.port });
-        return this.isShut(ep.node, i.port) || !linked || this.isShut(linked.peer.node, linked.peer.port);
-      };
-      const owner = this.nodes.get(ep.node)!;
-      members.push({
-        uid: ep.node,
-        realIp: iface.ip,
-        group,
-        downTracked: (group.track ?? []).filter((t) => owner.interfaces.some((i) => i.id === t.iface && down(i))).map((t) => t.iface),
-        up: !this.isShut(ep.node, ep.port) && peer !== undefined,
-      });
-    }
-    return members;
-  }
-
   // この口が、仮想の IP アドレス ip のマスターか
   vrrpOwns(uid: string, port: number, ip: string): boolean {
-    const group = this.ifaceAt(uid, port)?.vrrp?.find((g) => g.ip === ip);
-    return group !== undefined && this.vrrpMaster(uid, port, group.vrid) === uid;
+    return this.addressing.vrrpOwns(uid, port, ip);
   }
 
   stp(): StpResult {
@@ -586,7 +519,7 @@ export type VlanWarning = { id: 'wlan.open' | 'wlan.weak_cipher' | 'wlan.transit
 // 受け取れた自動の口の ip・prefix を機器へ書き戻す（前回のアドレスとして保存する。NET.md §5.7）。変わる機器がなければ同じ配列を返す
 export const dhcpWriteBack = <T extends { uid: string; interfaces: Iface[] }>(nodes: readonly T[], links: readonly NetLink[], segments: Network['segments'], data: EngineData): readonly T[] => {
   if (!nodes.some((n) => n.interfaces.some((i) => i.dhcp === true))) return nodes;
-  const leases = analyze({ nodes: nodes as unknown as NetNode[], links: [...links], segments }, data).dhcp.leases;
+  const leases = analyze({ nodes: nodes as unknown as NetNode[], links: [...links], segments }, data).addressing.dhcp.leases;
   let changed = false;
   const next = nodes.map((n) => {
     const interfaces = n.interfaces.map((i) => {

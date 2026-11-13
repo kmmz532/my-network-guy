@@ -1,12 +1,15 @@
-// アドレスの層: 実効の口のアドレス・端末のゲートウェイの補完・L2 の機器と中継だけの口のアドレスの除去・設計の不備（issues）。
+// アドレスの層: 実効の口のアドレス・端末のゲートウェイの補完・L2 の機器と中継だけの口のアドレスの除去・DHCP の割り当て・VRRP の持ち主・設計の不備（issues）。
 // セグメントの設定と機器の設定（IPアドレス・ルート）から求める。IPアドレスの未設定や設定の不備は、機器ごとの issues として返す。
 // 層の順序: 配線の層・L2 の層の後に置く。L2 の層は、口にアドレスが残るか（中継だけの口ではないか）で口の扱いを変えるが、
 // その規則（isRelayPort）は機器の種類と口の番号だけで決まるため、L2 の層は保存の構成に同じ規則を当てて求め、この層の結果を読まない
-import { inSubnet, ipToInt } from '../../engine';
+import { deliver, inSubnet, ipToInt, Topology } from '../../engine';
+import { assignDhcp, type DhcpResult } from '../../dhcp';
+import { electVrrpMaster, type VrrpMember } from '../../vrrp';
 import { isL2Category, isRelayPort, isRoutingCategory } from '../../category';
 import { epKey, hostCapacity, segmentConfigOf, segmentsOf, type Segment } from '../../segments';
 import type { EngineData, Iface, NetNode, Network, SegmentConfig } from '../../types';
 import { deviceCategory } from '../../../registry/query';
+import type { L2Layer } from './l2';
 import type { LinkLayer } from './links';
 
 // 機器の不備の種類（sim-3 の失敗の理由）
@@ -41,10 +44,16 @@ export interface IssueDetail {
 export interface AddressLayer {
   // アドレスを補完した保存の構成（無線の仮想の配線と DHCP の割り当ての前。配線と口の設定は保存のまま）
   readonly completed: Network;
-  // 実効の構成: 補完した機器に、配線の層の無線の仮想の配線とアクセスポイントの口の設定を重ねたもの
+  // 実効の構成: 補完した機器に、配線の層の無線の仮想の配線とアクセスポイントの口の設定を重ね、DHCP の割り当てを入れたもの
   readonly net: Network;
   // 設計の不備（機器ごとに1つ）
   readonly issues: Readonly<Record<string, IssueDetail>>;
+  // DHCP の割り当ての結果（自動の口がなければ空）
+  readonly dhcp: DhcpResult;
+  // 同じブロードキャストドメインで、同じ VRID のグループを持つインターフェース（自分を含む）
+  vrrpMembers(uid: string, port: number, vrid: number): VrrpMember[];
+  // この口が、仮想の IP アドレス ip のマスター（持ち主）か
+  vrrpOwns(uid: string, port: number, ip: string): boolean;
 }
 
 const label = (cfg: SegmentConfig): string => `${cfg.network}/${cfg.prefix}`;
@@ -166,11 +175,91 @@ const complete = (input: Network, data: EngineData): { net: Network; issues: Rec
   return { net: { nodes, links: input.links, segments: input.segments }, issues };
 };
 
-export const stageAddressing = (input: Network, world: EngineData, links: LinkLayer): AddressLayer => {
+// VRRP の持ち主。同じブロードキャストドメインで同じ VRID を持つ、動いているインターフェースの中から選ぶ
+const vrrpOf = (nodes: readonly NetNode[], links: LinkLayer, l2: L2Layer): Pick<AddressLayer, 'vrrpMembers' | 'vrrpOwns'> => {
+  const byUid = new Map(nodes.map((n) => [n.uid, n]));
+  const ifaceAt = (uid: string, port: number): Iface | undefined => byUid.get(uid)?.interfaces.find((i) => i.port === port);
+  const vrrpMembers = (uid: string, port: number, vrid: number): VrrpMember[] => {
+    const self = ifaceAt(uid, port);
+    if (!self?.vrrp?.some((g) => g.vrid === vrid)) return [];
+    const eps = [{ node: uid, port }, ...l2.domainOf({ node: uid, port }).members];
+    const seen = new Set<string>();
+    const members: VrrpMember[] = [];
+    for (const ep of eps) {
+      if (seen.has(ep.node)) continue;
+      const iface = ifaceAt(ep.node, ep.port);
+      const group = iface?.vrrp?.find((g) => g.vrid === vrid);
+      if (!iface || !group) continue;
+      seen.add(ep.node);
+      const peer = l2.linkAt(ep)?.peer;
+      // 追跡するインターフェースは、口の停止・配線なし・相手の口の停止で止まっている
+      const down = (i: Iface) => {
+        const linked = l2.linkAt({ node: ep.node, port: i.port });
+        return links.isShut(ep.node, i.port) || !linked || links.isShut(linked.peer.node, linked.peer.port);
+      };
+      const owner = byUid.get(ep.node)!;
+      members.push({
+        uid: ep.node,
+        realIp: iface.ip,
+        group,
+        downTracked: (group.track ?? []).filter((t) => owner.interfaces.some((i) => i.id === t.iface && down(i))).map((t) => t.iface),
+        up: !links.isShut(ep.node, ep.port) && peer !== undefined,
+      });
+    }
+    return members;
+  };
+  const vrrpOwns = (uid: string, port: number, ip: string): boolean => {
+    const group = ifaceAt(uid, port)?.vrrp?.find((g) => g.ip === ip);
+    // 動いているものがなければ、持ち主はいない（全員が止まっている）
+    return group !== undefined && electVrrpMaster(vrrpMembers(uid, port, group.vrid)) === uid;
+  };
+  return { vrrpMembers, vrrpOwns };
+};
+
+const NO_DHCP: DhcpResult = { leases: [], failed: [], multiple: [] };
+
+// 割り当てを機器に入れる。受け取れない口は 169.254.x.y/16（機器の連番から決める）。保存してある前回のアドレスは書き換えない
+const withLeases = (net: Network, dhcp: DhcpResult): Network => ({
+  ...net,
+  nodes: net.nodes.map((n) => {
+    const mine = dhcp.leases.filter((l) => l.uid === n.uid);
+    const failed = dhcp.failed.filter((f) => f.uid === n.uid);
+    if (mine.length === 0 && failed.length === 0) return n;
+    return {
+      ...n,
+      interfaces: n.interfaces.map((i) => {
+        const l = i.dhcp === true ? mine.find((x) => x.port === i.port) : undefined;
+        if (i.dhcp === true && l === undefined && failed.some((f) => f.port === i.port)) return { ...i, ip: `169.254.${((n.macSerial ?? 0) >> 8) & 255}.${((n.macSerial ?? 0) & 255) || 1}`, prefix: 16 };
+        return l ? { ...i, ip: l.ip, prefix: l.prefix } : i;
+      }),
+      // 自動の間は、手で入れたゲートウェイとネームサーバーは使わない（プールの値で置き換える）
+      gateway: mine.find((l) => l.gateway)?.gateway ?? null,
+      nameServer: mine.find((l) => l.dns)?.dns,
+    };
+  }),
+});
+
+export const stageAddressing = (input: Network, world: EngineData, links: LinkLayer, l2: L2Layer): AddressLayer => {
   // セグメントは保存の配線から求める（無線の仮想の配線は入れない）
   const { net: completed, issues } = complete(input, world);
   // 無線の仮想の配線と口の設定は、配線の層の構成から取り、補完を入れた機器に重ねる
   const portsOf = new Map(links.net.nodes.map((n) => [n.uid, n.ports]));
-  const net: Network = { ...completed, nodes: completed.nodes.map((n) => (portsOf.get(n.uid) === n.ports ? n : { ...n, ports: portsOf.get(n.uid) ?? n.ports })), links: links.net.links };
-  return { completed, net, issues };
+  const before: Network = { ...completed, nodes: completed.nodes.map((n) => (portsOf.get(n.uid) === n.ports ? n : { ...n, ports: portsOf.get(n.uid) ?? n.ports })), links: links.net.links };
+  const unassigned: AddressLayer = { completed, net: before, issues, dhcp: NO_DHCP, ...vrrpOf(before.nodes, links, l2) };
+  if (!before.nodes.some((n) => n.interfaces.some((i) => i.dhcp === true))) return unassigned;
+
+  // DHCP の割り当ては、割り当て前の構成で求める。同じドメインは L2 の層から引く。
+  // リレーの到達は、割り当て前の構成で経路を仮に求め、リレーのルーターからサーバーまでたどる（この層の中だけで使い、外へ出さない）
+  const routed = new Topology(links, l2, unassigned);
+  const nodeOf = new Map(before.nodes.map((n) => [n.uid, n]));
+  const dhcp = assignDhcp(before.nodes, {
+    domainOf: (uid, port) => l2.domainOf({ node: uid, port }).members,
+    // リレーのルーターが、サーバー側の口（サーバーのアドレスと同じサブネットの口。なければリレーの口）から届くか
+    reaches: (routerUid, routerIp, serverUid, serverIp) => {
+      const toward = nodeOf.get(routerUid)?.interfaces.find((i) => i.ip !== '' && inSubnet(serverIp, i.ip, i.prefix));
+      return deliver(routed, routerUid, serverUid, { kind: 'ping' }, false, toward?.ip ?? routerIp, serverIp).ok;
+    },
+  });
+  const net = withLeases(before, dhcp);
+  return { completed, net, issues, dhcp, ...vrrpOf(net.nodes, links, l2) };
 };

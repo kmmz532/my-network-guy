@@ -12,12 +12,11 @@ export interface VrrpStatus {
   master: string | null;
 }
 export const vrrpStatusOf = (state: NetworkState, uid: string): VrrpStatus[] => {
-  const topo = state.topology;
-  const node = topo.node(uid);
+  const node = state.addressing.net.nodes.find((n) => n.uid === uid);
   if (!node) return [];
   return node.interfaces.flatMap((i) =>
     (i.vrrp ?? []).map((g) => {
-      const members = topo.vrrpMembers(uid, i.port, g.vrid);
+      const members = state.addressing.vrrpMembers(uid, i.port, g.vrid);
       const master = electVrrpMaster(members);
       const me = members.find((m) => m.uid === uid);
       return { iface: i.id, vrid: g.vrid, ip: g.ip, priority: me ? effectivePriority(me) : g.priority, preempt: g.preempt, state: master === uid ? 'Master' : master === null || !me?.up ? 'Init' : 'Backup', master } as VrrpStatus;

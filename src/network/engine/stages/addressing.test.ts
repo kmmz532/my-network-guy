@@ -205,3 +205,47 @@ describe('機器の不備（issues）', () => {
     expect(out.find((n) => n.uid === 'r2')?.gateway).toBeNull();
   });
 });
+
+describe('アドレスの層', () => {
+  const layerOf = (net: Network) => analyze(net, data).addressing;
+  const auto = (uid: string): NetNode => ({ ...node(uid, 'pc_basic', [{ id: 'eth0', kind: 'port', port: 0, ip: '', prefix: 24, dhcp: true }]), macSerial: 1 });
+  const pool = (n: number) => ({ network: `192.168.${n}.0`, prefix: 24, start: `192.168.${n}.100`, end: `192.168.${n}.110`, gateway: `192.168.${n}.1` });
+
+  it('L2 スイッチの口に入ったアドレスは除く', () => {
+    const s = node('s', 'l2_switch_8p', [{ id: 'g0/0', kind: 'port', port: 0, ip: '192.168.1.5', prefix: 24 }]);
+    const layer = layerOf({ nodes: [pc('a', '192.168.1.11'), s], links: [link('l0', 'a:0', 's:1')], segments: { 'a:0': seg('192.168.1.0') } });
+    expect(layer.net.nodes.find((n) => n.uid === 's')?.interfaces).toEqual([]);
+  });
+
+  it('同じドメインの DHCP サーバーから、プールの最も小さいアドレスとゲートウェイを受け取る', () => {
+    const srv: NetNode = { ...node('srv', 'server_basic', [{ id: 'eth0', kind: 'port', port: 0, ip: '192.168.1.2', prefix: 24 }]), dhcpPools: [pool(1)] };
+    const layer = layerOf({ nodes: [auto('a'), sw('s'), srv], links: [link('l0', 'a:0', 's:0'), link('l1', 'srv:0', 's:1')], segments: {} });
+    expect(layer.dhcp.leases).toEqual([{ uid: 'a', port: 0, ip: '192.168.1.100', prefix: 24, gateway: '192.168.1.1', server: 'srv' }]);
+    const a = layer.net.nodes.find((n) => n.uid === 'a');
+    expect([a?.interfaces[0].ip, a?.gateway]).toEqual(['192.168.1.100', '192.168.1.1']);
+  });
+
+  it('DHCP のリレーは、ルーターからサーバーへ届くときだけ、サーバーのプールから配る', () => {
+    const srv: NetNode = { ...node('srv', 'server_basic', [{ id: 'eth0', kind: 'port', port: 0, ip: '10.0.0.2', prefix: 24 }]), dhcpPools: [pool(2)] };
+    const r = router('r', [
+      { id: 'g0/0', kind: 'port', port: 0, ip: '10.0.0.1', prefix: 24 },
+      { id: 'g0/1', kind: 'port', port: 1, ip: '192.168.2.1', prefix: 24, helper: '10.0.0.2' },
+    ]);
+    const nodes = [auto('a'), r, srv];
+    const reached = layerOf({ nodes, links: [link('l0', 'a:0', 'r:1'), link('l1', 'r:0', 'srv:0')], segments: {} });
+    expect(reached.dhcp.leases.map((l) => [l.uid, l.ip, l.server])).toEqual([['a', '192.168.2.100', 'srv']]);
+    // サーバーへの配線がなければ、リレーは届かない
+    const cut = layerOf({ nodes, links: [link('l0', 'a:0', 'r:1')], segments: {} });
+    expect(cut.dhcp.failed).toEqual([{ uid: 'a', port: 0, reason: 'dhcp.no_offer' }]);
+  });
+
+  it('VRRP の持ち主は、同じドメインで有効な優先度の最も高いルーター', () => {
+    const vr = (uid: string, ip: string, priority: number) => router(uid, [{ id: 'g0/0', kind: 'port', port: 0, ip, prefix: 24, vrrp: [{ vrid: 1, ip: '192.168.1.1', priority, preempt: true }] }]);
+    const layer = layerOf({
+      nodes: [pc('a', '192.168.1.11'), sw('s'), vr('r1', '192.168.1.2', 110), vr('r2', '192.168.1.3', 100)],
+      links: [link('l0', 'a:0', 's:0'), link('l1', 'r1:0', 's:1'), link('l2', 'r2:0', 's:2')],
+      segments: { 'a:0': seg('192.168.1.0') },
+    });
+    expect([layer.vrrpOwns('r1', 0, '192.168.1.1'), layer.vrrpOwns('r2', 0, '192.168.1.1')]).toEqual([true, false]);
+  });
+});

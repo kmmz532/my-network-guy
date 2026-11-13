@@ -2,4 +2,4 @@
 import type { NetworkState } from '../engine/state';
 import type { DhcpResult } from '../dhcp';
 
-export const dhcpOf = (state: NetworkState): DhcpResult => state.dhcp;
+export const dhcpOf = (state: NetworkState): DhcpResult => state.addressing.dhcp;
