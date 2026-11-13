@@ -46,6 +46,16 @@ describe('DHCP', () => {
     expect(r.leases[0]).toMatchObject({ ip: '192.168.1.50', server: 'srv2' });
     expect(r.multiple).toHaveLength(1);
   });
+  it('手動のアドレスと重なる DHCP のアドレスは ip.duplicate.dhcp になる', () => {
+    const net = office(['p1']);
+    const manual: Network = {
+      ...net,
+      nodes: [...net.nodes, node('m', 'pc_basic', 1, { interfaces: [st('192.168.1.100')] })],
+      links: [...net.links, link('lm', 'sw', 2, 'm', 0)],
+    };
+    expect(dhcpOf(manual, data).leases.map((l) => l.ip)).toEqual(['192.168.1.100']);
+    expect(ping(manual, data, 'p1', 'm').failure?.reason).toBe('ip.duplicate.dhcp');
+  });
   it('ルーターを越えるときは、リレー（helper）を設定したルーターの口のサブネットのプールから配る', () => {
     const net: Network = {
       nodes: [

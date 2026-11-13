@@ -224,6 +224,7 @@ export const FAILURE_REASONS = [
   'link.loop',
   'ip.unset',
   'ip.duplicate',
+  'ip.duplicate.dhcp',
   'ip.unreachable',
   'gateway.unset',
   'gateway.unreachable',

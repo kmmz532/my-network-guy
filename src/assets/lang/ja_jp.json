@@ -189,6 +189,8 @@
   "error.iface.none": "そのサブネットのインターフェースがない。",
   "error.iface.none.fix": "先に ip address で口にアドレスを付けてから、network 文を入れます。",
   "error.ip.duplicate": "IPアドレスが重複している。",
+  "error.ip.duplicate.dhcp": "IPアドレスが重複している。DHCP が配ったアドレスが、ほかの機器の手動のアドレスと同じになっている。",
+  "error.ip.duplicate.dhcp.fix": "DHCP の範囲から、手動のアドレスと重ならない値になるように、プールの範囲を変えるか、手動のアドレスを変えてください。",
   "error.ip.duplicate.fix": "設定タブで、ほかの機器と重ならないアドレスを選んでください。",
   "error.ip.unreachable": "同じネットワークに宛先が見つからない。",
   "error.ip.unreachable.fix": "宛先と同じネットワークのアドレスに設定し直してください。",

@@ -448,6 +448,10 @@ class Topology {
 
 const fail = (reason: FailureReason, node: string): Failure => ({ reason, node });
 
+// 重複したアドレスのどれかが DHCP で配られたものなら、理由を分けて示す
+const duplicateReason = (topo: Topology, members: { node: string; port: number }[]): FailureReason =>
+  members.some((m) => topo.ifaceAt(m.node, m.port)?.dhcp) ? 'ip.duplicate.dhcp' : 'ip.duplicate';
+
 // 片道の判定（src → dst）。dstIp は宛先のIPアドレス
 // 通信の種類（ping は ICMP、http は指定のポートへの TCP）。ファイアウォールの規則の判定に使う
 export type Traffic = { kind: 'ping' } | { kind: 'http'; port: number };
@@ -531,7 +535,7 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
   if (srcDomain.tooLong) return err(fail('link.too_long', srcDomain.tooLong.node));
   if (srcDomain.loop) return err(fail('link.loop', srcDomain.loop.node));
   const sameIp = srcDomain.members.filter((m) => topo.ifaceAt(m.node, m.port)?.ip === srcIface.ip);
-  if (sameIp.length > 1) return err(fail('ip.duplicate', src.uid));
+  if (sameIp.length > 1) return err(fail(duplicateReason(topo, sameIp), src.uid));
 
   const inDomain = (domain: DomainResult, ep: Endpoint) =>
     domain.members.some((m) => m.node === ep.node && m.port === ep.port);
@@ -541,7 +545,7 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
     if (inDomain(srcDomain, dstEp)) {
       // 宛先のIPアドレスが同じL2ドメイン内で重複していれば、宛先への到達は確定しない
       const dstDuplicates = srcDomain.members.filter((m) => topo.ifaceAt(m.node, m.port)?.ip === dstIface.ip);
-      if (dstDuplicates.length > 1) return err(fail('ip.duplicate', dst.uid));
+      if (dstDuplicates.length > 1) return err(fail(duplicateReason(topo, dstDuplicates), dst.uid));
       path.push(dst.uid);
       return { ok: true, path };
     }
