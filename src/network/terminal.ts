@@ -11,7 +11,8 @@ import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
 import { bgpTableOf } from './query/bgpTable';
-import { adOf, dhcpOf, lagBundlesOf, learnedRoutesOf, macTableOf } from './netState';
+import { adOf, dhcpOf, lagBundlesOf, learnedRoutesOf } from './netState';
+import { macTableOf } from './query/macTable';
 import { vrrpStatusOf } from './query/vrrpStatus';
 import { ospfNeighborsOf } from './query/ospfNeighbors';
 import { ospfMismatchesOf } from './query/ospfMismatches';
@@ -101,7 +102,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
     if (sub === 'mac address-table') {
       // スイッチの MAC の表は、段2の計算（同じ L2 のドメインの端末）から出す。端末では使えない
       if (deviceCategory(node.device) !== 'l2_switch') return [err(tr('ui.terminal.noMacTable'))];
-      const entries = macTableOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
+      const entries = macTableOf(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data), node.uid);
       if (entries.length === 0) return [out(tr('ui.terminal.macNone'))];
       return entries.map((e) => out(tr('ui.terminal.macEntry', { port: e.port, mac: e.mac })));
     }

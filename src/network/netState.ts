@@ -883,23 +883,6 @@ export const learnedRoutesOf = (
   protocol: 'rip' | 'ospf' | 'bgp',
 ): Route[] => analyze(net, data).topology.routesOf(uid).filter((r) => r.protocol === protocol);
 
-// スイッチの MAC の表（show mac address-table）: 口ごとに、同じ L2 のドメインにつながった端末の MAC（段2の計算の結果。ping の学習ではない・NET.md §5.10）
-export const macTableOf = (net: Network, data: EngineData, uid: string): { port: number; mac: string }[] => {
-  const topo = analyze(net, data).topology;
-  const self = topo.node(uid);
-  if (!self) return [];
-  const out: { port: number; mac: string }[] = [];
-  for (const port of [...new Set(net.links.filter((l) => l.a.node === uid || l.b.node === uid).map((l) => (l.a.node === uid ? l.a.port : l.b.port)))].sort((a, b) => a - b)) {
-    for (const m of topo.domainOf({ node: uid, port }).members) {
-      if (m.node === uid) continue;
-      const other = topo.node(m.node);
-      if (!other || other.macSerial === undefined || topo.isRouter(other.uid)) continue;
-      out.push({ port, mac: macOf(topo.categoryOf(other.uid), other.macSerial, m.port) });
-    }
-  }
-  return out;
-};
-
 // 通れば通るが直すべき設定（警告・NET.md §6）: 直結の両端の口の VLAN が違う access（vlan.mismatch）、両端の native が違う trunk（vlan.native_mismatch）
 export type VlanWarning = { id: 'wlan.open' | 'wlan.weak_cipher' | 'wlan.transition' | 'dhcp.multiple_servers' | 'lag.mismatch' | 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch'; a: string; b: string };
 
