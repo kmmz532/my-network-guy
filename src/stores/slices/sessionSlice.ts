@@ -14,6 +14,7 @@ import { gameEnv, isPcDevice } from '../../sim/env';
 import { pcDesksOf } from '../../sim/furniture';
 import { missingPcCount } from '../../sim/backOffice';
 import { pushNotice } from '../../ui/notices';
+import { dropUnknownDevices } from '../../services/dropUnknown';
 
 import { newRng, newStart, refresh } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
@@ -39,12 +40,15 @@ export interface SessionSlice {
 export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> = (set, get) => {
   const { dropHistory } = createOps(set, get);
   return {
-    load: (save) =>
-      set(() => {
+    load: (input) => {
+      // 登録にない機材を取り除いてから読む。取り除いたときは知らせる
+      const { data: save, count: droppedCount } = dropUnknownDevices(input);
+      return set(() => {
         const missing = save.mode === 'career'
           ? missingPcCount(save.staff, { pcDesks: pcDesksOf(save.office, isPcDevice), defs: gameEnv.furniture ?? {}, balance: gameEnv.balance, staff: save.staff })
           : 0;
-        const notices = missing > 0 ? pushNotice([], 'pcMissing', { count: missing }, Date.now()) : [];
+        const pc = missing > 0 ? pushNotice([], 'pcMissing', { count: missing }, Date.now()) : [];
+        const notices = droppedCount > 0 ? pushNotice(pc, 'devicesDropped', { count: droppedCount }, Date.now()) : pc;
         return {
         mode: save.mode,
         name: save.name,
@@ -86,7 +90,8 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
         windows: [],
         notices,
       };
-      }),
+      });
+    },
     renameCompany: (name) => {
       const trimmed = name.trim();
       if (trimmed !== '') set({ name: trimmed });
