@@ -1,0 +1,114 @@
+{
+  "id": "b001_two_isps",
+  "stage": 2,
+  "order": 200,
+  "requires": [
+    "c006_office_external"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_rooms",
+  "budget": 300000,
+  "deadlineDays": 15,
+  "placed": [
+    {
+      "ref": "staff_a",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "社員のPC1"
+    },
+    {
+      "ref": "staff_b",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "社員のPC2"
+    },
+    {
+      "ref": "edge",
+      "device": "edge_router",
+      "x": 9,
+      "y": 5,
+      "locked": false,
+      "config": {
+        "interfaces": [],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "境界ルーター"
+    },
+    {
+      "ref": "isp_a",
+      "device": "uplink",
+      "x": 17,
+      "y": 2,
+      "locked": true,
+      "isp": {
+        "name": "ISP-A",
+        "network": "198.51.100.0",
+        "prefix": 24,
+        "ispIp": "198.51.100.1",
+        "asn": 65001
+      },
+      "name": "ISP-A"
+    },
+    {
+      "ref": "isp_b",
+      "device": "uplink",
+      "x": 17,
+      "y": 8,
+      "locked": true,
+      "isp": {
+        "name": "ISP-B",
+        "network": "203.0.113.0",
+        "prefix": 24,
+        "ispIp": "203.0.113.1",
+        "asn": 65002
+      },
+      "name": "ISP-B"
+    }
+  ],
+  "goals": [
+    {
+      "type": "bgp_established",
+      "node": "edge",
+      "min": 2
+    },
+    {
+      "type": "survive_uplink_failure"
+    }
+  ],
+  "reward": {
+    "money": 900000
+  },
+  "unlockLevel": 30
+}
