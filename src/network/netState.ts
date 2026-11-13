@@ -2,6 +2,7 @@
 // L1（配線）→ L2（スイッチによるL2ドメイン）→ L3（IPアドレスとルーティング）の順に確認する。
 // 失敗理由は ID で返し、文言は言語ファイルで表示する。
 import { isFabricPort, isL3FabricPort, isRelayPort, isRoutingCategory, isSviPort, isSwitchedRouterCategory, ROUTER_SWITCH_LAN_HOST_PORT, SVI_PORT_BASE } from './category';
+import { analyze } from './engine/analyze';
 import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, Iface, NetLink, NetNode, Network, PathResult, PortConfig, Route } from './types';
 import { CATEGORY } from '../data/categories';
 import { can } from './capabilities';
@@ -780,7 +781,7 @@ const ospfPeersOf = (topo: Topology, uid: string): OspfPeer[] => {
 
 // 隣接にならなかった候補と、その理由（show ip ospf neighbor が空のときの説明に使う）
 export const ospfMismatchesOf = (net: Network, data: EngineData, uid: string): OspfPeer[] =>
-  ospfPeersOf(new Topology(net, data), uid).filter((p) => p.mismatch !== null);
+  ospfPeersOf(analyze(net, data).topology, uid).filter((p) => p.mismatch !== null);
 
 export interface OspfNeighbor {
   uid: string;
@@ -796,7 +797,7 @@ export interface OspfNeighbor {
 // OSPF の隣接（show ip ospf neighbor に出す）。同じエリア・同じ Hello とデッドの間隔で、同じサブネットの、OSPF に参加した相手のルーターの口。
 // 同じネットワークにルーターが3台以上あるときは、DR・BDR を選び、State に出す
 export const ospfNeighborsOf = (net: Network, data: EngineData, uid: string): OspfNeighbor[] => {
-  const topo = new Topology(net, data);
+  const topo = analyze(net, data).topology;
   const r = topo.node(uid);
   if (!r) return [];
   const peers = ospfPeersOf(topo, uid).filter((p) => p.mismatch === null);
@@ -892,7 +893,7 @@ export const seenSourcesOf = (net: Network, data: EngineData, serverUid: string,
 
 // ネットワーク全体の中で、輪になっているL2ドメインがあれば、その輪の機器（スイッチ）の uid を返す。なければ null（社内のネットワークの障害の表示に使う）
 export const loopNodeOf = (net: Network, data: EngineData): string | null => {
-  const topo = new Topology(withWireless(net, data), data);
+  const topo = analyze(net, data).topology;
   for (const link of net.links) {
     for (const ep of [link.a, link.b]) {
       const loop = topo.domainOf(ep).loop;
@@ -923,11 +924,11 @@ export const learnedRoutesOf = (
   data: EngineData,
   uid: string,
   protocol: 'rip' | 'ospf' | 'bgp',
-): Route[] => new Topology(net, data).routesOf(uid).filter((r) => r.protocol === protocol);
+): Route[] => analyze(net, data).topology.routesOf(uid).filter((r) => r.protocol === protocol);
 
 // スイッチの MAC の表（show mac address-table）: 口ごとに、同じ L2 のドメインにつながった端末の MAC（段2の計算の結果。ping の学習ではない・NET.md §5.10）
 export const macTableOf = (net: Network, data: EngineData, uid: string): { port: number; mac: string }[] => {
-  const topo = new Topology(net, data);
+  const topo = analyze(net, data).topology;
   const self = topo.node(uid);
   if (!self) return [];
   const out: { port: number; mac: string }[] = [];
@@ -1014,7 +1015,7 @@ export interface VrrpStatus {
   master: string | null;
 }
 export const vrrpStatusOf = (net: Network, data: EngineData, uid: string): VrrpStatus[] => {
-  const topo = new Topology(net, data);
+  const topo = analyze(net, data).topology;
   const node = topo.node(uid);
   if (!node) return [];
   return node.interfaces.flatMap((i) =>
@@ -1050,12 +1051,12 @@ export const dhcpWriteBack = <T extends { uid: string; interfaces: Iface[] }>(no
   return changed ? next : nodes;
 };
 
-export const dhcpOf = (net: Network, data: EngineData): DhcpResult => new Topology(net, data).dhcp;
+export const dhcpOf = (net: Network, data: EngineData): DhcpResult => analyze(net, data).dhcp;
 
-export const stpOf = (net: Network, data: EngineData): StpResult => new Topology(net, data).stp();
+export const stpOf = (net: Network, data: EngineData): StpResult => analyze(net, data).topology.stp();
 
 // BGP の計算結果（show ip bgp・show ip bgp summary に出す）。BGP を動かしていない機器は undefined
-export const bgpTableOf = (net: Network, data: EngineData, uid: string): BgpResult | undefined => new Topology(net, data).bgpOf(uid);
+export const bgpTableOf = (net: Network, data: EngineData, uid: string): BgpResult | undefined => analyze(net, data).topology.bgpOf(uid);
 
 // 機器の口ごとの状態（背面の画面に出す）: 停止・スパニングツリーの役割・リンクアグリゲーションのチャネル
 export interface PortState {
@@ -1067,7 +1068,7 @@ export interface PortState {
   channel?: { group: number; bundled: boolean };
 }
 export const portStatesOf = (net: Network, data: EngineData, uid: string): PortState[] => {
-  const topo = new Topology(net, data);
+  const topo = analyze(net, data).topology;
   const node = topo.node(uid);
   if (!node) return [];
   const roles = topo.stp().roles;
