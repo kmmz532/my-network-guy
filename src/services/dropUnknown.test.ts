@@ -9,7 +9,7 @@ const link = (uid: string, a: string, b: string): NetLink => ({ uid, a: { node: 
 
 // 必要な項目だけを持つセーブ（残りは試験に関係しない）
 const saveOf = (over: Partial<Pick<SaveData, 'owned' | 'office' | 'active'>>): SaveData =>
-  ({ owned: {}, office: { nodes: [], links: [], seq: 0 }, active: [], ...over }) as unknown as SaveData;
+  ({ owned: {}, office: { nodes: [], links: [], seq: 0 }, active: [], familiarity: { counts: {}, blueprints: {} }, offers: [], ...over }) as unknown as SaveData;
 
 describe('登録にない機器の取り除き', () => {
   it('既知の機器だけのセーブは、同じ参照を返す', () => {
@@ -40,10 +40,25 @@ describe('登録にない機器の取り除き', () => {
   });
 
   it('各案件の機器も同じように取り除く', () => {
-    const project = { id: 'p1', nodes: [node('g', 'ghost_device')], links: [] } as unknown as SaveData['active'][number];
+    const project = { id: 'p1', nodes: [node('g', 'ghost_device')], links: [], contract: { placed: [] } } as unknown as SaveData['active'][number];
     const r = dropUnknownDevices(saveOf({ active: [project] }));
     expect(r.data.active[0].nodes).toEqual([]);
     expect(r.dropped).toEqual(['ghost_device']);
     expect(r.count).toBe(1);
+  });
+
+  it('型紙の機器と配線、依頼と案件の契約の配置する機器も、未知のものを取り除く', () => {
+    const design = { nodes: [node('a', 'pc_basic'), node('g', 'ghost_device')], links: [link('l1', 'a', 'g')], segments: {} };
+    const data = {
+      ...saveOf({ active: [{ id: 'p1', nodes: [], links: [], contract: { placed: [{ ref: 'r', device: 'ghost_device' }, { ref: 'q', device: 'pc_basic' }] } } as unknown as SaveData['active'][number]] }),
+      familiarity: { counts: {}, blueprints: { k: { stars: 2, design } } },
+      offers: [{ id: 'o1', contract: { placed: [{ ref: 'r', device: 'ghost_device' }] } }],
+    } as unknown as SaveData;
+    const r = dropUnknownDevices(data);
+    expect(r.data.familiarity.blueprints.k.design.nodes.map((n) => n.uid)).toEqual(['a']);
+    expect(r.data.familiarity.blueprints.k.design.links).toEqual([]);
+    expect(r.data.active[0].contract.placed.map((x) => x.device)).toEqual(['pc_basic']);
+    expect((r.data.offers[0] as { contract: { placed: unknown[] } }).contract.placed).toEqual([]);
+    expect(r.dropped).toEqual(['ghost_device']);
   });
 });
