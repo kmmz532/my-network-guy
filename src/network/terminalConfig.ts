@@ -58,7 +58,7 @@ export type ConfigAction =
   | { kind: 'nat'; op: 'static'; port: number; insideIp: string; insidePort: number }
   | { kind: 'nat'; op: 'noStatic'; port: number }
   // 無線（N151）: wireless ssid <名前> / wireless password <8字以上> / wireless channel <1-13> / wireless vlan <番号>
-  | { kind: 'wireless'; key: 'ssid' | 'password' | 'channel' | 'vlan'; value: string | number }
+  | { kind: 'wireless'; key: 'ssid' | 'password' | 'channel' | 'vlan' | 'security'; value: string | number }
   // BGP（N147）: 自分の AS・隣接（neighbor）・広告する宛先（network … mask）
   | { kind: 'bgp'; op: 'asn'; asn: number }
   | { kind: 'bgp'; op: 'off' }
@@ -201,6 +201,11 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     if (key === 'password' && value !== undefined && value.length >= 8) return { kind: 'action', action: { kind: 'wireless', key: 'password', value } };
     if (key === 'channel' && /^[0-9]+$/.test(value ?? '') && Number(value) >= 1 && Number(value) <= 13) return { kind: 'action', action: { kind: 'wireless', key: 'channel', value: Number(value) } };
     if (key === 'vlan' && /^[0-9]+$/.test(value ?? '') && Number(value) >= 1) return { kind: 'action', action: { kind: 'wireless', key: 'vlan', value: Number(value) } };
+    if (key === 'security') {
+      const names = { open: 'open', wep: 'wep', wpa: 'wpa', wpa2: 'wpa2', wpa3: 'wpa3', 'wpa2-wpa3': 'wpa2wpa3' } as const;
+      const name = names[value as keyof typeof names];
+      if (name !== undefined) return { kind: 'action', action: { kind: 'wireless', key: 'security', value: name } };
+    }
     return error('ui.terminal.usageWireless');
   }
   // ip nat（NAT・N145）

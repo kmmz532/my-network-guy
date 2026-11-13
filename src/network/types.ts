@@ -97,6 +97,9 @@ export interface IspLine {
   asn?: number;
 }
 
+export const WIRELESS_SECURITIES = ['open', 'wep', 'wpa', 'wpa2', 'wpa3', 'wpa2wpa3'] as const;
+export type WirelessSecurity = (typeof WIRELESS_SECURITIES)[number];
+
 export interface NetNode {
   uid: string;
   device: string;
@@ -116,7 +119,8 @@ export interface NetNode {
   ports: PortConfig[];
   // 無線の設定（N151）。アクセスポイントは SSID・パスワード・チャネル・VLAN を持つ。無線の端末は SSID とパスワードを持ち、合うアクセスポイントにつながる
   // macs は無線の MAC フィルター（N153）: 登録した端末の MAC だけを通す。省略なら制限しない
-  wireless?: { ssid?: string; password?: string; channel?: number; vlan?: number; macs?: string[] };
+  // security: アクセスポイントの暗号化と認証の方式（省略は wpa2。pre-task §4.9）。wpa2wpa3 は WPA2/WPA3 の移行モード
+  wireless?: { ssid?: string; password?: string; channel?: number; vlan?: number; macs?: string[]; security?: WirelessSecurity };
   // NAPT を行う（inside から outside へ出る通信の送信元を、outside の口のアドレスに変える・N145）
   napt?: boolean;
   // 静的 NAT（ポートの転送・N145）: 外の口へのこのポートの通信を、社内の宛先（アドレスとポート）へ届ける
@@ -188,6 +192,9 @@ export interface EngineData {
 // 疎通の失敗の理由。文言は言語ファイルの error.<理由> と error.<理由>.fix に置く
 export const FAILURE_REASONS = [
   'link.unplugged',
+  // 無線: パスワードが合わない・暗号化の方式が合わない（端末が WPA3 に対応しない）
+  'wlan.psk_mismatch',
+  'wlan.auth_mismatch',
   // DHCP サーバーが見つからず、アドレスを受け取れない（NET.md §5.7）
   'dhcp.no_offer',
   // DHCP のプールのアドレスが足りない

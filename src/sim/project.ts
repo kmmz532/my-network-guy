@@ -43,6 +43,7 @@ import type {
   Service,
   HostEntry,
 } from '../network/types';
+import { WIRELESS_SECURITIES } from '../network/types';
 import type { ClockState } from './clock';
 import { isOnShift } from './shift';
 import { rate, rewardRateOf } from './rating';
@@ -1277,8 +1278,16 @@ export const setIsp = (core: Core, uid: string, line: IspLine, target: NetTarget
   );
 
 // 無線の設定（N151）。SSID・パスワード・チャネル・VLAN
-export const setWireless = (core: Core, uid: string, key: 'ssid' | 'password' | 'channel' | 'vlan', value: string | number, target: NetTarget = 'focus'): Outcome =>
-  editNode(core, uid, (node) => ({ ...node, wireless: { ...(node.wireless ?? {}), [key]: value } }), target);
+export const setWireless = (core: Core, uid: string, key: 'ssid' | 'password' | 'channel' | 'vlan' | 'security', value: string | number, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      if (key === 'security' && !(WIRELESS_SECURITIES as readonly unknown[]).includes(value)) return 'wireless.security';
+      return { ...node, wireless: { ...(node.wireless ?? {}), [key]: value } };
+    },
+    target,
+  );
 
 // NAT の設定（N145）。口の inside・outside、NAPT の有効、静的 NAT（ポートの転送）
 export type NatOp =

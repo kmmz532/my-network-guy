@@ -259,6 +259,8 @@ const goalRefs = (goal: Goal): string[] => {
       return [goal.from, goal.to];
     case 'dhcp_all':
       return goal.nodes;
+    case 'wireless_secure':
+      return [];
     case 'isolated':
     case 'blocked_all':
       return [...goal.from, ...goal.to];

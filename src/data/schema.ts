@@ -265,7 +265,7 @@ const serviceSchema = z.object({
 });
 
 // 機器の能力（NET.md §4）。コードは機器の種類ではなく、この能力だけを見る（N134）
-export const CAPABILITY_IDS = ['switchport', 'vlan', 'stp', 'svi', 'routedPort', 'subif', 'routing', 'rip', 'ospf', 'bgp', 'nat', 'services', 'dhcpRelay', 'firewall', 'wireless', 'wan', 'vrrp', 'lag'] as const;
+export const CAPABILITY_IDS = ['switchport', 'vlan', 'stp', 'svi', 'routedPort', 'subif', 'routing', 'rip', 'ospf', 'bgp', 'nat', 'services', 'dhcpRelay', 'firewall', 'wireless', 'wan', 'vrrp', 'lag', 'wpa3'] as const;
 export type Capability = (typeof CAPABILITY_IDS)[number];
 
 export const deviceSchema = z
@@ -403,6 +403,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('survive_device_failure'), nodes: z.array(z.string().min(1)).min(1) }),
   // 指定した機器が、物理のリンク min 本以上を1本の論理リンクにまとめている（リンクアグリゲーション）
   z.object({ type: z.literal('lag_bundled'), node: z.string().min(1), min: z.number().int().min(2) }),
+  // 指定した SSID のアクセスポイントがすべて WPA2 以上で、無線の警告（暗号化なし・弱い暗号・移行モード）がない
+  z.object({ type: z.literal('wireless_secure'), ssid: z.string().min(1) }),
   // 指定したスイッチが、スパニングツリーのルートブリッジになっている
   z.object({ type: z.literal('stp_root'), node: z.string().min(1) }),
   // 回線終端（uplink）が2つ以上あり、どれか1つを失っても、すべての PC が外部へ届く

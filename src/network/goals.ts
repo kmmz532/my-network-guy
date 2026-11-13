@@ -1,7 +1,7 @@
 // 案件の達成条件（goals）の判定ハンドラ。種類ごとにハンドラを登録し、案件データから呼び出す。
 import type { Contract, Goal } from '../data/schema';
 import { http, ping, wirelessAssociations } from './engine';
-import { bgpTableOf, dhcpOf, lagBundlesOf, ospfNeighborsOf, stpOf } from './netState';
+import { accessPointsOf, bgpTableOf, dhcpOf, lagBundlesOf, ospfNeighborsOf, stpOf } from './netState';
 import { outsideCheck, withInternet } from './external';
 import { resolveName } from './resolve';
 import type { EngineData, Failure, Network, PathResult } from './types';
@@ -92,6 +92,13 @@ const handlers: { [K in Goal['type']]: Handler } = {
   lag_bundled: (goal, net, data) => {
     if (goal.type !== 'lag_bundled') throw new Error('lag_bundled ハンドラに別の種類が渡された');
     const ok = lagBundlesOf(net, goal.node, data).some((b) => b.links.length >= goal.min);
+    return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
+  },
+  // 指定した SSID のアクセスポイントがすべて WPA2 以上で、無線の警告（暗号化なし・弱い暗号・移行モード）がない
+  wireless_secure: (goal, net, data) => {
+    if (goal.type !== 'wireless_secure') throw new Error('wireless_secure ハンドラに別の種類が渡された');
+    const aps = accessPointsOf(net, data).filter((n) => n.wireless?.ssid === goal.ssid);
+    const ok = aps.length > 0 && aps.every((n) => (n.wireless?.security ?? 'wpa2') === 'wpa2' || n.wireless?.security === 'wpa3');
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // 指定したスイッチがルートブリッジになっている

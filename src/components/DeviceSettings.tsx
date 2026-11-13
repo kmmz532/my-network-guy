@@ -614,6 +614,21 @@ function WirelessField({ node, net, readOnly, onError }: { node: NetNode; net: N
     <div style={sectionStyle}>
       {field(t('ui.wireless.ssid'), ssid, setSsid, 'ssid', 'text')}
       {field(t('ui.wireless.password'), password, setPassword, 'password', 'password')}
+      {!isClient && (
+        <div style={{ marginBottom: 8 }}>
+          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 2 }}>{t('ui.wireless.security')}</label>
+          <select
+            aria-label={t('ui.wireless.security')}
+            value={node.wireless?.security ?? 'wpa2'}
+            disabled={readOnly}
+            onChange={(e) => onError(setWireless(node.uid, 'security', e.target.value))}
+          >
+            {(['open', 'wep', 'wpa', 'wpa2', 'wpa3', 'wpa2wpa3'] as const).map((s) => (
+              <option key={s} value={s}>{t(`ui.wireless.sec.${s}`)}</option>
+            ))}
+          </select>
+        </div>
+      )}
       <div style={{ fontSize: 12 }}>{statusText}</div>
       {overlapping && <div style={{ fontSize: 12, color: "#ffd866" }}>{t("ui.wireless.overlap")}</div>}
     </div>

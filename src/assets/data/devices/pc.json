@@ -40,7 +40,8 @@
       "id": "laptop",
       "category": "pc",
       "capabilities": [
-        "wireless"
+        "wireless",
+        "wpa3"
       ],
       "deskable": true,
       "price": 120000,

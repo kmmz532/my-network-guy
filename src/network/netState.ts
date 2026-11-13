@@ -491,9 +491,14 @@ const allows = (rules: readonly FirewallRule[] | undefined, srcIp: string, dstIp
 
 // 通信を1方向に届ける。check が true のときは、通り道のファイアウォールの規則を確かめる（戻りの通信は、往路で許した通信の戻りとして確かめない）
 // 口に線がないときの理由。無線の端末は、ケーブルがないのではなく、アクセスポイントにつながっていない（N152）
-const unpluggedReason = (topo: Topology, uid: string): 'link.unplugged' | 'wireless.unassociated' => {
-  const device = topo.node(uid)?.device;
-  return device !== undefined && can(device, 'wireless') ? 'wireless.unassociated' : 'link.unplugged';
+const unpluggedReason = (topo: Topology, uid: string): 'link.unplugged' | 'wireless.unassociated' | 'wlan.psk_mismatch' | 'wlan.auth_mismatch' => {
+  const node = topo.node(uid);
+  if (node === undefined || !can(node.device, 'wireless')) return 'link.unplugged';
+  // 同じ SSID のアクセスポイントがあるのに、パスワードか暗号化の方式が合わない
+  const same = topo.allNodes().filter((n) => n.uid !== uid && n.wireless?.ssid !== undefined && n.wireless.ssid === node.wireless?.ssid && can(n.device, 'wireless') && n.wireless.password !== undefined);
+  if (same.some((ap) => (ap.wireless?.security ?? 'wpa2') !== 'open' && ap.wireless?.password !== node.wireless?.password)) return 'wlan.psk_mismatch';
+  if (same.some((ap) => ap.wireless?.security === 'wpa3') && !can(node.device, 'wpa3')) return 'wlan.auth_mismatch';
+  return 'wireless.unassociated';
 };
 
 // ポートセキュリティ（N153）: 機器の口が、登録のない MAC の機器をつないだとき、つないだ先のスイッチの口で止める
@@ -692,6 +697,10 @@ export const wallsBetween = (wallAt: (x: number, y: number) => boolean, ax: numb
 // 端末の口0 に配線がなく、無線の能力を持ち、範囲の中にアクセスポイントがあるとき。アクセスポイントの口は 100 番から、端末ごとに1つ使う
 // 無線の端末は、SSID とパスワードが合い、範囲の中にあるアクセスポイントの中で最も近いものにつながる（N151）。
 // アクセスポイントの無線の VLAN は、つながった端末の口を、その VLAN の access の口として扱う
+// アクセスポイント（と無線つきの家庭用ルーター）
+export const accessPointsOf = (net: Network, data: EngineData): NetNode[] =>
+  net.nodes.filter((n) => data.categoryOf(n.device) === CATEGORY.accessPoint || data.categoryOf(n.device) === CATEGORY.homeRouter);
+
 // 無線の端末とつながるアクセスポイントの組（端末ごとに最も近い、SSID・パスワードの合う、範囲の中のもの）。画面の点線にも使う（N151・N152）
 export const wirelessAssociations = (net: Network, data: EngineData): { ap: NetNode; client: NetNode }[] => {
   const aps = net.nodes.filter((n) => data.categoryOf(n.device) === CATEGORY.accessPoint || data.categoryOf(n.device) === CATEGORY.homeRouter);
@@ -708,7 +717,10 @@ export const wirelessAssociations = (net: Network, data: EngineData): { ap: NetN
       // SSID とパスワードが合うこと（どちらかがなければ、つながらない）
       const w = ap.wireless;
       const cw = c.wireless;
-      if (w?.ssid === undefined || cw?.ssid !== w.ssid || cw.password !== w.password) continue;
+      const security = w?.security ?? 'wpa2';
+      // パスワードは、暗号化のない SSID では要らない。WPA3 だけの SSID は、WPA3 に対応する端末だけがつながる
+      if (w?.ssid === undefined || cw?.ssid !== w.ssid || (security !== 'open' && cw.password !== w.password)) continue;
+      if (security === 'wpa3' && !can(c.device, 'wpa3')) continue;
       // 無線の MAC フィルター（N153）: 登録のない端末は通さない
       if (w.macs !== undefined && (c.macSerial === undefined || !w.macs.includes(macOf(data.categoryOf(c.device), c.macSerial, 0)))) continue;
       // 壁を通るたびに減衰し、減衰後に届く範囲だけが有効（壁の判定がないときは減衰しない）
@@ -930,7 +942,7 @@ export const macTableOf = (net: Network, data: EngineData, uid: string): { port:
 };
 
 // 通れば通るが直すべき設定（警告・NET.md §6）: 直結の両端の口の VLAN が違う access（vlan.mismatch）、両端の native が違う trunk（vlan.native_mismatch）
-export type VlanWarning = { id: 'dhcp.multiple_servers' | 'lag.mismatch' | 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch'; a: string; b: string };
+export type VlanWarning = { id: 'wlan.open' | 'wlan.weak_cipher' | 'wlan.transition' | 'dhcp.multiple_servers' | 'lag.mismatch' | 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch'; a: string; b: string };
 
 export const warningsOf = (net: Network, data?: EngineData): VlanWarning[] => {
   const cfgOf = (uid: string, port: number): PortConfig | undefined => net.nodes.find((n) => n.uid === uid)?.ports.find((p) => p.port === port);
@@ -941,6 +953,15 @@ export const warningsOf = (net: Network, data?: EngineData): VlanWarning[] => {
     if (!ca || !cb) continue;
     if (ca.mode === 'access' && cb.mode === 'access' && (ca.vlan ?? 1) !== (cb.vlan ?? 1)) out.push({ id: 'vlan.mismatch', a: l.a.node, b: l.b.node });
     if (ca.mode === 'trunk' && cb.mode === 'trunk' && (ca.native ?? 1) !== (cb.native ?? 1)) out.push({ id: 'vlan.native_mismatch', a: l.a.node, b: l.b.node });
+  }
+  // 無線: 暗号化のない SSID・弱い暗号（WEP・WPA）・WPA2/WPA3 の移行モード（アクセスポイントごとに1件）
+  if (data) {
+    for (const ap of accessPointsOf(net, data)) {
+      if (ap.wireless?.ssid === undefined) continue;
+      const s = ap.wireless.security ?? 'wpa2';
+      const id = s === 'open' ? 'wlan.open' : s === 'wep' || s === 'wpa' ? 'wlan.weak_cipher' : s === 'wpa2wpa3' ? 'wlan.transition' : null;
+      if (id) out.push({ id, a: ap.uid, b: ap.uid });
+    }
   }
   // DHCP: 同じドメインに DHCP サーバーが2台以上ある（サーバーの組ごとに1件）
   if (data) {
