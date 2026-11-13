@@ -1,0 +1,290 @@
+{
+  "goals": [
+    true,
+    true,
+    true
+  ],
+  "pings": [
+    {
+      "from": "K1",
+      "to": "K2",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "K1",
+        "K2"
+      ]
+    },
+    {
+      "from": "K1",
+      "to": "S1",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "K1"
+      ]
+    },
+    {
+      "from": "K1",
+      "to": "S2",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "K1"
+      ]
+    },
+    {
+      "from": "K2",
+      "to": "K1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "K2",
+        "K1"
+      ]
+    },
+    {
+      "from": "K2",
+      "to": "S1",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "K2"
+      ]
+    },
+    {
+      "from": "K2",
+      "to": "S2",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "K2"
+      ]
+    },
+    {
+      "from": "S1",
+      "to": "K1",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "S1"
+      ]
+    },
+    {
+      "from": "S1",
+      "to": "K2",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "S1"
+      ]
+    },
+    {
+      "from": "S1",
+      "to": "S2",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "S1",
+        "S2"
+      ]
+    },
+    {
+      "from": "S2",
+      "to": "K1",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "S2"
+      ]
+    },
+    {
+      "from": "S2",
+      "to": "K2",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "S2"
+      ]
+    },
+    {
+      "from": "S2",
+      "to": "S1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "S2",
+        "S1"
+      ]
+    }
+  ],
+  "https": [],
+  "shows": [
+    {
+      "node": "SW1",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanAccess {\"port\":0,\"vlan\":10}",
+        "out:ui.terminal.vlanAccess {\"port\":1,\"vlan\":20}",
+        "out:ui.terminal.vlanTrunk {\"port\":7,\"allowed\":\"10,20\",\"native\":1}"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"SW1\",\"cost\":0}",
+        "out:ui.terminal.stpPort.designated {\"port\":7}"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:03:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:04:00\"}"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanAccess {\"port\":0,\"vlan\":10}",
+        "out:ui.terminal.vlanAccess {\"port\":1,\"vlan\":20}",
+        "out:ui.terminal.vlanTrunk {\"port\":7,\"allowed\":\"10,20\",\"native\":1}"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpRoot {\"root\":\"SW1\",\"cost\":4}",
+        "out:ui.terminal.stpPort.root {\"port\":7}"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:03:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:04:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:02:00\"}"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "lesson_link_1",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_2",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_3",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_4",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_5",
+      "color": 10132122
+    }
+  ],
+  "ports": [
+    {
+      "node": "K1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "K2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "S1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "S2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "SW1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 7,
+          "shutdown": false,
+          "stp": "designated"
+        }
+      ]
+    },
+    {
+      "node": "SW2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 7,
+          "shutdown": false,
+          "stp": "root"
+        }
+      ]
+    }
+  ],
+  "issues": [],
+  "warnings": []
+}

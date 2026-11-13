@@ -1,0 +1,275 @@
+{
+  "nodes": [
+    {
+      "uid": "n0",
+      "device": "server_basic",
+      "macSerial": 1,
+      "ports": [],
+      "x": 0,
+      "y": 0,
+      "locked": false,
+      "configLocked": false,
+      "interfaces": [
+        {
+          "id": "eth0",
+          "kind": "port",
+          "port": 0,
+          "ip": "10.0.1.10",
+          "prefix": 24
+        }
+      ],
+      "gateway": null,
+      "routes": [],
+      "services": [
+        {
+          "protocol": "http",
+          "port": 80
+        }
+      ],
+      "dhcpPools": [
+        {
+          "network": "10.0.1.0",
+          "prefix": 24,
+          "start": "10.0.1.100",
+          "end": "10.0.1.110",
+          "gateway": "10.0.1.1"
+        }
+      ]
+    },
+    {
+      "uid": "n1",
+      "device": "server_basic",
+      "macSerial": 2,
+      "ports": [],
+      "x": 2,
+      "y": 0,
+      "locked": false,
+      "configLocked": false,
+      "interfaces": [
+        {
+          "id": "eth0",
+          "kind": "port",
+          "port": 0,
+          "ip": "10.0.1.11",
+          "prefix": 24
+        }
+      ],
+      "gateway": "10.0.1.14",
+      "routes": [],
+      "services": [
+        {
+          "protocol": "http",
+          "port": 80
+        }
+      ],
+      "dhcpPools": [
+        {
+          "network": "10.0.1.0",
+          "prefix": 24,
+          "start": "10.0.1.100",
+          "end": "10.0.1.110",
+          "gateway": "10.0.1.1"
+        }
+      ]
+    },
+    {
+      "uid": "n2",
+      "device": "access_point",
+      "macSerial": 3,
+      "ports": [],
+      "x": 4,
+      "y": 0,
+      "locked": false,
+      "configLocked": false,
+      "interfaces": [],
+      "gateway": null,
+      "routes": [],
+      "services": [],
+      "wireless": {
+        "ssid": "g",
+        "password": "golden-pass",
+        "security": "wpa2"
+      }
+    },
+    {
+      "uid": "n3",
+      "device": "server_basic",
+      "macSerial": 4,
+      "ports": [],
+      "x": 6,
+      "y": 0,
+      "locked": false,
+      "configLocked": false,
+      "interfaces": [
+        {
+          "id": "eth0",
+          "kind": "port",
+          "port": 0,
+          "ip": "10.0.1.12",
+          "prefix": 24
+        }
+      ],
+      "gateway": "10.0.1.14",
+      "routes": [],
+      "services": [
+        {
+          "protocol": "http",
+          "port": 80
+        }
+      ],
+      "dhcpPools": [
+        {
+          "network": "10.0.1.0",
+          "prefix": 24,
+          "start": "10.0.1.100",
+          "end": "10.0.1.110",
+          "gateway": "10.0.1.1"
+        }
+      ]
+    },
+    {
+      "uid": "n4",
+      "device": "pc_basic",
+      "macSerial": 5,
+      "ports": [],
+      "x": 8,
+      "y": 0,
+      "locked": false,
+      "configLocked": false,
+      "interfaces": [
+        {
+          "id": "eth0",
+          "kind": "port",
+          "port": 0,
+          "ip": "10.0.1.13",
+          "prefix": 24,
+          "dhcp": true
+        }
+      ],
+      "gateway": "10.0.1.14",
+      "routes": [],
+      "services": []
+    },
+    {
+      "uid": "n5",
+      "device": "router_basic",
+      "macSerial": 6,
+      "ports": [],
+      "x": 10,
+      "y": 0,
+      "locked": false,
+      "configLocked": false,
+      "interfaces": [
+        {
+          "id": "g0/1",
+          "kind": "port",
+          "port": 1,
+          "ip": "10.0.1.14",
+          "prefix": 24,
+          "vrrp": [
+            {
+              "vrid": 1,
+              "ip": "10.0.1.254",
+              "priority": 100,
+              "preempt": true
+            }
+          ]
+        }
+      ],
+      "gateway": null,
+      "routes": [],
+      "services": []
+    },
+    {
+      "uid": "n6",
+      "device": "access_point",
+      "macSerial": 7,
+      "ports": [],
+      "x": 12,
+      "y": 0,
+      "locked": false,
+      "configLocked": false,
+      "interfaces": [],
+      "gateway": null,
+      "routes": [],
+      "services": [],
+      "wireless": {
+        "ssid": "g",
+        "password": "golden-pass",
+        "security": "wpa2wpa3"
+      }
+    }
+  ],
+  "links": [
+    {
+      "uid": "l0",
+      "cable": "utp_cat5e",
+      "a": {
+        "node": "n0",
+        "port": 0
+      },
+      "b": {
+        "node": "n6",
+        "port": 0
+      },
+      "path": [
+        [
+          0,
+          0
+        ],
+        [
+          12,
+          0
+        ]
+      ],
+      "paid": 0
+    },
+    {
+      "uid": "l1",
+      "cable": "utp_cat5e",
+      "a": {
+        "node": "n3",
+        "port": 0
+      },
+      "b": {
+        "node": "n5",
+        "port": 0
+      },
+      "path": [
+        [
+          6,
+          0
+        ],
+        [
+          10,
+          0
+        ]
+      ],
+      "paid": 0
+    },
+    {
+      "uid": "l2",
+      "cable": "utp_cat5e",
+      "a": {
+        "node": "n2",
+        "port": 0
+      },
+      "b": {
+        "node": "n5",
+        "port": 1
+      },
+      "path": [
+        [
+          4,
+          0
+        ],
+        [
+          10,
+          0
+        ]
+      ],
+      "paid": 0
+    }
+  ],
+  "segments": {}
+}

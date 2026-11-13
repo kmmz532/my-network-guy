@@ -1,0 +1,202 @@
+{
+  "pings": [
+    {
+      "from": "n1",
+      "to": "n4",
+      "ok": false,
+      "reason": "dhcp.no_offer",
+      "path": []
+    },
+    {
+      "from": "n4",
+      "to": "n1",
+      "ok": false,
+      "reason": "gateway.unset",
+      "path": [
+        "n4"
+      ]
+    }
+  ],
+  "https": [],
+  "shows": [
+    {
+      "node": "n3",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "node": "n3",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"n3\",\"cost\":0}"
+      ]
+    },
+    {
+      "node": "n3",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n3",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macNone"
+      ]
+    },
+    {
+      "node": "n4",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":0}"
+      ]
+    },
+    {
+      "node": "n4",
+      "cmd": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    },
+    {
+      "node": "n4",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    },
+    {
+      "node": "n5",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanAccess {\"port\":0,\"vlan\":20}"
+      ]
+    },
+    {
+      "node": "n5",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "err:ui.terminal.stpOff"
+      ]
+    },
+    {
+      "node": "n5",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n5",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macNone"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "l0",
+      "color": 10132122
+    },
+    {
+      "link": "l1",
+      "color": 10132122
+    },
+    {
+      "link": "l2",
+      "color": 10132122
+    },
+    {
+      "link": "l3",
+      "color": 10132122
+    }
+  ],
+  "ports": [
+    {
+      "node": "n0",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n3",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n4",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n5",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [
+    [
+      "n4",
+      {
+        "reason": "ip.unset"
+      }
+    ]
+  ],
+  "warnings": [
+    {
+      "id": "wlan.transition",
+      "a": "n0",
+      "b": "n0"
+    },
+    {
+      "id": "wlan.open",
+      "a": "n4",
+      "b": "n4"
+    }
+  ]
+}

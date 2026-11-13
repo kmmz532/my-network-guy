@@ -520,7 +520,7 @@
   },
   "src/sim/lesson.test.ts": {
     "local/no-category": {
-      "count": 3
+      "count": 2
     },
     "local/no-handmade-engine-data": {
       "count": 2

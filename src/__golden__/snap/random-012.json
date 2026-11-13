@@ -1,0 +1,221 @@
+{
+  "pings": [],
+  "https": [],
+  "shows": [
+    {
+      "node": "n0",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.0.0\",\"prefix\":24,\"port\":1}"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpGroup {\"iface\":\"g0/0\",\"vrid\":1,\"state\":\"Master\",\"ip\":\"10.0.1.254\",\"priority\":100,\"preempt\":\"ui.terminal.vrrpPreemptOn\"}"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.2.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.0.0\",\"prefix\":24,\"port\":1}"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanAccess {\"port\":0,\"vlan\":20}"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"n2\",\"cost\":0}"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:20:00:00:05:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:20:00:00:05:00\"}"
+      ]
+    },
+    {
+      "node": "n4",
+      "cmd": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "l0",
+      "color": 10132122
+    },
+    {
+      "link": "l1",
+      "color": 10132122
+    },
+    {
+      "link": "l2",
+      "color": 10132122
+    },
+    {
+      "link": "l3",
+      "color": 10132122
+    }
+  ],
+  "ports": [
+    {
+      "node": "n0",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n3",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n4",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [
+    [
+      "n0",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.1.10"
+      }
+    ],
+    [
+      "n1",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.0.13"
+      }
+    ],
+    [
+      "n4",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.1.14"
+      }
+    ]
+  ],
+  "warnings": [
+    {
+      "id": "vrrp.gateway_real_ip",
+      "a": "n4",
+      "b": "n0"
+    }
+  ]
+}

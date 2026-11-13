@@ -1,0 +1,177 @@
+{
+  "pings": [
+    {
+      "from": "n0",
+      "to": "n1",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n0"
+      ]
+    },
+    {
+      "from": "n0",
+      "to": "n2",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n0"
+      ]
+    },
+    {
+      "from": "n1",
+      "to": "n0",
+      "ok": false,
+      "reason": "return.failed",
+      "path": [
+        "n1",
+        "n0"
+      ]
+    },
+    {
+      "from": "n1",
+      "to": "n2",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n1"
+      ]
+    },
+    {
+      "from": "n2",
+      "to": "n0",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n2"
+      ]
+    },
+    {
+      "from": "n2",
+      "to": "n1",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n2"
+      ]
+    }
+  ],
+  "https": [],
+  "shows": [
+    {
+      "node": "n3",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanTrunk {\"port\":0,\"allowed\":\"10\",\"native\":1}",
+        "out:ui.terminal.vlanTrunk {\"port\":1,\"allowed\":\"10,20\",\"native\":1}",
+        "out:ui.terminal.vlanAccess {\"port\":2,\"vlan\":20}"
+      ]
+    },
+    {
+      "node": "n3",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"n3\",\"cost\":0}"
+      ]
+    },
+    {
+      "node": "n3",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n3",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:01:00\"}"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "l0",
+      "color": 10132122
+    },
+    {
+      "link": "l1",
+      "color": 10132122
+    },
+    {
+      "link": "l2",
+      "color": 10132122
+    }
+  ],
+  "ports": [
+    {
+      "node": "n0",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n3",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [
+    [
+      "n0",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.1.10"
+      }
+    ],
+    [
+      "n1",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.1.11"
+      }
+    ],
+    [
+      "n2",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.1.12"
+      }
+    ]
+  ],
+  "warnings": []
+}

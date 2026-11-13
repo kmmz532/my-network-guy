@@ -1,0 +1,193 @@
+{
+  "goals": [
+    true,
+    true
+  ],
+  "pings": [
+    {
+      "from": "PC1",
+      "to": "PC2",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC1",
+        "PC2"
+      ]
+    },
+    {
+      "from": "PC2",
+      "to": "PC1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC2",
+        "PC1"
+      ]
+    }
+  ],
+  "https": [],
+  "shows": [
+    {
+      "node": "SW1",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanAccess {\"port\":0,\"vlan\":1}",
+        "out:ui.terminal.vlanAccess {\"port\":1,\"vlan\":1}"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"SW1\",\"cost\":0}",
+        "out:ui.terminal.stpPort.designated {\"port\":0}"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelLine {\"group\":1,\"state\":\"P\",\"lacp\":\"active\",\"ports\":\"0(P) 1(P)\"}"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:02:00\"}"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanAccess {\"port\":0,\"vlan\":1}",
+        "out:ui.terminal.vlanAccess {\"port\":1,\"vlan\":1}"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpRoot {\"root\":\"SW1\",\"cost\":4}",
+        "out:ui.terminal.stpPort.root {\"port\":0}"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelLine {\"group\":1,\"state\":\"P\",\"lacp\":\"active\",\"ports\":\"0(P) 1(P)\"}"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:01:00\"}"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "lesson_link_1",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_2",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_3",
+      "color": 10132122
+    },
+    {
+      "link": "lesson_link_4",
+      "color": 10132122
+    }
+  ],
+  "ports": [
+    {
+      "node": "PC1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "PC2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "SW1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false,
+          "stp": "designated",
+          "channel": {
+            "group": 1,
+            "bundled": true
+          }
+        },
+        {
+          "port": 1,
+          "shutdown": false,
+          "channel": {
+            "group": 1,
+            "bundled": true
+          }
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "SW2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false,
+          "stp": "root",
+          "channel": {
+            "group": 1,
+            "bundled": true
+          }
+        },
+        {
+          "port": 1,
+          "shutdown": false,
+          "channel": {
+            "group": 1,
+            "bundled": true
+          }
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [],
+  "warnings": []
+}

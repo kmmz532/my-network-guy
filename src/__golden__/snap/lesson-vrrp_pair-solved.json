@@ -1,0 +1,299 @@
+{
+  "goals": [
+    true,
+    true
+  ],
+  "pings": [
+    {
+      "from": "PC1",
+      "to": "SRV",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC1",
+        "R1",
+        "SRV"
+      ]
+    },
+    {
+      "from": "SRV",
+      "to": "PC1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "SRV",
+        "R1",
+        "PC1"
+      ]
+    }
+  ],
+  "https": [],
+  "shows": [
+    {
+      "node": "R1",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"192.168.1.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.9.0\",\"prefix\":24,\"port\":1}"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpGroup {\"iface\":\"g0/0\",\"vrid\":1,\"state\":\"Master\",\"ip\":\"192.168.1.254\",\"priority\":110,\"preempt\":\"ui.terminal.vrrpPreemptOn\"}",
+        "out:ui.terminal.vrrpGroup {\"iface\":\"g0/1\",\"vrid\":2,\"state\":\"Master\",\"ip\":\"10.0.9.254\",\"priority\":110,\"preempt\":\"ui.terminal.vrrpPreemptOn\"}"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    },
+    {
+      "node": "R2",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"192.168.1.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.9.0\",\"prefix\":24,\"port\":1}"
+      ]
+    },
+    {
+      "node": "R2",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "node": "R2",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpGroup {\"iface\":\"g0/0\",\"vrid\":1,\"state\":\"Backup\",\"ip\":\"192.168.1.254\",\"priority\":100,\"preempt\":\"ui.terminal.vrrpPreemptOn\"}",
+        "out:ui.terminal.vrrpGroup {\"iface\":\"g0/1\",\"vrid\":2,\"state\":\"Backup\",\"ip\":\"10.0.9.254\",\"priority\":100,\"preempt\":\"ui.terminal.vrrpPreemptOn\"}"
+      ]
+    },
+    {
+      "node": "R2",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "R2",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    },
+    {
+      "node": "SRV",
+      "cmd": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"SW1\",\"cost\":0}"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:01:00\"}"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "err:ui.terminal.stpOff"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:20:00:00:06:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:20:00:00:06:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:20:00:00:06:00\"}"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "lesson_link_1",
+      "color": 15909966
+    },
+    {
+      "link": "lesson_link_2",
+      "color": 15909966
+    },
+    {
+      "link": "lesson_link_3",
+      "color": 15909966
+    },
+    {
+      "link": "lesson_link_4",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_5",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_6",
+      "color": 6472959
+    }
+  ],
+  "ports": [
+    {
+      "node": "PC1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "R1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "R2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "SRV",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "SW1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "SW2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [
+    [
+      "PC1",
+      {
+        "reason": "gateway.mismatch",
+        "gateway": "192.168.1.254",
+        "ip": "192.168.1.1"
+      }
+    ],
+    [
+      "SRV",
+      {
+        "reason": "gateway.mismatch",
+        "gateway": "10.0.9.254",
+        "ip": "10.0.9.1"
+      }
+    ]
+  ],
+  "warnings": []
+}

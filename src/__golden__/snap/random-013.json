@@ -1,0 +1,168 @@
+{
+  "pings": [
+    {
+      "from": "n0",
+      "to": "n3",
+      "ok": false,
+      "reason": "dhcp.no_offer",
+      "path": []
+    },
+    {
+      "from": "n3",
+      "to": "n0",
+      "ok": false,
+      "reason": "gateway.unset",
+      "path": [
+        "n3"
+      ]
+    }
+  ],
+  "https": [],
+  "shows": [
+    {
+      "node": "n1",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"n1\",\"cost\":0}"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.noRoute"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanAccess {\"port\":0,\"vlan\":1}"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "err:ui.terminal.stpOff"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelLine {\"group\":1,\"state\":\"D\",\"lacp\":\"passive\",\"ports\":\"0(I)\"}"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show mac address-table",
+      "lines": [
+        "err:ui.terminal.noMacTable"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "l0",
+      "color": 10132122
+    },
+    {
+      "link": "l1",
+      "color": 10132122
+    }
+  ],
+  "ports": [
+    {
+      "node": "n0",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false,
+          "channel": {
+            "group": 1,
+            "bundled": false
+          }
+        }
+      ]
+    },
+    {
+      "node": "n3",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [
+    [
+      "n0",
+      {
+        "reason": "gateway.unset"
+      }
+    ],
+    [
+      "n3",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.1.11"
+      }
+    ]
+  ],
+  "warnings": []
+}

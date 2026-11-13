@@ -1,0 +1,186 @@
+{
+  "goals": [
+    true,
+    true
+  ],
+  "pings": [
+    {
+      "from": "PC1",
+      "to": "PC2",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC1",
+        "R1",
+        "R2",
+        "PC2"
+      ]
+    },
+    {
+      "from": "PC2",
+      "to": "PC1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC2",
+        "R2",
+        "R1",
+        "PC1"
+      ]
+    }
+  ],
+  "https": [],
+  "shows": [
+    {
+      "node": "R1",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.12.0\",\"prefix\":30,\"port\":1}",
+        "out:ui.terminal.routeOspf {\"dest\":\"10.0.2.0\",\"prefix\":24,\"nextHop\":\"10.0.12.2\",\"ad\":110,\"metric\":1}"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNeighbor {\"name\":\"R2\",\"ip\":\"10.0.12.2\",\"port\":1,\"routerId\":\"10.0.12.2\",\"priority\":1,\"state\":\"FULL/-\"}"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    },
+    {
+      "node": "R2",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.2.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.12.0\",\"prefix\":30,\"port\":1}",
+        "out:ui.terminal.routeOspf {\"dest\":\"10.0.1.0\",\"prefix\":24,\"nextHop\":\"10.0.12.1\",\"ad\":110,\"metric\":1}"
+      ]
+    },
+    {
+      "node": "R2",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNeighbor {\"name\":\"R1\",\"ip\":\"10.0.12.1\",\"port\":1,\"routerId\":\"10.0.12.1\",\"priority\":1,\"state\":\"FULL/-\"}"
+      ]
+    },
+    {
+      "node": "R2",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "node": "R2",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "R2",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "lesson_link_1",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_2",
+      "color": 10132122
+    },
+    {
+      "link": "lesson_link_3",
+      "color": 15909966
+    }
+  ],
+  "ports": [
+    {
+      "node": "PC1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "PC2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "R1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "R2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [
+    [
+      "R1",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.12.1"
+      }
+    ],
+    [
+      "R2",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.12.2"
+      }
+    ]
+  ],
+  "warnings": []
+}

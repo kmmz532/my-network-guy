@@ -1,0 +1,532 @@
+{
+  "pings": [
+    {
+      "from": "n0",
+      "to": "n1",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n0"
+      ]
+    },
+    {
+      "from": "n0",
+      "to": "n3",
+      "ok": false,
+      "reason": "link.unplugged",
+      "path": []
+    },
+    {
+      "from": "n0",
+      "to": "n4",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n0"
+      ]
+    },
+    {
+      "from": "n0",
+      "to": "n5",
+      "ok": false,
+      "reason": "link.unplugged",
+      "path": []
+    },
+    {
+      "from": "n0",
+      "to": "n7",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n0"
+      ]
+    },
+    {
+      "from": "n1",
+      "to": "n0",
+      "ok": false,
+      "reason": "return.failed",
+      "path": [
+        "n1",
+        "n0"
+      ]
+    },
+    {
+      "from": "n1",
+      "to": "n3",
+      "ok": false,
+      "reason": "link.unplugged",
+      "path": []
+    },
+    {
+      "from": "n1",
+      "to": "n4",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n1"
+      ]
+    },
+    {
+      "from": "n1",
+      "to": "n5",
+      "ok": false,
+      "reason": "link.unplugged",
+      "path": []
+    },
+    {
+      "from": "n1",
+      "to": "n7",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n1"
+      ]
+    },
+    {
+      "from": "n3",
+      "to": "n0",
+      "ok": false,
+      "reason": "dhcp.no_offer",
+      "path": []
+    },
+    {
+      "from": "n3",
+      "to": "n1",
+      "ok": false,
+      "reason": "dhcp.no_offer",
+      "path": []
+    },
+    {
+      "from": "n3",
+      "to": "n4",
+      "ok": false,
+      "reason": "dhcp.no_offer",
+      "path": []
+    },
+    {
+      "from": "n3",
+      "to": "n5",
+      "ok": false,
+      "reason": "dhcp.no_offer",
+      "path": []
+    },
+    {
+      "from": "n3",
+      "to": "n7",
+      "ok": false,
+      "reason": "dhcp.no_offer",
+      "path": []
+    },
+    {
+      "from": "n4",
+      "to": "n0",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n4"
+      ]
+    },
+    {
+      "from": "n4",
+      "to": "n1",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n4"
+      ]
+    },
+    {
+      "from": "n4",
+      "to": "n3",
+      "ok": false,
+      "reason": "link.unplugged",
+      "path": []
+    },
+    {
+      "from": "n4",
+      "to": "n5",
+      "ok": false,
+      "reason": "link.unplugged",
+      "path": []
+    },
+    {
+      "from": "n4",
+      "to": "n7",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n4"
+      ]
+    },
+    {
+      "from": "n5",
+      "to": "n0",
+      "ok": false,
+      "reason": "dhcp.no_offer",
+      "path": []
+    },
+    {
+      "from": "n5",
+      "to": "n1",
+      "ok": false,
+      "reason": "dhcp.no_offer",
+      "path": []
+    },
+    {
+      "from": "n5",
+      "to": "n3",
+      "ok": false,
+      "reason": "dhcp.no_offer",
+      "path": []
+    },
+    {
+      "from": "n5",
+      "to": "n4",
+      "ok": false,
+      "reason": "dhcp.no_offer",
+      "path": []
+    },
+    {
+      "from": "n5",
+      "to": "n7",
+      "ok": false,
+      "reason": "dhcp.no_offer",
+      "path": []
+    },
+    {
+      "from": "n7",
+      "to": "n0",
+      "ok": false,
+      "reason": "return.failed",
+      "path": [
+        "n7",
+        "n0"
+      ]
+    },
+    {
+      "from": "n7",
+      "to": "n1",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n7"
+      ]
+    },
+    {
+      "from": "n7",
+      "to": "n3",
+      "ok": false,
+      "reason": "link.unplugged",
+      "path": []
+    },
+    {
+      "from": "n7",
+      "to": "n4",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n7"
+      ]
+    },
+    {
+      "from": "n7",
+      "to": "n5",
+      "ok": false,
+      "reason": "link.unplugged",
+      "path": []
+    }
+  ],
+  "https": [],
+  "shows": [
+    {
+      "node": "n2",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeStatic {\"dest\":\"10.0.1.0\",\"prefix\":24,\"nextHop\":\"10.0.1.2\",\"ad\":1,\"metric\":0}"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    },
+    {
+      "node": "n6",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanAccess {\"port\":0,\"vlan\":10}",
+        "out:ui.terminal.vlanAccess {\"port\":2,\"vlan\":20}"
+      ]
+    },
+    {
+      "node": "n6",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"n6\",\"cost\":0}",
+        "out:ui.terminal.stpPort.designated {\"port\":0}",
+        "out:ui.terminal.stpPort.designated {\"port\":1}"
+      ]
+    },
+    {
+      "node": "n6",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n6",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:08:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:05:00\"}"
+      ]
+    },
+    {
+      "node": "n8",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.10.0\",\"prefix\":24,\"port\":1010}"
+      ]
+    },
+    {
+      "node": "n8",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanTrunk {\"port\":0,\"allowed\":\"10,20\",\"native\":1}",
+        "out:ui.terminal.vlanAccess {\"port\":1,\"vlan\":20}",
+        "out:ui.terminal.vlanAccess {\"port\":2,\"vlan\":20}",
+        "out:ui.terminal.vlanAccess {\"port\":3,\"vlan\":20}",
+        "out:ui.terminal.vlanAccess {\"port\":4,\"vlan\":10}"
+      ]
+    },
+    {
+      "node": "n8",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpRoot {\"root\":\"n6\",\"cost\":4}",
+        "out:ui.terminal.stpPort.root {\"port\":2}",
+        "out:ui.terminal.stpPort.blocking {\"port\":3}"
+      ]
+    },
+    {
+      "node": "n8",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "node": "n8",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "node": "n8",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n8",
+      "cmd": "show mac address-table",
+      "lines": [
+        "err:ui.terminal.noMacTable"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "l0",
+      "color": 10132122
+    },
+    {
+      "link": "l1",
+      "color": 10132122
+    },
+    {
+      "link": "l2",
+      "color": 10132122
+    },
+    {
+      "link": "l3",
+      "color": 10132122
+    },
+    {
+      "link": "l4",
+      "color": 10132122
+    },
+    {
+      "link": "l5",
+      "color": 10132122
+    }
+  ],
+  "ports": [
+    {
+      "node": "n0",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n2",
+      "ports": []
+    },
+    {
+      "node": "n3",
+      "ports": []
+    },
+    {
+      "node": "n4",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n5",
+      "ports": []
+    },
+    {
+      "node": "n6",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false,
+          "stp": "designated"
+        },
+        {
+          "port": 1,
+          "shutdown": false,
+          "stp": "designated"
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n7",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n8",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false,
+          "stp": "root"
+        },
+        {
+          "port": 3,
+          "shutdown": false,
+          "stp": "blocking"
+        },
+        {
+          "port": 4,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [
+    [
+      "n0",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.1.10"
+      }
+    ],
+    [
+      "n1",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.1.11"
+      }
+    ],
+    [
+      "n4",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.1.13"
+      }
+    ],
+    [
+      "n7",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.1.15"
+      }
+    ],
+    [
+      "n8",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.10.1"
+      }
+    ]
+  ],
+  "warnings": [
+    {
+      "id": "vlan.mismatch",
+      "a": "n8",
+      "b": "n6"
+    }
+  ]
+}

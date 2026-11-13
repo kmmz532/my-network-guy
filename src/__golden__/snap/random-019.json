@@ -1,0 +1,223 @@
+{
+  "pings": [
+    {
+      "from": "n0",
+      "to": "n2",
+      "ok": false,
+      "reason": "gateway.unset",
+      "path": [
+        "n0"
+      ]
+    },
+    {
+      "from": "n0",
+      "to": "n3",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n0"
+      ]
+    },
+    {
+      "from": "n2",
+      "to": "n0",
+      "ok": false,
+      "reason": "dhcp.no_offer",
+      "path": []
+    },
+    {
+      "from": "n2",
+      "to": "n3",
+      "ok": false,
+      "reason": "dhcp.no_offer",
+      "path": []
+    },
+    {
+      "from": "n3",
+      "to": "n0",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n3"
+      ]
+    },
+    {
+      "from": "n3",
+      "to": "n2",
+      "ok": false,
+      "reason": "gateway.unset",
+      "path": [
+        "n3"
+      ]
+    }
+  ],
+  "https": [],
+  "shows": [
+    {
+      "node": "n0",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":0}"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.10.0\",\"prefix\":24,\"port\":1010}"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanAccess {\"port\":0,\"vlan\":1}",
+        "out:ui.terminal.vlanAccess {\"port\":1,\"vlan\":20}",
+        "out:ui.terminal.vlanAccess {\"port\":2,\"vlan\":20}"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"n1\",\"cost\":0}"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelLine {\"group\":1,\"state\":\"D\",\"lacp\":\"passive\",\"ports\":\"0(I)\"}"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show mac address-table",
+      "lines": [
+        "err:ui.terminal.noMacTable"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "l0",
+      "color": 10132122
+    },
+    {
+      "link": "l1",
+      "color": 10132122
+    },
+    {
+      "link": "l2",
+      "color": 10132122
+    }
+  ],
+  "ports": [
+    {
+      "node": "n0",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false,
+          "channel": {
+            "group": 1,
+            "bundled": false
+          }
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n3",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [
+    [
+      "n0",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.1.10"
+      }
+    ],
+    [
+      "n1",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.10.1"
+      }
+    ],
+    [
+      "n3",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.1.12"
+      }
+    ]
+  ],
+  "warnings": [
+    {
+      "id": "wlan.transition",
+      "a": "n0",
+      "b": "n0"
+    }
+  ]
+}

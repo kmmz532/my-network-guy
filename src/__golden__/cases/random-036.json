@@ -1,0 +1,375 @@
+{
+  "nodes": [
+    {
+      "uid": "n0",
+      "device": "access_point",
+      "macSerial": 1,
+      "ports": [],
+      "x": 0,
+      "y": 0,
+      "locked": false,
+      "configLocked": false,
+      "interfaces": [],
+      "gateway": null,
+      "routes": [],
+      "services": [],
+      "wireless": {
+        "ssid": "g",
+        "password": "golden-pass",
+        "security": "wep"
+      }
+    },
+    {
+      "uid": "n1",
+      "device": "router_basic",
+      "macSerial": 2,
+      "ports": [],
+      "x": 2,
+      "y": 0,
+      "locked": false,
+      "configLocked": false,
+      "interfaces": [
+        {
+          "id": "g0/0",
+          "kind": "port",
+          "port": 0,
+          "ip": "10.0.1.10",
+          "prefix": 24
+        },
+        {
+          "id": "g0/1",
+          "kind": "port",
+          "port": 1,
+          "ip": "10.0.1.11",
+          "prefix": 24,
+          "helper": "10.0.0.2"
+        },
+        {
+          "id": "g0/2",
+          "kind": "port",
+          "port": 2,
+          "ip": "10.0.1.12",
+          "prefix": 24,
+          "helper": "10.0.0.2"
+        }
+      ],
+      "gateway": null,
+      "routes": [],
+      "services": []
+    },
+    {
+      "uid": "n2",
+      "device": "l3_switch",
+      "macSerial": 3,
+      "ports": [
+        {
+          "port": 1,
+          "mode": "access",
+          "vlan": 10
+        }
+      ],
+      "x": 4,
+      "y": 0,
+      "locked": false,
+      "configLocked": false,
+      "interfaces": [],
+      "gateway": null,
+      "routes": [],
+      "services": []
+    },
+    {
+      "uid": "n3",
+      "device": "router_basic",
+      "macSerial": 4,
+      "ports": [],
+      "x": 6,
+      "y": 0,
+      "locked": false,
+      "configLocked": false,
+      "interfaces": [
+        {
+          "id": "g0/0",
+          "kind": "port",
+          "port": 0,
+          "ip": "10.0.1.13",
+          "prefix": 24
+        }
+      ],
+      "gateway": null,
+      "routes": [],
+      "services": []
+    },
+    {
+      "uid": "n4",
+      "device": "home_router",
+      "macSerial": 5,
+      "ports": [],
+      "x": 8,
+      "y": 0,
+      "locked": false,
+      "configLocked": false,
+      "interfaces": [
+        {
+          "id": "g0/0",
+          "kind": "port",
+          "port": 0,
+          "ip": "10.0.1.14",
+          "prefix": 24
+        },
+        {
+          "id": "g0/1",
+          "kind": "port",
+          "port": 1,
+          "ip": "10.0.1.15",
+          "prefix": 24,
+          "rip": true
+        }
+      ],
+      "gateway": null,
+      "routes": [],
+      "services": [],
+      "wireless": {
+        "ssid": "g",
+        "password": "golden-pass",
+        "security": "wep"
+      }
+    },
+    {
+      "uid": "n5",
+      "device": "pc_basic",
+      "macSerial": 6,
+      "ports": [],
+      "x": 10,
+      "y": 0,
+      "locked": false,
+      "configLocked": false,
+      "interfaces": [
+        {
+          "id": "eth0",
+          "kind": "port",
+          "port": 0,
+          "ip": "10.0.1.16",
+          "prefix": 24
+        }
+      ],
+      "gateway": "10.0.1.10",
+      "routes": [],
+      "services": []
+    },
+    {
+      "uid": "n6",
+      "device": "router_basic",
+      "macSerial": 7,
+      "ports": [],
+      "x": 12,
+      "y": 0,
+      "locked": false,
+      "configLocked": false,
+      "interfaces": [],
+      "gateway": null,
+      "routes": [
+        {
+          "dest": "10.0.1.0",
+          "prefix": 24,
+          "nextHop": "10.0.2.2"
+        }
+      ],
+      "services": []
+    },
+    {
+      "uid": "n7",
+      "device": "pc_wifi",
+      "macSerial": 8,
+      "ports": [],
+      "x": 14,
+      "y": 0,
+      "locked": false,
+      "configLocked": false,
+      "interfaces": [
+        {
+          "id": "eth0",
+          "kind": "port",
+          "port": 0,
+          "ip": "10.0.1.17",
+          "prefix": 24,
+          "dhcp": true
+        }
+      ],
+      "gateway": "10.0.1.10",
+      "routes": [],
+      "services": [],
+      "wireless": {
+        "ssid": "g",
+        "password": "wrong-pass"
+      }
+    },
+    {
+      "uid": "n8",
+      "device": "pc_wifi",
+      "macSerial": 9,
+      "ports": [],
+      "x": 16,
+      "y": 0,
+      "locked": false,
+      "configLocked": false,
+      "interfaces": [
+        {
+          "id": "eth0",
+          "kind": "port",
+          "port": 0,
+          "ip": "10.0.3.18",
+          "prefix": 24,
+          "dhcp": true
+        }
+      ],
+      "gateway": null,
+      "routes": [],
+      "services": [],
+      "wireless": {
+        "ssid": "g",
+        "password": "golden-pass"
+      }
+    }
+  ],
+  "links": [
+    {
+      "uid": "l0",
+      "cable": "utp_cat5e",
+      "a": {
+        "node": "n0",
+        "port": 0
+      },
+      "b": {
+        "node": "n1",
+        "port": 0
+      },
+      "path": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "paid": 0
+    },
+    {
+      "uid": "l1",
+      "cable": "utp_cat5e",
+      "a": {
+        "node": "n2",
+        "port": 0
+      },
+      "b": {
+        "node": "n8",
+        "port": 0
+      },
+      "path": [
+        [
+          4,
+          0
+        ],
+        [
+          16,
+          0
+        ]
+      ],
+      "paid": 0
+    },
+    {
+      "uid": "l2",
+      "cable": "utp_cat5e",
+      "a": {
+        "node": "n5",
+        "port": 0
+      },
+      "b": {
+        "node": "n2",
+        "port": 1
+      },
+      "path": [
+        [
+          10,
+          0
+        ],
+        [
+          4,
+          0
+        ]
+      ],
+      "paid": 0
+    },
+    {
+      "uid": "l3",
+      "cable": "utp_cat5e",
+      "a": {
+        "node": "n3",
+        "port": 0
+      },
+      "b": {
+        "node": "n2",
+        "port": 2
+      },
+      "path": [
+        [
+          6,
+          0
+        ],
+        [
+          4,
+          0
+        ]
+      ],
+      "paid": 0
+    },
+    {
+      "uid": "l4",
+      "cable": "utp_cat5e",
+      "a": {
+        "node": "n1",
+        "port": 1
+      },
+      "b": {
+        "node": "n4",
+        "port": 0
+      },
+      "path": [
+        [
+          2,
+          0
+        ],
+        [
+          8,
+          0
+        ]
+      ],
+      "paid": 0
+    },
+    {
+      "uid": "l5",
+      "cable": "utp_cat5e",
+      "a": {
+        "node": "n1",
+        "port": 2
+      },
+      "b": {
+        "node": "n4",
+        "port": 1
+      },
+      "path": [
+        [
+          2,
+          0
+        ],
+        [
+          8,
+          0
+        ]
+      ],
+      "paid": 0
+    }
+  ],
+  "segments": {}
+}

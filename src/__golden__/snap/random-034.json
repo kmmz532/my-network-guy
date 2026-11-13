@@ -1,0 +1,481 @@
+{
+  "pings": [
+    {
+      "from": "n2",
+      "to": "n5",
+      "ok": false,
+      "reason": "gateway.unset",
+      "path": [
+        "n2"
+      ]
+    },
+    {
+      "from": "n5",
+      "to": "n2",
+      "ok": false,
+      "reason": "dhcp.no_offer",
+      "path": []
+    }
+  ],
+  "https": [],
+  "shows": [
+    {
+      "node": "n0",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.10.0\",\"prefix\":24,\"port\":1010}"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanAccess {\"port\":0,\"vlan\":20}",
+        "out:ui.terminal.vlanAccess {\"port\":1,\"vlan\":10}"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpRoot {\"root\":\"n6\",\"cost\":4}",
+        "out:ui.terminal.stpPort.root {\"port\":0}",
+        "out:ui.terminal.stpPort.designated {\"port\":1}"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show mac address-table",
+      "lines": [
+        "err:ui.terminal.noMacTable"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.20.0\",\"prefix\":24,\"port\":1020}"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpRoot {\"root\":\"n6\",\"cost\":16}",
+        "out:ui.terminal.stpPort.root {\"port\":0}"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show mac address-table",
+      "lines": [
+        "err:ui.terminal.noMacTable"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":1}"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    },
+    {
+      "node": "n2",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    },
+    {
+      "node": "n3",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanAccess {\"port\":0,\"vlan\":20}",
+        "out:ui.terminal.vlanAccess {\"port\":1,\"vlan\":20}",
+        "out:ui.terminal.vlanAccess {\"port\":2,\"vlan\":20}",
+        "out:ui.terminal.vlanTrunk {\"port\":3,\"allowed\":\"10,20\",\"native\":1}"
+      ]
+    },
+    {
+      "node": "n3",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpRoot {\"root\":\"n6\",\"cost\":8}",
+        "out:ui.terminal.stpPort.designated {\"port\":1}",
+        "out:ui.terminal.stpPort.designated {\"port\":2}",
+        "out:ui.terminal.stpPort.root {\"port\":3}"
+      ]
+    },
+    {
+      "node": "n3",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n3",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macNone"
+      ]
+    },
+    {
+      "node": "n4",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.2.0\",\"prefix\":24,\"port\":0}"
+      ]
+    },
+    {
+      "node": "n4",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "node": "n4",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "node": "n4",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n4",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    },
+    {
+      "node": "n6",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanAccess {\"port\":1,\"vlan\":10}"
+      ]
+    },
+    {
+      "node": "n6",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"n6\",\"cost\":0}",
+        "out:ui.terminal.stpPort.designated {\"port\":1}"
+      ]
+    },
+    {
+      "node": "n6",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n6",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:06:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:06:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:06:00\"}"
+      ]
+    },
+    {
+      "node": "n7",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanTrunk {\"port\":0,\"allowed\":\"10\",\"native\":1}",
+        "out:ui.terminal.vlanAccess {\"port\":3,\"vlan\":10}"
+      ]
+    },
+    {
+      "node": "n7",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpRoot {\"root\":\"n6\",\"cost\":12}",
+        "out:ui.terminal.stpPort.root {\"port\":0}",
+        "out:ui.terminal.stpPort.designated {\"port\":2}",
+        "out:ui.terminal.stpPort.blocking {\"port\":3}"
+      ]
+    },
+    {
+      "node": "n7",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n7",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macNone"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "l0",
+      "color": 10132122
+    },
+    {
+      "link": "l1",
+      "color": 10132122
+    },
+    {
+      "link": "l2",
+      "color": 10132122
+    },
+    {
+      "link": "l3",
+      "color": 10132122
+    },
+    {
+      "link": "l4",
+      "color": 10132122
+    },
+    {
+      "link": "l5",
+      "color": 10132122
+    },
+    {
+      "link": "l6",
+      "color": 10132122
+    },
+    {
+      "link": "l7",
+      "color": 10132122
+    },
+    {
+      "link": "l8",
+      "color": 10132122
+    }
+  ],
+  "ports": [
+    {
+      "node": "n0",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false,
+          "stp": "root"
+        },
+        {
+          "port": 1,
+          "shutdown": false,
+          "stp": "designated"
+        }
+      ]
+    },
+    {
+      "node": "n1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false,
+          "stp": "root"
+        }
+      ]
+    },
+    {
+      "node": "n2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n3",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false,
+          "stp": "designated"
+        },
+        {
+          "port": 2,
+          "shutdown": false,
+          "stp": "designated"
+        },
+        {
+          "port": 3,
+          "shutdown": false,
+          "stp": "root"
+        }
+      ]
+    },
+    {
+      "node": "n4",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n5",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n6",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false,
+          "stp": "designated"
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n7",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false,
+          "stp": "root"
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false,
+          "stp": "designated"
+        },
+        {
+          "port": 3,
+          "shutdown": false,
+          "stp": "blocking"
+        }
+      ]
+    }
+  ],
+  "issues": [
+    [
+      "n0",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.10.1"
+      }
+    ],
+    [
+      "n1",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.20.1"
+      }
+    ],
+    [
+      "n2",
+      {
+        "reason": "ip.unset"
+      }
+    ],
+    [
+      "n4",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.2.11"
+      }
+    ]
+  ],
+  "warnings": [
+    {
+      "id": "vlan.mismatch",
+      "a": "n0",
+      "b": "n6"
+    },
+    {
+      "id": "vlan.mismatch",
+      "a": "n3",
+      "b": "n7"
+    }
+  ]
+}

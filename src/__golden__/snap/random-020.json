@@ -1,0 +1,211 @@
+{
+  "pings": [
+    {
+      "from": "n0",
+      "to": "n2",
+      "ok": false,
+      "reason": "gateway.unset",
+      "path": [
+        "n0"
+      ]
+    },
+    {
+      "from": "n0",
+      "to": "n3",
+      "ok": false,
+      "reason": "gateway.unset",
+      "path": [
+        "n0"
+      ]
+    },
+    {
+      "from": "n2",
+      "to": "n0",
+      "ok": false,
+      "reason": "route.none",
+      "path": [
+        "n2",
+        "n1"
+      ]
+    },
+    {
+      "from": "n2",
+      "to": "n3",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n2"
+      ]
+    },
+    {
+      "from": "n3",
+      "to": "n0",
+      "ok": false,
+      "reason": "route.none",
+      "path": [
+        "n3",
+        "n1"
+      ]
+    },
+    {
+      "from": "n3",
+      "to": "n2",
+      "ok": false,
+      "reason": "ip.unreachable",
+      "path": [
+        "n3"
+      ]
+    }
+  ],
+  "https": [],
+  "shows": [
+    {
+      "node": "n0",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.0.0\",\"prefix\":24,\"port\":0}"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":1}",
+        "out:ui.terminal.routeStatic {\"dest\":\"10.0.1.0\",\"prefix\":24,\"nextHop\":\"10.0.3.2\",\"ad\":1,\"metric\":0}"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "l0",
+      "color": 10132122
+    },
+    {
+      "link": "l1",
+      "color": 10132122
+    },
+    {
+      "link": "l2",
+      "color": 10132122
+    }
+  ],
+  "ports": [
+    {
+      "node": "n0",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n3",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [
+    [
+      "n0",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.0.10"
+      }
+    ],
+    [
+      "n1",
+      {
+        "reason": "ip.unset"
+      }
+    ],
+    [
+      "n2",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.1.13"
+      }
+    ],
+    [
+      "n3",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.1.14"
+      }
+    ]
+  ],
+  "warnings": []
+}

@@ -1,0 +1,471 @@
+{
+  "pings": [
+    {
+      "from": "n3",
+      "to": "n5",
+      "ok": false,
+      "reason": "link.unplugged",
+      "path": []
+    },
+    {
+      "from": "n3",
+      "to": "n7",
+      "ok": false,
+      "reason": "link.unplugged",
+      "path": []
+    },
+    {
+      "from": "n5",
+      "to": "n3",
+      "ok": false,
+      "reason": "link.unplugged",
+      "path": []
+    },
+    {
+      "from": "n5",
+      "to": "n7",
+      "ok": false,
+      "reason": "link.unplugged",
+      "path": []
+    },
+    {
+      "from": "n7",
+      "to": "n3",
+      "ok": false,
+      "reason": "dhcp.no_offer",
+      "path": []
+    },
+    {
+      "from": "n7",
+      "to": "n5",
+      "ok": false,
+      "reason": "dhcp.no_offer",
+      "path": []
+    }
+  ],
+  "https": [],
+  "shows": [
+    {
+      "node": "n0",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.10.0\",\"prefix\":24,\"port\":1010}"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanAccess {\"port\":0,\"vlan\":10}",
+        "out:ui.terminal.vlanAccess {\"port\":3,\"vlan\":20}",
+        "out:ui.terminal.vlanAccess {\"port\":4,\"vlan\":10}",
+        "out:ui.terminal.vlanAccess {\"port\":6,\"vlan\":10}"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"n0\",\"cost\":0}",
+        "out:ui.terminal.stpPort.designated {\"port\":6}"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n0",
+      "cmd": "show mac address-table",
+      "lines": [
+        "err:ui.terminal.noMacTable"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":1}"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n1",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    },
+    {
+      "node": "n4",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":1}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":2}"
+      ]
+    },
+    {
+      "node": "n4",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNeighbor {\"name\":\"n8\",\"ip\":\"10.0.1.20\",\"port\":0,\"routerId\":\"10.0.1.20\",\"priority\":1,\"state\":\"FULL/-\"}",
+        "out:ui.terminal.ospfNeighbor {\"name\":\"n8\",\"ip\":\"10.0.1.20\",\"port\":1,\"routerId\":\"10.0.1.20\",\"priority\":1,\"state\":\"FULL/-\"}"
+      ]
+    },
+    {
+      "node": "n4",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "node": "n4",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n4",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    },
+    {
+      "node": "n5",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":1}"
+      ]
+    },
+    {
+      "node": "n5",
+      "cmd": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    },
+    {
+      "node": "n5",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    },
+    {
+      "node": "n6",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "node": "n6",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpRoot {\"root\":\"n0\",\"cost\":4}",
+        "out:ui.terminal.stpPort.root {\"port\":0}"
+      ]
+    },
+    {
+      "node": "n6",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n6",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macNone"
+      ]
+    },
+    {
+      "node": "n8",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.0.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.2.0\",\"prefix\":24,\"port\":1}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":2}"
+      ]
+    },
+    {
+      "node": "n8",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNeighbor {\"name\":\"n4\",\"ip\":\"10.0.1.12\",\"port\":2,\"routerId\":\"10.0.1.13\",\"priority\":1,\"state\":\"FULL/BDR\"}",
+        "out:ui.terminal.ospfNeighbor {\"name\":\"n4\",\"ip\":\"10.0.1.13\",\"port\":2,\"routerId\":\"10.0.1.13\",\"priority\":1,\"state\":\"FULL/BDR\"}"
+      ]
+    },
+    {
+      "node": "n8",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpGroup {\"iface\":\"g0/0\",\"vrid\":1,\"state\":\"Master\",\"ip\":\"10.0.0.254\",\"priority\":100,\"preempt\":\"ui.terminal.vrrpPreemptOn\"}"
+      ]
+    },
+    {
+      "node": "n8",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "n8",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natHeader",
+        "out:ui.terminal.natNapt {\"outsideIp\":\"10.0.0.18\"}"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "l0",
+      "color": 10132122
+    },
+    {
+      "link": "l1",
+      "color": 10132122
+    },
+    {
+      "link": "l2",
+      "color": 10132122
+    },
+    {
+      "link": "l3",
+      "color": 10132122
+    },
+    {
+      "link": "l4",
+      "color": 10132122
+    },
+    {
+      "link": "l5",
+      "color": 10132122
+    },
+    {
+      "link": "l6",
+      "color": 10132122
+    },
+    {
+      "link": "l7",
+      "color": 10132122
+    },
+    {
+      "link": "l8",
+      "color": 10132122
+    },
+    {
+      "link": "l9",
+      "color": 10132122
+    }
+  ],
+  "ports": [
+    {
+      "node": "n0",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        },
+        {
+          "port": 3,
+          "shutdown": false
+        },
+        {
+          "port": 4,
+          "shutdown": false
+        },
+        {
+          "port": 5,
+          "shutdown": false
+        },
+        {
+          "port": 6,
+          "shutdown": false,
+          "stp": "designated"
+        }
+      ]
+    },
+    {
+      "node": "n1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n3",
+      "ports": []
+    },
+    {
+      "node": "n4",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n5",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "n6",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false,
+          "stp": "root"
+        }
+      ]
+    },
+    {
+      "node": "n7",
+      "ports": []
+    },
+    {
+      "node": "n8",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [
+    [
+      "n0",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.10.1"
+      }
+    ],
+    [
+      "n1",
+      {
+        "reason": "ip.unset"
+      }
+    ],
+    [
+      "n4",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.1.12"
+      }
+    ],
+    [
+      "n5",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.1.15"
+      }
+    ],
+    [
+      "n8",
+      {
+        "reason": "segment.unset",
+        "ip": "10.0.2.19"
+      }
+    ]
+  ],
+  "warnings": []
+}

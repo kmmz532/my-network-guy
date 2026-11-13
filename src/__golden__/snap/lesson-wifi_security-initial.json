@@ -1,0 +1,159 @@
+{
+  "goals": [
+    true,
+    false
+  ],
+  "pings": [
+    {
+      "from": "NEW",
+      "to": "OLD",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "NEW",
+        "OLD"
+      ]
+    },
+    {
+      "from": "NEW",
+      "to": "PC1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "NEW",
+        "PC1"
+      ]
+    },
+    {
+      "from": "OLD",
+      "to": "NEW",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "OLD",
+        "NEW"
+      ]
+    },
+    {
+      "from": "OLD",
+      "to": "PC1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "OLD",
+        "PC1"
+      ]
+    },
+    {
+      "from": "PC1",
+      "to": "NEW",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC1",
+        "NEW"
+      ]
+    },
+    {
+      "from": "PC1",
+      "to": "OLD",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC1",
+        "OLD"
+      ]
+    }
+  ],
+  "https": [],
+  "shows": [
+    {
+      "node": "SW1",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"SW1\",\"cost\":0}"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:01:00\"}"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "lesson_link_1",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_2",
+      "color": 10132122
+    }
+  ],
+  "ports": [
+    {
+      "node": "AP1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "NEW",
+      "ports": []
+    },
+    {
+      "node": "OLD",
+      "ports": []
+    },
+    {
+      "node": "PC1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "SW1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [],
+  "warnings": [
+    {
+      "id": "wlan.weak_cipher",
+      "a": "AP1",
+      "b": "AP1"
+    }
+  ]
+}

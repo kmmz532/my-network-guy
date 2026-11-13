@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { cables, devices, lessons } from 'virtual:game-data';
 import ja from '../assets/lang/ja_jp.json';
 import type { Lesson } from '../data/schema';
-import type { EngineData, NetNode } from '../network/types';
+import type { EngineData } from '../network/types';
 import { lessonGoalResults, lessonLinks, lessonNodes, lessonSegments } from './lesson';
 import { segmentConfigOf, segmentsOf } from '../network/segments';
+import { solutions } from '../__golden__/solutions';
 
 const engine: EngineData = {
   categoryOf: (device) => devices[device as keyof typeof devices]?.category ?? 'unknown',
@@ -17,9 +18,7 @@ const lesson = (id: string): Lesson => {
   return found;
 };
 
-// 正解の設定（教材のデータには入れない）。ルーターのすべての口を、エリア 0 の OSPF に参加させる
-const withOspf = (nodes: NetNode[]): NetNode[] =>
-  nodes.map((n) => (engine.categoryOf(n.device) === 'router' ? { ...n, interfaces: n.interfaces.map((i) => ({ ...i, ospf: { area: 0 } })) } : n));
+// 正解の設定は src/__golden__/solutions.ts（挙動の記録の試験と共通）
 
 describe('教材（学習モード）', () => {
   it('すべての教材に、題名・依頼文・案内の文言がある', () => {
@@ -34,7 +33,7 @@ describe('教材（学習モード）', () => {
     const l = lesson('ospf_three_sites');
     const links = lessonLinks(l);
     expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false, false]);
-    expect(lessonGoalResults(l.goals, withOspf(lessonNodes(l)), links, engine)).toEqual([true, true]);
+    expect(lessonGoalResults(l.goals, solutions[l.id](lessonNodes(l)), links, engine)).toEqual([true, true]);
   });
 
   it('教材の機器に、MAC アドレスの連番が置いた順に振られる', () => {
@@ -46,10 +45,7 @@ describe('教材（学習モード）', () => {
     const l = lesson('bgp_two_isps');
     const links = lessonLinks(l);
     expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)[0]).toBe(false);
-    const solved = lessonNodes(l).map((n) =>
-      n.uid === 'R1' ? { ...n, bgp: { asn: 64512, neighbors: [{ ip: '198.51.100.1', remoteAs: 65001 }, { ip: '203.0.113.1', remoteAs: 65002 }], networks: [] } } : n,
-    );
-    expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true, true]);
+    expect(lessonGoalResults(l.goals, solutions[l.id](lessonNodes(l)), links, engine)).toEqual([true, true]);
   });
 
   it('VLAN の2フロア: 初めは部署の間も通じ、VLAN とトランクの設定で分かれる。許可から VLAN 20 を外すと経理が止まる', () => {
@@ -85,21 +81,14 @@ describe('教材を開いた直後の網の設定', () => {
     const l = lesson('vrrp_pair');
     const links = lessonLinks(l);
     expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false, false]);
-    const group = (vrid: number, ip: string, priority: number) => [{ vrid, ip, priority, preempt: true }];
-    const solved = lessonNodes(l).map((n) =>
-      n.uid === 'R1' || n.uid === 'R2'
-        ? { ...n, interfaces: n.interfaces.map((i) => ({ ...i, vrrp: i.port === 0 ? group(1, '192.168.1.254', n.uid === 'R1' ? 110 : 100) : group(2, '10.0.9.254', n.uid === 'R1' ? 110 : 100) })) }
-        : n,
-    );
-    expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true, true]);
+    expect(lessonGoalResults(l.goals, solutions[l.id](lessonNodes(l)), links, engine)).toEqual([true, true]);
   });
 
   it('スパニングツリーの教材: 初めは SW1 がルート。SW2 の優先度を下げると SW2 がルートになる', () => {
     const l = lesson('stp_triangle');
     const links = lessonLinks(l);
     expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([true, false]);
-    const solved = lessonNodes(l).map((n) => (n.uid === 'SW2' ? { ...n, stpPriority: 4096 } : n));
-    expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true, true]);
+    expect(lessonGoalResults(l.goals, solutions[l.id](lessonNodes(l)), links, engine)).toEqual([true, true]);
   });
 
   it('リンクアグリゲーションの教材: 初めは通じるがまとまっておらず、両端でまとめると合格する。両端 passive ではまとまらない', () => {
