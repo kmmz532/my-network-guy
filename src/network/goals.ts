@@ -1,7 +1,7 @@
 // 案件の達成条件（goals）の判定ハンドラ。種類ごとにハンドラを登録し、案件データから呼び出す。
 import type { Contract, Goal } from '../data/schema';
 import { http, ping, wirelessAssociations } from './engine';
-import { bgpTableOf, lagBundlesOf, ospfNeighborsOf, stpOf } from './netState';
+import { bgpTableOf, dhcpOf, lagBundlesOf, ospfNeighborsOf, stpOf } from './netState';
 import { outsideCheck, withInternet } from './external';
 import { resolveName } from './resolve';
 import type { EngineData, Failure, Network, PathResult } from './types';
@@ -179,6 +179,16 @@ const handlers: { [K in Goal['type']]: Handler } = {
     const r = ping(net, data, goal.from, goal.to);
     const ok = !r.ok && r.failure?.reason === 'firewall.denied';
     return [{ goal, ok, failure: r.failure, kind: 'ping', src: goal.from, dst: goal.to, result: { ...r, ok } }];
+  },
+  // 指定した端末がすべて自動（DHCP）で、アドレスを受け取っている
+  dhcp_all: (goal, net, data) => {
+    if (goal.type !== 'dhcp_all') throw new Error('dhcp_all ハンドラに別の種類が渡された');
+    const r = dhcpOf(net, data);
+    const ok = goal.nodes.every((uid) => {
+      const n = net.nodes.find((x) => x.uid === uid);
+      return n !== undefined && n.interfaces.length > 0 && n.interfaces.every((i) => i.dhcp === true) && r.leases.some((l) => l.uid === uid) && !r.failed.some((f) => f.uid === uid);
+    });
+    return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   isolated: (goal, net, data) => {
     if (goal.type !== 'isolated') throw new Error('isolated ハンドラに別の種類が渡された');

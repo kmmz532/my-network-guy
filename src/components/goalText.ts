@@ -15,6 +15,8 @@ export const goalText = (goal: Goal, nameOf: (id: string) => string = (id) => id
           ? { name: tDyn(`category.${goal.category}`) }
         : goal.type === 'wireless_clients'
           ? { min: goal.min }
+        : goal.type === 'dhcp_all'
+          ? { nodes: goal.nodes.map(nameOf).join('・') }
         : goal.type === 'lag_bundled'
           ? { node: nameOf(goal.node), min: goal.min }
         : goal.type === 'stp_root'

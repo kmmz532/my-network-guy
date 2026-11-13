@@ -1,6 +1,8 @@
 // 配置された機器と配線の形式（セーブデータとシミュレーションの入力を兼ねる）
 import type { VrrpGroup } from './vrrp';
+import type { DhcpPool } from './dhcp';
 export type { VrrpGroup } from './vrrp';
+export type { DhcpPool } from './dhcp';
 
 // インターフェース（IPアドレスを持つ場所）。口（port）とは別に、名前（id）と種類（kind）を持つ（N135）
 export interface Iface {
@@ -18,6 +20,10 @@ export interface Iface {
   nat?: 'inside' | 'outside';
   // RIP に参加しているか（N141b）
   rip?: boolean;
+  // 自動（DHCP）で受け取る口（ip は空。実際のアドレスは DHCP の割り当てから毎回求める。NET.md §5.7）
+  dhcp?: boolean;
+  // DHCP のリレー先のサーバーのアドレス（ip helper-address。ルーター・L3スイッチの口）
+  helper?: string;
   // VRRP のグループ（NET.md §5.12）。routed の口・SVI・サブインターフェースごとに持つ
   vrrp?: VrrpGroup[];
   // OSPF に参加しているエリアとコスト（N142・MVP はエリア 0 だけ）
@@ -98,6 +104,8 @@ export interface NetNode {
   isp?: IspLine;
   // 機器の電源。false なら、すべての口が停止したものとして扱う（省略は入）
   powered?: boolean;
+  // DHCP のプール（サーバーだけが持つ。口のアドレスがプールのネットワークの中にある口で配る）
+  dhcpPools?: DhcpPool[];
   // スパニングツリーのブリッジ優先度（既定 32768、4096 刻み。小さいほどルートになりやすい）
   stpPriority?: number;
   // OSPF の機器ごとの設定（routerId は省略すると自動。defaultOriginate は既定の経路を配る）
@@ -178,6 +186,10 @@ export interface EngineData {
 // 疎通の失敗の理由。文言は言語ファイルの error.<理由> と error.<理由>.fix に置く
 export const FAILURE_REASONS = [
   'link.unplugged',
+  // DHCP サーバーが見つからず、アドレスを受け取れない（NET.md §5.7）
+  'dhcp.no_offer',
+  // DHCP のプールのアドレスが足りない
+  'dhcp.exhausted',
   // 無線の端末がアクセスポイントにつながっていない（SSID・パスワードが合わない、電波の範囲の外）。ケーブルの失敗とは分ける
   'wireless.unassociated',
   // ポートセキュリティ: 登録のない MAC の機器がつながり、その口が止まった（N153）

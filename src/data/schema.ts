@@ -414,6 +414,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   // from から to への Ping が、ファイアウォールの規則で止められている（通ってはいけない通信。N38）
   z.object({ type: z.literal('blocked'), from: z.string().min(1), to: z.string().min(1) }),
   // from のどの機器から to のどの機器へも Ping が届かない（理由は問わない。ネットワークを分ける）
+  // 指定した端末がすべて自動（DHCP）で、アドレスを受け取っている
+  z.object({ type: z.literal('dhcp_all'), nodes: z.array(z.string().min(1)).min(1) }),
   z.object({ type: z.literal('isolated'), from: z.array(z.string().min(1)).min(1), to: z.array(z.string().min(1)).min(1) }),
   // nodes のすべての機器から、いずれかのサーバーのWebページを閲覧できる
   z.object({ type: z.literal('http_from'), nodes: z.array(z.string().min(1)).min(1), port: z.number().int().min(1).max(65535) }),

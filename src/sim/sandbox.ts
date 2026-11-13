@@ -76,6 +76,6 @@ export const sandboxTest = (office: Office, env: Env, lessonGoals?: Goal[]): Tes
     passed: results.every((r) => r.ok),
     goals: checks,
     traces: results.map((r) => ({ kind: r.kind, src: r.src, dst: r.dst, result: r.result })),
-    warnings: warningsOf(net),
+    warnings: warningsOf(net, env.engine),
   };
 };

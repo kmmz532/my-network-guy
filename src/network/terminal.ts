@@ -8,7 +8,7 @@ import { isIp } from './terminalConfig';
 import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
-import { adOf, bgpTableOf, lagBundlesOf, stpOf, vrrpStatusOf, learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
+import { adOf, bgpTableOf, dhcpOf, lagBundlesOf, stpOf, vrrpStatusOf, learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
 import type { Trace } from '../sim/project';
 import { framesOf } from './frames';
 import { isL2Category, isRoutingCategory } from './category';
@@ -120,6 +120,12 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       const groups = vrrpStatusOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
       if (groups.length === 0) return [out(tr('ui.terminal.vrrpNone'))];
       return groups.map((g) => out(tr('ui.terminal.vrrpGroup', { iface: g.iface, vrid: g.vrid, state: g.state, ip: g.ip, priority: g.priority, preempt: tr(g.preempt ? 'ui.terminal.vrrpPreemptOn' : 'ui.terminal.vrrpPreemptOff') })));
+    }
+    if (sub === 'ip dhcp binding') {
+      // 配ったアドレス（このサーバーが配ったもの）。割り当ては毎回計算で求める（NET.md §5.7）
+      const leases = dhcpOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data).leases.filter((l) => l.server === node.uid);
+      if (leases.length === 0) return [out(tr('ui.terminal.dhcpNone'))];
+      return leases.map((l) => out(tr('ui.terminal.dhcpBinding', { ip: l.ip, name: name(ctx.nodes.find((n) => n.uid === l.uid) ?? node), port: l.port })));
     }
     if (sub === 'etherchannel summary') {
       // 設定のある口を、チャネルごとに出す。まとまった口に (P)、まとまらない口に (I)（NET.md §5.1）

@@ -30,6 +30,7 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
   const setStp = useGameStore((s) => s.setStp);
   const setVrrp = useGameStore((s) => s.setVrrp);
   const setChannel = useGameStore((s) => s.setChannel);
+  const setDhcp = useGameStore((s) => s.setDhcp);
   const setBgp = useGameStore((s) => s.setBgp);
   const setNat = useGameStore((s) => s.setNat);
   const setSvi = useGameStore((s) => s.setSvi);
@@ -79,6 +80,8 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
         return setBgp(node.uid, action);
       case 'stp':
         return setStp(node.uid, action);
+      case 'dhcp':
+        return setDhcp(node.uid, action);
       case 'channel':
         return setChannel(node.uid, action);
       case 'vrrp': {

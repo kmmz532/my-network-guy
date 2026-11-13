@@ -92,6 +92,8 @@ export const compile = (input: Network, data: EngineData): Compiled => {
         flag(node.uid, { reason: 'ip.unset' });
         continue;
       }
+      // 自動（DHCP）の口のアドレスは、割り当てで決まる
+      if (iface.dhcp === true) continue;
       if (!cfg) {
         flag(node.uid, { reason: 'segment.unset', ip: iface.ip });
         continue;

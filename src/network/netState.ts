@@ -8,6 +8,7 @@ import { can } from './capabilities';
 import { macOf } from './mac';
 import { effectivePriority, electVrrpMaster, type VrrpMember } from './vrrp';
 import { computeStp, type StpResult } from './stp';
+import { assignDhcp, type DhcpResult } from './dhcp';
 import { computeLags, type LagBundle, type LagResult } from './lag';
 import { computeBgp, type BgpEnv, type BgpResult } from './bgp';
 import { duplicateRouterIds, electDr, ospfMismatch, ospfPriorityOf, ospfRouterId, type DrCandidate, type OspfMismatch } from './ospf';
@@ -57,10 +58,41 @@ class Topology {
   // 論理リンクごとの、スパニングツリーの代表の配線（止まっていない最初の配線）。まとまっていない配線は含まない
   private stpRep = new Map<string, string>();
 
+  // DHCP の割り当ての結果（自動の口がなければ空）
+  dhcp: DhcpResult = { leases: [], failed: [], multiple: [] };
+
   constructor(
     net: Network,
     private data: EngineData,
+    resolveDhcp = true,
   ) {
+    // 自動（DHCP）の口は、割り当てたアドレスを入れた機器で計算する。割り当ては、アドレスのない状態の配線（L2）から求める
+    if (resolveDhcp && net.nodes.some((n) => n.interfaces.some((i) => i.dhcp === true))) {
+      const base = new Topology(net, data, false);
+      this.dhcp = assignDhcp(net.nodes, {
+        domainOf: (uid, port) => base.domainOf({ node: uid, port }).members,
+        // リレーのルーターが、サーバー側の口（サーバーのアドレスと同じサブネットの口。なければリレーの口）から届くか
+        reaches: (routerUid, routerIp, serverUid, serverIp) => {
+          const toward = base.node(routerUid)?.interfaces.find((i) => i.ip !== '' && inSubnet(serverIp, i.ip, i.prefix));
+          return deliver(base, routerUid, serverUid, { kind: 'ping' }, false, toward?.ip ?? routerIp, serverIp).ok;
+        },
+      });
+      net = {
+        ...net,
+        nodes: net.nodes.map((n) => {
+          const mine = this.dhcp.leases.filter((l) => l.uid === n.uid);
+          if (mine.length === 0) return n;
+          return {
+            ...n,
+            interfaces: n.interfaces.map((i) => {
+              const l = i.dhcp === true ? mine.find((x) => x.port === i.port) : undefined;
+              return l ? { ...i, ip: l.ip, prefix: l.prefix } : i;
+            }),
+            gateway: n.gateway ?? mine.find((l) => l.gateway)?.gateway ?? null,
+          };
+        }),
+      };
+    }
     for (const node of net.nodes) this.nodes.set(node.uid, node);
     for (const link of net.links) {
       this.linkByEndpoint.set(key(link.a), { link, peer: link.b });
@@ -470,6 +502,8 @@ const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic: Traffi
   // 送信元・宛先のアドレスを指定したときは、そのインターフェース（省略は最初の口）
   const srcIface = srcIp === undefined ? src.interfaces[0] : src.interfaces.find((i) => i.ip === srcIp);
   if (!srcIface) return err(fail('ip.unset', src.uid));
+  // 自動（DHCP）の口がアドレスを受け取れなかった
+  if (srcIface.dhcp === true && srcIface.ip === '') return err(fail(topo.dhcp.failed.find((f) => f.uid === src.uid && f.port === srcIface.port)?.reason ?? 'dhcp.no_offer', src.uid));
   const srcEp: Endpoint = { node: src.uid, port: srcIface.port };
   if (topo.isShut(src.uid, srcIface.port)) return err(fail('port.shutdown', src.uid));
   if (!topo.linkAt(srcEp)) return err(fail(unpluggedReason(topo, src.uid), src.uid));
@@ -878,9 +912,9 @@ export const macTableOf = (net: Network, data: EngineData, uid: string): { port:
 };
 
 // 通れば通るが直すべき設定（警告・NET.md §6）: 直結の両端の口の VLAN が違う access（vlan.mismatch）、両端の native が違う trunk（vlan.native_mismatch）
-export type VlanWarning = { id: 'lag.mismatch' | 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch'; a: string; b: string };
+export type VlanWarning = { id: 'dhcp.multiple_servers' | 'lag.mismatch' | 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch'; a: string; b: string };
 
-export const warningsOf = (net: Network): VlanWarning[] => {
+export const warningsOf = (net: Network, data?: EngineData): VlanWarning[] => {
   const cfgOf = (uid: string, port: number): PortConfig | undefined => net.nodes.find((n) => n.uid === uid)?.ports.find((p) => p.port === port);
   const out: VlanWarning[] = [];
   for (const l of net.links) {
@@ -889,6 +923,16 @@ export const warningsOf = (net: Network): VlanWarning[] => {
     if (!ca || !cb) continue;
     if (ca.mode === 'access' && cb.mode === 'access' && (ca.vlan ?? 1) !== (cb.vlan ?? 1)) out.push({ id: 'vlan.mismatch', a: l.a.node, b: l.b.node });
     if (ca.mode === 'trunk' && cb.mode === 'trunk' && (ca.native ?? 1) !== (cb.native ?? 1)) out.push({ id: 'vlan.native_mismatch', a: l.a.node, b: l.b.node });
+  }
+  // DHCP: 同じドメインに DHCP サーバーが2台以上ある（サーバーの組ごとに1件）
+  if (data) {
+    const pairs = new Set<string>();
+    for (const m of dhcpOf(net, data).multiple) {
+      const key = [...m.servers].sort().join('|');
+      if (pairs.has(key)) continue;
+      pairs.add(key);
+      out.push({ id: 'dhcp.multiple_servers', a: m.servers[0], b: m.servers[1] });
+    }
   }
   // リンクアグリゲーション: まとまらない口がある2台（組ごとに1件）
   const lag = computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'));
@@ -947,6 +991,9 @@ export const vrrpStatusOf = (net: Network, data: EngineData, uid: string): VrrpS
 // リンクアグリゲーションで、機器 uid を含むまとまった論理リンク（show etherchannel summary に出す）
 export const lagBundlesOf = (net: Network, uid: string): LagBundle[] =>
   computeLags(net.nodes, net.links, (n) => can(n.device, 'lag')).bundles.filter((b) => b.a === uid || b.b === uid);
+
+// DHCP の割り当て（show ip dhcp binding・警告・達成条件に使う）
+export const dhcpOf = (net: Network, data: EngineData): DhcpResult => new Topology(net, data).dhcp;
 
 export const stpOf = (net: Network, data: EngineData): StpResult => new Topology(net, data).stp();
 

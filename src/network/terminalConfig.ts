@@ -8,6 +8,7 @@
 //   hostname <名前>   /   no hostname   （ホスト名の規則は hostname.ts。英字で始まり、英数字とハイフン、63文字まで）
 //   ip name-server <IP>   /   no ip name-server   （名前を引くネームサーバー。N68）
 //   ip host <名前> <IP>   /   no ip host <名前>   （対応表。ping・traceroute の宛先の名前を引く）
+import type { DhcpPool } from './dhcp';
 import type { Tr } from './terminal';
 import type { Route } from './types';
 import { isValidHostname } from './hostname';
@@ -41,6 +42,11 @@ export type ConfigAction =
   | { kind: 'stp'; op: 'cost'; port: number; value: number }
   // リンクアグリゲーション: channel-group <口> <番号> mode active|passive|on・no channel-group <口>（番号 null は解除）
   | { kind: 'channel'; port: number; group: number | null; lacp?: 'active' | 'passive' | 'on' }
+  // DHCP: ip address <口> dhcp（自動）・ip helper-address <口> <IP>（no で解除）・ip dhcp pool <ネットワーク> <マスク> <先頭> <末尾> [gateway <IP>] [dns <IP>]・no ip dhcp pool <ネットワーク>
+  | { kind: 'dhcp'; op: 'client'; port: number }
+  | { kind: 'dhcp'; op: 'helper'; port: number; ip: string | null }
+  | { kind: 'dhcp'; op: 'pool'; pool: DhcpPool }
+  | { kind: 'dhcp'; op: 'noPool'; network: string }
   // OSPF の機器・インターフェースの設定: router-id <IP>・no router-id・default-information originate・no default-information originate・
   // ip ospf cost|priority|hello-interval|dead-interval <口> <値>
   | { kind: 'ospf'; op: 'routerId'; ip: string | null }
@@ -164,6 +170,30 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     if (key === undefined || rest.length !== 4 || !/^[0-9]+$/.test(rest[2]) || !/^[0-9]+$/.test(rest[3])) return error('ui.terminal.usageOspf');
     return { kind: 'action', action: { kind: 'ospf', op: 'iface', port: Number(rest[2]), key, value: Number(rest[3]) } };
   }
+  // DHCP
+  if (first === 'ip' && rest[0] === 'helper-address') {
+    if (rest.length !== 3 || port(rest[1]) === null || !isIp(rest[2])) return error('ui.terminal.usageDhcp');
+    return { kind: 'action', action: { kind: 'dhcp', op: 'helper', port: Number(rest[1]), ip: rest[2] } };
+  }
+  if (first === 'no' && rest[0] === 'ip' && rest[1] === 'helper-address') {
+    if (rest.length !== 3 || port(rest[2]) === null) return error('ui.terminal.usageDhcp');
+    return { kind: 'action', action: { kind: 'dhcp', op: 'helper', port: Number(rest[2]), ip: null } };
+  }
+  if (first === 'ip' && rest[0] === 'dhcp' && rest[1] === 'pool') {
+    const [, , network, mask, start, end, ...opts] = rest;
+    const prefix = maskToPrefix(mask ?? '');
+    if (!isIp(network ?? '') || prefix === null || !isIp(start ?? '') || !isIp(end ?? '') || opts.length % 2 !== 0) return error('ui.terminal.usageDhcp');
+    const pool: DhcpPool = { network, prefix, start, end };
+    for (let i = 0; i < opts.length; i += 2) {
+      if ((opts[i] !== 'gateway' && opts[i] !== 'dns') || !isIp(opts[i + 1])) return error('ui.terminal.usageDhcp');
+      pool[opts[i] as 'gateway' | 'dns'] = opts[i + 1];
+    }
+    return { kind: 'action', action: { kind: 'dhcp', op: 'pool', pool } };
+  }
+  if (first === 'no' && rest[0] === 'ip' && rest[1] === 'dhcp' && rest[2] === 'pool') {
+    if (rest.length !== 4 || !isIp(rest[3])) return error('ui.terminal.usageDhcp');
+    return { kind: 'action', action: { kind: 'dhcp', op: 'noPool', network: rest[3] } };
+  }
   // 無線（N151）
   if (first === 'wireless') {
     const [key, value] = rest;
@@ -276,6 +306,11 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     return { kind: 'action', action: { kind: 'portMode', port: p, mode: { kind: 'routed' } } };
   }
 
+  if (first === 'ip' && rest[0] === 'address' && rest.length === 3 && rest[2] === 'dhcp') {
+    const p = port(rest[1]);
+    if (p === null) return error('ui.terminal.errPort');
+    return { kind: 'action', action: { kind: 'dhcp', op: 'client', port: p } };
+  }
   if (first === 'ip' && rest[0] === 'address') {
     if (rest.length !== 4) return error('ui.terminal.usageIpAddress');
     const p = port(rest[1]);

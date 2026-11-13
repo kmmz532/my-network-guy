@@ -27,6 +27,7 @@ import {
   type Segment,
 } from '../network/segments';
 import type { VrrpGroup } from '../network/vrrp';
+import type { DhcpPool } from '../network/dhcp';
 import type {
   EngineData,
   FailureReason,
@@ -1184,6 +1185,44 @@ export const setStp = (core: Core, uid: string, change: StpOp, target: NetTarget
     target,
   );
 
+// DHCP の設定（NET.md §5.7）: 口を自動にする（client）・リレー先（helper）・プール（pool・noPool）
+export type DhcpOp =
+  | { op: 'client'; port: number }
+  | { op: 'helper'; port: number; ip: string | null }
+  | { op: 'pool'; pool: DhcpPool }
+  | { op: 'noPool'; network: string };
+export const setDhcp = (core: Core, uid: string, change: DhcpOp, env: Env, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      const portOk = (port: number) => Number.isInteger(port) && port >= 0 && port < (env.devices[node.device]?.portCount ?? 0);
+      if (change.op === 'client') {
+        if (!portOk(change.port)) return 'port.none';
+        if (can(node.device, 'switchport') && !can(node.device, 'routedPort')) return 'dhcp.unsupported';
+        const others = node.interfaces.filter((i) => i.port !== change.port);
+        return { ...node, interfaces: [...others, { ...makeIface(node.device, change.port, '', 24), dhcp: true }] };
+      }
+      if (change.op === 'helper') {
+        if (!can(node.device, 'dhcpRelay')) return 'dhcp.unsupported';
+        const iface = node.interfaces.find((i) => i.port === change.port && i.ip !== '');
+        if (!iface) return 'iface.none';
+        if (change.ip !== null && !isIp(change.ip)) return 'ip';
+        return { ...node, interfaces: node.interfaces.map((i) => (i === iface ? { ...i, helper: change.ip ?? undefined } : i)) };
+      }
+      if (!can(node.device, 'services')) return 'dhcp.unsupported';
+      if (change.op === 'noPool') {
+        const next = (node.dhcpPools ?? []).filter((p) => p.network !== change.network);
+        return { ...node, dhcpPools: next.length > 0 ? next : undefined };
+      }
+      const p = change.pool;
+      if (![p.network, p.start, p.end].every(isIp) || ipToInt(p.start) > ipToInt(p.end) || !inSubnet(p.start, p.network, p.prefix) || !inSubnet(p.end, p.network, p.prefix)) return 'dhcp.pool';
+      if ((p.gateway !== undefined && !isIp(p.gateway)) || (p.dns !== undefined && !isIp(p.dns))) return 'dhcp.pool';
+      return { ...node, dhcpPools: [...(node.dhcpPools ?? []).filter((x) => x.network !== p.network), p] };
+    },
+    target,
+  );
+
 // リンクアグリゲーションの設定（口のチャネルの番号と、まとめるモード）。lag を持つ機器だけ。group が null なら解除
 export type ChannelOp = { port: number; group: number | null; lacp?: 'active' | 'passive' | 'on' };
 export const setChannel = (core: Core, uid: string, change: ChannelOp, env: Env, target: NetTarget = 'focus'): Outcome =>
@@ -1696,7 +1735,7 @@ export const testDesign = (core: Core, env: Env): TestOutcome => {
   const p = requireDesign(core);
   if (typeof p === 'string') return { ok: false, reason: p };
   const j = judge(p, env);
-  const result: TestResult = { passed: j.passed, goals: j.goals, traces: j.traces, warnings: warningsOf(p) };
+  const result: TestResult = { passed: j.passed, goals: j.goals, traces: j.traces, warnings: warningsOf(p, env.engine) };
   return { ok: true, core: withProject(core, { ...p, testedOk: j.passed }), result };
 };
 
