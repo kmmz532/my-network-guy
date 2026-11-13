@@ -1,0 +1,127 @@
+{
+  "id": "v001_one_switch_two_depts",
+  "stage": 2,
+  "order": 110,
+  "requires": [
+    "c003_departments"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_small",
+  "budget": 60000,
+  "deadlineDays": 8,
+  "placed": [
+    {
+      "ref": "sales_a",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "営業PC1"
+    },
+    {
+      "ref": "sales_b",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "営業PC2"
+    },
+    {
+      "ref": "acc_a",
+      "device": "pc_basic",
+      "x": 11,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "経理PC1"
+    },
+    {
+      "ref": "acc_b",
+      "device": "pc_basic",
+      "x": 11,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "経理PC2"
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": [
+        "sales_a",
+        "sales_b"
+      ]
+    },
+    {
+      "type": "ping_all",
+      "nodes": [
+        "acc_a",
+        "acc_b"
+      ]
+    },
+    {
+      "type": "isolated",
+      "from": [
+        "sales_a",
+        "sales_b"
+      ],
+      "to": [
+        "acc_a",
+        "acc_b"
+      ]
+    }
+  ],
+  "reward": {
+    "money": 150000
+  },
+  "unlockLevel": 12
+}

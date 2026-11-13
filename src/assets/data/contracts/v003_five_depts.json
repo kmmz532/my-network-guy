@@ -1,0 +1,143 @@
+{
+  "id": "v003_five_depts",
+  "stage": 2,
+  "order": 130,
+  "requires": [
+    "v001_one_switch_two_depts"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_rooms",
+  "budget": 300000,
+  "deadlineDays": 14,
+  "placed": [
+    {
+      "ref": "dept_a",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.10.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.10.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "部署A PC"
+    },
+    {
+      "ref": "dept_b",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.20.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.20.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "部署B PC"
+    },
+    {
+      "ref": "dept_c",
+      "device": "pc_basic",
+      "x": 17,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.30.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.30.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "部署C PC"
+    },
+    {
+      "ref": "dept_d",
+      "device": "pc_basic",
+      "x": 17,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.40.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.40.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "部署D PC"
+    },
+    {
+      "ref": "guest",
+      "device": "pc_basic",
+      "x": 13,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.99.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "来客用PC"
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": [
+        "dept_a",
+        "dept_b",
+        "dept_c",
+        "dept_d"
+      ]
+    },
+    {
+      "type": "isolated",
+      "from": [
+        "guest"
+      ],
+      "to": [
+        "dept_a",
+        "dept_b",
+        "dept_c",
+        "dept_d"
+      ]
+    }
+  ],
+  "reward": {
+    "money": 780000
+  },
+  "unlockLevel": 20
+}
