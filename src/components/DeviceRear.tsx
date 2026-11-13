@@ -12,7 +12,7 @@ import { gameEnv } from '../sim/env';
 import type { NetLink, NetNode } from '../network/types';
 import type { Network } from '../network/types';
 import { colorOfLink, colorOfNetwork, networkColors, networkLabelOf, networksOfLink } from '../network/netColor';
-import { withWireless } from '../network/netState';
+import { portStatesOf, stpOf, withWireless } from '../network/netState';
 import { loadSettings } from '../settings/settings';
 import { useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, portLabel } from './devicePorts';
@@ -74,6 +74,8 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
   const SCALE = scaleFor(portCount);
   const portsPerRow = portsPerRowFor(portCount);
   const byUid = new Map(nodes.map((n) => [n.uid, n]));
+  const states = new Map(portStatesOf(net, gameEnv.engine, node.uid).map((s) => [s.port, s]));
+  const isRootBridge = stpOf(net, gameEnv.engine).root === node.uid;
   const colors = networkColors(withWireless(net, gameEnv.engine), gameEnv.engine);
   const linkAt = (port: number) =>
     links.find((l) => (l.a.node === node.uid && l.a.port === port) || (l.b.node === node.uid && l.b.port === port));
@@ -192,6 +194,9 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
               : `#${(stripeColors[0] ?? colorOfLink(colors, link?.uid ?? '')).toString(16).padStart(6, '0')}`;
             const fiber = link?.cable.startsWith('fiber') ?? false;
             const lit = !lifted && link !== undefined;
+            // LED: 緑＝つながっている・橙＝スパニングツリーで止めている・灰＝停止・消灯＝配線なし（NET.md §5.1）
+            const state = states.get(p);
+            const led = !lit ? '#2a2f36' : state?.shutdown ? '#8a8f98' : state?.stp === 'blocking' ? '#f0a030' : '#62d26f';
             // 挿し替え中は、空いているポートを光らせて挿し替え先を示す
             const replugFree = active !== null && link === undefined;
             // ドラッグ中は、重なっているポートを明るく（空き）・暗く（埋まり）示す。それ以外は押しているポートを明るくする
@@ -237,8 +242,8 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
                   filter,
                 }}
               >
-                {/* LED（つながっていれば緑）。2×2 の点を3倍にする */}
-                <span style={{ width: 2 * SCALE, height: 2 * SCALE, background: lit ? '#62d26f' : '#2a2f36' }} />
+                {/* LED（緑・橙・灰・消灯）。2×2 の点を3倍にする */}
+                <span style={{ width: 2 * SCALE, height: 2 * SCALE, background: led }} />
                 <span style={{ position: 'relative', width: (fiber ? 8 : 12) * SCALE, height: 10 * SCALE, display: 'block' }}>
                   <img src={spriteUrl(spriteOf(slot))} width={(fiber ? 8 : 12) * SCALE} height={10 * SCALE} alt="" draggable={false} style={{ imageRendering: 'pixelated', display: 'block' }} />
                   {!lifted && link && (
@@ -280,6 +285,8 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
           document.body,
         )}
 
+      {isRootBridge && <div style={{ color: '#ffd866', fontSize: 12, marginBottom: 6 }}>{t('ui.rear.stpRootBridge')}</div>}
+
       {/* ポートの一覧: 相手の機器名とポート、ケーブルの種類 */}
       {ports.map((p) => {
         const link = linkAt(p);
@@ -305,6 +312,9 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
           >
             <span style={{ fontWeight: 'bold', marginRight: 6 }}>{portLabel(category, p)}</span>
             <span style={{ color: link ? '#62d26f' : greyColor }}>{link ? peerName : t('ui.rear.free')}</span>
+            {link && states.get(p)?.shutdown && <div style={{ color: greyColor, fontSize: 11 }}>{t('ui.rear.shutdown')}</div>}
+            {link && states.get(p)?.stp && <div style={{ color: states.get(p)?.stp === 'blocking' ? '#f0a030' : greyColor, fontSize: 11 }}>{t(states.get(p)?.stp === 'blocking' ? 'ui.rear.stpBlocking' : states.get(p)?.stp === 'root' ? 'ui.rear.stpRootPort' : 'ui.rear.stpDesignated')}</div>}
+            {link && states.get(p)?.channel && <div style={{ color: states.get(p)?.channel?.bundled ? '#62d26f' : '#f0a030', fontSize: 11 }}>{t(states.get(p)?.channel?.bundled ? 'ui.rear.channelBundled' : 'ui.rear.channelSplit', { group: states.get(p)?.channel?.group ?? 0 })}</div>}
             {link && <div style={{ color: greyColor, fontSize: 11 }}>{tDyn(`cable.${link.cable}.name`)} {networksOfLink(colors, link.uid).map((network) => <span key={network} style={{ marginLeft: 5 }}><span style={{ display: 'inline-block', width: 8, height: 8, background: `#${(colorOfNetwork(colors, network) ?? colorOfLink(colors, link.uid)).toString(16).padStart(6, '0')}` }} /> {networkLabelOf(colors, network)}</span>)}</div>}
           </button>
         );

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping, stpOf, warningsOf } from './netState';
+import { ping, portStatesOf, stpOf, warningsOf } from './netState';
 import { lacpCompatible } from './lag';
 import type { Iface, NetLink, NetNode, Network, PortConfig } from './types';
 
@@ -94,5 +94,18 @@ describe('リンクアグリゲーションのターミナル', () => {
     expect(bad).toContain('"state":"D"');
     expect(bad).toContain('0(I) 1(I)');
     expect(runTerminal('show etherchannel summary', { node: node('x', 'l2_switch_8p', 9), nodes: [], links: [], data }, tr)[0].text).toBe('ui.terminal.channelNone');
+  });
+});
+
+describe('口の状態（背面の画面）', () => {
+  it('まとまった口は bundled、まとまらない口は bundled でなく、止めた口は shutdown になる', () => {
+    expect(portStatesOf(pair([], []), data, 'sw1').find((s) => s.port === 0)?.channel).toEqual({ group: 1, bundled: true });
+    const split = pair([{ lacp: 'passive' }, { lacp: 'passive' }], [{ lacp: 'passive' }, { lacp: 'passive' }]);
+    const states = portStatesOf(split, data, 'sw1');
+    expect(states.find((s) => s.port === 0)?.channel).toEqual({ group: 1, bundled: false });
+    // 輪はスパニングツリーが1本を止める
+    expect(states.filter((s) => s.stp === 'blocking').length + portStatesOf(split, data, 'sw2').filter((s) => s.stp === 'blocking').length).toBe(1);
+    const shut: Network = { ...split, nodes: split.nodes.map((n) => (n.uid === 'sw1' ? { ...n, ports: n.ports.map((p) => (p.port === 0 ? { ...p, shutdown: true } : p)) } : n)) };
+    expect(portStatesOf(shut, data, 'sw1').find((s) => s.port === 0)?.shutdown).toBe(true);
   });
 });
