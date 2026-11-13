@@ -401,7 +401,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
       {can(node.device, 'wireless') && <WirelessField key={`w-${node.uid}`} node={node} net={net} readOnly={readOnly} onError={onError} />}
       {node.configLocked && <div style={{ marginBottom: 6 }}>{t('ui.config.locked')}</div>}
       {ports.map(renderPort)}
-      {can(node.device, 'svi') && (gameEnv.devices[node.device]?.sviMax ?? 0) > 1 && <SviField node={node} disabled={locked} onError={onError} />}
+      {can(node.device, 'svi') && category === CATEGORY.l3Switch && <SviField node={node} disabled={locked} onError={onError} />}
       {!isRoutingCategory(category ?? '') && renderGateway()}
       {/* ファイアウォールも経路を持つ（直列の構成で、戻りの経路を置くため）。規則と静的ルートの両方を出す（N-fw） */}
       {isRoutingCategory(category ?? '') && renderRoutes()}
