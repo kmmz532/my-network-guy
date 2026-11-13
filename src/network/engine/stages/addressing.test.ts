@@ -74,7 +74,7 @@ describe('セグメントの設定から機器の設定を作る', () => {
     const { net: out, issues } = addressing(net);
     expect(issues).toEqual({});
     expect(ping(analyze(out, data), 'p0', 'p299').ok).toBe(true);
-  }, 60_000);
+  });
 
   it('/31 の回線では、2台のルーターのアドレスをどちらも使って疎通する', () => {
     const r1 = router('r1', [{ id: 'g0/0', kind: 'port', port: 0, ip: '10.0.0.0', prefix: 31 }]);

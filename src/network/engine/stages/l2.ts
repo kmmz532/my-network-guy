@@ -103,9 +103,11 @@ export const stageL2 = (net: Network, links: LinkLayer): L2Layer => {
 
   let stpResult: StpResult | undefined;
   const stp = (): StpResult => {
-    // まとまった物理のリンクは、代表の1本だけを渡す（論理リンクは1本）
-    const reps = [...linkByEndpoint.values()].map((x) => x.link).filter((l, i, all) => all.indexOf(l) === i && (stpRep.get(l.uid) ?? l.uid) === l.uid);
-    stpResult ??= computeStp([...nodes.values()], reps, (n) => can(n.device, 'stp'));
+    if (stpResult === undefined) {
+      // まとまった物理のリンクは、代表の1本だけを渡す（論理リンクは1本）
+      const reps = [...new Set([...linkByEndpoint.values()].map((x) => x.link))].filter((l) => (stpRep.get(l.uid) ?? l.uid) === l.uid);
+      stpResult = computeStp([...nodes.values()], reps, (n) => can(n.device, 'stp'));
+    }
     return stpResult;
   };
 
@@ -140,18 +142,25 @@ export const stageL2 = (net: Network, links: LinkLayer): L2Layer => {
     const members: Endpoint[] = [];
     const visited = new Set<string>();
     const startVlan = vlanOf(start.node, start.port);
-    const queue: { ep: Endpoint; vlan: number }[] = [{ ep: start, vlan: startVlan }];
+    const queue: { ep: Endpoint; vlan: number }[] = [];
+    // 同じ端点・VLAN は、積むときに1度だけにする（スイッチの口ごとに全部の口を積み直すと、キューが口数の2乗になる）
+    const enqueue = (ep: Endpoint, vlan: number) => {
+      const k = `${key(ep)}@${vlan}`;
+      if (visited.has(k)) return;
+      visited.add(k);
+      queue.push({ ep, vlan });
+    };
+    const counted = new Set<string>();
+    const expanded = new Set<string>();
+    enqueue(start, startVlan);
     // 同じL2ドメインの配線の数と機器の数。機器を頂点、配線を辺と見て、辺が頂点以上あれば輪になっている
     const cables = new Set<string>();
     const devices = new Set<string>();
     let relay: Endpoint | undefined;
     let tooLong: Endpoint | undefined;
 
-    while (queue.length) {
-      const { ep, vlan } = queue.shift()!;
-      const k = `${key(ep)}@${vlan}`;
-      if (visited.has(k)) continue;
-      visited.add(k);
+    for (let head = 0; head < queue.length; head++) {
+      const { ep, vlan } = queue[head];
       // 停止している口と、その VLAN を通さない口は、ドメインに入らない
       if (blocked(ep.node, ep.port) || !carries(ep.node, ep.port, vlan)) continue;
       devices.add(ep.node);
@@ -159,7 +168,8 @@ export const stageL2 = (net: Network, links: LinkLayer): L2Layer => {
       // 機器の口（設定なし）は、届いたフレームの VLAN に属する。設定のある access の口は、その VLAN の口だけ数える
       const cfgMember = portCfg(ep.node, ep.port);
       // 同じ機器の口は、VLAN が違っても1回だけ数える（ドメインの機器の一覧に重複させない）
-      if (!isRelay(ep.node, ep.port) && (cfgMember === undefined || vlanOf(ep.node, ep.port) === vlan) && !members.some((m) => key(m) === key(ep))) {
+      if (!isRelay(ep.node, ep.port) && (cfgMember === undefined || vlanOf(ep.node, ep.port) === vlan) && !counted.has(key(ep))) {
+        counted.add(key(ep));
         members.push(ep);
       }
       if (isFabric(ep.node, ep.port)) relay ??= ep;
@@ -175,16 +185,18 @@ export const stageL2 = (net: Network, links: LinkLayer): L2Layer => {
           if (!tooLong && links.tooLong.has(link.uid)) {
             tooLong = ep;
           }
-          queue.push({ ep: peer, vlan: peerVlan });
+          enqueue(peer, peerVlan);
         }
       }
       // 機器の内部のスイッチに入ったら、同じ VLAN を通す口をすべてたどる。SVI（VLAN のインターフェース）は、同じ VLAN のスイッチの中に入る
-      if (isFabric(ep.node, ep.port) || isSviPort(ep.port)) {
+      // 広げる先は機器と VLAN だけで決まるため、同じ機器・VLAN では1度だけ広げる
+      if ((isFabric(ep.node, ep.port) || isSviPort(ep.port)) && !expanded.has(`${ep.node}@${vlan}`)) {
+        expanded.add(`${ep.node}@${vlan}`);
         for (const port of fabricBy.get(ep.node) ?? []) {
-          queue.push({ ep: { node: ep.node, port }, vlan });
+          enqueue({ node: ep.node, port }, vlan);
         }
         for (const svi of svisOf(ep.node)) {
-          if (svi.vlan === vlan) queue.push({ ep: { node: ep.node, port: svi.port }, vlan });
+          if (svi.vlan === vlan) enqueue({ node: ep.node, port: svi.port }, vlan);
         }
       }
     }
