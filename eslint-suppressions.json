@@ -1,0 +1,680 @@
+{
+  "src/components/DevicePanel.tsx": {
+    "local/no-category": {
+      "count": 5
+    },
+    "local/no-engine-in-view": {
+      "count": 1
+    }
+  },
+  "src/components/DeviceRear.tsx": {
+    "local/no-category": {
+      "count": 3
+    },
+    "local/no-engine-in-view": {
+      "count": 2
+    }
+  },
+  "src/components/DeviceSettings.tsx": {
+    "local/no-category": {
+      "count": 10
+    },
+    "local/no-engine-in-view": {
+      "count": 3
+    }
+  },
+  "src/components/FramesPanel.tsx": {
+    "local/no-category": {
+      "count": 2
+    }
+  },
+  "src/components/Guide.tsx": {
+    "local/no-category": {
+      "count": 1
+    }
+  },
+  "src/components/Header.tsx": {
+    "local/no-mode-branch": {
+      "count": 2
+    }
+  },
+  "src/components/Inventory.tsx": {
+    "local/no-category": {
+      "count": 1
+    },
+    "local/no-mode-branch": {
+      "count": 2
+    }
+  },
+  "src/components/LoopBanner.tsx": {
+    "local/no-mode-branch": {
+      "count": 2
+    }
+  },
+  "src/components/OfferCards.tsx": {
+    "local/no-category": {
+      "count": 2
+    }
+  },
+  "src/components/OfficePanel.tsx": {
+    "local/no-category": {
+      "count": 1
+    }
+  },
+  "src/components/PortMenu.tsx": {
+    "local/no-category": {
+      "count": 1
+    }
+  },
+  "src/components/ShopCards.tsx": {
+    "local/no-category": {
+      "count": 1
+    },
+    "local/no-mode-branch": {
+      "count": 2
+    }
+  },
+  "src/components/Toolbar.tsx": {
+    "local/no-mode-branch": {
+      "count": 2
+    }
+  },
+  "src/components/devicePorts.ts": {
+    "local/no-category": {
+      "count": 4
+    }
+  },
+  "src/components/goalText.ts": {
+    "local/no-category": {
+      "count": 2
+    }
+  },
+  "src/components/nodeLabel.ts": {
+    "local/no-category": {
+      "count": 2
+    },
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 2
+    }
+  },
+  "src/components/scene/GamePopups.tsx": {
+    "local/no-mode-branch": {
+      "count": 2
+    }
+  },
+  "src/components/scene/SaveSlotDialog.tsx": {
+    "local/no-mode-branch": {
+      "count": 3
+    }
+  },
+  "src/components/scene/TitleScene.tsx": {
+    "local/no-mode-branch": {
+      "count": 7
+    }
+  },
+  "src/components/scene/TitleScreen.tsx": {
+    "local/no-mode-branch": {
+      "count": 1
+    }
+  },
+  "src/contracts/templateBudget.test.ts": {
+    "local/no-category": {
+      "count": 3
+    }
+  },
+  "src/game/DeviceLabelRenderer.ts": {
+    "local/no-category": {
+      "count": 2
+    }
+  },
+  "src/game/DeviceRenderer.ts": {
+    "local/no-category": {
+      "count": 1
+    },
+    "local/no-mode-branch": {
+      "count": 1
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/game/FailureRenderer.ts": {
+    "local/no-mode-branch": {
+      "count": 1
+    }
+  },
+  "src/game/MapCamera.ts": {
+    "local/no-mode-branch": {
+      "count": 1
+    }
+  },
+  "src/game/MapInput.ts": {
+    "local/no-mode-branch": {
+      "count": 4
+    }
+  },
+  "src/game/NetworkRenderer.ts": {
+    "local/no-category": {
+      "count": 3
+    }
+  },
+  "src/game/Scene.ts": {
+    "local/no-engine-in-view": {
+      "count": 3
+    },
+    "local/no-mode-branch": {
+      "count": 2
+    }
+  },
+  "src/input/keymap.test.ts": {
+    "local/no-mode-branch": {
+      "count": 2
+    }
+  },
+  "src/input/keymap.ts": {
+    "local/no-mode-branch": {
+      "count": 3
+    }
+  },
+  "src/network/__oracle__/engineLegacy.ts": {
+    "local/no-category": {
+      "count": 8
+    },
+    "local/no-topology-outside-engine": {
+      "count": 3
+    }
+  },
+  "src/network/capabilities.ts": {
+    "local/no-category": {
+      "count": 1
+    }
+  },
+  "src/network/category.ts": {
+    "local/no-category": {
+      "count": 7
+    }
+  },
+  "src/network/channelOverlap.test.ts": {
+    "local/no-handmade-engine-data": {
+      "count": 2
+    }
+  },
+  "src/network/compile.test.ts": {
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/network/compile.ts": {
+    "local/no-category": {
+      "count": 1
+    }
+  },
+  "src/network/engine.test.ts": {
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/network/external.test.ts": {
+    "local/no-category": {
+      "count": 1
+    },
+    "local/no-handmade-engine-data": {
+      "count": 3
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/network/external.ts": {
+    "local/no-category": {
+      "count": 5
+    }
+  },
+  "src/network/firewall.test.ts": {
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/network/frames.test.ts": {
+    "local/no-category": {
+      "count": 2
+    },
+    "local/no-handmade-engine-data": {
+      "count": 1
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/network/frames.ts": {
+    "local/no-category": {
+      "count": 1
+    }
+  },
+  "src/network/goals.ts": {
+    "local/no-category": {
+      "count": 8
+    }
+  },
+  "src/network/groupGoals.test.ts": {
+    "local/no-handmade-engine-data": {
+      "count": 4
+    },
+    "local/no-unknown-fallback": {
+      "count": 2
+    }
+  },
+  "src/network/iface.ts": {
+    "local/no-category": {
+      "count": 1
+    }
+  },
+  "src/network/lag.test.ts": {
+    "local/no-handmade-engine-data": {
+      "count": 2
+    }
+  },
+  "src/network/learn.test.ts": {
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/network/learn.ts": {
+    "local/no-category": {
+      "count": 4
+    }
+  },
+  "src/network/mac.test.ts": {
+    "local/no-category": {
+      "count": 1
+    }
+  },
+  "src/network/mac.ts": {
+    "local/no-category": {
+      "count": 1
+    }
+  },
+  "src/network/netColor.test.ts": {
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/network/netColor.ts": {
+    "local/no-category": {
+      "count": 2
+    }
+  },
+  "src/network/netState.ts": {
+    "local/no-category": {
+      "count": 27
+    }
+  },
+  "src/network/noStaticRoute.test.ts": {
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/network/nodeName.test.ts": {
+    "local/no-category": {
+      "count": 2
+    },
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/network/ospf.test.ts": {
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/network/pcWifi.test.ts": {
+    "local/no-category": {
+      "count": 1
+    }
+  },
+  "src/network/portSecurity.test.ts": {
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/network/reachCategory.test.ts": {
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/network/resolve.test.ts": {
+    "local/no-handmade-engine-data": {
+      "count": 4
+    },
+    "local/no-unknown-fallback": {
+      "count": 2
+    }
+  },
+  "src/network/routerSwitch.test.ts": {
+    "local/no-category": {
+      "count": 1
+    },
+    "local/no-handmade-engine-data": {
+      "count": 3
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/network/segments.test.ts": {
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/network/segments.ts": {
+    "local/no-category": {
+      "count": 2
+    }
+  },
+  "src/network/terminal.test.ts": {
+    "local/no-handmade-engine-data": {
+      "count": 8
+    },
+    "local/no-unknown-fallback": {
+      "count": 4
+    }
+  },
+  "src/network/terminal.ts": {
+    "local/no-category": {
+      "count": 4
+    },
+    "local/no-handmade-engine-data": {
+      "count": 1
+    }
+  },
+  "src/network/wirelessClients.test.ts": {
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/services/companies.test.ts": {
+    "local/no-mode-branch": {
+      "count": 11
+    }
+  },
+  "src/services/companies.ts": {
+    "local/no-mode-branch": {
+      "count": 1
+    }
+  },
+  "src/services/companySlots.test.ts": {
+    "local/no-mode-branch": {
+      "count": 16
+    }
+  },
+  "src/services/legacyColors.ts": {
+    "local/no-category": {
+      "count": 8
+    }
+  },
+  "src/services/migrations.ts": {
+    "local/no-category": {
+      "count": 3
+    },
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-mode-branch": {
+      "count": 7
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/services/save.test.ts": {
+    "local/no-mode-branch": {
+      "count": 6
+    }
+  },
+  "src/sim/autoAssign.test.ts": {
+    "local/no-category": {
+      "count": 2
+    },
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/sim/autoAssign.ts": {
+    "local/no-category": {
+      "count": 8
+    }
+  },
+  "src/sim/env.ts": {
+    "local/no-category": {
+      "count": 2
+    },
+    "local/no-handmade-engine-data": {
+      "count": 3
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/sim/guide.test.ts": {
+    "local/no-handmade-engine-data": {
+      "count": 1
+    }
+  },
+  "src/sim/guide.ts": {
+    "local/no-category": {
+      "count": 4
+    }
+  },
+  "src/sim/invariants.test.ts": {
+    "local/no-category": {
+      "count": 2
+    },
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/sim/lesson.test.ts": {
+    "local/no-category": {
+      "count": 3
+    },
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/sim/move.test.ts": {
+    "local/no-category": {
+      "count": 2
+    },
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/sim/pricing.test.ts": {
+    "local/no-category": {
+      "count": 2
+    }
+  },
+  "src/sim/pricing.ts": {
+    "local/no-category": {
+      "count": 3
+    }
+  },
+  "src/sim/project.test.ts": {
+    "local/no-category": {
+      "count": 2
+    },
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/sim/project.ts": {
+    "local/no-category": {
+      "count": 13
+    }
+  },
+  "src/sim/reference.test.ts": {
+    "local/no-category": {
+      "count": 2
+    },
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/sim/replug.test.ts": {
+    "local/no-category": {
+      "count": 2
+    },
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/sim/sandbox.test.ts": {
+    "local/no-category": {
+      "count": 2
+    },
+    "local/no-handmade-engine-data": {
+      "count": 2
+    },
+    "local/no-unknown-fallback": {
+      "count": 1
+    }
+  },
+  "src/sim/sandbox.ts": {
+    "local/no-category": {
+      "count": 4
+    }
+  },
+  "src/sim/shop.test.ts": {
+    "local/no-mode-branch": {
+      "count": 1
+    }
+  },
+  "src/sim/shop.ts": {
+    "local/no-mode-branch": {
+      "count": 1
+    }
+  },
+  "src/stores/gameHelpers.ts": {
+    "local/no-category": {
+      "count": 1
+    },
+    "local/no-mode-branch": {
+      "count": 2
+    }
+  },
+  "src/stores/gameOps.ts": {
+    "local/no-mode-branch": {
+      "count": 2
+    }
+  },
+  "src/stores/resume.test.ts": {
+    "local/no-mode-branch": {
+      "count": 1
+    }
+  },
+  "src/stores/slices/designSlice.ts": {
+    "local/no-mode-branch": {
+      "count": 4
+    }
+  },
+  "src/stores/slices/economySlice.ts": {
+    "local/no-mode-branch": {
+      "count": 7
+    }
+  },
+  "src/stores/slices/officeSlice.ts": {
+    "local/no-mode-branch": {
+      "count": 6
+    }
+  },
+  "src/stores/slices/sessionSlice.ts": {
+    "local/no-mode-branch": {
+      "count": 5
+    }
+  },
+  "src/stores/startup.test.ts": {
+    "local/no-mode-branch": {
+      "count": 1
+    }
+  },
+  "src/stores/tickSystems.ts": {
+    "local/no-mode-branch": {
+      "count": 3
+    }
+  },
+  "src/stores/useGameStore.ts": {
+    "local/no-mode-branch": {
+      "count": 1
+    }
+  },
+  "src/ui/titleFlow.test.ts": {
+    "local/no-mode-branch": {
+      "count": 5
+    }
+  },
+  "src/ui/titleFlow.ts": {
+    "local/no-mode-branch": {
+      "count": 11
+    }
+  }
+}
