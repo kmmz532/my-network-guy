@@ -1,3 +1,4 @@
+import { analyze } from './engine/analyze';
 // 名前の解決（N68）。ping・traceroute の宛先の名前を、IPアドレスに直す純粋な関数。
 // 引く順番: 1. 機器自身の対応表（ip host）→ 2. 機器のネームサーバー（ip name-server）→ 3. 見つからなければ失敗。
 // ネームサーバーへの問い合わせは、ネームサーバーまで通信が届く場合だけ成功する（今の経路の計算 ping を使う）。
@@ -16,7 +17,7 @@ export const resolveName = (from: NetNode, name: string, net: Network, data: Eng
   const server = net.nodes.find((n) => n.dns !== undefined && n.interfaces.some((i) => i.ip === serverIp));
   // ネームサーバーの IPアドレスの機器が DNS でなければ、問い合わせに答えるものがない
   if (!server) return { ok: false, reason: 'dns.unreachable' };
-  if (!ping(net, data, from.uid, server.uid).ok) return { ok: false, reason: 'dns.unreachable', server: server.uid };
+  if (!ping(analyze(net, data), from.uid, server.uid).ok) return { ok: false, reason: 'dns.unreachable', server: server.uid };
   const hit = (server.dns?.zone ?? []).find((h) => h.name === name);
   return hit ? { ok: true, ip: hit.ip, via: 'dns', server: server.uid } : { ok: false, reason: 'not_found', server: server.uid };
 };

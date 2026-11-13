@@ -1,7 +1,8 @@
+import { ping } from './engine';
+import { analyze } from './engine/analyze';
 // BGP（eBGP・MVP）。隣接が合うと経路が届き、設定が合わないと届かない（N147）
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping } from './netState';
 import type { BgpConfig, Iface, NetNode, Network } from './types';
 
 const iface = (port: number, ip: string): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24 });
@@ -39,16 +40,16 @@ const r2Ok: BgpConfig = { asn: 200, neighbors: [{ ip: '10.0.12.1', remoteAs: 100
 describe('BGP（eBGP・MVP）', () => {
   it('両方が相手の AS と隣接を設定すると、両方向に届く', () => {
     const net = build(r1Ok, r2Ok);
-    expect(ping(net, gameEnv.engine, 'pa', 'pb').ok).toBe(true);
-    expect(ping(net, gameEnv.engine, 'pb', 'pa').ok).toBe(true);
+    expect(ping(analyze(net, gameEnv.engine), 'pa', 'pb').ok).toBe(true);
+    expect(ping(analyze(net, gameEnv.engine), 'pb', 'pa').ok).toBe(true);
   });
 
   it('片方だけ隣接を設定すると、セッションが張れず届かない', () => {
-    expect(ping(build(r1Ok, undefined), gameEnv.engine, 'pa', 'pb').ok).toBe(false);
+    expect(ping(analyze(build(r1Ok, undefined), gameEnv.engine), 'pa', 'pb').ok).toBe(false);
   });
 
   it('相手の AS の番号が違うと、セッションが張れず届かない', () => {
     const wrong: BgpConfig = { ...r1Ok, neighbors: [{ ip: '10.0.12.2', remoteAs: 300 }] };
-    expect(ping(build(wrong, r2Ok), gameEnv.engine, 'pa', 'pb').ok).toBe(false);
+    expect(ping(analyze(build(wrong, r2Ok), gameEnv.engine), 'pa', 'pb').ok).toBe(false);
   });
 });

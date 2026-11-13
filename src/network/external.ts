@@ -1,3 +1,4 @@
+import { analyze } from './engine/analyze';
 import { makeIface } from './iface';
 // 外部（インターネット）の表し方（N71・N72）。仮想のインターネットを、ルーターの空いている WAN の口（ポート0）につなぐ。
 // 配線はプレイヤーが行わない（判定のときだけ使う）。ルーターの WAN の口に 198.51.100.0/24 の IPアドレスと既定の経路を設定すると、外部へ届く。
@@ -93,10 +94,10 @@ export const outsideCheck = (net: Network, data: EngineData): OutsideCheck => {
   if (!withNet) return { attached: false, pcsReachOutside: false, exposedServers: [], leaks: false, servers: 0 };
   const pcs = net.nodes.filter((n) => isPcCategory(deviceCategory(n.device)));
   const servers = net.nodes.filter((n) => deviceCategory(n.device) === 'server' && n.services.some((s) => s.protocol === 'http' && s.port === PUBLIC_PORT));
-  const pcsReachOutside = pcs.length > 0 && pcs.every((pc) => withNet.internetUids.some((isp) => ping(withNet, data, pc.uid, isp).ok));
+  const pcsReachOutside = pcs.length > 0 && pcs.every((pc) => withNet.internetUids.some((isp) => ping(analyze(withNet, data), pc.uid, isp).ok));
   // 外から社内の PC へ届くか（届けば、公開のサーバーがあっても収入はない）
-  const leaks = pcs.some((pc) => withNet.internetUids.some((isp) => ping(withNet, data, isp, pc.uid).ok));
-  const exposedServers = leaks ? [] : servers.filter((s) => withNet.internetUids.some((isp) => http(withNet, data, isp, s.uid, PUBLIC_PORT).ok)).map((s) => s.uid);
+  const leaks = pcs.some((pc) => withNet.internetUids.some((isp) => ping(analyze(withNet, data), isp, pc.uid).ok));
+  const exposedServers = leaks ? [] : servers.filter((s) => withNet.internetUids.some((isp) => http(analyze(withNet, data), isp, s.uid, PUBLIC_PORT).ok)).map((s) => s.uid);
   return { attached: true, pcsReachOutside, exposedServers, leaks, servers: servers.length };
 };
 

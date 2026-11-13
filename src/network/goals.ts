@@ -44,7 +44,7 @@ const none = (goal: Goal, kind: 'ping' | 'http'): GoalResult => ({
 const handlers: { [K in Goal['type']]: Handler } = {
   ping: (goal, net, data) => {
     if (goal.type !== 'ping') throw new Error('ping ハンドラに別の種類が渡された');
-    const r = ping(net, data, goal.from, goal.to);
+    const r = ping(analyze(net, data), goal.from, goal.to);
     return [{ goal, ok: r.ok, failure: r.failure, kind: 'ping', src: goal.from, dst: goal.to, result: r }];
   },
   ping_all: (goal, net, data) => {
@@ -56,7 +56,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
     if (nodes.length < 2) return [none(goal, 'ping')];
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
-        const r = ping(net, data, nodes[i], nodes[j]);
+        const r = ping(analyze(net, data), nodes[i], nodes[j]);
         results.push({ goal, ok: r.ok, failure: r.failure, kind: 'ping', src: nodes[i], dst: nodes[j], result: r });
       }
     }
@@ -64,7 +64,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
   },
   http: (goal, net, data) => {
     if (goal.type !== 'http') throw new Error('http ハンドラに別の種類が渡された');
-    const r = http(net, data, goal.from, goal.to, goal.port);
+    const r = http(analyze(net, data), goal.from, goal.to, goal.port);
     return [{ goal, ok: r.ok, failure: r.failure, kind: 'http', src: goal.from, dst: goal.to, result: r }];
   },
   count: (goal, net, data) => {
@@ -84,7 +84,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
     const pcs = uidsOf(net, data, 'pc');
     const staticFree = net.nodes.every((n) => n.routes.every((r) => r.protocol !== undefined && r.protocol !== 'static'));
     let reach = pcs.length >= 2;
-    for (let i = 0; i < pcs.length && reach; i++) for (let j = i + 1; j < pcs.length && reach; j++) reach = ping(net, data, pcs[i], pcs[j]).ok;
+    for (let i = 0; i < pcs.length && reach; i++) for (let j = i + 1; j < pcs.length && reach; j++) reach = ping(analyze(net, data), pcs[i], pcs[j]).ok;
     const ok = staticFree && reach;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
@@ -130,7 +130,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
     const ok = goal.nodes.every((uid) => {
       const off: Network = { ...net, nodes: net.nodes.map((n) => (n.uid === uid ? { ...n, powered: false } : n)) };
       const ends = off.nodes.filter((n) => n.uid !== uid && (isPcCategory(deviceCategory(n.device)) || deviceCategory(n.device) === 'server')).map((n) => n.uid);
-      for (let i = 0; i < ends.length; i++) for (let j = i + 1; j < ends.length; j++) if (!ping(off, data, ends[i], ends[j]).ok) return false;
+      for (let i = 0; i < ends.length; i++) for (let j = i + 1; j < ends.length; j++) if (!ping(analyze(off, data), ends[i], ends[j]).ok) return false;
       return ends.length >= 2;
     });
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
@@ -162,7 +162,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
     const targets = uidsOf(net, data, goal.category);
     if (!pcs.length || !targets.length) return [none(goal, 'ping')];
     return pcs.map((pc) => {
-      const tries = targets.map((t) => ({ t, r: ping(net, data, pc, t) }));
+      const tries = targets.map((t) => ({ t, r: ping(analyze(net, data), pc, t) }));
       const hit = tries.find((x) => x.r.ok) ?? tries[0];
       return { goal, ok: hit.r.ok, failure: hit.r.failure, kind: 'ping' as const, src: pc, dst: hit.t, result: hit.r };
     });
@@ -181,7 +181,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
       if (!dst) {
         return { goal, ok: false, failure: { reason: 'name.unresolved' as const, node: pc }, kind: 'ping' as const, src: pc, dst: target.uid, result: { ok: false, path: [] } };
       }
-      const result = ping(net, data, pc, dst.uid);
+      const result = ping(analyze(net, data), pc, dst.uid);
       return { goal, ok: result.ok, failure: result.failure, kind: 'ping' as const, src: pc, dst: dst.uid, result };
     });
   },
@@ -192,7 +192,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
     if (!pcs.length || !servers.length) return [none(goal, 'http')];
     return pcs.map((pc) => {
       // 最初に閲覧できたサーバーの経路を使う。どこにも届かなければ最初のサーバーの結果を返す
-      const tries = servers.map((sv) => ({ sv, r: http(net, data, pc, sv, goal.port) }));
+      const tries = servers.map((sv) => ({ sv, r: http(analyze(net, data), pc, sv, goal.port) }));
       const hit = tries.find((x) => x.r.ok) ?? tries[0];
       return { goal, ok: hit.r.ok, failure: hit.r.failure, kind: 'http' as const, src: pc, dst: hit.sv, result: hit.r };
     });
@@ -200,7 +200,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
   // 通ってはいけない通信: 往路がファイアウォールの規則で止められていること（ほかの理由で届かないだけでは合格にしない）
   blocked: (goal, net, data) => {
     if (goal.type !== 'blocked') throw new Error('blocked ハンドラに別の種類が渡された');
-    const r = ping(net, data, goal.from, goal.to);
+    const r = ping(analyze(net, data), goal.from, goal.to);
     const ok = !r.ok && r.failure?.reason === 'firewall.denied';
     return [{ goal, ok, failure: r.failure, kind: 'ping', src: goal.from, dst: goal.to, result: { ...r, ok } }];
   },
@@ -218,7 +218,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
     if (goal.type !== 'isolated') throw new Error('isolated ハンドラに別の種類が渡された');
     return goal.from.flatMap((src) =>
       goal.to.map((dst) => {
-        const r = ping(net, data, src, dst);
+        const r = ping(analyze(net, data), src, dst);
         return { goal, ok: !r.ok, failure: r.failure, kind: 'ping' as const, src, dst, result: { ...r, ok: !r.ok } };
       }),
     );
@@ -228,7 +228,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
     const servers = uidsOf(net, data, 'server');
     if (!servers.length) return [none(goal, 'http')];
     return goal.nodes.map((src) => {
-      const tries = servers.map((sv) => ({ sv, r: http(net, data, src, sv, goal.port) }));
+      const tries = servers.map((sv) => ({ sv, r: http(analyze(net, data), src, sv, goal.port) }));
       const hit = tries.find((x) => x.r.ok) ?? tries[0];
       return { goal, ok: hit.r.ok, failure: hit.r.failure, kind: 'http' as const, src, dst: hit.sv, result: hit.r };
     });
@@ -237,7 +237,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
     if (goal.type !== 'blocked_all') throw new Error('blocked_all ハンドラに別の種類が渡された');
     return goal.from.flatMap((src) =>
       goal.to.map((dst) => {
-        const r = ping(net, data, src, dst);
+        const r = ping(analyze(net, data), src, dst);
         const ok = !r.ok && r.failure?.reason === 'firewall.denied';
         return { goal, ok, failure: r.failure, kind: 'ping' as const, src, dst, result: { ...r, ok } };
       }),
@@ -251,7 +251,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
     const firewalls = new Set(uidsOf(net, data, 'firewall'));
     // PC ごとに、届くすべてのサーバーへの経路にファイアウォールがあれば成立。どこにも届かなければ不成立
     return pcs.map((pc) => {
-      const tries = servers.map((sv) => ({ sv, r: ping(net, data, pc, sv) }));
+      const tries = servers.map((sv) => ({ sv, r: ping(analyze(net, data), pc, sv) }));
       const reached = tries.filter((x) => x.r.ok);
       const bare = reached.find((x) => !x.r.path.some((uid) => firewalls.has(uid)));
       const hit = bare ?? reached[0] ?? tries[0];

@@ -1,7 +1,8 @@
+import { http } from './engine';
+import { analyze } from './engine/analyze';
 // 静的 NAT（ポートの転送・N145）: 外の口の HTTP を、社内のサーバーへ届ける
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { http } from './netState';
 import type { Iface, NetNode, Network } from './types';
 
 const f = (port: number, ip: string, nat?: 'inside' | 'outside'): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24, ...(nat ? { nat } : {}) });
@@ -22,12 +23,12 @@ const build = (statics: NonNullable<NetNode['statics']>): Network => ({
 
 describe('静的 NAT（N145）', () => {
   it('外の口の HTTP を、転送の設定どおり社内のサーバーへ届ける（戻りも届く）', () => {
-    const r = http(build([{ port: 80, insideIp: '192.168.1.20', insidePort: 80 }]), gameEnv.engine, 'net', 'r', 80);
+    const r = http(analyze(build([{ port: 80, insideIp: '192.168.1.20', insidePort: 80 }]), gameEnv.engine), 'net', 'r', 80);
     expect(r.ok).toBe(true);
   });
 
   it('転送の設定がなければ、外の口の HTTP は届かない（サービスは開いていない）', () => {
-    const r = http(build([]), gameEnv.engine, 'net', 'r', 80);
+    const r = http(analyze(build([]), gameEnv.engine), 'net', 'r', 80);
     expect(r.ok).toBe(false);
   });
 });

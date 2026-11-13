@@ -1,3 +1,5 @@
+import { ping } from './engine';
+import { analyze } from './engine/analyze';
 // 目標 wireless_clients（N152）: 無線の端末が、アクセスポイントに一定数以上つながること
 import { describe, expect, it } from 'vitest';
 import { evaluateGoal } from './goals';
@@ -27,10 +29,9 @@ describe('wireless_clients', () => {
 
 describe('つながっていない無線の端末（N152）', () => {
   it('ケーブルの失敗ではなく、無線のつながらない失敗を返す', async () => {
-    const { ping } = await import('./netState');
     const { gameEnv } = await import('../sim/env');
     const n: Network = { nodes: [node('ap', 'access_point', 0, WIFI), { ...node('lap', 'laptop', 1), interfaces: [{ id: 'g0/0', kind: 'port', port: 0, ip: '192.168.1.20', prefix: 24 }] }], links: [], segments: {} };
-    const r = ping(n, gameEnv.engine, 'lap', 'ap');
+    const r = ping(analyze(n, gameEnv.engine), 'lap', 'ap');
     expect(r.failure?.reason).toBe('wireless.unassociated');
   });
 });

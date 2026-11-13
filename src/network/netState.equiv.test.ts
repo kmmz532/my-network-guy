@@ -1,9 +1,9 @@
+import { ping, http } from './engine';
 // 段に分けた計算（netState）が、基準（__oracle__/engineLegacy）と同じ結果を返すことを、ランダムなネットワークで確かめる（N136）
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import { gameEnv } from '../sim/env';
 import * as legacy from './__oracle__/engineLegacy';
-import * as staged from './netState';
 import { loopNodeOf } from './query/loopNode';
 import { analyze } from './engine/analyze';
 import { compile } from './compile';
@@ -72,8 +72,8 @@ describe('段に分けた計算は、基準と同じ結果（N136）', () => {
           for (const dst of net.nodes) {
             if (src.uid === dst.uid) continue;
             // 復路の経路（back）は後から加えた項目で、旧の計算にはないため比べない
-            expect(withoutBack(staged.ping(net, gameEnv.engine, src.uid, dst.uid))).toEqual(legacy.ping(compiled, gameEnv.engine, src.uid, dst.uid));
-            expect(withoutBack(staged.http(net, gameEnv.engine, src.uid, dst.uid, 80))).toEqual(legacy.http(compiled, gameEnv.engine, src.uid, dst.uid, 80));
+            expect(withoutBack(ping(analyze(net, gameEnv.engine), src.uid, dst.uid))).toEqual(legacy.ping(compiled, gameEnv.engine, src.uid, dst.uid));
+            expect(withoutBack(http(analyze(net, gameEnv.engine), src.uid, dst.uid, 80))).toEqual(legacy.http(compiled, gameEnv.engine, src.uid, dst.uid, 80));
           }
         }
         expect(loopNodeOf(analyze(net, gameEnv.engine))).toEqual(legacy.loopNodeOf(net, gameEnv.engine));

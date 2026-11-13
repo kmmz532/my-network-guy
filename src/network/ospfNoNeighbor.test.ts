@@ -1,7 +1,8 @@
+import { ping } from './engine';
+import { analyze } from './engine/analyze';
 // OSPF の失敗 ospf.no_neighbor（N142）: OSPF に参加しているのに、隣接がなくて宛先の経路がない
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping } from './netState';
 import type { Iface, NetLink, NetNode, Network } from './types';
 
 const f = (port: number, ip: string, extra: Partial<Iface> = {}): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24, ...extra });
@@ -23,7 +24,7 @@ const build = (): Network => ({
 
 describe('ospf.no_neighbor（N142）', () => {
   it('隣接がなく宛先の経路がないとき、route.none ではなく ospf.no_neighbor を返す', () => {
-    const r = ping(build(), gameEnv.engine, 'pa', 'pb');
+    const r = ping(analyze(build(), gameEnv.engine), 'pa', 'pb');
     expect(r.ok).toBe(false);
     expect(r.failure?.reason).toBe('ospf.no_neighbor');
   });

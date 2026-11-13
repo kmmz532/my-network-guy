@@ -1,8 +1,10 @@
+import { ping } from './engine';
+import { analyze } from './engine/analyze';
 // 無線の暗号化と認証の方式（pre-task §4.9）: 方式ごとのつながり・警告・失敗の理由・達成条件
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
 import { evaluateGoal } from './goals';
-import { ping, warningsOf } from './netState';
+import { warningsOf } from './netState';
 import type { Iface, NetNode, Network, WirelessSecurity } from './types';
 
 const data = gameEnv.engine;
@@ -25,26 +27,26 @@ const build = (security: WirelessSecurity | undefined, device: string, password 
 
 describe('無線の方式', () => {
   it('既定（WPA2）では、パスワードが合う端末がつながる。違えば wlan.psk_mismatch', () => {
-    expect(ping(build(undefined, 'laptop'), data, 'pc', 'cl').ok).toBe(true);
-    expect(ping(build(undefined, 'laptop', 'wrong'), data, 'pc', 'cl').failure?.reason).toBe('wlan.psk_mismatch');
+    expect(ping(analyze(build(undefined, 'laptop'), data), 'pc', 'cl').ok).toBe(true);
+    expect(ping(analyze(build(undefined, 'laptop', 'wrong'), data), 'pc', 'cl').failure?.reason).toBe('wlan.psk_mismatch');
   });
   it('暗号化なし（open）は、パスワードが違ってもつながり、警告 wlan.open を出す', () => {
-    expect(ping(build('open', 'laptop', 'wrong'), data, 'pc', 'cl').ok).toBe(true);
+    expect(ping(analyze(build('open', 'laptop', 'wrong'), data), 'pc', 'cl').ok).toBe(true);
     expect(warningsOf(build('open', 'laptop'), data)).toContainEqual({ id: 'wlan.open', a: 'ap', b: 'ap' });
   });
   it('WEP・WPA は、つながるが wlan.weak_cipher の警告', () => {
     for (const s of ['wep', 'wpa'] as const) {
-      expect(ping(build(s, 'laptop'), data, 'pc', 'cl').ok).toBe(true);
+      expect(ping(analyze(build(s, 'laptop'), data), 'pc', 'cl').ok).toBe(true);
       expect(warningsOf(build(s, 'laptop'), data).map((w) => w.id)).toContain('wlan.weak_cipher');
     }
   });
   it('WPA3 のみの SSID に、WPA3 に対応しない端末（pc_wifi）はつながらず wlan.auth_mismatch。対応する端末（laptop）はつながる', () => {
-    expect(ping(build('wpa3', 'pc_wifi'), data, 'pc', 'cl').failure?.reason).toBe('wlan.auth_mismatch');
-    expect(ping(build('wpa3', 'laptop'), data, 'pc', 'cl').ok).toBe(true);
+    expect(ping(analyze(build('wpa3', 'pc_wifi'), data), 'pc', 'cl').failure?.reason).toBe('wlan.auth_mismatch');
+    expect(ping(analyze(build('wpa3', 'laptop'), data), 'pc', 'cl').ok).toBe(true);
   });
   it('WPA2/WPA3 の移行モードは、どちらの端末もつながり、警告 wlan.transition を出す', () => {
-    expect(ping(build('wpa2wpa3', 'pc_wifi'), data, 'pc', 'cl').ok).toBe(true);
-    expect(ping(build('wpa2wpa3', 'laptop'), data, 'pc', 'cl').ok).toBe(true);
+    expect(ping(analyze(build('wpa2wpa3', 'pc_wifi'), data), 'pc', 'cl').ok).toBe(true);
+    expect(ping(analyze(build('wpa2wpa3', 'laptop'), data), 'pc', 'cl').ok).toBe(true);
     expect(warningsOf(build('wpa2wpa3', 'laptop'), data).map((w) => w.id)).toContain('wlan.transition');
   });
   it('達成条件 wireless_secure: WPA2・WPA3 は合格、WEP・暗号化なし・移行モードは不合格', () => {

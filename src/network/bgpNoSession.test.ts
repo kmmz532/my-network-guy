@@ -1,7 +1,8 @@
+import { ping } from './engine';
+import { analyze } from './engine/analyze';
 // BGP の失敗 bgp.no_session（N147）: 相手のアドレスか AS 番号が合わず、隣接しないときは経路を覚えない
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping } from './netState';
 import type { Iface, NetLink, NetNode, Network } from './types';
 
 const f = (port: number, ip: string): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24 });
@@ -23,11 +24,11 @@ const net = (remoteAs: number): Network => ({
 
 describe('bgp.no_session（N147）', () => {
   it('AS 番号が合わない隣接は、経路を覚えず bgp.no_session になる', () => {
-    const r = ping(net(65009), gameEnv.engine, 'pa', 'pb');
+    const r = ping(analyze(net(65009), gameEnv.engine), 'pa', 'pb');
     expect(r.ok).toBe(false);
     expect(r.failure?.reason).toBe('bgp.no_session');
   });
   it('AS 番号が合えば、届く', () => {
-    expect(ping(net(65002), gameEnv.engine, 'pa', 'pb').ok).toBe(true);
+    expect(ping(analyze(net(65002), gameEnv.engine), 'pa', 'pb').ok).toBe(true);
   });
 });

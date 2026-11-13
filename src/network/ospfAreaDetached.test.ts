@@ -1,7 +1,8 @@
+import { ping } from './engine';
+import { analyze } from './engine/analyze';
 // ospf.area_detached（NET.md §6）: エリア 0 に接していないエリアだけに参加している機器は、経路が届かない
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping } from './netState';
 import type { Iface, NetLink, NetNode, Network } from './types';
 
 const f = (port: number, ip: string, area?: number): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24, ...(area === undefined ? {} : { ospf: { area } }) });
@@ -23,7 +24,7 @@ const net = (): Network => ({
 
 describe('ospf.area_detached（NET.md §6）', () => {
   it('エリア 0 に接していないエリアだけの機器は、経路がエリア 0 へ届かない', () => {
-    const r = ping(net(), gameEnv.engine, 'pb', 'pa');
+    const r = ping(analyze(net(), gameEnv.engine), 'pb', 'pa');
     expect(r.ok).toBe(false);
     expect(r.failure?.reason).toBe('ospf.area_detached');
   });

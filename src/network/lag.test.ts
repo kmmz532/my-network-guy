@@ -1,6 +1,7 @@
+import { ping } from './engine';
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping, warningsOf } from './netState';
+import { warningsOf } from './netState';
 import { portStatesOf } from './query/portStates';
 import { analyze } from './engine/analyze';
 import { stpOf } from './query/stp';
@@ -42,7 +43,7 @@ describe('リンクアグリゲーションの組み合わせ', () => {
 describe('リンクアグリゲーションの計算', () => {
   it('2本をまとめると、輪にならず（link.loop にならない）通信でき、警告もない', () => {
     const net = pair([], [{ lacp: 'passive' }, { lacp: 'passive' }]);
-    expect(ping(net, data, 'p1', 'p2').ok).toBe(true);
+    expect(ping(analyze(net, data), 'p1', 'p2').ok).toBe(true);
     expect(warningsOf(net).filter((w) => w.id === 'lag.mismatch')).toHaveLength(0);
     // スパニングツリーの輪としても数えない（止める口がない）
     expect([...stpOf(analyze(net, data)).roles.values()].filter((r) => r === 'blocking')).toHaveLength(0);
@@ -50,15 +51,15 @@ describe('リンクアグリゲーションの計算', () => {
   it('まとまった1本が切れても通信できる', () => {
     const net = pair([], []);
     const cut: Network = { ...net, links: net.links.filter((l) => l.uid !== 'x') };
-    expect(ping(cut, data, 'p1', 'p2').ok).toBe(true);
+    expect(ping(analyze(cut, data), 'p1', 'p2').ok).toBe(true);
     const shut: Network = { ...net, nodes: net.nodes.map((n) => (n.uid === 'sw1' ? { ...n, ports: n.ports.map((p) => (p.port === 0 ? { ...p, shutdown: true } : p)) } : n)) };
-    expect(ping(shut, data, 'p1', 'p2').ok).toBe(true);
+    expect(ping(analyze(shut, data), 'p1', 'p2').ok).toBe(true);
   });
   it('両端を passive にするとまとまらず、2本の輪をスパニングツリーが断つ。警告 lag.mismatch を出す', () => {
     const net = pair([{ lacp: 'passive' }, { lacp: 'passive' }], [{ lacp: 'passive' }, { lacp: 'passive' }]);
     expect(warningsOf(net)).toContainEqual({ id: 'lag.mismatch', a: 'sw1', b: 'sw2' });
     expect([...stpOf(analyze(net, data)).roles.values()].filter((r) => r === 'blocking')).toHaveLength(1);
-    expect(ping(net, data, 'p1', 'p2').ok).toBe(true);
+    expect(ping(analyze(net, data), 'p1', 'p2').ok).toBe(true);
   });
   it('チャネルの番号が違う・片側だけの設定はまとまらない', () => {
     expect(warningsOf(pair([{ channelGroup: 2 }], [])).some((w) => w.id === 'lag.mismatch')).toBe(true);
@@ -78,7 +79,7 @@ describe('リンクアグリゲーションの計算', () => {
     const poor: Network = { ...net, nodes: net.nodes.map((n) => (n.uid === 'sw1' ? { ...n, device: 'l2_switch_4p' } : n)) };
     expect(warningsOf(poor).some((w) => w.id === 'lag.mismatch')).toBe(false);
     // まとまらないため、2本の輪はスパニングツリーに任される（4 ポートのスイッチは stp を持たない）
-    expect(ping(poor, data, 'p1', 'p2').ok).toBe(false);
+    expect(ping(analyze(poor, data), 'p1', 'p2').ok).toBe(false);
   });
 });
 

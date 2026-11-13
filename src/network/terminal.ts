@@ -250,7 +250,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
     }
     const target = ctx.nodes.find((n) => n.interfaces.some((i) => i.ip === ip));
     if (!target) return [err(tr('ui.terminal.noHost', { ip: given }))];
-    const result = ping({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid, target.uid);
+    const result = ping(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data), node.uid, target.uid);
     ctx.onTrace?.({ kind: 'ping', src: node.uid, dst: target.uid, result });
     if (result.ok) ctx.onReach?.(target.uid);
     if (cmd === 'ping') {

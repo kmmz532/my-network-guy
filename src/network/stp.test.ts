@@ -1,6 +1,6 @@
+import { ping } from './engine';
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping } from './netState';
 import { analyze } from './engine/analyze';
 import { stpOf } from './query/stp';
 import type { Iface, NetLink, NetNode, Network } from './types';
@@ -40,12 +40,12 @@ describe('スパニングツリー', () => {
     expect(r.roles.get('sw2:0')).toBe('blocking');
   });
   it('輪があっても、スパニングツリーが断つので通信できる（link.loop にならない）', () => {
-    expect(ping(triangle(), data, 'p1', 'p2').ok).toBe(true);
+    expect(ping(analyze(triangle(), data), 'p1', 'p2').ok).toBe(true);
   });
   it('止めた口を使うリンクが切れても、残りの口で通信できる（冗長）', () => {
     const net = triangle();
     const cut: Network = { ...net, links: net.links.filter((l) => l.uid !== 'b') };
-    expect(ping(cut, data, 'p1', 'p2').ok).toBe(true);
+    expect(ping(analyze(cut, data), 'p1', 'p2').ok).toBe(true);
   });
 });
 

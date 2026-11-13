@@ -1,3 +1,4 @@
+import { analyze } from './engine/analyze';
 // スイッチ付きルーター（WAN 1口・LAN 4口。LAN は内部でスイッチとして1つのセグメント）と L3 スイッチ（ルーターと同じ扱い）のテスト
 import { describe, expect, it } from 'vitest';
 import { compile } from './compile';
@@ -81,7 +82,7 @@ describe('スイッチ付きルーターの判定', () => {
       nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), node('rs', 'router_switch', [{ id: "g0/1", kind: "port", port: 1, ip: '192.168.1.1', prefix: 24 }])],
       links: [link('l1', 'a', 0, 'rs', 1), link('l2', 'b', 0, 'rs', 4)],
     };
-    expect(ping(net, data, 'a', 'b')).toMatchObject({ ok: true, path: ['a', 'b'] });
+    expect(ping(analyze(net, data), 'a', 'b')).toMatchObject({ ok: true, path: ['a', 'b'] });
   });
 
   it('WAN と LAN の間を、静的ルートで経路を作って通る', () => {
@@ -110,7 +111,7 @@ describe('スイッチ付きルーターの判定', () => {
       ],
       links: [link('l1', 'a', 0, 'rs', 3), link('l2', 'rs', 0, 'r2', 0), link('l3', 'r2', 1, 'b', 0)],
     };
-    const r = ping(net, data, 'a', 'b');
+    const r = ping(analyze(net, data), 'a', 'b');
     expect(r.ok).toBe(true);
     expect(r.path).toEqual(['a', 'rs', 'r2', 'b']);
   });
@@ -120,7 +121,7 @@ describe('スイッチ付きルーターの判定', () => {
       nodes: [pc('a', '192.168.1.10', '192.168.1.1'), node('rs', 'router_switch')],
       links: [link('l1', 'a', 0, 'rs', 2)],
     };
-    const r = ping(net, data, 'a', 'rs');
+    const r = ping(analyze(net, data), 'a', 'rs');
     expect(r.ok).toBe(false);
     expect(r.failure?.reason).toBe('ip.unset');
   });
@@ -169,7 +170,7 @@ describe('スイッチ付きルーターとL3スイッチの設定の判定', ()
       ],
       links: [link('l1', 'a', 0, 'l3', 0), link('l2', 'l3', 1, 'b', 0)],
     };
-    expect(ping(net, data, 'a', 'b')).toMatchObject({ ok: true, path: ['a', 'l3', 'b'] });
+    expect(ping(analyze(net, data), 'a', 'b')).toMatchObject({ ok: true, path: ['a', 'l3', 'b'] });
   });
 });
 

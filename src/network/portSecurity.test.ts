@@ -1,7 +1,8 @@
+import { ping } from './engine';
+import { analyze } from './engine/analyze';
 // ポートセキュリティ（N153）: 登録のない MAC の機器がつながると、スイッチの口で止まる
 import { describe, expect, it } from 'vitest';
 import { macOf } from './mac';
-import { ping } from './netState';
 import type { EngineData, Iface, NetLink, NetNode, Network, PortConfig } from './types';
 
 const data: EngineData = { wallAt: () => false };
@@ -21,13 +22,13 @@ const macA = macOf('pc', 1, 0);
 
 describe('ポートセキュリティ（N153）', () => {
   it('登録のない口（macs がない）は制限しない', () => {
-    expect(ping(build(), data, 'a', 'b').ok).toBe(true);
+    expect(ping(analyze(build(), data), 'a', 'b').ok).toBe(true);
   });
   it('登録した MAC の機器なら通る', () => {
-    expect(ping(build([macA]), data, 'a', 'b').ok).toBe(true);
+    expect(ping(analyze(build([macA]), data), 'a', 'b').ok).toBe(true);
   });
   it('登録のない MAC の機器は、スイッチの口で止まる（port.security）', () => {
-    const r = ping(build(['02:99:99:99:99:99']), data, 'a', 'b');
+    const r = ping(analyze(build(['02:99:99:99:99:99']), data), 'a', 'b');
     expect(r.ok).toBe(false);
     expect(r.failure?.reason).toBe('port.security');
   });

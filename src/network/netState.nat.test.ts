@@ -1,7 +1,7 @@
+import { ping } from './engine';
 // NAPT（N145）: 社内から外へ出る通信の送信元を外の口のアドレスに変え、戻りを社内へ戻す
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping } from './netState';
 import { seenSourcesOf } from './query/seenSources';
 import { analyze } from './engine/analyze';
 import type { Iface, NetNode, Network } from './types';
@@ -24,13 +24,13 @@ const build = (napt: boolean): Network => ({
 
 describe('NAPT（N145）', () => {
   it('NAPT があれば、社内の PC から外へ届き、戻りも社内へ戻る', () => {
-    const r = ping(build(true), gameEnv.engine, 'pc', 'net');
+    const r = ping(analyze(build(true), gameEnv.engine), 'pc', 'net');
     expect(r.ok).toBe(true);
     expect(r.nat).toEqual({ router: 'r', insideIp: '192.168.1.10', outsideIp: '198.51.100.2' });
   });
 
   it('NAPT がなければ、社内のアドレスのまま外へ出て届かない（nat.private_source。NET.md §6）', () => {
-    const r = ping(build(false), gameEnv.engine, 'pc', 'net');
+    const r = ping(analyze(build(false), gameEnv.engine), 'pc', 'net');
     expect(r.ok).toBe(false);
     expect(r.failure?.reason).toBe('nat.private_source');
   });

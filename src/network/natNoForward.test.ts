@@ -1,7 +1,8 @@
+import { http } from './engine';
+import { analyze } from './engine/analyze';
 // nat.no_forward（NET.md §6）: 外から NAT のルーターの外の口へ来た通信に、静的 NAT の転送先がない
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { http } from './netState';
 import type { Iface, NetLink, NetNode, Network } from './types';
 
 const f = (port: number, ip: string, nat?: 'inside' | 'outside'): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24, ...(nat ? { nat } : {}) });
@@ -20,11 +21,11 @@ const build = (statics: NonNullable<NetNode['statics']>): Network => ({
 
 describe('nat.no_forward（NET.md §6）', () => {
   it('外から、転送先のない外の口のポートへ来た通信は nat.no_forward', () => {
-    const r = http(build([]), gameEnv.engine, 'ext', 'hr', 80);
+    const r = http(analyze(build([]), gameEnv.engine), 'ext', 'hr', 80);
     expect(r.ok).toBe(false);
     expect(r.failure?.reason).toBe('nat.no_forward');
   });
   it('静的 NAT の転送先があれば、社内のサーバーへ届く', () => {
-    expect(http(build([{ port: 80, insideIp: '192.168.1.10', insidePort: 80 }]), gameEnv.engine, 'ext', 'hr', 80).ok).toBe(true);
+    expect(http(analyze(build([{ port: 80, insideIp: '192.168.1.10', insidePort: 80 }]), gameEnv.engine), 'ext', 'hr', 80).ok).toBe(true);
   });
 });

@@ -1,3 +1,4 @@
+import { ping } from '../network/engine';
 import { dhcpOf } from '../network/query/dhcp';
 // セーブの fixture（架空の内容）: 今の版の fixture があること、すべての fixture を最新版まで移行でき、検証に通り、計算が例外なく動くこと
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -5,7 +6,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
 import { can } from '../network/capabilities';
-import { ping, warningsOf } from '../network/netState';
+import { warningsOf } from '../network/netState';
 import { portStatesOf } from '../network/query/portStates';
 import { analyze } from '../network/engine/analyze';
 import { stpOf } from '../network/query/stp';
@@ -29,7 +30,7 @@ describe('セーブの fixture', () => {
         const net = { nodes: data.office.nodes, links: data.office.links, segments: data.office.segments };
         // 端末は、スイッチの口もルーテッドポートも持たない機器
         const ends = net.nodes.filter((n) => n.interfaces.length > 0 && !can(n.device, 'switchport') && !can(n.device, 'routedPort')).map((n) => n.uid);
-        for (const a of ends) for (const b of ends) if (a !== b) ping(net, gameEnv.engine, a, b);
+        for (const a of ends) for (const b of ends) if (a !== b) ping(analyze(net, gameEnv.engine), a, b);
         warningsOf(net, gameEnv.engine);
         dhcpOf(analyze(net, gameEnv.engine));
         stpOf(analyze(net, gameEnv.engine));

@@ -1,7 +1,8 @@
+import { ping } from './engine';
+import { analyze } from './engine/analyze';
 // rip.unreachable（N141b・NET.md §6）: RIP に参加していて、経路がない（16 ホップ以上で届かない）ときの失敗
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping } from './netState';
 import type { Iface, NetLink, NetNode, Network } from './types';
 
 const f = (port: number, ip: string, rip = false): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24, ...(rip ? { rip: true } : {}) });
@@ -23,7 +24,7 @@ const net = (): Network => ({
 
 describe('rip.unreachable（N141b）', () => {
   it('RIP の経路がなく届かないときは rip.unreachable を返す', () => {
-    const r = ping(net(), gameEnv.engine, 'pa', 'pb');
+    const r = ping(analyze(net(), gameEnv.engine), 'pa', 'pb');
     expect(r.ok).toBe(false);
     expect(r.failure?.reason).toBe('rip.unreachable');
   });

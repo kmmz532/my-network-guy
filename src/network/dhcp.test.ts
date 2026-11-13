@@ -1,8 +1,9 @@
+import { ping } from './engine';
 import { analyze } from './engine/analyze';
 import { dhcpOf } from './query/dhcp';
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { dhcpWriteBack, ping } from './netState';
+import { dhcpWriteBack } from './netState';
 import { writeBackDhcp, type Core } from '../sim/project';
 import type { Iface, NetLink, NetNode, Network } from './types';
 
@@ -29,14 +30,14 @@ describe('DHCP', () => {
   it('同じドメインのサーバーのプールから、小さいアドレスから順に配り、通信できる', () => {
     const net = office(['p1', 'p2']);
     expect(dhcpOf(analyze(net, data)).leases.map((l) => [l.uid, l.ip])).toEqual([['p1', '192.168.1.100'], ['p2', '192.168.1.101']]);
-    expect(ping(net, data, 'p1', 'p2').ok).toBe(true);
+    expect(ping(analyze(net, data), 'p1', 'p2').ok).toBe(true);
   });
   it('プールが足りなければ dhcp.exhausted、サーバーがなければ dhcp.no_offer', () => {
     const net = office(['p1', 'p2', 'p3']);
     expect(dhcpOf(analyze(net, data)).failed).toEqual([{ uid: 'p3', port: 0, reason: 'dhcp.exhausted' }]);
-    expect(ping(net, data, 'p3', 'p1').failure?.reason).toBe('dhcp.exhausted');
+    expect(ping(analyze(net, data), 'p3', 'p1').failure?.reason).toBe('dhcp.exhausted');
     const none: Network = { ...net, nodes: net.nodes.map((n) => (n.uid === 'srv' ? { ...n, dhcpPools: undefined } : n)) };
-    expect(ping(none, data, 'p1', 'p2').failure?.reason).toBe('dhcp.no_offer');
+    expect(ping(analyze(none, data), 'p1', 'p2').failure?.reason).toBe('dhcp.no_offer');
   });
   it('サーバーが2台あれば、連番の小さい機器から受け取り、両方を記録する', () => {
     const net = office(['p1']);
@@ -62,7 +63,7 @@ describe('DHCP', () => {
       links: [...net.links, link('lm', 'sw', 2, 'm', 0)],
     };
     expect(dhcpOf(analyze(manual, data)).leases.map((l) => l.ip)).toEqual(['192.168.1.100']);
-    expect(ping(manual, data, 'p1', 'm').failure?.reason).toBe('ip.duplicate.dhcp');
+    expect(ping(analyze(manual, data), 'p1', 'm').failure?.reason).toBe('ip.duplicate.dhcp');
   });
   it('ルーターを越えるときは、リレー（helper）を設定したルーターの口のサブネットのプールから配る', () => {
     const net: Network = {

@@ -1,7 +1,8 @@
+import { ping } from './engine';
+import { analyze } from './engine/analyze';
 // 家庭用ルーター（N-家庭用ルーター）: LAN の口は内蔵スイッチとして1つのセグメントになる。VLAN は使わない
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping } from './netState';
 import { isFabricPort, isRelayPort } from './category';
 import type { Iface, NetLink, NetNode, Network } from './types';
 
@@ -23,8 +24,8 @@ const lan = (): Network => ({
 
 describe('家庭用ルーターの内蔵スイッチ', () => {
   it('LAN の口どうしは、内蔵スイッチとして1つの LAN になり届く（VLAN なし）', () => {
-    expect(ping(lan(), gameEnv.engine, 'pc1', 'pc2').ok).toBe(true);
-    expect(ping(lan(), gameEnv.engine, 'pc2', 'pc1').ok).toBe(true);
+    expect(ping(analyze(lan(), gameEnv.engine), 'pc1', 'pc2').ok).toBe(true);
+    expect(ping(analyze(lan(), gameEnv.engine), 'pc2', 'pc1').ok).toBe(true);
   });
 
   it('WAN の口（0）は内蔵スイッチの中継ではない', () => {

@@ -1,7 +1,8 @@
+import { ping } from './engine';
+import { analyze } from './engine/analyze';
 // nat.private_source（NET.md §6）: 社内のアドレスのまま外の口へ出ると、回線の先で届かない。NAPT があれば届く
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping } from './netState';
 import type { Iface, NetLink, NetNode, Network } from './types';
 
 const f = (port: number, ip: string, nat?: 'inside' | 'outside'): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24, ...(nat ? { nat } : {}) });
@@ -20,11 +21,11 @@ const build = (napt: boolean): Network => ({
 
 describe('nat.private_source（NET.md §6）', () => {
   it('NAPT がなければ、社内の PC は外へ届かない（nat.private_source）', () => {
-    const r = ping(build(false), gameEnv.engine, 'pc', 'ext');
+    const r = ping(analyze(build(false), gameEnv.engine), 'pc', 'ext');
     expect(r.ok).toBe(false);
     expect(r.failure?.reason).toBe('nat.private_source');
   });
   it('NAPT があれば、外へ届く', () => {
-    expect(ping(build(true), gameEnv.engine, 'pc', 'ext').ok).toBe(true);
+    expect(ping(analyze(build(true), gameEnv.engine), 'pc', 'ext').ok).toBe(true);
   });
 });

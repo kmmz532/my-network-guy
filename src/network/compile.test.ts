@@ -1,3 +1,4 @@
+import { analyze } from './engine/analyze';
 import { describe, expect, it } from 'vitest';
 import { compile } from './compile';
 import { ping } from './engine';
@@ -53,7 +54,7 @@ describe('セグメントの設定から機器の設定を作る', () => {
     };
     const { net: out, issues } = compile(net, data);
     expect(issues).toEqual({});
-    expect(ping(out, data, 'a', 'b').ok).toBe(true);
+    expect(ping(analyze(out, data), 'a', 'b').ok).toBe(true);
   });
 
   it('ホストのゲートウェイは、同じセグメントにあるルーターのアドレスになる', () => {
@@ -82,7 +83,7 @@ describe('セグメントの設定から機器の設定を作る', () => {
     };
     const { net: out, issues } = compile(net, data);
     expect(issues).toEqual({});
-    expect(ping(out, data, 'a', 'c').ok).toBe(true);
+    expect(ping(analyze(out, data), 'a', 'c').ok).toBe(true);
   });
 
   it('ルーターの静的ルートは、保存されたものをそのまま使う', () => {

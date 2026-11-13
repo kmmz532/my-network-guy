@@ -1,3 +1,4 @@
+import { analyze } from './engine/analyze';
 // ファイアウォールの規則（N38）。既定は拒否。規則に合う通信だけを通し、戻りは往路で許した通信として通す
 import { describe, expect, it } from 'vitest';
 import { http, ping } from './engine';
@@ -60,26 +61,26 @@ const allowWeb = { src: '192.168.1.0/24', dst: '203.0.113.0/24', service: 'http'
 
 describe('ファイアウォールの規則', () => {
   it('規則がなければ、通り道のファイアウォールで止まる（既定は拒否）', () => {
-    const r = http(network(), data, 'a', 'web', 80);
+    const r = http(analyze(network(), data), 'a', 'web', 80);
     expect(r.failure).toMatchObject({ reason: 'firewall.denied', node: 'f' });
   });
 
   it('規則に合う http は通り、戻りも通る', () => {
-    expect(http(network([allowWeb]), data, 'a', 'web', 80).ok).toBe(true);
+    expect(http(analyze(network([allowWeb]), data), 'a', 'web', 80).ok).toBe(true);
   });
 
   it('規則が合わないポートは通らない', () => {
-    expect(http(network([allowWeb]), data, 'a', 'web', 8080).failure?.reason).toBe('firewall.denied');
+    expect(http(analyze(network([allowWeb]), data), 'a', 'web', 8080).failure?.reason).toBe('firewall.denied');
   });
 
   it('ping は規則に service: ping か any がないと通らない', () => {
-    expect(ping(network([allowWeb]), data, 'a', 'web').failure?.reason).toBe('firewall.denied');
-    expect(ping(network([{ src: 'any', dst: 'any', service: 'any' }]), data, 'a', 'web').ok).toBe(true);
+    expect(ping(analyze(network([allowWeb]), data), 'a', 'web').failure?.reason).toBe('firewall.denied');
+    expect(ping(analyze(network([{ src: 'any', dst: 'any', service: 'any' }]), data), 'a', 'web').ok).toBe(true);
   });
 
   it('送信元が規則のネットワークに入らなければ通らない', () => {
     const other = { ...allowWeb, src: '10.0.0.0/8' };
-    expect(http(network([other]), data, 'a', 'web', 80).failure?.reason).toBe('firewall.denied');
+    expect(http(analyze(network([other]), data), 'a', 'web', 80).failure?.reason).toBe('firewall.denied');
   });
 
   it('blocked は、規則で止められているときだけ合格する', () => {

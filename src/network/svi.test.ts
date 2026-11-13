@@ -1,7 +1,8 @@
+import { ping } from './engine';
+import { analyze } from './engine/analyze';
 // SVI（VLAN のインターフェース・N138）: L3スイッチの access の口を VLAN ごとに分け、SVI で VLAN の間を中継する
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping } from './netState';
 import { makeSvi } from './iface';
 import type { Iface, NetLink, NetNode, Network } from './types';
 
@@ -39,14 +40,14 @@ const build = (svi: boolean): Network => {
 
 describe('SVI（N138 の段1・段2）', () => {
   it('同じ VLAN の PC どうしは、SVI がなくても届く', () => {
-    expect(ping(build(false), gameEnv.engine, 'pc1', 'pc2').ok).toBe(true);
+    expect(ping(analyze(build(false), gameEnv.engine), 'pc1', 'pc2').ok).toBe(true);
   });
 
   it('SVI があれば、VLAN の違う PC へ届く（SVI が VLAN 間の中継になる）', () => {
-    expect(ping(build(true), gameEnv.engine, 'pc1', 'pc3').ok).toBe(true);
+    expect(ping(analyze(build(true), gameEnv.engine), 'pc1', 'pc3').ok).toBe(true);
   });
 
   it('SVI がなければ、VLAN の違う PC へは届かない', () => {
-    expect(ping(build(false), gameEnv.engine, 'pc1', 'pc3').ok).toBe(false);
+    expect(ping(analyze(build(false), gameEnv.engine), 'pc1', 'pc3').ok).toBe(false);
   });
 });

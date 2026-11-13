@@ -1,9 +1,10 @@
+import { ping, http } from '../network/engine';
 // 挙動の記録: ネットワークの構成から、外から見える結果（疎通・show の出力・ケーブルの色・口の状態・不備と警告）を決まった形で求める。
 // 記録は JSON にし、機器と配線は uid の順に並べる（記録の差分を読めるようにする）
 import { can } from '../network/capabilities';
 import { compile } from '../network/compile';
 import { colorOfLink, networkColors } from '../network/netColor';
-import { http, ping, warningsOf, withWireless } from '../network/netState';
+import { warningsOf, withWireless } from '../network/netState';
 import { portStatesOf } from '../network/query/portStates';
 import { analyze } from '../network/engine/analyze';
 import { runTerminal } from '../network/terminal';
@@ -43,7 +44,7 @@ export const recordOf = (input: Network, engine: EngineData) => {
     ends
       .filter((b) => a.uid !== b.uid)
       .map((b) => {
-        const r = ping(net, engine, a.uid, b.uid);
+        const r = ping(analyze(net, engine), a.uid, b.uid);
         return { from: a.uid, to: b.uid, ok: r.ok, reason: r.failure?.reason ?? null, path: r.path };
       }),
   );
@@ -51,7 +52,7 @@ export const recordOf = (input: Network, engine: EngineData) => {
     servers
       .filter((s) => s.uid !== a.uid)
       .map((s) => {
-        const r = http(net, engine, a.uid, s.uid, 80);
+        const r = http(analyze(net, engine), a.uid, s.uid, 80);
         return { from: a.uid, to: s.uid, ok: r.ok, reason: r.failure?.reason ?? null };
       }),
   );

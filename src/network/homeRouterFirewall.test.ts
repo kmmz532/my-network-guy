@@ -1,7 +1,8 @@
+import { ping } from './engine';
+import { analyze } from './engine/analyze';
 // 家庭用ルーターの既定の規則: 外から始まる通信は止める。社内から始まった通信の戻りは通る（NET.md §4）
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping } from './netState';
 import type { Iface, NetLink, NetNode, Network } from './types';
 
 const f = (port: number, ip: string, nat?: 'inside' | 'outside'): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24, ...(nat ? { nat } : {}) });
@@ -22,12 +23,12 @@ const home = (): Network => ({
 
 describe('家庭用ルーターの既定の規則（外から始まる通信）', () => {
   it('外から社内の PC へ始まる通信は止まる（既定は拒否）', () => {
-    const r = ping(home(), gameEnv.engine, 'ext', 'pc');
+    const r = ping(analyze(home(), gameEnv.engine), 'ext', 'pc');
     expect(r.ok).toBe(false);
     expect(r.failure?.reason).toBe('firewall.denied');
   });
 
   it('社内の PC から外へ始まった通信は通る（戻りも通る）', () => {
-    expect(ping(home(), gameEnv.engine, 'pc', 'ext').ok).toBe(true);
+    expect(ping(analyze(home(), gameEnv.engine), 'pc', 'ext').ok).toBe(true);
   });
 });

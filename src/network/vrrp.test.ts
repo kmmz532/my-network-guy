@@ -1,6 +1,7 @@
+import { ping } from './engine';
+import { analyze } from './engine/analyze';
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping } from './netState';
 import { effectivePriority, electVrrpMaster, vrrpMac } from './vrrp';
 import type { Iface, NetLink, NetNode, Network, PortConfig } from './types';
 import type { VrrpGroup } from './vrrp';
@@ -26,7 +27,7 @@ const build = (r1: Partial<NetNode> = {}, r2: Partial<NetNode> = {}, r1Track = f
   links: [link('a', 'host', 0, 'sw1', 0), link('b', 'sw1', 1, 'r1', 0), link('c', 'sw1', 2, 'r2', 0), link('d', 'r1', 1, 'sw2', 0), link('e', 'r2', 1, 'sw2', 1), link('f', 'srv', 0, 'sw2', 2)],
   segments: {},
 });
-const via = (net: Network) => ping(net, data, 'host', 'srv');
+const via = (net: Network) => ping(analyze(net, data), 'host', 'srv');
 
 describe('VRRP のマスターの選出', () => {
   const m = (uid: string, ip: string, priority: number, up = true, extra: Partial<VrrpGroup> = {}) => ({ uid, realIp: ip, group: g(1, '10.0.0.254', priority, extra), downTracked: [] as string[], up });

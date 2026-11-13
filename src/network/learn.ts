@@ -1,3 +1,4 @@
+import { analyze } from './engine/analyze';
 // 通信で覚えること（N69）。ping が通ったとき、送信元の ARP の表と、経路上のスイッチの MAC の表に加える行を求める純粋な関数。
 // 表は保存しない（画面の状態として持つ）。学習の材料であり、依頼の目標には使わない。
 import { ping } from './engine';
@@ -37,7 +38,7 @@ export const learnFromPing = (
   const src = nodes.find((n) => n.uid === srcUid);
   const dst = nodes.find((n) => n.uid === dstUid);
   if (!src || !dst) return none;
-  if (!ping({ nodes: [...nodes], links: [...links] }, data, srcUid, dstUid).ok) return none;
+  if (!ping(analyze({ nodes: [...nodes], links: [...links] }, data), srcUid, dstUid).ok) return none;
 
   // 次に届ける相手: 宛先が同じネットワークにいれば宛先、いなければ既定のゲートウェイ
   const dstIp = dst.interfaces[0]?.ip;
