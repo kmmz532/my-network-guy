@@ -1,7 +1,8 @@
 // 案件の達成条件（goals）の判定ハンドラ。種類ごとにハンドラを登録し、案件データから呼び出す。
 import type { Contract, Goal } from '../data/schema';
 import { http, ping, wirelessAssociations } from './engine';
-import { accessPointsOf, dhcpOf, lagBundlesOf } from './netState';
+import { accessPointsOf, dhcpOf } from './netState';
+import { lagBundlesOf } from './query/lagBundles';
 import { ospfNeighborsOf } from './query/ospfNeighbors';
 import { analyze } from './engine/analyze';
 import { bgpTableOf } from './query/bgpTable';
@@ -97,7 +98,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
   // 指定した機器が、物理のリンク min 本以上を1本の論理リンクにまとめている
   lag_bundled: (goal, net, data) => {
     if (goal.type !== 'lag_bundled') throw new Error('lag_bundled ハンドラに別の種類が渡された');
-    const ok = lagBundlesOf(net, goal.node, data).some((b) => b.links.length >= goal.min);
+    const ok = lagBundlesOf(analyze(net, data), goal.node).some((b) => b.links.length >= goal.min);
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // 社内のすべての PC が、回線の先（インターネット）へ届く

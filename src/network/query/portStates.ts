@@ -1,5 +1,5 @@
 import type { NetworkState } from '../engine/state';
-import { lagBundlesOf } from '../netState';
+import { lagBundlesOf } from './lagBundles';
 
 // 機器の口ごとの状態（背面の画面に出す）: 停止・スパニングツリーの役割・リンクアグリゲーションのチャネル
 export interface PortState {
@@ -15,7 +15,7 @@ export const portStatesOf = (state: NetworkState, uid: string): PortState[] => {
   const node = topo.node(uid);
   if (!node) return [];
   const roles = topo.stp().roles;
-  const bundled = new Set(lagBundlesOf(state.input, uid).flatMap((b) => b.links.map((l) => l.uid)));
+  const bundled = new Set(lagBundlesOf(state, uid).flatMap((b) => b.links.map((l) => l.uid)));
   return state.input.links
     .filter((l) => l.a.node === uid || l.b.node === uid)
     .map((l) => {

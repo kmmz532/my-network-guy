@@ -10,7 +10,7 @@ import { macOf } from './mac';
 import { electVrrpMaster, type VrrpMember } from './vrrp';
 import { computeStp, type StpResult } from './stp';
 import { assignDhcp, type DhcpResult } from './dhcp';
-import { computeLags, type LagBundle, type LagResult } from './lag';
+import { computeLags, type LagResult } from './lag';
 import { computeBgp, type BgpEnv, type BgpResult } from './bgp';
 import { duplicateRouterIds, ospfMismatch, type OspfMismatch } from './ospf';
 import { cableMaxLength, deviceCategory, portSpeed } from '../registry/query';
@@ -944,9 +944,6 @@ export const warningsOf = (net: Network, data?: EngineData): VlanWarning[] => {
   return out;
 };
 
-// リンクアグリゲーションで、機器 uid を含むまとまった論理リンク（show etherchannel summary に出す）
-export const lagBundlesOf = (net: Network, uid: string, _data?: EngineData): LagBundle[] =>
-  computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'), (n, port) => portSpeed(n.device, port)).bundles.filter((b) => b.a === uid || b.b === uid);
 
 // DHCP の割り当て（show ip dhcp binding・警告・達成条件に使う）
 // 受け取れた自動の口の ip・prefix を機器へ書き戻す（前回のアドレスとして保存する。NET.md §5.7）。変わる機器がなければ同じ配列を返す
