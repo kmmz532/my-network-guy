@@ -9,6 +9,7 @@ import { intToIp, networkAddress, routerAddressesOn, segmentConfigOf, segmentsOf
 import type { NetNode, SegmentConfig } from '../network/types';
 import { focusedOf, netOf, withNet, type Core, type Env, type NetTarget } from './project';
 import { CATEGORY, isPcCategory } from '../data/categories';
+import { deviceCategory } from '../registry/query';
 
 // ルーターと、ファイアウォール（経路の設定を持つ機器）
 const isRoutingFirewall = (category: string): boolean => category === CATEGORY.router || category === CATEGORY.firewall;
@@ -44,7 +45,7 @@ export const autoAssign = (
   const nodeMap = (): Map<string, NetNode> => new Map(nodes.map((n) => [n.uid, n]));
   const categoryOf = (uid: string): string => {
     const node = nodes.find((n) => n.uid === uid);
-    return node ? env.engine.categoryOf(node.device) : '';
+    return node ? deviceCategory(node.device) : '';
   };
 
   // 既に使われているネットワーク（設定済みのセグメント・機器のアドレスのネットワーク）
@@ -79,7 +80,7 @@ export const autoAssign = (
     const hostsUnset = seg.members.some((m) => {
       const node = nodeMap().get(m.node);
       if (!node || node.configLocked) return false;
-      const category = env.engine.categoryOf(node.device);
+      const category = deviceCategory(node.device);
       return (isPcCategory(category) || category === CATEGORY.server) && !node.interfaces.some((i) => i.port === m.port);
     });
     let cfg = segmentConfigOf(seg, nodeMap(), segments) ?? ifaceConfigOf(seg);
@@ -123,7 +124,7 @@ export const autoAssign = (
     for (const m of seg.members) {
       const node = nodeMap().get(m.node);
       if (!node || node.configLocked) continue;
-      const category = env.engine.categoryOf(node.device);
+      const category = deviceCategory(node.device);
       if (!isPcCategory(category) && category !== CATEGORY.server) continue;
       if (node.interfaces.some((i) => i.port === m.port)) continue;
 

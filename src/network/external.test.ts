@@ -3,10 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { customersOf, outsideCheck, rentalOf, withInternet } from './external';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
-const data: EngineData = {
-  categoryOf: (device) => ({ pc: 'pc', rt: 'router', l2: 'l2_switch', up: 'uplink' })[device] ?? 'unknown',
-  maxLengthOf: () => 30,
-};
+const data: EngineData = { wallAt: () => false };
 
 const node = (uid: string, device: string, extra: Partial<NetNode> = {}): NetNode => ({
   uid,
@@ -36,23 +33,23 @@ const link = (uid: string, a: string, ap: number, b: string, bp: number): NetLin
 // ルーター r: WAN（ポート0）198.51.100.2、LAN（ポート1）192.168.1.1。PC a は LAN につながる
 const office = (): Network => ({
   nodes: [
-    node('r', 'rt', {
+    node('r', 'router_basic', {
       interfaces: [
         { id: "g0/0", kind: "port", port: 0, ip: '198.51.100.2', prefix: 24 },
         { id: "g0/1", kind: "port", port: 1, ip: '192.168.1.1', prefix: 24 },
       ],
       routes: [{ dest: '0.0.0.0', prefix: 0, nextHop: '198.51.100.1' }],
     }),
-    node('a', 'pc', { interfaces: [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }], gateway: '192.168.1.1' }),
+    node('a', 'pc_basic', { interfaces: [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }], gateway: '192.168.1.1' }),
     // 回線終端（口0 がルーターの WAN 側）。インターネットは口1 につながる（N144）
-    node('u', 'up', { ports: [] }),
+    node('u', 'uplink', { ports: [] }),
   ],
   links: [link('l1', 'a', 0, 'r', 1), link('l0', 'r', 0, 'u', 0)],
 });
 
 describe('外部（インターネット）の判定（N71）', () => {
   it('回線終端がなければ、外部につながらない（今の外部の仕組みは回線が要る）', () => {
-    const net: Network = { nodes: [node('a', 'pc', { interfaces: [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }] })], links: [] };
+    const net: Network = { nodes: [node('a', 'pc_basic', { interfaces: [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }] })], links: [] };
     expect(withInternet(net, data)).toBeNull();
     expect(outsideCheck(net, data).attached).toBe(false);
   });
@@ -89,7 +86,7 @@ describe('サーバーの貸し出しの収入', () => {
   });
 
   it('外部につながらなければ、収入はない', () => {
-    const net: Network = { nodes: [node('a', 'pc', { interfaces: [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }] })], links: [] };
+    const net: Network = { nodes: [node('a', 'pc_basic', { interfaces: [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }] })], links: [] };
     expect(rentalOf(net, data, rental, 1, 30)).toEqual({ monthly: 0, daily: 0, penalty: false, leaks: false, exposed: 0 });
   });
 
@@ -102,10 +99,9 @@ describe('サーバーの貸し出しの収入', () => {
 });
 
 describe('2社の ISP（回線終端ごと）', () => {
-  const data2: EngineData = { ...data, categoryOf: (d) => (d === 'router_basic' ? 'router' : data.categoryOf(d)) };
   const two = (): Network => ({
     nodes: [
-      node('r', 'rt', {
+      node('r', 'router_basic', {
         interfaces: [
           { id: 'g0/0', kind: 'port', port: 0, ip: '198.51.100.2', prefix: 24 },
           { id: 'g0/1', kind: 'port', port: 1, ip: '192.168.1.1', prefix: 24 },
@@ -113,28 +109,28 @@ describe('2社の ISP（回線終端ごと）', () => {
         ],
         bgp: { asn: 64512, neighbors: [{ ip: '198.51.100.1', remoteAs: 65001 }, { ip: '203.0.113.1', remoteAs: 65002 }], networks: [] },
       }),
-      node('a', 'pc', { interfaces: [{ id: 'g0/0', kind: 'port', port: 0, ip: '192.168.1.10', prefix: 24 }], gateway: '192.168.1.1' }),
-      node('u1', 'up', { isp: { name: 'ISP-A', network: '198.51.100.0', prefix: 24, ispIp: '198.51.100.1', asn: 65001 } }),
-      node('u2', 'up', { isp: { name: 'ISP-B', network: '203.0.113.0', prefix: 24, ispIp: '203.0.113.1', asn: 65002 } }),
+      node('a', 'pc_basic', { interfaces: [{ id: 'g0/0', kind: 'port', port: 0, ip: '192.168.1.10', prefix: 24 }], gateway: '192.168.1.1' }),
+      node('u1', 'uplink', { isp: { name: 'ISP-A', network: '198.51.100.0', prefix: 24, ispIp: '198.51.100.1', asn: 65001 } }),
+      node('u2', 'uplink', { isp: { name: 'ISP-B', network: '203.0.113.0', prefix: 24, ispIp: '203.0.113.1', asn: 65002 } }),
     ],
     links: [link('l1', 'a', 0, 'r', 1), link('l0', 'r', 0, 'u1', 0), link('l2', 'r', 2, 'u2', 0)],
   });
   it('回線終端ごとに ISP を加え、それぞれの AS 番号と BGP の隣接を持つ', () => {
-    const w = withInternet(two(), data2);
+    const w = withInternet(two(), data);
     expect(w?.internetUids).toEqual(['__internet', '__internet_u2']);
     expect(w?.nodes.find((n) => n.uid === '__internet_u2')?.bgp?.asn).toBe(65002);
   });
   it('どちらの ISP からも外部の経路を BGP で覚え、PC が外部へ届く', async () => {
     const { bgpTableOf } = await import('./netState');
-    const w = withInternet(two(), data2)!;
-    const best = bgpTableOf(w, data2, 'r')!.candidates.filter((c) => c.dest === '192.0.2.0');
+    const w = withInternet(two(), data)!;
+    const best = bgpTableOf(w, data, 'r')!.candidates.filter((c) => c.dest === '192.0.2.0');
     expect(best.map((c) => c.from).sort()).toEqual(['198.51.100.1', '203.0.113.1']);
     expect(best.find((c) => c.best)?.from).toBe('198.51.100.1');
-    expect(outsideCheck(two(), data2).pcsReachOutside).toBe(true);
+    expect(outsideCheck(two(), data).pcsReachOutside).toBe(true);
   });
   it('survive_uplink_failure: 回線が2本あれば合格、1本だけなら不合格', async () => {
     const { evaluateGoal } = await import('./goals');
-    expect(evaluateGoal({ type: 'survive_uplink_failure' }, two(), data2)[0].ok).toBe(true);
-    expect(evaluateGoal({ type: 'survive_uplink_failure' }, office(), data2)[0].ok).toBe(false);
+    expect(evaluateGoal({ type: 'survive_uplink_failure' }, two(), data)[0].ok).toBe(true);
+    expect(evaluateGoal({ type: 'survive_uplink_failure' }, office(), data)[0].ok).toBe(false);
   });
 });

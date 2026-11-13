@@ -52,10 +52,7 @@ for (const d of [...pcJson.devices, ...serverJson.devices, ...routerJson.devices
   migrationCategories[d.id] = d.category;
   migrationDefaultServices[d.id] = (d as { defaultServices?: Service[] }).defaultServices ?? [];
 }
-const migrationEngine: EngineData = {
-  categoryOf: (device) => migrationCategories[device] ?? 'unknown',
-  maxLengthOf: () => 0,
-};
+const migrationEngine: EngineData = { wallAt: () => false };
 
 // 色を持つ機器のネットワーク（案件・自社オフィス）を、セグメントの設定と機器のIPアドレス・ルートに置き換える。色を持たないものはそのまま
 const colorsToSegments = <T extends { nodes: NetNode[]; links?: NetLink[] }>(x: T): T => {

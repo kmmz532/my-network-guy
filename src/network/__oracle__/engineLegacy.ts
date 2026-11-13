@@ -4,6 +4,7 @@
 import { isFabricPort, isRelayPort, isRoutingCategory, ROUTER_SWITCH_LAN_HOST_PORT } from '../category';
 import type { EngineData, Endpoint, Failure, FailureReason, FirewallRule, NetLink, NetNode, Network, PathResult } from '../types';
 import { CATEGORY } from '../../data/categories';
+import { cableMaxLength, deviceCategory } from '../../registry/query';
 
 const MAX_HOPS = 16;
 
@@ -42,7 +43,7 @@ class Topology {
 
   constructor(
     net: Network,
-    private data: EngineData,
+    _data: EngineData,
   ) {
     for (const node of net.nodes) this.nodes.set(node.uid, node);
     for (const link of net.links) {
@@ -69,7 +70,7 @@ class Topology {
 
   categoryOf(uid: string): string {
     const node = this.nodes.get(uid);
-    return node ? this.data.categoryOf(node.device) : '';
+    return node ? deviceCategory(node.device) : '';
   }
 
   // 口が機器の内部のスイッチにつながるか（その口から同じL2ドメインへ中継される）
@@ -121,7 +122,7 @@ class Topology {
       if (linked) {
         const { link, peer } = linked;
         cables.add(link.uid);
-        if (!tooLong && linkLength(link.path) > this.data.maxLengthOf(link.cable)) {
+        if (!tooLong && linkLength(link.path) > cableMaxLength(link.cable)) {
           tooLong = ep;
         }
         queue.push(peer);

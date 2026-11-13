@@ -3,6 +3,7 @@
 import { ipToInt } from './engine';
 import { isFabricPort, isL3FabricPort, isRelayPort, isRoutingCategory, isSwitchedRouterCategory, ROUTER_SWITCH_LAN_HOST_PORT, sviPortOf } from './category';
 import type { EngineData, Endpoint, NetNode, Network, SegmentConfig } from './types';
+import { deviceCategory } from '../registry/query';
 
 // 設定できるプレフィックス長（sim-3 の候補）
 export const PREFIX_MIN = 24;
@@ -30,7 +31,7 @@ export const hostCapacity = (prefix: number): number => Math.max(0, 2 ** (32 - p
 const byEndpoint = (a: Endpoint, b: Endpoint): number => (a.node < b.node ? -1 : a.node > b.node ? 1 : a.port - b.port);
 
 // 配線とスイッチでつながった端点を、セグメントにまとめる。機器のない組（スイッチだけ）はセグメントにしない
-export const segmentsOf = (net: Pick<Network, 'nodes' | 'links'>, data: EngineData): Segment[] => {
+export const segmentsOf = (net: Pick<Network, 'nodes' | 'links'>, _data: EngineData): Segment[] => {
   const parent = new Map<string, string>();
   const find = (k: string): string => {
     if (!parent.has(k)) parent.set(k, k);
@@ -43,7 +44,7 @@ export const segmentsOf = (net: Pick<Network, 'nodes' | 'links'>, data: EngineDa
     const rb = find(b);
     if (ra !== rb) parent.set(ra, rb);
   };
-  const categoryOf = new Map(net.nodes.map((n) => [n.uid, data.categoryOf(n.device)]));
+  const categoryOf = new Map(net.nodes.map((n) => [n.uid, deviceCategory(n.device)]));
   const cat = (uid: string) => categoryOf.get(uid) ?? '';
   const nodeOf = new Map(net.nodes.map((n) => [n.uid, n]));
   // 口が機器の内部のスイッチにつながるか（L3スイッチの access・trunk の口を含む・N138）
@@ -146,13 +147,13 @@ export const fillSegments = (net: Network, data: EngineData): Record<string, Seg
 };
 
 // セグメントの中のルーターのポートのアドレス（自分の機器を除き、昇順）
-const routerIpsOf = (members: Endpoint[], net: Pick<Network, 'nodes'>, data: EngineData, self: string): string[] => {
+const routerIpsOf = (members: Endpoint[], net: Pick<Network, 'nodes'>, _data: EngineData, self: string): string[] => {
   const byUid = new Map(net.nodes.map((n) => [n.uid, n]));
   const ips = new Set<string>();
   for (const m of members) {
     if (m.node === self) continue;
     const node = byUid.get(m.node);
-    if (!node || !isRoutingCategory(data.categoryOf(node.device))) continue;
+    if (!node || !isRoutingCategory(deviceCategory(node.device))) continue;
     const iface = node.interfaces.find((i) => i.port === m.port);
     if (iface) ips.add(iface.ip);
   }

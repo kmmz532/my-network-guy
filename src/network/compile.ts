@@ -5,6 +5,7 @@ import { inSubnet, ipToInt } from './engine';
 import { isL2Category, isRelayPort, isRoutingCategory } from './category';
 import { epKey, hostCapacity, segmentConfigOf, segmentsOf, type Segment } from './segments';
 import type { EngineData, Iface, NetNode, Network, SegmentConfig } from './types';
+import { deviceCategory } from '../registry/query';
 
 // 機器の不備の種類（sim-3 の失敗の理由）
 export type Issue =
@@ -45,7 +46,7 @@ const label = (cfg: SegmentConfig): string => `${cfg.network}/${cfg.prefix}`;
 export const compile = (input: Network, data: EngineData): Compiled => {
   const segs = segmentsOf(input, data);
   const byUid = new Map(input.nodes.map((n) => [n.uid, n]));
-  const cat = (n: NetNode) => data.categoryOf(n.device);
+  const cat = (n: NetNode) => deviceCategory(n.device);
   const fixed = (n: NetNode) => n.configLocked && n.interfaces.length > 0;
   const ifaceOf = (n: NetNode, port: number): Iface | undefined => n.interfaces.find((i) => i.port === port);
 

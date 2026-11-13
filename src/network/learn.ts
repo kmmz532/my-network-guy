@@ -5,6 +5,7 @@ import { isIp } from './terminalConfig';
 import { l2Path, learnedOnPath, macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
 import { networkAddress } from './segments';
+import { deviceCategory } from '../registry/query';
 
 export interface LearnedPing {
   // 送信元が覚える ARP（次に届ける相手の IPアドレスと MAC）
@@ -42,14 +43,14 @@ export const learnFromPing = (
   const dstIp = dst.interfaces[0]?.ip;
   const sameNet = src.interfaces.some((i) => dstIp !== undefined && networkAddress(i.ip, i.prefix) === networkAddress(dstIp, i.prefix));
   const nextIp = sameNet ? dstIp : src.gateway;
-  const arpMac = nextIp && isIp(nextIp) ? macOfIp(nodes, nextIp, data.categoryOf) : null;
+  const arpMac = nextIp && isIp(nextIp) ? macOfIp(nodes, nextIp, deviceCategory) : null;
   const arp = nextIp && arpMac ? { ip: nextIp, mac: arpMac } : null;
 
   const isSwitch = (uid: string): boolean => {
     const n = nodes.find((x) => x.uid === uid);
-    return n !== undefined && data.categoryOf(n.device) === 'l2_switch';
+    return n !== undefined && deviceCategory(n.device) === 'l2_switch';
   };
   const path = l2Path(srcUid, dstUid, nodes, links, isSwitch);
-  const macs = path ? learnedOnPath(path, nodes, links, data.categoryOf, (n) => isSwitch(n.uid)) : [];
+  const macs = path ? learnedOnPath(path, nodes, links, deviceCategory, (n) => isSwitch(n.uid)) : [];
   return { arp, macs };
 };

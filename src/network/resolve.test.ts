@@ -4,14 +4,11 @@ import { resolveName } from './resolve';
 import { evaluateGoal } from './goals';
 import type { EngineData, NetLink, NetNode } from './types';
 
-const data: EngineData = {
-  categoryOf: (device) => ({ pc: 'pc', l2: 'l2_switch' })[device] ?? 'unknown',
-  maxLengthOf: () => 30,
-};
+const data: EngineData = { wallAt: () => false };
 
 const host = (uid: string, ip: string, extra: Partial<NetNode> = {}): NetNode => ({
   uid,
-  device: 'pc',
+  device: 'pc_basic',
   x: 0,
   y: 0,
   locked: false,
@@ -24,7 +21,7 @@ const host = (uid: string, ip: string, extra: Partial<NetNode> = {}): NetNode =>
   ...extra,
 });
 
-const sw: NetNode = { ...host('s', '0.0.0.0'), device: 'l2', interfaces: [] };
+const sw: NetNode = { ...host('s', '0.0.0.0'), device: 'l2_switch_8p', interfaces: [] };
 const link = (uid: string, a: string, aPort: number, b: string, bPort: number): NetLink => ({ paid: 0,
   uid,
   cable: 'utp_cat5e',
@@ -86,12 +83,9 @@ describe('名前の解決', () => {
 
 // 目標 reach_by_name（N68）: すべての PC が、名前で指定の機器へ届く
 describe('目標 reach_by_name', () => {
-  const dataWithServer: EngineData = {
-    categoryOf: (device) => ({ pc: 'pc', srv: 'server', l2: 'l2_switch' })[device] ?? 'unknown',
-    maxLengthOf: () => 30,
-  };
+  const dataWithServer: EngineData = { wallAt: () => false };
   const build = (unplugFileserver: boolean) => {
-    const file = host('d', '192.168.1.20', { device: 'srv', hostname: 'fileserver', dns: { zone: [{ name: 'fileserver', ip: '192.168.1.20' }] } });
+    const file = host('d', '192.168.1.20', { device: 'server_basic', hostname: 'fileserver', dns: { zone: [{ name: 'fileserver', ip: '192.168.1.20' }] } });
     const pc = (uid: string, ip: string) => host(uid, ip, { nameServer: '192.168.1.20', hostname: `PC-${uid}` });
     const nodes = [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), sw, file];
     const links = [link('l1', 'a', 0, 's', 0), link('l2', 'b', 0, 's', 1), link('l3', 'd', 0, 's', 2)];

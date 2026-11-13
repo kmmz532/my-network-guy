@@ -3,13 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { compile } from './compile';
 import { ping } from './engine';
 import { nodeName, type NameContext } from './nodeName';
+import { deviceCategory } from '../registry/query';
 import { segmentsOf } from './segments';
 import type { EngineData, Iface, NetLink, NetNode, Network, Route } from './types';
 
-const data: EngineData = {
-  categoryOf: (device) => ({ pc: 'pc', laptop: 'pc', router: 'router', rs: 'router_switch', l3: 'l3_switch', l2: 'l2_switch' })[device] ?? 'unknown',
-  maxLengthOf: () => 100,
-};
+const data: EngineData = { wallAt: () => false };
 
 const node = (uid: string, device: string, interfaces: Iface[] = [], routes: Route[] = []): NetNode => ({ ports: [],
   uid,
@@ -25,7 +23,7 @@ const node = (uid: string, device: string, interfaces: Iface[] = [], routes: Rou
 });
 
 const pc = (uid: string, ip?: string, gateway: string | null = null): NetNode => ({
-  ...node(uid, 'pc', ip ? [{ id: "g0/0", kind: "port", port: 0, ip, prefix: 24 }] : []),
+  ...node(uid, 'pc_basic', ip ? [{ id: "g0/0", kind: "port", port: 0, ip, prefix: 24 }] : []),
   gateway,
 });
 
@@ -43,7 +41,7 @@ const link = (uid: string, a: string, aPort: number, b: string, bPort: number): 
 describe('スイッチ付きルーターのセグメント', () => {
   it('LAN の口どうしは、つながった位置によらず同じセグメントになる', () => {
     const net: Network = {
-      nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), node('rs', 'rs', [{ id: "g0/1", kind: "port", port: 1, ip: '192.168.1.1', prefix: 24 }])],
+      nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), node('rs', 'router_switch', [{ id: "g0/1", kind: "port", port: 1, ip: '192.168.1.1', prefix: 24 }])],
       links: [link('l1', 'a', 0, 'rs', 1), link('l2', 'b', 0, 'rs', 3)],
     };
     const segs = segmentsOf(net, data);
@@ -57,7 +55,7 @@ describe('スイッチ付きルーターのセグメント', () => {
 
   it('LAN の2つ目以降の口は、セグメントの一員に数えない', () => {
     const net: Network = {
-      nodes: [pc('a', '192.168.1.10'), node('rs', 'rs')],
+      nodes: [pc('a', '192.168.1.10'), node('rs', 'router_switch')],
       links: [link('l1', 'a', 0, 'rs', 3)],
     };
     const segs = segmentsOf(net, data);
@@ -70,7 +68,7 @@ describe('スイッチ付きルーターのセグメント', () => {
 
   it('WAN の口は LAN と別のセグメントになる', () => {
     const net: Network = {
-      nodes: [pc('a', '192.168.1.10'), pc('b', '10.0.0.10'), node('rs', 'rs')],
+      nodes: [pc('a', '192.168.1.10'), pc('b', '10.0.0.10'), node('rs', 'router_switch')],
       links: [link('l1', 'a', 0, 'rs', 1), link('l2', 'b', 0, 'rs', 0)],
     };
     expect(segmentsOf(net, data)).toHaveLength(2);
@@ -80,7 +78,7 @@ describe('スイッチ付きルーターのセグメント', () => {
 describe('スイッチ付きルーターの判定', () => {
   it('LAN の口につないだPC どうしは、同じネットワークなら通る', () => {
     const net: Network = {
-      nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), node('rs', 'rs', [{ id: "g0/1", kind: "port", port: 1, ip: '192.168.1.1', prefix: 24 }])],
+      nodes: [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), node('rs', 'router_switch', [{ id: "g0/1", kind: "port", port: 1, ip: '192.168.1.1', prefix: 24 }])],
       links: [link('l1', 'a', 0, 'rs', 1), link('l2', 'b', 0, 'rs', 4)],
     };
     expect(ping(net, data, 'a', 'b')).toMatchObject({ ok: true, path: ['a', 'b'] });
@@ -93,7 +91,7 @@ describe('スイッチ付きルーターの判定', () => {
         pc('b', '192.168.2.10', '192.168.2.1'),
         node(
           'rs',
-          'rs',
+          'router_switch',
           [
             { id: "g0/0", kind: "port", port: 0, ip: '10.0.0.1', prefix: 24 },
             { id: "g0/1", kind: "port", port: 1, ip: '192.168.1.1', prefix: 24 },
@@ -102,7 +100,7 @@ describe('スイッチ付きルーターの判定', () => {
         ),
         node(
           'r2',
-          'router',
+          'router_basic',
           [
             { id: "g0/0", kind: "port", port: 0, ip: '10.0.0.2', prefix: 24 },
             { id: "g0/1", kind: "port", port: 1, ip: '192.168.2.1', prefix: 24 },
@@ -119,7 +117,7 @@ describe('スイッチ付きルーターの判定', () => {
 
   it('LAN の代表の口にアドレスがなければ、ゲートウェイに届かない', () => {
     const net: Network = {
-      nodes: [pc('a', '192.168.1.10', '192.168.1.1'), node('rs', 'rs')],
+      nodes: [pc('a', '192.168.1.10', '192.168.1.1'), node('rs', 'router_switch')],
       links: [link('l1', 'a', 0, 'rs', 2)],
     };
     const r = ping(net, data, 'a', 'rs');
@@ -131,7 +129,7 @@ describe('スイッチ付きルーターの判定', () => {
 describe('スイッチ付きルーターとL3スイッチの設定の判定', () => {
   it('LAN の口の機器は、代表の口のアドレスをゲートウェイにする', () => {
     const net: Network = {
-      nodes: [pc('a', '192.168.1.10'), node('rs', 'rs', [{ id: "g0/1", kind: "port", port: 1, ip: '192.168.1.1', prefix: 24 }])],
+      nodes: [pc('a', '192.168.1.10'), node('rs', 'router_switch', [{ id: "g0/1", kind: "port", port: 1, ip: '192.168.1.1', prefix: 24 }])],
       links: [link('l1', 'a', 0, 'rs', 3)],
       segments: { 'a:0': { network: '192.168.1.0', prefix: 24 } },
     };
@@ -143,7 +141,7 @@ describe('スイッチ付きルーターとL3スイッチの設定の判定', ()
 
   it('LAN の代表の口にアドレスがなければ、スイッチ付きルーターに ip.unset を出す', () => {
     const net: Network = {
-      nodes: [pc('a', '192.168.1.10'), node('rs', 'rs')],
+      nodes: [pc('a', '192.168.1.10'), node('rs', 'router_switch')],
       links: [link('l1', 'a', 0, 'rs', 2)],
     };
     const { issues } = compile(net, data);
@@ -152,7 +150,7 @@ describe('スイッチ付きルーターとL3スイッチの設定の判定', ()
 
   it('LAN の2つ目以降の口に入ったアドレスは、設定から外す', () => {
     const net: Network = {
-      nodes: [pc('a', '192.168.1.10'), node('rs', 'rs', [{ id: "g0/3", kind: "port", port: 3, ip: '192.168.1.1', prefix: 24 }])],
+      nodes: [pc('a', '192.168.1.10'), node('rs', 'router_switch', [{ id: "g0/3", kind: "port", port: 3, ip: '192.168.1.1', prefix: 24 }])],
       links: [link('l1', 'a', 0, 'rs', 3)],
     };
     const { net: compiled } = compile(net, data);
@@ -164,7 +162,7 @@ describe('スイッチ付きルーターとL3スイッチの設定の判定', ()
       nodes: [
         pc('a', '192.168.1.10', '192.168.1.1'),
         pc('b', '192.168.2.10', '192.168.2.1'),
-        node('l3', 'l3', [
+        node('l3', 'l3_switch', [
           { id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 },
           { id: "g0/1", kind: "port", port: 1, ip: '192.168.2.1', prefix: 24 },
         ]),
@@ -177,13 +175,13 @@ describe('スイッチ付きルーターとL3スイッチの設定の判定', ()
 
 describe('機器の名前（スイッチ付きルーターとL3スイッチ）', () => {
   const ctx: NameContext = {
-    categoryOf: (device) => data.categoryOf(device),
+    categoryOf: deviceCategory,
     categoryLabel: (category) => ({ router_switch: 'スイッチ付きルーター', l3_switch: 'L3スイッチ' })[category] ?? category,
     ownedPc: (owner) => `${owner}のPC`,
   };
 
   it('種類ごとに番号を振る', () => {
-    const nodes = [node('r', 'rs'), node('s', 'l3')];
+    const nodes = [node('r', 'router_switch'), node('s', 'l3_switch')];
     expect(nodeName(nodes[0], nodes, ctx)).toBe('スイッチ付きルーター-1');
     expect(nodeName(nodes[1], nodes, ctx)).toBe('L3スイッチ-1');
   });

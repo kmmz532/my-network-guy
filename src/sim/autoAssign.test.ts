@@ -43,10 +43,7 @@ const env: Env = {
   furniture: Object.fromEntries(furnitureJson.furniture.map((f) => [f.id, f as unknown as Furniture])),
   devices,
   cables,
-  engine: {
-    categoryOf: (device) => devices[device]?.category ?? 'unknown',
-    maxLengthOf: (cable) => cables[cable]?.maxLengthTiles ?? 0,
-  },
+  engine: { wallAt: () => false },
 };
 
 const UTP = 'utp_cat5e';

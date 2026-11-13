@@ -8,6 +8,7 @@ import type { NetNode } from '../network/types';
 import type { ClockState } from './clock';
 import { emptyOffice, type Env, type GoalCheck, type Office, type OfficeSize, type TestResult } from './project';
 import { CATEGORY, isPcCategory } from '../data/categories';
+import { deviceCategory } from '../registry/query';
 
 // PC かサーバー（サンドボックスの通信の両端）
 const isPcOrServer = (category: string): boolean => isPcCategory(category) || category === CATEGORY.server;
@@ -55,7 +56,7 @@ const testGoals = (nodes: NetNode[], categoryOf: (device: string) => string): Go
 // サンドボックスの床のネットワークをテストする。判定できる組み合わせがなければ null
 // 教材を開いているときは、教材の達成条件（lessonGoals）で判定する
 export const sandboxTest = (office: Office, env: Env, lessonGoals?: Goal[]): TestResult | null => {
-  const goals = lessonGoals ?? testGoals(office.nodes, env.engine.categoryOf);
+  const goals = lessonGoals ?? testGoals(office.nodes, deviceCategory);
   if (goals.length === 0) return null;
   const net = compile({ nodes: office.nodes, links: office.links, segments: office.segments }, env.engine).net;
   const results = goals.flatMap((goal) => evaluateGoal(goal, net, env.engine));

@@ -4,10 +4,7 @@ import { http, ping } from './engine';
 import { evaluateGoal } from './goals';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
-const data: EngineData = {
-  categoryOf: (device) => ({ pc: 'pc', server: 'server', firewall: 'firewall' })[device] ?? 'unknown',
-  maxLengthOf: () => 30,
-};
+const data: EngineData = { wallAt: () => false };
 
 const host = (uid: string, device: string, ip: string, gateway: string, services: NetNode['services'] = []): NetNode => ({ ports: [],
   uid,
@@ -52,9 +49,9 @@ const link = (uid: string, a: string, aPort: number, b: string, bPort: number): 
 
 const network = (rules?: NetNode['rules']): Network => ({
   nodes: [
-    host('a', 'pc', '192.168.1.10', '192.168.1.1'),
+    host('a', 'pc_basic', '192.168.1.10', '192.168.1.1'),
     firewall(rules),
-    host('web', 'server', '203.0.113.10', '203.0.113.1', [{ protocol: 'http', port: 80 }]),
+    host('web', 'server_basic', '203.0.113.10', '203.0.113.1', [{ protocol: 'http', port: 80 }]),
   ],
   links: [link('l1', 'a', 0, 'f', 0), link('l2', 'f', 1, 'web', 0)],
 });

@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { t, tDyn } from '../i18n/t';
 import { framesOf, type Frame, type FrameContext } from '../network/frames';
 import { isL2Category, isRoutingCategory } from '../network/category';
-import { gameEnv } from '../sim/env';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { labelOfUid } from './nodeLabel';
 import { secondaryButton } from './Modal';
+import { deviceCategory } from '../registry/query';
 
 const CHANGED = '#ffd866';
 
@@ -35,11 +35,11 @@ export function FramesBody({ goal }: { goal?: number }) {
   if (traces.length === 0) return <div style={{ fontSize: 13 }}>{t('ui.frames.none')}</div>;
   const trace = traces[Math.min(index, traces.length - 1)];
 
-  const category = (uid: string) => gameEnv.engine.categoryOf(nodes.find((n) => n.uid === uid)?.device ?? '');
+  const category = (uid: string) => deviceCategory(nodes.find((n) => n.uid === uid)?.device ?? '');
   const ctx: FrameContext = {
     nodes,
     links,
-    categoryOf: gameEnv.engine.categoryOf,
+    categoryOf: deviceCategory,
     isSwitch: (uid) => isL2Category(category(uid)),
     isRouter: (uid) => isRoutingCategory(category(uid)),
   };

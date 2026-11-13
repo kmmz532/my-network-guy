@@ -62,7 +62,7 @@ export class NetworkRenderer {
         const ty = ap.y + dy;
         if (tx < 0 || ty < 0 || tx >= map.width || ty >= map.height) continue;
         const distance = Math.abs(dx) + Math.abs(dy);
-        const walls = engine.wallAt ? wallsBetween(engine.wallAt, ap.x, ap.y, tx, ty) : 0;
+        const walls = wallsBetween(engine.wallAt, ap.x, ap.y, tx, ty);
         if (distance + walls * WALL_LOSS <= WIRELESS_RADIUS) {
           this.options.graphics.rect(tx * ts, ty * ts, ts, ts).fill({ color: 0x62d26f, alpha: 0.12 });
         }

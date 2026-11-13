@@ -3,10 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { evaluateGoal } from './goals';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
-const data: EngineData = {
-  categoryOf: (device) => ({ pc: 'pc', printer: 'printer', l2_switch: 'l2_switch' })[device] ?? 'unknown',
-  maxLengthOf: () => 30,
-};
+const data: EngineData = { wallAt: () => false };
 
 const host = (uid: string, device: string, ip: string): NetNode => ({ ports: [],
   uid,
@@ -35,10 +32,10 @@ const link = (uid: string, a: string, b: string, bPort: number): NetLink => ({ p
 // PC 2台とプリンター1台を、同じネットワークで1台のスイッチ（hub）につなぐ
 const star = (printerLinked: boolean): Network => ({
   nodes: [
-    host('pc1', 'pc', '192.168.1.10'),
-    host('pc2', 'pc', '192.168.1.11'),
-    host('pr', 'printer', '192.168.1.20'),
-    { ...host('hub', 'l2_switch', '0.0.0.0'), interfaces: [] },
+    host('pc1', 'pc_basic', '192.168.1.10'),
+    host('pc2', 'pc_basic', '192.168.1.11'),
+    host('pr', 'printer_basic', '192.168.1.20'),
+    { ...host('hub', 'l2_switch_8p', '0.0.0.0'), interfaces: [] },
   ],
   links: [link('l1', 'pc1', 'hub', 0), link('l2', 'pc2', 'hub', 1), ...(printerLinked ? [link('l3', 'pr', 'hub', 2)] : [])],
 });

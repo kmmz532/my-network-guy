@@ -30,11 +30,7 @@ export const gameEnv: Env = {
   furniture: furnitureRecord,
   devices,
   cables,
-  engine: {
-    categoryOf: (device) => devices[device]?.category ?? 'unknown',
-    portSpeedOf: (device, port) => devices[device]?.portSpeeds?.[port],
-    maxLengthOf: (cable) => cables[cable]?.maxLengthTiles ?? 0,
-  },
+  engine: { wallAt: () => false },
 };
 
 // 機器の種類が PC かどうか（N102）

@@ -1,7 +1,7 @@
 {
   "src/components/DevicePanel.tsx": {
     "local/no-category": {
-      "count": 5
+      "count": 4
     },
     "local/no-engine-in-view": {
       "count": 1
@@ -21,11 +21,6 @@
     },
     "local/no-engine-in-view": {
       "count": 3
-    }
-  },
-  "src/components/FramesPanel.tsx": {
-    "local/no-category": {
-      "count": 2
     }
   },
   "src/components/Guide.tsx": {
@@ -181,7 +176,7 @@
   },
   "src/network/__oracle__/engineLegacy.ts": {
     "local/no-category": {
-      "count": 8
+      "count": 7
     },
     "local/no-topology-outside-engine": {
       "count": 3
@@ -197,53 +192,8 @@
       "count": 7
     }
   },
-  "src/network/channelOverlap.test.ts": {
-    "local/no-handmade-engine-data": {
-      "count": 2
-    }
-  },
-  "src/network/compile.test.ts": {
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
-      "count": 1
-    }
-  },
-  "src/network/compile.ts": {
-    "local/no-category": {
-      "count": 1
-    }
-  },
-  "src/network/engine.test.ts": {
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
-      "count": 1
-    }
-  },
-  "src/network/external.test.ts": {
-    "local/no-category": {
-      "count": 1
-    },
-    "local/no-handmade-engine-data": {
-      "count": 3
-    },
-    "local/no-unknown-fallback": {
-      "count": 1
-    }
-  },
   "src/network/external.ts": {
     "local/no-category": {
-      "count": 5
-    }
-  },
-  "src/network/firewall.test.ts": {
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
       "count": 1
     }
   },
@@ -265,14 +215,6 @@
   },
   "src/network/goals.ts": {
     "local/no-category": {
-      "count": 8
-    }
-  },
-  "src/network/groupGoals.test.ts": {
-    "local/no-handmade-engine-data": {
-      "count": 4
-    },
-    "local/no-unknown-fallback": {
       "count": 2
     }
   },
@@ -281,22 +223,9 @@
       "count": 1
     }
   },
-  "src/network/lag.test.ts": {
-    "local/no-handmade-engine-data": {
-      "count": 2
-    }
-  },
-  "src/network/learn.test.ts": {
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
-      "count": 1
-    }
-  },
   "src/network/learn.ts": {
     "local/no-category": {
-      "count": 4
+      "count": 1
     }
   },
   "src/network/mac.test.ts": {
@@ -309,30 +238,9 @@
       "count": 1
     }
   },
-  "src/network/netColor.test.ts": {
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
-      "count": 1
-    }
-  },
-  "src/network/netColor.ts": {
-    "local/no-category": {
-      "count": 2
-    }
-  },
   "src/network/netState.ts": {
     "local/no-category": {
-      "count": 27
-    }
-  },
-  "src/network/noStaticRoute.test.ts": {
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
-      "count": 1
+      "count": 19
     }
   },
   "src/network/nodeName.test.ts": {
@@ -346,88 +254,13 @@
       "count": 1
     }
   },
-  "src/network/ospf.test.ts": {
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
-      "count": 1
-    }
-  },
   "src/network/pcWifi.test.ts": {
     "local/no-category": {
       "count": 1
     }
   },
-  "src/network/portSecurity.test.ts": {
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
-      "count": 1
-    }
-  },
-  "src/network/reachCategory.test.ts": {
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
-      "count": 1
-    }
-  },
-  "src/network/resolve.test.ts": {
-    "local/no-handmade-engine-data": {
-      "count": 4
-    },
-    "local/no-unknown-fallback": {
-      "count": 2
-    }
-  },
-  "src/network/routerSwitch.test.ts": {
-    "local/no-category": {
-      "count": 1
-    },
-    "local/no-handmade-engine-data": {
-      "count": 3
-    },
-    "local/no-unknown-fallback": {
-      "count": 1
-    }
-  },
-  "src/network/segments.test.ts": {
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
-      "count": 1
-    }
-  },
-  "src/network/segments.ts": {
-    "local/no-category": {
-      "count": 2
-    }
-  },
-  "src/network/terminal.test.ts": {
-    "local/no-handmade-engine-data": {
-      "count": 8
-    },
-    "local/no-unknown-fallback": {
-      "count": 4
-    }
-  },
   "src/network/terminal.ts": {
-    "local/no-category": {
-      "count": 4
-    },
     "local/no-handmade-engine-data": {
-      "count": 1
-    }
-  },
-  "src/network/wirelessClients.test.ts": {
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
       "count": 1
     }
   },
@@ -448,21 +281,15 @@
   },
   "src/services/legacyColors.ts": {
     "local/no-category": {
-      "count": 8
+      "count": 7
     }
   },
   "src/services/migrations.ts": {
     "local/no-category": {
       "count": 3
     },
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
     "local/no-mode-branch": {
       "count": 7
-    },
-    "local/no-unknown-fallback": {
-      "count": 1
     }
   },
   "src/services/save.test.ts": {
@@ -472,28 +299,16 @@
   },
   "src/sim/autoAssign.test.ts": {
     "local/no-category": {
-      "count": 2
-    },
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
       "count": 1
     }
   },
   "src/sim/autoAssign.ts": {
     "local/no-category": {
-      "count": 8
+      "count": 5
     }
   },
   "src/sim/env.ts": {
     "local/no-category": {
-      "count": 2
-    },
-    "local/no-handmade-engine-data": {
-      "count": 3
-    },
-    "local/no-unknown-fallback": {
       "count": 1
     }
   },
@@ -509,34 +324,11 @@
   },
   "src/sim/invariants.test.ts": {
     "local/no-category": {
-      "count": 2
-    },
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
-      "count": 1
-    }
-  },
-  "src/sim/lesson.test.ts": {
-    "local/no-category": {
-      "count": 2
-    },
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
       "count": 1
     }
   },
   "src/sim/move.test.ts": {
     "local/no-category": {
-      "count": 2
-    },
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
       "count": 1
     }
   },
@@ -557,12 +349,6 @@
   },
   "src/sim/project.test.ts": {
     "local/no-category": {
-      "count": 2
-    },
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
       "count": 1
     }
   },
@@ -573,40 +359,22 @@
   },
   "src/sim/reference.test.ts": {
     "local/no-category": {
-      "count": 2
-    },
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
       "count": 1
     }
   },
   "src/sim/replug.test.ts": {
     "local/no-category": {
-      "count": 2
-    },
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
       "count": 1
     }
   },
   "src/sim/sandbox.test.ts": {
     "local/no-category": {
-      "count": 2
-    },
-    "local/no-handmade-engine-data": {
-      "count": 2
-    },
-    "local/no-unknown-fallback": {
       "count": 1
     }
   },
   "src/sim/sandbox.ts": {
     "local/no-category": {
-      "count": 4
+      "count": 3
     }
   },
   "src/sim/shop.test.ts": {

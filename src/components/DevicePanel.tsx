@@ -18,6 +18,7 @@ import { TerminalTab } from './TerminalTab';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { buttonStyle, greyColor, warnColor } from './devicePorts';
 import { CATEGORY, isPcCategory } from '../data/categories';
+import { deviceCategory } from '../registry/query';
 
 type Tab = 'rear' | 'config' | 'service' | 'terminal';
 
@@ -138,7 +139,7 @@ function SeenSources({ node, nodes, net }: { node: NetNode; nodes: NetNode[]; ne
   const engine = engineWithWalls(gameEnv.engine, store.maps[focusedProject(store)?.contract.map ?? 'hq']);
   const http = node.services.find((s) => s.protocol === 'http');
   if (!http) return null;
-  const clients = nodes.filter((n) => isPcCategory(gameEnv.engine.categoryOf(n.device))).map((n) => n.uid);
+  const clients = nodes.filter((n) => isPcCategory(deviceCategory(n.device))).map((n) => n.uid);
   const byUid = new Map(nodes.map((n) => [n.uid, n]));
   const seen = seenSourcesOf(net, engine, node.uid, http.port, clients);
   return (

@@ -4,10 +4,7 @@ import { neighborRouterAddresses, routerAddressesOn } from './segments';
 import type { Iface } from './types';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
-const data: EngineData = {
-  categoryOf: (device) => ({ pc: 'pc', sw: 'l2_switch', rt: 'router' })[device] ?? 'unknown',
-  maxLengthOf: () => 100,
-};
+const data: EngineData = { wallAt: () => false };
 
 const node = (uid: string, device: string, ifaces: Iface[] = []): NetNode => ({ ports: [],
   uid,
@@ -34,10 +31,10 @@ describe('ネットワークごとの色', () => {
   it('設定されたネットワークを、アドレスの小さい順にパレットの色で割り当てる', () => {
     const net: Network = {
       nodes: [
-        node('pc_a', 'pc', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }]),
-        node('pc_b', 'pc', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.12', prefix: 24 }]),
-        node('pc_c', 'pc', [{ id: "g0/0", kind: "port", port: 0, ip: '10.0.0.5', prefix: 24 }]),
-        node('pc_d', 'pc', [{ id: "g0/0", kind: "port", port: 0, ip: '10.0.0.6', prefix: 24 }]),
+        node('pc_a', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }]),
+        node('pc_b', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.12', prefix: 24 }]),
+        node('pc_c', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '10.0.0.5', prefix: 24 }]),
+        node('pc_d', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '10.0.0.6', prefix: 24 }]),
       ],
       links: [link('l0', ['pc_a', 0], ['pc_b', 0]), link('l1', ['pc_c', 0], ['pc_d', 0])],
       segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 }, 'pc_c:0': { network: '10.0.0.0', prefix: 24 } },
@@ -56,7 +53,7 @@ describe('ネットワークごとの色', () => {
 
   it('アドレスの未設定の機器がつながるケーブルは灰色になる', () => {
     const net: Network = {
-      nodes: [node('pc_a', 'pc', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }]), node('pc_b', 'pc')],
+      nodes: [node('pc_a', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }]), node('pc_b', 'pc_basic')],
       links: [link('l0', ['pc_a', 0], ['pc_b', 0])],
       segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
     };
@@ -68,8 +65,8 @@ describe('ネットワークごとの色', () => {
   it('両端の機器のアドレスが食い違うケーブルは灰色になる', () => {
     const net: Network = {
       nodes: [
-        node('pc_a', 'pc', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }]),
-        node('pc_b', 'pc', [{ id: "g0/0", kind: "port", port: 0, ip: '10.0.0.12', prefix: 24 }]),
+        node('pc_a', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }]),
+        node('pc_b', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '10.0.0.12', prefix: 24 }]),
       ],
       links: [link('l0', ['pc_a', 0], ['pc_b', 0])],
       segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
@@ -80,9 +77,9 @@ describe('ネットワークごとの色', () => {
   it('スイッチを挟んでも、ホストのアドレスで色が決まる', () => {
     const net: Network = {
       nodes: [
-        node('pc_a', 'pc', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }]),
-        node('pc_b', 'pc', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.12', prefix: 24 }]),
-        node('sw', 'sw'),
+        node('pc_a', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }]),
+        node('pc_b', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.12', prefix: 24 }]),
+        node('sw', 'l2_switch_8p'),
       ],
       links: [link('l0', ['pc_a', 0], ['sw', 0]), link('l1', ['pc_b', 0], ['sw', 1])],
       segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
@@ -95,9 +92,9 @@ describe('ネットワークごとの色', () => {
   it('ルーター–スイッチ–PCで、ケーブルの a がスイッチ側でも色が付く', () => {
     // a がスイッチ側（sw:0 → rt:0、sw:1 → pc_a:0）と、a がルーター・PC側の両方を並べる
     const nodes = [
-      node('pc_a', 'pc', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }]),
-      node('rt', 'rt', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 }]),
-      node('sw', 'sw'),
+      node('pc_a', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }]),
+      node('rt', 'router_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 }]),
+      node('sw', 'l2_switch_8p'),
     ];
     const segments = { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } };
     const swSideA: Network = {
@@ -122,9 +119,9 @@ describe('ネットワークごとの色', () => {
   it('PC–スイッチで、ケーブルの a がスイッチ側でも色が付く', () => {
     const net: Network = {
       nodes: [
-        node('pc_a', 'pc', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }]),
-        node('pc_b', 'pc', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.12', prefix: 24 }]),
-        node('sw', 'sw'),
+        node('pc_a', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }]),
+        node('pc_b', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.12', prefix: 24 }]),
+        node('sw', 'l2_switch_8p'),
       ],
       links: [link('l0', ['sw', 0], ['pc_a', 0]), link('l1', ['sw', 1], ['pc_b', 0])],
       segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
@@ -139,9 +136,9 @@ describe('ルーターのアドレスの候補', () => {
   // PC（pc_a）のセグメントに、ルーターのポート（rt:0）と、もう1台のルーター（rt2:0）がある
   const net: Network = {
     nodes: [
-      node('pc_a', 'pc', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }]),
-      node('rt', 'rt', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 }, { id: "g0/1", kind: "port", port: 1, ip: '10.0.0.1', prefix: 24 }]),
-      node('rt2', 'rt', [{ id: "g0/0", kind: "port", port: 0, ip: '10.0.0.2', prefix: 24 }]),
+      node('pc_a', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }]),
+      node('rt', 'router_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 }, { id: "g0/1", kind: "port", port: 1, ip: '10.0.0.1', prefix: 24 }]),
+      node('rt2', 'router_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '10.0.0.2', prefix: 24 }]),
     ],
     links: [link('l0', ['pc_a', 0], ['rt', 0]), link('l1', ['rt', 1], ['rt2', 0])],
   };
@@ -151,7 +148,7 @@ describe('ルーターのアドレスの候補', () => {
   });
 
   it('ルーターがいないセグメントの候補は空になる', () => {
-    const noRouter: Network = { nodes: [node('pc_a', 'pc', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.9.11', prefix: 24 }]), node('pc_b', 'pc')], links: [link('l0', ['pc_a', 0], ['pc_b', 0])] };
+    const noRouter: Network = { nodes: [node('pc_a', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.9.11', prefix: 24 }]), node('pc_b', 'pc_basic')], links: [link('l0', ['pc_a', 0], ['pc_b', 0])] };
     expect(routerAddressesOn(noRouter, data, 'pc_a', 0)).toEqual([]);
   });
 

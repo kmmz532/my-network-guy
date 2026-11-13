@@ -12,6 +12,7 @@ import { adOf, bgpTableOf, dhcpOf, lagBundlesOf, stpOf, vrrpStatusOf, learnedRou
 import type { Trace } from '../sim/project';
 import { framesOf } from './frames';
 import { isL2Category, isRoutingCategory } from './category';
+import { deviceCategory } from '../registry/query';
 
 export interface TerminalContext {
   node: NetNode;
@@ -51,7 +52,7 @@ const peersOf = (ctx: TerminalContext): Map<number, NetNode | undefined> => {
 // 機器のポートの MAC アドレス（機器の連番が必要）。連番のない機器は例外にする
 const macOfPort = (ctx: TerminalContext, port: number): string => {
   if (ctx.node.macSerial === undefined) throw new Error(`MAC アドレスの連番がない機器: ${ctx.node.uid}`);
-  return macOf(ctx.data.categoryOf(ctx.node.device), ctx.node.macSerial, port);
+  return macOf(deviceCategory(ctx.node.device), ctx.node.macSerial, port);
 };
 
 export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): TerminalLine[] => {
@@ -93,7 +94,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
     }
     if (sub === 'mac address-table') {
       // スイッチの MAC の表は、段2の計算（同じ L2 のドメインの端末）から出す。端末では使えない
-      if (ctx.data.categoryOf(node.device) !== 'l2_switch') return [err(tr('ui.terminal.noMacTable'))];
+      if (deviceCategory(node.device) !== 'l2_switch') return [err(tr('ui.terminal.noMacTable'))];
       const entries = macTableOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
       if (entries.length === 0) return [out(tr('ui.terminal.macNone'))];
       return entries.map((e) => out(tr('ui.terminal.macEntry', { port: e.port, mac: e.mac })));
@@ -251,12 +252,12 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
     // 各機器のアドレスは、そこへ届いたフレームを受けた口のアドレス（実機と同じく、受け取った口を出す）
     const categoryOfUid = (uid: string): string => {
       const device = ctx.nodes.find((n) => n.uid === uid)?.device ?? '';
-      return ctx.data.categoryOf(device);
+      return deviceCategory(device);
     };
     const frameCtx = {
       nodes: ctx.nodes,
       links: ctx.links,
-      categoryOf: (device: string) => ctx.data.categoryOf(device),
+      categoryOf: (device: string) => deviceCategory(device),
       isSwitch: (uid: string) => isL2Category(categoryOfUid(uid)),
       isRouter: (uid: string) => isRoutingCategory(categoryOfUid(uid)),
     };

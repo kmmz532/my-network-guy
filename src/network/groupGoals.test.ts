@@ -5,10 +5,7 @@ import type { EngineData, NetLink, NetNode, Network } from './types';
 import { instantiateTemplate } from '../contracts/template';
 import type { ContractTemplate, GameMap, Goal } from '../data/schema';
 
-const data: EngineData = {
-  categoryOf: (device) => ({ pc: 'pc', server: 'server', l2_switch: 'l2_switch' })[device] ?? 'unknown',
-  maxLengthOf: () => 30,
-};
+const data: EngineData = { wallAt: () => false };
 
 const host = (uid: string, device: string, ip: string): NetNode => ({ ports: [],
   uid,
@@ -20,10 +17,10 @@ const host = (uid: string, device: string, ip: string): NetNode => ({ ports: [],
   interfaces: [{ id: "g0/0", kind: "port", port: 0, ip, prefix: 24 }],
   gateway: null,
   routes: [],
-  services: device === 'server' ? [{ protocol: 'http', port: 80 }] : [],
+  services: device === 'server_basic' ? [{ protocol: 'http', port: 80 }] : [],
 });
 
-const sw = (uid: string): NetNode => ({ ...host(uid, 'l2_switch', '0.0.0.0'), interfaces: [] });
+const sw = (uid: string): NetNode => ({ ...host(uid, 'l2_switch_8p', '0.0.0.0'), interfaces: [] });
 
 const link = (uid: string, a: string, b: string, bPort: number): NetLink => ({ paid: 0,
   uid,
@@ -39,11 +36,11 @@ const link = (uid: string, a: string, b: string, bPort: number): NetLink => ({ p
 // 店員の PC 2台とサーバーをスイッチ s1 に、お客さんの PC 2台をスイッチ s2 につなぐ。bridged なら s1 と s2 もつなぐ
 const twoNets = (bridged: boolean): Network => ({
   nodes: [
-    host('staff_1', 'pc', '192.168.1.10'),
-    host('staff_2', 'pc', '192.168.1.11'),
-    host('sv', 'server', '192.168.1.20'),
-    host('guest_1', 'pc', '192.168.1.30'),
-    host('guest_2', 'pc', '192.168.1.31'),
+    host('staff_1', 'pc_basic', '192.168.1.10'),
+    host('staff_2', 'pc_basic', '192.168.1.11'),
+    host('sv', 'server_basic', '192.168.1.20'),
+    host('guest_1', 'pc_basic', '192.168.1.30'),
+    host('guest_2', 'pc_basic', '192.168.1.31'),
     sw('s1'),
     sw('s2'),
   ],
@@ -120,11 +117,8 @@ describe('ひな形の役割', () => {
 // t_bank_secure の模範解答: 窓口（192.168.1.0/24）と、事務室とサーバー（192.168.2.0/24）を、ポート2つのファイアウォールで分ける。
 // 規則は「窓口からサーバーへの http を許す」1本だけ。既定は拒否のため、窓口から事務室への Ping は止まる
 describe('銀行の支店の守り（模範解答で解ける）', () => {
-  const bankData: EngineData = {
-    categoryOf: (device) => ({ pc: 'pc', server: 'server', l2_switch: 'l2_switch', firewall: 'firewall' })[device] ?? 'unknown',
-    maxLengthOf: () => 30,
-  };
-  const pc = (uid: string, ip: string, gw: string): NetNode => ({ ...host(uid, 'pc', ip), gateway: gw });
+  const bankData: EngineData = { wallAt: () => false };
+  const pc = (uid: string, ip: string, gw: string): NetNode => ({ ...host(uid, 'pc_basic', ip), gateway: gw });
   const fw = (rules: NetNode['rules']): NetNode => ({
     ...sw('fw'),
     device: 'firewall',
@@ -141,7 +135,7 @@ describe('銀行の支店の守り（模範解答で解ける）', () => {
       pc('teller_2', '192.168.1.11', '192.168.1.1'),
       pc('office_1', '192.168.2.10', '192.168.2.1'),
       pc('office_2', '192.168.2.11', '192.168.2.1'),
-      { ...host('sv', 'server', '192.168.2.20'), gateway: '192.168.2.1' },
+      { ...host('sv', 'server_basic', '192.168.2.20'), gateway: '192.168.2.1' },
       sw('s1'),
       sw('s2'),
       fw(rules),

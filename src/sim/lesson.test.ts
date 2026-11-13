@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { cables, devices, lessons } from 'virtual:game-data';
+import { lessons } from 'virtual:game-data';
+import { deviceCategory } from '../registry/query';
 import ja from '../assets/lang/ja_jp.json';
 import type { Lesson } from '../data/schema';
 import type { EngineData } from '../network/types';
@@ -7,10 +8,7 @@ import { lessonGoalResults, lessonLinks, lessonNodes, lessonSegments } from './l
 import { segmentConfigOf, segmentsOf } from '../network/segments';
 import { solutions } from '../__golden__/solutions';
 
-const engine: EngineData = {
-  categoryOf: (device) => devices[device as keyof typeof devices]?.category ?? 'unknown',
-  maxLengthOf: (cable) => cables[cable as keyof typeof cables]?.maxLengthTiles ?? 0,
-};
+const engine: EngineData = { wallAt: () => false };
 
 const lesson = (id: string): Lesson => {
   const found = lessons.find((l) => l.id === id);
@@ -71,7 +69,7 @@ describe('教材を開いた直後の網の設定', () => {
     const segments = lessonSegments(nodes, links, engine);
     const byUid = new Map(nodes.map((n) => [n.uid, n]));
     const routerSegs = segmentsOf({ nodes, links }, engine).filter((seg) =>
-      seg.members.some((m) => engine.categoryOf(byUid.get(m.node)?.device ?? '') === 'router'),
+      seg.members.some((m) => deviceCategory(byUid.get(m.node)?.device ?? '') === 'router'),
     );
     expect(routerSegs.length).toBeGreaterThan(0);
     for (const seg of routerSegs) expect(segmentConfigOf(seg, byUid, segments)).toBeDefined();

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
 import { ping, portStatesOf, stpOf, warningsOf } from './netState';
-import { lacpCompatible } from './lag';
+import { computeLags, lacpCompatible } from './lag';
 import type { Iface, NetLink, NetNode, Network, PortConfig } from './types';
 
 const data = gameEnv.engine;
@@ -111,11 +111,12 @@ describe('口の状態（背面の画面）', () => {
 });
 
 describe('速さの一致', () => {
-  it('2本の速さが違えば、速さの違う口はまとまらず、警告 lag.mismatch を出す。速さが同じならまとまる', () => {
+  it('2本の速さが違えば、速さの違う口はまとまらない。速さが同じならまとまる（速さは計算の引数で渡す）', () => {
     const net = pair([], []);
-    const slow = { ...data, portSpeedOf: (device: string, port: number) => (device === 'l2_switch_8p' && port === 1 ? 100 : 1000) };
-    expect(warningsOf(net, slow)).toContainEqual({ id: 'lag.mismatch', a: 'sw1', b: 'sw2' });
-    expect(warningsOf(net, data).some((w) => w.id === 'lag.mismatch')).toBe(false);
-    expect(warningsOf(net, { ...data, portSpeedOf: () => 1000 }).some((w) => w.id === 'lag.mismatch')).toBe(false);
+    const slow = computeLags(net.nodes, net.links, () => true, (_n, port) => (port === 1 ? 100 : 1000));
+    expect([...slow.mismatched]).toContain('y');
+    const same = computeLags(net.nodes, net.links, () => true, () => 1000);
+    expect(same.mismatched.size).toBe(0);
+    expect(same.bundles).toHaveLength(1);
   });
 });

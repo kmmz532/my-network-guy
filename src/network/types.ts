@@ -179,14 +179,10 @@ export interface Network {
   segments?: Record<string, SegmentConfig>;
 }
 
-// 判定に必要なデータ（機材の種類と、ケーブルの上限長）
+// 判定に必要な、世界ごとに違うデータ（機器・ケーブルの定義は登録表から引く）
 export interface EngineData {
-  categoryOf: (device: string) => string;
-  maxLengthOf: (cable: string) => number;
-  // 壁のマスか（電波の減衰・N151）。省略すると壁はないものとして数える
-  wallAt?: (x: number, y: number) => boolean;
-  // 機器の口の速さ（Mbps。口の番号の順）。省略すると速さは扱わない（リンクアグリゲーションの速さの一致）
-  portSpeedOf?: (device: string, port: number) => number | undefined;
+  // 壁のマスか（電波の減衰・N151）。壁のない場面は () => false を渡す
+  wallAt: (x: number, y: number) => boolean;
 }
 
 // 疎通の失敗の理由。文言は言語ファイルの error.<理由> と error.<理由>.fix に置く

@@ -5,6 +5,7 @@ import { ipToInt } from '../network/engine';
 import { epKey, segmentsOf } from '../network/segments';
 import type { EngineData, Iface, NetLink, NetNode, Route } from '../network/types';
 import { CATEGORY } from '../data/categories';
+import { deviceCategory } from '../registry/query';
 
 // 色を持つ古い機器の形式（色は v12 までの機器が持っていた）
 type LNode = NetNode & { colors?: Record<number, number> };
@@ -34,7 +35,7 @@ export const legacyInterfaces = (nodes: LNode[], links: NetLink[], data: EngineD
   const domainOf = new Map<string, string>();
   for (const s of segs) for (const m of s.members) domainOf.set(epKey(m.node, m.port), s.key);
   const dom = (node: string, port: number) => domainOf.get(epKey(node, port)) ?? epKey(node, port);
-  const cat = (n: LNode) => data.categoryOf(n.device);
+  const cat = (n: LNode) => deviceCategory(n.device);
   const colorsOf = (n: LNode): Record<number, number> => n.colors ?? {};
   const coloredPorts = (n: LNode): number[] => {
     const c = cat(n);

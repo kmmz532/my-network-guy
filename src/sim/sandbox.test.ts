@@ -37,10 +37,7 @@ const env: Env = {
   balance,
   devices,
   cables,
-  engine: {
-    categoryOf: (device) => devices[device]?.category ?? 'unknown',
-    maxLengthOf: (cable) => cables[cable]?.maxLengthTiles ?? 0,
-  },
+  engine: { wallAt: () => false },
 };
 
 const core = (office: Office = sandboxOffice(), owned: Record<string, number> = { pc_basic: 4, server_basic: 1, router_basic: 1 }): Core => ({

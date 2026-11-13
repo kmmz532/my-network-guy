@@ -4,7 +4,7 @@ import { macOf } from './mac';
 import { ping } from './netState';
 import type { EngineData, Iface, NetLink, NetNode, Network, PortConfig } from './types';
 
-const data: EngineData = { categoryOf: (d) => ({ pc_basic: 'pc', l2_switch_8p: 'l2_switch' })[d] ?? 'unknown', maxLengthOf: () => 30 };
+const data: EngineData = { wallAt: () => false };
 const f = (port: number, ip: string): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24 });
 const host = (uid: string, ip: string, serial: number, x: number): NetNode =>
   ({ uid, device: 'pc_basic', macSerial: serial, x, y: 0, locked: false, configLocked: false, interfaces: [f(0, ip)], gateway: null, routes: [], services: [], ports: [] }) as NetNode;

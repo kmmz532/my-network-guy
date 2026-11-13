@@ -6,6 +6,7 @@ import { http, ping } from './engine';
 import { isRoutingCategory } from './category';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import type { EngineData, NetLink, NetNode, Network } from './types';
+import { INTERNET_DEVICE, deviceCategory } from '../registry/query';
 
 export const INTERNET_UID = '__internet';
 export const INTERNET_IP = '198.51.100.1';
@@ -38,16 +39,16 @@ const ISP_ROUTER_DEVICE = 'router_basic';
 // 回線終端（uplink）ごとに、仮想の ISP（とインターネット）を加える（N144・NET.md §5.5）。回線終端の口1（ISP 側）につなぐ。
 // 回線終端の口0 がルーターの WAN の口につながっていなければ、その回線は使えない。使える回線がなければ null。
 // 最初の回線の ISP は INTERNET_UID、2つ目からは __internet_<回線終端の uid>。ISP の情報は回線終端の isp（省略すると既定の ISP）
-export const withInternet = (net: Network, data: EngineData): (Network & { internetUid: string; internetUids: string[] }) | null => {
+export const withInternet = (net: Network, _data: EngineData): (Network & { internetUid: string; internetUids: string[] }) | null => {
   const nodes: NetNode[] = [];
   const links: NetLink[] = [];
   const uids: string[] = [];
-  for (const uplink of net.nodes.filter((n) => data.categoryOf(n.device) === CATEGORY.uplink)) {
+  for (const uplink of net.nodes.filter((n) => deviceCategory(n.device) === CATEGORY.uplink)) {
     const routerLink = net.links.find((l) => (l.a.node === uplink.uid && l.a.port === UPLINK_ROUTER_PORT) || (l.b.node === uplink.uid && l.b.port === UPLINK_ROUTER_PORT));
     if (!routerLink) continue;
     const routerEnd = routerLink.a.node === uplink.uid ? routerLink.b : routerLink.a;
     const router = net.nodes.find((n) => n.uid === routerEnd.node);
-    if (!router || !isRoutingCategory(data.categoryOf(router.device))) continue;
+    if (!router || !isRoutingCategory(deviceCategory(router.device))) continue;
     // 戻りの経路: 外部の側の既定のゲートウェイは、つないだルーターの WAN の IPアドレス（WAN に IPアドレスがなければ戻れない）
     const wanIp = router.interfaces.find((i) => i.port === routerEnd.port)?.ip ?? null;
     const uid = uids.length === 0 ? INTERNET_UID : `${INTERNET_UID}_${uplink.uid}`;
@@ -56,14 +57,14 @@ export const withInternet = (net: Network, data: EngineData): (Network & { inter
     nodes.push({
       ports: [],
       uid,
-      device: bgp ? ISP_ROUTER_DEVICE : 'internet',
+      device: bgp ? ISP_ROUTER_DEVICE : INTERNET_DEVICE,
       // MAC アドレスの連番は、ISP ごとに大きな値から振る（機器の連番と重ならない）
       macSerial: 0xf000 + uids.length,
       x: 0,
       y: 0,
       locked: true,
       configLocked: true,
-      interfaces: [makeIface(bgp ? ISP_ROUTER_DEVICE : 'internet', 0, line?.ispIp ?? INTERNET_IP, line?.prefix ?? INTERNET_PREFIX)],
+      interfaces: [makeIface(bgp ? ISP_ROUTER_DEVICE : INTERNET_DEVICE, 0, line?.ispIp ?? INTERNET_IP, line?.prefix ?? INTERNET_PREFIX)],
       gateway: wanIp,
       routes: [],
       services: [],
@@ -90,8 +91,8 @@ export const withInternet = (net: Network, data: EngineData): (Network & { inter
 export const outsideCheck = (net: Network, data: EngineData): OutsideCheck => {
   const withNet = withInternet(net, data);
   if (!withNet) return { attached: false, pcsReachOutside: false, exposedServers: [], leaks: false, servers: 0 };
-  const pcs = net.nodes.filter((n) => isPcCategory(data.categoryOf(n.device)));
-  const servers = net.nodes.filter((n) => data.categoryOf(n.device) === 'server' && n.services.some((s) => s.protocol === 'http' && s.port === PUBLIC_PORT));
+  const pcs = net.nodes.filter((n) => isPcCategory(deviceCategory(n.device)));
+  const servers = net.nodes.filter((n) => deviceCategory(n.device) === 'server' && n.services.some((s) => s.protocol === 'http' && s.port === PUBLIC_PORT));
   const pcsReachOutside = pcs.length > 0 && pcs.every((pc) => withNet.internetUids.some((isp) => ping(withNet, data, pc.uid, isp).ok));
   // 外から社内の PC へ届くか（届けば、公開のサーバーがあっても収入はない）
   const leaks = pcs.some((pc) => withNet.internetUids.some((isp) => ping(withNet, data, isp, pc.uid).ok));

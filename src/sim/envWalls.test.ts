@@ -14,6 +14,6 @@ describe('地図の壁（N151）', () => {
     expect(e.wallAt?.(0, 0)).toBe(false);
   });
   it('地図がなければ壁の判定はない', () => {
-    expect(engineWithWalls(gameEnv.engine, undefined).wallAt).toBeUndefined();
+    expect(engineWithWalls(gameEnv.engine, undefined).wallAt(0, 0)).toBe(false);
   });
 });

@@ -2,14 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { http, linkLength, loopNodeOf, ping } from './engine';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
-const data: EngineData = {
-  categoryOf: (device) => ({ pc: 'pc', server: 'server', l2: 'l2_switch', router: 'router' })[device] ?? 'unknown',
-  maxLengthOf: () => 30,
-};
+const data: EngineData = { wallAt: () => false };
 
 const pc = (uid: string, ip: string | null, gateway: string | null = null): NetNode => ({ ports: [],
   uid,
-  device: 'pc',
+  device: 'pc_basic',
   x: 0,
   y: 0,
   locked: false,
@@ -22,13 +19,13 @@ const pc = (uid: string, ip: string | null, gateway: string | null = null): NetN
 
 const server = (uid: string, ip: string, services: NetNode['services']): NetNode => ({
   ...pc(uid, ip),
-  device: 'server',
+  device: 'server_basic',
   services,
 });
 
 const sw = (uid: string): NetNode => ({ ports: [],
   uid,
-  device: 'l2',
+  device: 'l2_switch_4p',
   x: 0,
   y: 0,
   locked: false,
@@ -41,7 +38,7 @@ const sw = (uid: string): NetNode => ({ ports: [],
 
 const router = (uid: string, interfaces: NetNode['interfaces'], routes: NetNode['routes'] = []): NetNode => ({ ports: [],
   uid,
-  device: 'router',
+  device: 'router_basic',
   x: 0,
   y: 0,
   locked: false,

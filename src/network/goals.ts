@@ -6,6 +6,7 @@ import { outsideCheck, withInternet } from './external';
 import { resolveName } from './resolve';
 import { isPcCategory } from '../data/categories';
 import type { EngineData, Failure, Network, PathResult } from './types';
+import { deviceCategory } from '../registry/query';
 
 export interface GoalResult {
   goal: Goal;
@@ -20,8 +21,8 @@ export interface GoalResult {
 
 type Handler = (goal: Goal, net: Network, data: EngineData) => GoalResult[];
 
-const uidsOf = (net: Network, data: EngineData, category: string): string[] =>
-  net.nodes.filter((n) => data.categoryOf(n.device) === category).map((n) => n.uid);
+const uidsOf = (net: Network, _data: EngineData, category: string): string[] =>
+  net.nodes.filter((n) => deviceCategory(n.device) === category).map((n) => n.uid);
 
 // 判定する機器がないときの不合格
 const none = (goal: Goal, kind: 'ping' | 'http'): GoalResult => ({
@@ -99,7 +100,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
   outside_reachable: (goal, net, data) => {
     if (goal.type !== 'outside_reachable') throw new Error('outside_reachable ハンドラに別の種類が渡された');
     // 回線終端につながるルーターは、NAPT（外側の口と内側の口・ip nat napt）を設定している
-    const lineRouters = net.nodes.filter((n) => net.links.some((l) => (l.a.node === n.uid && net.nodes.some((u) => u.uid === l.b.node && data.categoryOf(u.device) === 'uplink')) || (l.b.node === n.uid && net.nodes.some((u) => u.uid === l.a.node && data.categoryOf(u.device) === 'uplink'))));
+    const lineRouters = net.nodes.filter((n) => net.links.some((l) => (l.a.node === n.uid && net.nodes.some((u) => u.uid === l.b.node && deviceCategory(u.device) === 'uplink')) || (l.b.node === n.uid && net.nodes.some((u) => u.uid === l.a.node && deviceCategory(u.device) === 'uplink'))));
     const nat = lineRouters.length > 0 && lineRouters.every((r) => r.napt === true && r.interfaces.some((i) => i.nat === 'outside') && r.interfaces.some((i) => i.nat === 'inside'));
     const ok = nat && outsideCheck(net, data).pcsReachOutside;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
@@ -122,7 +123,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
     if (goal.type !== 'survive_device_failure') throw new Error('survive_device_failure ハンドラに別の種類が渡された');
     const ok = goal.nodes.every((uid) => {
       const off: Network = { ...net, nodes: net.nodes.map((n) => (n.uid === uid ? { ...n, powered: false } : n)) };
-      const ends = off.nodes.filter((n) => n.uid !== uid && (isPcCategory(data.categoryOf(n.device)) || data.categoryOf(n.device) === 'server')).map((n) => n.uid);
+      const ends = off.nodes.filter((n) => n.uid !== uid && (isPcCategory(deviceCategory(n.device)) || deviceCategory(n.device) === 'server')).map((n) => n.uid);
       for (let i = 0; i < ends.length; i++) for (let j = i + 1; j < ends.length; j++) if (!ping(off, data, ends[i], ends[j]).ok) return false;
       return ends.length >= 2;
     });
@@ -131,7 +132,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
   // 回線終端が2つ以上あり、どれか1つ（とその配線）を除いても、すべての PC が外部へ届く
   survive_uplink_failure: (goal, net, data) => {
     if (goal.type !== 'survive_uplink_failure') throw new Error('survive_uplink_failure ハンドラに別の種類が渡された');
-    const uplinks = net.nodes.filter((n) => data.categoryOf(n.device) === 'uplink');
+    const uplinks = net.nodes.filter((n) => deviceCategory(n.device) === 'uplink');
     const without = (uid: string): Network => ({ ...net, nodes: net.nodes.filter((n) => n.uid !== uid), links: net.links.filter((l) => l.a.node !== uid && l.b.node !== uid) });
     const ok = uplinks.length >= 2 && uplinks.every((u) => outsideCheck(without(u.uid), data).pcsReachOutside);
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];

@@ -5,6 +5,7 @@ import { inSubnet, ipToInt } from './engine';
 import { epKey, segmentConfigOf, segmentsOf, type Segment } from './segments';
 import { isL2Category, isRelayPort } from './category';
 import type { EngineData, Network, SegmentConfig } from './types';
+import { deviceCategory } from '../registry/query';
 
 // サブネットの色（旧の6色のパレット）
 export const NET_PALETTE = [0x62c4ff, 0xf2c44e, 0x9b7be0, 0x5aa860, 0xff8fb0, 0xf0a030];
@@ -63,7 +64,7 @@ export const networkColors = (net: Network, data: EngineData): NetworkColors => 
     // 両端の機器（スイッチを除く）のアドレスが、このネットワークに入っていること
     const agrees = [link.a, link.b].every((ep) => {
       const node = byUid.get(ep.node);
-      if (!node || isL2Category(data.categoryOf(node.device)) || isRelayPort(data.categoryOf(node.device), ep.port)) return true;
+      if (!node || isL2Category(deviceCategory(node.device)) || isRelayPort(deviceCategory(node.device), ep.port)) return true;
       const iface = node.interfaces.find((i) => i.port === ep.port);
       return iface !== undefined && inSubnet(iface.ip, cfg.network, cfg.prefix);
     });

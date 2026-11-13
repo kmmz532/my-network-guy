@@ -3,10 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { evaluateGoal } from './goals';
 import type { EngineData, NetNode, Network } from './types';
 
-const data: EngineData = {
-  categoryOf: (device) => ({ laptop: 'pc', access_point: 'access_point' })[device] ?? 'unknown',
-  maxLengthOf: () => 30,
-};
+const data: EngineData = { wallAt: () => false };
 const WIFI = { ssid: 'home', password: 'pass1234' };
 const node = (uid: string, device: string, x: number, wireless?: NetNode['wireless']): NetNode =>
   ({ uid, device, x, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [], ...(wireless ? { wireless } : {}) }) as NetNode;

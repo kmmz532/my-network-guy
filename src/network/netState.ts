@@ -12,6 +12,7 @@ import { assignDhcp, type DhcpResult } from './dhcp';
 import { computeLags, type LagBundle, type LagResult } from './lag';
 import { computeBgp, type BgpEnv, type BgpResult } from './bgp';
 import { duplicateRouterIds, electDr, ospfMismatch, ospfPriorityOf, ospfRouterId, type DrCandidate, type OspfMismatch } from './ospf';
+import { cableMaxLength, deviceCategory, portSpeed } from '../registry/query';
 
 const MAX_HOPS = 16;
 
@@ -66,7 +67,7 @@ class Topology {
 
   constructor(
     net: Network,
-    private data: EngineData,
+    data: EngineData,
     resolveDhcp = true,
   ) {
     // 自動（DHCP）の口は、割り当てたアドレスを入れた機器で計算する。割り当ては、アドレスのない状態の配線（L2）から求める
@@ -120,7 +121,7 @@ class Topology {
         this.fabricBy.set(node, ports);
       }
     }
-    this.lag = computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'), (n, port) => data.portSpeedOf?.(n.device, port));
+    this.lag = computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'), (n, port) => portSpeed(n.device, port));
     for (const b of this.lag.bundles) {
       const rep = b.links.find((l) => !this.isShut(l.a.node, l.a.port) && !this.isShut(l.b.node, l.b.port)) ?? b.links[0];
       for (const l of b.links) this.stpRep.set(l.uid, rep.uid);
@@ -269,7 +270,7 @@ class Topology {
 
   categoryOf(uid: string): string {
     const node = this.nodes.get(uid);
-    return node ? this.data.categoryOf(node.device) : '';
+    return node ? deviceCategory(node.device) : '';
   }
 
   // 口が機器の内部のスイッチにつながるか（その口から同じL2ドメインへ中継される）
@@ -433,7 +434,7 @@ class Topology {
         if (!this.isShut(peer.node, peer.port) && !this.isStpBlocked(peer.node, peer.port) && this.carries(peer.node, peer.port, peerVlan)) {
           // 配線は、実際にたどったものだけを数える（輪の判定に使う）
           cables.add(this.lag.representative.get(link.uid) ?? link.uid);
-          if (!tooLong && linkLength(link.path) > this.data.maxLengthOf(link.cable)) {
+          if (!tooLong && linkLength(link.path) > cableMaxLength(link.cable)) {
             tooLong = ep;
           }
           queue.push({ ep: peer, vlan: peerVlan });
@@ -698,12 +699,12 @@ export const wallsBetween = (wallAt: (x: number, y: number) => boolean, ax: numb
 // 無線の端末は、SSID とパスワードが合い、範囲の中にあるアクセスポイントの中で最も近いものにつながる（N151）。
 // アクセスポイントの無線の VLAN は、つながった端末の口を、その VLAN の access の口として扱う
 // アクセスポイント（と無線つきの家庭用ルーター）
-export const accessPointsOf = (net: Network, data: EngineData): NetNode[] =>
-  net.nodes.filter((n) => data.categoryOf(n.device) === CATEGORY.accessPoint || data.categoryOf(n.device) === CATEGORY.homeRouter);
+export const accessPointsOf = (net: Network, _data: EngineData): NetNode[] =>
+  net.nodes.filter((n) => deviceCategory(n.device) === CATEGORY.accessPoint || deviceCategory(n.device) === CATEGORY.homeRouter);
 
 // 無線の端末とつながるアクセスポイントの組（端末ごとに最も近い、SSID・パスワードの合う、範囲の中のもの）。画面の点線にも使う（N151・N152）
 export const wirelessAssociations = (net: Network, data: EngineData): { ap: NetNode; client: NetNode }[] => {
-  const aps = net.nodes.filter((n) => data.categoryOf(n.device) === CATEGORY.accessPoint || data.categoryOf(n.device) === CATEGORY.homeRouter);
+  const aps = net.nodes.filter((n) => deviceCategory(n.device) === CATEGORY.accessPoint || deviceCategory(n.device) === CATEGORY.homeRouter);
   if (aps.length === 0) return [];
   const wired = new Set(net.links.flatMap((l) => [`${l.a.node}:${l.a.port}`, `${l.b.node}:${l.b.port}`]));
   const out: { ap: NetNode; client: NetNode }[] = [];
@@ -722,9 +723,9 @@ export const wirelessAssociations = (net: Network, data: EngineData): { ap: NetN
       if (w?.ssid === undefined || cw?.ssid !== w.ssid || (security !== 'open' && cw.password !== w.password)) continue;
       if (security === 'wpa3' && !can(c.device, 'wpa3')) continue;
       // 無線の MAC フィルター（N153）: 登録のない端末は通さない
-      if (w.macs !== undefined && (c.macSerial === undefined || !w.macs.includes(macOf(data.categoryOf(c.device), c.macSerial, 0)))) continue;
+      if (w.macs !== undefined && (c.macSerial === undefined || !w.macs.includes(macOf(deviceCategory(c.device), c.macSerial, 0)))) continue;
       // 壁を通るたびに減衰し、減衰後に届く範囲だけが有効（壁の判定がないときは減衰しない）
-      const walls = data.wallAt ? wallsBetween(data.wallAt, ap.x, ap.y, c.x, c.y) : 0;
+      const walls = wallsBetween(data.wallAt, ap.x, ap.y, c.x, c.y);
       if (d + walls * WALL_LOSS <= WIRELESS_RADIUS && (best === undefined || d < best.d || (d === best.d && ap.uid < best.ap.uid))) best = { ap, d };
     }
     if (best) out.push({ ap: best.ap, client: c });
@@ -902,8 +903,8 @@ export const loopNodeOf = (net: Network, data: EngineData): string | null => {
 };
 
 // 同じチャネルのアクセスポイントどうしの重なり（電波が届く範囲の2倍以内で、同じチャネル。N152）。チャネルは未設定なら 1
-export const channelOverlapsOf = (net: Network, data: EngineData): { a: string; b: string }[] => {
-  const aps = net.nodes.filter((n) => data.categoryOf(n.device) === CATEGORY.accessPoint || data.categoryOf(n.device) === CATEGORY.homeRouter);
+export const channelOverlapsOf = (net: Network, _data: EngineData): { a: string; b: string }[] => {
+  const aps = net.nodes.filter((n) => deviceCategory(n.device) === CATEGORY.accessPoint || deviceCategory(n.device) === CATEGORY.homeRouter);
   const out: { a: string; b: string }[] = [];
   for (let i = 0; i < aps.length; i++) {
     for (let j = i + 1; j < aps.length; j++) {
@@ -974,7 +975,7 @@ export const warningsOf = (net: Network, data?: EngineData): VlanWarning[] => {
     }
   }
   // リンクアグリゲーション: まとまらない口がある2台（組ごとに1件）
-  const lag = computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'), (n, port) => data?.portSpeedOf?.(n.device, port));
+  const lag = computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'), (n, port) => portSpeed(n.device, port));
   const lagPairs = new Set<string>();
   for (const l of net.links) {
     if (!lag.mismatched.has(l.uid)) continue;
@@ -1028,8 +1029,8 @@ export const vrrpStatusOf = (net: Network, data: EngineData, uid: string): VrrpS
 
 // スパニングツリーの計算結果（show spanning-tree に出す）
 // リンクアグリゲーションで、機器 uid を含むまとまった論理リンク（show etherchannel summary に出す）
-export const lagBundlesOf = (net: Network, uid: string, data?: EngineData): LagBundle[] =>
-  computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'), (n, port) => data?.portSpeedOf?.(n.device, port)).bundles.filter((b) => b.a === uid || b.b === uid);
+export const lagBundlesOf = (net: Network, uid: string, _data?: EngineData): LagBundle[] =>
+  computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'), (n, port) => portSpeed(n.device, port)).bundles.filter((b) => b.a === uid || b.b === uid);
 
 // DHCP の割り当て（show ip dhcp binding・警告・達成条件に使う）
 // 受け取れた自動の口の ip・prefix を機器へ書き戻す（前回のアドレスとして保存する。NET.md §5.7）。変わる機器がなければ同じ配列を返す

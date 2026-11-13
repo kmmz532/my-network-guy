@@ -3,10 +3,7 @@ import { compile } from './compile';
 import { ping } from './engine';
 import type { EngineData, Iface, NetLink, NetNode, Network, Route, SegmentConfig } from './types';
 
-const data: EngineData = {
-  categoryOf: (device) => ({ pc: 'pc', l2: 'l2_switch', router: 'router' })[device] ?? 'unknown',
-  maxLengthOf: () => 100,
-};
+const data: EngineData = { wallAt: () => false };
 
 const node = (uid: string, device: string, interfaces: Iface[] = []): NetNode => ({ ports: [],
   uid,
@@ -21,10 +18,10 @@ const node = (uid: string, device: string, interfaces: Iface[] = []): NetNode =>
   services: [],
 });
 
-const pc = (uid: string, ip?: string): NetNode => node(uid, 'pc', ip ? [{ id: "g0/0", kind: "port", port: 0, ip, prefix: 24 }] : []);
-const sw = (uid: string): NetNode => node(uid, 'l2');
+const pc = (uid: string, ip?: string): NetNode => node(uid, 'pc_basic', ip ? [{ id: "g0/0", kind: "port", port: 0, ip, prefix: 24 }] : []);
+const sw = (uid: string): NetNode => node(uid, 'l2_switch_8p');
 const router = (uid: string, ifaces: Iface[] = [], routes: Route[] = []): NetNode => ({
-  ...node(uid, 'router', ifaces),
+  ...node(uid, 'router_basic', ifaces),
   routes,
 });
 
