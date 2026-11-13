@@ -2,6 +2,7 @@
 import type { DhcpResult } from '../dhcp';
 import type { IssueDetail } from '../compile';
 import type { Topology } from '../netState';
+import type { LinkLayer } from './stages/links';
 import type { EngineData, Network } from '../types';
 
 export interface NetworkState {
@@ -12,6 +13,8 @@ export interface NetworkState {
   readonly net: Network;
   // compile の問題（設計の不備）
   readonly issues: Readonly<Record<string, IssueDetail>>;
+  // 段A 配線: 無線の結びつき・論理リンク・口の停止・配線の長さの超過
+  readonly links: LinkLayer;
   // 今の計算の本体（2c-4 で消す）
   readonly topology: Topology;
   // DHCP の割り当ての結果（topology.dhcp と同じもの）

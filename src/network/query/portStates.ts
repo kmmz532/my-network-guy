@@ -24,7 +24,7 @@ export const portStatesOf = (state: NetworkState, uid: string): PortState[] => {
       const role = topo.isStpBlocked(uid, port) ? 'blocking' : roles.get(`${uid}:${port}`);
       return {
         port,
-        shutdown: topo.isShut(uid, port),
+        shutdown: state.links.isShut(uid, port),
         ...(role === undefined ? {} : { stp: role }),
         ...(cfg?.channelGroup === undefined ? {} : { channel: { group: cfg.channelGroup, bundled: bundled.has(l.uid) } }),
       };

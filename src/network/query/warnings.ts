@@ -2,9 +2,6 @@ import type { NetworkState } from '../engine/state';
 import type { PortConfig } from '../types';
 import { accessPointsOf, inSubnet, type VlanWarning } from '../netState';
 import { dhcpOf } from './dhcp';
-import { computeLags } from '../lag';
-import { can } from '../capabilities';
-import { portSpeed } from '../../registry/query';
 import { duplicateRouterIds } from '../ospf';
 
 export const warningsOf = (state: NetworkState): VlanWarning[] => {
@@ -35,7 +32,7 @@ export const warningsOf = (state: NetworkState): VlanWarning[] => {
     out.push({ id: 'dhcp.multiple_servers', a: m.servers[0], b: m.servers[1] });
   }
   // リンクアグリゲーション: まとまらない口がある2台（組ごとに1件）
-  const lag = computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'), (n, port) => portSpeed(n.device, port));
+  const lag = state.links.lag;
   const lagPairs = new Set<string>();
   for (const l of net.links) {
     if (!lag.mismatched.has(l.uid)) continue;

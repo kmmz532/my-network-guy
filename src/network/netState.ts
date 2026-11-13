@@ -10,10 +10,13 @@ import { macOf } from './mac';
 import { electVrrpMaster, type VrrpMember } from './vrrp';
 import { computeStp, type StpResult } from './stp';
 import { assignDhcp, type DhcpResult } from './dhcp';
-import { computeLags, type LagResult } from './lag';
+import type { LagResult } from './lag';
+import type { LinkLayer } from './engine/stages/links';
 import { computeBgp, type BgpEnv, type BgpResult } from './bgp';
 import { ospfMismatch, type OspfMismatch } from './ospf';
-import { cableMaxLength, deviceCategory, portSpeed } from '../registry/query';
+import { deviceCategory } from '../registry/query';
+
+export { accessPointsOf, linkLength, wallsBetween, WALL_LOSS, WIRELESS_RADIUS, wirelessAssociations, withWireless } from './engine/stages/links';
 
 const MAX_HOPS = 16;
 
@@ -30,15 +33,6 @@ const networkOf = (ip: string, prefix: number): string => {
 
 export const inSubnet = (ip: string, network: string, prefix: number): boolean =>
   ((ipToInt(ip) & maskOf(prefix)) >>> 0) === ((ipToInt(network) & maskOf(prefix)) >>> 0);
-
-// 配線の長さ（タイル数）。折れ点ごとの縦横の距離の合計
-export const linkLength = (path: [number, number][]): number => {
-  let length = 0;
-  for (let i = 1; i < path.length; i++) {
-    length += Math.abs(path[i][0] - path[i - 1][0]) + Math.abs(path[i][1] - path[i - 1][1]);
-  }
-  return length;
-};
 
 const key = (ep: Endpoint) => `${ep.node}:${ep.port}`;
 
@@ -66,11 +60,12 @@ export class Topology {
   constructor(
     net: Network,
     data: EngineData,
+    private links: LinkLayer,
     resolveDhcp = true,
   ) {
     // 自動（DHCP）の口は、割り当てたアドレスを入れた機器で計算する。割り当ては、アドレスのない状態の配線（L2）から求める
     if (resolveDhcp && net.nodes.some((n) => n.interfaces.some((i) => i.dhcp === true))) {
-      const base = new Topology(net, data, false);
+      const base = new Topology(net, data, links, false);
       this.dhcp = assignDhcp(net.nodes, {
         domainOf: (uid, port) => base.domainOf({ node: uid, port }).members,
         // リレーのルーターが、サーバー側の口（サーバーのアドレスと同じサブネットの口。なければリレーの口）から届くか
@@ -113,7 +108,7 @@ export class Topology {
         this.fabricBy.set(node, ports);
       }
     }
-    this.lag = computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'), (n, port) => portSpeed(n.device, port));
+    this.lag = links.lag;
     for (const b of this.lag.bundles) {
       const rep = b.links.find((l) => !this.isShut(l.a.node, l.a.port) && !this.isShut(l.b.node, l.b.port)) ?? b.links[0];
       for (const l of b.links) this.stpRep.set(l.uid, rep.uid);
@@ -367,7 +362,7 @@ export class Topology {
   // 口が停止しているか（shutdown）
   isShut(uid: string, port: number): boolean {
     // 電源を切った機器は、すべての口が停止している
-    return this.nodes.get(uid)?.powered === false || this.portCfg(uid, port)?.shutdown === true;
+    return this.links.isShut(uid, port);
   }
 
   // 口に入るフレームの VLAN（access は設定の VLAN、trunk は untagged の native）
@@ -426,7 +421,7 @@ export class Topology {
         if (!this.isShut(peer.node, peer.port) && !this.isStpBlocked(peer.node, peer.port) && this.carries(peer.node, peer.port, peerVlan)) {
           // 配線は、実際にたどったものだけを数える（輪の判定に使う）
           cables.add(this.lag.representative.get(link.uid) ?? link.uid);
-          if (!tooLong && linkLength(link.path) > cableMaxLength(link.cable)) {
+          if (!tooLong && this.links.tooLong.has(link.uid)) {
             tooLong = ep;
           }
           queue.push({ ep: peer, vlan: peerVlan });
@@ -662,85 +657,6 @@ export const backOf = (topo: Topology, dstUid: string, srcUid: string, traffic: 
   if (!insideIface || !src || !dst) return { ok: false, path: toRouter.path, failure: fail('route.none', router) };
   const rest = deliver(topo, router, srcUid, traffic, false, insideIface.ip, undefined);
   return rest.ok ? { ...rest, path: [...toRouter.path, ...rest.path.slice(1)] } : rest;
-};
-
-// 電波の範囲（マス。仮の値・WIRELESS.md §3 の減衰は後続）。範囲の中の無線の端末は、最も近いアクセスポイントの LAN に入る（N151）
-export const WIRELESS_RADIUS = 6;
-// 壁1マスを通るごとに、電波の届く距離から失われるマス数（仮の値・WIRELESS.md §3）
-export const WALL_LOSS = 2;
-
-// アクセスポイントから端末までの経路（x を先、次に y）にある壁のマスの数（両端は数えない）
-export const wallsBetween = (wallAt: (x: number, y: number) => boolean, ax: number, ay: number, cx: number, cy: number): number => {
-  let count = 0;
-  let x = ax;
-  let y = ay;
-  const toward = (v: number, target: number) => (v < target ? v + 1 : v - 1);
-  while (x !== cx) {
-    x = toward(x, cx);
-    if (!(x === cx && y === cy) && wallAt(x, y)) count++;
-  }
-  while (y !== cy) {
-    y = toward(y, cy);
-    if (!(x === cx && y === cy) && wallAt(x, y)) count++;
-  }
-  return count;
-};
-
-// 無線の端末を、最も近いアクセスポイントへ仮想の配線でつなぐ（段1の仮想の配線）。
-// 端末の口0 に配線がなく、無線の能力を持ち、範囲の中にアクセスポイントがあるとき。アクセスポイントの口は 100 番から、端末ごとに1つ使う
-// 無線の端末は、SSID とパスワードが合い、範囲の中にあるアクセスポイントの中で最も近いものにつながる（N151）。
-// アクセスポイントの無線の VLAN は、つながった端末の口を、その VLAN の access の口として扱う
-// アクセスポイント（と無線つきの家庭用ルーター）
-export const accessPointsOf = (net: Network, _data: EngineData): NetNode[] =>
-  net.nodes.filter((n) => deviceCategory(n.device) === CATEGORY.accessPoint || deviceCategory(n.device) === CATEGORY.homeRouter);
-
-// 無線の端末とつながるアクセスポイントの組（端末ごとに最も近い、SSID・パスワードの合う、範囲の中のもの）。画面の点線にも使う（N151・N152）
-export const wirelessAssociations = (net: Network, data: EngineData): { ap: NetNode; client: NetNode }[] => {
-  const aps = net.nodes.filter((n) => deviceCategory(n.device) === CATEGORY.accessPoint || deviceCategory(n.device) === CATEGORY.homeRouter);
-  if (aps.length === 0) return [];
-  const wired = new Set(net.links.flatMap((l) => [`${l.a.node}:${l.a.port}`, `${l.b.node}:${l.b.port}`]));
-  const out: { ap: NetNode; client: NetNode }[] = [];
-  for (const c of net.nodes) {
-    // アクセスポイント（と無線つきの家庭用ルーター）は端末ではない。端末は無線の能力を持つ機器のうち、ほかの接続の口0がないもの
-    if (!can(c.device, 'wireless') || wired.has(`${c.uid}:0`)) continue;
-    if (aps.includes(c)) continue;
-    let best: { ap: NetNode; d: number } | undefined;
-    for (const ap of aps) {
-      const d = Math.abs(ap.x - c.x) + Math.abs(ap.y - c.y);
-      // SSID とパスワードが合うこと（どちらかがなければ、つながらない）
-      const w = ap.wireless;
-      const cw = c.wireless;
-      const security = w?.security ?? 'wpa2';
-      // パスワードは、暗号化のない SSID では要らない。WPA3 だけの SSID は、WPA3 に対応する端末だけがつながる
-      if (w?.ssid === undefined || cw?.ssid !== w.ssid || (security !== 'open' && cw.password !== w.password)) continue;
-      if (security === 'wpa3' && !can(c.device, 'wpa3')) continue;
-      // 無線の MAC フィルター（N153）: 登録のない端末は通さない
-      if (w.macs !== undefined && (c.macSerial === undefined || !w.macs.includes(macOf(deviceCategory(c.device), c.macSerial, 0)))) continue;
-      // 壁を通るたびに減衰し、減衰後に届く範囲だけが有効（壁の判定がないときは減衰しない）
-      const walls = wallsBetween(data.wallAt, ap.x, ap.y, c.x, c.y);
-      if (d + walls * WALL_LOSS <= WIRELESS_RADIUS && (best === undefined || d < best.d || (d === best.d && ap.uid < best.ap.uid))) best = { ap, d };
-    }
-    if (best) out.push({ ap: best.ap, client: c });
-  }
-  return out;
-};
-
-// 無線の端末を、つながるアクセスポイントへ仮想の配線でつなぐ（段1の仮想の配線）。アクセスポイントの口は 100 番から、端末ごとに1つ使う
-export const withWireless = (net: Network, data: EngineData): Network => {
-  const pairs = wirelessAssociations(net, data);
-  if (pairs.length === 0) return net;
-  const extra: NetLink[] = [];
-  const nextPort = new Map<string, number>();
-  const apPorts = new Map<string, PortConfig[]>();
-  for (const { ap, client: c } of pairs) {
-    const port = 100 + (nextPort.get(ap.uid) ?? 0);
-    nextPort.set(ap.uid, port - 100 + 1);
-    apPorts.set(ap.uid, [...(apPorts.get(ap.uid) ?? []), { port, mode: 'access', vlan: ap.wireless?.vlan ?? 1 }]);
-    extra.push({ uid: `__wifi_${c.uid}`, cable: 'utp_cat5e', a: { node: ap.uid, port }, b: { node: c.uid, port: 0 }, path: [[ap.x, ap.y], [c.x, c.y]], paid: 0 });
-  }
-  // アクセスポイントの口（つないだ端末の口）に、無線の VLAN を付ける
-  const nodes = net.nodes.map((n) => (apPorts.has(n.uid) ? { ...n, ports: [...n.ports, ...apPorts.get(n.uid)!] } : n));
-  return { ...net, nodes, links: [...net.links, ...extra] };
 };
 
 // OSPF の隣接の候補（同じサブネットで OSPF に参加した相手のルーターの口）。条件が合わなければ mismatch に理由を持つ
