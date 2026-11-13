@@ -11,9 +11,8 @@ import { portTypeOf, type End } from '../sim/project';
 import { gameEnv } from '../sim/env';
 import type { NetLink, NetNode } from '../network/types';
 import type { Network } from '../network/types';
-import { colorOfLink, colorOfNetwork, networkColors, networkLabelOf, networksOfLink } from '../network/netColor';
-import { withWireless } from '../network/netState';
-import { portStatesOf } from '../network/public';
+import { colorOfLink, colorOfNetwork, networkLabelOf, networksOfLink } from '../network/netColor';
+import { networkColors, portStatesOf } from '../network/public';
 import { analyze } from '../network/engine/analyze';
 import { stpOf } from '../network/public';
 import { loadSettings } from '../settings/settings';
@@ -80,7 +79,7 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
   const byUid = new Map(nodes.map((n) => [n.uid, n]));
   const states = new Map(portStatesOf(analyze(net, gameEnv.engine), node.uid).map((s) => [s.port, s]));
   const isRootBridge = stpOf(analyze(net, gameEnv.engine)).root === node.uid;
-  const colors = networkColors(withWireless(net, gameEnv.engine), gameEnv.engine);
+  const colors = networkColors(analyze(net, gameEnv.engine));
   const linkAt = (port: number) =>
     links.find((l) => (l.a.node === node.uid && l.a.port === port) || (l.b.node === node.uid && l.b.port === port));
   // 挿し替え中のケーブルが、まだあるか

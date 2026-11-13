@@ -14,10 +14,10 @@ import type { Compiled } from '../network/compile';
 import { isRelayPort, isRoutingCategory } from '../network/category';
 import { can } from '../network/capabilities';
 import { wirelessAssociations, withWireless } from '../network/netState';
-import { channelOverlapsOf } from '../network/public';
+import { channelOverlapsOf, networkColors } from '../network/public';
 import { analyze } from '../network/engine/analyze';
 import { engineWithWalls } from '../sim/walls';
-import { colorOfNetwork, networkColors, UNSET_COLOR } from '../network/netColor';
+import { colorOfNetwork, UNSET_COLOR } from '../network/netColor';
 import { networkAddress, neighborRouterAddresses, routerAddressesOn, segmentConfigOf, segmentOf, segmentsOf } from '../network/segments';
 import type { NetNode, Network, SegmentConfig } from '../network/types';
 import { gameEnv } from '../sim/env';
@@ -72,7 +72,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   const category = deviceCategory(node.device);
 
   const byUid = new Map(net.nodes.map((n) => [n.uid, n]));
-  const colors = networkColors(withWireless(net, engine), engine);
+  const colors = networkColors(analyze(net, engine));
   const locked = readOnly || node.configLocked;
   const portCount = portCountOf(node.device);
   // IPアドレスを持つ口（スイッチ付きルーターの2つ目以降の LAN 口は中継だけなので欄を出さない）

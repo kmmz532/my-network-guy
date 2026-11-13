@@ -1,8 +1,9 @@
 // 教材を開き直しても、ケーブルのネットワークごとの色が同じに付く（初回と同じ）
 import { beforeEach, describe, expect, it } from 'vitest';
 import { compile } from '../network/compile';
-import { networkColors, colorOfLink } from '../network/netColor';
-import { withWireless } from '../network/netState';
+import { colorOfLink } from '../network/netColor';
+import { networkColors } from '../network/public';
+import { analyze } from '../network/engine/analyze';
 import { gameEnv } from '../sim/env';
 import { useGameStore } from './useGameStore';
 
@@ -10,7 +11,7 @@ const st = () => useGameStore.getState();
 const colorsOf = (): number[] => {
   const o = st().office;
   const net = compile({ nodes: o.nodes, links: o.links, segments: o.segments }, gameEnv.engine).net;
-  const colors = networkColors(withWireless(net, gameEnv.engine), gameEnv.engine);
+  const colors = networkColors(analyze(net, gameEnv.engine));
   return o.links.map((l) => colorOfLink(colors, l.uid));
 };
 

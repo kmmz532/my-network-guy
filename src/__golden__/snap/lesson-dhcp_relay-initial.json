@@ -135,7 +135,7 @@
   "colors": [
     {
       "link": "lesson_link_1",
-      "color": 15909966
+      "color": 6472959
     },
     {
       "link": "lesson_link_2",
@@ -143,11 +143,11 @@
     },
     {
       "link": "lesson_link_3",
-      "color": 6472959
+      "color": 15909966
     },
     {
       "link": "lesson_link_4",
-      "color": 6472959
+      "color": 15909966
     }
   ],
   "ports": [

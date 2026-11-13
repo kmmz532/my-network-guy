@@ -3,8 +3,9 @@ import { ping, http } from '../network/engine';
 // 記録は JSON にし、機器と配線は uid の順に並べる（記録の差分を読めるようにする）
 import { can } from '../network/capabilities';
 import { compile } from '../network/compile';
-import { colorOfLink, networkColors } from '../network/netColor';
-import { warningsOf, withWireless } from '../network/netState';
+import { colorOfLink } from '../network/netColor';
+import { networkColors } from '../network/query/networkColors';
+import { warningsOf } from '../network/netState';
 import { portStatesOf } from '../network/query/portStates';
 import { analyze } from '../network/engine/analyze';
 import { runTerminal } from '../network/terminal';
@@ -59,7 +60,7 @@ export const recordOf = (input: Network, engine: EngineData) => {
   const shows = net.nodes.flatMap((n) =>
     showsOf(n.device).map((cmd) => ({ node: n.uid, cmd, lines: runTerminal(cmd, { node: n, nodes: net.nodes, links: net.links, data: engine }, tr).map((l) => `${l.kind}:${l.text}`) })),
   );
-  const colors = networkColors(withWireless(net, engine), engine);
+  const colors = networkColors(analyze(net, engine));
   return {
     pings,
     https,

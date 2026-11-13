@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { NET_PALETTE, UNSET_COLOR, colorOfLink, colorOfNetwork, networkColors, networkLabelOf } from './netColor';
+import { NET_PALETTE, UNSET_COLOR, colorOfLink, colorOfNetwork, networkLabelOf } from './netColor';
+import { networkColors } from './query/networkColors';
+import { analyze } from './engine/analyze';
 import { neighborRouterAddresses, routerAddressesOn } from './segments';
 import type { Iface } from './types';
 import type { EngineData, NetLink, NetNode, Network } from './types';
@@ -39,7 +41,7 @@ describe('ネットワークごとの色', () => {
       links: [link('l0', ['pc_a', 0], ['pc_b', 0]), link('l1', ['pc_c', 0], ['pc_d', 0])],
       segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 }, 'pc_c:0': { network: '10.0.0.0', prefix: 24 } },
     };
-    const colors = networkColors(net, data);
+    const colors = networkColors(analyze(net, data));
     expect(colors.index.get('10.0.0.0')).toBe(0);
     expect(colors.index.get('192.168.1.0')).toBe(1);
     expect(colorOfLink(colors, 'l0')).toBe(NET_PALETTE[1]);
@@ -57,7 +59,7 @@ describe('ネットワークごとの色', () => {
       links: [link('l0', ['pc_a', 0], ['pc_b', 0])],
       segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
     };
-    const colors = networkColors(net, data);
+    const colors = networkColors(analyze(net, data));
     expect(colors.linkNetwork.get('l0')).toBeNull();
     expect(colorOfLink(colors, 'l0')).toBe(UNSET_COLOR);
   });
@@ -71,7 +73,7 @@ describe('ネットワークごとの色', () => {
       links: [link('l0', ['pc_a', 0], ['pc_b', 0])],
       segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
     };
-    expect(colorOfLink(networkColors(net, data), 'l0')).toBe(UNSET_COLOR);
+    expect(colorOfLink(networkColors(analyze(net, data)), 'l0')).toBe(UNSET_COLOR);
   });
 
   it('スイッチを挟んでも、ホストのアドレスで色が決まる', () => {
@@ -84,7 +86,7 @@ describe('ネットワークごとの色', () => {
       links: [link('l0', ['pc_a', 0], ['sw', 0]), link('l1', ['pc_b', 0], ['sw', 1])],
       segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
     };
-    const colors = networkColors(net, data);
+    const colors = networkColors(analyze(net, data));
     expect(colorOfLink(colors, 'l0')).toBe(NET_PALETTE[0]);
     expect(colorOfLink(colors, 'l1')).toBe(NET_PALETTE[0]);
   });
@@ -108,7 +110,7 @@ describe('ネットワークごとの色', () => {
       segments,
     };
     for (const net of [swSideA, routerSideA]) {
-      const colors = networkColors(net, data);
+      const colors = networkColors(analyze(net, data));
       expect(colorOfLink(colors, 'l0')).toBe(NET_PALETTE[0]);
       expect(colorOfLink(colors, 'l1')).toBe(NET_PALETTE[0]);
       expect(colors.linkNetwork.get('l0')).toBe('192.168.1.0');
@@ -126,7 +128,7 @@ describe('ネットワークごとの色', () => {
       links: [link('l0', ['sw', 0], ['pc_a', 0]), link('l1', ['sw', 1], ['pc_b', 0])],
       segments: { 'pc_a:0': { network: '192.168.1.0', prefix: 24 } },
     };
-    const colors = networkColors(net, data);
+    const colors = networkColors(analyze(net, data));
     expect(colorOfLink(colors, 'l0')).toBe(NET_PALETTE[0]);
     expect(colorOfLink(colors, 'l1')).toBe(NET_PALETTE[0]);
   });
