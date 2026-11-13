@@ -39,6 +39,8 @@ export type ConfigAction =
   // スパニングツリー: spanning-tree priority <0〜61440 の4096刻み>・spanning-tree cost <口> <値>
   | { kind: 'stp'; op: 'priority'; value: number }
   | { kind: 'stp'; op: 'cost'; port: number; value: number }
+  // リンクアグリゲーション: channel-group <口> <番号> mode active|passive|on・no channel-group <口>（番号 null は解除）
+  | { kind: 'channel'; port: number; group: number | null; lacp?: 'active' | 'passive' | 'on' }
   // OSPF の機器・インターフェースの設定: router-id <IP>・no router-id・default-information originate・no default-information originate・
   // ip ospf cost|priority|hello-interval|dead-interval <口> <値>
   | { kind: 'ospf'; op: 'routerId'; ip: string | null }
@@ -90,7 +92,7 @@ const vlanNumber = (s: string): number | null => (/^\d+$/.test(s) && Number(s) >
 export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   const words = line.trim().split(/\s+/).filter((w) => w !== '');
   const [first, ...rest] = words;
-  if (first !== 'ip' && first !== 'no' && first !== 'hostname' && first !== 'vrrp' && first !== 'spanning-tree' && first !== 'router' && first !== 'router-id' && first !== 'default-information' && first !== 'network' && first !== 'neighbor' && first !== 'wireless' && first !== 'switchport') return { kind: 'none' };
+  if (first !== 'ip' && first !== 'no' && first !== 'hostname' && first !== 'vrrp' && first !== 'channel-group' && first !== 'spanning-tree' && first !== 'router' && first !== 'router-id' && first !== 'default-information' && first !== 'network' && first !== 'neighbor' && first !== 'wireless' && first !== 'switchport') return { kind: 'none' };
   const error = (key: string) => ({ kind: 'error' as const, text: tr(key) });
 
   // router rip / router ospf <番号>（no で止める）
@@ -115,6 +117,16 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     if (key === 'preempt' && rest.length === 3) return { kind: 'action', action: { kind: 'vrrp', op: 'preempt', port: a.p, vrid: a.vrid, on: true } };
     if (key === 'track' && rest.length === 6 && port(v1) !== null && kw === 'decrement' && /^[0-9]+$/.test(v2)) return { kind: 'action', action: { kind: 'vrrp', op: 'track', port: a.p, vrid: a.vrid, trackPort: Number(v1), decrement: Number(v2) } };
     return error('ui.terminal.usageVrrp');
+  }
+  // リンクアグリゲーション
+  if (first === 'channel-group') {
+    const lacp = rest[3] === 'active' || rest[3] === 'passive' || rest[3] === 'on' ? rest[3] : null;
+    if (rest.length !== 4 || port(rest[0]) === null || !/^[0-9]+$/.test(rest[1]) || rest[2] !== 'mode' || lacp === null) return error('ui.terminal.usageChannel');
+    return { kind: 'action', action: { kind: 'channel', port: Number(rest[0]), group: Number(rest[1]), lacp } };
+  }
+  if (first === 'no' && rest[0] === 'channel-group') {
+    if (rest.length !== 2 || port(rest[1]) === null) return error('ui.terminal.usageChannel');
+    return { kind: 'action', action: { kind: 'channel', port: Number(rest[1]), group: null } };
   }
   if (first === 'no' && rest[0] === 'vrrp') {
     const a = vrrpArgs(rest.slice(1));

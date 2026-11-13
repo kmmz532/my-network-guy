@@ -1184,6 +1184,27 @@ export const setStp = (core: Core, uid: string, change: StpOp, target: NetTarget
     target,
   );
 
+// リンクアグリゲーションの設定（口のチャネルの番号と、まとめるモード）。lag を持つ機器だけ。group が null なら解除
+export type ChannelOp = { port: number; group: number | null; lacp?: 'active' | 'passive' | 'on' };
+export const setChannel = (core: Core, uid: string, change: ChannelOp, env: Env, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      if (!can(node.device, 'lag')) return 'lag.unsupported';
+      if (!Number.isInteger(change.port) || change.port < 0 || change.port >= (env.devices[node.device]?.portCount ?? 0)) return 'port.none';
+      const prev = node.ports.find((p) => p.port === change.port);
+      const base: PortConfig = prev ?? { port: change.port, mode: can(node.device, 'switchport') ? 'access' : 'routed' };
+      if (change.group === null) {
+        const { channelGroup: _group, lacp: _lacp, ...rest } = base;
+        return { ...node, ports: [...node.ports.filter((p) => p.port !== change.port), rest] };
+      }
+      if (!Number.isInteger(change.group) || change.group < 1 || change.group > 64 || change.lacp === undefined) return 'lag.group';
+      return { ...node, ports: [...node.ports.filter((p) => p.port !== change.port), { ...base, channelGroup: change.group, lacp: change.lacp }] };
+    },
+    target,
+  );
+
 // 回線終端の回線の情報（ISP の名前・アドレス・AS 番号）。回線終端だけに設定できる
 export const setIsp = (core: Core, uid: string, line: IspLine, target: NetTarget = 'focus'): Outcome =>
   editNode(

@@ -8,7 +8,7 @@ import { can } from './capabilities';
 import { macOf } from './mac';
 import { effectivePriority, electVrrpMaster, type VrrpMember } from './vrrp';
 import { computeStp, type StpResult } from './stp';
-import { computeLags, type LagResult } from './lag';
+import { computeLags, type LagBundle, type LagResult } from './lag';
 import { computeBgp, type BgpEnv, type BgpResult } from './bgp';
 import { duplicateRouterIds, electDr, ospfMismatch, ospfPriorityOf, ospfRouterId, type DrCandidate, type OspfMismatch } from './ospf';
 
@@ -944,6 +944,10 @@ export const vrrpStatusOf = (net: Network, data: EngineData, uid: string): VrrpS
 };
 
 // スパニングツリーの計算結果（show spanning-tree に出す）
+// リンクアグリゲーションで、機器 uid を含むまとまった論理リンク（show etherchannel summary に出す）
+export const lagBundlesOf = (net: Network, uid: string): LagBundle[] =>
+  computeLags(net.nodes, net.links, (n) => can(n.device, 'lag')).bundles.filter((b) => b.a === uid || b.b === uid);
+
 export const stpOf = (net: Network, data: EngineData): StpResult => new Topology(net, data).stp();
 
 // BGP の計算結果（show ip bgp・show ip bgp summary に出す）。BGP を動かしていない機器は undefined

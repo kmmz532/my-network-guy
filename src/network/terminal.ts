@@ -8,7 +8,7 @@ import { isIp } from './terminalConfig';
 import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
-import { adOf, bgpTableOf, stpOf, vrrpStatusOf, learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
+import { adOf, bgpTableOf, lagBundlesOf, stpOf, vrrpStatusOf, learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
 import type { Trace } from '../sim/project';
 import { framesOf } from './frames';
 import { isL2Category, isRoutingCategory } from './category';
@@ -120,6 +120,17 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       const groups = vrrpStatusOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
       if (groups.length === 0) return [out(tr('ui.terminal.vrrpNone'))];
       return groups.map((g) => out(tr('ui.terminal.vrrpGroup', { iface: g.iface, vrid: g.vrid, state: g.state, ip: g.ip, priority: g.priority, preempt: tr(g.preempt ? 'ui.terminal.vrrpPreemptOn' : 'ui.terminal.vrrpPreemptOff') })));
+    }
+    if (sub === 'etherchannel summary') {
+      // 設定のある口を、チャネルごとに出す。まとまった口に (P)、まとまらない口に (I)（NET.md §5.1）
+      const configured = node.ports.filter((p) => p.channelGroup !== undefined).sort((a, b) => a.port - b.port);
+      if (configured.length === 0) return [out(tr('ui.terminal.channelNone'))];
+      const bundled = new Set(lagBundlesOf({ nodes: ctx.nodes, links: ctx.links }, node.uid).flatMap((b) => b.links.flatMap((l) => [l.a, l.b])).filter((e) => e.node === node.uid).map((e) => e.port));
+      return [...new Set(configured.map((p) => p.channelGroup as number))].map((group) => {
+        const ports = configured.filter((p) => p.channelGroup === group);
+        const state = ports.some((p) => bundled.has(p.port)) ? 'P' : 'D';
+        return out(tr('ui.terminal.channelLine', { group, state, lacp: ports[0].lacp ?? '', ports: ports.map((p) => `${p.port}(${bundled.has(p.port) ? 'P' : 'I'})`).join(' ') }));
+      });
     }
     if (sub === 'spanning-tree') {
       const net = { nodes: ctx.nodes, links: ctx.links };
