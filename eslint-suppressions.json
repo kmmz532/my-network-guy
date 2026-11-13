@@ -23,11 +23,6 @@
       "count": 3
     }
   },
-  "src/components/Guide.tsx": {
-    "local/no-category": {
-      "count": 1
-    }
-  },
   "src/components/Header.tsx": {
     "local/no-mode-branch": {
       "count": 2

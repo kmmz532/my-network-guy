@@ -2,7 +2,8 @@
 // 操作は縛らない。条件を満たしたら次の手順へ進み、最後まで行くか「飛ばす」で案件の案内を終える（guidesDone に入る）
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { usePhone } from '../ui/usePhone';
-import { devices, guides, lessons } from 'virtual:game-data';
+import { guides, lessons } from 'virtual:game-data';
+import { deviceCategory } from '../registry/query';
 import { t, tDyn } from '../i18n/t';
 import { loadSettings } from '../settings/settings';
 import { currentGuideStep, type GuideState } from '../sim/guide';
@@ -33,9 +34,6 @@ const belowHud = (): number => {
     .map((el) => el.getBoundingClientRect().bottom);
   return bottoms.length > 0 ? Math.max(...bottoms) + 8 : 8;
 };
-
-const categoryOf = (device: string): string =>
-  (devices as Record<string, { category: string } | undefined>)[device]?.category ?? '';
 
 // 案内（吹き出し・ボタンの強調枠）の重なり順。ウィンドウ（4）・案件の欄（4）・マップの操作（5）より下に置き、開いた画面の操作の邪魔をしない（スマホで吹き出しが窓の上に出ていた）
 const GUIDE_Z = 6;
@@ -108,7 +106,7 @@ export function Guide() {
     owned,
     testPassed: project !== null && check !== null && check.projectId === project.id && check.goals.length > 0 && check.goals.every((g) => g.ok),
     openRefs: windows.filter((w) => w.kind === 'device').flatMap((w) => w.tabs),
-    categoryOf,
+    categoryOf: deviceCategory,
     commands: lessonCommands,
     framesOpened: windows.some((w) => w.kind === 'frames'),
     lessonGoals,
