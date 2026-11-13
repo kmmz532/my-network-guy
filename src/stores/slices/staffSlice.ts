@@ -1,6 +1,5 @@
 // 社員の採用・昇給・研修などの操作。
-import { balance, furniture } from 'virtual:game-data';
-import type { FurnitureId } from '../../generated/ids';
+import { balance } from 'virtual:game-data';
 import { rand } from '../../sim/rng';
 import type { JobId } from '../../data/schema';
 import { raiseStaff as raiseStaffOp, staffCapOf } from '../../sim/staff';
@@ -18,6 +17,7 @@ import { coreOf, trainingEnv } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
 import type { StateCreator } from 'zustand';
 import { createOps } from '../gameOps';
+import { maybeFurniture } from '../../registry/query';
 
 export interface StaffSlice {
   hire: (candidateUid: string, shift: 'day' | 'night') => string | null;
@@ -47,7 +47,7 @@ export const createStaffSlice: StateCreator<GameState, [], [], StaffSlice> = (se
     cancelRetire: (uid) => apply(cancelRetireOp(coreOf(get()), uid)),
     hire: (candidateUid, shift) => {
       const cap = staffCapOf(levelOf(get().companyExp, balance), balance);
-      const reason = apply(hireOp(coreOf(get()), candidateUid, (id) => furniture[id as FurnitureId]?.seat === true, cap, shift));
+      const reason = apply(hireOp(coreOf(get()), candidateUid, (id) => maybeFurniture(id)?.seat === true, cap, shift));
       if (reason === null) {
         get().grantCompanyExp('hire');
         // 採用した社員を知らせる（名前と職種）。上限ちょうどになったら、そのことも知らせる（N97）

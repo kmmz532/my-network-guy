@@ -1,6 +1,5 @@
 // ゲームの状態から値を引く関数と、状態の一部を作る関数（ストアとスライスが共通で使う）。
-import { balance, cables, certs as certRecord, contracts, contractTemplates, devices, furniture, levelMilestones, training as trainingRecord } from 'virtual:game-data';
-import type { FurnitureId } from '../generated/ids';
+import { balance, certs as certRecord, contracts, contractTemplates, levelMilestones, training as trainingRecord } from 'virtual:game-data';
 import { offerHint, refreshOffers, salesArrival, type OfferEffects, type OfferEnv, type OfferHint, type OfferState } from '../contracts/offers';
 import { rand } from '../sim/rng';
 import type { GameMap, Staff } from '../data/schema';
@@ -15,7 +14,8 @@ import { accountingRate, backOfficeP, printerArrivalBonusOf, salesArrivalChance 
 import { assignDesks, initialOffice, bonusEnvOf } from '../sim/furniture';
 import { type NetTarget, type Core, type Project, type Office, type Report } from '../sim/project';
 import type { GameState } from './useGameStore';
-import { deviceCategory } from '../registry/query';
+import { deviceCategory, hasDevice, deviceDef, hasFurniture, furnitureDef, maybeFurniture } from '../registry/query';
+import { registries } from '../registry/game';
 
 export interface PlannedNet {
   network: string;
@@ -25,8 +25,8 @@ export const plannedKey = (uid: string, port: number): string => `${uid}:${port}
 
 // 機材または家具の定価（どちらにもないIDは undefined）
 export const priceOfItem = (id: string): number | undefined => {
-  if (id in furniture) return furniture[id as FurnitureId].price;
-  if (id in devices) return devices[id as keyof typeof devices].price;
+  if (hasFurniture(id)) return furnitureDef(id).price;
+  if (hasDevice(id)) return deviceDef(id).price;
   return undefined;
 };
 
@@ -99,7 +99,7 @@ export const editNetOf = (s: GameState): { nodes: NetNode[]; links: NetLink[] } 
 export const newStart = () => {
   const init = initialStaff(balance, newRng());
   // 初めの社員は、初めの机に座る（並び順）
-  const staff = assignDesks(init.staff, initialOffice(balance), (id) => furniture[id as FurnitureId]?.seat === true);
+  const staff = assignDesks(init.staff, initialOffice(balance), (id) => maybeFurniture(id)?.seat === true);
   return { rng: init.rng, staff, staffSeq: init.staffSeq };
 };
 
@@ -176,9 +176,9 @@ export const refresh = (s: GameState): Partial<GameState> => {
 // 解放の一覧（品目の unlockLevel）。レベルが上がったとき、そのレベルで解放されたものを出すのに使う
 // 解放の一覧（品目の unlockLevel）。自社の情報の画面（次に解放される物）でも使う
 export const unlockItems: UnlockItem[] = [
-  ...Object.values(devices).map((d) => ({ kind: 'device' as const, id: d.id, unlockLevel: d.unlockLevel })),
-  ...Object.values(cables).map((c) => ({ kind: 'cable' as const, id: c.id, unlockLevel: c.unlockLevel })),
-  ...Object.values(furniture).map((f) => ({ kind: 'furniture' as const, id: f.id, unlockLevel: f.unlockLevel })),
+  ...registries.devices.all().map((d) => ({ kind: 'device' as const, id: d.id, unlockLevel: d.unlockLevel })),
+  ...registries.cables.all().map((c) => ({ kind: 'cable' as const, id: c.id, unlockLevel: c.unlockLevel })),
+  ...registries.furniture.all().map((f) => ({ kind: 'furniture' as const, id: f.id, unlockLevel: f.unlockLevel })),
   ...contractTemplates.filter((t) => t.announce).map((t) => ({ kind: 'template' as const, id: t.id, unlockLevel: t.unlockLevel })),
   ...contracts.map((c) => ({ kind: 'contract' as const, id: c.id, unlockLevel: c.unlockLevel })),
   // 自社の床の種類（木以外。N92）

@@ -1,5 +1,5 @@
 // 自社オフィスの家具・床・広さ・機材の配置の操作。
-import { balance, furniture } from 'virtual:game-data';
+import { balance } from 'virtual:game-data';
 import type { FloorId } from '../../data/schema';
 import { levelOf } from '../../sim/level';
 import { gameEnv } from '../../sim/env';
@@ -15,6 +15,7 @@ import { SANDBOX_EXPAND_CONFIG, coreOf, focusedProject } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
 import type { StateCreator } from 'zustand';
 import { createOps } from '../gameOps';
+import { hasFurniture } from '../../registry/query';
 
 export interface OfficeSlice {
   place: (deviceId: string, x: number, y: number) => string | null;
@@ -41,7 +42,7 @@ export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (
   return {
     // 在庫の機材・家具を配置する（購入はショップで行う）。案件がなければ自社オフィスに置く
     place: (deviceId, x, y) => {
-      if (deviceId in furniture) return get().placeFurniture(deviceId, x, y);
+      if (hasFurniture(deviceId)) return get().placeFurniture(deviceId, x, y);
       if (!focusedProject(get())) {
         const hq = get().maps.hq;
         if (!hq) return 'map';

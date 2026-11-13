@@ -17,6 +17,19 @@ export default tseslint.config(
       'local/no-topology-outside-engine': 'error',
       'local/no-handmade-engine-data': 'error',
       'local/is-pc-in': 'error',
+      // 機器・ケーブル・家具の定義は登録表（src/registry）から引く。読み込むのは src/registry/game.ts だけ
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'virtual:game-data',
+              importNames: ['devices', 'cables', 'furniture'],
+              message: '機器・ケーブル・家具の定義は登録表から引く（src/registry/query.ts）。読み込むのは src/registry/game.ts だけ',
+            },
+          ],
+        },
+      ],
       'no-restricted-syntax': [
         'error',
         {
@@ -26,5 +39,10 @@ export default tseslint.config(
         },
       ],
     },
+  },
+  {
+    // 登録表の入口だけは、定義を読んで登録する
+    files: ['src/registry/game.ts'],
+    rules: { 'no-restricted-imports': 'off' },
   },
 );

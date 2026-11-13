@@ -8,7 +8,6 @@ import { moveNode, placeDevice, placeInOffice, replugTo } from '../sim/placement
 import { moveFurniture, placeFurniture } from '../sim/furniture';
 import { gameEnv } from '../sim/env';
 import { coreOf, netTargetOf, viewingOffice, useGameStore, type WireStart } from '../stores/useGameStore';
-import { furniture as furnitureData } from 'virtual:game-data';
 import { isDragMove } from '../input/trackDrag';
 import { cableEndAt, grabsCableEnd, linkAt } from './linkHit';
 import { staffAt, type StaffHit } from './staffHit';
@@ -16,6 +15,7 @@ import type { Point } from './animation';
 import type { MapCamera } from './MapCamera';
 import type { MapHit } from './MapHit';
 import type { MapTip } from './MapTip';
+import { hasFurniture } from '../registry/query';
 
 // 機器を押した瞬間の反応を出す時間（ms）
 export const PRESS_MS = 220;
@@ -350,7 +350,7 @@ export class MapInput {
     const core = coreOf(s);
     const hq = s.maps.hq;
     if (!hq) return false;
-    if (id in furnitureData) return placeFurniture(core, id, tx, ty, hq, s.mode === 'sandbox').ok;
+    if (hasFurniture(id)) return placeFurniture(core, id, tx, ty, hq, s.mode === 'sandbox').ok;
     if (viewingOffice(s)) return placeInOffice(core, id, tx, ty, hq, gameEnv, s.mode === 'sandbox', s.mode === 'sandbox').ok;
     const map = this.host.map();
     return map !== null && placeDevice(core, id, tx, ty, map, gameEnv).ok;

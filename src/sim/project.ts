@@ -32,7 +32,7 @@ import { cableLengthOf, checkCableLength } from './cableLength';
 
 import { makeIface } from '../network/iface';
 import { can } from '../network/capabilities';
-import { deviceCategory, portCountOf, deviceDef, devicePortType, cableDef } from '../registry/query';
+import { deviceCategory, portCountOf, devicePrice, devicePortType, cableDef } from '../registry/query';
 import type { CableDef } from '../registry/defs';
 import { dhcpWriteBack, type VlanWarning } from '../network/netState';
 import { type LevelUp } from './level';
@@ -122,7 +122,7 @@ export const projectCostOf = (p: Project): ProjectCost => {
   // 既設の機器（案件で置かれたもの）と、自社オフィスから引き継いだ機器（前の案件で買った分）は含めない
   const inherited = new Set(p.inherited ?? []);
   const devices = p.nodes.reduce(
-    (sum, n) => (n.locked || inherited.has(n.uid) ? sum : sum + (deviceDef(n.device).price)),
+    (sum, n) => (n.locked || inherited.has(n.uid) ? sum : sum + devicePrice(n.device)),
     0,
   );
   return { total: devices + p.cost, devices, cable: p.cost };

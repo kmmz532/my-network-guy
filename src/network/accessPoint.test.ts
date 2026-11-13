@@ -1,13 +1,13 @@
 // アクセスポイント（N151 の最初の段）: 有線の口1つと無線。電波の計算は後続
 import { describe, expect, it } from 'vitest';
-import { devices } from 'virtual:game-data';
 import { can } from './capabilities';
 import { isRelayPort, isFabricPort } from './category';
+import { deviceDef } from '../registry/query';
 
 describe('アクセスポイント', () => {
   it('無線の能力を持ち、有線の口は1つ', () => {
     expect(can('access_point', 'wireless')).toBe(true);
-    const d = devices.access_point as { ports: { count: number }[] };
+    const d = deviceDef('access_point');
     expect(d.ports.reduce((s, p) => s + p.count, 0)).toBe(1);
   });
 

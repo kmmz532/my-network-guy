@@ -1,6 +1,6 @@
 // 画面下のツールバー。道具（選択・配線・撤去）・依頼・機材・施工をアイコンで操作する。キーは input/keymap.ts の表から受け取る
 import { Fragment, useEffect, useState } from 'react';
-import { balance, cables, shop } from 'virtual:game-data';
+import { balance, shop } from 'virtual:game-data';
 import type { LangKey } from '../generated/lang-keys';
 import { t, tDyn } from '../i18n/t';
 import { minutesPerDay } from '../sim/clock';
@@ -9,10 +9,11 @@ import { isUnlocked, type ItemDefs } from '../sim/shop';
 import { levelOf } from '../sim/level';
 
 // 店の解放の判定に使う定義（品目の解放のレベル）
-const shopItemDefs: ItemDefs = { devices: catalogDevices, furniture: catalogFurniture, cables: catalogCables };
+const shopItemDefs: ItemDefs = { devices: devicesById, furniture: furnitureById, cables: cablesById };
 import { historyKeyOf } from '../sim/history';
 import { inventoryItems, inventoryMode, type InventoryItem } from '../sim/inventory';
-import { balance as catalogBalance, cables as catalogCables, devices as catalogDevices, furniture as catalogFurniture } from 'virtual:game-data';
+import { balance as catalogBalance } from 'virtual:game-data';
+import { cablesById, devicesById, furnitureById } from '../registry/query';
 import { projectCostOf } from '../sim/project';
 
 import { focusedProject, useGameStore, type Tool } from '../stores/useGameStore';
@@ -24,6 +25,7 @@ import { RADIUS } from '../ui/theme';
 import { usePhone } from '../ui/usePhone';
 import { useUiStore } from '../stores/useUiStore';
 import { setInventoryOpen, useInventoryOpen } from '../ui/inventoryOpen';
+import { cableDef } from '../registry/query';
 
 const bar = {
   position: 'absolute',
@@ -224,7 +226,7 @@ export function Toolbar() {
       }}
     >
       {cableIds.map((id) => {
-        const cable = cables[id as keyof typeof cables];
+        const cable = cableDef(id);
         const name = tDyn(`cable.${id}.name`);
         // 値段は、ボタンの文字には出さず、ツールチップの2行目に出す
         const price = t('ui.cable.price', { link: yen(cable.pricePerLink), tile: yen(cable.pricePerTile) });

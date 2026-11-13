@@ -2,7 +2,7 @@ import { bonusEnvOf } from '../sim/furniture';
 // 依頼カード。タイトル1行と、PC台数・予算・報酬のアイコンで表す。受注するときに担当の社員を選ぶ
 import { offerNodeName } from './nodeLabel';
 import { useEffect, useState } from 'react';
-import { balance, devices } from 'virtual:game-data';
+import { balance } from 'virtual:game-data';
 import { hasKey, t, tDyn } from '../i18n/t';
 import { goalText } from './goalText';
 import { gameEnv, isPcDevice } from '../sim/env';
@@ -25,6 +25,7 @@ import { levelOf } from '../sim/level';
 import { isBackOffice } from '../sim/backOffice';
 import { crewBlock } from '../sim/crew';
 import { usePhone } from '../ui/usePhone';
+import { deviceCategory } from '../registry/query';
 
 // 依頼の一覧。Enter は一番上の依頼の受注（主のボタン）
 
@@ -181,7 +182,7 @@ function OfferCard({
   // Enter の既定: 断る確認の中では「やめる」、それ以外は一番上の依頼の受注（N74）
   usePrimary(asking ? () => setAsking(false) : primary ? () => canAccept && onAccept(crew) : undefined);
   const hosts = offer.contract.placed.filter((p) => {
-    const c = devices[p.device as keyof typeof devices]?.category;
+    const c = deviceCategory(p.device);
     return isPcCategory(c) || c === CATEGORY.server;
   }).length;
   // スマホでは、ボタンの列を情報の下の独立した行にする（受注を広く、断るを狭く・B15）

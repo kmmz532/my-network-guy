@@ -2,7 +2,7 @@
 // 品目を押すと配置の操作に入る。品目をマウス・ペンでドラッグしてマップの上で離すと、そのマスに置く（置けなければ何もしない）
 import { trackDrag } from '../input/trackDrag';
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { devices as catalogDevices, furniture as catalogFurniture, shop as catalogShop } from 'virtual:game-data';
+import { shop as catalogShop } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import { focusedProject } from '../stores/useGameStore';
 import { inventoryItems, inventoryMode, type InventoryItem } from '../sim/inventory';
@@ -17,6 +17,7 @@ import { RADIUS } from '../ui/theme';
 import { matchesQuery } from '../ui/search';
 import { SearchField } from './SearchField';
 import { itemSpriteOf } from './itemSprite';
+import { deviceDef, devicesById, furnitureById } from '../registry/query';
 
 const strip = {
   position: 'absolute',
@@ -66,8 +67,8 @@ const spriteOf = (item: InventoryItem): string => itemSpriteOf(item.kind, item.i
 
 // 並べ方を決める定義（機材・家具・店の並び順）
 export const inventoryCatalog = {
-  devices: catalogDevices,
-  furniture: catalogFurniture,
+  devices: devicesById,
+  furniture: furnitureById,
   shopOrder: catalogShop.map((i) => ('device' in i && i.device ? i.device : 'furniture' in i && i.furniture ? i.furniture : '')).filter((id) => id !== ''),
 };
 
@@ -77,7 +78,7 @@ const INVENTORY_TABS: readonly InventoryTab[] = ['all', 'device', 'furniture'];
 // 検索の対象（名前・ID・機器の分類）
 const itemSearchFields = (item: InventoryItem): string[] =>
   item.kind === 'device'
-    ? [tDyn(`device.${item.id}.name`), tDyn(`device.${item.id}.kana`), item.id, tDyn(`category.${catalogDevices[item.id as keyof typeof catalogDevices].category}`)]
+    ? [tDyn(`device.${item.id}.name`), tDyn(`device.${item.id}.kana`), item.id, tDyn(`category.${deviceDef(item.id).category}`)]
     : [tDyn(`furniture.${item.id}.name`), tDyn(`furniture.${item.id}.kana`), item.id];
 
 // パソコンのインベントリのウィンドウの中身。上にショップと同じタブ（先頭は「すべて」）、下に品目の格子

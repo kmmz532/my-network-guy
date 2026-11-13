@@ -1,6 +1,5 @@
 // ネットワーク機器を描く。機器本体・机・ポート・選択枠・LEDを受け持つ。
 import { Container, Graphics, Sprite } from 'pixi.js';
-import { devices as deviceData } from 'virtual:game-data';
 import { isPcCategory } from '../data/categories';
 import { spriteNameOf } from '../sim/facing';
 import type { Facing } from '../sim/facing';
@@ -10,7 +9,7 @@ import { useGameStore } from '../stores/useGameStore';
 import { spriteOf, texture } from './sprites';
 import { DESK_TOP, DEVICE_FOOT_INSET } from './deviceRules';
 import { restsOnDesk } from '../sim/placement';
-import { deviceCategory, portCountOf } from '../registry/query';
+import { deviceCategory, portCountOf, maybeDevice } from '../registry/query';
 
 const OUTLINE = 0x3b2a33;
 const SELECT = 0xffd866;
@@ -40,7 +39,7 @@ export class DeviceRenderer {
     const size = ts - pad * 2;
     if (selected) g.rect(x - 2, y - 2, size + 4, size + 4).stroke({ width: 2, color: SELECT, alpha });
 
-    const deviceBase = deviceData[node.device as keyof typeof deviceData]?.sprite ?? '';
+    const deviceBase = maybeDevice(node.device)?.sprite ?? '';
     const deviceSprite = FACING_DEVICE_SPRITES.has(deviceBase) ? spriteNameOf(deviceBase, this.options.deskFacingAt(node.x, node.y)) : deviceBase;
     const tex = texture(spriteOf(deviceSprite));
     const foot = node.y * ts + ts - DEVICE_FOOT_INSET;

@@ -15,16 +15,17 @@ export interface Registries {
   furniture: Registry<FurnitureDef>;
 }
 
-const deviceDefOf = (d: Device): DeviceDef => ({
-  id: d.id,
-  category: d.category,
-  price: d.price,
-  ports: d.ports.flatMap((p) => Array.from({ length: p.count }, () => ({ type: p.type, speedMbps: p.speedMbps }))),
-  capabilities: new Set(d.capabilities),
-  deskable: d.deskable,
-  defaultServices: d.defaultServices,
-  ...(d.sviMax === undefined ? {} : { sviMax: d.sviMax }),
-});
+const deviceDefOf = (d: Device): DeviceDef => {
+  // 口を1口ずつ並べる（口の番号の順）
+  const perPort = d.ports.flatMap((p) => Array.from({ length: p.count }, () => p));
+  return {
+    ...d,
+    capabilities: new Set(d.capabilities),
+    portCount: perPort.length,
+    portTypes: perPort.map((p) => p.type),
+    portSpeeds: perPort.map((p) => p.speedMbps),
+  };
+};
 
 export const bootstrap = (data: GameData): Registries => {
   const devices = new Registry<DeviceDef>('機器');

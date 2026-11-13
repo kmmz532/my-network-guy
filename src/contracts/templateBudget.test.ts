@@ -3,8 +3,9 @@
 // 目標に count があれば、その機器を最も安い値段で足す。グループが複数のときは、ルーターか中継のスイッチで結ぶ。
 // 合格の基準: 費用 ÷ 予算 が 0.65〜0.8（★3 が取れ、余裕がありすぎない）。
 import { describe, expect, it } from 'vitest';
-import { cables, contractTemplates, devices } from 'virtual:game-data';
-import type { ContractTemplate, Device, GameMap } from '../data/schema';
+import { contractTemplates } from 'virtual:game-data';
+import type { ContractTemplate, GameMap } from '../data/schema';
+import type { DeviceDef } from '../registry/defs';
 import officeSmall from '../assets/data/maps/office_small.json';
 import officeTwoRooms from '../assets/data/maps/office_two_rooms.json';
 import officeTwoSites from '../assets/data/maps/office_two_sites.json';
@@ -22,6 +23,8 @@ import studioMap from '../assets/data/maps/studio.json';
 import campusMap from '../assets/data/maps/campus.json';
 import hospitalWardMap from '../assets/data/maps/hospital_ward.json';
 import { instantiateTemplate, pcCountRangeOf, spawnGroupsOf, starHubOf } from './template';
+import { registries } from '../registry/game';
+import { cableDef } from '../registry/query';
 
 const maps: Record<string, GameMap> = {
   office_small: officeSmall as unknown as GameMap,
@@ -42,16 +45,16 @@ const maps: Record<string, GameMap> = {
   hospital_ward: hospitalWardMap as unknown as GameMap,
 };
 
-const deviceList = Object.values(devices) as Device[];
-const cheapest = (category: string, minPorts: number): Device | undefined =>
+const deviceList = registries.devices.all();
+const cheapest = (category: string, minPorts: number): DeviceDef | undefined =>
   deviceList
     .filter((d) => d.category === category && d.ports.reduce((s, p) => s + p.count, 0) >= minPorts)
     .sort((a, b) => a.price - b.price)[0];
 
 type Pt = { x: number; y: number };
 const dist = (a: Pt, b: Pt) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-const utp = cables.utp_cat5e;
-const fiber = cables.fiber_sm;
+const utp = cableDef('utp_cat5e');
+const fiber = cableDef('fiber_sm');
 // 1本のケーブルの費用。UTP で届かない距離は光ファイバーにする
 const linkCost = (d: number): number => {
   const c = d <= utp.maxLengthTiles ? utp : fiber;

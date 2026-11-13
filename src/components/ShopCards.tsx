@@ -1,13 +1,14 @@
 // ショップ。解禁済みの機材と家具を購入して在庫にする。区分ごとのタブで並べ替える。ケーブルは在庫を持たず、配線のときに費用を払うため、ここには出さない
 import { useState } from 'react';
-import { balance, devices, furniture, shop } from 'virtual:game-data';
+import { balance, shop } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import { isUnlocked, type ItemDefs } from '../sim/shop';
 import { levelOf } from '../sim/level';
-import { balance as gameBalance, cables as gameCables, devices as gameDevices, furniture as gameFurniture } from 'virtual:game-data';
+import { balance as gameBalance } from 'virtual:game-data';
+import { cablesById, devicesById, furnitureById } from '../registry/query';
 
 // 店の解放の判定に使う定義（品目の解放のレベル）
-const itemDefs: ItemDefs = { devices: gameDevices, furniture: gameFurniture, cables: gameCables };
+const itemDefs: ItemDefs = { devices: devicesById, furniture: furnitureById, cables: cablesById };
 import { effectText } from '../game/effectText';
 import { purchaseDiscountOf, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
@@ -18,6 +19,7 @@ import { matchesQuery } from '../ui/search';
 import { SearchField } from './SearchField';
 import { ItemIcon as SharedItemIcon } from './ItemIcon';
 import { itemSpriteOf } from './itemSprite';
+import { deviceDef, furnitureDef } from '../registry/query';
 
 // 区分のタブ（並びの順）
 type Section = 'device' | 'furniture';
@@ -47,7 +49,7 @@ export function ShopBody() {
   // 購入の割引（経理）。売却には掛けない
   const discount = useGameStore((s) => purchaseDiscountOf(s));
   const cost = (n: number) => (sandbox ? 0 : Math.round(n * (1 - discount)));
-  const deviceRows = ids.filter((id) => matchesQuery(query, [tDyn(`device.${id}.name`), tDyn(`device.${id}.kana`), id, tDyn(`category.${devices[id as keyof typeof devices].category}`)]));
+  const deviceRows = ids.filter((id) => matchesQuery(query, [tDyn(`device.${id}.name`), tDyn(`device.${id}.kana`), id, tDyn(`category.${deviceDef(id).category}`)]));
   const furnitureRows = furnitureIds.filter((id) => matchesQuery(query, [tDyn(`furniture.${id}.name`), tDyn(`furniture.${id}.kana`), id]));
 
   return (
@@ -66,7 +68,7 @@ export function ShopBody() {
         <div style={{ maxHeight: 'min(60vh, 480px)', overflowY: 'auto', paddingRight: 4 }}>
           {section === 'device' &&
             deviceRows.map((id) => {
-              const d = devices[id as keyof typeof devices];
+              const d = deviceDef(id);
               return (
                 <div
                   key={id}
@@ -101,7 +103,7 @@ export function ShopBody() {
           {query !== '' && (section === 'device' ? deviceRows : furnitureRows).length === 0 && <div style={{ padding: 8 }}>{t('ui.search.none')}</div>}
           {section === 'furniture' &&
             furnitureRows.map((id) => {
-              const f = furniture[id as keyof typeof furniture];
+              const f = furnitureDef(id);
               return (
                 <div
                   key={`furniture-${id}`}

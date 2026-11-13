@@ -1,6 +1,5 @@
 // 機器に重ねる情報を描く。IPアドレス・ポート名・不備の印を受け持つ。
 import { Container, Text } from 'pixi.js';
-import { devices as deviceData } from 'virtual:game-data';
 import { portLabel } from '../components/devicePorts';
 import { t } from '../i18n/t';
 import type { Compiled } from '../network/compile';
@@ -8,7 +7,7 @@ import type { FailureReason, NetNode } from '../network/types';
 import { cumulativeLengths, pointAt, type Point } from './animation';
 import type { Project } from '../sim/project';
 import { visibleTopOfSprite } from './sprites';
-import { portCountOf, deviceCategory } from '../registry/query';
+import { portCountOf, deviceCategory, maybeDevice } from '../registry/query';
 
 const OUTLINE = 0x3b2a33;
 const BUBBLE_FILL = 0xf4f1e6;
@@ -64,7 +63,7 @@ export class DeviceLabelRenderer {
         resolution: Math.max(2, scale * dpr),
       });
       text.anchor.set(0.5, 1);
-      const visibleTop = visibleTopOfSprite(deviceData[node.device as keyof typeof deviceData]?.sprite ?? '');
+      const visibleTop = visibleTopOfSprite(maybeDevice(node.device)?.sprite ?? '');
       text.position.set(node.x * ts + ts / 2, this.options.spriteTopOf(node, ts) + visibleTop + 4);
       this.options.bubbles.addChild(text);
     }
@@ -94,7 +93,7 @@ export class DeviceLabelRenderer {
         resolution: this.options.textResolution(),
       });
       text.anchor.set(0.5, 1);
-      const visibleTop = visibleTopOfSprite(deviceData[node.device as keyof typeof deviceData]?.sprite ?? '');
+      const visibleTop = visibleTopOfSprite(maybeDevice(node.device)?.sprite ?? '');
       const addressTop = this.options.spriteTopOf(node, ts) + visibleTop + 4;
       const addressHeight = addressLines * fontPx * 1.3;
       text.position.set(node.x * ts + ts / 2, addressTop - addressHeight - 2 / scale);

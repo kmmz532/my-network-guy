@@ -1,7 +1,6 @@
 // 採用と社員の画面。採用は候補の社員から選ぶ（席が足りなければ採用できない）。社員のタブで、研修と資格の受験を行う
 import { useState } from 'react';
-import { balance, certs, furniture, training } from 'virtual:game-data';
-import type { FurnitureId } from '../generated/ids';
+import { balance, certs, training } from 'virtual:game-data';
 import { staffSpriteName } from '../data/schema';
 import { t, tDyn } from '../i18n/t';
 import { bonusEnvOf, freeDesks } from '../sim/furniture';
@@ -22,6 +21,7 @@ import { RADIUS } from '../ui/theme';
 import { Select } from './Select';
 import { CertChips } from './StaffCard';
 import { requiresPc } from '../sim/jobs';
+import { maybeFurniture } from '../registry/query';
 
 // 開くタブは useUiStore の hiring が決める。社員の札の「研修・資格へ」から開くときは staff
 export function HiringPanel() {
@@ -74,7 +74,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
   const [shiftOf, setShiftOf] = useState<Record<string, 'day' | 'night'>>({});
   const [confirmUid, setConfirmUid] = useState<string | null>(null);
   // 空いている机がなければ、採用できない（座っている社員の机は、辞めるまで空かない）
-  const freeSeats = freeDesks(office, allStaff, (id) => furniture[id as FurnitureId]?.seat === true);
+  const freeSeats = freeDesks(office, allStaff, (id) => maybeFurniture(id)?.seat === true);
   const full = freeSeats.length === 0;
   // 次に座る机に PC がないか（PC が要る職種の警告に使う・N102）
   const nextDeskHasPc = freeSeats[0] !== undefined && office.nodes.some((n) => n.x === freeSeats[0].x && n.y === freeSeats[0].y && isPcDevice(n.device));

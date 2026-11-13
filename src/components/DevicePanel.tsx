@@ -3,7 +3,6 @@
 import { nodeLabel } from './nodeLabel';
 import { duplicateHostnames } from '../sim/project';
 import { useState } from 'react';
-import { devices as deviceData } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import { compile, type Compiled } from '../network/compile';
 import type { NetLink, NetNode, Network } from '../network/types';
@@ -18,7 +17,7 @@ import { TerminalTab } from './TerminalTab';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { buttonStyle, greyColor, warnColor } from './devicePorts';
 import { CATEGORY, isPcCategory } from '../data/categories';
-import { deviceCategory } from '../registry/query';
+import { deviceCategory, deviceDef } from '../registry/query';
 
 type Tab = 'rear' | 'config' | 'service' | 'terminal';
 
@@ -43,7 +42,7 @@ export function DeviceTitle({ uid }: { uid: string }) {
   const state = useGameStore();
   const found = findDevice(state, uid);
   if (!found) return null;
-  const device = deviceData[found.node.device as keyof typeof deviceData];
+  const device = deviceDef(found.node.device);
   // 絵と名前は1行に収める。長い名前は省略する（タブの高さをショップのタブと同じにするため、絵は文字の高さに収まる大きさにする）
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0, maxWidth: '100%', whiteSpace: 'nowrap' }}>
