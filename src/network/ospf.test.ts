@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { duplicateRouterIds, electDr, ospfRouterId } from './ospf';
-import { learnedRoutesOf, ospfMismatchesOf, ospfNeighborsOf, warningsOf } from './netState';
+import { learnedRoutesOf, ospfNeighborsOf, warningsOf } from './netState';
+import { ospfMismatchesOf } from './query/ospfMismatches';
+import { analyze } from './engine/analyze';
 import { evaluateGoal } from './goals';
 import type { EngineData, Iface, NetLink, NetNode, Network } from './types';
 
@@ -61,7 +63,7 @@ describe('OSPF の隣接', () => {
   it('Hello の間隔が違う相手とは隣接にならず、理由が分かる', () => {
     const net = shared(30);
     expect(ospfNeighborsOf(net, data, 'r1').map((x) => x.uid)).toEqual(['r2']);
-    expect(ospfMismatchesOf(net, data, 'r1')).toEqual([expect.objectContaining({ uid: 'r3', mismatch: 'hello' })]);
+    expect(ospfMismatchesOf(analyze(net, data), 'r1')).toEqual([expect.objectContaining({ uid: 'r3', mismatch: 'hello' })]);
   });
   it('Hello の間隔が違うと、経路が届かず ospf.no_neighbor になる', () => {
     const o = (hello: number) => ({ area: 0, hello });

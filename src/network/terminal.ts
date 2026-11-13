@@ -11,7 +11,8 @@ import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
 import { bgpTableOf } from './query/bgpTable';
-import { adOf, dhcpOf, lagBundlesOf, vrrpStatusOf, learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
+import { adOf, dhcpOf, lagBundlesOf, vrrpStatusOf, learnedRoutesOf, macTableOf, ospfNeighborsOf } from './netState';
+import { ospfMismatchesOf } from './query/ospfMismatches';
 import type { Trace } from '../sim/project';
 import { framesOf } from './frames';
 import { isL2Category, isRoutingCategory } from './category';
@@ -184,7 +185,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       const nameOfUid = (uid: string) => name(ctx.nodes.find((n) => n.uid === uid) ?? node);
       if (neighbors.length === 0) {
         // 隣接がないときは、条件が合わなかった相手と理由を出す
-        const mismatches = ospfMismatchesOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
+        const mismatches = ospfMismatchesOf(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data), node.uid);
         if (mismatches.length === 0) return [out(tr('ui.terminal.ospfNone'))];
         return mismatches.map((m) => out(tr('ui.terminal.ospfMismatch', { name: nameOfUid(m.uid), ip: m.neighborIp, reason: tr(`ui.terminal.ospfMismatch.${m.mismatch}`) })));
       }

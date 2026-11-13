@@ -761,7 +761,7 @@ export interface OspfPeer {
   mismatch: OspfMismatch | null;
 }
 
-const ospfPeersOf = (topo: Topology, uid: string): OspfPeer[] => {
+export const ospfPeersOf = (topo: Topology, uid: string): OspfPeer[] => {
   const r = topo.node(uid);
   if (!r) return [];
   const out: OspfPeer[] = [];
@@ -778,10 +778,6 @@ const ospfPeersOf = (topo: Topology, uid: string): OspfPeer[] => {
   }
   return out;
 };
-
-// 隣接にならなかった候補と、その理由（show ip ospf neighbor が空のときの説明に使う）
-export const ospfMismatchesOf = (net: Network, data: EngineData, uid: string): OspfPeer[] =>
-  ospfPeersOf(analyze(net, data).topology, uid).filter((p) => p.mismatch !== null);
 
 export interface OspfNeighbor {
   uid: string;

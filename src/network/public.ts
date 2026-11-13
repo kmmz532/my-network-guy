@@ -2,3 +2,4 @@
 export type { NetworkState } from './engine/state';
 export { stpOf } from './query/stp';
 export { bgpTableOf } from './query/bgpTable';
+export { ospfMismatchesOf } from './query/ospfMismatches';
