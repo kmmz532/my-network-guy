@@ -1,9 +1,6 @@
 // ID で引く定義の登録表。登録は起動の時だけで、凍結の後は変えられない。
 export class UnknownIdError extends Error {
-  constructor(
-    readonly kind: string,
-    readonly id: string,
-  ) {
+  constructor(readonly kind: string, readonly id: string) {
     super(`未登録の${kind}: ${id}`);
     this.name = 'UnknownIdError';
   }
