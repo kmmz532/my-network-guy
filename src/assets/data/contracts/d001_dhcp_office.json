@@ -1,0 +1,508 @@
+{
+  "id": "d001_dhcp_office",
+  "stage": 2,
+  "order": 140,
+  "requires": [
+    "c003_departments"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_rooms",
+  "budget": 300000,
+  "deadlineDays": 12,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "pc1",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC1"
+    },
+    {
+      "ref": "pc2",
+      "device": "pc_basic",
+      "x": 5,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC2"
+    },
+    {
+      "ref": "pc3",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC3"
+    },
+    {
+      "ref": "pc4",
+      "device": "pc_basic",
+      "x": 5,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC4"
+    },
+    {
+      "ref": "pc5",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 4,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC5"
+    },
+    {
+      "ref": "pc6",
+      "device": "pc_basic",
+      "x": 5,
+      "y": 4,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC6"
+    },
+    {
+      "ref": "pc7",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC7"
+    },
+    {
+      "ref": "pc8",
+      "device": "pc_basic",
+      "x": 5,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC8"
+    },
+    {
+      "ref": "pc9",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 6,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC9"
+    },
+    {
+      "ref": "pc10",
+      "device": "pc_basic",
+      "x": 5,
+      "y": 6,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC10"
+    },
+    {
+      "ref": "pc11",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC11"
+    },
+    {
+      "ref": "pc12",
+      "device": "pc_basic",
+      "x": 5,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC12"
+    },
+    {
+      "ref": "pc13",
+      "device": "pc_basic",
+      "x": 12,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC13"
+    },
+    {
+      "ref": "pc14",
+      "device": "pc_basic",
+      "x": 15,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC14"
+    },
+    {
+      "ref": "pc15",
+      "device": "pc_basic",
+      "x": 12,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC15"
+    },
+    {
+      "ref": "pc16",
+      "device": "pc_basic",
+      "x": 15,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC16"
+    },
+    {
+      "ref": "pc17",
+      "device": "pc_basic",
+      "x": 12,
+      "y": 4,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC17"
+    },
+    {
+      "ref": "pc18",
+      "device": "pc_basic",
+      "x": 15,
+      "y": 4,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC18"
+    },
+    {
+      "ref": "pc19",
+      "device": "pc_basic",
+      "x": 12,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC19"
+    },
+    {
+      "ref": "pc20",
+      "device": "pc_basic",
+      "x": 15,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員PC20"
+    },
+    {
+      "ref": "dhcp_srv",
+      "device": "server_basic",
+      "x": 9,
+      "y": 5,
+      "locked": false,
+      "config": {
+        "interfaces": [],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "DHCPサーバー"
+    }
+  ],
+  "goals": [
+    {
+      "type": "dhcp_all",
+      "nodes": [
+        "pc1",
+        "pc2",
+        "pc3",
+        "pc4",
+        "pc5",
+        "pc6",
+        "pc7",
+        "pc8",
+        "pc9",
+        "pc10",
+        "pc11",
+        "pc12",
+        "pc13",
+        "pc14",
+        "pc15",
+        "pc16",
+        "pc17",
+        "pc18",
+        "pc19",
+        "pc20"
+      ]
+    },
+    {
+      "type": "ping_all",
+      "nodes": [
+        "pc1",
+        "pc2",
+        "pc3",
+        "pc4",
+        "pc5",
+        "pc6",
+        "pc7",
+        "pc8",
+        "pc9",
+        "pc10",
+        "pc11",
+        "pc12",
+        "pc13",
+        "pc14",
+        "pc15",
+        "pc16",
+        "pc17",
+        "pc18",
+        "pc19",
+        "pc20",
+        "dhcp_srv"
+      ]
+    }
+  ],
+  "reward": {
+    "money": 650000
+  },
+  "unlockLevel": 23
+}
