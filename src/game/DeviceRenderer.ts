@@ -9,7 +9,8 @@ import type { Project } from '../sim/project';
 import type { NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
 import { spriteOf, texture } from './sprites';
-import { DESK_TOP, DEVICE_FOOT_INSET, isPcOnlyDevice } from './deviceRules';
+import { DESK_TOP, DEVICE_FOOT_INSET } from './deviceRules';
+import { restsOnDesk } from '../sim/placement';
 
 const OUTLINE = 0x3b2a33;
 const SELECT = 0xffd866;
@@ -46,7 +47,7 @@ export class DeviceRenderer {
     if (!tex) return;
     const deskTile = this.options.deskAt(node.x, node.y);
     const anyFloor = useGameStore.getState().mode === 'sandbox';
-    const onDesk = deskTile || (isPcOnlyDevice(node.device) && !anyFloor);
+    const onDesk = restsOnDesk(node, this.options.deskAt);
     const deskTex = !deskTile && isPcCategory(category) && !anyFloor ? texture('furniture/desk') : undefined;
     if (deskTex) {
       const desk = new Sprite(deskTex);

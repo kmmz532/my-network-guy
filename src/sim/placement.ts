@@ -66,6 +66,9 @@ const placeReason = (
   return null;
 };
 
+// 機器が机の上にあるか。deskAt は置く処理と同じ規則で机のマスを答える（自社オフィスは机の家具、依頼先は地図の desk のマス）
+export const restsOnDesk = (node: NetNode, deskAt: (x: number, y: number) => boolean): boolean => deskAt(node.x, node.y);
+
 export const placeDevice = (core: Core, deviceId: string, x: number, y: number, map: GameMap, env: Env): Outcome => {
   const p = requireDesign(core);
   if (typeof p === 'string') return fail(p);

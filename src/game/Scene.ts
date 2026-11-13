@@ -38,7 +38,9 @@ import { StaffRenderer } from './StaffRenderer';
 import { STAFF_FRAME_MS } from './staffHit';
 import { DeviceRenderer } from './DeviceRenderer';
 import { FurnitureRenderer } from './FurnitureRenderer';
-import { DESK_TOP, DEVICE_FOOT_INSET, isPcOnlyDevice } from './deviceRules';
+import { DESK_TOP, DEVICE_FOOT_INSET } from './deviceRules';
+import { restsOnDesk } from '../sim/placement';
+import { tileKind } from '../data/tileKind';
 import { DeviceLabelRenderer } from './DeviceLabelRenderer';
 import { NetworkRenderer, PACKET_COUNT, PACKET_SPACING_TILES, PACKET_TILES_PER_SEC } from './NetworkRenderer';
 import { EffectRenderer, FLASH_MS } from './EffectRenderer';
@@ -674,7 +676,7 @@ export class Scene {
   // 機器のスプライトの上端（マップの座標）。机の上（PCや机の家具のマス）は天板の高さ、床に置いた機器は足元から
   private spriteTopOf(node: NetNode, ts: number): number {
     // サンドボックスでは、PC は机の上に限らず床に置ける（天板の高さに上げない）
-    const onDesk = this.deskAt(node.x, node.y) || (isPcOnlyDevice(node.device) && useGameStore.getState().mode !== 'sandbox');
+    const onDesk = restsOnDesk(node, (x, y) => this.deskAt(x, y));
     return (onDesk ? node.y * ts + DESK_TOP : node.y * ts + ts - DEVICE_FOOT_INSET) - 38;
   }
 
@@ -684,11 +686,12 @@ export class Scene {
   }
 
   // 自社オフィスで、そのマスに机の家具があるか
+  // 置く処理と同じ規則: 自社オフィスは机の家具、依頼先は地図の机のマス
   private deskAt(x: number, y: number): boolean {
-    return (
-      this.map?.id === 'hq' &&
-      useGameStore.getState().office.furniture.some((f) => f.x === x && f.y === y && isDeskFurniture(f.id, gameEnv))
-    );
+    if (this.map?.id === 'hq') {
+      return useGameStore.getState().office.furniture.some((f) => f.x === x && f.y === y && isDeskFurniture(f.id, gameEnv));
+    }
+    return !!this.map && tileKind(this.map, x, y) === 'desk';
   }
 
   // 社員のスプライト（16×24 px）。2コマで足踏みする
