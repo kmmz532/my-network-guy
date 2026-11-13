@@ -50,11 +50,6 @@ tester.run('no-engine-in-view', plugin.rules['no-engine-in-view'], {
   ],
 });
 
-tester.run('no-topology-outside-engine', plugin.rules['no-topology-outside-engine'], {
-  valid: [ok('const t = new Topology(n, d);', 'src/network/netState.ts'), ok('const m = new Map();')],
-  invalid: [bad('const t = new Topology(n, d);', 'src/sim/a.js')],
-});
-
 tester.run('no-handmade-engine-data', plugin.rules['no-handmade-engine-data'], {
   valid: [ok('const e = { categoryOf: (d) => 1 };', 'src/registry/engine.js'), ok('const e = { categoryOf: fn };')],
   invalid: [bad('const e = { categoryOf: (d) => 1 };'), bad('const e = { maxLengthOf: function () {} };'), bad('const e = { portSpeedOf: () => 1 };')],

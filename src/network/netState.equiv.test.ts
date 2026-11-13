@@ -1,5 +1,5 @@
 import { ping, http } from './engine';
-// 段に分けた計算（netState）が、基準（__oracle__/engineLegacy）と同じ結果を返すことを、ランダムなネットワークで確かめる（N136）
+// 段に分けた計算（engine）が、基準（__oracle__/engineLegacy）と同じ結果を返すことを、ランダムなネットワークで確かめる（N136）
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import { gameEnv } from '../sim/env';

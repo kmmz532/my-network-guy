@@ -137,9 +137,6 @@
   "src/network/__oracle__/engineLegacy.ts": {
     "local/no-category": {
       "count": 7
-    },
-    "local/no-topology-outside-engine": {
-      "count": 3
     }
   },
   "src/network/capabilities.ts": {
@@ -195,11 +192,6 @@
   "src/network/mac.ts": {
     "local/no-category": {
       "count": 1
-    }
-  },
-  "src/network/netState.ts": {
-    "local/no-category": {
-      "count": 6
     }
   },
   "src/network/pcWifi.test.ts": {

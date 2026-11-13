@@ -14,7 +14,6 @@ export default tseslint.config(
       'local/no-category': 'error',
       'local/no-mode-branch': 'error',
       'local/no-engine-in-view': 'error',
-      'local/no-topology-outside-engine': 'error',
       'local/no-handmade-engine-data': 'error',
       'local/is-pc-in': 'error',
       // 機器・ケーブル・家具の定義は登録表（src/registry）から引く。読み込むのは src/registry/game.ts だけ

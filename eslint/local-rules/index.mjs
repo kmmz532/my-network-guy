@@ -58,7 +58,7 @@ const noModeBranch = rule(
   }),
 );
 
-const VIEW_FORBIDDEN = new Set(['withWireless', 'compile', 'compiledNet', 'segmentsOf', 'networkColors', 'Topology']);
+const VIEW_FORBIDDEN = new Set(['withWireless', 'compile', 'compiledNet', 'segmentsOf', 'networkColors']);
 // 描画・画面から、ネットワークの計算の関数を読むこと
 const noEngineInView = rule(
   '描画・画面からネットワークの計算を呼ぶことを禁じる',
@@ -73,18 +73,6 @@ const noEngineInView = rule(
       },
     };
   },
-);
-
-// new Topology
-const noTopologyOutsideEngine = rule(
-  '計算の入口の乱立を禁じる',
-  'Topology は計算のエンジンの中だけで作ること。外からは入口の関数を呼ぶこと',
-  (context) => ({
-    NewExpression(node) {
-      if (node.callee.type === 'Identifier' && node.callee.name === 'Topology') context.report({ node, messageId: 'violation' });
-    },
-  }),
-  ['src/network/netState.ts', 'src/network/engine/**'],
 );
 
 // categoryOf・maxLengthOf・portSpeedOf に関数を書くこと
@@ -119,7 +107,6 @@ export default {
     'no-category': noCategory,
     'no-mode-branch': noModeBranch,
     'no-engine-in-view': noEngineInView,
-    'no-topology-outside-engine': noTopologyOutsideEngine,
     'no-handmade-engine-data': noHandmadeEngineData,
     'is-pc-in': isPcIn,
   },
