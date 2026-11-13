@@ -136,4 +136,15 @@ describe('教材を開いた直後の網の設定', () => {
     const solved = lessonNodes(l).map((n) => (n.uid === 'R1' || n.uid === 'R2' ? { ...n, interfaces: n.interfaces.map((i) => ({ ...i, ospf: { area: 0 } })) } : n));
     expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true, true]);
   });
+
+  it('無線の暗号化の教材: WEP は全員つながるが安全でない。WPA3 のみでは古い端末が外れ、WPA2 にすると全員つながり合格する', () => {
+    const l = lesson('wifi_security');
+    const links = lessonLinks(l);
+    const withSecurity = (security: 'wep' | 'wpa3' | 'wpa2wpa3' | 'wpa2') =>
+      lessonNodes(l).map((n) => (n.uid === 'AP1' ? { ...n, wireless: { ...n.wireless, security } } : n));
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([true, false]);
+    expect(lessonGoalResults(l.goals, withSecurity('wpa3'), links, engine)).toEqual([false, true]);
+    expect(lessonGoalResults(l.goals, withSecurity('wpa2wpa3'), links, engine)).toEqual([true, false]);
+    expect(lessonGoalResults(l.goals, withSecurity('wpa2'), links, engine)).toEqual([true, true]);
+  });
 });

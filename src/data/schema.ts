@@ -367,6 +367,8 @@ export const placedSchema = z.object({
   config: placedConfigSchema.optional(),
   // 回線終端の回線の情報（ISP の名前・回線のネットワーク・ISP 側のアドレス・ISP の AS 番号）
   isp: z.object({ name: z.string(), network: z.string(), prefix: z.number().int().min(8).max(30), ispIp: z.string(), asn: z.number().int().positive().optional() }).optional(),
+  // 無線の設定（教材のアクセスポイント・端末の初期の設定。SSID・パスワード・暗号化の方式）
+  wireless: z.object({ ssid: z.string().min(1), password: z.string().min(1), security: z.enum(['open', 'wep', 'wpa', 'wpa2', 'wpa3', 'wpa2wpa3']).optional() }).optional(),
   // 場所の名前（「受付のPC」など。画面の機器の名前になる。なければ「PC-1」などの仮の名前）
   name: z.string().min(1).max(24).optional(),
 });

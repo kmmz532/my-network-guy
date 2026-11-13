@@ -1,0 +1,160 @@
+{
+  "id": "wifi_security",
+  "topic": "wireless",
+  "order": 10,
+  "size": {
+    "w": 15,
+    "h": 8
+  },
+  "placed": [
+    {
+      "ref": "PC1",
+      "device": "pc_basic",
+      "x": 1,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "PC1"
+    },
+    {
+      "ref": "SW1",
+      "device": "l2_switch_8p",
+      "x": 4,
+      "y": 5,
+      "locked": false,
+      "name": "SW1"
+    },
+    {
+      "ref": "AP1",
+      "device": "access_point",
+      "x": 7,
+      "y": 3,
+      "locked": false,
+      "wireless": {
+        "ssid": "office",
+        "password": "office-pass",
+        "security": "wep"
+      },
+      "name": "AP1"
+    },
+    {
+      "ref": "OLD",
+      "device": "pc_wifi",
+      "x": 10,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "wireless": {
+        "ssid": "office",
+        "password": "office-pass"
+      },
+      "name": "OLD"
+    },
+    {
+      "ref": "NEW",
+      "device": "laptop",
+      "x": 10,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "wireless": {
+        "ssid": "office",
+        "password": "office-pass"
+      },
+      "name": "NEW"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PC1",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "SW1",
+        "port": 1
+      },
+      "b": {
+        "ref": "AP1",
+        "port": 0
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": [
+        "PC1",
+        "OLD",
+        "NEW"
+      ]
+    },
+    {
+      "type": "wireless_secure",
+      "ssid": "office"
+    }
+  ],
+  "guide": [
+    {
+      "target": "AP1",
+      "done": "open:AP1"
+    },
+    {
+      "target": "test",
+      "done": "goal:1"
+    },
+    {
+      "target": "AP1",
+      "done": "cmd:wireless security wpa3"
+    },
+    {
+      "target": "AP1",
+      "done": "cmd:wireless security wpa2-wpa3"
+    },
+    {
+      "target": "test",
+      "done": "goal:2"
+    }
+  ]
+}
