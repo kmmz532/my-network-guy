@@ -102,7 +102,6 @@ export function TaskPanel() {
       firstShownHere.current.add(term);
     }
     // failingTerms は描画のたびに作り直すため、用語の並びだけで判定する
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [failingTerms.join(','), termsShown, markTermShown]);
 
   const hintKey = `contract.${active.baseId}.hint`;
