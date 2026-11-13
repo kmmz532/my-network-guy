@@ -6,6 +6,7 @@ import type { FirewallRule, Iface, IspLine, NetNode, PortConfig, Route, Service 
 import { WIRELESS_SECURITIES } from '../network/types';
 import { makeIface, makeSvi } from '../network/iface';
 import { can } from '../network/capabilities';
+import { registries } from '../registry/game';
 import { BgpOp, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, StpOp, VrrpOp, fail, netOf, segmentAt, withNet, zoneFromNodes } from './project';
 
 // 機器の設定を書き換える。配線の設定が固定された機器は変えられない。
@@ -111,14 +112,14 @@ export const setSvi = (core: Core, uid: string, vlan: number, ip: string, prefix
   if (ip !== '' && !isIp(ip)) return fail('ip');
   const others = node.interfaces.filter((i) => !(i.kind === 'svi' && i.vlan === vlan));
   const interfaces: Iface[] = ip === '' ? others : [...others, makeSvi(vlan, ip, prefix)];
-  if (interfaces.filter((i) => i.kind === 'svi').length > sviMaxOf(env, node.device)) return fail('svi.max');
+  if (interfaces.filter((i) => i.kind === 'svi').length > sviMaxOf(node.device)) return fail('svi.max');
   const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, interfaces } : n));
   const segments = fillSegments({ nodes, links: net.links, segments: net.segments }, env.engine);
   return { ok: true, core: withNet(core, target, { ...net, nodes, segments }) };
 };
 
 // 機器の SVI の上限（機器の定義の sviMax。持てない機器は 0）
-const sviMaxOf = (env: Env, device: string): number => (env.devices[device] as { sviMax?: number } | undefined)?.sviMax ?? 0;
+export const sviMaxOf = (device: string): number => registries.devices.get(device).sviMax ?? 0;
 
 // 口の VLAN（access）・トランク（trunk）か、ルーターの口（routed・no switchport）を設定する（N137・N138）
 export const setPortMode = (

@@ -23,6 +23,7 @@ const deviceDefOf = (d: Device): DeviceDef => ({
   capabilities: new Set(d.capabilities),
   deskable: d.deskable,
   defaultServices: d.defaultServices,
+  ...(d.sviMax === undefined ? {} : { sviMax: d.sviMax }),
 });
 
 export const bootstrap = (data: GameData): Registries => {

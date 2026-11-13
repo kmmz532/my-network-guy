@@ -15,6 +15,8 @@ export interface DeviceDef {
   capabilities: ReadonlySet<Capability>;
   deskable: boolean;
   defaultServices: Device['defaultServices'];
+  // SVI（VLAN のインターフェース）の数の上限。svi を持つ機器だけ
+  sviMax?: number;
 }
 
 export type CableDef = Cable;
