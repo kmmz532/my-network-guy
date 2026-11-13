@@ -52,7 +52,7 @@ interface DomainResult {
 // DHCP の割り当ての結果を、網（同じオブジェクト）ごとに覚える。ping を網の全組に行うとき、解決を1回で済ませる
 const dhcpCache = new WeakMap<Network, { dhcp: DhcpResult; net: Network }>();
 
-class Topology {
+export class Topology {
   private nodes = new Map<string, NetNode>();
   private linkByEndpoint = new Map<string, { link: NetLink; peer: Endpoint }>();
   // 機器の内部のスイッチ（中継の口）でつながる口。スイッチ付きルーターは代表の LAN 口を必ず含める
