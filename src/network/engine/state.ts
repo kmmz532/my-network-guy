@@ -1,5 +1,4 @@
-// ネットワークの計算の結果。NetworkState が Topology を包む間は、Topology と層を並べて持つ
-import type { Topology } from '../netState';
+// ネットワークの計算の結果: 保存の構成と、層（配線・L2・アドレス・経路）ごとの結果
 import type { RoutingLayer } from './stages/routing';
 import type { AddressLayer } from './stages/addressing';
 import type { L2Layer } from './stages/l2';
@@ -20,6 +19,4 @@ export interface NetworkState {
   readonly addressing: AddressLayer;
   // 経路の層: 機器ごとの経路表（静的・RIP・OSPF・BGP）・OSPF の隣接・BGP のセッション
   readonly routing: RoutingLayer;
-  // 今の計算の本体（層への分割が済めば消す）
-  readonly topology: Topology;
 }

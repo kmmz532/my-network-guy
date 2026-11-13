@@ -3,7 +3,7 @@ import { analyze } from './engine/analyze';
 import { dhcpOf } from './query/dhcp';
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { dhcpWriteBack } from './netState';
+import { dhcpWriteBack } from './engine/analyze';
 import { writeBackDhcp, type Core } from '../sim/project';
 import type { Iface, NetLink, NetNode, Network } from './types';
 

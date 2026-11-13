@@ -152,6 +152,11 @@
       "count": 7
     }
   },
+  "src/network/engine/forward.ts": {
+    "local/no-category": {
+      "count": 2
+    }
+  },
   "src/network/engine/stages/links.ts": {
     "local/no-category": {
       "count": 4

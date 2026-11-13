@@ -11,8 +11,7 @@ export interface PortState {
   channel?: { group: number; bundled: boolean };
 }
 export const portStatesOf = (state: NetworkState, uid: string): PortState[] => {
-  const topo = state.topology;
-  const node = topo.node(uid);
+  const node = state.addressing.nodeOf(uid);
   if (!node) return [];
   const roles = state.l2.stp().roles;
   const bundled = new Set(lagBundlesOf(state, uid).flatMap((b) => b.links.map((l) => l.uid)));
@@ -20,7 +19,7 @@ export const portStatesOf = (state: NetworkState, uid: string): PortState[] => {
     .filter((l) => l.a.node === uid || l.b.node === uid)
     .map((l) => {
       const port = l.a.node === uid ? l.a.port : l.b.port;
-      const cfg = topo.portCfg(uid, port);
+      const cfg = node.ports?.find((p) => p.port === port);
       const role = state.l2.isStpBlocked(uid, port) ? 'blocking' : roles.get(`${uid}:${port}`);
       return {
         port,

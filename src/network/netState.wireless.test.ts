@@ -3,7 +3,7 @@ import { analyze } from './engine/analyze';
 // 電波の範囲（N151）: 範囲の中の無線の端末は、最も近いアクセスポイントの LAN に入る
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { WIRELESS_RADIUS, wallsBetween } from './netState';
+import { WIRELESS_RADIUS, wallsBetween } from './engine/stages/links';
 import type { Iface, NetNode, Network } from './types';
 
 const f = (port: number, ip: string): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24 });
@@ -66,7 +66,7 @@ describe('wallsBetween', () => {
 
 describe('無線のつながり（画面の点線）', () => {
   it('範囲の中の端末は、つながるアクセスポイントの組になる。範囲の外は組にならない', async () => {
-    const { wirelessAssociations } = await import('./netState');
+    const { wirelessAssociations } = await import('./engine/stages/links');
     const pairs = wirelessAssociations(build(2 + 3), gameEnv.engine);
     expect(pairs.map((p) => [p.ap.uid, p.client.uid])).toEqual([['ap', 'lap']]);
     expect(wirelessAssociations(build(2 + WIRELESS_RADIUS + 5), gameEnv.engine)).toEqual([]);

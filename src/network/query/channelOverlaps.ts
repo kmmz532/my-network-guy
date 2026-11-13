@@ -1,5 +1,5 @@
 import type { NetworkState } from '../engine/state';
-import { accessPointsOf, WIRELESS_RADIUS } from '../netState';
+import { accessPointsOf, WIRELESS_RADIUS } from '../engine/stages/links';
 
 // 同じチャネルで、電波の範囲が重なるアクセスポイントの組（干渉の警告に使う）
 export const channelOverlapsOf = (state: NetworkState): { a: string; b: string }[] => {

@@ -2,7 +2,8 @@
 // セグメントの設定と機器の設定（IPアドレス・ルート）から求める。IPアドレスの未設定や設定の不備は、機器ごとの issues として返す。
 // 層の順序: 配線の層・L2 の層の後に置く。L2 の層は、口にアドレスが残るか（中継だけの口ではないか）で口の扱いを変えるが、
 // その規則（isRelayPort）は機器の種類と口の番号だけで決まるため、L2 の層は保存の構成に同じ規則を当てて求め、この層の結果を読まない
-import { deliver, inSubnet, ipToInt, Topology } from '../../engine';
+import { inSubnet, ipToInt } from '../../ip';
+import { deliver } from '../forward';
 import { stageRouting } from './routing';
 import { assignDhcp, type DhcpResult } from '../../dhcp';
 import { electVrrpMaster, type VrrpMember } from '../../vrrp';
@@ -47,6 +48,8 @@ export interface AddressLayer {
   readonly completed: Network;
   // 実効の構成: 補完した機器に、配線の層の無線の仮想の配線とアクセスポイントの口の設定を重ね、DHCP の割り当てを入れたもの
   readonly net: Network;
+  // 実効の構成の機器（net.nodes の uid 引き）
+  nodeOf(uid: string): NetNode | undefined;
   // 設計の不備（機器ごとに1つ）
   readonly issues: Readonly<Record<string, IssueDetail>>;
   // DHCP の割り当ての結果（自動の口がなければ空）
@@ -217,6 +220,11 @@ const vrrpOf = (nodes: readonly NetNode[], links: LinkLayer, l2: L2Layer): Pick<
   return { vrrpMembers, vrrpOwns };
 };
 
+const nodeIndex = (net: Network): AddressLayer['nodeOf'] => {
+  const byUid = new Map(net.nodes.map((n) => [n.uid, n]));
+  return (uid) => byUid.get(uid);
+};
+
 const NO_DHCP: DhcpResult = { leases: [], failed: [], multiple: [] };
 
 // 割り当てを機器に入れる。受け取れない口は 169.254.x.y/16（機器の連番から決める）。保存してある前回のアドレスは書き換えない
@@ -246,12 +254,12 @@ export const stageAddressing = (input: Network, world: EngineData, links: LinkLa
   // 無線の仮想の配線と口の設定は、配線の層の構成から取り、補完を入れた機器に重ねる
   const portsOf = new Map(links.net.nodes.map((n) => [n.uid, n.ports]));
   const before: Network = { ...completed, nodes: completed.nodes.map((n) => (portsOf.get(n.uid) === n.ports ? n : { ...n, ports: portsOf.get(n.uid) ?? n.ports })), links: links.net.links };
-  const unassigned: AddressLayer = { completed, net: before, issues, dhcp: NO_DHCP, ...vrrpOf(before.nodes, links, l2) };
+  const unassigned: AddressLayer = { completed, net: before, issues, dhcp: NO_DHCP, nodeOf: nodeIndex(before), ...vrrpOf(before.nodes, links, l2) };
   if (!before.nodes.some((n) => n.interfaces.some((i) => i.dhcp === true))) return unassigned;
 
   // DHCP の割り当ては、割り当て前の構成で求める。同じドメインは L2 の層から引く。
   // リレーの到達は、割り当て前の構成で経路を仮に求め、リレーのルーターからサーバーまでたどる（この層の中だけで使い、外へ出さない）
-  const routed = new Topology(links, l2, unassigned, stageRouting(unassigned.net, l2));
+  const routed = { links, l2, addressing: unassigned, routing: stageRouting(unassigned.net, l2) };
   const nodeOf = new Map(before.nodes.map((n) => [n.uid, n]));
   const dhcp = assignDhcp(before.nodes, {
     domainOf: (uid, port) => l2.domainOf({ node: uid, port }).members,
@@ -262,5 +270,5 @@ export const stageAddressing = (input: Network, world: EngineData, links: LinkLa
     },
   });
   const net = withLeases(before, dhcp);
-  return { completed, net, issues, dhcp, ...vrrpOf(net.nodes, links, l2) };
+  return { completed, net, issues, dhcp, nodeOf: nodeIndex(net), ...vrrpOf(net.nodes, links, l2) };
 };

@@ -12,7 +12,7 @@ import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
 import { bgpTableOf } from './query/bgpTable';
-import { adOf } from './netState';
+import { adOf } from './engine/stages/routing';
 import { learnedRoutesOf } from './query/learnedRoutes';
 import { lagBundlesOf } from './query/lagBundles';
 import { macTableOf } from './query/macTable';

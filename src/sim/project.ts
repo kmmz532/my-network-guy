@@ -36,7 +36,8 @@ import { makeIface } from '../network/iface';
 import { can } from '../network/capabilities';
 import { deviceCategory, portCountOf, devicePrice, devicePortType, cableDef } from '../registry/query';
 import type { CableDef } from '../registry/defs';
-import { dhcpWriteBack, type VlanWarning } from '../network/netState';
+import { dhcpWriteBack } from '../network/engine/analyze';
+import type { VlanWarning } from '../network/query/warnings';
 import { type LevelUp } from './level';
 
 export interface Project {

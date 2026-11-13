@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 仕様（memo/NET.md）とコードの突き合わせ。どちらか片方にしかない ID を一覧にする。
 // 突き合わせるもの:
-//   1. §6 の失敗と警告の表の ID ↔ コードの失敗の ID（src/network/types.ts の FAILURE_REASONS）・警告の ID（src/network/netState.ts の VlanWarning）。
+//   1. §6 の失敗と警告の表の ID ↔ コードの失敗の ID（src/network/types.ts の FAILURE_REASONS）・警告の ID（src/network/query/warnings.ts の VlanWarning）。
 //      コードの失敗と警告は、言語ファイルの error.<ID>・error.<ID>.fix・warn.<ID> もそろっていること
 //   2. §4.1 の能力の表 ↔ CAPABILITY_IDS（src/data/schema.ts）
 //   3. §7 の達成条件の表 ↔ 達成条件の種類（src/data/schema.ts の goalSchema）
@@ -55,7 +55,7 @@ for (const r of rows(section('## 7. 新しい達成条件'))) {
 
 // --- コード ---
 const failuresCode = new Set([...read('src/network/types.ts').match(/FAILURE_REASONS = \[([\s\S]*?)\] as const/)[1].matchAll(/'([^']+)'/g)].map((m) => m[1]));
-const warningsCode = new Set([...read('src/network/netState.ts').match(/export type VlanWarning = \{ id: ([^;]+);/)[1].matchAll(/'([^']+)'/g)].map((m) => m[1]));
+const warningsCode = new Set([...read('src/network/query/warnings.ts').match(/export type VlanWarning = \{ id: ([^;]+);/)[1].matchAll(/'([^']+)'/g)].map((m) => m[1]));
 const capsCode = new Set([...read('src/data/schema.ts').match(/CAPABILITY_IDS = \[([\s\S]*?)\] as const/)[1].matchAll(/'([^']+)'/g)].map((m) => m[1]));
 const goalBlock = read('src/data/schema.ts').match(/export const goalSchema = z\.discriminatedUnion\('type', \[([\s\S]*?)\n\]\);/)[1];
 const goalsCode = new Set([...goalBlock.matchAll(/type: z\.literal\('([^']+)'\)/g)].map((m) => m[1]));

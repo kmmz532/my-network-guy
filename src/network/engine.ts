@@ -1,5 +1,8 @@
-// 疎通判定の入口（N136）。計算は netState.ts の段（配線→L2→IP→経路→転送）で行い、ここから再輸出する
-// 名前を挙げて再輸出する（読み込みが循環しても、呼ぶ時点の値を読む）
-export { accessPointsOf, adOf, backOf, deliver, dhcpWriteBack, fail, inSubnet, ipToInt, isPrivateIp, linkLength, Topology, wallsBetween, WALL_LOSS, WIRELESS_RADIUS, wirelessAssociations, withWireless } from './netState';
-export type { Traffic, VlanWarning } from './netState';
-export { ping, http } from './engine/forward';
+// 疎通判定の入口（N136）。転送は engine/forward.ts、層ごとの計算は engine/stages/ にあり、ここから再輸出する
+export { backOf, deliver, fail, ping, http } from './engine/forward';
+export type { Traffic } from './engine/forward';
+export { inSubnet, ipToInt, isPrivateIp } from './ip';
+export { adOf } from './engine/stages/routing';
+export { dhcpWriteBack } from './engine/analyze';
+export { accessPointsOf, linkLength, wallsBetween, WALL_LOSS, WIRELESS_RADIUS, wirelessAssociations, withWireless } from './engine/stages/links';
+export type { VlanWarning } from './query/warnings';

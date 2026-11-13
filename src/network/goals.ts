@@ -2,7 +2,7 @@ import { dhcpOf } from './query/dhcp';
 // 案件の達成条件（goals）の判定ハンドラ。種類ごとにハンドラを登録し、案件データから呼び出す。
 import type { Contract, Goal } from '../data/schema';
 import { http, ping, wirelessAssociations } from './engine';
-import { accessPointsOf } from './netState';
+import { accessPointsOf } from './engine/stages/links';
 import { lagBundlesOf } from './query/lagBundles';
 import { ospfNeighborsOf } from './query/ospfNeighbors';
 import { analyze } from './engine/analyze';

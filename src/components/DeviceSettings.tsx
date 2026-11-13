@@ -12,7 +12,7 @@ import { dangerButton } from './Modal';
 import type { ComboOption } from './comboOptions';
 import { isRelayPort, isRoutingCategory } from '../network/category';
 import { can } from '../network/capabilities';
-import { wirelessAssociations } from '../network/netState';
+import { wirelessAssociations } from '../network/engine/stages/links';
 import { channelOverlapsOf, networkColors, type NetworkState } from '../network/public';
 import { colorOfNetwork, UNSET_COLOR } from '../network/netColor';
 import { networkAddress, neighborRouterAddresses, routerAddressesOn, segmentConfigOf, segmentOf, segmentsOf } from '../network/segments';

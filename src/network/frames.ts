@@ -2,7 +2,7 @@
 // 経路そのものは探さない（ping・http の結果を使う）。L2 スイッチの中の区間は l2Path（mac.ts）で求める。
 import { macOf, l2Path } from './mac';
 import type { NetLink, NetNode, PathResult, PortConfig } from './types';
-import type { Traffic } from './netState';
+import type { Traffic } from './engine/forward';
 import { vrrpMac } from './vrrp';
 
 export interface Frame {
