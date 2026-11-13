@@ -1,7 +1,6 @@
 // ネットワーク機器を描く。機器本体・机・ポート・選択枠・LEDを受け持つ。
 import { Container, Graphics, Sprite } from 'pixi.js';
 import { devices as deviceData } from 'virtual:game-data';
-import { gameEnv } from '../sim/env';
 import { isPcCategory } from '../data/categories';
 import { spriteNameOf } from '../sim/facing';
 import type { Facing } from '../sim/facing';
@@ -11,7 +10,7 @@ import { useGameStore } from '../stores/useGameStore';
 import { spriteOf, texture } from './sprites';
 import { DESK_TOP, DEVICE_FOOT_INSET } from './deviceRules';
 import { restsOnDesk } from '../sim/placement';
-import { deviceCategory } from '../registry/query';
+import { deviceCategory, portCountOf } from '../registry/query';
 
 const OUTLINE = 0x3b2a33;
 const SELECT = 0xffd866;
@@ -66,7 +65,7 @@ export class DeviceRenderer {
     this.options.sprites.addChild(sprite);
     if (!onDesk) this.options.background.ellipse(node.x * ts + ts / 2, foot, 10, 3).fill({ color: 0x000000, alpha: 0.25 * alpha });
 
-    const count = gameEnv.devices[node.device]?.portCount ?? 0;
+    const count = portCountOf(node.device);
     const used = new Set<number>();
     for (const link of project.links) {
       if (link.a.node === node.uid) used.add(link.a.port);

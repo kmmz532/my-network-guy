@@ -19,6 +19,7 @@ import { buttonStyle, greyColor, portLabel } from './devicePorts';
 import { portHoverAt, replugTargetAt, type PortBox, type PortHover } from './rearDrag';
 import { RADIUS } from '../ui/theme';
 import { CATEGORY, isPcCategory } from '../data/categories';
+import { portCountOf, deviceCategory } from '../registry/query';
 
 // 背面の部品のスプライトを拡大する倍率（ドット絵を整数倍で描く）
 // 背面の部品の拡大率。ポートが多い機器は、板の幅に収まるよう2倍にする
@@ -68,8 +69,8 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
   // 板の上の各ポートの要素（ドラッグの判定に使う位置を取る）
   const portRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const category = gameEnv.devices[node.device]?.category;
-  const portCount = gameEnv.devices[node.device]?.portCount ?? 0;
+  const category = deviceCategory(node.device);
+  const portCount = portCountOf(node.device);
   const ports = Array.from({ length: portCount }, (_, p) => p);
   const SCALE = scaleFor(portCount);
   const portsPerRow = portsPerRowFor(portCount);
@@ -122,7 +123,7 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
     if (!grabbable || !link) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    const slot = plugSlot(link, portTypeOf(gameEnv, node.device, p) === 'sfp');
+    const slot = plugSlot(link, portTypeOf(node.device, p) === 'sfp');
     const fiber = link.cable.startsWith('fiber');
     const networks = networksOfLink(colors, link.uid);
     const end: End = link.a.node === node.uid ? 'a' : 'b';
@@ -185,7 +186,7 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
             const link = linkAt(p);
             // ドラッグ中のプラグは、元の差し込み口を空の絵で見せる（LED も消す）
             const lifted = carry?.port === p;
-            const slot = lifted ? (portTypeOf(gameEnv, node.device, p) === 'sfp' ? 'rear/port_sfp_empty' : 'rear/port_empty') : plugSlot(link, portTypeOf(gameEnv, node.device, p) === 'sfp');
+            const slot = lifted ? (portTypeOf(node.device, p) === 'sfp' ? 'rear/port_sfp_empty' : 'rear/port_empty') : plugSlot(link, portTypeOf(node.device, p) === 'sfp');
             const linkNetworks = link ? networksOfLink(colors, link.uid) : [];
             const stripeNetworks = linkNetworks.slice(0, 3);
             const stripeColors = stripeNetworks.map((network) => colorOfNetwork(colors, network) ?? colorOfLink(colors, link!.uid));
@@ -291,7 +292,7 @@ export function RearTab({ node, nodes, links, net, readOnly, onError }: Props) {
       {ports.map((p) => {
         const link = linkAt(p);
         const peer = link ? peerOf(link) : undefined;
-        const peerName = peer?.peer ? `${nodeLabel(useGameStore.getState(), peer.peer, nodes)} ${portLabel(gameEnv.devices[peer.peer.device]?.category, peer.end.port)}` : '';
+        const peerName = peer?.peer ? `${nodeLabel(useGameStore.getState(), peer.peer, nodes)} ${portLabel(deviceCategory(peer.peer.device), peer.end.port)}` : '';
         return (
           <button
             key={p}

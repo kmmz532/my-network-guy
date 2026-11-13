@@ -1,19 +1,19 @@
 import { EMPTY_FAMILIARITY } from './familiar';
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
-import cablesJson from '../assets/data/cables.json';
-import pcJson from '../assets/data/devices/pc.json';
+
+
 import furnitureJson from '../assets/data/furniture.json';
-import routerJson from '../assets/data/devices/router.json';
-import switchJson from '../assets/data/devices/l2_switch.json';
-import serverJson from '../assets/data/devices/server.json';
+
+
+
 import c001 from '../assets/data/contracts/c001_direct_link.json';
 import c004 from '../assets/data/contracts/c004_web_server.json';
 import i002 from '../assets/data/contracts/i002_office_server.json';
 import officeJson from '../assets/data/maps/office_small.json';
 import type { Balance, Contract, Furniture, GameMap } from '../data/schema';
 import type { Offer } from '../contracts/template';
-import type { Service } from '../network/types';
+
 import { evaluateContract } from '../network/goals';
 import { compile } from '../network/compile';
 import { initialStaff } from './staff';
@@ -27,24 +27,9 @@ const balance = balanceJson as unknown as Balance;
 const map = officeJson as unknown as GameMap;
 
 // 機材の定義（サーバーの defaultServices を含む）
-const devices: Env['devices'] = {};
-for (const d of [...pcJson.devices, ...switchJson.devices, ...routerJson.devices, ...serverJson.devices]) {
-  devices[d.id] = {
-    category: d.category,
-    price: d.price,
-    portCount: d.ports.reduce((sum, p) => sum + p.count, 0),
-    defaultServices: (d as { defaultServices?: Service[] }).defaultServices ?? [],
-  };
-}
-const cables: Env['cables'] = {};
-for (const c of cablesJson.cables) {
-  cables[c.id] = { pricePerLink: c.pricePerLink, pricePerTile: c.pricePerTile, maxLengthTiles: c.maxLengthTiles };
-}
 const env: Env = {
   balance,
   furniture: Object.fromEntries(furnitureJson.furniture.map((f) => [f.id, f as unknown as Furniture])),
-  devices,
-  cables,
   engine: { wallAt: () => false },
 };
 

@@ -8,6 +8,7 @@ import { makeIface, makeSvi } from '../network/iface';
 import { can } from '../network/capabilities';
 import { registries } from '../registry/game';
 import { BgpOp, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, StpOp, VrrpOp, fail, netOf, segmentAt, withNet, zoneFromNodes } from './project';
+import { portCountOf } from '../registry/query';
 
 // 機器の設定を書き換える。配線の設定が固定された機器は変えられない。
 const editNode = (core: Core, uid: string, edit: (n: NetNode) => NetNode | string, target: NetTarget = 'focus'): Outcome => {
@@ -127,7 +128,6 @@ export const setPortMode = (
   uid: string,
   port: number,
   mode: PortModeChange,
-  env: Env,
   target: NetTarget = 'focus',
 ): Outcome => {
   const net = netOf(core, target);
@@ -135,7 +135,7 @@ export const setPortMode = (
   const node = net.nodes.find((n) => n.uid === uid);
   if (!node) return fail('none');
   if (node.configLocked) return fail('locked');
-  if (!Number.isInteger(port) || port < 0 || port >= (env.devices[node.device]?.portCount ?? 0)) return fail('port.none');
+  if (!Number.isInteger(port) || port < 0 || port >= (portCountOf(node.device))) return fail('port.none');
   if (mode.kind === 'access') {
     if (!can(node.device, 'switchport')) return fail('port.mode');
     if (!Number.isInteger(mode.vlan) || mode.vlan < 1 || mode.vlan > 4094) return fail('vlan.range');
@@ -263,12 +263,12 @@ export const setStp = (core: Core, uid: string, change: StpOp, target: NetTarget
     target,
   );
 
-export const setDhcp = (core: Core, uid: string, change: DhcpOp, env: Env, target: NetTarget = 'focus'): Outcome =>
+export const setDhcp = (core: Core, uid: string, change: DhcpOp, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
     uid,
     (node) => {
-      const portOk = (port: number) => Number.isInteger(port) && port >= 0 && port < (env.devices[node.device]?.portCount ?? 0);
+      const portOk = (port: number) => Number.isInteger(port) && port >= 0 && port < (portCountOf(node.device));
       if (change.op === 'client') {
         if (!portOk(change.port)) return 'port.none';
         if (can(node.device, 'switchport') && !can(node.device, 'routedPort')) return 'dhcp.unsupported';
@@ -296,13 +296,13 @@ export const setDhcp = (core: Core, uid: string, change: DhcpOp, env: Env, targe
     target,
   );
 
-export const setChannel = (core: Core, uid: string, change: ChannelOp, env: Env, target: NetTarget = 'focus'): Outcome =>
+export const setChannel = (core: Core, uid: string, change: ChannelOp, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
     uid,
     (node) => {
       if (!can(node.device, 'lag')) return 'lag.unsupported';
-      if (!Number.isInteger(change.port) || change.port < 0 || change.port >= (env.devices[node.device]?.portCount ?? 0)) return 'port.none';
+      if (!Number.isInteger(change.port) || change.port < 0 || change.port >= (portCountOf(node.device))) return 'port.none';
       const prev = node.ports.find((p) => p.port === change.port);
       const base: PortConfig = prev ?? { port: change.port, mode: can(node.device, 'switchport') ? 'access' : 'routed' };
       if (change.group === null) {

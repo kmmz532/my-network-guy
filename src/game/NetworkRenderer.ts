@@ -1,12 +1,12 @@
 // 配線に関する表示を描く。接続時の光・無線範囲・無線の点線・検収パケットを受け持つ。
 import { Graphics } from 'pixi.js';
 import { useGameStore, type Trace } from '../stores/useGameStore';
-import { gameEnv } from '../sim/env';
 import { CATEGORY } from '../data/categories';
 import { WALL_LOSS, WIRELESS_RADIUS, wallsBetween, wirelessAssociations } from '../network/engine';
 import type { EngineData } from '../network/types';
 import { cumulativeLengths, pointAt, type Point } from './animation';
 import type { Project } from '../sim/project';
+import { deviceCategory } from '../registry/query';
 
 // つながった瞬間に、ケーブルの上を光が走る時間（ms）。
 const PULSE_MS = 450;
@@ -54,7 +54,7 @@ export class NetworkRenderer {
     const map = this.options.map();
     if (!selectedUid || !engine || !map) return;
     const ap = project.nodes.find((n) => n.uid === selectedUid);
-    const category = gameEnv.devices[ap?.device ?? '']?.category;
+    const category = deviceCategory(ap?.device ?? '');
     if (!ap || (category !== CATEGORY.accessPoint && category !== CATEGORY.homeRouter)) return;
     for (let dy = -WIRELESS_RADIUS; dy <= WIRELESS_RADIUS; dy++) {
       for (let dx = -WIRELESS_RADIUS; dx <= WIRELESS_RADIUS; dx++) {

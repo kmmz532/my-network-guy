@@ -4,7 +4,7 @@ import c001 from '../assets/data/contracts/c001_direct_link.json';
 import type { Contract } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { delegationReason } from '../sim/project';
-import { gameEnv } from '../sim/env';
+
 import { minutesPerDay } from '../sim/clock';
 import { EMPTY_FAMILIARITY, familiarKeyOf, type Familiarity } from '../sim/familiar';
 import { useGameStore } from './useGameStore';
@@ -39,23 +39,23 @@ describe('社員に任せる（N70）の理由', () => {
   beforeEach(() => withFamiliarity(EMPTY_FAMILIARITY));
 
   it('3回納品していなければ任せられない', () => {
-    expect(delegationReason(st().familiarity, offer, gameEnv)).toBe('delegate.count');
+    expect(delegationReason(st().familiarity, offer)).toBe('delegate.count');
   });
 
   it('3回納品していても、型紙がなければ任せられない', () => {
     withFamiliarity({ counts: { [key]: 3 }, blueprints: {} });
-    expect(delegationReason(st().familiarity, offer, gameEnv)).toBe('delegate.blueprint');
+    expect(delegationReason(st().familiarity, offer)).toBe('delegate.blueprint');
   });
 
   it('型紙の機器の置き場所が今回の依頼と違えば任せられない', () => {
     const moved = { ...bareBlueprint, nodes: bareBlueprint.nodes.map((n) => ({ ...n, x: n.x + 1 })) };
     withFamiliarity({ counts: { [key]: 3 }, blueprints: { [key]: { stars: 3, design: moved } } });
-    expect(delegationReason(st().familiarity, offer, gameEnv)).toBe('delegate.fit');
+    expect(delegationReason(st().familiarity, offer)).toBe('delegate.fit');
   });
 
   it('型紙が写せれば、理由はない', () => {
     withFamiliarity({ counts: { [key]: 3 }, blueprints: { [key]: { stars: 3, design: bareBlueprint } } });
-    expect(delegationReason(st().familiarity, offer, gameEnv)).toBeNull();
+    expect(delegationReason(st().familiarity, offer)).toBeNull();
   });
 });
 
@@ -94,13 +94,13 @@ describe('増えた機器をつないで任せる', () => {
 
   it('型紙にスイッチがなければ、増えた機器をつなげないので任せられない', () => {
     withFamiliarity({ counts: { [key]: 3 }, blueprints: { [key]: { stars: 3, design: onePc } } });
-    expect(delegationReason(st().familiarity, offer, gameEnv)).toBe('delegate.fit');
+    expect(delegationReason(st().familiarity, offer)).toBe('delegate.fit');
   });
 
   it('型紙に空きのあるスイッチがあれば、増えた機器を足して任せられる', () => {
     const withSwitch = { ...onePc, nodes: [...onePc.nodes, aSwitch] };
     withFamiliarity({ counts: { [key]: 3 }, blueprints: { [key]: { stars: 3, design: withSwitch } } });
-    expect(delegationReason(st().familiarity, offer, gameEnv)).toBeNull();
+    expect(delegationReason(st().familiarity, offer)).toBeNull();
   });
 });
 

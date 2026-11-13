@@ -10,9 +10,10 @@ import { isPcCategory } from '../data/categories';
 import { cableLengthOf, checkCableLength } from './cableLength';
 import { levelOf } from './level';
 import { Core, End, Env, NetTarget, OFFICE_UPLINK_UID, Outcome, PlacedFurniture, Project, cableCost, factoryConfigOf, fail, focusedOf, isDeskFurniture, isPcIn, netOf, officeLocked, officeUplinkOf, paidCable, requireDesign, withNet, withProject } from './project';
+import { portCountOf, deviceCategory, deviceDef, cableDef, hasDevice } from '../registry/query';
 
 // 機材を置いたときに動いているサービス（ゲームデータの defaultServices を写す）
-const servicesOf = (env: Env, deviceId: string): Service[] => (env.devices[deviceId]?.defaultServices ?? []).map((s) => ({ ...s }));
+const servicesOf = (deviceId: string): Service[] => (deviceDef(deviceId).defaultServices).map((s) => ({ ...s }));
 
 // 自社オフィスに機器を置けるかを判定する。置けなければ失敗の理由を返す
 // PCは机の家具があり、その上に機器がないマスだけ。PC以外は床で、家具も機器もないマスだけ。
@@ -28,7 +29,7 @@ const officePlaceReason = (
   anyFloor = false,
 ): string | null => {
   const hasNode = nodes.some((n) => n.x === x && n.y === y);
-  const device = env.devices[deviceId];
+  const device = deviceDef(deviceId);
   const isPc = isPcCategory(device.category);
   // 机の上にも床にも置ける機器（N91）は、PC のような机の上の判定を使い、床にも置ける。PC でも deskable でもない機器は床だけ
   const desktop = device.deskable === true;
@@ -58,7 +59,7 @@ const placeReason = (
 ): string | null => {
   if (inhouse) return officePlaceReason(furniture, nodes, deviceId, x, y, map, env, anyFloor);
   const kind = tileKind(map, x, y);
-  const deskOk = isPcIn(env, deviceId) || env.devices[deviceId].deskable === true;
+  const deskOk = isPcIn(env, deviceId) || deviceDef(deviceId).deskable === true;
   if (kind !== 'floor' && !(kind === 'desk' && deskOk)) return 'tile';
   if (nodes.some((n) => n.x === x && n.y === y)) return 'tile';
   // 依頼先の家具（机・棚・飾り。N76）のあるマスには置けない
@@ -72,7 +73,7 @@ export const restsOnDesk = (node: NetNode, deskAt: (x: number, y: number) => boo
 export const placeDevice = (core: Core, deviceId: string, x: number, y: number, map: GameMap, env: Env): Outcome => {
   const p = requireDesign(core);
   if (typeof p === 'string') return fail(p);
-  if (!env.devices[deviceId]) return fail('none');
+  if (!hasDevice(deviceId)) return fail('none');
   if ((core.owned[deviceId] ?? 0) < 1) return fail('stock');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
   const furniture = p.contract.inhouse ? core.office.furniture : furnitureOf(map.furniture, p.contract.furniture);
@@ -82,16 +83,16 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
     uid: `u${p.seq}`,
     device: deviceId,
     // ホスト名は種類の略号と番号を自動で付ける（N68）
-    hostname: nextHostname(p.nodes, env.devices[deviceId].category),
+    hostname: nextHostname(p.nodes, deviceCategory(deviceId)),
     macSerial: nextMacSerial(p.nodes),
     x,
     y,
     locked: false,
     configLocked: false,
-    ...factoryConfigOf(env, deviceId),
+    ...factoryConfigOf(deviceId),
     gateway: null,
     routes: [],
-    services: servicesOf(env, deviceId),
+    services: servicesOf(deviceId),
   };
   const next: Project = { ...p, nodes: [...p.nodes, node], seq: p.seq + 1, testedOk: false };
   return {
@@ -104,7 +105,7 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
 // sandbox のときは在庫を数えない（置いても在庫は減らず、撤去しても増えない）
 export const placeInOffice = (core: Core, deviceId: string, x: number, y: number, map: GameMap, env: Env, anyFloor = false, sandbox = false): Outcome => {
   if (officeLocked(core)) return fail('inhouse');
-  if (!env.devices[deviceId]) return fail('none');
+  if (!hasDevice(deviceId)) return fail('none');
   if (!sandbox && (core.owned[deviceId] ?? 0) < 1) return fail('stock');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
   const office = core.office;
@@ -113,16 +114,16 @@ export const placeInOffice = (core: Core, deviceId: string, x: number, y: number
   const node: NetNode = { ports: [],
     uid: `u${office.seq}`,
     device: deviceId,
-    hostname: nextHostname(office.nodes, env.devices[deviceId].category),
+    hostname: nextHostname(office.nodes, deviceCategory(deviceId)),
     macSerial: nextMacSerial(office.nodes),
     x,
     y,
     locked: false,
     configLocked: false,
-    ...factoryConfigOf(env, deviceId),
+    ...factoryConfigOf(deviceId),
     gateway: null,
     routes: [],
-    services: servicesOf(env, deviceId),
+    services: servicesOf(deviceId),
   };
   return {
     ok: true,
@@ -218,7 +219,7 @@ export const replug = (core: Core, linkUid: string, end: End, port: number, env:
   const endpoint = end === 'a' ? link.a : link.b;
   const node = net.nodes.find((n) => n.uid === endpoint.node);
   if (!node) return fail('none');
-  const count = env.devices[node.device]?.portCount ?? 0;
+  const count = portCountOf(node.device);
   if (!Number.isInteger(port) || port < 0 || port >= count) return fail('port');
   if (port === endpoint.port) return fail('portUsed');
   const used = net.links.some(
@@ -286,7 +287,7 @@ export const moveNode = (core: Core, uid: string, x: number, y: number, env: Env
       links.push(l);
       continue;
     }
-    const cable = env.cables[l.cable];
+    const cable = cableDef(l.cable);
     const a = after.get(l.a.node)!;
     const b = after.get(l.b.node)!;
     const length = cableLengthOf(a, b);
@@ -342,7 +343,7 @@ export const replugTo = (
   const other = end === 'a' ? link.b : link.a;
   const node = net.nodes.find((n) => n.uid === nodeUid);
   if (!node || nodeUid === other.node) return fail('none');
-  const count = env.devices[node.device]?.portCount ?? 0;
+  const count = portCountOf(node.device);
   // 相手の機器のポートが埋まっているか（同じ機器なら、この端が今つないでいるポートも埋まっている）
   const taken = (p: number): boolean =>
     (nodeUid === endpoint.node && p === endpoint.port) ||
@@ -364,7 +365,7 @@ export const replugTo = (
   const before = new Map(net.nodes.map((n) => [n.uid, n] as const));
   const a = end === 'a' ? node : before.get(link.a.node)!;
   const b = end === 'b' ? node : before.get(link.b.node)!;
-  const cable = env.cables[link.cable];
+  const cable = cableDef(link.cable);
   const length = cableLengthOf(a, b);
   if (!cable) return fail('cable');
   const lengthCheck = checkCableLength(length, cable.maxLengthTiles);
@@ -389,7 +390,7 @@ export const replugTo = (
 export const placeOfficeUplink = (core: Core, x: number, y: number, map: GameMap, env: Env, balance: Balance): Outcome => {
   if (levelOf(core.companyExp, balance) < balance.featureUnlocks.uplink) return fail('uplink.locked');
   if (officeLocked(core)) return fail('inhouse');
-  if (officeUplinkOf(core.office, env)) return fail('uplink.placed');
+  if (officeUplinkOf(core.office)) return fail('uplink.placed');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
   const office = core.office;
   const reason = officePlaceReason(office.furniture, office.nodes, 'uplink', x, y, map, env);
@@ -400,7 +401,7 @@ export const placeOfficeUplink = (core: Core, x: number, y: number, map: GameMap
 
 // 回線終端の位置を変更する。つながるケーブルは moveNode と同じく引き直し、その差額に加えて移設の費用を支払う
 export const moveOfficeUplink = (core: Core, x: number, y: number, map: GameMap, env: Env, balance: Balance): Outcome => {
-  const uplink = officeUplinkOf(core.office, env);
+  const uplink = officeUplinkOf(core.office);
   if (!uplink) return fail('none');
   if (x === uplink.x && y === uplink.y) return { ok: true, core };
   const cost = balance.office.uplinkMoveCost;

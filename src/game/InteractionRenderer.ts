@@ -1,7 +1,6 @@
 // 配置・移動・配線中の操作表示を描く。置けるマス、接続先、プラグ印、配線費用を受け持つ。
 import { Graphics, Container, Text } from 'pixi.js';
 import { useGameStore } from '../stores/useGameStore';
-import { gameEnv } from '../sim/env';
 import type { NetNode } from '../network/types';
 import { balance } from 'virtual:game-data';
 import { metersOf } from '../sim/cableLength';
@@ -9,6 +8,7 @@ import { plugPoints } from './linkHit';
 import { MapHit } from './MapHit';
 import { MapInput } from './MapInput';
 import { t } from '../i18n/t';
+import { cableDef } from '../registry/query';
 
 const OUTLINE = 0x3b2a33;
 const SELECT = 0xffd866;
@@ -78,7 +78,7 @@ export class InteractionRenderer {
 
   drawWireCost(from: NetNode, ts: number): void {
     const store = useGameStore.getState();
-    const cable = gameEnv.cables[store.wireCable];
+    const cable = cableDef(store.wireCable);
     const nodes = this.options.hit.editNodes();
     const tile = this.options.hit.tileOf(this.options.input.wireTo);
     if (!cable || !tile || !nodes) return;

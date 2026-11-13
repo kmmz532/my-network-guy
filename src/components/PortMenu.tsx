@@ -1,11 +1,11 @@
 // ポートの一覧の吹き出し。配線の道具で機器を押したときに、機器の横に出す。先頭は「おまかせ」、続けて各ポート（埋まったポートは選べない）
 import { labelOfUid } from './nodeLabel';
-import { gameEnv } from '../sim/env';
 import { t } from '../i18n/t';
 import { editNetOf, useGameStore } from '../stores/useGameStore';
 import type { NetLink, NetNode } from '../network/types';
 import { buttonStyle, panelStyle, portLabel } from './devicePorts';
 import { loadSettings } from '../settings/settings';
+import { deviceCategory, portCountOf } from '../registry/query';
 
 // 吹き出しの高さの見積もり（行の数で画面からはみ出さないように置く）
 const ROW_PX = 24;
@@ -19,9 +19,8 @@ interface PortRow {
 }
 
 const rowsOf = (node: NetNode, nodes: readonly NetNode[], links: readonly NetLink[]): PortRow[] => {
-  const info = gameEnv.devices[node.device];
-  const category = info?.category;
-  return Array.from({ length: info?.portCount ?? 0 }, (_, port) => {
+  const category = deviceCategory(node.device);
+  return Array.from({ length: portCountOf(node.device) }, (_, port) => {
     const link = links.find(
       (l) => (l.a.node === node.uid && l.a.port === port) || (l.b.node === node.uid && l.b.port === port),
     );

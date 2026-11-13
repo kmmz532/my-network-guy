@@ -11,6 +11,7 @@ import { floorOfRoom, roomTileCount } from '../sim/office';
 import { officeUplinkOf, type RoomId } from '../sim/project';
 import type { FloorId } from '../data/schema';
 import { Select } from './Select';
+import { deviceCategory } from '../registry/query';
 
 export function OfficeBody() {
   const office = useGameStore((s) => s.office);
@@ -20,9 +21,9 @@ export function OfficeBody() {
   const outside = outsideCheck(office, gameEnv.engine);
   const rental = rentalOf(office, gameEnv.engine, balance.rental, level, balance.time.daysPerMonth);
   // プリンターが営業の依頼に足す確率（N98）
-  const printerBonus = useGameStore((s) => printerArrivalBonusOf(s.office, (d) => gameEnv.devices[d]?.category === 'printer', balance));
+  const printerBonus = useGameStore((s) => printerArrivalBonusOf(s.office, (d) => deviceCategory(d) === 'printer', balance));
   const row = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #3b2a33' } as const;
-  const uplink = officeUplinkOf(office, gameEnv);
+  const uplink = officeUplinkOf(office);
   const setPlacing = useGameStore((s) => s.setPlacing);
   return (
     <div style={{ padding: 12, fontSize: 14, color: '#f4f1e6' }}>

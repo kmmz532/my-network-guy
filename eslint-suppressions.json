@@ -1,7 +1,7 @@
 {
   "src/components/DevicePanel.tsx": {
     "local/no-category": {
-      "count": 4
+      "count": 2
     },
     "local/no-engine-in-view": {
       "count": 1
@@ -9,7 +9,7 @@
   },
   "src/components/DeviceRear.tsx": {
     "local/no-category": {
-      "count": 3
+      "count": 1
     },
     "local/no-engine-in-view": {
       "count": 2
@@ -17,7 +17,7 @@
   },
   "src/components/DeviceSettings.tsx": {
     "local/no-category": {
-      "count": 10
+      "count": 6
     },
     "local/no-engine-in-view": {
       "count": 3
@@ -44,16 +44,6 @@
   "src/components/OfferCards.tsx": {
     "local/no-category": {
       "count": 2
-    }
-  },
-  "src/components/OfficePanel.tsx": {
-    "local/no-category": {
-      "count": 1
-    }
-  },
-  "src/components/PortMenu.tsx": {
-    "local/no-category": {
-      "count": 1
     }
   },
   "src/components/ShopCards.tsx": {
@@ -104,11 +94,6 @@
       "count": 3
     }
   },
-  "src/game/DeviceLabelRenderer.ts": {
-    "local/no-category": {
-      "count": 2
-    }
-  },
   "src/game/DeviceRenderer.ts": {
     "local/no-mode-branch": {
       "count": 1
@@ -131,7 +116,7 @@
   },
   "src/game/NetworkRenderer.ts": {
     "local/no-category": {
-      "count": 3
+      "count": 2
     }
   },
   "src/game/Scene.ts": {
@@ -248,19 +233,9 @@
       "count": 6
     }
   },
-  "src/sim/autoAssign.test.ts": {
-    "local/no-category": {
-      "count": 1
-    }
-  },
   "src/sim/autoAssign.ts": {
     "local/no-category": {
       "count": 5
-    }
-  },
-  "src/sim/env.ts": {
-    "local/no-category": {
-      "count": 1
     }
   },
   "src/sim/guide.ts": {
@@ -268,19 +243,9 @@
       "count": 4
     }
   },
-  "src/sim/invariants.test.ts": {
-    "local/no-category": {
-      "count": 1
-    }
-  },
-  "src/sim/move.test.ts": {
-    "local/no-category": {
-      "count": 1
-    }
-  },
   "src/sim/placement.ts": {
     "local/no-category": {
-      "count": 3
+      "count": 1
     }
   },
   "src/sim/pricing.test.ts": {
@@ -293,29 +258,9 @@
       "count": 3
     }
   },
-  "src/sim/project.test.ts": {
-    "local/no-category": {
-      "count": 1
-    }
-  },
   "src/sim/project.ts": {
     "local/no-category": {
-      "count": 10
-    }
-  },
-  "src/sim/reference.test.ts": {
-    "local/no-category": {
-      "count": 1
-    }
-  },
-  "src/sim/replug.test.ts": {
-    "local/no-category": {
-      "count": 1
-    }
-  },
-  "src/sim/sandbox.test.ts": {
-    "local/no-category": {
-      "count": 1
+      "count": 5
     }
   },
   "src/sim/sandbox.ts": {
@@ -334,9 +279,6 @@
     }
   },
   "src/stores/gameHelpers.ts": {
-    "local/no-category": {
-      "count": 1
-    },
     "local/no-mode-branch": {
       "count": 2
     }

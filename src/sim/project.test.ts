@@ -2,12 +2,12 @@ import { EMPTY_FAMILIARITY } from './familiar';
 import { keepFocus, type Outcome } from './project';
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
-import cablesJson from '../assets/data/cables.json';
-import pcJson from '../assets/data/devices/pc.json';
+
+
 import furnitureJson from '../assets/data/furniture.json';
-import routerJson from '../assets/data/devices/router.json';
-import switchJson from '../assets/data/devices/l2_switch.json';
-import serverJson from '../assets/data/devices/server.json';
+
+
+
 import c001 from '../assets/data/contracts/c001_direct_link.json';
 import officeJson from '../assets/data/maps/office_small.json';
 import type { Balance, Contract, Furniture, GameMap, JobId } from '../data/schema';
@@ -23,23 +23,9 @@ import { setInterface, setSegment, setGateway, setService } from './netEdit';
 const balance = balanceJson as unknown as Balance;
 const map = officeJson as unknown as GameMap;
 
-const devices: Env['devices'] = {};
-for (const d of [...pcJson.devices, ...switchJson.devices, ...routerJson.devices, ...serverJson.devices]) {
-  devices[d.id] = {
-    category: d.category,
-    price: d.price,
-    portCount: d.ports.reduce((sum, p) => sum + p.count, 0),
-  };
-}
-const cables: Env['cables'] = {};
-for (const c of cablesJson.cables) {
-  cables[c.id] = { pricePerLink: c.pricePerLink, pricePerTile: c.pricePerTile, maxLengthTiles: c.maxLengthTiles };
-}
 const env: Env = {
   balance,
   furniture: Object.fromEntries(furnitureJson.furniture.map((f) => [f.id, f as unknown as Furniture])),
-  devices,
-  cables,
   engine: { wallAt: () => false },
 };
 
@@ -255,28 +241,28 @@ describe('機器の配置と配線', () => {
 
   it('ケーブルの上限長を超える配線はできない', () => {
     const core = ok(take(start(), 'c001_direct_link')).core;
-    // pc_a (3,4) と pc_b (10,4) は7タイル。上限を超えるケーブルがないため、距離だけ確かめる
-    const short = { ...env, cables: { utp_cat5e: { pricePerLink: 0, pricePerTile: 0, maxLengthTiles: 3 } } };
-    expect(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', short)).toEqual({ ok: false, reason: 'cableTooLong' });
+    // 実データの上限（UTP は 20 タイル）を超える長さにするため、pc_b の位置だけを遠くに移す（配線の長さは機器の位置で決まる）
+    const far = { ...core, active: core.active.map((p) => (p.id === core.focus ? { ...p, nodes: p.nodes.map((n) => (n.uid === 'pc_b' ? { ...n, x: 40 } : n)) } : p)) };
+    expect(connect(far, 'pc_a', 'pc_b', 'utp_cat5e', env)).toEqual({ ok: false, reason: 'cableTooLong' });
   });
 });
 
 describe('配線できるかの判定', () => {
   it('自分自身には配線できない', () => {
     const core = ok(take(start(), 'c001_direct_link')).core;
-    expect(checkConnect(core, 'pc_a', 'pc_a', 'utp_cat5e', env)).toBe('none');
+    expect(checkConnect(core, 'pc_a', 'pc_a', 'utp_cat5e')).toBe('none');
   });
 
   it('できる場合は理由を返さない', () => {
     const core = ok(take(start(), 'c001_direct_link')).core;
-    expect(checkConnect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).toBeNull();
+    expect(checkConnect(core, 'pc_a', 'pc_b', 'utp_cat5e')).toBeNull();
   });
 
   it('PCのポートが埋まっていると配線できない', () => {
     let core = ok(take(start(), 'c001_direct_link')).core;
     core = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).core;
     core = { ...core, owned: { l2_switch_8p: 1 } };
-    expect(checkConnect(core, 'pc_a', 'pc_b', 'utp_cat5e', env)).toBe('port');
+    expect(checkConnect(core, 'pc_a', 'pc_b', 'utp_cat5e')).toBe('port');
   });
 });
 
@@ -308,7 +294,7 @@ describe('ポートを指定して配線する', () => {
     const { core, sw } = withSwitch();
     const once = ok(connect(core, 'pc_a', sw, 'utp_cat5e', env, 'focus', { b: 3 })).core;
     expect(connect(once, 'pc_b', sw, 'utp_cat5e', env, 'focus', { b: 3 })).toEqual({ ok: false, reason: 'portUsed' });
-    expect(checkConnect(once, 'pc_b', sw, 'utp_cat5e', env, 'focus', { b: 3 })).toBe('portUsed');
+    expect(checkConnect(once, 'pc_b', sw, 'utp_cat5e', 'focus', { b: 3 })).toBe('portUsed');
   });
 
   it('機器のポートの数を超える番号は使えない', () => {
@@ -321,7 +307,7 @@ describe('ポートを指定して配線する', () => {
     const core = ok(take(start(), 'c001_direct_link')).core;
     const once = ok(connect(core, 'pc_a', 'pc_b', 'utp_cat5e', env, 'focus', { a: 0, b: 0 })).core;
     expect(focusedOf(once)!.links[0]).toMatchObject({ a: { port: 0 }, b: { port: 0 } });
-    expect(checkConnect(once, 'pc_a', 'pc_b', 'utp_cat5e', env, 'focus', { a: 0 })).toBe('portUsed');
+    expect(checkConnect(once, 'pc_a', 'pc_b', 'utp_cat5e', 'focus', { a: 0 })).toBe('portUsed');
   });
 });
 
@@ -956,45 +942,39 @@ describe('任せて受注したときの画面の対象（N111）', () => {
 });
 
 describe('SFP の口（口の種類）', () => {
-  // router_sfp は RJ45 の4口の後に SFP の1口（口の番号 4）
-  const sfpEnv: Env = {
-    ...env,
-    devices: { ...env.devices, router_sfp: { ...env.devices.router_sfp, portTypes: ['rj45', 'rj45', 'rj45', 'rj45', 'sfp'] } },
-    cables: { ...env.cables, fiber_sm: { ...env.cables.fiber_sm, port: 'sfp' }, utp_cat5e: { ...env.cables.utp_cat5e, port: 'rj45' } },
-  };
+  // router_sfp は RJ45 の4口の後に SFP の1口（口の番号 4）。実データの定義をそのまま使う
   const withRouters = (): { core: Core; r1: string; r2: string } => {
     let core: Core = ok(take({ ...start(), owned: { router_sfp: 2 } }, 'c001_direct_link')).core;
-    core = ok(placeDevice(core, 'router_sfp', 6, 6, map, sfpEnv)).core;
-    core = ok(placeDevice(core, 'router_sfp', 7, 6, map, sfpEnv)).core;
+    core = ok(placeDevice(core, 'router_sfp', 6, 6, map, env)).core;
+    core = ok(placeDevice(core, 'router_sfp', 7, 6, map, env)).core;
     const [r1, r2] = focusedOf(core)!.nodes.filter((n) => n.device === 'router_sfp').map((n) => n.uid);
     return { core, r1, r2 };
   };
 
   it('光ファイバーは、ポートを指定しなくても SFP の口につながる', () => {
     const { core, r1, r2 } = withRouters();
-    const next = ok(connect(core, r1, r2, 'fiber_sm', sfpEnv)).core;
+    const next = ok(connect(core, r1, r2, 'fiber_sm', env)).core;
     expect(focusedOf(next)!.links[0]).toMatchObject({ a: { port: 4 }, b: { port: 4 } });
   });
 
   it('LAN ケーブルは、ポートを指定しなくても RJ45 の口につながる', () => {
     const { core, r1, r2 } = withRouters();
-    const next = ok(connect(core, r1, r2, 'utp_cat5e', sfpEnv)).core;
+    const next = ok(connect(core, r1, r2, 'utp_cat5e', env)).core;
     expect(focusedOf(next)!.links[0]).toMatchObject({ a: { port: 0 }, b: { port: 0 } });
   });
 
   it('UTP を SFP の口に指定すると、口の種類の不一致で拒否する', () => {
     const { core, r1, r2 } = withRouters();
-    expect(checkConnect(core, r1, r2, 'utp_cat5e', sfpEnv, 'focus', { a: 4 })).toBe('cable.port_type');
-    expect(connect(core, r1, r2, 'utp_cat5e', sfpEnv, 'focus', { b: 4 })).toEqual({ ok: false, reason: 'cable.port_type' });
+    expect(checkConnect(core, r1, r2, 'utp_cat5e', 'focus', { a: 4 })).toBe('cable.port_type');
+    expect(connect(core, r1, r2, 'utp_cat5e', env, 'focus', { b: 4 })).toEqual({ ok: false, reason: 'cable.port_type' });
   });
 });
 
 describe('サンドボックスの回線終端', () => {
   it('回線終端は、サンドボックスで2つ置ける（2社の ISP を試すため）', () => {
-    const uplinkEnv: Env = { ...env, devices: { ...env.devices, uplink: { category: 'uplink', price: 0, portCount: 2 } } };
     let core: Core = { ...start(), owned: { uplink: 2 } };
-    core = ok(placeInOffice(core, 'uplink', 3, 4, map, uplinkEnv, true)).core;
-    core = ok(placeInOffice(core, 'uplink', 8, 4, map, uplinkEnv, true)).core;
+    core = ok(placeInOffice(core, 'uplink', 3, 4, map, env, true)).core;
+    core = ok(placeInOffice(core, 'uplink', 8, 4, map, env, true)).core;
     expect(core.office.nodes.filter((n) => n.device === 'uplink')).toHaveLength(2);
   });
 });

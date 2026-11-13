@@ -172,13 +172,13 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
     setSvi: (uid, vlan, ip, prefix = 24) =>
       recorded(() => apply(setSvi(coreOf(get()), uid, vlan, ip, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
     setPortMode: (uid, port, mode) =>
-      recorded(() => apply(setPortMode(coreOf(get()), uid, port, mode, gameEnv, netTargetOf(get())), tileOf(uid))),
+      recorded(() => apply(setPortMode(coreOf(get()), uid, port, mode, netTargetOf(get())), tileOf(uid))),
     setGateway: (uid, gateway) => recorded(() => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid))),
     setVrrp: (uid, change) => recorded(() => apply(setVrrp(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
     setPower: (uid, on) => recorded(() => apply(setPower(coreOf(get()), uid, on, netTargetOf(get())), tileOf(uid))),
     setStp: (uid, change) => recorded(() => apply(setStp(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
-    setDhcp: (uid, change) => recorded(() => apply(setDhcp(coreOf(get()), uid, change, gameEnv, netTargetOf(get())), tileOf(uid))),
-    setChannel: (uid, change) => recorded(() => apply(setChannel(coreOf(get()), uid, change, gameEnv, netTargetOf(get())), tileOf(uid))),
+    setDhcp: (uid, change) => recorded(() => apply(setDhcp(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
+    setChannel: (uid, change) => recorded(() => apply(setChannel(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
     setIsp: (uid, line) => recorded(() => apply(setIsp(coreOf(get()), uid, line, netTargetOf(get())), tileOf(uid))),
     setOspf: (uid, change) => recorded(() => apply(setOspf(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
     setRouting: (uid, change) => recorded(() => apply(setRouting(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),

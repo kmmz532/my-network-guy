@@ -2,12 +2,12 @@ import { EMPTY_FAMILIARITY } from './familiar';
 // IPアドレスの自動割り当ての確認。配線の後に autoAssign を呼ぶ（ストアと同じ順）。固定案件 c001・c002 を使う
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
-import cablesJson from '../assets/data/cables.json';
+
 import furnitureJson from '../assets/data/furniture.json';
-import pcJson from '../assets/data/devices/pc.json';
-import routerJson from '../assets/data/devices/router.json';
-import switchJson from '../assets/data/devices/l2_switch.json';
-import serverJson from '../assets/data/devices/server.json';
+
+
+
+
 import c001 from '../assets/data/contracts/c001_direct_link.json';
 import c002 from '../assets/data/contracts/c002_small_office.json';
 import officeSmall from '../assets/data/maps/office_small.json';
@@ -22,27 +22,14 @@ import { accept } from './progress';
 import { placeDevice, placeInOffice } from './placement';
 import { setGateway, setInterface, setSegment } from './netEdit';
 import { buyDevice } from './shop';
+import { deviceDef } from '../registry/query';
 
 const balance = balanceJson as unknown as Balance;
 const map = officeSmall as unknown as GameMap;
 
-const devices: Env['devices'] = {};
-for (const d of [...pcJson.devices, ...switchJson.devices, ...routerJson.devices, ...serverJson.devices]) {
-  devices[d.id] = {
-    category: d.category,
-    price: d.price,
-    portCount: d.ports.reduce((sum, p) => sum + p.count, 0),
-  };
-}
-const cables: Env['cables'] = {};
-for (const c of cablesJson.cables) {
-  cables[c.id] = { pricePerLink: c.pricePerLink, pricePerTile: c.pricePerTile, maxLengthTiles: c.maxLengthTiles };
-}
 const env: Env = {
   balance,
   furniture: Object.fromEntries(furnitureJson.furniture.map((f) => [f.id, f as unknown as Furniture])),
-  devices,
-  cables,
   engine: { wallAt: () => false },
 };
 
@@ -89,7 +76,7 @@ const take = (core: Core, offerId: string): Core => {
 
 // 機材を買い、案件の費用に加える（店の購入と同じ）
 const buy = (core: Core, deviceId: string): Core => {
-  const price = devices[deviceId].price;
+  const price = deviceDef(deviceId).price;
   const r = buyDevice(core.clock.money, core.owned, deviceId, price);
   if (!r.ok) throw new Error(`買えない: ${deviceId}`);
   const p = focusedOf(core);

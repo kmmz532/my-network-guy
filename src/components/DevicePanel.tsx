@@ -95,10 +95,10 @@ function DeviceView({
   const [tab, setTab] = useState<Tab>('rear');
   const [error, setError] = useState<string | null>(null);
 
-  const info = gameEnv.devices[node.device];
-  const isServer = info?.category === CATEGORY.server;
+  const category = deviceCategory(node.device);
+  const isServer = category === CATEGORY.server;
   // 設定できるもの（IPアドレスなど）がない機器（L2 スイッチ）は、設定タブを出さない
-  const hasConfig = info?.category !== CATEGORY.l2Switch;
+  const hasConfig = category !== CATEGORY.l2Switch;
   const issue = compiled.issues[node.uid];
 
   return (

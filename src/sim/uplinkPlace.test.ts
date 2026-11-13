@@ -59,7 +59,7 @@ describe('自社オフィスの回線終端', () => {
 
   it('解放のレベルに届くと、選んだマスに既設の機器として無料で置ける。2つ目は置けない', () => {
     const c = okCore(placeOfficeUplink(core(unlock), 2, 1, map, gameEnv, balance));
-    const up = officeUplinkOf(c.office, gameEnv)!;
+    const up = officeUplinkOf(c.office)!;
     expect({ x: up.x, y: up.y, locked: up.locked, configLocked: up.configLocked }).toEqual({ x: 2, y: 1, locked: true, configLocked: true });
     expect(c.clock.money).toBe(1000000);
     expect(reasonOf(placeOfficeUplink(c, 3, 1, map, gameEnv, balance))).toBe('uplink.placed');
@@ -72,7 +72,7 @@ describe('自社オフィスの回線終端', () => {
   it('位置の変更は移設の費用を支払う。動かした後も既設の機器のまま', () => {
     const placed = okCore(placeOfficeUplink(core(unlock), 1, 1, map, gameEnv, balance));
     const moved = okCore(moveOfficeUplink(placed, 3, 2, map, gameEnv, balance));
-    const up = officeUplinkOf(moved.office, gameEnv)!;
+    const up = officeUplinkOf(moved.office)!;
     expect({ x: up.x, y: up.y, locked: up.locked }).toEqual({ x: 3, y: 2, locked: true });
     expect(moved.clock.money).toBe(1000000 - balance.office.uplinkMoveCost);
   });

@@ -30,6 +30,7 @@ import { VrrpField } from './VrrpField';
 import { ChannelField } from './ChannelField';
 import { SviField } from './SviField';
 import { DhcpPoolField, DhcpPortField } from './DhcpField';
+import { portCountOf, deviceCategory } from '../registry/query';
 
 // ネットワークの既定候補（入力欄から任意のネットワークも指定できる）
 const NETWORK_CHOICES = Array.from({ length: 16 }, (_, i) => `192.168.${i + 1}.0`);
@@ -66,12 +67,12 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   const engine = gameEnv.engine;
   // 無線端末の口0も、仮想配線として有線と同じセグメント・ゲートウェイ計算に含める。
   const topologyNet = withWireless(net, engine);
-  const category = gameEnv.devices[node.device]?.category;
+  const category = deviceCategory(node.device);
 
   const byUid = new Map(net.nodes.map((n) => [n.uid, n]));
   const colors = networkColors(withWireless(net, engine), engine);
   const locked = readOnly || node.configLocked;
-  const portCount = gameEnv.devices[node.device]?.portCount ?? 0;
+  const portCount = portCountOf(node.device);
   // IPアドレスを持つ口（スイッチ付きルーターの2つ目以降の LAN 口は中継だけなので欄を出さない）
   const ports = Array.from({ length: portCount }, (_, p) => p).filter((p) => !isRelayPort(category ?? '', p));
 
@@ -85,7 +86,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   const usedName = (usedBy: { node: string; port: number }): string => {
     const n = byUid.get(usedBy.node);
     if (!n) return '';
-    return `${nodeLabel(useGameStore.getState(), n, net.nodes)} ${portLabel(gameEnv.devices[n.device]?.category, usedBy.port)}`;
+    return `${nodeLabel(useGameStore.getState(), n, net.nodes)} ${portLabel(deviceCategory(n.device), usedBy.port)}`;
   };
 
   // IPアドレスを設定する。設定のないポートは、詳しくで選んだプレフィックス長（なければ /24）で設定する。
@@ -578,7 +579,7 @@ function WirelessField({ node, net, readOnly, onError }: { node: NetNode; net: N
   const status = pairs.find((p) => p.client.uid === node.uid);
   const clients = pairs.filter((p) => p.ap.uid === node.uid).length;
   // アクセスポイントは、つながっている端末の数を出す。端末は、つながった先か、つながっていないことを出す
-  const isClient = gameEnv.devices[node.device]?.category !== CATEGORY.accessPoint && gameEnv.devices[node.device]?.category !== CATEGORY.homeRouter;
+  const isClient = deviceCategory(node.device) !== CATEGORY.accessPoint && deviceCategory(node.device) !== CATEGORY.homeRouter;
   // 同じチャネルで近いアクセスポイントがあれば、注意を出す（N152）
   const overlapping = channelOverlapsOf(net, engine).some((o) => o.a === node.uid || o.b === node.uid);
   const statusText = status

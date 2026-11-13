@@ -48,7 +48,7 @@ export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (
         // 回線終端は在庫を持たない。まだなければ置き、置いてあれば有料で位置を変更する
         if (deviceId === 'uplink') {
           const core = coreOf(get());
-          const op = officeUplinkOf(core.office, gameEnv) ? moveOfficeUplink : placeOfficeUplink;
+          const op = officeUplinkOf(core.office) ? moveOfficeUplink : placeOfficeUplink;
           const reason = recorded(() => apply(op(core, x, y, hq, gameEnv, balance), { tx: x, ty: y }));
           if (reason === null) set({ placing: null });
           return reason;

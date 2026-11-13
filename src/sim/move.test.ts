@@ -1,50 +1,36 @@
 import { EMPTY_FAMILIARITY } from './familiar';
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
-import cablesJson from '../assets/data/cables.json';
-import pcJson from '../assets/data/devices/pc.json';
+
+
 import furnitureJson from '../assets/data/furniture.json';
-import routerJson from '../assets/data/devices/router.json';
-import switchJson from '../assets/data/devices/l2_switch.json';
-import serverJson from '../assets/data/devices/server.json';
+
+
+
 import c001 from '../assets/data/contracts/c001_direct_link.json';
 import officeJson from '../assets/data/maps/office_small.json';
 import type { Balance, Contract, Furniture, GameMap } from '../data/schema';
 import type { Offer } from '../contracts/template';
-import type { Service } from '../network/types';
+
 import { initialStaff } from './staff';
 import { moveFurniture } from './furniture';
 import { focusedOf, connect, type Core, type Env } from './project';
 import { accept } from './progress';
 import { moveNode, placeDevice, placeInOffice, replugTo } from './placement';
+import { cableDef } from '../registry/query';
 
 const balance = balanceJson as unknown as Balance;
 const map = officeJson as unknown as GameMap;
 
 // 機材の定義（サーバーの defaultServices を含む）
-const devices: Env['devices'] = {};
-for (const d of [...pcJson.devices, ...switchJson.devices, ...routerJson.devices, ...serverJson.devices]) {
-  devices[d.id] = {
-    category: d.category,
-    price: d.price,
-    portCount: d.ports.reduce((sum, p) => sum + p.count, 0),
-    defaultServices: (d as { defaultServices?: Service[] }).defaultServices ?? [],
-  };
-}
-const cables: Env['cables'] = {};
-for (const c of cablesJson.cables) {
-  cables[c.id] = { pricePerLink: c.pricePerLink, pricePerTile: c.pricePerTile, maxLengthTiles: c.maxLengthTiles };
-}
 const env: Env = {
   balance,
   furniture: Object.fromEntries(furnitureJson.furniture.map((f) => [f.id, f as unknown as Furniture])),
-  devices,
-  cables,
   engine: { wallAt: () => false },
 };
 
 const UTP = 'utp_cat5e';
-const cableCost = (length: number, cable = UTP) => cables[cable].pricePerLink + cables[cable].pricePerTile * length;
+const cableCost = (length: number, cable = UTP) => cableDef(cable).pricePerLink + cableDef(cable).pricePerTile * length;
 
 const offerOf = (contract: unknown, id: string): Offer => ({
   id,
@@ -164,9 +150,9 @@ describe('機器の移動（moveNode）', () => {
 
   it('ケーブルの長さが上限を超えるときは動かせない（cable）', () => {
     const core = wired();
-    const short: Env = { ...env, cables: { ...cables, [UTP]: { ...cables[UTP], maxLengthTiles: 4 } } };
-    // (6,6) → (8,8) は pc_a(3,4) から長さ 9
-    expect(reasonOf(moveNode(core, 'u0', 8, 8, short, 'focus', map))).toBe('cableTooLong');
+    // 実データの上限（UTP は 20 マス）を超える長さにするため、横に長い地図で動かす。pc_a(3,4) から (30,4) は長さ 27
+    const wide = { ...map, width: 40, tiles: map.tiles.map((_, y) => (y === 0 || y === map.height - 1 ? '#'.repeat(40) : `#${'.'.repeat(38)}#`)) } as GameMap;
+    expect(reasonOf(moveNode(core, 'u0', 30, 4, env, 'focus', wide))).toBe('cableTooLong');
   });
 
   it('差額を払えないときは動かせない（money）', () => {

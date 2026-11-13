@@ -1,7 +1,6 @@
 // 機器に重ねる情報を描く。IPアドレス・ポート名・不備の印を受け持つ。
 import { Container, Text } from 'pixi.js';
 import { devices as deviceData } from 'virtual:game-data';
-import { gameEnv } from '../sim/env';
 import { portLabel } from '../components/devicePorts';
 import { t } from '../i18n/t';
 import type { Compiled } from '../network/compile';
@@ -9,6 +8,7 @@ import type { FailureReason, NetNode } from '../network/types';
 import { cumulativeLengths, pointAt, type Point } from './animation';
 import type { Project } from '../sim/project';
 import { visibleTopOfSprite } from './sprites';
+import { portCountOf, deviceCategory } from '../registry/query';
 
 const OUTLINE = 0x3b2a33;
 const BUBBLE_FILL = 0xf4f1e6;
@@ -39,7 +39,7 @@ export class DeviceLabelRenderer {
     const dpr = window.devicePixelRatio || 1;
     const nodes = [...compiled.net.nodes].sort((a, b) => b.y - a.y);
     for (const node of nodes) {
-      const category = gameEnv.devices[node.device]?.category;
+      const category = deviceCategory(node.device);
       const ips = node.interfaces.map((i) => node.interfaces.length > 1
         ? `${portLabel(category, i.port)} ${i.ip}/${i.prefix}`
         : `${i.ip}/${i.prefix}`);
@@ -130,9 +130,9 @@ export class DeviceLabelRenderer {
 
   private portName(node: NetNode | undefined, port: number, pts: readonly Point[], ts: number): void {
     if (!node || pts.length < 2) return;
-    const category = gameEnv.devices[node.device]?.category;
+    const category = deviceCategory(node.device);
     const scale = this.options.scale();
-    if ((gameEnv.devices[node.device]?.portCount ?? 0) <= 1) return;
+    if ((portCountOf(node.device)) <= 1) return;
     const at = pointAt(pts, cumulativeLengths(pts), ts);
     const text = new Text({
       text: portLabel(category, port),

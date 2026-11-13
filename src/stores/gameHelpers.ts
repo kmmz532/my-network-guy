@@ -15,6 +15,7 @@ import { accountingRate, backOfficeP, printerArrivalBonusOf, salesArrivalChance 
 import { assignDesks, initialOffice, bonusEnvOf } from '../sim/furniture';
 import { type NetTarget, type Core, type Project, type Office, type Report } from '../sim/project';
 import type { GameState } from './useGameStore';
+import { deviceCategory } from '../registry/query';
 
 export interface PlannedNet {
   network: string;
@@ -53,7 +54,7 @@ export const focusedProject = (s: { active: Project[]; focus: string | null }): 
 export const salesEffectsOf = (s: { staff: Staff[]; office: Office }): OfferEffects => {
   const P = backOfficeP(s.staff, 'sales', s.office, bonusEnvOf({ staff: s.staff, office: s.office }, gameEnv));
   // プリンターの効果（N98）は、営業の人数と関係なく効く
-  const printer = printerArrivalBonusOf(s.office, (d) => gameEnv.devices[d]?.category === 'printer', balance);
+  const printer = printerArrivalBonusOf(s.office, (d) => deviceCategory(d) === 'printer', balance);
   return { arrivalChance: salesArrivalChance(P, balance) + printer, rewardWeight: P * balance.backOffice.sales.rewardWeightPerLevel };
 };
 

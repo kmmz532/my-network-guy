@@ -1,12 +1,12 @@
 import { EMPTY_FAMILIARITY } from './familiar';
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
-import cablesJson from '../assets/data/cables.json';
-import pcJson from '../assets/data/devices/pc.json';
-import routerJson from '../assets/data/devices/router.json';
-import uplinkJson from '../assets/data/devices/uplink.json';
-import switchJson from '../assets/data/devices/l2_switch.json';
-import serverJson from '../assets/data/devices/server.json';
+
+
+
+
+
+
 import shopJson from '../assets/data/shop.json';
 import type { Balance, GameMap, ShopItem } from '../data/schema';
 import { isUnlocked } from './shop';
@@ -21,22 +21,8 @@ import { placeFurniture } from './furniture';
 
 const balance = balanceJson as unknown as Balance;
 
-const devices: Env['devices'] = {};
-for (const d of [...pcJson.devices, ...switchJson.devices, ...routerJson.devices, ...serverJson.devices, ...uplinkJson.devices]) {
-  devices[d.id] = {
-    category: d.category,
-    price: d.price,
-    portCount: d.ports.reduce((sum, p) => sum + p.count, 0),
-  };
-}
-const cables: Env['cables'] = {};
-for (const c of cablesJson.cables) {
-  cables[c.id] = { pricePerLink: c.pricePerLink, pricePerTile: c.pricePerTile, maxLengthTiles: c.maxLengthTiles };
-}
 const env: Env = {
   balance,
-  devices,
-  cables,
   engine: { wallAt: () => false },
 };
 

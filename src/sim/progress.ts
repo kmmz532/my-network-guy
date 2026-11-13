@@ -39,7 +39,7 @@ const copyBlueprint = (core: Core, p: Project, bp: Blueprint, env: Env): Outcome
   for (const m of missing) {
     const current = next.active.find((x) => x.id === p.id);
     if (!current) return fail('none');
-    const hub = hubFor(current.nodes, current.links, m, env);
+    const hub = hubFor(current.nodes, current.links, m);
     if (!hub) return fail('delegate.fit');
     const wired = connect(next, m.uid, hub.uid, WIRE_CABLE, env, 'focus');
     if (!wired.ok) return wired;
@@ -61,7 +61,7 @@ export const applyBlueprint = (core: Core, env: Env): Outcome => {
 export const acceptDelegated = (core: Core, offerId: string, slots: number, crew: string[], env: Env): Outcome => {
   const offer = core.offers.find((o) => o.id === offerId);
   if (!offer) return fail('none');
-  const reason = delegationReason(core.familiarity, offer, env);
+  const reason = delegationReason(core.familiarity, offer);
   if (reason) return fail(reason);
   const accepted = accept(core, offerId, slots, crew);
   if (!accepted.ok) return accepted;
@@ -323,7 +323,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
     // 期日に遅れたら、遅れた日数に応じて報酬が減る。遅れた案件と設計の不備がある案件は、★は2が上限になる
     const lateDays = lateDaysOf(p.due, core.clock.minute);
     const issues = Object.keys(designIssues(p, env)).length;
-    const cost = projectCostOf(p, env);
+    const cost = projectCostOf(p);
     const rawStars = rate(cost.total, p.contract.budget, p.rework, lateDays > 0, issues, env.balance);
     // 任せた依頼は★の上限が2（N70）
     const stars = (p.delegated ? Math.min(DELEGATED_STAR_CAP, rawStars) : rawStars) as typeof rawStars;

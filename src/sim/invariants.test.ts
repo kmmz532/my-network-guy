@@ -2,12 +2,12 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import balanceJson from '../assets/data/balance.json';
-import cablesJson from '../assets/data/cables.json';
-import pcJson from '../assets/data/devices/pc.json';
+
+
 import furnitureJson from '../assets/data/furniture.json';
-import routerJson from '../assets/data/devices/router.json';
-import switchJson from '../assets/data/devices/l2_switch.json';
-import serverJson from '../assets/data/devices/server.json';
+
+
+
 import officeJson from '../assets/data/maps/office_small.json';
 import type { Balance, Furniture, GameMap } from '../data/schema';
 import { EMPTY_FAMILIARITY } from './familiar';
@@ -19,17 +19,9 @@ import { moveNode, placeInOffice, removeFromOffice, removeLink, replugTo } from 
 const balance = balanceJson as unknown as Balance;
 const map = officeJson as unknown as GameMap;
 
-const devices: Env['devices'] = {};
-for (const d of [...pcJson.devices, ...switchJson.devices, ...routerJson.devices, ...serverJson.devices]) {
-  devices[d.id] = { category: d.category, price: d.price, portCount: d.ports.reduce((sum, p) => sum + p.count, 0) };
-}
-const cables: Env['cables'] = {};
-for (const c of cablesJson.cables) cables[c.id] = { pricePerLink: c.pricePerLink, pricePerTile: c.pricePerTile, maxLengthTiles: c.maxLengthTiles };
 const env: Env = {
   balance,
   furniture: Object.fromEntries(furnitureJson.furniture.map((f) => [f.id, f as unknown as Furniture])),
-  devices,
-  cables,
   engine: { wallAt: () => false },
 };
 
@@ -123,7 +115,7 @@ const apply = (core: Core, action: Action): Outcome => {
 
 describe('不変条件（操作の列の試験）', () => {
   it('開始状態は不変条件を守る', () => {
-    expect(checkInvariants(start(), env)).toEqual([]);
+    expect(checkInvariants(start())).toEqual([]);
   });
 
   it('どんな操作の列のあとも、自社オフィスの不変条件が破れない', () => {
@@ -137,7 +129,7 @@ describe('不変条件（操作の列の試験）', () => {
             succeeded++;
             core = result.core;
           }
-          const violations = checkInvariants(core, env);
+          const violations = checkInvariants(core);
           if (violations.length > 0) throw new Error(`${JSON.stringify(action)} のあと: ${violations.join(' / ')}`);
         }
       }),
@@ -158,52 +150,52 @@ describe('不変条件の違反（規則ごと）', () => {
   };
 
   it('開始状態は違反なし（基準）', () => {
-    expect(checkInvariants(withOffice([node('a'), node('b', 1)], [link('l0', 'a', 0, 'b')]), env)).toEqual([]);
+    expect(checkInvariants(withOffice([node('a'), node('b', 1)], [link('l0', 'a', 0, 'b')]))).toEqual([]);
   });
 
   it('資金が負なら違反', () => {
     const core = start();
-    expect(checkInvariants({ ...core, clock: { ...core.clock, money: -1 } }, env).join(' ')).toContain('資金が負');
+    expect(checkInvariants({ ...core, clock: { ...core.clock, money: -1 } }).join(' ')).toContain('資金が負');
   });
 
   it('機器の uid が重なると違反', () => {
-    expect(checkInvariants(withOffice([node('a'), node('a', 1)], []), env).join(' ')).toContain('機器の uid が重なる');
+    expect(checkInvariants(withOffice([node('a'), node('a', 1)], [])).join(' ')).toContain('機器の uid が重なる');
   });
 
   it('配線の uid が重なると違反', () => {
     const nodes = [node('a'), node('b', 1)];
-    expect(checkInvariants(withOffice(nodes, [link('l0', 'a', 0, 'b'), link('l0', 'a', 1, 'b')]), env).join(' ')).toContain('配線の uid が重なる');
+    expect(checkInvariants(withOffice(nodes, [link('l0', 'a', 0, 'b'), link('l0', 'a', 1, 'b')])).join(' ')).toContain('配線の uid が重なる');
   });
 
   it('両端の機器がないと違反', () => {
-    expect(checkInvariants(withOffice([node('a')], [link('l0', 'a', 0, 'zz')]), env).join(' ')).toContain('zz がない');
+    expect(checkInvariants(withOffice([node('a')], [link('l0', 'a', 0, 'zz')])).join(' ')).toContain('zz がない');
   });
 
   it('ポートの番号が機器の範囲の外だと違反', () => {
-    expect(checkInvariants(withOffice([node('a'), node('b', 1)], [link('l0', 'a', 99, 'b')]), env).join(' ')).toContain('範囲外');
+    expect(checkInvariants(withOffice([node('a'), node('b', 1)], [link('l0', 'a', 99, 'b')])).join(' ')).toContain('範囲外');
   });
 
   it('1つのポートに2本つなぐと違反', () => {
     const nodes = [node('a'), node('b', 1), node('c', 2)];
-    expect(checkInvariants(withOffice(nodes, [link('l0', 'a', 0, 'b'), link('l1', 'a', 0, 'c')]), env).join(' ')).toContain('2本のケーブル');
+    expect(checkInvariants(withOffice(nodes, [link('l0', 'a', 0, 'b'), link('l1', 'a', 0, 'c')])).join(' ')).toContain('2本のケーブル');
   });
 
   it('払った額が負だと違反', () => {
     const nodes = [node('a'), node('b', 1)];
-    expect(checkInvariants(withOffice(nodes, [link('l0', 'a', 0, 'b', -5)]), env).join(' ')).toContain('払った額が負');
+    expect(checkInvariants(withOffice(nodes, [link('l0', 'a', 0, 'b', -5)])).join(' ')).toContain('払った額が負');
   });
 
   it('担当が社員にいないと違反', () => {
     const core = start();
     const project = { id: 'p1', nodes: [], links: [], crew: ['nobody'], phase: 'design' } as unknown as Core['active'][number];
-    expect(checkInvariants({ ...core, active: [project] }, env).join(' ')).toContain('担当 nobody がいない');
+    expect(checkInvariants({ ...core, active: [project] }).join(' ')).toContain('担当 nobody がいない');
   });
 
   it('内勤の社員を担当にすると違反', () => {
     const core = start();
     const clerk = { ...core.staff[0], uid: 'clerk', job: 'sales' as const };
     const project = { id: 'p1', nodes: [], links: [], crew: ['clerk'], phase: 'design' } as unknown as Core['active'][number];
-    expect(checkInvariants({ ...core, staff: [...core.staff, clerk], active: [project] }, env).join(' ')).toContain('が内勤');
+    expect(checkInvariants({ ...core, staff: [...core.staff, clerk], active: [project] }).join(' ')).toContain('が内勤');
   });
 
   it('同じ社員が2つの案件の担当だと違反', () => {
@@ -211,10 +203,10 @@ describe('不変条件の違反（規則ごと）', () => {
     const uid = core.staff[0].uid;
     const p1 = { id: 'p1', nodes: [], links: [], crew: [uid], phase: 'design' } as unknown as Core['active'][number];
     const p2 = { ...p1, id: 'p2' };
-    expect(checkInvariants({ ...core, active: [p1, p2] }, env).join(' ')).toContain('の両方にいる');
+    expect(checkInvariants({ ...core, active: [p1, p2] }).join(' ')).toContain('の両方にいる');
   });
 
   it('見ている案件が進行中でないと違反', () => {
-    expect(checkInvariants({ ...start(), focus: 'ghost' }, env).join(' ')).toContain('進行中でない');
+    expect(checkInvariants({ ...start(), focus: 'ghost' }).join(' ')).toContain('進行中でない');
   });
 });

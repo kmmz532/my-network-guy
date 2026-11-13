@@ -17,7 +17,7 @@ import { compile, type IssueDetail } from '../network/compile';
 import { fillSegments, intToIp, segmentConfigOf, segmentOf, segmentsOf, type Segment } from '../network/segments';
 
 import type { DhcpPool } from '../network/dhcp';
-import type { EngineData, FailureReason, NetLink, NetNode, PathResult, SegmentConfig, Service, HostEntry } from '../network/types';
+import type { EngineData, FailureReason, NetLink, NetNode, PathResult, SegmentConfig, HostEntry } from '../network/types';
 
 import type { ClockState } from './clock';
 
@@ -32,6 +32,8 @@ import { cableLengthOf, checkCableLength } from './cableLength';
 
 import { makeIface } from '../network/iface';
 import { can } from '../network/capabilities';
+import { deviceCategory, portCountOf, deviceDef, devicePortType, cableDef } from '../registry/query';
+import type { CableDef } from '../registry/defs';
 import { dhcpWriteBack, type VlanWarning } from '../network/netState';
 import { type LevelUp } from './level';
 
@@ -116,11 +118,11 @@ export interface ProjectCost {
   cable: number;
 }
 
-export const projectCostOf = (p: Project, env: Env): ProjectCost => {
+export const projectCostOf = (p: Project): ProjectCost => {
   // 既設の機器（案件で置かれたもの）と、自社オフィスから引き継いだ機器（前の案件で買った分）は含めない
   const inherited = new Set(p.inherited ?? []);
   const devices = p.nodes.reduce(
-    (sum, n) => (n.locked || inherited.has(n.uid) ? sum : sum + (env.devices[n.device]?.price ?? 0)),
+    (sum, n) => (n.locked || inherited.has(n.uid) ? sum : sum + (deviceDef(n.device).price)),
     0,
   );
   return { total: devices + p.cost, devices, cable: p.cost };
@@ -264,34 +266,10 @@ export interface Core {
 }
 
 // 機材の性質（ゲームデータから作る）
-export interface DeviceInfo {
-  category: string;
-  price: number;
-  portCount: number;
-  // 口の種類（口の番号の順。rj45・sfp など）。省略は、すべて rj45（ケーブルの口の種類の判定・N-sfp）
-  portTypes?: string[];
-  // 口の速さ（Mbps。口の番号の順。省略は扱わない）
-  portSpeeds?: number[];
-  // 机の上にも床にも置ける（N91）
-  deskable?: boolean;
-  // 置いたときから動いているサービス（サーバーの HTTP など）。省略すると動いていない
-  defaultServices?: Service[];
-}
-
-export interface CableInfo {
-  // 口の種類（省略は rj45）
-  port?: string;
-  pricePerLink: number;
-  pricePerTile: number;
-  maxLengthTiles: number;
-}
-
 export interface Env {
   balance: Balance;
   // 家具の定義（家具の補正に使う）。省略すると補正はない
   furniture?: Record<string, Furniture>;
-  devices: Record<string, DeviceInfo>;
-  cables: Record<string, CableInfo>;
   engine: EngineData;
   // 地図（壁の判定に使う）。案件の地図のIDから引く。省略すると壁はない（N151）
   mapOf?: (id: string) => GameMap | undefined;
@@ -309,12 +287,12 @@ export const paidCable = (core: Core, list: number): number => Math.round(list *
 const isHubCategory = (category: string): boolean =>
   category === CATEGORY.l2Switch || category === CATEGORY.router || category === CATEGORY.l3Switch || isSwitchedRouterCategory(category);
 
-export const hubFor = (nodes: readonly NetNode[], links: readonly NetLink[], from: NetNode, env: Env): NetNode | null => {
+export const hubFor = (nodes: readonly NetNode[], links: readonly NetLink[], from: NetNode): NetNode | null => {
   let best: NetNode | null = null;
   let bestDist = Infinity;
   for (const n of nodes) {
-    if (n.uid === from.uid || !isHubCategory(env.devices[n.device].category)) continue;
-    if (usedPorts(links, n).size >= env.devices[n.device].portCount) continue;
+    if (n.uid === from.uid || !isHubCategory(deviceCategory(n.device))) continue;
+    if (usedPorts(links, n).size >= portCountOf(n.device)) continue;
     const dist = Math.abs(n.x - from.x) + Math.abs(n.y - from.y);
     if (dist < bestDist) {
       best = n;
@@ -325,7 +303,7 @@ export const hubFor = (nodes: readonly NetNode[], links: readonly NetLink[], fro
 };
 
 // 任せられるかの理由（任せられるなら null）（N70）。型紙の固定の機器の位置が合い、増えた機器をつなぐ先があること
-export const delegationReason = (familiarity: Familiarity, offer: Offer, env: Env): string | null => {
+export const delegationReason = (familiarity: Familiarity, offer: Offer): string | null => {
   if (offer.contract.inhouse) return 'inhouse';
   const key = familiarKeyOf(offer.kind, offer.baseId, offer.contract.map);
   if ((familiarity.counts[key] ?? 0) < DELEGATE_MIN_COUNT) return 'delegate.count';
@@ -333,7 +311,7 @@ export const delegationReason = (familiarity: Familiarity, offer: Offer, env: En
   if (!bp) return 'delegate.blueprint';
   const fixed = fixedNodes(offer.contract);
   if (!positionsMatch(bp.design, fixed)) return 'delegate.fit';
-  const reachable = missingFixed(bp.design, fixed).every((m) => hubFor(bp.design.nodes, bp.design.links, m, env) !== null);
+  const reachable = missingFixed(bp.design, fixed).every((m) => hubFor(bp.design.nodes, bp.design.links, m) !== null);
   return reachable ? null : 'delegate.fit';
 };
 
@@ -381,8 +359,8 @@ export const requireDesign = (core: Core): Project | string => {
 // 在庫から機器を1台配置する。自社案件では自社オフィスと同じ規則に従い、ほかの案件では床（PCは机の上も可）に置ける。
 // 家庭用ルーターの出荷時の設定（NET.md §4）: LAN の口（1）に 192.168.1.1/24・社内側の口・NAPT 有効・DHCP（192.168.1.100〜199 を配る）。無線つきは SSID とパスワードも持つ。ほかの機器は何も持たない
 const FACTORY_WIFI = { ssid: 'HOME', password: 'home1234' };
-export const factoryConfigOf = (env: Env, deviceId: string): Pick<NetNode, 'interfaces' | 'napt' | 'wireless' | 'rules' | 'dhcpPools'> => {
-  const category = env.devices[deviceId]?.category;
+export const factoryConfigOf = (deviceId: string): Pick<NetNode, 'interfaces' | 'napt' | 'wireless' | 'rules' | 'dhcpPools'> => {
+  const category = deviceCategory(deviceId);
   if (category !== CATEGORY.homeRouter) return { interfaces: [] };
   const lan = { ...makeIface(deviceId, 1, '192.168.1.1', 24), nat: 'inside' as const };
   const wireless = deviceId === 'home_router_ap' ? { wireless: { ...FACTORY_WIFI } } : {};
@@ -460,10 +438,10 @@ const usedPorts = (links: readonly NetLink[], node: NetNode): Set<number> => {
 };
 
 // 機器の空いているポートのうち、ケーブルの口の種類と合う最も小さい番号を返す（合う口がなければ、空きの最小番号。種類の不一致は配線の判定が理由を出す）
-const freePort = (links: NetLink[], node: NetNode, env: Env, cablePort: string): number | null => {
+const freePort = (links: NetLink[], node: NetNode, cablePort: string): number | null => {
   const used = usedPorts(links, node);
-  const count = env.devices[node.device].portCount;
-  for (let port = 0; port < count; port++) if (!used.has(port) && portTypeOf(env, node.device, port) === cablePort) return port;
+  const count = portCountOf(node.device);
+  for (let port = 0; port < count; port++) if (!used.has(port) && portTypeOf(node.device, port) === cablePort) return port;
   for (let port = 0; port < count; port++) if (!used.has(port)) return port;
   return null;
 };
@@ -476,11 +454,11 @@ export interface PortChoice {
 
 // 機器のポートを決める。指定があればそのポートを確かめる（範囲外は port、使用中は portUsed）。指定がなければ空きの最小番号（空きがなければ port）
 // 機器の口の種類（定義にない機器・口は rj45）
-export const portTypeOf = (env: Env, device: string, port: number): string => env.devices[device]?.portTypes?.[port] ?? 'rj45';
+export const portTypeOf = (device: string, port: number): string => devicePortType(device, port);
 
-const choosePort = (links: NetLink[], node: NetNode, env: Env, want: number | undefined, cablePort: string): number | string => {
-  if (want === undefined) return freePort(links, node, env, cablePort) ?? 'port';
-  const count = env.devices[node.device].portCount;
+const choosePort = (links: NetLink[], node: NetNode, want: number | undefined, cablePort: string): number | string => {
+  if (want === undefined) return freePort(links, node, cablePort) ?? 'port';
+  const count = portCountOf(node.device);
   if (!Number.isInteger(want) || want < 0 || want >= count) return 'port';
   return usedPorts(links, node).has(want) ? 'portUsed' : want;
 };
@@ -491,7 +469,6 @@ export const checkConnect = (
   aUid: string,
   bUid: string,
   cableId: string,
-  env: Env,
   target: NetTarget = 'focus',
   ports: PortChoice = {},
 ): string | null => {
@@ -499,7 +476,7 @@ export const checkConnect = (
   if (typeof net === 'string') return net;
   const a = net.nodes.find((n) => n.uid === aUid);
   const b = net.nodes.find((n) => n.uid === bUid);
-  const cable = env.cables[cableId];
+  const cable = cableDef(cableId);
   if (!a || !b || aUid === bUid || !cable) return 'none';
   const length = cableLengthOf(a, b);
   const lengthCheck = checkCableLength(length, cable.maxLengthTiles);
@@ -507,25 +484,25 @@ export const checkConnect = (
   if (core.clock.money < paidCable(core, cable.pricePerLink + cable.pricePerTile * length)) return 'money';
   // 回線終端（uplink）は、回線（wan）の能力を持つ機器だけとつなげる（N144）
   const uplinkRule = (x: NetNode, y: NetNode): string | null =>
-    env.devices[x.device]?.category === 'uplink' && !can(y.device, 'wan') ? 'uplink.no_wan' : null;
+    deviceCategory(x.device) === 'uplink' && !can(y.device, 'wan') ? 'uplink.no_wan' : null;
   const uplinkBad = uplinkRule(a, b) ?? uplinkRule(b, a);
   if (uplinkBad) return uplinkBad;
   // ケーブルの口の種類（光ファイバーは sfp の口だけ）が、両端の口と合うか（N-sfp）
   const cablePort = cable.port ?? 'rj45';
-  const portA = choosePort(net.links, a, env, ports.a, cablePort);
+  const portA = choosePort(net.links, a, ports.a, cablePort);
   if (typeof portA === 'string') return portA;
-  const portB = choosePort(net.links, b, env, ports.b, cablePort);
+  const portB = choosePort(net.links, b, ports.b, cablePort);
   if (typeof portB === 'string') return portB;
-  if (portTypeOf(env, a.device, portA) !== cablePort || portTypeOf(env, b.device, portB) !== cablePort) return 'cable.port_type';
+  if (portTypeOf(a.device, portA) !== cablePort || portTypeOf(b.device, portB) !== cablePort) return 'cable.port_type';
   return null;
 };
 
 // 空いているポートの数（描画で使う）
 // 数え方は usedPorts と同じ（判定と描画で数えが食い違わないように、1か所にする）（N115）
-export const freePortCount = (p: Project, node: NetNode, env: Env): number => env.devices[node.device].portCount - usedPorts(p.links, node).size;
+export const freePortCount = (p: Project, node: NetNode): number => portCountOf(node.device) - usedPorts(p.links, node).size;
 
 // ケーブル1本の費用（配線の長さで決まる）
-export const cableCost = (cable: Env['cables'][string], length: number): number => cable.pricePerLink + cable.pricePerTile * length;
+export const cableCost = (cable: CableDef, length: number): number => cable.pricePerLink + cable.pricePerTile * length;
 
 // 2台の機器を配線する。ケーブル費用は配線の長さで決まる。ポートの指定がなければ空いているポートを順に使う。
 // 自社オフィスへの配線は施工を待たずに反映する。案件への配線は案件の費用に加える
@@ -538,7 +515,7 @@ export const connect = (
   target: NetTarget = 'focus',
   ports: PortChoice = {},
 ): Outcome => {
-  const reason = checkConnect(core, aUid, bUid, cableId, env, target, ports);
+  const reason = checkConnect(core, aUid, bUid, cableId, target, ports);
   if (reason) return fail(reason);
   const net = netOf(core, target);
   if (typeof net === 'string') return fail(net);
@@ -546,12 +523,12 @@ export const connect = (
   const b = net.nodes.find((n) => n.uid === bUid);
   // 機器が見つからないのは、画面と状態のずれ。黙って進めず、理由を返す
   if (!a || !b) return fail('none');
-  const cable = env.cables[cableId];
+  const cable = cableDef(cableId);
   const length = cableLengthOf(a, b);
   const listCost = cableCost(cable, length);
   const cost = paidCable(core, listCost);
-  const chosenA = choosePort(net.links, a, env, ports.a, cable.port ?? 'rj45');
-  const chosenB = choosePort(net.links, b, env, ports.b, cable.port ?? 'rj45');
+  const chosenA = choosePort(net.links, a, ports.a, cable.port ?? 'rj45');
+  const chosenB = choosePort(net.links, b, ports.b, cable.port ?? 'rj45');
   if (typeof chosenA === 'string') return fail(chosenA);
   if (typeof chosenB === 'string') return fail(chosenB);
   const portA = chosenA;
@@ -698,14 +675,11 @@ export type TestOutcome = { ok: true; core: Core; result: TestResult } | { ok: f
 export type BlindOutcome = { ok: true; core: Core; rng: number } | { ok: false; reason: string };
 
 // 機器の種類が PC か（環境の機器の定義を引く。判定はここだけで行う。N116）
-export const isPcIn = (env: Env, device: string): boolean => {
-  const category = env.devices[device]?.category;
-  return category !== undefined && isPcCategory(category);
-};
+export const isPcIn = (_env: Env, device: string): boolean => isPcCategory(deviceCategory(device));
 
 // 自社オフィスの回線終端。会社のレベルが balance.featureUnlocks.uplink に届くと、置き場所を選んで1つ置ける（費用なし）。
 // 置いた回線終端は既設の機器として扱う（撤去・設定の変更はできない）。位置は balance.office.uplinkMoveCost を支払って変更できる
 export const OFFICE_UPLINK_UID = 'uplink';
 
-export const officeUplinkOf = (office: Office, env: Env): NetNode | undefined =>
-  office.nodes.find((n) => env.devices[n.device]?.category === CATEGORY.uplink);
+export const officeUplinkOf = (office: Office): NetNode | undefined =>
+  office.nodes.find((n) => deviceCategory(n.device) === CATEGORY.uplink);

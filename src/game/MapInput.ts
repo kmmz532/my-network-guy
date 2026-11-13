@@ -387,7 +387,7 @@ export class MapInput {
       return;
     }
     const ports = this.wireFrom ? {} : { a: start.port ?? undefined };
-    const reason = checkConnect(coreOf(store), start.uid, target.uid, store.wireCable, gameEnv, netTargetOf(store), ports);
+    const reason = checkConnect(coreOf(store), start.uid, target.uid, store.wireCable, netTargetOf(store), ports);
     this.hover = { uid: target.uid, reason };
   }
 

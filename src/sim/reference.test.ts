@@ -4,14 +4,14 @@ import { EMPTY_FAMILIARITY } from './familiar';
 // 費用が予算の 60〜75% に入ることを確かめる（予算が高すぎると★の意味がなく、低すぎると★3 が取れないため）。
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
-import cablesJson from '../assets/data/cables.json';
+
 import furnitureJson from '../assets/data/furniture.json';
-import pcJson from '../assets/data/devices/pc.json';
-import routerJson from '../assets/data/devices/router.json';
-import firewallJson from '../assets/data/devices/firewall.json';
-import switchJson from '../assets/data/devices/l2_switch.json';
-import serverJson from '../assets/data/devices/server.json';
-import uplinkJson from '../assets/data/devices/uplink.json';
+
+
+
+
+
+
 import c001 from '../assets/data/contracts/c001_direct_link.json';
 import c002 from '../assets/data/contracts/c002_small_office.json';
 import c003 from '../assets/data/contracts/c003_departments.json';
@@ -35,31 +35,15 @@ import { connect, designIssues, focusedOf, type Core, type Env, type Report } fr
 import { accept, advanceBuild, requestBuild, testDesign } from './progress';
 import { placeDevice } from './placement';
 import { addRoute, setFirewallRules, setInterface } from './netEdit';
+import { deviceDef } from '../registry/query';
 
 const balance = balanceJson as unknown as Balance;
 const gameMinutesPerTick = balance.time.gameMinutesPerTick;
 
 // 機材の性質（ゲームの定義と同じ。サーバーの既定のサービスを含む）
-const devices: Env['devices'] = {};
-for (const d of [...pcJson.devices, ...switchJson.devices, ...routerJson.devices, ...firewallJson.devices, ...serverJson.devices, ...uplinkJson.devices]) {
-  devices[d.id] = {
-    category: d.category,
-    price: d.price,
-    portCount: d.ports.reduce((sum, p) => sum + p.count, 0),
-    // 口の種類（ゲームの環境 gameEnv と同じ作り方。光ファイバーは sfp の口だけに挿せる検査を、試験でも効かせる）
-    portTypes: d.ports.flatMap((p) => Array.from({ length: p.count }, () => p.type)),
-    defaultServices: (d as { defaultServices?: { protocol: 'http'; port: number }[] }).defaultServices,
-  };
-}
-const cables: Env['cables'] = {};
-for (const c of cablesJson.cables) {
-  cables[c.id] = { port: c.port, pricePerLink: c.pricePerLink, pricePerTile: c.pricePerTile, maxLengthTiles: c.maxLengthTiles };
-}
 const env: Env = {
   balance,
   furniture: Object.fromEntries(furnitureJson.furniture.map((f) => [f.id, f as unknown as Furniture])),
-  devices,
-  cables,
   engine: { wallAt: () => false },
 };
 
@@ -117,7 +101,7 @@ const take = (core: Core, offerId: string): Core => {
 
 // 機材を1台買う。店の購入と同じく、費用には入れない（案件の費用は納品のとき、置かれている機器の定価から決める）
 const buy = (core: Core, deviceId: string): Core => {
-  const price = devices[deviceId].price;
+  const price = deviceDef(deviceId).price;
   const r = buyDevice(core.clock.money, core.owned, deviceId, price);
   if (!r.ok) throw new Error(`買えない: ${deviceId}`);
   return { ...core, clock: { ...core.clock, money: r.money }, owned: r.owned };

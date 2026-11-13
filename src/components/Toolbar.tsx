@@ -14,7 +14,7 @@ import { historyKeyOf } from '../sim/history';
 import { inventoryItems, inventoryMode, type InventoryItem } from '../sim/inventory';
 import { balance as catalogBalance, cables as catalogCables, devices as catalogDevices, furniture as catalogFurniture } from 'virtual:game-data';
 import { projectCostOf } from '../sim/project';
-import { gameEnv } from '../sim/env';
+
 import { focusedProject, useGameStore, type Tool } from '../stores/useGameStore';
 import { tipText } from '../input/keymap';
 import { Icon } from './Icon';
@@ -251,7 +251,7 @@ export function Toolbar() {
         {showCables && cablePopup}
         {design && (
           <div style={strip}>
-            <Icon name="icon/budget" /> {yen(projectCostOf(active, gameEnv).total)} / {yen(active.contract.budget)}
+            <Icon name="icon/budget" /> {yen(projectCostOf(active).total)} / {yen(active.contract.budget)}
             <button aria-label={t('ui.project.abandon')} style={{ ...sl(false), width: 32, height: 32, marginLeft: 'auto' }} onClick={() => { closeInventory(); abandon(); }}>
               <Icon name="icon/close" />
             </button>
@@ -409,7 +409,7 @@ export function Toolbar() {
             </button>
           </Tooltip>
           <span style={{ marginLeft: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Icon name="icon/budget" /> {yen(projectCostOf(active, gameEnv).total)} / {yen(active.contract.budget)}
+            <Icon name="icon/budget" /> {yen(projectCostOf(active).total)} / {yen(active.contract.budget)}
           </span>
           <Tooltip text={t('ui.project.abandon')} style={{ marginLeft: 'auto' }}><button aria-label={t('ui.project.abandon')} style={{ ...sl(false), width: 32 }}  onClick={() => { closeInventory(); abandon(); }}>
             <Icon name="icon/close" />

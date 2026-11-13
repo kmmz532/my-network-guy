@@ -1,13 +1,14 @@
 // 守るべき規則（不変条件）を確かめる（N120）。破れている箇所を文字列の一覧で返す（空なら守られている）。
 // 規則の一覧は memo/TASK.md の N120 を正とする。ここでは、操作の試験（invariants.test.ts）で確かめる規則だけを書く。
-import type { Core, Env, Project } from './project';
+import type { Core, Project } from './project';
 import type { NetLink, NetNode } from '../network/types';
 import { isBackOffice } from './backOffice';
+import { portCountOf } from '../registry/query';
 
 type Net = { nodes: readonly NetNode[]; links: readonly NetLink[] };
 
 // 1つのネットワーク（自社オフィス・案件）の規則
-const netViolations = (name: string, net: Net, env: Env): string[] => {
+const netViolations = (name: string, net: Net): string[] => {
   const out: string[] = [];
   const uids = new Set(net.nodes.map((n) => n.uid));
   if (uids.size !== net.nodes.length) out.push(`${name}: 機器の uid が重なる`);
@@ -19,7 +20,7 @@ const netViolations = (name: string, net: Net, env: Env): string[] => {
     for (const end of [l.a, l.b]) {
       if (!uids.has(end.node)) out.push(`${name}: 配線 ${l.uid} の機器 ${end.node} がない`);
       const node = net.nodes.find((n) => n.uid === end.node);
-      const count = node ? env.devices[node.device]?.portCount ?? 0 : 0;
+      const count = node ? portCountOf(node.device) : 0;
       if (node && (end.port < 0 || end.port >= count)) out.push(`${name}: 配線 ${l.uid} のポート ${end.port} が範囲外`);
       // 1つのポートに挿さるケーブルは1本まで
       const key = `${end.node}:${end.port}`;
@@ -33,14 +34,14 @@ const netViolations = (name: string, net: Net, env: Env): string[] => {
 };
 
 // 全体の規則。自社オフィス・案件・担当・資金・見ている場所
-export const checkInvariants = (core: Core, env: Env): string[] => {
-  const out = netViolations('自社オフィス', core.office, env);
+export const checkInvariants = (core: Core): string[] => {
+  const out = netViolations('自社オフィス', core.office);
   if (core.clock.money < 0) out.push(`資金が負（${core.clock.money}）`);
   const ids = new Set<string>();
   const crewSeen = new Map<string, string>();
   for (const p of core.active as Project[]) {
     ids.add(p.id);
-    out.push(...netViolations(`案件 ${p.id}`, p, env));
+    out.push(...netViolations(`案件 ${p.id}`, p));
     for (const uid of p.crew) {
       const member = core.staff.find((s) => s.uid === uid);
       if (!member) out.push(`案件 ${p.id} の担当 ${uid} がいない`);

@@ -159,7 +159,7 @@ function OfferCard({
   const active = useGameStore((s) => s.active);
   const familiarity = useGameStore((s) => s.familiarity);
   // 社員に任せられない理由（任せられるなら null）（N70）
-  const delegateReason = delegationReason(familiarity, offer, gameEnv);
+  const delegateReason = delegationReason(familiarity, offer);
   // 断る前の確認（設定で切り替える）
   const [asking, setAsking] = useState(false);
   // 受注の画面を開いたときの担当（空いている社員全員）
