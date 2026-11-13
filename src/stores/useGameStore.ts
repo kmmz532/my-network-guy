@@ -142,6 +142,9 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   wireCable: string;
   // 直近の検収で流すパケット
   traces: Trace[];
+  // パケットの中身の欄で選んでいる通信と区間（hop）。マップのパケットをその区間の位置で止める。欄を閉じたら null
+  frameView: { trace: number; hop: number } | null;
+  setFrameView: (view: { trace: number; hop: number } | null) => void;
   // 納品した直後の案件（結果を閉じるまでマップに表示する）
   showcase: Project | null;
   // 操作の種類
@@ -230,6 +233,8 @@ export const useGameStore = create<GameState>((set, get, api) => {
     placing: null,
     wireCable: 'utp_cat5e',
     traces: [],
+    frameView: null,
+    setFrameView: (view) => set({ frameView: view }),
     showcase: null,
     check: null,
     helpUid: null,

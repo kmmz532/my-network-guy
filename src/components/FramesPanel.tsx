@@ -1,6 +1,6 @@
 // パケットの中身の欄。通信（テストの結果・ターミナルの ping）を、区間ごとのフレーム（MAC・VLAN・IP・TTL・ポート）の表で出す。
 // 前の区間から変わった欄は色を変える（MAC の付け替え・NAT の変換・TTL の減少）。失敗した通信は、止まった機器と理由を最後の行に出す
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { t, tDyn } from '../i18n/t';
 import { framesOf, type Frame, type FrameContext } from '../network/frames';
 import { isL2Category, isRoutingCategory } from '../network/category';
@@ -23,6 +23,12 @@ export function FramesBody({ goal }: { goal?: number }) {
   const traces = useGameStore((s) => s.traces);
   const [index, setIndex] = useState(() => Math.max(0, traces.findIndex((tr) => goal !== undefined && tr.goal === goal)));
   const [hop, setHop] = useState<number | null>(null);
+  // 選んだ区間を、マップのパケットの位置に反映する。欄を閉じたら元に戻す
+  const setFrameView = useGameStore((s) => s.setFrameView);
+  useEffect(() => {
+    setFrameView(hop === null ? null : { trace: index, hop });
+  }, [hop, index, setFrameView]);
+  useEffect(() => () => setFrameView(null), [setFrameView]);
   const target = focusedProject(state);
   const nodes = target ? target.nodes : state.office.nodes;
   const links = target ? target.links : state.office.links;

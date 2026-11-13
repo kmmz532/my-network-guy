@@ -86,11 +86,18 @@ export class NetworkRenderer {
     }
   }
 
-  drawTrace(trace: Trace, ts: number, realElapsed: number, traceStart: number): void {
+  // frozenHop があれば（パケットの中身の欄で区間を選んでいるとき）、流さずに、その区間の宛先の機器へ着いた位置に止める
+  drawTrace(trace: Trace, ts: number, realElapsed: number, traceStart: number, frozenHop?: number): void {
     const route = this.options.tracePath(trace);
     if (!route) return;
     const cumulative = cumulativeLengths(route.pts);
     const total = cumulative[cumulative.length - 1];
+    if (frozenHop !== undefined) {
+      const at = route.nodeAt[Math.min(frozenHop + 1, route.nodeAt.length - 1)];
+      const p = pointAt(route.pts, cumulative, cumulative[at]);
+      this.options.graphics.rect(p.x - 2, p.y - 2, 4, 4).fill({ color: PACKET_COLOR[trace.kind] ?? 0xffffff });
+      return;
+    }
     const failure = trace.result.failure;
     let stop = total;
     if (failure) {

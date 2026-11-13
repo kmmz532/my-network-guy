@@ -647,7 +647,10 @@ export class Scene {
       this.staffRenderer.drawDeskStaff(ts);
       this.staffRenderer.drawWanderers(ts);
     }
-    for (const trace of this.traces) this.networkRenderer.drawTrace(trace, ts, this.realElapsed, this.traceStart);
+    this.traces.forEach((trace, k) => {
+      const view = s.frameView;
+      this.networkRenderer.drawTrace(trace, ts, this.realElapsed, this.traceStart, view && view.trace === k ? view.hop : undefined);
+    });
     this.failureRenderer.draw(project, ts, failing);
     this.interactionRenderer.drawPlugMarks(ts);
     this.effectRenderer.drawHover(project, ts);
