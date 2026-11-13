@@ -17,3 +17,8 @@
   - 改名・削除: `rename <old> <new>`・`del <key>`
 - 他の言語の過不足は `npm run check:lang`（言語ごとの足りない・余分・置換の食い違いの件数）、`node scripts/lang.mjs missing <言語>` で確認する。
 - `node scripts/lang.mjs unused` は参照されていないらしいキーの目安を出す。組み立てたキーを拾い切れないため、消す前に grep で確認する。
+## 検査
+
+- 完了の条件は `npm run verify`（型・ESLint・全試験・JSON・言語ファイル・仕様との突き合わせ）の合格とする。
+- コミットの前の hook（`.git/hooks/pre-commit`）は `npm run verify:hook`（変更に関わる試験だけを動かす）を実行する。`npm install` の `prepare` が書き込む。`--no-verify` は使わない。
+- `npm run check:spec` は、仕様（`memo/NET.md`）とコードの食い違いを調べる。今ある食い違いは `scripts/spec-baseline.json` に記録してあり、記録にない食い違いだけを誤りにする。食い違いを解消したら `node scripts/check-spec.mjs --update` で記録から消す。

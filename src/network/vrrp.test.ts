@@ -16,17 +16,17 @@ const g = (vrid: number, ip: string, priority = 100, extra: Partial<VrrpGroup> =
 // PC —(SW1)— R1・R2 —(SW2)— サーバー。端末側の仮想 IP は 192.168.1.254（VRID 1）、サーバー側は 10.0.9.254（VRID 2）
 const build = (r1: Partial<NetNode> = {}, r2: Partial<NetNode> = {}, r1Track = false): Network => ({
   nodes: [
-    node('pc', 'pc_basic', 1, { interfaces: [{ id: 'eth0', kind: 'port', port: 0, ip: '192.168.1.10', prefix: 24 }], gateway: '192.168.1.254' }),
+    node('host', 'pc_basic', 1, { interfaces: [{ id: 'eth0', kind: 'port', port: 0, ip: '192.168.1.10', prefix: 24 }], gateway: '192.168.1.254' }),
     node('sw1', 'l2_switch_8p', 2),
     node('r1', 'router_basic', 3, { interfaces: [f(0, '192.168.1.1', [g(1, '192.168.1.254', 110, r1Track ? { track: [{ iface: 'g0/1', decrement: 20 }] } : {})]), f(1, '10.0.9.1', [g(2, '10.0.9.254', 110)])], ...r1 }),
     node('r2', 'router_basic', 4, { interfaces: [f(0, '192.168.1.2', [g(1, '192.168.1.254', 100)]), f(1, '10.0.9.2', [g(2, '10.0.9.254', 100)])], ...r2 }),
     node('sw2', 'l2_switch_8p', 5),
     node('srv', 'server_basic', 6, { interfaces: [{ id: 'eth0', kind: 'port', port: 0, ip: '10.0.9.10', prefix: 24 }], gateway: '10.0.9.254', services: [] }),
   ],
-  links: [link('a', 'pc', 0, 'sw1', 0), link('b', 'sw1', 1, 'r1', 0), link('c', 'sw1', 2, 'r2', 0), link('d', 'r1', 1, 'sw2', 0), link('e', 'r2', 1, 'sw2', 1), link('f', 'srv', 0, 'sw2', 2)],
+  links: [link('a', 'host', 0, 'sw1', 0), link('b', 'sw1', 1, 'r1', 0), link('c', 'sw1', 2, 'r2', 0), link('d', 'r1', 1, 'sw2', 0), link('e', 'r2', 1, 'sw2', 1), link('f', 'srv', 0, 'sw2', 2)],
   segments: {},
 });
-const via = (net: Network) => ping(net, data, 'pc', 'srv');
+const via = (net: Network) => ping(net, data, 'host', 'srv');
 
 describe('VRRP のマスターの選出', () => {
   const m = (uid: string, ip: string, priority: number, up = true, extra: Partial<VrrpGroup> = {}) => ({ uid, realIp: ip, group: g(1, '10.0.0.254', priority, extra), downTracked: [] as string[], up });
@@ -78,7 +78,7 @@ describe('VRRP の警告', () => {
     const { warningsOf } = await import('./netState');
     const net = build();
     expect(warningsOf(net)).toEqual([]);
-    expect(warningsOf({ ...net, nodes: net.nodes.map((n) => (n.uid === 'pc' ? { ...n, gateway: '192.168.1.1' } : n)) })).toEqual([{ id: 'vrrp.gateway_real_ip', a: 'pc', b: 'r1' }]);
+    expect(warningsOf({ ...net, nodes: net.nodes.map((n) => (n.uid === 'host' ? { ...n, gateway: '192.168.1.1' } : n)) })).toEqual([{ id: 'vrrp.gateway_real_ip', a: 'host', b: 'r1' }]);
     const bad = { ...net, nodes: net.nodes.map((n) => (n.uid === 'r2' ? { ...n, interfaces: [f(0, '192.168.1.2', [g(1, '192.168.1.253')]), n.interfaces[1]] } : n)) };
     expect(warningsOf(bad)).toContainEqual({ id: 'vrrp.vip_mismatch', a: 'r1', b: 'r2' });
   });
@@ -105,7 +105,7 @@ describe('survive_device_failure（機器の電源）', () => {
     const { evaluateGoal } = await import('./goals');
     const goal = { type: 'survive_device_failure' as const, nodes: ['r1', 'r2'] };
     expect(evaluateGoal(goal, build(), data)[0].ok).toBe(true);
-    const real: Network = { ...build(), nodes: build().nodes.map((n) => (n.uid === 'pc' ? { ...n, gateway: '192.168.1.1' } : n.uid === 'srv' ? { ...n, gateway: '10.0.9.1' } : n)) };
+    const real: Network = { ...build(), nodes: build().nodes.map((n) => (n.uid === 'host' ? { ...n, gateway: '192.168.1.1' } : n.uid === 'srv' ? { ...n, gateway: '10.0.9.1' } : n)) };
     expect(evaluateGoal(goal, real, data)[0].ok).toBe(false);
   });
   it('電源を切ったマスターは、バックアップが引き継ぐ', () => {

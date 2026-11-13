@@ -4,6 +4,7 @@ import { http, ping, wirelessAssociations } from './engine';
 import { accessPointsOf, bgpTableOf, dhcpOf, lagBundlesOf, ospfNeighborsOf, stpOf } from './netState';
 import { outsideCheck, withInternet } from './external';
 import { resolveName } from './resolve';
+import { isPcCategory } from '../data/categories';
 import type { EngineData, Failure, Network, PathResult } from './types';
 
 export interface GoalResult {
@@ -121,7 +122,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
     if (goal.type !== 'survive_device_failure') throw new Error('survive_device_failure ハンドラに別の種類が渡された');
     const ok = goal.nodes.every((uid) => {
       const off: Network = { ...net, nodes: net.nodes.map((n) => (n.uid === uid ? { ...n, powered: false } : n)) };
-      const ends = off.nodes.filter((n) => n.uid !== uid && (data.categoryOf(n.device) === 'pc' || data.categoryOf(n.device) === 'server')).map((n) => n.uid);
+      const ends = off.nodes.filter((n) => n.uid !== uid && (isPcCategory(data.categoryOf(n.device)) || data.categoryOf(n.device) === 'server')).map((n) => n.uid);
       for (let i = 0; i < ends.length; i++) for (let j = i + 1; j < ends.length; j++) if (!ping(off, data, ends[i], ends[j]).ok) return false;
       return ends.length >= 2;
     });
