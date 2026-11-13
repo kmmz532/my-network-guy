@@ -26,6 +26,7 @@ import { CATEGORY } from '../data/categories';
 import { BgpField } from './BgpField';
 import { IspField } from './IspField';
 import { VlanPortField } from './VlanPortField';
+import { VrrpField } from './VrrpField';
 
 // ネットワークの既定候補（入力欄から任意のネットワークも指定できる）
 const NETWORK_CHOICES = Array.from({ length: 16 }, (_, i) => `192.168.${i + 1}.0`);
@@ -215,6 +216,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
               ))}
           </div>
         )}
+        {iface && can(node.device, 'vrrp') && <VrrpField node={node} iface={iface} net={net} disabled={locked || unlinkedRouter} onError={onError} />}
         <div style={{ ...row, fontSize: 12 }}>
           <span style={{ color: greyColor, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <span style={{ display: 'inline-block', width: 10, height: 10, background: hexColor(color), border: '1px solid #3b2a33' }} />
