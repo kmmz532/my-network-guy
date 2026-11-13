@@ -109,3 +109,13 @@ describe('口の状態（背面の画面）', () => {
     expect(portStatesOf(shut, data, 'sw1').find((s) => s.port === 0)?.shutdown).toBe(true);
   });
 });
+
+describe('速さの一致', () => {
+  it('2本の速さが違えば、速さの違う口はまとまらず、警告 lag.mismatch を出す。速さが同じならまとまる', () => {
+    const net = pair([], []);
+    const slow = { ...data, portSpeedOf: (device: string, port: number) => (device === 'l2_switch_8p' && port === 1 ? 100 : 1000) };
+    expect(warningsOf(net, slow)).toContainEqual({ id: 'lag.mismatch', a: 'sw1', b: 'sw2' });
+    expect(warningsOf(net, data).some((w) => w.id === 'lag.mismatch')).toBe(false);
+    expect(warningsOf(net, { ...data, portSpeedOf: () => 1000 }).some((w) => w.id === 'lag.mismatch')).toBe(false);
+  });
+});

@@ -292,6 +292,8 @@ export interface DeviceInfo {
   portCount: number;
   // 口の種類（口の番号の順。rj45・sfp など）。省略は、すべて rj45（ケーブルの口の種類の判定・N-sfp）
   portTypes?: string[];
+  // 口の速さ（Mbps。口の番号の順。省略は扱わない）
+  portSpeeds?: number[];
   // 机の上にも床にも置ける（N91）
   deskable?: boolean;
   // 置いたときから動いているサービス（サーバーの HTTP など）。省略すると動いていない

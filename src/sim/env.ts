@@ -11,6 +11,7 @@ const devices: Env['devices'] = Object.fromEntries(
       portCount: d.ports.reduce((sum, p) => sum + p.count, 0),
       // 口の種類を、口の番号の順に並べる（rj45 の口の後に sfp の口）
       portTypes: d.ports.flatMap((p) => Array.from({ length: p.count }, () => p.type)),
+      portSpeeds: d.ports.flatMap((p) => Array.from({ length: p.count }, () => p.speedMbps)),
       deskable: d.deskable,
       defaultServices: d.defaultServices,
     },
@@ -31,6 +32,7 @@ export const gameEnv: Env = {
   cables,
   engine: {
     categoryOf: (device) => devices[device]?.category ?? 'unknown',
+    portSpeedOf: (device, port) => devices[device]?.portSpeeds?.[port],
     maxLengthOf: (cable) => cables[cable]?.maxLengthTiles ?? 0,
   },
 };

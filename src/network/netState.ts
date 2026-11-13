@@ -120,7 +120,7 @@ class Topology {
         this.fabricBy.set(node, ports);
       }
     }
-    this.lag = computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'));
+    this.lag = computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'), (n, port) => data.portSpeedOf?.(n.device, port));
     for (const b of this.lag.bundles) {
       const rep = b.links.find((l) => !this.isShut(l.a.node, l.a.port) && !this.isShut(l.b.node, l.b.port)) ?? b.links[0];
       for (const l of b.links) this.stpRep.set(l.uid, rep.uid);
@@ -953,7 +953,7 @@ export const warningsOf = (net: Network, data?: EngineData): VlanWarning[] => {
     }
   }
   // リンクアグリゲーション: まとまらない口がある2台（組ごとに1件）
-  const lag = computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'));
+  const lag = computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'), (n, port) => data?.portSpeedOf?.(n.device, port));
   const lagPairs = new Set<string>();
   for (const l of net.links) {
     if (!lag.mismatched.has(l.uid)) continue;
@@ -1007,8 +1007,8 @@ export const vrrpStatusOf = (net: Network, data: EngineData, uid: string): VrrpS
 
 // スパニングツリーの計算結果（show spanning-tree に出す）
 // リンクアグリゲーションで、機器 uid を含むまとまった論理リンク（show etherchannel summary に出す）
-export const lagBundlesOf = (net: Network, uid: string): LagBundle[] =>
-  computeLags(net.nodes, net.links, (n) => can(n.device, 'lag')).bundles.filter((b) => b.a === uid || b.b === uid);
+export const lagBundlesOf = (net: Network, uid: string, data?: EngineData): LagBundle[] =>
+  computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'), (n, port) => data?.portSpeedOf?.(n.device, port)).bundles.filter((b) => b.a === uid || b.b === uid);
 
 // DHCP の割り当て（show ip dhcp binding・警告・達成条件に使う）
 // 受け取れた自動の口の ip・prefix を機器へ書き戻す（前回のアドレスとして保存する。NET.md §5.7）。変わる機器がなければ同じ配列を返す
@@ -1049,7 +1049,7 @@ export const portStatesOf = (net: Network, data: EngineData, uid: string): PortS
   const node = topo.node(uid);
   if (!node) return [];
   const roles = topo.stp().roles;
-  const bundled = new Set(lagBundlesOf(net, uid).flatMap((b) => b.links.map((l) => l.uid)));
+  const bundled = new Set(lagBundlesOf(net, uid, data).flatMap((b) => b.links.map((l) => l.uid)));
   return net.links
     .filter((l) => l.a.node === uid || l.b.node === uid)
     .map((l) => {

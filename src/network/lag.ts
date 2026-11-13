@@ -2,7 +2,7 @@
 // - まとまる条件: 両端の口が同じチャネルの番号を持ち、モードが組み合わさり（active／active・active／passive・on／on）、
 //   口のモード・VLAN・native・allowed が一致する
 // - 条件を満たさない口は個別の口として残り、不一致（mismatch）に数える
-// - 速さは機器の口の定義にあるが、この段では扱わない
+// - 速さ（両端の口の遅いほう）が、まとめる配線の間で一致する。速さが定義にない機器は扱わない
 import type { NetLink, NetNode, PortConfig } from './types';
 
 export type LacpMode = 'active' | 'passive' | 'on';
@@ -39,7 +39,18 @@ const shape = (cfg: PortConfig | undefined): string => {
   return `${mode}:${cfg?.vlan ?? 1}`;
 };
 
-export const computeLags = (nodes: readonly NetNode[], links: readonly NetLink[], isLagCapable: (node: NetNode) => boolean): LagResult => {
+// 配線の速さ（両端の口の速さの遅いほう。速さを扱わないときは undefined）
+export const computeLags = (
+  nodes: readonly NetNode[],
+  links: readonly NetLink[],
+  isLagCapable: (node: NetNode) => boolean,
+  speedOf: (node: NetNode, port: number) => number | undefined = () => undefined,
+): LagResult => {
+  const linkSpeed = (l: NetLink): number | undefined => {
+    const a = speedOf(byUid.get(l.a.node)!, l.a.port);
+    const b = speedOf(byUid.get(l.b.node)!, l.b.port);
+    return a === undefined || b === undefined ? undefined : Math.min(a, b);
+  };
   const byUid = new Map(nodes.map((n) => [n.uid, n]));
   const cfgOf = (uid: string, port: number) => byUid.get(uid)?.ports.find((p) => p.port === port);
   const result: LagResult = { bundles: [], mismatched: new Set(), representative: new Map() };
@@ -78,7 +89,7 @@ export const computeLags = (nodes: readonly NetNode[], links: readonly NetLink[]
     const reference = shape(cfgOf(g.a, endOf(usable[0], g.a).port));
     const members: NetLink[] = [];
     for (const l of usable) {
-      if (shape(cfgOf(g.a, endOf(l, g.a).port)) === reference) members.push(l);
+      if (shape(cfgOf(g.a, endOf(l, g.a).port)) === reference && linkSpeed(l) === linkSpeed(usable[0])) members.push(l);
       else result.mismatched.add(l.uid);
     }
     result.bundles.push({ a: g.a, b: g.b, channel: g.channel, links: members });

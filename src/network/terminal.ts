@@ -131,7 +131,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       // 設定のある口を、チャネルごとに出す。まとまった口に (P)、まとまらない口に (I)（NET.md §5.1）
       const configured = node.ports.filter((p) => p.channelGroup !== undefined).sort((a, b) => a.port - b.port);
       if (configured.length === 0) return [out(tr('ui.terminal.channelNone'))];
-      const bundled = new Set(lagBundlesOf({ nodes: ctx.nodes, links: ctx.links }, node.uid).flatMap((b) => b.links.flatMap((l) => [l.a, l.b])).filter((e) => e.node === node.uid).map((e) => e.port));
+      const bundled = new Set(lagBundlesOf({ nodes: ctx.nodes, links: ctx.links }, node.uid, ctx.data).flatMap((b) => b.links.flatMap((l) => [l.a, l.b])).filter((e) => e.node === node.uid).map((e) => e.port));
       return [...new Set(configured.map((p) => p.channelGroup as number))].map((group) => {
         const ports = configured.filter((p) => p.channelGroup === group);
         const state = ports.some((p) => bundled.has(p.port)) ? 'P' : 'D';

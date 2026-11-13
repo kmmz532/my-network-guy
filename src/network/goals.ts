@@ -89,9 +89,9 @@ const handlers: { [K in Goal['type']]: Handler } = {
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // 指定した機器が、物理のリンク min 本以上を1本の論理リンクにまとめている
-  lag_bundled: (goal, net) => {
+  lag_bundled: (goal, net, data) => {
     if (goal.type !== 'lag_bundled') throw new Error('lag_bundled ハンドラに別の種類が渡された');
-    const ok = lagBundlesOf(net, goal.node).some((b) => b.links.length >= goal.min);
+    const ok = lagBundlesOf(net, goal.node, data).some((b) => b.links.length >= goal.min);
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // 指定したスイッチがルートブリッジになっている
