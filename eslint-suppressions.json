@@ -115,13 +115,7 @@
     }
   },
   "src/game/DeviceRenderer.ts": {
-    "local/no-category": {
-      "count": 1
-    },
     "local/no-mode-branch": {
-      "count": 1
-    },
-    "local/no-unknown-fallback": {
       "count": 1
     }
   },

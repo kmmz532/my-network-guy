@@ -11,6 +11,7 @@ import { useGameStore } from '../stores/useGameStore';
 import { spriteOf, texture } from './sprites';
 import { DESK_TOP, DEVICE_FOOT_INSET } from './deviceRules';
 import { restsOnDesk } from '../sim/placement';
+import { deviceCategory } from '../registry/query';
 
 const OUTLINE = 0x3b2a33;
 const SELECT = 0xffd866;
@@ -32,7 +33,7 @@ export class DeviceRenderer {
 
   drawNode(node: NetNode, ts: number, selected: boolean, dim: boolean, project: Project, hot: boolean): void {
     const g = this.options.foreground;
-    const category = gameEnv.devices[node.device]?.category ?? 'unknown';
+    const category = deviceCategory(node.device);
     const alpha = dim ? 0.5 : 1;
     const pad = ts * 0.18;
     const x = node.x * ts + pad;
