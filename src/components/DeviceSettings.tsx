@@ -13,16 +13,14 @@ import type { ComboOption } from './comboOptions';
 import type { Compiled } from '../network/compile';
 import { isRelayPort, isRoutingCategory } from '../network/category';
 import { can } from '../network/capabilities';
-import { wirelessAssociations, withWireless } from '../network/netState';
-import { channelOverlapsOf, networkColors } from '../network/public';
-import { analyze } from '../network/engine/analyze';
-import { engineWithWalls } from '../sim/walls';
+import { wirelessAssociations } from '../network/netState';
+import { channelOverlapsOf, networkColors, type NetworkState } from '../network/public';
 import { colorOfNetwork, UNSET_COLOR } from '../network/netColor';
 import { networkAddress, neighborRouterAddresses, routerAddressesOn, segmentConfigOf, segmentOf, segmentsOf } from '../network/segments';
-import type { NetNode, Network, SegmentConfig } from '../network/types';
+import type { NetNode, SegmentConfig } from '../network/types';
 import { gameEnv } from '../sim/env';
 import { addressCandidates, PLANNED_NETWORK, PLANNED_PREFIX, plannedAddressCandidates, type AddressCandidate } from '../sim/project';
-import { coreOf, focusedProject, netTargetOf, plannedKey, useGameStore } from '../stores/useGameStore';
+import { coreOf, netOfDevice, netTargetOf, plannedKey, useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, hexColor, inputStyle, isIpText, portLabel, sectionStyle, unsetColor } from './devicePorts';
 import { CATEGORY } from '../data/categories';
 import { BgpField } from './BgpField';
@@ -50,7 +48,7 @@ interface Props {
   onError: (reason: string | null) => void;
 }
 
-export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleDetail, onError }: Props) {
+export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onError }: Props) {
   const state = useGameStore();
   const setIface = useGameStore((s) => s.setIface);
   const setGateway = useGameStore((s) => s.setGateway);
@@ -65,14 +63,16 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
   const planned = useGameStore((s) => s.planned);
   const setPlanned = useGameStore((s) => s.setPlanned);
 
-  const net = compiled.net;
-  const engine = gameEnv.engine;
-  // 無線端末の口0も、仮想配線として有線と同じセグメント・ゲートウェイ計算に含める。
-  const topologyNet = withWireless(net, engine);
+  // 画面の計算は、ストアの計算の結果を読む
+  const netState = useGameStore((s) => netOfDevice(s, node.uid));
+  // 配線（保存の構成）。無線の端末の仮想の配線と DHCP の割り当てを入れた構成は topologyNet（セグメント・ゲートウェイの計算に使う）
+  const net = netState.input;
+  const engine = netState.world;
+  const topologyNet = netState.net;
   const category = deviceCategory(node.device);
 
   const byUid = new Map(net.nodes.map((n) => [n.uid, n]));
-  const colors = networkColors(analyze(net, engine));
+  const colors = networkColors(netState);
   const locked = readOnly || node.configLocked;
   const portCount = portCountOf(node.device);
   // IPアドレスを持つ口（スイッチ付きルーターの2つ目以降の LAN 口は中継だけなので欄を出さない）
@@ -401,7 +401,7 @@ export function DeviceSettings({ node, compiled, readOnly, detailOpen, onToggleD
           {t('ui.config.power')}
         </label>
       )}
-      {can(node.device, 'wireless') && <WirelessField key={`w-${node.uid}`} node={node} net={net} readOnly={readOnly} onError={onError} />}
+      {can(node.device, 'wireless') && <WirelessField key={`w-${node.uid}`} node={node} state={netState} readOnly={readOnly} onError={onError} />}
       {node.configLocked && <div style={{ marginBottom: 6 }}>{t('ui.config.locked')}</div>}
       {ports.map(renderPort)}
       {can(node.device, 'svi') && category === CATEGORY.l3Switch && <SviField node={node} disabled={locked} onError={onError} />}
@@ -572,18 +572,18 @@ function NatField({ node, readOnly, onError }: { node: NetNode; readOnly: boolea
 
 // 機器の名前の欄。欄を離れたとき・Enter で確定する。空にすると既定の名前に戻る
 // 無線の設定（N152）: SSID とパスワード。アクセスポイントと無線の端末の SSID・パスワードが合うとつながる。空欄は未設定
-function WirelessField({ node, net, readOnly, onError }: { node: NetNode; net: Network; readOnly: boolean; onError: (reason: string | null) => void }) {
+function WirelessField({ node, state, readOnly, onError }: { node: NetNode; state: NetworkState; readOnly: boolean; onError: (reason: string | null) => void }) {
   const setWireless = useGameStore((s) => s.setWireless);
   const store = useGameStore.getState();
+  const net = state.input;
   // 画面の表示と同じ電波の計算（壁の減衰を含む）で、つながりを出す
-  const engine = engineWithWalls(gameEnv.engine, store.maps[focusedProject(store)?.contract.map ?? 'hq']);
-  const pairs = wirelessAssociations(net, engine);
+  const pairs = wirelessAssociations(net, state.world);
   const status = pairs.find((p) => p.client.uid === node.uid);
   const clients = pairs.filter((p) => p.ap.uid === node.uid).length;
   // アクセスポイントは、つながっている端末の数を出す。端末は、つながった先か、つながっていないことを出す
   const isClient = deviceCategory(node.device) !== CATEGORY.accessPoint && deviceCategory(node.device) !== CATEGORY.homeRouter;
   // 同じチャネルで近いアクセスポイントがあれば、注意を出す（N152）
-  const overlapping = channelOverlapsOf(analyze(net, engine)).some((o) => o.a === node.uid || o.b === node.uid);
+  const overlapping = channelOverlapsOf(state).some((o) => o.a === node.uid || o.b === node.uid);
   const statusText = status
     ? t('ui.wireless.connected', { ap: nodeLabel(store, status.ap, net.nodes) })
     : isClient
