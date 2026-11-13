@@ -93,13 +93,13 @@ describe('リンクアグリゲーションのターミナル', () => {
     expect(parseConfig('channel-group 0 1 mode active', tr)).toEqual({ kind: 'action', action: { kind: 'channel', port: 0, group: 1, lacp: 'active' } });
     expect(parseConfig('no channel-group 0', tr)).toEqual({ kind: 'action', action: { kind: 'channel', port: 0, group: null } });
     expect(parseConfig('channel-group 0 1 mode auto', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageChannel' });
-    const show = (net: Network) => runTerminal('show etherchannel summary', { node: net.nodes[0], nodes: net.nodes, links: net.links, data }, tr)[0].text;
+    const show = (net: Network) => runTerminal('show etherchannel summary', { node: net.nodes[0], nodes: net.nodes, links: net.links, data, state: analyze({ nodes: net.nodes, links: net.links }, data) }, tr)[0].text;
     expect(show(pair([], []))).toContain('"state":"P"');
     expect(show(pair([], []))).toContain('0(P) 1(P)');
     const bad = show(pair([{ lacp: 'passive' }, { lacp: 'passive' }], [{ lacp: 'passive' }, { lacp: 'passive' }]));
     expect(bad).toContain('"state":"D"');
     expect(bad).toContain('0(I) 1(I)');
-    expect(runTerminal('show etherchannel summary', { node: node('x', 'l2_switch_8p', 9), nodes: [], links: [], data }, tr)[0].text).toBe('ui.terminal.channelNone');
+    expect(runTerminal('show etherchannel summary', { node: node('x', 'l2_switch_8p', 9), nodes: [], links: [], data, state: analyze({ nodes: [], links: [] }, data) }, tr)[0].text).toBe('ui.terminal.channelNone');
   });
 });
 

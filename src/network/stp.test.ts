@@ -58,7 +58,7 @@ describe('スパニングツリーのターミナル', () => {
     expect(parseConfig('spanning-tree priority 100', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errStpPriority' });
     expect(parseConfig('spanning-tree cost 1 19', tr)).toEqual({ kind: 'action', action: { kind: 'stp', op: 'cost', port: 1, value: 19 } });
     const net = triangle();
-    const lines = runTerminal('show spanning-tree', { node: net.nodes[2], nodes: net.nodes, links: net.links, data }, tr);
+    const lines = runTerminal('show spanning-tree', { node: net.nodes[2], nodes: net.nodes, links: net.links, data, state: analyze({ nodes: net.nodes, links: net.links }, data) }, tr);
     expect(lines[0].text).toContain('ui.terminal.stpRoot');
     expect(lines.some((l) => l.text.startsWith('ui.terminal.stpPort.blocking'))).toBe(true);
   });

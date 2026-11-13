@@ -84,7 +84,7 @@ describe('BGP のターミナル', () => {
   it('show ip bgp summary は隣接の状態を、show ip bgp は最適経路の印を出す', async () => {
     const { runTerminal } = await import('./terminal');
     const net = twoIsps({});
-    const ctx = { node: net.nodes[0], nodes: net.nodes, links: net.links, data };
+    const ctx = { node: net.nodes[0], nodes: net.nodes, links: net.links, data, state: analyze({ nodes: net.nodes, links: net.links }, data) };
     const tr = (k: string, p?: Record<string, unknown>) => (p ? `${k} ${JSON.stringify(p)}` : k);
     const summary = runTerminal('show ip bgp summary', ctx, tr);
     expect(summary).toHaveLength(2);

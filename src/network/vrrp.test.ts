@@ -97,7 +97,7 @@ describe('VRRP のターミナル', () => {
     expect(parseConfig('no vrrp 0 1 preempt', tr)).toEqual({ kind: 'action', action: { kind: 'vrrp', op: 'preempt', port: 0, vrid: 1, on: false } });
     expect(parseConfig('vrrp 0 1 track 1 decrement 20', tr)).toEqual({ kind: 'action', action: { kind: 'vrrp', op: 'track', port: 0, vrid: 1, trackPort: 1, decrement: 20 } });
     const net = build();
-    const show = (uid: string) => runTerminal('show vrrp', { node: net.nodes.find((n) => n.uid === uid)!, nodes: net.nodes, links: net.links, data }, tr);
+    const show = (uid: string) => runTerminal('show vrrp', { node: net.nodes.find((n) => n.uid === uid)!, nodes: net.nodes, links: net.links, data, state: analyze({ nodes: net.nodes, links: net.links }, data) }, tr);
     expect(show('r1')[0].text).toContain('"state":"Master"');
     expect(show('r2')[0].text).toContain('"state":"Backup"');
   });

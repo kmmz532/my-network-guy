@@ -4,7 +4,7 @@ import { dhcpOf } from './query/dhcp';
 // 補完（Tab）と、clear・hostname は、それぞれ別の関数で扱う（ここでは help の文言だけ）。
 // 文言は tr（言語ファイルの引き当て）で作る。モードは持たない。
 import { ping } from './engine';
-import { analyze } from './engine/analyze';
+import type { NetworkState } from './engine/state';
 import { stpOf } from './query/stp';
 import { networkAddress } from './segments';
 import { isIp } from './terminalConfig';
@@ -29,6 +29,8 @@ export interface TerminalContext {
   nodes: NetNode[];
   links: NetLink[];
   data: EngineData;
+  // 問い合わせの結果（計算の本体）。機器の画面が store から渡す
+  state: NetworkState;
   // 機器の画面に出す名前（省略時は uid）
   nameOf?: (node: NetNode) => string;
   // ARP の表（ping で覚えたもの。保存しない）（N69）
@@ -95,7 +97,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       if (node.gateway) lines.push(out(tr('ui.terminal.routeStaticDefault', { dest: '0.0.0.0', prefix: 0, nextHop: node.gateway, ad, metric: 0 })));
       for (const r of node.routes) lines.push(out(tr(r.prefix === 0 ? 'ui.terminal.routeStaticDefault' : 'ui.terminal.routeStatic', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop, ad, metric: 0 })));
       for (const protocol of ['rip', 'ospf', 'bgp'] as const) {
-        for (const r of learnedRoutesOf(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data), node.uid, protocol)) {
+        for (const r of learnedRoutesOf(ctx.state, node.uid, protocol)) {
           const key = protocol === 'ospf' && r.interArea ? 'ui.terminal.routeOspfIa' : `ui.terminal.route${protocol[0].toUpperCase()}${protocol.slice(1)}`;
           lines.push(out(tr(key, { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop, ad: adOf(r), metric: r.metric ?? 0 })));
         }
@@ -105,12 +107,12 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
     if (sub === 'mac address-table') {
       // スイッチの MAC の表は、段2の計算（同じ L2 のドメインの端末）から出す。端末では使えない
       if (deviceCategory(node.device) !== 'l2_switch') return [err(tr('ui.terminal.noMacTable'))];
-      const entries = macTableOf(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data), node.uid);
+      const entries = macTableOf(ctx.state, node.uid);
       if (entries.length === 0) return [out(tr('ui.terminal.macNone'))];
       return entries.map((e) => out(tr('ui.terminal.macEntry', { port: e.port, mac: e.mac })));
     }
     if (sub === 'ip rip database') {
-      const routes = learnedRoutesOf(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data), node.uid, 'rip');
+      const routes = learnedRoutesOf(ctx.state, node.uid, 'rip');
       if (routes.length === 0) return [out(tr('ui.terminal.ripNone'))];
       return routes.map((r) => out(tr('ui.terminal.ripRoute', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop })));
     }
@@ -128,13 +130,13 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       return [out(tr('ui.terminal.natHeader')), ...lines];
     }
     if (sub === 'vrrp') {
-      const groups = vrrpStatusOf(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data), node.uid);
+      const groups = vrrpStatusOf(ctx.state, node.uid);
       if (groups.length === 0) return [out(tr('ui.terminal.vrrpNone'))];
       return groups.map((g) => out(tr('ui.terminal.vrrpGroup', { iface: g.iface, vrid: g.vrid, state: g.state, ip: g.ip, priority: g.priority, preempt: tr(g.preempt ? 'ui.terminal.vrrpPreemptOn' : 'ui.terminal.vrrpPreemptOff') })));
     }
     if (sub === 'ip dhcp binding') {
       // 配ったアドレス（このサーバーが配ったもの）。割り当ては毎回計算で求める（NET.md §5.7）
-      const leases = dhcpOf(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data)).leases.filter((l) => l.server === node.uid);
+      const leases = dhcpOf(ctx.state).leases.filter((l) => l.server === node.uid);
       if (leases.length === 0) return [out(tr('ui.terminal.dhcpNone'))];
       return leases.map((l) => out(tr('ui.terminal.dhcpBinding', { ip: l.ip, name: name(ctx.nodes.find((n) => n.uid === l.uid) ?? node), port: l.port })));
     }
@@ -142,7 +144,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       // 設定のある口を、チャネルごとに出す。まとまった口に (P)、まとまらない口に (I)（NET.md §5.1）
       const configured = node.ports.filter((p) => p.channelGroup !== undefined).sort((a, b) => a.port - b.port);
       if (configured.length === 0) return [out(tr('ui.terminal.channelNone'))];
-      const bundled = new Set(lagBundlesOf(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data), node.uid).flatMap((b) => b.links.flatMap((l) => [l.a, l.b])).filter((e) => e.node === node.uid).map((e) => e.port));
+      const bundled = new Set(lagBundlesOf(ctx.state, node.uid).flatMap((b) => b.links.flatMap((l) => [l.a, l.b])).filter((e) => e.node === node.uid).map((e) => e.port));
       return [...new Set(configured.map((p) => p.channelGroup as number))].map((group) => {
         const ports = configured.filter((p) => p.channelGroup === group);
         const state = ports.some((p) => bundled.has(p.port)) ? 'P' : 'D';
@@ -150,8 +152,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       });
     }
     if (sub === 'spanning-tree') {
-      const net = { nodes: ctx.nodes, links: ctx.links };
-      const stp = stpOf(analyze(net, ctx.data));
+      const stp = stpOf(ctx.state);
       if (stp.root === null || !stp.rootCost.has(node.uid)) return [err(tr('ui.terminal.stpOff'))];
       const lines = [out(tr(stp.root === node.uid ? 'ui.terminal.stpIsRoot' : 'ui.terminal.stpRoot', { root: name(ctx.nodes.find((n) => n.uid === stp.root) ?? node), cost: stp.rootCost.get(node.uid) ?? 0 }))];
       const mine = [...stp.roles.entries()].filter(([k]) => k.startsWith(`${node.uid}:`)).map(([k, role]) => ({ port: Number(k.split(':')[1]), role })).sort((a, b) => a.port - b.port);
@@ -173,7 +174,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       );
     }
     if (sub === 'ip bgp summary' || sub === 'ip bgp') {
-      const bgp = bgpTableOf(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data), node.uid);
+      const bgp = bgpTableOf(ctx.state, node.uid);
       if (!bgp) return [err(tr('ui.terminal.bgpOff'))];
       if (sub === 'ip bgp summary') {
         if (bgp.sessions.length === 0) return [out(tr('ui.terminal.bgpNone'))];
@@ -187,11 +188,11 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       return lines.length > 0 ? [out(tr('ui.terminal.bgpHeader')), ...lines] : [out(tr('ui.terminal.bgpNone'))];
     }
     if (sub === 'ip ospf neighbor') {
-      const neighbors = ospfNeighborsOf(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data), node.uid);
+      const neighbors = ospfNeighborsOf(ctx.state, node.uid);
       const nameOfUid = (uid: string) => name(ctx.nodes.find((n) => n.uid === uid) ?? node);
       if (neighbors.length === 0) {
         // 隣接がないときは、条件が合わなかった相手と理由を出す
-        const mismatches = ospfMismatchesOf(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data), node.uid);
+        const mismatches = ospfMismatchesOf(ctx.state, node.uid);
         if (mismatches.length === 0) return [out(tr('ui.terminal.ospfNone'))];
         return mismatches.map((m) => out(tr('ui.terminal.ospfMismatch', { name: nameOfUid(m.uid), ip: m.neighborIp, reason: tr(`ui.terminal.ospfMismatch.${m.mismatch}`) })));
       }
@@ -250,7 +251,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
     }
     const target = ctx.nodes.find((n) => n.interfaces.some((i) => i.ip === ip));
     if (!target) return [err(tr('ui.terminal.noHost', { ip: given }))];
-    const result = ping(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data), node.uid, target.uid);
+    const result = ping(ctx.state, node.uid, target.uid);
     ctx.onTrace?.({ kind: 'ping', src: node.uid, dst: target.uid, result });
     if (result.ok) ctx.onReach?.(target.uid);
     if (cmd === 'ping') {

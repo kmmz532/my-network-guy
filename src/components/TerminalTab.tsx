@@ -5,6 +5,7 @@ import { t, tDyn } from '../i18n/t';
 import { completeLine, runTerminal, type TerminalLine } from '../network/terminal';
 import { parseConfig, type ConfigAction } from '../network/terminalConfig';
 import type { NetLink, NetNode } from '../network/types';
+import type { NetworkState } from '../network/public';
 import { gameEnv } from '../sim/env';
 import { engineWithWalls } from '../sim/walls';
 import { nodeLabel } from './nodeLabel';
@@ -15,7 +16,7 @@ import { warnColor } from './devicePorts';
 const NO_LINES: TerminalLine[] = [];
 const NO_COMMANDS: string[] = [];
 
-export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; nodes: NetNode[]; links: NetLink[]; readOnly: boolean }) {
+export function TerminalTab({ node, nodes, links, state: netState, readOnly }: { node: NetNode; nodes: NetNode[]; links: NetLink[]; state: NetworkState; readOnly: boolean }) {
   const state = useGameStore();
   const setIface = useGameStore((s) => s.setIface);
   const setGateway = useGameStore((s) => s.setGateway);
@@ -144,6 +145,7 @@ export function TerminalTab({ node, nodes, links, readOnly }: { node: NetNode; n
           nodes,
           links,
           data: engineWithWalls(gameEnv.engine, state.maps[focusedProject(state)?.contract.map ?? 'hq']),
+          state: netState,
           nameOf: (n) => nodeLabel(state, n, nodes),
           arp,
           macTable,

@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { runTerminal, type Tr } from './terminal';
+import { runTerminal, type Tr, type TerminalContext, type TerminalLine } from './terminal';
+import { analyze } from './engine/analyze';
 import type { EngineData, NetLink, NetNode } from './types';
 
 const data: EngineData = { wallAt: () => false };
+
+// 問い合わせの結果を、ターミナルの文脈に付けて実行する
+const run = (line: string, ctx: Omit<TerminalContext, 'state'>, tr: Tr): TerminalLine[] => runTerminal(line, { ...ctx, state: analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data) }, tr);
 
 const pc = (uid: string, ip: string | null, gateway: string | null = null): NetNode => ({ ports: [],
   uid,
@@ -41,13 +45,13 @@ const links = [link('l1', 'a', 0, 's', 0), link('l2', 'b', 0, 's', 1)];
 describe('ターミナルのコマンド', () => {
   it('空の行は何も出さない。help は一覧を出す', () => {
     const ctx = { node: nodes[0], nodes, links, data };
-    expect(runTerminal('   ', ctx, tr)).toEqual([]);
-    expect(runTerminal('help', ctx, tr)).toEqual([{ text: 'ui.terminal.help', kind: 'out' }]);
+    expect(run('   ', ctx, tr)).toEqual([]);
+    expect(run('help', ctx, tr)).toEqual([{ text: 'ui.terminal.help', kind: 'out' }]);
   });
 
   it('show ip は、ポートごとのIPアドレスと、ゲートウェイを出す', () => {
     const ctx = { node: nodes[0], nodes, links, data };
-    const lines = runTerminal('show ip', ctx, tr);
+    const lines = run('show ip', ctx, tr);
     expect(lines.map((l) => l.text)).toEqual([
       'ui.terminal.ifLine {"port":0,"ip":"192.168.1.10","prefix":24}',
       'ui.terminal.gateway {"gateway":"192.168.1.1"}',
@@ -56,14 +60,14 @@ describe('ターミナルのコマンド', () => {
 
   it('IPアドレスがない機器の show ip は、その旨を出す', () => {
     const ctx = { node: sw('s'), nodes, links, data };
-    expect(runTerminal('show ip', ctx, tr)).toEqual([{ text: 'ui.terminal.noIp', kind: 'out' }]);
+    expect(run('show ip', ctx, tr)).toEqual([{ text: 'ui.terminal.noIp', kind: 'out' }]);
   });
 
   it('ping は、届けば成功、届かなければ失敗の理由を出す', () => {
     const ctx = { node: nodes[0], nodes, links, data };
-    expect(runTerminal('ping 192.168.1.11', ctx, tr)).toEqual([{ text: 'ui.terminal.pingOk {"ip":"192.168.1.11"}', kind: 'out' }]);
-    const far = { node: nodes[0], nodes: [nodes[0], pc('c', '192.168.2.10')], links: [], data };
-    const lines = runTerminal('ping 192.168.2.10', far, tr);
+    expect(run('ping 192.168.1.11', ctx, tr)).toEqual([{ text: 'ui.terminal.pingOk {"ip":"192.168.1.11"}', kind: 'out' }]);
+    const far = { node: nodes[0], nodes: [nodes[0], pc('c', '192.168.2.10')], links: [], data, state: analyze({ nodes: [nodes[0], pc('c', '192.168.2.10')], links: [] }, data) };
+    const lines = run('ping 192.168.2.10', far, tr);
     expect(lines[0]).toEqual({ text: 'ui.terminal.pingNg', kind: 'err' });
     expect(lines[1].text).toBe('error.link.unplugged');
   });
@@ -71,16 +75,16 @@ describe('ターミナルのコマンド', () => {
   it('ping は成功・失敗にかかわらず画面表示用の経路を通知する', () => {
     const traces: Array<{ src: string; dst: string; result: { ok: boolean } }> = [];
     const ctx = { node: nodes[0], nodes, links, data, onTrace: (trace: (typeof traces)[number]) => traces.push(trace) };
-    runTerminal('ping 192.168.1.11', ctx, tr);
+    run('ping 192.168.1.11', ctx, tr);
     expect(traces).toHaveLength(1);
     expect(traces[0]).toMatchObject({ src: 'a', dst: 'b', result: { ok: true } });
   });
 
   it('引数が合わない・宛先がない・知らないコマンドは、理由を出す', () => {
     const ctx = { node: nodes[0], nodes, links, data };
-    expect(runTerminal('ping', ctx, tr)).toEqual([{ text: 'ui.terminal.usagePing', kind: 'err' }]);
-    expect(runTerminal('ping 10.0.0.1', ctx, tr)[0].text).toBe('ui.terminal.noHost {"ip":"10.0.0.1"}');
-    expect(runTerminal('reboot', ctx, tr)).toEqual([{ text: 'ui.terminal.unknown {"cmd":"reboot"}', kind: 'err' }]);
+    expect(run('ping', ctx, tr)).toEqual([{ text: 'ui.terminal.usagePing', kind: 'err' }]);
+    expect(run('ping 10.0.0.1', ctx, tr)[0].text).toBe('ui.terminal.noHost {"ip":"10.0.0.1"}');
+    expect(run('reboot', ctx, tr)).toEqual([{ text: 'ui.terminal.unknown {"cmd":"reboot"}', kind: 'err' }]);
   });
 });
 
@@ -90,10 +94,11 @@ describe('確認のコマンド（段階2）', () => {
     nodes: nodes.map((n) => (n.uid === node.uid ? { ...n, ...extra } : n)),
     links,
     data,
+    state: analyze({ nodes: nodes.map((n) => (n.uid === node.uid ? { ...n, ...extra } : n)), links }, data),
   });
 
   it('show interfaces は、ポートごとの接続先とIPを出す', () => {
-    const lines = runTerminal('show interfaces', ctx(nodes[0]), tr);
+    const lines = run('show interfaces', ctx(nodes[0]), tr);
     expect(lines.map((l) => l.text)).toEqual([
       'ui.terminal.ifLinkedIp {"port":0,"ip":"192.168.1.10","prefix":24,"peer":"s"}',
       'ui.terminal.mac {"port":0,"mac":"02:10:00:00:01:00"}',
@@ -101,22 +106,22 @@ describe('確認のコマンド（段階2）', () => {
   });
 
   it('show arp は、ping で覚えた表を出す。空なら空の文言', () => {
-    expect(runTerminal('show arp', ctx(nodes[0]), tr)).toEqual([{ text: 'ui.terminal.noArp', kind: 'out' }]);
+    expect(run('show arp', ctx(nodes[0]), tr)).toEqual([{ text: 'ui.terminal.noArp', kind: 'out' }]);
     const withArp = { ...ctx(nodes[0]), arp: [{ ip: '192.168.1.11', mac: '02:10:00:00:01:01' }] };
-    expect(runTerminal('show arp', withArp, tr)).toEqual([{ text: 'ui.terminal.arpLine {"ip":"192.168.1.11","mac":"02:10:00:00:01:01"}', kind: 'out' }]);
+    expect(run('show arp', withArp, tr)).toEqual([{ text: 'ui.terminal.arpLine {"ip":"192.168.1.11","mac":"02:10:00:00:01:01"}', kind: 'out' }]);
   });
 
   it('show mac address-table は、スイッチの表を出す（端末では使えない）', () => {
     const table = { ...ctx(nodes[2]), macTable: [{ mac: '02:10:00:00:01:00', port: 0 }] };
     // 表は段2の計算から出す（学習の表は使わない・N153）。線のないスイッチは、表に出るものがない
-    const lines = runTerminal('show mac address-table', table, tr);
+    const lines = run('show mac address-table', table, tr);
     expect(lines.length).toBeGreaterThan(0);
     expect(lines.every((l) => l.text.startsWith('ui.terminal.macEntry'))).toBe(true);
-    expect(runTerminal('show mac address-table', ctx(nodes[0]), tr)).toEqual([{ text: 'ui.terminal.noMacTable', kind: 'err' }]);
+    expect(run('show mac address-table', ctx(nodes[0]), tr)).toEqual([{ text: 'ui.terminal.noMacTable', kind: 'err' }]);
   });
 
   it('show ip route は、直結の経路と既定のゲートウェイを出す', () => {
-    const lines = runTerminal('show ip route', ctx(nodes[0]), tr);
+    const lines = run('show ip route', ctx(nodes[0]), tr);
     expect(lines.map((l) => l.text)).toEqual([
       'ui.terminal.routeConnected {"net":"192.168.1.0","prefix":24,"port":0}',
       'ui.terminal.routeStaticDefault {"dest":"0.0.0.0","prefix":0,"nextHop":"192.168.1.1","ad":1,"metric":0}',
@@ -124,27 +129,27 @@ describe('確認のコマンド（段階2）', () => {
   });
 
   it('show running-config は、設定を並べて出す（設定がなければその旨）', () => {
-    const lines = runTerminal('show running-config', ctx(nodes[0]), tr);
+    const lines = run('show running-config', ctx(nodes[0]), tr);
     expect(lines[0].text).toBe('ui.terminal.cfgInterface {"port":0}');
     expect(lines[1].text).toBe('ui.terminal.cfgAddress {"ip":"192.168.1.10","prefix":24}');
-    expect(runTerminal('show running-config', ctx(sw('s')), tr)).toEqual([{ text: 'ui.terminal.cfgEmpty', kind: 'out' }]);
+    expect(run('show running-config', ctx(sw('s')), tr)).toEqual([{ text: 'ui.terminal.cfgEmpty', kind: 'out' }]);
   });
 
   it('traceroute は、通った機器（L2スイッチを除く）を1台ずつ出す（送信元は含めない）', () => {
-    const lines = runTerminal('traceroute 192.168.1.11', { node: nodes[0], nodes, links, data }, tr);
+    const lines = run('traceroute 192.168.1.11', { node: nodes[0], nodes, links, data }, tr);
     // L2スイッチは経路に含めないため、宛先の1行だけになる
     expect(lines).toEqual([{ text: 'ui.terminal.hop {"n":1,"ip":"192.168.1.11","name":"b"}', kind: 'out' }]);
   });
 
   it('traceroute は、届かないと止まった場所の理由を出す', () => {
-    const far = { node: nodes[0], nodes: [nodes[0], pc('c', '192.168.2.10')], links: [], data };
-    const lines = runTerminal('traceroute 192.168.2.10', far, tr);
+    const far = { node: nodes[0], nodes: [nodes[0], pc('c', '192.168.2.10')], links: [], data, state: analyze({ nodes: [nodes[0], pc('c', '192.168.2.10')], links: [] }, data) };
+    const lines = run('traceroute 192.168.2.10', far, tr);
     expect(lines.map((l) => l.text)).toEqual(['ui.terminal.traceNg', 'error.link.unplugged']);
     expect(lines[0].kind).toBe('err');
   });
 
   it('未知の show の下位コマンドは unknown を出す', () => {
-    expect(runTerminal('show foo', { node: nodes[0], nodes, links, data }, tr)[0].kind).toBe('err');
+    expect(run('show foo', { node: nodes[0], nodes, links, data }, tr)[0].kind).toBe('err');
   });
 });
 
@@ -172,7 +177,7 @@ describe('対応表による名前の解決（段階5の準備）', () => {
     const src = withHosts([{ name: 'PC-B', ip: '192.168.1.11' }]);
     const ctx = { node: src, nodes: [src, ...nodes.slice(1)], links, data };
     // 1行目に「名前 [IPアドレス]」を出し、続けて結果を出す（N68）
-    expect(runTerminal('ping PC-B', ctx, tr)).toEqual([
+    expect(run('ping PC-B', ctx, tr)).toEqual([
       { text: 'ui.terminal.resolved {"name":"PC-B","ip":"192.168.1.11"}', kind: 'out' },
       { text: 'ui.terminal.pingOk {"ip":"PC-B"}', kind: 'out' },
     ]);
@@ -180,20 +185,20 @@ describe('対応表による名前の解決（段階5の準備）', () => {
 
   it('対応表にもネームサーバーにもない名前は、解決できないと出す（N68）', () => {
     const ctx = { node: nodes[0], nodes, links, data };
-    expect(runTerminal('ping R9', ctx, tr)[0].text).toBe('ui.terminal.noResolve {"name":"R9"}');
+    expect(run('ping R9', ctx, tr)[0].text).toBe('ui.terminal.noResolve {"name":"R9"}');
   });
 
   it('show hosts と running-config は対応表を出す（空なら空の旨）', () => {
     const src = withHosts([{ name: 'R1', ip: '192.168.1.1' }]);
-    const ctx = { node: src, nodes: [src], links, data };
-    expect(runTerminal('show hosts', ctx, tr)).toEqual([{ text: 'ui.terminal.hostLine {"name":"R1","ip":"192.168.1.1"}', kind: 'out' }]);
-    expect(runTerminal('show hosts', { node: nodes[0], nodes, links, data }, tr)).toEqual([{ text: 'ui.terminal.noHosts', kind: 'out' }]);
-    expect(runTerminal('show running-config', ctx, tr).some((l) => l.text === 'ui.terminal.cfgHost {"name":"R1","ip":"192.168.1.1"}')).toBe(true);
+    const ctx = { node: src, nodes: [src, ...nodes.slice(1)], links, data };
+    expect(run('show hosts', ctx, tr)).toEqual([{ text: 'ui.terminal.hostLine {"name":"R1","ip":"192.168.1.1"}', kind: 'out' }]);
+    expect(run('show hosts', { node: nodes[0], nodes, links, data }, tr)).toEqual([{ text: 'ui.terminal.noHosts', kind: 'out' }]);
+    expect(run('show running-config', ctx, tr).some((l) => l.text === 'ui.terminal.cfgHost {"name":"R1","ip":"192.168.1.1"}')).toBe(true);
   });
 
   it('ホスト名を付けると、show running-config の先頭に出る（N46）', () => {
     const named = { ...nodes[0], hostname: 'R1' };
-    const lines = runTerminal('show running-config', { node: named, nodes: [named], links, data }, tr);
+    const lines = run('show running-config', { node: named, nodes: [named, ...nodes.slice(1)], links, data }, tr);
     expect(lines[0]).toEqual({ text: 'ui.terminal.cfgHostname {"name":"R1"}', kind: 'out' });
   });
 });
@@ -219,7 +224,7 @@ describe('show ip ospf neighbor（N143）', () => {
 
   it('同じエリアで同じサブネットの OSPF の相手を、隣接として出す', () => {
     const nodes = [router('r1', '10.0.0.1', 0), router('r2', '10.0.0.2', 0)];
-    const lines = runTerminal('show ip ospf neighbor', { node: nodes[0], nodes, links: [link('r1', 'r2')], data: ospfData, nameOf: (n) => n.uid }, tr);
+    const lines = run('show ip ospf neighbor', { node: nodes[0], nodes, links: [link('r1', 'r2')], data: ospfData, nameOf: (n) => n.uid }, tr);
     expect(lines).toHaveLength(1);
     expect(lines[0].text).toContain('ui.terminal.ospfNeighbor');
     expect(lines[0].text).toContain('10.0.0.2');
@@ -227,7 +232,7 @@ describe('show ip ospf neighbor（N143）', () => {
 
   it('エリアが違えば隣接はなく、合わない理由を出す', () => {
     const nodes = [router('r1', '10.0.0.1', 0), router('r2', '10.0.0.2', 1)];
-    const lines = runTerminal('show ip ospf neighbor', { node: nodes[0], nodes, links: [link('r1', 'r2')], data: ospfData }, tr);
+    const lines = run('show ip ospf neighbor', { node: nodes[0], nodes, links: [link('r1', 'r2')], data: ospfData }, tr);
     expect(lines).toHaveLength(1);
     expect(lines[0].text).toContain('ui.terminal.ospfMismatch');
   });
@@ -236,7 +241,7 @@ describe('show ip ospf neighbor（N143）', () => {
 describe('show ip rip database（N141b）', () => {
   it('RIP で覚えた経路がなければ、その旨を出す', () => {
     const nodes = [{ uid: 'r1', device: 'router_basic', x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [] } as unknown as NetNode];
-    const lines = runTerminal('show ip rip database', { node: nodes[0], nodes, links: [], data }, tr);
+    const lines = run('show ip rip database', { node: nodes[0], nodes, links: [], data }, tr);
     expect(lines).toEqual([{ text: 'ui.terminal.ripNone', kind: 'out' }]);
   });
 });
@@ -249,7 +254,7 @@ describe('show mac address-table（N153）', () => {
     const nodes = [sw, pc1];
     const links: NetLink[] = [{ uid: 'l', cable: 'utp_cat5e', a: { node: 'sw', port: 2 }, b: { node: 'pc1', port: 0 }, path: [[0, 0], [1, 0]], paid: 0 }];
     const d: EngineData = { wallAt: () => false };
-    const lines = runTerminal('show mac address-table', { node: sw, nodes, links, data: d }, tr);
+    const lines = run('show mac address-table', { node: sw, nodes, links, data: d }, tr);
     expect(lines).toEqual([{ text: `ui.terminal.macEntry ${JSON.stringify({ port: 2, mac: macOf('pc', 7, 0) })}`, kind: 'out' }]);
   });
 });
@@ -257,7 +262,7 @@ describe('show mac address-table（N153）', () => {
 describe('show running-config に無線と RIP（N151・N141b）', () => {
   it('無線の SSID と RIP の参加を、設定として出す（パスワードは出さない）', () => {
     const wifi = { uid: 'lap', device: 'laptop', macSerial: 3, x: 0, y: 0, locked: false, configLocked: false, gateway: null, routes: [], services: [], ports: [], interfaces: [{ id: 'g0/0', kind: 'port' as const, port: 0, ip: '192.168.1.20', prefix: 24, rip: true }], wireless: { ssid: 'HOME', password: 'secret' } } as unknown as NetNode;
-    const texts = runTerminal('show running-config', { node: wifi, nodes: [wifi], links: [], data }, tr).map((l) => l.text);
+    const texts = run('show running-config', { node: wifi, nodes: [wifi], links: [], data }, tr).map((l) => l.text);
     expect(texts).toContain('ui.terminal.cfgWireless {"ssid":"HOME"}');
     expect(texts).toContain('ui.terminal.cfgRip');
     expect(texts.join(' ')).not.toContain('secret');
@@ -277,12 +282,12 @@ describe('show ip nat translations（N146）', () => {
 
   it('NAT の設定がなければ、その旨を出す', () => {
     const r = router({});
-    expect(runTerminal('show ip nat translations', { node: r, nodes: [r], links: [], data }, tr)).toEqual([{ text: 'ui.terminal.natNone', kind: 'out' }]);
+    expect(run('show ip nat translations', { node: r, nodes: [r], links: [], data }, tr)).toEqual([{ text: 'ui.terminal.natNone', kind: 'out' }]);
   });
 
   it('静的 NAT の転送と NAPT の変換先を、外の口のアドレスで出す', () => {
     const r = router({ napt: true, statics: [{ port: 80, insideIp: '192.168.1.10', insidePort: 8080 }] });
-    expect(runTerminal('show ip nat translations', { node: r, nodes: [r], links: [], data }, tr).map((l) => l.text)).toEqual([
+    expect(run('show ip nat translations', { node: r, nodes: [r], links: [], data }, tr).map((l) => l.text)).toEqual([
       'ui.terminal.natHeader',
       `ui.terminal.natStatic ${JSON.stringify({ outsideIp: '203.0.113.2', outsidePort: 80, insideIp: '192.168.1.10', insidePort: 8080 })}`,
       `ui.terminal.natNapt ${JSON.stringify({ outsideIp: '203.0.113.2' })}`,
@@ -291,7 +296,7 @@ describe('show ip nat translations（N146）', () => {
 
   it('外の口がなければ失敗の行を出す', () => {
     const r = router({ napt: true, interfaces: [] });
-    expect(runTerminal('show ip nat translations', { node: r, nodes: [r], links: [], data }, tr)).toEqual([{ text: 'ui.terminal.natNoOutside', kind: 'err' }]);
+    expect(run('show ip nat translations', { node: r, nodes: [r], links: [], data }, tr)).toEqual([{ text: 'ui.terminal.natNoOutside', kind: 'err' }]);
   });
 });
 
@@ -321,7 +326,7 @@ describe('traceroute の表示', () => {
 
   it('各行に、そこへ届いたときに受け取った口のアドレスを出す', () => {
     const ctx = { node: routerNodes[0], nodes: routerNodes, links: routerLinks, data: routerData };
-    const lines = runTerminal('traceroute 192.168.2.10', ctx, tr).map((l) => l.text);
+    const lines = run('traceroute 192.168.2.10', ctx, tr).map((l) => l.text);
     expect(lines).toEqual([
       'ui.terminal.hop {"n":1,"ip":"192.168.1.1","name":"r1"}',
       'ui.terminal.hop {"n":2,"ip":"10.0.0.2","name":"r2"}',
