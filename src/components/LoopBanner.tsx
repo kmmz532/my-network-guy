@@ -1,7 +1,8 @@
 // 自社オフィスの配線が輪になっているときの表示。資金や評判には影響させず、社内の通信が止まっていることだけを知らせる
 import { useMemo } from 'react';
 import { t } from '../i18n/t';
-import { loopNodeOf } from '../network/engine';
+import { loopNodeOf } from '../network/query/loopNode';
+import { analyze } from '../network/engine/analyze';
 import { gameEnv } from '../sim/env';
 import { useGameStore } from '../stores/useGameStore';
 import { labelOfUid } from './nodeLabel';
@@ -11,7 +12,7 @@ export function LoopBanner() {
   const sandbox = state.mode === 'sandbox';
   const office = state.office;
   const loopUid = useMemo(
-    () => (sandbox ? null : loopNodeOf({ nodes: office.nodes, links: office.links }, gameEnv.engine)),
+    () => (sandbox ? null : loopNodeOf(analyze({ nodes: office.nodes, links: office.links }, gameEnv.engine))),
     [sandbox, office],
   );
   if (loopUid === null) return null;

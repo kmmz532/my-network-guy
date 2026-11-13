@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { http, linkLength, loopNodeOf, ping } from './engine';
+import { http, linkLength, ping } from './engine';
+import { loopNodeOf } from './query/loopNode';
+import { analyze } from './engine/analyze';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
 const data: EngineData = { wallAt: () => false };
@@ -283,8 +285,8 @@ describe('http', () => {
 describe('輪の検出（社内の表示に使う）', () => {
   it('輪がなければ null、輪があれば輪の中のスイッチの uid を返す', () => {
     const tree: Network = { nodes: [sw('s1'), sw('s2'), pc('a', null)], links: [link('l1', 'a', 0, 's1', 2), link('l2', 's1', 0, 's2', 0)] };
-    expect(loopNodeOf(tree, data)).toBeNull();
+    expect(loopNodeOf(analyze(tree, data))).toBeNull();
     const looped: Network = { ...tree, links: [...tree.links, link('l3', 's1', 1, 's2', 1)] };
-    expect(['s1', 's2']).toContain(loopNodeOf(looped, data));
+    expect(['s1', 's2']).toContain(loopNodeOf(analyze(looped, data)));
   });
 });

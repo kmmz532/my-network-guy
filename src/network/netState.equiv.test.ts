@@ -4,6 +4,8 @@ import fc from 'fast-check';
 import { gameEnv } from '../sim/env';
 import * as legacy from './__oracle__/engineLegacy';
 import * as staged from './netState';
+import { loopNodeOf } from './query/loopNode';
+import { analyze } from './engine/analyze';
 import { compile } from './compile';
 import type { Network, NetNode, NetLink, PathResult } from './types';
 
@@ -74,7 +76,7 @@ describe('段に分けた計算は、基準と同じ結果（N136）', () => {
             expect(withoutBack(staged.http(net, gameEnv.engine, src.uid, dst.uid, 80))).toEqual(legacy.http(compiled, gameEnv.engine, src.uid, dst.uid, 80));
           }
         }
-        expect(staged.loopNodeOf(net, gameEnv.engine)).toEqual(legacy.loopNodeOf(net, gameEnv.engine));
+        expect(loopNodeOf(analyze(net, gameEnv.engine))).toEqual(legacy.loopNodeOf(net, gameEnv.engine));
       }),
       { numRuns: 300, seed: 136 },
     );

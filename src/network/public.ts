@@ -11,3 +11,4 @@ export { lagBundlesOf } from './query/lagBundles';
 export { learnedRoutesOf } from './query/learnedRoutes';
 export { dhcpOf } from './query/dhcp';
 export { seenSourcesOf, type SeenSource } from './query/seenSources';
+export { loopNodeOf } from './query/loopNode';

@@ -836,18 +836,6 @@ export const http = (net: Network, data: EngineData, srcUid: string, dstUid: str
   return { ...forward, back: back.path };
 };
 
-// ネットワーク全体の中で、輪になっているL2ドメインがあれば、その輪の機器（スイッチ）の uid を返す。なければ null（社内のネットワークの障害の表示に使う）
-export const loopNodeOf = (net: Network, data: EngineData): string | null => {
-  const topo = analyze(net, data).topology;
-  for (const link of net.links) {
-    for (const ep of [link.a, link.b]) {
-      const loop = topo.domainOf(ep).loop;
-      if (loop) return loop.node;
-    }
-  }
-  return null;
-};
-
 // 同じチャネルのアクセスポイントどうしの重なり（電波が届く範囲の2倍以内で、同じチャネル。N152）。チャネルは未設定なら 1
 export const channelOverlapsOf = (net: Network, _data: EngineData): { a: string; b: string }[] => {
   const aps = net.nodes.filter((n) => deviceCategory(n.device) === CATEGORY.accessPoint || deviceCategory(n.device) === CATEGORY.homeRouter);
