@@ -152,7 +152,8 @@ export const compile = (input: Network, data: EngineData): Compiled => {
         const cfg = seg ? cfgOf.get(seg.key) : undefined;
         return cfg ? { ...i, prefix: cfg.prefix } : { ...i };
       });
-    if (isRoutingCategory(c)) return { ...n, interfaces, gateway: null, routes: n.routes };
+    // 案件で設定を固定した機器（仮想の ISP など）の既定のゲートウェイは、ルーターでも残す
+    if (isRoutingCategory(c)) return { ...n, interfaces, gateway: fixed(n) ? n.gateway : null, routes: n.routes };
     return { ...n, interfaces, gateway: gatewayOf.get(n.uid) ?? null, routes: n.routes };
   });
 

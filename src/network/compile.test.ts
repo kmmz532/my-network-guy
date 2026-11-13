@@ -191,4 +191,11 @@ describe('機器の不備（issues）', () => {
     };
     expect(compile(net, data).issues).toEqual({});
   });
+  it('設定を固定したルーターの既定のゲートウェイは残し、固定しないルーターでは消す', () => {
+    const fixedRouter = { ...router('r1', [{ id: 'g0/0', kind: 'port', port: 0, ip: '203.0.113.1', prefix: 24 }]), gateway: '203.0.113.2', configLocked: true };
+    const freeRouter = { ...router('r2', [{ id: 'g0/0', kind: 'port', port: 0, ip: '203.0.113.3', prefix: 24 }]), gateway: '203.0.113.2' };
+    const out = compile({ nodes: [fixedRouter, freeRouter], links: [], segments: {} }, data).net.nodes;
+    expect(out.find((n) => n.uid === 'r1')?.gateway).toBe('203.0.113.2');
+    expect(out.find((n) => n.uid === 'r2')?.gateway).toBeNull();
+  });
 });
