@@ -666,7 +666,7 @@ export const plannedAddressCandidates = (core: Core, network: string, prefix: nu
 // 色と配線から生成したネットワーク（判定・表示に使う）→ 配線とセグメントの設定から生成したネットワーク
 export const stateOfProject = (p: Project, env: Env): NetworkState => analyze({ nodes: p.nodes, links: p.links, segments: p.segments }, env.engine);
 
-export const compiledNet = (p: Project, env: Env): Network => stateOfProject(p, env).net;
+export const compiledNet = (p: Project, env: Env): Network => stateOfProject(p, env).addressing.net;
 
 // 設計時点の不備（機器の uid -> 不備の内容）
 export const designIssues = (p: Project, env: Env): Record<string, IssueDetail> => stateOfProject(p, env).addressing.issues;
