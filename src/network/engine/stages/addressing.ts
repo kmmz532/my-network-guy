@@ -8,8 +8,8 @@ import { stageRouting } from './routing';
 import { assignDhcp, type DhcpResult } from '../../dhcp';
 import { electVrrpMaster, type VrrpMember } from '../../vrrp';
 import { isL2Category, isRelayPort, isRoutingCategory } from '../../category';
-import { epKey, hostCapacity, segmentConfigOf, segmentsOf, type Segment } from '../../segments';
-import type { EngineData, Iface, NetNode, Network, SegmentConfig } from '../../types';
+import { epKey, hostCapacity, segmentConfigOf, type Segment } from '../../segments';
+import type { Iface, NetNode, Network, SegmentConfig } from '../../types';
 import { deviceCategory } from '../../../registry/query';
 import type { L2Layer } from './l2';
 import type { LinkLayer } from './links';
@@ -62,8 +62,7 @@ export interface AddressLayer {
 
 const label = (cfg: SegmentConfig): string => `${cfg.network}/${cfg.prefix}`;
 
-const complete = (input: Network, data: EngineData): { net: Network; issues: Record<string, IssueDetail> } => {
-  const segs = segmentsOf(input, data);
+const complete = (input: Network, segs: Segment[]): { net: Network; issues: Record<string, IssueDetail> } => {
   const byUid = new Map(input.nodes.map((n) => [n.uid, n]));
   const cat = (n: NetNode) => deviceCategory(n.device);
   const fixed = (n: NetNode) => n.configLocked && n.interfaces.length > 0;
@@ -248,9 +247,9 @@ const withLeases = (net: Network, dhcp: DhcpResult): Network => ({
   }),
 });
 
-export const stageAddressing = (input: Network, world: EngineData, links: LinkLayer, l2: L2Layer): AddressLayer => {
+export const stageAddressing = (input: Network, links: LinkLayer, l2: L2Layer): AddressLayer => {
   // セグメントは保存の配線から求める（無線の仮想の配線は入れない）
-  const { net: completed, issues } = complete(input, world);
+  const { net: completed, issues } = complete(input, l2.segments);
   // 無線の仮想の配線と口の設定は、配線の層の構成から取り、補完を入れた機器に重ねる
   const portsOf = new Map(links.net.nodes.map((n) => [n.uid, n.ports]));
   const before: Network = { ...completed, nodes: completed.nodes.map((n) => (portsOf.get(n.uid) === n.ports ? n : { ...n, ports: portsOf.get(n.uid) ?? n.ports })), links: links.net.links };

@@ -11,7 +11,7 @@ const node = (uid: string, device: string, serial: number, extra: Partial<NetNod
 const link = (uid: string, a: string, pa: number, b: string, pb: number): NetLink =>
   ({ uid, cable: 'utp_cat5e', a: { node: a, port: pa }, b: { node: b, port: pb }, path: [[0, 0], [1, 0]], paid: 0 });
 const access = (port: number, vlan: number): PortConfig => ({ port, mode: 'access', vlan });
-const layers = (net: Network) => stageL2(net, stageLinks(net, world));
+const layers = (net: Network) => stageL2(net, stageLinks(net, world), net, world);
 
 describe('stageL2', () => {
   it('VLAN が違う口は別のドメインになり、鍵は最も小さい端点になる', () => {

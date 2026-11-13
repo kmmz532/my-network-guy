@@ -4,8 +4,10 @@ import { describe, expect, it } from 'vitest';
 import { ping } from './engine';
 import { nodeName, type NameContext } from './nodeName';
 import { deviceCategory } from '../registry/query';
-import { segmentsOf } from './segments';
 import type { EngineData, Iface, NetLink, NetNode, Network, Route } from './types';
+
+const segmentsOf = (net: Network, data: EngineData) => analyze(net, data).l2.segments;
+
 
 const data: EngineData = { wallAt: () => false };
 

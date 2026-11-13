@@ -146,15 +146,15 @@ describe('ルーターのアドレスの候補', () => {
   };
 
   it('ホストと同じセグメントのルーターのアドレスを候補にする', () => {
-    expect(routerAddressesOn(net, data, 'pc_a', 0)).toEqual(['192.168.1.1']);
+    expect(routerAddressesOn(analyze(net, data).l2.segments, net, 'pc_a', 0)).toEqual(['192.168.1.1']);
   });
 
   it('ルーターがいないセグメントの候補は空になる', () => {
     const noRouter: Network = { nodes: [node('pc_a', 'pc_basic', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.9.11', prefix: 24 }]), node('pc_b', 'pc_basic')], links: [link('l0', ['pc_a', 0], ['pc_b', 0])] };
-    expect(routerAddressesOn(noRouter, data, 'pc_a', 0)).toEqual([]);
+    expect(routerAddressesOn(analyze(noRouter, data).l2.segments, noRouter, 'pc_a', 0)).toEqual([]);
   });
 
   it('ネクストホップは、つながるセグメントにいるほかのルーターのアドレス', () => {
-    expect(neighborRouterAddresses(net, data, 'rt')).toEqual(['10.0.0.2']);
+    expect(neighborRouterAddresses(analyze(net, data).l2.segments, net, 'rt')).toEqual(['10.0.0.2']);
   });
 });

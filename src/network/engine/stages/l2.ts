@@ -3,7 +3,8 @@ import { isFabricPort, isL3FabricPort, isRelayPort, isRoutingCategory, isSviPort
 import { can } from '../../capabilities';
 import { macOf } from '../../mac';
 import { computeStp, type StpResult } from '../../stp';
-import type { Endpoint, Iface, NetLink, NetNode, Network, PortConfig } from '../../types';
+import { segmentsOf, type Segment } from '../../segments';
+import type { EngineData, Endpoint, Iface, NetLink, NetNode, Network, PortConfig } from '../../types';
 import { deviceCategory } from '../../../registry/query';
 import type { LinkLayer } from './links';
 
@@ -36,11 +37,13 @@ export interface L2Layer {
   linkAt(ep: Endpoint): { link: NetLink; peer: Endpoint } | undefined;
   // スイッチの MAC の表（口ごとに、同じ L2 ドメインにつながった端末の MAC）
   macTable(uid: string): { port: number; mac: string }[];
+  // セグメント（配線とスイッチでつながった機器の集まり）。保存の構成から求め、無線の仮想の配線は含まない
+  readonly segments: Segment[];
 }
 
 const key = (ep: Endpoint) => `${ep.node}:${ep.port}`;
 
-export const stageL2 = (net: Network, links: LinkLayer): L2Layer => {
+export const stageL2 = (net: Network, links: LinkLayer, input: Network, world: EngineData): L2Layer => {
   const nodes = new Map<string, NetNode>();
   for (const node of net.nodes) nodes.set(node.uid, node);
   const catOf = (uid: string): string => {
@@ -199,5 +202,6 @@ export const stageL2 = (net: Network, links: LinkLayer): L2Layer => {
     return out;
   };
 
-  return { stp, isStpBlocked, domainOf, keyOf, isFabric, isRelay, vlanOf, carries, linkAt, macTable };
+  const segments = segmentsOf(input, world);
+  return { stp, isStpBlocked, domainOf, keyOf, isFabric, isRelay, vlanOf, carries, linkAt, macTable, segments };
 };

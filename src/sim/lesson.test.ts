@@ -5,7 +5,12 @@ import ja from '../assets/lang/ja_jp.json';
 import type { Lesson } from '../data/schema';
 import type { EngineData } from '../network/types';
 import { lessonGoalResults, lessonLinks, lessonNodes, lessonSegments } from './lesson';
-import { segmentConfigOf, segmentsOf } from '../network/segments';
+import { segmentConfigOf } from '../network/segments';
+import { analyze } from '../network/engine/analyze';
+import type { Network } from '../network/types';
+
+const segmentsOf = (net: Network, data: EngineData) => analyze(net, data).l2.segments;
+
 import { solutions } from '../__golden__/solutions';
 
 const engine: EngineData = { wallAt: () => false };

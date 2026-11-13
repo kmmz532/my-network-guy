@@ -16,7 +16,7 @@ import { ipToInt } from '../network/engine';
 import type { IssueDetail } from '../network/engine/stages/addressing';
 import { analyze } from '../network/engine/analyze';
 import type { NetworkState } from '../network/engine/state';
-import { fillSegments, intToIp, segmentConfigOf, segmentOf, segmentsOf, type Segment } from '../network/segments';
+import { fillSegments, intToIp, segmentConfigOf, segmentOf, type Segment } from '../network/segments';
 
 import type { DhcpPool } from '../network/dhcp';
 import type { EngineData, FailureReason, NetLink, NetNode, Network, PathResult, SegmentConfig, HostEntry } from '../network/types';
@@ -428,7 +428,7 @@ export const withNet = (core: Core, target: NetTarget, net: Net): Core => {
 
 // 機器のポートが属するセグメント（配線がなければ undefined）
 export const segmentAt = (net: Net, env: Env, uid: string, port: number): Segment | undefined =>
-  segmentOf(segmentsOf(net, env.engine), uid, port);
+  segmentOf(analyze(net, env.engine).l2.segments, uid, port);
 
 // 機器のポートのうち、ケーブルがつながっている番号の集合
 const usedPorts = (links: readonly NetLink[], node: NetNode): Set<number> => {

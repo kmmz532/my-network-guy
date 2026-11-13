@@ -4,6 +4,7 @@ import { ipToInt } from './engine';
 import { isFabricPort, isL3FabricPort, isRelayPort, isRoutingCategory, isSwitchedRouterCategory, ROUTER_SWITCH_LAN_HOST_PORT, sviPortOf } from './category';
 import type { EngineData, Endpoint, NetNode, Network, SegmentConfig } from './types';
 import { deviceCategory } from '../registry/query';
+import { analyze } from './engine/analyze';
 
 // 設定できるプレフィックス長（sim-3 の候補）
 export const PREFIX_MIN = 24;
@@ -133,7 +134,7 @@ export const segmentConfigOf = (
 export const fillSegments = (net: Network, data: EngineData): Record<string, SegmentConfig> => {
   const nodes = new Map(net.nodes.map((n) => [n.uid, n]));
   const out: Record<string, SegmentConfig> = { ...(net.segments ?? {}) };
-  for (const seg of segmentsOf(net, data)) {
+  for (const seg of analyze(net, data).l2.segments) {
     if (segmentConfigOf(seg, nodes, out)) continue;
     for (const m of seg.members) {
       const iface = nodes.get(m.node)?.interfaces.find((i) => i.port === m.port);
@@ -147,7 +148,7 @@ export const fillSegments = (net: Network, data: EngineData): Record<string, Seg
 };
 
 // セグメントの中のルーターのポートのアドレス（自分の機器を除き、昇順）
-const routerIpsOf = (members: Endpoint[], net: Pick<Network, 'nodes'>, _data: EngineData, self: string): string[] => {
+const routerIpsOf = (members: Endpoint[], net: Pick<Network, 'nodes'>, self: string): string[] => {
   const byUid = new Map(net.nodes.map((n) => [n.uid, n]));
   const ips = new Set<string>();
   for (const m of members) {
@@ -160,16 +161,16 @@ const routerIpsOf = (members: Endpoint[], net: Pick<Network, 'nodes'>, _data: En
   return [...ips].sort((a, b) => ipToInt(a) - ipToInt(b));
 };
 
-// 機器のポートと同じセグメントにあるルーターのアドレス。ホストのデフォルトゲートウェイの候補に使う
-export const routerAddressesOn = (net: Network, data: EngineData, uid: string, port: number): string[] => {
-  const seg = segmentOf(segmentsOf(net, data), uid, port);
-  return seg ? routerIpsOf(seg.members, net, data, uid) : [];
+// 機器のポートと同じセグメントにあるルーターのアドレス。ホストのデフォルトゲートウェイの候補に使う（segs は L2 の層のセグメント）
+export const routerAddressesOn = (segs: Segment[], net: Pick<Network, 'nodes'>, uid: string, port: number): string[] => {
+  const seg = segmentOf(segs, uid, port);
+  return seg ? routerIpsOf(seg.members, net, uid) : [];
 };
 
 // 機器がつながるセグメントにあるルーターのアドレス（自分を除く）。静的ルートのネクストホップの候補に使う
-export const neighborRouterAddresses = (net: Network, data: EngineData, uid: string): string[] => {
-  const members = segmentsOf(net, data)
+export const neighborRouterAddresses = (segs: Segment[], net: Pick<Network, 'nodes'>, uid: string): string[] => {
+  const members = segs
     .filter((seg) => seg.members.some((m) => m.node === uid))
     .flatMap((seg) => seg.members);
-  return routerIpsOf(members, net, data, uid);
+  return routerIpsOf(members, net, uid);
 };

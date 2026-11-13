@@ -1,5 +1,5 @@
 import { inSubnet, ipToInt } from '../engine';
-import { epKey, segmentConfigOf, segmentsOf, type Segment } from '../segments';
+import { epKey, segmentConfigOf, type Segment } from '../segments';
 import { isL2Category, isRelayPort } from '../category';
 import type { SegmentConfig } from '../types';
 import { deviceCategory } from '../../registry/query';
@@ -9,9 +9,8 @@ import type { NetworkColors } from '../netColor';
 // 設定されたセグメントのネットワークごとに色を決め、ケーブルがどのネットワークを表すかを求める
 export const networkColors = (state: NetworkState): NetworkColors => {
   const net = state.net;
-  const data = state.world;
   const byUid = new Map(net.nodes.map((n) => [n.uid, n]));
-  const segs = segmentsOf(net, data);
+  const segs = state.l2.segments;
   const cfgOf = new Map<string, SegmentConfig>();
   const segOf = new Map<string, Segment>();
   const vlanOfNetwork = new Map<string, number>();

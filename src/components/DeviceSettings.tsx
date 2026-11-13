@@ -15,7 +15,7 @@ import { can } from '../network/capabilities';
 import { wirelessAssociations } from '../network/engine/stages/links';
 import { channelOverlapsOf, networkColors, type NetworkState } from '../network/public';
 import { colorOfNetwork, UNSET_COLOR } from '../network/netColor';
-import { networkAddress, neighborRouterAddresses, routerAddressesOn, segmentConfigOf, segmentOf, segmentsOf } from '../network/segments';
+import { networkAddress, neighborRouterAddresses, routerAddressesOn, segmentConfigOf, segmentOf } from '../network/segments';
 import type { NetNode, SegmentConfig } from '../network/types';
 import { gameEnv } from '../sim/env';
 import { addressCandidates, PLANNED_NETWORK, PLANNED_PREFIX, plannedAddressCandidates, type AddressCandidate } from '../sim/project';
@@ -65,7 +65,6 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
   const netState = useGameStore((s) => netOfDevice(s, node.uid));
   // 配線（保存の構成）。無線の端末の仮想の配線と DHCP の割り当てを入れた構成は topologyNet（セグメント・ゲートウェイの計算に使う）
   const net = netState.input;
-  const engine = netState.world;
   const topologyNet = netState.net;
   const category = deviceCategory(node.device);
 
@@ -79,7 +78,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
   const linked =(port: number) => net.links.some((l) => (l.a.node === node.uid && l.a.port === port) || (l.b.node === node.uid && l.b.port === port));
   // ポートのセグメントの設定（配線がなければ undefined）
   const cfgOf = (port: number): SegmentConfig | undefined => {
-    const seg = segmentOf(segmentsOf(topologyNet, engine), node.uid, port);
+    const seg = segmentOf(netState.l2.segments, node.uid, port);
     return seg ? segmentConfigOf(seg, new Map(topologyNet.nodes.map((n) => [n.uid, n])), topologyNet.segments) : undefined;
   };
   // 使用中のアドレスに付ける機器の名前（機器の名前とポートの名前）
@@ -265,7 +264,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
 
   // ホストのデフォルトゲートウェイ（同じネットワークのルーターのアドレスを候補にする）
   const renderGateway = () => {
-    const routers = routerAddressesOn(topologyNet, engine, node.uid, 0);
+    const routers = routerAddressesOn(netState.l2.segments, topologyNet, node.uid, 0);
     // 現在のゲートウェイが候補にない場合も、一覧に残す
     const extra = node.gateway && !routers.includes(node.gateway) ? [node.gateway] : [];
     const gatewayOptions: ComboOption[] = [...routers, ...extra].map((ip) => ({ value: ip, usedBy: null }));
@@ -322,11 +321,11 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
 
   const renderRoutes = () => {
     const dests = new Map<string, { network: string; prefix: number }>();
-    for (const seg of segmentsOf(net, engine)) {
+    for (const seg of netState.l2.segments) {
       const cfg = segmentConfigOf(seg, byUid, net.segments);
       if (cfg) dests.set(`${cfg.network}/${cfg.prefix}`, { network: cfg.network, prefix: cfg.prefix });
     }
-    const hops = neighborRouterAddresses(topologyNet, engine, node.uid);
+    const hops = neighborRouterAddresses(netState.l2.segments, topologyNet, node.uid);
     return (
       <div style={sectionStyle}>
         <div>

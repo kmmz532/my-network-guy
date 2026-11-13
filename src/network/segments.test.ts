@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { fillSegments, hostCapacity, networkAddress, segmentConfigOf, segmentsOf } from './segments';
+import { fillSegments, hostCapacity, networkAddress, segmentConfigOf } from './segments';
+import { analyze } from './engine/analyze';
 import type { EngineData, Iface, NetLink, NetNode, Network } from './types';
+
+const segmentsOf = (net: Network, data: EngineData) => analyze(net, data).l2.segments;
+
 
 const data: EngineData = { wallAt: () => false };
 

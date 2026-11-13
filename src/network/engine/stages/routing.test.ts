@@ -31,7 +31,7 @@ const net: Network = {
 describe('stageRouting', () => {
   it('静的・OSPF・BGP の経路が1件ずつ出る', () => {
     const links = stageLinks(net, gameEnv.engine);
-    const routing = stageRouting(links.net, stageL2(links.net, links));
+    const routing = stageRouting(links.net, stageL2(links.net, links, net, gameEnv.engine));
     const routes = routing.routesOf('r2');
     expect(routes.map((r) => [r.dest, r.protocol ?? 'static'])).toEqual([
       ['10.9.0.0', 'static'],
