@@ -5,6 +5,7 @@ import { stageAddressing } from './stages/addressing';
 import { stageL2 } from './stages/l2';
 import { stageLinks } from './stages/links';
 import { stageRouting } from './stages/routing';
+import { segmentsOf } from '../segments';
 
 export const analyze = (input: Network, world: EngineData): NetworkState => {
   const links = stageLinks(input, world);
@@ -12,7 +13,7 @@ export const analyze = (input: Network, world: EngineData): NetworkState => {
   const l2 = stageL2(links.net, links, input, world);
   const addressing = stageAddressing(input, links, l2);
   const routing = stageRouting(addressing.net, l2);
-  return { input, world, net: addressing.net, links, l2, addressing, routing };
+  return { input, world, net: addressing.net, links, viewSegments: segmentsOf(addressing.net, world), l2, addressing, routing };
 };
 
 // 受け取れた自動の口の ip・prefix を機器へ書き戻す（前回のアドレスとして保存する）。変わる機器がなければ同じ配列を返す

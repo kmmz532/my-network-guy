@@ -4,6 +4,7 @@ import { gameEnv } from '../../../sim/env';
 import { cableMaxLength } from '../../../registry/query';
 import type { Iface, NetLink, NetNode, Network, PortConfig } from '../../types';
 import { stageLinks } from './links';
+import { analyze } from '../analyze';
 
 const world = gameEnv.engine;
 const node = (uid: string, device: string, serial: number, extra: Partial<NetNode> = {}): NetNode =>
@@ -23,6 +24,17 @@ describe('stageLinks', () => {
     const layer = stageLinks(net, world);
     expect(layer.associations.map((p) => [p.ap.uid, p.client.uid])).toEqual([['ap', 'lap']]);
     expect(layer.net.links.map((l) => l.uid)).toEqual(['__wifi_lap']);
+  });
+
+  it('画面のためのセグメントには、無線の端末がアクセスポイントと同じセグメントに入る', () => {
+    const wifi = { ssid: 'home', password: 'pass1234' };
+    const net: Network = {
+      nodes: [node('ap', 'access_point', 1, { x: 2, wireless: wifi }), node('lap', 'laptop', 2, { x: 4, wireless: wifi }), node('pc', 'pc_basic', 3)],
+      links: [link('w', 'pc', 0, 'ap', 0)],
+      segments: {},
+    };
+    const seg = analyze(net, world).viewSegments.find((s) => s.members.some((m) => m.node === 'lap'));
+    expect(seg?.members.map((m) => m.node).sort()).toEqual(['lap', 'pc']);
   });
 
   it('同じ2台の間の2本の配線は、1つの論理リンクにまとまる', () => {

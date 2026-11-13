@@ -10,7 +10,7 @@ import type { NetworkColors } from '../netColor';
 export const networkColors = (state: NetworkState): NetworkColors => {
   const net = state.net;
   const byUid = new Map(net.nodes.map((n) => [n.uid, n]));
-  const segs = state.l2.segments;
+  const segs = state.viewSegments;
   const cfgOf = new Map<string, SegmentConfig>();
   const segOf = new Map<string, Segment>();
   const vlanOfNetwork = new Map<string, number>();

@@ -78,7 +78,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
   const linked =(port: number) => net.links.some((l) => (l.a.node === node.uid && l.a.port === port) || (l.b.node === node.uid && l.b.port === port));
   // ポートのセグメントの設定（配線がなければ undefined）
   const cfgOf = (port: number): SegmentConfig | undefined => {
-    const seg = segmentOf(netState.l2.segments, node.uid, port);
+    const seg = segmentOf(netState.viewSegments, node.uid, port);
     return seg ? segmentConfigOf(seg, new Map(topologyNet.nodes.map((n) => [n.uid, n])), topologyNet.segments) : undefined;
   };
   // 使用中のアドレスに付ける機器の名前（機器の名前とポートの名前）
@@ -264,7 +264,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
 
   // ホストのデフォルトゲートウェイ（同じネットワークのルーターのアドレスを候補にする）
   const renderGateway = () => {
-    const routers = routerAddressesOn(netState.l2.segments, topologyNet, node.uid, 0);
+    const routers = routerAddressesOn(netState.viewSegments, topologyNet, node.uid, 0);
     // 現在のゲートウェイが候補にない場合も、一覧に残す
     const extra = node.gateway && !routers.includes(node.gateway) ? [node.gateway] : [];
     const gatewayOptions: ComboOption[] = [...routers, ...extra].map((ip) => ({ value: ip, usedBy: null }));
@@ -321,11 +321,11 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
 
   const renderRoutes = () => {
     const dests = new Map<string, { network: string; prefix: number }>();
-    for (const seg of netState.l2.segments) {
+    for (const seg of netState.viewSegments) {
       const cfg = segmentConfigOf(seg, byUid, net.segments);
       if (cfg) dests.set(`${cfg.network}/${cfg.prefix}`, { network: cfg.network, prefix: cfg.prefix });
     }
-    const hops = neighborRouterAddresses(netState.l2.segments, topologyNet, node.uid);
+    const hops = neighborRouterAddresses(netState.viewSegments, topologyNet, node.uid);
     return (
       <div style={sectionStyle}>
         <div>

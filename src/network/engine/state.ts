@@ -4,6 +4,7 @@ import type { AddressLayer } from './stages/addressing';
 import type { L2Layer } from './stages/l2';
 import type { LinkLayer } from './stages/links';
 import type { EngineData, Network } from '../types';
+import type { Segment } from '../segments';
 
 export interface NetworkState {
   // 保存の構成（操作が変えるもの）
@@ -13,6 +14,8 @@ export interface NetworkState {
   readonly net: Network;
   // 配線の層: 無線の結びつき・論理リンク・口の停止・配線の長さの超過
   readonly links: LinkLayer;
+  // 画面のためのセグメント。無線の端末も、仮想の配線でアクセスポイントのセグメントに入れる（補完と DHCP の後の構成から求める）
+  readonly viewSegments: Segment[];
   // L2 の層: L2 ドメイン・スパニングツリー・MAC の表
   readonly l2: L2Layer;
   // アドレスの層: 実効の口のアドレス・ゲートウェイの補完・DHCP の割り当て・VRRP の持ち主・設計の不備
