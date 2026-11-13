@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { t } from '../i18n/t';
 import { gameEnv } from '../sim/env';
-import { vrrpStatusOf } from '../network/netState';
+import { vrrpStatusOf } from '../network/public';
+import { analyze } from '../network/engine/analyze';
 import type { Iface, NetNode, Network } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, inputStyle, isIpText } from './devicePorts';
@@ -29,7 +30,7 @@ export function VrrpField({ node, iface, net, disabled, onError }: Props) {
   const [trackIface, setTrackIface] = useState('');
   const [decrement, setDecrement] = useState('10');
   const others = node.interfaces.filter((i) => i.id !== iface.id);
-  const status = vrrpStatusOf(net, gameEnv.engine, node.uid).filter((s) => s.iface === iface.id);
+  const status = vrrpStatusOf(analyze(net, gameEnv.engine), node.uid).filter((s) => s.iface === iface.id);
   const groups = iface.vrrp ?? [];
   const addable = /^\d+$/.test(vrid) && isIpText(ip);
   return (

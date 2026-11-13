@@ -4,3 +4,4 @@ export { stpOf } from './query/stp';
 export { bgpTableOf } from './query/bgpTable';
 export { ospfMismatchesOf } from './query/ospfMismatches';
 export { ospfNeighborsOf } from './query/ospfNeighbors';
+export { vrrpStatusOf } from './query/vrrpStatus';

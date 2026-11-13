@@ -11,7 +11,8 @@ import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
 import { bgpTableOf } from './query/bgpTable';
-import { adOf, dhcpOf, lagBundlesOf, vrrpStatusOf, learnedRoutesOf, macTableOf } from './netState';
+import { adOf, dhcpOf, lagBundlesOf, learnedRoutesOf, macTableOf } from './netState';
+import { vrrpStatusOf } from './query/vrrpStatus';
 import { ospfNeighborsOf } from './query/ospfNeighbors';
 import { ospfMismatchesOf } from './query/ospfMismatches';
 import type { Trace } from '../sim/project';
@@ -123,7 +124,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       return [out(tr('ui.terminal.natHeader')), ...lines];
     }
     if (sub === 'vrrp') {
-      const groups = vrrpStatusOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
+      const groups = vrrpStatusOf(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data), node.uid);
       if (groups.length === 0) return [out(tr('ui.terminal.vrrpNone'))];
       return groups.map((g) => out(tr('ui.terminal.vrrpGroup', { iface: g.iface, vrid: g.vrid, state: g.state, ip: g.ip, priority: g.priority, preempt: tr(g.preempt ? 'ui.terminal.vrrpPreemptOn' : 'ui.terminal.vrrpPreemptOff') })));
     }
