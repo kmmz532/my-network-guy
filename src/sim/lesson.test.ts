@@ -101,4 +101,18 @@ describe('教材を開いた直後の網の設定', () => {
     const solved = lessonNodes(l).map((n) => (n.uid === 'SW2' ? { ...n, stpPriority: 4096 } : n));
     expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true, true]);
   });
+
+  it('リンクアグリゲーションの教材: 初めは通じるがまとまっておらず、両端でまとめると合格する。両端 passive ではまとまらない', () => {
+    const l = lesson('lag_uplink');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([true, false]);
+    const withMode = (a: 'active' | 'passive', b: 'active' | 'passive') =>
+      lessonNodes(l).map((n) =>
+        n.uid === 'SW1' || n.uid === 'SW2'
+          ? { ...n, ports: [0, 1].map((port) => ({ port, mode: 'access' as const, channelGroup: 1, lacp: n.uid === 'SW1' ? a : b })) }
+          : n,
+      );
+    expect(lessonGoalResults(l.goals, withMode('active', 'active'), links, engine)).toEqual([true, true]);
+    expect(lessonGoalResults(l.goals, withMode('passive', 'passive'), links, engine)).toEqual([true, false]);
+  });
 });

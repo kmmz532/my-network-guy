@@ -1,7 +1,7 @@
 // 案件の達成条件（goals）の判定ハンドラ。種類ごとにハンドラを登録し、案件データから呼び出す。
 import type { Contract, Goal } from '../data/schema';
 import { http, ping, wirelessAssociations } from './engine';
-import { bgpTableOf, ospfNeighborsOf, stpOf } from './netState';
+import { bgpTableOf, lagBundlesOf, ospfNeighborsOf, stpOf } from './netState';
 import { outsideCheck, withInternet } from './external';
 import { resolveName } from './resolve';
 import type { EngineData, Failure, Network, PathResult } from './types';
@@ -86,6 +86,12 @@ const handlers: { [K in Goal['type']]: Handler } = {
     const withNet = withInternet(net, data) ?? net;
     const sessions = bgpTableOf(withNet, data, goal.node)?.sessions ?? [];
     const ok = sessions.filter((s) => s.status.state === 'established').length >= goal.min;
+    return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
+  },
+  // 指定した機器が、物理のリンク min 本以上を1本の論理リンクにまとめている
+  lag_bundled: (goal, net) => {
+    if (goal.type !== 'lag_bundled') throw new Error('lag_bundled ハンドラに別の種類が渡された');
+    const ok = lagBundlesOf(net, goal.node).some((b) => b.links.length >= goal.min);
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // 指定したスイッチがルートブリッジになっている

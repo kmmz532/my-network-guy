@@ -247,6 +247,7 @@ const goalRefs = (goal: Goal): string[] => {
     case 'survive_uplink_failure':
       return [];
     case 'stp_root':
+    case 'lag_bundled':
       return [goal.node];
     case 'survive_device_failure':
       return goal.nodes;
