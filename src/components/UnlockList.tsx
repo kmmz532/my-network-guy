@@ -6,7 +6,6 @@ import { ItemIcon } from './ItemIcon';
 import { Tooltip } from './Tooltip';
 import { Icon } from './Icon';
 import { itemSpriteOf } from './itemSprite';
-import { RADIUS } from '../ui/theme';
 
 // 解放された品目の名前（機材・ケーブル・家具・依頼）
 export const unlockNameOf = (x: { kind: 'device' | 'cable' | 'furniture' | 'template' | 'contract' | 'speed' | 'floor' | 'feature'; id: string }): string => {
