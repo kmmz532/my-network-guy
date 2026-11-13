@@ -2,8 +2,7 @@
 // 前の区間から変わった欄は色を変える（MAC の付け替え・NAT の変換・TTL の減少）。失敗した通信は、止まった機器と理由を最後の行に出す
 import { useEffect, useState } from 'react';
 import { t, tDyn } from '../i18n/t';
-import { framesOf, type Frame, type FrameContext } from '../network/frames';
-import { isL2Category, isRoutingCategory } from '../network/category';
+import { framesOf, isL2Category, isRoutingCategory, type Frame, type FrameContext } from '../network/public';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { labelOfUid } from './nodeLabel';
 import { secondaryButton } from './Modal';
@@ -30,8 +29,11 @@ export function FramesBody({ goal }: { goal?: number }) {
   }, [hop, index, setFrameView]);
   useEffect(() => () => setFrameView(null), [setFrameView]);
   const target = focusedProject(state);
-  const nodes = target ? target.nodes : state.office.nodes;
-  const links = target ? target.links : state.office.links;
+  // 表示する構成の計算の結果は、ストアのものを読む（設計中の案件、なければ自社オフィス）
+  const netState = target ? state.network.focus : state.network.office;
+  if (netState === null) throw new Error('設計中の案件のネットワークの計算の結果がない');
+  const nodes = netState.input.nodes;
+  const links = netState.input.links;
   if (traces.length === 0) return <div style={{ fontSize: 13 }}>{t('ui.frames.none')}</div>;
   const trace = traces[Math.min(index, traces.length - 1)];
 
