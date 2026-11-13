@@ -4,7 +4,7 @@ import { expAtLevel, levelOf, levelUpsBetween } from '../../sim/level';
 import { applyMoney } from '../../sim/ledger';
 
 import { crewBlock } from '../../sim/crew';
-import { accept } from '../../sim/project';
+import { accept } from '../../sim/progress';
 
 import { coreOf, focusedProject, offerEnv, refresh, unlockItems } from '../gameHelpers';
 import type { GameState } from '../useGameStore';

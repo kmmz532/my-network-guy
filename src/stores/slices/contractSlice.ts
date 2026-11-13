@@ -5,7 +5,7 @@ import { declineOffer } from '../../contracts/offers';
 import { gameEnv } from '../../sim/env';
 
 import { OFFICE_HISTORY_KEY, projectHistoryKey } from '../../sim/history';
-import { abandon, accept, acceptDelegated as acceptDelegatedOp, delegateBlind as delegateBlindOp, applyBlueprint as applyBlueprintOp, requestBuild } from '../../sim/project';
+import { abandon, accept, acceptDelegated as acceptDelegatedOp, delegateBlind as delegateBlindOp, applyBlueprint as applyBlueprintOp, requestBuild } from '../../sim/progress';
 
 import { coreOf, focusedProject } from '../gameHelpers';
 import type { GameState } from '../useGameStore';

@@ -4,7 +4,8 @@ import { gameEnv } from '../sim/env';
 
 import { autoAssign } from '../sim/autoAssign';
 import { emptyHistory, entryOf, historyKeyOf, projectHistoryKey, push as pushHistory, redo as redoHistory, stepDesign, undo as undoHistory } from '../sim/history';
-import { requestBuild, writeBackDhcp, type NetTarget, type Outcome } from '../sim/project';
+import { writeBackDhcp, type NetTarget, type Outcome } from '../sim/project';
+import { requestBuild } from '../sim/progress';
 
 import { plannedKey, type PlannedNet, coreOf, focusedProject, reportState, withLevelUps } from './gameHelpers';
 import type { GameState } from './useGameStore';

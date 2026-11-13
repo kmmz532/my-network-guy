@@ -20,7 +20,7 @@ import { tDyn } from '../i18n/t';
 import { settleRetirements } from '../sim/retire';
 import { backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice } from '../sim/backOffice';
 import { bonusEnvOf, pcDesksOf } from '../sim/furniture';
-import { advanceBuild } from '../sim/project';
+import { advanceBuild } from '../sim/progress';
 import { coreOf, refresh, reportState, salesArrivalPatch, trainingEnv, withLevelUps } from './gameHelpers';
 import type { GameState, Speed } from './useGameStore';
 

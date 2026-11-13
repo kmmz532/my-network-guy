@@ -31,7 +31,8 @@ import { initialOffice } from './furniture';
 import { mapOfOffice } from './office';
 import { buyDevice } from './shop';
 import { initialStaff } from './staff';
-import { accept, advanceBuild, connect, designIssues, focusedOf, requestBuild, testDesign, type Core, type Env, type Report } from './project';
+import { connect, designIssues, focusedOf, type Core, type Env, type Report } from './project';
+import { accept, advanceBuild, requestBuild, testDesign } from './progress';
 import { placeDevice } from './placement';
 import { addRoute, setFirewallRules, setInterface } from './netEdit';
 

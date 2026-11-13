@@ -15,7 +15,8 @@ import type { NetNode } from '../network/types';
 import type { Offer } from '../contracts/template';
 import { initialStaff } from './staff';
 import { autoAssign } from './autoAssign';
-import { abandon, accept, focusedOf, advanceBuild, checkConnect, connect, addressCandidates, plannedAddressCandidates, designIssues, requestBuild, testDesign, type Core, type Env } from './project';
+import { focusedOf, checkConnect, connect, addressCandidates, plannedAddressCandidates, designIssues, type Core, type Env } from './project';
+import { abandon, accept, advanceBuild, requestBuild, testDesign } from './progress';
 import { placeDevice, placeInOffice, removeFromOffice, removeLink, removeNode } from './placement';
 import { setInterface, setSegment, setGateway, setService } from './netEdit';
 

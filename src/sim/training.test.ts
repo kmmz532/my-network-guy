@@ -6,7 +6,8 @@ import trainingJson from '../assets/data/training.json';
 import type { Balance, CertDef, Contract } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { minutesPerDay } from './clock';
-import { accept, emptyOffice, noEffects, type Core } from './project';
+import { emptyOffice, noEffects, type Core } from './project';
+import { accept } from './progress';
 import { initialStaff } from './staff';
 import { examPassRate, finishTrainings, startTraining, takeExam, type TrainingEnv } from './training';
 

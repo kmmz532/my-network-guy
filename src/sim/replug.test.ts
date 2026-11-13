@@ -18,7 +18,8 @@ import { evaluateContract } from '../network/goals';
 import { compile } from '../network/compile';
 import { initialStaff } from './staff';
 import { autoAssign } from './autoAssign';
-import { accept, advanceBuild, compiledNet, connect, focusedOf, requestBuild, testDesign, type Core, type Env } from './project';
+import { compiledNet, connect, focusedOf, type Core, type Env } from './project';
+import { accept, advanceBuild, requestBuild, testDesign } from './progress';
 import { placeDevice, placeInOffice, replug } from './placement';
 import { setInterface, setService, setSegment } from './netEdit';
 
