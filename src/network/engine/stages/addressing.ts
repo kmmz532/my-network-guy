@@ -11,6 +11,7 @@ import { isL2Category, isRelayPort, isRoutingCategory } from '../../category';
 import { epKey, hostCapacity, planFor } from '../../segments';
 import type { Iface, NetNode, Network, NetworkPlan } from '../../types';
 import { deviceCategory } from '../../../registry/query';
+import { can } from '../../capabilities';
 import type { L2Layer, PlanDomain } from './l2';
 import type { LinkLayer } from './links';
 
@@ -83,7 +84,26 @@ const complete = (input: Network, segs: readonly PlanDomain[]): { net: Network; 
     if (!cur || ISSUE_ORDER.indexOf(d.reason) < ISSUE_ORDER.indexOf(cur.reason)) issues[uid] = d;
   };
 
-  // 設定のあるセグメント同士で、アドレスの範囲が重なるものを両方の機器に出す
+  // ルーターでつながった L2 ドメインの組（ルーターが両方のドメインに口を持てば、同じ組にまとめる）
+  const group = new Map<string, string>();
+  const root = (k: string): string => {
+    let r = k;
+    while (group.get(r) !== undefined && group.get(r) !== r) r = group.get(r)!;
+    return r;
+  };
+  const domainsOfRouter = new Map<string, string[]>();
+  for (const seg of segs) {
+    group.set(seg.key, seg.key);
+    for (const m of seg.members) {
+      const n = byUid.get(m.node);
+      if (!n || !can(n.device, 'routing')) continue;
+      domainsOfRouter.set(n.uid, [...(domainsOfRouter.get(n.uid) ?? []), seg.key]);
+    }
+  }
+  for (const keys of domainsOfRouter.values()) for (const k of keys.slice(1)) group.set(root(k), root(keys[0]));
+
+  // 設定のあるセグメント同士で、アドレスの範囲が重なるものを両方の機器に出す。
+  // 経路として衝突しうるのはルーターでつながったドメインの間だけのため、つながっていないドメインの重なりは不備にしない（VLAN で分けた同じサブネットなど）
   const ranges = segs
     .filter((s) => cfgOf.has(s.key))
     .map((seg) => {
@@ -95,7 +115,7 @@ const complete = (input: Network, segs: readonly PlanDomain[]): { net: Network; 
     for (let j = i + 1; j < ranges.length; j++) {
       const a = ranges[i];
       const b = ranges[j];
-      if (a.start < b.end && b.start < a.end) {
+      if (a.start < b.end && b.start < a.end && root(a.seg.key) === root(b.seg.key)) {
         for (const r of [a, b]) for (const m of r.seg.members) flag(m.node, { reason: 'segment.overlap', segment: label(r.cfg) });
       }
     }

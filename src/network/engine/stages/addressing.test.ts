@@ -152,14 +152,29 @@ describe('機器の不備（issues）', () => {
     });
   });
 
-  it('アドレスの範囲が重なるセグメントは segment.overlap になる', () => {
+  it('ルーターでつながったセグメントのアドレスの範囲が重なると segment.overlap になる', () => {
+    const r = router('r', [
+      { id: 'g0/0', kind: 'port', port: 0, ip: '192.168.1.1', prefix: 24 },
+      { id: 'g0/1', kind: 'port', port: 1, ip: '192.168.1.65', prefix: 26 },
+    ]);
+    const net: Network = {
+      nodes: [r, sw('s1'), sw('s2'), pc('a', '192.168.1.11'), pc('c', '192.168.1.70')],
+      links: [link('l0', 'r:0', 's1:0'), link('l1', 'a:0', 's1:1'), link('l2', 'r:1', 's2:0'), link('l3', 'c:0', 's2:1')],
+      plans: { 'a:0': seg('192.168.1.0', 24), 'c:0': seg('192.168.1.64', 26) },
+    };
+    const { issues } = addressing(net);
+    expect(issues.a?.reason).toBe('segment.overlap');
+    expect(issues.c?.reason).toBe('segment.overlap');
+  });
+
+  it('ルーターでつながっていないセグメントは、アドレスの範囲が重なっても不備にしない', () => {
     const net: Network = {
       nodes: [pc('a', '192.168.1.11'), pc('b', '192.168.1.12'), pc('c', '192.168.1.21'), pc('d', '192.168.1.22')],
       links: [link('l0', 'a:0', 'b:0'), link('l1', 'c:0', 'd:0')],
       plans: { 'a:0': seg('192.168.1.0', 24), 'c:0': seg('192.168.1.0', 25) },
     };
     const { issues } = addressing(net);
-    expect(Object.values(issues).map((i) => i.reason)).toEqual(['segment.overlap', 'segment.overlap', 'segment.overlap', 'segment.overlap']);
+    expect(Object.values(issues).map((i) => i.reason)).not.toContain('segment.overlap');
   });
 
   it('固定されたホストのゲートウェイがルーターのアドレスと違うと gateway.mismatch になる', () => {

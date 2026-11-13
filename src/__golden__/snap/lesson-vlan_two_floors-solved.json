@@ -285,35 +285,6 @@
       ]
     }
   ],
-  "issues": [
-    [
-      "K1",
-      {
-        "reason": "segment.overlap",
-        "segment": "192.168.1.0/24"
-      }
-    ],
-    [
-      "K2",
-      {
-        "reason": "segment.overlap",
-        "segment": "192.168.1.0/24"
-      }
-    ],
-    [
-      "S1",
-      {
-        "reason": "segment.overlap",
-        "segment": "192.168.1.0/24"
-      }
-    ],
-    [
-      "S2",
-      {
-        "reason": "segment.overlap",
-        "segment": "192.168.1.0/24"
-      }
-    ]
-  ],
+  "issues": [],
   "warnings": []
 }
