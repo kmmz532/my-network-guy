@@ -295,3 +295,16 @@ useGameStore.subscribe((s, prev) => {
 useGameStore.subscribe((s, prev) => {
   if (s.lastReport && s.lastReport !== prev.lastReport && s.lastReport.passed) playDeliver();
 });
+
+// 機器の画面が読む構成の計算の結果。設計中の案件の機器なら設計中の案件、表示中の案件の機器なら案件、そのほかは自社オフィス
+export const netOfDevice = (s: GameState, uid: string): NetworkState => {
+  if (focusedProject(s)) {
+    if (!s.network.focus) throw new Error('設計中の案件のネットワークの計算の結果がない');
+    return s.network.focus;
+  }
+  if (s.showcase?.nodes.some((n) => n.uid === uid)) {
+    if (!s.network.showcase) throw new Error('表示中の案件のネットワークの計算の結果がない');
+    return s.network.showcase;
+  }
+  return s.network.office;
+};
