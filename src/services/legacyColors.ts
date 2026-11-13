@@ -1,6 +1,6 @@
 import { makeIface } from '../network/iface';
 // 色（サブネット）でIPアドレス・ゲートウェイ・ルートを決めていた第2版の規則。古いセーブの移行（v4→v5、v12→v13）でだけ使う。
-// 通常の判定・表示には使わない（それらは network/compile.ts と network/segments.ts を使う）。
+// 通常の判定・表示には使わない（それらは network/engine/stages/addressing.ts と network/segments.ts を使う）。
 import { ipToInt } from '../network/engine';
 import { epKey, segmentsOf } from '../network/segments';
 import type { EngineData, Iface, NetLink, NetNode, Route } from '../network/types';

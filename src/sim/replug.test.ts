@@ -15,7 +15,7 @@ import type { Balance, Contract, Furniture, GameMap } from '../data/schema';
 import type { Offer } from '../contracts/template';
 
 import { evaluateContract } from '../network/goals';
-import { compile } from '../network/compile';
+import { analyze } from '../network/engine/analyze';
 import { initialStaff } from './staff';
 import { autoAssign } from './autoAssign';
 import { connect, focusedOf, stateOfProject, type Core, type Env } from './project';
@@ -178,7 +178,7 @@ describe('サーバーを置いて配線しIPを設定すると HTTP に合格�
     core = ok(setSegment(core, 'u0', 0, '192.168.1.0', 24, env)).core;
     core = ok(setInterface(core, 'u1', 0, '192.168.1.10', 24, env)).core;
     core = ok(setInterface(core, 'u0', 0, '192.168.1.11', 24, env)).core;
-    expect(compile({ nodes: cur(core).nodes, links: cur(core).links, segments: cur(core).segments }, env.engine).issues).toEqual({});
+    expect(analyze({ nodes: cur(core).nodes, links: cur(core).links, segments: cur(core).segments }, env.engine).addressing.issues).toEqual({});
     const tested = testDesign(core, env);
     if (!tested.ok || !tested.result.passed) throw new Error('テストに合格しない');
     core = ok(requestBuild(tested.core, env)).core;

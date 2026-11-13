@@ -94,7 +94,7 @@ function DeviceView({
   const isServer = category === CATEGORY.server;
   // 設定できるもの（IPアドレスなど）がない機器（L2 スイッチ）は、設定タブを出さない
   const hasConfig = category !== CATEGORY.l2Switch;
-  const issue = netState.issues[node.uid];
+  const issue = netState.addressing.issues[node.uid];
 
   return (
     <div>

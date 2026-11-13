@@ -88,7 +88,7 @@ export class Scene {
   // 実時間の経過（ms）。ゲームの速度に関係なく進む（疎通テストの流れに使う。時間を止めていても流れが動く）
   private realElapsed = 0;
   // 配線と設定から生成したネットワーク（不備の表示に使う）
-  private compiled: { net: NetworkState['net']; issues: NetworkState['issues'] } | null = null;
+  private compiled: { net: NetworkState['net']; issues: NetworkState['addressing']['issues'] } | null = null;
   // ケーブルの色（ネットワークアドレスごと）。表示だけに使う
   private netColors: NetworkColors | null = null;
   // 失敗の「？」の押せる範囲（機器の uid → マップの座標の矩形）。描き直すたびに作る
@@ -340,7 +340,7 @@ export class Scene {
     const map = s.maps[mapId];
     // 表示している構成の計算の結果は、ストアのものを読む（無線の端末の仮想の配線と DHCP の割り当てを含む）
     const state = shown ? this.networkOf(s) : null;
-    this.compiled = state ? { net: state.net, issues: state.issues } : null;
+    this.compiled = state ? { net: state.net, issues: state.addressing.issues } : null;
     this.wireEngine = state ? state.world : null;
     this.netColors = state ? networkColors(state) : null;
     if (!map) return;
@@ -670,7 +670,7 @@ export class Scene {
   }
 
   // 設計中の案件の機器の不備（機器の uid で引く）。設計中でなければ undefined
-  private issueOf(node: NetNode, project: Project): NetworkState['issues'][string] | undefined {
+  private issueOf(node: NetNode, project: Project): NetworkState['addressing']['issues'][string] | undefined {
     if (project.phase !== 'design' || !focusedProject(useGameStore.getState())) return undefined;
     return this.compiled?.issues[node.uid];
   }

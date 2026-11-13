@@ -2,7 +2,6 @@ import { ping, http } from '../network/engine';
 // 挙動の記録: ネットワークの構成から、外から見える結果（疎通・show の出力・ケーブルの色・口の状態・不備と警告）を決まった形で求める。
 // 記録は JSON にし、機器と配線は uid の順に並べる（記録の差分を読めるようにする）
 import { can } from '../network/capabilities';
-import { compile } from '../network/compile';
 import { colorOfLink } from '../network/netColor';
 import { networkColors } from '../network/query/networkColors';
 import { warningsOf } from '../network/query/warnings';
@@ -37,8 +36,8 @@ export const recordOf = (input: Network, engine: EngineData) => {
     nodes: [...input.nodes].sort((a, b) => a.uid.localeCompare(b.uid)),
     links: [...input.links].sort((a, b) => a.uid.localeCompare(b.uid)),
   };
-  const compiled = compile(sorted, engine);
-  const net = compiled.net;
+  const compiled = analyze(sorted, engine).addressing;
+  const net = compiled.completed;
   const ends = net.nodes.filter(isEnd);
   const servers = ends.filter((n) => n.services.length > 0);
   const pings = ends.flatMap((a) =>

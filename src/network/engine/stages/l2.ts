@@ -48,8 +48,11 @@ export const stageL2 = (net: Network, links: LinkLayer): L2Layer => {
     return node ? deviceCategory(node.device) : '';
   };
   const portCfg = (uid: string, port: number): PortConfig | undefined => nodes.get(uid)?.ports?.find((p) => p.port === port);
-  const hasIpOn = (uid: string, port: number): boolean => (nodes.get(uid)?.interfaces ?? []).some((i) => i.kind === 'port' && i.port === port);
-  const svisOf = (uid: string): Iface[] => (nodes.get(uid)?.interfaces ?? []).filter((i) => i.kind === 'svi');
+  // アドレスの残る口。中継だけの口（L2 スイッチではすべての口）のアドレスは、アドレスの層が除く。
+  // 除く規則は機器の種類と口の番号だけで決まるため、ここで同じ規則を当て、アドレスの層の結果を待たない（層の順序を保つ）
+  const addressed = (uid: string): Iface[] => (nodes.get(uid)?.interfaces ?? []).filter((i) => !isRelayPort(catOf(uid), i.port));
+  const hasIpOn = (uid: string, port: number): boolean => addressed(uid).some((i) => i.kind === 'port' && i.port === port);
+  const svisOf = (uid: string): Iface[] => addressed(uid).filter((i) => i.kind === 'svi');
   const isFabric = (uid: string, port: number): boolean =>
     isFabricPort(catOf(uid), port) || isL3FabricPort(catOf(uid), port, portCfg(uid, port), hasIpOn(uid, port));
   const isRelay = (uid: string, port: number): boolean =>

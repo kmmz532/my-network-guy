@@ -7,10 +7,13 @@ import { t, tDyn } from '../i18n/t';
 import { viewingOffice, useGameStore } from '../stores/useGameStore';
 import { gameEnv } from '../sim/env';
 import type { Project } from '../sim/project';
-import type { Compiled } from '../network/compile';
+import type { NetworkState } from '../network/public';
 import { effectText } from './effectText';
 import { staffAt, type StaffHit } from './staffHit';
 import type { MapHit } from './MapHit';
+
+// 補完したアドレスの構成と設計の不備
+type Compiled = { net: NetworkState['net']; issues: NetworkState['addressing']['issues'] };
 
 export interface MapTipHost {
   hit: MapHit;

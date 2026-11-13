@@ -13,7 +13,7 @@ import { engineWithWalls } from './walls';
 import type { Offer } from '../contracts/template';
 
 import { ipToInt } from '../network/engine';
-import type { IssueDetail } from '../network/compile';
+import type { IssueDetail } from '../network/engine/stages/addressing';
 import { analyze } from '../network/engine/analyze';
 import type { NetworkState } from '../network/engine/state';
 import { fillSegments, intToIp, segmentConfigOf, segmentOf, segmentsOf, type Segment } from '../network/segments';
@@ -669,7 +669,7 @@ export const stateOfProject = (p: Project, env: Env): NetworkState => analyze({ 
 export const compiledNet = (p: Project, env: Env): Network => stateOfProject(p, env).net;
 
 // 設計時点の不備（機器の uid -> 不備の内容）
-export const designIssues = (p: Project, env: Env): Record<string, IssueDetail> => stateOfProject(p, env).issues;
+export const designIssues = (p: Project, env: Env): Record<string, IssueDetail> => stateOfProject(p, env).addressing.issues;
 
 export type TestOutcome = { ok: true; core: Core; result: TestResult } | { ok: false; reason: string };
 

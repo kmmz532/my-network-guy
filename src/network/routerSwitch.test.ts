@@ -1,7 +1,6 @@
 import { analyze } from './engine/analyze';
 // スイッチ付きルーター（WAN 1口・LAN 4口。LAN は内部でスイッチとして1つのセグメント）と L3 スイッチ（ルーターと同じ扱い）のテスト
 import { describe, expect, it } from 'vitest';
-import { compile } from './compile';
 import { ping } from './engine';
 import { nodeName, type NameContext } from './nodeName';
 import { deviceCategory } from '../registry/query';
@@ -134,7 +133,7 @@ describe('スイッチ付きルーターとL3スイッチの設定の判定', ()
       links: [link('l1', 'a', 0, 'rs', 3)],
       segments: { 'a:0': { network: '192.168.1.0', prefix: 24 } },
     };
-    const { net: compiled, issues } = compile(net, data);
+    const { completed: compiled, issues } = analyze(net, data).addressing;
     expect(compiled.nodes.find((n) => n.uid === 'a')?.gateway).toBe('192.168.1.1');
     expect(issues.a).toBeUndefined();
     expect(issues.rs).toBeUndefined();
@@ -145,7 +144,7 @@ describe('スイッチ付きルーターとL3スイッチの設定の判定', ()
       nodes: [pc('a', '192.168.1.10'), node('rs', 'router_switch')],
       links: [link('l1', 'a', 0, 'rs', 2)],
     };
-    const { issues } = compile(net, data);
+    const { issues } = analyze(net, data).addressing;
     expect(issues.rs?.reason).toBe('ip.unset');
   });
 
@@ -154,7 +153,7 @@ describe('スイッチ付きルーターとL3スイッチの設定の判定', ()
       nodes: [pc('a', '192.168.1.10'), node('rs', 'router_switch', [{ id: "g0/3", kind: "port", port: 3, ip: '192.168.1.1', prefix: 24 }])],
       links: [link('l1', 'a', 0, 'rs', 3)],
     };
-    const { net: compiled } = compile(net, data);
+    const { completed: compiled } = analyze(net, data).addressing;
     expect(compiled.nodes.find((n) => n.uid === 'rs')?.interfaces).toEqual([]);
   });
 

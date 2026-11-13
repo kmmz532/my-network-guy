@@ -1,11 +1,13 @@
-// セグメントの設定と機器の設定（IPアドレス・ルート）から、判定に使うネットワークを作る。色は使わない。
-// IPアドレスの未設定や設定の不備は、機器ごとの issues として返す。判定エンジンは生成したネットワークをそのまま使う。
-// 仕様は memo/sim-3.md を参照する。
-import { inSubnet, ipToInt } from './engine';
-import { isL2Category, isRelayPort, isRoutingCategory } from './category';
-import { epKey, hostCapacity, segmentConfigOf, segmentsOf, type Segment } from './segments';
-import type { EngineData, Iface, NetNode, Network, SegmentConfig } from './types';
-import { deviceCategory } from '../registry/query';
+// アドレスの層: 実効の口のアドレス・端末のゲートウェイの補完・L2 の機器と中継だけの口のアドレスの除去・設計の不備（issues）。
+// セグメントの設定と機器の設定（IPアドレス・ルート）から求める。IPアドレスの未設定や設定の不備は、機器ごとの issues として返す。
+// 層の順序: 配線の層・L2 の層の後に置く。L2 の層は、口にアドレスが残るか（中継だけの口ではないか）で口の扱いを変えるが、
+// その規則（isRelayPort）は機器の種類と口の番号だけで決まるため、L2 の層は保存の構成に同じ規則を当てて求め、この層の結果を読まない
+import { inSubnet, ipToInt } from '../../engine';
+import { isL2Category, isRelayPort, isRoutingCategory } from '../../category';
+import { epKey, hostCapacity, segmentConfigOf, segmentsOf, type Segment } from '../../segments';
+import type { EngineData, Iface, NetNode, Network, SegmentConfig } from '../../types';
+import { deviceCategory } from '../../../registry/query';
+import type { LinkLayer } from './links';
 
 // 機器の不備の種類（sim-3 の失敗の理由）
 export type Issue =
@@ -36,14 +38,18 @@ export interface IssueDetail {
   gateway?: string;
 }
 
-export interface Compiled {
-  net: Network;
-  issues: Record<string, IssueDetail>;
+export interface AddressLayer {
+  // アドレスを補完した保存の構成（無線の仮想の配線と DHCP の割り当ての前。配線と口の設定は保存のまま）
+  readonly completed: Network;
+  // 実効の構成: 補完した機器に、配線の層の無線の仮想の配線とアクセスポイントの口の設定を重ねたもの
+  readonly net: Network;
+  // 設計の不備（機器ごとに1つ）
+  readonly issues: Readonly<Record<string, IssueDetail>>;
 }
 
 const label = (cfg: SegmentConfig): string => `${cfg.network}/${cfg.prefix}`;
 
-export const compile = (input: Network, data: EngineData): Compiled => {
+const complete = (input: Network, data: EngineData): { net: Network; issues: Record<string, IssueDetail> } => {
   const segs = segmentsOf(input, data);
   const byUid = new Map(input.nodes.map((n) => [n.uid, n]));
   const cat = (n: NetNode) => deviceCategory(n.device);
@@ -108,11 +114,11 @@ export const compile = (input: Network, data: EngineData): Compiled => {
     }
   }
 
-  // PC・サーバーは、配線の有無にかかわらず IPアドレスが必要
+  // PC・サーバーは、配線の有無にかかわらず IPアドレスが必要。
+  // 経路を持つ機器と、口0が中継だけの機器（L2 スイッチ・回線終端・アクセスポイント）は、IPアドレスを持たなくてよい
   for (const n of input.nodes) {
     const c = cat(n);
-    // 回線終端（uplink）は IPアドレスを持たない機器（N144）
-    if (!isL2Category(c) && !isRoutingCategory(c) && c !== 'uplink' && c !== 'access_point' && n.interfaces.length === 0) flag(n.uid, { reason: 'ip.unset' });
+    if (!isRoutingCategory(c) && !isRelayPort(c, 0) && n.interfaces.length === 0) flag(n.uid, { reason: 'ip.unset' });
   }
 
   // ホストのデフォルトゲートウェイは、同じセグメントにあるルーターのポートのアドレス（最も小さいもの）
@@ -158,4 +164,13 @@ export const compile = (input: Network, data: EngineData): Compiled => {
   });
 
   return { net: { nodes, links: input.links, segments: input.segments }, issues };
+};
+
+export const stageAddressing = (input: Network, world: EngineData, links: LinkLayer): AddressLayer => {
+  // セグメントは保存の配線から求める（無線の仮想の配線は入れない）
+  const { net: completed, issues } = complete(input, world);
+  // 無線の仮想の配線と口の設定は、配線の層の構成から取り、補完を入れた機器に重ねる
+  const portsOf = new Map(links.net.nodes.map((n) => [n.uid, n.ports]));
+  const net: Network = { ...completed, nodes: completed.nodes.map((n) => (portsOf.get(n.uid) === n.ports ? n : { ...n, ports: portsOf.get(n.uid) ?? n.ports })), links: links.net.links };
+  return { completed, net, issues };
 };

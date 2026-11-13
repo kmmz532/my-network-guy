@@ -1,10 +1,15 @@
-import { analyze } from './engine/analyze';
+import { analyze } from '../analyze';
 import { describe, expect, it } from 'vitest';
-import { compile } from './compile';
-import { ping } from './engine';
-import type { EngineData, Iface, NetLink, NetNode, Network, Route, SegmentConfig } from './types';
+import { ping } from '../../engine';
+import type { EngineData, Iface, NetLink, NetNode, Network, Route, SegmentConfig } from '../../types';
 
 const data: EngineData = { wallAt: () => false };
+
+// アドレスの層の補完した構成と不備
+const addressing = (net: Network) => {
+  const layer = analyze(net, data).addressing;
+  return { net: layer.completed, issues: layer.issues };
+};
 
 const node = (uid: string, device: string, interfaces: Iface[] = []): NetNode => ({ ports: [],
   uid,
@@ -52,7 +57,7 @@ describe('セグメントの設定から機器の設定を作る', () => {
       links: [link('l0', 'a:0', 's:0'), link('l1', 's:1', 'b:0')],
       segments: { 'a:0': seg('192.168.1.0') },
     };
-    const { net: out, issues } = compile(net, data);
+    const { net: out, issues } = addressing(net);
     expect(issues).toEqual({});
     expect(ping(analyze(out, data), 'a', 'b').ok).toBe(true);
   });
@@ -63,7 +68,7 @@ describe('セグメントの設定から機器の設定を作る', () => {
       links: [link('l0', 'a:0', 'r:0')],
       segments: { 'a:0': seg('192.168.1.0') },
     };
-    const { net: out, issues } = compile(net, data);
+    const { net: out, issues } = addressing(net);
     expect(issues).toEqual({});
     expect(out.nodes.find((n) => n.uid === 'a')?.gateway).toBe('192.168.1.1');
   });
@@ -81,7 +86,7 @@ describe('セグメントの設定から機器の設定を作る', () => {
       links: [link('l0', 'a:0', 'r:0'), link('l1', 'r:1', 'c:0')],
       segments: { 'a:0': seg('192.168.1.0'), 'c:0': seg('192.168.2.0') },
     };
-    const { net: out, issues } = compile(net, data);
+    const { net: out, issues } = addressing(net);
     expect(issues).toEqual({});
     expect(ping(analyze(out, data), 'a', 'c').ok).toBe(true);
   });
@@ -92,7 +97,7 @@ describe('セグメントの設定から機器の設定を作る', () => {
       nodes: [router('r', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 }], [route])],
       links: [],
     };
-    expect(compile(net, data).net.nodes[0].routes).toEqual([route]);
+    expect(addressing(net).net.nodes[0].routes).toEqual([route]);
   });
 
   it('IPアドレスの設定とプレフィックスは、セグメントの設定に従う', () => {
@@ -101,7 +106,7 @@ describe('セグメントの設定から機器の設定を作る', () => {
       links: [link('l0', 'a:0', 'b:0')],
       segments: { 'a:0': seg('192.168.1.0', 25) },
     };
-    const { net: out } = compile(net, data);
+    const { net: out } = addressing(net);
     expect(out.nodes.find((n) => n.uid === 'a')?.interfaces[0].prefix).toBe(25);
   });
 });
@@ -109,7 +114,7 @@ describe('セグメントの設定から機器の設定を作る', () => {
 describe('機器の不備（issues）', () => {
   it('IPアドレスのないPCは ip.unset になる（配線していなくても）', () => {
     const net: Network = { nodes: [pc('a')], links: [] };
-    expect(compile(net, data).issues).toEqual({ a: { reason: 'ip.unset' } });
+    expect(addressing(net).issues).toEqual({ a: { reason: 'ip.unset' } });
   });
 
   it('セグメントに設定がなければ segment.unset になる', () => {
@@ -117,7 +122,7 @@ describe('機器の不備（issues）', () => {
       nodes: [pc('a', '192.168.1.11'), pc('b', '192.168.1.12')],
       links: [link('l0', 'a:0', 'b:0')],
     };
-    expect(compile(net, data).issues).toEqual({
+    expect(addressing(net).issues).toEqual({
       a: { reason: 'segment.unset', ip: '192.168.1.11' },
       b: { reason: 'segment.unset', ip: '192.168.1.12' },
     });
@@ -129,7 +134,7 @@ describe('機器の不備（issues）', () => {
       links: [link('l0', 'a:0', 'b:0')],
       segments: { 'a:0': seg('192.168.1.0') },
     };
-    expect(compile(net, data).issues.a).toEqual({ reason: 'ip.out_of_segment', ip: '192.168.2.11', segment: '192.168.1.0/24' });
+    expect(addressing(net).issues.a).toEqual({ reason: 'ip.out_of_segment', ip: '192.168.2.11', segment: '192.168.1.0/24' });
   });
 
   it('ホスト数に対してアドレスが足りないと segment.too_small になる', () => {
@@ -139,7 +144,7 @@ describe('機器の不備（issues）', () => {
       // /30 は使えるアドレスが2つだけ
       segments: { 'a:0': seg('192.168.1.0', 30) },
     };
-    const { issues } = compile(net, data);
+    const { issues } = addressing(net);
     expect(issues).toEqual({
       a: { reason: 'segment.too_small', segment: '192.168.1.0/30' },
       b: { reason: 'segment.too_small', segment: '192.168.1.0/30' },
@@ -153,7 +158,7 @@ describe('機器の不備（issues）', () => {
       links: [link('l0', 'a:0', 'b:0'), link('l1', 'c:0', 'd:0')],
       segments: { 'a:0': seg('192.168.1.0', 24), 'c:0': seg('192.168.1.0', 25) },
     };
-    const { issues } = compile(net, data);
+    const { issues } = addressing(net);
     expect(Object.values(issues).map((i) => i.reason)).toEqual(['segment.overlap', 'segment.overlap', 'segment.overlap', 'segment.overlap']);
   });
 
@@ -167,7 +172,7 @@ describe('機器の不備（issues）', () => {
       nodes: [fixedPc, router('r', [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 }])],
       links: [link('l0', 'a:0', 'r:0')],
     };
-    const { net: out, issues } = compile(net, data);
+    const { net: out, issues } = addressing(net);
     expect(issues.a).toEqual({ reason: 'gateway.mismatch', gateway: '192.168.1.2', ip: '192.168.1.1' });
     // 固定されたゲートウェイは変えない
     expect(out.nodes.find((n) => n.uid === 'a')?.gateway).toBe('192.168.1.2');
@@ -179,7 +184,7 @@ describe('機器の不備（issues）', () => {
       links: [link('l0', 'a:0', 'b:0'), link('l1', 'c:0', 'd:0')],
       segments: { 'a:0': seg('192.168.1.0'), 'c:0': seg('192.168.2.0') },
     };
-    const { issues } = compile(net, data);
+    const { issues } = addressing(net);
     expect(Object.keys(issues).sort()).toEqual(['a', 'b', 'c', 'd']);
     expect(Object.values(issues).every((i) => i.reason === 'gateway.unset')).toBe(true);
   });
@@ -190,12 +195,12 @@ describe('機器の不備（issues）', () => {
       links: [link('l0', 'a:0', 'b:0')],
       segments: { 'a:0': seg('192.168.1.0') },
     };
-    expect(compile(net, data).issues).toEqual({});
+    expect(addressing(net).issues).toEqual({});
   });
   it('設定を固定したルーターの既定のゲートウェイは残し、固定しないルーターでは消す', () => {
     const fixedRouter = { ...router('r1', [{ id: 'g0/0', kind: 'port', port: 0, ip: '203.0.113.1', prefix: 24 }]), gateway: '203.0.113.2', configLocked: true };
     const freeRouter = { ...router('r2', [{ id: 'g0/0', kind: 'port', port: 0, ip: '203.0.113.3', prefix: 24 }]), gateway: '203.0.113.2' };
-    const out = compile({ nodes: [fixedRouter, freeRouter], links: [], segments: {} }, data).net.nodes;
+    const out = addressing({ nodes: [fixedRouter, freeRouter], links: [], segments: {} }).net.nodes;
     expect(out.find((n) => n.uid === 'r1')?.gateway).toBe('203.0.113.2');
     expect(out.find((n) => n.uid === 'r2')?.gateway).toBeNull();
   });

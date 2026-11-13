@@ -22,7 +22,7 @@ describe('analyze の性質（3.4）', () => {
       const a = analyze(c, gameEnv.engine);
       const b = analyze(c, gameEnv.engine);
       expect(a.net).toEqual(b.net);
-      expect(a.issues).toEqual(b.issues);
+      expect(a.addressing.issues).toEqual(b.addressing.issues);
     });
 
     it(`ケース ${i}: 機器と配線の並びを逆にしても、機器の結果は uid で並べると等しい`, () => {

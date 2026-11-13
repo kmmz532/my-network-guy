@@ -6,7 +6,6 @@ import { gameEnv } from '../sim/env';
 import * as legacy from './__oracle__/engineLegacy';
 import { loopNodeOf } from './query/loopNode';
 import { analyze } from './engine/analyze';
-import { compile } from './compile';
 import type { Network, NetNode, NetLink, PathResult } from './types';
 
 const withoutBack = (r: PathResult): Omit<PathResult, 'back'> => {
@@ -65,9 +64,9 @@ describe('段に分けた計算は、基準と同じ結果（N136）', () => {
   it('ping・http・ループの判定が、ランダムなネットワークで一致する', () => {
     fc.assert(
       fc.property(networkArb, (raw) => {
-        // 段に分けた計算は、中で compile を通すため、基準にも compile を通した構成を渡す
+        // 段に分けた計算は、中でアドレスを補完するため、基準にも補完した構成を渡す
         const net = raw;
-        const compiled = compile(raw, gameEnv.engine).net;
+        const compiled = analyze(raw, gameEnv.engine).addressing.completed;
         for (const src of net.nodes) {
           for (const dst of net.nodes) {
             if (src.uid === dst.uid) continue;

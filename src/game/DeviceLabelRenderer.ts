@@ -2,12 +2,15 @@
 import { Container, Text } from 'pixi.js';
 import { portLabel } from '../components/devicePorts';
 import { t } from '../i18n/t';
-import type { Compiled } from '../network/compile';
+import type { NetworkState } from '../network/public';
 import type { FailureReason, NetNode } from '../network/types';
 import { cumulativeLengths, pointAt, type Point } from './animation';
 import type { Project } from '../sim/project';
 import { visibleTopOfSprite } from './sprites';
 import { portCountOf, deviceCategory, maybeDevice } from '../registry/query';
+
+// 補完したアドレスの構成と設計の不備
+type Compiled = { net: NetworkState['net']; issues: NetworkState['addressing']['issues'] };
 
 const OUTLINE = 0x3b2a33;
 const BUBBLE_FILL = 0xf4f1e6;
