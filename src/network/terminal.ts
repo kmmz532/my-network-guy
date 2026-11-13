@@ -3,12 +3,14 @@
 // 補完（Tab）と、clear・hostname は、それぞれ別の関数で扱う（ここでは help の文言だけ）。
 // 文言は tr（言語ファイルの引き当て）で作る。モードは持たない。
 import { ping } from './engine';
+import { analyze } from './engine/analyze';
+import { stpOf } from './query/stp';
 import { networkAddress } from './segments';
 import { isIp } from './terminalConfig';
 import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
-import { adOf, bgpTableOf, dhcpOf, lagBundlesOf, stpOf, vrrpStatusOf, learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
+import { adOf, bgpTableOf, dhcpOf, lagBundlesOf, vrrpStatusOf, learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
 import type { Trace } from '../sim/project';
 import { framesOf } from './frames';
 import { isL2Category, isRoutingCategory } from './category';
@@ -141,7 +143,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
     }
     if (sub === 'spanning-tree') {
       const net = { nodes: ctx.nodes, links: ctx.links };
-      const stp = stpOf(net, ctx.data);
+      const stp = stpOf(analyze(net, ctx.data));
       if (stp.root === null || !stp.rootCost.has(node.uid)) return [err(tr('ui.terminal.stpOff'))];
       const lines = [out(tr(stp.root === node.uid ? 'ui.terminal.stpIsRoot' : 'ui.terminal.stpRoot', { root: name(ctx.nodes.find((n) => n.uid === stp.root) ?? node), cost: stp.rootCost.get(node.uid) ?? 0 }))];
       const mine = [...stp.roles.entries()].filter(([k]) => k.startsWith(`${node.uid}:`)).map(([k, role]) => ({ port: Number(k.split(':')[1]), role })).sort((a, b) => a.port - b.port);

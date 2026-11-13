@@ -4,7 +4,9 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
 import { can } from '../network/capabilities';
-import { dhcpOf, ping, portStatesOf, stpOf, warningsOf } from '../network/netState';
+import { dhcpOf, ping, portStatesOf, warningsOf } from '../network/netState';
+import { analyze } from '../network/engine/analyze';
+import { stpOf } from '../network/query/stp';
 import { SAVE_VERSION, isSaveData, migrate } from './migrations';
 
 const dir = join(import.meta.dirname, '__fixtures__');
@@ -28,7 +30,7 @@ describe('セーブの fixture', () => {
         for (const a of ends) for (const b of ends) if (a !== b) ping(net, gameEnv.engine, a, b);
         warningsOf(net, gameEnv.engine);
         dhcpOf(net, gameEnv.engine);
-        stpOf(net, gameEnv.engine);
+        stpOf(analyze(net, gameEnv.engine));
         for (const n of net.nodes) portStatesOf(net, gameEnv.engine, n.uid);
       });
     }

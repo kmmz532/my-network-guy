@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping, portStatesOf, stpOf, warningsOf } from './netState';
+import { ping, portStatesOf, warningsOf } from './netState';
+import { analyze } from './engine/analyze';
+import { stpOf } from './query/stp';
 import { computeLags, lacpCompatible } from './lag';
 import type { Iface, NetLink, NetNode, Network, PortConfig } from './types';
 
@@ -42,7 +44,7 @@ describe('リンクアグリゲーションの計算', () => {
     expect(ping(net, data, 'p1', 'p2').ok).toBe(true);
     expect(warningsOf(net).filter((w) => w.id === 'lag.mismatch')).toHaveLength(0);
     // スパニングツリーの輪としても数えない（止める口がない）
-    expect([...stpOf(net, data).roles.values()].filter((r) => r === 'blocking')).toHaveLength(0);
+    expect([...stpOf(analyze(net, data)).roles.values()].filter((r) => r === 'blocking')).toHaveLength(0);
   });
   it('まとまった1本が切れても通信できる', () => {
     const net = pair([], []);
@@ -54,7 +56,7 @@ describe('リンクアグリゲーションの計算', () => {
   it('両端を passive にするとまとまらず、2本の輪をスパニングツリーが断つ。警告 lag.mismatch を出す', () => {
     const net = pair([{ lacp: 'passive' }, { lacp: 'passive' }], [{ lacp: 'passive' }, { lacp: 'passive' }]);
     expect(warningsOf(net)).toContainEqual({ id: 'lag.mismatch', a: 'sw1', b: 'sw2' });
-    expect([...stpOf(net, data).roles.values()].filter((r) => r === 'blocking')).toHaveLength(1);
+    expect([...stpOf(analyze(net, data)).roles.values()].filter((r) => r === 'blocking')).toHaveLength(1);
     expect(ping(net, data, 'p1', 'p2').ok).toBe(true);
   });
   it('チャネルの番号が違う・片側だけの設定はまとまらない', () => {

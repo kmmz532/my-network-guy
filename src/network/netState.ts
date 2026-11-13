@@ -1053,8 +1053,6 @@ export const dhcpWriteBack = <T extends { uid: string; interfaces: Iface[] }>(no
 
 export const dhcpOf = (net: Network, data: EngineData): DhcpResult => analyze(net, data).dhcp;
 
-export const stpOf = (net: Network, data: EngineData): StpResult => analyze(net, data).topology.stp();
-
 // BGP の計算結果（show ip bgp・show ip bgp summary に出す）。BGP を動かしていない機器は undefined
 export const bgpTableOf = (net: Network, data: EngineData, uid: string): BgpResult | undefined => analyze(net, data).topology.bgpOf(uid);
 

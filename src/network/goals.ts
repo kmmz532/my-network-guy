@@ -1,7 +1,9 @@
 // 案件の達成条件（goals）の判定ハンドラ。種類ごとにハンドラを登録し、案件データから呼び出す。
 import type { Contract, Goal } from '../data/schema';
 import { http, ping, wirelessAssociations } from './engine';
-import { accessPointsOf, bgpTableOf, dhcpOf, lagBundlesOf, ospfNeighborsOf, stpOf } from './netState';
+import { accessPointsOf, bgpTableOf, dhcpOf, lagBundlesOf, ospfNeighborsOf } from './netState';
+import { analyze } from './engine/analyze';
+import { stpOf } from './query/stp';
 import { outsideCheck, withInternet } from './external';
 import { resolveName } from './resolve';
 import { isPcCategory } from '../data/categories';
@@ -115,7 +117,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
   // 指定したスイッチがルートブリッジになっている
   stp_root: (goal, net, data) => {
     if (goal.type !== 'stp_root') throw new Error('stp_root ハンドラに別の種類が渡された');
-    const ok = stpOf(net, data).root === goal.node;
+    const ok = stpOf(analyze(net, data)).root === goal.node;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // 指定した機器のどれか1台の電源を切っても、残りの PC・サーバーがすべて互いに届く

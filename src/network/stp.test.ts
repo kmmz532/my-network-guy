@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { ping, stpOf } from './netState';
+import { ping } from './netState';
+import { analyze } from './engine/analyze';
+import { stpOf } from './query/stp';
 import type { Iface, NetLink, NetNode, Network } from './types';
 
 const data = gameEnv.engine;
@@ -24,7 +26,7 @@ const triangle = (priority3?: number): Network => ({
 
 describe('スパニングツリー', () => {
   it('連番が最小のスイッチがルートになり、輪の1か所の口を止める', () => {
-    const r = stpOf(triangle(), data);
+    const r = stpOf(analyze(triangle(), data));
     expect(r.root).toBe('sw1');
     expect(r.roles.get('sw3:1')).toBe('blocking');
     expect(r.roles.get('sw2:1')).toBe('designated');
@@ -32,7 +34,7 @@ describe('スパニングツリー', () => {
     expect([...r.roles.values()].filter((x) => x === 'blocking')).toHaveLength(1);
   });
   it('優先度を小さくしたスイッチがルートになり、止まる口が変わる', () => {
-    const r = stpOf(triangle(4096), data);
+    const r = stpOf(analyze(triangle(4096), data));
     expect(r.root).toBe('sw3');
     expect(r.roles.get('sw3:1')).toBe('designated');
     expect(r.roles.get('sw2:0')).toBe('blocking');
