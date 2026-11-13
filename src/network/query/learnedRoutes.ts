@@ -3,4 +3,4 @@ import type { NetworkState } from '../engine/state';
 import type { Route } from '../types';
 
 export const learnedRoutesOf = (state: NetworkState, uid: string, protocol: 'rip' | 'ospf' | 'bgp'): Route[] =>
-  state.topology.routesOf(uid).filter((r) => r.protocol === protocol);
+  state.routing.routesOf(uid).filter((r) => r.protocol === protocol);

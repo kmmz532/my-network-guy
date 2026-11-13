@@ -1,6 +1,5 @@
 import type { NetworkState } from '../engine/state';
 import type { Iface, NetNode } from '../types';
-import { ospfPeersOf } from '../netState';
 import { electDr, ospfPriorityOf, ospfRouterId, type DrCandidate } from '../ospf';
 
 export interface OspfNeighbor {
@@ -20,7 +19,7 @@ export const ospfNeighborsOf = (state: NetworkState, uid: string): OspfNeighbor[
   const topo = state.topology;
   const r = topo.node(uid);
   if (!r) return [];
-  const peers = ospfPeersOf(topo, uid).filter((p) => p.mismatch === null);
+  const peers = state.routing.ospfPeersOf(uid).filter((p) => p.mismatch === null);
   const candidate = (nodeUid: string, port: number): DrCandidate => {
     const n = topo.node(nodeUid) as NetNode;
     const iface = n.interfaces.find((x) => x.port === port) as Iface;

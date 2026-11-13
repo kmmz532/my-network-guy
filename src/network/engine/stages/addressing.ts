@@ -3,6 +3,7 @@
 // 層の順序: 配線の層・L2 の層の後に置く。L2 の層は、口にアドレスが残るか（中継だけの口ではないか）で口の扱いを変えるが、
 // その規則（isRelayPort）は機器の種類と口の番号だけで決まるため、L2 の層は保存の構成に同じ規則を当てて求め、この層の結果を読まない
 import { deliver, inSubnet, ipToInt, Topology } from '../../engine';
+import { stageRouting } from './routing';
 import { assignDhcp, type DhcpResult } from '../../dhcp';
 import { electVrrpMaster, type VrrpMember } from '../../vrrp';
 import { isL2Category, isRelayPort, isRoutingCategory } from '../../category';
@@ -250,7 +251,7 @@ export const stageAddressing = (input: Network, world: EngineData, links: LinkLa
 
   // DHCP の割り当ては、割り当て前の構成で求める。同じドメインは L2 の層から引く。
   // リレーの到達は、割り当て前の構成で経路を仮に求め、リレーのルーターからサーバーまでたどる（この層の中だけで使い、外へ出さない）
-  const routed = new Topology(links, l2, unassigned);
+  const routed = new Topology(links, l2, unassigned, stageRouting(unassigned.net, l2));
   const nodeOf = new Map(before.nodes.map((n) => [n.uid, n]));
   const dhcp = assignDhcp(before.nodes, {
     domainOf: (uid, port) => l2.domainOf({ node: uid, port }).members,

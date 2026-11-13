@@ -2,4 +2,4 @@
 import type { BgpResult } from '../bgp';
 import type { NetworkState } from '../engine/state';
 
-export const bgpTableOf = (state: NetworkState, uid: string): BgpResult | undefined => state.topology.bgpOf(uid);
+export const bgpTableOf = (state: NetworkState, uid: string): BgpResult | undefined => state.routing.bgpOf(uid);

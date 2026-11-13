@@ -12,27 +12,16 @@ import type { DhcpResult } from './dhcp';
 import type { AddressLayer } from './engine/stages/addressing';
 import type { LinkLayer } from './engine/stages/links';
 import type { L2Domain, L2Layer } from './engine/stages/l2';
-import { computeBgp, type BgpEnv, type BgpResult } from './bgp';
-import { ospfMismatch, type OspfMismatch } from './ospf';
+import type { BgpResult } from './bgp';
+import { inSubnet, isPrivateIp } from './ip';
+import { adOf, type RoutingLayer } from './engine/stages/routing';
 import { deviceCategory } from '../registry/query';
 
 export { accessPointsOf, linkLength, wallsBetween, WALL_LOSS, WIRELESS_RADIUS, wirelessAssociations, withWireless } from './engine/stages/links';
 
 const MAX_HOPS = 16;
 
-export const ipToInt = (ip: string): number =>
-  ip.split('.').reduce((acc, octet) => ((acc << 8) + Number(octet)) >>> 0, 0);
-
-const maskOf = (prefix: number): number => (prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0);
-
-// IPアドレスのネットワークアドレス（a.b.c.d/nn の a.b.c.d の部分）
-const networkOf = (ip: string, prefix: number): string => {
-  const n = (ipToInt(ip) & maskOf(prefix)) >>> 0;
-  return [24, 16, 8, 0].map((s) => (n >>> s) & 255).join('.');
-};
-
-export const inSubnet = (ip: string, network: string, prefix: number): boolean =>
-  ((ipToInt(ip) & maskOf(prefix)) >>> 0) === ((ipToInt(network) & maskOf(prefix)) >>> 0);
+export { inSubnet, ipToInt, isPrivateIp } from './ip';
 
 export class Topology {
   private nodes = new Map<string, NetNode>();
@@ -42,6 +31,7 @@ export class Topology {
     private links: LinkLayer,
     private l2: L2Layer,
     private addressing: AddressLayer,
+    private routing: RoutingLayer,
   ) {
     for (const node of addressing.net.nodes) this.nodes.set(node.uid, node);
   }
@@ -51,131 +41,14 @@ export class Topology {
     return this.addressing.dhcp;
   }
 
-  // 段4の動的経路（RIP・OSPF の MVP）。RIP・OSPF に参加したインターフェースどうしが、同じ L2 ドメインでつながる隣接をたどり、
-  // 宛先のサブネットへの経路を作る。RIP は跳ね数（16 以上は届かない）、OSPF はコストの合計の最短経路（エリア 0 だけ）。
-  // 参加していない機器・インターフェースは、経路を作らない（今までの動きと同じ）
+  // 機器の経路表（静的・RIP・OSPF・BGP）。経路の層から読む
   routesOf(uid: string): Route[] {
-    if (this.dyn === undefined) this.dyn = this.dynamicRoutes();
-    return this.dyn.get(uid) ?? [];
+    return this.routing.routesOf(uid);
   }
 
-  private dyn?: Map<string, Route[]>;
-
-  private dynamicRoutes(): Map<string, Route[]> {
-    const out = new Map<string, Route[]>();
-    const routers = [...this.nodes.values()].filter((n) => this.isRouter(n.uid));
-    for (const proto of ['rip', 'ospf'] as const) {
-      const joined = (i: Iface): boolean => (proto === 'rip' ? i.rip === true : i.ospf !== undefined);
-      // 隣接（同じサブネットで、両方が参加している）。辺は相手の機器と、こちらの口の番号と、相手の口のアドレス
-      const adj = new Map<string, { to: string; cost: number; nextHop: string }[]>();
-      for (const r of routers) {
-        for (const i of r.interfaces) {
-          if (!joined(i)) continue;
-          for (const m of this.domainOf({ node: r.uid, port: i.port }).members) {
-            if (m.node === r.uid) continue;
-            const other = this.nodes.get(m.node);
-            if (!other || !this.isRouter(other.uid)) continue;
-            const oi = other.interfaces.find((x) => x.port === m.port);
-            if (!oi || !joined(oi) || !inSubnet(oi.ip, i.ip, i.prefix)) continue;
-            // OSPF の隣接は、同じエリアの口どうしだけ（エリアが違えば隣接しない・N142）
-            if (proto === 'ospf' && ospfMismatch(i, oi) !== null) continue;
-            const cost = proto === 'rip' ? 1 : (i.ospf?.cost ?? 1);
-            (adj.get(r.uid) ?? adj.set(r.uid, []).get(r.uid)!).push({ to: other.uid, cost, nextHop: oi.ip });
-          }
-        }
-      }
-      for (const r of routers) {
-        // 自分のインターフェース（参加している）と同じサブネットは、直結の経路として扱うため、経路を作らない
-        const own = r.interfaces.filter(joined);
-        // 最短経路（Bellman-Ford。機器は少ない）。最初の一歩の相手のアドレスを覚える
-        const dist = new Map<string, number>([[r.uid, 0]]);
-        const first = new Map<string, string>();
-        for (let round = 0; round < this.nodes.size; round++) {
-          let changed = false;
-          for (const [from, edges] of adj) {
-            const d = dist.get(from);
-            if (d === undefined) continue;
-            for (const e of edges) {
-              const nd = d + e.cost;
-              if (dist.get(e.to) === undefined || nd < (dist.get(e.to) as number)) {
-                dist.set(e.to, nd);
-                first.set(e.to, from === r.uid ? e.nextHop : (first.get(from) as string));
-                changed = true;
-              }
-            }
-          }
-          if (!changed) break;
-        }
-        const routes: Route[] = [];
-        for (const o of routers) {
-          if (o.uid === r.uid || dist.get(o.uid) === undefined) continue;
-          const hop = first.get(o.uid);
-          if (hop === undefined) continue;
-          const metric = dist.get(o.uid) as number;
-          // 既定の経路の配布（default-information originate）: 配る機器への最短の道を、0.0.0.0/0 の経路にする
-          if (proto === 'ospf' && o.ospf?.defaultOriginate === true) routes.push({ dest: '0.0.0.0', prefix: 0, nextHop: hop, protocol: 'ospf', metric });
-          // RIP は 16 以上で届かない（rip.unreachable）
-          if (proto === 'rip' && metric >= 16) continue;
-          for (const oi of o.interfaces) {
-            if (!joined(oi)) continue;
-            if (own.some((x) => inSubnet(oi.ip, x.ip, x.prefix))) continue;
-            const interArea = proto === 'ospf' && !own.some((x) => x.ospf?.area === oi.ospf?.area);
-            routes.push({ dest: networkOf(oi.ip, oi.prefix), prefix: oi.prefix, nextHop: hop, protocol: proto, metric, ...(interArea ? { interArea: true } : {}) });
-          }
-        }
-        out.set(r.uid, [...(out.get(r.uid) ?? []), ...routes]);
-      }
-    }
-    this.bgpRoutes(out);
-    return out;
-  }
-
-  // eBGP（MVP）。相手の AS と、お互いの設定（neighbor）が合い、直接つながっていれば隣接（セッション）になる。
-  // 各機器は自分の network 文の宛先を AS パス [自分の AS] で広告し、受け取った経路は自分の AS を含まないものだけ使う。短い AS パスを選ぶ
-  // BGP の隣接が成り立つか（相手のアドレスと AS 番号が合い、相手も自分を相手にし、同じ L2 でつながる・N147）
-  bgpSessionOk(r: NetNode, nbIp: string, remoteAs: number): boolean {
-    const routers = [...this.nodes.values()].filter((n) => n.bgp !== undefined && this.isRouter(n.uid));
-    const peer = routers.find((x) => x.interfaces.some((i) => i.ip === nbIp));
-    if (!peer || peer.uid === r.uid || peer.bgp!.asn !== remoteAs) return false;
-    const back = peer.bgp!.neighbors.find((x) => x.remoteAs === r.bgp!.asn && r.interfaces.some((i) => i.ip === x.ip));
-    if (!back) return false;
-    const myIface = r.interfaces.find((i) => inSubnet(nbIp, i.ip, i.prefix));
-    return myIface !== undefined && this.domainOf({ node: r.uid, port: myIface.port }).members.some((m) => m.node === peer.uid);
-  }
-
-  // BGP の計算結果（セッション・候補の経路）。段4の動的経路（static・RIP・OSPF）が決まった後に求める
+  // BGP の計算結果（セッション・候補の経路）
   bgpOf(uid: string): BgpResult | undefined {
-    this.routesOf(uid);
-    return this.bgpResult?.get(uid);
-  }
-
-  private bgpResult?: Map<string, BgpResult>;
-
-  private bgpRoutes(out: Map<string, Route[]>): void {
-    const routers = [...this.nodes.values()].filter((n) => n.bgp !== undefined && this.isRouter(n.uid));
-    const igp = (r: NetNode): Route[] => [...r.routes, ...(out.get(r.uid) ?? [])];
-    const covers = (ip: string, route: Route) => inSubnet(ip, route.dest, route.prefix);
-    const env: BgpEnv = {
-      direct: (r, ip) =>
-        r.interfaces.some(
-          (i) => inSubnet(ip, i.ip, i.prefix) && this.domainOf({ node: r.uid, port: i.port }).members.some((m) => this.nodes.get(m.node)?.interfaces.some((x) => x.ip === ip)),
-        ),
-      reaches: (r, ip) => r.interfaces.some((i) => inSubnet(ip, i.ip, i.prefix)) || igp(r).some((route) => covers(ip, route)),
-    };
-    this.bgpResult = computeBgp(routers, env);
-    for (const r of routers) {
-      const own = r.interfaces;
-      const routes: Route[] = [];
-      for (const c of this.bgpResult.get(r.uid)!.candidates) {
-        if (!c.best || c.local || c.nextHop === null) continue;
-        if (own.some((i) => inSubnet(c.dest, i.ip, i.prefix))) continue;
-        // ネクストホップが直結でなければ、それを覆す経路（静的・OSPF・RIP）の次のホップに置き換える
-        const direct = own.some((i) => inSubnet(c.nextHop!, i.ip, i.prefix));
-        const via = direct ? undefined : igp(r).filter((route) => covers(c.nextHop!, route)).sort((a, b) => b.prefix - a.prefix)[0];
-        routes.push({ dest: c.dest, prefix: c.prefix, nextHop: via ? via.nextHop : c.nextHop, protocol: 'bgp', metric: c.path.length, ...(c.ebgp ? {} : { ibgp: true }) });
-      }
-      out.set(r.uid, [...(out.get(r.uid) ?? []), ...routes]);
-    }
+    return this.routing.bgpOf(uid);
   }
 
   // すべての機器（静的 NAT の宛先を探すときに使う）
@@ -276,8 +149,7 @@ const duplicateReason = (topo: Topology, members: { node: string; port: number }
 // 通信の種類（ping は ICMP、http は指定のポートへの TCP）。ファイアウォールの規則の判定に使う
 export type Traffic = { kind: 'ping' } | { kind: 'http'; port: number };
 
-// 経路の管理距離（AD）。static 1・OSPF 110・RIP 120
-export const adOf = (r: Route): number => (r.protocol === 'ospf' ? 110 : r.protocol === 'rip' ? 120 : r.protocol === 'bgp' ? (r.ibgp ? 200 : 20) : 1);
+export { adOf };
 
 // 規則の送信元・宛先（'any' か「a.b.c.d/nn」）に、IPアドレスが入るか
 const matchNet = (spec: string, ip: string): boolean => {
@@ -285,9 +157,6 @@ const matchNet = (spec: string, ip: string): boolean => {
   const [network, prefix] = spec.split('/');
   return inSubnet(ip, network, Number(prefix));
 };
-
-// プライベートアドレス（10/8・172.16/12・192.168/16）か
-export const isPrivateIp = (ip: string): boolean => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(ip);
 
 // ファイアウォールが、この通信を通すか（規則のどれかに合えば通す。規則がなければ拒否）
 const allows = (rules: readonly FirewallRule[] | undefined, srcIp: string, dstIp: string, traffic: Traffic): boolean =>
@@ -433,7 +302,7 @@ export const deliver = (topo: Topology, srcUid: string, dstUid: string, traffic:
 
     // 最長一致で静的ルートを選ぶ
     // 設定した経路（static）と、RIP・OSPF の経路を合わせ、最長一致で選ぶ。同じ長さなら管理距離（AD）の小さい方（static 1・OSPF 110・RIP 120）
-    const matches = [...cur.routes, ...topo.routesOf(cur.uid)].filter((r) => inSubnet(dstIface.ip, r.dest, r.prefix));
+    const matches = topo.routesOf(cur.uid).filter((r) => inSubnet(dstIface.ip, r.dest, r.prefix));
     if (matches.length === 0) {
       // BGP の相手と隣接しない（アドレスか AS 番号が合わない）ときは bgp.no_session（N147）
       const bgp = cur.bgp ? topo.bgpOf(cur.uid) : undefined;
@@ -480,33 +349,6 @@ export const backOf = (topo: Topology, dstUid: string, srcUid: string, traffic: 
   if (!insideIface || !src || !dst) return { ok: false, path: toRouter.path, failure: fail('route.none', router) };
   const rest = deliver(topo, router, srcUid, traffic, false, insideIface.ip, undefined);
   return rest.ok ? { ...rest, path: [...toRouter.path, ...rest.path.slice(1)] } : rest;
-};
-
-// OSPF の隣接の候補（同じサブネットで OSPF に参加した相手のルーターの口）。条件が合わなければ mismatch に理由を持つ
-export interface OspfPeer {
-  uid: string;
-  ip: string;
-  port: number;
-  neighborIp: string;
-  mismatch: OspfMismatch | null;
-}
-
-export const ospfPeersOf = (topo: Topology, uid: string): OspfPeer[] => {
-  const r = topo.node(uid);
-  if (!r) return [];
-  const out: OspfPeer[] = [];
-  for (const i of r.interfaces) {
-    if (i.ospf === undefined) continue;
-    for (const m of topo.domainOf({ node: r.uid, port: i.port }).members) {
-      if (m.node === r.uid) continue;
-      const other = topo.node(m.node);
-      if (!other || !topo.isRouter(other.uid)) continue;
-      const oi = other.interfaces.find((x) => x.port === m.port);
-      if (!oi || oi.ospf === undefined || !inSubnet(oi.ip, i.ip, i.prefix)) continue;
-      out.push({ uid: other.uid, ip: i.ip, port: i.port, neighborIp: oi.ip, mismatch: ospfMismatch(i, oi) });
-    }
-  }
-  return out;
 };
 
 // 同じチャネルのアクセスポイントどうしの重なり（電波が届く範囲の2倍以内で、同じチャネル。N152）。チャネルは未設定なら 1
