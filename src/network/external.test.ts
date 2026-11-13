@@ -121,9 +121,10 @@ describe('2社の ISP（回線終端ごと）', () => {
     expect(w?.nodes.find((n) => n.uid === '__internet_u2')?.bgp?.asn).toBe(65002);
   });
   it('どちらの ISP からも外部の経路を BGP で覚え、PC が外部へ届く', async () => {
-    const { bgpTableOf } = await import('./netState');
+    const { bgpTableOf } = await import('./query/bgpTable');
+    const { analyze } = await import('./engine/analyze');
     const w = withInternet(two(), data)!;
-    const best = bgpTableOf(w, data, 'r')!.candidates.filter((c) => c.dest === '192.0.2.0');
+    const best = bgpTableOf(analyze(w, data), 'r')!.candidates.filter((c) => c.dest === '192.0.2.0');
     expect(best.map((c) => c.from).sort()).toEqual(['198.51.100.1', '203.0.113.1']);
     expect(best.find((c) => c.best)?.from).toBe('198.51.100.1');
     expect(outsideCheck(two(), data).pcsReachOutside).toBe(true);

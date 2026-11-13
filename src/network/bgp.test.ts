@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { bgpTableOf, learnedRoutesOf } from './netState';
+import { learnedRoutesOf } from './netState';
+import { bgpTableOf } from './query/bgpTable';
+import { analyze } from './engine/analyze';
 import type { BgpConfig, Iface, NetNode, Network } from './types';
 
 const f = (port: number, ip: string): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24 });
@@ -28,7 +30,7 @@ const twoIsps = (opts: { prependA?: number; localPrefA?: number }): Network => (
   segments: {},
 });
 
-const chosen = (net: Network) => bgpTableOf(net, data, 'r0')!.candidates.find((c) => c.best && c.dest === DEST.dest);
+const chosen = (net: Network) => bgpTableOf(analyze(net, data), 'r0')!.candidates.find((c) => c.best && c.dest === DEST.dest);
 
 describe('BGP の最適経路の選択', () => {
   it('AS パスが短い方を選ぶ（同じなら隣接のアドレスが小さい方）', () => {
@@ -56,7 +58,7 @@ const ibgp = (nextHopSelf: boolean): Network => ({
 
 describe('iBGP', () => {
   it('next-hop-self がないと、外の相手のアドレスのままで届かず、経路を使えない', () => {
-    const c = bgpTableOf(ibgp(false), data, 'r2')!.candidates.find((x) => x.dest === DEST.dest);
+    const c = bgpTableOf(analyze(ibgp(false), data), 'r2')!.candidates.find((x) => x.dest === DEST.dest);
     expect(c?.nextHop).toBe('10.0.1.2');
     expect(c?.valid).toBe(false);
     expect(learnedRoutesOf(ibgp(false), data, 'r2', 'bgp')).toEqual([]);
@@ -66,7 +68,7 @@ describe('iBGP', () => {
     expect(routes).toEqual([expect.objectContaining({ dest: DEST.dest, nextHop: '10.0.12.1', ibgp: true })]);
   });
   it('iBGP で学んだ経路は、別の iBGP の相手へ伝えない', () => {
-    expect(bgpTableOf(ibgp(true), data, 'r3')!.candidates).toEqual([]);
+    expect(bgpTableOf(analyze(ibgp(true), data), 'r3')!.candidates).toEqual([]);
   });
 });
 

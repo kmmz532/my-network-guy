@@ -10,7 +10,8 @@ import { isIp } from './terminalConfig';
 import { resolveName } from './resolve';
 import { macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
-import { adOf, bgpTableOf, dhcpOf, lagBundlesOf, vrrpStatusOf, learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
+import { bgpTableOf } from './query/bgpTable';
+import { adOf, dhcpOf, lagBundlesOf, vrrpStatusOf, learnedRoutesOf, macTableOf, ospfMismatchesOf, ospfNeighborsOf } from './netState';
 import type { Trace } from '../sim/project';
 import { framesOf } from './frames';
 import { isL2Category, isRoutingCategory } from './category';
@@ -165,7 +166,7 @@ export const runTerminal = (line: string, ctx: TerminalContext, tr: Tr): Termina
       );
     }
     if (sub === 'ip bgp summary' || sub === 'ip bgp') {
-      const bgp = bgpTableOf({ nodes: ctx.nodes, links: ctx.links }, ctx.data, node.uid);
+      const bgp = bgpTableOf(analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data), node.uid);
       if (!bgp) return [err(tr('ui.terminal.bgpOff'))];
       if (sub === 'ip bgp summary') {
         if (bgp.sessions.length === 0) return [out(tr('ui.terminal.bgpNone'))];

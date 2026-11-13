@@ -1,8 +1,9 @@
 // 案件の達成条件（goals）の判定ハンドラ。種類ごとにハンドラを登録し、案件データから呼び出す。
 import type { Contract, Goal } from '../data/schema';
 import { http, ping, wirelessAssociations } from './engine';
-import { accessPointsOf, bgpTableOf, dhcpOf, lagBundlesOf, ospfNeighborsOf } from './netState';
+import { accessPointsOf, dhcpOf, lagBundlesOf, ospfNeighborsOf } from './netState';
 import { analyze } from './engine/analyze';
+import { bgpTableOf } from './query/bgpTable';
 import { stpOf } from './query/stp';
 import { outsideCheck, withInternet } from './external';
 import { resolveName } from './resolve';
@@ -88,7 +89,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
   bgp_established: (goal, net, data) => {
     if (goal.type !== 'bgp_established') throw new Error('bgp_established ハンドラに別の種類が渡された');
     const withNet = withInternet(net, data) ?? net;
-    const sessions = bgpTableOf(withNet, data, goal.node)?.sessions ?? [];
+    const sessions = bgpTableOf(analyze(withNet, data), goal.node)?.sessions ?? [];
     const ok = sessions.filter((s) => s.status.state === 'established').length >= goal.min;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },

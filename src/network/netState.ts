@@ -1054,8 +1054,6 @@ export const dhcpWriteBack = <T extends { uid: string; interfaces: Iface[] }>(no
 export const dhcpOf = (net: Network, data: EngineData): DhcpResult => analyze(net, data).dhcp;
 
 // BGP の計算結果（show ip bgp・show ip bgp summary に出す）。BGP を動かしていない機器は undefined
-export const bgpTableOf = (net: Network, data: EngineData, uid: string): BgpResult | undefined => analyze(net, data).topology.bgpOf(uid);
-
 // 機器の口ごとの状態（背面の画面に出す）: 停止・スパニングツリーの役割・リンクアグリゲーションのチャネル
 export interface PortState {
   port: number;
