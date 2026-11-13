@@ -13,7 +13,9 @@ import type { ComboOption } from './comboOptions';
 import type { Compiled } from '../network/compile';
 import { isRelayPort, isRoutingCategory } from '../network/category';
 import { can } from '../network/capabilities';
-import { channelOverlapsOf, wirelessAssociations, withWireless } from '../network/netState';
+import { wirelessAssociations, withWireless } from '../network/netState';
+import { channelOverlapsOf } from '../network/public';
+import { analyze } from '../network/engine/analyze';
 import { engineWithWalls } from '../sim/walls';
 import { colorOfNetwork, networkColors, UNSET_COLOR } from '../network/netColor';
 import { networkAddress, neighborRouterAddresses, routerAddressesOn, segmentConfigOf, segmentOf, segmentsOf } from '../network/segments';
@@ -581,7 +583,7 @@ function WirelessField({ node, net, readOnly, onError }: { node: NetNode; net: N
   // アクセスポイントは、つながっている端末の数を出す。端末は、つながった先か、つながっていないことを出す
   const isClient = deviceCategory(node.device) !== CATEGORY.accessPoint && deviceCategory(node.device) !== CATEGORY.homeRouter;
   // 同じチャネルで近いアクセスポイントがあれば、注意を出す（N152）
-  const overlapping = channelOverlapsOf(net, engine).some((o) => o.a === node.uid || o.b === node.uid);
+  const overlapping = channelOverlapsOf(analyze(net, engine)).some((o) => o.a === node.uid || o.b === node.uid);
   const statusText = status
     ? t('ui.wireless.connected', { ap: nodeLabel(store, status.ap, net.nodes) })
     : isClient

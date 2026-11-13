@@ -781,19 +781,6 @@ export const ospfPeersOf = (topo: Topology, uid: string): OspfPeer[] => {
 };
 
 // 同じチャネルのアクセスポイントどうしの重なり（電波が届く範囲の2倍以内で、同じチャネル。N152）。チャネルは未設定なら 1
-export const channelOverlapsOf = (net: Network, _data: EngineData): { a: string; b: string }[] => {
-  const aps = net.nodes.filter((n) => deviceCategory(n.device) === CATEGORY.accessPoint || deviceCategory(n.device) === CATEGORY.homeRouter);
-  const out: { a: string; b: string }[] = [];
-  for (let i = 0; i < aps.length; i++) {
-    for (let j = i + 1; j < aps.length; j++) {
-      const a = aps[i];
-      const b = aps[j];
-      if ((a.wireless?.channel ?? 1) !== (b.wireless?.channel ?? 1)) continue;
-      if (Math.abs(a.x - b.x) + Math.abs(a.y - b.y) <= WIRELESS_RADIUS * 2) out.push({ a: a.uid, b: b.uid });
-    }
-  }
-  return out;
-};
 
 
 // 通れば通るが直すべき設定（警告・NET.md §6）: 直結の両端の口の VLAN が違う access（vlan.mismatch）、両端の native が違う trunk（vlan.native_mismatch）

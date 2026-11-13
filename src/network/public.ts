@@ -12,4 +12,5 @@ export { learnedRoutesOf } from './query/learnedRoutes';
 export { dhcpOf } from './query/dhcp';
 export { seenSourcesOf, type SeenSource } from './query/seenSources';
 export { loopNodeOf } from './query/loopNode';
+export { channelOverlapsOf } from './query/channelOverlaps';
 export { ping, http } from './engine/forward';
