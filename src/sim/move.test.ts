@@ -14,17 +14,8 @@ import type { Offer } from '../contracts/template';
 import type { Service } from '../network/types';
 import { initialStaff } from './staff';
 import { moveFurniture } from './furniture';
-import {
-  accept,
-  focusedOf,
-  moveNode,
-  placeDevice,
-  placeInOffice,
-  replugTo,
-  connect,
-  type Core,
-  type Env,
-} from './project';
+import { accept, focusedOf, connect, type Core, type Env } from './project';
+import { moveNode, placeDevice, placeInOffice, replugTo } from './placement';
 
 const balance = balanceJson as unknown as Balance;
 const map = officeJson as unknown as GameMap;

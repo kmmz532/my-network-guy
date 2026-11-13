@@ -6,7 +6,8 @@ import { EMPTY_FAMILIARITY } from './familiar';
 import { initialOffice } from './furniture';
 import { gameEnv } from './env';
 import { expAtLevel } from './level';
-import { emptyOffice, moveOfficeUplink, noEffects, officeUplinkOf, placeOfficeUplink, type Core, type Outcome } from './project';
+import { emptyOffice, noEffects, officeUplinkOf, type Core, type Outcome } from './project';
+import { moveOfficeUplink, placeOfficeUplink } from './placement';
 
 const balance = balanceJson as unknown as Balance;
 const unlock = balance.featureUnlocks.uplink;

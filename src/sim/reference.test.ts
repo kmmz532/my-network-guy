@@ -31,7 +31,8 @@ import { initialOffice } from './furniture';
 import { mapOfOffice } from './office';
 import { buyDevice } from './shop';
 import { initialStaff } from './staff';
-import { accept, advanceBuild, connect, designIssues, focusedOf, placeDevice, requestBuild, testDesign, type Core, type Env, type Report } from './project';
+import { accept, advanceBuild, connect, designIssues, focusedOf, requestBuild, testDesign, type Core, type Env, type Report } from './project';
+import { placeDevice } from './placement';
 import { addRoute, setFirewallRules, setInterface } from './netEdit';
 
 const balance = balanceJson as unknown as Balance;

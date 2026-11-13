@@ -8,7 +8,8 @@ import { changeOfficeFloor as changeFloorOp, type ExpandSide, expandOffice as ex
 import { OFFICE_HISTORY_KEY } from '../../sim/history';
 import { placeFurniture as placeFurnitureOp, moveFurniture as moveFurnitureOp, removeFurniture as removeFurnitureOp, rotateFurniture as rotateFurnitureOp } from '../../sim/furniture';
 import { clearsPlacing } from '../../sim/shop';
-import { type RoomId, placeDevice, placeInOffice, placeOfficeUplink, moveOfficeUplink, officeUplinkOf, type Outcome } from '../../sim/project';
+import { type RoomId, officeUplinkOf, type Outcome } from '../../sim/project';
+import { placeDevice, placeInOffice, placeOfficeUplink, moveOfficeUplink } from '../../sim/placement';
 
 import { SANDBOX_EXPAND_CONFIG, coreOf, focusedProject } from '../gameHelpers';
 import type { GameState } from '../useGameStore';

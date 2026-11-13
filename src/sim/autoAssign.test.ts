@@ -17,7 +17,8 @@ import { initialStaff } from './staff';
 import { initialOffice } from './furniture';
 import { entryOf, stepDesign } from './history';
 import { autoAssign } from './autoAssign';
-import { accept, connect, focusedOf, placeDevice, placeInOffice, type Core, type Env } from './project';
+import { accept, connect, focusedOf, type Core, type Env } from './project';
+import { placeDevice, placeInOffice } from './placement';
 import { setGateway, setInterface, setSegment } from './netEdit';
 import { buyDevice } from './shop';
 

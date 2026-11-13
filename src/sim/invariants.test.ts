@@ -13,7 +13,8 @@ import type { Balance, Furniture, GameMap } from '../data/schema';
 import { EMPTY_FAMILIARITY } from './familiar';
 import { initialStaff } from './staff';
 import { checkInvariants } from './invariants';
-import { connect, moveNode, placeInOffice, removeFromOffice, removeLink, replugTo, type Core, type Env, type Outcome } from './project';
+import { connect, type Core, type Env, type Outcome } from './project';
+import { moveNode, placeInOffice, removeFromOffice, removeLink, replugTo } from './placement';
 
 const balance = balanceJson as unknown as Balance;
 const map = officeJson as unknown as GameMap;

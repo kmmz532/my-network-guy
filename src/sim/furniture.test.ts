@@ -7,7 +7,8 @@ import balanceJson from '../assets/data/balance.json';
 import furnitureJson from '../assets/data/furniture.json';
 import type { Balance, Furniture } from '../data/schema';
 import { createStaff } from './staff';
-import { emptyOffice, noEffects, placeInOffice, type Core, type Env, type Office } from './project';
+import { emptyOffice, noEffects, type Core, type Env, type Office } from './project';
+import { placeInOffice } from './placement';
 
 // 1行目は床・2行目の(1,1)は壁。机は(1,0)に置いておく
 const map = {

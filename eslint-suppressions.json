@@ -540,6 +540,11 @@
       "count": 1
     }
   },
+  "src/sim/placement.ts": {
+    "local/no-category": {
+      "count": 3
+    }
+  },
   "src/sim/pricing.test.ts": {
     "local/no-category": {
       "count": 2
@@ -563,7 +568,7 @@
   },
   "src/sim/project.ts": {
     "local/no-category": {
-      "count": 13
+      "count": 10
     }
   },
   "src/sim/reference.test.ts": {

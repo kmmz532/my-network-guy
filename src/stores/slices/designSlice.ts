@@ -12,7 +12,8 @@ import { lessonLinks, lessonNodes, lessonSegments } from '../../sim/lesson';
 import { mapOfOffice } from '../../sim/office';
 
 import { closeRef } from '../../ui/windows';
-import { type PortChoice, connect, removeNode, removeFromOffice, type PortModeChange, type StpOp, type ChannelOp, type DhcpOp, type VrrpOp, type OspfOp, type NatOp, type BgpOp, replug, moveNode, replugTo, removeLink, testDesign, emptyOffice, type End } from '../../sim/project';
+import { type PortChoice, connect, type PortModeChange, type StpOp, type ChannelOp, type DhcpOp, type VrrpOp, type OspfOp, type NatOp, type BgpOp, testDesign, emptyOffice, type End } from '../../sim/project';
+import { removeNode, removeFromOffice, replug, moveNode, replugTo, removeLink } from '../../sim/placement';
 import { setInterface, setSvi, setPortMode, setGateway, setRouting, setOspf, setIsp, setPower, setStp, setChannel, setDhcp, setVrrp, setBgp, setNat, setWireless, setFirewallRules, setSegment, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, addRoute, removeRoute } from '../../sim/netEdit';
 
 import { coreOf, focusedProject, netTargetOf } from '../gameHelpers';

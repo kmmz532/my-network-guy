@@ -3,7 +3,8 @@
 import type { Application, FederatedPointerEvent } from 'pixi.js';
 import type { GameMap } from '../data/schema';
 import type { NetNode } from '../network/types';
-import { checkConnect, moveNode, placeDevice, placeInOffice, replugTo, type End, type Project } from '../sim/project';
+import { checkConnect, type End, type Project } from '../sim/project';
+import { moveNode, placeDevice, placeInOffice, replugTo } from '../sim/placement';
 import { moveFurniture, placeFurniture } from '../sim/furniture';
 import { gameEnv } from '../sim/env';
 import { coreOf, netTargetOf, viewingOffice, useGameStore, type WireStart } from '../stores/useGameStore';
