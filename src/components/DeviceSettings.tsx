@@ -222,7 +222,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
               ))}
           </div>
         )}
-        {iface && can(node.device, 'vrrp') && <VrrpField node={node} iface={iface} net={net} disabled={locked || unlinkedRouter} onError={onError} />}
+        {iface && can(node.device, 'vrrp') && <VrrpField node={node} iface={iface} disabled={locked || unlinkedRouter} onError={onError} />}
         <div style={{ ...row, fontSize: 12 }}>
           <span style={{ color: greyColor, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <span style={{ display: 'inline-block', width: 10, height: 10, background: hexColor(color), border: '1px solid #3b2a33' }} />

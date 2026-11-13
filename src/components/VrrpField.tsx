@@ -2,11 +2,9 @@
 // 追跡（track）はターミナルから設定する
 import { useState } from 'react';
 import { t } from '../i18n/t';
-import { gameEnv } from '../sim/env';
 import { vrrpStatusOf } from '../network/public';
-import { analyze } from '../network/engine/analyze';
-import type { Iface, NetNode, Network } from '../network/types';
-import { useGameStore } from '../stores/useGameStore';
+import type { Iface, NetNode } from '../network/types';
+import { netOfDevice, useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, inputStyle, isIpText } from './devicePorts';
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
@@ -17,20 +15,21 @@ const BADGE = { Master: '#62d26f', Backup: '#8a8f98', Init: '#f0a030' } as const
 interface Props {
   node: NetNode;
   iface: Iface;
-  net: Network;
   disabled: boolean;
   onError: (reason: string | null) => void;
 }
 
-export function VrrpField({ node, iface, net, disabled, onError }: Props) {
+export function VrrpField({ node, iface, disabled, onError }: Props) {
   const setVrrp = useGameStore((s) => s.setVrrp);
+  // 画面の計算は、ストアの計算の結果を読む
+  const netState = useGameStore((s) => netOfDevice(s, node.uid));
   const [vrid, setVrid] = useState('');
   const [ip, setIp] = useState('');
   // 追跡の追加（追跡する口と、止まったときに下げる値）
   const [trackIface, setTrackIface] = useState('');
   const [decrement, setDecrement] = useState('10');
   const others = node.interfaces.filter((i) => i.id !== iface.id);
-  const status = vrrpStatusOf(analyze(net, gameEnv.engine), node.uid).filter((s) => s.iface === iface.id);
+  const status = vrrpStatusOf(netState, node.uid).filter((s) => s.iface === iface.id);
   const groups = iface.vrrp ?? [];
   const addable = /^\d+$/.test(vrid) && isIpText(ip);
   return (
