@@ -128,4 +128,12 @@ describe('教材を開いた直後の網の設定', () => {
     expect(lessonGoalResults(l.goals, solved(true), links, engine)).toEqual([true, true]);
     expect(lessonGoalResults(l.goals, solved(false), links, engine)).toEqual([false, false]);
   });
+
+  it('OSPF の入門の教材: 初めは届かず、両側の口を OSPF に参加させると届く（静的経路は使わない）', () => {
+    const l = lesson('ospf_intro');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false, false]);
+    const solved = lessonNodes(l).map((n) => (n.uid === 'R1' || n.uid === 'R2' ? { ...n, interfaces: n.interfaces.map((i) => ({ ...i, ospf: { area: 0 } })) } : n));
+    expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true, true]);
+  });
 });

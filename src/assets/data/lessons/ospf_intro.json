@@ -1,0 +1,182 @@
+{
+  "id": "ospf_intro",
+  "topic": "routing",
+  "order": 5,
+  "size": {
+    "w": 15,
+    "h": 8
+  },
+  "placed": [
+    {
+      "ref": "PC1",
+      "device": "pc_basic",
+      "x": 1,
+      "y": 4,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.1.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.0.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "PC1"
+    },
+    {
+      "ref": "R1",
+      "device": "router_basic",
+      "x": 4,
+      "y": 4,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.1.1",
+            "prefix": 24
+          },
+          {
+            "port": 1,
+            "ip": "10.0.12.1",
+            "prefix": 30
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "R1"
+    },
+    {
+      "ref": "R2",
+      "device": "router_basic",
+      "x": 9,
+      "y": 4,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.2.1",
+            "prefix": 24
+          },
+          {
+            "port": 1,
+            "ip": "10.0.12.2",
+            "prefix": 30
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "R2"
+    },
+    {
+      "ref": "PC2",
+      "device": "pc_basic",
+      "x": 13,
+      "y": 4,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.2.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.0.2.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "PC2"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PC1",
+        "port": 0
+      },
+      "b": {
+        "ref": "R1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "R1",
+        "port": 1
+      },
+      "b": {
+        "ref": "R2",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "R2",
+        "port": 0
+      },
+      "b": {
+        "ref": "PC2",
+        "port": 0
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": [
+        "PC1",
+        "PC2"
+      ]
+    },
+    {
+      "type": "no_static_route"
+    }
+  ],
+  "guide": [
+    {
+      "target": "R1",
+      "done": "open:R1"
+    },
+    {
+      "target": "R1",
+      "done": "cmd:show ip route"
+    },
+    {
+      "target": "R1",
+      "done": "cmd:router ospf"
+    },
+    {
+      "target": "R1",
+      "done": "cmd:network"
+    },
+    {
+      "target": "R2",
+      "done": "cmd:network"
+    },
+    {
+      "target": "test",
+      "done": "goal:1"
+    },
+    {
+      "target": "R1",
+      "done": "cmd:show ip ospf neighbor"
+    },
+    {
+      "target": "R1",
+      "done": "cmd:show ip route"
+    }
+  ]
+}
