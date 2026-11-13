@@ -16,3 +16,8 @@ export const nextFastSpeed = (current: number, unlocked: readonly number[]): num
   const fast = unlocked.filter((speed) => speed >= 2);
   return fast.find((speed) => speed > current) ?? fast[0] ?? 2;
 };
+
+// 調整の値（balance.time.speeds）にない速さは例外にする
+export const assertKnownSpeed = (speed: number, balance: Balance): void => {
+  if (!balance.time.speeds.includes(speed)) throw new Error(`未定義の速さ: ${speed}`);
+};

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
 import type { Balance } from '../data/schema';
-import { isSpeedUnlocked, nextFastSpeed, unlockedSpeedsOf } from './speed';
+import { assertKnownSpeed, isSpeedUnlocked, nextFastSpeed, unlockedSpeedsOf } from './speed';
 
 const balance = balanceJson as unknown as Balance;
 
@@ -33,5 +33,13 @@ describe('早送りの切り替え（N99）', () => {
   it('解放されていない速さは飛ばす（4倍が未解放なら 2倍 → 2倍）', () => {
     expect(nextFastSpeed(2, [0, 1, 2])).toBe(2);
     expect(nextFastSpeed(1, [0, 1, 2, 4])).toBe(2);
+  });
+});
+
+describe('速さの検査', () => {
+  it('調整の値にある速さは通り、ない速さは例外にする', () => {
+    expect(() => assertKnownSpeed(16, balance)).not.toThrow();
+    expect(() => assertKnownSpeed(32, balance)).not.toThrow();
+    expect(() => assertKnownSpeed(3, balance)).toThrow();
   });
 });

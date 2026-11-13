@@ -5,7 +5,7 @@ import { levelOf, levelUpsBetween } from '../../sim/level';
 import { grantDailyExp, type ExpSource } from '../../sim/companyExp';
 import { applyMoney, recordSaving } from '../../sim/ledger';
 
-import { isSpeedUnlocked } from '../../sim/speed';
+import { assertKnownSpeed, isSpeedUnlocked } from '../../sim/speed';
 
 import { priceOfItem, purchaseDiscountOf, unlockItems } from '../gameHelpers';
 import type { GameState, Speed } from '../useGameStore';
@@ -44,9 +44,10 @@ export const createEconomySlice: StateCreator<GameState, [], [], EconomySlice> =
     // 速さを人が変えたら、勤務時間外の自動の早送りは取り消す（覚えた速さには戻さない）
     // サンドボックスは時間を止めたままにする
     setSpeed: (speed) => {
+      assertKnownSpeed(speed, balance);
       // 解放されていない早送りには変えない（N99）。サンドボックスは従来どおり止めたまま
       if (get().mode !== 'sandbox' && !isSpeedUnlocked(speed, levelOf(get().companyExp, balance), balance)) return;
-      set({ speed: get().mode === 'sandbox' ? 0 : (speed as Speed), nightSpeed: null, ...(speed !== 0 && get().mode !== 'sandbox' ? { resumeSpeed: speed } : {}) });
+      set({ speed: get().mode === 'sandbox' ? 0 : speed, nightSpeed: null, ...(speed !== 0 && get().mode !== 'sandbox' ? { resumeSpeed: speed } : {}) });
     },
     buy: (deviceId) => {
       const s = get();

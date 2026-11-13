@@ -57,7 +57,7 @@ export interface ItemDrag {
   y: number;
 }
 
-export type Speed = 0 | 1 | 2 | 4 | 8;
+export type Speed = number;
 
 export type { PlannedNet } from './gameHelpers';
 export { plannedKey } from './gameHelpers';

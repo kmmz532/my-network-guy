@@ -1,6 +1,6 @@
 // 上の中央の知らせ（通知・繰り返しの案内・速度の表示）は、1つの縦並びの箱に入れる。位置の数値は箱だけが持つ（N124）
 import { useEffect, useRef, useState } from 'react';
-import { t } from '../../i18n/t';
+import { tDyn } from '../../i18n/t';
 import { useGameStore, type Speed } from '../../stores/useGameStore';
 import { RADIUS } from '../../ui/theme';
 import { LoopBanner } from '../LoopBanner';
@@ -37,7 +37,7 @@ export function TopNotices({ top }: { top: number }) {
             zoom: 'var(--ui-scale, 1)',
           }}
         >
-          {t(`ui.speed.${speedNote.speed}` as const)}
+          {tDyn(`ui.speed.${speedNote.speed}`)}
         </div>
       )}
       <LoopBanner />

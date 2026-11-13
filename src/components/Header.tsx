@@ -5,7 +5,7 @@ import { Icon } from "./Icon";
 import { ExpGauge, LevelMark } from "./CompanyPanel";
 import { Speed, useGameStore } from "../stores/useGameStore";
 import { usePhone } from "../ui/usePhone";
-import { t } from "../i18n/t";
+import { t, tDyn } from "../i18n/t";
 import { levelOf } from "../sim/level";
 import { balance } from "virtual:game-data";
 import { toDate } from "../sim/clock";
@@ -108,8 +108,8 @@ const Header = ({ headerRef }: { headerRef: RefObject<HTMLElement> }) => {
         {!sandbox && (
         <span style={{ display: 'flex', gap: 4 }}>
             {SPEEDS.map((s) => (
-            <Tooltip text={s === 0 ? tipText('ui.speed.0', 'pause', !phone) : t(`ui.speed.${s}` as const)} key={s}>
-                <button aria-label={t(`ui.speed.${s}` as const)} style={{ ...hudButton(speed === s, phone), display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { hideTip(); setSpeed(s); }}>
+            <Tooltip text={s === 0 ? tipText('ui.speed.0', 'pause', !phone) : tDyn(`ui.speed.${s}`)} key={s}>
+                <button aria-label={tDyn(`ui.speed.${s}`)} style={{ ...hudButton(speed === s, phone), display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { hideTip(); setSpeed(s); }}>
                 {s === 0 ? (
                 <Icon name="icon/pause" scale={1} />
                 ) : (
@@ -124,7 +124,7 @@ const Header = ({ headerRef }: { headerRef: RefObject<HTMLElement> }) => {
             const shown: Speed = speed >= 2 ? speed : ((unlockedSpeeds.find((x) => x >= 2) ?? 2) as Speed);
             // 押すと変わる倍率（押すたびに解放済みの 2倍・4倍・8倍を回る）。ツールチップに今と次を出す（N130）
             const next = nextFastSpeed(speed, unlockedSpeeds) as Speed;
-            const hint = speed >= 2 ? t('ui.speed.hint.next', { now: t(`ui.speed.${speed}` as const), next: t(`ui.speed.${next}` as const) }) : t('ui.speed.hint.up', { next: t(`ui.speed.${shown}` as const) });
+            const hint = speed >= 2 ? t('ui.speed.hint.next', { now: tDyn(`ui.speed.${speed}`), next: tDyn(`ui.speed.${next}`) }) : t('ui.speed.hint.up', { next: tDyn(`ui.speed.${shown}`) });
             return (
                 <Tooltip text={hint}>
                 <button aria-label={hint} style={{ ...hudButton(speed >= 2, phone), display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { hideTip(); setSpeed(next); }}>
@@ -133,7 +133,7 @@ const Header = ({ headerRef }: { headerRef: RefObject<HTMLElement> }) => {
                 </Tooltip>
             );
             })()}
-            <span style={{ fontSize: 12, alignSelf: 'center' }}>{nightSpeed === null ? t(`ui.speed.${speed}`) : t('ui.night.fast')}</span>
+            <span style={{ fontSize: 12, alignSelf: 'center' }}>{nightSpeed === null ? tDyn(`ui.speed.${speed}`) : t('ui.night.fast')}</span>
         </span>
         )}
         </div>
