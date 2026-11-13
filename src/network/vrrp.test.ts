@@ -76,9 +76,10 @@ describe('VRRP と通信', () => {
 
 describe('VRRP の警告', () => {
   it('端末のゲートウェイが実の IP アドレスなら vrrp.gateway_real_ip、仮想の IP アドレスが食い違えば vrrp.vip_mismatch', async () => {
-    const { warningsOf: raw } = await import('./netState');
+    const { warningsOf: raw } = await import('./query/warnings');
+    const { analyze } = await import('./engine/analyze');
     const { gameEnv } = await import('../sim/env');
-    const warningsOf = (n: Parameters<typeof raw>[0]) => raw(n, gameEnv.engine);
+    const warningsOf = (n: Parameters<typeof analyze>[0]) => raw(analyze(n, gameEnv.engine));
     const net = build();
     expect(warningsOf(net)).toEqual([]);
     expect(warningsOf({ ...net, nodes: net.nodes.map((n) => (n.uid === 'host' ? { ...n, gateway: '192.168.1.1' } : n)) })).toEqual([{ id: 'vrrp.gateway_real_ip', a: 'host', b: 'r1' }]);

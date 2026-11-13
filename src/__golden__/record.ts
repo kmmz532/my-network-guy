@@ -5,7 +5,7 @@ import { can } from '../network/capabilities';
 import { compile } from '../network/compile';
 import { colorOfLink } from '../network/netColor';
 import { networkColors } from '../network/query/networkColors';
-import { warningsOf } from '../network/netState';
+import { warningsOf } from '../network/query/warnings';
 import { portStatesOf } from '../network/query/portStates';
 import { analyze } from '../network/engine/analyze';
 import { runTerminal } from '../network/terminal';
@@ -68,6 +68,6 @@ export const recordOf = (input: Network, engine: EngineData) => {
     colors: net.links.map((l) => ({ link: l.uid, color: colorOfLink(colors, l.uid) })),
     ports: net.nodes.map((n) => ({ node: n.uid, ports: [...portStatesOf(analyze(net, engine), n.uid)].sort((a, b) => a.port - b.port) })),
     issues: Object.entries(compiled.issues).sort(([a], [b]) => a.localeCompare(b)),
-    warnings: warningsOf(net, engine),
+    warnings: warningsOf(analyze(net, engine)),
   };
 };

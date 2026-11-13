@@ -1,10 +1,11 @@
 // 警告（NET.md §6）: 通るが直すべき VLAN の設定（直結の両端の access の VLAN の違い・trunk の native の違い）
 import { describe, expect, it } from 'vitest';
-import { warningsOf } from './netState';
+import { warningsOf } from './query/warnings';
+import { analyze } from './engine/analyze';
 import { gameEnv } from '../sim/env';
 import type { NetLink, NetNode, Network, PortConfig } from './types';
 
-const warnings = (n: Network) => warningsOf(n, gameEnv.engine);
+const warnings = (n: Network) => warningsOf(analyze(n, gameEnv.engine));
 
 const sw = (uid: string, ports: PortConfig[]): NetNode => ({ uid, device: 'l2_switch_8p', x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports }) as NetNode;
 const net = (a: PortConfig, b: PortConfig): Network => {

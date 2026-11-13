@@ -12,7 +12,7 @@ import { bonusEnvOf, furnitureBonus, type BonusEnv } from './furniture';
 import { gainExp, staffPower } from './staff';
 import { blindDelegation } from './blindDelegate';
 import { busyStaff, crewBlock } from './crew';
-import { warningsOf } from '../network/netState';
+import { warningsOf } from '../network/query/warnings';
 import { deliveryExpOf, levelOf } from './level';
 import { BlindOutcome, BlindPlan, Core, Env, GoalCheck, Office, Outcome, Project, ReportFailure, TestOutcome, TestResult, Trace, connect, delegationReason, designIssues, stateOfProject, fail, fixedNodes, focusedOf, hubFor, isPcIn, keepFocus, projectCostOf, requireDesign, withProject } from './project';
 
@@ -237,7 +237,7 @@ export const testDesign = (core: Core, env: Env): TestOutcome => {
   const p = requireDesign(core);
   if (typeof p === 'string') return { ok: false, reason: p };
   const j = judge(p, env);
-  const result: TestResult = { passed: j.passed, goals: j.goals, traces: j.traces, warnings: warningsOf(p, env.engine) };
+  const result: TestResult = { passed: j.passed, goals: j.goals, traces: j.traces, warnings: warningsOf(stateOfProject(p, env)) };
   return { ok: true, core: withProject(core, { ...p, testedOk: j.passed }), result };
 };
 
@@ -384,7 +384,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
   return {
     ok: true,
     core: withProject(core, next),
-    report: { passed: false, traces, failures, check: { projectId: p.id, goals: j.goals, warnings: warningsOf(p, env.engine) } },
+    report: { passed: false, traces, failures, check: { projectId: p.id, goals: j.goals, warnings: warningsOf(stateOfProject(p, env)) } },
   };
 };
 

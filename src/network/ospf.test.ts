@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { duplicateRouterIds, electDr, ospfRouterId } from './ospf';
-import { warningsOf } from './netState';
+import { warningsOf } from './query/warnings';
+import { analyze } from './engine/analyze';
 import { learnedRoutesOf } from './query/learnedRoutes';
 import { ospfNeighborsOf } from './query/ospfNeighbors';
 import { ospfMismatchesOf } from './query/ospfMismatches';
-import { analyze } from './engine/analyze';
 import { evaluateGoal } from './goals';
 import type { EngineData, Iface, NetLink, NetNode, Network } from './types';
 
@@ -137,7 +137,7 @@ describe('ルーター ID の重複の警告', () => {
       links: [link('l', 'a', 0, 'b', 0)],
       segments: {},
     };
-    expect(warningsOf(net, data)).toEqual([{ id: 'ospf.duplicate_router_id', a: 'a', b: 'b' }]);
+    expect(warningsOf(analyze(net, data))).toEqual([{ id: 'ospf.duplicate_router_id', a: 'a', b: 'b' }]);
   });
 });
 

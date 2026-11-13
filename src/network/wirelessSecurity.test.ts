@@ -4,7 +4,7 @@ import { analyze } from './engine/analyze';
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
 import { evaluateGoal } from './goals';
-import { warningsOf } from './netState';
+import { warningsOf } from './query/warnings';
 import type { Iface, NetNode, Network, WirelessSecurity } from './types';
 
 const data = gameEnv.engine;
@@ -32,12 +32,12 @@ describe('無線の方式', () => {
   });
   it('暗号化なし（open）は、パスワードが違ってもつながり、警告 wlan.open を出す', () => {
     expect(ping(analyze(build('open', 'laptop', 'wrong'), data), 'pc', 'cl').ok).toBe(true);
-    expect(warningsOf(build('open', 'laptop'), data)).toContainEqual({ id: 'wlan.open', a: 'ap', b: 'ap' });
+    expect(warningsOf(analyze(build('open', 'laptop'), data))).toContainEqual({ id: 'wlan.open', a: 'ap', b: 'ap' });
   });
   it('WEP・WPA は、つながるが wlan.weak_cipher の警告', () => {
     for (const s of ['wep', 'wpa'] as const) {
       expect(ping(analyze(build(s, 'laptop'), data), 'pc', 'cl').ok).toBe(true);
-      expect(warningsOf(build(s, 'laptop'), data).map((w) => w.id)).toContain('wlan.weak_cipher');
+      expect(warningsOf(analyze(build(s, 'laptop'), data)).map((w) => w.id)).toContain('wlan.weak_cipher');
     }
   });
   it('WPA3 のみの SSID に、WPA3 に対応しない端末（pc_wifi）はつながらず wlan.auth_mismatch。対応する端末（laptop）はつながる', () => {
@@ -47,7 +47,7 @@ describe('無線の方式', () => {
   it('WPA2/WPA3 の移行モードは、どちらの端末もつながり、警告 wlan.transition を出す', () => {
     expect(ping(analyze(build('wpa2wpa3', 'pc_wifi'), data), 'pc', 'cl').ok).toBe(true);
     expect(ping(analyze(build('wpa2wpa3', 'laptop'), data), 'pc', 'cl').ok).toBe(true);
-    expect(warningsOf(build('wpa2wpa3', 'laptop'), data).map((w) => w.id)).toContain('wlan.transition');
+    expect(warningsOf(analyze(build('wpa2wpa3', 'laptop'), data)).map((w) => w.id)).toContain('wlan.transition');
   });
   it('達成条件 wireless_secure: WPA2・WPA3 は合格、WEP・暗号化なし・移行モードは不合格', () => {
     const ok = (s: WirelessSecurity | undefined) => evaluateGoal({ type: 'wireless_secure', ssid: 'home' }, analyze(build(s, 'laptop'), data)).every((r) => r.ok);

@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
 import { can } from '../network/capabilities';
-import { warningsOf } from '../network/netState';
+import { warningsOf } from '../network/query/warnings';
 import { portStatesOf } from '../network/query/portStates';
 import { analyze } from '../network/engine/analyze';
 import { stpOf } from '../network/query/stp';
@@ -31,7 +31,7 @@ describe('セーブの fixture', () => {
         // 端末は、スイッチの口もルーテッドポートも持たない機器
         const ends = net.nodes.filter((n) => n.interfaces.length > 0 && !can(n.device, 'switchport') && !can(n.device, 'routedPort')).map((n) => n.uid);
         for (const a of ends) for (const b of ends) if (a !== b) ping(analyze(net, gameEnv.engine), a, b);
-        warningsOf(net, gameEnv.engine);
+        warningsOf(analyze(net, gameEnv.engine));
         dhcpOf(analyze(net, gameEnv.engine));
         stpOf(analyze(net, gameEnv.engine));
         for (const n of net.nodes) portStatesOf(analyze(net, gameEnv.engine), n.uid);

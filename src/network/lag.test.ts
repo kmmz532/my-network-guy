@@ -1,14 +1,14 @@
 import { ping } from './engine';
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
-import { warningsOf } from './netState';
-import { portStatesOf } from './query/portStates';
+import { warningsOf } from './query/warnings';
 import { analyze } from './engine/analyze';
+import { portStatesOf } from './query/portStates';
 import { stpOf } from './query/stp';
 import { computeLags, lacpCompatible } from './lag';
 import type { Iface, NetLink, NetNode, Network, PortConfig } from './types';
 
-const warnings = (n: Network) => warningsOf(n, gameEnv.engine);
+const warnings = (n: Network) => warningsOf(analyze(n, gameEnv.engine));
 
 const data = gameEnv.engine;
 const f = (ip: string): Iface => ({ id: 'eth0', kind: 'port', port: 0, ip, prefix: 24 });

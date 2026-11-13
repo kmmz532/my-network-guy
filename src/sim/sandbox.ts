@@ -3,7 +3,7 @@
 import type { Goal } from '../data/schema';
 import { evaluateGoal } from '../network/goals';
 import { analyze } from '../network/engine/analyze';
-import { warningsOf } from '../network/netState';
+import { warningsOf } from '../network/query/warnings';
 import type { NetNode } from '../network/types';
 import type { ClockState } from './clock';
 import { emptyOffice, type Env, type GoalCheck, type Office, type OfficeSize, type TestResult } from './project';
@@ -77,6 +77,6 @@ export const sandboxTest = (office: Office, env: Env, lessonGoals?: Goal[]): Tes
     passed: results.every((r) => r.ok),
     goals: checks,
     traces: results.map((r) => ({ kind: r.kind, src: r.src, dst: r.dst, result: r.result })),
-    warnings: warningsOf(state.net, env.engine),
+    warnings: warningsOf(state),
   };
 };
