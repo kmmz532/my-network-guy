@@ -5,7 +5,7 @@
   "stage": 2,
   "order": 210,
   "requires": [
-    "r001_duplicate_ip"
+    "r002_wrong_gateway"
   ],
   "jobs": [
     "network"

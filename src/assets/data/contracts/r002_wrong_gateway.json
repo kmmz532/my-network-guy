@@ -1,0 +1,223 @@
+{
+  "id": "r002_wrong_gateway",
+  "kind": "repair",
+  "minChanges": 1,
+  "stage": 2,
+  "order": 205,
+  "requires": [
+    "r001_duplicate_ip"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_rooms",
+  "budget": 30000,
+  "deadlineDays": 5,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "router",
+      "device": "router_basic",
+      "x": 9,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.1",
+            "prefix": 24
+          },
+          {
+            "port": 1,
+            "ip": "192.168.3.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "ルーター"
+    },
+    {
+      "ref": "sw_a",
+      "device": "l2_switch_8p",
+      "x": 5,
+      "y": 5,
+      "locked": true,
+      "name": "営業部のスイッチ"
+    },
+    {
+      "ref": "sw_b",
+      "device": "l2_switch_8p",
+      "x": 14,
+      "y": 5,
+      "locked": true,
+      "name": "開発部のスイッチ"
+    },
+    {
+      "ref": "sales_a",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "営業部のPC1"
+    },
+    {
+      "ref": "sales_b",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "営業部のPC2"
+    },
+    {
+      "ref": "dev_a",
+      "device": "pc_basic",
+      "x": 17,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.2.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "開発部のPC1"
+    },
+    {
+      "ref": "dev_b",
+      "device": "pc_basic",
+      "x": 17,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.2.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "開発部のPC2"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "router",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw_a",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "router",
+        "port": 1
+      },
+      "b": {
+        "ref": "sw_b",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "sales_a",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw_a",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "sales_b",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw_a",
+        "port": 2
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "dev_a",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw_b",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "dev_b",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw_b",
+        "port": 2
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": [
+        "sales_a",
+        "sales_b",
+        "dev_a",
+        "dev_b"
+      ]
+    }
+  ],
+  "reward": {
+    "money": 280000
+  },
+  "unlockLevel": 7
+}
