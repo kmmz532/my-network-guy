@@ -6,6 +6,7 @@ import { vrrpStatusOf } from '../network/public';
 import type { Iface, NetNode } from '../network/types';
 import { netOfDevice, useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, inputStyle, isIpText } from './devicePorts';
+import { Select } from './ui/Select';
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
 
@@ -76,12 +77,13 @@ export function VrrpField({ node, iface, disabled, onError }: Props) {
             ))}
             {others.length > 0 && (
               <>
-                <select aria-label={t('ui.config.vrrpTrackIface')} value={trackIface} disabled={disabled} onChange={(e) => setTrackIface(e.target.value)}>
-                  <option value="">{t('ui.config.vrrpTrack')}</option>
-                  {others.map((o) => (
-                    <option key={o.id} value={o.id}>{o.id}</option>
-                  ))}
-                </select>
+                <Select
+                  label={t('ui.config.vrrpTrackIface')}
+                  value={trackIface}
+                  disabled={disabled}
+                  options={[{ value: '', label: t('ui.config.vrrpTrack') }, ...others.map((o) => ({ value: o.id, label: o.id }))]}
+                  onChange={(v) => setTrackIface(v)}
+                />
                 <input aria-label={t('ui.config.vrrpTrackDecrement')} type="number" min={1} max={253} value={decrement} disabled={disabled} style={{ ...inputStyle, width: 56 }} onChange={(e) => setDecrement(e.target.value)} />
                 <button
                   style={buttonStyle}
