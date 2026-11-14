@@ -289,10 +289,7 @@
   },
   "src/components/SandboxSizePanel.tsx": {
     "local/no-look-props": {
-      "count": 12
-    },
-    "local/no-native-control": {
-      "count": 2
+      "count": 3
     }
   },
   "src/components/SearchField.tsx": {
