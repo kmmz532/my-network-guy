@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { lessons } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import { useGameStore } from '../stores/useGameStore';
-import { Modal, primaryButton, secondaryButton } from './Modal';
+import { Modal, secondaryButton } from './Modal';
+import { Button } from './ui/Button';
 
 export function LessonPicker({ onClose }: { onClose: () => void }) {
   const openLesson = useGameStore((s) => s.openLesson);
@@ -16,8 +17,8 @@ export function LessonPicker({ onClose }: { onClose: () => void }) {
         <div style={{ fontWeight: 'bold' }}>{tDyn(`lesson.${picked}.title`)}</div>
         <div style={{ marginTop: 8, fontSize: 13 }}>{t('ui.lesson.confirm')}</div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-          <button style={secondaryButton} onClick={() => setPicked(null)}>{t('ui.sandbox.size.cancel')}</button>
-          <button style={primaryButton} onClick={() => { openLesson(picked); onClose(); }}>{t('ui.lesson.start')}</button>
+          <Button variant="secondary" onClick={() => setPicked(null)}>{t('ui.sandbox.size.cancel')}</Button>
+          <Button variant="primary" onClick={() => { openLesson(picked); onClose(); }}>{t('ui.lesson.start')}</Button>
         </div>
       </Modal>
     );
