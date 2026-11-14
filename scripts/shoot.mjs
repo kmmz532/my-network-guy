@@ -693,6 +693,38 @@ const scenes = {
     await page.getByText('設定', { exact: true }).click();
     await page.waitForTimeout(500);
   },
+  // ファイアウォールの許可する通信の欄（通信の選択に DNS を出す）
+  firewall: async (page) => {
+    await scenes.sandbox(page);
+    await openDevice(page, 'firewall');
+    await page.getByText('設定', { exact: true }).click();
+    await page.getByText('許可する通信', { exact: true }).scrollIntoViewIfNeeded();
+    await page.getByLabel('通信', { exact: true }).first().click();
+    await page.waitForTimeout(500);
+  },
+  // 回線終端（uplink）の設定。回線の欄（ISP の名前・アドレス・AS 番号・DNS）を出す
+  isp: async (page) => {
+    await scenes.sandbox(page);
+    await openDevice(page, 'uplink');
+    await page.getByText('設定', { exact: true }).click();
+    await page.getByText('ISP の DNS', { exact: true }).scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
+  },
+  // サーバーのサービスの欄（DNS の役割・ゾーンの記録を種類つきで出し、追加の欄を出す）
+  dns: async (page) => {
+    await scenes.career(page);
+    await openDevice(page, 'server_basic');
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      const n = g.office.nodes.find((x) => x.device === 'server_basic');
+      g.setDnsRole(n.uid, true, 'auth');
+      g.setDnsRecord(n.uid, { type: 'A', name: 'www', value: '192.168.1.10' });
+      g.setDnsRecord(n.uid, { type: 'CNAME', name: 'web', value: 'www' });
+      g.setDnsRecord(n.uid, { type: 'MX', name: 'example', value: 'mail', pref: 10 });
+    });
+    await page.getByText('サービス', { exact: true }).click();
+    await page.waitForTimeout(500);
+  },
   // ターミナル: 入力の予測（薄い文字）・誤りの語の下線・Tab の候補の一覧
   terminal: async (page) => {
     await scenes.sandbox(page);

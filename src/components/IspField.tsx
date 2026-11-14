@@ -17,10 +17,11 @@ export function IspField({ node, readOnly, onError }: { node: NetNode; readOnly:
   const [ispIp, setIspIp] = useState(cur?.ispIp ?? INTERNET_IP);
   const [prefix, setPrefix] = useState(String(cur?.prefix ?? INTERNET_PREFIX));
   const [asn, setAsn] = useState(cur?.asn === undefined ? '' : String(cur.asn));
-  const valid = isIp(ispIp) && /^[0-9]+$/.test(prefix) && Number(prefix) >= 8 && Number(prefix) <= 30 && (asn === '' || /^[0-9]+$/.test(asn));
+  const [dns, setDns] = useState(cur?.dns ?? '');
+  const valid = isIp(ispIp) && /^[0-9]+$/.test(prefix) && Number(prefix) >= 8 && Number(prefix) <= 30 && (asn === '' || /^[0-9]+$/.test(asn)) && (dns === '' || isIp(dns));
 
   const apply = () => {
-    const line: IspLine = { name, network: ispIp, prefix: Number(prefix), ispIp, ...(asn === '' ? {} : { asn: Number(asn) }) };
+    const line: IspLine = { name, network: ispIp, prefix: Number(prefix), ispIp, ...(asn === '' ? {} : { asn: Number(asn) }), ...(dns === '' ? {} : { dns }) };
     onError(setIsp(node.uid, line));
   };
   const field = (label: string, value: string, set: (v: string) => void, width: number) => (
@@ -38,6 +39,7 @@ export function IspField({ node, readOnly, onError }: { node: NetNode; readOnly:
         {field(t('ui.config.ispIp'), ispIp, setIspIp, 110)}
         {field(t('ui.config.ispPrefix'), prefix, setPrefix, 40)}
         {field(t('ui.config.ispAsn'), asn, setAsn, 70)}
+        {field(t('ui.config.ispDns'), dns, setDns, 110)}
       </div>
       <div style={{ color: greyColor, fontSize: 12 }}>{t('ui.config.ispNote')}</div>
       {!readOnly && (

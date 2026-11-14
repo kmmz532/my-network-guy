@@ -4,7 +4,7 @@ import { nodeLabel } from './nodeLabel';
 import { duplicateHostnames } from '../sim/project';
 import { useState } from 'react';
 import { t, tDyn } from '../i18n/t';
-import type { DnsService, NetLink, NetNode } from '../network/types';
+import type { DnsRecordType, DnsService, NetLink, NetNode } from '../network/types';
 import { seenSourcesOf, type NetworkState } from '../network/public';
 import { focusedProject, netOfDevice, useGameStore, type GameState } from '../stores/useGameStore';
 import { RearTab as DeviceRear } from './DeviceRear';
@@ -12,7 +12,10 @@ import { DeviceSettings } from './DeviceSettings';
 import { TrimmedIcon } from './Icon';
 import { TerminalTab } from './TerminalTab';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
-import { buttonStyle, greyColor, warnColor } from './devicePorts';
+import { buttonStyle, greyColor, isIpText, warnColor } from './devicePorts';
+import { PixelSelect } from './PixelControls';
+import { TextInput } from './ui/TextInput';
+import { Button } from './ui/Button';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { deviceCategory, deviceDef } from '../registry/query';
 
@@ -147,6 +150,61 @@ function SeenSources({ node, nodes, state }: { node: NetNode; nodes: NetNode[]; 
   );
 }
 
+const DNS_RECORD_TYPES: readonly DnsRecordType[] = ['A', 'AAAA', 'CNAME', 'MX', 'NS', 'PTR'];
+const dnsRow = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
+
+// DNS のサービスの欄: 役割（権威・キャッシュ）、キャッシュの転送先、ゾーンの記録（種類つき）の一覧と追加・消す
+function DnsEditor({ node, dns, locked, onError }: { node: NetNode; dns: DnsService; locked: boolean; onError: (reason: string | null) => void }) {
+  const setDnsRole = useGameStore((s) => s.setDnsRole);
+  const setDnsForwarder = useGameStore((s) => s.setDnsForwarder);
+  const setDnsRecord = useGameStore((s) => s.setDnsRecord);
+  const removeDnsRecord = useGameStore((s) => s.removeDnsRecord);
+  const [forwarder, setForwarder] = useState(dns.forwarder ?? '');
+  const [type, setType] = useState<DnsRecordType>('A');
+  const [name, setName] = useState('');
+  const [value, setValue] = useState('');
+  const [pref, setPref] = useState('10');
+  const roles: { value: 'auth' | 'cache'; label: string }[] = [
+    { value: 'auth', label: t('ui.dns.role.auth') },
+    { value: 'cache', label: t('ui.dns.role.cache') },
+  ];
+  const addValid = name !== '' && value !== '' && (type !== 'MX' || /^\d+$/.test(pref));
+  const add = () => onError(setDnsRecord(node.uid, { type, name, value, ...(type === 'MX' ? { pref: Number(pref) } : {}) }));
+  return (
+    <div style={{ marginTop: 4, fontSize: 13 }}>
+      <div style={dnsRow}>
+        <PixelSelect<'auth' | 'cache'> ariaLabel={t('ui.dns.role')} value={dns.role} options={roles} disabled={locked} onChange={(v) => onError(setDnsRole(node.uid, true, v))} />
+      </div>
+      {dns.role === 'cache' && (
+        <div style={dnsRow}>
+          <TextInput placeholder={t('ui.dns.forwarder')} value={forwarder} onChange={setForwarder} disabled={locked} layout={{ width: 110 }} />
+          <Button variant="secondary" size="s" disabled={locked || (forwarder !== '' && !isIpText(forwarder))} onClick={() => onError(setDnsForwarder(node.uid, forwarder === '' ? null : forwarder))}>
+            {t('ui.dns.apply')}
+          </Button>
+        </div>
+      )}
+      {dns.zone.length === 0 && <div>{t('ui.dns.empty')}</div>}
+      {dns.zone.map((r) => (
+        <div key={`${r.type}-${r.name}`} style={dnsRow}>
+          <span>{`${r.name}  ${r.type}  ${r.pref === undefined ? r.value : `${r.pref} ${r.value}`}`}</span>
+          <Button variant="secondary" size="s" disabled={locked} onClick={() => onError(removeDnsRecord(node.uid, r.type, r.name))}>
+            {t('ui.dns.remove')}
+          </Button>
+        </div>
+      ))}
+      <div style={dnsRow}>
+        <PixelSelect<DnsRecordType> ariaLabel={t('ui.dns.recordType')} value={type} options={DNS_RECORD_TYPES.map((v) => ({ value: v, label: v }))} disabled={locked} onChange={setType} />
+        <TextInput placeholder={t('ui.dns.recordName')} value={name} onChange={setName} disabled={locked} layout={{ width: 120 }} />
+        <TextInput placeholder={t('ui.dns.recordValue')} value={value} onChange={setValue} disabled={locked} layout={{ width: 120 }} />
+        {type === 'MX' && <TextInput placeholder={t('ui.dns.recordPref')} value={pref} onChange={setPref} disabled={locked} layout={{ width: 40 }} />}
+        <Button variant="secondary" size="s" disabled={locked || !addValid} onClick={add}>
+          {t('ui.dns.add')}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // サービスタブ（サーバーだけ）。HTTP を起動・停止する
 function ServiceTab({ node, nodes, state, readOnly, onError }: { node: NetNode; nodes: NetNode[]; state: NetworkState; readOnly: boolean; onError: (reason: string | null) => void }) {
   const setService = useGameStore((s) => s.setService);
@@ -155,9 +213,8 @@ function ServiceTab({ node, nodes, state, readOnly, onError }: { node: NetNode; 
   const http = node.services.find((s) => s.protocol === 'http');
   const running = http !== undefined;
   const locked = readOnly || node.configLocked;
-  // DNS の表（名前 → IPアドレス）。同じ名前の機器があれば警告する（N68）
+  // DNS のサービス。同じ名前の機器があれば警告する（N68）
   const dns = node.services.find((s): s is DnsService => s.protocol === 'dns');
-  const zone = (dns?.zone ?? []).filter((r) => r.type === 'A');
   const duplicates = duplicateHostnames(nodes);
   return (
     <div>
@@ -173,12 +230,8 @@ function ServiceTab({ node, nodes, state, readOnly, onError }: { node: NetNode; 
           </button>
         )}
       </div>
-      {dns && (
-        <div style={{ marginTop: 4, fontSize: 13 }}>
-          {zone.length === 0 ? <div>{t('ui.dns.empty')}</div> : zone.map((h) => <div key={h.name}>{`${h.name}  ${h.value}`}</div>)}
-          {duplicates.length > 0 && <div style={{ color: '#ffd866' }}>{t('ui.dns.duplicate', { names: duplicates.join('・') })}</div>}
-        </div>
-      )}
+      {dns && <DnsEditor key={node.uid} node={node} dns={dns} locked={locked} onError={onError} />}
+      {dns && duplicates.length > 0 && <div style={{ marginTop: 4, color: '#ffd866' }}>{t('ui.dns.duplicate', { names: duplicates.join('・') })}</div>}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <b>{t('ui.service.http')}</b>
