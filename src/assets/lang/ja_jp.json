@@ -1226,7 +1226,6 @@
   "ui.terminal.usagePing": "使い方: ping <IPアドレス>",
   "ui.terminal.usageStp": "書式: spanning-tree priority <0〜61440（4096の倍数）> / spanning-tree cost <口> <値>",
   "ui.terminal.usageTrace": "使い方: traceroute <IPアドレス>",
-  "ui.terminal.usageVrrp": "書式: vrrp <口> <VRID> ip <IP> / priority <値> / preempt / track <口> decrement <値>、no vrrp <口> <VRID> [preempt]",
   "ui.terminal.usageWireless": "書式: wireless ssid <名前> / wireless password <8字以上> / wireless channel <1-13> / wireless vlan <番号> / wireless security <open|wep|wpa|wpa2|wpa3|wpa2-wpa3>",
   "ui.terminal.vlanAccess": "口{port}: access・VLAN {vlan}",
   "ui.terminal.vlanAll": "すべて",

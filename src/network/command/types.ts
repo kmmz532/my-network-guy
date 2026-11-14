@@ -7,7 +7,7 @@ import type { EngineData, NetLink, NetNode } from '../types';
 import type { Trace } from '../../sim/project';
 
 export type Mode = 'exec' | 'config' | 'interface' | 'router-rip' | 'router-ospf' | 'router-bgp';
-export type ArgKind = 'iface' | 'ip' | 'mask' | 'wildcard' | 'prefix' | 'vlan' | 'vlanList' | 'area' | 'asn' | 'number' | 'word' | 'hostname' | 'hostOrIp';
+export type ArgKind = 'iface' | 'ip' | 'mask' | 'wildcard' | 'prefix' | 'vlan' | 'vlanList' | 'area' | 'asn' | 'vrid' | 'number' | 'word' | 'hostname' | 'hostOrIp';
 export type Token =
   | { word: string }
   | { arg: ArgKind; name: string }

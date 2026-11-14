@@ -90,6 +90,7 @@ export const isArg = (kind: ArgKind, text: string): boolean => {
     case 'vlanList': return vlanListOf(text) !== null;
     case 'area': return rangeOk(text, 0, 4294967295) || isIp(text);
     case 'asn': return rangeOk(text, 1, 4294967295);
+    case 'vrid': return rangeOk(text, 1, 255);
     case 'number': return /^\d{1,10}$/.test(text);
     case 'word': return text !== '';
     case 'hostname': return isHostName(text);

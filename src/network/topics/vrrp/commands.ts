@@ -1,45 +1,101 @@
 // VRRP の論点の命令。
 import { vrrpStatusOf } from '../../query/vrrpStatus';
-import { changed, err, out, portMissing, shown } from '../../command/lines';
+import { changed, out, portMissing, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
-import { interfaceForm, portFirst } from '../../command/modes';
-import { ifaceIdOf, isIp, port } from '../../command/args';
+import { interfaceOf } from '../../command/modes';
+import { ifaceIdOf } from '../../command/args';
 
-// 口の番号と VRID（1〜255）。合わなければ null
-const vrrpArgs = (w: readonly string[]) => {
-  const p = port(w[0] ?? '');
-  const vrid = /^[0-9]+$/.test(w[1] ?? '') ? Number(w[1]) : null;
-  return p === null || vrid === null || vrid < 1 || vrid > 255 ? null : { p, vrid };
-};
+const PORT = { arg: 'number', name: 'port' } as const;
+const VRID = { arg: 'vrid', name: 'vrid' } as const;
 
-const vrrp: CommandSpec = {
-  id: 'vrrp.vrrp',
+// 口ごとの VRRP の命令の形（exec・config）。interface モードの形は、口の番号を外して作る
+const vrrpIp: CommandSpec = {
+  id: 'vrrp.vrrpIp',
   modes: ['exec', 'config'],
-  tokens: [{ word: 'vrrp' }, { rest: 'args' }],
+  tokens: [{ word: 'vrrp' }, PORT, VRID, { word: 'ip' }, { arg: 'ip', name: 'ip' }],
   help: '',
   writes: true,
   topic: 'vrrp',
   run: (args, ctx, tr) => {
-    const words = args.args.split(' ').filter((w) => w !== '');
-    const a = vrrpArgs(words);
-    if (!a) return shown([err(tr('ui.terminal.usageVrrp'))]);
-    const [, , key, v1, kw, v2] = words;
-    const valid =
-      (key === 'ip' && words.length === 4 && isIp(v1)) ||
-      (key === 'priority' && words.length === 4 && /^[0-9]+$/.test(v1)) ||
-      (key === 'preempt' && words.length === 3) ||
-      (key === 'track' && words.length === 6 && port(v1) !== null && kw === 'decrement' && /^[0-9]+$/.test(v2));
-    if (!valid) return shown([err(tr('ui.terminal.usageVrrp'))]);
-    const id = ifaceIdOf(ctx.node, a.p);
+    const id = ifaceIdOf(ctx.node, Number(args.port));
     if (id === null) return portMissing(ctx, tr);
-    if (key === 'ip') return changed(ctx, tr, { kind: 'vrrp', change: { op: 'ip', id, vrid: a.vrid, ip: v1 } });
-    if (key === 'priority') return changed(ctx, tr, { kind: 'vrrp', change: { op: 'priority', id, vrid: a.vrid, value: Number(v1) } });
-    if (key === 'preempt') return changed(ctx, tr, { kind: 'vrrp', change: { op: 'preempt', id, vrid: a.vrid, on: true } });
-    const trackId = ifaceIdOf(ctx.node, Number(v1));
-    if (trackId === null) return portMissing(ctx, tr);
-    return changed(ctx, tr, { kind: 'vrrp', change: { op: 'track', id, vrid: a.vrid, iface: trackId, decrement: Number(v2) } });
+    return changed(ctx, tr, { kind: 'vrrp', change: { op: 'ip', id, vrid: Number(args.vrid), ip: args.ip } });
   },
 };
+
+const vrrpPriority: CommandSpec = {
+  id: 'vrrp.vrrpPriority',
+  modes: ['exec', 'config'],
+  tokens: [{ word: 'vrrp' }, PORT, VRID, { word: 'priority' }, { arg: 'number', name: 'value' }],
+  help: '',
+  writes: true,
+  topic: 'vrrp',
+  run: (args, ctx, tr) => {
+    const id = ifaceIdOf(ctx.node, Number(args.port));
+    if (id === null) return portMissing(ctx, tr);
+    return changed(ctx, tr, { kind: 'vrrp', change: { op: 'priority', id, vrid: Number(args.vrid), value: Number(args.value) } });
+  },
+};
+
+const vrrpPreempt: CommandSpec = {
+  id: 'vrrp.vrrpPreempt',
+  modes: ['exec', 'config'],
+  tokens: [{ word: 'vrrp' }, PORT, VRID, { word: 'preempt' }],
+  help: '',
+  writes: true,
+  topic: 'vrrp',
+  run: (args, ctx, tr) => {
+    const id = ifaceIdOf(ctx.node, Number(args.port));
+    if (id === null) return portMissing(ctx, tr);
+    return changed(ctx, tr, { kind: 'vrrp', change: { op: 'preempt', id, vrid: Number(args.vrid), on: true } });
+  },
+};
+
+const vrrpTrack: CommandSpec = {
+  id: 'vrrp.vrrpTrack',
+  modes: ['exec', 'config'],
+  tokens: [{ word: 'vrrp' }, PORT, VRID, { word: 'track' }, { arg: 'number', name: 'track' }, { word: 'decrement' }, { arg: 'number', name: 'value' }],
+  help: '',
+  writes: true,
+  topic: 'vrrp',
+  run: (args, ctx, tr) => {
+    const id = ifaceIdOf(ctx.node, Number(args.port));
+    if (id === null) return portMissing(ctx, tr);
+    const trackId = ifaceIdOf(ctx.node, Number(args.track));
+    if (trackId === null) return portMissing(ctx, tr);
+    return changed(ctx, tr, { kind: 'vrrp', change: { op: 'track', id, vrid: Number(args.vrid), iface: trackId, decrement: Number(args.value) } });
+  },
+};
+
+const noVrrp: CommandSpec = {
+  id: 'vrrp.noVrrp',
+  modes: ['exec', 'config'],
+  tokens: [{ word: 'no' }, { word: 'vrrp' }, PORT, VRID],
+  help: '',
+  writes: true,
+  topic: 'vrrp',
+  run: (args, ctx, tr) => {
+    const id = ifaceIdOf(ctx.node, Number(args.port));
+    if (id === null) return portMissing(ctx, tr);
+    return changed(ctx, tr, { kind: 'vrrp', change: { op: 'remove', id, vrid: Number(args.vrid) } });
+  },
+};
+
+const noVrrpPreempt: CommandSpec = {
+  id: 'vrrp.noVrrpPreempt',
+  modes: ['exec', 'config'],
+  tokens: [{ word: 'no' }, { word: 'vrrp' }, PORT, VRID, { word: 'preempt' }],
+  help: '',
+  writes: true,
+  topic: 'vrrp',
+  run: (args, ctx, tr) => {
+    const id = ifaceIdOf(ctx.node, Number(args.port));
+    if (id === null) return portMissing(ctx, tr);
+    return changed(ctx, tr, { kind: 'vrrp', change: { op: 'preempt', id, vrid: Number(args.vrid), on: false } });
+  },
+};
+
+const vrrpForms = [vrrpIp, vrrpPriority, vrrpPreempt, vrrpTrack];
 
 export const commands: readonly CommandSpec[] = [
   {
@@ -55,25 +111,8 @@ export const commands: readonly CommandSpec[] = [
       return shown(groups.map((g) => out(tr('ui.terminal.vrrpGroup', { iface: g.iface, vrid: g.vrid, state: g.state, ip: g.ip, priority: g.priority, preempt: tr(g.preempt ? 'ui.terminal.vrrpPreemptOn' : 'ui.terminal.vrrpPreemptOff') }))));
     },
   },
-  vrrp,
-  interfaceForm(vrrp, portFirst),
-  {
-    id: 'vrrp.noVrrp',
-    modes: ['exec', 'config'],
-    tokens: [{ word: 'no' }, { word: 'vrrp' }, { rest: 'args' }],
-    help: '',
-    writes: true,
-    topic: 'vrrp',
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      const a = vrrpArgs(words);
-      if (!a) return shown([err(tr('ui.terminal.usageVrrp'))]);
-      if (words.length !== 2 && !(words.length === 3 && words[2] === 'preempt')) return shown([err(tr('ui.terminal.usageVrrp'))]);
-      const id = ifaceIdOf(ctx.node, a.p);
-      if (id === null) return portMissing(ctx, tr);
-      if (words.length === 2) return changed(ctx, tr, { kind: 'vrrp', change: { op: 'remove', id, vrid: a.vrid } });
-      if (words.length === 3 && words[2] === 'preempt') return changed(ctx, tr, { kind: 'vrrp', change: { op: 'preempt', id, vrid: a.vrid, on: false } });
-      return shown([err(tr('ui.terminal.usageVrrp'))]);
-    },
-  },
+  ...vrrpForms,
+  ...vrrpForms.map((s) => interfaceOf(s)),
+  noVrrp,
+  noVrrpPreempt,
 ];
