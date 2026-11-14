@@ -22,6 +22,7 @@ import { Select } from './ui/Select';
 import { CertChips } from './StaffCard';
 import { requiresPc } from '../sim/jobs';
 import { maybeFurniture } from '../registry/query';
+import { Button } from './ui/Button';
 
 // 開くタブは useUiStore の hiring が決める。社員の札の「研修・資格へ」から開くときは staff
 export function HiringPanel() {
@@ -159,10 +160,10 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
           {confirmUid === c.uid && requiresPc(c.job) && !nextDeskHasPc && !full && (
             <div style={{ position: 'absolute', right: 12, bottom: 42, zIndex: 1, maxWidth: 260, padding: 8, background: '#1b2f57', border: '1px solid #ffd866' }}>
               <div style={{ fontSize: 12, marginBottom: 6 }}>{t('ui.hiring.noPc.confirm')}</div>
-              <button style={{ ...secondaryButton, marginRight: 6 }} onClick={() => { setConfirmUid(null); const reason = hire(c.uid, shiftOf[c.uid] ?? 'day'); onMessage(reason ? reasonText(reason) : ''); }}>
+              <Button variant="secondary" layout={{ marginRight: 6 }} onClick={() => { setConfirmUid(null); const reason = hire(c.uid, shiftOf[c.uid] ?? 'day'); onMessage(reason ? reasonText(reason) : ''); }}>
                 {t('ui.hiring.hire')}
-              </button>
-              <button style={secondaryButton} onClick={() => setConfirmUid(null)}>{t('ui.panel.close')}</button>
+              </Button>
+              <Button variant="secondary" onClick={() => setConfirmUid(null)}>{t('ui.panel.close')}</Button>
             </div>
           )}
         </div>
