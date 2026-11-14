@@ -20,6 +20,7 @@ import { focusedProject, useGameStore, type Tool } from '../stores/useGameStore'
 import { tipText } from '../input/keymap';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
+import { IconButton } from './ui/IconButton';
 import { Inventory, inventoryCatalog } from './Inventory';
 import { RADIUS } from '../ui/theme';
 import { usePhone } from '../ui/usePhone';
@@ -84,14 +85,6 @@ const slot = (active: boolean) =>
   }) as const;
 
 const sep = <span style={{ width: 1, height: 36, background: '#3b2a33', margin: '0 4px' }} />;
-
-// 道具のボタン。選んでいる道具は押し込んだ見た目（内側に影を付け、少し暗くする）
-const toolSlot = (active: boolean) =>
-  ({
-    ...slot(active),
-    background: active ? '#1d3664' : '#25406f',
-    boxShadow: active ? 'inset 2px 2px 0 rgba(20, 30, 50, 0.7)' : 'none',
-  }) as const;
 
 // 道具の一覧（左端に並べる順）。action は input/keymap.ts の動作の識別子（押すキーの表示に使う）
 const TOOLS: { id: Tool; name: LangKey; action: string; icon: string }[] = [
@@ -171,16 +164,12 @@ export function Toolbar() {
       {historyError && (
         <span style={{ fontSize: 13, color: '#ffd3c9', maxWidth: 320 }}>{tDyn(`ui.error.${historyError}`)}</span>
       )}
-      <Tooltip text={tipText('keys.undo', 'undo', !phone)}>
-        <button aria-label={t('keys.undo')} style={{ ...sl(false), opacity: canUndo ? 1 : 0.35 }} disabled={!canUndo} onClick={() => undo()}>
-          <Icon name="icon/undo" />
-        </button>
-      </Tooltip>
-      <Tooltip text={tipText('keys.redo', 'redo', !phone)}>
-        <button aria-label={t('keys.redo')} style={{ ...sl(false), opacity: canRedo ? 1 : 0.35 }} disabled={!canRedo} onClick={() => redo()}>
-          <Icon name="icon/redo" />
-        </button>
-      </Tooltip>
+      <IconButton label={t('keys.undo')} tip={tipText('keys.undo', 'undo', !phone)} disabled={!canUndo} onClick={() => undo()}>
+        <Icon name="icon/undo" />
+      </IconButton>
+      <IconButton label={t('keys.redo')} tip={tipText('keys.redo', 'redo', !phone)} disabled={!canRedo} onClick={() => redo()}>
+        <Icon name="icon/redo" />
+      </IconButton>
     </>
   );
   // インベントリの在庫の合計（機材と家具の個数の和）
@@ -270,9 +259,9 @@ export function Toolbar() {
         )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           {TOOLS.map((item) => (
-            <button key={item.id} aria-label={t(item.name)} data-guide={`tool.${item.id}`} style={{ ...toolSlot(tool === item.id), flexShrink: 0 }} onClick={() => { setTool(item.id); closeInventory(); }}>
+            <IconButton key={item.id} label={t(item.name)} guide={`tool.${item.id}`} selected={tool === item.id} layout={{ flexShrink: 0 }} onClick={() => { setTool(item.id); closeInventory(); }}>
               <Icon name={item.icon} />
-            </button>
+            </IconButton>
           ))}
           {gap}
           {!sandbox && !design && (
@@ -283,9 +272,9 @@ export function Toolbar() {
               )}
             </button>
           )}
-          <button aria-label={t('ui.shop.title')} data-guide="shop" style={sl(false)} onClick={() => { closeInventory(); onShop(); }}>
+          <IconButton label={t('ui.shop.title')} guide="shop" layout={{ flexShrink: 0 }} onClick={() => { closeInventory(); onShop(); }}>
             <Icon name="icon/cart" />
-          </button>
+          </IconButton>
           {!sandbox && !design && (
             <button aria-label={t('ui.staff.hire')} style={sl(hiringOpen)} onClick={() => { closeInventory(); onHire(); }}>
               <Icon name="icon/person" />
@@ -327,29 +316,22 @@ export function Toolbar() {
       {TOOLS.map((item) => (
         <Fragment key={item.id}>
           <span style={{ position: 'relative', display: 'inline-flex' }}>
-            <Tooltip text={tipText(item.name, item.action, !phone)}>
-              <button aria-label={t(item.name)} data-guide={`tool.${item.id}`} style={toolSlot(tool === item.id)} onClick={() => { setTool(item.id); closeInventory(); }}>
-                <Icon name={item.icon} />
-              </button>
-            </Tooltip>
+            <IconButton label={t(item.name)} tip={tipText(item.name, item.action, !phone)} guide={`tool.${item.id}`} selected={tool === item.id} onClick={() => { setTool(item.id); closeInventory(); }}>
+              <Icon name={item.icon} />
+            </IconButton>
             {item.id === 'wire' && !phone && showCables && cablePopup}
           </span>
         </Fragment>
       ))}
       {sep}
       {!sandbox && (
-      <Tooltip text={tipText('ui.offer.title', 'offers', !phone)}><button aria-label={t('ui.offer.title')} style={{ ...sl(false), position: 'relative' }}  onClick={() => { closeInventory(); onOffers(); }}>
+      <IconButton label={t('ui.offer.title')} tip={tipText('ui.offer.title', 'offers', !phone)} count={offers.length} onClick={() => { closeInventory(); onOffers(); }}>
         <Icon name="icon/mail" />
-        {offers.length > 0 && (
-          <span style={{ position: 'absolute', top: phone ? 2 : -6, right: phone ? 2 : -6, background: '#e84a4a', borderRadius: RADIUS.chrome, fontSize: 11, padding: '0 5px' }}>
-            {offers.length}
-          </span>
-        )}
-      </button></Tooltip>
+      </IconButton>
       )}
-      <Tooltip text={tipText('ui.shop.title', 'shop', !phone)}><button aria-label={t('ui.shop.title')} data-guide="shop" style={sl(false)}  onClick={() => { closeInventory(); onShop(); }}>
+      <IconButton label={t('ui.shop.title')} tip={tipText('ui.shop.title', 'shop', !phone)} guide="shop" onClick={() => { closeInventory(); onShop(); }}>
         <Icon name="icon/cart" />
-      </button></Tooltip>
+      </IconButton>
       {!sandbox && (
         // 候補が0人のときは押せない（半透明）
         <Tooltip text={t('ui.staff.hire')}><button aria-label={t('ui.staff.hire')} style={sl(hiringOpen)} onClick={() => { closeInventory(); onHire(); }}>

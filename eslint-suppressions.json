@@ -369,13 +369,13 @@
   },
   "src/components/Toolbar.tsx": {
     "local/no-look-props": {
-      "count": 48
+      "count": 41
     },
     "local/no-mode-branch": {
       "count": 2
     },
     "local/no-native-control": {
-      "count": 20
+      "count": 13
     }
   },
   "src/components/Tooltip.tsx": {
