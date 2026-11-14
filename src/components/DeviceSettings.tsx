@@ -21,6 +21,7 @@ import { gameEnv } from '../sim/env';
 import { addressCandidates, PLANNED_NETWORK, PLANNED_PREFIX, plannedAddressCandidates, type AddressCandidate } from '../sim/project';
 import { coreOf, netOfDevice, netTargetOf, plannedKey, useGameStore } from '../stores/useGameStore';
 import { greyColor, hexColor, isIpText, portLabel, sectionStyle, unsetColor } from './devicePorts';
+import { Section } from './ui/Section';
 import { CATEGORY } from '../data/categories';
 import { BgpField } from './BgpField';
 import { IspField } from './IspField';
@@ -253,7 +254,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
     const extra = node.gateway && !routers.includes(node.gateway) ? [node.gateway] : [];
     const gatewayOptions: ComboOption[] = [...routers, ...extra].map((ip) => ({ value: ip, usedBy: null }));
     return (
-      <div style={sectionStyle}>
+      <Section layout={{ marginBottom: 10 }}>
         <div>{t('ui.config.gateway')}</div>
         {routers.length === 0 ? (
           <div style={{ color: greyColor }}>{t('ui.config.noRouter')}</div>
@@ -274,7 +275,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
             </div>
           </>
         )}
-      </div>
+      </Section>
     );
   };
 
@@ -283,7 +284,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
   const renderFirewallRules = () => {
     const rules = node.rules ?? [];
     return (
-      <div style={sectionStyle}>
+      <Section layout={{ marginBottom: 10 }}>
         <div>
           <b>{t('ui.fw.rules')}</b>
         </div>
@@ -299,7 +300,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
           </div>
         ))}
         {!locked && <FirewallRuleAdd onAdd={(rule) => onError(setFirewallRules(node.uid, [...rules, rule]))} />}
-      </div>
+      </Section>
     );
   };
 
@@ -311,7 +312,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
     }
     const hops = neighborRouterAddresses(netState, node.uid);
     return (
-      <div style={sectionStyle}>
+      <Section layout={{ marginBottom: 10 }}>
         <div>
           <b>{t('ui.config.routes')}</b>
         </div>
@@ -336,13 +337,13 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
               onAdd={(dest, prefix, nextHop) => onError(addRoute(node.uid, { dest, prefix, nextHop }))}
             />
           ))}
-      </div>
+      </Section>
     );
   };
 
   // OSPF に参加しているルーターだけに出す（ルーター ID・既定の経路の配布）
   const renderOspf = () => (
-    <div style={sectionStyle}>
+    <Section layout={{ marginBottom: 10 }}>
       <div style={{ ...row, flexWrap: 'wrap', gap: 6 }}>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
           {t('ui.config.ospfRouterId')}
@@ -362,7 +363,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
           {t('ui.config.ospfDefault')}
         </Checkbox>
       </div>
-    </div>
+    </Section>
   );
 
   return (
@@ -494,7 +495,7 @@ function NatField({ node, readOnly, onError }: { node: NetNode; readOnly: boolea
     setInsideIp('');
   };
   return (
-    <div style={sectionStyle}>
+    <Section layout={{ marginBottom: 10 }}>
       <div>
         <b>{t('ui.nat.title')}</b>
       </div>
@@ -537,7 +538,7 @@ function NatField({ node, readOnly, onError }: { node: NetNode; readOnly: boolea
           </Button>
         </div>
       )}
-    </div>
+    </Section>
   );
 }
 
@@ -571,7 +572,7 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
     </div>
   );
   return (
-    <div style={sectionStyle}>
+    <Section layout={{ marginBottom: 10 }}>
       {field(t('ui.wireless.ssid'), node.wireless?.ssid ?? '', 'ssid', 'text')}
       {field(t('ui.wireless.password'), node.wireless?.password ?? '', 'password', 'password')}
       {!isClient && (
@@ -588,7 +589,7 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
       )}
       <div style={{ fontSize: 12 }}>{statusText}</div>
       {overlapping && <div style={{ fontSize: 12, color: "#ffd866" }}>{t("ui.wireless.overlap")}</div>}
-    </div>
+    </Section>
   );
 }
 
