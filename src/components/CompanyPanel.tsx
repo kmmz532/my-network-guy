@@ -6,6 +6,7 @@ import { t, tDyn } from '../i18n/t';
 import { expAtLevel, levelOf, levelProgressOf, needOf, nextLevel, titleKeyOf } from '../sim/level';
 import { unlockItems, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
+import { Section } from './ui/Section';
 import { UnlockCards, unlockNameOf } from './UnlockList';
 import { Tooltip } from './Tooltip';
 import { tipText } from '../input/keymap';
@@ -82,61 +83,77 @@ export function CompanyBody() {
   const others = unlocks.filter((x) => x.kind !== 'device' && x.kind !== 'furniture');
   // 次のレベルで解放される職種（採用の候補に出る）
   const jobsUnlockedAt = next ? JOB_DEFS.filter((job) => job.unlockLevel === next.level).map((job) => job.id) : [];
-  const row = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #3b2a33' } as const;
+  const row = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 } as const;
   // 会社の総覧。社員・資金・外部への接続は要約だけを出し、押すとそれぞれの画面を開く（詳細は各画面・N126）
   return (
     <div style={{ padding: 12, fontSize: 14, color: '#f4f1e6' }}>
-      <div style={{ ...row, fontSize: 16 }}>
-        <LevelMark level={level} />
-        {titleKey && <span style={{ color: '#ffd866' }}>{tDyn(titleKey)}</span>}
-      </div>
-      <div style={row}>
-        <span>{t('ui.company.exp')}</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>{next ? `${inLevel} / ${need}` : t('ui.company.max')}</span>
-          <ExpGauge companyExp={companyExp} width={120} />
-        </span>
-      </div>
-      <div style={row}>
-        <span>{t('ui.company.reputation')}</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Icon name="icon/star" scale={1} />
-          {reputation}
-        </span>
-      </div>
-      <div style={row}>
-        <span>{t('ui.company.staff')}</span>
-        {/* 社員の一覧を開くボタンはここだけ（採用の画面は候補が0人だと開けない）。キーは H */}
-        <Tooltip text={tipText('keys.staffList', 'staffList')}>
-          <button style={link} onClick={() => open('staffList')}>
-            {t('ui.company.staffCount', { total: staff.length, day: staff.length - night, night })}
-          </button>
-        </Tooltip>
-      </div>
-      {noPcCount > 0 && (
+      <Section>
+        <div style={{ ...row, fontSize: 16 }}>
+          <LevelMark level={level} />
+          {titleKey && <span style={{ color: '#ffd866' }}>{tDyn(titleKey)}</span>}
+        </div>
+      </Section>
+      <Section>
         <div style={row}>
-          <span>{t('ui.company.noPc')}</span>
-          <button style={{ ...link, color: '#ffd866' }} onClick={() => open('staffList')}>
-            {t('ui.company.noPc.count', { count: noPcCount })}
+          <span>{t('ui.company.exp')}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>{next ? `${inLevel} / ${need}` : t('ui.company.max')}</span>
+            <ExpGauge companyExp={companyExp} width={120} />
+          </span>
+        </div>
+      </Section>
+      <Section>
+        <div style={row}>
+          <span>{t('ui.company.reputation')}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Icon name="icon/star" scale={1} />
+            {reputation}
+          </span>
+        </div>
+      </Section>
+      <Section>
+        <div style={row}>
+          <span>{t('ui.company.staff')}</span>
+          {/* 社員の一覧を開くボタンはここだけ（採用の画面は候補が0人だと開けない）。キーは H */}
+          <Tooltip text={tipText('keys.staffList', 'staffList')}>
+            <button style={link} onClick={() => open('staffList')}>
+              {t('ui.company.staffCount', { total: staff.length, day: staff.length - night, night })}
+            </button>
+          </Tooltip>
+        </div>
+      </Section>
+      {noPcCount > 0 && (
+        <Section>
+          <div style={row}>
+            <span>{t('ui.company.noPc')}</span>
+            <button style={{ ...link, color: '#ffd866' }} onClick={() => open('staffList')}>
+              {t('ui.company.noPc.count', { count: noPcCount })}
+            </button>
+          </div>
+        </Section>
+      )}
+      <Section>
+        <div style={row}>
+          <span>{t('ui.company.funds')}</span>
+          <button style={link} onClick={() => open('funds')}>
+            {money.toLocaleString('ja-JP')}円
           </button>
         </div>
-      )}
-      <div style={row}>
-        <span>{t('ui.company.funds')}</span>
-        <button style={link} onClick={() => open('funds')}>
-          {money.toLocaleString('ja-JP')}円
-        </button>
-      </div>
-      <div style={row}>
-        <span>{t('ui.company.outside')}</span>
-        <button style={link} onClick={() => open('office')}>
-          {!outside.attached ? t('ui.company.outside.none') : outside.pcsReachOutside ? t('ui.company.outside.ok') : t('ui.company.outside.ng')}
-        </button>
-      </div>
-      <div style={row}>
-        <span>{t('ui.company.delivered')}</span>
-        <span>{t('ui.company.count', { count: deliveries })}</span>
-      </div>
+      </Section>
+      <Section>
+        <div style={row}>
+          <span>{t('ui.company.outside')}</span>
+          <button style={link} onClick={() => open('office')}>
+            {!outside.attached ? t('ui.company.outside.none') : outside.pcsReachOutside ? t('ui.company.outside.ok') : t('ui.company.outside.ng')}
+          </button>
+        </div>
+      </Section>
+      <Section>
+        <div style={row}>
+          <span>{t('ui.company.delivered')}</span>
+          <span>{t('ui.company.count', { count: deliveries })}</span>
+        </div>
+      </Section>
       <div style={{ paddingTop: 8 }}>
         <div style={{ color: '#ffd866' }}>{next ? t('ui.company.next', { level: next.level }) : t('ui.company.max')}</div>
         {next && unlocks.length === 0 && <div style={{ opacity: 0.85 }}>{t('ui.company.nothing')}</div>}

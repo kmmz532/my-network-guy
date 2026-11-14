@@ -44,7 +44,7 @@
   },
   "src/components/CompanyPanel.tsx": {
     "local/no-look-props": {
-      "count": 16
+      "count": 15
     },
     "local/no-native-control": {
       "count": 4
