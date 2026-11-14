@@ -345,6 +345,17 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
     services: (p.config?.services ?? []).map((s) => ({ ...s })),
   }));
 
+// 案件で最初から引かれている配線。配線の長さは、両端の機器のマスを結ぶ直線で足りるものとして扱う
+export const contractLinks = (contract: Contract): NetLink[] =>
+  (contract.links ?? []).map((l, i) => {
+    const at = (ref: string): [number, number] => {
+      const p = contract.placed.find((x) => x.ref === ref);
+      if (!p) throw new Error(`案件 ${contract.id}: 機器 ${ref} がない`);
+      return [p.x, p.y];
+    };
+    return { uid: `l${i}`, cable: l.cable, a: { node: l.a.ref, port: l.a.port }, b: { node: l.b.ref, port: l.b.port }, path: [at(l.a.ref), at(l.b.ref)], paid: 0 };
+  });
+
 // 設計・表示の対象の案件を取り出す（なければ null）
 export const focusedOf = (core: Core): Project | null =>
   core.focus === null ? null : (core.active.find((p) => p.id === core.focus) ?? null);

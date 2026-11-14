@@ -1,0 +1,168 @@
+{
+  "id": "r004_mask",
+  "kind": "repair",
+  "minChanges": 1,
+  "stage": 2,
+  "order": 220,
+  "requires": [
+    "r003_loop"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_small",
+  "budget": 20000,
+  "deadlineDays": 5,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "sw",
+      "device": "l2_switch_8p",
+      "x": 7,
+      "y": 5,
+      "locked": true,
+      "name": "スイッチ"
+    },
+    {
+      "ref": "pc_a",
+      "device": "pc_basic",
+      "x": 3,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "受付のPC"
+    },
+    {
+      "ref": "pc_b",
+      "device": "pc_basic",
+      "x": 10,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "経理のPC"
+    },
+    {
+      "ref": "pc_c",
+      "device": "pc_basic",
+      "x": 10,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.13",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "総務のPC"
+    },
+    {
+      "ref": "pc_new",
+      "device": "pc_basic",
+      "x": 3,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.20",
+            "prefix": 28
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "新しいPC"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "pc_a",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "pc_b",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "pc_c",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw",
+        "port": 2
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "pc_new",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw",
+        "port": 3
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": [
+        "pc_a",
+        "pc_b",
+        "pc_c",
+        "pc_new"
+      ]
+    }
+  ],
+  "reward": {
+    "money": 260000
+  },
+  "unlockLevel": 11
+}

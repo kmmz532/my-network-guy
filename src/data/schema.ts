@@ -434,8 +434,18 @@ export const goalSchema = z.discriminatedUnion('type', [
 // 地図・依頼に置く家具（N76）。歩けない床になり、機器は置けない
 const placedFurnitureSchema = z.object({ id: z.string().min(1), x: nonNegativeInt, y: nonNegativeInt, facing: z.enum(['up', 'down', 'left', 'right']).optional() });
 
+// 配線の端（機器の ref と口の番号）と、最初から引かれている配線
+const wireEndSchema = z.object({ ref: z.string().min(1), port: nonNegativeInt });
+const wireSchema = z.object({ cable: z.string().min(1), a: wireEndSchema, b: wireEndSchema });
+
+// 依頼の型。修理は、症状だけを依頼文に書き、置かれた状態に壊れ方が1つだけある
+export const CONTRACT_KINDS = ['build', 'repair'] as const;
+
 export const contractSchema = z.object({
   id: z.string().min(1),
+  kind: z.enum(CONTRACT_KINDS).optional(),
+  // 修理の★3の基準になる、最初の状態からの変更の数
+  minChanges: int.positive().optional(),
   stage: int.positive(),
   // この案件が届く会社のレベル（その案件で使う機器の解放のレベル以上）
   unlockLevel: unlockLevelSchema,
@@ -451,6 +461,8 @@ export const contractSchema = z.object({
   topics: z.array(z.string().min(1)).optional(),
   addressBlock: z.object({ network: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/), prefix: int.min(8).max(30) }).optional(),
   placed: z.array(placedSchema),
+  // 最初から引かれている配線（修理の依頼など。施工済みとして扱う）
+  links: z.array(wireSchema).optional(),
   // 依頼で作った家具（机・棚・飾り。N76）
   furniture: z.array(placedFurnitureSchema).optional(),
   goals: z.array(goalSchema).min(1),

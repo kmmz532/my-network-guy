@@ -14,7 +14,7 @@ import { blindDelegation } from './blindDelegate';
 import { busyStaff, crewBlock } from './crew';
 import { warningsOf } from '../network/query/warnings';
 import { deliveryExpOf, levelOf } from './level';
-import { BlindOutcome, BlindPlan, Core, Env, GoalCheck, Office, Outcome, Project, ReportFailure, TestOutcome, TestResult, Trace, connect, delegationReason, designIssues, stateOfProject, fail, fixedNodes, focusedOf, hubFor, isPcIn, keepFocus, projectCostOf, requireDesign, withProject } from './project';
+import { BlindOutcome, BlindPlan, Core, Env, GoalCheck, Office, Outcome, Project, ReportFailure, TestOutcome, TestResult, Trace, connect, contractLinks, delegationReason, designIssues, stateOfProject, fail, fixedNodes, focusedOf, hubFor, isPcIn, keepFocus, projectCostOf, requireDesign, withProject } from './project';
 
 // 増えた機器を型紙につなぐときのケーブル（一番安いもの）
 const WIRE_CABLE = 'utp_cat5e';
@@ -103,7 +103,7 @@ export const accept = (core: Core, offerId: string, slots: number, crew: string[
   // 自社案件は、自社オフィスの機器と配線を引き継いで始める
   const fixed = fixedNodes(offer.contract).filter((n) => !inhouse || !office.nodes.some((o) => o.uid === n.uid));
   const nodes = inhouse ? [...office.nodes, ...fixed] : fixed;
-  const links = inhouse ? [...office.links] : [];
+  const links = inhouse ? [...office.links] : contractLinks(offer.contract);
   const project: Project = {
     id: offer.id,
     kind: offer.kind,
@@ -112,7 +112,7 @@ export const accept = (core: Core, offerId: string, slots: number, crew: string[
     contract: offer.contract,
     nodes,
     links,
-    seq: inhouse ? office.seq : 0,
+    seq: inhouse ? office.seq : links.length,
     cost: 0,
     rework: 0,
     // 既設の機器は施工済みとして扱う
