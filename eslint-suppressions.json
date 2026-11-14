@@ -34,20 +34,11 @@
       "count": 2
     },
     "local/no-look-props": {
-      "count": 7
-    },
-    "local/no-native-control": {
-      "count": 2
+      "count": 6
     }
   },
   "src/components/ChannelField.tsx": {
-    "local/no-look-export": {
-      "count": 1
-    },
     "local/no-look-props": {
-      "count": 1
-    },
-    "local/no-native-control": {
       "count": 1
     }
   },
@@ -106,24 +97,21 @@
       "count": 1
     },
     "local/no-look-export": {
-      "count": 5
+      "count": 4
     },
     "local/no-look-props": {
-      "count": 22
-    },
-    "local/no-native-control": {
-      "count": 5
+      "count": 21
     }
   },
   "src/components/DhcpField.tsx": {
     "local/no-look-export": {
-      "count": 3
+      "count": 2
     },
     "local/no-look-props": {
       "count": 6
     },
     "local/no-native-control": {
-      "count": 3
+      "count": 2
     }
   },
   "src/components/ErrorScreen.tsx": {
@@ -398,24 +386,21 @@
   },
   "src/components/VlanPortField.tsx": {
     "local/no-look-export": {
-      "count": 2
+      "count": 1
     },
     "local/no-look-props": {
-      "count": 2
-    },
-    "local/no-native-control": {
       "count": 2
     }
   },
   "src/components/VrrpField.tsx": {
     "local/no-look-export": {
-      "count": 3
+      "count": 2
     },
     "local/no-look-props": {
       "count": 6
     },
     "local/no-native-control": {
-      "count": 4
+      "count": 3
     }
   },
   "src/components/Window.tsx": {
