@@ -16,6 +16,8 @@ export interface Layout {
   flex?: CSSProperties['flex'];
   flexShrink?: CSSProperties['flexShrink'];
   alignSelf?: CSSProperties['alignSelf'];
+  // 中の絵や札を絶対の位置で置くときの基準（relative）
+  position?: CSSProperties['position'];
 }
 
 // 配置を style の値にする（部品の内側でだけ使う）
