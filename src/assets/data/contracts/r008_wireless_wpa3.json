@@ -1,0 +1,90 @@
+{
+  "id": "r008_wireless_wpa3",
+  "kind": "repair",
+  "minChanges": 1,
+  "stage": 2,
+  "order": 260,
+  "requires": [
+    "r007_ospf_area"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_rooms",
+  "budget": 30000,
+  "deadlineDays": 5,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "ap",
+      "device": "access_point",
+      "x": 6,
+      "y": 5,
+      "locked": true,
+      "name": "受付のアクセスポイント",
+      "wireless": {
+        "ssid": "office-wifi",
+        "password": "office-pass-2026",
+        "security": "wpa3"
+      }
+    },
+    {
+      "ref": "laptop",
+      "device": "laptop",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "name": "社員のノートPC",
+      "wireless": {
+        "ssid": "office-wifi",
+        "password": "office-pass-2026"
+      },
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      }
+    },
+    {
+      "ref": "pc_new",
+      "device": "pc_wifi",
+      "x": 4,
+      "y": 7,
+      "locked": true,
+      "name": "受付に置いた新しいPC",
+      "wireless": {
+        "ssid": "office-wifi",
+        "password": "office-pass-2026"
+      },
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "wireless_clients",
+      "min": 2
+    }
+  ],
+  "reward": {
+    "money": 600000
+  },
+  "unlockLevel": 60
+}
