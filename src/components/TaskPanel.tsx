@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 import { GLOSSARY_OF_FAILURE } from '../network/glossaryOf';
 import { lessons } from 'virtual:game-data';
 import { Button } from './ui/Button';
+import { ListRow } from './ui/ListRow';
 
 // 最初の案件（c001）の手順。配線・疎通・施工依頼の順に、済んだものに印を付ける
 const FIRST_CONTRACT = 'c001_direct_link';
@@ -88,11 +89,15 @@ export function TaskPanel() {
               {lesson.goals.map((goal, i) => {
                 const ok = lessonResult?.[i] ? lessonResult[i].ok : null;
                 return (
-                  <li key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginTop: 4 }}>
-                    <span style={{ opacity: ok === null ? 0.25 : 1, flexShrink: 0 }}>
-                      <Icon name={ok === false ? 'icon/close' : 'icon/ok'} scale={1} />
-                    </span>
-                    <span style={{ opacity: ok === true ? 0.7 : 1 }}>{goalText(goal, (id) => labelOfUid(useGameStore.getState(), id, officeNodes))}</span>
+                  <li key={i}>
+                    <ListRow layout={{ marginTop: 4 }}>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                        <span style={{ opacity: ok === null ? 0.25 : 1, flexShrink: 0 }}>
+                          <Icon name={ok === false ? 'icon/close' : 'icon/ok'} scale={1} />
+                        </span>
+                        <span style={{ opacity: ok === true ? 0.7 : 1 }}>{goalText(goal, (id) => labelOfUid(useGameStore.getState(), id, officeNodes))}</span>
+                      </div>
+                    </ListRow>
                   </li>
                 );
               })}
@@ -165,38 +170,42 @@ export function TaskPanel() {
               // × は失敗した機器を選び、機器の画面を開く（失敗の機器がないものは押せない）
               const icon = <Icon name={g.ok === false ? 'icon/close' : 'icon/ok'} scale={1} />;
               return (
-                <li key={i} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'flex-start', marginTop: 4 }}>
-                  {g.ok === false && g.node ? (
-                    <button
-                      aria-label={t('ui.check.open')}
-                      title={t('ui.check.open')}
-                      onClick={() => {
-                        setTool('select');
-                        if (g.node) openWindow('device', g.node);
-                      }}
-                      style={{ flexShrink: 0, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit' }}
-                    >
-                      {icon}
-                    </button>
-                  ) : (
-                    <span style={{ opacity: g.ok === null ? 0.25 : 1, flexShrink: 0 }}>{icon}</span>
-                  )}
-                  <span style={{ opacity: g.ok === true ? 0.7 : 1 }}>{g.text}</span>
-                  {traces.some((tr) => tr.goal === i) && (
-                    <Button variant="secondary" size="s" layout={{ flexShrink: 0 }} onClick={() => openWindow('frames', String(i))}>
-                      {t('ui.frames.goal')}
-                    </Button>
-                  )}
-                  {g.ok === false && g.term && (
-                    // 初めて出すとき（この表示の中でも）と、開いたときだけ説明を出す。それ以外は「説明を見る」で開く
-                    termsShown.includes(g.term) && !firstShownHere.current.has(g.term) && openTerm !== g.term ? (
-                      <Button variant="secondary" size="s" layout={{ flexShrink: 0 }} onClick={() => setOpenTerm(g.term)}>
-                        {t('ui.glossary.open')}
-                      </Button>
-                    ) : (
-                      <div style={{ flexBasis: '100%', paddingLeft: 22, fontSize: 12, opacity: 0.85 }}>{tDyn(`glossary.${g.term}`)}</div>
-                    )
-                  )}
+                <li key={i}>
+                  <ListRow layout={{ marginTop: 4 }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'flex-start' }}>
+                      {g.ok === false && g.node ? (
+                        <button
+                          aria-label={t('ui.check.open')}
+                          title={t('ui.check.open')}
+                          onClick={() => {
+                            setTool('select');
+                            if (g.node) openWindow('device', g.node);
+                          }}
+                          style={{ flexShrink: 0, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit' }}
+                        >
+                          {icon}
+                        </button>
+                      ) : (
+                        <span style={{ opacity: g.ok === null ? 0.25 : 1, flexShrink: 0 }}>{icon}</span>
+                      )}
+                      <span style={{ opacity: g.ok === true ? 0.7 : 1 }}>{g.text}</span>
+                      {traces.some((tr) => tr.goal === i) && (
+                        <Button variant="secondary" size="s" layout={{ flexShrink: 0 }} onClick={() => openWindow('frames', String(i))}>
+                          {t('ui.frames.goal')}
+                        </Button>
+                      )}
+                      {g.ok === false && g.term && (
+                        // 初めて出すとき（この表示の中でも）と、開いたときだけ説明を出す。それ以外は「説明を見る」で開く
+                        termsShown.includes(g.term) && !firstShownHere.current.has(g.term) && openTerm !== g.term ? (
+                          <Button variant="secondary" size="s" layout={{ flexShrink: 0 }} onClick={() => setOpenTerm(g.term)}>
+                            {t('ui.glossary.open')}
+                          </Button>
+                        ) : (
+                          <div style={{ flexBasis: '100%', paddingLeft: 22, fontSize: 12, opacity: 0.85 }}>{tDyn(`glossary.${g.term}`)}</div>
+                        )
+                      )}
+                    </div>
+                  </ListRow>
                 </li>
               );
             })}
@@ -211,11 +220,15 @@ export function TaskPanel() {
               <div style={{ fontWeight: 'bold', color: '#ffd866' }}>{t('ui.check.warnings')}</div>
               <ul style={{ listStyle: 'none', margin: '2px 0 0', padding: 0 }}>
                 {warnings.map((warning, i) => (
-                  <li key={`${warning.id}-${warning.a}-${warning.b}-${i}`} style={{ marginTop: 4, color: '#ffd866' }}>
-                    <span>{tDyn(`warn.${warning.id}`)}</span>
-                    <div style={{ fontSize: 11, opacity: 0.9 }}>
-                      {labelOfUid(useGameStore.getState(), warning.a, active.nodes)} / {labelOfUid(useGameStore.getState(), warning.b, active.nodes)}
-                    </div>
+                  <li key={`${warning.id}-${warning.a}-${warning.b}-${i}`}>
+                    <ListRow layout={{ marginTop: 4 }}>
+                      <div style={{ color: '#ffd866' }}>
+                        <span>{tDyn(`warn.${warning.id}`)}</span>
+                        <div style={{ fontSize: 11, opacity: 0.9 }}>
+                          {labelOfUid(useGameStore.getState(), warning.a, active.nodes)} / {labelOfUid(useGameStore.getState(), warning.b, active.nodes)}
+                        </div>
+                      </div>
+                    </ListRow>
                   </li>
                 ))}
               </ul>
@@ -226,11 +239,15 @@ export function TaskPanel() {
               <div style={{ marginTop: 8, fontWeight: 'bold' }}>{t('ui.task.steps')}</div>
               <ul style={{ listStyle: 'none', margin: '2px 0 0', padding: 0 }}>
                 {steps.map((s, i) => (
-                  <li key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginTop: 4 }}>
-                    <span style={{ opacity: s.done ? 1 : 0.25, flexShrink: 0 }}>
-                      <Icon name="icon/ok" scale={1} />
-                    </span>
-                    <span style={{ opacity: s.done ? 0.7 : 1 }}>{s.text}</span>
+                  <li key={i}>
+                    <ListRow layout={{ marginTop: 4 }}>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                        <span style={{ opacity: s.done ? 1 : 0.25, flexShrink: 0 }}>
+                          <Icon name="icon/ok" scale={1} />
+                        </span>
+                        <span style={{ opacity: s.done ? 0.7 : 1 }}>{s.text}</span>
+                      </div>
+                    </ListRow>
                   </li>
                 ))}
               </ul>
