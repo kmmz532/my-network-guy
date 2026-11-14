@@ -374,7 +374,7 @@ export const placedSchema = z.object({
 });
 
 // 修理の依頼などで、最初から入っている機器の設定（口の VLAN・OSPF・VRRP・DHCP・BGP など。NetNode の同名の項目と同じ形）
-const ipv4 = z.string().regex(/^d{1,3}(.d{1,3}){3}$/);
+const ipv4 = z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/);
 const portConfigSchema = z.object({
   port: nonNegativeInt,
   mode: z.enum(['access', 'trunk', 'routed']),
