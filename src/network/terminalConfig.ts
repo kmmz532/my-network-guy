@@ -113,30 +113,6 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     }
     return error('ui.terminal.usageStp');
   }
-  // DHCP
-  if (first === 'ip' && rest[0] === 'helper-address') {
-    if (rest.length !== 3 || port(rest[1]) === null || !isIp(rest[2])) return error('ui.terminal.usageDhcp');
-    return { kind: 'action', action: { kind: 'dhcp', op: 'helper', port: Number(rest[1]), ip: rest[2] } };
-  }
-  if (first === 'no' && rest[0] === 'ip' && rest[1] === 'helper-address') {
-    if (rest.length !== 3 || port(rest[2]) === null) return error('ui.terminal.usageDhcp');
-    return { kind: 'action', action: { kind: 'dhcp', op: 'helper', port: Number(rest[2]), ip: null } };
-  }
-  if (first === 'ip' && rest[0] === 'dhcp' && rest[1] === 'pool') {
-    const [, , network, mask, start, end, ...opts] = rest;
-    const prefix = maskToPrefix(mask ?? '');
-    if (!isIp(network ?? '') || prefix === null || !isIp(start ?? '') || !isIp(end ?? '') || opts.length % 2 !== 0) return error('ui.terminal.usageDhcp');
-    const pool: DhcpPool = { network, prefix, start, end };
-    for (let i = 0; i < opts.length; i += 2) {
-      if ((opts[i] !== 'gateway' && opts[i] !== 'dns') || !isIp(opts[i + 1])) return error('ui.terminal.usageDhcp');
-      pool[opts[i] as 'gateway' | 'dns'] = opts[i + 1];
-    }
-    return { kind: 'action', action: { kind: 'dhcp', op: 'pool', pool } };
-  }
-  if (first === 'no' && rest[0] === 'ip' && rest[1] === 'dhcp' && rest[2] === 'pool') {
-    if (rest.length !== 4 || !isIp(rest[3])) return error('ui.terminal.usageDhcp');
-    return { kind: 'action', action: { kind: 'dhcp', op: 'noPool', network: rest[3] } };
-  }
   // 無線（N151）
   if (first === 'wireless') {
     const [key, value] = rest;
