@@ -101,13 +101,6 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   if (first !== 'ip' && first !== 'no' && first !== 'hostname' && first !== 'vrrp' && first !== 'channel-group' && first !== 'spanning-tree' && first !== 'router' && first !== 'router-id' && first !== 'default-information' && first !== 'network' && first !== 'neighbor' && first !== 'wireless' && first !== 'switchport') return { kind: 'none' };
   const error = (key: string) => ({ kind: 'error' as const, text: tr(key) });
 
-  // router rip / router ospf <番号>（no で止める）
-  if (first === 'router' && (rest[0] === 'rip' || rest[0] === 'ospf')) {
-    return { kind: 'action', action: { kind: 'routing', proto: rest[0], on: true } };
-  }
-  if (first === 'no' && rest[0] === 'router' && (rest[1] === 'rip' || rest[1] === 'ospf')) {
-    return { kind: 'action', action: { kind: 'routing', proto: rest[1], on: false } };
-  }
   // VRRP
   const vrrpArgs = (w: string[]) => {
     const p = port(w[0] ?? '');
@@ -222,12 +215,7 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     if (rest.length === 3 && port(rest[2]) !== null) return { kind: 'action', action: { kind: 'nat', op: 'iface', port: Number(rest[2]), nat: null } };
     return error('ui.terminal.usageNat');
   }
-  // router bgp <AS>・no router bgp・neighbor <IP> remote-as <AS>・network <IP> mask <マスク>（BGP）
-  if (first === 'router' && rest[0] === 'bgp') {
-    if (!/^[0-9]+$/.test(rest[1] ?? '')) return error('ui.terminal.usageBgp');
-    return { kind: 'action', action: { kind: 'bgp', op: 'asn', asn: Number(rest[1]) } };
-  }
-  if (first === 'no' && rest[0] === 'router' && rest[1] === 'bgp') return { kind: 'action', action: { kind: 'bgp', op: 'off' } };
+  // neighbor <IP> remote-as <AS>（BGP）
   if (first === 'neighbor' && isIp(rest[0] ?? '') && rest[1] === 'next-hop-self' && rest.length === 2) return { kind: 'action', action: { kind: 'bgp', op: 'attr', ip: rest[0], key: 'nextHopSelf', value: true } };
   if (first === 'no' && rest[0] === 'neighbor' && isIp(rest[1] ?? '') && rest[2] === 'next-hop-self' && rest.length === 3) return { kind: 'action', action: { kind: 'bgp', op: 'attr', ip: rest[1], key: 'nextHopSelf', value: false } };
   if (first === 'neighbor' && isIp(rest[0] ?? '') && rest.length === 3 && /^[0-9]+$/.test(rest[2])) {
@@ -239,24 +227,5 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     if (rest.length !== 3 || rest[1] !== 'remote-as' || !isIp(rest[0]) || !/^[0-9]+$/.test(rest[2])) return error('ui.terminal.usageBgp');
     return { kind: 'action', action: { kind: 'bgp', op: 'neighbor', ip: rest[0], remoteAs: Number(rest[2]) } };
   }
-  if (first === 'network' && rest.length === 3 && rest[1] === 'mask' && isIp(rest[0])) {
-    const prefix = maskToPrefix(rest[2]);
-    if (prefix === null) return error('ui.terminal.errIp');
-    return { kind: 'action', action: { kind: 'bgp', op: 'network', dest: rest[0], prefix } };
-  }
-  // network <IP>（RIP）・network <IP> <ワイルドカード> area <エリア>（OSPF。MVP はエリア 0 だけ）
-  if (first === 'network') {
-    if (rest.length === 1 && isIp(rest[0])) return { kind: 'action', action: { kind: 'network', proto: 'rip', ip: rest[0], area: null, on: true } };
-    if (rest.length === 4 && isIp(rest[0]) && isIp(rest[1]) && rest[2] === 'area' && (/^[0-9]+$/.test(rest[3]) || isIp(rest[3]))) {
-      // エリアは整数と、試験の書き方の 0.0.0.0 の両方を受け付ける
-      const area = isIp(rest[3]) ? rest[3].split('.').reduce((a, x) => a * 256 + Number(x), 0) : Number(rest[3]);
-      return { kind: 'action', action: { kind: 'network', proto: 'ospf', ip: rest[0], area, on: true } };
-    }
-    return error('ui.terminal.usageNetwork');
-  }
-  if (first === 'no' && rest[0] === 'network' && rest.length === 2 && isIp(rest[1])) {
-    return { kind: 'action', action: { kind: 'network', proto: 'rip', ip: rest[1], area: null, on: false } };
-  }
-
   return error('ui.terminal.unknown');
 };

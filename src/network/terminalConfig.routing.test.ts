@@ -17,17 +17,17 @@ const tr = (key: string) => key;
 
 describe('RIP・OSPF の設定コマンド', () => {
   it('router rip / no router rip', () => {
-    expect(parseConfig('router rip', tr)).toEqual({ kind: 'action', action: { kind: 'routing', proto: 'rip', on: true } });
-    expect(parseConfig('no router rip', tr)).toEqual({ kind: 'action', action: { kind: 'routing', proto: 'rip', on: false } });
+    expect(viaTree('router rip', tr)).toEqual({ kind: 'action', action: { kind: 'routing', change: { proto: 'rip', on: true } } });
+    expect(viaTree('no router rip', tr)).toEqual({ kind: 'action', action: { kind: 'routing', change: { proto: 'rip', on: false } } });
   });
 
   it('network <IP> は RIP、network <IP> <ワイルドカード> area 0 は OSPF', () => {
-    expect(parseConfig('network 10.0.1.0', tr)).toEqual({ kind: 'action', action: { kind: 'network', proto: 'rip', ip: '10.0.1.0', area: null, on: true } });
-    expect(parseConfig('network 10.0.1.0 0.0.0.255 area 0', tr)).toEqual({ kind: 'action', action: { kind: 'network', proto: 'ospf', ip: '10.0.1.0', area: 0, on: true } });
+    expect(viaTree('network 10.0.1.0', tr)).toEqual({ kind: 'action', action: { kind: 'routing', change: { proto: 'rip', ip: '10.0.1.0', on: true } } });
+    expect(viaTree('network 10.0.1.0 0.0.0.255 area 0', tr)).toEqual({ kind: 'action', action: { kind: 'routing', change: { proto: 'ospf', ip: '10.0.1.0', area: 0, on: true } } });
   });
 
   it('MVP では OSPF のエリアは 0 だけ（ほかは errArea）', () => {
-    expect(parseConfig('network 10.0.1.0 0.0.0.255 area 1', tr)).toEqual({ kind: 'action', action: { kind: 'network', proto: 'ospf', ip: '10.0.1.0', area: 1, on: true } });
+    expect(viaTree('network 10.0.1.0 0.0.0.255 area 1', tr)).toEqual({ kind: 'action', action: { kind: 'routing', change: { proto: 'ospf', ip: '10.0.1.0', area: 1, on: true } } });
   });
   it('OSPF の router-id・既定の経路の配布・インターフェースの設定を読む', () => {
     expect(parseConfig('router-id 1.1.1.1', tr)).toEqual({ kind: 'action', action: { kind: 'ospf', op: 'routerId', ip: '1.1.1.1' } });
@@ -35,7 +35,7 @@ describe('RIP・OSPF の設定コマンド', () => {
     expect(parseConfig('default-information originate', tr)).toEqual({ kind: 'action', action: { kind: 'ospf', op: 'defaultOriginate', on: true } });
     expect(parseConfig('no default-information originate', tr)).toEqual({ kind: 'action', action: { kind: 'ospf', op: 'defaultOriginate', on: false } });
     expect(parseConfig('ip ospf hello-interval 1 30', tr)).toEqual({ kind: 'action', action: { kind: 'ospf', op: 'iface', port: 1, key: 'hello', value: 30 } });
-    expect(parseConfig('network 10.0.1.0 0.0.0.255 area 0.0.0.1', tr)).toEqual({ kind: 'action', action: { kind: 'network', proto: 'ospf', ip: '10.0.1.0', area: 1, on: true } });
+    expect(viaTree('network 10.0.1.0 0.0.0.255 area 0.0.0.1', tr)).toEqual({ kind: 'action', action: { kind: 'routing', change: { proto: 'ospf', ip: '10.0.1.0', area: 1, on: true } } });
   });
 });
 
