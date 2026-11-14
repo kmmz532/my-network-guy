@@ -1,0 +1,314 @@
+{
+  "id": "r010_dhcp_rogue",
+  "kind": "repair",
+  "minChanges": 1,
+  "stage": 2,
+  "order": 280,
+  "requires": [
+    "r009_bgp_as"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_rooms",
+  "budget": 30000,
+  "deadlineDays": 5,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "pc_hq",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "name": "本社のPC",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      }
+    },
+    {
+      "ref": "sw_hq",
+      "device": "l2_switch_8p",
+      "x": 5,
+      "y": 5,
+      "locked": true,
+      "name": "本社のスイッチ"
+    },
+    {
+      "ref": "edge",
+      "device": "edge_router",
+      "x": 9,
+      "y": 5,
+      "locked": true,
+      "name": "本社のルーター",
+      "config": {
+        "interfaces": [
+          {
+            "port": 2,
+            "ip": "192.168.1.1",
+            "prefix": 24
+          },
+          {
+            "port": 0,
+            "ip": "10.0.12.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "setup": {
+        "interfaces": [
+          {
+            "port": 0,
+            "rip": true
+          },
+          {
+            "port": 2,
+            "rip": true
+          }
+        ],
+        "dhcpPools": [
+          {
+            "network": "10.0.0.0",
+            "prefix": 24,
+            "start": "10.0.0.100",
+            "end": "10.0.0.150",
+            "gateway": "10.0.0.1",
+            "dns": "192.168.1.1"
+          }
+        ]
+      }
+    },
+    {
+      "ref": "relay",
+      "device": "router_basic",
+      "x": 10,
+      "y": 5,
+      "locked": true,
+      "name": "増設のルーター",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.12.2",
+            "prefix": 24
+          },
+          {
+            "port": 1,
+            "ip": "10.0.0.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "setup": {
+        "interfaces": [
+          {
+            "port": 0,
+            "rip": true
+          },
+          {
+            "port": 1,
+            "rip": true,
+            "helper": "10.0.12.1"
+          }
+        ]
+      }
+    },
+    {
+      "ref": "sw_b",
+      "device": "l2_switch_8p",
+      "x": 14,
+      "y": 5,
+      "locked": true,
+      "name": "増設のスイッチ"
+    },
+    {
+      "ref": "home",
+      "device": "home_router",
+      "x": 12,
+      "y": 3,
+      "locked": true,
+      "name": "持ち込まれたルーター",
+      "config": {
+        "interfaces": [
+          {
+            "port": 1,
+            "ip": "192.168.1.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "setup": {
+        "dhcpPools": [
+          {
+            "network": "192.168.1.0",
+            "prefix": 24,
+            "start": "192.168.1.100",
+            "end": "192.168.1.199",
+            "gateway": "192.168.1.1",
+            "dns": "192.168.1.1"
+          }
+        ]
+      }
+    },
+    {
+      "ref": "pc_b1",
+      "device": "pc_basic",
+      "x": 17,
+      "y": 3,
+      "locked": true,
+      "name": "増設のPC1",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      }
+    },
+    {
+      "ref": "pc_b2",
+      "device": "pc_basic",
+      "x": 17,
+      "y": 7,
+      "locked": true,
+      "name": "増設のPC2",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      }
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "pc_hq",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw_hq",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "sw_hq",
+        "port": 1
+      },
+      "b": {
+        "ref": "edge",
+        "port": 2
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "edge",
+        "port": 0
+      },
+      "b": {
+        "ref": "relay",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "relay",
+        "port": 1
+      },
+      "b": {
+        "ref": "sw_b",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "home",
+        "port": 1
+      },
+      "b": {
+        "ref": "sw_b",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "pc_b1",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw_b",
+        "port": 2
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "pc_b2",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw_b",
+        "port": 3
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "dhcp_all",
+      "nodes": [
+        "pc_b1",
+        "pc_b2"
+      ]
+    },
+    {
+      "type": "ping_all",
+      "nodes": [
+        "pc_hq",
+        "pc_b1",
+        "pc_b2"
+      ]
+    }
+  ],
+  "reward": {
+    "money": 600000
+  },
+  "unlockLevel": 60
+}
