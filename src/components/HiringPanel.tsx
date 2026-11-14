@@ -17,12 +17,12 @@ import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
 import { Dialog } from './ui/Dialog';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
-import { RADIUS } from '../ui/theme';
 import { Select } from './ui/Select';
 import { CertChips } from './StaffCard';
 import { requiresPc } from '../sim/jobs';
 import { maybeFurniture } from '../registry/query';
 import { Button } from './ui/Button';
+import { Card } from './ui/Card';
 
 // 開くタブは useUiStore の hiring が決める。社員の札の「研修・資格へ」から開くときは staff
 export function HiringPanel() {
@@ -102,68 +102,67 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
         const back = isBackOffice(c.job);
         const effect = back ? jobEffect(c.job, c, c.level, backOfficeP(allStaff, c.job, office, bonusEnvOf({ staff: allStaff, office: office }, gameEnv)), balance) : null;
         return (
-        <div
-          key={c.uid}
-          style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}
-        >
-          <Icon name={`staff/${staffSpriteName(c.look)}_0`} scale={2} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 'bold' }}>{tDyn(c.name)}</div>
-            <div style={{ fontSize: 12 }}>
-              {tDyn(`staff.job.${c.job}`)} · {t('ui.staff.level', { level: c.level })}
-              {/* 札: 内勤（非エンジニア枠）とエンジニア枠を分ける */}
-              <span style={{ marginLeft: 6, padding: '0 4px', border: '1px solid #3b2a33', fontSize: 11, background: back ? '#ffd866' : '#5aa860', color: back ? '#3b2a33' : '#f4f1e6' }}>
-                {t(back ? 'ui.hiring.tag.backOffice' : 'ui.hiring.tag.engineer')}
-              </span>
+        <Card key={c.uid} layout={{ position: 'relative', marginBottom: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Icon name={`staff/${staffSpriteName(c.look)}_0`} scale={2} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 'bold' }}>{tDyn(c.name)}</div>
+              <div style={{ fontSize: 12 }}>
+                {tDyn(`staff.job.${c.job}`)} · {t('ui.staff.level', { level: c.level })}
+                {/* 札: 内勤（非エンジニア枠）とエンジニア枠を分ける */}
+                <span style={{ marginLeft: 6, padding: '0 4px', border: '1px solid #3b2a33', fontSize: 11, background: back ? '#ffd866' : '#5aa860', color: back ? '#3b2a33' : '#f4f1e6' }}>
+                  {t(back ? 'ui.hiring.tag.backOffice' : 'ui.hiring.tag.engineer')}
+                </span>
+              </div>
+              <div style={{ fontSize: 12 }}>
+                {t('ui.hiring.salary', { salary: yen(c.salary) })}
+                {/* 雇ったあとの、月給の合計（今の月給の合計に足した額）。雇う前に負担が分かるように（N156） */}
+                <span style={{ opacity: 0.8 }}> {t('ui.hiring.salaryTotal', { total: yen(totalSalary(allStaff, balance.nightPayRate) + c.salary) })}</span>
+              </div>
+              {/* PC が要る職種は、次に座る机に PC がないと働けない（採用はできる）（N102） */}
+              {requiresPc(c.job) && !nextDeskHasPc && !full && (
+                <div style={{ fontSize: 12, color: '#ffd866' }}>{t('ui.hiring.noPc')}</div>
+              )}
+              {/* 内勤は、雇うと増える効果を1行で出す */}
+              {effect && <div style={{ fontSize: 12, color: '#ffd866' }}>{jobEffectText(effect)}</div>}
             </div>
-            <div style={{ fontSize: 12 }}>
-              {t('ui.hiring.salary', { salary: yen(c.salary) })}
-              {/* 雇ったあとの、月給の合計（今の月給の合計に足した額）。雇う前に負担が分かるように（N156） */}
-              <span style={{ opacity: 0.8 }}> {t('ui.hiring.salaryTotal', { total: yen(totalSalary(allStaff, balance.nightPayRate) + c.salary) })}</span>
-            </div>
-            {/* PC が要る職種は、次に座る机に PC がないと働けない（採用はできる）（N102） */}
-            {requiresPc(c.job) && !nextDeskHasPc && !full && (
-              <div style={{ fontSize: 12, color: '#ffd866' }}>{t('ui.hiring.noPc')}</div>
+            {/* 夜勤は会社のレベルで解放される。解放されていれば、雇うときに区分を選ぶ（N48） */}
+            {nightOpen && (
+              <Select
+                label={t('ui.hiring.shift')}
+                value={shiftOf[c.uid] ?? 'day'}
+                options={[
+                  { value: 'day', label: t('ui.hiring.shift.day') },
+                  { value: 'night', label: t('ui.hiring.shift.night') },
+                ]}
+                onChange={(v) => setShiftOf((m) => ({ ...m, [c.uid]: v as 'day' | 'night' }))}
+              />
             )}
-            {/* 内勤は、雇うと増える効果を1行で出す */}
-            {effect && <div style={{ fontSize: 12, color: '#ffd866' }}>{jobEffectText(effect)}</div>}
+            <Button
+              variant="secondary"
+              disabled={full}
+              onClick={() => {
+                if (requiresPc(c.job) && !nextDeskHasPc && !full) {
+                  setConfirmUid(c.uid);
+                  return;
+                }
+                const reason = hire(c.uid, shiftOf[c.uid] ?? 'day');
+                onMessage(reason ? reasonText(reason) : '');
+              }}
+            >
+              {t('ui.hiring.hire')}
+            </Button>
+            {confirmUid === c.uid && requiresPc(c.job) && !nextDeskHasPc && !full && (
+              <div style={{ position: 'absolute', right: 12, bottom: 42, zIndex: 1, maxWidth: 260, padding: 8, background: '#1b2f57', border: '1px solid #ffd866' }}>
+                <div style={{ fontSize: 12, marginBottom: 6 }}>{t('ui.hiring.noPc.confirm')}</div>
+                <Button variant="secondary" layout={{ marginRight: 6 }} onClick={() => { setConfirmUid(null); const reason = hire(c.uid, shiftOf[c.uid] ?? 'day'); onMessage(reason ? reasonText(reason) : ''); }}>
+                  {t('ui.hiring.hire')}
+                </Button>
+                <Button variant="secondary" onClick={() => setConfirmUid(null)}>{t('ui.panel.close')}</Button>
+              </div>
+            )}
           </div>
-          {/* 夜勤は会社のレベルで解放される。解放されていれば、雇うときに区分を選ぶ（N48） */}
-          {nightOpen && (
-            <Select
-              label={t('ui.hiring.shift')}
-              value={shiftOf[c.uid] ?? 'day'}
-              options={[
-                { value: 'day', label: t('ui.hiring.shift.day') },
-                { value: 'night', label: t('ui.hiring.shift.night') },
-              ]}
-              onChange={(v) => setShiftOf((m) => ({ ...m, [c.uid]: v as 'day' | 'night' }))}
-            />
-          )}
-          <Button
-            variant="secondary"
-            disabled={full}
-            onClick={() => {
-              if (requiresPc(c.job) && !nextDeskHasPc && !full) {
-                setConfirmUid(c.uid);
-                return;
-              }
-              const reason = hire(c.uid, shiftOf[c.uid] ?? 'day');
-              onMessage(reason ? reasonText(reason) : '');
-            }}
-          >
-            {t('ui.hiring.hire')}
-          </Button>
-          {confirmUid === c.uid && requiresPc(c.job) && !nextDeskHasPc && !full && (
-            <div style={{ position: 'absolute', right: 12, bottom: 42, zIndex: 1, maxWidth: 260, padding: 8, background: '#1b2f57', border: '1px solid #ffd866' }}>
-              <div style={{ fontSize: 12, marginBottom: 6 }}>{t('ui.hiring.noPc.confirm')}</div>
-              <Button variant="secondary" layout={{ marginRight: 6 }} onClick={() => { setConfirmUid(null); const reason = hire(c.uid, shiftOf[c.uid] ?? 'day'); onMessage(reason ? reasonText(reason) : ''); }}>
-                {t('ui.hiring.hire')}
-              </Button>
-              <Button variant="secondary" onClick={() => setConfirmUid(null)}>{t('ui.panel.close')}</Button>
-            </div>
-          )}
-        </div>
+        </Card>
         );
       })}
       {full &&<div style={{ color: '#ffd866', fontSize: 13 }}>{t('ui.error.seat')}</div>}
@@ -191,7 +190,7 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
         const ready = jobExams.filter((c) => s.level >= c.minLevel);
         const upcoming = jobExams.filter((c) => s.level < c.minLevel).sort((x, y) => x.minLevel - y.minLevel)[0];
         return (
-          <div key={s.uid} style={{ background: '#1b2f57', border: '1px solid #3b2a33', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}>
+          <Card key={s.uid} layout={{ marginBottom: 6 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
               <span style={{ fontWeight: 'bold' }}>
                 {tDyn(s.name)}{' '}
@@ -246,7 +245,7 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
               })}
             </div>
             {upcoming && <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{t('ui.exam.next', { name: tDyn(`cert.${upcoming.id}.name`), level: upcoming.minLevel })}</div>}
-          </div>
+                    </Card>
         );
       })}
     </>
