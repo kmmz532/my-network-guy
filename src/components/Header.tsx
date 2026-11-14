@@ -11,9 +11,10 @@ import { balance } from "virtual:game-data";
 import { toDate } from "../sim/clock";
 import { RADIUS } from '../ui/theme';
 import { nextFastSpeed, unlockedSpeedsOf } from "../sim/speed";
-import { Tooltip, hideTip } from "./Tooltip";
+import { Tooltip } from "./Tooltip";
 import { tipText } from "../input/keymap";
 import { Text } from "./ui/Text";
+import { ToolbarButton } from "./ui/ToolbarButton";
 
 // 速さのボタン: 停止・1倍のあとに、早送り（2倍・4倍・8倍。解放済みを押すたびに切り替える・N99）
 const SPEEDS: Speed[] = [0, 1];
@@ -109,15 +110,13 @@ const Header = ({ headerRef }: { headerRef: RefObject<HTMLElement> }) => {
         {!sandbox && (
         <span style={{ display: 'flex', gap: 4 }}>
             {SPEEDS.map((s) => (
-            <Tooltip text={s === 0 ? tipText('ui.speed.0', 'pause', !phone) : tDyn(`ui.speed.${s}`)} key={s}>
-                <button aria-label={tDyn(`ui.speed.${s}`)} style={{ ...hudButton(speed === s, phone), display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { hideTip(); setSpeed(s); }}>
+            <ToolbarButton key={s} label={tDyn(`ui.speed.${s}`)} tip={s === 0 ? tipText('ui.speed.0', 'pause', !phone) : tDyn(`ui.speed.${s}`)} on={speed === s} onClick={() => setSpeed(s)}>
                 {s === 0 ? (
                 <Icon name="icon/pause" scale={1} />
                 ) : (
                 Array.from({ length: s === 4 ? 3 : s }, (_, i) => <Icon key={i} name="icon/play" scale={1} />)
                 )}
-                </button>
-            </Tooltip>
+            </ToolbarButton>
             ))}
             {/* 早送りは、解放済みの 2倍・4倍・8倍を押すたびに切り替え、今の倍率を出す。1倍のボタンで戻る（N99） */}
             {(() => {
@@ -127,11 +126,9 @@ const Header = ({ headerRef }: { headerRef: RefObject<HTMLElement> }) => {
             const next = nextFastSpeed(speed, unlockedSpeeds) as Speed;
             const hint = speed >= 2 ? t('ui.speed.hint.next', { now: tDyn(`ui.speed.${speed}`), next: tDyn(`ui.speed.${next}`) }) : t('ui.speed.hint.up', { next: tDyn(`ui.speed.${shown}`) });
             return (
-                <Tooltip text={hint}>
-                <button aria-label={hint} style={{ ...hudButton(speed >= 2, phone), display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { hideTip(); setSpeed(next); }}>
+                <ToolbarButton label={hint} on={speed >= 2} onClick={() => setSpeed(next)}>
                     {Array.from({ length: shown === 2 ? 2 : 3 }, (_, i) => <Icon key={i} name="icon/play" scale={1} />)}
-                </button>
-                </Tooltip>
+                </ToolbarButton>
             );
             })()}
             <Text as="span" size="s" layout={{ alignSelf: 'center' }}>{nightSpeed === null ? tDyn(`ui.speed.${speed}`) : t('ui.night.fast')}</Text>
