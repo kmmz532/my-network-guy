@@ -20,7 +20,7 @@ import type { NetNode, NetworkPlan } from '../network/types';
 import { gameEnv } from '../sim/env';
 import { addressCandidates, PLANNED_NETWORK, PLANNED_PREFIX, plannedAddressCandidates, type AddressCandidate } from '../sim/project';
 import { coreOf, netOfDevice, netTargetOf, plannedKey, useGameStore } from '../stores/useGameStore';
-import { greyColor, hexColor, inputStyle, isIpText, portLabel, sectionStyle, unsetColor } from './devicePorts';
+import { greyColor, hexColor, isIpText, portLabel, sectionStyle, unsetColor } from './devicePorts';
 import { CATEGORY } from '../data/categories';
 import { BgpField } from './BgpField';
 import { IspField } from './IspField';
@@ -189,15 +189,14 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
               ).map(([key, label, value, min]) => (
                 <label key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
                   {t(label)}
-                  <input
+                  <TextInput
                     type="number"
                     min={min}
-                    defaultValue={value}
-                    key={`${iface.id}-${key}-${value}`}
+                    value={String(value)}
                     disabled={locked || unlinkedRouter}
-                    style={{ ...inputStyle, width: 56 }}
-                    onBlur={(e) => {
-                      const v = Number(e.target.value);
+                    layout={{ width: 56 }}
+                    onCommit={(text) => {
+                      const v = Number(text);
                       if (!Number.isInteger(v) || v < min || v === value) return;
                       onError(key === 'area' ? setRouting(node.uid, { proto: 'ospf', on: true, ip: iface.ip, area: v }) : setOspf(node.uid, { op: 'iface', id: iface.id, key, value: v }));
                     }}
@@ -347,29 +346,21 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
       <div style={{ ...row, flexWrap: 'wrap', gap: 6 }}>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
           {t('ui.config.ospfRouterId')}
-          <input
-            key={`rid-${node.ospf?.routerId ?? ''}`}
-            defaultValue={node.ospf?.routerId ?? ''}
+          <TextInput
+            value={node.ospf?.routerId ?? ''}
             disabled={locked}
-            style={{ ...inputStyle, width: 110 }}
-            onBlur={(e) => {
-              const v = e.target.value.trim();
+            layout={{ width: 110 }}
+            onCommit={(text) => {
+              const v = text.trim();
               if (v === (node.ospf?.routerId ?? '')) return;
               if (v !== '' && !isIpText(v)) return onError('ip');
               onError(setOspf(node.uid, { op: 'routerId', ip: v === '' ? null : v }));
             }}
           />
         </label>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-          <input
-            type="checkbox"
-            aria-label={t('ui.config.ospfDefault')}
-            checked={node.ospf?.defaultOriginate === true}
-            disabled={locked}
-            onChange={(e) => onError(setOspf(node.uid, { op: 'defaultOriginate', on: e.target.checked }))}
-          />
+        <Checkbox size="s" label={t('ui.config.ospfDefault')} checked={node.ospf?.defaultOriginate === true} disabled={locked} onChange={(on) => onError(setOspf(node.uid, { op: 'defaultOriginate', on }))}>
           {t('ui.config.ospfDefault')}
-        </label>
+        </Checkbox>
       </div>
     </div>
   );
@@ -569,34 +560,20 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
     : isClient
       ? t('ui.wireless.none')
       : t('ui.wireless.clients', { n: clients });
-  const [ssid, setSsid] = useState(node.wireless?.ssid ?? '');
-  const [password, setPassword] = useState(node.wireless?.password ?? '');
   const commit = (key: 'ssid' | 'password', value: string) => {
     if ((node.wireless?.[key] ?? '') === value) return;
     onError(setWireless(node.uid, key, value));
   };
-  const field = (label: string, value: string, setValue: (v: string) => void, key: 'ssid' | 'password', type: string) => (
+  const field = (label: string, value: string, key: 'ssid' | 'password', type: 'text' | 'password') => (
     <div style={{ marginBottom: 8 }}>
       <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 2 }}>{label}</label>
-      <input
-        aria-label={label}
-        type={type}
-        style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }}
-        value={value}
-        disabled={readOnly}
-        maxLength={32}
-        onChange={(e) => setValue(e.target.value)}
-        onBlur={() => commit(key, value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-        }}
-      />
+      <TextInput label={label} type={type} width="full" value={value} disabled={readOnly} maxLength={32} onCommit={(text) => commit(key, text)} />
     </div>
   );
   return (
     <div style={sectionStyle}>
-      {field(t('ui.wireless.ssid'), ssid, setSsid, 'ssid', 'text')}
-      {field(t('ui.wireless.password'), password, setPassword, 'password', 'password')}
+      {field(t('ui.wireless.ssid'), node.wireless?.ssid ?? '', 'ssid', 'text')}
+      {field(t('ui.wireless.password'), node.wireless?.password ?? '', 'password', 'password')}
       {!isClient && (
         <div style={{ marginBottom: 8 }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 2 }}>{t('ui.wireless.security')}</label>
@@ -618,28 +595,14 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
 function NameField({ node, nodes, readOnly, onError }: { node: NetNode; nodes: readonly NetNode[]; readOnly: boolean; onError: (reason: string | null) => void }) {
   const setName = useGameStore((s) => s.setName);
   const current = nodeLabel(useGameStore.getState(), node, nodes);
-  const [text, setText] = useState(node.name ?? '');
-  const commit = () => {
+  const commit = (text: string) => {
     if ((node.name ?? '') === text.trim()) return;
     onError(setName(node.uid, text));
   };
   return (
     <div style={{ marginBottom: 8 }}>
       <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 2 }}>{t('ui.config.name')}</label>
-      <input
-        aria-label={t('ui.config.name')}
-        style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }}
-        value={text}
-        placeholder={current}
-        disabled={readOnly}
-        maxLength={24}
-        onChange={(e) => setText(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-          if (e.key === 'Escape') setText(node.name ?? '');
-        }}
-      />
+      <TextInput label={t('ui.config.name')} width="full" value={node.name ?? ''} placeholder={current} disabled={readOnly} maxLength={24} onCommit={commit} />
     </div>
   );
 }
