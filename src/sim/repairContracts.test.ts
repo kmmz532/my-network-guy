@@ -1,9 +1,11 @@
-// 修理の依頼（r001〜r005）: 置かれた状態のままでは不合格で、壊れ方を1つ直すと合格する。症状だけが依頼文にあり、原因は書かれていない
+// 修理の依頼（r001〜r007）: 置かれた状態のままでは不合格で、壊れ方を1つ直すと合格する。症状だけが依頼文にあり、原因は書かれていない
 import { describe, expect, it } from 'vitest';
 import r001 from '../assets/data/contracts/r001_duplicate_ip.json';
 import r002 from '../assets/data/contracts/r002_wrong_gateway.json';
 import r003 from '../assets/data/contracts/r003_loop.json';
 import r005 from '../assets/data/contracts/r005_vlan_trunk.json';
+import r006 from '../assets/data/contracts/r006_ospf_hello.json';
+import r007 from '../assets/data/contracts/r007_ospf_area.json';
 import r004 from '../assets/data/contracts/r004_mask.json';
 import lang from '../assets/lang/ja_jp.json';
 import type { Contract } from '../data/schema';
@@ -28,6 +30,8 @@ describe('修理の依頼', () => {
     { contract: r002 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'router' ? { ...n, interfaces: n.interfaces.map((i) => (i.ip === '192.168.3.1' ? { ...i, ip: '192.168.2.1' } : i)) } : n)), links }) },
     { contract: r003 as unknown as Contract, fix: (nodes, links) => ({ nodes, links: links.filter((l) => !(l.a.node === 'sw' && l.a.port === 4)) }) },
     { contract: r005 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid.startsWith('sw_') ? { ...n, ports: n.ports.map((p) => (p.mode === 'trunk' ? { ...p, allowed: [10, 20] } : p)) } : n)), links }) },
+    { contract: r006 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'r3' ? { ...n, interfaces: n.interfaces.map((i) => (i.ospf?.hello ? { ...i, ospf: { area: i.ospf.area } } : i)) } : n)), links }) },
+    { contract: r007 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'r2' ? { ...n, interfaces: n.interfaces.map((i) => (i.port === 0 ? { ...i, ospf: { area: 0 } } : i)) } : n)), links }) },
     { contract: r004 as unknown as Contract, fix: (nodes, links) => ({ nodes: withIface(nodes, 'pc_new', '192.168.1.20', 24), links }) },
   ];
   for (const { contract, fix } of cases) {
@@ -50,9 +54,9 @@ describe('修理の依頼', () => {
 
   it('依頼文に、原因の言葉を書かない', () => {
     const texts = (lang as Record<string, string>);
-    for (const id of ['r001_duplicate_ip', 'r002_wrong_gateway', 'r003_loop', 'r004_mask', 'r005_vlan_trunk']) {
+    for (const id of ['r001_duplicate_ip', 'r002_wrong_gateway', 'r003_loop', 'r004_mask', 'r005_vlan_trunk', 'r006_ospf_hello', 'r007_ospf_area']) {
       const text = [texts[`contract.${id}.title`], texts[`contract.${id}.story`]].join('');
-      expect(text).not.toMatch(/重複|ゲートウェイ|アドレス|ループ|輪|プレフィックス|サブネット|マスク|同じIP|トランク|許可|VLAN/);
+      expect(text).not.toMatch(/重複|ゲートウェイ|アドレス|ループ|輪|プレフィックス|サブネット|マスク|同じIP|トランク|許可|VLAN|OSPF|Hello|ハロー|隣接|エリア|バックボーン/);
     }
   });
 });

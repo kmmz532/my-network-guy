@@ -1,0 +1,242 @@
+{
+  "id": "r006_ospf_hello",
+  "kind": "repair",
+  "minChanges": 1,
+  "stage": 2,
+  "order": 240,
+  "requires": [
+    "r005_vlan_trunk"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_rooms",
+  "budget": 30000,
+  "deadlineDays": 5,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "r1",
+      "device": "router_basic",
+      "x": 6,
+      "y": 5,
+      "locked": true,
+      "name": "本社のルーター",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.12.1",
+            "prefix": 24
+          },
+          {
+            "port": 2,
+            "ip": "192.168.1.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "setup": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ospf": {
+              "area": 0
+            }
+          },
+          {
+            "port": 2,
+            "ospf": {
+              "area": 0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "ref": "r2",
+      "device": "router_basic",
+      "x": 10,
+      "y": 5,
+      "locked": true,
+      "name": "中継のルーター",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.12.2",
+            "prefix": 24
+          },
+          {
+            "port": 1,
+            "ip": "10.0.23.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "setup": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ospf": {
+              "area": 0
+            }
+          },
+          {
+            "port": 1,
+            "ospf": {
+              "area": 0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "ref": "r3",
+      "device": "router_basic",
+      "x": 14,
+      "y": 5,
+      "locked": true,
+      "name": "新しい拠点のルーター",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.23.2",
+            "prefix": 24
+          },
+          {
+            "port": 2,
+            "ip": "192.168.3.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "setup": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ospf": {
+              "area": 0,
+              "hello": 30
+            }
+          },
+          {
+            "port": 2,
+            "ospf": {
+              "area": 0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "ref": "pc_hq",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "本社のPC"
+    },
+    {
+      "ref": "pc_new",
+      "device": "pc_basic",
+      "x": 17,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.3.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "新しい拠点のPC"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "r1",
+        "port": 0
+      },
+      "b": {
+        "ref": "r2",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "r2",
+        "port": 1
+      },
+      "b": {
+        "ref": "r3",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "pc_hq",
+        "port": 0
+      },
+      "b": {
+        "ref": "r1",
+        "port": 2
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "pc_new",
+        "port": 0
+      },
+      "b": {
+        "ref": "r3",
+        "port": 2
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": [
+        "pc_hq",
+        "pc_new"
+      ]
+    }
+  ],
+  "reward": {
+    "money": 600000
+  },
+  "unlockLevel": 58
+}
