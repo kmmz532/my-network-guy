@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buyDevice, isUnlocked, sellDevice } from './shop';
-import { isSaveData, migrate } from '../services/migrations';
+import { isWorld, migrate } from '../services/migrations';
 
 describe('ショップ', () => {
   it('会社のレベルが解放のレベルに届かない品目は、店に並べない（解放は品目の unlockLevel）', () => {
@@ -88,7 +88,7 @@ describe('セーブのバージョン移行', () => {
   });
 
   it('形式が不正な在庫は拒否する', () => {
-    expect(isSaveData({ clock: { minute: 0, money: 0, paidMonths: 0, bankrupt: false }, companyExp: 0, owned: { a: -1 }, completed: [] })).toBe(false);
+    expect(isWorld({ clock: { minute: 0, money: 0, paidMonths: 0, bankrupt: false }, companyExp: 0, owned: { a: -1 }, completed: [] })).toBe(false);
   });
 });
 

@@ -10,7 +10,7 @@ import { warningsOf } from '../network/query/warnings';
 import { portStatesOf } from '../network/query/portStates';
 import { analyze } from '../network/engine/analyze';
 import { stpOf } from '../network/query/stp';
-import { SAVE_VERSION, isSaveData, migrate } from './migrations';
+import { SAVE_VERSION, isWorld, migrate } from './migrations';
 
 const dir = join(import.meta.dirname, '__fixtures__');
 const files = readdirSync(dir).filter((f) => /^save-v\d+\.json$/.test(f));
@@ -26,7 +26,7 @@ describe('セーブの fixture', () => {
     for (const [name, entry] of Object.entries(fixture)) {
       it(`${file} の ${name}: 最新版まで移行でき、検証に通り、ネットワークの計算が例外なく動く`, () => {
         const data = migrate(entry.saveVersion, entry.data);
-        expect(isSaveData(data)).toBe(true);
+        expect(isWorld(data)).toBe(true);
         const net = { nodes: data.office.nodes, links: data.office.links, plans: data.office.plans };
         // 端末は、スイッチの口もルーテッドポートも持たない機器
         const ends = net.nodes.filter((n) => n.interfaces.length > 0 && !can(n.device, 'switchport') && !can(n.device, 'routedPort')).map((n) => n.uid);

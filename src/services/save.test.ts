@@ -1,6 +1,6 @@
 import { EMPTY_FAMILIARITY } from '../sim/familiar';
 import { describe, expect, it } from 'vitest';
-import { SAVE_VERSION, isSaveData, migrate } from './migrations';
+import { SAVE_VERSION, isWorld, migrate } from './migrations';
 import type { World } from '../world/world';
 import type { Staff } from '../data/schema';
 import { exportSave, importSave } from './saveFile';
@@ -442,8 +442,8 @@ describe('古いセーブの読み込み（v19）', () => {
 
 describe('保存の中身の検査（依頼の形）', () => {
   it('依頼の形が合わないセーブは拒否する', () => {
-    expect(isSaveData({ ...sample, offers: [{ id: 'x', kind: 'other', baseId: 'b', params: {}, contract: {} }] })).toBe(false);
-    expect(isSaveData({ ...sample, offers: [{ id: 'x', kind: 'fixed', baseId: 'b', params: {}, contract: {} }] })).toBe(true);
+    expect(isWorld({ ...sample, offers: [{ id: 'x', kind: 'other', baseId: 'b', params: {}, contract: {} }] })).toBe(false);
+    expect(isWorld({ ...sample, offers: [{ id: 'x', kind: 'fixed', baseId: 'b', params: {}, contract: {} }] })).toBe(true);
   });
 });
 

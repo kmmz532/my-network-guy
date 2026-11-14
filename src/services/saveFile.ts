@@ -1,5 +1,5 @@
 // セーブデータのJSONエクスポート・インポート（端末間の移行用）
-import { SAVE_VERSION, isSaveData, migrate } from './migrations';
+import { SAVE_VERSION, isWorld, migrate } from './migrations';
 import type { World } from '../world/world';
 
 const FORMAT = 'my-network-guy-save';
@@ -18,6 +18,6 @@ export const importSave = (text: string): World => {
   const file = parsed as { format?: unknown; saveVersion?: unknown; data?: unknown };
   if (file.format !== FORMAT) throw new Error('このアプリのセーブデータではない');
   const data = migrate(file.saveVersion as number, file.data);
-  if (!isSaveData(data)) throw new Error('セーブデータの形式が不正');
+  if (!isWorld(data)) throw new Error('セーブデータの形式が不正');
   return data;
 };

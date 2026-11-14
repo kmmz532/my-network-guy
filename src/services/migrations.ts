@@ -427,7 +427,7 @@ const isOfferShape = (value: unknown): boolean => {
   );
 };
 
-export const isSaveData = (value: unknown): value is World => {
+export const isWorld = (value: unknown): value is World => {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
   const clock = v.clock as Record<string, unknown> | undefined;
@@ -490,6 +490,6 @@ export const migrate = (saveVersion: number, data: unknown): World => {
     if (!step) throw new Error(`バージョン ${v} からの移行が定義されていない`);
     current = step(current);
   }
-  if (!isSaveData(current)) throw new Error('セーブデータの形式が不正');
+  if (!isWorld(current)) throw new Error('セーブデータの形式が不正');
   return current;
 };
