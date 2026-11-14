@@ -6,10 +6,10 @@ import { gameEnv } from '../../sim/env';
 
 import { changeOfficeFloor as changeFloorOp, type ExpandSide, expandOffice as expandOfficeOp, mapOfOffice } from '../../sim/office';
 import { OFFICE_HISTORY_KEY } from '../../sim/history';
-import { placeFurniture as placeFurnitureOp, moveFurniture as moveFurnitureOp, removeFurniture as removeFurnitureOp, rotateFurniture as rotateFurnitureOp } from '../../sim/furniture';
+import { rotateFurniture as rotateFurnitureOp } from '../../sim/furniture';
 import { clearsPlacing } from '../../sim/shop';
 import { type RoomId, officeUplinkOf, type Outcome } from '../../sim/project';
-import { placeDevice, placeInOffice, placeOfficeUplink, moveOfficeUplink } from '../../sim/placement';
+import { placeOfficeUplink, moveOfficeUplink } from '../../sim/placement';
 
 import { SANDBOX_EXPAND_CONFIG, coreOf, focusedProject } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
@@ -32,7 +32,7 @@ export interface OfficeSlice {
 }
 
 export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (set, get) => {
-  const { apply, dropHistory, recorded } = createOps(set, get);
+  const { apply, dispatch, dropHistory, recorded } = createOps(set, get);
   // 置いて在庫が0になったら、選んでいる品目を外す
   const releaseWhenEmpty = (deviceId: string, reason: string | null): string | null => {
     const s = get();
@@ -54,13 +54,13 @@ export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (
           if (reason === null) set({ placing: null });
           return reason;
         }
-        return releaseWhenEmpty(deviceId, recorded(() => apply(placeInOffice(coreOf(get()), deviceId, x, y, hq, gameEnv, get().mode === 'sandbox', get().mode === 'sandbox'), { tx: x, ty: y })));
+        return releaseWhenEmpty(deviceId, dispatch({ kind: 'placeDevice', device: deviceId, x, y }, { tx: x, ty: y }));
       }
       const project = focusedProject(get());
       if (!project) return 'map';
       const map = get().maps[project.contract.map];
       if (!map) return 'map';
-      return releaseWhenEmpty(deviceId, recorded(() => apply(placeDevice(coreOf(get()), deviceId, x, y, map, gameEnv), { tx: x, ty: y })));
+      return releaseWhenEmpty(deviceId, dispatch({ kind: 'placeDevice', device: deviceId, x, y }, { tx: x, ty: y }));
     },
     expandOffice: (side) => {
       const office = get().office;
@@ -87,13 +87,13 @@ export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (
     placeFurniture: (id, x, y) => {
       const hq = get().maps.hq;
       if (!hq) return 'map';
-      const reason = recorded(() => apply(placeFurnitureOp(coreOf(get()), id, x, y, hq, get().mode === 'sandbox'), { tx: x, ty: y }));
+      const reason = dispatch({ kind: 'placeFurniture', id, x, y }, { tx: x, ty: y });
       if (reason === null) get().grantCompanyExp('furniture');
       return reason;
     },
     removeFurniture: (uid) => {
       const f = get().office.furniture.find((x) => x.uid === uid);
-      return recorded(() => apply(removeFurnitureOp(coreOf(get()), uid, get().mode === 'sandbox'), f ? { tx: f.x, ty: f.y } : undefined));
+      return dispatch({ kind: 'removeFurniture', uid }, f ? { tx: f.x, ty: f.y } : undefined);
     },
     rotateFurniture: (uid) => apply(rotateFurnitureOp(coreOf(get()), uid)),
     changeFloor: (room, floor) => {
@@ -105,7 +105,7 @@ export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (
     moveFurniture: (uid, x, y) => {
       const hq = get().maps.hq;
       if (!hq) return 'map';
-      return recorded(() => apply(moveFurnitureOp(coreOf(get()), uid, x, y, hq), { tx: x, ty: y }));
+      return dispatch({ kind: 'moveFurniture', uid, x, y }, { tx: x, ty: y });
     },
   };
 };

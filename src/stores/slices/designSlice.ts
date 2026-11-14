@@ -12,9 +12,8 @@ import { lessonLinks, lessonNodes, lessonPlans } from '../../sim/lesson';
 import { mapOfOffice } from '../../sim/office';
 
 import { closeRef } from '../../ui/windows';
-import { type PortChoice, connect, type PortModeChange, type StpOp, type ChannelOp, type DhcpOp, type VrrpOp, type OspfOp, type NatOp, type BgpOp, emptyOffice, type End } from '../../sim/project';
+import { type PortChoice, type PortModeChange, type StpOp, type ChannelOp, type DhcpOp, type VrrpOp, type OspfOp, type NatOp, type BgpOp, emptyOffice, type End } from '../../sim/project';
 import { testDesign } from '../../sim/progress';
-import { removeNode, removeFromOffice, replug, moveNode, replugTo, removeLink } from '../../sim/placement';
 
 import { coreOf, focusedProject, netTargetOf } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
@@ -81,7 +80,7 @@ export interface DesignSlice {
 }
 
 export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (set, get) => {
-  const { apply, dispatch, recorded, stepHistory, tileOf, withAutoIp } = createOps(set, get);
+  const { dispatch, stepHistory, tileOf } = createOps(set, get);
   const missingPc = (state: GameState): number =>
     missingPcCount(state.staff, { pcDesks: pcDesksOf(state.office, isPcDevice), defs: gameEnv.furniture ?? {}, balance: gameEnv.balance, staff: state.staff });
   return {
@@ -137,7 +136,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       return null;
     },
     connect: (aUid, bUid, cableId, ports = {}) => {
-      const reason = recorded(() => apply(withAutoIp(connect(coreOf(get()), aUid, bUid, cableId, gameEnv, netTargetOf(get()), ports), netTargetOf(get())), tileOf(bUid)));
+      const reason = dispatch({ kind: 'connect', a: aUid, b: bUid, cable: cableId, ports }, tileOf(bUid), netTargetOf(get()));
       // つながった音と、つなげなかった音（効果音の設定がオフのときは鳴らない）
       if (reason === null) {
         playConnect();
@@ -147,16 +146,10 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       }
       return reason;
     },
-    removeLink: (uid) => recorded(() => apply(removeLink(coreOf(get()), uid, netTargetOf(get()), gameEnv))),
+    removeLink: (uid) => dispatch({ kind: 'removeLink', uid }),
     removeNode: (uid) => {
       const before = missingPc(get());
-      const reason = recorded(() => {
-        if (!focusedProject(get())) {
-          const n = get().office.nodes.find((x) => x.uid === uid);
-          return apply(removeFromOffice(coreOf(get()), uid, gameEnv, get().mode === 'sandbox'), n ? { tx: n.x, ty: n.y } : undefined);
-        }
-        return apply(removeNode(coreOf(get()), uid, gameEnv), tileOf(uid));
-      });
+      const reason = dispatch({ kind: 'removeNode', uid }, tileOf(uid));
       // 撤去した機器のタブは閉じる（最後のタブならウィンドウも閉じる）
       if (reason === null) set((s) => ({ windows: closeRef({ windows: s.windows, seq: s.windowSeq }, 'device', uid).windows }));
       // 撤去した機器の端末の出力と履歴も消す
@@ -186,13 +179,13 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
     // セグメントの設定の後は、IPアドレスの自動割り当てをかける
     setPlan: (uid, port, network, prefix) => dispatch({ kind: 'config', uid, change: { kind: 'plan', port, network, prefix } }, tileOf(uid), netTargetOf(get())),
     replug: (linkUid, end, port) =>
-      recorded(() => apply(replug(coreOf(get()), linkUid, end, port, gameEnv, netTargetOf(get())))),
+      dispatch({ kind: 'replug', link: linkUid, end, port }),
     // 移動の地図は、設計中の案件のマップ（なければ自社オフィスの hq）
     moveNode: (uid, x, y) => {
       const before = missingPc(get());
       const map = get().maps[focusedProject(get())?.contract.map ?? 'hq'];
       if (!map) return 'map';
-      const reason = recorded(() => apply(moveNode(coreOf(get()), uid, x, y, gameEnv, netTargetOf(get()), map, get().mode === 'sandbox'), tileOf(uid)));
+      const reason = dispatch({ kind: 'moveNode', uid, x, y }, tileOf(uid));
       if (reason === null) {
         const after = missingPc(get());
         if (after > before) set((s) => ({ notices: pushNotice(s.notices, 'pcMissing', { count: after }, Date.now()) }));
@@ -200,7 +193,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       return reason;
     },
     replugTo: (linkUid, end, nodeUid, port) =>
-      recorded(() => apply(replugTo(coreOf(get()), linkUid, end, nodeUid, port, gameEnv, netTargetOf(get())), tileOf(nodeUid))),
+      dispatch({ kind: 'replugTo', link: linkUid, end, node: nodeUid, port }, tileOf(nodeUid)),
     setService: (uid, protocol, on) => dispatch({ kind: 'config', uid, change: { kind: 'service', protocol, on } }, tileOf(uid)),
     setHostname: (uid, hostname) => dispatch({ kind: 'config', uid, change: { kind: 'hostname', hostname } }, tileOf(uid)),
     setNameServer: (uid, ip) => dispatch({ kind: 'config', uid, change: { kind: 'nameServer', ip } }, tileOf(uid)),

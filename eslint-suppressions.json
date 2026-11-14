@@ -289,7 +289,7 @@
   },
   "src/stores/slices/designSlice.ts": {
     "local/no-mode-branch": {
-      "count": 4
+      "count": 2
     }
   },
   "src/stores/slices/economySlice.ts": {
@@ -299,7 +299,7 @@
   },
   "src/stores/slices/officeSlice.ts": {
     "local/no-mode-branch": {
-      "count": 6
+      "count": 2
     }
   },
   "src/stores/slices/sessionSlice.ts": {
