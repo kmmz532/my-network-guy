@@ -1,7 +1,11 @@
 // NAT の論点の命令。
 import type { TerminalLine } from '../../terminal';
-import { err, out, shown } from '../../command/lines';
+import { changed, err, out, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
+import { isIp, port } from '../../terminalConfig';
+
+// 口の番号からインターフェースの id を引く（今の legacyChange と同じ）
+const idOf = (node: { interfaces: readonly { port: number; id: string }[] }, p: number): string => node.interfaces.find((i) => i.port === p)?.id ?? '';
 
 export const commands: readonly CommandSpec[] = [
   {
@@ -23,6 +27,41 @@ export const commands: readonly CommandSpec[] = [
       if (node.napt) lines.push(out(tr('ui.terminal.natNapt', { outsideIp: outside.ip })));
       // 4 つの欄（内部グローバル・内部ローカル・外部ローカル・外部グローバル）の見出しを先頭に出す
       return shown([out(tr('ui.terminal.natHeader')), ...lines]);
+    },
+  },
+  {
+    id: 'nat.ipNat',
+    modes: ['exec'],
+    tokens: [{ word: 'ip' }, { word: 'nat' }, { rest: 'args' }],
+    help: '',
+    writes: true,
+    topic: 'nat',
+    run: (args, ctx, tr) => {
+      const words = args.args.split(' ').filter((w) => w !== '');
+      const [kind, a, b, c] = words;
+      if ((kind === 'inside' || kind === 'outside') && port(a ?? '') !== null && words.length === 2) {
+        return changed(ctx, tr, { kind: 'nat', change: { op: 'iface', id: idOf(ctx.node, Number(a)), nat: kind } });
+      }
+      if (kind === 'napt' && words.length === 1) return changed(ctx, tr, { kind: 'nat', change: { op: 'napt', on: true } });
+      if (kind === 'static' && words.length === 4 && port(a ?? '') !== null && isIp(b ?? '') && port(c ?? '') !== null) {
+        return changed(ctx, tr, { kind: 'nat', change: { op: 'static', port: Number(a), insideIp: b, insidePort: Number(c) } });
+      }
+      return shown([err(tr('ui.terminal.usageNat'))]);
+    },
+  },
+  {
+    id: 'nat.noIpNat',
+    modes: ['exec'],
+    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'nat' }, { rest: 'args' }],
+    help: '',
+    writes: true,
+    topic: 'nat',
+    run: (args, ctx, tr) => {
+      const words = args.args.split(' ').filter((w) => w !== '');
+      if (words[0] === 'napt' && words.length === 1) return changed(ctx, tr, { kind: 'nat', change: { op: 'napt', on: false } });
+      if (words[0] === 'static' && words.length === 2 && port(words[1]) !== null) return changed(ctx, tr, { kind: 'nat', change: { op: 'noStatic', port: Number(words[1]) } });
+      if (words.length === 1 && port(words[0]) !== null) return changed(ctx, tr, { kind: 'nat', change: { op: 'iface', id: idOf(ctx.node, Number(words[0])), nat: null } });
+      return shown([err(tr('ui.terminal.usageNat'))]);
     },
   },
 ];

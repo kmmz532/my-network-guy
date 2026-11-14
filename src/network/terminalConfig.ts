@@ -151,19 +151,5 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     }
     return error('ui.terminal.usageWireless');
   }
-  // ip nat（NAT・N145）
-  if (first === 'ip' && rest[0] === 'nat') {
-    const [, kind, a, b, c] = rest;
-    if ((kind === 'inside' || kind === 'outside') && port(a ?? '') !== null && rest.length === 3) return { kind: 'action', action: { kind: 'nat', op: 'iface', port: Number(a), nat: kind } };
-    if (kind === 'napt' && rest.length === 2) return { kind: 'action', action: { kind: 'nat', op: 'napt', on: true } };
-    if (kind === 'static' && rest.length === 5 && port(a ?? '') !== null && isIp(b ?? '') && port(c ?? '') !== null) return { kind: 'action', action: { kind: 'nat', op: 'static', port: Number(a), insideIp: b, insidePort: Number(c) } };
-    return error('ui.terminal.usageNat');
-  }
-  if (first === 'no' && rest[0] === 'ip' && rest[1] === 'nat') {
-    if (rest[2] === 'napt' && rest.length === 3) return { kind: 'action', action: { kind: 'nat', op: 'napt', on: false } };
-    if (rest[2] === 'static' && rest.length === 4 && port(rest[3]) !== null) return { kind: 'action', action: { kind: 'nat', op: 'noStatic', port: Number(rest[3]) } };
-    if (rest.length === 3 && port(rest[2]) !== null) return { kind: 'action', action: { kind: 'nat', op: 'iface', port: Number(rest[2]), nat: null } };
-    return error('ui.terminal.usageNat');
-  }
   return error('ui.terminal.unknown');
 };
