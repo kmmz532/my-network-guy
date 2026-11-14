@@ -4,6 +4,11 @@
       "count": 3
     }
   },
+  "src/__golden__/record.ts": {
+    "local/no-look-props": {
+      "count": 1
+    }
+  },
   "src/__golden__/terminal.test.ts": {
     "local/no-mode-branch": {
       "count": 1
@@ -24,9 +29,56 @@
       "count": 2
     }
   },
+  "src/components/BgpField.tsx": {
+    "local/no-look-export": {
+      "count": 4
+    },
+    "local/no-look-props": {
+      "count": 7
+    },
+    "local/no-native-control": {
+      "count": 13
+    }
+  },
+  "src/components/ChannelField.tsx": {
+    "local/no-look-export": {
+      "count": 1
+    },
+    "local/no-look-props": {
+      "count": 1
+    },
+    "local/no-native-control": {
+      "count": 1
+    }
+  },
+  "src/components/CompanyPanel.tsx": {
+    "local/no-look-props": {
+      "count": 16
+    },
+    "local/no-native-control": {
+      "count": 4
+    }
+  },
+  "src/components/DebugPanel.tsx": {
+    "local/no-look-props": {
+      "count": 12
+    },
+    "local/no-native-control": {
+      "count": 16
+    }
+  },
   "src/components/DevicePanel.tsx": {
     "local/no-category": {
       "count": 2
+    },
+    "local/no-look-export": {
+      "count": 4
+    },
+    "local/no-look-props": {
+      "count": 8
+    },
+    "local/no-native-control": {
+      "count": 3
     }
   },
   "src/components/DeviceRear.tsx": {
@@ -35,6 +87,15 @@
     },
     "local/no-engine-in-view": {
       "count": 1
+    },
+    "local/no-look-export": {
+      "count": 2
+    },
+    "local/no-look-props": {
+      "count": 33
+    },
+    "local/no-native-control": {
+      "count": 5
     }
   },
   "src/components/DeviceSettings.tsx": {
@@ -43,47 +104,372 @@
     },
     "local/no-engine-in-view": {
       "count": 1
+    },
+    "local/no-look-export": {
+      "count": 6
+    },
+    "local/no-look-props": {
+      "count": 22
+    },
+    "local/no-native-control": {
+      "count": 19
+    }
+  },
+  "src/components/DhcpField.tsx": {
+    "local/no-look-export": {
+      "count": 3
+    },
+    "local/no-look-props": {
+      "count": 6
+    },
+    "local/no-native-control": {
+      "count": 5
+    }
+  },
+  "src/components/ErrorScreen.tsx": {
+    "local/no-look-props": {
+      "count": 10
+    },
+    "local/no-native-control": {
+      "count": 1
+    }
+  },
+  "src/components/FocusSwitch.tsx": {
+    "local/no-look-props": {
+      "count": 6
+    },
+    "local/no-native-control": {
+      "count": 2
+    }
+  },
+  "src/components/FramesPanel.tsx": {
+    "local/no-look-props": {
+      "count": 8
+    },
+    "local/no-native-control": {
+      "count": 2
+    }
+  },
+  "src/components/FundsPanel.tsx": {
+    "local/no-look-props": {
+      "count": 11
+    }
+  },
+  "src/components/Guide.tsx": {
+    "local/no-look-props": {
+      "count": 13
+    },
+    "local/no-native-control": {
+      "count": 1
     }
   },
   "src/components/Header.tsx": {
+    "local/no-look-props": {
+      "count": 13
+    },
     "local/no-mode-branch": {
       "count": 2
+    },
+    "local/no-native-control": {
+      "count": 5
+    }
+  },
+  "src/components/HiringPanel.tsx": {
+    "local/no-look-export": {
+      "count": 1
+    },
+    "local/no-look-props": {
+      "count": 43
+    },
+    "local/no-native-control": {
+      "count": 7
     }
   },
   "src/components/Inventory.tsx": {
     "local/no-category": {
       "count": 1
     },
+    "local/no-look-export": {
+      "count": 1
+    },
+    "local/no-look-props": {
+      "count": 12
+    },
+    "local/no-mode-branch": {
+      "count": 2
+    },
+    "local/no-native-control": {
+      "count": 2
+    }
+  },
+  "src/components/IspField.tsx": {
+    "local/no-look-export": {
+      "count": 4
+    },
+    "local/no-look-props": {
+      "count": 3
+    },
+    "local/no-native-control": {
+      "count": 2
+    }
+  },
+  "src/components/KeyHelp.tsx": {
+    "local/no-look-props": {
+      "count": 5
+    },
+    "local/no-native-control": {
+      "count": 1
+    }
+  },
+  "src/components/LessonPicker.tsx": {
+    "local/no-look-props": {
+      "count": 5
+    },
+    "local/no-native-control": {
+      "count": 3
+    }
+  },
+  "src/components/LoopBanner.tsx": {
+    "local/no-look-props": {
+      "count": 3
+    },
     "local/no-mode-branch": {
       "count": 2
     }
   },
-  "src/components/LoopBanner.tsx": {
-    "local/no-mode-branch": {
-      "count": 2
+  "src/components/Modal.tsx": {
+    "local/no-look-props": {
+      "count": 19
     }
   },
   "src/components/OfferCards.tsx": {
     "local/no-category": {
       "count": 1
+    },
+    "local/no-look-props": {
+      "count": 27
+    },
+    "local/no-native-control": {
+      "count": 7
+    }
+  },
+  "src/components/OfficePanel.tsx": {
+    "local/no-look-props": {
+      "count": 6
+    },
+    "local/no-native-control": {
+      "count": 1
+    }
+  },
+  "src/components/Overlay.tsx": {
+    "local/no-look-props": {
+      "count": 23
+    },
+    "local/no-native-control": {
+      "count": 3
+    }
+  },
+  "src/components/PausedBuildPrompt.tsx": {
+    "local/no-look-props": {
+      "count": 2
+    },
+    "local/no-native-control": {
+      "count": 2
+    }
+  },
+  "src/components/PixelControls.tsx": {
+    "local/no-look-props": {
+      "count": 22
+    },
+    "local/no-native-control": {
+      "count": 3
+    }
+  },
+  "src/components/PortMenu.tsx": {
+    "local/no-look-export": {
+      "count": 2
+    },
+    "local/no-look-props": {
+      "count": 3
+    },
+    "local/no-native-control": {
+      "count": 2
+    }
+  },
+  "src/components/SandboxSizePanel.tsx": {
+    "local/no-look-props": {
+      "count": 12
+    },
+    "local/no-native-control": {
+      "count": 3
+    }
+  },
+  "src/components/SearchField.tsx": {
+    "local/no-look-props": {
+      "count": 4
+    },
+    "local/no-native-control": {
+      "count": 1
+    }
+  },
+  "src/components/SettingsPanel.tsx": {
+    "local/no-look-props": {
+      "count": 8
+    },
+    "local/no-native-control": {
+      "count": 3
     }
   },
   "src/components/ShopCards.tsx": {
     "local/no-category": {
       "count": 1
     },
+    "local/no-look-export": {
+      "count": 1
+    },
+    "local/no-look-props": {
+      "count": 25
+    },
     "local/no-mode-branch": {
       "count": 2
+    },
+    "local/no-native-control": {
+      "count": 4
+    }
+  },
+  "src/components/StaffCard.tsx": {
+    "local/no-look-props": {
+      "count": 33
+    },
+    "local/no-native-control": {
+      "count": 7
+    }
+  },
+  "src/components/SviField.tsx": {
+    "local/no-look-export": {
+      "count": 3
+    },
+    "local/no-look-props": {
+      "count": 3
+    },
+    "local/no-native-control": {
+      "count": 5
+    }
+  },
+  "src/components/TabConflict.tsx": {
+    "local/no-look-props": {
+      "count": 10
+    },
+    "local/no-native-control": {
+      "count": 1
+    }
+  },
+  "src/components/Tabs.tsx": {
+    "local/no-look-export": {
+      "count": 1
+    },
+    "local/no-look-props": {
+      "count": 22
+    },
+    "local/no-native-control": {
+      "count": 4
+    }
+  },
+  "src/components/TaskPanel.tsx": {
+    "local/no-look-props": {
+      "count": 40
+    },
+    "local/no-native-control": {
+      "count": 9
+    }
+  },
+  "src/components/TerminalTab.tsx": {
+    "local/no-look-export": {
+      "count": 1
+    },
+    "local/no-look-props": {
+      "count": 8
+    },
+    "local/no-native-control": {
+      "count": 3
     }
   },
   "src/components/Toolbar.tsx": {
+    "local/no-look-props": {
+      "count": 48
+    },
     "local/no-mode-branch": {
       "count": 2
+    },
+    "local/no-native-control": {
+      "count": 20
+    }
+  },
+  "src/components/Tooltip.tsx": {
+    "local/no-look-props": {
+      "count": 6
+    }
+  },
+  "src/components/UnlockList.tsx": {
+    "local/no-look-props": {
+      "count": 10
+    }
+  },
+  "src/components/UpdateNotice.tsx": {
+    "local/no-look-props": {
+      "count": 6
+    },
+    "local/no-native-control": {
+      "count": 1
+    }
+  },
+  "src/components/VlanPortField.tsx": {
+    "local/no-look-export": {
+      "count": 2
+    },
+    "local/no-look-props": {
+      "count": 2
+    },
+    "local/no-native-control": {
+      "count": 2
+    }
+  },
+  "src/components/VrrpField.tsx": {
+    "local/no-look-export": {
+      "count": 3
+    },
+    "local/no-look-props": {
+      "count": 6
+    },
+    "local/no-native-control": {
+      "count": 8
+    }
+  },
+  "src/components/Window.tsx": {
+    "local/no-look-props": {
+      "count": 12
+    },
+    "local/no-native-control": {
+      "count": 1
+    }
+  },
+  "src/components/Windows.tsx": {
+    "local/no-look-props": {
+      "count": 1
+    },
+    "local/no-native-control": {
+      "count": 1
     }
   },
   "src/components/devicePorts.ts": {
     "local/no-category": {
       "count": 4
+    },
+    "local/no-look-export": {
+      "count": 9
+    },
+    "local/no-look-props": {
+      "count": 10
     }
   },
   "src/components/goalText.ts": {
@@ -92,13 +478,33 @@
     }
   },
   "src/components/scene/GamePopups.tsx": {
+    "local/no-look-props": {
+      "count": 7
+    },
     "local/no-mode-branch": {
       "count": 2
+    },
+    "local/no-native-control": {
+      "count": 12
+    }
+  },
+  "src/components/scene/GameScene.tsx": {
+    "local/no-look-props": {
+      "count": 6
+    },
+    "local/no-native-control": {
+      "count": 1
     }
   },
   "src/components/scene/SaveSlotDialog.tsx": {
+    "local/no-look-props": {
+      "count": 22
+    },
     "local/no-mode-branch": {
       "count": 3
+    },
+    "local/no-native-control": {
+      "count": 18
     }
   },
   "src/components/scene/TitleScene.tsx": {
@@ -109,6 +515,14 @@
   "src/components/scene/TitleScreen.tsx": {
     "local/no-mode-branch": {
       "count": 1
+    },
+    "local/no-native-control": {
+      "count": 1
+    }
+  },
+  "src/components/scene/TopNotices.tsx": {
+    "local/no-look-props": {
+      "count": 3
     }
   },
   "src/contracts/templateBudget.test.ts": {
@@ -116,9 +530,32 @@
       "count": 3
     }
   },
+  "src/game/DeviceLabelRenderer.ts": {
+    "local/no-look-props": {
+      "count": 10
+    }
+  },
+  "src/game/DeviceRenderer.ts": {
+    "local/no-look-props": {
+      "count": 7
+    }
+  },
+  "src/game/EffectRenderer.ts": {
+    "local/no-look-props": {
+      "count": 7
+    }
+  },
   "src/game/FailureRenderer.ts": {
+    "local/no-look-props": {
+      "count": 4
+    },
     "local/no-mode-branch": {
       "count": 1
+    }
+  },
+  "src/game/InteractionRenderer.ts": {
+    "local/no-look-props": {
+      "count": 7
     }
   },
   "src/game/MapCamera.ts": {
@@ -126,17 +563,51 @@
       "count": 1
     }
   },
+  "src/game/MapZoomButtons.tsx": {
+    "local/no-look-props": {
+      "count": 9
+    },
+    "local/no-native-control": {
+      "count": 5
+    }
+  },
   "src/game/NetworkRenderer.ts": {
     "local/no-category": {
       "count": 2
+    },
+    "local/no-look-props": {
+      "count": 7
+    }
+  },
+  "src/game/PixiStage.tsx": {
+    "local/no-look-props": {
+      "count": 1
     }
   },
   "src/game/Scene.ts": {
     "local/no-engine-in-view": {
       "count": 1
     },
+    "local/no-look-props": {
+      "count": 10
+    },
     "local/no-mode-branch": {
       "count": 1
+    }
+  },
+  "src/game/SpeechRenderer.ts": {
+    "local/no-look-props": {
+      "count": 1
+    }
+  },
+  "src/game/StaffRenderer.ts": {
+    "local/no-look-props": {
+      "count": 3
+    }
+  },
+  "src/game/TileMap.ts": {
+    "local/no-look-props": {
+      "count": 4
     }
   },
   "src/input/keymap.test.ts": {
@@ -227,6 +698,9 @@
   "src/services/legacyColors.ts": {
     "local/no-category": {
       "count": 7
+    },
+    "local/no-look-props": {
+      "count": 1
     }
   },
   "src/services/migrations.ts": {
@@ -245,6 +719,11 @@
   "src/sim/autoAssign.ts": {
     "local/no-category": {
       "count": 5
+    }
+  },
+  "src/sim/dayTint.ts": {
+    "local/no-look-props": {
+      "count": 9
     }
   },
   "src/sim/guide.ts": {

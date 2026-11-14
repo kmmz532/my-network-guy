@@ -17,6 +17,9 @@ export default tseslint.config(
       'local/no-handmade-engine-data': 'error',
       'local/is-pc-in': 'error',
       'local/no-core-set': 'error',
+      'local/no-look-props': 'error',
+      'local/no-native-control': 'error',
+      'local/no-look-export': 'error',
       // 機器・ケーブル・家具の定義は登録表（src/registry）から引く。読み込むのは src/registry/game.ts だけ
       'no-restricted-imports': [
         'error',

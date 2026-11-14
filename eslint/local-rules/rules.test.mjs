@@ -80,3 +80,50 @@ tester.run('no-core-set', plugin.rules['no-core-set'], {
     bad('set((s) => { return { candidates: [] }; });'),
   ],
 });
+
+const jsxTester = new RuleTester({ languageOptions: { ecmaVersion: 2022, sourceType: 'module', parserOptions: { ecmaFeatures: { jsx: true } } } });
+const UI = 'src/components/ui/Button.jsx';
+const VIEW = 'src/components/Panel.jsx';
+
+jsxTester.run('no-look-props', plugin.rules['no-look-props'], {
+  valid: [
+    ok('const s = { width: 1, margin: 2, display: "flex" };', VIEW),
+    ok('const { color } = props;', VIEW),
+    ok('const s = { color: "red", border: "1px solid" };', UI),
+    ok('const a = <Swatch color={c} />;', VIEW),
+  ],
+  invalid: [
+    bad('const s = { color: "red" };', VIEW),
+    bad('const s = { background: "#fff" };', VIEW),
+    bad('const s = { backgroundColor: c };', VIEW),
+    bad('const s = { borderRadius: 4 };', VIEW),
+    bad('const s = { "border-left": 1 };', VIEW),
+    bad('const s = { fontSize: 12 };', VIEW),
+    bad('const s = { fontWeight: 700 };', VIEW),
+    bad('const s = { boxShadow: "none" };', VIEW),
+    bad('const s = { opacity: 0.5 };', VIEW),
+    bad('const f = () => ({ ...base, color: c });', VIEW),
+    bad('const a = <div style={{ color: c }} />;', VIEW),
+  ],
+});
+
+jsxTester.run('no-native-control', plugin.rules['no-native-control'], {
+  valid: [ok('const a = <Button />;', VIEW), ok('const a = <button />;', UI), ok('const a = <div />;', VIEW)],
+  invalid: [bad('const a = <button />;', VIEW), bad('const a = <input type="text" />;', VIEW), bad('const a = <select></select>;', VIEW), bad('const a = <textarea />;', VIEW)],
+});
+
+jsxTester.run('no-look-export', plugin.rules['no-look-export'], {
+  valid: [
+    ok('export const size = 1;', VIEW),
+    ok('import { TextStyle } from "pixi.js";', VIEW),
+    ok('import { x } from "./a";', VIEW),
+    ok('export const buttonStyle = {};', UI),
+  ],
+  invalid: [
+    bad('export const buttonStyle = {};', VIEW),
+    bad('export function cellColor() {}', VIEW),
+    bad('const a = 1; export { a as inputStyle };', VIEW),
+    bad('import { buttonStyle } from "./devicePorts";', VIEW),
+    bad('import { buttonStyle } from "../ui/x";', VIEW),
+  ],
+});

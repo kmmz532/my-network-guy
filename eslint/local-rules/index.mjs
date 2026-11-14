@@ -142,6 +142,65 @@ const noCoreSet = rule(
   ['src/stores/gameOps.ts', 'src/stores/tickSystems.ts', 'src/stores/slices/sessionSlice.ts', 'src/stores/useGameStore.ts', 'src/stores/slices/debugSlice.ts' /* デバッグの操作は遊びの操作ではない */],
 );
 
+// 見た目（色・地・枠・文字・影・不透明度）の名前のプロパティ。ui/ の部品の外では、オブジェクトの作り方を問わず名前で禁じる
+const LOOK_PROP = /^(color|background.*|border.*|fontSize|fontWeight|boxShadow|opacity)$/;
+const noLookProps = rule(
+  '見た目のプロパティを ui/ の外で書くことを禁じる',
+  '見た目（色・地・枠・文字・影・不透明度）は src/components/ui/ の部品が決める。部品の種類か layout で指定すること',
+  (context) => ({
+    Property(node) {
+      // 分割代入の名前は、書くのではなく読むだけ
+      if (node.parent.type === 'ObjectPattern') return;
+      const name = node.computed ? (node.key.type === 'Literal' ? node.key.value : null) : node.key.type === 'Identifier' ? node.key.name : node.key.value;
+      if (typeof name === 'string' && LOOK_PROP.test(name)) context.report({ node, messageId: 'violation' });
+    },
+  }),
+  ['src/components/ui/**'],
+);
+
+const NATIVE_CONTROLS = new Set(['button', 'input', 'select', 'textarea']);
+const noNativeControl = rule(
+  '標準のボタン・入力欄の直接の使用を禁じる',
+  '<button>・<input>・<select>・<textarea> は直接使わず、src/components/ui/ の部品を使うこと',
+  (context) => ({
+    JSXOpeningElement(node) {
+      if (node.name.type === 'JSXIdentifier' && NATIVE_CONTROLS.has(node.name.name)) context.report({ node, messageId: 'violation' });
+    },
+  }),
+  ['src/components/ui/**'],
+);
+
+// *Style・*Color の名前の export と、相対の import（外部の型の名前は対象にしない）
+const LOOK_NAME = /(Style|Color)$/;
+const noLookExport = rule(
+  '見た目の定数（*Style・*Color）の受け渡しを禁じる',
+  '見た目の定数を export・import で受け渡さず、src/components/ui/ の部品にすること',
+  (context) => ({
+    ExportNamedDeclaration(node) {
+      const d = node.declaration;
+      if (d?.type === 'VariableDeclaration') {
+        for (const v of d.declarations) if (v.id.type === 'Identifier' && LOOK_NAME.test(v.id.name)) context.report({ node: v, messageId: 'violation' });
+      } else if (d && (d.type === 'FunctionDeclaration' || d.type === 'ClassDeclaration') && d.id && LOOK_NAME.test(d.id.name)) {
+        context.report({ node: d, messageId: 'violation' });
+      }
+      for (const s of node.specifiers) {
+        const name = s.exported.type === 'Identifier' ? s.exported.name : s.exported.value;
+        if (LOOK_NAME.test(name)) context.report({ node: s, messageId: 'violation' });
+      }
+    },
+    ImportDeclaration(node) {
+      if (!/^(\.|@\/)/.test(node.source.value) || node.importKind === 'type') return;
+      for (const s of node.specifiers) {
+        if (s.type === 'ImportSpecifier' && s.importKind !== 'type') {
+          const name = s.imported.type === 'Identifier' ? s.imported.name : s.imported.value;
+          if (LOOK_NAME.test(name)) context.report({ node: s, messageId: 'violation' });
+        }
+      }
+    },
+  }),
+  ['src/components/ui/**'],
+);
+
 export default {
   rules: {
     'no-unknown-fallback': noUnknownFallback,
@@ -151,5 +210,8 @@ export default {
     'no-handmade-engine-data': noHandmadeEngineData,
     'is-pc-in': isPcIn,
     'no-core-set': noCoreSet,
+    'no-look-props': noLookProps,
+    'no-native-control': noNativeControl,
+    'no-look-export': noLookExport,
   },
 };
