@@ -31,7 +31,11 @@ try {
     await page.goto(base);
     await page.waitForFunction(() => window.__game !== undefined, null, { timeout: 30000 });
     await page.getByText('新しくプレイ').click();
-    await page.waitForTimeout(1200);
+    await page.waitForTimeout(800);
+    // 新しく始めるときに社名の入力が出る。既定の社名のまま始める
+    const start = page.getByRole('button', { name: '始める' });
+    if ((await start.count()) > 0) await start.first().click();
+    await page.waitForTimeout(1500);
     await page.getByRole('button', { name: '依頼' }).first().click();
     await page.waitForTimeout(500);
     const box = page.getByRole('combobox', { name: '並べ方' });
