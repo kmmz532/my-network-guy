@@ -2,8 +2,8 @@
 import { t } from '../i18n/t';
 import type { NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
-import { inputStyle } from './devicePorts';
 import { Select } from './ui/Select';
+import { TextInput } from './ui/TextInput';
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0', fontSize: 12 } as const;
 type Mode = 'none' | 'active' | 'passive' | 'on';
@@ -35,16 +35,15 @@ export function ChannelField({ node, port, disabled, onError }: { node: NetNode;
       {cfg?.channelGroup !== undefined && (
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
           {t('ui.config.channelGroup')}
-          <input
+          <TextInput
             type="number"
             min={1}
             max={64}
-            key={`${port}-${cfg.channelGroup}`}
-            defaultValue={cfg.channelGroup}
+            value={String(cfg.channelGroup)}
             disabled={disabled}
-            style={{ ...inputStyle, width: 56 }}
-            onBlur={(e) => {
-              const v = Number(e.target.value);
+            layout={{ width: 56 }}
+            onCommit={(text) => {
+              const v = Number(text);
               if (Number.isInteger(v) && v !== cfg.channelGroup) onError(setChannel(node.uid, { port, group: v, lacp: cfg.lacp ?? 'active' }));
             }}
           />
