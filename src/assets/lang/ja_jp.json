@@ -1224,7 +1224,6 @@
   "ui.terminal.usageHostname": "使い方: hostname <名前>",
   "ui.terminal.usageIpAddress": "使い方: ip address <ポート> <IP> <マスク>",
   "ui.terminal.usageNat": "書式: ip nat inside|outside <ポート> / ip nat napt / ip nat static <外のポート> <社内のIP> <社内のポート>",
-  "ui.terminal.usageNetwork": "書式: network <IP>（RIP） / network <IP> <ワイルドカード> area 0（OSPF）。例: network 10.0.1.0 0.0.0.255 area 0",
   "ui.terminal.usageOspf": "書式: router-id <IP>・default-information originate・ip ospf cost|priority|hello-interval|dead-interval <口> <値>（no で取り消し）",
   "ui.terminal.usagePing": "使い方: ping <IPアドレス>",
   "ui.terminal.usageStp": "書式: spanning-tree priority <0〜61440（4096の倍数）> / spanning-tree cost <口> <値>",

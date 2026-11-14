@@ -182,8 +182,10 @@
     },
     {
       "line": "network 10.0.1.0 0.0.0.255 area x",
-      "result": "error",
-      "text": "ui.terminal.usageNetwork"
+      "lines": [
+        "err:                                  ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "network 10.0.1.0",
@@ -458,13 +460,17 @@
     },
     {
       "line": "network 10.0.1.0 0.0.0.255 area 0",
-      "result": "error",
-      "text": "ui.terminal.usageNetwork"
+      "lines": [
+        "err:                   ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "network 10.0.1.0 mask 255.255.255.0",
-      "result": "error",
-      "text": "ui.terminal.usageNetwork"
+      "lines": [
+        "err:                   ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "no network 10.0.1.0",
@@ -487,8 +493,10 @@
     },
     {
       "line": "network 10.0.1.0",
-      "result": "error",
-      "text": "ui.terminal.usageNetwork"
+      "lines": [
+        "err:                   ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "router-id 1.1.1.1",
@@ -540,8 +548,10 @@
     },
     {
       "line": "network 10.0.1.0",
-      "result": "error",
-      "text": "ui.terminal.usageNetwork"
+      "lines": [
+        "err:                   ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "no neighbor 10.0.12.2 next-hop-self",

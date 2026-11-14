@@ -3,7 +3,7 @@ import { ospfMismatchesOf } from '../../query/ospfMismatches';
 import { ospfNeighborsOf } from '../../query/ospfNeighbors';
 import { changed, err, nameOf, out, portMissing, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
-import { ifaceIdOf, isIp } from '../../command/args';
+import { areaOf, ifaceIdOf, isIp } from '../../command/args';
 import { enterRouter, interfaceForm, wordsOf } from '../../command/modes';
 
 const ipOspf: CommandSpec = {
@@ -95,6 +95,15 @@ export const commands: readonly CommandSpec[] = [
   },
   ipOspf,
   interfaceForm(ipOspf, (words, p) => [words[0], String(p), ...words.slice(1)]),
+  {
+    id: 'ospf.network',
+    modes: ['exec', 'config', 'router-ospf'],
+    tokens: [{ word: 'network' }, { arg: 'ip', name: 'ip' }, { arg: 'wildcard', name: 'wildcard' }, { word: 'area' }, { arg: 'area', name: 'area' }],
+    help: '',
+    writes: true,
+    topic: 'ospf',
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', ip: args.ip, area: areaOf(args.area), on: true } }),
+  },
   {
     id: 'ospf.router',
     modes: ['exec', 'config'],

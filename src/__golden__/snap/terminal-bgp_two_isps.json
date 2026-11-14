@@ -62,8 +62,10 @@
     },
     {
       "line": "network 10.0.1.0 mask 255.0.255.0",
-      "result": "error",
-      "text": "ui.terminal.errIp"
+      "lines": [
+        "err:                        ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "show ip bgp summary",

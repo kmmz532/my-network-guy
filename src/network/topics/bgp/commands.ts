@@ -3,7 +3,7 @@ import { bgpTableOf } from '../../query/bgpTable';
 import { changed, err, out, shown } from '../../command/lines';
 import type { CommandContext, CommandResult, CommandSpec } from '../../command/types';
 import type { Tr } from '../../terminal';
-import { isIp } from '../../command/args';
+import { isIp, prefixOfMask } from '../../command/args';
 import { enterRouter } from '../../command/modes';
 
 const showSummary = (_args: unknown, ctx: CommandContext, tr: Tr): CommandResult => {
@@ -64,6 +64,15 @@ export const commands: readonly CommandSpec[] = [
       if (words.length !== 3 || words[1] !== 'remote-as' || !isIp(words[0]) || !/^[0-9]+$/.test(words[2])) return shown([err(tr('ui.terminal.usageBgp'))]);
       return changed(ctx, tr, { kind: 'bgp', change: { op: 'neighbor', ip: words[0], remoteAs: Number(words[2]) } });
     },
+  },
+  {
+    id: 'bgp.network',
+    modes: ['exec', 'config', 'router-bgp'],
+    tokens: [{ word: 'network' }, { arg: 'ip', name: 'dest' }, { word: 'mask' }, { arg: 'mask', name: 'mask' }],
+    help: '',
+    writes: true,
+    topic: 'bgp',
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'bgp', change: { op: 'network', dest: args.dest, prefix: prefixOfMask(args.mask) } }),
   },
   {
     id: 'bgp.noNeighbor',

@@ -53,6 +53,9 @@ export const prefixOfMask = (mask: string): number => {
   return prefix;
 };
 
+// エリアの番号。整数と、点区切りの形（0.0.0.1）の両方を受け付ける（isArg('area', …) を通った語にだけ使う）
+export const areaOf = (text: string): number => (isIp(text) ? text.split('.').reduce((a, x) => a * 256 + Number(x), 0) : Number(text));
+
 const rangeOk = (s: string, min: number, max: number): boolean => /^\d{1,10}$/.test(s) && Number(s) >= min && Number(s) <= max;
 const VLAN_LIST_RE = /^\d+(-\d+)?(,\d+(-\d+)?)*$/;
 
@@ -85,7 +88,7 @@ export const isArg = (kind: ArgKind, text: string): boolean => {
     case 'prefix': return rangeOk(text, 0, 32);
     case 'vlan': return vlanNumber(text) !== null;
     case 'vlanList': return vlanListOf(text) !== null;
-    case 'area': return rangeOk(text, 0, 4294967295);
+    case 'area': return rangeOk(text, 0, 4294967295) || isIp(text);
     case 'asn': return rangeOk(text, 1, 4294967295);
     case 'number': return /^\d{1,10}$/.test(text);
     case 'word': return text !== '';
