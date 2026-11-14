@@ -4,10 +4,10 @@ import type { Application, FederatedPointerEvent } from 'pixi.js';
 import type { GameMap } from '../data/schema';
 import type { NetNode } from '../network/types';
 import { checkConnect, type End, type Project } from '../sim/project';
-import { moveNode, placeDevice, placeInOffice, replugTo } from '../sim/placement';
-import { moveFurniture, placeFurniture } from '../sim/furniture';
-import { gameEnv } from '../sim/env';
 import { coreOf, netTargetOf, viewingOffice, useGameStore } from '../stores/useGameStore';
+import { opContextOf } from '../stores/gameHelpers';
+import { applyOperation, type OpContext } from '../world/apply';
+import type { Operation } from '../world/operation';
 import { useUiStore, type WireStart } from '../stores/useUiStore';
 import { isDragMove } from '../input/trackDrag';
 import { cableEndAt, grabsCableEnd, linkAt } from './linkHit';
@@ -327,34 +327,30 @@ export class MapInput {
     if (this.canMoveFurniture(target.uid, tile.tx, tile.ty)) store.moveFurniture(target.uid, tile.tx, tile.ty);
   }
 
-  // 機器・家具・配線の端の判定（store の操作と同じ条件で、sim の純粋関数を試す）
-  canMoveNode(uid: string, tx: number, ty: number): boolean {
+  // 機器・家具・配線の端の判定（store の操作と同じ条件で、applyOperation の結果を見る）。地図は表示中のもの（host.map()）を使う
+  private canApply(op: Operation, ctx?: Partial<OpContext>): boolean {
     const s = useGameStore.getState();
-    // サンドボックスは、PC を床にも置ける（store の移動と同じ条件にする）
-    const map = this.host.map();
-    return map !== null && moveNode(coreOf(s), uid, tx, ty, gameEnv, netTargetOf(s), map, s.mode === 'sandbox').ok;
+    return applyOperation(coreOf(s), op, { ...opContextOf(s), map: this.host.map(), ...ctx }).ok;
+  }
+
+  canMoveNode(uid: string, tx: number, ty: number): boolean {
+    return this.canApply({ kind: 'moveNode', uid, x: tx, y: ty });
   }
 
   canMoveFurniture(uid: string, tx: number, ty: number): boolean {
-    const s = useGameStore.getState();
-    return s.maps.hq !== undefined && moveFurniture(coreOf(s), uid, tx, ty, s.maps.hq).ok;
+    return this.canApply({ kind: 'moveFurniture', uid, x: tx, y: ty });
   }
 
   canReplug(linkUid: string, end: End, nodeUid: string): boolean {
-    const s = useGameStore.getState();
-    return replugTo(coreOf(s), linkUid, end, nodeUid, null, gameEnv, netTargetOf(s)).ok;
+    return this.canApply({ kind: 'replugTo', link: linkUid, end, node: nodeUid, port: null });
   }
 
   // 品目（機材・家具）を、マスに置けるか（インベントリの欄からのドラッグと、配置の表示で使う）
   canPlace(id: string, tx: number, ty: number): boolean {
-    const s = useGameStore.getState();
-    const core = coreOf(s);
-    const hq = s.maps.hq;
-    if (!hq) return false;
-    if (hasFurniture(id)) return placeFurniture(core, id, tx, ty, hq, s.mode === 'sandbox').ok;
-    if (viewingOffice(s)) return placeInOffice(core, id, tx, ty, hq, gameEnv, s.mode === 'sandbox', s.mode === 'sandbox').ok;
-    const map = this.host.map();
-    return map !== null && placeDevice(core, id, tx, ty, map, gameEnv).ok;
+    if (hasFurniture(id)) return this.canApply({ kind: 'placeFurniture', id, x: tx, y: ty });
+    // 自社オフィスの表示は自社の規則、それ以外は表示中の地図の規則で置く
+    const target = viewingOffice(useGameStore.getState()) ? 'office' : 'focus';
+    return this.canApply({ kind: 'placeDevice', device: id, x: tx, y: ty }, { target });
   }
 
   onMove = (e: FederatedPointerEvent): void => {

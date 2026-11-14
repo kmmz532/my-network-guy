@@ -1,4 +1,14 @@
 {
+  "src/__golden__/edit.test.ts": {
+    "local/no-mode-branch": {
+      "count": 3
+    }
+  },
+  "src/__golden__/terminal.test.ts": {
+    "local/no-mode-branch": {
+      "count": 1
+    }
+  },
   "src/components/DevicePanel.tsx": {
     "local/no-category": {
       "count": 2
@@ -104,11 +114,6 @@
   "src/game/MapCamera.ts": {
     "local/no-mode-branch": {
       "count": 1
-    }
-  },
-  "src/game/MapInput.ts": {
-    "local/no-mode-branch": {
-      "count": 4
     }
   },
   "src/game/NetworkRenderer.ts": {

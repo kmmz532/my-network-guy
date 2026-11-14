@@ -7,7 +7,10 @@ import { lessons } from 'virtual:game-data';
 import { gameEnv } from '../sim/env';
 import { lessonLinks, lessonNodes, lessonPlans } from '../sim/lesson';
 import { focusedOf, fail, type Core, type Outcome, type Project } from '../sim/project';
-import { addRoute, removeRoute, removeHost, setBgp, setChannel, setDhcp, setGateway, setHost, setHostname, setInterface, setNameServer, setNat, setOspf, setPortMode, setRouting, setStp, setSvi, setVrrp, setWireless } from '../sim/netEdit';
+import { applyOperation, type OpContext } from '../world/apply';
+import type { ConfigChange } from '../world/operation';
+import type { GameMap } from '../data/schema';
+import officeSmall from '../assets/data/maps/office_small.json';
 import { analyze } from '../network/engine/analyze';
 import { runTerminal } from '../network/terminal';
 import { parseConfig, type ConfigAction } from '../network/terminalConfig';
@@ -19,65 +22,69 @@ const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
 // 文言を引かず、キーと引数をそのまま並べる（言語ファイルの文言の変更で記録が変わらないようにする）
 const tr = (key: string, params?: Record<string, string | number>): string => (params ? `${key} ${JSON.stringify(params)}` : key);
 
+// 設定の操作は焦点の案件を対象にする。地図は設定の操作では使わない
+const ctx: OpContext = { env: gameEnv, target: 'focus', map: null, hq: officeSmall as unknown as GameMap, mode: 'career' };
+const change = (core: Core, uid: string, c: ConfigChange): Outcome => applyOperation(core, { kind: 'config', uid, change: c }, ctx);
+
 // 命令の列の1行を、設定の画面（TerminalTab）と同じ操作に当てる。モードは持たないため、口の番号は行の中で指定する。
-// 画面の部品は使わず、純粋な操作（src/sim/netEdit.ts）を直接呼ぶ
+// 画面の部品は使わず、操作（applyOperation）を直接当てる
 const applyAction = (core: Core, uid: string, action: ConfigAction, node: NetNode): Outcome => {
   switch (action.kind) {
     case 'iface':
-      return setInterface(core, uid, action.port, action.ip, action.prefix, gameEnv);
+      return change(core, uid, { kind: 'iface', port: action.port, ip: action.ip, prefix: action.prefix });
     case 'svi':
-      return setSvi(core, uid, action.vlan, action.ip, action.prefix, gameEnv);
+      return change(core, uid, { kind: 'svi', vlan: action.vlan, ip: action.ip, prefix: action.prefix });
     case 'portMode':
-      return setPortMode(core, uid, action.port, action.mode);
+      return change(core, uid, { kind: 'portMode', port: action.port, mode: action.mode });
     case 'gateway':
-      return setGateway(core, uid, action.gateway);
+      return change(core, uid, { kind: 'gateway', gateway: action.gateway });
     case 'addRoute':
-      return addRoute(core, uid, action.route);
+      return change(core, uid, { kind: 'addRoute', route: action.route });
     case 'removeRoute': {
       const index = node.routes.findIndex((r) => r.dest === action.dest && r.prefix === action.prefix);
-      return index < 0 ? fail('ui.terminal.noRouteToRemove') : removeRoute(core, uid, index);
+      return index < 0 ? fail('ui.terminal.noRouteToRemove') : change(core, uid, { kind: 'removeRoute', index });
     }
     case 'hostname':
-      return setHostname(core, uid, action.hostname);
+      return change(core, uid, { kind: 'hostname', hostname: action.hostname });
     case 'host':
-      return setHost(core, uid, action.name, action.ip);
+      return change(core, uid, { kind: 'host', name: action.name, ip: action.ip });
     case 'noHost':
-      return removeHost(core, uid, action.name);
+      return change(core, uid, { kind: 'removeHost', name: action.name });
     case 'nameServer':
-      return setNameServer(core, uid, action.ip);
+      return change(core, uid, { kind: 'nameServer', ip: action.ip });
     case 'routing':
-      return setRouting(core, uid, { proto: action.proto, on: action.on });
+      return change(core, uid, { kind: 'routing', change: { proto: action.proto, on: action.on } });
     case 'network':
-      return setRouting(core, uid, { proto: action.proto, on: action.on, ip: action.ip, ...(action.area !== null ? { area: action.area } : {}) });
+      return change(core, uid, { kind: 'routing', change: { proto: action.proto, on: action.on, ip: action.ip, ...(action.area !== null ? { area: action.area } : {}) } });
     case 'ospf': {
-      if (action.op !== 'iface') return setOspf(core, uid, action);
+      if (action.op !== 'iface') return change(core, uid, { kind: 'ospf', change: action });
       const iface = node.interfaces.find((i) => i.port === action.port);
-      return setOspf(core, uid, { op: 'iface', id: iface?.id ?? '', key: action.key, value: action.value });
+      return change(core, uid, { kind: 'ospf', change: { op: 'iface', id: iface?.id ?? '', key: action.key, value: action.value } });
     }
     case 'bgp':
-      return setBgp(core, uid, action);
+      return change(core, uid, { kind: 'bgp', change: action });
     case 'stp':
-      return setStp(core, uid, action);
+      return change(core, uid, { kind: 'stp', change: action });
     case 'dhcp':
-      return setDhcp(core, uid, action);
+      return change(core, uid, { kind: 'dhcp', change: action });
     case 'channel':
-      return setChannel(core, uid, action);
+      return change(core, uid, { kind: 'channel', change: action });
     case 'vrrp': {
       const idOf = (port: number) => node.interfaces.find((i) => i.port === port)?.id ?? '';
       const id = idOf(action.port);
-      if (action.op === 'ip') return setVrrp(core, uid, { op: 'ip', id, vrid: action.vrid, ip: action.ip });
-      if (action.op === 'priority') return setVrrp(core, uid, { op: 'priority', id, vrid: action.vrid, value: action.value });
-      if (action.op === 'preempt') return setVrrp(core, uid, { op: 'preempt', id, vrid: action.vrid, on: action.on });
-      if (action.op === 'track') return setVrrp(core, uid, { op: 'track', id, vrid: action.vrid, iface: idOf(action.trackPort), decrement: action.decrement });
-      return setVrrp(core, uid, { op: 'remove', id, vrid: action.vrid });
+      if (action.op === 'ip') return change(core, uid, { kind: 'vrrp', change: { op: 'ip', id, vrid: action.vrid, ip: action.ip } });
+      if (action.op === 'priority') return change(core, uid, { kind: 'vrrp', change: { op: 'priority', id, vrid: action.vrid, value: action.value } });
+      if (action.op === 'preempt') return change(core, uid, { kind: 'vrrp', change: { op: 'preempt', id, vrid: action.vrid, on: action.on } });
+      if (action.op === 'track') return change(core, uid, { kind: 'vrrp', change: { op: 'track', id, vrid: action.vrid, iface: idOf(action.trackPort), decrement: action.decrement } });
+      return change(core, uid, { kind: 'vrrp', change: { op: 'remove', id, vrid: action.vrid } });
     }
     case 'nat': {
-      if (action.op !== 'iface') return setNat(core, uid, action);
+      if (action.op !== 'iface') return change(core, uid, { kind: 'nat', change: action });
       const iface = node.interfaces.find((i) => i.port === action.port);
-      return setNat(core, uid, { op: 'iface', id: iface?.id ?? '', nat: action.nat });
+      return change(core, uid, { kind: 'nat', change: { op: 'iface', id: iface?.id ?? '', nat: action.nat } });
     }
     case 'wireless':
-      return setWireless(core, uid, action.key, action.value);
+      return change(core, uid, { kind: 'wireless', key: action.key, value: action.value });
   }
 };
 

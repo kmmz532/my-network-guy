@@ -6,12 +6,12 @@ import { describe, expect, it } from 'vitest';
 import { balance, lessons } from 'virtual:game-data';
 import { gameEnv } from '../sim/env';
 import { lessonLinks, lessonNodes, lessonPlans } from '../sim/lesson';
-import { initialOffice, moveFurniture, placeFurniture, removeFurniture } from '../sim/furniture';
+import { initialOffice } from '../sim/furniture';
 import { sandboxClock, sandboxOffice } from '../sim/sandbox';
 import { buyDevice, sellDevice } from '../sim/shop';
-import { connect, focusedOf, fail, type Core, type NetTarget, type Outcome, type Project } from '../sim/project';
-import { placeDevice, placeInOffice, moveNode, removeFromOffice, removeLink, removeNode } from '../sim/placement';
-import { setHostname, setInterface } from '../sim/netEdit';
+import { focusedOf, fail, type Core, type NetTarget, type Outcome, type Project } from '../sim/project';
+import { applyOperation, type OpContext } from '../world/apply';
+import type { Operation } from '../world/operation';
 import { deviceDef } from '../registry/query';
 import type { ClockState } from '../sim/clock';
 import type { GameMap } from '../data/schema';
@@ -35,15 +35,11 @@ interface Mode {
   name: string;
   target: NetTarget;
   core: Core;
-  // 機器を新しく置く（在庫・配置の規則は遊び方の入口の関数が決める）
-  place: (core: Core, device: string, x: number, y: number) => Outcome;
-  move: (core: Core, uid: string, x: number, y: number) => Outcome;
-  remove: (core: Core, uid: string) => Outcome;
+  // 操作を当てるときの周りの状況（対象・地図・モード）。在庫・配置の規則は、ここから決まる
+  ctx: OpContext;
   // 直前に置いた機器・配線の uid（操作の対象を後の手順で指すため）
   lastNode: (core: Core) => string | undefined;
   lastLink: (core: Core) => string | undefined;
-  // 家具の撤去・配置で、在庫を数えない（サンドボックス）かどうか
-  freeStock: boolean;
 }
 
 const officeNodeUid = (core: Core): string | undefined => core.office.nodes.at(-1)?.uid;
@@ -94,12 +90,9 @@ const modes: Mode[] = [
     name: '経営',
     target: 'office',
     core: { office: initialOffice(env.balance), active: [], focus: null, owned: {}, staff: [], purchaseDiscount: 0, clock: { money: 300_000, ledger: null } as unknown as ClockState } as unknown as Core,
-    place: (c, d, x, y) => placeInOffice(c, d, x, y, map, env, false, false),
-    move: (c, uid, x, y) => moveNode(c, uid, x, y, env, 'office', map, false),
-    remove: (c, uid) => removeFromOffice(c, uid, env, false),
+    ctx: { env, target: 'office', map: null, hq: map, mode: 'career' },
     lastNode: officeNodeUid,
     lastLink: officeLinkUid,
-    freeStock: false,
   },
   {
     name: 'サンドボックス',
@@ -113,23 +106,17 @@ const modes: Mode[] = [
       purchaseDiscount: 0,
       clock: sandboxClock({ minute: 0, money: 0, paidMonths: 0, ledger: null } as unknown as ClockState),
     } as unknown as Core,
-    place: (c, d, x, y) => placeInOffice(c, d, x, y, map, env, true, true),
-    move: (c, uid, x, y) => moveNode(c, uid, x, y, env, 'office', map, true),
-    remove: (c, uid) => removeFromOffice(c, uid, env, true),
+    ctx: { env, target: 'office', map: null, hq: map, mode: 'sandbox' },
     lastNode: officeNodeUid,
     lastLink: officeLinkUid,
-    freeStock: true,
   },
   {
     name: '教材',
     target: 'focus',
     core: lessonCore(),
-    place: (c, d, x, y) => placeDevice(c, d, x, y, map, env),
-    move: (c, uid, x, y) => moveNode(c, uid, x, y, env, 'focus', map, false),
-    remove: (c, uid) => removeNode(c, uid, env),
+    ctx: { env, target: 'focus', map, hq: map, mode: 'career' },
     lastNode: projectNodeUid,
     lastLink: projectLinkUid,
-    freeStock: false,
   },
 ];
 
@@ -176,6 +163,9 @@ const need = (h: Handles, key: string): string => {
 type StockResult = { ok: true; money: number; owned: Record<string, number> } | { ok: false; reason: string };
 const applyStock = (core: Core, r: StockResult): Outcome => (r.ok ? { ok: true, core: { ...core, clock: { ...core.clock, money: r.money }, owned: r.owned } } : fail(r.reason));
 
+// 操作を、遊び方の入口の状況で当てる
+const op = (mode: Mode, core: Core, operation: Operation): Outcome => applyOperation(core, operation, mode.ctx);
+
 const buy = (label: string, id: string, price: number): Step => ({
   label,
   run: (_mode, core) => applyStock(core, buyDevice(core.clock.money, core.owned, id, price)),
@@ -190,29 +180,29 @@ const steps: Step[] = [
   buy('購入: 48ポートのスイッチ（l2_switch_24p）', 'l2_switch_24p', priceOfDevice('l2_switch_24p')),
   buy('購入: 机（desk）', 'desk', priceOfFurniture('desk')),
   buy('購入: 資金の足りない機器（価格は試験の値。資金を超える）', 'gpu_server', 10_000_000),
-  { label: '家具の配置: 机（desk）を(6,3)へ', run: (mode, core) => placeFurniture(core, 'desk', 6, 3, map, mode.freeStock) },
+  { label: '家具の配置: 机（desk）を(6,3)へ', run: (mode, core) => op(mode, core, { kind: 'placeFurniture', id: 'desk', x: 6, y: 3 }) },
   {
     label: '機器の配置: PC を机の上(2,3)へ',
     run: (mode, core, h) => {
-      const r = mode.place(core, 'pc_basic', 2, 3);
+      const r = op(mode, core, { kind: 'placeDevice', device: 'pc_basic', x: 2, y: 3 });
       if (r.ok) h.pc1 = mode.lastNode(r.core) ?? '';
       return r;
     },
   },
-  { label: '機器の配置: PC を床(6,6)へ', run: (mode, core) => mode.place(core, 'pc_basic', 6, 6) },
+  { label: '機器の配置: PC を床(6,6)へ', run: (mode, core) => op(mode, core, { kind: 'placeDevice', device: 'pc_basic', x: 6, y: 6 }) },
   {
     label: '機器の配置: スイッチを床(5,6)へ',
     run: (mode, core, h) => {
-      const r = mode.place(core, 'l2_switch_8p', 5, 6);
+      const r = op(mode, core, { kind: 'placeDevice', device: 'l2_switch_8p', x: 5, y: 6 });
       if (r.ok) h.sw1 = mode.lastNode(r.core) ?? '';
       return r;
     },
   },
-  { label: '機器の配置: 同じマスへもう1台のスイッチ', run: (mode, core) => mode.place(core, 'l2_switch_8p', 5, 6) },
+  { label: '機器の配置: 同じマスへもう1台のスイッチ', run: (mode, core) => op(mode, core, { kind: 'placeDevice', device: 'l2_switch_8p', x: 5, y: 6 }) },
   {
     label: '機器の配置: ルーターを床(8,6)へ',
     run: (mode, core, h) => {
-      const r = mode.place(core, 'router_basic', 8, 6);
+      const r = op(mode, core, { kind: 'placeDevice', device: 'router_basic', x: 8, y: 6 });
       if (r.ok) h.r1 = mode.lastNode(r.core) ?? '';
       return r;
     },
@@ -220,36 +210,36 @@ const steps: Step[] = [
   {
     label: '配線: PC とスイッチ（utp_cat5e）',
     run: (mode, core, h) => {
-      const r = connect(core, need(h, 'pc1'), need(h, 'sw1'), 'utp_cat5e', env, mode.target);
+      const r = op(mode, core, { kind: 'connect', a: need(h, 'pc1'), b: need(h, 'sw1'), cable: 'utp_cat5e' });
       if (r.ok) h.link1 = mode.lastLink(r.core) ?? '';
       return r;
     },
   },
-  { label: '配線: 同じ2台をもう一度つなぐ', run: (mode, core, h) => connect(core, need(h, 'pc1'), need(h, 'sw1'), 'utp_cat5e', env, mode.target) },
-  { label: '機器の移動: スイッチを(5,7)へ', run: (mode, core, h) => mode.move(core, need(h, 'sw1'), 5, 7) },
-  { label: '機器の移動: スイッチを置けないマス(8,6)へ（ルーターがある）', run: (mode, core, h) => mode.move(core, need(h, 'sw1'), 8, 6) },
-  { label: '設定: PC の口0に 192.168.1.10/24', run: (mode, core, h) => setInterface(core, need(h, 'pc1'), 0, '192.168.1.10', 24, env, mode.target) },
-  { label: '設定: PC の口0に不正なアドレス', run: (mode, core, h) => setInterface(core, need(h, 'pc1'), 0, 'bad', 24, env, mode.target) },
-  { label: '設定: PC のホスト名を pc-1 に', run: (mode, core, h) => setHostname(core, need(h, 'pc1'), 'pc-1', mode.target) },
-  { label: '配線の撤去: PC とスイッチの配線', run: (mode, core, h) => removeLink(core, need(h, 'link1'), mode.target, env) },
-  { label: '配線: 撤去のあと、もう一度つなぐ', run: (mode, core, h) => connect(core, need(h, 'pc1'), need(h, 'sw1'), 'utp_cat5e', env, mode.target) },
+  { label: '配線: 同じ2台をもう一度つなぐ', run: (mode, core, h) => op(mode, core, { kind: 'connect', a: need(h, 'pc1'), b: need(h, 'sw1'), cable: 'utp_cat5e' }) },
+  { label: '機器の移動: スイッチを(5,7)へ', run: (mode, core, h) => op(mode, core, { kind: 'moveNode', uid: need(h, 'sw1'), x: 5, y: 7 }) },
+  { label: '機器の移動: スイッチを置けないマス(8,6)へ（ルーターがある）', run: (mode, core, h) => op(mode, core, { kind: 'moveNode', uid: need(h, 'sw1'), x: 8, y: 6 }) },
+  { label: '設定: PC の口0に 192.168.1.10/24', run: (mode, core, h) => op(mode, core, { kind: 'config', uid: need(h, 'pc1'), change: { kind: 'iface', port: 0, ip: '192.168.1.10', prefix: 24 } }) },
+  { label: '設定: PC の口0に不正なアドレス', run: (mode, core, h) => op(mode, core, { kind: 'config', uid: need(h, 'pc1'), change: { kind: 'iface', port: 0, ip: 'bad', prefix: 24 } }) },
+  { label: '設定: PC のホスト名を pc-1 に', run: (mode, core, h) => op(mode, core, { kind: 'config', uid: need(h, 'pc1'), change: { kind: 'hostname', hostname: 'pc-1' } }) },
+  { label: '配線の撤去: PC とスイッチの配線', run: (mode, core, h) => op(mode, core, { kind: 'removeLink', uid: need(h, 'link1') }) },
+  { label: '配線: 撤去のあと、もう一度つなぐ', run: (mode, core, h) => op(mode, core, { kind: 'connect', a: need(h, 'pc1'), b: need(h, 'sw1'), cable: 'utp_cat5e' }) },
   buy('購入: 植物（plant）', 'plant', priceOfFurniture('plant')),
   {
     label: '家具の配置: 植物（plant）を(3,6)へ',
     run: (mode, core, h) => {
-      const r = placeFurniture(core, 'plant', 3, 6, map, mode.freeStock);
+      const r = op(mode, core, { kind: 'placeFurniture', id: 'plant', x: 3, y: 6 });
       if (r.ok) h.plant = r.core.office.furniture.at(-1)?.uid ?? '';
       return r;
     },
   },
-  { label: '家具の移動: 植物を(3,7)へ', run: (_mode, core, h) => moveFurniture(core, need(h, 'plant'), 3, 7, map) },
+  { label: '家具の移動: 植物を(3,7)へ', run: (mode, core, h) => op(mode, core, { kind: 'moveFurniture', uid: need(h, 'plant'), x: 3, y: 7 }) },
   {
     label: '売却: 48ポートのスイッチ（l2_switch_24p）',
     run: (_mode, core) => applyStock(core, sellDevice(core.clock.money, core.owned, 'l2_switch_24p', priceOfDevice('l2_switch_24p'), balance.sellRate)),
   },
-  { label: '機器の撤去: PC', run: (mode, core, h) => mode.remove(core, need(h, 'pc1')) },
-  { label: '機器の撤去: スイッチ（配線も一緒に）', run: (mode, core, h) => mode.remove(core, need(h, 'sw1')) },
-  { label: '家具の撤去: 植物', run: (mode, core, h) => removeFurniture(core, need(h, 'plant'), mode.freeStock) },
+  { label: '機器の撤去: PC', run: (mode, core, h) => op(mode, core, { kind: 'removeNode', uid: need(h, 'pc1') }) },
+  { label: '機器の撤去: スイッチ（配線も一緒に）', run: (mode, core, h) => op(mode, core, { kind: 'removeNode', uid: need(h, 'sw1') }) },
+  { label: '家具の撤去: 植物', run: (mode, core, h) => op(mode, core, { kind: 'removeFurniture', uid: need(h, 'plant') }) },
 ];
 
 // 遊び方ごとに、同じ操作の列を流す。失敗した操作は理由を記録して、次の操作へ進む（失敗のあとの状態も記録する）
