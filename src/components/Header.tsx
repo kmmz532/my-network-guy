@@ -13,6 +13,7 @@ import { RADIUS } from '../ui/theme';
 import { nextFastSpeed, unlockedSpeedsOf } from "../sim/speed";
 import { Tooltip, hideTip } from "./Tooltip";
 import { tipText } from "../input/keymap";
+import { Text } from "./ui/Text";
 
 // 速さのボタン: 停止・1倍のあとに、早送り（2倍・4倍・8倍。解放済みを押すたびに切り替える・N99）
 const SPEEDS: Speed[] = [0, 1];
@@ -100,10 +101,10 @@ const Header = ({ headerRef }: { headerRef: RefObject<HTMLElement> }) => {
         </button>
         )}
         {!sandbox && (
-        <span style={{ marginLeft: '8px' }}>
+        <Text as="span" size="l" layout={{ marginLeft: '8px' }}>
             {/* <Icon name="icon/calendar" scale={1.5} />  */}
             {t('ui.hud.date', { year: date.year, month: date.month, day: date.day })}
-        </span>
+        </Text>
         )}
         {!sandbox && (
         <span style={{ display: 'flex', gap: 4 }}>
@@ -133,7 +134,7 @@ const Header = ({ headerRef }: { headerRef: RefObject<HTMLElement> }) => {
                 </Tooltip>
             );
             })()}
-            <span style={{ fontSize: 12, alignSelf: 'center' }}>{nightSpeed === null ? tDyn(`ui.speed.${speed}`) : t('ui.night.fast')}</span>
+            <Text as="span" size="s" layout={{ alignSelf: 'center' }}>{nightSpeed === null ? tDyn(`ui.speed.${speed}`) : t('ui.night.fast')}</Text>
         </span>
         )}
         </div>
