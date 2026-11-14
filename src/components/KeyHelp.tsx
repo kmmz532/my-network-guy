@@ -1,7 +1,8 @@
 // キー操作の一覧。キーの表（input/keymap.ts）から作る。Enter と Esc で閉じる
 import { KEYMAP } from '../input/keymap';
 import { t } from '../i18n/t';
-import { Modal, primaryButton } from './Modal';
+import { Modal } from './Modal';
+import { Button } from './ui/Button';
 
 export function KeyHelp({ onClose }: { onClose: () => void }) {
   return (
@@ -27,9 +28,11 @@ export function KeyHelp({ onClose }: { onClose: () => void }) {
           </tbody>
         </table>
       </div>
-      <button style={{ ...primaryButton, display: 'block', marginTop: 10, marginLeft: 'auto' }} onClick={onClose}>
-        {t('ui.panel.close')}
-      </button>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+        <Button variant="primary" onClick={onClose}>
+          {t('ui.panel.close')}
+        </Button>
+      </div>
     </Modal>
   );
 }

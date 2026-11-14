@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { t } from '../i18n/t';
 import { useGameStore } from '../stores/useGameStore';
-import { Modal, primaryButton, secondaryButton } from './Modal';
+import { Modal } from './Modal';
+import { Button } from './ui/Button';
 import { PixelCheck } from './PixelControls';
 
 export function PausedBuildPrompt() {
@@ -22,12 +23,12 @@ export function PausedBuildPrompt() {
         </PixelCheck>
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-        <button style={secondaryButton} onClick={() => answer('stay', remember)}>
+        <Button variant="secondary" onClick={() => answer('stay', remember)}>
           {t('ui.paused.build.stay')}
-        </button>
-        <button style={primaryButton} onClick={() => answer('play', remember)}>
+        </Button>
+        <Button variant="primary" onClick={() => answer('play', remember)}>
           {t('ui.paused.build.play')}
-        </button>
+        </Button>
       </div>
     </Modal>
   );
