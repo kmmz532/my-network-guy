@@ -1,11 +1,13 @@
 // 選択ボックス（N63）。ブラウザ標準の <select> の代わりに使う。押すと選択肢の一覧が欄の下（下に収まらなければ上）に開く。
-// 欄は ComboBox と同じ見た目（devicePorts の inputStyle）。文字は打てず、右端に下向きの印を付ける。
+// 欄は ComboBox と同じ見た目（ui.css の ui-select）。配置は layout で渡す。文字は打てず、右端に下向きの印を付ける。
 // 一覧の箱は OptionList（ComboBox と共通）。操作: 押して開く・項目を押して確定・外を押すか Esc で閉じる・↑↓で動かし Enter で確定。
-import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
-import { usePhone } from '../ui/usePhone';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { usePhone } from '../../ui/usePhone';
 import { listHeight, moveActive, placeAbove } from './comboOptions';
-import { inputStyle } from './devicePorts';
+import { layoutStyle, type Layout } from './layout';
 import { OptionList, ROW_PX, LIST_MAX, type OptionAnchor } from './OptionList';
+import './tokens.css';
+import './ui.css';
 
 export interface SelectOption {
   value: string;
@@ -18,7 +20,7 @@ interface Props {
   options: SelectOption[];
   onChange: (value: string) => void;
   disabled?: boolean;
-  style?: CSSProperties;
+  layout?: Layout;
 }
 
 const measure = (el: HTMLElement): OptionAnchor => {
@@ -29,7 +31,7 @@ const measure = (el: HTMLElement): OptionAnchor => {
 // スマホで指で押せるように、行を 44 px 以上にする（M4）
 const PHONE_ROW_PX = 44;
 
-export function Select({ label, value, options, onChange, disabled = false, style }: Props) {
+export function Select({ label, value, options, onChange, disabled = false, layout }: Props) {
   const id = useId();
   const phone = usePhone();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -128,21 +130,11 @@ export function Select({ label, value, options, onChange, disabled = false, styl
         disabled={disabled}
         onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={onKeyDown}
-        style={{
-          ...inputStyle,
-          width: 'auto',
-          minWidth: 120,
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 8,
-          textAlign: 'left',
-          cursor: disabled ? 'default' : 'pointer',
-          ...style,
-        }}
+        className="ui-select"
+        style={layoutStyle(layout)}
       >
         <span>{currentLabel}</span>
-        <span aria-hidden="true" style={{ fontSize: 10 }}>
+        <span aria-hidden="true" className="ui-select__caret">
           ▼
         </span>
       </button>

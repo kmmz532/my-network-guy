@@ -2,7 +2,7 @@
 import { useState, type CSSProperties } from 'react';
 import { balance, guides } from 'virtual:game-data';
 import { tDyn } from '../i18n/t';
-import { Select } from './Select';
+import { Select } from './ui/Select';
 import { SAVE_VERSION } from '../services/migrations';
 import { exportSave, importSave } from '../services/saveFile';
 import { showUpdateNotice } from '../pwa/update';

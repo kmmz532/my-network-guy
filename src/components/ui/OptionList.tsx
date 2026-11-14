@@ -2,8 +2,9 @@
 // 位置の計算は呼び出し側（comboOptions.ts の placeAbove・listHeight）。ここは見た目と行の描画だけを持つ。
 import type { ReactNode, RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { t } from '../i18n/t';
-import { RADIUS } from '../ui/theme';
+import { t } from '../../i18n/t';
+import './tokens.css';
+import './ui.css';
 
 export const LIST_MAX = 220;
 export const ROW_PX = 22;
@@ -47,16 +48,12 @@ interface Props {
 export function OptionList({ id, label, items, active, anchor, above, listRef, footer, onPick, onHover, rowMinHeight }: Props) {
   return createPortal(
     <div
+      className="ui-option-list"
       style={{
         position: 'fixed',
         left: anchor.left,
         width: Math.max(anchor.width, MIN_LIST_WIDTH),
         ...(above ? { bottom: window.innerHeight - anchor.top + 2 } : { top: anchor.bottom + 2 }),
-        background: '#f4f1e6',
-        color: '#3b2a33',
-        border: '1px solid #3b2a33',
-        borderRadius: RADIUS.none,
-        fontSize: 13,
         zIndex: 50,
       }}
     >
@@ -85,20 +82,11 @@ export function OptionList({ id, label, items, active, anchor, above, listRef, f
                 e.preventDefault();
                 if (o.selectable) onPick(o.value);
               }}
-              style={{
-                padding: '2px 6px',
-                minHeight: rowMinHeight,
-                boxSizing: 'border-box',
-                display: rowMinHeight ? 'flex' : undefined,
-                alignItems: rowMinHeight ? 'center' : undefined,
-                whiteSpace: 'nowrap',
-                cursor: o.selectable ? 'pointer' : 'default',
-                background: highlighted ? '#25406f' : 'transparent',
-                color: highlighted ? '#f4f1e6' : o.selectable ? '#3b2a33' : '#8a8f99',
-              }}
+              className={['ui-option', rowMinHeight ? 'ui-option--tall' : '', o.selectable ? '' : 'ui-option--disabled', highlighted ? 'ui-option--active' : ''].filter(Boolean).join(' ')}
+              style={{ minHeight: rowMinHeight }}
             >
               {o.text}
-              {o.usedBy !== null && <span style={{ marginLeft: 6, opacity: 0.8 }}>{t('ui.config.usedBy', { name: o.usedBy })}</span>}
+              {o.usedBy !== null && <span className="ui-option__used">{t('ui.config.usedBy', { name: o.usedBy })}</span>}
             </li>
           );
         })}

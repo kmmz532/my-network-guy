@@ -10,7 +10,7 @@ import { printerArrivalBonusOf } from '../sim/backOffice';
 import { floorOfRoom, roomTileCount } from '../sim/office';
 import { officeUplinkOf, type RoomId } from '../sim/project';
 import type { FloorId } from '../data/schema';
-import { Select } from './Select';
+import { Select } from './ui/Select';
 import { deviceCategory } from '../registry/query';
 
 export function OfficeBody() {

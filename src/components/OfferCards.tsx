@@ -20,7 +20,7 @@ import { PixelCheck } from './PixelControls';
 import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
 import { CATEGORY, isPcCategory } from '../data/categories';
-import { Select } from './Select';
+import { Select } from './ui/Select';
 import { levelOf } from '../sim/level';
 import { isBackOffice } from '../sim/backOffice';
 import { crewBlock } from '../sim/crew';
@@ -73,7 +73,7 @@ export function OfferBody({ onClose }: { onClose: () => void }) {
           value={sort}
           options={OFFER_SORTS.map((mode) => ({ value: mode, label: t(`ui.offer.sort.${mode}`) }))}
           onChange={(v) => setSort(v as OfferSort)}
-          style={{ marginBottom: 8 }}
+          layout={{ marginBottom: 8 }}
         />
       )}
       {/* 新しい依頼を上に並べる。件数が多いときは、この中だけスクロールする */}

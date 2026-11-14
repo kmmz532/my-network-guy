@@ -3,11 +3,13 @@
 // 形が正しくなければ理由を赤い文字で出し、直前の値に戻す。Esc は一覧を閉じて入力前の値に戻す。
 // スマホ・タッチの端末では、欄を押してもキーボードを開かず候補だけを開く（N62）。一覧の下端の「キーボードで入力…」を押したときだけ、キーボードを出す。
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
-import { t, tDyn } from '../i18n/t';
-import { useCoarsePointer, usePhone } from '../ui/usePhone';
+import { t, tDyn } from '../../i18n/t';
+import { useCoarsePointer, usePhone } from '../../ui/usePhone';
 import { filterOptions, isSelectable, listHeight, moveActive, pickOnCommit, placeAbove, type ComboOption } from './comboOptions';
-import { inputStyle, unsetColor } from './devicePorts';
+import { layoutStyle, type Layout } from './layout';
 import { OptionList, ROW_PX, LIST_MAX, type OptionAnchor } from './OptionList';
+import './tokens.css';
+import './ui.css';
 
 // 入力欄の画面上の位置。一覧は portal で文書の直下に置くため、ウィンドウの枠で隠れず、はみ出しても見える
 type Anchor = OptionAnchor;
@@ -30,9 +32,11 @@ export interface ComboBoxProps {
   allowEmpty?: boolean;
   // 確定する。理由（ui.error.* のキー）を返したら、その理由を出して直前の値に戻す
   onCommit: (v: string) => string | null;
+  // 配置。幅の既定は 140 px
+  layout?: Layout;
 }
 
-export function ComboBox({ label, value, options, disabled, isValid, formatError, allowEmpty = false, onCommit }: ComboBoxProps) {
+export function ComboBox({ label, value, options, disabled, isValid, formatError, allowEmpty = false, onCommit, layout }: ComboBoxProps) {
   const id = useId();
   const listId = `${id}-list`;
   const phone = usePhone();
@@ -174,7 +178,8 @@ export function ComboBox({ label, value, options, disabled, isValid, formatError
         autoComplete="off"
         // スマホで候補から選ぶときは、キーボードを開かない（N62）
         inputMode={keyboardOff ? 'none' : 'text'}
-        style={{ ...inputStyle, width: 140 }}
+        className="ui-combobox"
+        style={layoutStyle({ width: 140, ...layout })}
         value={text}
         disabled={disabled}
         onFocus={(e) => {
@@ -199,7 +204,7 @@ export function ComboBox({ label, value, options, disabled, isValid, formatError
         }}
         onKeyDown={onKeyDown}
       />
-      {error && <div style={{ color: unsetColor }}>{error}</div>}
+      {error && <div className="ui-combobox__error">{error}</div>}
       {listVisible && (
         <OptionList
           id={id}
@@ -221,7 +226,8 @@ export function ComboBox({ label, value, options, disabled, isValid, formatError
                   e.preventDefault();
                   setKeyboard(true);
                 }}
-                style={{ padding: '2px 6px', height: ROW_PX, boxSizing: 'border-box', borderTop: '1px solid #3b2a33', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                className="ui-option-footer"
+                style={{ height: ROW_PX }}
               >
                 {t('ui.combo.keyboard')}
               </div>

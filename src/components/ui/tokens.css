@@ -1,0 +1,25 @@
+/* UI 部品の色と大きさのトークン。値は今の見た目をそのまま持つ。使う側は ui.css（TS からは tokens.ts の TOKEN） */
+:root {
+  /* 地 */
+  --bg-card: #25406f;
+  --bg-field: #f4f1e6;
+  --bg-field-focus: #d8eaff;
+
+  /* 文字 */
+  --fg: #f4f1e6;
+  --fg-on-field: #3b2a33;
+  --fg-disabled: #8a8f99;
+
+  /* 枠 */
+  --line: #3b2a33;
+  --line-field-light: #bcb9af;
+  --line-field-focus: #392a3b;
+  --line-field-focus-light: #afb4bc;
+
+  /* 状態 */
+  --st-error: #ff6b6b;
+  --disabled-opacity: 0.5;
+
+  /* 文字の大きさ。選択の一覧は今の 13 px を保つ */
+  --fs-list: 13px;
+}

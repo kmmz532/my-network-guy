@@ -18,7 +18,7 @@ import { Tooltip } from './Tooltip';
 import { Modal, primaryButton, secondaryButton } from './Modal';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { RADIUS } from '../ui/theme';
-import { Select } from './Select';
+import { Select } from './ui/Select';
 import { CertChips } from './StaffCard';
 import { requiresPc } from '../sim/jobs';
 import { maybeFurniture } from '../registry/query';
