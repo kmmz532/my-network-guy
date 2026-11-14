@@ -29,5 +29,13 @@ export const solutions: Record<string, Solve> = {
     ),
   wifi_security: on(['AP1'], (n) => ({ ...n, wireless: { ...n.wireless, security: 'wpa2' as const } })),
   napt_office: on(['R1'], (n) => ({ ...ifaces(n, (i) => ({ ...i, nat: i.port === 0 ? ('outside' as const) : ('inside' as const) })), napt: true })),
+  dns_intranet_names: (nodes) =>
+    nodes.map((n) =>
+      n.uid === 'PC1'
+        ? { ...n, nameServer: '192.168.1.53' }
+        : n.uid === 'R1'
+          ? { ...ifaces(n, (i) => ({ ...i, nat: i.port === 0 ? ('outside' as const) : ('inside' as const) })), napt: true }
+          : n,
+    ),
   nat_firewall: on(['FW1'], (n) => ({ ...ifaces(n, (i) => ({ ...i, nat: i.port === 0 ? ('outside' as const) : ('inside' as const) })), napt: true, rules: [{ src: '192.168.1.0/24', dst: 'any', service: 'any' as const }] })),
 };

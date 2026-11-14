@@ -6,6 +6,7 @@ import type { Lesson } from '../data/schema';
 import type { EngineData } from '../network/types';
 import { lessonGoalResults, lessonLinks, lessonNodes, lessonPlans } from './lesson';
 import { planFor } from '../network/segments';
+import { lookupName } from '../network/dns';
 import { analyze } from '../network/engine/analyze';
 import type { Network } from '../network/types';
 
@@ -37,6 +38,18 @@ describe('教材（学習モード）', () => {
     const links = lessonLinks(l);
     expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false, false]);
     expect(lessonGoalResults(l.goals, solutions[l.id](lessonNodes(l)), links, engine)).toEqual([true, true]);
+  });
+
+  it('DNS の教材: 初めは外へ出られず、NAT を設定すると通る。ネームサーバーを向けると社内と外の名前が引ける', () => {
+    const l = lesson('dns_intranet_names');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([true, false]);
+    const solved = solutions[l.id](lessonNodes(l));
+    expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true, true]);
+    const pc = solved.find((n) => n.uid === 'PC1')!;
+    const net = { nodes: solved, links, plans: {} };
+    expect(lookupName(pc, 'files.office.internal', 'A', net, engine).ok).toBe(true);
+    expect(lookupName(pc, 'example.com', 'A', net, engine).ok).toBe(true);
   });
 
   it('教材の機器に、MAC アドレスの連番が置いた順に振られる', () => {

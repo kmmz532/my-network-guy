@@ -1,0 +1,231 @@
+{
+  "id": "dns_intranet_names",
+  "topic": "service",
+  "order": 35,
+  "size": {
+    "w": 16,
+    "h": 10
+  },
+  "placed": [
+    {
+      "ref": "PC1",
+      "device": "pc_basic",
+      "x": 1,
+      "y": 4,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "PC1"
+    },
+    {
+      "ref": "SW1",
+      "device": "l2_switch_8p",
+      "x": 5,
+      "y": 4,
+      "locked": true,
+      "name": "社内のスイッチ"
+    },
+    {
+      "ref": "CACHE",
+      "device": "server_basic",
+      "x": 4,
+      "y": 1,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.53",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [
+          {
+            "protocol": "dns",
+            "role": "cache",
+            "zone": [
+              {
+                "type": "A",
+                "name": "files.office.internal",
+                "value": "192.168.1.80"
+              }
+            ],
+            "forwarder": "203.0.113.53"
+          }
+        ],
+        "locked": false
+      },
+      "name": "キャッシュ DNS"
+    },
+    {
+      "ref": "SRV",
+      "device": "server_basic",
+      "x": 4,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.80",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "社内のファイルサーバー"
+    },
+    {
+      "ref": "R1",
+      "device": "router_basic",
+      "x": 8,
+      "y": 4,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "198.51.100.2",
+            "prefix": 24
+          },
+          {
+            "port": 1,
+            "ip": "192.168.1.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": "198.51.100.1",
+        "services": [],
+        "locked": false
+      },
+      "name": "ルーター"
+    },
+    {
+      "ref": "U1",
+      "device": "uplink",
+      "x": 12,
+      "y": 4,
+      "locked": true,
+      "isp": {
+        "name": "架空の ISP",
+        "network": "198.51.100.0",
+        "prefix": 24,
+        "ispIp": "198.51.100.1",
+        "dns": "203.0.113.53"
+      },
+      "name": "回線"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PC1",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "CACHE",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "SRV",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 2
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "SW1",
+        "port": 3
+      },
+      "b": {
+        "ref": "R1",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "R1",
+        "port": 0
+      },
+      "b": {
+        "ref": "U1",
+        "port": 0
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": [
+        "PC1",
+        "SRV"
+      ]
+    },
+    {
+      "type": "outside_reachable"
+    }
+  ],
+  "guide": [
+    {
+      "target": "CACHE",
+      "done": "open:CACHE"
+    },
+    {
+      "target": "CACHE",
+      "done": "cmd:show hosts"
+    },
+    {
+      "target": "PC1",
+      "done": "cmd:ip name-server"
+    },
+    {
+      "target": "R1",
+      "done": "open:R1"
+    },
+    {
+      "target": "R1",
+      "done": "cmd:ip nat outside"
+    },
+    {
+      "target": "R1",
+      "done": "cmd:ip nat inside"
+    },
+    {
+      "target": "test",
+      "done": "goal:1"
+    }
+  ]
+}
