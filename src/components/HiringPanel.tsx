@@ -15,7 +15,7 @@ import { useGameStore } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
-import { Modal, primaryButton, secondaryButton } from './Modal';
+import { Modal } from './Modal';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { RADIUS } from '../ui/theme';
 import { Select } from './ui/Select';
@@ -49,9 +49,11 @@ export function HiringPanel() {
         </div>
         {message && <div style={{ color: '#ffd866', fontSize: 13, marginTop: 6 }}>{message}</div>}
       </div>
-      <button style={{ ...primaryButton, display: 'block', marginTop: 8, marginLeft: 'auto' }} onClick={onClose}>
-        {t('ui.panel.close')}
-      </button>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+        <Button variant="primary" onClick={onClose}>
+          {t('ui.panel.close')}
+        </Button>
+      </div>
     </Modal>
   );
 }
@@ -138,8 +140,8 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
               onChange={(v) => setShiftOf((m) => ({ ...m, [c.uid]: v as 'day' | 'night' }))}
             />
           )}
-          <button
-            style={{ ...secondaryButton, whiteSpace: 'nowrap', cursor: full ? 'default' : 'pointer', opacity: full ? 0.5 : 1 }}
+          <Button
+            variant="secondary"
             disabled={full}
             onClick={() => {
               if (requiresPc(c.job) && !nextDeskHasPc && !full) {
@@ -151,7 +153,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
             }}
           >
             {t('ui.hiring.hire')}
-          </button>
+          </Button>
           {confirmUid === c.uid && requiresPc(c.job) && !nextDeskHasPc && !full && (
             <div style={{ position: 'absolute', right: 12, bottom: 42, zIndex: 1, maxWidth: 260, padding: 8, background: '#1b2f57', border: '1px solid #ffd866' }}>
               <div style={{ fontSize: 12, marginBottom: 6 }}>{t('ui.hiring.noPc.confirm')}</div>
