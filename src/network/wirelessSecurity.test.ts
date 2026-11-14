@@ -64,6 +64,6 @@ describe('無線の方式', () => {
     };
     const tr = (k: string) => k;
     expect(viaTree('wireless security wpa2-wpa3', tr)).toEqual({ kind: 'action', action: { kind: 'wireless', key: 'security', value: 'wpa2wpa3' } });
-    expect(viaTree('wireless security wpa5', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageWireless' });
+    expect(viaTree('wireless security wpa5', tr)).toEqual({ kind: 'error', text: '                    ^' });
   });
 });

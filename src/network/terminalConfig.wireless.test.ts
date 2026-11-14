@@ -22,7 +22,7 @@ describe('無線の設定コマンド', () => {
   });
 
   it('パスワードは8字以上、チャネルは1〜13', () => {
-    expect(viaTree('wireless password short', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageWireless' });
-    expect(viaTree('wireless channel 14', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageWireless' });
+    expect(viaTree('wireless password short', tr)).toEqual({ kind: 'error', text: '                    ^' });
+    expect(viaTree('wireless channel 14', tr)).toEqual({ kind: 'error', text: '                   ^' });
   });
 });

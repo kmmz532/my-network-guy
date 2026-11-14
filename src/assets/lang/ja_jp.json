@@ -1223,7 +1223,6 @@
   "ui.terminal.usagePing": "使い方: ping <IPアドレス>",
   "ui.terminal.usageStp": "書式: spanning-tree priority <0〜61440（4096の倍数）> / spanning-tree cost <口> <値>",
   "ui.terminal.usageTrace": "使い方: traceroute <IPアドレス>",
-  "ui.terminal.usageWireless": "書式: wireless ssid <名前> / wireless password <8字以上> / wireless channel <1-13> / wireless vlan <番号> / wireless security <open|wep|wpa|wpa2|wpa3|wpa2-wpa3>",
   "ui.terminal.vlanAccess": "口{port}: access・VLAN {vlan}",
   "ui.terminal.vlanAll": "すべて",
   "ui.terminal.vlanNone": "VLAN の設定された口はない（口は既定の VLAN 1）",

@@ -15,13 +15,17 @@
     },
     {
       "line": "wireless ssid",
-      "result": "error",
-      "text": "ui.terminal.usageWireless"
+      "lines": [
+        "err:                ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "wireless password short",
-      "result": "error",
-      "text": "ui.terminal.usageWireless"
+      "lines": [
+        "err:                    ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "wireless password longerpass123",
@@ -33,13 +37,17 @@
     },
     {
       "line": "wireless channel 14",
-      "result": "error",
-      "text": "ui.terminal.usageWireless"
+      "lines": [
+        "err:                   ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "wireless channel x",
-      "result": "error",
-      "text": "ui.terminal.usageWireless"
+      "lines": [
+        "err:                   ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "wireless vlan 10",
@@ -47,8 +55,10 @@
     },
     {
       "line": "wireless vlan 0",
-      "result": "error",
-      "text": "ui.terminal.usageWireless"
+      "lines": [
+        "err:                ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "wireless security wpa2",
@@ -64,13 +74,29 @@
     },
     {
       "line": "wireless security nope",
-      "result": "error",
-      "text": "ui.terminal.usageWireless"
+      "lines": [
+        "err:                    ^",
+        "err:ui.terminal.invalidAt"
+      ]
+    },
+    {
+      "line": "wireless security open",
+      "result": "done"
+    },
+    {
+      "line": "wireless security wpa",
+      "result": "done"
+    },
+    {
+      "line": "wireless security wpa3",
+      "result": "done"
     },
     {
       "line": "wireless foo bar",
-      "result": "error",
-      "text": "ui.terminal.usageWireless"
+      "lines": [
+        "err:           ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "show running-config",
@@ -119,7 +145,7 @@
         "wireless": {
           "ssid": "OFFICE-NET",
           "password": "longerpass123",
-          "security": "wep",
+          "security": "wpa3",
           "channel": 6,
           "vlan": 10
         },

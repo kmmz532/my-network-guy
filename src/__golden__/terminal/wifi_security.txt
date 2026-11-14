@@ -14,6 +14,9 @@ wireless security wpa2
 wireless security wpa2-wpa3
 wireless security wep
 wireless security nope
+wireless security open
+wireless security wpa
+wireless security wpa3
 wireless foo bar
 show running-config
 show mac address-table
