@@ -1,6 +1,5 @@
 // SVI（VLAN のインターフェース）と口のモードの書式（N137・N138）
 import { describe, expect, it } from 'vitest';
-import { parseConfig } from './terminalConfig';
 import type { EngineData, NetNode } from './types';
 import type { NetworkState } from './engine/state';
 import type { Tr } from './terminal';
@@ -30,10 +29,10 @@ describe('SVI と口のモードの設定コマンド（N138）', () => {
   });
 
   it('switchport <口> access vlan <番号> で口を VLAN に入れ、no switchport <口> でルーターの口に戻す', () => {
-    expect(parseConfig('switchport 2 access vlan 20', tr)).toEqual({
+    expect(viaTree('switchport 2 access vlan 20', tr)).toEqual({
       kind: 'action',
       action: { kind: 'portMode', port: 2, mode: { kind: 'access', vlan: 20 } },
     });
-    expect(parseConfig('no switchport 2', tr)).toEqual({ kind: 'action', action: { kind: 'portMode', port: 2, mode: { kind: 'routed' } } });
+    expect(viaTree('no switchport 2', tr)).toEqual({ kind: 'action', action: { kind: 'portMode', port: 2, mode: { kind: 'routed' } } });
   });
 });

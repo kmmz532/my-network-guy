@@ -1,6 +1,17 @@
 // RIP・OSPF の設定コマンドの書式（N143）
 import { describe, expect, it } from 'vitest';
 import { parseConfig } from './terminalConfig';
+import type { EngineData, NetNode } from './types';
+import type { NetworkState } from './engine/state';
+import type { Tr } from './terminal';
+import { commandContextOf, runLine } from './command/run';
+
+// 木の命令の結果を、解釈の形（action は設定の操作、error は誤りの鍵）に合わせて見る
+const treeCtx = commandContextOf({ node: {} as NetNode, nodes: [], links: [], data: {} as EngineData, state: {} as NetworkState }, false);
+const viaTree = (line: string, tr: Tr) => {
+  const r = runLine(line, treeCtx, tr);
+  return r.change !== null ? { kind: 'action', action: r.change } : { kind: 'error', text: r.lines[0].text };
+};
 
 const tr = (key: string) => key;
 
@@ -30,9 +41,9 @@ describe('RIP・OSPF の設定コマンド', () => {
 
 describe('switchport trunk', () => {
   it('trunk の許可する VLAN と native を読む', () => {
-    expect(parseConfig('switchport 1 trunk', tr)).toEqual({ kind: 'action', action: { kind: 'portMode', port: 1, mode: { kind: 'trunk' } } });
-    expect(parseConfig('switchport 1 trunk allowed 10,20 native 10', tr)).toEqual({ kind: 'action', action: { kind: 'portMode', port: 1, mode: { kind: 'trunk', allowed: [10, 20], native: 10 } } });
-    expect(parseConfig('switchport 1 trunk allowed all', tr)).toEqual({ kind: 'action', action: { kind: 'portMode', port: 1, mode: { kind: 'trunk', allowed: null } } });
-    expect(parseConfig('switchport 1 trunk allowed 0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errVlan' });
+    expect(viaTree('switchport 1 trunk', tr)).toEqual({ kind: 'action', action: { kind: 'portMode', port: 1, mode: { kind: 'trunk' } } });
+    expect(viaTree('switchport 1 trunk allowed 10,20 native 10', tr)).toEqual({ kind: 'action', action: { kind: 'portMode', port: 1, mode: { kind: 'trunk', allowed: [10, 20], native: 10 } } });
+    expect(viaTree('switchport 1 trunk allowed all', tr)).toEqual({ kind: 'action', action: { kind: 'portMode', port: 1, mode: { kind: 'trunk', allowed: null } } });
+    expect(viaTree('switchport 1 trunk allowed 0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errVlan' });
   });
 });
