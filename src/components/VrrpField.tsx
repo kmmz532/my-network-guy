@@ -6,7 +6,9 @@ import { vrrpStatusOf } from '../network/public';
 import type { Iface, NetNode } from '../network/types';
 import { netOfDevice, useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, inputStyle, isIpText } from './devicePorts';
+import { Checkbox } from './ui/Checkbox';
 import { Select } from './ui/Select';
+import { TextInput } from './ui/TextInput';
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
 
@@ -60,15 +62,9 @@ export function VrrpField({ node, iface, disabled, onError }: Props) {
                 }}
               />
             </label>
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <input
-                type="checkbox"
-                checked={g.preempt}
-                disabled={disabled}
-                onChange={(e) => onError(setVrrp(node.uid, { op: 'preempt', id: iface.id, vrid: g.vrid, on: e.target.checked }))}
-              />
+            <Checkbox checked={g.preempt} disabled={disabled} onChange={(on) => onError(setVrrp(node.uid, { op: 'preempt', id: iface.id, vrid: g.vrid, on }))}>
               {t('ui.config.vrrpPreempt')}
-            </label>
+            </Checkbox>
             <button style={buttonStyle} disabled={disabled} onClick={() => onError(setVrrp(node.uid, { op: 'remove', id: iface.id, vrid: g.vrid }))}>
               {t('ui.config.vrrpRemove')}
             </button>
@@ -84,7 +80,7 @@ export function VrrpField({ node, iface, disabled, onError }: Props) {
                   options={[{ value: '', label: t('ui.config.vrrpTrack') }, ...others.map((o) => ({ value: o.id, label: o.id }))]}
                   onChange={(v) => setTrackIface(v)}
                 />
-                <input aria-label={t('ui.config.vrrpTrackDecrement')} type="number" min={1} max={253} value={decrement} disabled={disabled} style={{ ...inputStyle, width: 56 }} onChange={(e) => setDecrement(e.target.value)} />
+                <TextInput label={t('ui.config.vrrpTrackDecrement')} type="number" min={1} max={253} value={decrement} disabled={disabled} onChange={setDecrement} layout={{ width: 56 }} />
                 <button
                   style={buttonStyle}
                   disabled={disabled || trackIface === '' || !/^\d+$/.test(decrement)}
@@ -98,8 +94,8 @@ export function VrrpField({ node, iface, disabled, onError }: Props) {
         );
       })}
       <div style={row}>
-        <input aria-label={t('ui.config.vrrpVrid')} placeholder={t('ui.config.vrrpVrid')} value={vrid} disabled={disabled} style={{ ...inputStyle, width: 56 }} onChange={(e) => setVrid(e.target.value)} />
-        <input aria-label={t('ui.config.vrrpVip')} placeholder={t('ui.config.vrrpVip')} value={ip} disabled={disabled} style={{ ...inputStyle, width: 120 }} onChange={(e) => setIp(e.target.value)} />
+        <TextInput label={t('ui.config.vrrpVrid')} placeholder={t('ui.config.vrrpVrid')} value={vrid} disabled={disabled} onChange={setVrid} layout={{ width: 56 }} />
+        <TextInput label={t('ui.config.vrrpVip')} placeholder={t('ui.config.vrrpVip')} value={ip} disabled={disabled} onChange={setIp} layout={{ width: 120 }} />
         <button
           style={buttonStyle}
           disabled={disabled || !addable}
