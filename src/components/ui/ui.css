@@ -405,6 +405,17 @@ input.ui-text-input--full {
   color: var(--fg);
 }
 
+/* 押せる行は、地と文字を行が決める（標準のボタンの見た目を受けない） */
+.ui-list-row--button {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-card);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+
 .ui-list-row--active {
   border-color: var(--line-focus);
 }
