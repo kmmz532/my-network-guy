@@ -5,7 +5,7 @@ import { t } from '../i18n/t';
 import { can } from '../network/capabilities';
 import type { DhcpPool, Iface, NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
-import { buttonStyle, greyColor, inputStyle, isIpText } from './devicePorts';
+import { buttonStyle, greyColor, isIpText } from './devicePorts';
 import { Checkbox } from './ui/Checkbox';
 import { TextInput } from './ui/TextInput';
 
@@ -30,13 +30,12 @@ export function DhcpPortField({ node, port, iface, client, disabled, onError }: 
       <div style={row}>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
           {t('ui.config.dhcpHelper')}
-          <input
-            key={`${iface.id}-${iface.helper ?? ''}`}
-            defaultValue={iface.helper ?? ''}
+          <TextInput
+            value={iface.helper ?? ''}
             disabled={disabled}
-            style={{ ...inputStyle, width: 120 }}
-            onBlur={(e) => {
-              const v = e.target.value.trim();
+            layout={{ width: 120 }}
+            onCommit={(text) => {
+              const v = text.trim();
               if (v === (iface.helper ?? '') || (v !== '' && !isIpText(v))) return;
               onError(setDhcp(node.uid, { op: 'helper', port, ip: v === '' ? null : v }));
             }}
