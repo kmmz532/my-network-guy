@@ -4,9 +4,9 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { t } from '../i18n/t';
 import { applyUiScale, AUTO_SAVE_MODES, loadSettings, PAUSED_BUILD_MODES, saveSettings, START_SPEEDS, UI_SCALES, type Settings } from '../settings/settings';
 import { useGameStore } from '../stores/useGameStore';
-import { Modal } from './Modal';
 import { Button } from './ui/Button';
 import { Choice } from './ui/Choice';
+import { Dialog } from './ui/Dialog';
 
 // 項目の名前と、その右下の選択肢
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -40,7 +40,7 @@ export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; on
   };
 
   return (
-    <Modal onClose={onClose} primary={onClose} boxStyle={{ width: 'min(380px, calc(100% - 32px))', maxHeight: 'calc(100% - 32px)', overflowY: 'auto' }}>
+    <Dialog onClose={onClose} primary={onClose} layout={{ width: 'min(380px, calc(100% - 32px))', maxHeight: 'calc(100% - 32px)', overflowY: 'auto' }}>
       <div style={{ fontWeight: 'bold' }}>{t('ui.settings.title')}</div>
       <Row label={t('ui.settings.saveKeep')}>
         <span style={{ fontSize: 13 }}>{kept === null ? '…' : kept ? t('ui.settings.saveKept') : t('ui.settings.saveNotKept')}</span>
@@ -173,6 +173,6 @@ export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; on
           {t('ui.panel.close')}
         </Button>
       </div>
-    </Modal>
+    </Dialog>
   );
 }
