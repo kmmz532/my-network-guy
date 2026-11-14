@@ -13,8 +13,8 @@ import { effectText } from '../game/effectText';
 import { purchaseDiscountOf, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 import { Button } from './ui/Button';
+import { Card } from './ui/Card';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
-import { RADIUS } from '../ui/theme';
 import { matchesQuery } from '../ui/search';
 import { SearchField } from './SearchField';
 import { ItemIcon as SharedItemIcon } from './ItemIcon';
@@ -70,34 +70,33 @@ export function ShopBody() {
             deviceRows.map((id) => {
               const d = deviceDef(id);
               return (
-                <div
-                  key={id}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}
-                >
-                  <ItemIcon name={d.sprite} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 'bold' }}>{tDyn(`device.${id}.name`)}</div>
-                    <div style={{ fontSize: 12, opacity: 0.85 }}>{tDyn(`device.${id}.desc`)}</div>
-                    <div style={{ fontSize: 12 }}>
-                      {t('ui.shop.spec', { ports: d.ports.reduce((sum, p) => sum + p.count, 0), speed: d.ports[0]?.speedMbps ?? 0 })}
+                <Card key={id} layout={{ marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <ItemIcon name={d.sprite} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 'bold' }}>{tDyn(`device.${id}.name`)}</div>
+                      <div style={{ fontSize: 12, opacity: 0.85 }}>{tDyn(`device.${id}.desc`)}</div>
+                      <div style={{ fontSize: 12 }}>
+                        {t('ui.shop.spec', { ports: d.ports.reduce((sum, p) => sum + p.count, 0), speed: d.ports[0]?.speedMbps ?? 0 })}
+                      </div>
+                      <div style={{ fontSize: 13 }}>
+                        <Icon name="icon/money" scale={1} /> {discount > 0 && !sandbox && <s style={{ opacity: 0.6, marginRight: 4 }}>{yen(d.price)}</s>}{yen(cost(d.price))}　×{owned[id] ?? 0}
+                      </div>
+                      {/* 売却の値段は、ボタンではなく値段の下に小さく出す（ボタンの幅をそろえる） */}
+                      {!sandbox && <div style={{ fontSize: 12, opacity: 0.85 }}>{t('ui.shop.sellPrice', { price: yen(Math.floor(d.price * balance.sellRate)) })}</div>}
                     </div>
-                    <div style={{ fontSize: 13 }}>
-                      <Icon name="icon/money" scale={1} /> {discount > 0 && !sandbox && <s style={{ opacity: 0.6, marginRight: 4 }}>{yen(d.price)}</s>}{yen(cost(d.price))}　×{owned[id] ?? 0}
-                    </div>
-                    {/* 売却の値段は、ボタンではなく値段の下に小さく出す（ボタンの幅をそろえる） */}
-                    {!sandbox && <div style={{ fontSize: 12, opacity: 0.85 }}>{t('ui.shop.sellPrice', { price: yen(Math.floor(d.price * balance.sellRate)) })}</div>}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 64 }}>
-                    <Button variant="secondary" disabled={money < cost(d.price)} onClick={() => buy(id)}>
-                      {t('ui.shop.buy')}
-                    </Button>
-                    {!sandbox && (
-                      <Button variant="secondary" disabled={(owned[id] ?? 0) <= 0} onClick={() => sell(id)}>
-                        {t('ui.shop.sell')}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 64 }}>
+                      <Button variant="secondary" disabled={money < cost(d.price)} onClick={() => buy(id)}>
+                        {t('ui.shop.buy')}
                       </Button>
-                    )}
+                      {!sandbox && (
+                        <Button variant="secondary" disabled={(owned[id] ?? 0) <= 0} onClick={() => sell(id)}>
+                          {t('ui.shop.sell')}
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
+                </Card>
               );
             })}
           {query !== '' && (section === 'device' ? deviceRows : furnitureRows).length === 0 && <div style={{ padding: 8 }}>{t('ui.search.none')}</div>}
@@ -105,31 +104,30 @@ export function ShopBody() {
             furnitureRows.map((id) => {
               const f = furnitureDef(id);
               return (
-                <div
-                  key={`furniture-${id}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#25406f', borderRadius: RADIUS.none, padding: 8, marginBottom: 6 }}
-                >
-                  <ItemIcon name={itemSpriteOf('furniture', f.id)} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 'bold' }}>{tDyn(`furniture.${id}.name`)}</div>
-                    <div style={{ fontSize: 12, opacity: 0.85 }}>{tDyn(`furniture.${id}.desc`)}</div>
-                    {effectText(f.effect) && <div style={{ fontSize: 12, color: '#ffd866' }}>{effectText(f.effect)}</div>}
-                    <div style={{ fontSize: 13 }}>
-                      <Icon name="icon/money" scale={1} /> {discount > 0 && !sandbox && <s style={{ opacity: 0.6, marginRight: 4 }}>{yen(f.price)}</s>}{yen(cost(f.price))}　×{owned[id] ?? 0}
+                <Card key={`furniture-${id}`} layout={{ marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <ItemIcon name={itemSpriteOf('furniture', f.id)} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 'bold' }}>{tDyn(`furniture.${id}.name`)}</div>
+                      <div style={{ fontSize: 12, opacity: 0.85 }}>{tDyn(`furniture.${id}.desc`)}</div>
+                      {effectText(f.effect) && <div style={{ fontSize: 12, color: '#ffd866' }}>{effectText(f.effect)}</div>}
+                      <div style={{ fontSize: 13 }}>
+                        <Icon name="icon/money" scale={1} /> {discount > 0 && !sandbox && <s style={{ opacity: 0.6, marginRight: 4 }}>{yen(f.price)}</s>}{yen(cost(f.price))}　×{owned[id] ?? 0}
+                      </div>
+                      {!sandbox && <div style={{ fontSize: 12, opacity: 0.85 }}>{t('ui.shop.sellPrice', { price: yen(Math.floor(f.price * balance.sellRate)) })}</div>}
                     </div>
-                    {!sandbox && <div style={{ fontSize: 12, opacity: 0.85 }}>{t('ui.shop.sellPrice', { price: yen(Math.floor(f.price * balance.sellRate)) })}</div>}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 64 }}>
-                    <Button variant="secondary" disabled={money < cost(f.price)} onClick={() => buy(id)}>
-                      {t('ui.shop.buy')}
-                    </Button>
-                    {!sandbox && (
-                      <Button variant="secondary" disabled={(owned[id] ?? 0) <= 0} onClick={() => sell(id)}>
-                        {t('ui.shop.sell')}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 64 }}>
+                      <Button variant="secondary" disabled={money < cost(f.price)} onClick={() => buy(id)}>
+                        {t('ui.shop.buy')}
                       </Button>
-                    )}
+                      {!sandbox && (
+                        <Button variant="secondary" disabled={(owned[id] ?? 0) <= 0} onClick={() => sell(id)}>
+                          {t('ui.shop.sell')}
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
+                </Card>
               );
             })}
         </div>
