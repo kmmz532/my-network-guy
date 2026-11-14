@@ -364,7 +364,7 @@
       "count": 8
     },
     "local/no-native-control": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/Toolbar.tsx": {

@@ -12,7 +12,6 @@ import { engineWithWalls } from '../sim/walls';
 import { nodeLabel } from './nodeLabel';
 import { createOps } from '../stores/gameOps';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
-import { secondaryButton } from './Modal';
 import { warnColor } from './devicePorts';
 import { Button } from './ui/Button';
 
@@ -137,9 +136,9 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
           placeholder="help"
           style={{ flex: 1, minWidth: 0, fontFamily: 'monospace', fontSize: 13, background: '#0f1d33', color: 'inherit', border: 'none', padding: 4 }}
         />
-        <button type="submit" style={secondaryButton}>
+        <Button variant="secondary" type="submit">
           {t('ui.terminal.run')}
-        </button>
+        </Button>
       </form>
     </div>
   );
