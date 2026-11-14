@@ -107,11 +107,12 @@ export const dropUnknownDevices = (data: Company): DropResult => {
   for (const [id, n] of Object.entries(data.owned)) {
     if (isKnown(id) || isKnownFurniture(id)) {
       owned[id] = n;
-    } else {
-      ownedChanged = true;
-      ids.add(id);
-      count += n;
+      continue;
     }
+
+    ownedChanged = true;
+    ids.add(id);
+    count += n;
   }
 
   // 型紙の機器と配線
@@ -123,10 +124,11 @@ export const dropUnknownDevices = (data: Company): DropResult => {
     count += r.count;
     if (r.count === 0) {
       nextBlueprints[key] = bp;
-    } else {
-      blueprintsChanged = true;
-      nextBlueprints[key] = { ...bp, design: r.net };
+      continue;
     }
+    
+    blueprintsChanged = true;
+    nextBlueprints[key] = { ...bp, design: r.net };
   }
   if (blueprintsChanged) blueprints = nextBlueprints;
 
