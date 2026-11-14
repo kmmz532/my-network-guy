@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { t } from '../i18n/t';
 import type { OfficeSize } from '../sim/project';
 import { SANDBOX_DEFAULT_SIZE, SANDBOX_SIZES } from '../sim/sandbox';
-import { Modal, primaryButton } from './Modal';
+import { Modal } from './Modal';
 import { RADIUS } from '../ui/theme';
+import { Button } from './ui/Button';
 
 const sizeLabel = (size: OfficeSize) => `${size.w}×${size.h}`;
 
@@ -67,9 +68,9 @@ export function SandboxSizePanel({
         <button style={{ padding: '4px 12px', cursor: 'pointer', background: 'transparent', color: '#f4f1e6', border: '1px solid #f4f1e6', borderRadius: RADIUS.none }} onClick={onClose}>
           {t('ui.sandbox.size.cancel')}
         </button>
-        <button style={primaryButton} onClick={run}>
+        <Button variant="primary" onClick={run}>
           {start}
-        </button>
+        </Button>
       </div>
     </Modal>
   );
