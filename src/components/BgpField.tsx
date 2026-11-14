@@ -4,7 +4,7 @@ import { t } from '../i18n/t';
 import { isIp } from '../network/command/args';
 import type { NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
-import { buttonStyle, greyColor, inputStyle, sectionStyle } from './devicePorts';
+import { greyColor, inputStyle, sectionStyle } from './devicePorts';
 import { Button } from './ui/Button';
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
@@ -43,9 +43,9 @@ export function BgpField({ node, readOnly, onError }: { node: NetNode; readOnly:
         <b>{t('ui.config.bgp')}</b>
         <div style={row}>
           <input style={{ ...inputStyle, width: 80 }} aria-label={t('ui.config.bgpAsn')} placeholder={t('ui.config.bgpAsn')} value={asn} disabled={readOnly} onChange={(e) => setAsn(e.target.value)} />
-          <button style={buttonStyle} disabled={readOnly || !/^[0-9]+$/.test(asn)} onClick={() => onError(setBgp(node.uid, { op: 'asn', asn: Number(asn) }))}>
+          <Button variant="secondary" size="fit" disabled={readOnly || !/^[0-9]+$/.test(asn)} onClick={() => onError(setBgp(node.uid, { op: 'asn', asn: Number(asn) }))}>
             {t('ui.config.bgpStart')}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -85,8 +85,9 @@ export function BgpField({ node, readOnly, onError }: { node: NetNode; readOnly:
         <div style={row}>
           <input style={inputStyle} aria-label={t('ui.config.bgpNeighborIp')} placeholder={t('ui.config.bgpNeighborIp')} value={ip} onChange={(e) => setIp(e.target.value)} />
           <input style={{ ...inputStyle, width: 70 }} aria-label={t('ui.config.bgpRemoteAs')} placeholder={t('ui.config.bgpRemoteAs')} value={remoteAs} onChange={(e) => setRemoteAs(e.target.value)} />
-          <button
-            style={buttonStyle}
+          <Button
+            variant="secondary"
+            size="fit"
             disabled={!isIp(ip) || !/^[0-9]+$/.test(remoteAs)}
             onClick={() => {
               const reason = setBgp(node.uid, { op: 'neighbor', ip, remoteAs: Number(remoteAs) });
@@ -98,7 +99,7 @@ export function BgpField({ node, readOnly, onError }: { node: NetNode; readOnly:
             }}
           >
             {t('ui.config.bgpAddNeighbor')}
-          </button>
+          </Button>
         </div>
       )}
       <div style={{ marginTop: 4 }}>{t('ui.config.bgpNetworks')}</div>
@@ -116,8 +117,9 @@ export function BgpField({ node, readOnly, onError }: { node: NetNode; readOnly:
         <div style={row}>
           <input style={inputStyle} aria-label={t('ui.config.bgpNetworks')} placeholder="203.0.113.0" value={dest} onChange={(e) => setDest(e.target.value)} />
           <input style={{ ...inputStyle, width: 44 }} aria-label="prefix" value={prefix} onChange={(e) => setPrefix(e.target.value)} />
-          <button
-            style={buttonStyle}
+          <Button
+            variant="secondary"
+            size="fit"
             disabled={!isIp(dest) || !/^[0-9]+$/.test(prefix) || Number(prefix) > 32}
             onClick={() => {
               const reason = setBgp(node.uid, { op: 'network', dest, prefix: Number(prefix) });
@@ -126,7 +128,7 @@ export function BgpField({ node, readOnly, onError }: { node: NetNode; readOnly:
             }}
           >
             {t('ui.config.bgpAddNetwork')}
-          </button>
+          </Button>
         </div>
       )}
     </div>

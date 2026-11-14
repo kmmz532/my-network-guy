@@ -31,13 +31,13 @@
   },
   "src/components/BgpField.tsx": {
     "local/no-look-export": {
-      "count": 4
+      "count": 3
     },
     "local/no-look-props": {
       "count": 7
     },
     "local/no-native-control": {
-      "count": 10
+      "count": 7
     }
   },
   "src/components/ChannelField.tsx": {
@@ -308,10 +308,7 @@
   },
   "src/components/SettingsPanel.tsx": {
     "local/no-look-props": {
-      "count": 8
-    },
-    "local/no-native-control": {
-      "count": 1
+      "count": 3
     }
   },
   "src/components/ShopCards.tsx": {

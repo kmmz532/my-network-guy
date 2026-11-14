@@ -5,7 +5,6 @@ import { t } from '../i18n/t';
 import { applyUiScale, AUTO_SAVE_MODES, loadSettings, PAUSED_BUILD_MODES, saveSettings, START_SPEEDS, UI_SCALES, type Settings } from '../settings/settings';
 import { useGameStore } from '../stores/useGameStore';
 import { Modal } from './Modal';
-import { RADIUS } from '../ui/theme';
 import { Button } from './ui/Button';
 
 interface Option<T> {
@@ -29,26 +28,9 @@ function Choice<T extends string | number | boolean>({
       {options.map((o) => {
         const on = o.value === value;
         return (
-          <button
-            key={String(o.value)}
-            aria-pressed={on}
-            onClick={() => onChange(o.value)}
-            style={{
-              minHeight: 36,
-              padding: '4px 8px',
-              boxSizing: 'border-box',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              textAlign: 'center',
-              borderRadius: RADIUS.none,
-              border: '1px solid #f4f1e6',
-              background: on ? '#f4f1e6' : 'transparent',
-              color: on ? '#2f4f8f' : '#f4f1e6',
-              fontWeight: on ? 'bold' : 'normal',
-            }}
-          >
+          <Button key={String(o.value)} variant="outline" size="choice" pressed={on} onClick={() => onChange(o.value)}>
             {o.label}
-          </button>
+          </Button>
         );
       })}
     </div>
