@@ -14,7 +14,7 @@ import { gameEnv, isPcDevice } from '../../sim/env';
 import { pcDesksOf } from '../../sim/furniture';
 import { missingPcCount } from '../../sim/backOffice';
 import { pushNotice } from '../../ui/notices';
-import { dropUnknownDevices } from '../../services/dropUnknown';
+import { dropUnknownDevices, dropUnknownFromOffice } from '../../services/dropUnknown';
 
 import { newRng, newStart, refresh } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
@@ -207,11 +207,14 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
       set({ office: result.office, maps: { ...get().maps, hq: mapOfOffice(result.office) } });
       return null;
     },
-    loadSandboxOffice: (office) => {
+    loadSandboxOffice: (input) => {
       if (get().mode !== 'sandbox') return 'none';
+      // 登録にない機器・ケーブル・家具を取り除いてから読む。取り除いたときは知らせる
+      const { office, count } = dropUnknownFromOffice(input);
       dropHistory(OFFICE_HISTORY_KEY);
       useUiStore.setState({ wireStart: null, portMenu: null });
       set({ office, maps: { ...get().maps, hq: mapOfOffice(office) }, placing: null });
+      if (count > 0) set((s) => ({ notices: pushNotice(s.notices, 'devicesDropped', { count }, Date.now()) }));
       return null;
     },
     snapshot: () => companyOf(get()),

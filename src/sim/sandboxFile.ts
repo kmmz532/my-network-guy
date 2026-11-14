@@ -14,6 +14,24 @@ const cell = z.object({ x: int, y: int });
 const endpoint = z.object({ node: z.string().min(1), port: int });
 
 // 機器と配線は、読み込みに要る項目だけを検査する（そのほかの項目は、書き出したものをそのまま戻す）
+// 機器の、計算が前提にする項目（MAC アドレスの連番・口・インターフェース・経路・サービス・ゲートウェイ・固定の印）
+const nodeSchema = z
+  .object({
+    uid: z.string().min(1),
+    device: z.string().min(1),
+    x: int,
+    y: int,
+    macSerial: int.min(0),
+    ports: z.array(z.unknown()),
+    interfaces: z.array(z.unknown()),
+    routes: z.array(z.unknown()),
+    services: z.array(z.unknown()),
+    gateway: z.string().nullable(),
+    locked: z.boolean(),
+    configLocked: z.boolean(),
+  })
+  .passthrough();
+
 const officeSchema = z.object({
   floors: z.record(z.string(), z.string()).optional(),
   bought: z.array(z.string()),
@@ -21,8 +39,8 @@ const officeSchema = z.object({
   innerWalls: z.array(cell),
   doors: z.array(cell),
   annexes: z.array(z.unknown()),
-  nodes: z.array(z.object({ uid: z.string().min(1), device: z.string().min(1), x: int, y: int }).passthrough()),
-  links: z.array(z.object({ uid: z.string().min(1), cable: z.string().min(1), a: endpoint, b: endpoint, path: z.array(z.tuple([int, int])) }).passthrough()),
+  nodes: z.array(nodeSchema),
+  links: z.array(z.object({ uid: z.string().min(1), cable: z.string().min(1), a: endpoint, b: endpoint, path: z.array(z.tuple([int, int])), paid: z.number() }).passthrough()),
   seq: int.min(0),
   furniture: z.array(z.object({ uid: z.string().min(1), id: z.string().min(1), x: int, y: int })),
   furnitureSeq: int.min(0),

@@ -35,4 +35,12 @@ describe('サンドボックスの構成のファイル', () => {
     const broken = JSON.stringify({ format: 'network-ya.sandbox', version: 2, office });
     expect(readSandboxFile(broken)).toEqual({ ok: false, reason: 'shape' });
   });
+
+  it('MAC アドレスの連番のない機器があるファイルは、shape の理由を返す', () => {
+    const node = { uid: 'n1', device: 'pc_basic', x: 1, y: 1, macSerial: 1, ports: [], interfaces: [], routes: [], services: [], gateway: null, locked: false, configLocked: false };
+    const fileOf = (n: object) => JSON.stringify({ format: 'network-ya.sandbox', version: 2, office: { ...sandboxOffice(), nodes: [n] } });
+    expect(readSandboxFile(fileOf(node)).ok).toBe(true);
+    const { macSerial: _omit, ...noSerial } = node;
+    expect(readSandboxFile(fileOf(noSerial))).toEqual({ ok: false, reason: 'shape' });
+  });
 });

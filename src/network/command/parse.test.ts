@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { COMMANDS } from './registry';
+import { COMMANDS, assertSupportedTokens } from './registry';
 import { LEGACY_ABBREV, parseLine } from './parse';
-import type { TerminalSession } from './types';
+import type { CommandSpec, TerminalSession } from './types';
 
 const exec: TerminalSession = { mode: 'exec', iface: null, process: null };
 const config: TerminalSession = { mode: 'config', iface: null, process: null };
@@ -47,5 +47,12 @@ describe('命令の解釈', () => {
   it('一意に決まらない略記は ambiguous と、その語の位置を返す', () => {
     expect(parseLine('sh i', exec)).toEqual({ error: 'ambiguous', at: 3 });
     expect(parseLine('h', exec)).toEqual({ error: 'ambiguous', at: 0 });
+  });
+});
+
+describe('命令の登録表の検査', () => {
+  it('{ arg } の語を含む命令があれば、登録の時に例外にする', () => {
+    const spec = { id: 'test.typed', modes: ['exec'], tokens: [{ word: 'x' }, { arg: 'ip', name: 'addr' }] } as unknown as CommandSpec;
+    expect(() => assertSupportedTokens([spec])).toThrow('型のある引数は未対応: test.typed');
   });
 });

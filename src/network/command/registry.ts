@@ -20,6 +20,14 @@ const registry = new Registry<CommandSpec>('命令');
 for (const spec of [...svi, ...core, ...vlan, ...staticRoute, ...rip, ...ospf, ...bgp, ...vrrp, ...lag, ...nat, ...dhcp, ...stp, ...dns, ...wireless]) 
   registry.register(spec);
 
+// { arg }（型のある引数）の語は、突き合わせが未対応。実行の時ではなく、登録の時に落とす
+export const assertSupportedTokens = (specs: readonly CommandSpec[]): void => {
+  for (const spec of specs) {
+    if (spec.tokens.some((token) => 'arg' in token)) throw new Error(`型のある引数は未対応: ${spec.id}`);
+  }
+};
+assertSupportedTokens(registry.all());
+
 registry.freeze();
 
 export const COMMANDS = registry;
