@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { t, tDyn } from '../i18n/t';
 import { AddressInput } from './AddressInput';
 import { ComboBox } from './ui/ComboBox';
+import { Select } from './ui/Select';
 import { PixelSelect } from './PixelControls';
 import { primaryButton } from './Modal';
 import { dangerButton } from './Modal';
@@ -614,16 +615,13 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
       {!isClient && (
         <div style={{ marginBottom: 8 }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 2 }}>{t('ui.wireless.security')}</label>
-          <select
-            aria-label={t('ui.wireless.security')}
+          <Select
+            label={t('ui.wireless.security')}
             value={node.wireless?.security ?? 'wpa2'}
             disabled={readOnly}
-            onChange={(e) => onError(setWireless(node.uid, 'security', e.target.value))}
-          >
-            {(['open', 'wep', 'wpa', 'wpa2', 'wpa3', 'wpa2wpa3'] as const).map((s) => (
-              <option key={s} value={s}>{t(`ui.wireless.sec.${s}`)}</option>
-            ))}
-          </select>
+            options={(['open', 'wep', 'wpa', 'wpa2', 'wpa3', 'wpa2wpa3'] as const).map((s) => ({ value: s, label: t(`ui.wireless.sec.${s}`) }))}
+            onChange={(v) => onError(setWireless(node.uid, 'security', v))}
+          />
         </div>
       )}
       <div style={{ fontSize: 12 }}>{statusText}</div>
