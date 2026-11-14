@@ -2,6 +2,7 @@
 :root {
   /* 地 */
   --bg-card: #25406f;
+  --bg-card-pressed: #1d3664;
   --bg-field: #f4f1e6;
   --bg-field-focus: #d8eaff;
   --danger: #b5473b;

@@ -289,24 +289,22 @@ input.ui-combobox:disabled {
 
 .ui-icon-button--selected {
   border-color: var(--accent);
+  background: var(--bg-card-pressed);
+  box-shadow: inset 2px 2px 0 rgba(20, 30, 50, 0.7);
 }
 
 .ui-icon-button:disabled {
-  opacity: var(--disabled-opacity);
+  opacity: 0.35;
   cursor: default;
 }
 
 .ui-icon-button__count {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 16px;
-  padding: 0 3px;
-  box-sizing: border-box;
-  background: var(--st-error);
+  top: -6px;
+  right: -6px;
+  padding: 0 5px;
+  background: #e84a4a;
   color: var(--fg);
-  border-radius: 8px;
-  font-size: var(--fs-s);
-  line-height: 16px;
-  text-align: center;
+  border-radius: 4px;
+  font-size: 11px;
 }
