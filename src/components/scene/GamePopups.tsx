@@ -4,13 +4,13 @@ import { t } from '../../i18n/t';
 import { saveSession, useSaveSession } from '../../services/saveSession';
 import { useGameStore } from '../../stores/useGameStore';
 import { useUiStore } from '../../stores/useUiStore';
-import { Modal } from '../Modal';
 import { KeyHelp } from '../KeyHelp';
 import { SandboxSizePanel } from '../SandboxSizePanel';
 import { SettingsPanel } from '../SettingsPanel';
 import { LessonPicker } from '../LessonPicker';
 import { readSandboxFile, writeSandboxFile } from '../../sim/sandboxFile';
 import { Button } from '../ui/Button';
+import { Dialog } from '../ui/Dialog';
 import { FileButton } from '../ui/FileButton';
 
 // メニューの項目。ボタンとファイルを選ぶラベルで、文字の大きさと見た目をそろえる
@@ -83,7 +83,7 @@ export function GamePopups({ onExit }: { onExit: () => void }) {
   return (
     <>
       {popup === 'menu' && (
-        <Modal onClose={() => setPopup(null)} boxStyle={{ minWidth: 200 }}>
+        <Dialog onClose={() => setPopup(null)} layout={{ minWidth: 200 }}>
           <Button variant="secondary" size="menu" layout={menuLayout} onClick={onSave}>{t('ui.save')}</Button>
           <Button variant="secondary" size="menu" layout={menuLayout} onClick={onExport}>{t('ui.export')}</Button>
           <FileButton variant="secondary" size="menu" layout={menuLayout} accept="application/json" onFile={onImport}>
@@ -115,7 +115,7 @@ export function GamePopups({ onExit }: { onExit: () => void }) {
             </>
           )}
           {message && <div style={{ marginTop: 6, fontSize: 13 }}>{message}</div>}
-        </Modal>
+        </Dialog>
       )}
       {popup === 'sandboxResize' && (
         <SandboxSizePanel
@@ -131,7 +131,7 @@ export function GamePopups({ onExit }: { onExit: () => void }) {
       )}
       {popup === 'sandboxResetConfirm' && (
         // Enter で作り直しの広さを選ぶ画面へ進み、Esc で取り消す
-        <Modal onClose={() => setPopup(null)} primary={() => setPopup('sandboxReset')} boxStyle={{ minWidth: 240 }}>
+        <Dialog onClose={() => setPopup(null)} primary={() => setPopup('sandboxReset')} layout={{ minWidth: 240 }}>
           <div style={{ fontWeight: 'bold', marginBottom: 12 }}>{t('ui.sandbox.size.resetConfirm')}</div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
             <Button variant="outline" onClick={() => setPopup(null)}>
@@ -141,7 +141,7 @@ export function GamePopups({ onExit }: { onExit: () => void }) {
               {t('ui.sandbox.size.recreate')}
             </Button>
           </div>
-        </Modal>
+        </Dialog>
       )}
       {popup === 'sandboxReset' && (
         <SandboxSizePanel
