@@ -6,7 +6,8 @@ import type { Report } from '../sim/project';
 import { Icon } from './Icon';
 import { RewardPictures, UnlockCards, type UnlockCardKind } from './UnlockList';
 import type { LevelUp } from '../sim/level';
-import { Modal, primaryButton } from './Modal';
+import { Modal } from './Modal';
+import { Button } from './ui/Button';
 import { RADIUS } from '../ui/theme';
 import { openOf, visibleNotices } from '../ui/notices';
 import { JOB_DEFS } from '../sim/jobs';
@@ -177,9 +178,9 @@ export function ReportModal() {
         )}
         <EvaluationRows report={report} />
       </div>
-      <button style={{ ...primaryButton, marginTop: 12, flexShrink: 0, alignSelf: 'center' }} onClick={dismiss}>
+      <Button variant="primary" layout={{ marginTop: 12, flexShrink: 0, alignSelf: 'center' }} onClick={dismiss}>
         <Icon name="icon/ok" />
-      </button>
+      </Button>
     </Modal>
   );
 }
