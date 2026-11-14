@@ -2,7 +2,9 @@
 // 操作は縛らない。条件を満たしたら次の手順へ進み、最後まで行くか「飛ばす」で案件の案内を終える（guidesDone に入る）
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { usePhone } from '../ui/usePhone';
-import { guides, lessons } from 'virtual:game-data';
+import { guides } from 'virtual:game-data';
+import { lessonEntryOf } from '../sim/lessonCatalog';
+import { lessonCatalog } from '../stores/lessonCatalog';
 import { deviceCategory } from '../registry/query';
 import { t, tDyn } from '../i18n/t';
 import { loadSettings } from '../settings/settings';
@@ -86,7 +88,7 @@ export function Guide() {
   const sandboxLesson = useGameStore((s) => s.sandboxLesson);
   const lessonCommands = useGameStore((s) => s.lessonCommands);
   const finishLessonGuide = useGameStore((s) => s.finishLessonGuide);
-  const lesson = project === null && sandboxLesson !== null && !sandboxLesson.done ? lessons.find((l) => l.id === sandboxLesson.id) : undefined;
+  const lesson = project === null && sandboxLesson !== null && !sandboxLesson.done ? lessonEntryOf(lessonCatalog, sandboxLesson.id) : undefined;
   const id = lesson ? `lesson:${lesson.id}` : project?.phase === 'design' ? project.baseId : null;
   const steps = lesson
     ? loadSettings().guide

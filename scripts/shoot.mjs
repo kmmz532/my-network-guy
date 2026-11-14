@@ -154,6 +154,15 @@ const scenes = {
     await page.evaluate(() => window.__game.getState().openLesson('ospf_three_sites'));
     await page.waitForTimeout(1000);
   },
+  // 修理の依頼を学習モードで開き、テストする（左上の欄に依頼文と × の条件が出る）
+  lessonrepair: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => {
+      window.__game.getState().openLesson('r002_wrong_gateway');
+      window.__game.getState().test();
+    });
+    await page.waitForTimeout(1000);
+  },
   // マップのポインタ操作（ホイール・中ボタンの移動・各道具での押す・ドラッグ・乗せる）を一通り行う。位置は決め打ちせず、画面全体を走査する。
   // 例外や console のエラーが出ないことを --check で確かめる
   pointer: async (page) => {

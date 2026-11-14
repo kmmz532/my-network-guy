@@ -1049,6 +1049,7 @@
   "ui.lesson.topic.l2": "L2・VLAN",
   "ui.lesson.topic.nat": "NAT",
   "ui.lesson.topic.redundancy": "冗長化",
+  "ui.lesson.topic.repair": "修理の依頼",
   "ui.lesson.topic.routing": "ルーティング",
   "ui.lesson.topic.security": "セキュリティ",
   "ui.lesson.topic.service": "サービス",

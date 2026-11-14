@@ -10,7 +10,8 @@ import { familiarKeyOf } from '../sim/familiar';
 import { usePhone } from '../ui/usePhone';
 import { useEffect, useRef, useState } from 'react';
 import { GLOSSARY_OF_FAILURE } from '../network/glossaryOf';
-import { lessons } from 'virtual:game-data';
+import { lessonEntryOf } from '../sim/lessonCatalog';
+import { lessonCatalog } from '../stores/lessonCatalog';
 import { Button } from './ui/Button';
 
 // 最初の案件（c001）の手順。配線・疎通・施工依頼の順に、済んだものに印を付ける
@@ -69,7 +70,7 @@ export function TaskPanel() {
   }, [failingTerms.join(','), termsShown, markTermShown]);
 
   if (!active) {
-    const lesson = lessonId === null ? undefined : lessons.find((l) => l.id === lessonId);
+    const lesson = lessonId === null ? undefined : lessonEntryOf(lessonCatalog, lessonId);
     if (!lesson) return null;
     // 教材: 案件と同じ欄に、題名・依頼文・達成条件（最後のテストの結果）を出す
     const lessonResult = check && check.projectId === 'hq' ? check.goals : null;
@@ -79,11 +80,11 @@ export function TaskPanel() {
         <Button variant="plain" size="row" layout={{ width: '100%' }} onClick={() => setOpen(!open)}>
           <span style={{ width: 10 }}>{open ? '▾' : '▸'}</span>
           <Icon name="icon/mail" scale={1} />
-          {(open || phone) && <span style={phone && !open ? { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : undefined}>{tDyn(`lesson.${lesson.id}.title`)}</span>}
+          {(open || phone) && <span style={phone && !open ? { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : undefined}>{tDyn(lesson.titleKey)}</span>}
         </Button>
         {open && (
           <div style={{ padding: '0 8px 8px' }}>
-            <div style={{ opacity: 0.85, lineHeight: 1.5 }}>{tDyn(`lesson.${lesson.id}.brief`)}</div>
+            <div style={{ opacity: 0.85, lineHeight: 1.5 }}>{tDyn(lesson.briefKey)}</div>
             <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>
               {lesson.goals.map((goal, i) => {
                 const ok = lessonResult?.[i] ? lessonResult[i].ok : null;

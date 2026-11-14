@@ -7,8 +7,8 @@ import { pcDesksOf } from '../../sim/furniture';
 import { missingPcCount } from '../../sim/backOffice';
 import { pushNotice } from '../../ui/notices';
 import { sandboxTest } from '../../sim/sandbox';
-import { lessons } from 'virtual:game-data';
-import { lessonLinks, lessonNodes, lessonPlans } from '../../sim/lesson';
+import { lessonEntryOf } from '../../sim/lessonCatalog';
+import { lessonCatalog } from '../lessonCatalog';
 import { mapOfOffice } from '../../sim/office';
 
 import { closeRef } from '../../ui/windows';
@@ -89,12 +89,8 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
     openLesson: (id) => {
       const s = get();
       if (s.mode !== 'sandbox') throw new Error('教材はサンドボックスだけで開ける');
-      const lesson = lessons.find((l) => l.id === id);
-      if (!lesson) throw new Error(`教材 ${id} がない`);
-      // 教材の機器は IP アドレスから網の設定を補う（色は保存された設定から決まるため、補わないと灰色のまま）
-      const nodes = lessonNodes(lesson);
-      const links = lessonLinks(lesson);
-      const office = { ...emptyOffice(lesson.size), nodes, links, plans: lessonPlans(nodes, links, gameEnv.engine) };
+      const { size, nodes, links, plans } = lessonEntryOf(lessonCatalog, id).build(gameEnv.engine);
+      const office = { ...emptyOffice(size), nodes, links, plans };
       set({ office, maps: { ...s.maps, hq: mapOfOffice(office) }, sandboxLesson: { id, step: 0, done: false }, lessonCommands: [], check: null, helpUid: null, traces: [] });
     },
     closeLesson: () => set({ sandboxLesson: null, lessonCommands: [] }),
@@ -107,7 +103,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       const s = get();
       // サンドボックスは、案件の達成条件なしで、PC とサーバーの疎通を判定する
       if (s.mode === 'sandbox') {
-        const lesson = s.sandboxLesson ? lessons.find((l) => l.id === s.sandboxLesson?.id) : undefined;
+        const lesson = s.sandboxLesson ? lessonEntryOf(lessonCatalog, s.sandboxLesson.id) : undefined;
         const sr = sandboxTest(s.office, gameEnv, lesson?.goals);
         if (!sr) {
           set({ lastError: 'none' });
