@@ -1,4 +1,5 @@
 import { renameNode } from '../network/nodeName';
+import type { OpFailReason } from './failReason';
 import { inSubnet, ipToInt } from '../network/engine';
 import { PREFIX_MAX, PREFIX_MIN, hostCapacity, networkAddress } from '../network/segments';
 import { fillPlans } from '../network/query/plans';
@@ -16,7 +17,7 @@ import type { GameMap } from '../data/schema';
 import { engineWithWalls } from './walls';
 
 // 機器の設定を書き換える。配線の設定が固定された機器は変えられない。
-const editNode = (core: Core, uid: string, edit: (n: NetNode) => NetNode | string, target: NetTarget = 'focus'): Outcome => {
+const editNode = (core: Core, uid: string, edit: (n: NetNode) => NetNode | OpFailReason, target: NetTarget = 'focus'): Outcome => {
   const net = netOf(core, target);
   if (typeof net === 'string') return fail(net);
   const node = net.nodes.find((n) => n.uid === uid);

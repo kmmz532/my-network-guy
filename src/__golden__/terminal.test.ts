@@ -9,6 +9,7 @@ import { lessonLinks, lessonNodes, lessonPlans } from '../sim/lesson';
 import { focusedOf, type Core, type Project } from '../sim/project';
 import { applyOperation, type OpContext } from '../company/apply';
 import type { GameMap } from '../data/schema';
+import langJson from '../assets/lang/ja_jp.json';
 import officeSmall from '../assets/data/maps/office_small.json';
 import { analyze } from '../network/engine/analyze';
 import { commandContextOf, runLine } from '../network/command/run';
@@ -76,12 +77,22 @@ const runScene = (lessonId: string, text: string) => {
 
 const scenes = existsSync(scenesDir) ? readdirSync(scenesDir).filter((f) => f.endsWith('.txt')).sort() : [];
 
+// 記録に出た文言の鍵（ui. で始まるもの）と失敗の理由（ui.error.<理由>）が、言語ファイルにあること。鍵のまま画面に出る欠けを防ぐ
+const langKeys = new Set(Object.keys(langJson));
+const missingKeys = (log: unknown[]): string[] =>
+  (log as { text?: string; lines?: string[]; reason?: string }[]).flatMap((e) => {
+    const texts = [...(e.text !== undefined ? [e.text] : []), ...(e.lines ?? []).map((l) => l.replace(/^[a-z]+:/, '')), ...(e.reason !== undefined ? [e.reason.startsWith('ui.') ? e.reason : `ui.error.${e.reason}`] : [])];
+    return texts.map((x) => /^ui\.[A-Za-z0-9_.]+/.exec(x)?.[0]).filter((k): k is string => k !== undefined && !langKeys.has(k));
+  });
+
 describe('命令の列の記録（設定の命令・show・ping など）', () => {
   for (const file of scenes) {
     const scene = file.replace(/\.txt$/, '');
     it(scene, async () => {
       const text = readFileSync(join(scenesDir, file), 'utf8');
-      await expect(json(runScene(scene, text))).toMatchFileSnapshot(join(snapDir, `terminal-${scene}.json`));
+      const recorded = runScene(scene, text);
+      expect(missingKeys(recorded.log), '言語ファイルにない鍵').toEqual([]);
+      await expect(json(recorded)).toMatchFileSnapshot(join(snapDir, `terminal-${scene}.json`));
     });
   }
 });

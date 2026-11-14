@@ -9,6 +9,21 @@
       "count": 1
     }
   },
+  "src/company/apply.test.ts": {
+    "local/no-mode-branch": {
+      "count": 1
+    }
+  },
+  "src/company/apply.ts": {
+    "local/no-mode-branch": {
+      "count": 2
+    }
+  },
+  "src/company/company.ts": {
+    "local/no-mode-branch": {
+      "count": 2
+    }
+  },
   "src/components/DevicePanel.tsx": {
     "local/no-category": {
       "count": 2
@@ -330,21 +345,6 @@
   "src/ui/titleFlow.ts": {
     "local/no-mode-branch": {
       "count": 11
-    }
-  },
-  "src/company/apply.test.ts": {
-    "local/no-mode-branch": {
-      "count": 1
-    }
-  },
-  "src/company/apply.ts": {
-    "local/no-mode-branch": {
-      "count": 3
-    }
-  },
-  "src/company/company.ts": {
-    "local/no-mode-branch": {
-      "count": 2
     }
   }
 }

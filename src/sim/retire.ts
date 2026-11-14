@@ -1,5 +1,6 @@
 // 社員の退職（N90）。退職を伝えると、その月の末日に退職する。判定と月末の処理は純粋な関数。
 // 退職の予定の社員は、月末までは通常どおり働く。新しい案件の担当と研修には選べない（担当の選択・研修の開始で止める）。
+import type { OpFailReason } from './failReason';
 import type { Balance, Staff } from '../data/schema';
 import { isFieldEngineerJob } from './jobs';
 import type { ClockState } from './clock';
@@ -15,7 +16,7 @@ interface RetireState {
 
 
 // 退職を伝えられない理由（ui.error.<理由> の文言）。伝えられるなら null
-export const retireBlock = (state: RetireState, uid: string, balance: Balance): string | null => {
+export const retireBlock = (state: RetireState, uid: string, balance: Balance): OpFailReason | null => {
   const member = state.staff.find((s) => s.uid === uid);
   if (!member) return 'none';
   if (member.leaving) return 'retire.already';

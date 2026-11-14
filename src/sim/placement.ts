@@ -1,4 +1,5 @@
 import { applyMoney, recordSaving } from './ledger';
+import type { OpFailReason } from './failReason';
 import type { Balance, GameMap } from '../data/schema';
 import { furnitureOf } from '../contracts/layout';
 import { nextHostname } from '../network/hostname';
@@ -19,7 +20,7 @@ const servicesOf = (deviceId: string): Service[] => (deviceDef(deviceId).default
 // 自社オフィスに機器を置けるかを判定する。置けなければ失敗の理由を返す
 // PCは机の家具があり、その上に機器がないマスだけ。PC以外は床で、家具も機器もないマスだけ。
 // anyFloor（サンドボックス）のときは、PCは床（家具も機器もないマス）か机の上（機器がないマス）に置ける。机以外の家具の上は置けない
-const officePlaceReason = (src: TileSource, deviceId: string, x: number, y: number, env: Env): string | null => {
+const officePlaceReason = (src: TileSource, deviceId: string, x: number, y: number, env: Env): OpFailReason | null => {
   const tile = tileAt(src, x, y, env);
   const hasNode = tile.node !== null;
   const device = deviceDef(deviceId);
@@ -34,7 +35,7 @@ const officePlaceReason = (src: TileSource, deviceId: string, x: number, y: numb
 };
 
 // 機材を置けるマスか（配置と移動で共通）。自社案件は自社オフィスの規則、それ以外は床（PCは机の上も可）。置けなければ理由を返す
-const placeReason = (src: TileSource, deviceId: string, x: number, y: number, env: Env): string | null => {
+const placeReason = (src: TileSource, deviceId: string, x: number, y: number, env: Env): OpFailReason | null => {
   if (src.office) return officePlaceReason(src, deviceId, x, y, env);
   const tile = tileAt(src, x, y, env);
   const deskOk = isPcIn(env, deviceId) || deviceDef(deviceId).deskable === true;

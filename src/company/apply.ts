@@ -133,7 +133,7 @@ export const applyOperation = (core: Core, op: Operation, ctx: OpContext): Outco
       return { ok: true, core: { ...core, clock, owned: r.owned } };
     }
     case 'sell': {
-      if (sandbox) return fail('sandbox');
+      if (sandbox) return fail('sell.unavailable');
       const r = sellDevice(core.clock.money, core.owned, op.id, listPriceOf(op.id), env.balance.sellRate);
       if (!r.ok) return fail(r.reason);
       return { ok: true, core: { ...core, clock: applyMoney(core.clock, r.money - core.clock.money, 'sale'), owned: r.owned } };

@@ -1,6 +1,7 @@
 // 遊び方ごとの操作の記録: 経営・サンドボックス・教材のそれぞれで、同じ操作の列（機器の配置・移動・撤去、配線、設定の変更、家具の配置と撤去、店での購入）を
 // 純粋な操作（src/sim）で流し、各操作の可否と失敗の理由、費用・在庫・案件の状態の変化を記録する。画面の部品は使わない。
 // 遊び方ごとに違うのは、操作の入口（自社オフィスか、焦点の案件か）と、在庫・資金の扱いだけにする。
+import type { OpFailReason } from '../sim/failReason';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { balance, lessons } from 'virtual:game-data';
@@ -160,7 +161,7 @@ const need = (h: Handles, key: string): string => {
 };
 
 // 購入・売却の結果（資金と在庫）を、操作の結果の形に直す
-type StockResult = { ok: true; money: number; owned: Record<string, number> } | { ok: false; reason: string };
+type StockResult = { ok: true; money: number; owned: Record<string, number> } | { ok: false; reason: OpFailReason };
 const applyStock = (core: Core, r: StockResult): Outcome => (r.ok ? { ok: true, core: { ...core, clock: { ...core.clock, money: r.money }, owned: r.owned } } : fail(r.reason));
 
 // 操作を、遊び方の入口の状況で当てる

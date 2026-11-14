@@ -1,5 +1,6 @@
 // 案件の流れ（受注・設計・施工・検収・納品）。状態を受け取り、新しい状態を返す純粋関数で書く。
 // 設計は機器の配置・配線・IP設定、施工は社員が作業時間をかけて行い、検収で達成条件を判定する。
+import type { OpFailReason } from './failReason';
 import { applyMoney, recordSaving } from './ledger';
 import type { Balance, Contract, Furniture, FloorId, GameMap, Staff } from '../data/schema';
 import type { Facing } from './facing';
@@ -280,10 +281,10 @@ export interface Env {
   mapOf?: (id: string) => GameMap | undefined;
 }
 
-export type Outcome = { ok: true; core: Core; report?: Report } | { ok: false; reason: string };
+export type Outcome = { ok: true; core: Core; report?: Report } | { ok: false; reason: OpFailReason };
 
 // 操作の失敗を返す（理由は ui.error.<理由> の鍵と対応する）。失敗の形はここだけで作る（N119）
-export const fail = (reason: string): Outcome => ({ ok: false, reason });
+export const fail = (reason: OpFailReason): Outcome => ({ ok: false, reason });
 
 // 配線の定価から、払う額（経理の割引のあと）。割引がなければ定価のまま
 export const paidCable = (core: Core, list: number): number => Math.round(list * (1 - core.purchaseDiscount));
@@ -308,7 +309,7 @@ export const hubFor = (nodes: readonly NetNode[], links: readonly NetLink[], fro
 };
 
 // 任せられるかの理由（任せられるなら null）（N70）。型紙の固定の機器の位置が合い、増えた機器をつなぐ先があること
-export const delegationReason = (familiarity: Familiarity, offer: Offer): string | null => {
+export const delegationReason = (familiarity: Familiarity, offer: Offer): OpFailReason | null => {
   if (offer.contract.inhouse) return 'inhouse';
   const key = familiarKeyOf(offer.kind, offer.baseId, offer.contract.map);
   if ((familiarity.counts[key] ?? 0) < DELEGATE_MIN_COUNT) return 'delegate.count';
@@ -354,7 +355,7 @@ export const withProject = (core: Core, next: Project): Core => ({
 });
 
 // 設計中の案件を取り出す。設計中でなければ理由を返す
-export const requireDesign = (core: Core): Project | string => {
+export const requireDesign = (core: Core): Project | OpFailReason => {
   const p = focusedOf(core);
   if (!p) return 'none';
   if (p.phase !== 'design') return 'phase';
@@ -393,7 +394,7 @@ export interface Net {
 }
 
 // 対象のネットワークを取り出す。設計中の案件でない、または自社オフィスが案件に使われていれば理由を返す
-export const netOf = (core: Core, target: NetTarget): Net | string => {
+export const netOf = (core: Core, target: NetTarget): Net | OpFailReason => {
   if (target === 'office') {
     if (officeLocked(core)) return 'inhouse';
     const o = core.office;
@@ -461,7 +462,7 @@ export interface PortChoice {
 // 機器の口の種類（定義にない機器・口は rj45）
 export const portTypeOf = (device: string, port: number): string => devicePortType(device, port);
 
-const choosePort = (links: NetLink[], node: NetNode, want: number | undefined, cablePort: string): number | string => {
+const choosePort = (links: NetLink[], node: NetNode, want: number | undefined, cablePort: string): number | OpFailReason => {
   if (want === undefined) return freePort(links, node, cablePort) ?? 'port';
   const count = portCountOf(node.device);
   if (!Number.isInteger(want) || want < 0 || want >= count) return 'port';
@@ -476,7 +477,7 @@ export const checkConnect = (
   cableId: string,
   target: NetTarget = 'focus',
   ports: PortChoice = {},
-): string | null => {
+): OpFailReason | null => {
   const net = netOf(core, target);
   if (typeof net === 'string') return net;
   const a = net.nodes.find((n) => n.uid === aUid);
@@ -488,7 +489,7 @@ export const checkConnect = (
   if (lengthCheck !== 'ok') return lengthCheck;
   if (core.clock.money < paidCable(core, cable.pricePerLink + cable.pricePerTile * length)) return 'money';
   // 回線終端（uplink）は、回線（wan）の能力を持つ機器だけとつなげる（N144）
-  const uplinkRule = (x: NetNode, y: NetNode): string | null =>
+  const uplinkRule = (x: NetNode, y: NetNode): OpFailReason | null =>
     deviceCategory(x.device) === 'uplink' && !can(y.device, 'wan') ? 'uplink.no_wan' : null;
   const uplinkBad = uplinkRule(a, b) ?? uplinkRule(b, a);
   if (uplinkBad) return uplinkBad;
@@ -680,12 +681,12 @@ export const compiledNet = (p: Project, env: Env): Network => stateOfProject(p, 
 // 設計時点の不備（機器の uid -> 不備の内容）
 export const designIssues = (p: Project, env: Env): Record<string, IssueDetail> => stateOfProject(p, env).addressing.issues;
 
-export type TestOutcome = { ok: true; core: Core; result: TestResult } | { ok: false; reason: string };
+export type TestOutcome = { ok: true; core: Core; result: TestResult } | { ok: false; reason: OpFailReason };
 
 // 型紙なしで任せる（N94）。設計は作らず、結果を乱数で決める。費用は予算 × 費用の割合を払い、報酬は★の倍率で決まる。
 // 経験値は半分。設計は地図に残さない（結果画面は★・費用・報酬）
 // 受注して施工に入る。結果（★・費用の割合・手直し）は受注のときに乱数で決めて案件に持たせ、施工が終わったら納品する（settleBlind）
-export type BlindOutcome = { ok: true; core: Core; rng: number } | { ok: false; reason: string };
+export type BlindOutcome = { ok: true; core: Core; rng: number } | { ok: false; reason: OpFailReason };
 
 // 機器の種類が PC か（環境の機器の定義を引く。判定はここだけで行う。N116）
 export const isPcIn = (_env: Env, device: string): boolean => isPcCategory(deviceCategory(device));
