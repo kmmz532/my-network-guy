@@ -17,7 +17,8 @@ import { analyze } from '../network/engine/analyze';
 import { evaluateGoal } from '../network/goals';
 import type { NetLink, NetNode } from '../network/types';
 import { gameEnv } from './env';
-import { contractLinks, fixedNodes } from './project';
+import { changesOf, contractLinks, fixedNodes } from './project';
+import { repairStarsOf } from './rating';
 
 const passes = (contract: Contract, nodes: NetNode[], links: NetLink[]): boolean => {
   const state = analyze({ nodes, links, plans: {} }, gameEnv.engine);
@@ -53,12 +54,25 @@ describe('修理の依頼', () => {
         const fixed = fix(nodes, links);
         expect(passes(contract, fixed.nodes, fixed.links)).toBe(true);
       });
+      it('最初の状態は変更0、想定の直し方は minChanges 以内', () => {
+        expect(changesOf(contract, nodes, links)).toBe(0);
+        const fixed = fix(nodes, links);
+        expect(changesOf(contract, fixed.nodes, fixed.links)).toBeLessThanOrEqual(contract.minChanges!);
+      });
       it('依頼は修理の型で、機器の設定を変えられる', () => {
         expect(contract.kind).toBe('repair');
         expect(nodes.filter((n) => !n.configLocked && n.interfaces.length > 0).length).toBeGreaterThan(0);
       });
     });
   }
+
+  it('修理の★は変更の数と費用で決まる', () => {
+    const b = gameEnv.balance;
+    expect(repairStarsOf(1, 1, 1000, 10000, b)).toBe(3);
+    expect(repairStarsOf(1, 1, 9000, 10000, b)).toBe(2);
+    expect(repairStarsOf(2, 1, 1000, 10000, b)).toBe(2);
+    expect(repairStarsOf(3, 1, 1000, 10000, b)).toBe(1);
+  });
 
   it('依頼文に、原因の言葉を書かない', () => {
     const texts = (lang as Record<string, string>);

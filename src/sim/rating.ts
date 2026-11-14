@@ -21,6 +21,16 @@ export const rate = (cost: number, budget: number, rework: number, late: boolean
   return late || issues > 0 ? (Math.min(stars, 2) as Stars) : stars;
 };
 
+// 修理の依頼の★: 最初の状態からの変更の数が minChanges 以下で★3、2倍以下で★2、それより多ければ★1。★3には費用の条件（★3の費用の割合）も要る。テストは無料のため、手戻りは数えない
+export const repairStarsOf = (changes: number, minChanges: number, cost: number, budget: number, balance: Balance): Stars => {
+  const top = balance.rating.find((r) => r.stars === 3);
+  if (!top) throw new Error('balance.rating に★3がない');
+  const ratio = budget > 0 ? cost / budget : Infinity;
+  const costOk = top.maxCostRatio === null || ratio <= top.maxCostRatio;
+  if (changes <= minChanges) return costOk ? 3 : 2;
+  return changes <= minChanges * 2 ? 2 : 1;
+};
+
 // ★ごとの報酬の倍率（balance.rating の rewardRate）
 export const rewardRateOf = (stars: Stars, balance: Balance): number =>
   balance.rating.find((r) => r.stars === stars)?.rewardRate ?? 1;

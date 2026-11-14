@@ -5,7 +5,7 @@ import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
 import { linkLength } from '../network/engine';
 import { isOnShift } from './shift';
-import { rate, rewardRateOf } from './rating';
+import { rate, repairStarsOf, rewardRateOf, type Stars } from './rating';
 import { DELEGATE_MIN_COUNT, DELEGATED_EXP_DIVISOR, DELEGATED_STAR_CAP, familiarKeyOf, missingFixed, positionsMatch, recordDelivery, type Blueprint } from './familiar';
 import { dueDayOf, lateDaysOf, lateFactor } from './deadline';
 import { bonusEnvOf, furnitureBonus, type BonusEnv } from './furniture';
@@ -14,7 +14,7 @@ import { blindDelegation } from './blindDelegate';
 import { busyStaff, crewBlock } from './crew';
 import { warningsOf } from '../network/query/warnings';
 import { deliveryExpOf, levelOf } from './level';
-import { BlindOutcome, BlindPlan, Core, Env, GoalCheck, Office, Outcome, Project, ReportFailure, TestOutcome, TestResult, Trace, connect, contractLinks, delegationReason, designIssues, stateOfProject, fail, fixedNodes, focusedOf, hubFor, isPcIn, keepFocus, projectCostOf, requireDesign, withProject } from './project';
+import { BlindOutcome, BlindPlan, Core, Env, GoalCheck, Office, Outcome, Project, ReportFailure, TestOutcome, TestResult, Trace, connect, changesOf, contractLinks, delegationReason, designIssues, stateOfProject, fail, fixedNodes, focusedOf, hubFor, isPcIn, keepFocus, projectCostOf, requireDesign, withProject } from './project';
 
 // 増えた機器を型紙につなぐときのケーブル（一番安いもの）
 const WIRE_CABLE = 'utp_cat5e';
@@ -313,6 +313,14 @@ const settleBlind = (core: Core, p: Project, plan: BlindPlan, env: Env): Outcome
   };
 };
 
+// 修理の依頼の★。遅れと設計の不備は、新設の依頼と同じく★2を上限にする
+const repairRate = (p: Project, cost: number, late: boolean, issues: number, env: Env): Stars => {
+  const min = p.contract.minChanges;
+  if (min === undefined) throw new Error(`修理の依頼 ${p.contract.id} に minChanges がない`);
+  const stars = repairStarsOf(changesOf(p.contract, p.nodes, p.links), min, cost, p.contract.budget, env.balance);
+  return late || issues > 0 ? (Math.min(stars, 2) as Stars) : stars;
+};
+
 // 検収: 達成条件を判定する。合格なら納品して報酬と評判を得る。不合格なら設計に戻す（テストの結果を画面に残す）。
 export const inspect = (core: Core, env: Env, id: string): Outcome => {
   const p = core.active.find((x) => x.id === id);
@@ -324,7 +332,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
     const lateDays = lateDaysOf(p.due, core.clock.minute);
     const issues = Object.keys(designIssues(p, env)).length;
     const cost = projectCostOf(p);
-    const rawStars = rate(cost.total, p.contract.budget, p.rework, lateDays > 0, issues, env.balance);
+    const rawStars = p.contract.kind === 'repair' ? repairRate(p, cost.total, lateDays > 0, issues, env) : rate(cost.total, p.contract.budget, p.rework, lateDays > 0, issues, env.balance);
     // 任せた依頼は★の上限が2（N70）
     const stars = (p.delegated ? Math.min(DELEGATED_STAR_CAP, rawStars) : rawStars) as typeof rawStars;
     // 報酬は、期日の割合と★ごとの倍率を掛けた額

@@ -723,3 +723,31 @@ export const OFFICE_UPLINK_UID = 'uplink';
 
 export const officeUplinkOf = (office: Office): NetNode | undefined =>
   office.nodes.find((n) => deviceCategory(n.device) === CATEGORY.uplink);
+
+// 修理の依頼の変更の数: 最初の状態（案件の定義）から、設定を変えた機器の数と、足したり外したりした機器と配線の数を足す。機器の位置と画面の名前は設定に数えない
+export const changesOf = (contract: Contract, nodes: NetNode[], links: NetLink[]): number => {
+  // キーの順に左右されないよう、並べ替えてから文字列にする
+  const stable = (v: unknown): unknown =>
+    Array.isArray(v) ? v.map(stable) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).filter(([, x]) => x !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, x]) => [k, stable(x)])) : v;
+  const configOf = (n: NetNode): string => {
+    const { x: _x, y: _y, name: _name, ...rest } = n;
+    return JSON.stringify(stable(rest));
+  };
+  const linkKey = (l: NetLink): string => {
+    const ends = [`${l.a.node}:${l.a.port}`, `${l.b.node}:${l.b.port}`].sort();
+    return `${l.cable}|${ends.join('|')}`;
+  };
+  const before = new Map(fixedNodes(contract).map((n) => [n.uid, n]));
+  const after = new Map(nodes.map((n) => [n.uid, n]));
+  let count = 0;
+  for (const [uid, n] of before) {
+    const now = after.get(uid);
+    if (!now || configOf(now) !== configOf(n)) count++;
+  }
+  for (const uid of after.keys()) if (!before.has(uid)) count++;
+  const linksBefore = new Set(contractLinks(contract).map(linkKey));
+  const linksAfter = new Set(links.map(linkKey));
+  for (const k of linksBefore) if (!linksAfter.has(k)) count++;
+  for (const k of linksAfter) if (!linksBefore.has(k)) count++;
+  return count;
+};
