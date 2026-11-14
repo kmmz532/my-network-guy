@@ -8,7 +8,7 @@ export type ConfigChange =
   | { kind: 'svi'; vlan: number; ip: string; prefix?: number }
   | { kind: 'portMode'; port: number; mode: PortModeChange }
   | { kind: 'gateway'; gateway: string | null }
-  | { kind: 'routing'; change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; area?: number } }
+  | { kind: 'routing'; change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; area?: number; process?: number | null } }
   | { kind: 'ospf'; change: OspfOp } | { kind: 'isp'; line: IspLine } | { kind: 'stp'; change: StpOp }
   | { kind: 'channel'; change: ChannelOp } | { kind: 'dhcp'; change: DhcpOp } | { kind: 'power'; on: boolean }
   | { kind: 'vrrp'; change: VrrpOp } | { kind: 'bgp'; change: BgpOp } | { kind: 'nat'; change: NatOp }

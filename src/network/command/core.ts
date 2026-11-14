@@ -285,6 +285,7 @@ export const commands: readonly CommandSpec[] = [
       // 無線（SSID・チャネル・VLAN。パスワードは出さない）と RIP の参加を、設定として出す（N151・N141b）
       if (node.wireless?.ssid !== undefined) lines.push(out(tr('ui.terminal.cfgWireless', { ssid: node.wireless.ssid })));
       if (node.interfaces.some((i) => i.rip === true)) lines.push(out(tr('ui.terminal.cfgRip')));
+      if (node.ospf?.process !== undefined) lines.push(out(tr('ui.terminal.cfgOspf', { process: node.ospf.process })));
       for (const r of node.routes) lines.push(out(tr('ui.terminal.cfgRoute', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop })));
       return shown(lines.length > 0 ? lines : [out(tr('ui.terminal.cfgEmpty'))]);
     },

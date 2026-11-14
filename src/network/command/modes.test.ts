@@ -86,3 +86,21 @@ describe('interface モードの命令は、対象の口を行に書かない', 
     expect(run('ip address 1 10.0.0.1 255.255.255.0', port1).change).toBeNull();
   });
 });
+
+describe('OSPF の番号（router ospf <n>）', () => {
+  // 番号を持つ機器（ospf.process が 1）
+  const withProcess = { ...node('l2_switch_8p'), ospf: { process: 1 } } as unknown as NetNode;
+  const runOn = (line: string, target: NetNode, session: TerminalSession) =>
+    runLine(line, commandContextOf({ node: target, nodes: [], links: [], data: {} as EngineData, state: {} as NetworkState }, false, session), tr);
+
+  it('no router ospf の番号が違うときは外さず、誤りを返す。番号が合えば外す', () => {
+    expect(runOn('no router ospf 2', withProcess, config).lines).toEqual([{ text: 'ui.terminal.ospfProcessMismatch', kind: 'err' }]);
+    expect(runOn('no router ospf 1', withProcess, config).change).toEqual({ kind: 'routing', change: { proto: 'ospf', on: false, process: null } });
+  });
+
+  it('router ospf <n> は番号を書き、show running-config に出す（番号がなければ出さない）', () => {
+    expect(run('router ospf 7', config).change).toEqual({ kind: 'routing', change: { proto: 'ospf', on: true, process: 7 } });
+    expect(runOn('show running-config', withProcess, exec).lines).toContainEqual({ text: 'ui.terminal.cfgOspf', kind: 'out' });
+    expect(runOn('show running-config', node('l2_switch_8p'), exec).lines).not.toContainEqual({ text: 'ui.terminal.cfgOspf', kind: 'out' });
+  });
+});

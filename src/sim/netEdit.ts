@@ -174,7 +174,7 @@ export const setPortMode = (
 
 // デフォルトゲートウェイを設定する。null で外す
 // RIP・OSPF の参加（N141b・N142・N143）。network 文は、そのサブネットのインターフェースを参加させる。router rip / ospf は、参加を止める（on が false のとき全部）
-export const setRouting = (core: Core, uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; area?: number }, target: NetTarget = 'focus'): Outcome =>
+export const setRouting = (core: Core, uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; area?: number; process?: number | null }, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
     uid,
@@ -186,7 +186,9 @@ export const setRouting = (core: Core, uid: string, change: { proto: 'rip' | 'os
         return change.on ? { ...i, ospf: { ...i.ospf, area: change.area ?? i.ospf?.area ?? 0 } } : { ...i, ospf: undefined };
       });
       if (change.ip !== undefined && change.on && !node.interfaces.some(touches)) return 'iface.none';
-      return { ...node, interfaces };
+      // OSPF の番号（process）は、指定があるときだけ書く（null で外す）
+      const ospf = change.proto === 'ospf' && change.process !== undefined ? { ...node.ospf, process: change.process ?? undefined } : node.ospf;
+      return { ...node, interfaces, ospf };
     },
     target,
   );

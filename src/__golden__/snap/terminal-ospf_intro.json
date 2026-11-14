@@ -122,6 +122,15 @@
       "result": "done"
     },
     {
+      "line": "no router ospf 2",
+      "result": "error",
+      "text": "ui.terminal.ospfProcessMismatch {\"process\":1}"
+    },
+    {
+      "line": "no router ospf 1",
+      "result": "done"
+    },
+    {
       "line": "router ospf",
       "result": "done"
     },
@@ -881,6 +890,7 @@
         "routes": [],
         "services": [],
         "ospf": {
+          "process": 1,
           "defaultOriginate": true
         },
         "bgp": {

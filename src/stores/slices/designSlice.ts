@@ -43,7 +43,7 @@ export interface DesignSlice {
   setSvi: (uid: string, vlan: number, ip: string, prefix?: number) => string | null;
   setPortMode: (uid: string, port: number, mode: PortModeChange) => string | null;
   setGateway: (uid: string, gateway: string | null) => string | null;
-  setRouting: (uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; area?: number }) => string | null;
+  setRouting: (uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; area?: number; process?: number | null }) => string | null;
   setOspf: (uid: string, change: OspfOp) => string | null;
   setIsp: (uid: string, line: IspLine) => string | null;
   setStp: (uid: string, change: StpOp) => string | null;

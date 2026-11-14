@@ -1,7 +1,7 @@
 // OSPF の論点の命令。
 import { ospfMismatchesOf } from '../../query/ospfMismatches';
 import { ospfNeighborsOf } from '../../query/ospfNeighbors';
-import { changed, nameOf, out, portMissing, shown } from '../../command/lines';
+import { changed, err, nameOf, out, portMissing, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
 import { areaOf, ifaceIdOf } from '../../command/args';
 import { enterRouter, interfaceOf } from '../../command/modes';
@@ -115,7 +115,7 @@ export const commands: readonly CommandSpec[] = [
     writes: true,
     topic: 'ospf',
     // config のモードでは、番号（プロセス）を書いて router-ospf のモードへ入る。exec の形はモードを変えない
-    run: (args, ctx, tr) => enterRouter(ctx, changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', on: true } }), 'router-ospf', Number(args.process)),
+    run: (args, ctx, tr) => enterRouter(ctx, changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', on: true, process: Number(args.process) } }), 'router-ospf', Number(args.process)),
   },
   {
     id: 'ospf.noRouter',
@@ -124,6 +124,21 @@ export const commands: readonly CommandSpec[] = [
     help: '',
     writes: true,
     topic: 'ospf',
-    run: (_args, ctx, tr) => changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', on: false } }),
+    // 番号を書かない形は、番号（process）も外す
+    run: (_args, ctx, tr) => changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', on: false, process: null } }),
+  },
+  {
+    id: 'ospf.noRouterProcess',
+    modes: ['exec', 'config'],
+    tokens: [{ word: 'no' }, { word: 'router' }, { word: 'ospf' }, { arg: 'number', name: 'process' }],
+    help: '',
+    writes: true,
+    topic: 'ospf',
+    run: (args, ctx, tr) => {
+      // 番号が書いてあり、違うときは外さない（読み取り専用の拒否の後に、中身の検査をする）
+      const process = ctx.node.ospf?.process;
+      if (process !== undefined && process !== Number(args.process) && !ctx.readOnly) return shown([err(tr('ui.terminal.ospfProcessMismatch', { process }))]);
+      return changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', on: false, process: null } });
+    },
   },
 ];

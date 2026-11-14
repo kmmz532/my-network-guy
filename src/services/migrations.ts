@@ -25,7 +25,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 50;
+export const SAVE_VERSION = 51;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -75,6 +75,8 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v50 → v51: 機器の OSPF の番号（ospf.process）を足す。番号は任意の項目で、移行前の機器は番号を書いていないため、何も変えない
+  50: (data) => data as object,
   // v49 → v50: アドレスの計画を、セグメント（L2 スイッチの VLAN では分けない）の鍵から L2 ドメイン（VLAN で分ける）の鍵へ付け替え、segments を plans に改める。
   // 付け替えの規則は segmentsToPlans。自社オフィス・受注中の案件・なじみの依頼の型紙が持つ
   49: (data) => {

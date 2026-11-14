@@ -21,6 +21,8 @@ int g0/1
 exit
 end
 router ospf 1
+no router ospf 2
+no router ospf 1
 router ospf
 no router ospf
 router ospf
