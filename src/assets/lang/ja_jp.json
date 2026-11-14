@@ -337,6 +337,7 @@
   "goal.ping_all": "{nodes} が相互に Ping で通信できる",
   "goal.reach_by_name": "すべてのPCから {name} の名前で届く",
   "goal.reach_category": "すべてのPCから{name}に届く",
+  "goal.resolve_name": "{from} から {name} の名前を引ける",
   "goal.stp_root": "{node} が、スパニングツリーのルートブリッジになっている",
   "goal.survive_device_failure": "{nodes} のどれか1台を止めても、残りの機器が互いにつながる",
   "goal.survive_uplink_failure": "回線を1本止めても、すべてのPCが外部へつながる",

@@ -198,6 +198,19 @@ const handlers: { [K in Goal['type']]: Handler } = {
       return { goal, ok: result.ok, failure: result.failure, kind: 'ping' as const, src: pc, dst: dst.uid, result };
     });
   },
+  // 指定した機器ごとに名前を引く。引けて、ip の指定があればその IP アドレスなら合格
+  resolve_name: (goal, state) => {
+    const { net, world: data } = state;
+    if (goal.type !== 'resolve_name') throw new Error('resolve_name ハンドラに別の種類が渡された');
+    return goal.from.map((uid) => {
+      const from = net.nodes.find((n) => n.uid === uid);
+      if (!from) throw new Error(`機器が見つからない: ${uid}`);
+      const r = resolveName(from, goal.name, net, data);
+      const ok = r.ok && (goal.ip === undefined || r.ip === goal.ip);
+      const dst = r.server ?? uid;
+      return { goal, ok, ...(ok ? {} : { failure: { reason: 'name.unresolved' as const, node: uid } }), kind: 'ping' as const, src: uid, dst, result: { ok, path: [] } };
+    });
+  },
   http_all: (goal, state) => {
     const { net, world: data } = state;
     if (goal.type !== 'http_all') throw new Error('http_all ハンドラに別の種類が渡された');

@@ -1,5 +1,7 @@
 // DNS の問い合わせ（権威・キャッシュ・転送・CNAME・MX・ISP の DNS・ファイアウォールの dns）
 import { describe, expect, it } from 'vitest';
+import { analyze } from './engine/analyze';
+import { evaluateGoal } from './goals';
 import { lookupName } from './dns';
 import { resolveName } from './resolve';
 import type { DnsRecord, EngineData, Iface, IspLine, NetLink, NetNode, Network, Service } from './types';
@@ -138,5 +140,19 @@ describe('ISP の DNS', () => {
   it('回線に DNS がなければ、家庭用ルーターは転送先がなく引けない', () => {
     const net = home({ ...line, dns: undefined });
     expect(resolveName(net.nodes[1], 'example.com', net, data)).toEqual({ ok: false, reason: 'not_found', server: 'hr' });
+  });
+});
+
+describe('達成条件 resolve_name', () => {
+  const run = (net: Network, ip?: string) =>
+    evaluateGoal({ type: 'resolve_name', from: ['a'], name: 'files.corp.test', ...(ip ? { ip } : {}) }, analyze(net, data)).map((r) => r.ok);
+  const net = lan(cacheTo('10.1.0.54'), [A('files.corp.test', '10.1.0.99')]);
+  it('引ければ合格。ip の指定と違えば不合格', () => {
+    expect(run(net)).toEqual([true]);
+    expect(run(net, '10.1.0.99')).toEqual([true]);
+    expect(run(net, '10.1.0.98')).toEqual([false]);
+  });
+  it('転送先へ届かなければ不合格', () => {
+    expect(run({ ...net, links: net.links.filter((x) => x.uid !== 'l3') })).toEqual([false]);
   });
 });

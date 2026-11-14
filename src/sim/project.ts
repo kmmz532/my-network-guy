@@ -354,6 +354,7 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
         return { ...makeIface(p.device, i.port, i.ip, i.prefix), ...(i.dhcp ? { dhcp: true as const } : {}), ...structuredClone(rest) };
       }),
       gateway: p.config?.gateway ?? null,
+      ...(p.config?.nameServer ? { nameServer: p.config.nameServer } : {}),
       routes: [],
       services: (p.config?.services ?? []).map((s) => ({ ...s })),
     };

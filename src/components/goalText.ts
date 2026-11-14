@@ -37,6 +37,8 @@ export const goalText = (goal: Goal, nameOf: (id: string) => string = (id) => id
           ? {}
           : goal.type === 'reach_by_name'
             ? { name: goal.name }
+          : goal.type === 'resolve_name'
+            ? { from: goal.from.map(nameOf).join('・'), name: goal.name }
           : goal.type === 'http_all' || goal.type === 'firewall'
           ? {}
           : goal.type === 'http_from'

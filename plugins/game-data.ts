@@ -244,6 +244,8 @@ const goalRefs = (goal: Goal): string[] => {
     case 'no_static_route':
     case 'reach_by_name':
       return [];
+    case 'resolve_name':
+      return goal.from;
     case 'survive_uplink_failure':
       return [];
     case 'stp_root':
