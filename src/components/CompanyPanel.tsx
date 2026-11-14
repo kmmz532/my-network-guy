@@ -7,6 +7,9 @@ import { expAtLevel, levelOf, levelProgressOf, needOf, nextLevel, titleKeyOf } f
 import { unlockItems, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 import { Section } from './ui/Section';
+import { Text } from './ui/Text';
+import { Link } from './ui/Link';
+import { ProgressBar } from './ui/ProgressBar';
 import { UnlockCards, unlockNameOf } from './UnlockList';
 import { Tooltip } from './Tooltip';
 import { tipText } from '../input/keymap';
@@ -45,14 +48,13 @@ export function ExpGauge({ companyExp, width }: { companyExp: number; width: num
     return () => window.clearTimeout(id);
   }, [companyExp]);
   return (
-    <span style={{ position: 'relative', display: 'inline-block', width, height: 8, background: '#3b2a33' }}>
-      <span style={{ display: 'block', width: `${fraction * 100}%`, height: '100%', background: GAUGE_COLOR }} />
+    <ProgressBar fraction={fraction} color={GAUGE_COLOR} size="m" layout={{ width }}>
       {gain && (
         <span style={{ position: 'absolute', right: 2, top: '50%', transform: 'translateY(-50%)', color: '#f4f1e6', fontSize: 12, lineHeight: 1, fontWeight: 'bold', whiteSpace: 'nowrap', textShadow: '0 0 2px #3b2a33, 0 0 1px #3b2a33' }}>
           +{gain.amount}
         </span>
       )}
-    </span>
+    </ProgressBar>
   );
 }
 
@@ -72,7 +74,6 @@ export function CompanyBody() {
   const outside = outsideCheck(office, gameEnv.engine);
   const night = staff.filter((m) => m.shift === 'night').length;
   const open = (kind: 'staffList' | 'funds' | 'office') => useGameStore.getState().openWindow(kind, '');
-  const link = { background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', textDecoration: 'underline' } as const;
   const level = levelOf(companyExp, balance);
   const next = nextLevel(companyExp, balance);
   const inLevel = companyExp - expAtLevel(level, balance);
@@ -90,7 +91,7 @@ export function CompanyBody() {
       <Section>
         <div style={{ ...row, fontSize: 16 }}>
           <LevelMark level={level} />
-          {titleKey && <span style={{ color: '#ffd866' }}>{tDyn(titleKey)}</span>}
+          {titleKey && <Text as="span" tone="warn">{tDyn(titleKey)}</Text>}
         </div>
       </Section>
       <Section>
@@ -116,9 +117,9 @@ export function CompanyBody() {
           <span>{t('ui.company.staff')}</span>
           {/* 社員の一覧を開くボタンはここだけ（採用の画面は候補が0人だと開けない）。キーは H */}
           <Tooltip text={tipText('keys.staffList', 'staffList')}>
-            <button style={link} onClick={() => open('staffList')}>
+            <Link onClick={() => open('staffList')}>
               {t('ui.company.staffCount', { total: staff.length, day: staff.length - night, night })}
-            </button>
+            </Link>
           </Tooltip>
         </div>
       </Section>
@@ -126,26 +127,26 @@ export function CompanyBody() {
         <Section>
           <div style={row}>
             <span>{t('ui.company.noPc')}</span>
-            <button style={{ ...link, color: '#ffd866' }} onClick={() => open('staffList')}>
+            <Link emphasis onClick={() => open('staffList')}>
               {t('ui.company.noPc.count', { count: noPcCount })}
-            </button>
+            </Link>
           </div>
         </Section>
       )}
       <Section>
         <div style={row}>
           <span>{t('ui.company.funds')}</span>
-          <button style={link} onClick={() => open('funds')}>
+          <Link onClick={() => open('funds')}>
             {money.toLocaleString('ja-JP')}円
-          </button>
+          </Link>
         </div>
       </Section>
       <Section>
         <div style={row}>
           <span>{t('ui.company.outside')}</span>
-          <button style={link} onClick={() => open('office')}>
+          <Link onClick={() => open('office')}>
             {!outside.attached ? t('ui.company.outside.none') : outside.pcsReachOutside ? t('ui.company.outside.ok') : t('ui.company.outside.ng')}
-          </button>
+          </Link>
         </div>
       </Section>
       <Section>
@@ -155,7 +156,7 @@ export function CompanyBody() {
         </div>
       </Section>
       <div style={{ paddingTop: 8 }}>
-        <div style={{ color: '#ffd866' }}>{next ? t('ui.company.next', { level: next.level }) : t('ui.company.max')}</div>
+        <Text tone="warn">{next ? t('ui.company.next', { level: next.level }) : t('ui.company.max')}</Text>
         {next && unlocks.length === 0 && <div style={{ opacity: 0.85 }}>{t('ui.company.nothing')}</div>}
         {devices.length > 0 && <UnlockCards items={devices.map((d) => ({ ...d, level: next?.level }))} />}
         {others.length > 0 && <div style={{ marginTop: 4 }}>{others.map((x) => unlockNameOf(x)).join('・')}</div>}
