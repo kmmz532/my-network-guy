@@ -20,3 +20,6 @@ export const readOnlyLine = (tr: Tr): TerminalLine => err(tr('ui.terminal.readOn
 export const changed = (ctx: CommandContext, tr: Tr, change: ConfigChange): CommandResult =>
   ctx.readOnly ? shown([readOnlyLine(tr)]) : { lines: [], change, session: null };
 
+
+// 指定された番号の口が機器にないときの結果。読み取り専用の機器では、中身の検査より先に読み取り専用の誤りを返す
+export const portMissing = (ctx: CommandContext, tr: Tr): CommandResult => shown([ctx.readOnly ? readOnlyLine(tr) : err(tr('ui.terminal.noPort'))]);

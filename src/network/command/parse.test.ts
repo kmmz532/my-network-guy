@@ -34,6 +34,11 @@ describe('命令の解釈', () => {
     expect(LEGACY_ABBREV.show).toContain('interfaces');
   });
 
+  it('設定の命令も、略記を正式な形へ展開する', () => {
+    expect(parseLine('ip rou 10.0.0.0 255.0.0.0 10.1.1.1', exec)).toEqual({ spec: COMMANDS.get('static_route.ipRoute'), args: { args: '10.0.0.0 255.0.0.0 10.1.1.1' } });
+    expect(parseLine('no ip rou 10.0.0.0 255.0.0.0', exec)).toEqual({ spec: COMMANDS.get('static_route.noIpRoute'), args: { args: '10.0.0.0 255.0.0.0' } });
+  });
+
   it('表にない語は展開せず、以降も展開しない', () => {
     expect(parseLine('ping R1', exec)).toEqual({ spec: COMMANDS.get('core.ping'), args: { args: 'R1' } });
     expect(parseLine('ping sh', exec)).toEqual({ spec: COMMANDS.get('core.ping'), args: { args: 'sh' } });

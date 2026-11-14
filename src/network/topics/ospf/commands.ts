@@ -1,7 +1,8 @@
 // OSPF の論点の命令。
 import { ospfMismatchesOf } from '../../query/ospfMismatches';
 import { ospfNeighborsOf } from '../../query/ospfNeighbors';
-import { changed, err, nameOf, out, shown } from '../../command/lines';
+import { ifaceIdOf } from '../../command/args';
+import { changed, err, nameOf, out, portMissing, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
 import { isIp } from '../../terminalConfig';
 
@@ -86,8 +87,8 @@ export const commands: readonly CommandSpec[] = [
       const keys = { cost: 'cost', priority: 'priority', 'hello-interval': 'hello', 'dead-interval': 'dead' } as const;
       const key = keys[words[0] as keyof typeof keys];
       if (key === undefined || words.length !== 3 || !/^[0-9]+$/.test(words[1]) || !/^[0-9]+$/.test(words[2])) return shown([err(tr('ui.terminal.usageOspf'))]);
-      // 口の番号からインターフェースの id を引く（今の legacyChange と同じ）
-      const id = ctx.node.interfaces.find((i) => i.port === Number(words[1]))?.id ?? '';
+      const id = ifaceIdOf(ctx.node, Number(words[1]));
+      if (id === null) return portMissing(ctx, tr);
       return changed(ctx, tr, { kind: 'ospf', change: { op: 'iface', id, key, value: Number(words[2]) } });
     },
   },

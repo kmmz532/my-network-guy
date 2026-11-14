@@ -1,11 +1,9 @@
 // NAT の論点の命令。
 import type { TerminalLine } from '../../terminal';
-import { changed, err, out, shown } from '../../command/lines';
+import { ifaceIdOf } from '../../command/args';
+import { changed, err, out, portMissing, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
 import { isIp, port } from '../../terminalConfig';
-
-// 口の番号からインターフェースの id を引く（今の legacyChange と同じ）
-const idOf = (node: { interfaces: readonly { port: number; id: string }[] }, p: number): string => node.interfaces.find((i) => i.port === p)?.id ?? '';
 
 export const commands: readonly CommandSpec[] = [
   {
@@ -40,7 +38,9 @@ export const commands: readonly CommandSpec[] = [
       const words = args.args.split(' ').filter((w) => w !== '');
       const [kind, a, b, c] = words;
       if ((kind === 'inside' || kind === 'outside') && port(a ?? '') !== null && words.length === 2) {
-        return changed(ctx, tr, { kind: 'nat', change: { op: 'iface', id: idOf(ctx.node, Number(a)), nat: kind } });
+        const id = ifaceIdOf(ctx.node, Number(a));
+        if (id === null) return portMissing(ctx, tr);
+        return changed(ctx, tr, { kind: 'nat', change: { op: 'iface', id, nat: kind } });
       }
       if (kind === 'napt' && words.length === 1) return changed(ctx, tr, { kind: 'nat', change: { op: 'napt', on: true } });
       if (kind === 'static' && words.length === 4 && port(a ?? '') !== null && isIp(b ?? '') && port(c ?? '') !== null) {
@@ -60,7 +60,11 @@ export const commands: readonly CommandSpec[] = [
       const words = args.args.split(' ').filter((w) => w !== '');
       if (words[0] === 'napt' && words.length === 1) return changed(ctx, tr, { kind: 'nat', change: { op: 'napt', on: false } });
       if (words[0] === 'static' && words.length === 2 && port(words[1]) !== null) return changed(ctx, tr, { kind: 'nat', change: { op: 'noStatic', port: Number(words[1]) } });
-      if (words.length === 1 && port(words[0]) !== null) return changed(ctx, tr, { kind: 'nat', change: { op: 'iface', id: idOf(ctx.node, Number(words[0])), nat: null } });
+      if (words.length === 1 && port(words[0]) !== null) {
+        const id = ifaceIdOf(ctx.node, Number(words[0]));
+        if (id === null) return portMissing(ctx, tr);
+        return changed(ctx, tr, { kind: 'nat', change: { op: 'iface', id, nat: null } });
+      }
       return shown([err(tr('ui.terminal.usageNat'))]);
     },
   },

@@ -161,8 +161,8 @@
     },
     {
       "line": "ip ospf cost 9 10",
-      "result": "fail",
-      "reason": "iface.none"
+      "result": "error",
+      "text": "ui.terminal.noPort"
     },
     {
       "line": "ip ospf cost 0 x",

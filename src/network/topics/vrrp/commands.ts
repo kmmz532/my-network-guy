@@ -1,6 +1,7 @@
 // VRRP の論点の命令。
 import { vrrpStatusOf } from '../../query/vrrpStatus';
-import { changed, err, out, shown } from '../../command/lines';
+import { ifaceIdOf } from '../../command/args';
+import { changed, err, out, portMissing, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
 import { isIp, port } from '../../terminalConfig';
 
@@ -36,16 +37,21 @@ export const commands: readonly CommandSpec[] = [
       const words = args.args.split(' ').filter((w) => w !== '');
       const a = vrrpArgs(words);
       if (!a) return shown([err(tr('ui.terminal.usageVrrp'))]);
-      // 口の番号からインターフェースの id を引く（今の legacyChange と同じ）
-      const idOf = (p: number) => ctx.node.interfaces.find((i) => i.port === p)?.id ?? '';
       const [, , key, v1, kw, v2] = words;
-      if (key === 'ip' && words.length === 4 && isIp(v1)) return changed(ctx, tr, { kind: 'vrrp', change: { op: 'ip', id: idOf(a.p), vrid: a.vrid, ip: v1 } });
-      if (key === 'priority' && words.length === 4 && /^[0-9]+$/.test(v1)) return changed(ctx, tr, { kind: 'vrrp', change: { op: 'priority', id: idOf(a.p), vrid: a.vrid, value: Number(v1) } });
-      if (key === 'preempt' && words.length === 3) return changed(ctx, tr, { kind: 'vrrp', change: { op: 'preempt', id: idOf(a.p), vrid: a.vrid, on: true } });
-      if (key === 'track' && words.length === 6 && port(v1) !== null && kw === 'decrement' && /^[0-9]+$/.test(v2)) {
-        return changed(ctx, tr, { kind: 'vrrp', change: { op: 'track', id: idOf(a.p), vrid: a.vrid, iface: idOf(Number(v1)), decrement: Number(v2) } });
-      }
-      return shown([err(tr('ui.terminal.usageVrrp'))]);
+      const valid =
+        (key === 'ip' && words.length === 4 && isIp(v1)) ||
+        (key === 'priority' && words.length === 4 && /^[0-9]+$/.test(v1)) ||
+        (key === 'preempt' && words.length === 3) ||
+        (key === 'track' && words.length === 6 && port(v1) !== null && kw === 'decrement' && /^[0-9]+$/.test(v2));
+      if (!valid) return shown([err(tr('ui.terminal.usageVrrp'))]);
+      const id = ifaceIdOf(ctx.node, a.p);
+      if (id === null) return portMissing(ctx, tr);
+      if (key === 'ip') return changed(ctx, tr, { kind: 'vrrp', change: { op: 'ip', id, vrid: a.vrid, ip: v1 } });
+      if (key === 'priority') return changed(ctx, tr, { kind: 'vrrp', change: { op: 'priority', id, vrid: a.vrid, value: Number(v1) } });
+      if (key === 'preempt') return changed(ctx, tr, { kind: 'vrrp', change: { op: 'preempt', id, vrid: a.vrid, on: true } });
+      const trackId = ifaceIdOf(ctx.node, Number(v1));
+      if (trackId === null) return portMissing(ctx, tr);
+      return changed(ctx, tr, { kind: 'vrrp', change: { op: 'track', id, vrid: a.vrid, iface: trackId, decrement: Number(v2) } });
     },
   },
   {
@@ -59,7 +65,9 @@ export const commands: readonly CommandSpec[] = [
       const words = args.args.split(' ').filter((w) => w !== '');
       const a = vrrpArgs(words);
       if (!a) return shown([err(tr('ui.terminal.usageVrrp'))]);
-      const id = ctx.node.interfaces.find((i) => i.port === a.p)?.id ?? '';
+      if (words.length !== 2 && !(words.length === 3 && words[2] === 'preempt')) return shown([err(tr('ui.terminal.usageVrrp'))]);
+      const id = ifaceIdOf(ctx.node, a.p);
+      if (id === null) return portMissing(ctx, tr);
       if (words.length === 2) return changed(ctx, tr, { kind: 'vrrp', change: { op: 'remove', id, vrid: a.vrid } });
       if (words.length === 3 && words[2] === 'preempt') return changed(ctx, tr, { kind: 'vrrp', change: { op: 'preempt', id, vrid: a.vrid, on: false } });
       return shown([err(tr('ui.terminal.usageVrrp'))]);
