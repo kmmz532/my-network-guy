@@ -13,7 +13,6 @@ import { useUiStore } from '../stores/useUiStore';
 import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
 import { useState } from 'react';
-import { secondaryButton } from './Modal';
 import { Tooltip } from './Tooltip';
 import { retireBlock } from '../sim/retire';
 import { isDevJob, requiresPc } from '../sim/jobs';
@@ -179,13 +178,9 @@ function RetireControl({ uid }: { uid: string }) {
   }
   const reason = retireBlock(state, uid, balance);
   const button = (
-    <button
-      style={{ ...secondaryButton, cursor: reason === null ? 'pointer' : 'default', opacity: reason === null ? 1 : 0.5 }}
-      disabled={reason !== null}
-      onClick={() => state.noticeRetire(uid)}
-    >
+    <Button variant="secondary" disabled={reason !== null} onClick={() => state.noticeRetire(uid)}>
       {t('ui.retire.notice')}
-    </button>
+    </Button>
   );
   return reason === null ? button : <Tooltip text={tDyn(`ui.error.${reason}`)}><span style={{ display: 'inline-block' }}>{button}</span></Tooltip>;
 }

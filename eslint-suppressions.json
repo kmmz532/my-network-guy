@@ -324,10 +324,10 @@
   },
   "src/components/StaffCard.tsx": {
     "local/no-look-props": {
-      "count": 33
+      "count": 32
     },
     "local/no-native-control": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/SviField.tsx": {
