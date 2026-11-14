@@ -373,6 +373,68 @@ export const placedSchema = z.object({
   name: z.string().min(1).max(24).optional(),
 });
 
+// 修理の依頼などで、最初から入っている機器の設定（口の VLAN・OSPF・VRRP・DHCP・BGP など。NetNode の同名の項目と同じ形）
+const ipv4 = z.string().regex(/^d{1,3}(.d{1,3}){3}$/);
+const portConfigSchema = z.object({
+  port: nonNegativeInt,
+  mode: z.enum(['access', 'trunk', 'routed']),
+  vlan: int.positive().optional(),
+  allowed: z.array(int.positive()).optional(),
+  native: int.positive().optional(),
+  shutdown: z.boolean().optional(),
+  stpCost: int.positive().optional(),
+  channelGroup: nonNegativeInt.optional(),
+  lacp: z.enum(['active', 'passive', 'on']).optional(),
+  macs: z.array(z.string().min(1)).optional(),
+});
+const ifaceSetupSchema = z.object({
+  port: nonNegativeInt,
+  nat: z.enum(['inside', 'outside']).optional(),
+  rip: z.boolean().optional(),
+  helper: ipv4.optional(),
+  vrrp: z
+    .array(
+      z.object({
+        vrid: int.min(1).max(255),
+        ip: ipv4,
+        priority: int.min(1).max(254),
+        preempt: z.boolean(),
+        track: z.array(z.object({ iface: z.string().min(1), decrement: int.positive() })).optional(),
+      }),
+    )
+    .optional(),
+  ospf: z.object({ area: nonNegativeInt, cost: int.positive().optional(), priority: nonNegativeInt.optional(), hello: int.positive().optional(), dead: int.positive().optional() }).optional(),
+});
+const placedSetupSchema = z.object({
+  ports: z.array(portConfigSchema).optional(),
+  interfaces: z.array(ifaceSetupSchema).optional(),
+  ospf: z.object({ routerId: ipv4.optional(), defaultOriginate: z.boolean().optional() }).optional(),
+  bgp: z
+    .object({
+      asn: int.positive(),
+      neighbors: z.array(z.object({ ip: ipv4, remoteAs: int.positive(), nextHopSelf: z.boolean().optional(), localPref: int.optional(), med: int.optional(), prepend: nonNegativeInt.optional() })),
+      networks: z.array(z.object({ dest: ipv4, prefix: z.number().int().min(0).max(32) })),
+    })
+    .optional(),
+  dhcpPools: z
+    .array(
+      z.object({
+        network: ipv4,
+        prefix: z.number().int().min(0).max(32),
+        start: ipv4,
+        end: ipv4,
+        gateway: ipv4.optional(),
+        dns: ipv4.optional(),
+        excluded: z.array(z.object({ start: ipv4, end: ipv4 })).optional(),
+      }),
+    )
+    .optional(),
+  stpPriority: int.positive().optional(),
+  napt: z.boolean().optional(),
+  rules: z.array(z.object({ src: z.string().min(1), dst: z.string().min(1), service: z.enum(['any', 'ping', 'http']), port: int.min(1).max(65535).optional() })).optional(),
+});
+const contractPlacedSchema = placedSchema.extend({ setup: placedSetupSchema.optional() });
+
 // 案件の達成条件。ハンドラの種類はここで列挙し、新しい種類を追加するときは本体のハンドラと合わせて追加する。
 export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('ping'), from: z.string().min(1), to: z.string().min(1) }),
@@ -460,7 +522,7 @@ export const contractSchema = z.object({
   // 扱う論点（sim-3 の段階の ID）と、割り当てに使えるアドレスブロック（任意）
   topics: z.array(z.string().min(1)).optional(),
   addressBlock: z.object({ network: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/), prefix: int.min(8).max(30) }).optional(),
-  placed: z.array(placedSchema),
+  placed: z.array(contractPlacedSchema),
   // 最初から引かれている配線（修理の依頼など。施工済みとして扱う）
   links: z.array(wireSchema).optional(),
   // 依頼で作った家具（机・棚・飾り。N76）

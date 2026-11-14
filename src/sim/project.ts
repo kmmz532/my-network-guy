@@ -325,25 +325,39 @@ export const delegationReason = (familiarity: Familiarity, offer: Offer): OpFail
 // 任せて受注したあとも、画面の対象（focus）は受注の前のまま残す（現場に移さない・N111）
 export const keepFocus = (before: Core, outcome: Outcome): Outcome => (outcome.ok ? { ...outcome, core: { ...outcome.core, focus: before.focus } } : outcome);
 
-// 案件で最初から置かれている機器
+// 案件で最初から置かれている機器。setup は、口の VLAN・OSPF・VRRP・DHCP・BGP など、IP アドレス以外の最初の設定
 export const fixedNodes = (contract: Contract): NetNode[] =>
-  contract.placed.map((p, i) => ({
-    uid: p.ref,
-    device: p.device,
-    // MAC アドレスの連番。置いた順に振る（プレイヤーが置く機器は nextMacSerial で振る）
-    macSerial: i + 1,
-    ports: [],
-    ...(p.name ? { name: p.name } : {}),
-    ...(p.isp ? { isp: p.isp } : {}),
-    x: p.x,
-    y: p.y,
-    locked: p.locked,
-    configLocked: p.config?.locked ?? false,
-    interfaces: (p.config?.interfaces ?? []).map((i) => ({ ...makeIface(p.device, i.port, i.ip, i.prefix), ...(i.dhcp ? { dhcp: true as const } : {}) })),
-    gateway: p.config?.gateway ?? null,
-    routes: [],
-    services: (p.config?.services ?? []).map((s) => ({ ...s })),
-  }));
+  contract.placed.map((p, i) => {
+    const setup = p.setup;
+    const extra = (port: number) => setup?.interfaces?.find((e) => e.port === port);
+    return {
+      uid: p.ref,
+      device: p.device,
+      // MAC アドレスの連番。置いた順に振る（プレイヤーが置く機器は nextMacSerial で振る）
+      macSerial: i + 1,
+      ports: (setup?.ports ?? []).map((c) => ({ ...c })),
+      ...(p.name ? { name: p.name } : {}),
+      ...(p.isp ? { isp: p.isp } : {}),
+      ...(p.wireless ? { wireless: { ...p.wireless } } : {}),
+      ...(setup?.ospf ? { ospf: { ...setup.ospf } } : {}),
+      ...(setup?.bgp ? { bgp: structuredClone(setup.bgp) } : {}),
+      ...(setup?.dhcpPools ? { dhcpPools: structuredClone(setup.dhcpPools) } : {}),
+      ...(setup?.stpPriority !== undefined ? { stpPriority: setup.stpPriority } : {}),
+      ...(setup?.napt !== undefined ? { napt: setup.napt } : {}),
+      ...(setup?.rules ? { rules: structuredClone(setup.rules) } : {}),
+      x: p.x,
+      y: p.y,
+      locked: p.locked,
+      configLocked: p.config?.locked ?? false,
+      interfaces: (p.config?.interfaces ?? []).map((i) => {
+        const { port: _port, ...rest } = extra(i.port) ?? { port: i.port };
+        return { ...makeIface(p.device, i.port, i.ip, i.prefix), ...(i.dhcp ? { dhcp: true as const } : {}), ...structuredClone(rest) };
+      }),
+      gateway: p.config?.gateway ?? null,
+      routes: [],
+      services: (p.config?.services ?? []).map((s) => ({ ...s })),
+    };
+  });
 
 // 案件で最初から引かれている配線。配線の長さは、両端の機器のマスを結ぶ直線で足りるものとして扱う
 export const contractLinks = (contract: Contract): NetLink[] =>

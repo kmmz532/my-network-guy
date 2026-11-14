@@ -1,0 +1,230 @@
+{
+  "id": "r005_vlan_trunk",
+  "kind": "repair",
+  "minChanges": 2,
+  "stage": 2,
+  "order": 230,
+  "requires": [
+    "r004_mask"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_rooms",
+  "budget": 30000,
+  "deadlineDays": 5,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "sw_2f",
+      "device": "l2_switch_8p",
+      "x": 5,
+      "y": 5,
+      "locked": true,
+      "name": "2階のスイッチ",
+      "setup": {
+        "ports": [
+          {
+            "port": 0,
+            "mode": "access",
+            "vlan": 20
+          },
+          {
+            "port": 1,
+            "mode": "access",
+            "vlan": 10
+          },
+          {
+            "port": 7,
+            "mode": "trunk",
+            "allowed": [
+              10
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "ref": "sw_3f",
+      "device": "l2_switch_8p",
+      "x": 14,
+      "y": 5,
+      "locked": true,
+      "name": "3階のスイッチ",
+      "setup": {
+        "ports": [
+          {
+            "port": 0,
+            "mode": "access",
+            "vlan": 20
+          },
+          {
+            "port": 1,
+            "mode": "access",
+            "vlan": 10
+          },
+          {
+            "port": 7,
+            "mode": "trunk",
+            "allowed": [
+              10
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "ref": "acct_2f",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.20.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "2階の経理のPC"
+    },
+    {
+      "ref": "sales_2f",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.10.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "2階の営業のPC"
+    },
+    {
+      "ref": "acct_3f",
+      "device": "pc_basic",
+      "x": 17,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.20.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "3階の経理のPC"
+    },
+    {
+      "ref": "sales_3f",
+      "device": "pc_basic",
+      "x": 17,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.10.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "3階の営業のPC"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "acct_2f",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw_2f",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "sales_2f",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw_2f",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "acct_3f",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw_3f",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "sales_3f",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw_3f",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "sw_2f",
+        "port": 7
+      },
+      "b": {
+        "ref": "sw_3f",
+        "port": 7
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping",
+      "from": "acct_2f",
+      "to": "acct_3f"
+    },
+    {
+      "type": "ping",
+      "from": "sales_2f",
+      "to": "sales_3f"
+    }
+  ],
+  "reward": {
+    "money": 300000
+  },
+  "unlockLevel": 16
+}

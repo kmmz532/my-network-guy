@@ -374,6 +374,13 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
     ensure(!!map || contract.map === OFFICE_MAP_ID, `${owner}: 未定義のマップ ${contract.map}`);
     const refs = checkPlacement(owner, contract.placed, map);
     checkGoals(owner, contract.goals, refs);
+    for (const p of contract.placed) {
+      if (!p.setup) continue;
+      const device = data.devices.find((d) => d.id === p.device);
+      const ports = device ? device.ports.reduce((sum, port) => sum + port.count, 0) : 0;
+      for (const c of p.setup.ports ?? []) ensure(c.port < ports, `${owner}: ${p.ref} の口の設定 ${c.port} がない`);
+      for (const e of p.setup.interfaces ?? []) ensure((p.config?.interfaces ?? []).some((i) => i.port === e.port), `${owner}: ${p.ref} の口 ${e.port} にアドレスがない`);
+    }
     for (const k of contract.links ?? []) {
       ensure(cableIds.has(k.cable), `${owner}: ケーブル ${k.cable} がない`);
       for (const end of [k.a, k.b]) {
