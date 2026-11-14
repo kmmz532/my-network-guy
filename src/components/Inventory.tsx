@@ -13,12 +13,12 @@ import { useUiStore } from '../stores/useUiStore';
 import { Icon } from './Icon';
 import { ItemIcon } from './ItemIcon';
 import { Tooltip } from './Tooltip';
-import { secondaryButton } from './Modal';
 import { RADIUS } from '../ui/theme';
 import { matchesQuery } from '../ui/search';
 import { SearchField } from './SearchField';
 import { itemSpriteOf } from './itemSprite';
 import { deviceDef, devicesById, furnitureById } from '../registry/query';
+import { Button } from './ui/Button';
 
 const strip = {
   position: 'absolute',
@@ -200,9 +200,9 @@ export function Inventory({
     return (
       <div style={{ ...box, justifyContent: 'center', overflowX: 'visible', alignItems: 'center' }}>
         <span>{t('ui.inventory.empty')}</span>
-        <button style={secondaryButton} onClick={onShop}>
+        <Button variant="secondary" onClick={onShop}>
           {t('ui.inventory.openShop')}
-        </button>
+        </Button>
       </div>
     );
   }
