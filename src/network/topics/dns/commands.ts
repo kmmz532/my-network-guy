@@ -1,7 +1,6 @@
 // DNS の論点の命令。
-import { changed, err, out, shown } from '../../command/lines';
+import { changed, out, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
-import { isHostName, isIp } from '../../command/args';
 
 export const commands: readonly CommandSpec[] = [
   {
@@ -19,57 +18,37 @@ export const commands: readonly CommandSpec[] = [
   {
     id: 'dns.ipHost',
     modes: ['exec', 'config'],
-    tokens: [{ word: 'ip' }, { word: 'host' }, { rest: 'args' }],
+    tokens: [{ word: 'ip' }, { word: 'host' }, { arg: 'hostname', name: 'name' }, { arg: 'ip', name: 'ip' }],
     help: '',
     writes: true,
     topic: 'dns',
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words.length !== 2) return shown([err(tr('ui.terminal.usageHost'))]);
-      if (!isHostName(words[0])) return shown([err(tr('ui.terminal.errHostname'))]);
-      if (!isIp(words[1])) return shown([err(tr('ui.terminal.errIp'))]);
-      return changed(ctx, tr, { kind: 'host', name: words[0], ip: words[1] });
-    },
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'host', name: args.name, ip: args.ip }),
   },
   {
     id: 'dns.noIpHost',
     modes: ['exec', 'config'],
-    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'host' }, { rest: 'args' }],
+    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'host' }, { arg: 'hostname', name: 'name' }],
     help: '',
     writes: true,
     topic: 'dns',
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words.length !== 1) return shown([err(tr('ui.terminal.usageNoHost'))]);
-      if (!isHostName(words[0])) return shown([err(tr('ui.terminal.errHostname'))]);
-      return changed(ctx, tr, { kind: 'removeHost', name: words[0] });
-    },
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'removeHost', name: args.name }),
   },
   {
     id: 'dns.ipNameServer',
     modes: ['exec', 'config'],
-    tokens: [{ word: 'ip' }, { word: 'name-server' }, { rest: 'args' }],
+    tokens: [{ word: 'ip' }, { word: 'name-server' }, { arg: 'ip', name: 'ip' }],
     help: '',
     writes: true,
     topic: 'dns',
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words.length !== 1) return shown([err(tr('ui.terminal.usageNameServer'))]);
-      if (!isIp(words[0])) return shown([err(tr('ui.terminal.errIp'))]);
-      return changed(ctx, tr, { kind: 'nameServer', ip: words[0] });
-    },
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'nameServer', ip: args.ip }),
   },
   {
     id: 'dns.noIpNameServer',
     modes: ['exec', 'config'],
-    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'name-server' }, { rest: 'args' }],
+    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'name-server' }],
     help: '',
     writes: true,
     topic: 'dns',
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words.length !== 0) return shown([err(tr('ui.terminal.usageNameServer'))]);
-      return changed(ctx, tr, { kind: 'nameServer', ip: null });
-    },
+    run: (_args, ctx, tr) => changed(ctx, tr, { kind: 'nameServer', ip: null }),
   },
 ];

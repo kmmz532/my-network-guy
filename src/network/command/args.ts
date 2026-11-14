@@ -75,6 +75,7 @@ export const isArg = (kind: ArgKind, text: string): boolean => {
     case 'asn': return rangeOk(text, 1, 4294967295);
     case 'number': return /^\d{1,10}$/.test(text);
     case 'word': return text !== '';
+    case 'hostname': return isHostName(text);
     case 'hostOrIp': return isIp(text) || (!/^[\d.]+$/.test(text) && isHostName(text));
   }
 };

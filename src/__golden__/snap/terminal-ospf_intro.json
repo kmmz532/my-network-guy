@@ -656,8 +656,10 @@
     },
     {
       "line": "ip host PC2 x",
-      "result": "error",
-      "text": "ui.terminal.errIp"
+      "lines": [
+        "err:              ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "show hosts",

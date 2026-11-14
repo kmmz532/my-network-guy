@@ -85,9 +85,9 @@ describe('対応表（ip host）', () => {
   });
 
   it('形の違う入力は理由のキーを出す', () => {
-    expect(viaTree('ip host R1', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageHost' });
-    expect(viaTree('ip host 日本 192.168.1.1', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
-    expect(viaTree('ip host R1 192.168.1.999', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errIp' });
-    expect(viaTree('no ip host', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageNoHost' });
+    expect(viaTree('ip host R1', tr)).toEqual({ kind: 'error', text: '             ^' });
+    expect(viaTree('ip host 日本 192.168.1.1', tr)).toEqual({ kind: 'error', text: '          ^' });
+    expect(viaTree('ip host R1 192.168.1.999', tr)).toEqual({ kind: 'error', text: '             ^' });
+    expect(viaTree('no ip host', tr)).toEqual({ kind: 'error', text: '             ^' });
   });
 });
