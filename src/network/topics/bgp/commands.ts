@@ -1,8 +1,9 @@
 // BGP の論点の命令。
 import { bgpTableOf } from '../../query/bgpTable';
-import { err, out, shown } from '../../command/lines';
+import { changed, err, out, shown } from '../../command/lines';
 import type { CommandContext, CommandResult, CommandSpec } from '../../command/types';
 import type { Tr } from '../../terminal';
+import { isIp } from '../../terminalConfig';
 
 const showSummary = (_args: unknown, ctx: CommandContext, tr: Tr): CommandResult => {
   const bgp = bgpTableOf(ctx.state, ctx.node.uid);
@@ -42,5 +43,38 @@ export const commands: readonly CommandSpec[] = [
     writes: false,
     topic: 'bgp',
     run: showTable,
+  },
+  {
+    id: 'bgp.neighbor',
+    modes: ['exec'],
+    tokens: [{ word: 'neighbor' }, { rest: 'args' }],
+    help: '',
+    writes: true,
+    topic: 'bgp',
+    // 形は3つ。next-hop-self → 属性（local-preference・med・prepend の値）→ remote-as の順に当てる（今の parseConfig と同じ）
+    run: (args, ctx, tr) => {
+      const words = args.args.split(' ').filter((w) => w !== '');
+      if (isIp(words[0] ?? '') && words[1] === 'next-hop-self' && words.length === 2) return changed(ctx, tr, { kind: 'bgp', change: { op: 'attr', ip: words[0], key: 'nextHopSelf', value: true } });
+      if (isIp(words[0] ?? '') && words.length === 3 && /^[0-9]+$/.test(words[2])) {
+        const keys = { 'local-preference': 'localPref', med: 'med', prepend: 'prepend' } as const;
+        const key = keys[words[1] as keyof typeof keys];
+        if (key !== undefined) return changed(ctx, tr, { kind: 'bgp', change: { op: 'attr', ip: words[0], key, value: Number(words[2]) } });
+      }
+      if (words.length !== 3 || words[1] !== 'remote-as' || !isIp(words[0]) || !/^[0-9]+$/.test(words[2])) return shown([err(tr('ui.terminal.usageBgp'))]);
+      return changed(ctx, tr, { kind: 'bgp', change: { op: 'neighbor', ip: words[0], remoteAs: Number(words[2]) } });
+    },
+  },
+  {
+    id: 'bgp.noNeighbor',
+    modes: ['exec'],
+    tokens: [{ word: 'no' }, { word: 'neighbor' }, { rest: 'args' }],
+    help: '',
+    writes: true,
+    topic: 'bgp',
+    run: (args, ctx, tr) => {
+      const words = args.args.split(' ').filter((w) => w !== '');
+      if (isIp(words[0] ?? '') && words[1] === 'next-hop-self' && words.length === 2) return changed(ctx, tr, { kind: 'bgp', change: { op: 'attr', ip: words[0], key: 'nextHopSelf', value: false } });
+      return shown([err(tr('ui.terminal.unknown'))]);
+    },
   },
 ];

@@ -3,7 +3,8 @@ import { gameEnv } from '../sim/env';
 import { learnedRoutesOf } from './query/learnedRoutes';
 import { analyze } from './engine/analyze';
 import { bgpTableOf } from './query/bgpTable';
-import type { BgpConfig, Iface, NetNode, Network } from './types';
+import type { BgpConfig, EngineData, Iface, NetNode, Network } from './types';
+import type { NetworkState } from './engine/state';
 
 const f = (port: number, ip: string): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24 });
 const router = (uid: string, interfaces: Iface[], bgp: BgpConfig): NetNode =>
@@ -74,12 +75,17 @@ describe('iBGP', () => {
 
 describe('BGP のターミナル', () => {
   it('neighbor の next-hop-self・local-preference・med・prepend を読む', async () => {
-    const { parseConfig } = await import('./terminalConfig');
+    const { commandContextOf, runLine } = await import('./command/run');
+    const ctx = commandContextOf({ node: {} as NetNode, nodes: [], links: [], data: {} as EngineData, state: {} as NetworkState }, false);
+    const viaTree = (line: string, tr: (k: string) => string) => {
+      const r = runLine(line, ctx, tr);
+      return r.change !== null ? { kind: 'action', action: r.change } : { kind: 'error', text: r.lines[0].text };
+    };
     const tr = (k: string) => k;
-    expect(parseConfig('neighbor 10.0.1.2 next-hop-self', tr)).toEqual({ kind: 'action', action: { kind: 'bgp', op: 'attr', ip: '10.0.1.2', key: 'nextHopSelf', value: true } });
-    expect(parseConfig('no neighbor 10.0.1.2 next-hop-self', tr)).toEqual({ kind: 'action', action: { kind: 'bgp', op: 'attr', ip: '10.0.1.2', key: 'nextHopSelf', value: false } });
-    expect(parseConfig('neighbor 10.0.1.2 local-preference 200', tr)).toEqual({ kind: 'action', action: { kind: 'bgp', op: 'attr', ip: '10.0.1.2', key: 'localPref', value: 200 } });
-    expect(parseConfig('neighbor 10.0.1.2 prepend 2', tr)).toEqual({ kind: 'action', action: { kind: 'bgp', op: 'attr', ip: '10.0.1.2', key: 'prepend', value: 2 } });
+    expect(viaTree('neighbor 10.0.1.2 next-hop-self', tr)).toEqual({ kind: 'action', action: { kind: 'bgp', change: { op: 'attr', ip: '10.0.1.2', key: 'nextHopSelf', value: true } } });
+    expect(viaTree('no neighbor 10.0.1.2 next-hop-self', tr)).toEqual({ kind: 'action', action: { kind: 'bgp', change: { op: 'attr', ip: '10.0.1.2', key: 'nextHopSelf', value: false } } });
+    expect(viaTree('neighbor 10.0.1.2 local-preference 200', tr)).toEqual({ kind: 'action', action: { kind: 'bgp', change: { op: 'attr', ip: '10.0.1.2', key: 'localPref', value: 200 } } });
+    expect(viaTree('neighbor 10.0.1.2 prepend 2', tr)).toEqual({ kind: 'action', action: { kind: 'bgp', change: { op: 'attr', ip: '10.0.1.2', key: 'prepend', value: 2 } } });
   });
   it('show ip bgp summary は隣接の状態を、show ip bgp は最適経路の印を出す', async () => {
     const { commandContextOf, runLine } = await import('./command/run');

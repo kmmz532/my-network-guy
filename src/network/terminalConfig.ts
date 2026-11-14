@@ -198,17 +198,5 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     if (rest.length === 3 && port(rest[2]) !== null) return { kind: 'action', action: { kind: 'nat', op: 'iface', port: Number(rest[2]), nat: null } };
     return error('ui.terminal.usageNat');
   }
-  // neighbor <IP> remote-as <AS>（BGP）
-  if (first === 'neighbor' && isIp(rest[0] ?? '') && rest[1] === 'next-hop-self' && rest.length === 2) return { kind: 'action', action: { kind: 'bgp', op: 'attr', ip: rest[0], key: 'nextHopSelf', value: true } };
-  if (first === 'no' && rest[0] === 'neighbor' && isIp(rest[1] ?? '') && rest[2] === 'next-hop-self' && rest.length === 3) return { kind: 'action', action: { kind: 'bgp', op: 'attr', ip: rest[1], key: 'nextHopSelf', value: false } };
-  if (first === 'neighbor' && isIp(rest[0] ?? '') && rest.length === 3 && /^[0-9]+$/.test(rest[2])) {
-    const keys = { 'local-preference': 'localPref', med: 'med', prepend: 'prepend' } as const;
-    const key = keys[rest[1] as keyof typeof keys];
-    if (key !== undefined) return { kind: 'action', action: { kind: 'bgp', op: 'attr', ip: rest[0], key, value: Number(rest[2]) } };
-  }
-  if (first === 'neighbor') {
-    if (rest.length !== 3 || rest[1] !== 'remote-as' || !isIp(rest[0]) || !/^[0-9]+$/.test(rest[2])) return error('ui.terminal.usageBgp');
-    return { kind: 'action', action: { kind: 'bgp', op: 'neighbor', ip: rest[0], remoteAs: Number(rest[2]) } };
-  }
   return error('ui.terminal.unknown');
 };
