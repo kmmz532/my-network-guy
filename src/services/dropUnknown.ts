@@ -6,7 +6,7 @@
 //   - 依頼（offers）と案件（active）の契約の、配置する機器（contract.placed）
 // 既知だけのセーブは、同じ参照を返す。
 import type { NetLink, NetNode } from '../network/types';
-import type { Company } from '../world/world';
+import type { Company } from '../company/company';
 import { registries } from '../registry/game';
 
 export interface DropResult {

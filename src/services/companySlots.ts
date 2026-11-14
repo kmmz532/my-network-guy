@@ -2,7 +2,7 @@
 // 画面は結果の種類（done・taken・full など）を見て知らせと画面を決める。保存先は引数で渡し、テストでは差し替える。
 import { listCompanies, saveSlot, deleteSlot } from './db';
 import { copyNameOf, freeSlotOf, isNameTaken, isValidCompanyName, uniqueNameFrom, type CompanySave } from './companies';
-import type { GameMode, Company } from '../world/world';
+import type { GameMode, Company } from '../company/company';
 
 export interface SlotStore {
   list: (mode: GameMode) => Promise<CompanySave[]>;

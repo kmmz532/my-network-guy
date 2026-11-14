@@ -6,7 +6,7 @@ import { loadSettings, type AutoSaveMode } from '../settings/settings';
 import { createSaveQueue, isAutoSaveDue } from './autoSave';
 import { saveSlot } from './db';
 import { exportSave, importSave } from './saveFile';
-import type { Company } from '../world/world';
+import type { Company } from '../company/company';
 
 export interface SaveSessionView {
   // 遊んでいる会社の枠（タイトルでは null）

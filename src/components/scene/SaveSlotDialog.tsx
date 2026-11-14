@@ -8,7 +8,7 @@ import { balance } from 'virtual:game-data';
 import { levelOf } from '../../sim/level';
 import { toDate } from '../../sim/clock';
 import { MAX_COMPANY_NAME, isValidCompanyName, sortByRecent, type CompanySave } from '../../services/companies';
-import type { GameMode } from '../../world/world';
+import type { GameMode } from '../../company/company';
 import type { SaveSlotView } from '../../ui/titleFlow';
 
 // 会社の要約（経営は Lv・年目・月・日。サンドボックスは広さ）。一覧と確認の文言で使う

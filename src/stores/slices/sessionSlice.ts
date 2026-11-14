@@ -2,7 +2,7 @@
 import { balance } from 'virtual:game-data';
 import { initialClock } from '../../sim/clock';
 import type { Offer } from '../../contracts/template';
-import { type Company, companyOf } from '../../world/world';
+import { type Company, companyOf } from '../../company/company';
 import { resizeSandboxOffice, sandboxClock, sandboxOffice } from '../../sim/sandbox';
 
 import { EMPTY_FAMILIARITY } from '../../sim/familiar';

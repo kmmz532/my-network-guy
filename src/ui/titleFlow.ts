@@ -1,7 +1,7 @@
 // タイトル場面の流れ。何を出しているか（メニュー・サンドボックスの広さ・会社の枠の画面）を1つの値で持ち、
 // 変わり方を純粋な関数にする。保存の読み書き（非同期）は場面の部品が行い、結果をこの関数に渡す。
 import { freeSlotOf, suggestCompanyName, type CompanySave } from '../services/companies';
-import type { GameMode, Company } from '../world/world';
+import type { GameMode, Company } from '../company/company';
 
 // 会社の枠の画面（SaveSlotDialog）の中身
 export type SaveSlotView =

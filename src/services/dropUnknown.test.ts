@@ -1,7 +1,7 @@
 // 登録にない機器を、セーブから取り除く試験
 import { describe, expect, it } from 'vitest';
 import type { NetLink, NetNode } from '../network/types';
-import type { Company } from '../world/world';
+import type { Company } from '../company/company';
 import { dropUnknownDevices } from './dropUnknown';
 
 const node = (uid: string, device: string): NetNode => ({ uid, device, x: 0, y: 0, ports: [] } as unknown as NetNode);

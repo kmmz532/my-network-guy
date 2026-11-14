@@ -1,5 +1,5 @@
 // セーブデータのバージョン管理。形式を変えたら SAVE_VERSION を上げ、migrations[n]（n → n+1 の変換）を追加する。
-import type { GameMode, Company } from '../world/world';
+import type { GameMode, Company } from '../company/company';
 import type { Office, Project } from '../sim/project';
 import type { EngineData, NetLink, NetNode, NetworkPlan, Service } from '../network/types';
 import { legacyFillSegments, segmentsToPlans } from './legacySegments';

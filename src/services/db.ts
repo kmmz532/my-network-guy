@@ -2,7 +2,7 @@
 // 会社（経営・サンドボックス）の一覧・消す・移行前の枠の移し替えもここで行う（N133）。
 import Dexie, { type Table } from 'dexie';
 import { SAVE_VERSION, migrate } from './migrations';
-import type { GameMode, Company } from '../world/world';
+import type { GameMode, Company } from '../company/company';
 import { LEGACY_SLOT, SLOTS } from './slots';
 import type { CompanySave } from './companies';
 

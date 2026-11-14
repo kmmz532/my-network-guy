@@ -1,7 +1,7 @@
 // タイトル場面の流れ（何を出すか・どこへ移るか）
 import { describe, expect, it } from 'vitest';
 import type { CompanySave } from '../services/companies';
-import type { Company } from '../world/world';
+import type { Company } from '../company/company';
 import { initialTitleState, titleReducer, type TitleEvent, type TitleState } from './titleFlow';
 
 const save = (slot: number, name: string): CompanySave => ({ slot, savedAt: 0, data: { name } as unknown as Company });

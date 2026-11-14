@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { create } from 'zustand';
 import type { AutoSaveMode } from '../settings/settings';
 import { createSaveSession } from './saveSession';
-import type { Company } from '../world/world';
+import type { Company } from '../company/company';
 
 const day = 24 * 60;
 

@@ -1,7 +1,7 @@
 import { EMPTY_FAMILIARITY } from '../sim/familiar';
 import { describe, expect, it } from 'vitest';
 import { SAVE_VERSION, isCompany, migrate } from './migrations';
-import type { Company } from '../world/world';
+import type { Company } from '../company/company';
 import type { Staff } from '../data/schema';
 import { exportSave, importSave } from './saveFile';
 import { gameEnv } from '../sim/env';

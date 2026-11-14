@@ -22,7 +22,7 @@ import {
   setStp, setSvi, setVrrp, setWireless,
 } from '../sim/netEdit';
 import type { ConfigChange, Operation } from './operation';
-import type { GameMode } from './world';
+import type { GameMode } from './company';
 import { priceOfItem } from './price';
 
 // 操作を当てるときの周りの状況。target は設計の対象（自社オフィスか設計中の案件）、map は設計中の案件の地図（案件がなければ null）、hq は自社オフィスの地図

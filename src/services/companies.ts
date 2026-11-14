@@ -1,5 +1,5 @@
 // 会社（セーブの枠）の規則。画面と保存の両方で使う純粋な関数だけを置く（N133）
-import type { GameMode, Company } from '../world/world';
+import type { GameMode, Company } from '../company/company';
 import { DEFAULT_COMPANY_NAME, DEFAULT_SANDBOX_NAME } from './migrations';
 import { SLOTS } from './slots';
 

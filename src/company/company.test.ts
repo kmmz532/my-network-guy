@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { migrate } from '../services/migrations';
-import { COMPANY_KEYS, companyOf, type Company } from './world';
+import { COMPANY_KEYS, companyOf, type Company } from './company';
 
 type Fixture = Record<string, { saveVersion: number; data: unknown }>;
 

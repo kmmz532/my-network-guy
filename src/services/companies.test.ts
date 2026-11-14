@@ -1,6 +1,6 @@
 // 会社（セーブの枠）の規則（N133）
 import { describe, expect, it } from 'vitest';
-import type { Company } from '../world/world';
+import type { Company } from '../company/company';
 import { DEFAULT_COMPANY_NAME, DEFAULT_SANDBOX_NAME } from './migrations';
 import { MAX_COMPANY_NAME, copyNameOf, freeSlotOf, isValidCompanyName, latestCompany, sortByRecent, suggestCompanyName, type CompanySave } from './companies';
 

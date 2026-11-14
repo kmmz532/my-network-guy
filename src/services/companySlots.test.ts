@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CompanySave } from './companies';
 import { copyCompany, deleteCompany, importCompany, overwriteCompany, renameCompany, type SlotStore } from './companySlots';
-import { GameMode, Company } from '../world/world';
+import { GameMode, Company } from '../company/company';
 
 // 保存先の代わり（枠の番号ごとに会社を持つ）
 const fakeStore = (initial: CompanySave[]) => {

@@ -1,6 +1,6 @@
 // セーブデータのJSONエクスポート・インポート（端末間の移行用）
 import { SAVE_VERSION, isCompany, migrate } from './migrations';
-import type { Company } from '../world/world';
+import type { Company } from '../company/company';
 
 const FORMAT = 'my-network-guy-save';
 
