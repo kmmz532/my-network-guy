@@ -259,6 +259,9 @@ const scenes = {
     await page.goto(`${URL_BASE}?debug=1`);
     await page.waitForFunction(() => window.__game !== undefined, null, { timeout: 30000 });
     await page.getByText('新しくプレイ').click();
+    await page.waitForTimeout(800);
+    // 社名の入力が出るため、既定の社名のまま始める
+    await page.getByRole('button', { name: '始める' }).click();
     await page.waitForTimeout(1000);
     await page.getByRole('button', { name: 'DEBUG' }).click();
     await page.waitForTimeout(500);
@@ -268,6 +271,9 @@ const scenes = {
     await page.goto(`${URL_BASE}?debug=1`);
     await page.waitForFunction(() => window.__game !== undefined, null, { timeout: 30000 });
     await page.getByText('新しくプレイ').click();
+    await page.waitForTimeout(800);
+    // 社名の入力が出るため、既定の社名のまま始める
+    await page.getByRole('button', { name: '始める' }).click();
     await page.waitForTimeout(1000);
     await page.getByRole('button', { name: 'DEBUG' }).click();
     await page.waitForTimeout(300);
