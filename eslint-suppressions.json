@@ -739,7 +739,7 @@
   },
   "src/stores/slices/officeSlice.ts": {
     "local/no-mode-branch": {
-      "count": 2
+      "count": 1
     }
   },
   "src/stores/slices/sessionSlice.ts": {

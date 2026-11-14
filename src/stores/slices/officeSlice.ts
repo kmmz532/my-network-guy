@@ -10,7 +10,7 @@ import { clearsPlacing } from '../../sim/shop';
 import { type RoomId, officeUplinkOf, type Outcome } from '../../sim/project';
 import { placeOfficeUplink, moveOfficeUplink } from '../../sim/placement';
 
-import { SANDBOX_EXPAND_CONFIG, coreOf, focusedProject } from '../gameHelpers';
+import { SANDBOX_BALANCE, SANDBOX_EXPAND_CONFIG, coreOf, focusedProject } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
 import type { StateCreator } from 'zustand';
 import { createOps } from '../gameOps';
@@ -32,10 +32,12 @@ export interface OfficeSlice {
 
 export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (set, get) => {
   const { apply, applyUnrecorded, dispatch, dropHistory, recorded } = createOps(set, get);
+  // 解放（レベル）も費用も問わない遊び方か。遊び方の名前を見るのはここだけにする
+  const freePlay = (): boolean => get().mode === 'sandbox';
   // 置いて在庫が0になったら、選んでいる品目を外す
   const releaseWhenEmpty = (deviceId: string, reason: string | null): string | null => {
     const s = get();
-    if (reason === null && clearsPlacing(s.owned, deviceId, s.mode === 'sandbox')) set({ placing: null });
+    if (reason === null && clearsPlacing(s.owned, deviceId, freePlay())) set({ placing: null });
     return reason;
   };
   return {
@@ -47,9 +49,12 @@ export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (
         if (!hq) return 'map';
         // 回線終端は在庫を持たない。まだなければ置き、置いてあれば有料で位置を変更する
         if (deviceId === 'uplink') {
-          const core = coreOf(get());
+          // サンドボックスは、解放（レベル）も費用も問わず置く。資金は apply が元のまま残す
+          const free = freePlay();
+          const base = coreOf(get());
+          const core = free ? { ...base, clock: { ...base.clock, money: Number.MAX_SAFE_INTEGER } } : base;
           const op = officeUplinkOf(core.office) ? moveOfficeUplink : placeOfficeUplink;
-          const reason = recorded(() => apply(op(core, x, y, hq, gameEnv, balance), { tx: x, ty: y }));
+          const reason = recorded(() => apply(op(core, x, y, hq, gameEnv, free ? SANDBOX_BALANCE : balance), { tx: x, ty: y }));
           if (reason === null) set({ placing: null });
           return reason;
         }
@@ -69,7 +74,7 @@ export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (
         ty: side === 'bottom' ? office.size.h + 1 : Math.floor((office.size.h + 2) / 2),
       };
       // サンドボックスは、解放（レベル）も費用も問わず広げる。拡張の上限は通常と同じ（N59）。費用は、資金を変えないよう一時的に大きな資金で計算してから戻す
-      const sandboxExpand = get().mode === 'sandbox';
+      const sandboxExpand = freePlay();
       const core = coreOf(get());
       const outcome = sandboxExpand
         ? expandOfficeOp({ ...core, clock: { ...core.clock, money: Number.MAX_SAFE_INTEGER } }, side, SANDBOX_EXPAND_CONFIG, 0)
@@ -96,7 +101,10 @@ export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (
     },
     rotateFurniture: (uid) => applyUnrecorded({ kind: 'rotateFurniture', uid }),
     changeFloor: (room, floor) => {
-      const reason = apply(changeFloorOp(coreOf(get()), room, floor, balance));
+      // サンドボックスは、解放（レベル）も費用も問わず張り替える。資金は apply が元のまま残す
+      const base = coreOf(get());
+      const core = freePlay() ? { ...base, clock: { ...base.clock, money: Number.MAX_SAFE_INTEGER } } : base;
+      const reason = apply(changeFloorOp(core, room, floor, freePlay() ? SANDBOX_BALANCE : balance));
       // 床の絵が変わるので、マップを作り直す（機器と家具はそのまま）
       if (reason === null) set((s) => ({ maps: { ...s.maps, hq: mapOfOffice(s.office) } }));
       return reason;

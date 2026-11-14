@@ -23,4 +23,11 @@ describe('サンドボックスの部屋の拡張（N59）', () => {
     expect(st().companyExp).toBeLessThan(1000);
     expect(st().expandOffice('bottom')).toBeNull();
   });
+
+  it('回線終端は、解放のレベルがなくても置ける', () => {
+    const money = st().clock.money;
+    expect(st().place('uplink', 2, 2)).toBeNull();
+    expect(st().office.nodes.some((n) => n.device === 'uplink')).toBe(true);
+    expect(st().clock.money).toBe(money);
+  });
 });

@@ -218,6 +218,8 @@ export const unlockItems: UnlockItem[] = [
 
 // 納品で会社のレベルが上がったら、上がった各レベルの報酬（お金・機器）を足し、解放の一覧を報告に付ける（N45）
 // サンドボックスの拡張の設定。解放のレベルを外す（費用は呼び出し側で打ち消す。N59）
+// サンドボックスの機能の解放。回線終端と床の変更をレベルを問わず使えるようにする
+export const SANDBOX_BALANCE: typeof balance = { ...balance, featureUnlocks: { ...balance.featureUnlocks, uplink: 1, floorChange: 1 } };
 export const SANDBOX_EXPAND_CONFIG = { ...balance.office, expand: { ...balance.office.expand, unlockLevels: [] } };
 
 // 任せた依頼の納品は、結果画面を出さずに通知で伝える。レベルアップしたときだけ結果画面を出す（レベルアップの報告を付ける）
