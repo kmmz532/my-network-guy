@@ -5,12 +5,12 @@ import { isL2Category, isRoutingCategory } from '../category';
 import { framesOf } from '../frames';
 import { macOf } from '../mac';
 import { resolveName } from '../resolve';
-import { isIp } from '../terminalConfig';
+import { isIp, maskToPrefix, port, vlanNumber } from '../terminalConfig';
 import { isValidHostname } from '../hostname';
 import type { NetNode } from '../types';
 import { deviceCategory } from '../../registry/query';
 import type { TerminalLine, Tr } from '../terminal';
-import { err, nameOf, out, shown } from './lines';
+import { changed, err, nameOf, out, shown } from './lines';
 import type { CommandContext, CommandSpec } from './types';
 
 // 機器の、ポートごとの接続先（ポート番号 → 相手の機器）
@@ -88,11 +88,11 @@ export const commands: readonly CommandSpec[] = [
     help: '',
     writes: true,
     topic: null,
-    run: (args, _ctx, tr) => {
+    run: (args, ctx, tr) => {
       const words = args.args.split(' ').filter((w) => w !== '');
       if (words.length !== 1) return shown([err(tr('ui.terminal.usageHostname'))]);
       if (!isValidHostname(words[0])) return shown([err(tr('ui.terminal.errHostname'))]);
-      return { lines: [], change: { kind: 'hostname', hostname: words[0] }, session: null };
+      return changed(ctx, tr, { kind: 'hostname', hostname: words[0] });
     },
   },
   {
@@ -102,7 +102,55 @@ export const commands: readonly CommandSpec[] = [
     help: '',
     writes: true,
     topic: null,
-    run: () => ({ lines: [], change: { kind: 'hostname', hostname: null }, session: null }),
+    run: (_args, ctx, tr) => changed(ctx, tr, { kind: 'hostname', hostname: null }),
+  },
+  {
+    id: 'core.ipAddress',
+    modes: ['exec'],
+    tokens: [{ word: 'ip' }, { word: 'address' }, { rest: 'args' }],
+    help: '',
+    writes: true,
+    topic: null,
+    // 形は3つ。DHCP（口 dhcp）→ SVI（vlan 番号 IP マスク）→ 口（口 IP マスク）の順に当てる（今の parseConfig と同じ）
+    run: (args, ctx, tr) => {
+      const words = args.args.split(' ').filter((w) => w !== '');
+      if (words.length === 2 && words[1] === 'dhcp') {
+        const p = port(words[0]);
+        if (p === null) return shown([err(tr('ui.terminal.errPort'))]);
+        return changed(ctx, tr, { kind: 'dhcp', change: { op: 'client', port: p } });
+      }
+      if (words[0] === 'vlan') {
+        if (words.length !== 4) return shown([err(tr('ui.terminal.usageSvi'))]);
+        const v = vlanNumber(words[1]);
+        if (v === null) return shown([err(tr('ui.terminal.errVlan'))]);
+        if (!isIp(words[2])) return shown([err(tr('ui.terminal.errIp'))]);
+        const prefix = maskToPrefix(words[3]);
+        if (prefix === null) return shown([err(tr('ui.terminal.errMask'))]);
+        return changed(ctx, tr, { kind: 'svi', vlan: v, ip: words[2], prefix });
+      }
+      if (words.length !== 3) return shown([err(tr('ui.terminal.usageIpAddress'))]);
+      const p = port(words[0]);
+      if (p === null) return shown([err(tr('ui.terminal.errPort'))]);
+      if (!isIp(words[1])) return shown([err(tr('ui.terminal.errIp'))]);
+      const prefix = maskToPrefix(words[2]);
+      if (prefix === null) return shown([err(tr('ui.terminal.errMask'))]);
+      return changed(ctx, tr, { kind: 'iface', port: p, ip: words[1], prefix });
+    },
+  },
+  {
+    id: 'core.noIpAddressVlan',
+    modes: ['exec'],
+    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'address' }, { word: 'vlan' }, { rest: 'args' }],
+    help: '',
+    writes: true,
+    topic: null,
+    run: (args, ctx, tr) => {
+      const words = args.args.split(' ').filter((w) => w !== '');
+      if (words.length !== 1) return shown([err(tr('ui.terminal.usageSvi'))]);
+      const v = vlanNumber(words[0]);
+      if (v === null) return shown([err(tr('ui.terminal.errVlan'))]);
+      return changed(ctx, tr, { kind: 'svi', vlan: v, ip: '', prefix: 24 });
+    },
   },
   {
     id: 'core.help',

@@ -6,6 +6,17 @@ import { gameEnv } from '../sim/env';
 import { dhcpWriteBack } from './engine/analyze';
 import { writeBackDhcp, type Core } from '../sim/project';
 import type { Iface, NetLink, NetNode, Network } from './types';
+import type { EngineData } from './types';
+import type { NetworkState } from './engine/state';
+import type { Tr } from './terminal';
+import { commandContextOf, runLine } from './command/run';
+
+// 木の命令の結果を、解釈の形（action は設定の操作、error は誤りの鍵）に合わせて見る
+const treeCtx = commandContextOf({ node: {} as NetNode, nodes: [], links: [], data: {} as EngineData, state: {} as NetworkState }, false);
+const viaTree = (line: string, tr: Tr) => {
+  const r = runLine(line, treeCtx, tr);
+  return r.change !== null ? { kind: 'action', action: r.change } : { kind: 'error', text: r.lines[0].text };
+};
 
 const data = gameEnv.engine;
 const st = (ip: string, prefix = 24, extra: Partial<Iface> = {}): Iface => ({ id: 'eth0', kind: 'port', port: 0, ip, prefix, ...extra });
@@ -85,9 +96,9 @@ describe('DHCP のターミナル', () => {
   it('ip address dhcp・ip helper-address・ip dhcp pool を読み、show ip dhcp binding は配ったアドレスを出す', async () => {
     const { parseConfig } = await import('./terminalConfig');
     const { commandContextOf, runLine } = await import('./command/run');
-    const runShow = (line: string, c: Parameters<typeof commandContextOf>[0], tr: Parameters<typeof runLine>[2]) => runLine(line, commandContextOf(c), tr).lines;
+    const runShow = (line: string, c: Parameters<typeof commandContextOf>[0], tr: Parameters<typeof runLine>[2]) => runLine(line, commandContextOf(c, false), tr).lines;
     const tr = (k: string, p?: Record<string, unknown>) => (p ? `${k} ${JSON.stringify(p)}` : k);
-    expect(parseConfig('ip address 0 dhcp', tr)).toEqual({ kind: 'action', action: { kind: 'dhcp', op: 'client', port: 0 } });
+    expect(viaTree('ip address 0 dhcp', tr)).toEqual({ kind: 'action', action: { kind: 'dhcp', change: { op: 'client', port: 0 } } });
     expect(parseConfig('ip helper-address 1 10.0.0.2', tr)).toEqual({ kind: 'action', action: { kind: 'dhcp', op: 'helper', port: 1, ip: '10.0.0.2' } });
     expect(parseConfig('no ip helper-address 1', tr)).toEqual({ kind: 'action', action: { kind: 'dhcp', op: 'helper', port: 1, ip: null } });
     expect(parseConfig('ip dhcp pool 192.168.1.0 255.255.255.0 192.168.1.100 192.168.1.150 gateway 192.168.1.1', tr)).toEqual({

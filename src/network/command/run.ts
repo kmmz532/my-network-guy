@@ -4,16 +4,17 @@ import type { ConfigChange } from '../../world/operation';
 import { runTerminal, type Tr } from '../terminal';
 import { parseConfig, type ConfigAction } from '../terminalConfig';
 import type { NetNode } from '../types';
-import { err, shown } from './lines';
+import { err, readOnlyLine, shown } from './lines';
 import { parseLine } from './parse';
-import type { CommandContext, CommandResult, TerminalContext, TerminalSession } from './types';
+import type { CommandContext, CommandResult, TerminalContext } from './types';
 
 // 画面・試験が持つ文脈に、命令の木が要る項目を足す。モードは常に exec とし、論点はすべて解放して値を隠さない
-export const commandContextOf = (base: TerminalContext): CommandContext => ({
+export const commandContextOf = (base: TerminalContext, readOnly: boolean): CommandContext => ({
   ...base,
   session: { mode: 'exec', iface: null, process: null },
   unlocked: () => true,
   hideValues: false,
+  readOnly,
 });
 
 // 設定の命令（ConfigAction）を、世界へ渡す設定の操作に替える。替えられないときは誤りの鍵を返す。
@@ -80,13 +81,6 @@ export const legacyChange = (action: ConfigAction, node: NetNode): ConfigChange 
   }
 };
 
-// 設定を変える行か（木の writes の命令、または木で解釈できず設定の命令と解釈される行）。読み取り専用の機器は、この行を実行の前に拒否する
-export const isConfigLine = (line: string, session: TerminalSession, tr: Tr): boolean => {
-  const parsed = parseLine(line, session);
-  if (parsed !== null && !('error' in parsed)) return parsed.spec.writes;
-  return parseConfig(line, tr).kind === 'action';
-};
-
 export const runLine = (line: string, ctx: CommandContext, tr: Tr): CommandResult => {
   const parsed = parseLine(line, ctx.session);
   if (parsed !== null) {
@@ -98,6 +92,8 @@ export const runLine = (line: string, ctx: CommandContext, tr: Tr): CommandResul
   const config = parseConfig(line, tr);
   if (config.kind === 'error') return shown([err(config.text)]);
   if (config.kind === 'action') {
+    // 構文の検査の後で、読み取り専用を見る（今の順序）
+    if (ctx.readOnly) return shown([readOnlyLine(tr)]);
     const change = legacyChange(config.action, ctx.node);
     return typeof change === 'string' ? shown([err(tr(change))]) : { lines: [], change, session: null };
   }

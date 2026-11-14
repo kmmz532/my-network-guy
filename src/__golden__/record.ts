@@ -57,7 +57,7 @@ export const recordOf = (input: Network, engine: EngineData) => {
       }),
   );
   const shows = net.nodes.flatMap((n) =>
-    showsOf(n.device).map((cmd) => ({ node: n.uid, cmd, lines: runLine(cmd, commandContextOf({ node: n, nodes: net.nodes, links: net.links, data: engine, state: analyze(net, engine) }), tr).lines.map((l) => `${l.kind}:${l.text}`) })),
+    showsOf(n.device).map((cmd) => ({ node: n.uid, cmd, lines: runLine(cmd, commandContextOf({ node: n, nodes: net.nodes, links: net.links, data: engine, state: analyze(net, engine) }, false), tr).lines.map((l) => `${l.kind}:${l.text}`) })),
   );
   const colors = networkColors(analyze(net, engine));
   return {

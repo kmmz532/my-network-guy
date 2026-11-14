@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { isIp, maskToPrefix, parseConfig } from './terminalConfig';
+import type { EngineData, NetNode } from './types';
+import type { NetworkState } from './engine/state';
+import type { Tr } from './terminal';
+import { commandContextOf, runLine } from './command/run';
+
+// 木の命令の結果を、解釈の形（action は設定の操作、error は誤りの鍵）に合わせて見る
+const treeCtx = commandContextOf({ node: {} as NetNode, nodes: [], links: [], data: {} as EngineData, state: {} as NetworkState }, false);
+const viaTree = (line: string, tr: Tr) => {
+  const r = runLine(line, treeCtx, tr);
+  return r.change !== null ? { kind: 'action', action: r.change } : { kind: 'error', text: r.lines[0].text };
+};
 
 const tr = (key: string) => key;
 
@@ -22,7 +33,7 @@ describe('マスクと IP の判定', () => {
 
 describe('設定のコマンド（段階3）', () => {
   it('ip address は、ポート・IP・マスクを操作にする', () => {
-    expect(parseConfig('ip address 0 192.168.1.10 255.255.255.0', tr)).toEqual({
+    expect(viaTree('ip address 0 192.168.1.10 255.255.255.0', tr)).toEqual({
       kind: 'action',
       action: { kind: 'iface', port: 0, ip: '192.168.1.10', prefix: 24 },
     });
@@ -45,10 +56,10 @@ describe('設定のコマンド（段階3）', () => {
   });
 
   it('形の違う入力は、理由のキーを出す', () => {
-    expect(parseConfig('ip address x 192.168.1.10 255.255.255.0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errPort' });
-    expect(parseConfig('ip address 0 192.168.1.999 255.255.255.0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errIp' });
-    expect(parseConfig('ip address 0 192.168.1.10 255.0.255.0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errMask' });
-    expect(parseConfig('ip address 0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageIpAddress' });
+    expect(viaTree('ip address x 192.168.1.10 255.255.255.0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errPort' });
+    expect(viaTree('ip address 0 192.168.1.999 255.255.255.0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errIp' });
+    expect(viaTree('ip address 0 192.168.1.10 255.0.255.0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errMask' });
+    expect(viaTree('ip address 0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageIpAddress' });
     expect(parseConfig('ip foo', tr)).toEqual({ kind: 'error', text: 'ui.terminal.unknown' });
   });
 
@@ -60,15 +71,15 @@ describe('設定のコマンド（段階3）', () => {
 
 describe('hostname', () => {
   it('hostname は名前を付け、no hostname は既定の名前に戻す', () => {
-    expect(parseConfig('hostname R1', tr)).toEqual({ kind: 'action', action: { kind: 'hostname', hostname: 'R1' } });
-    expect(parseConfig('no hostname', tr)).toEqual({ kind: 'action', action: { kind: 'hostname', hostname: null } });
+    expect(viaTree('hostname R1', tr)).toEqual({ kind: 'action', action: { kind: 'hostname', hostname: 'R1' } });
+    expect(viaTree('no hostname', tr)).toEqual({ kind: 'action', action: { kind: 'hostname', hostname: null } });
   });
 
   it('使えない名前は理由のキーを出す', () => {
-    expect(parseConfig('hostname 日本語', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
-    expect(parseConfig('hostname ' + 'a'.repeat(64), tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
-    expect(parseConfig('hostname 1pc', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
-    expect(parseConfig('hostname', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageHostname' });
+    expect(viaTree('hostname 日本語', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
+    expect(viaTree('hostname ' + 'a'.repeat(64), tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
+    expect(viaTree('hostname 1pc', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
+    expect(viaTree('hostname', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageHostname' });
   });
 });
 

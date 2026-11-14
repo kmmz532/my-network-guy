@@ -48,7 +48,7 @@ const runScene = (lessonId: string, text: string) => {
     const node = current.nodes.find((n) => n.uid === uid);
     if (!node) throw new Error(`場面 ${lessonId}: 機器 ${uid} がない`);
     const state = analyze({ nodes: current.nodes, links: current.links, plans: current.plans }, gameEnv.engine);
-    const result = runLine(line, commandContextOf({ node, nodes: current.nodes, links: current.links, data: gameEnv.engine, state }), tr);
+    const result = runLine(line, commandContextOf({ node, nodes: current.nodes, links: current.links, data: gameEnv.engine, state }, false), tr);
     if (result.change !== null) {
       // 設定の操作は、画面（TerminalTab）と同じ操作（applyOperation）に当てる。モードは持たないため、口の番号は行の中で指定する
       const r = applyOperation(core, { kind: 'config', uid, change: result.change }, opCtx);

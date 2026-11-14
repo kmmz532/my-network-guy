@@ -42,6 +42,7 @@ export interface CommandContext extends TerminalContext {
   session: TerminalSession;
   unlocked: (topic: string) => boolean;
   hideValues: boolean; // 教材・演習を開いている間は、予測と候補に引数の値を出さない
+  readOnly: boolean; // 読み取り専用の機器。設定を変える命令は、構文の検査の後で読み取り専用の誤りを返す
 }
 
 export interface CommandResult {

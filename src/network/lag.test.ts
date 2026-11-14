@@ -89,7 +89,7 @@ describe('リンクアグリゲーションのターミナル', () => {
   it('channel-group を読み、show etherchannel summary は口ごとのまとまりを (P)・(I) で出す', async () => {
     const { parseConfig } = await import('./terminalConfig');
     const { commandContextOf, runLine } = await import('./command/run');
-    const runShow = (line: string, c: Parameters<typeof commandContextOf>[0], tr: Parameters<typeof runLine>[2]) => runLine(line, commandContextOf(c), tr).lines;
+    const runShow = (line: string, c: Parameters<typeof commandContextOf>[0], tr: Parameters<typeof runLine>[2]) => runLine(line, commandContextOf(c, false), tr).lines;
     const tr = (k: string, p?: Record<string, unknown>) => (p ? `${k} ${JSON.stringify(p)}` : k);
     expect(parseConfig('channel-group 0 1 mode active', tr)).toEqual({ kind: 'action', action: { kind: 'channel', port: 0, group: 1, lacp: 'active' } });
     expect(parseConfig('no channel-group 0', tr)).toEqual({ kind: 'action', action: { kind: 'channel', port: 0, group: null } });

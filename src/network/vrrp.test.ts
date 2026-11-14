@@ -92,7 +92,7 @@ describe('VRRP のターミナル', () => {
   it('vrrp の ip・priority・preempt・track を読み、show vrrp はマスターとバックアップを出す', async () => {
     const { parseConfig } = await import('./terminalConfig');
     const { commandContextOf, runLine } = await import('./command/run');
-    const runShow = (line: string, c: Parameters<typeof commandContextOf>[0], tr: Parameters<typeof runLine>[2]) => runLine(line, commandContextOf(c), tr).lines;
+    const runShow = (line: string, c: Parameters<typeof commandContextOf>[0], tr: Parameters<typeof runLine>[2]) => runLine(line, commandContextOf(c, false), tr).lines;
     const tr = (k: string, p?: Record<string, unknown>) => (p ? `${k} ${JSON.stringify(p)}` : k);
     expect(parseConfig('vrrp 0 1 ip 192.168.1.254', tr)).toEqual({ kind: 'action', action: { kind: 'vrrp', op: 'ip', port: 0, vrid: 1, ip: '192.168.1.254' } });
     expect(parseConfig('vrrp 0 1 priority 110', tr)).toEqual({ kind: 'action', action: { kind: 'vrrp', op: 'priority', port: 0, vrid: 1, value: 110 } });

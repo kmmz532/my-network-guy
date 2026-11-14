@@ -91,9 +91,9 @@ export const maskToPrefix = (mask: string): number | null => {
 // 名前（hostname・対応表）の形（hostname.ts の規則）
 export const isHostName = (s: string): boolean => isValidHostname(s);
 
-const port = (s: string): number | null => (/^\d+$/.test(s) ? Number(s) : null);
+export const port = (s: string): number | null => (/^\d+$/.test(s) ? Number(s) : null);
 // VLAN の番号（1〜4094）
-const vlanNumber = (s: string): number | null => (/^\d+$/.test(s) && Number(s) >= 1 && Number(s) <= 4094 ? Number(s) : null);
+export const vlanNumber = (s: string): number | null => (/^\d+$/.test(s) && Number(s) >= 1 && Number(s) <= 4094 ? Number(s) : null);
 
 export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   const words = line.trim().split(/\s+/).filter((w) => w !== '');
@@ -258,21 +258,6 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     return { kind: 'action', action: { kind: 'network', proto: 'rip', ip: rest[1], area: null, on: false } };
   }
 
-  if (first === 'ip' && rest[0] === 'address' && rest[1] === 'vlan') {
-    if (rest.length !== 5) return error('ui.terminal.usageSvi');
-    const v = vlanNumber(rest[2]);
-    if (v === null) return error('ui.terminal.errVlan');
-    if (!isIp(rest[3])) return error('ui.terminal.errIp');
-    const prefix = maskToPrefix(rest[4]);
-    if (prefix === null) return error('ui.terminal.errMask');
-    return { kind: 'action', action: { kind: 'svi', vlan: v, ip: rest[3], prefix } };
-  }
-  if (first === 'no' && rest[0] === 'ip' && rest[1] === 'address' && rest[2] === 'vlan') {
-    if (rest.length !== 4) return error('ui.terminal.usageSvi');
-    const v = vlanNumber(rest[3]);
-    if (v === null) return error('ui.terminal.errVlan');
-    return { kind: 'action', action: { kind: 'svi', vlan: v, ip: '', prefix: 24 } };
-  }
   if (first === 'switchport' && rest[1] === 'trunk') {
     const p = port(rest[0]);
     if (p === null) return error('ui.terminal.errPort');
@@ -311,21 +296,6 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     return { kind: 'action', action: { kind: 'portMode', port: p, mode: { kind: 'routed' } } };
   }
 
-  if (first === 'ip' && rest[0] === 'address' && rest.length === 3 && rest[2] === 'dhcp') {
-    const p = port(rest[1]);
-    if (p === null) return error('ui.terminal.errPort');
-    return { kind: 'action', action: { kind: 'dhcp', op: 'client', port: p } };
-  }
-  if (first === 'ip' && rest[0] === 'address') {
-    if (rest.length !== 4) return error('ui.terminal.usageIpAddress');
-    const p = port(rest[1]);
-    if (p === null) return error('ui.terminal.errPort');
-    if (!isIp(rest[2])) return error('ui.terminal.errIp');
-    const prefix = maskToPrefix(rest[3]);
-    if (prefix === null) return error('ui.terminal.errMask');
-    return { kind: 'action', action: { kind: 'iface', port: p, ip: rest[2], prefix } };
-  }
-
   if (first === 'ip' && rest[0] === 'host') {
     if (rest.length !== 3) return error('ui.terminal.usageHost');
     if (!isHostName(rest[1])) return error('ui.terminal.errHostname');
@@ -351,16 +321,6 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     const prefix = maskToPrefix(rest[2]);
     if (prefix === null) return error('ui.terminal.errMask');
     return { kind: 'action', action: { kind: 'addRoute', route: { dest: rest[1], prefix, nextHop: rest[3] } } };
-  }
-
-  if (first === 'hostname') {
-    if (rest.length !== 1) return error('ui.terminal.usageHostname');
-    if (!isValidHostname(rest[0])) return error('ui.terminal.errHostname');
-    return { kind: 'action', action: { kind: 'hostname', hostname: rest[0] } };
-  }
-
-  if (first === 'no' && rest[0] === 'hostname' && rest.length === 1) {
-    return { kind: 'action', action: { kind: 'hostname', hostname: null } };
   }
 
   if (first === 'ip' && rest[0] === 'name-server') {

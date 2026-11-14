@@ -53,7 +53,7 @@ describe('スパニングツリーのターミナル', () => {
   it('spanning-tree の priority・cost を読み、show spanning-tree はルートと口の役割を出す', async () => {
     const { parseConfig } = await import('./terminalConfig');
     const { commandContextOf, runLine } = await import('./command/run');
-    const runShow = (line: string, c: Parameters<typeof commandContextOf>[0], tr: Parameters<typeof runLine>[2]) => runLine(line, commandContextOf(c), tr).lines;
+    const runShow = (line: string, c: Parameters<typeof commandContextOf>[0], tr: Parameters<typeof runLine>[2]) => runLine(line, commandContextOf(c, false), tr).lines;
     const tr = (k: string, p?: Record<string, unknown>) => (p ? `${k} ${JSON.stringify(p)}` : k);
     expect(parseConfig('spanning-tree priority 4096', tr)).toEqual({ kind: 'action', action: { kind: 'stp', op: 'priority', value: 4096 } });
     expect(parseConfig('spanning-tree priority 100', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errStpPriority' });
