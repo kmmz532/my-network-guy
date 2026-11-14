@@ -16,6 +16,7 @@ export default tseslint.config(
       'local/no-engine-in-view': 'error',
       'local/no-handmade-engine-data': 'error',
       'local/is-pc-in': 'error',
+      'local/no-core-set': 'error',
       // 機器・ケーブル・家具の定義は登録表（src/registry）から引く。読み込むのは src/registry/game.ts だけ
       'no-restricted-imports': [
         'error',
@@ -61,5 +62,10 @@ export default tseslint.config(
     // 登録表の入口だけは、定義を読んで登録する
     files: ['src/registry/game.ts'],
     rules: { 'no-restricted-imports': 'off' },
+  },
+  {
+    // 試験は状態を直接用意してよい
+    files: ['src/**/*.test.ts'],
+    rules: { 'local/no-core-set': 'off' },
   },
 );

@@ -59,3 +59,24 @@ tester.run('is-pc-in', plugin.rules['is-pc-in'], {
   valid: [ok("const a = c === 'pc';", 'src/data/categories.ts'), ok("const a = c === 'server';")],
   invalid: [bad("const a = c === 'pc';"), bad('const a = c === CATEGORY.pc;')],
 });
+
+tester.run('no-core-set', plugin.rules['no-core-set'], {
+  valid: [
+    ok('set({ ui: 1 });'),
+    ok("set({ office: x }, false, 'x');", 'src/stores/gameOps.ts'),
+    ok('set({ office: x });', 'src/stores/slices/sessionSlice.ts'),
+    ok('const o = { office: x };'),
+    ok('useGameStore.setState({ owned: list });', 'src/stores/useGameStore.ts'),
+    ok('set((s) => ({ ui: s.ui }));'),
+    ok('map.set(key, { office: 1 });'),
+  ],
+  invalid: [
+    bad('set({ office: x });'),
+    { code: 'set({ active: id, clock: 3 });', filename: 'src/x/a.js', errors: 2 },
+    bad('useGameStore.setState({ staff: list });'),
+    bad("useGameStore.setState({ 'reputation': 1 });"),
+    bad('set({ offers });'),
+    bad('set((s) => ({ owned: [...s.owned, id] }));'),
+    bad('set((s) => { return { candidates: [] }; });'),
+  ],
+});

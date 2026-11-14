@@ -101,6 +101,47 @@ const isPcIn = rule(
   ['src/data/categories.ts'],
 );
 
+// 構成（Core）のキーを set・setState の引数に直接書くこと（初期値の書き込みは除外）
+const CORE_KEYS = new Set(['office', 'active', 'owned', 'clock', 'focus', 'staff', 'staffSeq', 'candidates', 'offers', 'completed', 'deliveries', 'familiarity', 'effects', 'companyExp', 'reputation']);
+const keyName = (prop) => (prop.computed ? (prop.key.type === 'Literal' ? prop.key.value : null) : prop.key.type === 'Identifier' ? prop.key.name : prop.key.value);
+// 構成を書く呼び出し: Zustand の set（引数の名前）と、ストアの setState。Map の set は対象にしない
+const isSetCall = (callee) => (callee.type === 'Identifier' && callee.name === 'set') || (callee.type === 'MemberExpression' && !callee.computed && callee.property.name === 'setState');
+const coreKeysIn = (obj) => obj.properties.filter((p) => p.type === 'Property' && CORE_KEYS.has(keyName(p)));
+const returnedObjects = (fn) => {
+  if (fn.body.type === 'ObjectExpression') return [fn.body];
+  return fn.body.type === 'BlockStatement' ? fn.body.body.filter((s) => s.type === 'ReturnStatement' && s.argument?.type === 'ObjectExpression').map((s) => s.argument) : [];
+};
+// 利用者の編集でない仕組みの処理（案件の進行・報酬・教材を開く・案件の切り替え）。関数の名前で除外する
+const CORE_SET_FUNCTIONS = {
+  'src/stores/slices/contractSlice.ts': ['declineOffer'], // 案件の進行（依頼の辞退）
+  'src/stores/slices/economySlice.ts': ['grantCompanyExp'], // 経験値と報酬の受け取り
+  'src/stores/slices/designSlice.ts': ['openLesson', 'test'], // 教材を開く・検査の結果の書き込み
+  'src/stores/slices/uiSlice.ts': ['setFocus'], // 案件の切り替え
+};
+const inExcludedFunction = (context, node) => {
+  const file = `/${context.filename.split('\\').join('/')}`;
+  const entry = Object.entries(CORE_SET_FUNCTIONS).find(([f]) => file.endsWith(`/${f}`));
+  if (!entry) return false;
+  return context.sourceCode.getAncestors(node).some((n) => n.type === 'Property' && !n.computed && n.key.type === 'Identifier' && entry[1].includes(n.key.name));
+};
+const noCoreSet = rule(
+  '構成のキーを set・setState で直接書くことを禁じる',
+  '構成（Core）は操作（applyOperation・dispatch）を通して変えること。set・setState の引数に構成のキーを書かない',
+  (context) => ({
+    CallExpression(node) {
+      if (!isSetCall(node.callee)) return;
+      if (inExcludedFunction(context, node)) return;
+      for (const arg of node.arguments) {
+        const objects = arg.type === 'ObjectExpression' ? [arg] : /Function/.test(arg.type) ? returnedObjects(arg) : [];
+        for (const obj of objects) {
+          for (const prop of coreKeysIn(obj)) context.report({ node: prop, messageId: 'violation' });
+        }
+      }
+    },
+  }),
+  ['src/stores/gameOps.ts', 'src/stores/tickSystems.ts', 'src/stores/slices/sessionSlice.ts', 'src/stores/useGameStore.ts', 'src/stores/slices/debugSlice.ts' /* デバッグの操作は遊びの操作ではない */],
+);
+
 export default {
   rules: {
     'no-unknown-fallback': noUnknownFallback,
@@ -109,5 +150,6 @@ export default {
     'no-engine-in-view': noEngineInView,
     'no-handmade-engine-data': noHandmadeEngineData,
     'is-pc-in': isPcIn,
+    'no-core-set': noCoreSet,
   },
 };
