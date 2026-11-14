@@ -12,6 +12,7 @@ import { usePhone } from '../ui/usePhone';
 import { useEffect, useRef, useState } from 'react';
 import { GLOSSARY_OF_FAILURE } from '../network/glossaryOf';
 import { lessons } from 'virtual:game-data';
+import { Button } from './ui/Button';
 
 // 最初の案件（c001）の手順。配線・疎通・施工依頼の順に、済んだものに印を付ける
 const FIRST_CONTRACT = 'c001_direct_link';
@@ -99,8 +100,8 @@ export function TaskPanel() {
                 );
               })}
             </ul>
-            {hasTraces && <button style={{ ...secondaryButton, marginTop: 8, marginRight: 6 }} onClick={() => openWindow('frames', '')}>{t('ui.frames.open')}</button>}
-            <button style={{ ...secondaryButton, marginTop: 8 }} onClick={closeLesson}>{t('ui.lesson.end')}</button>
+            {hasTraces && <Button variant="secondary" layout={{ marginTop: 8, marginRight: 6 }} onClick={() => openWindow('frames', '')}>{t('ui.frames.open')}</Button>}
+            <Button variant="secondary" layout={{ marginTop: 8 }} onClick={closeLesson}>{t('ui.lesson.end')}</Button>
           </div>
         )}
       </aside>
@@ -171,12 +172,9 @@ export function TaskPanel() {
           )}
           {active.phase === 'design' && hasBlueprint && (
             <>
-              <button
-                style={{ ...secondaryButton, marginTop: 6 }}
-                onClick={() => setBlueprintError(useBlueprint())}
-              >
+              <Button variant="secondary" layout={{ marginTop: 6 }} onClick={() => setBlueprintError(useBlueprint())}>
                 {t('ui.blueprint.use')}
-              </button>
+              </Button>
               {blueprintError && <div style={{ marginTop: 4, color: '#ffd866' }}>{tDyn(`ui.error.${blueprintError}`)}</div>}
             </>
           )}
@@ -222,9 +220,9 @@ export function TaskPanel() {
             })}
           </ul>
           {hasTraces && (
-            <button style={{ ...secondaryButton, marginTop: 8 }} onClick={() => openWindow('frames', '')}>
+            <Button variant="secondary" layout={{ marginTop: 8 }} onClick={() => openWindow('frames', '')}>
               {t('ui.frames.open')}
-            </button>
+            </Button>
           )}
           {warnings.length > 0 && (
             <div style={{ marginTop: 8 }}>
