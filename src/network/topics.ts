@@ -44,5 +44,5 @@ export const TOPICS = [
   { id: 'wireless', unlock: 40, command: 'wireless ssid home', show: null, failures: ['wireless.unassociated', 'wlan.psk_mismatch', 'wlan.auth_mismatch'], warnings: ['wlan.open', 'wlan.weak_cipher', 'wlan.channel_overlap', 'wlan.transition'], glossary: 'wpa2', lessons: ['wifi_security'], known: ['show'] },
   { id: 'stp', unlock: 70, command: 'spanning-tree priority 4096', show: 'show spanning-tree', failures: [], warnings: [], glossary: 'root_bridge', lessons: ['stp_triangle'] },
   { id: 'firewall', unlock: null, command: null, show: null, failures: ['firewall.denied'], warnings: [], glossary: null, lessons: [], known: ['command', 'show', 'glossary', 'lesson'] },
-  { id: 'dns', unlock: 18, command: 'ip name-server 192.168.1.53', show: 'show hosts', failures: ['name.unresolved'], warnings: [], glossary: 'dns_auth_cache', lessons: [], known: ['lesson'] },
+  { id: 'dns', unlock: 18, command: 'ip name-server 192.168.1.53', show: 'show hosts', failures: ['name.unresolved'], warnings: [], glossary: 'dns_auth_cache', lessons: ['dns_intranet_names'] },
 ] as const satisfies readonly Topic[];
