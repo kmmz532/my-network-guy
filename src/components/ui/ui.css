@@ -165,6 +165,23 @@ input.ui-combobox:disabled {
   padding: 4px 16px;
 }
 
+.ui-button--outline {
+  background: transparent;
+  color: var(--fg);
+  border-color: var(--fg);
+}
+
+.ui-button--secondary[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--fg-on-accent);
+}
+
+.ui-button--outline[aria-pressed='true'] {
+  background: var(--fg);
+  color: var(--fg-on-fg);
+  font-weight: bold;
+}
+
 .ui-button--s {
   padding: 2px 8px;
   font-size: var(--fs-s);
@@ -177,6 +194,27 @@ input.ui-combobox:disabled {
 
 .ui-button--file {
   display: inline-block;
+  text-align: center;
+}
+
+/* 文字の大きさを変えない小さいボタン */
+.ui-button--fit {
+  padding: 2px 8px;
+}
+
+/* 選択肢の箱 */
+.ui-button--choice {
+  padding: 4px 8px;
+  min-height: 36px;
+  text-align: center;
+}
+
+/* 縦に並べるメニューの項目 */
+.ui-button--menu {
+  display: block;
+  padding: 6px 12px;
+  font-size: var(--fs-menu);
+  line-height: 1.4;
   text-align: center;
 }
 

@@ -14,6 +14,7 @@
   --fg: #f4f1e6;
   --fg-on-field: #3b2a33;
   --fg-disabled: #8a8f99;
+  --fg-on-fg: #2f4f8f;
 
   /* 枠 */
   --line: #3b2a33;
@@ -29,4 +30,5 @@
   --fs-list: 13px;
   --fs-s: 12px;
   --fs-l: 16px;
+  --fs-menu: 13px;
 }
