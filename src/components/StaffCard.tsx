@@ -17,6 +17,7 @@ import { secondaryButton } from './Modal';
 import { Tooltip } from './Tooltip';
 import { retireBlock } from '../sim/retire';
 import { isDevJob, requiresPc } from '../sim/jobs';
+import { Button } from './ui/Button';
 
 const yen = (n: number) => n.toLocaleString('ja-JP');
 // 社員の一覧の列の幅（名前・職種と level・月給・状態）
@@ -106,9 +107,9 @@ export function StaffBody({ uid }: { uid: string }) {
       </dl>
       <div style={{ fontStyle: 'italic', opacity: 0.9 }}>{tDyn(`staff.quirk.${member.quirk}`)}</div>
       <div>
-        <button style={secondaryButton} onClick={() => useUiStore.getState().openHiring('staff')}>
+        <Button variant="secondary" onClick={() => useUiStore.getState().openHiring('staff')}>
           {t('ui.staff.card.goto')}
-        </button>
+        </Button>
       </div>
       <RetireControl uid={uid} />
       <RaiseControl uid={uid} />
@@ -143,20 +144,20 @@ function RaiseControl({ uid }: { uid: string }) {
     return (
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <span>{t('ui.staff.raise.confirm', { amount: amount.toLocaleString('ja-JP') })}</span>
-        <button style={secondaryButton} onClick={() => { raise(uid); setAsking(false); }}>
+        <Button variant="secondary" onClick={() => { raise(uid); setAsking(false); }}>
           {t('ui.staff.raise.yes')}
-        </button>
-        <button style={secondaryButton} onClick={() => setAsking(false)}>
+        </Button>
+        <Button variant="secondary" onClick={() => setAsking(false)}>
           {t('ui.staff.raise.no')}
-        </button>
+        </Button>
       </div>
     );
   }
   return (
     <div>
-      <button style={secondaryButton} onClick={() => setAsking(true)}>
+      <Button variant="secondary" onClick={() => setAsking(true)}>
         {t('ui.staff.raise')}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -170,9 +171,9 @@ function RetireControl({ uid }: { uid: string }) {
     return (
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <span>{t('ui.retire.leaving', { months: balance.retire.payMonths })}</span>
-        <button style={secondaryButton} onClick={() => state.cancelRetire(uid)}>
+        <Button variant="secondary" onClick={() => state.cancelRetire(uid)}>
           {t('ui.retire.cancel')}
-        </button>
+        </Button>
       </div>
     );
   }
