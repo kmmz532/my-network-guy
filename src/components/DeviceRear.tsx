@@ -16,6 +16,8 @@ import { loadSettings } from '../settings/settings';
 import { netOfDevice, useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, portLabel } from './devicePorts';
 import { ListRow } from './ui/ListRow';
+import { Led } from './ui/Led';
+import { Text } from './ui/Text';
 import { portHoverAt, replugTargetAt, type PortBox, type PortHover } from './rearDrag';
 import { RADIUS } from '../ui/theme';
 import { CATEGORY, isPcCategory } from '../data/categories';
@@ -245,7 +247,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
                 }}
               >
                 {/* LED（緑・橙・灰・消灯）。2×2 の点を3倍にする */}
-                <span style={{ width: 2 * SCALE, height: 2 * SCALE, background: led }} />
+                <Led color={led} size={2 * SCALE} />
                 <span style={{ position: 'relative', width: (fiber ? 8 : 12) * SCALE, height: 10 * SCALE, display: 'block' }}>
                   <img src={spriteUrl(spriteOf(slot))} width={(fiber ? 8 : 12) * SCALE} height={10 * SCALE} alt="" draggable={false} style={{ imageRendering: 'pixelated', display: 'block' }} />
                   {!lifted && link && (
@@ -267,7 +269,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
                   {!lifted && link && <img src={spriteUrl(spriteOf(fiber ? 'rear/sfp_shade' : 'rear/plug_shade'))} width={(fiber ? 8 : 12) * SCALE} height={10 * SCALE} alt="" draggable={false} style={{ position: 'absolute', inset: 0, imageRendering: 'pixelated', display: 'block', pointerEvents: 'none' }} />}
                   {!lifted && linkNetworks.length > 3 && <span style={{ position: 'absolute', right: 1, bottom: 0, color: '#f4f1e6', fontSize: Math.max(8, SCALE * 3), lineHeight: 1, textShadow: '1px 1px #3b2a33', pointerEvents: 'none' }}>…</span>}
                 </span>
-                <span style={{ color: '#f4f1e6', fontSize: 11, lineHeight: 1 }}>{portLabel(category, p)}</span>
+                <Text as="span" size="xs">{portLabel(category, p)}</Text>
               </button>
             );
           })}
@@ -287,7 +289,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
           document.body,
         )}
 
-      {isRootBridge && <div style={{ color: '#ffd866', fontSize: 12, marginBottom: 6 }}>{t('ui.rear.stpRootBridge')}</div>}
+      {isRootBridge && <Text tone="warn" size="s" layout={{ marginBottom: 6 }}>{t('ui.rear.stpRootBridge')}</Text>}
 
       {/* ポートの一覧: 相手の機器名とポート、ケーブルの種類 */}
       {ports.map((p) => {
