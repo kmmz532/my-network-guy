@@ -1,5 +1,5 @@
 // セーブデータのバージョン管理。形式を変えたら SAVE_VERSION を上げ、migrations[n]（n → n+1 の変換）を追加する。
-import type { GameMode, World } from '../world/world';
+import type { GameMode, Company } from '../world/world';
 import type { Office, Project } from '../sim/project';
 import type { EngineData, NetLink, NetNode, NetworkPlan, Service } from '../network/types';
 import { legacyFillSegments, segmentsToPlans } from './legacySegments';
@@ -427,7 +427,7 @@ const isOfferShape = (value: unknown): boolean => {
   );
 };
 
-export const isWorld = (value: unknown): value is World => {
+export const isCompany = (value: unknown): value is Company => {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
   const clock = v.clock as Record<string, unknown> | undefined;
@@ -481,7 +481,7 @@ export const isWorld = (value: unknown): value is World => {
 };
 
 
-export const migrate = (saveVersion: number, data: unknown): World => {
+export const migrate = (saveVersion: number, data: unknown): Company => {
   if (!Number.isInteger(saveVersion) || saveVersion < 1) throw new Error('セーブデータのバージョンが不正');
   if (saveVersion > SAVE_VERSION) throw new Error('このバージョンより新しいセーブデータは読み込めない');
   let current = data;
@@ -490,6 +490,6 @@ export const migrate = (saveVersion: number, data: unknown): World => {
     if (!step) throw new Error(`バージョン ${v} からの移行が定義されていない`);
     current = step(current);
   }
-  if (!isWorld(current)) throw new Error('セーブデータの形式が不正');
+  if (!isCompany(current)) throw new Error('セーブデータの形式が不正');
   return current;
 };

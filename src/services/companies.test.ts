@@ -1,13 +1,13 @@
 // 会社（セーブの枠）の規則（N133）
 import { describe, expect, it } from 'vitest';
-import type { World } from '../world/world';
+import type { Company } from '../world/world';
 import { DEFAULT_COMPANY_NAME, DEFAULT_SANDBOX_NAME } from './migrations';
 import { MAX_COMPANY_NAME, copyNameOf, freeSlotOf, isValidCompanyName, latestCompany, sortByRecent, suggestCompanyName, type CompanySave } from './companies';
 
 const save = (slot: number, name: string, savedAt = 0, mode: 'career' | 'sandbox' = 'career'): CompanySave => ({
   slot,
   savedAt,
-  data: { mode, name } as unknown as World,
+  data: { mode, name } as unknown as Company,
 });
 
 describe('社名の規則', () => {

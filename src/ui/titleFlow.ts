@@ -1,7 +1,7 @@
 // タイトル場面の流れ。何を出しているか（メニュー・サンドボックスの広さ・会社の枠の画面）を1つの値で持ち、
 // 変わり方を純粋な関数にする。保存の読み書き（非同期）は場面の部品が行い、結果をこの関数に渡す。
 import { freeSlotOf, suggestCompanyName, type CompanySave } from '../services/companies';
-import type { GameMode, World } from '../world/world';
+import type { GameMode, Company } from '../world/world';
 
 // 会社の枠の画面（SaveSlotDialog）の中身
 export type SaveSlotView =
@@ -29,7 +29,7 @@ export interface TitleState {
   // メニューに出す知らせ
   message: string;
   // 枠が全部埋まっているときに読み込んだ会社（上書きする枠を選んでから入れる）
-  pendingImport: World | null;
+  pendingImport: Company | null;
 }
 
 export const initialTitleState: TitleState = { panel: { kind: 'menu' }, mode: 'career', saves: [], notice: '', message: '', pendingImport: null };
@@ -55,7 +55,7 @@ export type TitleEvent =
   | { type: 'listed'; saves: readonly CompanySave[] }
   | { type: 'notice'; notice: string }
   // 読み込んだ会社を、枠を選んで入れるために持つ
-  | { type: 'importHeld'; data: World; saves: readonly CompanySave[]; notice: string }
+  | { type: 'importHeld'; data: Company; saves: readonly CompanySave[]; notice: string }
   // 読み込んだ会社を選んだ枠に入れた。一覧（続けて遊ぶ）に戻る
   | { type: 'importDone'; saves: readonly CompanySave[] };
 

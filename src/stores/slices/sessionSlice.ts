@@ -2,7 +2,7 @@
 import { balance } from 'virtual:game-data';
 import { initialClock } from '../../sim/clock';
 import type { Offer } from '../../contracts/template';
-import { type World, worldOf } from '../../world/world';
+import { type Company, companyOf } from '../../world/world';
 import { resizeSandboxOffice, sandboxClock, sandboxOffice } from '../../sim/sandbox';
 
 import { EMPTY_FAMILIARITY } from '../../sim/familiar';
@@ -23,8 +23,8 @@ import type { StateCreator } from 'zustand';
 import { createOps } from '../gameOps';
 
 export interface SessionSlice {
-  load: (save: World) => void;
-  snapshot: () => World;
+  load: (save: Company) => void;
+  snapshot: () => Company;
   // 最初から始める（資金・在庫・依頼などを初期状態に戻す）
   newGame: (name: string) => void;
   // 社名を変える（前後の空白を除く。空なら変えない・N133）
@@ -214,6 +214,6 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
       set({ office, maps: { ...get().maps, hq: mapOfOffice(office) }, placing: null });
       return null;
     },
-    snapshot: () => worldOf(get()),
+    snapshot: () => companyOf(get()),
   };
 };

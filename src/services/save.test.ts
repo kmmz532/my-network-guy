@@ -1,7 +1,7 @@
 import { EMPTY_FAMILIARITY } from '../sim/familiar';
 import { describe, expect, it } from 'vitest';
-import { SAVE_VERSION, isWorld, migrate } from './migrations';
-import type { World } from '../world/world';
+import { SAVE_VERSION, isCompany, migrate } from './migrations';
+import type { Company } from '../world/world';
 import type { Staff } from '../data/schema';
 import { exportSave, importSave } from './saveFile';
 import { gameEnv } from '../sim/env';
@@ -26,7 +26,7 @@ const member = (uid: string): Staff => ({
   levelCap: 10,
 });
 
-const sample: World = {
+const sample: Company = {
   mode: 'career',
   name: 'テスト社',
   clock: { minute: 720, money: 300000, paidMonths: 1, bankrupt: false, ledger: [] },
@@ -56,7 +56,7 @@ const sample: World = {
 };
 
 // v21 までの形（評判 reputation）。古い版から移行するテストの入力に使う
-const legacySample = (({ companyExp, ...rest }: World) => ({ ...rest, reputation: companyExp }))(sample) as unknown as World;
+const legacySample = (({ companyExp, ...rest }: Company) => ({ ...rest, reputation: companyExp }))(sample) as unknown as Company;
 
 describe('セーブデータ', () => {
   it('書き出したものを読み込むと元に戻る', () => {
@@ -397,7 +397,7 @@ describe('v18 → v19', () => {
   });
 
   it('サンドボックスのセーブデータは、書き出しと読み込みで遊び方が残る', () => {
-    const sandbox: World = { ...sample, mode: 'sandbox' };
+    const sandbox: Company = { ...sample, mode: 'sandbox' };
     expect(importSave(exportSave(sandbox))).toEqual(sandbox);
   });
 
@@ -442,8 +442,8 @@ describe('古いセーブの読み込み（v19）', () => {
 
 describe('保存の中身の検査（依頼の形）', () => {
   it('依頼の形が合わないセーブは拒否する', () => {
-    expect(isWorld({ ...sample, offers: [{ id: 'x', kind: 'other', baseId: 'b', params: {}, contract: {} }] })).toBe(false);
-    expect(isWorld({ ...sample, offers: [{ id: 'x', kind: 'fixed', baseId: 'b', params: {}, contract: {} }] })).toBe(true);
+    expect(isCompany({ ...sample, offers: [{ id: 'x', kind: 'other', baseId: 'b', params: {}, contract: {} }] })).toBe(false);
+    expect(isCompany({ ...sample, offers: [{ id: 'x', kind: 'fixed', baseId: 'b', params: {}, contract: {} }] })).toBe(true);
   });
 });
 
@@ -458,7 +458,7 @@ describe('古いセーブの読み込み（v21 の評判）', () => {
 describe('古いセーブの読み込み（v22 の社員）', () => {
   it('v22 の社員と候補は、日勤として v23 になる', () => {
     const { shift: _s, ...noShift } = member('s0');
-    const v22 = { ...legacySample, companyExp: 0, staff: [noShift], candidates: [noShift] } as unknown as World;
+    const v22 = { ...legacySample, companyExp: 0, staff: [noShift], candidates: [noShift] } as unknown as Company;
     const migrated = migrate(22, v22);
     expect(migrated.staff[0].shift).toBe('day');
     expect(migrated.candidates[0].shift).toBe('day');

@@ -6,11 +6,11 @@
 //   - 依頼（offers）と案件（active）の契約の、配置する機器（contract.placed）
 // 既知だけのセーブは、同じ参照を返す。
 import type { NetLink, NetNode } from '../network/types';
-import type { World } from '../world/world';
+import type { Company } from '../world/world';
 import { registries } from '../registry/game';
 
 export interface DropResult {
-  data: World;
+  data: Company;
   // 取り除いた未知の機器の ID（重複なし）
   dropped: string[];
   // 取り除いた数（機器の数・配置する機器の数・在庫の個数の合計）
@@ -57,7 +57,7 @@ const dropOffer = (offer: unknown, ids: Set<string>): { offer: unknown; count: n
   return { offer: { ...offer, contract: r.contract }, count: r.count };
 };
 
-export const dropUnknownDevices = (data: World): DropResult => {
+export const dropUnknownDevices = (data: Company): DropResult => {
   const ids = new Set<string>();
   let count = 0;
   let changed = false;
@@ -118,7 +118,7 @@ export const dropUnknownDevices = (data: World): DropResult => {
   if (ownedChanged || blueprintsChanged || offersChanged) changed = true;
   if (!changed) return { data, dropped: [], count: 0 };
   return {
-    data: { ...data, office: office.net, active, owned, familiarity: { ...data.familiarity, blueprints }, offers: offers as World['offers'] },
+    data: { ...data, office: office.net, active, owned, familiarity: { ...data.familiarity, blueprints }, offers: offers as Company['offers'] },
     dropped: [...ids],
     count,
   };

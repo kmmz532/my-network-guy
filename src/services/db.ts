@@ -2,7 +2,7 @@
 // 会社（経営・サンドボックス）の一覧・消す・移行前の枠の移し替えもここで行う（N133）。
 import Dexie, { type Table } from 'dexie';
 import { SAVE_VERSION, migrate } from './migrations';
-import type { GameMode, World } from '../world/world';
+import type { GameMode, Company } from '../world/world';
 import { LEGACY_SLOT, SLOTS } from './slots';
 import type { CompanySave } from './companies';
 
@@ -10,7 +10,7 @@ interface SaveRecord {
   slot: number;
   saveVersion: number;
   savedAt: number;
-  data: World;
+  data: Company;
 }
 
 class GameDb extends Dexie {
@@ -24,11 +24,11 @@ class GameDb extends Dexie {
 
 const db = new GameDb();
 
-export const saveSlot = async (slot: number, data: World): Promise<void> => {
+export const saveSlot = async (slot: number, data: Company): Promise<void> => {
   await db.saves.put({ slot, saveVersion: SAVE_VERSION, savedAt: Date.now(), data });
 };
 
-export const loadSlot = async (slot: number): Promise<World | null> => {
+export const loadSlot = async (slot: number): Promise<Company | null> => {
   const record = await db.saves.get(slot);
   if (!record) return null;
   return migrate(record.saveVersion, record.data);

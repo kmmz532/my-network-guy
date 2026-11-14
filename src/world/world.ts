@@ -1,4 +1,4 @@
-// 世界（セーブの内容）の型。保存する項目は WORLD_KEYS に並べ、状態から世界を取り出すのは worldOf だけで行う。
+// 会社（セーブの内容）の型。保存する項目は COMPANY_KEYS に並べ、状態から会社を取り出すのは companyOf だけで行う。
 import type { Effects, Office, Project } from '../sim/project';
 import type { LedgerMonth } from '../sim/ledger';
 import type { Familiarity } from '../sim/familiar';
@@ -7,7 +7,7 @@ import type { Staff } from '../data/schema';
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
 
-export interface World {
+export interface Company {
   // 遊び方（移行前のセーブデータは career）
   mode: GameMode;
   // 社名（セーブの名前。経営の会社は必ず持つ・N133）
@@ -61,13 +61,13 @@ export interface SandboxLesson {
   done: boolean;
 }
 
-// 保存する項目（World のすべてのキー。World の宣言の順）
-export const WORLD_KEYS = [
+// 保存する項目（Company のすべてのキー。Company の宣言の順）
+export const COMPANY_KEYS = [
   'mode', 'name', 'clock', 'companyExp', 'reputation', 'expDay', 'expToday', 'owned', 'completed', 'deliveries',
   'familiarity', 'offers', 'nextOfferMinute', 'offerSeq', 'newArrivals', 'rng', 'active', 'focus', 'office', 'effects',
   'staff', 'staffSeq', 'candidates', 'guidesDone', 'sandboxLesson', 'termsShown',
-] as const satisfies readonly (keyof World)[];
-type Missing = Exclude<keyof World, (typeof WORLD_KEYS)[number]>;
+] as const satisfies readonly (keyof Company)[];
+type Missing = Exclude<keyof Company, (typeof COMPANY_KEYS)[number]>;
 export const noMissing: [Missing] extends [never] ? true : never = true; // キーの書き漏れを型で落とす
-// 状態から世界を取り出す（保存する項目だけを写す）
-export const worldOf = (s: World): World => Object.fromEntries(WORLD_KEYS.map((k) => [k, s[k]])) as unknown as World;
+// 状態から会社を取り出す（保存する項目だけを写す）
+export const companyOf = (s: Company): Company => Object.fromEntries(COMPANY_KEYS.map((k) => [k, s[k]])) as unknown as Company;

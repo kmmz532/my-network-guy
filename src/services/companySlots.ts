@@ -2,11 +2,11 @@
 // 画面は結果の種類（done・taken・full など）を見て知らせと画面を決める。保存先は引数で渡し、テストでは差し替える。
 import { listCompanies, saveSlot, deleteSlot } from './db';
 import { copyNameOf, freeSlotOf, isNameTaken, isValidCompanyName, uniqueNameFrom, type CompanySave } from './companies';
-import type { GameMode, World } from '../world/world';
+import type { GameMode, Company } from '../world/world';
 
 export interface SlotStore {
   list: (mode: GameMode) => Promise<CompanySave[]>;
-  save: (slot: number, data: World) => Promise<void>;
+  save: (slot: number, data: Company) => Promise<void>;
   remove: (slot: number) => Promise<void>;
 }
 
@@ -46,7 +46,7 @@ export async function deleteCompany(store: SlotStore, mode: GameMode, save: Comp
 }
 
 // 読み込んだ会社を、選んだ枠に入れる（上書きの確認のあと）。社名は同じ枠以外と重ならないように付け直す
-export async function overwriteCompany(store: SlotStore, mode: GameMode, save: CompanySave, data: World): Promise<CompanySave[]> {
+export async function overwriteCompany(store: SlotStore, mode: GameMode, save: CompanySave, data: Company): Promise<CompanySave[]> {
   const list = await store.list(mode);
   await store.save(save.slot, { ...data, name: uniqueNameFrom(data.name, list.filter((s) => s.slot !== save.slot)) });
   return store.list(mode);
@@ -55,11 +55,11 @@ export async function overwriteCompany(store: SlotStore, mode: GameMode, save: C
 export type ImportResult =
   | { kind: 'wrongMode' }
   // 空きがないため、上書きする枠を選ばせる
-  | { kind: 'held'; data: World; saves: CompanySave[] }
+  | { kind: 'held'; data: Company; saves: CompanySave[] }
   | { kind: 'done'; saves: CompanySave[] };
 
 // ファイルから読んだ会社を、空いた枠に入れる。同じ遊び方の会社だけ。同じ社名があれば番号を付ける
-export async function importCompany(store: SlotStore, mode: GameMode, data: World): Promise<ImportResult> {
+export async function importCompany(store: SlotStore, mode: GameMode, data: Company): Promise<ImportResult> {
   if (data.mode !== mode) return { kind: 'wrongMode' };
   const list = await store.list(mode);
   const free = freeSlotOf(mode, list);

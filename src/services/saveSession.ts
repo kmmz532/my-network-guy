@@ -6,7 +6,7 @@ import { loadSettings, type AutoSaveMode } from '../settings/settings';
 import { createSaveQueue, isAutoSaveDue } from './autoSave';
 import { saveSlot } from './db';
 import { exportSave, importSave } from './saveFile';
-import type { World } from '../world/world';
+import type { Company } from '../world/world';
 
 export interface SaveSessionView {
   // 遊んでいる会社の枠（タイトルでは null）
@@ -19,7 +19,7 @@ export interface SaveSessionView {
 
 // セーブに使うもの。テストでは差し替える
 export interface SaveSessionDeps {
-  write: (slot: number, data: World) => Promise<void>;
+  write: (slot: number, data: Company) => Promise<void>;
   game: Pick<typeof useGameStore, 'getState' | 'subscribe'>;
   autoSaveMode: () => AutoSaveMode;
   now: () => number;
