@@ -47,7 +47,7 @@ export interface CommandContext extends TerminalContext {
 
 export interface CommandResult {
   lines: readonly TerminalLine[];
-  change: ConfigChange | null; // 世界へ渡す設定の操作（src/world/operation.ts）
+  change: ConfigChange | null; // 世界へ渡す設定の操作（src/company/operation.ts）
   session: TerminalSession | null; // モードを変えるときだけ
 }
 

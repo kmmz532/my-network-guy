@@ -42,8 +42,8 @@ export default tseslint.config(
   },
   {
     // 世界の型は、画面・保存・状態の層を読まない（ARCH.md 4-1）
-    files: ['src/world/**/*.{ts,tsx}'],
-    ignores: ['src/world/**/*.test.ts'],
+    files: ['src/company/**/*.{ts,tsx}'],
+    ignores: ['src/company/**/*.test.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -51,7 +51,7 @@ export default tseslint.config(
           patterns: [
             {
               group: ['**/services/**', '**/stores/**', '**/components/**', '**/game/**'],
-              message: 'src/world/ は services・stores・components・game を読まない（ARCH.md 4-1）',
+              message: 'src/company/ は services・stores・components・game を読まない（ARCH.md 4-1）',
             },
           ],
         },

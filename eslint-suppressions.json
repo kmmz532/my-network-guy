@@ -332,17 +332,17 @@
       "count": 11
     }
   },
-  "src/world/apply.test.ts": {
+  "src/company/apply.test.ts": {
     "local/no-mode-branch": {
       "count": 1
     }
   },
-  "src/world/apply.ts": {
+  "src/company/apply.ts": {
     "local/no-mode-branch": {
       "count": 3
     }
   },
-  "src/world/world.ts": {
+  "src/company/company.ts": {
     "local/no-mode-branch": {
       "count": 2
     }
