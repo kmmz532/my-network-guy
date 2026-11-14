@@ -4,27 +4,11 @@ import { useInventoryOpen } from '../ui/inventoryOpen';
 import { t, tDyn } from '../i18n/t';
 import { historyKeyOf } from '../sim/history';
 import { focusedProject } from '../stores/useGameStore';
-import { RADIUS } from '../ui/theme';
 import { Icon } from '../components/Icon';
+import { IconButton } from '../components/ui/IconButton';
 import { usePhone } from '../ui/usePhone';
 import { mapCommands } from './mapControl';
 import { useGameStore } from '../stores/useGameStore';
-
-// ツールバーの道具のボタンと同じ見た目
-const buttonStyle = {
-  width: 44,
-  height: 44,
-  padding: 2,
-  border: '2px solid #3b2a33',
-  background: '#25406f',
-  borderRadius: RADIUS.chrome,
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: '#f4f1e6',
-  fontSize: 18,
-} as const;
 
 // ツールバーの高さ（56 px）と、角からの余白（12 px）の分だけ上に置く
 const TOOLBAR_HEIGHT_PX = 56;
@@ -48,12 +32,12 @@ function PhoneHistoryButtons() {
           {tDyn(`ui.error.${historyError}`)}
         </span>
       )}
-      <button type="button" style={{ ...buttonStyle, opacity: canUndo ? 1 : 0.35 }} disabled={!canUndo} onClick={() => undo()} aria-label={t('keys.undo')}>
+      <IconButton label={t('keys.undo')} disabled={!canUndo} onClick={() => undo()}>
         <Icon name="icon/undo" />
-      </button>
-      <button type="button" style={{ ...buttonStyle, opacity: canRedo ? 1 : 0.35, marginBottom: 12 }} disabled={!canRedo} onClick={() => redo()} aria-label={t('keys.redo')}>
+      </IconButton>
+      <IconButton label={t('keys.redo')} disabled={!canRedo} layout={{ marginBottom: 12 }} onClick={() => redo()}>
         <Icon name="icon/redo" />
-      </button>
+      </IconButton>
     </>
   );
 }
@@ -79,15 +63,15 @@ export function MapZoomButtons() {
     >
       {/* スマホでは、戻す・やり直すを拡大・縮小の上に置く（パソコンはツールバーにある） */}
       {phone && <PhoneHistoryButtons />}
-      <button type="button" style={buttonStyle} onClick={() => mapCommands.zoomIn()} aria-label={t('keys.zoomIn')}>
+      <IconButton label={t('keys.zoomIn')} onClick={() => mapCommands.zoomIn()}>
         {t('ui.map.zoomIn')}
-      </button>
-      <button type="button" style={buttonStyle} onClick={() => mapCommands.zoomOut()} aria-label={t('keys.zoomOut')}>
+      </IconButton>
+      <IconButton label={t('keys.zoomOut')} onClick={() => mapCommands.zoomOut()}>
         {t('ui.map.zoomOut')}
-      </button>
-      <button type="button" style={buttonStyle} onClick={() => mapCommands.fit()} aria-label={t('keys.zoomReset')}>
+      </IconButton>
+      <IconButton label={t('keys.zoomReset')} onClick={() => mapCommands.fit()}>
         <Icon name="icon/fit" scale={2} />
-      </button>
+      </IconButton>
     </div>
   );
 }

@@ -529,10 +529,7 @@
   },
   "src/game/MapZoomButtons.tsx": {
     "local/no-look-props": {
-      "count": 9
-    },
-    "local/no-native-control": {
-      "count": 5
+      "count": 2
     }
   },
   "src/game/NetworkRenderer.ts": {
