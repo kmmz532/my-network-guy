@@ -20,7 +20,7 @@ import type { NetNode, NetworkPlan } from '../network/types';
 import { gameEnv } from '../sim/env';
 import { addressCandidates, PLANNED_NETWORK, PLANNED_PREFIX, plannedAddressCandidates, type AddressCandidate } from '../sim/project';
 import { coreOf, netOfDevice, netTargetOf, plannedKey, useGameStore } from '../stores/useGameStore';
-import { buttonStyle, greyColor, hexColor, inputStyle, isIpText, portLabel, sectionStyle, unsetColor } from './devicePorts';
+import { greyColor, hexColor, inputStyle, isIpText, portLabel, sectionStyle, unsetColor } from './devicePorts';
 import { CATEGORY } from '../data/categories';
 import { BgpField } from './BgpField';
 import { IspField } from './IspField';
@@ -224,9 +224,9 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
             <span style={{ display: 'inline-block', width: 10, height: 10, background: hexColor(color), border: '1px solid #3b2a33' }} />
             {t('ui.config.networkLine', { network: shown.network, prefix: shown.prefix })}
           </span>
-          <button style={buttonStyle} disabled={unlinkedRouter} onClick={onToggleDetail}>
+          <Button variant="secondary" size="fit" disabled={unlinkedRouter} onClick={onToggleDetail}>
             {detailOpen ? t('ui.config.detailClose') : t('ui.config.detail')}
-          </button>
+          </Button>
         </div>
         {detailOpen && (
           <div style={row}>
@@ -555,9 +555,9 @@ function NatField({ node, readOnly, onError }: { node: NetNode; readOnly: boolea
           <input aria-label={t('ui.nat.outPort')} style={{ ...inputStyle, width: 60 }} value={port} onChange={(e) => setPort(e.target.value)} />
           <input aria-label={t('ui.nat.insideIp')} style={{ ...inputStyle, width: 110 }} value={insideIp} placeholder="192.168.1.10" onChange={(e) => setInsideIp(e.target.value)} />
           <input aria-label={t('ui.nat.insidePort')} style={{ ...inputStyle, width: 60 }} value={insidePort} onChange={(e) => setInsidePort(e.target.value)} />
-          <button style={buttonStyle} onClick={addStatic}>
+          <Button variant="secondary" size="fit" onClick={addStatic}>
             {t('ui.fw.add')}
-          </button>
+          </Button>
         </div>
       )}
     </div>

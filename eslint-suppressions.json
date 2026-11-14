@@ -106,13 +106,13 @@
       "count": 1
     },
     "local/no-look-export": {
-      "count": 6
+      "count": 5
     },
     "local/no-look-props": {
       "count": 22
     },
     "local/no-native-control": {
-      "count": 15
+      "count": 13
     }
   },
   "src/components/DhcpField.tsx": {
