@@ -1,6 +1,6 @@
 # コードの書き方
 
-ロジックは純粋関数として `src/network`・`src/sim`・`src/contracts` に置く。文言は言語ファイルに、数値はゲームデータの JSON に置く。想定外の入力は既定値で埋めず例外で止め、セーブの移行だけを例外とする。
+ロジックは純粋関数として `src/network`・`src/sim`・`src/contracts` に置く。文言は言語ファイルに、数値はゲームデータの JSON に置き、コードに直接書かない。用語はネットワークスペシャリスト試験と同じ正式なもの（「バックボーンエリア」「ルーター ID」など）を使う。コメントには、コードだけを読んで分かる形で規則の中身を書く。
 
 次の規則は ESLint の独自の規則（`eslint/local-rules/`）が検査する。規則を追加した時点の違反は `eslint-suppressions.json` に記録してあり、直したときは `npx eslint src --prune-suppressions` で減らす。
 
