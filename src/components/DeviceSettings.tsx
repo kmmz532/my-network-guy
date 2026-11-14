@@ -32,6 +32,7 @@ import { DhcpPoolField, DhcpPortField } from './DhcpField';
 import { portCountOf, deviceCategory } from '../registry/query';
 import { Button } from './ui/Button';
 import { Checkbox } from './ui/Checkbox';
+import { TextInput } from './ui/TextInput';
 
 // ネットワークの既定候補（入力欄から任意のネットワークも指定できる）
 const NETWORK_CHOICES = Array.from({ length: 16 }, (_, i) => `192.168.${i + 1}.0`);
@@ -166,30 +167,16 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
         </div>
         {iface && isRoutingCategory(category ?? '') && (
           <div style={row}>
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <input
-                type="checkbox"
-                aria-label={t('ui.config.ripJoin')}
-                checked={iface.rip === true}
-                disabled={locked || unlinkedRouter}
-                onChange={(e) => onError(setRouting(node.uid, { proto: 'rip', on: e.target.checked, ip: iface.ip }))}
-              />
+            <Checkbox label={t('ui.config.ripJoin')} checked={iface.rip === true} disabled={locked || unlinkedRouter} onChange={(on) => onError(setRouting(node.uid, { proto: 'rip', on, ip: iface.ip }))}>
               {t('ui.config.ripJoin')}
-            </label>
+            </Checkbox>
           </div>
         )}
         {iface && isRoutingCategory(category ?? '') && (
           <div style={{ ...row, flexWrap: 'wrap', gap: 6 }}>
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <input
-                type="checkbox"
-                aria-label={t('ui.config.ospfJoin')}
-                checked={iface.ospf !== undefined}
-                disabled={locked || unlinkedRouter}
-                onChange={(e) => onError(setRouting(node.uid, { proto: 'ospf', on: e.target.checked, ip: iface.ip }))}
-              />
+            <Checkbox label={t('ui.config.ospfJoin')} checked={iface.ospf !== undefined} disabled={locked || unlinkedRouter} onChange={(on) => onError(setRouting(node.uid, { proto: 'ospf', on, ip: iface.ip }))}>
               {t('ui.config.ospfJoin')}
-            </label>
+            </Checkbox>
             {iface.ospf !== undefined &&
               (
                 [
@@ -447,7 +434,7 @@ function FirewallRuleAdd({ onAdd }: { onAdd: (rule: { src: string; dst: string; 
         onChange={(v) => setService(v as 'any' | 'ping' | 'http')}
       />
       {service === 'http' && (
-        <input aria-label={t('ui.fw.port')} value={port} onChange={(e) => setPort(e.target.value)} style={{ ...inputStyle, width: 56 }} />
+        <TextInput label={t('ui.fw.port')} value={port} onChange={setPort} layout={{ width: 56 }} />
       )}
       <Button variant="primary" onClick={add}>
         {t('ui.fw.add')}
@@ -551,9 +538,9 @@ function NatField({ node, readOnly, onError }: { node: NetNode; readOnly: boolea
       ))}
       {!readOnly && (
         <div style={row}>
-          <input aria-label={t('ui.nat.outPort')} style={{ ...inputStyle, width: 60 }} value={port} onChange={(e) => setPort(e.target.value)} />
-          <input aria-label={t('ui.nat.insideIp')} style={{ ...inputStyle, width: 110 }} value={insideIp} placeholder="192.168.1.10" onChange={(e) => setInsideIp(e.target.value)} />
-          <input aria-label={t('ui.nat.insidePort')} style={{ ...inputStyle, width: 60 }} value={insidePort} onChange={(e) => setInsidePort(e.target.value)} />
+          <TextInput label={t('ui.nat.outPort')} value={port} onChange={setPort} layout={{ width: 60 }} />
+          <TextInput label={t('ui.nat.insideIp')} value={insideIp} placeholder="192.168.1.10" onChange={setInsideIp} layout={{ width: 110 }} />
+          <TextInput label={t('ui.nat.insidePort')} value={insidePort} onChange={setInsidePort} layout={{ width: 60 }} />
           <Button variant="secondary" size="fit" onClick={addStatic}>
             {t('ui.fw.add')}
           </Button>
