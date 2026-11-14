@@ -15,7 +15,7 @@ import { useGameStore } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
-import { Modal } from './Modal';
+import { Dialog } from './ui/Dialog';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { RADIUS } from '../ui/theme';
 import { Select } from './ui/Select';
@@ -33,7 +33,7 @@ export function HiringPanel() {
   if (tab === null) return null;
   // Enter は閉じる（主のボタン）
   return (
-    <Modal onClose={onClose} primary={onClose} boxStyle={{ width: 'min(420px, calc(100% - 32px))' }}>
+    <Dialog onClose={onClose} primary={onClose} layout={{ width: 'min(420px, calc(100% - 32px))' }}>
       <Tabs
         items={[
           { id: 'hiring', label: t('ui.hiring.tab.hiring') },
@@ -54,7 +54,7 @@ export function HiringPanel() {
           {t('ui.panel.close')}
         </Button>
       </div>
-    </Modal>
+    </Dialog>
   );
 }
 
