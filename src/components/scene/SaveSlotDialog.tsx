@@ -2,7 +2,7 @@
 import { addKeyLayer } from '../../input/keyRouter';
 import { useEffect, useState } from 'react';
 import { usePhone } from '../../ui/usePhone';
-import { Modal, primaryButton, secondaryButton } from '../Modal';
+import { Modal, secondaryButton } from '../Modal';
 import { t } from '../../i18n/t';
 import { balance } from 'virtual:game-data';
 import { levelOf } from '../../sim/level';
@@ -75,9 +75,9 @@ function NameForm({ initial, submitLabel, onSubmit, onCancel }: { initial: strin
         <Button variant="secondary" onClick={onCancel}>
           {t('ui.company.cancel')}
         </Button>
-        <button style={{ ...primaryButton, opacity: valid ? 1 : 0.5 }} disabled={!valid} onClick={submit}>
+        <Button variant="primary" disabled={!valid} onClick={submit}>
           {submitLabel}
-        </button>
+        </Button>
       </div>
     </div>
   );

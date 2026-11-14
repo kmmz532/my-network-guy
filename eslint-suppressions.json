@@ -474,13 +474,13 @@
   },
   "src/components/scene/SaveSlotDialog.tsx": {
     "local/no-look-props": {
-      "count": 22
+      "count": 21
     },
     "local/no-mode-branch": {
       "count": 3
     },
     "local/no-native-control": {
-      "count": 3
+      "count": 2
     }
   },
   "src/components/scene/TitleScene.tsx": {
