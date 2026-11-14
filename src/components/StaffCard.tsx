@@ -11,13 +11,15 @@ import { staffSpriteName } from '../data/schema';
 import { useGameStore } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
 import { Icon } from './Icon';
-import { RADIUS } from '../ui/theme';
 import { useState } from 'react';
 import { Tooltip } from './Tooltip';
 import { retireBlock } from '../sim/retire';
 import { isDevJob, requiresPc } from '../sim/jobs';
 import { Button } from './ui/Button';
 import { ListRow } from './ui/ListRow';
+import { Text } from './ui/Text';
+import { Badge } from './ui/Badge';
+import { ProgressBar } from './ui/ProgressBar';
 
 const yen = (n: number) => n.toLocaleString('ja-JP');
 // 社員の一覧の列の幅（名前・職種と level・月給・状態）
@@ -67,16 +69,14 @@ export function StaffBody({ uid }: { uid: string }) {
           <div>{tDyn(`staff.job.${member.job}`)}</div>
           <div>
             {t('ui.staff.level', { level: member.level })}
-            {member.level >= member.levelCap && <span style={{ marginLeft: 6, color: '#ffd866', fontSize: 12 }}>{t('ui.staff.cap')}</span>}
+            {member.level >= member.levelCap && <Text as="span" tone="warn" size="s" layout={{ marginLeft: 6 }}>{t('ui.staff.cap')}</Text>}
           </div>
           <div>{t('ui.hiring.salary', { salary: yen(member.salary) })}</div>
         </div>
       </div>
       <div>
-        <div style={label}>{t('ui.staff.card.exp', { exp: member.exp, next })}</div>
-        <div style={{ height: 6, marginTop: 2, background: '#1b2f57', border: '1px solid #3b2a33', borderRadius: RADIUS.none, overflow: 'hidden' }}>
-          <div style={{ width: `${ratio * 100}%`, height: '100%', background: '#ffd866' }} />
-        </div>
+        <Text tone="sub" size="s">{t('ui.staff.card.exp', { exp: member.exp, next })}</Text>
+        <ProgressBar fraction={ratio} size="s" layout={{ marginTop: 2 }} />
       </div>
       <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 10px', margin: 0 }}>
         <dt style={label}>{t('ui.staff.card.certs')}</dt>
@@ -119,13 +119,13 @@ export function StaffBody({ uid }: { uid: string }) {
 
 // 持っている資格を、金の縁の札で並べる（なければ「なし」）
 export function CertChips({ certs }: { certs: readonly string[] }) {
-  if (certs.length === 0) return <span style={{ opacity: 0.7, fontSize: 12 }}>{t('ui.staff.card.none')}</span>;
+  if (certs.length === 0) return <Text as="span" tone="sub" size="s">{t('ui.staff.card.none')}</Text>;
   return (
     <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4 }}>
       {certs.map((id) => (
-        <span key={id} style={{ padding: '0 6px', fontSize: 12, color: '#ffd866', border: '1px solid #ffd866', background: '#3b2a33', borderRadius: RADIUS.none, whiteSpace: 'nowrap' }}>
+        <Badge key={id} color="var(--accent)">
           {tDyn(`cert.${id}.name`)}
-        </span>
+        </Badge>
       ))}
     </span>
   );
