@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
 import { analyze } from './engine/analyze';
 import { stpOf } from './query/stp';
-import type { Iface, NetLink, NetNode, Network } from './types';
+import type { EngineData, Iface, NetLink, NetNode, Network } from './types';
+import type { NetworkState } from './engine/state';
 
 const data = gameEnv.engine;
 const f = (ip: string): Iface => ({ id: 'eth0', kind: 'port', port: 0, ip, prefix: 24 });
@@ -51,13 +52,17 @@ describe('スパニングツリー', () => {
 
 describe('スパニングツリーのターミナル', () => {
   it('spanning-tree の priority・cost を読み、show spanning-tree はルートと口の役割を出す', async () => {
-    const { parseConfig } = await import('./terminalConfig');
     const { commandContextOf, runLine } = await import('./command/run');
     const runShow = (line: string, c: Parameters<typeof commandContextOf>[0], tr: Parameters<typeof runLine>[2]) => runLine(line, commandContextOf(c, false), tr).lines;
     const tr = (k: string, p?: Record<string, unknown>) => (p ? `${k} ${JSON.stringify(p)}` : k);
-    expect(parseConfig('spanning-tree priority 4096', tr)).toEqual({ kind: 'action', action: { kind: 'stp', op: 'priority', value: 4096 } });
-    expect(parseConfig('spanning-tree priority 100', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errStpPriority' });
-    expect(parseConfig('spanning-tree cost 1 19', tr)).toEqual({ kind: 'action', action: { kind: 'stp', op: 'cost', port: 1, value: 19 } });
+    const tctx = commandContextOf({ node: {} as NetNode, nodes: [], links: [], data: {} as EngineData, state: {} as NetworkState }, false);
+    const viaTree = (line: string) => {
+      const r = runLine(line, tctx, tr);
+      return r.change !== null ? { kind: 'action', action: r.change } : { kind: 'error', text: r.lines[0].text };
+    };
+    expect(viaTree('spanning-tree priority 4096')).toEqual({ kind: 'action', action: { kind: 'stp', change: { op: 'priority', value: 4096 } } });
+    expect(viaTree('spanning-tree priority 100')).toEqual({ kind: 'error', text: 'ui.terminal.errStpPriority' });
+    expect(viaTree('spanning-tree cost 1 19')).toEqual({ kind: 'action', action: { kind: 'stp', change: { op: 'cost', port: 1, value: 19 } } });
     const net = triangle();
     const lines = runShow('show spanning-tree', { node: net.nodes[2], nodes: net.nodes, links: net.links, data, state: analyze({ nodes: net.nodes, links: net.links }, data) }, tr);
     expect(lines[0].text).toContain('ui.terminal.stpRoot');

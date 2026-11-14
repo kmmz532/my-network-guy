@@ -97,21 +97,9 @@ export const vlanNumber = (s: string): number | null => (/^\d+$/.test(s) && Numb
 
 export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   const words = line.trim().split(/\s+/).filter((w) => w !== '');
-  const [first, ...rest] = words;
+  const [first] = words;
   if (first !== 'ip' && first !== 'no' && first !== 'hostname' && first !== 'vrrp' && first !== 'channel-group' && first !== 'spanning-tree' && first !== 'router' && first !== 'router-id' && first !== 'default-information' && first !== 'network' && first !== 'neighbor' && first !== 'wireless' && first !== 'switchport') return { kind: 'none' };
   const error = (key: string) => ({ kind: 'error' as const, text: tr(key) });
 
-  // スパニングツリー
-  if (first === 'spanning-tree') {
-    if (rest[0] === 'priority' && rest.length === 2 && /^[0-9]+$/.test(rest[1])) {
-      const v = Number(rest[1]);
-      if (v > 61440 || v % 4096 !== 0) return error('ui.terminal.errStpPriority');
-      return { kind: 'action', action: { kind: 'stp', op: 'priority', value: v } };
-    }
-    if (rest[0] === 'cost' && rest.length === 3 && port(rest[1]) !== null && /^[0-9]+$/.test(rest[2]) && Number(rest[2]) >= 1) {
-      return { kind: 'action', action: { kind: 'stp', op: 'cost', port: Number(rest[1]), value: Number(rest[2]) } };
-    }
-    return error('ui.terminal.usageStp');
-  }
   return error('ui.terminal.unknown');
 };
