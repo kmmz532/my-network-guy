@@ -6,8 +6,10 @@ import { autoAssign } from '../sim/autoAssign';
 import { emptyHistory, entryOf, historyKeyOf, projectHistoryKey, push as pushHistory, redo as redoHistory, stepDesign, undo as undoHistory } from '../sim/history';
 import { writeBackDhcp, type NetTarget, type Outcome } from '../sim/project';
 import { requestBuild } from '../sim/progress';
+import { applyOperation } from '../world/apply';
+import type { Operation } from '../world/operation';
 
-import { plannedKey, type PlannedNet, coreOf, focusedProject, reportState, withLevelUps } from './gameHelpers';
+import { plannedKey, type PlannedNet, coreOf, focusedProject, opContextOf, reportState, withLevelUps } from './gameHelpers';
 import type { GameState } from './useGameStore';
 import { useUiStore } from './useUiStore';
 import type { StoreApi } from 'zustand';
@@ -125,6 +127,14 @@ export const createOps = (set: Set, get: () => GameState) => {
     return null;
   };
 
+  // 操作1つを世界に当て、状態に反映して履歴に積む。画面の操作の通り道はここだけにする。失敗なら理由を返す
+  // at は失敗の吹き出しを出すマス。autoIp を渡すと、成功した操作の後に IPアドレスの自動割り当てを同じ操作としてかける
+  const dispatch = (op: Operation, at?: { tx: number; ty: number }, autoIp?: NetTarget): string | null =>
+    recorded(() => {
+      const outcome = applyOperation(coreOf(get()), op, opContextOf(get()));
+      return apply(autoIp ? withAutoIp(outcome, autoIp) : outcome, at);
+    });
+
   // 施工を依頼する（確認を通したあとの処理）
   const buildNow = (): string | null => {
     const focusId = focusedProject(get())?.id;
@@ -142,7 +152,7 @@ export const createOps = (set: Set, get: () => GameState) => {
     return reason;
   };
 
-  return { plannedOf, withAutoIp, tileOf, recorded, dropHistory, stepHistory, apply, buildNow };
+  return { plannedOf, withAutoIp, tileOf, recorded, dropHistory, stepHistory, apply, dispatch, buildNow };
 };
 
 export type Ops = ReturnType<typeof createOps>;

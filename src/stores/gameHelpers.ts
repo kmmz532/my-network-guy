@@ -16,6 +16,7 @@ import { type NetTarget, type Core, type Project, type Office, type Report } fro
 import type { GameState } from './useGameStore';
 import { deviceCategory, hasDevice, deviceDef, hasFurniture, furnitureDef, maybeFurniture } from '../registry/query';
 import { registries } from '../registry/game';
+import type { OpContext } from '../world/apply';
 
 export interface PlannedNet {
   network: string;
@@ -123,6 +124,14 @@ export const coreOf = (s: GameState): Core => ({
   guidesDone: s.guidesDone,
   termsShown: s.termsShown,
 });
+
+// 操作を当てるときの周りの状況（設計の対象・案件の地図・自社オフィスの地図・モード）
+export const opContextOf = (s: GameState): OpContext => {
+  const hq = s.maps.hq;
+  if (!hq) throw new Error('自社オフィスの地図がない');
+  const project = focusedProject(s);
+  return { env: gameEnv, target: netTargetOf(s), map: project ? (s.maps[project.contract.map] ?? null) : null, hq, mode: s.mode };
+};
 
 // 依頼の一覧に出す案内（次の依頼までの日数と、届かない理由）
 export const offerHintOf = (s: GameState): OfferHint =>

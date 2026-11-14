@@ -15,7 +15,6 @@ import { closeRef } from '../../ui/windows';
 import { type PortChoice, connect, type PortModeChange, type StpOp, type ChannelOp, type DhcpOp, type VrrpOp, type OspfOp, type NatOp, type BgpOp, emptyOffice, type End } from '../../sim/project';
 import { testDesign } from '../../sim/progress';
 import { removeNode, removeFromOffice, replug, moveNode, replugTo, removeLink } from '../../sim/placement';
-import { setInterface, setSvi, setPortMode, setGateway, setRouting, setOspf, setIsp, setPower, setStp, setChannel, setDhcp, setVrrp, setBgp, setNat, setWireless, setFirewallRules, setPlan, setService, setName as setNameOp, setHostname as setHostnameOp, setNameServer as setNameServerOp, setDnsRole as setDnsRoleOp, autoRegisterZone as autoRegisterZoneOp, setHost as setHostOp, removeHost as removeHostOp, addRoute, removeRoute } from '../../sim/netEdit';
 
 import { coreOf, focusedProject, netTargetOf } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
@@ -82,7 +81,7 @@ export interface DesignSlice {
 }
 
 export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (set, get) => {
-  const { apply, recorded, stepHistory, tileOf, withAutoIp } = createOps(set, get);
+  const { apply, dispatch, recorded, stepHistory, tileOf, withAutoIp } = createOps(set, get);
   const missingPc = (state: GameState): number =>
     missingPcCount(state.staff, { pcDesks: pcDesksOf(state.office, isPcDevice), defs: gameEnv.furniture ?? {}, balance: gameEnv.balance, staff: state.staff });
   return {
@@ -168,29 +167,24 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       }
       return reason;
     },
-    setIface: (uid, port, ip, prefix = 24) =>
-      recorded(() => apply(setInterface(coreOf(get()), uid, port, ip, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
-    setSvi: (uid, vlan, ip, prefix = 24) =>
-      recorded(() => apply(setSvi(coreOf(get()), uid, vlan, ip, prefix, gameEnv, netTargetOf(get())), tileOf(uid))),
-    setPortMode: (uid, port, mode) =>
-      recorded(() => apply(setPortMode(coreOf(get()), uid, port, mode, netTargetOf(get())), tileOf(uid))),
-    setGateway: (uid, gateway) => recorded(() => apply(setGateway(coreOf(get()), uid, gateway, netTargetOf(get())), tileOf(uid))),
-    setVrrp: (uid, change) => recorded(() => apply(setVrrp(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
-    setPower: (uid, on) => recorded(() => apply(setPower(coreOf(get()), uid, on, netTargetOf(get())), tileOf(uid))),
-    setStp: (uid, change) => recorded(() => apply(setStp(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
-    setDhcp: (uid, change) => recorded(() => apply(setDhcp(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
-    setChannel: (uid, change) => recorded(() => apply(setChannel(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
-    setIsp: (uid, line) => recorded(() => apply(setIsp(coreOf(get()), uid, line, netTargetOf(get())), tileOf(uid))),
-    setOspf: (uid, change) => recorded(() => apply(setOspf(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
-    setRouting: (uid, change) => recorded(() => apply(setRouting(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
-    setBgp: (uid, change) => recorded(() => apply(setBgp(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
-    setNat: (uid, change) => recorded(() => apply(setNat(coreOf(get()), uid, change, netTargetOf(get())), tileOf(uid))),
-    setWireless: (uid, key, value) => recorded(() => apply(setWireless(coreOf(get()), uid, key, value, netTargetOf(get())), tileOf(uid))),
-    setFirewallRules: (uid, rules) => recorded(() => apply(setFirewallRules(coreOf(get()), uid, rules, netTargetOf(get())), tileOf(uid))),
-    setPlan: (uid, port, network, prefix) =>
-      recorded(() =>
-        apply(withAutoIp(setPlan(coreOf(get()), uid, port, network, prefix, gameEnv, netTargetOf(get())), netTargetOf(get())), tileOf(uid)),
-      ),
+    setIface: (uid, port, ip, prefix = 24) => dispatch({ kind: 'config', uid, change: { kind: 'iface', port, ip, prefix } }, tileOf(uid)),
+    setSvi: (uid, vlan, ip, prefix = 24) => dispatch({ kind: 'config', uid, change: { kind: 'svi', vlan, ip, prefix } }, tileOf(uid)),
+    setPortMode: (uid, port, mode) => dispatch({ kind: 'config', uid, change: { kind: 'portMode', port, mode } }, tileOf(uid)),
+    setGateway: (uid, gateway) => dispatch({ kind: 'config', uid, change: { kind: 'gateway', gateway } }, tileOf(uid)),
+    setVrrp: (uid, change) => dispatch({ kind: 'config', uid, change: { kind: 'vrrp', change } }, tileOf(uid)),
+    setPower: (uid, on) => dispatch({ kind: 'config', uid, change: { kind: 'power', on } }, tileOf(uid)),
+    setStp: (uid, change) => dispatch({ kind: 'config', uid, change: { kind: 'stp', change } }, tileOf(uid)),
+    setDhcp: (uid, change) => dispatch({ kind: 'config', uid, change: { kind: 'dhcp', change } }, tileOf(uid)),
+    setChannel: (uid, change) => dispatch({ kind: 'config', uid, change: { kind: 'channel', change } }, tileOf(uid)),
+    setIsp: (uid, line) => dispatch({ kind: 'config', uid, change: { kind: 'isp', line } }, tileOf(uid)),
+    setOspf: (uid, change) => dispatch({ kind: 'config', uid, change: { kind: 'ospf', change } }, tileOf(uid)),
+    setRouting: (uid, change) => dispatch({ kind: 'config', uid, change: { kind: 'routing', change } }, tileOf(uid)),
+    setBgp: (uid, change) => dispatch({ kind: 'config', uid, change: { kind: 'bgp', change } }, tileOf(uid)),
+    setNat: (uid, change) => dispatch({ kind: 'config', uid, change: { kind: 'nat', change } }, tileOf(uid)),
+    setWireless: (uid, key, value) => dispatch({ kind: 'config', uid, change: { kind: 'wireless', key, value } }, tileOf(uid)),
+    setFirewallRules: (uid, rules) => dispatch({ kind: 'config', uid, change: { kind: 'firewallRules', rules } }, tileOf(uid)),
+    // セグメントの設定の後は、IPアドレスの自動割り当てをかける
+    setPlan: (uid, port, network, prefix) => dispatch({ kind: 'config', uid, change: { kind: 'plan', port, network, prefix } }, tileOf(uid), netTargetOf(get())),
     replug: (linkUid, end, port) =>
       recorded(() => apply(replug(coreOf(get()), linkUid, end, port, gameEnv, netTargetOf(get())))),
     // 移動の地図は、設計中の案件のマップ（なければ自社オフィスの hq）
@@ -207,16 +201,15 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
     },
     replugTo: (linkUid, end, nodeUid, port) =>
       recorded(() => apply(replugTo(coreOf(get()), linkUid, end, nodeUid, port, gameEnv, netTargetOf(get())), tileOf(nodeUid))),
-    setService: (uid, protocol, on) =>
-      recorded(() => apply(setService(coreOf(get()), uid, protocol, on, netTargetOf(get())), tileOf(uid))),
-    setHostname: (uid, hostname) => recorded(() => apply(setHostnameOp(coreOf(get()), uid, hostname, netTargetOf(get())), tileOf(uid))),
-    setNameServer: (uid, ip) => recorded(() => apply(setNameServerOp(coreOf(get()), uid, ip, netTargetOf(get())), tileOf(uid))),
-    setDnsRole: (uid, on) => recorded(() => apply(setDnsRoleOp(coreOf(get()), uid, on, netTargetOf(get())), tileOf(uid))),
-    autoRegisterZone: (uid) => recorded(() => apply(autoRegisterZoneOp(coreOf(get()), uid, netTargetOf(get())), tileOf(uid))),
-    setName: (uid, name) => recorded(() => apply(setNameOp(coreOf(get()), uid, name, netTargetOf(get())), tileOf(uid))),
-    setHost: (uid, name, ip) => recorded(() => apply(setHostOp(coreOf(get()), uid, name, ip, netTargetOf(get())), tileOf(uid))),
-    removeHost: (uid, name) => recorded(() => apply(removeHostOp(coreOf(get()), uid, name, netTargetOf(get())), tileOf(uid))),
-    addRoute: (uid, route) => recorded(() => apply(addRoute(coreOf(get()), uid, route, netTargetOf(get())), tileOf(uid))),
-    removeRoute: (uid, index) => recorded(() => apply(removeRoute(coreOf(get()), uid, index, netTargetOf(get())), tileOf(uid))),
+    setService: (uid, protocol, on) => dispatch({ kind: 'config', uid, change: { kind: 'service', protocol, on } }, tileOf(uid)),
+    setHostname: (uid, hostname) => dispatch({ kind: 'config', uid, change: { kind: 'hostname', hostname } }, tileOf(uid)),
+    setNameServer: (uid, ip) => dispatch({ kind: 'config', uid, change: { kind: 'nameServer', ip } }, tileOf(uid)),
+    setDnsRole: (uid, on) => dispatch({ kind: 'config', uid, change: { kind: 'dnsRole', on } }, tileOf(uid)),
+    autoRegisterZone: (uid) => dispatch({ kind: 'config', uid, change: { kind: 'autoRegisterZone' } }, tileOf(uid)),
+    setName: (uid, name) => dispatch({ kind: 'config', uid, change: { kind: 'name', name } }, tileOf(uid)),
+    setHost: (uid, name, ip) => dispatch({ kind: 'config', uid, change: { kind: 'host', name, ip } }, tileOf(uid)),
+    removeHost: (uid, name) => dispatch({ kind: 'config', uid, change: { kind: 'removeHost', name } }, tileOf(uid)),
+    addRoute: (uid, route) => dispatch({ kind: 'config', uid, change: { kind: 'addRoute', route } }, tileOf(uid)),
+    removeRoute: (uid, index) => dispatch({ kind: 'config', uid, change: { kind: 'removeRoute', index } }, tileOf(uid)),
   };
 };
