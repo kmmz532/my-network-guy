@@ -87,14 +87,9 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
           <div style={{ fontSize: 12, opacity: 0.85 }}>{t('ui.hiring.wish.label')}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
             {[null, ...jobsOpen].map((j) => (
-              <button
-                key={j ?? 'none'}
-                aria-pressed={wish === j}
-                onClick={() => setHiringWish(j)}
-                style={{ ...secondaryButton, padding: '2px 8px', fontSize: 12, background: wish === j ? '#ffd866' : secondaryButton.background, color: wish === j ? '#3b2a33' : secondaryButton.color }}
-              >
+              <Button key={j ?? 'none'} variant="secondary" size="s" pressed={wish === j} onClick={() => setHiringWish(j)}>
                 {j === null ? t('ui.hiring.wish.none') : tDyn(`staff.job.${j}`)}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -184,7 +179,6 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
   const yen = (n: number) => n.toLocaleString('ja-JP');
   const courses = Object.values(training);
   const examList = Object.values(certs);
-  const small = { ...secondaryButton, padding: '2px 8px', fontSize: 12 } as const;
   const label = { fontSize: 12, color: 'rgba(244, 241, 230, 0.7)', marginTop: 6 } as const;
   return (
     <>
@@ -212,9 +206,10 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
               {courses.map((c) => (
                 <Tooltip text={t('ui.training.info', { cost: yen(c.cost), days: c.days, exp: c.exp })} key={c.id}>
-                  <button
-                    aria-label={t('ui.training.info', { cost: yen(c.cost), days: c.days, exp: c.exp })}
-                    style={small}
+                  <Button
+                    variant="secondary"
+                    size="s"
+                    label={t('ui.training.info', { cost: yen(c.cost), days: c.days, exp: c.exp })}
                     disabled={locked || money < c.cost}
                     onClick={() => {
                       const reason = startTraining(s.uid, c.id);
@@ -222,7 +217,7 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
                     }}
                   >
                     {tDyn(`training.${c.id}.name`)}（{yen(c.cost)}円・{c.days}日）
-                  </button>
+                  </Button>
                 </Tooltip>
               ))}
             </div>
@@ -233,9 +228,10 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
                 const rate = Math.round(examPassRate(s.level, c.minLevel, balance) * 100);
                 const text = t('ui.exam.button', { name: tDyn(`cert.${c.id}.name`), fee: yen(c.fee), rate });
                 return (
-                  <button
+                  <Button
                     key={c.id}
-                    style={small}
+                    variant="secondary"
+                    size="s"
                     disabled={locked || money < c.fee}
                     onClick={() => {
                       const reason = takeExam(s.uid, c.id);
@@ -243,7 +239,7 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
                     }}
                   >
                     {text}
-                  </button>
+                  </Button>
                 );
               })}
             </div>

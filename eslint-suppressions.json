@@ -176,10 +176,10 @@
       "count": 1
     },
     "local/no-look-props": {
-      "count": 43
+      "count": 39
     },
     "local/no-native-control": {
-      "count": 5
+      "count": 2
     }
   },
   "src/components/Inventory.tsx": {
