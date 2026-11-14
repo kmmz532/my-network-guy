@@ -1221,7 +1221,6 @@
   "ui.terminal.usageDhcp": "書式: ip address <口> dhcp / ip helper-address <口> <IP>、no ip helper-address <口> / ip dhcp pool <ネットワーク> <マスク> <先頭> <末尾> [gateway <IP>] [dns <IP>]、no ip dhcp pool <ネットワーク>",
   "ui.terminal.usageHostname": "使い方: hostname <名前>",
   "ui.terminal.usageIpAddress": "使い方: ip address <ポート> <IP> <マスク>",
-  "ui.terminal.usageNat": "書式: ip nat inside|outside <ポート> / ip nat napt / ip nat static <外のポート> <社内のIP> <社内のポート>",
   "ui.terminal.usagePing": "使い方: ping <IPアドレス>",
   "ui.terminal.usageStp": "書式: spanning-tree priority <0〜61440（4096の倍数）> / spanning-tree cost <口> <値>",
   "ui.terminal.usageTrace": "使い方: traceroute <IPアドレス>",

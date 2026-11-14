@@ -2,30 +2,46 @@
 import type { TerminalLine } from '../../terminal';
 import { changed, err, out, portMissing, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
-import { interfaceForm } from '../../command/modes';
-import { ifaceIdOf, isIp, port } from '../../command/args';
+import { interfaceOf } from '../../command/modes';
+import { ifaceIdOf } from '../../command/args';
 
-const ipNat: CommandSpec = {
-  id: 'nat.ipNat',
+const PORT = { arg: 'number', name: 'port' } as const;
+
+// 口ごとの NAT の向き（ip nat inside・ip nat outside）。口の番号は行に書く形（exec・config）。interface モードの形は口の番号を外す
+const natIface = (nat: 'inside' | 'outside'): CommandSpec => ({
+  id: `nat.ipNat${nat === 'inside' ? 'Inside' : 'Outside'}`,
   modes: ['exec', 'config'],
-  tokens: [{ word: 'ip' }, { word: 'nat' }, { rest: 'args' }],
+  tokens: [{ word: 'ip' }, { word: 'nat' }, { word: nat }, PORT],
   help: '',
   writes: true,
   topic: 'nat',
   run: (args, ctx, tr) => {
-    const words = args.args.split(' ').filter((w) => w !== '');
-    const [kind, a, b, c] = words;
-    if ((kind === 'inside' || kind === 'outside') && port(a ?? '') !== null && words.length === 2) {
-      const id = ifaceIdOf(ctx.node, Number(a));
-      if (id === null) return portMissing(ctx, tr);
-      return changed(ctx, tr, { kind: 'nat', change: { op: 'iface', id, nat: kind } });
-    }
-    if (kind === 'napt' && words.length === 1) return changed(ctx, tr, { kind: 'nat', change: { op: 'napt', on: true } });
-    if (kind === 'static' && words.length === 4 && port(a ?? '') !== null && isIp(b ?? '') && port(c ?? '') !== null) {
-      return changed(ctx, tr, { kind: 'nat', change: { op: 'static', port: Number(a), insideIp: b, insidePort: Number(c) } });
-    }
-    return shown([err(tr('ui.terminal.usageNat'))]);
+    const id = ifaceIdOf(ctx.node, Number(args.port));
+    if (id === null) return portMissing(ctx, tr);
+    return changed(ctx, tr, { kind: 'nat', change: { op: 'iface', id, nat } });
   },
+});
+const natInside = natIface('inside');
+const natOutside = natIface('outside');
+
+const ipNatNapt: CommandSpec = {
+  id: 'nat.ipNatNapt',
+  modes: ['exec', 'config'],
+  tokens: [{ word: 'ip' }, { word: 'nat' }, { word: 'napt' }],
+  help: '',
+  writes: true,
+  topic: 'nat',
+  run: (_args, ctx, tr) => changed(ctx, tr, { kind: 'nat', change: { op: 'napt', on: true } }),
+};
+
+const ipNatStatic: CommandSpec = {
+  id: 'nat.ipNatStatic',
+  modes: ['exec', 'config'],
+  tokens: [{ word: 'ip' }, { word: 'nat' }, { word: 'static' }, PORT, { arg: 'ip', name: 'insideIp' }, { arg: 'number', name: 'insidePort' }],
+  help: '',
+  writes: true,
+  topic: 'nat',
+  run: (args, ctx, tr) => changed(ctx, tr, { kind: 'nat', change: { op: 'static', port: Number(args.port), insideIp: args.insideIp, insidePort: Number(args.insidePort) } }),
 };
 
 export const commands: readonly CommandSpec[] = [
@@ -50,25 +66,41 @@ export const commands: readonly CommandSpec[] = [
       return shown([out(tr('ui.terminal.natHeader')), ...lines]);
     },
   },
-  ipNat,
-  interfaceForm(ipNat, (words, p) => [words[0], String(p), ...words.slice(1)]),
+  natInside,
+  interfaceOf(natInside),
+  natOutside,
+  interfaceOf(natOutside),
+  ipNatNapt,
+  ipNatStatic,
+  {
+    id: 'nat.noIpNatNapt',
+    modes: ['exec', 'config'],
+    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'nat' }, { word: 'napt' }],
+    help: '',
+    writes: true,
+    topic: 'nat',
+    run: (_args, ctx, tr) => changed(ctx, tr, { kind: 'nat', change: { op: 'napt', on: false } }),
+  },
+  {
+    id: 'nat.noIpNatStatic',
+    modes: ['exec', 'config'],
+    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'nat' }, { word: 'static' }, PORT],
+    help: '',
+    writes: true,
+    topic: 'nat',
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'nat', change: { op: 'noStatic', port: Number(args.port) } }),
+  },
   {
     id: 'nat.noIpNat',
     modes: ['exec', 'config'],
-    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'nat' }, { rest: 'args' }],
+    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'nat' }, PORT],
     help: '',
     writes: true,
     topic: 'nat',
     run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words[0] === 'napt' && words.length === 1) return changed(ctx, tr, { kind: 'nat', change: { op: 'napt', on: false } });
-      if (words[0] === 'static' && words.length === 2 && port(words[1]) !== null) return changed(ctx, tr, { kind: 'nat', change: { op: 'noStatic', port: Number(words[1]) } });
-      if (words.length === 1 && port(words[0]) !== null) {
-        const id = ifaceIdOf(ctx.node, Number(words[0]));
-        if (id === null) return portMissing(ctx, tr);
-        return changed(ctx, tr, { kind: 'nat', change: { op: 'iface', id, nat: null } });
-      }
-      return shown([err(tr('ui.terminal.usageNat'))]);
+      const id = ifaceIdOf(ctx.node, Number(args.port));
+      if (id === null) return portMissing(ctx, tr);
+      return changed(ctx, tr, { kind: 'nat', change: { op: 'iface', id, nat: null } });
     },
   },
 ];

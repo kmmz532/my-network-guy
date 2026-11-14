@@ -34,8 +34,10 @@
     },
     {
       "line": "ip nat static 0 192.168.1.10 x",
-      "result": "error",
-      "text": "ui.terminal.usageNat"
+      "lines": [
+        "err:                               ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "show ip nat translations",
@@ -59,8 +61,10 @@
     },
     {
       "line": "ip nat foo 0",
-      "result": "error",
-      "text": "ui.terminal.usageNat"
+      "lines": [
+        "err:         ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "no ip nat napt",
@@ -69,6 +73,29 @@
     {
       "line": "ip nat napt",
       "result": "done"
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "interface g0/1",
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "port",
+        "port": 1
+      }
+    },
+    {
+      "line": "ip nat outside",
+      "result": "done"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
     },
     {
       "line": "router rip",
@@ -195,6 +222,7 @@
             "port": 1,
             "ip": "192.168.1.1",
             "prefix": 24,
+            "nat": "outside",
             "rip": false
           }
         ],
