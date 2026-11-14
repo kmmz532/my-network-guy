@@ -13,12 +13,12 @@ import { useUiStore } from '../stores/useUiStore';
 import { Icon } from './Icon';
 import { ItemIcon } from './ItemIcon';
 import { Tooltip } from './Tooltip';
-import { RADIUS } from '../ui/theme';
 import { matchesQuery } from '../ui/search';
 import { SearchField } from './SearchField';
 import { itemSpriteOf } from './itemSprite';
 import { deviceDef, devicesById, furnitureById } from '../registry/query';
 import { Button } from './ui/Button';
+import { Tile } from './ui/Tile';
 
 const strip = {
   position: 'absolute',
@@ -35,24 +35,6 @@ const strip = {
   border: '2px solid #3b2a33',
   zoom: 'var(--ui-scale, 1)',
 } as const;
-
-const itemStyle = (active: boolean) =>
-  ({
-    flex: '0 0 auto',
-    width: 52,
-    height: 52,
-    padding: 2,
-    border: `1px solid ${active ? '#ffd866' : '#3b2a33'}`,
-    background: active ? '#3a5fa8' : '#25406f',
-    borderRadius: RADIUS.none,
-    touchAction: 'pan-x',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#f4f1e6',
-    position: 'relative',
-  }) as const;
 
 // パソコンのウィンドウの中の並び。幅に合わせて折り返す（縦のスクロールはウィンドウが受け持つ）
 const grid = {
@@ -219,20 +201,21 @@ export function Inventory({
           return (
             <Tooltip text={blocked ? `${name}
 ${t('ui.inventory.blocked.design')}` : name} key={key}>
-              <button
-                aria-label={name}
-                aria-disabled={blocked}
-                style={blocked ? { ...itemStyle(false), opacity: 0.4, cursor: 'not-allowed' } : itemStyle(placing === item.id)}
+              <Tile
+                size="item"
+                interactive
+                label={name}
+                selected={!blocked && placing === item.id}
+                unavailable={blocked}
+                count={sandbox ? '∞' : (owned[item.id] ?? 0)}
+                layout={{ flex: '0 0 auto' }}
                 onPointerDown={blocked ? undefined : onItemPointerDown(item)}
                 onClick={() => {
                   if (!blocked && !ignoreClick.current) onPick(item);
                 }}
               >
                 <ItemIcon name={spriteOf(item)} box={{ width: 40, height: 40 }} maxScale={2} />
-                <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>
-                  {sandbox ? '∞' : (owned[item.id] ?? 0)}
-                </span>
-              </button>
+              </Tile>
             </Tooltip>
           );
         })}
