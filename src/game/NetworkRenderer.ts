@@ -55,7 +55,7 @@ export class NetworkRenderer {
     const map = this.options.map();
     if (!selectedUid || !engine || !map) return;
     const ap = project.nodes.find((n) => n.uid === selectedUid);
-    // 選んだ物が機器でない（配線・家具）ときは描かない
+    // 前面の機器の窓が、表示中でない地図の機器（自社と依頼先を切り替えた後など）や撤去した機器を指すときは描かない
     if (!ap) return;
     const category = deviceCategory(ap.device);
     if (category !== CATEGORY.accessPoint && category !== CATEGORY.homeRouter) return;
