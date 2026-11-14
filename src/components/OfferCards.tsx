@@ -26,6 +26,7 @@ import { isBackOffice } from '../sim/backOffice';
 import { crewBlock } from '../sim/crew';
 import { usePhone } from '../ui/usePhone';
 import { deviceCategory } from '../registry/query';
+import { Button } from './ui/Button';
 
 // 依頼の一覧。Enter は一番上の依頼の受注（主のボタン）
 
@@ -241,22 +242,19 @@ function OfferCard({
           {asking ? (
             <>
               <span style={{ whiteSpace: 'nowrap' }}>{t('ui.offer.decline.confirm')}</span>
-              <button style={{ ...dangerButton, whiteSpace: 'nowrap' }} onClick={onDecline}>
+              <Button variant="danger" onClick={onDecline}>
                 {t('ui.offer.decline.yes')}
-              </button>
-              <button style={{ ...secondaryButton, whiteSpace: 'nowrap' }} onClick={() => setAsking(false)}>
+              </Button>
+              <Button variant="secondary" onClick={() => setAsking(false)}>
                 {t('ui.offer.decline.no')}
-              </button>
+              </Button>
               {/* 次から確認しない（設定と同じ値を変える。この依頼はまだ断らない） */}
-              <button
-                style={{ ...secondaryButton, whiteSpace: 'nowrap' }}
-                onClick={() => {
+              <Button variant="secondary" onClick={() => {
                   saveSettings({ confirmDecline: false });
                   setAsking(false);
-                }}
-              >
+                }}>
                 {t('ui.offer.decline.never')}
-              </button>
+              </Button>
             </>
           ) : (
             <>
