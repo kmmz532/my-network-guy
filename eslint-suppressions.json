@@ -112,7 +112,7 @@
       "count": 22
     },
     "local/no-native-control": {
-      "count": 19
+      "count": 15
     }
   },
   "src/components/DhcpField.tsx": {
@@ -182,7 +182,7 @@
       "count": 43
     },
     "local/no-native-control": {
-      "count": 7
+      "count": 5
     }
   },
   "src/components/Inventory.tsx": {
@@ -199,7 +199,7 @@
       "count": 2
     },
     "local/no-native-control": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/IspField.tsx": {
@@ -223,7 +223,7 @@
       "count": 5
     },
     "local/no-native-control": {
-      "count": 3
+      "count": 1
     }
   },
   "src/components/LoopBanner.tsx": {
@@ -247,7 +247,7 @@
       "count": 27
     },
     "local/no-native-control": {
-      "count": 7
+      "count": 4
     }
   },
   "src/components/OfficePanel.tsx": {
@@ -295,7 +295,7 @@
       "count": 12
     },
     "local/no-native-control": {
-      "count": 3
+      "count": 2
     }
   },
   "src/components/SearchField.tsx": {
@@ -311,7 +311,7 @@
       "count": 8
     },
     "local/no-native-control": {
-      "count": 3
+      "count": 2
     }
   },
   "src/components/ShopCards.tsx": {
@@ -336,7 +336,7 @@
       "count": 33
     },
     "local/no-native-control": {
-      "count": 7
+      "count": 2
     }
   },
   "src/components/SviField.tsx": {
@@ -374,7 +374,7 @@
       "count": 40
     },
     "local/no-native-control": {
-      "count": 9
+      "count": 5
     }
   },
   "src/components/TerminalTab.tsx": {
@@ -479,15 +479,12 @@
       "count": 2
     },
     "local/no-native-control": {
-      "count": 12
+      "count": 11
     }
   },
   "src/components/scene/GameScene.tsx": {
     "local/no-look-props": {
-      "count": 6
-    },
-    "local/no-native-control": {
-      "count": 1
+      "count": 5
     }
   },
   "src/components/scene/SaveSlotDialog.tsx": {
@@ -498,7 +495,7 @@
       "count": 3
     },
     "local/no-native-control": {
-      "count": 18
+      "count": 3
     }
   },
   "src/components/scene/TitleScene.tsx": {

@@ -8,8 +8,6 @@ import { AddressInput } from './AddressInput';
 import { ComboBox } from './ui/ComboBox';
 import { Select } from './ui/Select';
 import { PixelSelect } from './PixelControls';
-import { primaryButton } from './Modal';
-import { dangerButton } from './Modal';
 import type { ComboOption } from './ui/comboOptions';
 import { isRelayPort, isRoutingCategory } from '../network/category';
 import { can } from '../network/capabilities';
@@ -32,6 +30,7 @@ import { ChannelField } from './ChannelField';
 import { SviField } from './SviField';
 import { DhcpPoolField, DhcpPortField } from './DhcpField';
 import { portCountOf, deviceCategory } from '../registry/query';
+import { Button } from './ui/Button';
 
 // ネットワークの既定候補（入力欄から任意のネットワークも指定できる）
 const NETWORK_CHOICES = Array.from({ length: 16 }, (_, i) => `192.168.${i + 1}.0`);
@@ -306,9 +305,9 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
           <div key={`${r.src}-${r.dst}-${r.service}-${r.port ?? ''}-${i}`} style={row}>
             <span>{t('ui.fw.rule', { src: r.src === 'any' ? t('ui.fw.any') : r.src, dst: r.dst === 'any' ? t('ui.fw.any') : r.dst, service: ruleServiceText(r) })}</span>
             {!locked && (
-              <button style={dangerButton} onClick={() => onError(setFirewallRules(node.uid, rules.filter((_, j) => j !== i)))}>
+              <Button variant="danger" onClick={() => onError(setFirewallRules(node.uid, rules.filter((_, j) => j !== i)))}>
                 {t('ui.config.remove')}
-              </button>
+              </Button>
             )}
           </div>
         ))}
@@ -334,9 +333,9 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
           <div key={`${r.dest}-${r.prefix}-${r.nextHop}-${i}`} style={row}>
             <span>{t('ui.config.routeItem', { dest: r.dest, prefix: r.prefix, next: r.nextHop })}</span>
             {!locked && (
-              <button style={dangerButton} onClick={() => onError(removeRoute(node.uid, i))}>
+              <Button variant="danger" onClick={() => onError(removeRoute(node.uid, i))}>
                 {t('ui.config.remove')}
-              </button>
+              </Button>
             )}
           </div>
         ))}
@@ -450,9 +449,9 @@ function FirewallRuleAdd({ onAdd }: { onAdd: (rule: { src: string; dst: string; 
       {service === 'http' && (
         <input aria-label={t('ui.fw.port')} value={port} onChange={(e) => setPort(e.target.value)} style={{ ...inputStyle, width: 56 }} />
       )}
-      <button style={primaryButton} onClick={add}>
+      <Button variant="primary" onClick={add}>
         {t('ui.fw.add')}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -545,9 +544,9 @@ function NatField({ node, readOnly, onError }: { node: NetNode; readOnly: boolea
         <div key={s.port} style={row}>
           <span>{t('ui.nat.staticItem', { port: s.port, ip: s.insideIp, insidePort: s.insidePort })}</span>
           {!readOnly && (
-            <button style={dangerButton} onClick={() => onError(setNat(node.uid, { op: 'noStatic', port: s.port }))}>
+            <Button variant="danger" onClick={() => onError(setNat(node.uid, { op: 'noStatic', port: s.port }))}>
               {t('ui.config.remove')}
-            </button>
+            </Button>
           )}
         </div>
       ))}
