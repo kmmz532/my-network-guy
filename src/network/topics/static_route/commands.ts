@@ -2,8 +2,9 @@
 import { adOf } from '../../engine/stages/routing';
 import { learnedRoutesOf } from '../../query/learnedRoutes';
 import { networkAddress } from '../../segments';
+import { isIp, maskToPrefix } from '../../terminalConfig';
 import type { TerminalLine } from '../../terminal';
-import { out, shown } from '../../command/lines';
+import { changed, err, out, readOnlyLine, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
 
 export const commands: readonly CommandSpec[] = [
@@ -30,6 +31,69 @@ export const commands: readonly CommandSpec[] = [
         }
       }
       return shown(lines.length > 0 ? lines : [out(tr('ui.terminal.noRoute'))]);
+    },
+  },
+  {
+    id: 'static_route.ipRoute',
+    modes: ['exec'],
+    tokens: [{ word: 'ip' }, { word: 'route' }, { rest: 'args' }],
+    help: '',
+    writes: true,
+    topic: 'static_route',
+    run: (args, ctx, tr) => {
+      const words = args.args.split(' ').filter((w) => w !== '');
+      if (words.length !== 3) return shown([err(tr('ui.terminal.usageRoute'))]);
+      if (!isIp(words[0]) || !isIp(words[2])) return shown([err(tr('ui.terminal.errIp'))]);
+      const prefix = maskToPrefix(words[1]);
+      if (prefix === null) return shown([err(tr('ui.terminal.errMask'))]);
+      return changed(ctx, tr, { kind: 'addRoute', route: { dest: words[0], prefix, nextHop: words[2] } });
+    },
+  },
+  {
+    id: 'static_route.noIpRoute',
+    modes: ['exec'],
+    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'route' }, { rest: 'args' }],
+    help: '',
+    writes: true,
+    topic: 'static_route',
+    run: (args, ctx, tr) => {
+      const words = args.args.split(' ').filter((w) => w !== '');
+      if (words.length !== 2) return shown([err(tr('ui.terminal.usageNoRoute'))]);
+      if (!isIp(words[0])) return shown([err(tr('ui.terminal.errIp'))]);
+      const prefix = maskToPrefix(words[1]);
+      if (prefix === null) return shown([err(tr('ui.terminal.errMask'))]);
+      // 読み取り専用の拒否は、経路の有無の検査より先
+      if (ctx.readOnly) return shown([readOnlyLine(tr)]);
+      const index = ctx.node.routes.findIndex((r) => r.dest === words[0] && r.prefix === prefix);
+      if (index < 0) return shown([err(tr('ui.terminal.noRouteToRemove'))]);
+      return changed(ctx, tr, { kind: 'removeRoute', index });
+    },
+  },
+  {
+    id: 'static_route.ipDefaultGateway',
+    modes: ['exec'],
+    tokens: [{ word: 'ip' }, { word: 'default-gateway' }, { rest: 'args' }],
+    help: '',
+    writes: true,
+    topic: 'static_route',
+    run: (args, ctx, tr) => {
+      const words = args.args.split(' ').filter((w) => w !== '');
+      if (words.length !== 1) return shown([err(tr('ui.terminal.usageGateway'))]);
+      if (!isIp(words[0])) return shown([err(tr('ui.terminal.errIp'))]);
+      return changed(ctx, tr, { kind: 'gateway', gateway: words[0] });
+    },
+  },
+  {
+    id: 'static_route.noIpDefaultGateway',
+    modes: ['exec'],
+    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'default-gateway' }, { rest: 'args' }],
+    help: '',
+    writes: true,
+    topic: 'static_route',
+    run: (args, ctx, tr) => {
+      // 語が続く形は、今の parseConfig と同じく未知の命令の誤りになる
+      if (args.args !== '') return shown([err(tr('ui.terminal.unknown'))]);
+      return changed(ctx, tr, { kind: 'gateway', gateway: null });
     },
   },
 ];

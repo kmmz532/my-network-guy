@@ -40,19 +40,18 @@ describe('設定のコマンド（段階3）', () => {
   });
 
   it('ip default-gateway と no ip default-gateway', () => {
-    expect(parseConfig('ip default-gateway 192.168.1.1', tr)).toEqual({ kind: 'action', action: { kind: 'gateway', gateway: '192.168.1.1' } });
-    expect(parseConfig('no ip default-gateway', tr)).toEqual({ kind: 'action', action: { kind: 'gateway', gateway: null } });
+    expect(viaTree('ip default-gateway 192.168.1.1', tr)).toEqual({ kind: 'action', action: { kind: 'gateway', gateway: '192.168.1.1' } });
+    expect(viaTree('no ip default-gateway', tr)).toEqual({ kind: 'action', action: { kind: 'gateway', gateway: null } });
   });
 
   it('ip route と no ip route', () => {
-    expect(parseConfig('ip route 192.168.2.0 255.255.255.0 192.168.1.254', tr)).toEqual({
+    expect(viaTree('ip route 192.168.2.0 255.255.255.0 192.168.1.254', tr)).toEqual({
       kind: 'action',
       action: { kind: 'addRoute', route: { dest: '192.168.2.0', prefix: 24, nextHop: '192.168.1.254' } },
     });
-    expect(parseConfig('no ip route 192.168.2.0 255.255.255.0', tr)).toEqual({
-      kind: 'action',
-      action: { kind: 'removeRoute', dest: '192.168.2.0', prefix: 24 },
-    });
+    // 消す経路は、機器の経路の表の位置で指す
+    const withRoute = commandContextOf({ node: { routes: [{ dest: '192.168.2.0', prefix: 24, nextHop: '192.168.1.254' }] } as NetNode, nodes: [], links: [], data: {} as EngineData, state: {} as NetworkState }, false);
+    expect(runLine('no ip route 192.168.2.0 255.255.255.0', withRoute, tr).change).toEqual({ kind: 'removeRoute', index: 0 });
   });
 
   it('形の違う入力は、理由のキーを出す', () => {

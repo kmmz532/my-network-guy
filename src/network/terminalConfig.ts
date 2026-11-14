@@ -309,20 +309,6 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     return { kind: 'action', action: { kind: 'noHost', name: rest[2] } };
   }
 
-  if (first === 'ip' && rest[0] === 'default-gateway') {
-    if (rest.length !== 2) return error('ui.terminal.usageGateway');
-    if (!isIp(rest[1])) return error('ui.terminal.errIp');
-    return { kind: 'action', action: { kind: 'gateway', gateway: rest[1] } };
-  }
-
-  if (first === 'ip' && rest[0] === 'route') {
-    if (rest.length !== 4) return error('ui.terminal.usageRoute');
-    if (!isIp(rest[1]) || !isIp(rest[3])) return error('ui.terminal.errIp');
-    const prefix = maskToPrefix(rest[2]);
-    if (prefix === null) return error('ui.terminal.errMask');
-    return { kind: 'action', action: { kind: 'addRoute', route: { dest: rest[1], prefix, nextHop: rest[3] } } };
-  }
-
   if (first === 'ip' && rest[0] === 'name-server') {
     if (rest.length !== 2) return error('ui.terminal.usageNameServer');
     if (!isIp(rest[1])) return error('ui.terminal.errIp');
@@ -332,18 +318,6 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   if (first === 'no' && rest[0] === 'ip' && rest[1] === 'name-server') {
     if (rest.length !== 2) return error('ui.terminal.usageNameServer');
     return { kind: 'action', action: { kind: 'nameServer', ip: null } };
-  }
-
-  if (first === 'no' && rest[0] === 'ip' && rest[1] === 'default-gateway' && rest.length === 2) {
-    return { kind: 'action', action: { kind: 'gateway', gateway: null } };
-  }
-
-  if (first === 'no' && rest[0] === 'ip' && rest[1] === 'route') {
-    if (rest.length !== 4) return error('ui.terminal.usageNoRoute');
-    if (!isIp(rest[2])) return error('ui.terminal.errIp');
-    const prefix = maskToPrefix(rest[3]);
-    if (prefix === null) return error('ui.terminal.errMask');
-    return { kind: 'action', action: { kind: 'removeRoute', dest: rest[2], prefix } };
   }
 
   return error('ui.terminal.unknown');

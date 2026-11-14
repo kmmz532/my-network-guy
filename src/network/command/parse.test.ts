@@ -20,7 +20,7 @@ describe('命令の解釈', () => {
   it('語が余る行・足りない行・登録のない行は null を返す', () => {
     expect(parseLine('show ip route extra', exec)).toBeNull();
     expect(parseLine('show', exec)).toBeNull();
-    expect(parseLine('ip route 10.0.0.0 255.0.0.0 10.0.0.1', exec)).toBeNull();
+    expect(parseLine('ip foo', exec)).toBeNull();
     expect(parseLine('', exec)).toBeNull();
   });
 
