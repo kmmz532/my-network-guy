@@ -198,13 +198,13 @@
   },
   "src/components/IspField.tsx": {
     "local/no-look-export": {
-      "count": 4
+      "count": 3
     },
     "local/no-look-props": {
       "count": 3
     },
     "local/no-native-control": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/KeyHelp.tsx": {

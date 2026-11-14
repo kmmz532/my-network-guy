@@ -5,7 +5,8 @@ import { INTERNET_IP, INTERNET_PREFIX } from '../network/external';
 import { isIp } from '../network/command/args';
 import type { IspLine, NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
-import { buttonStyle, greyColor, inputStyle, sectionStyle } from './devicePorts';
+import { buttonStyle, greyColor, sectionStyle } from './devicePorts';
+import { TextInput } from './ui/TextInput';
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
 
@@ -25,7 +26,7 @@ export function IspField({ node, readOnly, onError }: { node: NetNode; readOnly:
   const field = (label: string, value: string, set: (v: string) => void, width: number) => (
     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
       {label}
-      <input style={{ ...inputStyle, width }} value={value} disabled={readOnly} onChange={(e) => set(e.target.value)} />
+      <TextInput value={value} disabled={readOnly} onChange={set} layout={{ width }} />
     </label>
   );
 
