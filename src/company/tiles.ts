@@ -12,7 +12,7 @@ export interface TileSource {
   map: GameMap;
   furniture: readonly PlacedFurniture[];
   nodes: readonly NetNode[];
-  // 自社オフィスの規則（机は家具）。false は依頼先の規則（机は地図の desk のマス）
+  // 自社オフィスの規則（机は家具）。false は依頼先の規則（机は地図の desk のマスか、机の家具）
   office: boolean;
   // PC を机のない床にも置ける（今のサンドボックス）
   anyFloor: boolean;
@@ -29,7 +29,8 @@ export const tileAt = (src: TileSource, x: number, y: number, env: Env): Tile =>
   const kind = tileKind(src.map, x, y);
   const furniture = src.furniture.filter((f) => f.x === x && f.y === y);
   const node = src.nodes.find((n) => n.x === x && n.y === y) ?? null;
-  const desk = src.office ? furniture.some((f) => isDeskFurniture(f.id, env)) : kind === 'desk';
+  const deskFurniture = furniture.some((f) => isDeskFurniture(f.id, env));
+  const desk = src.office ? deskFurniture : kind === 'desk' || deskFurniture;
   return { kind, furniture, node, desk };
 };
 
