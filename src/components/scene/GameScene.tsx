@@ -14,7 +14,7 @@ import { FocusSwitch } from '../FocusSwitch';
 import { Guide } from '../Guide';
 import Header from '../Header';
 import { HiringPanel } from '../HiringPanel';
-import { Modal, primaryButton } from '../Modal';
+import { Modal } from '../Modal';
 import { ReportModal } from '../Overlay';
 import { PausedBuildPrompt } from '../PausedBuildPrompt';
 import { PortMenu } from '../PortMenu';
@@ -28,6 +28,7 @@ import { GamePopups } from './GamePopups';
 import { TopNotices } from './TopNotices';
 import { useUiStore } from '../../stores/useUiStore';
 import { useSceneStore } from '../../stores/useSceneStore';
+import { Button } from '../ui/Button';
 
 // デバッグのパネルは ?debug=1 のときだけ読み込む（N54）
 const DebugPanel = lazy(() => import('../DebugPanel'));
@@ -43,9 +44,9 @@ function GameOver({ onRetry }: { onRetry: () => void }) {
       boxStyle={{ background: 'none', border: 'none', padding: 0, maxWidth: 'none', alignItems: 'center', display: 'flex', flexDirection: 'column', gap: 12 }}
     >
       <h2 style={{ fontSize: 28, margin: 0 }}>{t('ui.gameover.title')}</h2>
-      <button style={{ ...primaryButton, padding: '10px 24px', fontSize: 16 }} onClick={onRetry}>
+      <Button variant="primary" size="l" onClick={onRetry}>
         {t('ui.gameover.retry')}
-      </button>
+      </Button>
     </Modal>
   );
 }
@@ -64,7 +65,6 @@ const GameScene = () => {
     saveSession.open(null);
     useSceneStore.getState().setScene({ kind: 'title', opening });
   };
-
 
   // ヘッダーの下端（画面の座標）。狭い画面では案件の札と速さの表示を、ヘッダーの下に置く
   const headerRef = useRef<HTMLElement>(null);
