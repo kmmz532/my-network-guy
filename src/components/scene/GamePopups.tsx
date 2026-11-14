@@ -5,12 +5,13 @@ import { saveSession, useSaveSession } from '../../services/saveSession';
 import { useGameStore } from '../../stores/useGameStore';
 import { useUiStore } from '../../stores/useUiStore';
 import { RADIUS } from '../../ui/theme';
-import { dangerButton, Modal, secondaryButton } from '../Modal';
+import { Modal, secondaryButton } from '../Modal';
 import { KeyHelp } from '../KeyHelp';
 import { SandboxSizePanel } from '../SandboxSizePanel';
 import { SettingsPanel } from '../SettingsPanel';
 import { LessonPicker } from '../LessonPicker';
 import { readSandboxFile, writeSandboxFile } from '../../sim/sandboxFile';
+import { Button } from '../ui/Button';
 
 // メニューの項目。ボタンとファイルを選ぶラベルで、文字の大きさと見た目をそろえる
 const menuButton = { ...secondaryButton, display: 'block', width: '100%', margin: '4px 0', padding: '6px 12px', fontSize: 13, lineHeight: 1.4, boxSizing: 'border-box' } as const;
@@ -141,9 +142,9 @@ export function GamePopups({ onExit }: { onExit: () => void }) {
             >
               {t('ui.sandbox.size.cancel')}
             </button>
-            <button style={dangerButton} onClick={() => setPopup('sandboxReset')}>
+            <Button variant="danger" onClick={() => setPopup('sandboxReset')}>
               {t('ui.sandbox.size.recreate')}
-            </button>
+            </Button>
           </div>
         </Modal>
       )}
