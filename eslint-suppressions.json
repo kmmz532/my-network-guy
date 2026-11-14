@@ -83,10 +83,10 @@
       "count": 2
     },
     "local/no-look-props": {
-      "count": 33
+      "count": 28
     },
     "local/no-native-control": {
-      "count": 5
+      "count": 4
     }
   },
   "src/components/DeviceSettings.tsx": {
