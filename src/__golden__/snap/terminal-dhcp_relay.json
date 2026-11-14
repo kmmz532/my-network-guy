@@ -16,13 +16,17 @@
     },
     {
       "line": "ip helper-address 0 10.0.1.2 extra",
-      "result": "error",
-      "text": "ui.terminal.usageDhcp"
+      "lines": [
+        "err:                               ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "ip helper-address 1 abc",
-      "result": "error",
-      "text": "ui.terminal.usageDhcp"
+      "lines": [
+        "err:                      ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "no ip helper-address 1",
@@ -35,13 +39,27 @@
     },
     {
       "line": "ip dhcp pool 192.168.1.0 255.255.255.0 192.168.1.100 192.168.1.199 gateway",
-      "result": "error",
-      "text": "ui.terminal.usageDhcp"
+      "lines": [
+        "err:                                                                             ^",
+        "err:ui.terminal.invalidAt"
+      ]
+    },
+    {
+      "line": "ip dhcp pool 192.168.1.0 255.255.255.0 192.168.1.100 192.168.1.199 gateway 192.168.1.1",
+      "result": "fail",
+      "reason": "dhcp.unsupported"
+    },
+    {
+      "line": "ip dhcp pool 192.168.1.0 255.255.255.0 192.168.1.100 192.168.1.199 dns 10.0.1.2",
+      "result": "fail",
+      "reason": "dhcp.unsupported"
     },
     {
       "line": "ip dhcp pool 192.168.1.0 255.0.255.0 192.168.1.100 192.168.1.199",
-      "result": "error",
-      "text": "ui.terminal.usageDhcp"
+      "lines": [
+        "err:                           ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "no ip dhcp pool 192.168.1.0",

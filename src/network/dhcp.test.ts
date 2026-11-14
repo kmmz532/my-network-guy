@@ -104,7 +104,7 @@ describe('DHCP のターミナル', () => {
       kind: 'action',
       action: { kind: 'dhcp', change: { op: 'pool', pool: { network: '192.168.1.0', prefix: 24, start: '192.168.1.100', end: '192.168.1.150', gateway: '192.168.1.1' } } },
     });
-    expect(viaTree('ip dhcp pool 192.168.1.0 255.255.255.0 192.168.1.100', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageDhcp' });
+    expect(viaTree('ip dhcp pool 192.168.1.0 255.255.255.0 192.168.1.100', tr)).toEqual({ kind: 'error', text: '                                                       ^' });
     const net = office(['p1']);
     const lines = runShow('show ip dhcp binding', { node: net.nodes[1], nodes: net.nodes, links: net.links, data, state: analyze({ nodes: net.nodes, links: net.links }, data) }, tr);
     expect(lines[0].text).toContain('192.168.1.100');
