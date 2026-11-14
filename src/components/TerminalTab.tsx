@@ -14,6 +14,7 @@ import { createOps } from '../stores/gameOps';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { secondaryButton } from './Modal';
 import { warnColor } from './devicePorts';
+import { Button } from './ui/Button';
 
 const NO_LINES: TerminalLine[] = [];
 const NO_COMMANDS: string[] = [];
@@ -112,9 +113,9 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
         ))}
       </div>
       {hasTraces && (
-        <button type="button" style={{ ...secondaryButton, marginBottom: 6 }} onClick={() => openWindow('frames', '')}>
+        <Button variant="secondary" layout={{ marginBottom: 6 }} onClick={() => openWindow('frames', '')}>
           {t('ui.frames.open')}
-        </button>
+        </Button>
       )}
       <form
         onSubmit={(e) => {
