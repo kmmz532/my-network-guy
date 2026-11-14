@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { t } from '../i18n/t';
 import type { OfficeSize } from '../sim/project';
 import { SANDBOX_DEFAULT_SIZE, SANDBOX_SIZES } from '../sim/sandbox';
-import { Modal } from './Modal';
 import { Button } from './ui/Button';
+import { Dialog } from './ui/Dialog';
 
 const sizeLabel = (size: OfficeSize) => `${size.w}×${size.h}`;
 
@@ -37,7 +37,7 @@ export function SandboxSizePanel({
   const isPicked = (size: OfficeSize) => size.w === picked.w && size.h === picked.h;
 
   return (
-    <Modal onClose={onClose} primary={run} boxStyle={{ width: 'min(320px, calc(100% - 32px))' }}>
+    <Dialog onClose={onClose} primary={run} layout={{ width: 'min(320px, calc(100% - 32px))' }}>
       <div style={{ fontWeight: 'bold' }}>{title}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
         {SANDBOX_SIZES.map((size) => (
@@ -63,6 +63,6 @@ export function SandboxSizePanel({
           {start}
         </Button>
       </div>
-    </Modal>
+    </Dialog>
   );
 }
