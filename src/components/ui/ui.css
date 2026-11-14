@@ -486,13 +486,13 @@ input.ui-text-input--full {
   justify-content: flex-end;
 }
 
+/* Tile: 正方形の札。大きさの種類で辺の長さが決まる（item = インベントリの品目、unlock = 解放される物の絵）。
+   button として使うときは押せる札になる。選んだ札は地と枠を変え、使えない札は薄く出す */
 .ui-tile {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
   box-sizing: border-box;
   background: var(--bg-card);
   color: var(--fg);
@@ -500,11 +500,40 @@ input.ui-text-input--full {
   border-radius: 0;
 }
 
+.ui-tile--item {
+  width: 52px;
+  height: 52px;
+}
+
+.ui-tile--unlock {
+  width: 42px;
+  height: 42px;
+}
+
+.ui-tile--button {
+  padding: 0;
+  cursor: pointer;
+  touch-action: pan-x;
+  outline: none;
+}
+
+.ui-tile--selected {
+  background: var(--bg-tile-selected);
+  border-color: var(--line-focus);
+}
+
+.ui-tile--unavailable {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .ui-tile__count {
   position: absolute;
   right: 2px;
   bottom: 0;
-  font-size: var(--fs-s);
+  font-size: 11px;
+  font-weight: bold;
+  text-shadow: 0 0 2px var(--line);
 }
 
 .ui-popover--menu {
