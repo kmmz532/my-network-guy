@@ -17,6 +17,7 @@ import { Tooltip } from './Tooltip';
 import { retireBlock } from '../sim/retire';
 import { isDevJob, requiresPc } from '../sim/jobs';
 import { Button } from './ui/Button';
+import { ListRow } from './ui/ListRow';
 
 const yen = (n: number) => n.toLocaleString('ja-JP');
 // 社員の一覧の列の幅（名前・職種と level・月給・状態）
@@ -211,40 +212,22 @@ export function StaffListBody() {
       {state.staff.map((m) => {
         const status = staffStatus(m, state.active, state.clock.minute);
         return (
-          <button
-            key={m.uid}
-            onClick={() => openWindow('staff', m.uid)}
-            style={{
-              display: 'grid',
-              gridTemplateColumns: COLUMNS,
-              gap: 6,
-              alignItems: 'center',
-              width: '100%',
-              padding: '4px 6px',
-              marginBottom: 4,
-              background: '#25406f',
-              color: 'inherit',
-              border: '1px solid #3b2a33',
-              borderRadius: RADIUS.none,
-              cursor: 'pointer',
-              font: 'inherit',
-              fontSize: 12,
-              textAlign: 'left',
-            }}
-          >
-            <span style={{ fontWeight: 'bold' }}>{tDyn(m.name)}</span>
-            <span>
-              {tDyn(`staff.job.${m.job}`)} · {t('ui.staff.level', { level: m.level })}
+          <ListRow key={m.uid} layout={{ marginBottom: 4 }} onClick={() => openWindow('staff', m.uid)}>
+            <span style={{ display: 'grid', gridTemplateColumns: COLUMNS, gap: 6, alignItems: 'center', fontSize: 12 }}>
+              <span style={{ fontWeight: 'bold' }}>{tDyn(m.name)}</span>
+              <span>
+                {tDyn(`staff.job.${m.job}`)} · {t('ui.staff.level', { level: m.level })}
+              </span>
+              <span>{yen(m.salary)}円</span>
+              <span>
+                {statusText(status)}
+                {m.level >= m.levelCap && <span style={{ marginLeft: 4, color: '#ffd866' }}>{t('ui.staff.cap')}</span>}
+                {requiresPc(m.job) && !(m.desk !== null && pcDesks.includes(m.desk)) && (
+                  <span style={{ marginLeft: 4, color: '#ffd866' }}>{t('ui.staff.pc.no.short')}</span>
+                )}
+              </span>
             </span>
-            <span>{yen(m.salary)}円</span>
-            <span>
-              {statusText(status)}
-              {m.level >= m.levelCap && <span style={{ marginLeft: 4, color: '#ffd866' }}>{t('ui.staff.cap')}</span>}
-              {requiresPc(m.job) && !(m.desk !== null && pcDesks.includes(m.desk)) && (
-                <span style={{ marginLeft: 4, color: '#ffd866' }}>{t('ui.staff.pc.no.short')}</span>
-              )}
-            </span>
-          </button>
+          </ListRow>
         );
       })}
       <div style={{ textAlign: 'right', fontWeight: 'bold', marginTop: 6 }}>
