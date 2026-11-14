@@ -1,0 +1,288 @@
+{
+  "id": "r011_vrrp_gateway",
+  "kind": "repair",
+  "minChanges": 2,
+  "stage": 2,
+  "order": 290,
+  "requires": [
+    "r010_dhcp_rogue"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_rooms",
+  "budget": 30000,
+  "deadlineDays": 5,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "staff_a",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": false
+      },
+      "name": "社員のPC1"
+    },
+    {
+      "ref": "staff_b",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": false
+      },
+      "name": "社員のPC2"
+    },
+    {
+      "ref": "sw_lan",
+      "device": "l2_switch_8p",
+      "x": 5,
+      "y": 5,
+      "locked": true,
+      "name": "社員側のスイッチ"
+    },
+    {
+      "ref": "r1",
+      "device": "router_basic",
+      "x": 7,
+      "y": 3,
+      "locked": true,
+      "name": "ルーター1",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.1",
+            "prefix": 24
+          },
+          {
+            "port": 1,
+            "ip": "10.0.9.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "setup": {
+        "interfaces": [
+          {
+            "port": 0,
+            "vrrp": [
+              {
+                "vrid": 1,
+                "ip": "192.168.1.254",
+                "priority": 110,
+                "preempt": true
+              }
+            ]
+          },
+          {
+            "port": 1,
+            "vrrp": [
+              {
+                "vrid": 2,
+                "ip": "10.0.9.254",
+                "priority": 110,
+                "preempt": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "ref": "r2",
+      "device": "router_basic",
+      "x": 7,
+      "y": 7,
+      "locked": true,
+      "name": "ルーター2",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.2",
+            "prefix": 24
+          },
+          {
+            "port": 1,
+            "ip": "10.0.9.2",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "setup": {
+        "interfaces": [
+          {
+            "port": 0,
+            "vrrp": [
+              {
+                "vrid": 1,
+                "ip": "192.168.1.254",
+                "priority": 100,
+                "preempt": true
+              }
+            ]
+          },
+          {
+            "port": 1,
+            "vrrp": [
+              {
+                "vrid": 2,
+                "ip": "10.0.9.254",
+                "priority": 100,
+                "preempt": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "ref": "sw_srv",
+      "device": "l2_switch_8p",
+      "x": 11,
+      "y": 5,
+      "locked": true,
+      "name": "サーバー側のスイッチ"
+    },
+    {
+      "ref": "srv",
+      "device": "server_basic",
+      "x": 14,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.9.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.0.9.254",
+        "services": [],
+        "locked": false
+      },
+      "name": "社内サーバー"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "staff_a",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw_lan",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "staff_b",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw_lan",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "sw_lan",
+        "port": 2
+      },
+      "b": {
+        "ref": "r1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "sw_lan",
+        "port": 3
+      },
+      "b": {
+        "ref": "r2",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "r1",
+        "port": 1
+      },
+      "b": {
+        "ref": "sw_srv",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "r2",
+        "port": 1
+      },
+      "b": {
+        "ref": "sw_srv",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "sw_srv",
+        "port": 2
+      },
+      "b": {
+        "ref": "srv",
+        "port": 0
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "survive_device_failure",
+      "nodes": [
+        "r1"
+      ]
+    }
+  ],
+  "reward": {
+    "money": 600000
+  },
+  "unlockLevel": 60
+}
