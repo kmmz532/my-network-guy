@@ -1,0 +1,234 @@
+{
+  "id": "r009_bgp_as",
+  "kind": "repair",
+  "minChanges": 1,
+  "stage": 2,
+  "order": 270,
+  "requires": [
+    "r008_wireless_wpa3"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_rooms",
+  "budget": 30000,
+  "deadlineDays": 5,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "staff_a",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "社員のPC1"
+    },
+    {
+      "ref": "staff_b",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "社員のPC2"
+    },
+    {
+      "ref": "sw",
+      "device": "l2_switch_8p",
+      "x": 5,
+      "y": 5,
+      "locked": true,
+      "name": "本社のスイッチ"
+    },
+    {
+      "ref": "edge",
+      "device": "edge_router",
+      "x": 9,
+      "y": 5,
+      "locked": true,
+      "name": "境界ルーター",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "198.51.100.2",
+            "prefix": 24
+          },
+          {
+            "port": 1,
+            "ip": "203.0.113.2",
+            "prefix": 24
+          },
+          {
+            "port": 2,
+            "ip": "192.168.1.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "setup": {
+        "interfaces": [
+          {
+            "port": 0,
+            "nat": "outside"
+          },
+          {
+            "port": 1,
+            "nat": "outside"
+          },
+          {
+            "port": 2,
+            "nat": "inside"
+          }
+        ],
+        "napt": true,
+        "bgp": {
+          "asn": 65000,
+          "neighbors": [
+            {
+              "ip": "198.51.100.1",
+              "remoteAs": 65001
+            },
+            {
+              "ip": "203.0.113.1",
+              "remoteAs": 65099
+            }
+          ],
+          "networks": [
+            {
+              "dest": "192.168.1.0",
+              "prefix": 24
+            }
+          ]
+        }
+      }
+    },
+    {
+      "ref": "isp_a",
+      "device": "uplink",
+      "x": 17,
+      "y": 2,
+      "locked": true,
+      "isp": {
+        "name": "ISP-A",
+        "network": "198.51.100.0",
+        "prefix": 24,
+        "ispIp": "198.51.100.1",
+        "asn": 65001
+      },
+      "name": "ISP-A"
+    },
+    {
+      "ref": "isp_b",
+      "device": "uplink",
+      "x": 17,
+      "y": 8,
+      "locked": true,
+      "isp": {
+        "name": "ISP-B",
+        "network": "203.0.113.0",
+        "prefix": 24,
+        "ispIp": "203.0.113.1",
+        "asn": 65002
+      },
+      "name": "ISP-B"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "staff_a",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "staff_b",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "sw",
+        "port": 2
+      },
+      "b": {
+        "ref": "edge",
+        "port": 2
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "edge",
+        "port": 0
+      },
+      "b": {
+        "ref": "isp_a",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "edge",
+        "port": 1
+      },
+      "b": {
+        "ref": "isp_b",
+        "port": 0
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "bgp_established",
+      "node": "edge",
+      "min": 2
+    },
+    {
+      "type": "survive_uplink_failure"
+    }
+  ],
+  "reward": {
+    "money": 600000
+  },
+  "unlockLevel": 60
+}

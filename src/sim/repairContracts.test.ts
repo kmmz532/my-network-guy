@@ -1,4 +1,4 @@
-// 修理の依頼（r001〜r008）: 置かれた状態のままでは不合格で、壊れ方を1つ直すと合格する。症状だけが依頼文にあり、原因は書かれていない
+// 修理の依頼（r001〜r009）: 置かれた状態のままでは不合格で、壊れ方を1つ直すと合格する。症状だけが依頼文にあり、原因は書かれていない
 import { describe, expect, it } from 'vitest';
 import r001 from '../assets/data/contracts/r001_duplicate_ip.json';
 import r002 from '../assets/data/contracts/r002_wrong_gateway.json';
@@ -7,6 +7,7 @@ import r005 from '../assets/data/contracts/r005_vlan_trunk.json';
 import r006 from '../assets/data/contracts/r006_ospf_hello.json';
 import r007 from '../assets/data/contracts/r007_ospf_area.json';
 import r008 from '../assets/data/contracts/r008_wireless_wpa3.json';
+import r009 from '../assets/data/contracts/r009_bgp_as.json';
 import r004 from '../assets/data/contracts/r004_mask.json';
 import lang from '../assets/lang/ja_jp.json';
 import type { Contract } from '../data/schema';
@@ -34,6 +35,7 @@ describe('修理の依頼', () => {
     { contract: r006 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'r3' ? { ...n, interfaces: n.interfaces.map((i) => (i.ospf?.hello ? { ...i, ospf: { area: i.ospf.area } } : i)) } : n)), links }) },
     { contract: r007 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'r2' ? { ...n, interfaces: n.interfaces.map((i) => (i.port === 0 ? { ...i, ospf: { area: 0 } } : i)) } : n)), links }) },
     { contract: r008 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'ap' ? { ...n, wireless: { ...n.wireless, security: 'wpa2wpa3' } } : n)), links }) },
+    { contract: r009 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'edge' && n.bgp ? { ...n, bgp: { ...n.bgp, neighbors: n.bgp.neighbors.map((x) => (x.ip === '203.0.113.1' ? { ...x, remoteAs: 65002 } : x)) } } : n)), links }) },
     { contract: r004 as unknown as Contract, fix: (nodes, links) => ({ nodes: withIface(nodes, 'pc_new', '192.168.1.20', 24), links }) },
   ];
   for (const { contract, fix } of cases) {
@@ -56,9 +58,9 @@ describe('修理の依頼', () => {
 
   it('依頼文に、原因の言葉を書かない', () => {
     const texts = (lang as Record<string, string>);
-    for (const id of ['r001_duplicate_ip', 'r002_wrong_gateway', 'r003_loop', 'r004_mask', 'r005_vlan_trunk', 'r006_ospf_hello', 'r007_ospf_area', 'r008_wireless_wpa3']) {
+    for (const id of ['r001_duplicate_ip', 'r002_wrong_gateway', 'r003_loop', 'r004_mask', 'r005_vlan_trunk', 'r006_ospf_hello', 'r007_ospf_area', 'r008_wireless_wpa3', 'r009_bgp_as']) {
       const text = [texts[`contract.${id}.title`], texts[`contract.${id}.story`]].join('');
-      expect(text).not.toMatch(/重複|ゲートウェイ|アドレス|ループ|輪|プレフィックス|サブネット|マスク|同じIP|トランク|許可|VLAN|OSPF|Hello|ハロー|隣接|エリア|バックボーン|WPA|暗号|SSID/);
+      expect(text).not.toMatch(/重複|ゲートウェイ|アドレス|ループ|輪|プレフィックス|サブネット|マスク|同じIP|トランク|許可|VLAN|OSPF|Hello|ハロー|隣接|エリア|バックボーン|WPA|暗号|SSID|BGP|AS番号|AS 番号|ピア/);
     }
   });
 });
