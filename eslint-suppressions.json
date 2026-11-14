@@ -449,12 +449,9 @@
   },
   "src/components/scene/GamePopups.tsx": {
     "local/no-look-props": {
-      "count": 3
-    },
-    "local/no-mode-branch": {
       "count": 2
     },
-    "local/no-native-control": {
+    "local/no-mode-branch": {
       "count": 2
     }
   },
