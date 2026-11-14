@@ -6,8 +6,8 @@ import { autoAssign } from '../sim/autoAssign';
 import { emptyHistory, entryOf, historyKeyOf, projectHistoryKey, push as pushHistory, redo as redoHistory, stepDesign, undo as undoHistory } from '../sim/history';
 import { writeBackDhcp, type NetTarget, type Outcome } from '../sim/project';
 import { requestBuild } from '../sim/progress';
-import { applyOperation } from '../world/apply';
-import type { Operation } from '../world/operation';
+import { applyOperation } from '../company/apply';
+import type { Operation } from '../company/operation';
 
 import { plannedKey, type PlannedNet, coreOf, focusedProject, opContextOf, reportState, withLevelUps } from './gameHelpers';
 import type { GameState } from './useGameStore';

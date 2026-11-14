@@ -1,5 +1,5 @@
 // 命令の木の型。命令は CommandSpec 1つで表し、解釈（parse.ts）と実行（run.ts）はこの表だけを読む。
-import type { ConfigChange } from '../../world/operation';
+import type { ConfigChange } from '../../company/operation';
 import type { NetworkState } from '../engine/state';
 import type { MacEntry } from '../mac';
 import type { Tr, TerminalLine } from '../terminal';

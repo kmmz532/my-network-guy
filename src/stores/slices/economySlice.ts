@@ -7,7 +7,7 @@ import { applyMoney } from '../../sim/ledger';
 import { assertKnownSpeed, isSpeedUnlocked } from '../../sim/speed';
 
 import { unlockItems } from '../gameHelpers';
-import { priceOfItem } from '../../world/price';
+import { priceOfItem } from '../../company/price';
 import { createOps } from '../gameOps';
 import type { GameState, Speed } from '../useGameStore';
 import type { StateCreator } from 'zustand';

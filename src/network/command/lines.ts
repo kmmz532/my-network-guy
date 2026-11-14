@@ -1,5 +1,5 @@
 // 命令の run が出力の行と結果を作るための小さな部品。
-import type { ConfigChange } from '../../world/operation';
+import type { ConfigChange } from '../../company/operation';
 import type { Tr, TerminalLine } from '../terminal';
 import type { NetNode } from '../types';
 import type { CommandContext, CommandResult, TerminalContext } from './types';

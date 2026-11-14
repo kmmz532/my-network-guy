@@ -9,7 +9,7 @@ import { spriteOf, texture } from './sprites';
 import { DESK_TOP, DEVICE_FOOT_INSET } from './deviceRules';
 import { gameEnv } from '../sim/env';
 import { tileSourceOf } from '../stores/gameHelpers';
-import { needsDeskSprite, restsOnDesk } from '../world/tiles';
+import { needsDeskSprite, restsOnDesk } from '../company/tiles';
 import { portCountOf, maybeDevice } from '../registry/query';
 
 const OUTLINE = 0x3b2a33;

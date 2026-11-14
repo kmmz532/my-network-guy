@@ -16,8 +16,8 @@ import { type NetTarget, type Core, type Project, type Office, type Report } fro
 import type { GameState } from './useGameStore';
 import { deviceCategory, maybeFurniture } from '../registry/query';
 import { registries } from '../registry/game';
-import type { OpContext } from '../world/apply';
-import type { TileSource } from '../world/tiles';
+import type { OpContext } from '../company/apply';
+import type { TileSource } from '../company/tiles';
 import { furnitureOf } from '../contracts/layout';
 
 export interface PlannedNet {

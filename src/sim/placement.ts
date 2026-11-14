@@ -10,7 +10,7 @@ import { isPcCategory } from '../data/categories';
 import { cableLengthOf, checkCableLength } from './cableLength';
 import { levelOf } from './level';
 import { Core, End, Env, NetTarget, OFFICE_UPLINK_UID, Outcome, Project, cableCost, factoryConfigOf, fail, focusedOf, isDeskFurniture, isPcIn, netOf, officeLocked, officeUplinkOf, paidCable, requireDesign, withNet, withProject } from './project';
-import { tileAt, type TileSource } from '../world/tiles';
+import { tileAt, type TileSource } from '../company/tiles';
 import { portCountOf, deviceCategory, deviceDef, cableDef, hasDevice } from '../registry/query';
 
 // 機材を置いたときに動いているサービス（ゲームデータの defaultServices を写す）

@@ -1,6 +1,6 @@
 // 入力の行を実行する。木（COMMANDS）で解釈できる行は、その命令の run を呼ぶ。
 // 木で解釈できない行は、今のターミナルの解釈（parseConfig → runTerminal）に渡す。
-import type { ConfigChange } from '../../world/operation';
+import type { ConfigChange } from '../../company/operation';
 import { runTerminal, type Tr } from '../terminal';
 import { parseConfig, type ConfigAction } from '../terminalConfig';
 import type { NetNode } from '../types';

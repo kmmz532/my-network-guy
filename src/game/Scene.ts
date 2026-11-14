@@ -38,7 +38,7 @@ import { STAFF_FRAME_MS } from './staffHit';
 import { DeviceRenderer } from './DeviceRenderer';
 import { FurnitureRenderer } from './FurnitureRenderer';
 import { DESK_TOP, DEVICE_FOOT_INSET } from './deviceRules';
-import { restsOnDesk } from '../world/tiles';
+import { restsOnDesk } from '../company/tiles';
 import { DeviceLabelRenderer } from './DeviceLabelRenderer';
 import { NetworkRenderer, PACKET_COUNT, PACKET_SPACING_TILES, PACKET_TILES_PER_SEC } from './NetworkRenderer';
 import { EffectRenderer, FLASH_MS } from './EffectRenderer';

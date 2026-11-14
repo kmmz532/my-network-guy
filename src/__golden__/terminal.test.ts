@@ -7,7 +7,7 @@ import { lessons } from 'virtual:game-data';
 import { gameEnv } from '../sim/env';
 import { lessonLinks, lessonNodes, lessonPlans } from '../sim/lesson';
 import { focusedOf, type Core, type Project } from '../sim/project';
-import { applyOperation, type OpContext } from '../world/apply';
+import { applyOperation, type OpContext } from '../company/apply';
 import type { GameMap } from '../data/schema';
 import officeSmall from '../assets/data/maps/office_small.json';
 import { analyze } from '../network/engine/analyze';
