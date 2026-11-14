@@ -2,7 +2,9 @@
 import { addKeyLayer } from '../../input/keyRouter';
 import { useEffect, useState } from 'react';
 import { usePhone } from '../../ui/usePhone';
-import { Modal } from '../Modal';
+import { Dialog } from '../ui/Dialog';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { ListRow } from '../ui/ListRow';
 import { FileButton } from '../ui/FileButton';
 import { t } from '../../i18n/t';
 import { balance } from 'virtual:game-data';
@@ -105,94 +107,72 @@ export function SaveSlotDialog(props: Props) {
   if (view.kind === 'name') {
     const back = view.from === 'overwrite' ? () => toList('overwrite') : close;
     return (
-      <Modal onClose={back}>
+      <Dialog onClose={back}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ fontSize: 15 }}>{mode === 'sandbox' ? t('ui.company.name.titleSandbox') : t('ui.company.name.title')}</div>
           <NameForm initial={view.suggested} submitLabel={t('ui.company.start')} onSubmit={(name) => onStartIn(view.slot, name)} onCancel={back} />
         </div>
-      </Modal>
+      </Dialog>
     );
   }
 
   if (view.kind === 'rename') {
     return (
-      <Modal onClose={() => toList('play')}>
+      <Dialog onClose={() => toList('play')}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ fontSize: 15 }}>{t('ui.company.rename.title')}</div>
           <NameForm initial={view.save.data.name} submitLabel={t('ui.company.rename.ok')} onSubmit={(name) => onRename(view.save, name)} onCancel={() => toList('play')} />
         </div>
-      </Modal>
+      </Dialog>
     );
   }
 
+  // 「やめる」が主の操作（Enter と Esc）。上書きは危ないボタンの見た目
   if (view.kind === 'confirmOverwrite') {
     const save = view.save;
-    // 「やめる」が主の操作（Enter と Esc）。上書きは危ないボタンの見た目
     return (
-      <Modal primary={() => toList('overwrite')} onClose={() => toList('overwrite')}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 320 }}>
-          <div>{t('ui.company.overwrite.confirm', { name: save.data.name, summary: companySummary(save) })}</div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <Button variant="primary" onClick={() => toList('overwrite')}>
-              {t('ui.company.cancel')}
-            </Button>
-            <Button variant="danger" onClick={() => (importing ? onOverwriteWith(save) : onView({ kind: 'name', slot: save.slot, suggested, from: 'overwrite' }))}>
-              {t('ui.company.overwrite.ok')}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      <ConfirmDialog
+        onCancel={() => toList('overwrite')}
+        cancelLabel={t('ui.company.cancel')}
+        action={{
+          label: t('ui.company.overwrite.ok'),
+          tone: 'danger',
+          onClick: () => (importing ? onOverwriteWith(save) : onView({ kind: 'name', slot: save.slot, suggested, from: 'overwrite' })),
+        }}
+      >
+        {t('ui.company.overwrite.confirm', { name: save.data.name, summary: companySummary(save) })}
+      </ConfirmDialog>
     );
   }
 
   if (view.kind === 'delete') {
     const save = view.save;
     return (
-      <Modal primary={() => toList('play')} onClose={() => toList('play')}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 320 }}>
-          <div>{t('ui.company.delete.confirm', { name: save.data.name, summary: companySummary(save) })}</div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <Button variant="primary" onClick={() => toList('play')}>
-              {t('ui.company.cancel')}
-            </Button>
-            <Button variant="danger" onClick={() => onDelete(save)}>
-              {t('ui.company.delete.ok')}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      <ConfirmDialog onCancel={() => toList('play')} cancelLabel={t('ui.company.cancel')} action={{ label: t('ui.company.delete.ok'), tone: 'danger', onClick: () => onDelete(save) }}>
+        {t('ui.company.delete.confirm', { name: save.data.name, summary: companySummary(save) })}
+      </ConfirmDialog>
     );
   }
 
   if (view.kind === 'deleteBroken') {
     const slot = view.slot;
     return (
-      <Modal primary={() => toList('play')} onClose={() => toList('play')}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 320 }}>
-          <div>{t('ui.company.broken.delete.confirm')}</div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <Button variant="primary" onClick={() => toList('play')}>
-              {t('ui.company.cancel')}
-            </Button>
-            <Button variant="danger" onClick={() => onDeleteBroken(slot)}>
-              {t('ui.company.delete.ok')}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      <ConfirmDialog onCancel={() => toList('play')} cancelLabel={t('ui.company.cancel')} action={{ label: t('ui.company.delete.ok'), tone: 'danger', onClick: () => onDeleteBroken(slot) }}>
+        {t('ui.company.broken.delete.confirm')}
+      </ConfirmDialog>
     );
   }
 
   // 一覧（始める・社名を変える・複製・書き出す・消す。上書きの一覧では、上書きする枠を選ぶ）
   const purpose = view.purpose;
   return (
-    <Modal onClose={close}>
+    <Dialog onClose={close}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 280, maxWidth: 380 }}>
         <div style={{ fontSize: 15 }}>{purpose === 'overwrite' ? t('ui.company.list.overwrite') : t('ui.company.list.title')}</div>
         {notice !== '' && <div style={{ color: '#ffd866', fontSize: 13 }}>{notice}</div>}
         {saves.length === 0 && broken.length === 0 && <div style={{ opacity: 0.8 }}>{t('ui.company.list.empty')}</div>}
         {sortByRecent(saves).map((save, index) => (
-          <div key={save.slot} style={{ border: '1px solid #3b2a33', padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <ListRow key={save.slot}>
             <div
               style={{ fontSize: 16, cursor: phone ? 'pointer' : 'default' }}
               // スマホは、先頭（最後に遊んだ会社）の行を押すとすぐ始める。ほかの行は押すと操作を開く（N157）
@@ -231,7 +211,7 @@ export function SaveSlotDialog(props: Props) {
               )}
             </div>
             )}
-          </div>
+          </ListRow>
         ))}
         {broken.map((b) => (
           <div key={`broken-${b.slot}`} style={{ border: '1px solid #3b2a33', padding: 8, display: 'flex', flexDirection: 'column', gap: 6, opacity: 0.8 }}>
@@ -256,6 +236,6 @@ export function SaveSlotDialog(props: Props) {
           </div>
         )}
       </div>
-    </Modal>
+    </Dialog>
   );
 }
