@@ -387,3 +387,163 @@ input.ui-text-input--full {
   grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
   gap: 6px;
 }
+
+/* 入れ物: 札・一覧の行・窓・確認の窓・区切り・正方形の絵・吹き出し・通知・窪み。地・文字・枠は部品が決める */
+.ui-card {
+  background: var(--bg-card);
+  color: var(--fg);
+  padding: 10px;
+  border-radius: 0;
+}
+
+.ui-list-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  color: var(--fg);
+}
+
+.ui-list-row--active {
+  border-color: var(--line-focus);
+}
+
+.ui-list-row--disabled {
+  opacity: var(--disabled-opacity);
+}
+
+.ui-section {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--fg);
+}
+
+.ui-window {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: var(--bg-window);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: var(--fs-m);
+  overflow: hidden;
+}
+
+.ui-window__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  height: 28px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--line);
+}
+
+.ui-window__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ui-window__close {
+  flex-shrink: 0;
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0;
+  background: var(--bg-card);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.ui-window__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.ui-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 320px;
+}
+
+.ui-confirm__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.ui-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  box-sizing: border-box;
+  background: var(--bg-card);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.ui-tile__count {
+  position: absolute;
+  right: 2px;
+  bottom: 0;
+  font-size: var(--fs-s);
+}
+
+.ui-popover--menu {
+  background: var(--bg-window);
+  color: var(--fg);
+  border: 1px solid var(--line-window);
+  border-radius: 0;
+}
+
+.ui-popover--tip {
+  background: var(--bg-field);
+  color: var(--fg-on-field);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  padding: 4px 8px;
+  font-size: var(--fs-s);
+}
+
+.ui-notice {
+  padding: 4px 8px;
+  background: var(--bg-window);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.ui-notice--warn {
+  color: var(--st-warn);
+}
+
+.ui-notice--error {
+  color: var(--st-error);
+}
+
+.ui-well {
+  box-sizing: border-box;
+  background: var(--bg-well);
+  color: var(--fg);
+  border-radius: 0;
+  padding: 6px;
+  white-space: pre-wrap;
+}
