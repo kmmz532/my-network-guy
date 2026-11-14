@@ -11,6 +11,8 @@ export interface Layout {
   minWidth?: CSSProperties['minWidth'];
   maxWidth?: CSSProperties['maxWidth'];
   minHeight?: CSSProperties['minHeight'];
+  maxHeight?: CSSProperties['maxHeight'];
+  overflowY?: CSSProperties['overflowY'];
   flex?: CSSProperties['flex'];
   flexShrink?: CSSProperties['flexShrink'];
   alignSelf?: CSSProperties['alignSelf'];
