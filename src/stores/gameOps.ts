@@ -135,6 +135,10 @@ export const createOps = (set: Set, get: () => GameState) => {
       return apply(autoIp ? withAutoIp(outcome, autoIp) : outcome, at);
     });
 
+  // 操作1つを世界に当て、状態に反映する。履歴には積まない（購入・売却・家具の回転など、取り消しの対象外の操作）
+  const applyUnrecorded = (op: Operation, at?: { tx: number; ty: number }): string | null =>
+    apply(applyOperation(coreOf(get()), op, opContextOf(get())), at);
+
   // 施工を依頼する（確認を通したあとの処理）
   const buildNow = (): string | null => {
     const focusId = focusedProject(get())?.id;
@@ -152,7 +156,7 @@ export const createOps = (set: Set, get: () => GameState) => {
     return reason;
   };
 
-  return { plannedOf, withAutoIp, tileOf, recorded, dropHistory, stepHistory, apply, dispatch, buildNow };
+  return { plannedOf, withAutoIp, tileOf, recorded, dropHistory, stepHistory, apply, dispatch, applyUnrecorded, buildNow };
 };
 
 export type Ops = ReturnType<typeof createOps>;

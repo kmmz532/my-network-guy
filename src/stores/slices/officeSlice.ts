@@ -6,7 +6,6 @@ import { gameEnv } from '../../sim/env';
 
 import { changeOfficeFloor as changeFloorOp, type ExpandSide, expandOffice as expandOfficeOp, mapOfOffice } from '../../sim/office';
 import { OFFICE_HISTORY_KEY } from '../../sim/history';
-import { rotateFurniture as rotateFurnitureOp } from '../../sim/furniture';
 import { clearsPlacing } from '../../sim/shop';
 import { type RoomId, officeUplinkOf, type Outcome } from '../../sim/project';
 import { placeOfficeUplink, moveOfficeUplink } from '../../sim/placement';
@@ -32,7 +31,7 @@ export interface OfficeSlice {
 }
 
 export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (set, get) => {
-  const { apply, dispatch, dropHistory, recorded } = createOps(set, get);
+  const { apply, applyUnrecorded, dispatch, dropHistory, recorded } = createOps(set, get);
   // 置いて在庫が0になったら、選んでいる品目を外す
   const releaseWhenEmpty = (deviceId: string, reason: string | null): string | null => {
     const s = get();
@@ -95,7 +94,7 @@ export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (
       const f = get().office.furniture.find((x) => x.uid === uid);
       return dispatch({ kind: 'removeFurniture', uid }, f ? { tx: f.x, ty: f.y } : undefined);
     },
-    rotateFurniture: (uid) => apply(rotateFurnitureOp(coreOf(get()), uid)),
+    rotateFurniture: (uid) => applyUnrecorded({ kind: 'rotateFurniture', uid }),
     changeFloor: (room, floor) => {
       const reason = apply(changeFloorOp(coreOf(get()), room, floor, balance));
       // 床の絵が変わるので、マップを作り直す（機器と家具はそのまま）

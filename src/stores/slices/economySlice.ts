@@ -1,13 +1,14 @@
 // 速さの変更・購入・売却・経験値の付与の操作。
 import { balance, levelMilestones } from 'virtual:game-data';
-import { buyDevice, sellDevice } from '../../sim/shop';
 import { levelOf, levelUpsBetween } from '../../sim/level';
 import { grantDailyExp, type ExpSource } from '../../sim/companyExp';
-import { applyMoney, recordSaving } from '../../sim/ledger';
+import { applyMoney } from '../../sim/ledger';
 
 import { assertKnownSpeed, isSpeedUnlocked } from '../../sim/speed';
 
-import { priceOfItem, purchaseDiscountOf, unlockItems } from '../gameHelpers';
+import { unlockItems } from '../gameHelpers';
+import { priceOfItem } from '../../world/price';
+import { createOps } from '../gameOps';
 import type { GameState, Speed } from '../useGameStore';
 import type { StateCreator } from 'zustand';
 
@@ -22,6 +23,7 @@ export interface EconomySlice {
 }
 
 export const createEconomySlice: StateCreator<GameState, [], [], EconomySlice> = (set, get) => {
+  const { applyUnrecorded } = createOps(set, get);
   return {
     grantCompanyExp: (source) => {
       const s = get();
@@ -49,29 +51,14 @@ export const createEconomySlice: StateCreator<GameState, [], [], EconomySlice> =
       if (get().mode !== 'sandbox' && !isSpeedUnlocked(speed, levelOf(get().companyExp, balance), balance)) return;
       set({ speed: get().mode === 'sandbox' ? 0 : speed, nightSpeed: null, ...(speed !== 0 && get().mode !== 'sandbox' ? { resumeSpeed: speed } : {}) });
     },
+    // 購入・売却は取り消しの履歴に積まない（applyUnrecorded）。定価の分からないIDは買えない・売れない（黙って0円にしない）
     buy: (deviceId) => {
-      const s = get();
-      // 機材・家具の定価。どちらにもないIDは買えない（黙って0円にしない）
-      const listPrice = priceOfItem(deviceId);
-      if (listPrice === undefined) return false;
-      // サンドボックスは購入の費用を 0 とする（在庫は増える）
-      const price = s.mode === 'sandbox' ? 0 : Math.round(listPrice * (1 - purchaseDiscountOf(s)));
-      const result = buyDevice(s.clock.money, s.owned, deviceId, price);
-      if (!result.ok) return false;
-      // 購入は費用に入れない。案件の費用は納品のときに、置かれている機器の定価と配線の費用から決める
-      // 割引で浮いた額は、節約として帳簿に残す（資金は変えない）
-      set({ clock: recordSaving(applyMoney(s.clock, result.money - s.clock.money, 'purchase'), s.mode === 'sandbox' ? 0 : listPrice - price), owned: result.owned });
-      return true;
+      if (priceOfItem(deviceId) === undefined) return false;
+      return applyUnrecorded({ kind: 'buy', id: deviceId }) === null;
     },
     sell: (deviceId) => {
-      const s = get();
-      if (s.mode === 'sandbox') return false;
-      const price = priceOfItem(deviceId);
-      if (price === undefined) return false;
-      const result = sellDevice(s.clock.money, s.owned, deviceId, price, balance.sellRate);
-      if (!result.ok) return false;
-      set({ clock: applyMoney(s.clock, result.money - s.clock.money, 'sale'), owned: result.owned });
-      return true;
+      if (priceOfItem(deviceId) === undefined) return false;
+      return applyUnrecorded({ kind: 'sell', id: deviceId }) === null;
     },
   };
 };

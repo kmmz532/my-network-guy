@@ -14,7 +14,7 @@ import { accountingRate, backOfficeP, printerArrivalBonusOf, salesArrivalChance 
 import { assignDesks, initialOffice, bonusEnvOf } from '../sim/furniture';
 import { type NetTarget, type Core, type Project, type Office, type Report } from '../sim/project';
 import type { GameState } from './useGameStore';
-import { deviceCategory, hasDevice, deviceDef, hasFurniture, furnitureDef, maybeFurniture } from '../registry/query';
+import { deviceCategory, maybeFurniture } from '../registry/query';
 import { registries } from '../registry/game';
 import type { OpContext } from '../world/apply';
 
@@ -23,13 +23,6 @@ export interface PlannedNet {
   prefix: number;
 }
 export const plannedKey = (uid: string, port: number): string => `${uid}:${port}`;
-
-// 機材または家具の定価（どちらにもないIDは undefined）
-export const priceOfItem = (id: string): number | undefined => {
-  if (hasFurniture(id)) return furnitureDef(id).price;
-  if (hasDevice(id)) return deviceDef(id).price;
-  return undefined;
-};
 
 export const offerEnv = (maps: Record<string, GameMap>): OfferEnv => ({
   balance,

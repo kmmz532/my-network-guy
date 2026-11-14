@@ -1,6 +1,5 @@
 // 操作を世界に当てる。引数の構成（Core）を変えず、結果（Outcome）を返す。呼ぶ側は結果を状態へ反映する（stores/gameOps.ts の apply）。
 import type { GameMap } from '../data/schema';
-import { deviceDef, furnitureDef, hasDevice, hasFurniture } from '../registry/query';
 import { applyMoney, recordSaving } from '../sim/ledger';
 import { connect, fail, officeUplinkOf, paidCable, type Core, type Env, type NetTarget, type Outcome } from '../sim/project';
 import { moveFurniture, placeFurniture, removeFurniture, rotateFurniture } from '../sim/furniture';
@@ -24,6 +23,7 @@ import {
 } from '../sim/netEdit';
 import type { ConfigChange, Operation } from './operation';
 import type { GameMode } from './world';
+import { priceOfItem } from './price';
 
 // 操作を当てるときの周りの状況。target は設計の対象（自社オフィスか設計中の案件）、map は設計中の案件の地図（案件がなければ null）、hq は自社オフィスの地図
 export interface OpContext {
@@ -72,11 +72,11 @@ const applyConfig = (core: Core, uid: string, change: ConfigChange, ctx: OpConte
   }
 };
 
-// 機材または家具の定価
+// 機材または家具の定価。定価の分からない ID は例外
 const listPriceOf = (id: string): number => {
-  if (hasFurniture(id)) return furnitureDef(id).price;
-  if (hasDevice(id)) return deviceDef(id).price;
-  throw new Error(`定価の分かる機材・家具ではない: ${id}`);
+  const price = priceOfItem(id);
+  if (price === undefined) throw new Error(`定価の分かる機材・家具ではない: ${id}`);
+  return price;
 };
 
 // 操作1つを当てる。失敗は理由を持つ Outcome で返す（例外にしない）
