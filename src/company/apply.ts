@@ -17,7 +17,7 @@ import {
 } from '../sim/placement';
 import { buyDevice, sellDevice } from '../sim/shop';
 import {
-  addRoute, autoRegisterZone, removeHost, removeRoute, setBgp, setChannel, setDhcp, setDnsRole, setFirewallRules, setGateway, setHost,
+  addRoute, autoRegisterZone, removeHost, removeRoute, setBgp, setChannel, setDhcp, setDnsForwarder, setDnsRecord, setDnsRole, removeDnsRecord, setFirewallRules, setGateway, setHost,
   setHostname, setInterface, setIsp, setName, setNameServer, setNat, setOspf, setPlan, setPortMode, setPower, setRouting, setService,
   setStp, setSvi, setVrrp, setWireless,
 } from '../sim/netEdit';
@@ -59,7 +59,10 @@ const applyConfig = (core: Core, uid: string, change: ConfigChange, ctx: OpConte
     case 'name': return setName(core, uid, change.name, target);
     case 'hostname': return setHostname(core, uid, change.hostname, target);
     case 'nameServer': return setNameServer(core, uid, change.ip, target);
-    case 'dnsRole': return setDnsRole(core, uid, change.on, target);
+    case 'dnsRole': return setDnsRole(core, uid, change.on, target, change.role);
+    case 'dnsForwarder': return setDnsForwarder(core, uid, change.ip, target);
+    case 'dnsRecord': return setDnsRecord(core, uid, change.record, target);
+    case 'removeDnsRecord': return removeDnsRecord(core, uid, change.type, change.name, target);
     case 'autoRegisterZone': return autoRegisterZone(core, uid, target);
     case 'host': return setHost(core, uid, change.name, change.ip, target);
     case 'removeHost': return removeHost(core, uid, change.name, target);

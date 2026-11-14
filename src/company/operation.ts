@@ -1,5 +1,5 @@
 // 世界への操作の型。画面・端末・自動化はどれもこの型の値を作り、dispatch（stores/gameOps.ts）へ渡す。
-import type { FirewallRule, IspLine, Route } from '../network/types';
+import type { DnsRecord, FirewallRule, IspLine, Route } from '../network/types';
 import type { BgpOp, ChannelOp, DhcpOp, End, NatOp, OspfOp, PortChoice, PortModeChange, StpOp, VrrpOp } from '../sim/project';
 
 // 機器の設定の変更。どの機器かは Operation の uid で決める
@@ -15,7 +15,8 @@ export type ConfigChange =
   | { kind: 'wireless'; key: 'ssid' | 'password' | 'channel' | 'vlan' | 'security'; value: string | number }
   | { kind: 'firewallRules'; rules: FirewallRule[] } | { kind: 'plan'; port: number; network: string; prefix: number }
   | { kind: 'service'; protocol: 'http'; on: boolean } | { kind: 'name'; name: string } | { kind: 'hostname'; hostname: string | null }
-  | { kind: 'nameServer'; ip: string | null } | { kind: 'dnsRole'; on: boolean } | { kind: 'autoRegisterZone' }
+  | { kind: 'nameServer'; ip: string | null } | { kind: 'dnsRole'; on: boolean; role?: 'auth' | 'cache' } | { kind: 'autoRegisterZone' }
+  | { kind: 'dnsForwarder'; ip: string | null } | { kind: 'dnsRecord'; record: DnsRecord } | { kind: 'removeDnsRecord'; type: DnsRecord['type']; name: string }
   | { kind: 'host'; name: string; ip: string } | { kind: 'removeHost'; name: string }
   | { kind: 'addRoute'; route: Route } | { kind: 'removeRoute'; index: number };
 

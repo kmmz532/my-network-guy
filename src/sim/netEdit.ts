@@ -37,16 +37,64 @@ export const setHostname = (core: Core, uid: string, hostname: string | null, ta
 export const setNameServer = (core: Core, uid: string, ip: string | null, target: NetTarget = 'focus'): Outcome =>
   editNode(core, uid, (node) => ({ ...node, nameServer: ip ?? undefined }), target);
 
-// DNS のサービスを動かす（権威で、ゾーンは空から）。止めるとゾーンも消える（N68）
-export const setDnsRole = (core: Core, uid: string, on: boolean, target: NetTarget = 'focus'): Outcome =>
+// DNS のサービスを動かす（起動は権威で、ゾーンは空から。role で役割を選ぶ）。止めるとゾーンも消える（N68）。動いているときは role だけを変え、ゾーンと転送先は残す
+export const setDnsRole = (core: Core, uid: string, on: boolean, target: NetTarget = 'focus', role?: 'auth' | 'cache'): Outcome =>
   editNode(
     core,
     uid,
     (node) => {
       const others = node.services.filter((s) => s.protocol !== 'dns');
       if (!on) return { ...node, services: others };
-      const current = node.services.find((s) => s.protocol === 'dns');
-      return { ...node, services: [...others, current ?? { protocol: 'dns', role: 'auth', zone: [] }] };
+      const current = node.services.find((s): s is DnsService => s.protocol === 'dns');
+      const next: DnsService = current ? { ...current, role: role ?? current.role } : { protocol: 'dns', role: role ?? 'auth', zone: [] };
+      return { ...node, services: [...others, next] };
+    },
+    target,
+  );
+
+// 転送先（キャッシュの問い合わせを渡す DNS の IPアドレス）を設定する。null で外す。DNS のサービスが動いていなければ none
+export const setDnsForwarder = (core: Core, uid: string, ip: string | null, target: NetTarget = 'focus'): Outcome => {
+  if (ip !== null && !isIp(ip)) return fail('ip');
+  return editNode(
+    core,
+    uid,
+    (node) => {
+      const current = node.services.find((s): s is DnsService => s.protocol === 'dns');
+      if (!current) return 'none';
+      const { forwarder: _old, ...rest } = current;
+      const next: DnsService = ip === null ? rest : { ...rest, forwarder: ip };
+      return { ...node, services: node.services.map((s) => (s === current ? next : s)) };
+    },
+    target,
+  );
+};
+
+// ゾーンの記録を1件入れる（同じ種類と名前があれば入れ替える）。DNS のサービスが動いていなければ none
+export const setDnsRecord = (core: Core, uid: string, record: DnsRecord, target: NetTarget = 'focus'): Outcome => {
+  if (!isRecordValue(record)) return fail('ip');
+  return editNode(
+    core,
+    uid,
+    (node) => {
+      const current = node.services.find((s): s is DnsService => s.protocol === 'dns');
+      if (!current) return 'none';
+      const zone = [...current.zone.filter((r) => !(r.type === record.type && r.name === record.name)), record];
+      return { ...node, services: node.services.map((s) => (s === current ? { ...current, zone } : s)) };
+    },
+    target,
+  );
+};
+
+// ゾーンの記録を消す（種類と名前で指定）。なければ none
+export const removeDnsRecord = (core: Core, uid: string, type: DnsRecord['type'], name: string, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      const current = node.services.find((s): s is DnsService => s.protocol === 'dns');
+      if (!current || !current.zone.some((r) => r.type === type && r.name === name)) return 'none';
+      const zone = current.zone.filter((r) => !(r.type === type && r.name === name));
+      return { ...node, services: node.services.map((s) => (s === current ? { ...current, zone } : s)) };
     },
     target,
   );
@@ -99,6 +147,14 @@ const isIp = (s: string): boolean => /^\d{1,3}(\.\d{1,3}){3}$/.test(s) && s.spli
 const isCidr = (s: string): boolean => {
   const [ip, prefix] = s.split('/');
   return prefix !== undefined && isIp(ip) && /^\d{1,2}$/.test(prefix) && Number(prefix) <= 32;
+};
+
+// 記録の値の形: A は IPアドレス、MX は pref が 0 以上の整数。AAAA・名前の種類は値の形を問わない（値を返すだけ）
+const isRecordValue = (r: DnsRecord): boolean => {
+  if (r.name === '' || r.value === '') return false;
+  if (r.type === 'A') return isIp(r.value);
+  if (r.type === 'MX') return r.pref === undefined || (Number.isInteger(r.pref) && r.pref >= 0);
+  return r.pref === undefined;
 };
 
 // ポートのIPアドレスを設定する。ip が空文字なら設定を外す（機器の IP は未設定に戻る）。

@@ -1,6 +1,6 @@
 // 機器・配線・設定の設計の操作。成功したものは履歴に積み、失敗したら理由を返す。
 import { playConnect, playFail } from '../../audio/sfx';
-import type { FirewallRule, IspLine, Route } from '../../network/types';
+import type { DnsRecord, FirewallRule, IspLine, Route } from '../../network/types';
 import { gameEnv } from '../../sim/env';
 import { isPcDevice } from '../../sim/env';
 import { pcDesksOf } from '../../sim/furniture';
@@ -70,7 +70,11 @@ export interface DesignSlice {
   // ホスト名を付ける（null で外す）（N46）
   setHostname: (uid: string, hostname: string | null) => string | null;
   setNameServer: (uid: string, ip: string | null) => string | null;
-  setDnsRole: (uid: string, on: boolean) => string | null;
+  setDnsRole: (uid: string, on: boolean, role?: 'auth' | 'cache') => string | null;
+  // DNS の転送先・ゾーンの記録（種類と名前で入れ替える・消す）。失敗したら理由を返す
+  setDnsForwarder: (uid: string, ip: string | null) => string | null;
+  setDnsRecord: (uid: string, record: DnsRecord) => string | null;
+  removeDnsRecord: (uid: string, type: DnsRecord['type'], name: string) => string | null;
   autoRegisterZone: (uid: string) => string | null;
   // 対応表（名前と IPアドレス）の登録と削除。失敗したら理由を返す
   setHost: (uid: string, name: string, ip: string) => string | null;
@@ -193,7 +197,10 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
     setService: (uid, protocol, on) => dispatch({ kind: 'config', uid, change: { kind: 'service', protocol, on } }, tileOf(uid)),
     setHostname: (uid, hostname) => dispatch({ kind: 'config', uid, change: { kind: 'hostname', hostname } }, tileOf(uid)),
     setNameServer: (uid, ip) => dispatch({ kind: 'config', uid, change: { kind: 'nameServer', ip } }, tileOf(uid)),
-    setDnsRole: (uid, on) => dispatch({ kind: 'config', uid, change: { kind: 'dnsRole', on } }, tileOf(uid)),
+    setDnsRole: (uid, on, role) => dispatch({ kind: 'config', uid, change: { kind: 'dnsRole', on, ...(role === undefined ? {} : { role }) } }, tileOf(uid)),
+    setDnsForwarder: (uid, ip) => dispatch({ kind: 'config', uid, change: { kind: 'dnsForwarder', ip } }, tileOf(uid)),
+    setDnsRecord: (uid, record) => dispatch({ kind: 'config', uid, change: { kind: 'dnsRecord', record } }, tileOf(uid)),
+    removeDnsRecord: (uid, type, name) => dispatch({ kind: 'config', uid, change: { kind: 'removeDnsRecord', type, name } }, tileOf(uid)),
     autoRegisterZone: (uid) => dispatch({ kind: 'config', uid, change: { kind: 'autoRegisterZone' } }, tileOf(uid)),
     setName: (uid, name) => dispatch({ kind: 'config', uid, change: { kind: 'name', name } }, tileOf(uid)),
     setHost: (uid, name, ip) => dispatch({ kind: 'config', uid, change: { kind: 'host', name, ip } }, tileOf(uid)),
