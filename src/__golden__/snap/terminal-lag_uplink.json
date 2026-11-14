@@ -23,13 +23,17 @@
     },
     {
       "line": "channel-group 3 1 mode bogus",
-      "result": "error",
-      "text": "ui.terminal.usageChannel"
+      "lines": [
+        "err:                         ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "channel-group 4 mode active",
-      "result": "error",
-      "text": "ui.terminal.usageChannel"
+      "lines": [
+        "err:                  ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "channel-group 4 2 mode active",
@@ -48,8 +52,49 @@
     },
     {
       "line": "no channel-group",
-      "result": "error",
-      "text": "ui.terminal.usageChannel"
+      "lines": [
+        "err:                   ^",
+        "err:ui.terminal.invalidAt"
+      ]
+    },
+    {
+      "line": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelLine {\"group\":1,\"state\":\"D\",\"lacp\":\"active\",\"ports\":\"0(I) 2(I)\"}",
+        "out:ui.terminal.channelLine {\"group\":2,\"state\":\"D\",\"lacp\":\"active\",\"ports\":\"4(I)\"}"
+      ]
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "interface g0/2",
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "port",
+        "port": 2
+      }
+    },
+    {
+      "line": "channel-group 1 mode passive",
+      "result": "done"
+    },
+    {
+      "line": "channel-group 1 mode on",
+      "result": "done"
+    },
+    {
+      "line": "exit",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
     },
     {
       "line": "show etherchannel summary",
@@ -132,12 +177,6 @@
             "lacp": "active"
           },
           {
-            "port": 2,
-            "mode": "access",
-            "channelGroup": 1,
-            "lacp": "on"
-          },
-          {
             "port": 4,
             "mode": "access",
             "channelGroup": 2,
@@ -146,6 +185,12 @@
           {
             "port": 1,
             "mode": "access"
+          },
+          {
+            "port": 2,
+            "mode": "access",
+            "channelGroup": 1,
+            "lacp": "on"
           }
         ],
         "name": "SW1",

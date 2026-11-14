@@ -11,6 +11,14 @@ show etherchannel summary
 no channel-group 1
 no channel-group
 show etherchannel summary
+# モードの節: interface モードの channel-group（口の番号を行に書かない）
+configure terminal
+interface g0/2
+channel-group 1 mode passive
+channel-group 1 mode on
+exit
+end
+show etherchannel summary
 @SW2
 channel-group 0 1 mode active
 show etherchannel summary

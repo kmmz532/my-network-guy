@@ -1218,7 +1218,6 @@
   "ui.terminal.stpRoot": "ルートブリッジ: {root}（ルートまでのコスト {cost}）",
   "ui.terminal.traceNg": "ここで止まった。理由:",
   "ui.terminal.unknown": "不明なコマンド: {cmd}",
-  "ui.terminal.usageChannel": "書式: channel-group <口> <番号> mode active|passive|on、no channel-group <口>",
   "ui.terminal.usageDhcp": "書式: ip address <口> dhcp / ip helper-address <口> <IP>、no ip helper-address <口> / ip dhcp pool <ネットワーク> <マスク> <先頭> <末尾> [gateway <IP>] [dns <IP>]、no ip dhcp pool <ネットワーク>",
   "ui.terminal.usageHostname": "使い方: hostname <名前>",
   "ui.terminal.usageIpAddress": "使い方: ip address <ポート> <IP> <マスク>",

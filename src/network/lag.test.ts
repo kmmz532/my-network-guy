@@ -98,7 +98,7 @@ describe('リンクアグリゲーションのターミナル', () => {
     };
     expect(viaTree('channel-group 0 1 mode active')).toEqual({ kind: 'action', action: { kind: 'channel', change: { port: 0, group: 1, lacp: 'active' } } });
     expect(viaTree('no channel-group 0')).toEqual({ kind: 'action', action: { kind: 'channel', change: { port: 0, group: null } } });
-    expect(viaTree('channel-group 0 1 mode auto')).toEqual({ kind: 'error', text: 'ui.terminal.usageChannel' });
+    expect(viaTree('channel-group 0 1 mode auto')).toEqual({ kind: 'error', text: '                         ^' });
     const show = (net: Network) => runShow('show etherchannel summary', { node: net.nodes[0], nodes: net.nodes, links: net.links, data, state: analyze({ nodes: net.nodes, links: net.links }, data) }, tr)[0].text;
     expect(show(pair([], []))).toContain('"state":"P"');
     expect(show(pair([], []))).toContain('0(P) 1(P)');
