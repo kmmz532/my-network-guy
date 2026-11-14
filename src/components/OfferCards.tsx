@@ -27,6 +27,7 @@ import { crewBlock } from '../sim/crew';
 import { usePhone } from '../ui/usePhone';
 import { deviceCategory } from '../registry/query';
 import { Button } from './ui/Button';
+import { Card } from './ui/Card';
 
 // 依頼の一覧。Enter は一番上の依頼の受注（主のボタン）
 
@@ -189,7 +190,7 @@ function OfferCard({
   // スマホでは、ボタンの列を情報の下の独立した行にする（受注を広く、断るを狭く・B15）
   const phone = usePhone();
   return (
-    <div style={{ background: '#25406f', borderRadius: RADIUS.none, padding: 10, marginBottom: 8 }}>
+    <Card layout={{ marginBottom: 8 }}>
       <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
         {offer.contract.inhouse && (
           <span style={{ background: '#5aa860', borderRadius: RADIUS.none, padding: '0 6px', marginRight: 6, fontSize: 12 }}>
@@ -289,6 +290,6 @@ function OfferCard({
         </div>
       </div>
       <CrewPicker selected={crew} onChange={setCrew} />
-    </div>
+    </Card>
   );
 }
