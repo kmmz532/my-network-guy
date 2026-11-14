@@ -84,7 +84,8 @@ describe('DHCP', () => {
 describe('DHCP のターミナル', () => {
   it('ip address dhcp・ip helper-address・ip dhcp pool を読み、show ip dhcp binding は配ったアドレスを出す', async () => {
     const { parseConfig } = await import('./terminalConfig');
-    const { runTerminal } = await import('./terminal');
+    const { commandContextOf, runLine } = await import('./command/run');
+    const runShow = (line: string, c: Parameters<typeof commandContextOf>[0], tr: Parameters<typeof runLine>[2]) => runLine(line, commandContextOf(c), tr).lines;
     const tr = (k: string, p?: Record<string, unknown>) => (p ? `${k} ${JSON.stringify(p)}` : k);
     expect(parseConfig('ip address 0 dhcp', tr)).toEqual({ kind: 'action', action: { kind: 'dhcp', op: 'client', port: 0 } });
     expect(parseConfig('ip helper-address 1 10.0.0.2', tr)).toEqual({ kind: 'action', action: { kind: 'dhcp', op: 'helper', port: 1, ip: '10.0.0.2' } });
@@ -95,7 +96,7 @@ describe('DHCP のターミナル', () => {
     });
     expect(parseConfig('ip dhcp pool 192.168.1.0 255.255.255.0 192.168.1.100', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageDhcp' });
     const net = office(['p1']);
-    const lines = runTerminal('show ip dhcp binding', { node: net.nodes[1], nodes: net.nodes, links: net.links, data, state: analyze({ nodes: net.nodes, links: net.links }, data) }, tr);
+    const lines = runShow('show ip dhcp binding', { node: net.nodes[1], nodes: net.nodes, links: net.links, data, state: analyze({ nodes: net.nodes, links: net.links }, data) }, tr);
     expect(lines[0].text).toContain('192.168.1.100');
   });
 });

@@ -1,0 +1,34 @@
+// 静的経路の論点の命令。
+import { adOf } from '../../engine/stages/routing';
+import { learnedRoutesOf } from '../../query/learnedRoutes';
+import { networkAddress } from '../../segments';
+import type { TerminalLine } from '../../terminal';
+import { out, shown } from '../../command/lines';
+import type { CommandSpec } from '../../command/types';
+
+export const commands: readonly CommandSpec[] = [
+  {
+    id: 'static_route.showIpRoute',
+    modes: ['exec'],
+    tokens: [{ word: 'show' }, { word: 'ip' }, { word: 'route' }],
+    help: '',
+    topic: 'static_route',
+    run: (_args, ctx, tr) => {
+      const { node } = ctx;
+      const lines: TerminalLine[] = node.interfaces.map((i) =>
+        out(tr('ui.terminal.routeConnected', { net: networkAddress(i.ip, i.prefix), prefix: i.prefix, port: i.port })),
+      );
+      // 静的経路は S（既定の経路は S*）。各行に [管理距離/メトリック] を出す
+      const ad = adOf({ dest: '', prefix: 0, nextHop: '', protocol: 'static' });
+      if (node.gateway) lines.push(out(tr('ui.terminal.routeStaticDefault', { dest: '0.0.0.0', prefix: 0, nextHop: node.gateway, ad, metric: 0 })));
+      for (const r of node.routes) lines.push(out(tr(r.prefix === 0 ? 'ui.terminal.routeStaticDefault' : 'ui.terminal.routeStatic', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop, ad, metric: 0 })));
+      for (const protocol of ['rip', 'ospf', 'bgp'] as const) {
+        for (const r of learnedRoutesOf(ctx.state, node.uid, protocol)) {
+          const key = protocol === 'ospf' && r.interArea ? 'ui.terminal.routeOspfIa' : `ui.terminal.route${protocol[0].toUpperCase()}${protocol.slice(1)}`;
+          lines.push(out(tr(key, { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop, ad: adOf(r), metric: r.metric ?? 0 })));
+        }
+      }
+      return shown(lines.length > 0 ? lines : [out(tr('ui.terminal.noRoute'))]);
+    },
+  },
+];

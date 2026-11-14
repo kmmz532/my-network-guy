@@ -7,7 +7,7 @@ import { networkColors } from '../network/query/networkColors';
 import { warningsOf } from '../network/query/warnings';
 import { portStatesOf } from '../network/query/portStates';
 import { analyze } from '../network/engine/analyze';
-import { runTerminal } from '../network/terminal';
+import { commandContextOf, runLine } from '../network/command/run';
 import type { EngineData, Network } from '../network/types';
 
 // 文言を引かず、キーと引数をそのまま並べる（言語ファイルの文言の変更で記録が変わらないようにする）
@@ -57,7 +57,7 @@ export const recordOf = (input: Network, engine: EngineData) => {
       }),
   );
   const shows = net.nodes.flatMap((n) =>
-    showsOf(n.device).map((cmd) => ({ node: n.uid, cmd, lines: runTerminal(cmd, { node: n, nodes: net.nodes, links: net.links, data: engine, state: analyze(net, engine) }, tr).map((l) => `${l.kind}:${l.text}`) })),
+    showsOf(n.device).map((cmd) => ({ node: n.uid, cmd, lines: runLine(cmd, commandContextOf({ node: n, nodes: net.nodes, links: net.links, data: engine, state: analyze(net, engine) }), tr).lines.map((l) => `${l.kind}:${l.text}`) })),
   );
   const colors = networkColors(analyze(net, engine));
   return {

@@ -91,14 +91,15 @@ describe('VRRP の警告', () => {
 describe('VRRP のターミナル', () => {
   it('vrrp の ip・priority・preempt・track を読み、show vrrp はマスターとバックアップを出す', async () => {
     const { parseConfig } = await import('./terminalConfig');
-    const { runTerminal } = await import('./terminal');
+    const { commandContextOf, runLine } = await import('./command/run');
+    const runShow = (line: string, c: Parameters<typeof commandContextOf>[0], tr: Parameters<typeof runLine>[2]) => runLine(line, commandContextOf(c), tr).lines;
     const tr = (k: string, p?: Record<string, unknown>) => (p ? `${k} ${JSON.stringify(p)}` : k);
     expect(parseConfig('vrrp 0 1 ip 192.168.1.254', tr)).toEqual({ kind: 'action', action: { kind: 'vrrp', op: 'ip', port: 0, vrid: 1, ip: '192.168.1.254' } });
     expect(parseConfig('vrrp 0 1 priority 110', tr)).toEqual({ kind: 'action', action: { kind: 'vrrp', op: 'priority', port: 0, vrid: 1, value: 110 } });
     expect(parseConfig('no vrrp 0 1 preempt', tr)).toEqual({ kind: 'action', action: { kind: 'vrrp', op: 'preempt', port: 0, vrid: 1, on: false } });
     expect(parseConfig('vrrp 0 1 track 1 decrement 20', tr)).toEqual({ kind: 'action', action: { kind: 'vrrp', op: 'track', port: 0, vrid: 1, trackPort: 1, decrement: 20 } });
     const net = build();
-    const show = (uid: string) => runTerminal('show vrrp', { node: net.nodes.find((n) => n.uid === uid)!, nodes: net.nodes, links: net.links, data, state: analyze({ nodes: net.nodes, links: net.links }, data) }, tr);
+    const show = (uid: string) => runShow('show vrrp', { node: net.nodes.find((n) => n.uid === uid)!, nodes: net.nodes, links: net.links, data, state: analyze({ nodes: net.nodes, links: net.links }, data) }, tr);
     expect(show('r1')[0].text).toContain('"state":"Master"');
     expect(show('r2')[0].text).toContain('"state":"Backup"');
   });

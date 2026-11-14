@@ -52,13 +52,14 @@ describe('スパニングツリー', () => {
 describe('スパニングツリーのターミナル', () => {
   it('spanning-tree の priority・cost を読み、show spanning-tree はルートと口の役割を出す', async () => {
     const { parseConfig } = await import('./terminalConfig');
-    const { runTerminal } = await import('./terminal');
+    const { commandContextOf, runLine } = await import('./command/run');
+    const runShow = (line: string, c: Parameters<typeof commandContextOf>[0], tr: Parameters<typeof runLine>[2]) => runLine(line, commandContextOf(c), tr).lines;
     const tr = (k: string, p?: Record<string, unknown>) => (p ? `${k} ${JSON.stringify(p)}` : k);
     expect(parseConfig('spanning-tree priority 4096', tr)).toEqual({ kind: 'action', action: { kind: 'stp', op: 'priority', value: 4096 } });
     expect(parseConfig('spanning-tree priority 100', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errStpPriority' });
     expect(parseConfig('spanning-tree cost 1 19', tr)).toEqual({ kind: 'action', action: { kind: 'stp', op: 'cost', port: 1, value: 19 } });
     const net = triangle();
-    const lines = runTerminal('show spanning-tree', { node: net.nodes[2], nodes: net.nodes, links: net.links, data, state: analyze({ nodes: net.nodes, links: net.links }, data) }, tr);
+    const lines = runShow('show spanning-tree', { node: net.nodes[2], nodes: net.nodes, links: net.links, data, state: analyze({ nodes: net.nodes, links: net.links }, data) }, tr);
     expect(lines[0].text).toContain('ui.terminal.stpRoot');
     expect(lines.some((l) => l.text.startsWith('ui.terminal.stpPort.blocking'))).toBe(true);
   });

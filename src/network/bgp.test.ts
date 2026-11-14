@@ -82,14 +82,15 @@ describe('BGP のターミナル', () => {
     expect(parseConfig('neighbor 10.0.1.2 prepend 2', tr)).toEqual({ kind: 'action', action: { kind: 'bgp', op: 'attr', ip: '10.0.1.2', key: 'prepend', value: 2 } });
   });
   it('show ip bgp summary は隣接の状態を、show ip bgp は最適経路の印を出す', async () => {
-    const { runTerminal } = await import('./terminal');
+    const { commandContextOf, runLine } = await import('./command/run');
+    const runShow = (line: string, c: Parameters<typeof commandContextOf>[0], tr: Parameters<typeof runLine>[2]) => runLine(line, commandContextOf(c), tr).lines;
     const net = twoIsps({});
     const ctx = { node: net.nodes[0], nodes: net.nodes, links: net.links, data, state: analyze({ nodes: net.nodes, links: net.links }, data) };
     const tr = (k: string, p?: Record<string, unknown>) => (p ? `${k} ${JSON.stringify(p)}` : k);
-    const summary = runTerminal('show ip bgp summary', ctx, tr);
+    const summary = runShow('show ip bgp summary', ctx, tr);
     expect(summary).toHaveLength(2);
     expect(summary[0].text).toContain('ui.terminal.bgpEstablished');
-    const table = runTerminal('show ip bgp', ctx, tr);
+    const table = runShow('show ip bgp', ctx, tr);
     expect(table.some((l) => l.text.includes('"mark":">*"'))).toBe(true);
   });
 });

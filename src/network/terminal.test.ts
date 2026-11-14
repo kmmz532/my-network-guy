@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { runTerminal, type Tr, type TerminalContext, type TerminalLine } from './terminal';
+import type { Tr, TerminalLine } from './terminal';
+import { commandContextOf, runLine } from './command/run';
+import type { TerminalContext } from './command/types';
 import { analyze } from './engine/analyze';
 import type { EngineData, NetLink, NetNode } from './types';
 
 const data: EngineData = { wallAt: () => false };
 
 // 問い合わせの結果を、ターミナルの文脈に付けて実行する
-const run = (line: string, ctx: Omit<TerminalContext, 'state'>, tr: Tr): TerminalLine[] => runTerminal(line, { ...ctx, state: analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data) }, tr);
+const run = (line: string, ctx: Omit<TerminalContext, 'state'>, tr: Tr): TerminalLine[] => [...runLine(line, commandContextOf({ ...ctx, state: analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data) }), tr).lines];
 
 const pc = (uid: string, ip: string | null, gateway: string | null = null): NetNode => ({ ports: [],
   uid,

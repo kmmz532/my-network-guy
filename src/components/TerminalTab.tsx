@@ -1,113 +1,31 @@
-// 機器のターミナルのタブ。コマンドを1行ずつ入力し、結果を履歴に積む（コマンドは network/terminal.ts と terminalConfig.ts）。
+// 機器のターミナルのタブ。コマンドを1行ずつ入力し、結果を履歴に積む（コマンドは network/command/ の木と terminalConfig.ts）。
 // ↑↓で過去の入力を呼び出し、Tab で補完する。clear は表示の履歴を消す（入力の履歴は残す）。
 import { useState, type KeyboardEvent } from 'react';
 import { t, tDyn } from '../i18n/t';
-import { completeLine, runTerminal, type TerminalLine } from '../network/terminal';
-import { parseConfig, type ConfigAction } from '../network/terminalConfig';
+import { completeLine, type TerminalLine } from '../network/terminal';
+import { commandContextOf, isLegacyConfig, runLine } from '../network/command/run';
 import type { NetLink, NetNode } from '../network/types';
 import type { NetworkState } from '../network/public';
 import { gameEnv } from '../sim/env';
 import { engineWithWalls } from '../sim/walls';
 import { nodeLabel } from './nodeLabel';
+import { createOps } from '../stores/gameOps';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { secondaryButton } from './Modal';
 import { warnColor } from './devicePorts';
 
 const NO_LINES: TerminalLine[] = [];
 const NO_COMMANDS: string[] = [];
+// 設定の操作の通り道。スライスの関数と同じ dispatch を使う
+const { dispatch, tileOf } = createOps(useGameStore.setState, useGameStore.getState);
 
 export function TerminalTab({ node, nodes, links, state: netState, readOnly }: { node: NetNode; nodes: NetNode[]; links: NetLink[]; state: NetworkState; readOnly: boolean }) {
   const state = useGameStore();
-  const setIface = useGameStore((s) => s.setIface);
-  const setGateway = useGameStore((s) => s.setGateway);
-  const addRoute = useGameStore((s) => s.addRoute);
-  const removeRoute = useGameStore((s) => s.removeRoute);
-  const setHostname = useGameStore((s) => s.setHostname);
-  const setHost = useGameStore((s) => s.setHost);
-  const removeHost = useGameStore((s) => s.removeHost);
-  const setNameServer = useGameStore((s) => s.setNameServer);
-  const setRouting = useGameStore((s) => s.setRouting);
-  const setOspf = useGameStore((s) => s.setOspf);
-  const setStp = useGameStore((s) => s.setStp);
-  const setVrrp = useGameStore((s) => s.setVrrp);
-  const setChannel = useGameStore((s) => s.setChannel);
-  const setDhcp = useGameStore((s) => s.setDhcp);
-  const setBgp = useGameStore((s) => s.setBgp);
-  const setNat = useGameStore((s) => s.setNat);
-  const setSvi = useGameStore((s) => s.setSvi);
-  const setPortMode = useGameStore((s) => s.setPortMode);
-  const setWireless = useGameStore((s) => s.setWireless);
   const learnPing = useGameStore((s) => s.learnPing);
   const showTrace = useGameStore((s) => s.showTrace);
   const netKey = useGameStore((s) => s.focus ?? 'office');
   const arp = useGameStore((s) => s.arpTable[`${netKey}:${node.uid}`]);
   const macTable = useGameStore((s) => s.macTable[`${netKey}:${node.uid}`]);
-  // 設定のコマンドを、画面の操作に当てる。失敗したら理由のキーを返す（成功なら null）
-  const applyConfig = (action: ConfigAction): string | null => {
-    switch (action.kind) {
-      case 'iface':
-        return setIface(node.uid, action.port, action.ip, action.prefix);
-      case 'svi':
-        return setSvi(node.uid, action.vlan, action.ip, action.prefix);
-      case 'portMode':
-        return setPortMode(node.uid, action.port, action.mode);
-      case 'gateway':
-        return setGateway(node.uid, action.gateway);
-      case 'addRoute':
-        return addRoute(node.uid, action.route);
-      case 'removeRoute': {
-        const index = node.routes.findIndex((r) => r.dest === action.dest && r.prefix === action.prefix);
-        return index < 0 ? 'ui.terminal.noRouteToRemove' : removeRoute(node.uid, index);
-      }
-      case 'hostname':
-        return setHostname(node.uid, action.hostname);
-      case 'host':
-        return setHost(node.uid, action.name, action.ip);
-      case 'noHost':
-        return removeHost(node.uid, action.name);
-      case 'nameServer':
-        return setNameServer(node.uid, action.ip);
-      case 'routing':
-        return setRouting(node.uid, { proto: action.proto, on: action.on });
-      case 'network':
-        return setRouting(node.uid, { proto: action.proto, on: action.on, ip: action.ip, ...(action.area !== null ? { area: action.area } : {}) });
-      case 'ospf': {
-        if (action.op !== 'iface') return setOspf(node.uid, action);
-        // ターミナルの書き方は口の番号のまま。画面の操作は、その口のインターフェースの id で指定する
-        const iface = node.interfaces.find((i) => i.port === action.port);
-        return setOspf(node.uid, { op: 'iface', id: iface?.id ?? '', key: action.key, value: action.value });
-      }
-      case 'bgp':
-        return setBgp(node.uid, action);
-      case 'stp':
-        return setStp(node.uid, action);
-      case 'dhcp':
-        return setDhcp(node.uid, action);
-      case 'channel':
-        return setChannel(node.uid, action);
-      case 'vrrp': {
-        // ターミナルの書き方は口の番号のまま。画面の操作は、その口のインターフェースの id で指定する
-        const idOf = (port: number) => node.interfaces.find((i) => i.port === port)?.id ?? '';
-        const id = idOf(action.port);
-        if (action.op === 'ip') return setVrrp(node.uid, { op: 'ip', id, vrid: action.vrid, ip: action.ip });
-        if (action.op === 'priority') return setVrrp(node.uid, { op: 'priority', id, vrid: action.vrid, value: action.value });
-        if (action.op === 'preempt') return setVrrp(node.uid, { op: 'preempt', id, vrid: action.vrid, on: action.on });
-        if (action.op === 'track') return setVrrp(node.uid, { op: 'track', id, vrid: action.vrid, iface: idOf(action.trackPort), decrement: action.decrement });
-        return setVrrp(node.uid, { op: 'remove', id, vrid: action.vrid });
-      }
-      case 'nat': {
-        if (action.op !== 'iface') return setNat(node.uid, action);
-        // ターミナルの書き方は口の番号のまま。画面の操作は、その口のインターフェースの id で指定する
-        const iface = node.interfaces.find((i) => i.port === action.port);
-        return setNat(node.uid, { op: 'iface', id: iface?.id ?? '', nat: action.nat });
-      }
-      case 'wireless':
-        return setWireless(node.uid, action.key, action.value);
-      default:
-        return null;
-    }
-  };
-
   const [input, setInput] = useState('');
   // 出力と命令の履歴は機器ごとにストアに持つ（画面を閉じても残る）。↑↓で今指している位置は画面の中だけで持つ（null は新しい入力）
   const history = useGameStore((s) => s.terminalLog[node.uid] ?? NO_LINES);
@@ -126,34 +44,33 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
       return;
     }
     const tr = (key: string, params?: Record<string, string | number>) => tDyn(key, params);
-    const parsed = parseConfig(line, tr);
-    let out: TerminalLine[];
-    if (parsed.kind === 'action') {
-      if (readOnly) {
-        out = [{ text: t('ui.terminal.readOnly'), kind: 'err' }];
-      } else {
-        const reason = applyConfig(parsed.action);
-        out = reason === null ? [{ text: t('ui.terminal.done'), kind: 'out' }] : [{ text: reason.startsWith('ui.') ? tr(reason) : tr(`ui.error.${reason}`), kind: 'err' }];
-      }
-    } else if (parsed.kind === 'error') {
-      out = [{ text: parsed.text, kind: 'err' }];
+    const context = commandContextOf({
+      node,
+      nodes,
+      links,
+      data: engineWithWalls(gameEnv.engine, state.maps[focusedProject(state)?.contract.map ?? 'hq']),
+      state: netState,
+      nameOf: (n) => nodeLabel(state, n, nodes),
+      arp,
+      macTable,
+      onReach: (dst) => learnPing(node.uid, dst),
+      onTrace: showTrace,
+    });
+    // 設定の命令は、読み取り専用の機器では解釈の結果（誤りを含む）を見せず、先に拒否する
+    if (readOnly && isLegacyConfig(line, context.session, tr)) {
+      useGameStore.getState().appendTerminal(node.uid, [{ text: `> ${line}`, kind: 'out' }, { text: t('ui.terminal.readOnly'), kind: 'err' }]);
+      return;
+    }
+    const result = runLine(line, context, tr);
+    let out: readonly TerminalLine[];
+    if (result.change === null) {
+      out = result.lines;
+    } else if (readOnly) {
+      out = [{ text: t('ui.terminal.readOnly'), kind: 'err' }];
     } else {
-      out = runTerminal(
-        line,
-        {
-          node,
-          nodes,
-          links,
-          data: engineWithWalls(gameEnv.engine, state.maps[focusedProject(state)?.contract.map ?? 'hq']),
-          state: netState,
-          nameOf: (n) => nodeLabel(state, n, nodes),
-          arp,
-          macTable,
-          onReach: (dst) => learnPing(node.uid, dst),
-          onTrace: showTrace,
-        },
-        tr,
-      );
+      // 設定の操作は、画面の操作と同じ通り道（dispatch）で世界に当てる。失敗したら理由のキー
+      const reason = dispatch({ kind: 'config', uid: node.uid, change: result.change }, tileOf(node.uid));
+      out = reason === null ? [{ text: t('ui.terminal.done'), kind: 'out' }] : [{ text: reason.startsWith('ui.') ? tr(reason) : tr(`ui.error.${reason}`), kind: 'err' }];
     }
     useGameStore.getState().appendTerminal(node.uid, [{ text: `> ${line}`, kind: 'out' }, ...out]);
   };

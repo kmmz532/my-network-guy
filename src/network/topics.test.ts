@@ -4,7 +4,8 @@ import ja from '../assets/lang/ja_jp.json';
 import { analyze } from './engine/analyze';
 import { lessonGoalResults, lessonLinks, lessonNodes } from '../sim/lesson';
 import { parseConfig } from './terminalConfig';
-import { runTerminal, type Tr } from './terminal';
+import type { Tr } from './terminal';
+import { commandContextOf, runLine } from './command/run';
 import { TOPICS, type Topic, type TopicItem } from './topics';
 import { solutions } from '../__golden__/solutions';
 import type { EngineData, NetNode, NetLink } from './types';
@@ -37,7 +38,7 @@ const ctx = { node: nodes[0], nodes, links, data: engine };
 // 項目ごとに、欠けている要素の一覧を返す（空なら揃っている）
 const missingOf = (t: Topic): Record<TopicItem, string[]> => {
   const command = t.command === null ? ['（命令なし）'] : parseConfig(t.command, tr).kind === 'action' ? [] : [t.command];
-  const show = t.show === null ? ['（show なし）'] : runTerminal(t.show, { ...ctx, state: analyze({ nodes, links }, engine) }, tr).some((l) => l.text.startsWith('ui.terminal.unknown')) ? [t.show] : [];
+  const show = t.show === null ? ['（show なし）'] : runLine(t.show, commandContextOf({ ...ctx, state: analyze({ nodes, links }, engine) }), tr).lines.some((l) => l.text.startsWith('ui.terminal.unknown')) ? [t.show] : [];
   const failures = t.failures.flatMap((id) => [`error.${id}`, `error.${id}.fix`].filter((k) => text[k] === undefined));
   const warnings = t.warnings.filter((id) => text[`warn.${id}`] === undefined).map((id) => `warn.${id}`);
   const glossary = t.glossary === null ? ['（用語なし）'] : text[`glossary.${t.glossary}`] !== undefined ? [] : [`glossary.${t.glossary}`];

@@ -6,15 +6,14 @@ import { describe, expect, it } from 'vitest';
 import { lessons } from 'virtual:game-data';
 import { gameEnv } from '../sim/env';
 import { lessonLinks, lessonNodes, lessonPlans } from '../sim/lesson';
-import { focusedOf, fail, type Core, type Outcome, type Project } from '../sim/project';
+import { focusedOf, type Core, type Project } from '../sim/project';
 import { applyOperation, type OpContext } from '../world/apply';
-import type { ConfigChange } from '../world/operation';
 import type { GameMap } from '../data/schema';
 import officeSmall from '../assets/data/maps/office_small.json';
 import { analyze } from '../network/engine/analyze';
-import { runTerminal } from '../network/terminal';
-import { parseConfig, type ConfigAction } from '../network/terminalConfig';
-import type { NetLink, NetNode } from '../network/types';
+import { commandContextOf, runLine } from '../network/command/run';
+import { parseConfig } from '../network/terminalConfig';
+import type { NetLink } from '../network/types';
 
 const snapDir = join(import.meta.dirname, 'snap');
 const scenesDir = join(import.meta.dirname, 'terminal');
@@ -23,70 +22,7 @@ const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
 const tr = (key: string, params?: Record<string, string | number>): string => (params ? `${key} ${JSON.stringify(params)}` : key);
 
 // 設定の操作は焦点の案件を対象にする。地図は設定の操作では使わない
-const ctx: OpContext = { env: gameEnv, target: 'focus', map: null, hq: officeSmall as unknown as GameMap, mode: 'career' };
-const change = (core: Core, uid: string, c: ConfigChange): Outcome => applyOperation(core, { kind: 'config', uid, change: c }, ctx);
-
-// 命令の列の1行を、設定の画面（TerminalTab）と同じ操作に当てる。モードは持たないため、口の番号は行の中で指定する。
-// 画面の部品は使わず、操作（applyOperation）を直接当てる
-const applyAction = (core: Core, uid: string, action: ConfigAction, node: NetNode): Outcome => {
-  switch (action.kind) {
-    case 'iface':
-      return change(core, uid, { kind: 'iface', port: action.port, ip: action.ip, prefix: action.prefix });
-    case 'svi':
-      return change(core, uid, { kind: 'svi', vlan: action.vlan, ip: action.ip, prefix: action.prefix });
-    case 'portMode':
-      return change(core, uid, { kind: 'portMode', port: action.port, mode: action.mode });
-    case 'gateway':
-      return change(core, uid, { kind: 'gateway', gateway: action.gateway });
-    case 'addRoute':
-      return change(core, uid, { kind: 'addRoute', route: action.route });
-    case 'removeRoute': {
-      const index = node.routes.findIndex((r) => r.dest === action.dest && r.prefix === action.prefix);
-      return index < 0 ? fail('ui.terminal.noRouteToRemove') : change(core, uid, { kind: 'removeRoute', index });
-    }
-    case 'hostname':
-      return change(core, uid, { kind: 'hostname', hostname: action.hostname });
-    case 'host':
-      return change(core, uid, { kind: 'host', name: action.name, ip: action.ip });
-    case 'noHost':
-      return change(core, uid, { kind: 'removeHost', name: action.name });
-    case 'nameServer':
-      return change(core, uid, { kind: 'nameServer', ip: action.ip });
-    case 'routing':
-      return change(core, uid, { kind: 'routing', change: { proto: action.proto, on: action.on } });
-    case 'network':
-      return change(core, uid, { kind: 'routing', change: { proto: action.proto, on: action.on, ip: action.ip, ...(action.area !== null ? { area: action.area } : {}) } });
-    case 'ospf': {
-      if (action.op !== 'iface') return change(core, uid, { kind: 'ospf', change: action });
-      const iface = node.interfaces.find((i) => i.port === action.port);
-      return change(core, uid, { kind: 'ospf', change: { op: 'iface', id: iface?.id ?? '', key: action.key, value: action.value } });
-    }
-    case 'bgp':
-      return change(core, uid, { kind: 'bgp', change: action });
-    case 'stp':
-      return change(core, uid, { kind: 'stp', change: action });
-    case 'dhcp':
-      return change(core, uid, { kind: 'dhcp', change: action });
-    case 'channel':
-      return change(core, uid, { kind: 'channel', change: action });
-    case 'vrrp': {
-      const idOf = (port: number) => node.interfaces.find((i) => i.port === port)?.id ?? '';
-      const id = idOf(action.port);
-      if (action.op === 'ip') return change(core, uid, { kind: 'vrrp', change: { op: 'ip', id, vrid: action.vrid, ip: action.ip } });
-      if (action.op === 'priority') return change(core, uid, { kind: 'vrrp', change: { op: 'priority', id, vrid: action.vrid, value: action.value } });
-      if (action.op === 'preempt') return change(core, uid, { kind: 'vrrp', change: { op: 'preempt', id, vrid: action.vrid, on: action.on } });
-      if (action.op === 'track') return change(core, uid, { kind: 'vrrp', change: { op: 'track', id, vrid: action.vrid, iface: idOf(action.trackPort), decrement: action.decrement } });
-      return change(core, uid, { kind: 'vrrp', change: { op: 'remove', id, vrid: action.vrid } });
-    }
-    case 'nat': {
-      if (action.op !== 'iface') return change(core, uid, { kind: 'nat', change: action });
-      const iface = node.interfaces.find((i) => i.port === action.port);
-      return change(core, uid, { kind: 'nat', change: { op: 'iface', id: iface?.id ?? '', nat: action.nat } });
-    }
-    case 'wireless':
-      return change(core, uid, { kind: 'wireless', key: action.key, value: action.value });
-  }
-};
+const opCtx: OpContext = { env: gameEnv, target: 'focus', map: null, hq: officeSmall as unknown as GameMap, mode: 'career' };
 
 // 場面の命令の列を流す。@ の行で機器を選び、それ以外の行を1つの命令として流す
 const runScene = (lessonId: string, text: string) => {
@@ -111,21 +47,23 @@ const runScene = (lessonId: string, text: string) => {
     const current = focusedOf(core) as Project;
     const node = current.nodes.find((n) => n.uid === uid);
     if (!node) throw new Error(`場面 ${lessonId}: 機器 ${uid} がない`);
-    const parsed = parseConfig(line, tr);
-    if (parsed.kind === 'action') {
-      const r = applyAction(core, uid, parsed.action, node);
+    const state = analyze({ nodes: current.nodes, links: current.links, plans: current.plans }, gameEnv.engine);
+    const result = runLine(line, commandContextOf({ node, nodes: current.nodes, links: current.links, data: gameEnv.engine, state }), tr);
+    if (result.change !== null) {
+      // 設定の操作は、画面（TerminalTab）と同じ操作（applyOperation）に当てる。モードは持たないため、口の番号は行の中で指定する
+      const r = applyOperation(core, { kind: 'config', uid, change: result.change }, opCtx);
       if (r.ok) {
         core = r.core;
         log.push({ line, result: 'done' });
       } else {
         log.push({ line, result: 'fail', reason: r.reason });
       }
-    } else if (parsed.kind === 'error') {
-      log.push({ line, result: 'error', text: parsed.text });
+    } else if (parseConfig(line, tr).kind === 'none') {
+      log.push({ line, lines: result.lines.map((l) => `${l.kind}:${l.text}`) });
     } else {
-      const state = analyze({ nodes: current.nodes, links: current.links, plans: current.plans }, gameEnv.engine);
-      const out = runTerminal(line, { node, nodes: current.nodes, links: current.links, data: gameEnv.engine, state }, tr);
-      log.push({ line, lines: out.map((l) => `${l.kind}:${l.text}`) });
+      // 設定の命令の誤り（記録の形は、行ごとの結果を分けて残す）
+      const [first] = result.lines;
+      log.push(first.text === 'ui.terminal.noRouteToRemove' ? { line, result: 'fail', reason: first.text } : { line, result: 'error', text: first.text });
     }
   }
   const end = focusedOf(core) as Project;
@@ -145,14 +83,21 @@ describe('命令の列の記録（設定の命令・show・ping など）', () =
   }
 });
 
-// ターミナルが受け付ける命令の語を、ターミナルのソース（terminal.ts・terminalConfig.ts）の比較と略記の表から集める
+// ターミナルが受け付ける命令の語を、ターミナルのソース（terminal.ts・terminalConfig.ts）の比較と略記の表、
+// 命令の木（command/・topics/*/commands.ts）の固定の語から集める
 const keywordsOfSource = (): string[] => {
-  const src = ['terminal.ts', 'terminalConfig.ts'].map((f) => readFileSync(join(import.meta.dirname, '..', 'network', f), 'utf8')).join('\n');
+  const networkDir = join(import.meta.dirname, '..', 'network');
+  const src = ['terminal.ts', 'terminalConfig.ts'].map((f) => readFileSync(join(networkDir, f), 'utf8')).join('\n');
   const compared = [...src.matchAll(/(?:===|!==)\s*'([a-z][a-z0-9 -]*)'/g)].map((m) => m[1]);
   const keyed = [...src.matchAll(/'([a-z][a-z0-9-]*)':/g)].map((m) => m[1]);
+  const treeFiles = [
+    join(networkDir, 'command', 'core.ts'),
+    ...readdirSync(join(networkDir, 'topics'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => join(networkDir, 'topics', d.name, 'commands.ts')),
+  ];
+  const words = treeFiles.flatMap((f) => [...readFileSync(f, 'utf8').matchAll(/\{ word: '([a-z][a-z0-9-]*)' \}/g)].map((m) => m[1]));
   // 命令の語ではない比較の値（接続の状態）は除く
   const notCommand = new Set(['established']);
-  return [...new Set([...compared, ...keyed])].filter((w) => !notCommand.has(w)).sort();
+  return [...new Set([...compared, ...keyed, ...words])].filter((w) => !notCommand.has(w)).sort();
 };
 
 describe('命令の一覧', () => {
