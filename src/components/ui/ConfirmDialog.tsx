@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { usePrimary } from '../Modal';
 import { Dialog } from './Dialog';
 import { Button } from './Button';
+import type { Layout } from './layout';
 import './tokens.css';
 import './ui.css';
 
@@ -17,6 +18,7 @@ interface Props {
   onCancel: () => void;
   cancelLabel: string;
   action: ConfirmAction;
+  layout?: Layout;
   children: ReactNode;
 }
 
@@ -38,9 +40,9 @@ function Body({ onCancel, cancelLabel, action, children }: Props) {
   );
 }
 
-export function ConfirmDialog({ onCancel, cancelLabel, action, children }: Props) {
+export function ConfirmDialog({ onCancel, cancelLabel, action, layout, children }: Props) {
   return (
-    <Dialog onClose={onCancel}>
+    <Dialog onClose={onCancel} layout={layout}>
       <Body onCancel={onCancel} cancelLabel={cancelLabel} action={action}>
         {children}
       </Body>
