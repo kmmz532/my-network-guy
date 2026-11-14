@@ -4,6 +4,7 @@ import { t } from '../i18n/t';
 import type { NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
 import { greyColor, inputStyle } from './devicePorts';
+import { Select } from './ui/Select';
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0', fontSize: 12 } as const;
 const parseList = (text: string): number[] | null | 'error' => {
@@ -37,15 +38,16 @@ export function VlanPortField({ node, port, readOnly, onError }: { node: NetNode
   );
   return (
     <div style={row}>
-      <select
-        aria-label={t('ui.config.vlanMode')}
+      <Select
+        label={t('ui.config.vlanMode')}
         value={mode}
         disabled={readOnly}
-        onChange={(e) => onError(setPortMode(node.uid, port, e.target.value === 'trunk' ? { kind: 'trunk' } : { kind: 'access', vlan: cfg?.vlan ?? 1 }))}
-      >
-        <option value="access">{t('ui.config.vlanAccess')}</option>
-        <option value="trunk">{t('ui.config.vlanTrunk')}</option>
-      </select>
+        options={[
+          { value: 'access', label: t('ui.config.vlanAccess') },
+          { value: 'trunk', label: t('ui.config.vlanTrunk') },
+        ]}
+        onChange={(v) => onError(setPortMode(node.uid, port, v === 'trunk' ? { kind: 'trunk' } : { kind: 'access', vlan: cfg?.vlan ?? 1 }))}
+      />
       {mode === 'access' && numberField('VLAN', cfg?.vlan ?? 1, (v) => setPortMode(node.uid, port, { kind: 'access', vlan: v }))}
       {mode === 'trunk' && (
         <>
