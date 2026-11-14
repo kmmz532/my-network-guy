@@ -370,7 +370,7 @@
   },
   "src/components/UnlockList.tsx": {
     "local/no-look-props": {
-      "count": 10
+      "count": 4
     }
   },
   "src/components/UpdateNotice.tsx": {

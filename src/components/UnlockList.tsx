@@ -6,6 +6,7 @@ import { ItemIcon } from './ItemIcon';
 import { Tooltip } from './Tooltip';
 import { Icon } from './Icon';
 import { itemSpriteOf } from './itemSprite';
+import { Tile } from './ui/Tile';
 
 // 解放された品目の名前（機材・ケーブル・家具・依頼）
 export const unlockNameOf = (x: { kind: 'device' | 'cable' | 'furniture' | 'template' | 'contract' | 'speed' | 'floor' | 'feature'; id: string }): string => {
@@ -67,10 +68,9 @@ export function RewardPictures({ items }: { items: { kind: 'device'; id: string;
     <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 4, marginTop: 4 }}>
       {items.map((x) => (
         <Tooltip key={x.id} text={`${tDyn(`device.${x.id}.name`)} ×${x.count}`}>
-          <span style={{ position: 'relative', display: 'flex', padding: '2px 2px', background: '#25406f', border: '1px solid #3b2a33' }}>
+          <Tile size="unlock" count={x.count}>
             <ItemIcon name={itemSpriteOf('device', x.id)} box={{ width: 36, height: 36 }} maxScale={2} />
-            <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>{x.count}</span>
-          </span>
+          </Tile>
         </Tooltip>
       ))}
     </div>
@@ -84,9 +84,9 @@ export function UnlockCards({ items }: { items: { kind: UnlockCardKind; id: stri
       {items.map((x, i) =>
         (x.kind === 'device' || x.kind === 'furniture') && x.level !== undefined ? (
           <Tooltip key={`${x.kind}_${x.id}_${i}`} text={`${cardNameOf(x)}`}>
-            <span style={{ display: 'flex', padding: '2px 2px', background: '#25406f', border: '1px solid #3b2a33' }}>
+            <Tile size="unlock">
               <ItemIcon name={itemSpriteOf(x.kind, x.id)} box={{ width: 36, height: 36 }} maxScale={2} />
-            </span>
+            </Tile>
           </Tooltip>
         ) : (
         <div
