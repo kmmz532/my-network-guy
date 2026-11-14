@@ -8,7 +8,7 @@ import { goalText } from './goalText';
 import { gameEnv, isPcDevice } from '../sim/env';
 import { offerHintOf, useGameStore } from '../stores/useGameStore';
 import type { Offer } from '../contracts/template';
-import { dangerButton, primaryButton, secondaryButton, usePrimary } from './Modal';
+import { usePrimary } from './Modal';
 import { delegationReason } from '../sim/project';
 import { staffPower } from '../sim/staff';
 import { starRangeOf } from '../sim/blindDelegate';
@@ -259,30 +259,31 @@ function OfferCard({
           ) : (
             <>
               {offer.kind === 'template' && (
-                <button
+                <Button
                   // 断るは危ないボタンの見た目で区別する。確認があるため、位置は離さない（N109b）
-                  style={{ ...dangerButton, whiteSpace: 'nowrap', marginRight: 6, ...(phone ? { minHeight: 44 } : {}) }}
+                  variant="danger"
+                  layout={{ marginRight: 6, ...(phone ? { minHeight: 44 } : {}) }}
                   onClick={() => (loadSettings().confirmDecline ? setAsking(true) : onDecline())}
                 >
                   {t('ui.offer.decline')}
-                </button>
+                </Button>
               )}
               {delegateReason === null && (
-                <button style={{ ...secondaryButton, whiteSpace: 'nowrap' }} disabled={!canAccept} onClick={() => onDelegate(crew)}>
+                <Button variant="secondary" disabled={!canAccept} onClick={() => onDelegate(crew)}>
                   {t('ui.delegate.button')}
-                </button>
+                </Button>
               )}
               {/* 型紙が合わない依頼は、結果を乱数で決めて任せる（N94）。予想の★を、押す前に出す */}
               {(delegateReason === 'delegate.fit' || delegateReason === 'delegate.blueprint') && (
                 <Tooltip text={t('ui.delegate.stars', { range: blindRange })}>
-                  <button style={{ ...secondaryButton, whiteSpace: 'nowrap' }} disabled={!canAccept} onClick={() => onDelegateBlind(crew)}>
+                  <Button variant="secondary" disabled={!canAccept} onClick={() => onDelegateBlind(crew)}>
                     {t('ui.delegate.blind')}
-                  </button>
+                  </Button>
                 </Tooltip>
               )}
-              <button style={{ ...primaryButton, whiteSpace: 'nowrap', ...(phone ? { minWidth: 96, minHeight: 44 } : {}) }} disabled={!canAccept} onClick={() => onAccept(crew)}>
+              <Button variant="primary" layout={phone ? { minWidth: 96, minHeight: 44 } : undefined} disabled={!canAccept} onClick={() => onAccept(crew)}>
                 {t('ui.accept')}
-              </button>
+              </Button>
             </>
           )}
         </div>

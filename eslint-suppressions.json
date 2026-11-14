@@ -242,9 +242,6 @@
     },
     "local/no-look-props": {
       "count": 27
-    },
-    "local/no-native-control": {
-      "count": 4
     }
   },
   "src/components/OfficePanel.tsx": {
