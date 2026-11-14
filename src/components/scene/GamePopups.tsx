@@ -4,7 +4,6 @@ import { t } from '../../i18n/t';
 import { saveSession, useSaveSession } from '../../services/saveSession';
 import { useGameStore } from '../../stores/useGameStore';
 import { useUiStore } from '../../stores/useUiStore';
-import { RADIUS } from '../../ui/theme';
 import { Modal, secondaryButton } from '../Modal';
 import { KeyHelp } from '../KeyHelp';
 import { SandboxSizePanel } from '../SandboxSizePanel';
@@ -14,6 +13,7 @@ import { readSandboxFile, writeSandboxFile } from '../../sim/sandboxFile';
 import { Button } from '../ui/Button';
 
 // メニューの項目。ボタンとファイルを選ぶラベルで、文字の大きさと見た目をそろえる
+const menuLayout = { width: '100%', margin: '4px 0' } as const;
 const menuButton = { ...secondaryButton, display: 'block', width: '100%', margin: '4px 0', padding: '6px 12px', fontSize: 13, lineHeight: 1.4, boxSizing: 'border-box' } as const;
 
 export function GamePopups({ onExit }: { onExit: () => void }) {
@@ -84,36 +84,36 @@ export function GamePopups({ onExit }: { onExit: () => void }) {
     <>
       {popup === 'menu' && (
         <Modal onClose={() => setPopup(null)} boxStyle={{ minWidth: 200 }}>
-          <button style={menuButton} onClick={onSave}>{t('ui.save')}</button>
-          <button style={menuButton} onClick={onExport}>{t('ui.export')}</button>
+          <Button variant="secondary" size="menu" layout={menuLayout} onClick={onSave}>{t('ui.save')}</Button>
+          <Button variant="secondary" size="menu" layout={menuLayout} onClick={onExport}>{t('ui.export')}</Button>
           <label style={{ ...menuButton, textAlign: 'center' }}>
             {t('ui.import')}
             <input type="file" accept="application/json" style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])} />
           </label>
-          <button style={menuButton} onClick={() => setPopup('settings')}>
+          <Button variant="secondary" size="menu" layout={menuLayout} onClick={() => setPopup('settings')}>
             {t('ui.menu.settings')}
-          </button>
-          <button style={menuButton} onClick={onExit}>
+          </Button>
+          <Button variant="secondary" size="menu" layout={menuLayout} onClick={onExit}>
             {t('ui.title.back')}
-          </button>
+          </Button>
           {sandbox && (
             <>
-              <button style={menuButton} onClick={onSandboxExport}>
+              <Button variant="secondary" size="menu" layout={menuLayout} onClick={onSandboxExport}>
                 {t('ui.sandboxFile.export')}
-              </button>
+              </Button>
               <label style={{ ...menuButton, textAlign: 'center' }}>
                 {t('ui.sandboxFile.import')}
                 <input type="file" accept="application/json" style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && onSandboxImport(e.target.files[0])} />
               </label>
-              <button style={menuButton} onClick={() => setPopup('lessons')}>
+              <Button variant="secondary" size="menu" layout={menuLayout} onClick={() => setPopup('lessons')}>
                 {t('ui.lesson.open')}
-              </button>
-              <button style={menuButton} onClick={() => setPopup('sandboxResize')}>
+              </Button>
+              <Button variant="secondary" size="menu" layout={menuLayout} onClick={() => setPopup('sandboxResize')}>
                 {t('ui.sandbox.size.change')}
-              </button>
-              <button style={menuButton} onClick={() => setPopup('sandboxResetConfirm')}>
+              </Button>
+              <Button variant="secondary" size="menu" layout={menuLayout} onClick={() => setPopup('sandboxResetConfirm')}>
                 {t('ui.sandbox.size.reset')}
-              </button>
+              </Button>
             </>
           )}
           {message && <div style={{ marginTop: 6, fontSize: 13 }}>{message}</div>}
@@ -136,12 +136,9 @@ export function GamePopups({ onExit }: { onExit: () => void }) {
         <Modal onClose={() => setPopup(null)} primary={() => setPopup('sandboxReset')} boxStyle={{ minWidth: 240 }}>
           <div style={{ fontWeight: 'bold', marginBottom: 12 }}>{t('ui.sandbox.size.resetConfirm')}</div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <button
-              style={{ padding: '4px 12px', cursor: 'pointer', background: 'transparent', color: '#f4f1e6', border: '1px solid #f4f1e6', borderRadius: RADIUS.none }}
-              onClick={() => setPopup(null)}
-            >
+            <Button variant="outline" onClick={() => setPopup(null)}>
               {t('ui.sandbox.size.cancel')}
-            </button>
+            </Button>
             <Button variant="danger" onClick={() => setPopup('sandboxReset')}>
               {t('ui.sandbox.size.recreate')}
             </Button>
