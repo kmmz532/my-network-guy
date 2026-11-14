@@ -1229,7 +1229,6 @@
   "ui.terminal.usageOspf": "書式: router-id <IP>・default-information originate・ip ospf cost|priority|hello-interval|dead-interval <口> <値>（no で取り消し）",
   "ui.terminal.usagePing": "使い方: ping <IPアドレス>",
   "ui.terminal.usageStp": "書式: spanning-tree priority <0〜61440（4096の倍数）> / spanning-tree cost <口> <値>",
-  "ui.terminal.usageSvi": "書式: ip address vlan <番号> <IP> <マスク> / no ip address vlan <番号>",
   "ui.terminal.usageSwitchport": "書式: switchport <ポート> access vlan <番号> / switchport <ポート> trunk [allowed <番号,番号…|all>] [native <番号>] / no switchport <ポート>",
   "ui.terminal.usageTrace": "使い方: traceroute <IPアドレス>",
   "ui.terminal.usageVrrp": "書式: vrrp <口> <VRID> ip <IP> / priority <値> / preempt / track <口> decrement <値>、no vrrp <口> <VRID> [preempt]",

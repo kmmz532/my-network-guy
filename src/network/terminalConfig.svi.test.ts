@@ -24,8 +24,8 @@ describe('SVI と口のモードの設定コマンド（N138）', () => {
   });
 
   it('VLAN の番号は 1〜4094 だけ受け付ける', () => {
-    expect(viaTree('ip address vlan 0 192.168.10.1 255.255.255.0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errVlan' });
-    expect(viaTree('no ip address vlan 4095', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errVlan' });
+    expect(viaTree('ip address vlan 0 192.168.10.1 255.255.255.0', tr)).toEqual({ kind: 'error', text: '                  ^' });
+    expect(viaTree('no ip address vlan 4095', tr)).toEqual({ kind: 'error', text: '                     ^' });
   });
 
   it('switchport <口> access vlan <番号> で口を VLAN に入れ、no switchport <口> でルーターの口に戻す', () => {
