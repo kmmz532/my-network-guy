@@ -54,7 +54,8 @@ export const ESCAPE_STEPS: readonly EscapeStep[] = [
   {
     id: 'wire',
     run: (s) => {
-      if (!s.wireStart && !s.portMenu) return 'next';
+      const ui = useUiStore.getState();
+      if (!ui.wireStart && !ui.portMenu) return 'next';
       s.cancelWire();
       return 'closed';
     },

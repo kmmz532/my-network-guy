@@ -1,6 +1,7 @@
 // 一時的な操作状態を描く。効果範囲・ホバー枠・失敗フラッシュ・押下エフェクトを受け持つ。
 import { Graphics, Container, Text } from 'pixi.js';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
+import { useUiStore } from '../stores/useUiStore';
 import { gameEnv } from '../sim/env';
 import type { Project } from '../sim/project';
 import { rangeTiles } from './effectRange';
@@ -55,7 +56,7 @@ export class EffectRenderer {
   }
 
   drawFlash(ts: number): void {
-    const flash = useGameStore.getState().flash;
+    const flash = useUiStore.getState().flash;
     if (!flash) return;
     const age = Date.now() - flash.at;
     if (age >= FLASH_MS) return;

@@ -9,6 +9,7 @@ import { inventoryItems, inventoryMode, type InventoryItem } from '../sim/invent
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { mapViewOf } from '../game/mapView';
 import { useGameStore } from '../stores/useGameStore';
+import { useUiStore } from '../stores/useUiStore';
 import { Icon } from './Icon';
 import { ItemIcon } from './ItemIcon';
 import { Tooltip } from './Tooltip';
@@ -149,7 +150,7 @@ export function Inventory({
   onShop: () => void;
 }) {
   const box = layout === 'strip' ? strip : grid;
-  const itemDrag = useGameStore((s) => s.itemDrag);
+  const itemDrag = useUiStore((s) => s.itemDrag);
   const setItemDrag = useGameStore((s) => s.setItemDrag);
   // ドラッグを終えたあとに続く click を1回無視する
   const ignoreClick = useRef(false);

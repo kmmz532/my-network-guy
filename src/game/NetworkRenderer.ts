@@ -1,6 +1,7 @@
 // 配線に関する表示を描く。接続時の光・無線範囲・無線の点線・検収パケットを受け持つ。
 import { Graphics } from 'pixi.js';
-import { useGameStore, type Trace } from '../stores/useGameStore';
+import type { Trace } from '../stores/useGameStore';
+import { useUiStore } from '../stores/useUiStore';
 import { CATEGORY } from '../data/categories';
 import { WALL_LOSS, WIRELESS_RADIUS, wallsBetween, wirelessAssociations } from '../network/engine';
 import type { EngineData } from '../network/types';
@@ -28,12 +29,12 @@ export class NetworkRenderer {
   constructor(private readonly options: NetworkRendererOptions) {}
 
   pulseActive(): boolean {
-    const pulse = useGameStore.getState().linkPulse;
+    const pulse = useUiStore.getState().linkPulse;
     return pulse !== null && Date.now() - pulse.at < PULSE_MS;
   }
 
   drawLinkPulse(project: Project, ts: number): void {
-    const pulse = useGameStore.getState().linkPulse;
+    const pulse = useUiStore.getState().linkPulse;
     if (!pulse || !this.pulseActive()) return;
     const link = project.links.find((l) => (l.a.node === pulse.a && l.b.node === pulse.b) || (l.a.node === pulse.b && l.b.node === pulse.a));
     if (!link || link.path.length < 2) return;

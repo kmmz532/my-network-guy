@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { t, tDyn } from '../i18n/t';
 import { framesOf, isL2Category, isRoutingCategory, type Frame, type FrameContext } from '../network/public';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
+import { useUiStore } from '../stores/useUiStore';
 import { labelOfUid } from './nodeLabel';
 import { secondaryButton } from './Modal';
 import { deviceCategory } from '../registry/query';
@@ -23,7 +24,7 @@ export function FramesBody({ goal }: { goal?: number }) {
   const [index, setIndex] = useState(() => Math.max(0, traces.findIndex((tr) => goal !== undefined && tr.goal === goal)));
   const [hop, setHop] = useState<number | null>(null);
   // 選んだ区間を、マップのパケットの位置に反映する。欄を閉じたら元に戻す
-  const setFrameView = useGameStore((s) => s.setFrameView);
+  const setFrameView = useUiStore((s) => s.setFrameView);
   useEffect(() => {
     setFrameView(hop === null ? null : { trace: index, hop });
   }, [hop, index, setFrameView]);

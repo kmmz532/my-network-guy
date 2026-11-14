@@ -9,6 +9,7 @@ import { requestBuild } from '../sim/progress';
 
 import { plannedKey, type PlannedNet, coreOf, focusedProject, reportState, withLevelUps } from './gameHelpers';
 import type { GameState } from './useGameStore';
+import { useUiStore } from './useUiStore';
 import type { StoreApi } from 'zustand';
 
 type Set = StoreApi<GameState>['setState'];
@@ -78,15 +79,15 @@ export const createOps = (set: Set, get: () => GameState) => {
       check: null,
       helpUid: null,
       lastError: null,
-      wireStart: null,
-      portMenu: null,
     });
+    useUiStore.setState({ wireStart: null, portMenu: null });
   };
 
   const apply = (outcome: Outcome, at?: { tx: number; ty: number }): string | null => {
     if (!outcome.ok) {
       const flash = at ? { key: `ui.error.${outcome.reason}`, ...at, at: Date.now() } : null;
-      set({ lastError: outcome.reason, ...(flash ? { flash } : {}) });
+      set({ lastError: outcome.reason });
+      if (flash) useUiStore.setState({ flash });
       return outcome.reason;
     }
     // 自動（DHCP）の口の受け取ったアドレスを、機器へ書き戻す

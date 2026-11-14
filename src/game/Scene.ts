@@ -3,6 +3,7 @@
 import { Application, Container, Graphics, Text, type Ticker } from 'pixi.js';
 import { type GameMap } from '../data/schema';
 import { focusedProject, viewingOffice, frontDeviceUid, useGameStore, type Trace } from '../stores/useGameStore';
+import { useUiStore } from '../stores/useUiStore';
 import { nodeLabel } from '../components/nodeLabel';
 import { centerPath, plugPoints } from './linkHit';
 import { setMapView } from './mapView';
@@ -93,6 +94,7 @@ export class Scene {
   private netColors: NetworkColors | null = null;
   // 失敗の「？」の押せる範囲（機器の uid → マップの座標の矩形）。描き直すたびに作る
   private unsubscribe: () => void;
+  private unsubscribeUi: () => void;
   // 自社オフィスの部屋を広げるボタン（右・下・左の辺の外側）。描き直さず、位置と表示だけを更新する
   private expandButtons = new Map<ExpandSide, Container>();
   // マップの見え方（位置と倍率）と、それを動かす入力
@@ -239,6 +241,7 @@ export class Scene {
     app.canvas.style.touchAction = 'none';
     app.ticker.add(this.onTick);
     this.unsubscribe = useGameStore.subscribe(() => this.refresh());
+    this.unsubscribeUi = useUiStore.subscribe(() => this.refresh());
     bindMapCommands({
       zoomIn: () => this.cam.zoomBy(1),
       zoomOut: () => this.cam.zoomBy(-1),
@@ -261,6 +264,7 @@ export class Scene {
   destroy(): void {
     this.releaseRotateKey();
     this.unsubscribe();
+    this.unsubscribeUi();
     setMapView(null);
     this.releaseKeys();
     window.removeEventListener('pointermove', this.input.onWindowPointerMove);
@@ -590,7 +594,7 @@ export class Scene {
     this.effectRenderer.drawPressFx(project, ts);
 
     // 配線の線。ドラッグ中、または起点を選んだあとは、起点の機器からカーソルまで伸ばす
-    const wireUid = this.input.wireFrom ?? s.wireStart?.uid ?? null;
+    const wireUid = this.input.wireFrom ?? useUiStore.getState().wireStart?.uid ?? null;
     const wireNode = wireUid ? project.nodes.find((n) => n.uid === wireUid) : undefined;
     if (wireNode) {
       this.g.moveTo(wireNode.x * ts + ts / 2, wireNode.y * ts + ts / 2);
@@ -630,7 +634,7 @@ export class Scene {
     for (const node of project.nodes) {
       const dim = building && !isBuilt(node.uid, 'nodes');
       // 配線の起点に選んだ機器は、光る枠で選ばれた状態にする
-      this.deviceRenderer.drawNode(node, ts, frontDeviceUid(s) === node.uid || s.wireStart?.uid === node.uid, dim, project, this.input.hoverNodeUid === node.uid);
+      this.deviceRenderer.drawNode(node, ts, frontDeviceUid(s) === node.uid || useUiStore.getState().wireStart?.uid === node.uid, dim, project, this.input.hoverNodeUid === node.uid);
       const blinkOn = onPath.has(node.uid) ? fastBlink : slowBlink;
       const issue = this.issueOf(node, project);
       this.deviceRenderer.drawLed(node, ts, blinkOn, issue?.reason === 'ip.unset');
@@ -652,7 +656,7 @@ export class Scene {
       this.staffRenderer.drawWanderers(ts);
     }
     this.traces.forEach((trace, k) => {
-      const view = s.frameView;
+      const view = useUiStore.getState().frameView;
       this.networkRenderer.drawTrace(trace, ts, this.realElapsed, this.traceStart, view && view.trace === k ? view.hop : undefined);
     });
     this.failureRenderer.draw(project, ts, failing);
@@ -719,7 +723,7 @@ export class Scene {
   }
 
   private flashActive(): boolean {
-    const f = useGameStore.getState().flash;
+    const f = useUiStore.getState().flash;
     return f !== null && Date.now() - f.at < FLASH_MS;
   }
 

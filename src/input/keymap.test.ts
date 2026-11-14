@@ -170,9 +170,8 @@ describe('Esc（手前のものから1つずつ戻す）', () => {
   // 戻す対象をすべて開いた状態にする。戻す処理は記録だけにする
   const openEverything = () => {
     calls.length = 0;
+    useUiStore.setState({ wireStart: { uid: 'a', port: null }, portMenu: null });
     useGameStore.setState({
-      wireStart: { uid: 'a', port: null },
-      portMenu: null,
       helpUid: 'a',
       tool: 'wire',
       placing: null,
@@ -183,7 +182,10 @@ describe('Esc（手前のものから1つずつ戻す）', () => {
       setTool: () => void calls.push('tool'),
     });
   };
-  const restore = () => useGameStore.setState({ ...original, wireStart: null, portMenu: null, helpUid: null, tool: 'select', placing: null, windows: [] });
+  const restore = () => {
+    useUiStore.setState({ wireStart: null, portMenu: null });
+    useGameStore.setState({ ...original, helpUid: null, tool: 'select', placing: null, windows: [] });
+  };
 
   it('戻す順序は、配線 → ポップアップ → 失敗の直し方 → ウィンドウ → 道具', () => {
     expect(ESCAPE_STEPS.map((x) => x.id)).toEqual(['wire', 'popup', 'help', 'window', 'tool']);
@@ -194,7 +196,7 @@ describe('Esc（手前のものから1つずつ戻す）', () => {
     const release = pushPopup({ close: () => void calls.push('popup') });
     // 戻したあとは、戻した対象の状態を片づけて次へ進める
     expect(esc()).toBe(true);
-    useGameStore.setState({ wireStart: null });
+    useUiStore.setState({ wireStart: null });
     expect(esc()).toBe(true);
     release();
     expect(esc()).toBe(true);
@@ -208,7 +210,7 @@ describe('Esc（手前のものから1つずつ戻す）', () => {
 
   it('閉じられないポップアップがあるときは、奥のものも戻さず、処理しない', () => {
     openEverything();
-    useGameStore.setState({ wireStart: null });
+    useUiStore.setState({ wireStart: null });
     const release = pushPopup({});
     expect(esc()).toBe(false);
     expect(calls).toEqual([]);

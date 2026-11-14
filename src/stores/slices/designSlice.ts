@@ -21,6 +21,7 @@ import { coreOf, focusedProject, netTargetOf } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
 import type { StateCreator } from 'zustand';
 import { createOps } from '../gameOps';
+import { useUiStore } from '../useUiStore';
 
 export interface DesignSlice {
   // 設計の操作を1つ元に戻す・やり直す（戻せなければ何もしない）
@@ -141,7 +142,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       // つながった音と、つなげなかった音（効果音の設定がオフのときは鳴らない）
       if (reason === null) {
         playConnect();
-        set({ linkPulse: { a: aUid, b: bUid, at: Date.now() } });
+        useUiStore.setState({ linkPulse: { a: aUid, b: bUid, at: Date.now() } });
       } else {
         playFail();
       }

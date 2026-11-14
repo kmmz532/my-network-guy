@@ -18,6 +18,7 @@ import { dropUnknownDevices } from '../../services/dropUnknown';
 
 import { newRng, newStart, refresh } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
+import { useUiStore } from '../useUiStore';
 import type { StateCreator } from 'zustand';
 import { createOps } from '../gameOps';
 
@@ -43,6 +44,7 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
     load: (input) => {
       // 登録にない機材を取り除いてから読む。取り除いたときは知らせる
       const { data: save, count: droppedCount } = dropUnknownDevices(input);
+      useUiStore.setState({ wireStart: null, portMenu: null });
       return set(() => {
         const missing = save.mode === 'career'
           ? missingPcCount(save.staff, { pcDesks: pcDesksOf(save.office, isPcDevice), defs: gameEnv.furniture ?? {}, balance: gameEnv.balance, staff: save.staff })
@@ -81,8 +83,6 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
         lastReport: null,
         showcase: null,
         traces: [],
-        wireStart: null,
-        portMenu: null,
         check: null,
         helpUid: null,
         histories: {},
@@ -96,7 +96,8 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
       const trimmed = name.trim();
       if (trimmed !== '') set({ name: trimmed });
     },
-    newGame: (name) =>
+    newGame: (name) => {
+      useUiStore.setState({ wireStart: null, portMenu: null });
       set((s) => {
         const base: Partial<GameState> = {
           mode: 'career',
@@ -136,8 +137,6 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
           historyError: null,
           windows: [],
           placing: null,
-          wireStart: null,
-          portMenu: null,
           speed: 1,
           resumeSpeed: 1,
           nightSpeed: null,
@@ -145,8 +144,10 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
         };
         // 新しく始めたら、最初の依頼をすぐ届ける
         return { ...base, ...refresh({ ...s, ...base } as GameState) };
-      }),
-    newSandbox: (size) =>
+      });
+    },
+    newSandbox: (size) => {
+      useUiStore.setState({ flash: null, wireStart: null, portMenu: null });
       set((s) => {
         const office = sandboxOffice(size);
         return {
@@ -185,7 +186,6 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
           lastReport: null,
           lastError: null,
           notices: [],
-          flash: null,
           traces: [],
           showcase: null,
           check: null,
@@ -194,10 +194,9 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
           historyError: null,
           windows: [],
           placing: null,
-          wireStart: null,
-          portMenu: null,
         };
-      }),
+      });
+    },
     resizeSandbox: (size) => {
       if (get().mode !== 'sandbox') return 'none';
       const office = get().office;
@@ -211,7 +210,8 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
     loadSandboxOffice: (office) => {
       if (get().mode !== 'sandbox') return 'none';
       dropHistory(OFFICE_HISTORY_KEY);
-      set({ office, maps: { ...get().maps, hq: mapOfOffice(office) }, placing: null, wireStart: null, portMenu: null });
+      useUiStore.setState({ wireStart: null, portMenu: null });
+      set({ office, maps: { ...get().maps, hq: mapOfOffice(office) }, placing: null });
       return null;
     },
     snapshot: () => worldOf(get()),

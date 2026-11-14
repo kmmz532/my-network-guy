@@ -1,6 +1,7 @@
 // 配置・移動・配線中の操作表示を描く。置けるマス、接続先、プラグ印、配線費用を受け持つ。
 import { Graphics, Container, Text } from 'pixi.js';
 import { useGameStore } from '../stores/useGameStore';
+import { useUiStore } from '../stores/useUiStore';
 import type { NetNode } from '../network/types';
 import { balance } from 'virtual:game-data';
 import { metersOf } from '../sim/cableLength';
@@ -27,10 +28,11 @@ export class InteractionRenderer {
 
   drawPlacePreview(ts: number): void {
     const s = useGameStore.getState();
-    const id = s.itemDrag?.id ?? s.placing;
+    const drag = useUiStore.getState().itemDrag;
+    const id = drag?.id ?? s.placing;
     if (!id) return;
-    const tile = s.itemDrag
-      ? this.options.hit.tileAtClient(s.itemDrag.x, s.itemDrag.y)
+    const tile = drag
+      ? this.options.hit.tileAtClient(drag.x, drag.y)
       : this.options.input.cursorTile;
     if (!tile) return;
     this.drawTileState(tile.tx, tile.ty, ts, this.options.input.canPlace(id, tile.tx, tile.ty));

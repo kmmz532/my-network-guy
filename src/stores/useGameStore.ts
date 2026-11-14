@@ -40,27 +40,6 @@ export type { Trace };
 // 道具: 選択（機器の画面を開く）・配線・撤去
 export type Tool = 'select' | 'wire' | 'remove';
 
-// 配線の起点（ポートを選んだ機器）。null は「おまかせ」
-export interface WireStart {
-  uid: string;
-  port: number | null;
-}
-
-// ポートの一覧の吹き出し。画面上の位置（ビューポートの座標）。role は起点を選ぶ（from）か、相手を選ぶ（to）
-export interface PortMenuState {
-  uid: string;
-  x: number;
-  y: number;
-  role: 'from' | 'to';
-}
-
-// インベントリの欄からドラッグ中の品目と、画面の位置（クライアントの座標）。保存しない
-export interface ItemDrag {
-  id: string;
-  x: number;
-  y: number;
-}
-
 export type Speed = number;
 
 export type { PlannedNet } from './gameHelpers';
@@ -150,18 +129,12 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   wireCable: string;
   // 直近の検収で流すパケット
   traces: Trace[];
-  // パケットの中身の欄で選んでいる通信と区間（hop）。マップのパケットをその区間の位置で止める。欄を閉じたら null
-  frameView: { trace: number; hop: number } | null;
-  setFrameView: (view: { trace: number; hop: number } | null) => void;
   // 用語を初めて出したことを記録する（2回目から出さない）
   markTermShown: (id: string) => void;
   // 納品した直後の案件（結果を閉じるまでマップに表示する）
   showcase: Project | null;
   // 操作の種類
   tool: Tool;
-  // 配線の途中の起点（ポートを選んだ機器）と、ポートの一覧の吹き出し（保存しない）
-  wireStart: WireStart | null;
-  portMenu: PortMenuState | null;
   // 最後のテストまたは検収の判定（案件ごと）。設計を変えると消える（保存しない）
   check: { projectId: string; goals: GoalCheck[]; warnings?: VlanWarning[] } | null;
   // 失敗の直し方を開いている機器（保存しない）
@@ -176,14 +149,8 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   terminalLog: Record<string, TerminalLine[]>;
   terminalCommands: Record<string, string[]>;
   taskOpen: boolean;
-  // 失敗した操作の理由を、失敗した地点（マップのタイル）に出す
-  flash: { key: string; tx: number; ty: number; at: number } | null;
-  // 直近につないだ2つの機器と時刻。つながった瞬間に、ケーブルの上を光が走らせる（画面だけの表示）
-  linkPulse: { a: string; b: string; at: number } | null;
   // 給与を払えない月に、払う前に時間を止めた月（paidMonths の値）。同じ月は、もう止めない（保存しない）
   payWarned: number | null;
-  // インベントリの欄から品目をドラッグしている間の位置（保存しない）
-  itemDrag: ItemDrag | null;
   tick: () => void;
   cacheMap: (map: GameMap) => void;
 }
@@ -255,26 +222,19 @@ export const useGameStore = create<GameState>((set, get, api) => {
     placing: null,
     wireCable: 'utp_cat5e',
     traces: [],
-    frameView: null,
-    setFrameView: (view) => set({ frameView: view }),
     markTermShown: (id) => set((s) => (s.termsShown.includes(id) ? {} : { termsShown: [...s.termsShown, id] })),
     showcase: null,
     check: null,
     helpUid: null,
     testNudge: 0,
     tool: 'select',
-    wireStart: null,
-    portMenu: null,
     // 名前とIPアドレスの表示は端末ごとの設定に保存する（設定の画面と同じ値）
     showIp: loadSettings().showIp,
     showNames: loadSettings().showNames,
     terminalLog: {},
     terminalCommands: {},
     taskOpen: true,
-    flash: null,
-    linkPulse: null,
     payWarned: null,
-    itemDrag: null,
     tick: () => set((s) => runTick(s, { now: Date.now(), payPause: loadSettings().payPause })),
     cacheMap: (map) =>
       set((s) => {

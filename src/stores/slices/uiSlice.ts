@@ -6,10 +6,10 @@ import { gameEnv } from '../../sim/env';
 import { learnFromPing } from '../../network/learn';
 
 import { dismissNotice, openOf, promoteNotices } from '../../ui/notices';
-import { useUiStore } from '../useUiStore';
+import { useUiStore, type ItemDrag } from '../useUiStore';
 
 import { editNetOf, plannedKey, type PlannedNet } from '../gameHelpers';
-import type { GameState, ItemDrag, Tool } from '../useGameStore';
+import type { GameState, Tool } from '../useGameStore';
 import type { StateCreator } from 'zustand';
 
 export interface UiSlice {
@@ -69,38 +69,41 @@ export const createUiSlice: StateCreator<GameState, [], [], UiSlice> = (set, get
       const s = get();
       if (id !== null && !s.active.some((p) => p.id === id)) return;
       if (s.focus === id) return;
-      set({ focus: id, placing: null, wireStart: null, portMenu: null });
+      set({ focus: id, placing: null });
+      useUiStore.setState({ wireStart: null, portMenu: null });
     },
     setTool: (tool) => {
       const s = get();
       if (s.tool === tool && !s.placing) return;
-      set({ tool, placing: null, wireStart: null, portMenu: null });
+      set({ tool, placing: null });
+      useUiStore.setState({ wireStart: null, portMenu: null });
     },
-    openPortMenu: (uid, x, y) =>
-      set((s) => ({
-        portMenu: { uid, x, y, role: s.wireStart && s.wireStart.uid !== uid ? 'to' : 'from' },
-      })),
+    openPortMenu: (uid, x, y) => {
+      const wireStart = useUiStore.getState().wireStart;
+      useUiStore.setState({
+        portMenu: { uid, x, y, role: wireStart && wireStart.uid !== uid ? 'to' : 'from' },
+      });
+    },
     pickPort: (port) => {
-      const s = get();
-      const menu = s.portMenu;
+      const menu = useUiStore.getState().portMenu;
       if (!menu) return;
       if (menu.role === 'from') {
-        set({ wireStart: { uid: menu.uid, port }, portMenu: null });
+        useUiStore.setState({ wireStart: { uid: menu.uid, port }, portMenu: null });
         return;
       }
-      const start = s.wireStart;
+      const start = useUiStore.getState().wireStart;
       if (!start) {
-        set({ portMenu: null });
+        useUiStore.setState({ portMenu: null });
         return;
       }
       // 配線できたら途中を終える。できなければ起点を残し、理由を出す
-      const reason = get().connect(start.uid, menu.uid, s.wireCable, {
+      const reason = get().connect(start.uid, menu.uid, get().wireCable, {
         a: start.port ?? undefined,
         b: port ?? undefined,
       });
-      set({ portMenu: null, wireStart: reason === null ? null : start });
+      useUiStore.setState({ portMenu: null, wireStart: reason === null ? null : start });
     },
-    cancelWire: () => set({ wireStart: null, portMenu: null }),
+    cancelWire: () => useUiStore.setState({ wireStart: null, portMenu: null }),
     setShowIp: (on) => {
       set({ showIp: on });
       saveSettings({ showIp: on });
@@ -122,7 +125,7 @@ export const createUiSlice: StateCreator<GameState, [], [], UiSlice> = (set, get
       }),
     setTaskOpen: (open) => set({ taskOpen: open }),
     setPlacing: (deviceId) => set({ placing: deviceId }),
-    setItemDrag: (itemDrag) => set({ itemDrag }),
+    setItemDrag: (itemDrag) => useUiStore.setState({ itemDrag }),
     setWireCable: (cableId) => set({ wireCable: cableId }),
     setPlanned: (uid, port, net) =>
       set((s) => {

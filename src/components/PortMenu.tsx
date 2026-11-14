@@ -2,6 +2,7 @@
 import { labelOfUid } from './nodeLabel';
 import { t } from '../i18n/t';
 import { editNetOf, useGameStore } from '../stores/useGameStore';
+import { useUiStore } from '../stores/useUiStore';
 import type { NetLink, NetNode } from '../network/types';
 import { buttonStyle, panelStyle, portLabel } from './devicePorts';
 import { loadSettings } from '../settings/settings';
@@ -36,7 +37,7 @@ const rowsOf = (node: NetNode, nodes: readonly NetNode[], links: readonly NetLin
 
 export function PortMenu() {
   const state = useGameStore();
-  const menu = state.portMenu;
+  const menu = useUiStore((s) => s.portMenu);
   const net = editNetOf(state);
   if (!menu || !net) return null;
   const node = net.nodes.find((n) => n.uid === menu.uid);

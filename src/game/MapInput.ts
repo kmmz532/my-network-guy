@@ -7,7 +7,8 @@ import { checkConnect, type End, type Project } from '../sim/project';
 import { moveNode, placeDevice, placeInOffice, replugTo } from '../sim/placement';
 import { moveFurniture, placeFurniture } from '../sim/furniture';
 import { gameEnv } from '../sim/env';
-import { coreOf, netTargetOf, viewingOffice, useGameStore, type WireStart } from '../stores/useGameStore';
+import { coreOf, netTargetOf, viewingOffice, useGameStore } from '../stores/useGameStore';
+import { useUiStore, type WireStart } from '../stores/useUiStore';
 import { isDragMove } from '../input/trackDrag';
 import { cableEndAt, grabsCableEnd, linkAt } from './linkHit';
 import { staffAt, type StaffHit } from './staffHit';
@@ -211,7 +212,7 @@ export class MapInput {
       this.host.redraw();
       return;
     }
-    if (store.wireStart) {
+    if (useUiStore.getState().wireStart) {
       this.openMenuAt(node);
       return;
     }
@@ -365,7 +366,7 @@ export class MapInput {
     this.cursorTile = this.host.hit.tileOf(p);
     const store = useGameStore.getState();
     // 配線の途中でなければ、マウスを乗せた対象を覚える
-    if (!this.wireFrom && !store.wireStart) {
+    if (!this.wireFrom && !useUiStore.getState().wireStart) {
       this.updateHover(e);
       if (store.placing) this.host.redraw();
       return;
@@ -380,7 +381,7 @@ export class MapInput {
     const store = useGameStore.getState();
     const nodes = this.host.hit.editNodes();
     // ドラッグ中はおまかせのポート、起点を選んだあとは起点のポートを使う
-    const start: WireStart | null = this.wireFrom ? { uid: this.wireFrom, port: null } : store.wireStart;
+    const start: WireStart | null = this.wireFrom ? { uid: this.wireFrom, port: null } : useUiStore.getState().wireStart;
     const target = start && nodes ? this.host.hit.nodeNear(this.wireTo, nodes) : undefined;
     if (!start || !target || target.uid === start.uid) {
       this.hover = null;
