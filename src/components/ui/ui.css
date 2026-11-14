@@ -144,6 +144,7 @@ input.ui-combobox:disabled {
   -webkit-appearance: none;
   appearance: none;
   box-sizing: border-box;
+  white-space: nowrap;
 }
 
 .ui-button--primary {
@@ -169,6 +170,14 @@ input.ui-combobox:disabled {
   background: transparent;
   color: var(--fg);
   border-color: var(--fg);
+}
+
+/* 地も枠もない行（折りたたみの見出し） */
+.ui-button--plain {
+  background: transparent;
+  color: inherit;
+  border: none;
+  font-weight: bold;
 }
 
 .ui-button--secondary[aria-pressed='true'] {
@@ -216,6 +225,16 @@ input.ui-combobox:disabled {
   font-size: var(--fs-menu);
   line-height: 1.4;
   text-align: center;
+}
+
+/* 左寄せの行。中に絵や文字を並べられ、文字は折り返す */
+.ui-button--row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  text-align: left;
+  white-space: normal;
 }
 
 .ui-button:disabled {

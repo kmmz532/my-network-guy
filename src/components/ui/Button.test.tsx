@@ -49,13 +49,24 @@ describe('Button', () => {
     expect(html).toContain('min-height:36px');
   });
 
+  it('submit のボタンは onClick を省ける', () => {
+    const html = renderToStaticMarkup(<Button variant="secondary" type="submit" layout={{ flexShrink: 0 }}>ok</Button>);
+    expect(html).toContain('type="submit"');
+    expect(html).toContain('flex-shrink:0');
+  });
+
+  it('ボタンの文字は折り返さない（row だけ折り返す）', () => {
+    expect(css).toMatch(/\.ui-button \{[^}]*white-space: nowrap/);
+    expect(css).toMatch(/\.ui-button--row \{[^}]*white-space: normal/);
+  });
+
   it('FileButton は新しい種類と大きさを受け付ける', () => {
     const html = renderToStaticMarkup(<FileButton variant="secondary" size="menu" accept="application/json" onFile={noop}>読み込み</FileButton>);
     expect(html).toContain('ui-button--menu');
   });
 
   it('ui.css に、種類・大きさ・選択中の規則がある', () => {
-    for (const name of ['outline', 'fit', 'choice', 'menu']) expect(css).toContain(`.ui-button--${name} {`);
+    for (const name of ['outline', 'plain', 'fit', 'choice', 'menu', 'row']) expect(css).toContain(`.ui-button--${name} {`);
     expect(css).toContain(".ui-button--secondary[aria-pressed='true']");
     expect(css).toContain(".ui-button--outline[aria-pressed='true']");
   });
