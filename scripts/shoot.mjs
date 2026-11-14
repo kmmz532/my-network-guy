@@ -222,6 +222,18 @@ const scenes = {
     await page.keyboard.press('Escape');
     expect('Esc で選択の道具に戻る', (await state()).tool === 'select');
   },
+  // キー操作の一覧（キー ?）
+  keyhelp: async (page) => {
+    await scenes.career(page);
+    await page.keyboard.press('?');
+    await page.waitForTimeout(500);
+  },
+  // 時間が止まっているときの施工の確認
+  pausedbuild: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => window.__game.setState({ pausedPrompt: true }));
+    await page.waitForTimeout(500);
+  },
   // 依頼の一覧
   offers: async (page) => {
     await scenes.career(page);

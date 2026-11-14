@@ -4,6 +4,11 @@
   --bg-card: #25406f;
   --bg-field: #f4f1e6;
   --bg-field-focus: #d8eaff;
+  --danger: #b5473b;
+
+  /* 強調 */
+  --accent: #ffd866;
+  --fg-on-accent: #3b2a33;
 
   /* 文字 */
   --fg: #f4f1e6;
@@ -22,4 +27,6 @@
 
   /* 文字の大きさ。選択の一覧は今の 13 px を保つ */
   --fs-list: 13px;
+  --fs-s: 12px;
+  --fs-l: 16px;
 }
