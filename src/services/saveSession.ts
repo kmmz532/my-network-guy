@@ -71,11 +71,13 @@ export function createSaveSession(deps: SaveSessionDeps) {
       deps.game.getState().load(importSave(text));
     },
     // ゲームの画面にいる間、自動保存の契機を見張る。戻り値で見張りをやめる
-    // 契機: 設定の間隔の朝0時を越えた・案件を納品した（検収に通った）・ページを隠した・閉じた
+    // 契機: 設定の間隔の朝0時を越えた・案件を受注した・案件を納品した（検収に通った）・ページを隠した・閉じた
     watch(): () => void {
       const offGame = deps.game.subscribe((next, prev) => {
         if (isAutoSaveDue(deps.autoSaveMode(), prev.clock.minute, next.clock.minute)) void autoSave();
         if (next.lastReport !== prev.lastReport && next.lastReport?.passed) void autoSave();
+        // 受注した（進行中の案件が増えた）
+        if (next.active.length > prev.active.length) void autoSave();
       });
       const onVisibility = () => {
         if (document.visibilityState === 'hidden') void autoSave();

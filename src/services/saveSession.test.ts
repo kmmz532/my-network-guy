@@ -10,6 +10,7 @@ const day = 24 * 60;
 interface FakeGame {
   clock: { minute: number; bankrupt: boolean };
   lastReport: { passed: boolean } | null;
+  active: unknown[];
   snapshot: () => Company;
   load: (data: Company) => void;
 }
@@ -20,6 +21,7 @@ const setup = (mode: AutoSaveMode = 'daily') => {
   const game = create<FakeGame>(() => ({
     clock: { minute: day - 60, bankrupt: false },
     lastReport: null,
+    active: [],
     snapshot: () => ({ name: 'テスト社' }) as unknown as Company,
     load: (data) => loaded.push(data),
   }));
@@ -91,6 +93,19 @@ describe('saveSession（遊んでいる会社のセーブ）', () => {
     doc.dispatchEvent(new Event('visibilitychange'));
     await flush();
     expect(writes).toHaveLength(2);
+    stop();
+  });
+
+  it('受注して進行中の案件が増えたとき自動保存する（減ったときはしない）', async () => {
+    const { session, game, writes } = setup();
+    session.open(1);
+    const stop = session.watch();
+    game.setState({ active: [{}] });
+    await flush();
+    expect(writes).toHaveLength(1);
+    game.setState({ active: [] });
+    await flush();
+    expect(writes).toHaveLength(1);
     stop();
   });
 
