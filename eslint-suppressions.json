@@ -31,13 +31,13 @@
   },
   "src/components/BgpField.tsx": {
     "local/no-look-export": {
-      "count": 3
+      "count": 2
     },
     "local/no-look-props": {
       "count": 7
     },
     "local/no-native-control": {
-      "count": 7
+      "count": 2
     }
   },
   "src/components/ChannelField.tsx": {
