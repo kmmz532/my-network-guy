@@ -146,23 +146,6 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     }
     return error('ui.terminal.usageStp');
   }
-  // OSPF の機器・インターフェースの設定
-  if (first === 'router-id') {
-    if (rest.length !== 1 || !isIp(rest[0])) return error('ui.terminal.usageOspf');
-    return { kind: 'action', action: { kind: 'ospf', op: 'routerId', ip: rest[0] } };
-  }
-  if (first === 'no' && rest[0] === 'router-id') return { kind: 'action', action: { kind: 'ospf', op: 'routerId', ip: null } };
-  if (first === 'default-information' || (first === 'no' && rest[0] === 'default-information')) {
-    const tail = first === 'no' ? rest.slice(1) : rest;
-    if (tail.length !== 1 || tail[0] !== 'originate') return error('ui.terminal.usageOspf');
-    return { kind: 'action', action: { kind: 'ospf', op: 'defaultOriginate', on: first !== 'no' } };
-  }
-  if (first === 'ip' && rest[0] === 'ospf') {
-    const keys = { cost: 'cost', priority: 'priority', 'hello-interval': 'hello', 'dead-interval': 'dead' } as const;
-    const key = keys[rest[1] as keyof typeof keys];
-    if (key === undefined || rest.length !== 4 || !/^[0-9]+$/.test(rest[2]) || !/^[0-9]+$/.test(rest[3])) return error('ui.terminal.usageOspf');
-    return { kind: 'action', action: { kind: 'ospf', op: 'iface', port: Number(rest[2]), key, value: Number(rest[3]) } };
-  }
   // DHCP
   if (first === 'ip' && rest[0] === 'helper-address') {
     if (rest.length !== 3 || port(rest[1]) === null || !isIp(rest[2])) return error('ui.terminal.usageDhcp');

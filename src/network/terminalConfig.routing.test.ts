@@ -1,6 +1,5 @@
 // RIP・OSPF の設定コマンドの書式（N143）
 import { describe, expect, it } from 'vitest';
-import { parseConfig } from './terminalConfig';
 import type { EngineData, NetNode } from './types';
 import type { NetworkState } from './engine/state';
 import type { Tr } from './terminal';
@@ -30,11 +29,12 @@ describe('RIP・OSPF の設定コマンド', () => {
     expect(viaTree('network 10.0.1.0 0.0.0.255 area 1', tr)).toEqual({ kind: 'action', action: { kind: 'routing', change: { proto: 'ospf', ip: '10.0.1.0', area: 1, on: true } } });
   });
   it('OSPF の router-id・既定の経路の配布・インターフェースの設定を読む', () => {
-    expect(parseConfig('router-id 1.1.1.1', tr)).toEqual({ kind: 'action', action: { kind: 'ospf', op: 'routerId', ip: '1.1.1.1' } });
-    expect(parseConfig('no router-id', tr)).toEqual({ kind: 'action', action: { kind: 'ospf', op: 'routerId', ip: null } });
-    expect(parseConfig('default-information originate', tr)).toEqual({ kind: 'action', action: { kind: 'ospf', op: 'defaultOriginate', on: true } });
-    expect(parseConfig('no default-information originate', tr)).toEqual({ kind: 'action', action: { kind: 'ospf', op: 'defaultOriginate', on: false } });
-    expect(parseConfig('ip ospf hello-interval 1 30', tr)).toEqual({ kind: 'action', action: { kind: 'ospf', op: 'iface', port: 1, key: 'hello', value: 30 } });
+    expect(viaTree('router-id 1.1.1.1', tr)).toEqual({ kind: 'action', action: { kind: 'ospf', change: { op: 'routerId', ip: '1.1.1.1' } } });
+    expect(viaTree('no router-id', tr)).toEqual({ kind: 'action', action: { kind: 'ospf', change: { op: 'routerId', ip: null } } });
+    expect(viaTree('default-information originate', tr)).toEqual({ kind: 'action', action: { kind: 'ospf', change: { op: 'defaultOriginate', on: true } } });
+    expect(viaTree('no default-information originate', tr)).toEqual({ kind: 'action', action: { kind: 'ospf', change: { op: 'defaultOriginate', on: false } } });
+    const withIface = commandContextOf({ node: { interfaces: [{ port: 1, id: 'i1' }] } as NetNode, nodes: [], links: [], data: {} as EngineData, state: {} as NetworkState }, false);
+    expect(runLine('ip ospf hello-interval 1 30', withIface, tr).change).toEqual({ kind: 'ospf', change: { op: 'iface', id: 'i1', key: 'hello', value: 30 } });
     expect(viaTree('network 10.0.1.0 0.0.0.255 area 0.0.0.1', tr)).toEqual({ kind: 'action', action: { kind: 'routing', change: { proto: 'ospf', ip: '10.0.1.0', area: 1, on: true } } });
   });
 });
