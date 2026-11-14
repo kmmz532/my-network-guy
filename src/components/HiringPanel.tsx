@@ -23,6 +23,8 @@ import { requiresPc } from '../sim/jobs';
 import { maybeFurniture } from '../registry/query';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
+import { Text } from './ui/Text';
+import { Badge } from './ui/Badge';
 
 // 開くタブは useUiStore の hiring が決める。社員の札の「研修・資格へ」から開くときは staff
 export function HiringPanel() {
@@ -47,7 +49,7 @@ export function HiringPanel() {
         <div style={{ maxHeight: 'min(60vh, 480px)', overflowY: 'auto' }}>
           {tab === 'hiring' ? <Candidates onMessage={setMessage} /> : <StaffList onMessage={setMessage} />}
         </div>
-        {message && <div style={{ color: '#ffd866', fontSize: 13, marginTop: 6 }}>{message}</div>}
+        {message && <Text tone="warn" size="sm" layout={{ marginTop: 6 }}>{message}</Text>}
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
         <Button variant="primary" onClick={onClose}>
@@ -96,7 +98,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
           </div>
         </div>
       )}
-      {candidates.length === 0 && <div style={{ opacity: 0.7 }}>{t('ui.hiring.none')}</div>}
+      {candidates.length === 0 && <Text tone="sub">{t('ui.hiring.none')}</Text>}
       {candidates.map((c) => {
         // 内勤の札と、雇うと増える効果（席に座った場合の見込み）
         const back = isBackOffice(c.job);
@@ -106,25 +108,25 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Icon name={`staff/${staffSpriteName(c.look)}_0`} scale={2} />
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 'bold' }}>{tDyn(c.name)}</div>
-              <div style={{ fontSize: 12 }}>
+              <Text bold>{tDyn(c.name)}</Text>
+              <Text size="s">
                 {tDyn(`staff.job.${c.job}`)} · {t('ui.staff.level', { level: c.level })}
                 {/* 札: 内勤（非エンジニア枠）とエンジニア枠を分ける */}
-                <span style={{ marginLeft: 6, padding: '0 4px', border: '1px solid #3b2a33', fontSize: 11, background: back ? '#ffd866' : '#5aa860', color: back ? '#3b2a33' : '#f4f1e6' }}>
+                <Badge color={back ? 'var(--fg-on-accent)' : 'var(--fg)'} border="var(--line)" fill={back ? 'var(--accent)' : '#5aa860'} size="xs" layout={{ marginLeft: 6 }}>
                   {t(back ? 'ui.hiring.tag.backOffice' : 'ui.hiring.tag.engineer')}
-                </span>
-              </div>
-              <div style={{ fontSize: 12 }}>
+                </Badge>
+              </Text>
+              <Text size="s">
                 {t('ui.hiring.salary', { salary: yen(c.salary) })}
                 {/* 雇ったあとの、月給の合計（今の月給の合計に足した額）。雇う前に負担が分かるように（N156） */}
                 <span style={{ opacity: 0.8 }}> {t('ui.hiring.salaryTotal', { total: yen(totalSalary(allStaff, balance.nightPayRate) + c.salary) })}</span>
-              </div>
+              </Text>
               {/* PC が要る職種は、次に座る机に PC がないと働けない（採用はできる）（N102） */}
               {requiresPc(c.job) && !nextDeskHasPc && !full && (
-                <div style={{ fontSize: 12, color: '#ffd866' }}>{t('ui.hiring.noPc')}</div>
+                <Text tone="warn" size="s">{t('ui.hiring.noPc')}</Text>
               )}
               {/* 内勤は、雇うと増える効果を1行で出す */}
-              {effect && <div style={{ fontSize: 12, color: '#ffd866' }}>{jobEffectText(effect)}</div>}
+              {effect && <Text tone="warn" size="s">{jobEffectText(effect)}</Text>}
             </div>
             {/* 夜勤は会社のレベルで解放される。解放されていれば、雇うときに区分を選ぶ（N48） */}
             {nightOpen && (
@@ -165,7 +167,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
         </Card>
         );
       })}
-      {full &&<div style={{ color: '#ffd866', fontSize: 13 }}>{t('ui.error.seat')}</div>}
+      {full && <Text tone="warn" size="sm">{t('ui.error.seat')}</Text>}
     </>
   );
 }
@@ -180,7 +182,6 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
   const yen = (n: number) => n.toLocaleString('ja-JP');
   const courses = Object.values(training);
   const examList = Object.values(certs);
-  const label = { fontSize: 12, color: 'rgba(244, 241, 230, 0.7)', marginTop: 6 } as const;
   return (
     <>
       {staff.map((s) => {
@@ -203,7 +204,7 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
             <div style={{ marginTop: 4 }}>
               <CertChips certs={s.certs} />
             </div>
-            <div style={label}>{t('ui.training.label')}</div>
+            <Text tone="sub" size="s" layout={{ marginTop: 6 }}>{t('ui.training.label')}</Text>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
               {courses.map((c) => (
                 <Tooltip text={t('ui.training.info', { cost: yen(c.cost), days: c.days, exp: c.exp })} key={c.id}>
@@ -222,9 +223,9 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
                 </Tooltip>
               ))}
             </div>
-            <div style={label}>{t('ui.exam.label')}</div>
+            <Text tone="sub" size="s" layout={{ marginTop: 6 }}>{t('ui.exam.label')}</Text>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
-              {ready.length === 0 && <span style={{ fontSize: 12, opacity: 0.7 }}>{t('ui.exam.none')}</span>}
+              {ready.length === 0 && <Text as="span" tone="sub" size="s">{t('ui.exam.none')}</Text>}
               {ready.map((c) => {
                 const rate = Math.round(examPassRate(s.level, c.minLevel, balance) * 100);
                 const text = t('ui.exam.button', { name: tDyn(`cert.${c.id}.name`), fee: yen(c.fee), rate });
@@ -244,7 +245,7 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
                 );
               })}
             </div>
-            {upcoming && <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{t('ui.exam.next', { name: tDyn(`cert.${upcoming.id}.name`), level: upcoming.minLevel })}</div>}
+            {upcoming && <Text tone="sub" size="s" layout={{ marginTop: 2 }}>{t('ui.exam.next', { name: tDyn(`cert.${upcoming.id}.name`), level: upcoming.minLevel })}</Text>}
                     </Card>
         );
       })}
