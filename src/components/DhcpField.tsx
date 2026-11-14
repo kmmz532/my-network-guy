@@ -6,6 +6,8 @@ import { can } from '../network/capabilities';
 import type { DhcpPool, Iface, NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, inputStyle, isIpText } from './devicePorts';
+import { Checkbox } from './ui/Checkbox';
+import { TextInput } from './ui/TextInput';
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
 
@@ -16,16 +18,9 @@ export function DhcpPortField({ node, port, iface, client, disabled, onError }: 
   if (client) {
     return (
       <div style={row}>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          <input
-            type="checkbox"
-            aria-label={t('ui.config.dhcpAuto')}
-            checked={iface?.dhcp === true}
-            disabled={disabled}
-            onChange={(e) => onError(e.target.checked ? setDhcp(node.uid, { op: 'client', port }) : iface ? setIface(node.uid, port, iface.ip === '0.0.0.0' ? '' : iface.ip, iface.prefix) : null)}
-          />
+        <Checkbox label={t('ui.config.dhcpAuto')} checked={iface?.dhcp === true} disabled={disabled} onChange={(on) => onError(on ? setDhcp(node.uid, { op: 'client', port }) : iface ? setIface(node.uid, port, iface.ip === '0.0.0.0' ? '' : iface.ip, iface.prefix) : null)}>
           {t('ui.config.dhcpAuto')}
-        </label>
+        </Checkbox>
         {iface?.dhcp === true && <span style={{ color: greyColor, fontSize: 12 }}>{t('ui.config.dhcpLease', { ip: iface.ip })}</span>}
       </div>
     );
@@ -58,7 +53,7 @@ export function DhcpPoolField({ node, disabled, onError }: { node: NetNode; disa
   const setDhcp = useGameStore((s) => s.setDhcp);
   const [f, setF] = useState({ network: '', prefix: '24', start: '', end: '', gateway: '', dns: '' });
   const field = (key: keyof typeof f, label: string, width: number) => (
-    <input aria-label={t(label as never)} placeholder={t(label as never)} value={f[key]} disabled={disabled} style={{ ...inputStyle, width }} onChange={(e) => setF({ ...f, [key]: e.target.value })} />
+    <TextInput label={t(label as never)} placeholder={t(label as never)} value={f[key]} disabled={disabled} onChange={(v) => setF({ ...f, [key]: v })} layout={{ width }} />
   );
   const addable = isIpText(f.network) && /^\d+$/.test(f.prefix) && isIpText(f.start) && isIpText(f.end) && (f.gateway === '' || isIpText(f.gateway)) && (f.dns === '' || isIpText(f.dns));
   const text = (p: DhcpPool) => t('ui.config.dhcpPoolLine', { network: p.network, prefix: p.prefix, start: p.start, end: p.end, gateway: p.gateway ?? '-', dns: p.dns ?? '-' });

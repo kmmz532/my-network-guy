@@ -123,7 +123,7 @@
       "count": 6
     },
     "local/no-native-control": {
-      "count": 5
+      "count": 3
     }
   },
   "src/components/ErrorScreen.tsx": {
