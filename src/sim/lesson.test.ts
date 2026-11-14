@@ -149,4 +149,18 @@ describe('教材を開いた直後の網の設定', () => {
     );
     expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true]);
   });
+
+  it('NAPT とファイアウォールの教材: 規則を変換の前の社内のアドレスで書くと届き、変換の後のアドレスで書くと届かない', () => {
+    const l = lesson('nat_firewall');
+    const links = lessonLinks(l);
+    const withRule = (src: string) =>
+      lessonNodes(l).map((n) =>
+        n.uid === 'FW1'
+          ? { ...n, napt: true, rules: [{ src, dst: 'any', service: 'any' as const }], interfaces: n.interfaces.map((i) => ({ ...i, nat: i.port === 0 ? ('outside' as const) : ('inside' as const) })) }
+          : n,
+      );
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false]);
+    expect(lessonGoalResults(l.goals, withRule('198.51.100.2/32'), links, engine)).toEqual([false]);
+    expect(lessonGoalResults(l.goals, withRule('192.168.1.0/24'), links, engine)).toEqual([true]);
+  });
 });

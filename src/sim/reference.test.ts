@@ -20,6 +20,7 @@ import c005 from '../assets/data/contracts/c005_two_sites.json';
 import c006 from '../assets/data/contracts/c006_office_external.json';
 import i001 from '../assets/data/contracts/i001_office_lan.json';
 import i002 from '../assets/data/contracts/i002_office_server.json';
+import i003 from '../assets/data/contracts/i003_office_firewall.json';
 import templateJson from '../assets/data/contracts/templates/t_small_lan.json';
 import officeSmall from '../assets/data/maps/office_small.json';
 import officeTwoRooms from '../assets/data/maps/office_two_rooms.json';
@@ -34,7 +35,7 @@ import { initialStaff } from './staff';
 import { connect, designIssues, focusedOf, type Core, type Env, type Report } from './project';
 import { accept, advanceBuild, requestBuild, testDesign } from './progress';
 import { placeDevice } from './placement';
-import { addRoute, setFirewallRules, setInterface } from './netEdit';
+import { addRoute, setFirewallRules, setGateway, setInterface, setNat } from './netEdit';
 import { deviceDef } from '../registry/query';
 
 const balance = balanceJson as unknown as Balance;
@@ -258,7 +259,7 @@ describe('模範解答: 固定案件', () => {
     expectReference(finish(core).report);
   });
 
-  it('c006 外部接続: スイッチの先にファイアウォールを置き、外部のサーバーへつなぐ', () => {
+  it('c006 外部接続: スイッチの先にファイアウォールを置き、回線終端へつないで NAPT で ISP の先（インターネット）へ出る', () => {
     let core = take(startCore([fixedOffer(c006)]), 'c006_office_external');
     core = buy(core, FIREWALL);
     core = buy(core, SWITCH);
@@ -269,15 +270,19 @@ describe('模範解答: 固定案件', () => {
     core = wire(core, 'staff_a', sw.uid);
     core = wire(core, 'staff_b', sw.uid);
     core = wire(core, sw.uid, fw.uid, UTP, { b: 0 });
-    core = wire(core, fw.uid, 'web', UTP, { a: 1 });
+    core = wire(core, fw.uid, 'line', UTP, { a: 1, b: 0 });
     core = addr(core, fw.uid, '192.168.1.1');
-    core = addr(core, fw.uid, '203.0.113.1', 1);
-    // 規則: 社内から外部のWeb（80）だけを許可する。それ以外は既定で拒否される
-    core = ok(setFirewallRules(core, fw.uid, [{ src: '192.168.1.0/24', dst: '203.0.113.0/24', service: 'http', port: 80 }])).core;
+    core = addr(core, fw.uid, '198.51.100.2', 1);
+    core = ok(setGateway(core, fw.uid, '198.51.100.1')).core;
+    core = ok(setNat(core, fw.uid, { op: 'iface', id: 'g0/0', nat: 'inside' })).core;
+    core = ok(setNat(core, fw.uid, { op: 'iface', id: 'g0/1', nat: 'outside' })).core;
+    core = ok(setNat(core, fw.uid, { op: 'napt', on: true })).core;
+    // 規則は変換の前の社内のアドレスで判定する。社内から外への通信だけを許可し、それ以外は既定で拒否される
+    core = ok(setFirewallRules(core, fw.uid, [{ src: '192.168.1.0/24', dst: 'any', service: 'any' }])).core;
     expectReference(finish(core).report);
   });
 
-  it('c006 外部接続: ルーターで通じても、ファイアウォールを通らなければ合格しない', () => {
+  it('c006 外部接続: ルーターで NAPT まで設定しても、ファイアウォールを置かなければ合格しない', () => {
     let core = take(startCore([fixedOffer(c006)]), 'c006_office_external');
     core = buy(core, ROUTER);
     core = buy(core, SWITCH);
@@ -288,9 +293,13 @@ describe('模範解答: 固定案件', () => {
     core = wire(core, 'staff_a', sw.uid);
     core = wire(core, 'staff_b', sw.uid);
     core = wire(core, sw.uid, router.uid, UTP, { b: 0 });
-    core = wire(core, router.uid, 'web', UTP, { a: 1 });
+    core = wire(core, router.uid, 'line', UTP, { a: 1, b: 0 });
     core = addr(core, router.uid, '192.168.1.1');
-    core = addr(core, router.uid, '203.0.113.1', 1);
+    core = addr(core, router.uid, '198.51.100.2', 1);
+    core = ok(setGateway(core, router.uid, '198.51.100.1')).core;
+    core = ok(setNat(core, router.uid, { op: 'iface', id: 'g0/0', nat: 'inside' })).core;
+    core = ok(setNat(core, router.uid, { op: 'iface', id: 'g0/1', nat: 'outside' })).core;
+    core = ok(setNat(core, router.uid, { op: 'napt', on: true })).core;
     const tested = ok(testDesign(core, env));
     expect(tested.result.passed).toBe(false);
   });
@@ -313,6 +322,34 @@ describe('模範解答: 固定案件', () => {
     core = wire(core, server.uid, sw.uid);
     core = addr(core, server.uid, '192.168.1.20');
     expectReference(finish(core).report);
+  });
+
+  it('i003 自社オフィスのファイアウォール: 回線終端へつなぎ、NAPT で外へ出る。規則は変換の前の社内のアドレスで判定する', () => {
+    const afterI001 = buildI001(startCore([fixedOffer(i001), fixedOffer(i002), fixedOffer(i003)])).core;
+    let core = take(afterI001, 'i002_office_server');
+    core = buy(core, SERVER);
+    const server = place(core, SERVER, 3, 4, mapOfOffice(core.office));
+    core = server.core;
+    const sw = focusedOf(core)!.nodes.find((n) => n.device === SWITCH)!;
+    core = wire(core, server.uid, sw.uid);
+    core = addr(core, server.uid, '192.168.1.20');
+    core = finish(core).core;
+
+    core = take(core, 'i003_office_firewall');
+    core = buy(core, FIREWALL);
+    const fw = place(core, FIREWALL, 5, 3, mapOfOffice(core.office));
+    core = fw.core;
+    core = wire(core, sw.uid, fw.uid, UTP, { b: 0 });
+    core = wire(core, fw.uid, 'uplink', UTP, { a: 1, b: 0 });
+    core = addr(core, fw.uid, '192.168.1.1');
+    core = addr(core, fw.uid, '198.51.100.2', 1);
+    core = ok(setGateway(core, fw.uid, '198.51.100.1')).core;
+    core = ok(setNat(core, fw.uid, { op: 'iface', id: 'g0/0', nat: 'inside' })).core;
+    core = ok(setNat(core, fw.uid, { op: 'iface', id: 'g0/1', nat: 'outside' })).core;
+    core = ok(setNat(core, fw.uid, { op: 'napt', on: true })).core;
+    core = ok(setFirewallRules(core, fw.uid, [{ src: '192.168.1.0/24', dst: 'any', service: 'any' }])).core;
+    for (const pc of focusedOf(core)!.nodes.filter((n) => n.device === PC)) core = ok(setGateway(core, pc.uid, '192.168.1.1')).core;
+    expect(finish(core).report.passed).toBe(true);
   });
 });
 

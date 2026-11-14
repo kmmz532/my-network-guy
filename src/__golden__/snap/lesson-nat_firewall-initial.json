@@ -1,0 +1,77 @@
+{
+  "goals": [
+    false
+  ],
+  "pings": [],
+  "https": [],
+  "shows": [
+    {
+      "node": "FW1",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"198.51.100.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"192.168.1.0\",\"prefix\":24,\"port\":1}"
+      ]
+    },
+    {
+      "node": "FW1",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "lesson_link_1",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_2",
+      "color": 10132122
+    }
+  ],
+  "ports": [
+    {
+      "node": "FW1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "PC1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "U1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [
+    [
+      "FW1",
+      {
+        "reason": "segment.unset",
+        "ip": "198.51.100.2"
+      }
+    ]
+  ],
+  "warnings": []
+}

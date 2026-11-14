@@ -10,12 +10,30 @@
   ],
   "map": "hq",
   "budget": 380000,
-  "placed": [],
+  "placed": [
+    {
+      "ref": "uplink",
+      "device": "uplink",
+      "x": 1,
+      "y": 1,
+      "locked": true,
+      "isp": {
+        "name": "ISP-A",
+        "network": "198.51.100.0",
+        "prefix": 24,
+        "ispIp": "198.51.100.1"
+      },
+      "name": "回線終端"
+    }
+  ],
   "goals": [
     {
       "type": "count",
       "category": "firewall",
       "min": 1
+    },
+    {
+      "type": "outside_reachable"
     },
     {
       "type": "http_all",
