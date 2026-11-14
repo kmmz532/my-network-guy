@@ -1,0 +1,32 @@
+// 上の帯の文字の小さいボタン（停止・再生・早送り・メニュー）。文字と絵を子で渡す。on は今の操作（選んでいる速さ）で、黄の地になる。
+// label は必須で、aria-label になる。tip を省くと label を吹き出しにする。
+import type { ReactNode } from 'react';
+import { Tooltip, hideTip } from '../Tooltip';
+import { layoutStyle, type Layout } from './layout';
+import './tokens.css';
+import './ui.css';
+
+interface Props {
+  label: string;
+  tip?: string;
+  on?: boolean;
+  onClick: () => void;
+  layout?: Layout;
+  children: ReactNode;
+}
+
+export function ToolbarButton({ label, tip, on = false, onClick, layout, children }: Props) {
+  return (
+    <Tooltip text={tip ?? label}>
+      <button
+        type="button"
+        aria-label={label}
+        className={on ? 'ui-toolbar-button ui-toolbar-button--on' : 'ui-toolbar-button'}
+        onClick={() => { hideTip(); onClick(); }}
+        style={layoutStyle(layout)}
+      >
+        {children}
+      </button>
+    </Tooltip>
+  );
+}
