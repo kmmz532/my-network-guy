@@ -308,3 +308,78 @@ input.ui-combobox:disabled {
   border-radius: 4px;
   font-size: 11px;
 }
+
+/* TextInput・TextArea: 入力欄。global.css の input・textarea より詳細度が高い */
+input.ui-text-input,
+textarea.ui-text-area {
+  font: inherit;
+  letter-spacing: inherit;
+  background: var(--bg-field);
+  color: var(--fg-on-field);
+  border-style: solid;
+  border-width: 2px;
+  border-color: var(--line) var(--line-field-light) var(--line-field-light) var(--line);
+  border-radius: 0;
+  padding: 1px 4px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input.ui-text-input:focus,
+textarea.ui-text-area:focus {
+  background: var(--bg-field-focus);
+  border-color: var(--line-field-focus) var(--line-field-focus-light) var(--line-field-focus-light) var(--line-field-focus);
+}
+
+input.ui-text-input:disabled,
+textarea.ui-text-area:disabled {
+  background: var(--bg-field);
+  border-color: var(--line) var(--line-field-light) var(--line-field-light) var(--line);
+  color: var(--fg-on-field);
+  opacity: var(--disabled-opacity);
+  cursor: default;
+}
+
+input.ui-text-input--unset {
+  color: var(--st-error);
+}
+
+input.ui-text-input--s {
+  width: 56px;
+}
+
+input.ui-text-input--m {
+  width: 120px;
+}
+
+input.ui-text-input--l {
+  width: 200px;
+}
+
+input.ui-text-input--full {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* スマホ: 文字が 16px 未満の入力欄は、iOS がフォーカス時にページを拡大するため、16px に上げる */
+@media (pointer: coarse) {
+  input.ui-text-input,
+  textarea.ui-text-area {
+    font-size: 16px;
+  }
+}
+
+/* Checkbox: 四角と文字を横に並べる */
+.ui-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Choice: 同じ幅・同じ高さの箱を並べる */
+.ui-choice {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  gap: 6px;
+}
