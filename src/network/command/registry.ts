@@ -11,11 +11,12 @@ import { commands as staticRoute } from '../topics/static_route/commands';
 import { commands as stp } from '../topics/stp/commands';
 import { commands as vlan } from '../topics/vlan/commands';
 import { commands as vrrp } from '../topics/vrrp/commands';
+import { commands as wireless } from '../topics/wireless/commands';
 import { commands as core } from './core';
 import type { CommandSpec } from './types';
 
 const registry = new Registry<CommandSpec>('命令');
-for (const spec of [...core, ...vlan, ...staticRoute, ...rip, ...ospf, ...bgp, ...vrrp, ...lag, ...nat, ...dhcp, ...stp, ...dns]) 
+for (const spec of [...core, ...vlan, ...staticRoute, ...rip, ...ospf, ...bgp, ...vrrp, ...lag, ...nat, ...dhcp, ...stp, ...dns, ...wireless]) 
   registry.register(spec);
 
 registry.freeze();

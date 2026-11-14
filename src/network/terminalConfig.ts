@@ -113,19 +113,5 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     }
     return error('ui.terminal.usageStp');
   }
-  // 無線（N151）
-  if (first === 'wireless') {
-    const [key, value] = rest;
-    if (key === 'ssid' && value !== undefined && value.length <= 32) return { kind: 'action', action: { kind: 'wireless', key: 'ssid', value } };
-    if (key === 'password' && value !== undefined && value.length >= 8) return { kind: 'action', action: { kind: 'wireless', key: 'password', value } };
-    if (key === 'channel' && /^[0-9]+$/.test(value ?? '') && Number(value) >= 1 && Number(value) <= 13) return { kind: 'action', action: { kind: 'wireless', key: 'channel', value: Number(value) } };
-    if (key === 'vlan' && /^[0-9]+$/.test(value ?? '') && Number(value) >= 1) return { kind: 'action', action: { kind: 'wireless', key: 'vlan', value: Number(value) } };
-    if (key === 'security') {
-      const names = { open: 'open', wep: 'wep', wpa: 'wpa', wpa2: 'wpa2', wpa3: 'wpa3', 'wpa2-wpa3': 'wpa2wpa3' } as const;
-      const name = names[value as keyof typeof names];
-      if (name !== undefined) return { kind: 'action', action: { kind: 'wireless', key: 'security', value: name } };
-    }
-    return error('ui.terminal.usageWireless');
-  }
   return error('ui.terminal.unknown');
 };

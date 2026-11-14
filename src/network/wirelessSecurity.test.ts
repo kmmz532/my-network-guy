@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
 import { evaluateGoal } from './goals';
 import { warningsOf } from './query/warnings';
-import type { Iface, NetNode, Network, WirelessSecurity } from './types';
+import type { EngineData, Iface, NetNode, Network, WirelessSecurity } from './types';
+import type { NetworkState } from './engine/state';
 
 const data = gameEnv.engine;
 const f = (port: number, ip: string): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24 });
@@ -55,9 +56,14 @@ describe('無線の方式', () => {
     expect((['wep', 'open', 'wpa2wpa3'] as const).map(ok)).toEqual([false, false, false]);
   });
   it('ターミナルの wireless security を読む', async () => {
-    const { parseConfig } = await import('./terminalConfig');
+    const { commandContextOf, runLine } = await import('./command/run');
+    const ctx = commandContextOf({ node: {} as NetNode, nodes: [], links: [], data: {} as EngineData, state: {} as NetworkState }, false);
+    const viaTree = (line: string, tr: (k: string) => string) => {
+      const r = runLine(line, ctx, tr);
+      return r.change !== null ? { kind: 'action', action: r.change } : { kind: 'error', text: r.lines[0].text };
+    };
     const tr = (k: string) => k;
-    expect(parseConfig('wireless security wpa2-wpa3', tr)).toEqual({ kind: 'action', action: { kind: 'wireless', key: 'security', value: 'wpa2wpa3' } });
-    expect(parseConfig('wireless security wpa5', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageWireless' });
+    expect(viaTree('wireless security wpa2-wpa3', tr)).toEqual({ kind: 'action', action: { kind: 'wireless', key: 'security', value: 'wpa2wpa3' } });
+    expect(viaTree('wireless security wpa5', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageWireless' });
   });
 });
