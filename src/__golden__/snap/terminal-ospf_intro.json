@@ -29,6 +29,7 @@
         "out:  vrrp                 ui.cmdWord.vrrp",
         "out:  channel-group        ui.cmdWord.channel-group",
         "out:  spanning-tree        ui.cmdWord.spanning-tree",
+        "out:  nslookup             ui.cmdWord.nslookup",
         "out:  wireless             ui.cmdWord.wireless"
       ]
     },
@@ -790,6 +791,76 @@
       "line": "ip address 0 dhcp",
       "result": "fail",
       "reason": "locked"
+    },
+    {
+      "node": "R1"
+    },
+    {
+      "line": "ip dns server",
+      "result": "done"
+    },
+    {
+      "line": "ip dns server cache",
+      "result": "done"
+    },
+    {
+      "line": "ip dns forwarder 10.0.12.2",
+      "result": "done"
+    },
+    {
+      "line": "no ip dns forwarder",
+      "result": "done"
+    },
+    {
+      "line": "ip dns forwarder x",
+      "lines": [
+        "err:                   ^",
+        "err:ui.terminal.invalidAt"
+      ]
+    },
+    {
+      "line": "ip dns record A www 10.0.1.10",
+      "result": "done"
+    },
+    {
+      "line": "ip dns record MX example mail.example 10",
+      "result": "done"
+    },
+    {
+      "line": "ip dns record A www not-ip",
+      "result": "error",
+      "text": "ui.terminal.dnsBadValue"
+    },
+    {
+      "line": "ip dns record TXT www hello",
+      "result": "error",
+      "text": "ui.terminal.dnsBadType"
+    },
+    {
+      "line": "no ip dns record A www",
+      "result": "done"
+    },
+    {
+      "line": "nslookup www.example",
+      "lines": [
+        "err:ui.terminal.nslookupNoServer"
+      ]
+    },
+    {
+      "line": "nslookup www.example aaaa",
+      "lines": [
+        "err:ui.terminal.nslookupNoServer"
+      ]
+    },
+    {
+      "line": "show hosts",
+      "lines": [
+        "out:ui.terminal.zoneLine {\"name\":\"example\",\"type\":\"MX\",\"value\":\"10 mail.example\"}"
+      ]
+    },
+    {
+      "line": "no ip dns server",
+      "result": "done"
     }
   ],
   "network": {
