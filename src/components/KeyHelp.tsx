@@ -1,12 +1,12 @@
 // キー操作の一覧。キーの表（input/keymap.ts）から作る。Enter と Esc で閉じる
 import { KEYMAP } from '../input/keymap';
 import { t } from '../i18n/t';
-import { Modal } from './Modal';
 import { Button } from './ui/Button';
+import { Dialog } from './ui/Dialog';
 
 export function KeyHelp({ onClose }: { onClose: () => void }) {
   return (
-    <Modal onClose={onClose} primary={onClose} boxStyle={{ width: 'min(420px, calc(100% - 32px))' }}>
+    <Dialog onClose={onClose} primary={onClose} layout={{ width: 'min(420px, calc(100% - 32px))' }}>
       <div style={{ fontWeight: 'bold', marginBottom: 8 }}>{t('ui.help.title')}</div>
       <div style={{ maxHeight: 'min(60vh, 480px)', overflowY: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>
@@ -33,6 +33,6 @@ export function KeyHelp({ onClose }: { onClose: () => void }) {
           {t('ui.panel.close')}
         </Button>
       </div>
-    </Modal>
+    </Dialog>
   );
 }
