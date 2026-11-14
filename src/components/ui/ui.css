@@ -780,3 +780,8 @@ input.ui-terminal-input__field {
   height: 36px;
   background: var(--line);
 }
+
+.ui-toolbar-button--phone {
+  min-width: 28px;
+  min-height: 28px;
+}
