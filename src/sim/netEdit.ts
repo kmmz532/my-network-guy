@@ -4,7 +4,7 @@ import { inSubnet, ipToInt } from '../network/engine';
 import { PREFIX_MAX, PREFIX_MIN, hostCapacity, networkAddress } from '../network/segments';
 import { fillPlans } from '../network/query/plans';
 import type { VrrpGroup } from '../network/vrrp';
-import type { FirewallRule, Iface, IspLine, NetNode, PortConfig, Route, Service } from '../network/types';
+import type { DnsRecord, DnsService, FirewallRule, Iface, IspLine, NetNode, PortConfig, Route } from '../network/types';
 import { WIRELESS_SECURITIES } from '../network/types';
 import { makeIface, makeSvi } from '../network/iface';
 import { can } from '../network/capabilities';
@@ -37,16 +37,36 @@ export const setHostname = (core: Core, uid: string, hostname: string | null, ta
 export const setNameServer = (core: Core, uid: string, ip: string | null, target: NetTarget = 'focus'): Outcome =>
   editNode(core, uid, (node) => ({ ...node, nameServer: ip ?? undefined }), target);
 
-// DNS の役割を付ける（zone は空から）。外すと表も消える（N68）
+// DNS のサービスを動かす（権威で、ゾーンは空から）。止めるとゾーンも消える（N68）
 export const setDnsRole = (core: Core, uid: string, on: boolean, target: NetTarget = 'focus'): Outcome =>
-  editNode(core, uid, (node) => ({ ...node, dns: on ? (node.dns ?? { zone: [] }) : undefined }), target);
+  editNode(
+    core,
+    uid,
+    (node) => {
+      const others = node.services.filter((s) => s.protocol !== 'dns');
+      if (!on) return { ...node, services: others };
+      const current = node.services.find((s) => s.protocol === 'dns');
+      return { ...node, services: [...others, current ?? { protocol: 'dns', role: 'auth', zone: [] }] };
+    },
+    target,
+  );
 
 // 「自動で登録する」: 対象のネットワークの機器から DNS の表を作り直す（DNS の役割のある機器だけ）
 export const autoRegisterZone = (core: Core, uid: string, target: NetTarget = 'focus'): Outcome => {
   const net = netOf(core, target);
   if (typeof net === 'string') return fail(net);
-  const zone = zoneFromNodes(net.nodes);
-  return editNode(core, uid, (node) => (node.dns ? { ...node, dns: { zone } } : 'none'), target);
+  const registered = zoneFromNodes(net.nodes).map((h): DnsRecord => ({ type: 'A', name: h.name, value: h.ip }));
+  return editNode(
+    core,
+    uid,
+    (node) => {
+      const current = node.services.find((s): s is DnsService => s.protocol === 'dns');
+      if (!current) return 'none';
+      const zone = [...current.zone.filter((r) => r.type !== 'A'), ...registered];
+      return { ...node, services: node.services.map((s) => (s === current ? { ...current, zone } : s)) };
+    },
+    target,
+  );
 };
 
 export const setName = (core: Core, uid: string, name: string, target: NetTarget = 'focus'): Outcome => {
@@ -439,13 +459,13 @@ export const removeRoute = (core: Core, uid: string, index: number, target: NetT
   editNode(core, uid, (node) => ({ ...node, routes: node.routes.filter((_, i) => i !== index) }), target);
 
 // サービスの既定の待ち受けポート（プロトコルごと）。起動するときに使う
-const DEFAULT_SERVICE_PORT: Record<Service['protocol'], number> = { http: 80 };
+const HTTP_PORT = 80;
 
 // サービスを起動する（on）または停止する（off）。配線の設定が固定された機器は変えられない
 export const setService = (
   core: Core,
   uid: string,
-  protocol: Service['protocol'],
+  protocol: 'http',
   on: boolean,
   target: NetTarget = 'focus',
 ): Outcome =>
@@ -456,7 +476,7 @@ export const setService = (
       const others = node.services.filter((s) => s.protocol !== protocol);
       if (!on) return { ...node, services: others };
       const current = node.services.find((s) => s.protocol === protocol);
-      return { ...node, services: [...others, current ?? { protocol, port: DEFAULT_SERVICE_PORT[protocol] }] };
+      return { ...node, services: [...others, current ?? { protocol, port: HTTP_PORT }] };
     },
     target,
   );

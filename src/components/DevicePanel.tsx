@@ -4,7 +4,7 @@ import { nodeLabel } from './nodeLabel';
 import { duplicateHostnames } from '../sim/project';
 import { useState } from 'react';
 import { t, tDyn } from '../i18n/t';
-import type { NetLink, NetNode } from '../network/types';
+import type { DnsService, NetLink, NetNode } from '../network/types';
 import { seenSourcesOf, type NetworkState } from '../network/public';
 import { focusedProject, netOfDevice, useGameStore, type GameState } from '../stores/useGameStore';
 import { RearTab as DeviceRear } from './DeviceRear';
@@ -156,25 +156,26 @@ function ServiceTab({ node, nodes, state, readOnly, onError }: { node: NetNode; 
   const running = http !== undefined;
   const locked = readOnly || node.configLocked;
   // DNS の表（名前 → IPアドレス）。同じ名前の機器があれば警告する（N68）
-  const zone = node.dns?.zone ?? [];
+  const dns = node.services.find((s): s is DnsService => s.protocol === 'dns');
+  const zone = (dns?.zone ?? []).filter((r) => r.type === 'A');
   const duplicates = duplicateHostnames(nodes);
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
         <b>{t('ui.dns.title')}</b>
-        <span style={{ color: node.dns ? '#62d26f' : greyColor }}>{node.dns ? t('ui.service.running') : t('ui.service.stopped')}</span>
-        <button style={buttonStyle} disabled={locked} onClick={() => onError(setDnsRole(node.uid, !node.dns))}>
-          {node.dns ? t('ui.service.stop') : t('ui.service.start')}
+        <span style={{ color: dns ? '#62d26f' : greyColor }}>{dns ? t('ui.service.running') : t('ui.service.stopped')}</span>
+        <button style={buttonStyle} disabled={locked} onClick={() => onError(setDnsRole(node.uid, !dns))}>
+          {dns ? t('ui.service.stop') : t('ui.service.start')}
         </button>
-        {node.dns && (
+        {dns && (
           <button style={buttonStyle} disabled={locked} onClick={() => onError(autoRegisterZone(node.uid))}>
             {t('ui.dns.register')}
           </button>
         )}
       </div>
-      {node.dns && (
+      {dns && (
         <div style={{ marginTop: 4, fontSize: 13 }}>
-          {zone.length === 0 ? <div>{t('ui.dns.empty')}</div> : zone.map((h) => <div key={h.name}>{`${h.name}  ${h.ip}`}</div>)}
+          {zone.length === 0 ? <div>{t('ui.dns.empty')}</div> : zone.map((h) => <div key={h.name}>{`${h.name}  ${h.value}`}</div>)}
           {duplicates.length > 0 && <div style={{ color: '#ffd866' }}>{t('ui.dns.duplicate', { names: duplicates.join('・') })}</div>}
         </div>
       )}

@@ -259,10 +259,18 @@ export const cableSchema = z.object({
 export const cablesFileSchema = z.object({ cables: z.array(cableSchema) });
 
 // 機材が初期に動かすサービス（待ち受けるプロトコルとポート）。サーバーは置いたときに起動する
-const serviceSchema = z.object({
-  protocol: z.enum(['http']),
-  port: z.number().int().min(1).max(65535),
+const dnsRecordSchema = z.object({
+  type: z.enum(['A', 'AAAA', 'CNAME', 'MX', 'NS', 'PTR']),
+  name: z.string().min(1),
+  value: z.string().min(1),
+  // MX だけが持つ優先度
+  pref: z.number().int().min(0).max(65535).optional(),
 });
+const serviceSchema = z.discriminatedUnion('protocol', [
+  z.object({ protocol: z.literal('http'), port: z.number().int().min(1).max(65535) }),
+  // DNS は 53 番。auth は自分のゾーンだけを答え、cache はゾーンにない名前を forwarder（転送先の DNS の IP）へ聞く
+  z.object({ protocol: z.literal('dns'), role: z.enum(['auth', 'cache']), zone: z.array(dnsRecordSchema), forwarder: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/).optional() }),
+]);
 
 // 機器の能力（NET.md §4）。コードは機器の種類ではなく、この能力だけを見る（N134）
 export const CAPABILITY_IDS = ['switchport', 'vlan', 'stp', 'svi', 'routedPort', 'subif', 'routing', 'rip', 'ospf', 'bgp', 'nat', 'services', 'dhcpRelay', 'firewall', 'wireless', 'wan', 'vrrp', 'lag', 'wpa3'] as const;
@@ -366,7 +374,7 @@ export const placedSchema = z.object({
   locked: z.boolean(),
   config: placedConfigSchema.optional(),
   // 回線終端の回線の情報（ISP の名前・回線のネットワーク・ISP 側のアドレス・ISP の AS 番号）
-  isp: z.object({ name: z.string(), network: z.string(), prefix: z.number().int().min(8).max(30), ispIp: z.string(), asn: z.number().int().positive().optional() }).optional(),
+  isp: z.object({ name: z.string(), network: z.string(), prefix: z.number().int().min(8).max(30), ispIp: z.string(), asn: z.number().int().positive().optional(), dns: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/).optional() }).optional(),
   // 無線の設定（教材のアクセスポイント・端末の初期の設定。SSID・パスワード・暗号化の方式）
   wireless: z.object({ ssid: z.string().min(1), password: z.string().min(1), security: z.enum(['open', 'wep', 'wpa', 'wpa2', 'wpa3', 'wpa2wpa3']).optional() }).optional(),
   // 場所の名前（「受付のPC」など。画面の機器の名前になる。なければ「PC-1」などの仮の名前）
@@ -431,7 +439,7 @@ const placedSetupSchema = z.object({
     .optional(),
   stpPriority: int.positive().optional(),
   napt: z.boolean().optional(),
-  rules: z.array(z.object({ src: z.string().min(1), dst: z.string().min(1), service: z.enum(['any', 'ping', 'http']), port: int.min(1).max(65535).optional() })).optional(),
+  rules: z.array(z.object({ src: z.string().min(1), dst: z.string().min(1), service: z.enum(['any', 'ping', 'http', 'dns']), port: int.min(1).max(65535).optional() })).optional(),
 });
 const contractPlacedSchema = placedSchema.extend({ setup: placedSetupSchema.optional() });
 

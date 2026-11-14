@@ -1004,6 +1004,7 @@
   "ui.fw.rules": "許可する通信",
   "ui.fw.service": "通信",
   "ui.fw.service.any": "すべての通信",
+  "ui.fw.service.dns": "DNS",
   "ui.fw.service.http": "Web",
   "ui.fw.service.ping": "Ping",
   "ui.fw.src": "送信元",

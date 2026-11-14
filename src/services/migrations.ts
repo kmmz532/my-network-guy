@@ -25,7 +25,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 51;
+export const SAVE_VERSION = 52;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -75,6 +75,28 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v51 → v52: 機器の DNS の役割（dns.zone）を、サービスの一覧（services）の DNS のサービスへ写す。ゾーンの各行は種類 A の記録で、役割は権威
+  51: (data) => {
+    type OldNode = NetNode & { dns?: { zone: { name: string; ip: string }[] } };
+    const convert = <T extends { nodes: NetNode[] }>(x: T): T => ({
+      ...x,
+      nodes: x.nodes.map((n) => {
+        const { dns, ...rest } = n as OldNode;
+        if (dns === undefined) return n;
+        return { ...rest, services: [...rest.services, { protocol: 'dns' as const, role: 'auth' as const, zone: dns.zone.map((h) => ({ type: 'A' as const, name: h.name, value: h.ip })) }] };
+      }),
+    });
+    const d = data as { active: { nodes: NetNode[] }[]; office: { nodes: NetNode[] }; familiarity: { counts: object; blueprints: Record<string, { stars: number; design: { nodes: NetNode[] } }> } };
+    return {
+      ...d,
+      office: convert(d.office),
+      active: d.active.map(convert),
+      familiarity: {
+        ...d.familiarity,
+        blueprints: Object.fromEntries(Object.entries(d.familiarity.blueprints).map(([k, b]) => [k, { ...b, design: convert(b.design) }])),
+      },
+    };
+  },
   // v50 → v51: 機器の OSPF の番号（ospf.process）を足す。番号は任意の項目で、移行前の機器は番号を書いていないため、何も変えない
   50: (data) => data as object,
   // v49 → v50: アドレスの計画を、セグメント（L2 スイッチの VLAN では分けない）の鍵から L2 ドメイン（VLAN で分ける）の鍵へ付け替え、segments を plans に改める。

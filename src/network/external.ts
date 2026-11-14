@@ -6,7 +6,7 @@ import { makeIface } from './iface';
 import { http, ping } from './engine';
 import { isRoutingCategory } from './category';
 import { CATEGORY, isPcCategory } from '../data/categories';
-import type { EngineData, NetLink, NetNode, Network } from './types';
+import type { DnsRecord, EngineData, NetLink, NetNode, Network } from './types';
 import { INTERNET_DEVICE, deviceCategory } from '../registry/query';
 
 export const INTERNET_UID = '__internet';
@@ -34,16 +34,33 @@ export interface OutsideCheck {
 // ISP が BGP で広告する「インターネット」のネットワーク（TEST-NET-1）
 export const INTERNET_NETWORK = '192.0.2.0';
 export const INTERNET_NETWORK_PREFIX = 24;
+// 仮想のインターネットの名前の表（ISP の DNS が答える、エンジンのデータの外の名前）
+export const EXTERNAL_ZONE: readonly DnsRecord[] = [
+  { type: 'A', name: 'example.com', value: '192.0.2.80' },
+  { type: 'CNAME', name: 'www.example.com', value: 'example.com' },
+  { type: 'MX', name: 'example.com', value: 'mail.example.com', pref: 10 },
+  { type: 'A', name: 'mail.example.com', value: '192.0.2.25' },
+  { type: 'AAAA', name: 'example.com', value: '2001:db8::80' },
+];
+
+// 回線の ISP の DNS（IspLine.dns）の IP と、それを答える仮想の ISP の機器、つないだルーター
+export interface IspDns {
+  ip: string;
+  uid: string;
+  router: string;
+}
+
 // BGP の ISP は、ルーターとして動かす（BGP の計算がルーターだけを対象にするため）
 const ISP_ROUTER_DEVICE = 'router_basic';
 
 // 回線終端（uplink）ごとに、仮想の ISP（とインターネット）を加える（N144・NET.md §5.5）。回線終端の口1（ISP 側）につなぐ。
 // 回線終端の口0 がルーターの WAN の口につながっていなければ、その回線は使えない。使える回線がなければ null。
 // 最初の回線の ISP は INTERNET_UID、2つ目からは __internet_<回線終端の uid>。ISP の情報は回線終端の isp（省略すると既定の ISP）
-export const withInternet = (net: Network, _data: EngineData): (Network & { internetUid: string; internetUids: string[] }) | null => {
+export const withInternet = (net: Network, _data: EngineData): (Network & { internetUid: string; internetUids: string[]; ispDns: IspDns[] }) | null => {
   const nodes: NetNode[] = [];
   const links: NetLink[] = [];
   const uids: string[] = [];
+  const ispDns: IspDns[] = [];
   for (const uplink of net.nodes.filter((n) => deviceCategory(n.device) === CATEGORY.uplink)) {
     const routerLink = net.links.find((l) => (l.a.node === uplink.uid && l.a.port === UPLINK_ROUTER_PORT) || (l.b.node === uplink.uid && l.b.port === UPLINK_ROUTER_PORT));
     if (!routerLink) continue;
@@ -83,9 +100,10 @@ export const withInternet = (net: Network, _data: EngineData): (Network & { inte
       paid: 0,
     });
     uids.push(uid);
+    if (line?.dns !== undefined) ispDns.push({ ip: line.dns, uid, router: router.uid });
   }
   if (uids.length === 0) return null;
-  return { nodes: [...net.nodes, ...nodes], links: [...net.links, ...links], plans: net.plans, internetUid: uids[0], internetUids: uids };
+  return { nodes: [...net.nodes, ...nodes], links: [...net.links, ...links], plans: net.plans, internetUid: uids[0], internetUids: uids, ispDns };
 };
 
 // 外部への接続と、公開しているサーバー、社内への漏れを調べる

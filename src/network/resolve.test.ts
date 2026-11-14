@@ -35,7 +35,7 @@ const link = (uid: string, a: string, aPort: number, b: string, bPort: number): 
 });
 
 // a（PC）・b（PC）・d（DNS サーバー）を、スイッチ s につなぐ
-const dnsServer = host('d', '192.168.1.20', { dns: { zone: [{ name: 'fileserver', ip: '192.168.1.20' }, { name: 'PC-2', ip: '192.168.1.11' }] } });
+const dnsServer = host('d', '192.168.1.20', { services: [{ protocol: 'dns', role: 'auth', zone: [{ type: 'A', name: 'fileserver', value: '192.168.1.20' }, { type: 'A', name: 'PC-2', value: '192.168.1.11' }] }] });
 const base = () => ({
   nodes: [host('a', '192.168.1.10', { nameServer: '192.168.1.20' }), host('b', '192.168.1.11'), sw, dnsServer],
   links: [link('l1', 'a', 0, 's', 0), link('l2', 'b', 0, 's', 1), link('l3', 'd', 0, 's', 2)],
@@ -54,7 +54,7 @@ describe('名前の解決', () => {
 
   it('対応表になければ、ネームサーバーの表を引く（届く場合）', () => {
     const net = base();
-    expect(resolveName(net.nodes[0], 'fileserver', net, data)).toEqual({ ok: true, ip: '192.168.1.20', via: 'dns', server: 'd' });
+    expect(resolveName(net.nodes[0], 'fileserver', net, data)).toEqual({ ok: true, ip: '192.168.1.20', via: 'dns', server: 'd', steps: [{ from: 'a', to: 'd', mode: 'recursive' }] });
   });
 
   it('ネームサーバーまで届かなければ、解決できない（表に名前があっても）', () => {
@@ -76,7 +76,7 @@ describe('名前の解決', () => {
 
   it('ネームサーバーの IPアドレスの機器が DNS でなければ、答えるものがない', () => {
     const net = base();
-    const notDns = { ...dnsServer, dns: undefined };
+    const notDns = { ...dnsServer, services: [] };
     const changed = { ...net, nodes: net.nodes.map((n) => (n.uid === 'd' ? notDns : n)) };
     expect(resolveName(net.nodes[0], 'fileserver', changed, data)).toEqual({ ok: false, reason: 'dns.unreachable' });
   });
@@ -86,7 +86,7 @@ describe('名前の解決', () => {
 describe('目標 reach_by_name', () => {
   const dataWithServer: EngineData = { wallAt: () => false };
   const build = (unplugFileserver: boolean) => {
-    const file = host('d', '192.168.1.20', { device: 'server_basic', hostname: 'fileserver', dns: { zone: [{ name: 'fileserver', ip: '192.168.1.20' }] } });
+    const file = host('d', '192.168.1.20', { device: 'server_basic', hostname: 'fileserver', services: [{ protocol: 'dns', role: 'auth', zone: [{ type: 'A', name: 'fileserver', value: '192.168.1.20' }] }] });
     const pc = (uid: string, ip: string) => host(uid, ip, { nameServer: '192.168.1.20', hostname: `PC-${uid}` });
     const nodes = [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), sw, file];
     const links = [link('l1', 'a', 0, 's', 0), link('l2', 'b', 0, 's', 1), link('l3', 'd', 0, 's', 2)];

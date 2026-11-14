@@ -4,6 +4,7 @@ import { can } from '../capabilities';
 import { isRoutingCategory } from '../category';
 import { inSubnet, isPrivateIp } from '../ip';
 import { macOf } from '../mac';
+import { DNS_PORT } from '../types';
 import type { Endpoint, Failure, FailureReason, FirewallRule, Iface, NetNode, PathResult, PortConfig } from '../types';
 import { deviceCategory } from '../../registry/query';
 import type { NetworkState } from './state';
@@ -31,8 +32,8 @@ const duplicateReason = (view: ForwardView, members: { node: string; port: numbe
   members.some((m) => ifaceAt(view, m.node, m.port)?.dhcp) ? 'ip.duplicate.dhcp' : 'ip.duplicate';
 
 // 片道の判定（src → dst）。dstIp は宛先のIPアドレス
-// 通信の種類（ping は ICMP、http は指定のポートへの TCP）。ファイアウォールの規則の判定に使う
-export type Traffic = { kind: 'ping' } | { kind: 'http'; port: number };
+// 通信の種類（ping は ICMP、http は指定のポートへの TCP、dns は 53 番への問い合わせ）。ファイアウォールの規則の判定に使う
+export type Traffic = { kind: 'ping' } | { kind: 'http'; port: number } | { kind: 'dns' };
 
 // 規則の送信元・宛先（'any' か「a.b.c.d/nn」）に、IPアドレスが入るか
 const matchNet = (spec: string, ip: string): boolean => {
@@ -49,7 +50,8 @@ const allows = (rules: readonly FirewallRule[] | undefined, srcIp: string, dstIp
       matchNet(r.dst, dstIp) &&
       (r.service === 'any' ||
         (r.service === 'ping' && traffic.kind === 'ping') ||
-        (r.service === 'http' && traffic.kind === 'http' && (r.port === undefined || r.port === traffic.port))),
+        (r.service === 'http' && traffic.kind === 'http' && (r.port === undefined || r.port === traffic.port)) ||
+        (r.service === 'dns' && traffic.kind === 'dns')),
   );
 
 // 通信を1方向に届ける。check が true のときは、通り道のファイアウォールの規則を確かめる（戻りの通信は、往路で許した通信の戻りとして確かめない）
@@ -238,8 +240,9 @@ export const backOf = (view: ForwardView, dstUid: string, srcUid: string, traffi
 // 静的 NAT（ポートの転送）: 外からルーターの外の口へのポートの通信を、社内のサーバーへ届ける。往路は外→外の口→社内の口→サーバー、復路は逆に戻す（N145）
 const viaStatic = (view: ForwardView, srcUid: string, routerUid: string, traffic: Traffic): PathResult | null => {
   const r = view.addressing.nodeOf(routerUid);
-  if (!r || traffic.kind !== 'http') return null;
-  const map = r.statics?.find((s) => s.port === traffic.port);
+  if (!r || traffic.kind === 'ping') return null;
+  const outerPort = traffic.kind === 'http' ? traffic.port : DNS_PORT;
+  const map = r.statics?.find((s) => s.port === outerPort);
   if (!map) return null;
   const outside = r.interfaces.find((i) => i.nat === 'outside');
   const inside = r.interfaces.find((i) => i.nat === 'inside' && inSubnet(map.insideIp, i.ip, i.prefix));
@@ -247,9 +250,11 @@ const viaStatic = (view: ForwardView, srcUid: string, routerUid: string, traffic
   if (!outside || !inside || !server) return { ok: false, path: [], failure: fail('route.none', routerUid) };
   const toRouter = deliver(view, srcUid, routerUid, traffic, true, undefined, outside.ip);
   if (!toRouter.ok) return toRouter;
-  const toServer = deliver(view, routerUid, server.uid, { kind: 'http', port: map.insidePort }, false, inside.ip, map.insideIp);
+  const innerTraffic: Traffic = traffic.kind === 'http' ? { kind: 'http', port: map.insidePort } : traffic;
+  const toServer = deliver(view, routerUid, server.uid, innerTraffic, false, inside.ip, map.insideIp);
   if (!toServer.ok) return { ok: false, path: toRouter.path, failure: toServer.failure };
-  if (!server.services.some((s) => s.protocol === 'http' && s.port === map.insidePort)) return { ok: false, path: toRouter.path, failure: fail('service.closed', server.uid) };
+  const listening = traffic.kind === 'http' ? server.services.some((s) => s.protocol === 'http' && s.port === map.insidePort) : server.services.some((s) => s.protocol === 'dns');
+  if (!listening) return { ok: false, path: toRouter.path, failure: fail('service.closed', server.uid) };
   const back = deliver(view, server.uid, routerUid, traffic, false, map.insideIp, inside.ip);
   if (!back.ok) return { ok: false, path: toRouter.path, failure: { reason: 'return.failed', node: server.uid, cause: back.failure } };
   return { ok: true, path: [...toRouter.path, ...toServer.path.slice(1)], staticNat: { router: routerUid, insideIp: map.insideIp, outsideIp: outside.ip } };
@@ -283,6 +288,21 @@ export const http = (view: ForwardView, srcUid: string, dstUid: string, port: nu
     return { ok: false, path: forward.path, failure: fail('service.closed', dstUid) };
   }
   const back = backOf(view, dstUid, srcUid, { kind: 'http', port }, forward);
+  if (!back.ok) {
+    return { ok: false, path: forward.path, failure: { reason: 'return.failed', node: dstUid, cause: back.failure }, nat: forward.nat };
+  }
+  return { ...forward, back: back.path };
+};
+
+// DNS の問い合わせの判定。往路で宛先に届き（53 番をファイアウォールが止めない）、宛先が DNS のサービスを動かしていて、復路も通ること。
+// 宛先が DNS のサービスを持つかは、呼び出す側が決める（家庭用ルーターと ISP の DNS は、サービスの一覧に持たない）
+export const dnsQuery = (view: ForwardView, srcUid: string, dstUid: string, dstIp?: string): PathResult => {
+  const nat = viaStatic(view, srcUid, dstUid, { kind: 'dns' });
+  if (nat !== null) return nat;
+  const forward = deliver(view, srcUid, dstUid, { kind: 'dns' }, true, undefined, dstIp);
+  if (!forward.ok) return forward;
+  // 答えは、問い合わせを受けたアドレスから返る
+  const back = forward.nat ? backOf(view, dstUid, srcUid, { kind: 'dns' }, forward) : deliver(view, dstUid, srcUid, { kind: 'dns' }, false, dstIp);
   if (!back.ok) {
     return { ok: false, path: forward.path, failure: { reason: 'return.failed', node: dstUid, cause: back.failure }, nat: forward.nat };
   }

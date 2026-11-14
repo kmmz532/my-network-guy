@@ -45,10 +45,21 @@ export interface Route {
   ibgp?: boolean;
 }
 
-export interface Service {
-  protocol: 'http';
-  port: number;
+// DNS のレコード（ゾーンの1行）。pref は MX だけが持つ優先度
+export type DnsRecordType = 'A' | 'AAAA' | 'CNAME' | 'MX' | 'NS' | 'PTR';
+export interface DnsRecord {
+  type: DnsRecordType;
+  name: string;
+  value: string;
+  pref?: number;
 }
+
+// 機器が動かすサービス。DNS は 53 番で待ち受ける。auth は自分のゾーンだけを答え、cache はゾーンにない名前を forwarder（転送先の DNS の IP）へ聞く
+export type Service =
+  | { protocol: 'http'; port: number }
+  | { protocol: 'dns'; role: 'auth' | 'cache'; zone: DnsRecord[]; forwarder?: string };
+export type DnsService = Extract<Service, { protocol: 'dns' }>;
+export const DNS_PORT = 53;
 
 // 機器ごとの対応表の1行（名前 → IPアドレス）。Debian の /etc/hosts と同じ考え方で、ping・traceroute の宛先の名前を引くのに使う
 export interface HostEntry {
@@ -56,11 +67,11 @@ export interface HostEntry {
   ip: string;
 }
 
-// ファイアウォールの規則（N38）。送信元・宛先は 'any' か「a.b.c.d/nn」のネットワーク。service は any・ping・http（http は port で絞れる）
+// ファイアウォールの規則（N38）。送信元・宛先は 'any' か「a.b.c.d/nn」のネットワーク。service は any・ping・http・dns（http は port で絞れる。dns は 53 番）
 export interface FirewallRule {
   src: string;
   dst: string;
-  service: 'any' | 'ping' | 'http';
+  service: 'any' | 'ping' | 'http' | 'dns';
   port?: number;
 }
 
@@ -95,6 +106,8 @@ export interface IspLine {
   prefix: number;
   ispIp: string;
   asn?: number;
+  // ISP の DNS の IP（省略は、回線の DNS がない）
+  dns?: string;
 }
 
 export const WIRELESS_SECURITIES = ['open', 'wep', 'wpa', 'wpa2', 'wpa3', 'wpa2wpa3'] as const;
@@ -145,8 +158,6 @@ export interface NetNode {
   hosts?: HostEntry[];
   // ネームサーバー（ip name-server）の IPアドレス。機器の対応表で引けない名前を、この DNS サーバーに問い合わせる（N68）
   nameServer?: string;
-  // DNS の役割（サーバーだけが持つ）。zone は名前と IPアドレスの表（N68）
-  dns?: { zone: HostEntry[] };
   // MAC アドレスの機器ごとの連番（機器を置いたときに決める。mac.ts）（N69）
   macSerial?: number;
 }

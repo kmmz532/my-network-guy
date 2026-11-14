@@ -645,3 +645,19 @@ describe('v49 → v50（アドレスの計画を L2 ドメインの鍵にする�
     expect(at49(nodes, links, { 'a:0': { network: '172.16.0.0', prefix: 24 } }).office.plans).toEqual({});
   });
 });
+
+describe('v51 → v52（DNS の役割をサービスの一覧へ）', () => {
+  const dnsNode = (uid: string, dns?: { zone: { name: string; ip: string }[] }) => ({
+    uid, device: 'server_basic', x: 0, y: 0, locked: false, configLocked: false, macSerial: 1, ports: [], routes: [], gateway: null, interfaces: [],
+    services: [{ protocol: 'http', port: 80 }], ...(dns ? { dns } : {}),
+  });
+  it('dns.zone の各行を、権威の DNS のサービスの種類 A の記録に写し、dns を消す。HTTP は残る', () => {
+    const out = migrate(51, { ...sample, office: { ...sample.office, nodes: [dnsNode('d', { zone: [{ name: 'files.corp.test', ip: '10.1.0.20' }] }), dnsNode('w')] }, active: [] });
+    expect(out.office.nodes[0]).not.toHaveProperty('dns');
+    expect(out.office.nodes[0].services).toEqual([
+      { protocol: 'http', port: 80 },
+      { protocol: 'dns', role: 'auth', zone: [{ type: 'A', name: 'files.corp.test', value: '10.1.0.20' }] },
+    ]);
+    expect(out.office.nodes[1].services).toEqual([{ protocol: 'http', port: 80 }]);
+  });
+});
