@@ -20,6 +20,8 @@ import { CATEGORY, isPcCategory } from '../data/categories';
 import { deviceCategory, deviceDef } from '../registry/query';
 
 type Tab = 'rear' | 'config' | 'service' | 'terminal';
+// 機器ごとの、最後に開いた欄。窓を開き直したり機器を押し直したりしても、その欄から開く（初めての機器は背面）
+const lastTab = new Map<string, Tab>();
 
 // uid の機器を探す。表示中の案件（設計中、または納品の結果）を優先し、なければ自社オフィス。見つからなければ null
 export function findDevice(state: GameState, uid: string) {
@@ -90,7 +92,11 @@ function DeviceView({
   detailOpen: boolean;
   onToggleDetail: () => void;
 }) {
-  const [tab, setTab] = useState<Tab>('rear');
+  const [tab, setTabState] = useState<Tab>(() => lastTab.get(node.uid) ?? 'rear');
+  const setTab = (next: Tab) => {
+    lastTab.set(node.uid, next);
+    setTabState(next);
+  };
   const [error, setError] = useState<string | null>(null);
 
   const category = deviceCategory(node.device);
