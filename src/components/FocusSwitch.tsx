@@ -2,6 +2,7 @@
 // 自社の案件（自社オフィスの写し）は、自社オフィスのタブがその案件の設計を開く（タブは1つにまとめ、名前に案件を添える・N169）
 import { t, tDyn } from '../i18n/t';
 import { useGameStore } from '../stores/useGameStore';
+import { Button } from './ui/Button';
 
 export function FocusSwitch() {
   const active = useGameStore((s) => s.active);
@@ -22,27 +23,15 @@ export function FocusSwitch() {
   return (
     <div role="group" aria-label={t('ui.focus.label')} style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
       {items.map((i) => (
-        <button
-          key={i.id ?? 'office'}
-          aria-pressed={i.on}
-          onClick={() => setFocus(i.id)}
-          style={{
-            padding: '2px 8px',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            background: i.on ? '#ffd866' : '#25406f',
-            color: i.on ? '#3b2a33' : '#f4f1e6',
-            border: '1px solid #3b2a33',
-          }}
-        >
+        <Button key={i.id ?? 'office'} variant="secondary" size="s" pressed={i.on} onClick={() => setFocus(i.id)}>
           {i.label}
-        </button>
+        </Button>
       ))}
       {/* 自社オフィスを見ているときは、オフィスの画面（外部への接続・床・プリンター・貸し出し）を開く（N126） */}
       {officeOn && (
-        <button onClick={() => openWindow('office', '')} style={{ padding: '2px 8px', cursor: 'pointer', fontFamily: 'inherit', background: '#25406f', color: '#f4f1e6', border: '1px solid #3b2a33' }}>
+        <Button variant="secondary" size="s" onClick={() => openWindow('office', '')}>
           {t('ui.office.open')}
-        </button>
+        </Button>
       )}
     </div>
   );

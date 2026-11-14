@@ -119,14 +119,6 @@
       "count": 1
     }
   },
-  "src/components/FocusSwitch.tsx": {
-    "local/no-look-props": {
-      "count": 6
-    },
-    "local/no-native-control": {
-      "count": 2
-    }
-  },
   "src/components/FramesPanel.tsx": {
     "local/no-look-props": {
       "count": 8
