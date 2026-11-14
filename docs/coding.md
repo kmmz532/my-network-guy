@@ -1,17 +1,17 @@
 # コードの書き方
 
-ロジックは純粋関数として `src/network`・`src/sim`・`src/contracts` に置く。文言は言語ファイルに、数値はゲームデータの JSON に置き、コードに直接書かない。用語はネットワークスペシャリスト試験と同じ正式なもの（「バックボーンエリア」「ルーター ID」など）を使う。コメントには、コードだけを読んで分かる形で規則の中身を書く。
+ロジックは純粋関数として `src/network`・`src/sim`・`src/contracts` に置く。文言は言語ファイルに、数値はゲームデータの JSON に置く。用語は、ネットワークスペシャリスト試験と同じ正式なものを使う。コメントには規則の中身を書く。
 
-次の規則は ESLint の独自の規則（`eslint/local-rules/`）が検査する。規則を追加した時点の違反は `eslint-suppressions.json` に記録してあり、直したときは `npx eslint src --prune-suppressions` で減らす。
+次の規則は、ESLint の独自の規則が検査する。規則を追加した時点の違反は `eslint-suppressions.json` に記録する。違反を直したら、`npx eslint src --prune-suppressions` で記録を減らす。
 
-| 規則 | 禁じること |
+| 規則 | 守ること |
 | --- | --- |
-| `no-category`・`is-pc-in` | 機器の種類を比べて処理を分けること。機器の能力を見る |
-| `no-mode-branch` | 遊び方の名前（`sandbox`・`career`）で処理を分けること |
-| `no-engine-in-view` | 画面から計算の関数を呼ぶこと。`NetworkState` と `src/network/query/` だけを読む |
-| `no-core-set` | 構成をストアの `set` で直接書き換えること |
-| `no-unknown-fallback` | `?? 'unknown'` で埋めること |
-| `no-native-control` | `<button>`・`<input>`・`<select>`・`<textarea>` を直接書くこと。`src/components/ui/` の部品を使う |
-| `no-look-props`・`no-look-export` | `ui/` の外で色・枠・文字の大きさなどの見た目を書くこと |
+| `no-category`・`is-pc-in` | 機器は能力で判断する |
+| `no-mode-branch` | 遊び方の違いは能力の値で判断する |
+| `no-engine-in-view` | 画面は `NetworkState` と `src/network/query/` を読む |
+| `no-core-set` | 構成は操作で変える |
+| `no-unknown-fallback` | 想定外の値は例外で止める |
+| `no-native-control` | ボタンと入力欄は `src/components/ui/` の部品を使う |
+| `no-look-props`・`no-look-export` | 色・枠・文字の大きさは `ui/` の部品が決める |
 
-画面の部品は `style` を受け取らず、配置は `layout` で渡す。部品の種類で表せない見た目が必要な場合は、`ui/` に種類か部品を追加する。
+画面の部品の配置は `layout` で渡す。部品で表せない見た目は、`ui/` に種類か部品を追加して作る。
