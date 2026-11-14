@@ -2,6 +2,7 @@
 // 変わり方を純粋な関数にする。保存の読み書き（非同期）は場面の部品が行い、結果をこの関数に渡す。
 import { freeSlotOf, suggestCompanyName, type CompanySave } from '../services/companies';
 import type { GameMode, Company } from '../company/company';
+import type { BrokenSlot } from '../services/saveRecords';
 
 // 会社の枠の画面（SaveSlotDialog）の中身
 export type SaveSlotView =
@@ -9,7 +10,9 @@ export type SaveSlotView =
   | { kind: 'name'; slot: number; suggested: string; from: 'new' | 'overwrite' }
   | { kind: 'rename'; save: CompanySave }
   | { kind: 'confirmOverwrite'; save: CompanySave }
-  | { kind: 'delete'; save: CompanySave };
+  | { kind: 'delete'; save: CompanySave }
+  // 読めない枠を消す確認
+  | { kind: 'deleteBroken'; slot: number };
 
 // タイトルで出している画面
 export type TitlePanel =
@@ -24,6 +27,8 @@ export interface TitleState {
   mode: GameMode;
   // 最後に読み直した会社の一覧
   saves: readonly CompanySave[];
+  // 読めない枠（移行できない枠）。一覧に「読めない会社」として出し、選べないようにする
+  broken: readonly BrokenSlot[];
   // 会社の枠の画面に出す知らせ
   notice: string;
   // メニューに出す知らせ
@@ -32,25 +37,27 @@ export interface TitleState {
   pendingImport: Company | null;
 }
 
-export const initialTitleState: TitleState = { panel: { kind: 'menu' }, mode: 'career', saves: [], notice: '', message: '', pendingImport: null };
+export const initialTitleState: TitleState = { panel: { kind: 'menu' }, mode: 'career', saves: [], broken: [], notice: '', message: '', pendingImport: null };
 
 // 一覧を読み直した結果を伴う変化には saves を持たせる
 export type TitleEvent =
   // 「新しく始める」（経営）
-  | { type: 'newCareer'; saves: readonly CompanySave[] }
+  | { type: 'newCareer'; saves: readonly CompanySave[]; broken: readonly BrokenSlot[] }
   // 「コンティニュー」（経営）
-  | { type: 'continueCareer'; saves: readonly CompanySave[]; noneMessage: string }
+  | { type: 'continueCareer'; saves: readonly CompanySave[]; broken: readonly BrokenSlot[]; noneMessage: string }
   // 「サンドボックス」
-  | { type: 'sandbox'; saves: readonly CompanySave[] }
+  | { type: 'sandbox'; saves: readonly CompanySave[]; broken: readonly BrokenSlot[] }
   // サンドボックスの広さを決めた
-  | { type: 'sandboxSized'; saves: readonly CompanySave[] }
+  | { type: 'sandboxSized'; saves: readonly CompanySave[]; broken: readonly BrokenSlot[] }
+  // 読み込みに失敗した（メニューに知らせを出す）
+  | { type: 'menuMessage'; message: string }
   // 一覧の「新しく作る」でサンドボックスの広さを選ぶ
   | { type: 'openSandboxSize' }
   | { type: 'closeSandboxSize' }
   // 会社の枠の画面を切り替える。null は閉じる（読み込み中の会社は捨てる）
   | { type: 'show'; view: SaveSlotView | null }
   // 一覧を読み直した。知らせを消す。view があればその画面にする
-  | { type: 'refreshed'; saves: readonly CompanySave[]; view?: SaveSlotView }
+  | { type: 'refreshed'; saves: readonly CompanySave[]; broken?: readonly BrokenSlot[]; view?: SaveSlotView }
   // 一覧を読み直したが知らせは残す
   | { type: 'listed'; saves: readonly CompanySave[] }
   | { type: 'notice'; notice: string }
@@ -62,24 +69,26 @@ export type TitleEvent =
 const slots = (view: SaveSlotView): TitlePanel => ({ kind: 'slots', view });
 
 // 空いた枠があれば社名を決める画面、全部埋まっていれば上書きする会社を選ぶ一覧
-const startOrOverwrite = (mode: GameMode, saves: readonly CompanySave[]): TitlePanel => {
-  const free = freeSlotOf(mode, saves);
+const startOrOverwrite = (mode: GameMode, saves: readonly CompanySave[], broken: readonly BrokenSlot[]): TitlePanel => {
+  const free = freeSlotOf(mode, [...saves, ...broken]);
   return free !== null ? slots({ kind: 'name', slot: free, suggested: suggestCompanyName(mode, saves), from: 'new' }) : slots({ kind: 'list', purpose: 'overwrite' });
 };
 
 export function titleReducer(state: TitleState, event: TitleEvent): TitleState {
   switch (event.type) {
     case 'newCareer':
-      return { ...state, mode: 'career', notice: '', saves: event.saves, panel: startOrOverwrite('career', event.saves) };
+      return { ...state, mode: 'career', notice: '', message: '', saves: event.saves, broken: event.broken, panel: startOrOverwrite('career', event.saves, event.broken) };
     case 'continueCareer':
-      if (event.saves.length === 0) return { ...state, mode: 'career', notice: '', saves: event.saves, message: event.noneMessage };
-      return { ...state, mode: 'career', notice: '', saves: event.saves, panel: slots({ kind: 'list', purpose: 'play' }) };
+      if (event.saves.length === 0 && event.broken.length === 0) return { ...state, mode: 'career', notice: '', saves: event.saves, broken: event.broken, message: event.noneMessage };
+      return { ...state, mode: 'career', notice: '', message: '', saves: event.saves, broken: event.broken, panel: slots({ kind: 'list', purpose: 'play' }) };
     case 'sandbox':
-      return event.saves.length > 0
-        ? { ...state, mode: 'sandbox', saves: event.saves, panel: slots({ kind: 'list', purpose: 'play' }) }
-        : { ...state, mode: 'sandbox', saves: event.saves, panel: { kind: 'sandboxSize' } };
+      return event.saves.length > 0 || event.broken.length > 0
+        ? { ...state, mode: 'sandbox', message: '', saves: event.saves, broken: event.broken, panel: slots({ kind: 'list', purpose: 'play' }) }
+        : { ...state, mode: 'sandbox', message: '', saves: event.saves, broken: event.broken, panel: { kind: 'sandboxSize' } };
     case 'sandboxSized':
-      return { ...state, mode: 'sandbox', saves: event.saves, panel: startOrOverwrite('sandbox', event.saves) };
+      return { ...state, mode: 'sandbox', saves: event.saves, broken: event.broken, panel: startOrOverwrite('sandbox', event.saves, event.broken) };
+    case 'menuMessage':
+      return { ...state, message: event.message };
     case 'openSandboxSize':
       return { ...state, panel: { kind: 'sandboxSize' } };
     case 'closeSandboxSize':
@@ -87,7 +96,7 @@ export function titleReducer(state: TitleState, event: TitleEvent): TitleState {
     case 'show':
       return event.view === null ? { ...state, panel: { kind: 'menu' }, pendingImport: null } : { ...state, panel: slots(event.view) };
     case 'refreshed':
-      return { ...state, saves: event.saves, notice: '', panel: event.view ? slots(event.view) : state.panel };
+      return { ...state, saves: event.saves, broken: event.broken ?? state.broken, notice: '', panel: event.view ? slots(event.view) : state.panel };
     case 'listed':
       return { ...state, saves: event.saves };
     case 'notice':

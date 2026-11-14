@@ -10,6 +10,7 @@ import { toDate } from '../../sim/clock';
 import { MAX_COMPANY_NAME, isValidCompanyName, sortByRecent, type CompanySave } from '../../services/companies';
 import type { GameMode } from '../../company/company';
 import type { SaveSlotView } from '../../ui/titleFlow';
+import type { BrokenSlot } from '../../services/saveRecords';
 
 // 会社の要約（経営は Lv・年目・月・日。サンドボックスは広さ）。一覧と確認の文言で使う
 export const companySummary = (save: CompanySave): string => {
@@ -25,6 +26,8 @@ interface Props {
   view: SaveSlotView;
   mode: GameMode;
   saves: readonly CompanySave[];
+  // 読めない枠（一覧に「読めない会社」として出す。選べず、消すだけできる）
+  broken: readonly BrokenSlot[];
   suggested: string;
   notice: string;
   onView: (view: SaveSlotView | null) => void;
@@ -34,6 +37,7 @@ interface Props {
   onDuplicate: (save: CompanySave) => void;
   onExport: (save: CompanySave) => void;
   onDelete: (save: CompanySave) => void;
+  onDeleteBroken: (slot: number) => void;
   onImport: (file: File) => void;
   onNewHere: () => void;
   // 読み込んだ会社を上書きする一覧か（上書きの確認のあとに、読み込んだ会社を入れる）
@@ -92,7 +96,7 @@ export function SaveSlotDialog(props: Props) {
       return true;
     });
   }, [props.view, props.saves, phone]);
-  const { view, mode, saves, suggested, notice, onView, onPlay, onStartIn, onRename, onDuplicate, onExport, onDelete, onImport, onNewHere, importing, onOverwriteWith } = props;
+  const { view, mode, saves, broken, suggested, notice, onView, onPlay, onStartIn, onRename, onDuplicate, onExport, onDelete, onDeleteBroken, onImport, onNewHere, importing, onOverwriteWith } = props;
   const close = () => onView(null);
   const toList = (purpose: 'play' | 'overwrite') => onView({ kind: 'list', purpose });
 
@@ -158,6 +162,25 @@ export function SaveSlotDialog(props: Props) {
     );
   }
 
+  if (view.kind === 'deleteBroken') {
+    const slot = view.slot;
+    return (
+      <Modal primary={() => toList('play')} onClose={() => toList('play')}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 320 }}>
+          <div>{t('ui.company.broken.delete.confirm')}</div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button style={primaryButton} onClick={() => toList('play')}>
+              {t('ui.company.cancel')}
+            </button>
+            <button style={dangerButton} onClick={() => onDeleteBroken(slot)}>
+              {t('ui.company.delete.ok')}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
   // 一覧（始める・社名を変える・複製・書き出す・消す。上書きの一覧では、上書きする枠を選ぶ）
   const purpose = view.purpose;
   return (
@@ -165,7 +188,7 @@ export function SaveSlotDialog(props: Props) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 280, maxWidth: 380 }}>
         <div style={{ fontSize: 15 }}>{purpose === 'overwrite' ? t('ui.company.list.overwrite') : t('ui.company.list.title')}</div>
         {notice !== '' && <div style={{ color: '#ffd866', fontSize: 13 }}>{notice}</div>}
-        {saves.length === 0 && <div style={{ opacity: 0.8 }}>{t('ui.company.list.empty')}</div>}
+        {saves.length === 0 && broken.length === 0 && <div style={{ opacity: 0.8 }}>{t('ui.company.list.empty')}</div>}
         {sortByRecent(saves).map((save, index) => (
           <div key={save.slot} style={{ border: '1px solid #3b2a33', padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div
@@ -205,6 +228,18 @@ export function SaveSlotDialog(props: Props) {
                 </button>
               )}
             </div>
+            )}
+          </div>
+        ))}
+        {broken.map((b) => (
+          <div key={`broken-${b.slot}`} style={{ border: '1px solid #3b2a33', padding: 8, display: 'flex', flexDirection: 'column', gap: 6, opacity: 0.8 }}>
+            <div style={{ fontSize: 14 }}>{t('ui.company.list.broken')}</div>
+            {purpose === 'play' && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button style={dangerButton} onClick={() => onView({ kind: 'deleteBroken', slot: b.slot })}>
+                  {t('ui.company.delete')}
+                </button>
+              </div>
             )}
           </div>
         ))}

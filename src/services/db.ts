@@ -5,13 +5,7 @@ import { SAVE_VERSION, migrate } from './migrations';
 import type { GameMode, Company } from '../company/company';
 import { LEGACY_SLOT, SLOTS } from './slots';
 import type { CompanySave } from './companies';
-
-interface SaveRecord {
-  slot: number;
-  saveVersion: number;
-  savedAt: number;
-  data: Company;
-}
+import { splitRecords, type BrokenSlot, type SaveRecord, type SplitRecords } from './saveRecords';
 
 class GameDb extends Dexie {
   saves!: Table<SaveRecord, number>;
@@ -34,11 +28,16 @@ export const loadSlot = async (slot: number): Promise<Company | null> => {
   return migrate(record.saveVersion, record.data);
 };
 
-// 遊び方の会社の一覧（その遊び方の枠に保存されているもの）。読むときに移行を通す
-export const listCompanies = async (mode: GameMode): Promise<CompanySave[]> => {
-  const records = await db.saves.where('slot').anyOf([...SLOTS[mode]]).toArray();
-  return records.map((r) => ({ slot: r.slot, savedAt: r.savedAt, data: migrate(r.saveVersion, r.data) }));
-};
+// 遊び方の会社の一覧（その遊び方の枠に保存されているもの）。読むときに移行を通す。移行できない枠は含めない（listBrokenSlots で受け取る）
+export const listCompanies = async (mode: GameMode): Promise<CompanySave[]> => splitRecords(await modeRecords(mode)).saves;
+
+// 遊び方の会社と読めない枠を、1回の読み込みでまとめて返す
+export const listSlots = async (mode: GameMode): Promise<SplitRecords> => splitRecords(await modeRecords(mode));
+
+// 遊び方の読めない枠（移行で例外になった枠）
+export const listBrokenSlots = async (mode: GameMode): Promise<BrokenSlot[]> => splitRecords(await modeRecords(mode)).broken;
+
+const modeRecords = (mode: GameMode): Promise<SaveRecord[]> => db.saves.where('slot').anyOf([...SLOTS[mode]]).toArray();
 
 // 会社を消す（元に戻せない）
 export const deleteSlot = async (slot: number): Promise<void> => {

@@ -2,9 +2,9 @@
 // 何を出すかは titleFlow の値が決める。保存の読み書きはここで行い、結果を titleFlow に渡す。
 import { useEffect, useReducer } from 'react';
 import { t } from '../../i18n/t';
-import { listCompanies } from '../../services/db';
+import { listSlots } from '../../services/db';
 import { suggestCompanyName, type CompanySave } from '../../services/companies';
-import { copyCompany, dbSlotStore, deleteCompany, importCompany, overwriteCompany, renameCompany } from '../../services/companySlots';
+import { copyCompany, dbSlotStore, deleteBrokenSlot, deleteCompany, importCompany, overwriteCompany, renameCompany } from '../../services/companySlots';
 import { exportSave, importSave } from '../../services/saveFile';
 import { saveSession } from '../../services/saveSession';
 import { Speed, useGameStore } from '../../stores/useGameStore';
@@ -22,19 +22,46 @@ import { useSceneStore } from '../../stores/useSceneStore';
 // 会社を開いて遊ぶ・新しく始めるとき、ゲームの場面へ移る
 const TitleScene = ({ opening }: { opening?: 'newCareer' }) => {
   const [state, dispatch] = useReducer(titleReducer, initialTitleState);
-  const { panel, mode, saves, notice, message, pendingImport } = state;
+  const { panel, mode, saves, broken, notice, message, pendingImport } = state;
+
+  // 読み込みに失敗したときは、メニューに知らせを出す（タイトルの操作は止めない）
+  const loadFailed = (e: unknown) => dispatch({ type: 'menuMessage', message: t('ui.title.loadFailed', { reason: (e as Error).message }) });
 
   // 新しく始める（経営）。空いた枠があれば社名を決めて始める。全部埋まっていれば、上書きする会社を選ばせる（N132）
-  const onNew = async () => dispatch({ type: 'newCareer', saves: await listCompanies('career') });
+  const onNew = async () => {
+    try {
+      dispatch({ type: 'newCareer', ...(await listSlots('career')) });
+    } catch (e) {
+      loadFailed(e);
+    }
+  };
 
   // 「コンティニュー」は会社の一覧を開く（最後に遊んだ会社を先頭に出す。1社だけでも一覧を開く・N157）
-  const onContinue = async () => dispatch({ type: 'continueCareer', saves: await listCompanies('career'), noneMessage: t('ui.title.none') });
+  const onContinue = async () => {
+    try {
+      dispatch({ type: 'continueCareer', ...(await listSlots('career')), noneMessage: t('ui.title.none') });
+    } catch (e) {
+      loadFailed(e);
+    }
+  };
 
   // サンドボックスは、保存があれば一覧を開き（「新しく作る」も一覧に置く）、なければ広さを選んで始める
-  const onSandbox = async () => dispatch({ type: 'sandbox', saves: await listCompanies('sandbox') });
+  const onSandbox = async () => {
+    try {
+      dispatch({ type: 'sandbox', ...(await listSlots('sandbox')) });
+    } catch (e) {
+      loadFailed(e);
+    }
+  };
 
   // 広さを決めたサンドボックスは、社名を決めてから始める
-  const onSandboxSized = async () => dispatch({ type: 'sandboxSized', saves: await listCompanies('sandbox') });
+  const onSandboxSized = async () => {
+    try {
+      dispatch({ type: 'sandboxSized', ...(await listSlots('sandbox')) });
+    } catch (e) {
+      loadFailed(e);
+    }
+  };
 
   // 一覧の「新しく作る」: 経営は社名、サンドボックスは広さを選ぶ
   const onNewHere = () => {
@@ -114,6 +141,12 @@ const TitleScene = ({ opening }: { opening?: 'newCareer' }) => {
     dispatch({ type: 'refreshed', saves, view: { kind: 'list', purpose: 'play' } });
   };
 
+  // 読めない枠を消す（元に戻せない）
+  const removeBroken = async (slot: number) => {
+    const result = await deleteBrokenSlot(dbSlotStore, mode, slot);
+    dispatch({ type: 'refreshed', saves: result.saves, broken: result.broken, view: { kind: 'list', purpose: 'play' } });
+  };
+
   // 読み込んだ会社を、選んだ会社の枠に入れる（上書きの確認のあと。N133）
   const overwriteWithPending = async (save: CompanySave) => {
     if (pendingImport === null) return;
@@ -155,6 +188,7 @@ const TitleScene = ({ opening }: { opening?: 'newCareer' }) => {
           view={panel.view}
           mode={mode}
           saves={saves}
+          broken={broken}
           suggested={suggestCompanyName(mode, saves)}
           notice={notice}
           onView={(view) => dispatch({ type: 'show', view })}
@@ -164,6 +198,7 @@ const TitleScene = ({ opening }: { opening?: 'newCareer' }) => {
           onDuplicate={copySave}
           onExport={exportCompany}
           onDelete={removeSave}
+          onDeleteBroken={removeBroken}
           onImport={importFromFile}
           onNewHere={onNewHere}
           importing={pendingImport !== null}

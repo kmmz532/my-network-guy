@@ -8,6 +8,7 @@ const fakeStore = (initial: CompanySave[]) => {
   const slots = new Map<number, CompanySave>(initial.map((s) => [s.slot, s]));
   const store: SlotStore = {
     list: async (mode: GameMode) => [...slots.values()].filter((s) => s.data.mode === mode).sort((a, b) => a.slot - b.slot),
+    listBroken: async () => [],
     save: async (slot, data) => {
       slots.set(slot, { slot, savedAt: 0, data });
     },

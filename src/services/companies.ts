@@ -22,8 +22,8 @@ export const isValidCompanyName = (name: string): boolean => {
 // 遊び方の既定の社名
 export const defaultNameOf = (mode: GameMode): string => (mode === 'sandbox' ? DEFAULT_SANDBOX_NAME : DEFAULT_COMPANY_NAME);
 
-// 空いている枠（最も小さい番号）。全部埋まっていれば null
-export const freeSlotOf = (mode: GameMode, saves: readonly CompanySave[]): number | null => {
+// 空いている枠（最も小さい番号）。全部埋まっていれば null。読めない枠も埋まっているものとして数える（上書きで消さないため）
+export const freeSlotOf = (mode: GameMode, saves: readonly { slot: number }[]): number | null => {
   const used = new Set(saves.map((s) => s.slot));
   return SLOTS[mode].find((slot) => !used.has(slot)) ?? null;
 };
