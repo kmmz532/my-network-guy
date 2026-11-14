@@ -59,7 +59,7 @@ describe('設定のコマンド（段階3）', () => {
     expect(viaTree('ip address 0 192.168.1.999 255.255.255.0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errIp' });
     expect(viaTree('ip address 0 192.168.1.10 255.0.255.0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errMask' });
     expect(viaTree('ip address 0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageIpAddress' });
-    expect(viaTree('ip foo', tr)).toEqual({ kind: 'error', text: 'ui.terminal.unknown' });
+    expect(viaTree('ip foo', tr)).toEqual({ kind: 'error', text: '     ^' });
   });
 
 });

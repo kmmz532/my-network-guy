@@ -1,4 +1,5 @@
 // 入力の行の補完。登録された命令（COMMANDS）の固定の語から、今の入力の続きを探す。
+import { isArg } from './args';
 import { COMMANDS } from './registry';
 import type { CommandContext } from './types';
 
@@ -15,7 +16,7 @@ export const completeLine = (line: string, ctx: CommandContext): string => {
     if (spec.topic !== null && !ctx.unlocked(spec.topic)) continue;
     const next = spec.tokens[before.length];
     if (next === undefined || !('word' in next) || !next.word.startsWith(typed)) continue;
-    if (before.every((w, i) => { const token = spec.tokens[i]; return 'word' in token && token.word === w; })) candidates.add(next.word);
+    if (before.every((w, i) => { const token = spec.tokens[i]; return 'word' in token ? token.word === w : 'arg' in token && isArg(token.arg, w); })) candidates.add(next.word);
   }
   if (candidates.size === 0) return line;
   const list = [...candidates];

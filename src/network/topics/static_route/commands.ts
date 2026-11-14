@@ -2,7 +2,7 @@
 import { adOf } from '../../engine/stages/routing';
 import { learnedRoutesOf } from '../../query/learnedRoutes';
 import { networkAddress } from '../../segments';
-import { isIp, maskToPrefix } from '../../command/args';
+import { prefixOfMask } from '../../command/args';
 import type { TerminalLine } from '../../terminal';
 import { changed, err, out, readOnlyLine, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
@@ -36,35 +36,24 @@ export const commands: readonly CommandSpec[] = [
   {
     id: 'static_route.ipRoute',
     modes: ['exec', 'config'],
-    tokens: [{ word: 'ip' }, { word: 'route' }, { rest: 'args' }],
+    tokens: [{ word: 'ip' }, { word: 'route' }, { arg: 'ip', name: 'dest' }, { arg: 'mask', name: 'mask' }, { arg: 'ip', name: 'nextHop' }],
     help: '',
     writes: true,
     topic: 'static_route',
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words.length !== 3) return shown([err(tr('ui.terminal.usageRoute'))]);
-      if (!isIp(words[0]) || !isIp(words[2])) return shown([err(tr('ui.terminal.errIp'))]);
-      const prefix = maskToPrefix(words[1]);
-      if (prefix === null) return shown([err(tr('ui.terminal.errMask'))]);
-      return changed(ctx, tr, { kind: 'addRoute', route: { dest: words[0], prefix, nextHop: words[2] } });
-    },
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'addRoute', route: { dest: args.dest, prefix: prefixOfMask(args.mask), nextHop: args.nextHop } }),
   },
   {
     id: 'static_route.noIpRoute',
     modes: ['exec', 'config'],
-    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'route' }, { rest: 'args' }],
+    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'route' }, { arg: 'ip', name: 'dest' }, { arg: 'mask', name: 'mask' }],
     help: '',
     writes: true,
     topic: 'static_route',
     run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words.length !== 2) return shown([err(tr('ui.terminal.usageNoRoute'))]);
-      if (!isIp(words[0])) return shown([err(tr('ui.terminal.errIp'))]);
-      const prefix = maskToPrefix(words[1]);
-      if (prefix === null) return shown([err(tr('ui.terminal.errMask'))]);
       // 読み取り専用の拒否は、経路の有無の検査より先
       if (ctx.readOnly) return shown([readOnlyLine(tr)]);
-      const index = ctx.node.routes.findIndex((r) => r.dest === words[0] && r.prefix === prefix);
+      const prefix = prefixOfMask(args.mask);
+      const index = ctx.node.routes.findIndex((r) => r.dest === args.dest && r.prefix === prefix);
       if (index < 0) return shown([err(tr('ui.terminal.noRouteToRemove'))]);
       return changed(ctx, tr, { kind: 'removeRoute', index });
     },
@@ -72,28 +61,19 @@ export const commands: readonly CommandSpec[] = [
   {
     id: 'static_route.ipDefaultGateway',
     modes: ['exec', 'config'],
-    tokens: [{ word: 'ip' }, { word: 'default-gateway' }, { rest: 'args' }],
+    tokens: [{ word: 'ip' }, { word: 'default-gateway' }, { arg: 'ip', name: 'gateway' }],
     help: '',
     writes: true,
     topic: 'static_route',
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words.length !== 1) return shown([err(tr('ui.terminal.usageGateway'))]);
-      if (!isIp(words[0])) return shown([err(tr('ui.terminal.errIp'))]);
-      return changed(ctx, tr, { kind: 'gateway', gateway: words[0] });
-    },
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'gateway', gateway: args.gateway }),
   },
   {
     id: 'static_route.noIpDefaultGateway',
     modes: ['exec', 'config'],
-    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'default-gateway' }, { rest: 'args' }],
+    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'default-gateway' }],
     help: '',
     writes: true,
     topic: 'static_route',
-    run: (args, ctx, tr) => {
-      // 語が続く形は、未知の命令の誤りになる
-      if (args.args !== '') return shown([err(tr('ui.terminal.unknown'))]);
-      return changed(ctx, tr, { kind: 'gateway', gateway: null });
-    },
+    run: (_args, ctx, tr) => changed(ctx, tr, { kind: 'gateway', gateway: null }),
   },
 ];

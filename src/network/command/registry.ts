@@ -20,13 +20,13 @@ const registry = new Registry<CommandSpec>('命令');
 for (const spec of [...svi, ...core, ...vlan, ...staticRoute, ...rip, ...ospf, ...bgp, ...vrrp, ...lag, ...nat, ...dhcp, ...stp, ...dns, ...wireless]) 
   registry.register(spec);
 
-// { arg }（型のある引数）の語は、突き合わせが未対応。実行の時ではなく、登録の時に落とす
-export const assertSupportedTokens = (specs: readonly CommandSpec[]): void => {
+// { rest } は最後の語に限る。途中にあると、その後ろの語を読めない。登録の時に落とす
+export const assertTokens = (specs: readonly CommandSpec[]): void => {
   for (const spec of specs) {
-    if (spec.tokens.some((token) => 'arg' in token)) throw new Error(`型のある引数は未対応: ${spec.id}`);
+    if (spec.tokens.some((token, i) => 'rest' in token && i !== spec.tokens.length - 1)) throw new Error(`{ rest } が最後の語でない: ${spec.id}`);
   }
 };
-assertSupportedTokens(registry.all());
+assertTokens(registry.all());
 
 registry.freeze();
 

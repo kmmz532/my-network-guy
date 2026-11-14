@@ -3,7 +3,7 @@ import { isValidHostname } from '../hostname';
 import { ifacePrefixOf } from '../iface';
 import { portCountOf } from '../../registry/query';
 import type { NetNode } from '../types';
-import type { TerminalSession } from './types';
+import type { ArgKind, TerminalSession } from './types';
 
 // 口の番号から、機器のインターフェースの id を引く。その番号の口がなければ null
 export const ifaceIdOf = (node: NetNode, port: number): string | null => node.interfaces.find((i) => i.port === port)?.id ?? null;
@@ -44,4 +44,37 @@ export const parseIfaceName = (device: string, text: string): TerminalSession['i
   const m = (ifacePrefixOf(device) === 'eth' ? /^eth(\d+)$/i : /^(?:g|gi|gigabitethernet)0\/(\d+)$/i).exec(text);
   if (m === null || Number(m[1]) >= portCountOf(device)) return null;
   return { kind: 'port', port: Number(m[1]) };
+};
+
+// マスク（255.255.255.0）をプレフィックス長に直す。isArg('mask', …) を通った語にだけ使う。通っていなければ例外にする
+export const prefixOfMask = (mask: string): number => {
+  const prefix = maskToPrefix(mask);
+  if (prefix === null) throw new Error(`マスクの形でない: ${mask}`);
+  return prefix;
+};
+
+const rangeOk = (s: string, min: number, max: number): boolean => /^\d{1,10}$/.test(s) && Number(s) >= min && Number(s) <= max;
+const VLAN_LIST_RE = /^\d+(-\d+)?(,\d+(-\d+)?)*$/;
+
+// 語が、引数の型の形に合うか。形だけを見る（口が機器にあるか・経路があるかなどの中身は、命令の run が検査する）
+export const isArg = (kind: ArgKind, text: string): boolean => {
+  switch (kind) {
+    case 'iface': return /^(?:(?:g|gi|gigabitethernet)0\/\d+|eth\d+|vlan\d+)$/i.test(text);
+    case 'ip': return isIp(text);
+    case 'mask': return maskToPrefix(text) !== null;
+    case 'wildcard': {
+      // マスクを反転した形（0.0.0.255）。連続した0の後に1が続く
+      if (!isIp(text)) return false;
+      const bits = text.split('.').map((x) => Number(x).toString(2).padStart(8, '0')).join('');
+      return /^0*1*$/.test(bits);
+    }
+    case 'prefix': return rangeOk(text, 0, 32);
+    case 'vlan': return vlanNumber(text) !== null;
+    case 'vlanList': return VLAN_LIST_RE.test(text) && text.split(/[,-]/).every((n) => vlanNumber(n) !== null);
+    case 'area': return rangeOk(text, 0, 4294967295);
+    case 'asn': return rangeOk(text, 1, 4294967295);
+    case 'number': return /^\d{1,10}$/.test(text);
+    case 'word': return text !== '';
+    case 'hostOrIp': return isIp(text) || (!/^[\d.]+$/.test(text) && isHostName(text));
+  }
 };

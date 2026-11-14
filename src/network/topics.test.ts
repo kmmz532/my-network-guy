@@ -40,7 +40,7 @@ const missingOf = (t: Topic): Record<TopicItem, string[]> => {
   // 命令の木で解釈でき、その命令の論点がこの論点であれば欠けはない
   const parsed = t.command === null ? null : parseLine(t.command, { mode: 'exec', iface: null, process: null });
   const command = t.command === null ? ['（命令なし）'] : parsed !== null && 'spec' in parsed && parsed.spec.topic === t.id ? [] : [t.command];
-  const show = t.show === null ? ['（show なし）'] : runLine(t.show, commandContextOf({ ...ctx, state: analyze({ nodes, links }, engine) }, false), tr).lines.some((l) => l.text.startsWith('ui.terminal.unknown')) ? [t.show] : [];
+  const show = t.show === null ? ['（show なし）'] : runLine(t.show, commandContextOf({ ...ctx, state: analyze({ nodes, links }, engine) }, false), tr).lines.some((l) => l.text === 'ui.terminal.invalidAt') ? [t.show] : [];
   const failures = t.failures.flatMap((id) => [`error.${id}`, `error.${id}.fix`].filter((k) => text[k] === undefined));
   const warnings = t.warnings.filter((id) => text[`warn.${id}`] === undefined).map((id) => `warn.${id}`);
   const glossary = t.glossary === null ? ['（用語なし）'] : text[`glossary.${t.glossary}`] !== undefined ? [] : [`glossary.${t.glossary}`];

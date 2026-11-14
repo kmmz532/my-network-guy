@@ -1,21 +1,10 @@
-// 入力の行を、登録された命令（COMMANDS）の1つに当てはめる。語の並びが合う命令を、今のモードのものから探す。
+// 入力の行を、登録された命令（COMMANDS）の1つに当てはめる。語を1つずつ、今のモードの命令の語の並びに突き合わせて絞る。
+// 固定の語は、その位置で一意に決まるときに略記（conf t・int g0/1・sh ip ro）を展開する。
+import { isArg } from './args';
 import { COMMANDS } from './registry';
-import type { CommandSpec, TerminalSession } from './types';
+import type { CommandSpec, Token, TerminalSession } from './types';
 
-// 略記を展開する表。語の位置（それまでの語）ごとに、続けられる固定の語を並べる。ここにある語だけを展開する
-export const LEGACY_ABBREV: Record<string, string[]> = {
-  '': ['help', 'show', 'ping', 'traceroute', 'ip', 'no', 'hostname', 'clear'],
-  show: ['ip', 'interfaces', 'running-config', 'mac'],
-  'show mac': ['address-table'],
-  'show ip': ['route', 'ospf', 'nat'],
-  'show ip nat': ['translations'],
-  'show ip rip': ['database'],
-  'show ip ospf': ['neighbor'],
-  ip: ['address', 'default-gateway', 'route'],
-  no: ['ip', 'hostname'],
-  'no ip': ['default-gateway', 'route'],
-};
-
+// invalid は、解釈できない語（語が足りない行は、行末の次の位置）。ambiguous は、一意に決まらない略記
 export type ParseResult =
   | { spec: CommandSpec; args: Record<string, string> }
   | { error: 'invalid' | 'ambiguous'; at: number };
@@ -28,57 +17,53 @@ interface Word {
 
 const wordsOf = (line: string): Word[] => [...line.matchAll(/\S+/g)].map((m) => ({ text: m[0], at: m.index }));
 
-// 略記を正式な語に直す。語が一意に決まるときだけ展開し、決まらない語があればその位置を返す。表にない語は、そのまま残す
-const expand = (words: Word[]): { words: Word[] } | { ambiguousAt: number } => {
-  const expanded: Word[] = [];
-  let context = '';
-  for (const word of words) {
-    const candidates = (LEGACY_ABBREV[context] ?? []).filter((w) => w.startsWith(word.text));
-    if (candidates.includes(word.text)) {
-      expanded.push(word);
-      context = context === '' ? word.text : `${context} ${word.text}`;
-    } else if (candidates.length === 1) {
-      expanded.push({ text: candidates[0], at: word.at });
-      context = context === '' ? candidates[0] : `${context} ${candidates[0]}`;
-    } else if (candidates.length > 1) {
-      return { ambiguousAt: word.at };
-    } else {
-      // 表にない語（機器の名前・アドレスなど）は、そのまま残す。以降は表で展開しない
-      expanded.push(word);
-      context = '\u0000';
-    }
-  }
-  return { words: expanded };
+// 突き合わせの途中の命令。tokens の何番目まで読んだかは、語の位置と同じ（{ rest } は残りをすべて読んで終わる）
+interface Live {
+  spec: CommandSpec;
+  args: Record<string, string>;
+  done: boolean; // { rest } で残りを読み終えた
+}
+
+// 語が、命令の語の並びの i 番目に合うか。exact は固定の語と同じ、prefix は固定の語の頭と同じ、value は型・残りの語に合う
+const kindOf = (token: Token | undefined, text: string): 'exact' | 'prefix' | 'value' | null => {
+  if (token === undefined) return null;
+  if ('word' in token) return token.word === text ? 'exact' : token.word.startsWith(text) ? 'prefix' : null;
+  if ('rest' in token) return 'value';
+  return isArg(token.arg, text) ? 'value' : null;
 };
 
-// 命令の語の並びと、行の語を突き合わせる。合えば引数（{ rest } は残りの語を空白でつないだもの）を返す
-const match = (spec: CommandSpec, words: readonly Word[]): Record<string, string> | null => {
-  const args: Record<string, string> = {};
-  let i = 0;
-  for (const token of spec.tokens) {
-    if ('word' in token) {
-      if (words[i]?.text !== token.word) return null;
-      i += 1;
-    } else if ('rest' in token) {
-      args[token.rest] = words.slice(i).map((w) => w.text).join(' ');
-      i = words.length;
-    } else {
-      throw new Error(`型のある引数は未対応: ${spec.id}`);
-    }
-  }
-  return i === words.length ? args : null;
-};
-
-// 木で解釈できない行は null を返す
+// 空の行は null。それ以外は、命令に当てはまるか誤りの位置を返す
 export const parseLine = (line: string, session: TerminalSession): ParseResult | null => {
-  const expanded = expand(wordsOf(line));
-  for (const spec of COMMANDS.all()) {
-    if (!spec.modes.includes(session.mode)) continue;
-    const words = 'ambiguousAt' in expanded ? null : expanded.words;
-    if (words === null) continue;
-    const args = match(spec, words);
-    if (args !== null) return { spec, args };
+  const words = wordsOf(line);
+  if (words.length === 0) return null;
+  let live: Live[] = COMMANDS.all().filter((spec) => spec.modes.includes(session.mode)).map((spec) => ({ spec, args: {}, done: false }));
+  for (const [i, word] of words.entries()) {
+    const kinds = live.map((l) => (l.done ? 'value' : kindOf(l.spec.tokens[i], word.text)));
+    // 優先は、固定の語と同じ > 型・残りの語 > 略記（頭が同じ）
+    const pick = (kind: 'exact' | 'prefix' | 'value'): Live[] => live.filter((_, n) => kinds[n] === kind);
+    let next = pick('exact');
+    if (next.length === 0) next = pick('value');
+    let text = word.text;
+    if (next.length === 0) {
+      next = pick('prefix');
+      const candidates = new Set(next.map((l) => (l.spec.tokens[i] as { word: string }).word));
+      if (candidates.size > 1) return { error: 'ambiguous', at: word.at };
+      if (candidates.size === 1) [text] = candidates;
+    }
+    if (next.length === 0) return { error: 'invalid', at: word.at };
+    live = next.map((l) => {
+      if (l.done) return l;
+      const token = l.spec.tokens[i];
+      if ('arg' in token) return { ...l, args: { ...l.args, [token.name]: text } };
+      if ('rest' in token) return { ...l, args: { ...l.args, [token.rest]: words.slice(i).map((w) => w.text).join(' ') }, done: true };
+      return l;
+    });
   }
-  if ('ambiguousAt' in expanded) return { error: 'ambiguous', at: expanded.ambiguousAt };
-  return null;
+  // 語を読み終えた。残りの語がない（または { rest } だけ）の命令に当てはまる
+  for (const l of live) {
+    const left = l.done ? [] : l.spec.tokens.slice(words.length);
+    if (left.length === 0) return { spec: l.spec, args: l.args };
+    if (left.length === 1 && 'rest' in left[0]) return { spec: l.spec, args: { ...l.args, [left[0].rest]: '' } };
+  }
+  return { error: 'invalid', at: line.trimEnd().length + 1 };
 };

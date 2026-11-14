@@ -42,8 +42,8 @@ describe('モードの移り変わり', () => {
   });
 
   it('モードにない命令は未知の命令になる（exec の exit・config の show）', () => {
-    expect(run('exit', exec).lines).toEqual([{ text: 'ui.terminal.unknown', kind: 'err' }]);
-    expect(run('show ip', config).lines).toEqual([{ text: 'ui.terminal.unknown', kind: 'err' }]);
+    expect(run('exit', exec).lines).toEqual([{ text: '  ^', kind: 'err' }, { text: 'ui.terminal.invalidAt', kind: 'err' }]);
+    expect(run('show ip', config).lines).toEqual([{ text: '  ^', kind: 'err' }, { text: 'ui.terminal.invalidAt', kind: 'err' }]);
   });
 
   it('ない口・読めない名前の interface は、モードを変えず誤りを返す', () => {

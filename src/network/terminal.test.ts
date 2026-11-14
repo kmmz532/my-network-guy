@@ -86,7 +86,7 @@ describe('ターミナルのコマンド', () => {
     const ctx = { node: nodes[0], nodes, links, data };
     expect(run('ping', ctx, tr)).toEqual([{ text: 'ui.terminal.usagePing', kind: 'err' }]);
     expect(run('ping 10.0.0.1', ctx, tr)[0].text).toBe('ui.terminal.noHost {"ip":"10.0.0.1"}');
-    expect(run('reboot', ctx, tr)).toEqual([{ text: 'ui.terminal.unknown {"cmd":"reboot"}', kind: 'err' }]);
+    expect(run('reboot', ctx, tr)).toEqual([{ text: '  ^', kind: 'err' }, { text: 'ui.terminal.invalidAt', kind: 'err' }]);
   });
 });
 

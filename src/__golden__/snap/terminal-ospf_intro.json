@@ -6,7 +6,8 @@
     {
       "line": "show",
       "lines": [
-        "err:ui.terminal.unknown {\"cmd\":\"show\"}"
+        "err:       ^",
+        "err:ui.terminal.invalidAt"
       ]
     },
     {
@@ -25,8 +26,7 @@
     {
       "line": "sh ip r",
       "lines": [
-        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":0}",
-        "out:ui.terminal.routeConnected {\"net\":\"10.0.12.0\",\"prefix\":30,\"port\":1}"
+        "err:ui.terminal.ambiguous"
       ]
     },
     {
@@ -75,7 +75,8 @@
     {
       "line": "show xyz",
       "lines": [
-        "err:ui.terminal.unknown {\"cmd\":\"show xyz\"}"
+        "err:       ^",
+        "err:ui.terminal.invalidAt"
       ]
     },
     {
@@ -86,7 +87,8 @@
     {
       "line": "conf t",
       "lines": [
-        "err:ui.terminal.unknown {\"cmd\":\"conf\"}"
+        "err:  ^",
+        "err:ui.terminal.invalidAt"
       ]
     },
     {
@@ -101,7 +103,8 @@
     {
       "line": "int g0/1",
       "lines": [
-        "err:ui.terminal.unknown {\"cmd\":\"int\"}"
+        "err:  ^",
+        "err:ui.terminal.invalidAt"
       ]
     },
     {
@@ -239,7 +242,8 @@
     {
       "line": "exit",
       "lines": [
-        "err:ui.terminal.unknown {\"cmd\":\"exit\"}"
+        "err:  ^",
+        "err:ui.terminal.invalidAt"
       ]
     },
     {
@@ -339,19 +343,22 @@
     {
       "line": "show ip",
       "lines": [
-        "err:ui.terminal.unknown {\"cmd\":\"show ip\"}"
+        "err:  ^",
+        "err:ui.terminal.invalidAt"
       ]
     },
     {
       "line": "hostname R1-NEW",
       "lines": [
-        "err:ui.terminal.unknown {\"cmd\":\"hostname\"}"
+        "err:  ^",
+        "err:ui.terminal.invalidAt"
       ]
     },
     {
       "line": "interface g0/1",
       "lines": [
-        "err:ui.terminal.unknown {\"cmd\":\"interface\"}"
+        "err:  ^",
+        "err:ui.terminal.invalidAt"
       ]
     },
     {
@@ -498,7 +505,8 @@
     {
       "line": "show ip ospf neighbor",
       "lines": [
-        "err:ui.terminal.unknown {\"cmd\":\"show ip ospf neighbor\"}"
+        "err:  ^",
+        "err:ui.terminal.invalidAt"
       ]
     },
     {
@@ -557,13 +565,15 @@
     {
       "line": "exit",
       "lines": [
-        "err:ui.terminal.unknown {\"cmd\":\"exit\"}"
+        "err:  ^",
+        "err:ui.terminal.invalidAt"
       ]
     },
     {
       "line": "end",
       "lines": [
-        "err:ui.terminal.unknown {\"cmd\":\"end\"}"
+        "err:  ^",
+        "err:ui.terminal.invalidAt"
       ]
     },
     {
@@ -622,8 +632,10 @@
     },
     {
       "line": "ip default-gateway x",
-      "result": "error",
-      "text": "ui.terminal.errIp"
+      "lines": [
+        "err:                     ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "no ip default-gateway",
@@ -702,8 +714,10 @@
     },
     {
       "line": "ip route 10.0.9.0 255.0.255.0 10.0.1.1",
-      "result": "error",
-      "text": "ui.terminal.errMask"
+      "lines": [
+        "err:                    ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "no ip route 10.0.9.0 255.255.255.0",
@@ -712,8 +726,10 @@
     },
     {
       "line": "no ip route 10.0.9.0 255.255.255.0 extra",
-      "result": "error",
-      "text": "ui.terminal.usageNoRoute"
+      "lines": [
+        "err:                                     ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "ip address 0 dhcp",

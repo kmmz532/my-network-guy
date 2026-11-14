@@ -15,15 +15,13 @@ export const commandContextOf = (base: TerminalContext, readOnly: boolean, sessi
   readOnly,
 });
 
+// 入力欄の行は、画面では「> 」を付けて写す。誤りの位置の ^ は、その分を空ける
+const ECHO_PREFIX = 2;
+
 export const runLine = (line: string, ctx: CommandContext, tr: Tr): CommandResult => {
   const parsed = parseLine(line, ctx.session);
-  if (parsed !== null) {
-    if (!('error' in parsed)) return parsed.spec.run(parsed.args, ctx, tr);
-    if (parsed.error === 'ambiguous') return shown([err(tr('ui.terminal.ambiguous'))]);
-    throw new Error(`未対応の解釈の誤り: ${parsed.error}`);
-  }
-  const [cmd] = line.trim().split(/\s+/);
-  if (cmd === '') return shown([]);
-  // show で始まる行は、行全体を示す（略記は show に展開して読む）
-  return shown([err(tr('ui.terminal.unknown', { cmd: 'show'.startsWith(cmd) ? line.trim() : cmd }))]);
+  if (parsed === null) return shown([]);
+  if (!('error' in parsed)) return parsed.spec.run(parsed.args, ctx, tr);
+  if (parsed.error === 'ambiguous') return shown([err(tr('ui.terminal.ambiguous'))]);
+  return shown([err(`${' '.repeat(ECHO_PREFIX + parsed.at)}^`), err(tr('ui.terminal.invalidAt'))]);
 };
