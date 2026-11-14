@@ -683,3 +683,7 @@ input.ui-text-input--full {
   display: block;
   box-sizing: border-box;
 }
+
+.ui-badge--xs {
+  font-size: var(--fs-xs);
+}
