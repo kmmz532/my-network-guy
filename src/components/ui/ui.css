@@ -377,6 +377,10 @@ input.ui-text-input--full {
   gap: 4px;
 }
 
+.ui-checkbox--s {
+  font-size: 12px;
+}
+
 /* Choice: 同じ幅・同じ高さの箱を並べる */
 .ui-choice {
   display: grid;
