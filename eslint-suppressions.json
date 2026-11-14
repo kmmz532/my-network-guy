@@ -320,13 +320,13 @@
   },
   "src/components/SviField.tsx": {
     "local/no-look-export": {
-      "count": 3
+      "count": 2
     },
     "local/no-look-props": {
       "count": 3
     },
     "local/no-native-control": {
-      "count": 5
+      "count": 2
     }
   },
   "src/components/TabConflict.tsx": {

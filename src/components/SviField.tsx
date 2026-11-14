@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { t } from '../i18n/t';
 import type { NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
-import { buttonStyle, greyColor, inputStyle, isIpText } from './devicePorts';
+import { buttonStyle, greyColor, isIpText } from './devicePorts';
+import { TextInput } from './ui/TextInput';
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0', fontSize: 12 } as const;
 
@@ -28,9 +29,9 @@ export function SviField({ node, disabled, onError }: { node: NetNode; disabled:
         </div>
       ))}
       <div style={row}>
-        <input aria-label="VLAN" placeholder="VLAN" value={vlan} disabled={disabled} style={{ ...inputStyle, width: 56 }} onChange={(e) => setVlan(e.target.value)} />
-        <input aria-label="IP" placeholder="IP" value={ip} disabled={disabled} style={{ ...inputStyle, width: 120 }} onChange={(e) => setIp(e.target.value)} />
-        <input aria-label={t('ui.config.prefix')} value={prefix} disabled={disabled} style={{ ...inputStyle, width: 40 }} onChange={(e) => setPrefix(e.target.value)} />
+        <TextInput label="VLAN" placeholder="VLAN" value={vlan} disabled={disabled} onChange={setVlan} layout={{ width: 56 }} />
+        <TextInput label="IP" placeholder="IP" value={ip} disabled={disabled} onChange={setIp} layout={{ width: 120 }} />
+        <TextInput label={t('ui.config.prefix')} value={prefix} disabled={disabled} onChange={setPrefix} layout={{ width: 40 }} />
         <button
           style={buttonStyle}
           disabled={disabled || !addable}
