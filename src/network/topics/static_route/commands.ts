@@ -2,7 +2,7 @@
 import { adOf } from '../../engine/stages/routing';
 import { learnedRoutesOf } from '../../query/learnedRoutes';
 import { networkAddress } from '../../segments';
-import { isIp, maskToPrefix } from '../../terminalConfig';
+import { isIp, maskToPrefix } from '../../command/args';
 import type { TerminalLine } from '../../terminal';
 import { changed, err, out, readOnlyLine, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
@@ -91,7 +91,7 @@ export const commands: readonly CommandSpec[] = [
     writes: true,
     topic: 'static_route',
     run: (args, ctx, tr) => {
-      // 語が続く形は、今の parseConfig と同じく未知の命令の誤りになる
+      // 語が続く形は、未知の命令の誤りになる
       if (args.args !== '') return shown([err(tr('ui.terminal.unknown'))]);
       return changed(ctx, tr, { kind: 'gateway', gateway: null });
     },

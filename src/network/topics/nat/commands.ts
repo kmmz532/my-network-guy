@@ -1,9 +1,8 @@
 // NAT の論点の命令。
 import type { TerminalLine } from '../../terminal';
-import { ifaceIdOf } from '../../command/args';
 import { changed, err, out, portMissing, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
-import { isIp, port } from '../../terminalConfig';
+import { ifaceIdOf, isIp, port } from '../../command/args';
 
 export const commands: readonly CommandSpec[] = [
   {

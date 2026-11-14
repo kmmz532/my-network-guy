@@ -1,10 +1,9 @@
 // OSPF の論点の命令。
 import { ospfMismatchesOf } from '../../query/ospfMismatches';
 import { ospfNeighborsOf } from '../../query/ospfNeighbors';
-import { ifaceIdOf } from '../../command/args';
 import { changed, err, nameOf, out, portMissing, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
-import { isIp } from '../../terminalConfig';
+import { ifaceIdOf, isIp } from '../../command/args';
 
 export const commands: readonly CommandSpec[] = [
   {
@@ -90,6 +89,28 @@ export const commands: readonly CommandSpec[] = [
       const id = ifaceIdOf(ctx.node, Number(words[1]));
       if (id === null) return portMissing(ctx, tr);
       return changed(ctx, tr, { kind: 'ospf', change: { op: 'iface', id, key, value: Number(words[2]) } });
+    },
+  },
+  {
+    id: 'ospf.router',
+    modes: ['exec'],
+    tokens: [{ word: 'router' }, { word: 'ospf' }, { rest: 'args' }],
+    help: '',
+    writes: true,
+    topic: 'ospf',
+    run: (_args, ctx, tr) => {
+      return changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', on: true } });
+    },
+  },
+  {
+    id: 'ospf.noRouter',
+    modes: ['exec'],
+    tokens: [{ word: 'no' }, { word: 'router' }, { word: 'ospf' }, { rest: 'args' }],
+    help: '',
+    writes: true,
+    topic: 'ospf',
+    run: (_args, ctx, tr) => {
+      return changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', on: false } });
     },
   },
 ];

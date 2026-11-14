@@ -1,7 +1,7 @@
 // DNS の論点の命令。
 import { changed, err, out, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
-import { isHostName, isIp } from '../../terminalConfig';
+import { isHostName, isIp } from '../../command/args';
 
 export const commands: readonly CommandSpec[] = [
   {

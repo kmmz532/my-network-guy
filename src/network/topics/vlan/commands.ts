@@ -4,7 +4,7 @@ import { deviceCategory } from '../../../registry/query';
 import { changed, err, out, shown } from '../../command/lines';
 import type { CommandContext, CommandResult, CommandSpec } from '../../command/types';
 import type { Tr } from '../../terminal';
-import { port, vlanNumber } from '../../terminalConfig';
+import { port, vlanNumber } from '../../command/args';
 
 // スイッチの MAC の表は、同じ L2 のドメインの端末から求める。端末では使えない
 const showMacAddressTable = (_args: unknown, ctx: CommandContext, tr: Tr): CommandResult => {
@@ -67,7 +67,7 @@ export const commands: readonly CommandSpec[] = [
     help: '',
     writes: true,
     topic: 'vlan',
-    // 形は2つ。trunk（口 trunk …）→ access（口 access vlan 番号）の順に当てる（今の parseConfig と同じ）
+    // 形は2つ。trunk（口 trunk …）→ access（口 access vlan 番号）の順に当てる
     run: (args, ctx, tr) => {
       const words = args.args.split(' ').filter((w) => w !== '');
       if (words[1] === 'trunk') {

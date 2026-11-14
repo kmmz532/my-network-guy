@@ -7,6 +7,7 @@ import { commands as lag } from '../topics/lag/commands';
 import { commands as nat } from '../topics/nat/commands';
 import { commands as ospf } from '../topics/ospf/commands';
 import { commands as rip } from '../topics/rip/commands';
+import { commands as svi } from '../topics/svi/commands';
 import { commands as staticRoute } from '../topics/static_route/commands';
 import { commands as stp } from '../topics/stp/commands';
 import { commands as vlan } from '../topics/vlan/commands';
@@ -16,7 +17,7 @@ import { commands as core } from './core';
 import type { CommandSpec } from './types';
 
 const registry = new Registry<CommandSpec>('命令');
-for (const spec of [...core, ...vlan, ...staticRoute, ...rip, ...ospf, ...bgp, ...vrrp, ...lag, ...nat, ...dhcp, ...stp, ...dns, ...wireless]) 
+for (const spec of [...svi, ...core, ...vlan, ...staticRoute, ...rip, ...ospf, ...bgp, ...vrrp, ...lag, ...nat, ...dhcp, ...stp, ...dns, ...wireless]) 
   registry.register(spec);
 
 registry.freeze();

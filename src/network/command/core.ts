@@ -5,7 +5,7 @@ import { isL2Category, isRoutingCategory } from '../category';
 import { framesOf } from '../frames';
 import { macOf } from '../mac';
 import { resolveName } from '../resolve';
-import { isIp, maskToPrefix, port, vlanNumber } from '../terminalConfig';
+import { isIp, maskToPrefix, port } from './args';
 import { isValidHostname } from '../hostname';
 import type { NetNode } from '../types';
 import { deviceCategory } from '../../registry/query';
@@ -111,22 +111,13 @@ export const commands: readonly CommandSpec[] = [
     help: '',
     writes: true,
     topic: null,
-    // 形は3つ。DHCP（口 dhcp）→ SVI（vlan 番号 IP マスク）→ 口（口 IP マスク）の順に当てる（今の parseConfig と同じ）
+    // 形は2つ。DHCP（口 dhcp）→ 口（口 IP マスク）の順に当てる（SVI の ip address vlan は svi の論点）
     run: (args, ctx, tr) => {
       const words = args.args.split(' ').filter((w) => w !== '');
       if (words.length === 2 && words[1] === 'dhcp') {
         const p = port(words[0]);
         if (p === null) return shown([err(tr('ui.terminal.errPort'))]);
         return changed(ctx, tr, { kind: 'dhcp', change: { op: 'client', port: p } });
-      }
-      if (words[0] === 'vlan') {
-        if (words.length !== 4) return shown([err(tr('ui.terminal.usageSvi'))]);
-        const v = vlanNumber(words[1]);
-        if (v === null) return shown([err(tr('ui.terminal.errVlan'))]);
-        if (!isIp(words[2])) return shown([err(tr('ui.terminal.errIp'))]);
-        const prefix = maskToPrefix(words[3]);
-        if (prefix === null) return shown([err(tr('ui.terminal.errMask'))]);
-        return changed(ctx, tr, { kind: 'svi', vlan: v, ip: words[2], prefix });
       }
       if (words.length !== 3) return shown([err(tr('ui.terminal.usageIpAddress'))]);
       const p = port(words[0]);
@@ -135,21 +126,6 @@ export const commands: readonly CommandSpec[] = [
       const prefix = maskToPrefix(words[2]);
       if (prefix === null) return shown([err(tr('ui.terminal.errMask'))]);
       return changed(ctx, tr, { kind: 'iface', port: p, ip: words[1], prefix });
-    },
-  },
-  {
-    id: 'core.noIpAddressVlan',
-    modes: ['exec'],
-    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'address' }, { word: 'vlan' }, { rest: 'args' }],
-    help: '',
-    writes: true,
-    topic: null,
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words.length !== 1) return shown([err(tr('ui.terminal.usageSvi'))]);
-      const v = vlanNumber(words[0]);
-      if (v === null) return shown([err(tr('ui.terminal.errVlan'))]);
-      return changed(ctx, tr, { kind: 'svi', vlan: v, ip: '', prefix: 24 });
     },
   },
   {

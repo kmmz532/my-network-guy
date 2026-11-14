@@ -1,9 +1,8 @@
 // VRRP の論点の命令。
 import { vrrpStatusOf } from '../../query/vrrpStatus';
-import { ifaceIdOf } from '../../command/args';
 import { changed, err, out, portMissing, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
-import { isIp, port } from '../../terminalConfig';
+import { ifaceIdOf, isIp, port } from '../../command/args';
 
 // 口の番号と VRID（1〜255）。合わなければ null
 const vrrpArgs = (w: readonly string[]) => {

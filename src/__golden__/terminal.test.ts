@@ -1,5 +1,5 @@
 // 命令の列の記録: 場面（教材の初期の構成）ごとに、設定の命令の列を1行ずつ流し、各行の出力と、流し終えた後の構成（保存の形）を記録する。
-// 命令の列は src/__golden__/terminal/<場面>.txt に置く。ターミナルが受け付ける命令の語は、ターミナルのソースから集め、いずれかの列に出ることを確かめる
+// 命令の列は src/__golden__/terminal/<場面>.txt に置く。登録されたすべての命令が、いずれかの列で1回以上解釈されることを確かめる
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -12,7 +12,8 @@ import type { GameMap } from '../data/schema';
 import officeSmall from '../assets/data/maps/office_small.json';
 import { analyze } from '../network/engine/analyze';
 import { commandContextOf, runLine } from '../network/command/run';
-import { parseConfig } from '../network/terminalConfig';
+import { parseLine } from '../network/command/parse';
+import { COMMANDS } from '../network/command/registry';
 import type { NetLink } from '../network/types';
 
 const snapDir = join(import.meta.dirname, 'snap');
@@ -25,6 +26,8 @@ const tr = (key: string, params?: Record<string, string | number>): string => (p
 const opCtx: OpContext = { env: gameEnv, target: 'focus', map: null, hq: officeSmall as unknown as GameMap, mode: 'career' };
 
 // 場面の命令の列を流す。@ の行で機器を選び、それ以外の行を1つの命令として流す
+const session = { mode: 'exec', iface: null, process: null } as const;
+
 const runScene = (lessonId: string, text: string) => {
   const lesson = lessons.find((l) => l.id === lessonId);
   if (!lesson) throw new Error(`教材 ${lessonId} がない`);
@@ -58,7 +61,7 @@ const runScene = (lessonId: string, text: string) => {
       } else {
         log.push({ line, result: 'fail', reason: r.reason });
       }
-    } else if (parseConfig(line, tr).kind === 'none') {
+    } else if (!(parseLine(line, session) as { spec?: { writes: boolean } } | null)?.spec?.writes) {
       log.push({ line, lines: result.lines.map((l) => `${l.kind}:${l.text}`) });
     } else {
       // 設定の命令の誤り（記録の形は、行ごとの結果を分けて残す）
@@ -83,27 +86,10 @@ describe('命令の列の記録（設定の命令・show・ping など）', () =
   }
 });
 
-// ターミナルが受け付ける命令の語を、ターミナルのソース（terminal.ts・terminalConfig.ts）の比較と略記の表、
-// 命令の木（command/・topics/*/commands.ts）の固定の語から集める
-const keywordsOfSource = (): string[] => {
-  const networkDir = join(import.meta.dirname, '..', 'network');
-  const src = ['terminal.ts', 'terminalConfig.ts'].map((f) => readFileSync(join(networkDir, f), 'utf8')).join('\n');
-  const compared = [...src.matchAll(/(?:===|!==)\s*'([a-z][a-z0-9 -]*)'/g)].map((m) => m[1]);
-  const keyed = [...src.matchAll(/'([a-z][a-z0-9-]*)':/g)].map((m) => m[1]);
-  const treeFiles = [
-    join(networkDir, 'command', 'core.ts'),
-    ...readdirSync(join(networkDir, 'topics'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => join(networkDir, 'topics', d.name, 'commands.ts')),
-  ];
-  const words = treeFiles.flatMap((f) => [...readFileSync(f, 'utf8').matchAll(/\{ word: '([a-z][a-z0-9-]*)' \}/g)].map((m) => m[1]));
-  // 命令の語ではない比較の値（接続の状態）は除く
-  const notCommand = new Set(['established']);
-  return [...new Set([...compared, ...keyed, ...words])].filter((w) => !notCommand.has(w)).sort();
-};
-
 describe('命令の一覧', () => {
-  it('ターミナルが受け付けるすべての命令の語が、いずれかの列に1回以上出る', () => {
-    const lines = scenes.flatMap((f) => readFileSync(join(scenesDir, f), 'utf8').split('\n')).map((l) => l.trim()).filter((l) => l !== '' && !l.startsWith('#')).map((l) => ` ${l} `);
-    const missing = keywordsOfSource().filter((w) => !lines.some((l) => l.includes(` ${w} `)));
-    expect(missing).toEqual([]);
+  it('登録されたすべての命令が、いずれかの列で1回以上解釈される', () => {
+    const lines = scenes.flatMap((f) => readFileSync(join(scenesDir, f), 'utf8').split(/\r?\n/)).map((l) => l.trim()).filter((l) => l !== '' && !l.startsWith('#') && !l.startsWith('@'));
+    const parsed = new Set(lines.flatMap((l) => { const r = parseLine(l, session); return r !== null && 'spec' in r ? [r.spec.id] : []; }));
+    expect(COMMANDS.all().map((spec) => spec.id).filter((id) => !parsed.has(id))).toEqual([]);
   });
 });

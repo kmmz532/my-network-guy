@@ -1,8 +1,9 @@
-// 機器のターミナルのタブ。コマンドを1行ずつ入力し、結果を履歴に積む（コマンドは network/command/ の木と terminalConfig.ts）。
+// 機器のターミナルのタブ。コマンドを1行ずつ入力し、結果を履歴に積む（コマンドは network/command/ の木）。
 // ↑↓で過去の入力を呼び出し、Tab で補完する。clear は表示の履歴を消す（入力の履歴は残す）。
 import { useState, type KeyboardEvent } from 'react';
 import { t, tDyn } from '../i18n/t';
-import { completeLine, type TerminalLine } from '../network/terminal';
+import type { TerminalLine } from '../network/terminal';
+import { completeLine } from '../network/command/complete';
 import { commandContextOf, runLine } from '../network/command/run';
 import type { NetLink, NetNode } from '../network/types';
 import type { NetworkState } from '../network/public';
@@ -32,6 +33,19 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
   const commands = useGameStore((s) => s.terminalCommands[node.uid] ?? NO_COMMANDS);
   const [recall, setRecall] = useState<number | null>(null);
 
+  const contextOf = () => commandContextOf({
+    node,
+    nodes,
+    links,
+    data: engineWithWalls(gameEnv.engine, state.maps[focusedProject(state)?.contract.map ?? 'hq']),
+    state: netState,
+    nameOf: (n) => nodeLabel(state, n, nodes),
+    arp,
+    macTable,
+    onReach: (dst) => learnPing(node.uid, dst),
+    onTrace: showTrace,
+  }, readOnly);
+
   const run = () => {
     const line = input.trim();
     if (line === '') return;
@@ -44,19 +58,7 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
       return;
     }
     const tr = (key: string, params?: Record<string, string | number>) => tDyn(key, params);
-    const context = commandContextOf({
-      node,
-      nodes,
-      links,
-      data: engineWithWalls(gameEnv.engine, state.maps[focusedProject(state)?.contract.map ?? 'hq']),
-      state: netState,
-      nameOf: (n) => nodeLabel(state, n, nodes),
-      arp,
-      macTable,
-      onReach: (dst) => learnPing(node.uid, dst),
-      onTrace: showTrace,
-    }, readOnly);
-    const result = runLine(line, context, tr);
+    const result = runLine(line, contextOf(), tr);
     let out: readonly TerminalLine[];
     if (result.change === null) {
       out = result.lines;
@@ -90,7 +92,7 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
       // ゲーム全体の「次の入力へ」に渡さず、補完だけに使う
       e.preventDefault();
       e.stopPropagation();
-      setInput(completeLine(input));
+      setInput(completeLine(input, contextOf()));
     }
   };
 

@@ -10,7 +10,7 @@ export const commands: readonly CommandSpec[] = [
     help: '',
     writes: true,
     topic: 'wireless',
-    // 続く語は無視する（今の parseConfig と同じ）。キーごとに値の形を調べる
+    // 続く語は無視する。キーごとに値の形を調べる
     run: (args, ctx, tr) => {
       const [key, value] = args.args.split(' ').filter((w) => w !== '');
       if (key === 'ssid' && value !== undefined && value.length <= 32) return changed(ctx, tr, { kind: 'wireless', key: 'ssid', value });

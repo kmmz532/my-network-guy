@@ -2,7 +2,7 @@ import { analyze } from './engine/analyze';
 // 通信で覚えること（N69）。ping が通ったとき、送信元の ARP の表と、経路上のスイッチの MAC の表に加える行を求める純粋な関数。
 // 表は保存しない（画面の状態として持つ）。学習の材料であり、依頼の目標には使わない。
 import { ping } from './engine';
-import { isIp } from './terminalConfig';
+import { isIp } from './command/args';
 import { l2Path, learnedOnPath, macOf, type MacEntry } from './mac';
 import type { EngineData, NetLink, NetNode } from './types';
 import { networkAddress } from './segments';

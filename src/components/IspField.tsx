@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { t } from '../i18n/t';
 import { INTERNET_IP, INTERNET_PREFIX } from '../network/external';
-import { isIp } from '../network/terminalConfig';
+import { isIp } from '../network/command/args';
 import type { IspLine, NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, inputStyle, sectionStyle } from './devicePorts';

@@ -3,7 +3,7 @@ import { dhcpOf } from '../../query/dhcp';
 import { changed, err, nameOf, out, shown } from '../../command/lines';
 import type { DhcpPool } from '../../dhcp';
 import type { CommandSpec } from '../../command/types';
-import { isIp, maskToPrefix, port } from '../../terminalConfig';
+import { isIp, maskToPrefix, port } from '../../command/args';
 
 export const commands: readonly CommandSpec[] = [
   {

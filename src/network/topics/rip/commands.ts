@@ -2,7 +2,7 @@
 import { learnedRoutesOf } from '../../query/learnedRoutes';
 import { changed, err, out, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
-import { isIp, maskToPrefix } from '../../terminalConfig';
+import { isIp, maskToPrefix } from '../../command/args';
 
 export const commands: readonly CommandSpec[] = [
   {
@@ -21,33 +21,23 @@ export const commands: readonly CommandSpec[] = [
   {
     id: 'rip.router',
     modes: ['exec'],
-    tokens: [{ word: 'router' }, { rest: 'args' }],
+    tokens: [{ word: 'router' }, { word: 'rip' }, { rest: 'args' }],
     help: '',
     writes: true,
     topic: 'rip',
-    // router rip・router ospf・router bgp <AS> の3つを、この順に当てる（OSPF・BGP もこの命令が受ける）。続く語は無視する
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words[0] === 'rip' || words[0] === 'ospf') return changed(ctx, tr, { kind: 'routing', change: { proto: words[0], on: true } });
-      if (words[0] === 'bgp') {
-        if (!/^[0-9]+$/.test(words[1] ?? '')) return shown([err(tr('ui.terminal.usageBgp'))]);
-        return changed(ctx, tr, { kind: 'bgp', change: { op: 'asn', asn: Number(words[1]) } });
-      }
-      return shown([err(tr('ui.terminal.unknown'))]);
+    run: (_args, ctx, tr) => {
+      return changed(ctx, tr, { kind: 'routing', change: { proto: 'rip', on: true } });
     },
   },
   {
     id: 'rip.noRouter',
     modes: ['exec'],
-    tokens: [{ word: 'no' }, { word: 'router' }, { rest: 'args' }],
+    tokens: [{ word: 'no' }, { word: 'router' }, { word: 'rip' }, { rest: 'args' }],
     help: '',
     writes: true,
     topic: 'rip',
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words[0] === 'rip' || words[0] === 'ospf') return changed(ctx, tr, { kind: 'routing', change: { proto: words[0], on: false } });
-      if (words[0] === 'bgp') return changed(ctx, tr, { kind: 'bgp', change: { op: 'off' } });
-      return shown([err(tr('ui.terminal.unknown'))]);
+    run: (_args, ctx, tr) => {
+      return changed(ctx, tr, { kind: 'routing', change: { proto: 'rip', on: false } });
     },
   },
   {
@@ -57,7 +47,7 @@ export const commands: readonly CommandSpec[] = [
     help: '',
     writes: true,
     topic: 'rip',
-    // 形は3つ。BGP（IP mask マスク）→ RIP（IP）→ OSPF（IP ワイルドカード area エリア）の順に当てる（今の parseConfig と同じ）
+    // 形は3つ。BGP（IP mask マスク）→ RIP（IP）→ OSPF（IP ワイルドカード area エリア）の順に当てる
     run: (args, ctx, tr) => {
       const words = args.args.split(' ').filter((w) => w !== '');
       if (words.length === 3 && words[1] === 'mask' && isIp(words[0])) {

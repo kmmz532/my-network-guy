@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { isIp, maskToPrefix, parseConfig } from './terminalConfig';
-import type { EngineData, NetNode } from './types';
-import type { NetworkState } from './engine/state';
-import type { Tr } from './terminal';
-import { commandContextOf, runLine } from './command/run';
+import { isIp, maskToPrefix } from './args';
+import type { EngineData, NetNode } from '../types';
+import type { NetworkState } from '../engine/state';
+import type { Tr } from '../terminal';
+import { commandContextOf, runLine } from './run';
 
 // 木の命令の結果を、解釈の形（action は設定の操作、error は誤りの鍵）に合わせて見る
 const treeCtx = commandContextOf({ node: {} as NetNode, nodes: [], links: [], data: {} as EngineData, state: {} as NetworkState }, false);
@@ -59,13 +59,9 @@ describe('設定のコマンド（段階3）', () => {
     expect(viaTree('ip address 0 192.168.1.999 255.255.255.0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errIp' });
     expect(viaTree('ip address 0 192.168.1.10 255.0.255.0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errMask' });
     expect(viaTree('ip address 0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageIpAddress' });
-    expect(parseConfig('ip foo', tr)).toEqual({ kind: 'error', text: 'ui.terminal.unknown' });
+    expect(viaTree('ip foo', tr)).toEqual({ kind: 'error', text: 'ui.terminal.unknown' });
   });
 
-  it('設定のコマンドでなければ none を返す（確認のコマンドに任せる）', () => {
-    expect(parseConfig('show ip', tr)).toEqual({ kind: 'none' });
-    expect(parseConfig('ping 192.168.1.11', tr)).toEqual({ kind: 'none' });
-  });
 });
 
 describe('hostname', () => {

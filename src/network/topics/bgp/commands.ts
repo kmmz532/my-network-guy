@@ -3,7 +3,7 @@ import { bgpTableOf } from '../../query/bgpTable';
 import { changed, err, out, shown } from '../../command/lines';
 import type { CommandContext, CommandResult, CommandSpec } from '../../command/types';
 import type { Tr } from '../../terminal';
-import { isIp } from '../../terminalConfig';
+import { isIp } from '../../command/args';
 
 const showSummary = (_args: unknown, ctx: CommandContext, tr: Tr): CommandResult => {
   const bgp = bgpTableOf(ctx.state, ctx.node.uid);
@@ -51,7 +51,7 @@ export const commands: readonly CommandSpec[] = [
     help: '',
     writes: true,
     topic: 'bgp',
-    // 形は3つ。next-hop-self → 属性（local-preference・med・prepend の値）→ remote-as の順に当てる（今の parseConfig と同じ）
+    // 形は3つ。next-hop-self → 属性（local-preference・med・prepend の値）→ remote-as の順に当てる
     run: (args, ctx, tr) => {
       const words = args.args.split(' ').filter((w) => w !== '');
       if (isIp(words[0] ?? '') && words[1] === 'next-hop-self' && words.length === 2) return changed(ctx, tr, { kind: 'bgp', change: { op: 'attr', ip: words[0], key: 'nextHopSelf', value: true } });
@@ -75,6 +75,30 @@ export const commands: readonly CommandSpec[] = [
       const words = args.args.split(' ').filter((w) => w !== '');
       if (isIp(words[0] ?? '') && words[1] === 'next-hop-self' && words.length === 2) return changed(ctx, tr, { kind: 'bgp', change: { op: 'attr', ip: words[0], key: 'nextHopSelf', value: false } });
       return shown([err(tr('ui.terminal.unknown'))]);
+    },
+  },
+  {
+    id: 'bgp.router',
+    modes: ['exec'],
+    tokens: [{ word: 'router' }, { word: 'bgp' }, { rest: 'args' }],
+    help: '',
+    writes: true,
+    topic: 'bgp',
+    run: (args, ctx, tr) => {
+      const [asn] = args.args.split(' ').filter((w) => w !== '');
+      if (!/^[0-9]+$/.test(asn ?? '')) return shown([err(tr('ui.terminal.usageBgp'))]);
+      return changed(ctx, tr, { kind: 'bgp', change: { op: 'asn', asn: Number(asn) } });
+    },
+  },
+  {
+    id: 'bgp.noRouter',
+    modes: ['exec'],
+    tokens: [{ word: 'no' }, { word: 'router' }, { word: 'bgp' }, { rest: 'args' }],
+    help: '',
+    writes: true,
+    topic: 'bgp',
+    run: (_args, ctx, tr) => {
+      return changed(ctx, tr, { kind: 'bgp', change: { op: 'off' } });
     },
   },
 ];

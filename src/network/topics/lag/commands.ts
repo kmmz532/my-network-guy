@@ -2,7 +2,7 @@
 import { lagBundlesOf } from '../../query/lagBundles';
 import { changed, err, out, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
-import { port } from '../../terminalConfig';
+import { port } from '../../command/args';
 
 export const commands: readonly CommandSpec[] = [
   {

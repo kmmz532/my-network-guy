@@ -1,7 +1,7 @@
 // BGP の設定欄（機器の画面）。自分の AS 番号・隣接（相手のアドレスと AS 番号・属性）・広告するネットワーク
 import { useState } from 'react';
 import { t } from '../i18n/t';
-import { isIp } from '../network/terminalConfig';
+import { isIp } from '../network/command/args';
 import type { NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
 import { dangerButton } from './Modal';
