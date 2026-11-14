@@ -8,6 +8,7 @@ import { totalSalary } from '../sim/staff';
 import { rentalOf } from '../network/external';
 import { gameEnv } from '../sim/env';
 import { useGameStore } from '../stores/useGameStore';
+import { Section } from './ui/Section';
 
 const yen = (n: number) => `${Math.round(n).toLocaleString('ja-JP')}円`;
 
@@ -30,26 +31,33 @@ export function FundsBody() {
   // 収支の合計はお金の増減だけ（経理で浮いた額は含めない）
   const net = (m: { totals: Record<LedgerCategory, number> }) => LEDGER_CATEGORIES.filter((c) => c !== 'saved').reduce((s, c) => s + m.totals[c], 0);
   const maxAbs = Math.max(1, ...history.map((m) => Math.abs(net(m))));
-  const row = { display: 'flex', justifyContent: 'space-between', gap: 8, padding: '4px 0', borderBottom: '1px solid #3b2a33' } as const;
+  // 行の中身（行の区切りは Section が引く）
+  const rowLine = { display: 'flex', justifyContent: 'space-between', gap: 8 } as const;
   return (
     // スクロールはウィンドウの本体だけで行う（中身の枠は持たない・N105）
     <div style={{ padding: 12, fontSize: 14, color: '#f4f1e6' }}>
-      <div style={{ ...row, fontSize: 16 }}>
-        <span>{t('ui.funds.balance')}</span>
-        <span>{clock.ledger === null ? '∞' : yen(clock.money)}</span>
-      </div>
-      <div style={row}>
-        <span>{t('ui.funds.outlook')}</span>
-        <span style={{ color: outlook < 0 ? '#ff8a80' : undefined }}>{yen(outlook)}</span>
-      </div>
+      <Section>
+        <div style={{ ...rowLine, fontSize: 16 }}>
+          <span>{t('ui.funds.balance')}</span>
+          <span>{clock.ledger === null ? '∞' : yen(clock.money)}</span>
+        </div>
+      </Section>
+      <Section>
+        <div style={rowLine}>
+          <span>{t('ui.funds.outlook')}</span>
+          <span style={{ color: outlook < 0 ? '#ff8a80' : undefined }}>{yen(outlook)}</span>
+        </div>
+      </Section>
       <div style={{ paddingTop: 8, color: '#ffd866' }}>{t('ui.funds.thisMonth')}</div>
       {LEDGER_CATEGORIES.map((c: LedgerCategory) => {
         const value = thisMonth?.totals[c] ?? 0;
         return (
-          <div key={c} style={row}>
-            <span>{tDyn(`ledger.${c}`)}</span>
-            <span style={{ color: value < 0 ? '#ff8a80' : undefined }}>{value === 0 ? '—' : yen(value)}</span>
-          </div>
+          <Section key={c}>
+            <div style={rowLine}>
+              <span>{tDyn(`ledger.${c}`)}</span>
+              <span style={{ color: value < 0 ? '#ff8a80' : undefined }}>{value === 0 ? '—' : yen(value)}</span>
+            </div>
+          </Section>
         );
       })}
       <div style={{ paddingTop: 8, color: '#ffd866' }}>{t('ui.funds.history')}</div>

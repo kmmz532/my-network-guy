@@ -137,7 +137,7 @@
   },
   "src/components/FundsPanel.tsx": {
     "local/no-look-props": {
-      "count": 11
+      "count": 10
     }
   },
   "src/components/Guide.tsx": {
