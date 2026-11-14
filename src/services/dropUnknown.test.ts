@@ -41,6 +41,14 @@ describe('登録にない機器の取り除き', () => {
     expect(r.count).toBe(3);
   });
 
+  it('在庫の家具は登録にあるものとして残す', () => {
+    const desk = registries.furniture.all()[0].id;
+    const data = saveOf({ owned: { pc_basic: 1, [desk]: 2 } });
+    const r = dropUnknownDevices(data);
+    expect(r.data).toBe(data);
+    expect(r.count).toBe(0);
+  });
+
   it('各案件の機器も同じように取り除く', () => {
     const project = { id: 'p1', nodes: [node('g', 'ghost_device')], links: [], contract: { placed: [] } } as unknown as Company['active'][number];
     const r = dropUnknownDevices(saveOf({ active: [project] }));

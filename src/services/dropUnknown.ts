@@ -2,7 +2,7 @@
 // 取り除くのは、ID を持つ次の項目の、未知の要素だけ。
 //   - 社内と各案件の機器（nodes）と、その機器につながる配線（links）。登録にないケーブルの配線も外す
 //   - 社内の家具（furniture）
-//   - 機材の在庫（owned）
+//   - 在庫（owned。機器と家具の ID が入る）
 //   - 型紙（familiarity.blueprints）の機器と配線
 //   - 依頼（offers）と案件（active）の契約の、配置する機器（contract.placed）
 // 既知だけのセーブは、同じ参照を返す。
@@ -101,11 +101,11 @@ export const dropUnknownDevices = (data: Company): DropResult => {
   });
   if (active.some((p, i) => p !== data.active[i])) changed = true;
 
-  // 機材の在庫
+  // 在庫（機器と家具）
   const owned: Record<string, number> = {};
   let ownedChanged = false;
   for (const [id, n] of Object.entries(data.owned)) {
-    if (isKnown(id)) {
+    if (isKnown(id) || isKnownFurniture(id)) {
       owned[id] = n;
     } else {
       ownedChanged = true;
