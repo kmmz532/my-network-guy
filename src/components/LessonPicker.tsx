@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { lessons } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import { useGameStore } from '../stores/useGameStore';
-import { Modal, secondaryButton } from './Modal';
+import { Modal } from './Modal';
 import { Button } from './ui/Button';
 
 export function LessonPicker({ onClose }: { onClose: () => void }) {
@@ -33,9 +33,9 @@ export function LessonPicker({ onClose }: { onClose: () => void }) {
             .filter((l) => l.topic === topic)
             .sort((a, b) => a.order - b.order)
             .map((l) => (
-              <button key={l.id} style={{ ...secondaryButton, display: 'block', width: '100%', margin: '4px 0', textAlign: 'left' }} onClick={() => setPicked(l.id)}>
+              <Button key={l.id} variant="secondary" size="row" layout={{ width: '100%', margin: '4px 0' }} onClick={() => setPicked(l.id)}>
                 {tDyn(`lesson.${l.id}.title`)}
-              </button>
+              </Button>
             ))}
         </div>
       ))}
