@@ -1,10 +1,10 @@
 // タイトル場面の流れ（何を出すか・どこへ移るか）
 import { describe, expect, it } from 'vitest';
 import type { CompanySave } from '../services/companies';
-import type { SaveData } from '../services/migrations';
+import type { World } from '../world/world';
 import { initialTitleState, titleReducer, type TitleEvent, type TitleState } from './titleFlow';
 
-const save = (slot: number, name: string): CompanySave => ({ slot, savedAt: 0, data: { name } as unknown as SaveData });
+const save = (slot: number, name: string): CompanySave => ({ slot, savedAt: 0, data: { name } as unknown as World });
 const run = (events: TitleEvent[], from: TitleState = initialTitleState): TitleState => events.reduce(titleReducer, from);
 
 const CAREER_FULL = [11, 12, 13, 14, 15].map((slot) => save(slot, `会社${slot}`));
@@ -47,7 +47,7 @@ describe('titleReducer（タイトル場面の流れ）', () => {
   });
 
   it('画面を閉じるとメニューに戻り、読み込み中の会社は捨てる', () => {
-    const held = run([{ type: 'importHeld', data: { name: 'X' } as unknown as SaveData, saves: CAREER_FULL, notice: '満杯' }]);
+    const held = run([{ type: 'importHeld', data: { name: 'X' } as unknown as World, saves: CAREER_FULL, notice: '満杯' }]);
     expect(held.pendingImport).not.toBeNull();
     expect(held.panel).toEqual({ kind: 'slots', view: { kind: 'list', purpose: 'overwrite' } });
     expect(held.notice).toBe('満杯');
@@ -73,7 +73,7 @@ describe('titleReducer（タイトル場面の流れ）', () => {
   });
 
   it('読み込んだ会社を枠に入れたら、読み込み中の会社を捨てて一覧（続けて遊ぶ）に戻る', () => {
-    const held = run([{ type: 'importHeld', data: { name: 'X' } as unknown as SaveData, saves: CAREER_FULL, notice: '満杯' }]);
+    const held = run([{ type: 'importHeld', data: { name: 'X' } as unknown as World, saves: CAREER_FULL, notice: '満杯' }]);
     const done = run([{ type: 'importDone', saves: CAREER_FULL }], held);
     expect(done.pendingImport).toBeNull();
     expect(done.notice).toBe('');

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { create } from 'zustand';
 import type { AutoSaveMode } from '../settings/settings';
 import { createSaveSession } from './saveSession';
-import type { SaveData } from './migrations';
+import type { World } from '../world/world';
 
 const day = 24 * 60;
 
@@ -10,17 +10,17 @@ const day = 24 * 60;
 interface FakeGame {
   clock: { minute: number; bankrupt: boolean };
   lastReport: { passed: boolean } | null;
-  snapshot: () => SaveData;
-  load: (data: SaveData) => void;
+  snapshot: () => World;
+  load: (data: World) => void;
 }
 
 const setup = (mode: AutoSaveMode = 'daily') => {
-  const writes: { slot: number; data: SaveData }[] = [];
-  const loaded: SaveData[] = [];
+  const writes: { slot: number; data: World }[] = [];
+  const loaded: World[] = [];
   const game = create<FakeGame>(() => ({
     clock: { minute: day - 60, bankrupt: false },
     lastReport: null,
-    snapshot: () => ({ name: 'テスト社' }) as unknown as SaveData,
+    snapshot: () => ({ name: 'テスト社' }) as unknown as World,
     load: (data) => loaded.push(data),
   }));
   let fail = false;

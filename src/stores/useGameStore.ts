@@ -8,7 +8,8 @@ import { balance } from 'virtual:game-data';
 import { initialClock, type ClockState } from '../sim/clock';
 import type { Offer } from '../contracts/template';
 import type { GameMap, JobId, Staff } from '../data/schema';
-import { DEFAULT_COMPANY_NAME, type GameMode, type SandboxLesson } from '../services/migrations';
+import { DEFAULT_COMPANY_NAME } from '../services/migrations';
+import type { GameMode, SandboxLesson } from '../world/world';
 
 import { type NoticeItem } from '../ui/notices';
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';

@@ -1,6 +1,6 @@
 // 保存の枠（N133）。経営もサンドボックスも、遊び方ごとに複数の枠を持つ（枠は共有しない）。
 // 移行前のセーブ（経営は枠1、サンドボックスは枠2）は、それぞれの遊び方の1つ目の枠へ移す。
-import type { GameMode } from './migrations';
+import type { GameMode } from '../world/world';
 
 // 遊び方ごとの会社の枠。経営は5つ、サンドボックスは3つ
 export const SLOTS: Record<GameMode, readonly number[]> = {

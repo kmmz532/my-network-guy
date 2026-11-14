@@ -219,7 +219,7 @@
       "count": 3
     },
     "local/no-mode-branch": {
-      "count": 7
+      "count": 5
     }
   },
   "src/services/save.test.ts": {
@@ -330,6 +330,11 @@
   "src/ui/titleFlow.ts": {
     "local/no-mode-branch": {
       "count": 11
+    }
+  },
+  "src/world/world.ts": {
+    "local/no-mode-branch": {
+      "count": 2
     }
   }
 }

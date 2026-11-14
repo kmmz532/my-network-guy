@@ -40,6 +40,24 @@ export default tseslint.config(
     },
   },
   {
+    // 世界の型は、画面・保存・状態の層を読まない（ARCH.md 4-1）
+    files: ['src/world/**/*.{ts,tsx}'],
+    ignores: ['src/world/**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/services/**', '**/stores/**', '**/components/**', '**/game/**'],
+              message: 'src/world/ は services・stores・components・game を読まない（ARCH.md 4-1）',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // 登録表の入口だけは、定義を読んで登録する
     files: ['src/registry/game.ts'],
     rules: { 'no-restricted-imports': 'off' },

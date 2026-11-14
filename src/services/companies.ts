@@ -1,5 +1,5 @@
 // 会社（セーブの枠）の規則。画面と保存の両方で使う純粋な関数だけを置く（N133）
-import type { GameMode, SaveData } from './migrations';
+import type { GameMode, World } from '../world/world';
 import { DEFAULT_COMPANY_NAME, DEFAULT_SANDBOX_NAME } from './migrations';
 import { SLOTS } from './slots';
 
@@ -7,7 +7,7 @@ import { SLOTS } from './slots';
 export interface CompanySave {
   slot: number;
   savedAt: number;
-  data: SaveData;
+  data: World;
 }
 
 // 社名の長さの上限（全角12文字。HUD や一覧で切れないように）

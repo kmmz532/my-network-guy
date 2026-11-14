@@ -2,7 +2,7 @@
 import { balance } from 'virtual:game-data';
 import { initialClock } from '../../sim/clock';
 import type { Offer } from '../../contracts/template';
-import { type SaveData } from '../../services/migrations';
+import { type World, worldOf } from '../../world/world';
 import { resizeSandboxOffice, sandboxClock, sandboxOffice } from '../../sim/sandbox';
 
 import { EMPTY_FAMILIARITY } from '../../sim/familiar';
@@ -22,8 +22,8 @@ import type { StateCreator } from 'zustand';
 import { createOps } from '../gameOps';
 
 export interface SessionSlice {
-  load: (save: SaveData) => void;
-  snapshot: () => SaveData;
+  load: (save: World) => void;
+  snapshot: () => World;
   // 最初から始める（資金・在庫・依頼などを初期状態に戻す）
   newGame: (name: string) => void;
   // 社名を変える（前後の空白を除く。空なら変えない・N133）
@@ -214,36 +214,6 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
       set({ office, maps: { ...get().maps, hq: mapOfOffice(office) }, placing: null, wireStart: null, portMenu: null });
       return null;
     },
-    snapshot: () => {
-      const s = get();
-      return {
-        mode: s.mode,
-        name: s.name,
-        clock: s.clock,
-        companyExp: s.companyExp,
-        reputation: s.reputation,
-        expDay: s.expDay,
-        expToday: s.expToday,
-        owned: s.owned,
-        completed: s.completed,
-        deliveries: s.deliveries,
-        familiarity: s.familiarity,
-        offers: s.offers,
-        nextOfferMinute: s.nextOfferMinute,
-        offerSeq: s.offerSeq,
-        newArrivals: s.newArrivals,
-        rng: s.rng,
-        active: s.active,
-        focus: s.focus,
-        office: s.office,
-        effects: s.effects,
-        staff: s.staff,
-        staffSeq: s.staffSeq,
-        candidates: s.candidates,
-        guidesDone: s.guidesDone,
-        termsShown: s.termsShown,
-        sandboxLesson: s.sandboxLesson,
-      };
-    },
+    snapshot: () => worldOf(get()),
   };
 };

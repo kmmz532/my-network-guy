@@ -1,12 +1,13 @@
 // セーブデータのJSONエクスポート・インポート（端末間の移行用）
-import { SAVE_VERSION, isSaveData, migrate, type SaveData } from './migrations';
+import { SAVE_VERSION, isSaveData, migrate } from './migrations';
+import type { World } from '../world/world';
 
 const FORMAT = 'my-network-guy-save';
 
-export const exportSave = (data: SaveData): string =>
+export const exportSave = (data: World): string =>
   JSON.stringify({ format: FORMAT, saveVersion: SAVE_VERSION, data }, null, 2);
 
-export const importSave = (text: string): SaveData => {
+export const importSave = (text: string): World => {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);

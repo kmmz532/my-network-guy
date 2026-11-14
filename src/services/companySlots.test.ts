@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CompanySave } from './companies';
 import { copyCompany, deleteCompany, importCompany, overwriteCompany, renameCompany, type SlotStore } from './companySlots';
-import type { GameMode, SaveData } from './migrations';
+import { GameMode, World } from '../world/world';
 
 // 保存先の代わり（枠の番号ごとに会社を持つ）
 const fakeStore = (initial: CompanySave[]) => {
@@ -22,10 +22,10 @@ const fakeStore = (initial: CompanySave[]) => {
 const company = (slot: number, name: string, mode: GameMode = 'career'): CompanySave => ({
   slot,
   savedAt: slot,
-  data: { name, mode } as unknown as SaveData,
+  data: { name, mode } as unknown as World,
 });
 
-const data = (name: string, mode: GameMode = 'career') => ({ name, mode }) as unknown as SaveData;
+const data = (name: string, mode: GameMode = 'career') => ({ name, mode }) as unknown as World;
 
 const CAREER_FULL = [11, 12, 13, 14, 15].map((slot) => company(slot, `社${slot}`));
 
