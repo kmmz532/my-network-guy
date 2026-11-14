@@ -7,7 +7,8 @@ import { useGameStore } from '../stores/useGameStore';
 import { Button } from './ui/Button';
 import { Dialog } from './ui/Dialog';
 
-export function LessonPicker({ onClose }: { onClose: () => void }) {
+// onPick を渡すと、置き換えの確認を出さずに選んだ教材を返す（新しく始めるときは失う構成がないため）
+export function LessonPicker({ onClose, onPick }: { onClose: () => void; onPick?: (id: string) => void }) {
   const openLesson = useGameStore((s) => s.openLesson);
   const [picked, setPicked] = useState<string | null>(null);
   const topics = [...new Set(lessonCatalog.map((l) => l.group))];
@@ -26,7 +27,7 @@ export function LessonPicker({ onClose }: { onClose: () => void }) {
     );
   }
   return (
-    <Dialog onClose={onClose} layout={{ width: 'min(320px, calc(100% - 32px))' }}>
+    <Dialog onClose={onClose} layout={{ width: 'min(320px, calc(100% - 32px))', maxHeight: 'calc(100% - 32px)', overflowY: 'auto' }}>
       <div style={{ fontWeight: 'bold' }}>{t('ui.lesson.open')}</div>
       {topics.map((topic) => (
         <div key={topic} style={{ marginTop: 8 }}>
@@ -35,7 +36,7 @@ export function LessonPicker({ onClose }: { onClose: () => void }) {
             .filter((l) => l.group === topic)
             .sort((a, b) => a.order - b.order)
             .map((l) => (
-              <Button key={l.id} variant="secondary" size="row" layout={{ width: '100%', margin: '4px 0' }} onClick={() => setPicked(l.id)}>
+              <Button key={l.id} variant="secondary" size="row" layout={{ width: '100%', margin: '4px 0' }} onClick={() => (onPick ? onPick(l.id) : setPicked(l.id))}>
                 {tDyn(l.titleKey)}
               </Button>
             ))}
