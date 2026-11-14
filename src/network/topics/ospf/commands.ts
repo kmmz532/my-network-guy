@@ -1,28 +1,34 @@
 // OSPF の論点の命令。
 import { ospfMismatchesOf } from '../../query/ospfMismatches';
 import { ospfNeighborsOf } from '../../query/ospfNeighbors';
-import { changed, err, nameOf, out, portMissing, shown } from '../../command/lines';
+import { changed, nameOf, out, portMissing, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
-import { areaOf, ifaceIdOf, isIp } from '../../command/args';
-import { enterRouter, interfaceForm, wordsOf } from '../../command/modes';
+import { areaOf, ifaceIdOf } from '../../command/args';
+import { enterRouter, interfaceOf } from '../../command/modes';
 
-const ipOspf: CommandSpec = {
-  id: 'ospf.ipOspf',
+const PORT = { arg: 'number', name: 'port' } as const;
+
+// ip ospf cost・priority・hello-interval・dead-interval <口> <値>。口と値は番号
+const ipOspfKeys = [
+  { word: 'cost', key: 'cost', id: 'Cost' },
+  { word: 'priority', key: 'priority', id: 'Priority' },
+  { word: 'hello-interval', key: 'hello', id: 'Hello' },
+  { word: 'dead-interval', key: 'dead', id: 'Dead' },
+] as const;
+
+const ipOspf: CommandSpec[] = ipOspfKeys.map(({ word, key, id }) => ({
+  id: `ospf.ipOspf${id}`,
   modes: ['exec', 'config'],
-  tokens: [{ word: 'ip' }, { word: 'ospf' }, { rest: 'args' }],
+  tokens: [{ word: 'ip' }, { word: 'ospf' }, { word }, PORT, { arg: 'number', name: 'value' }],
   help: '',
   writes: true,
   topic: 'ospf',
   run: (args, ctx, tr) => {
-    const words = args.args.split(' ').filter((w) => w !== '');
-    const keys = { cost: 'cost', priority: 'priority', 'hello-interval': 'hello', 'dead-interval': 'dead' } as const;
-    const key = keys[words[0] as keyof typeof keys];
-    if (key === undefined || words.length !== 3 || !/^[0-9]+$/.test(words[1]) || !/^[0-9]+$/.test(words[2])) return shown([err(tr('ui.terminal.usageOspf'))]);
-    const id = ifaceIdOf(ctx.node, Number(words[1]));
-    if (id === null) return portMissing(ctx, tr);
-    return changed(ctx, tr, { kind: 'ospf', change: { op: 'iface', id, key, value: Number(words[2]) } });
+    const ifaceId = ifaceIdOf(ctx.node, Number(args.port));
+    if (ifaceId === null) return portMissing(ctx, tr);
+    return changed(ctx, tr, { kind: 'ospf', change: { op: 'iface', id: ifaceId, key, value: Number(args.value) } });
   },
-};
+}));
 
 export const commands: readonly CommandSpec[] = [
   {
@@ -48,20 +54,16 @@ export const commands: readonly CommandSpec[] = [
   {
     id: 'ospf.routerId',
     modes: ['exec', 'config', 'router-ospf'],
-    tokens: [{ word: 'router-id' }, { rest: 'args' }],
+    tokens: [{ word: 'router-id' }, { arg: 'ip', name: 'ip' }],
     help: '',
     writes: true,
     topic: 'ospf',
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words.length !== 1 || !isIp(words[0])) return shown([err(tr('ui.terminal.usageOspf'))]);
-      return changed(ctx, tr, { kind: 'ospf', change: { op: 'routerId', ip: words[0] } });
-    },
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'ospf', change: { op: 'routerId', ip: args.ip } }),
   },
   {
     id: 'ospf.noRouterId',
     modes: ['exec', 'config', 'router-ospf'],
-    tokens: [{ word: 'no' }, { word: 'router-id' }, { rest: 'args' }],
+    tokens: [{ word: 'no' }, { word: 'router-id' }],
     help: '',
     writes: true,
     topic: 'ospf',
@@ -70,31 +72,23 @@ export const commands: readonly CommandSpec[] = [
   {
     id: 'ospf.defaultInformation',
     modes: ['exec', 'config', 'router-ospf'],
-    tokens: [{ word: 'default-information' }, { rest: 'args' }],
+    tokens: [{ word: 'default-information' }, { word: 'originate' }],
     help: '',
     writes: true,
     topic: 'ospf',
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words.length !== 1 || words[0] !== 'originate') return shown([err(tr('ui.terminal.usageOspf'))]);
-      return changed(ctx, tr, { kind: 'ospf', change: { op: 'defaultOriginate', on: true } });
-    },
+    run: (_args, ctx, tr) => changed(ctx, tr, { kind: 'ospf', change: { op: 'defaultOriginate', on: true } }),
   },
   {
     id: 'ospf.noDefaultInformation',
     modes: ['exec', 'config', 'router-ospf'],
-    tokens: [{ word: 'no' }, { word: 'default-information' }, { rest: 'args' }],
+    tokens: [{ word: 'no' }, { word: 'default-information' }, { word: 'originate' }],
     help: '',
     writes: true,
     topic: 'ospf',
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words.length !== 1 || words[0] !== 'originate') return shown([err(tr('ui.terminal.usageOspf'))]);
-      return changed(ctx, tr, { kind: 'ospf', change: { op: 'defaultOriginate', on: false } });
-    },
+    run: (_args, ctx, tr) => changed(ctx, tr, { kind: 'ospf', change: { op: 'defaultOriginate', on: false } }),
   },
-  ipOspf,
-  interfaceForm(ipOspf, (words, p) => [words[0], String(p), ...words.slice(1)]),
+  ...ipOspf,
+  ...ipOspf.map((s) => interfaceOf(s)),
   {
     id: 'ospf.network',
     modes: ['exec', 'config', 'router-ospf'],
@@ -106,27 +100,30 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'ospf.router',
-    modes: ['exec', 'config'],
-    tokens: [{ word: 'router' }, { word: 'ospf' }, { rest: 'args' }],
+    modes: ['exec'],
+    tokens: [{ word: 'router' }, { word: 'ospf' }],
     help: '',
     writes: true,
     topic: 'ospf',
-    // config のモードでは、番号（プロセス）を1つ書き、router-ospf のモードへ入る
-    run: (args, ctx, tr) => {
-      const words = wordsOf(args.args);
-      if (ctx.session.mode === 'config' && (words.length !== 1 || !/^[0-9]+$/.test(words[0]))) return shown([err(tr('ui.terminal.usageOspf'))]);
-      return enterRouter(ctx, changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', on: true } }), 'router-ospf', Number(words[0]));
-    },
+    run: (_args, ctx, tr) => changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', on: true } }),
+  },
+  {
+    id: 'ospf.routerProcess',
+    modes: ['exec', 'config'],
+    tokens: [{ word: 'router' }, { word: 'ospf' }, { arg: 'number', name: 'process' }],
+    help: '',
+    writes: true,
+    topic: 'ospf',
+    // config のモードでは、番号（プロセス）を書いて router-ospf のモードへ入る。exec の形はモードを変えない
+    run: (args, ctx, tr) => enterRouter(ctx, changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', on: true } }), 'router-ospf', Number(args.process)),
   },
   {
     id: 'ospf.noRouter',
     modes: ['exec', 'config'],
-    tokens: [{ word: 'no' }, { word: 'router' }, { word: 'ospf' }, { rest: 'args' }],
+    tokens: [{ word: 'no' }, { word: 'router' }, { word: 'ospf' }],
     help: '',
     writes: true,
     topic: 'ospf',
-    run: (_args, ctx, tr) => {
-      return changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', on: false } });
-    },
+    run: (_args, ctx, tr) => changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', on: false } }),
   },
 ];

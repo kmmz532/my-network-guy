@@ -54,7 +54,7 @@ describe('モードの移り変わり', () => {
 
   it('config の router ospf は番号が要り、設定が通るときだけ router-ospf に入る。読み取り専用では入らない', () => {
     expect(run('router ospf 7', config).session).toEqual({ mode: 'router-ospf', iface: null, process: 7 });
-    expect(run('router ospf', config).lines).toEqual([{ text: 'ui.terminal.usageOspf', kind: 'err' }]);
+    expect(run('router ospf', config).lines).toEqual([{ text: '              ^', kind: 'err' }, { text: 'ui.terminal.invalidAt', kind: 'err' }]);
     expect(run('router ospf 7', config, 'l2_switch_8p', true).session).toBeNull();
     expect(run('router ospf 7', exec).session).toBeNull();
     expect(run('router bgp 65001', config).session).toEqual({ mode: 'router-bgp', iface: null, process: 65001 });
