@@ -18,7 +18,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'dns.ipHost',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'ip' }, { word: 'host' }, { rest: 'args' }],
     help: '',
     writes: true,
@@ -33,7 +33,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'dns.noIpHost',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'host' }, { rest: 'args' }],
     help: '',
     writes: true,
@@ -47,7 +47,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'dns.ipNameServer',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'ip' }, { word: 'name-server' }, { rest: 'args' }],
     help: '',
     writes: true,
@@ -61,7 +61,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'dns.noIpNameServer',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'name-server' }, { rest: 'args' }],
     help: '',
     writes: true,

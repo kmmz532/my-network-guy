@@ -4,6 +4,7 @@ import { useState, type KeyboardEvent } from 'react';
 import { t, tDyn } from '../i18n/t';
 import type { TerminalLine } from '../network/terminal';
 import { completeLine } from '../network/command/complete';
+import { INITIAL_SESSION, promptKeyOf } from '../network/command/modes';
 import { commandContextOf, runLine } from '../network/command/run';
 import type { NetLink, NetNode } from '../network/types';
 import type { NetworkState } from '../network/public';
@@ -31,6 +32,7 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
   // 出力と命令の履歴は機器ごとにストアに持つ（画面を閉じても残る）。↑↓で今指している位置は画面の中だけで持つ（null は新しい入力）
   const history = useGameStore((s) => s.terminalLog[node.uid] ?? NO_LINES);
   const commands = useGameStore((s) => s.terminalCommands[node.uid] ?? NO_COMMANDS);
+  const session = useGameStore((s) => s.terminalSession[node.uid] ?? INITIAL_SESSION);
   const [recall, setRecall] = useState<number | null>(null);
 
   const contextOf = () => commandContextOf({
@@ -44,7 +46,7 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
     macTable,
     onReach: (dst) => learnPing(node.uid, dst),
     onTrace: showTrace,
-  }, readOnly);
+  }, readOnly, session);
 
   const run = () => {
     const line = input.trim();
@@ -62,9 +64,12 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
     let out: readonly TerminalLine[];
     if (result.change === null) {
       out = result.lines;
+      if (result.session !== null) useGameStore.getState().setTerminalSession(node.uid, result.session);
     } else {
       // 設定の操作は、画面の操作と同じ通り道（dispatch）で世界に当てる。失敗したら理由のキー
       const reason = dispatch({ kind: 'config', uid: node.uid, change: result.change }, tileOf(node.uid));
+      // モードを変える設定の命令（router ospf 1 など）は、設定が通ったときだけモードを変える
+      if (reason === null && result.session !== null) useGameStore.getState().setTerminalSession(node.uid, result.session);
       out = reason === null ? [{ text: t('ui.terminal.done'), kind: 'out' }] : [{ text: reason.startsWith('ui.') ? tr(reason) : tr(`ui.error.${reason}`), kind: 'err' }];
     }
     useGameStore.getState().appendTerminal(node.uid, [{ text: `> ${line}`, kind: 'out' }, ...out]);
@@ -123,8 +128,8 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
         }}
         style={{ display: 'flex', gap: 6 }}
       >
-        {/* ホスト名を付けたら、プロンプトとして入力の前に出す（N46） */}
-        {node.hostname && <span style={{ fontFamily: 'monospace', fontSize: 13, alignSelf: 'center' }}>{tDyn('ui.terminal.prompt', { name: node.hostname })}</span>}
+        {/* プロンプト: ホスト名（なければ画面の名前）とモード */}
+        <span style={{ fontFamily: 'monospace', fontSize: 13, alignSelf: 'center' }}>{tDyn(promptKeyOf(session.mode), { name: node.hostname ?? nodeLabel(state, node, nodes) })}</span>
         <input
           aria-label={t('ui.terminal.input')}
           value={input}

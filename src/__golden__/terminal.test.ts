@@ -12,9 +12,11 @@ import type { GameMap } from '../data/schema';
 import langJson from '../assets/lang/ja_jp.json';
 import officeSmall from '../assets/data/maps/office_small.json';
 import { analyze } from '../network/engine/analyze';
+import { INITIAL_SESSION } from '../network/command/modes';
 import { commandContextOf, runLine } from '../network/command/run';
 import { parseLine } from '../network/command/parse';
 import { COMMANDS } from '../network/command/registry';
+import type { TerminalSession } from '../network/command/types';
 import type { NetLink } from '../network/types';
 
 const snapDir = join(import.meta.dirname, 'snap');
@@ -26,10 +28,9 @@ const tr = (key: string, params?: Record<string, string | number>): string => (p
 // 設定の操作は焦点の案件を対象にする。地図は設定の操作では使わない
 const opCtx: OpContext = { env: gameEnv, target: 'focus', map: null, hq: officeSmall as unknown as GameMap, mode: 'career' };
 
-// 場面の命令の列を流す。@ の行で機器を選び、それ以外の行を1つの命令として流す
-const session = { mode: 'exec', iface: null, process: null } as const;
-
-const runScene = (lessonId: string, text: string) => {
+// 場面の命令の列を流す。@ の行で機器を選び、それ以外の行を1つの命令として流す。モードは機器ごとに持ち、列の中で引き継ぐ
+// 解釈された命令の ID は interpreted に集める（モードの中だけで解釈される命令も数えるため、列を流して確かめる）
+const runScene = (lessonId: string, text: string, interpreted: Set<string> = new Set()) => {
   const lesson = lessons.find((l) => l.id === lessonId);
   if (!lesson) throw new Error(`教材 ${lessonId} がない`);
   const nodes = lessonNodes(lesson);
@@ -39,6 +40,7 @@ const runScene = (lessonId: string, text: string) => {
   const project = { id: 'p', kind: 'fixed', baseId: lessonId, params: {}, nodes, links, segments, seq: nodes.length + 1, testedOk: false, built: { nodes: [], links: [] }, inheritedLinks: [], phase: 'design', contract: { inhouse: false, map: 'hq', furniture: [] } } as unknown as Project;
   let core = { active: [project], focus: 'p', owned: {} } as unknown as Core;
   let uid = '';
+  const sessions = new Map<string, TerminalSession>();
   const log: unknown[] = [];
   for (const raw of text.split('\n')) {
     const line = raw.trim();
@@ -52,18 +54,25 @@ const runScene = (lessonId: string, text: string) => {
     const node = current.nodes.find((n) => n.uid === uid);
     if (!node) throw new Error(`場面 ${lessonId}: 機器 ${uid} がない`);
     const state = analyze({ nodes: current.nodes, links: current.links, plans: current.plans }, gameEnv.engine);
-    const result = runLine(line, commandContextOf({ node, nodes: current.nodes, links: current.links, data: gameEnv.engine, state }, false), tr);
+    const session = sessions.get(uid) ?? INITIAL_SESSION;
+    const parsed = parseLine(line, session);
+    if (parsed !== null && 'spec' in parsed) interpreted.add(parsed.spec.id);
+    const result = runLine(line, commandContextOf({ node, nodes: current.nodes, links: current.links, data: gameEnv.engine, state }, false, session), tr);
+    // モードを変えた行は、変えた後のモードを記録に残す
+    const mode = result.session === null ? {} : { mode: result.session.mode, ...(result.session.process === null ? {} : { process: result.session.process }), ...(result.session.iface === null ? {} : { iface: result.session.iface }) };
     if (result.change !== null) {
-      // 設定の操作は、画面（TerminalTab）と同じ操作（applyOperation）に当てる。モードは持たないため、口の番号は行の中で指定する
+      // 設定の操作は、画面（TerminalTab）と同じ操作（applyOperation）に当てる。モードは、通ったときだけ変える
       const r = applyOperation(core, { kind: 'config', uid, change: result.change }, opCtx);
       if (r.ok) {
         core = r.core;
-        log.push({ line, result: 'done' });
+        if (result.session !== null) sessions.set(uid, result.session);
+        log.push({ line, result: 'done', ...mode });
       } else {
         log.push({ line, result: 'fail', reason: r.reason });
       }
-    } else if (!(parseLine(line, session) as { spec?: { writes: boolean } } | null)?.spec?.writes) {
-      log.push({ line, lines: result.lines.map((l) => `${l.kind}:${l.text}`) });
+    } else if (!(parsed as { spec?: { writes: boolean } } | null)?.spec?.writes) {
+      if (result.session !== null) sessions.set(uid, result.session);
+      log.push({ line, lines: result.lines.map((l) => `${l.kind}:${l.text}`), ...mode });
     } else {
       // 設定の命令の誤り（記録の形は、行ごとの結果を分けて残す）
       const [first] = result.lines;
@@ -99,8 +108,8 @@ describe('命令の列の記録（設定の命令・show・ping など）', () =
 
 describe('命令の一覧', () => {
   it('登録されたすべての命令が、いずれかの列で1回以上解釈される', () => {
-    const lines = scenes.flatMap((f) => readFileSync(join(scenesDir, f), 'utf8').split(/\r?\n/)).map((l) => l.trim()).filter((l) => l !== '' && !l.startsWith('#') && !l.startsWith('@'));
-    const parsed = new Set(lines.flatMap((l) => { const r = parseLine(l, session); return r !== null && 'spec' in r ? [r.spec.id] : []; }));
-    expect(COMMANDS.all().map((spec) => spec.id).filter((id) => !parsed.has(id))).toEqual([]);
+    const interpreted = new Set<string>();
+    for (const file of scenes) runScene(file.replace(/\.txt$/, ''), readFileSync(join(scenesDir, file), 'utf8'), interpreted);
+    expect(COMMANDS.all().map((spec) => spec.id).filter((id) => !interpreted.has(id))).toEqual([]);
   });
 });

@@ -5,7 +5,7 @@ import type { CommandSpec } from '../../command/types';
 export const commands: readonly CommandSpec[] = [
   {
     id: 'wireless.wireless',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'wireless' }, { rest: 'args' }],
     help: '',
     writes: true,

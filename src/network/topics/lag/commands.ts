@@ -2,7 +2,23 @@
 import { lagBundlesOf } from '../../query/lagBundles';
 import { changed, err, out, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
+import { interfaceForm, portFirst } from '../../command/modes';
 import { port } from '../../command/args';
+
+const channelGroup: CommandSpec = {
+  id: 'lag.channelGroup',
+  modes: ['exec', 'config'],
+  tokens: [{ word: 'channel-group' }, { rest: 'args' }],
+  help: '',
+  writes: true,
+  topic: 'lag',
+  run: (args, ctx, tr) => {
+    const words = args.args.split(' ').filter((w) => w !== '');
+    const lacp = words[2] === 'mode' && (words[3] === 'active' || words[3] === 'passive' || words[3] === 'on') ? words[3] : null;
+    if (words.length !== 4 || port(words[0]) === null || !/^[0-9]+$/.test(words[1]) || lacp === null) return shown([err(tr('ui.terminal.usageChannel'))]);
+    return changed(ctx, tr, { kind: 'channel', change: { port: Number(words[0]), group: Number(words[1]), lacp } });
+  },
+};
 
 export const commands: readonly CommandSpec[] = [
   {
@@ -27,23 +43,11 @@ export const commands: readonly CommandSpec[] = [
       );
     },
   },
-  {
-    id: 'lag.channelGroup',
-    modes: ['exec'],
-    tokens: [{ word: 'channel-group' }, { rest: 'args' }],
-    help: '',
-    writes: true,
-    topic: 'lag',
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      const lacp = words[2] === 'mode' && (words[3] === 'active' || words[3] === 'passive' || words[3] === 'on') ? words[3] : null;
-      if (words.length !== 4 || port(words[0]) === null || !/^[0-9]+$/.test(words[1]) || lacp === null) return shown([err(tr('ui.terminal.usageChannel'))]);
-      return changed(ctx, tr, { kind: 'channel', change: { port: Number(words[0]), group: Number(words[1]), lacp } });
-    },
-  },
+  channelGroup,
+  interfaceForm(channelGroup, portFirst),
   {
     id: 'lag.noChannelGroup',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'no' }, { word: 'channel-group' }, { rest: 'args' }],
     help: '',
     writes: true,

@@ -2,7 +2,31 @@
 import type { TerminalLine } from '../../terminal';
 import { changed, err, out, portMissing, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
+import { interfaceForm } from '../../command/modes';
 import { ifaceIdOf, isIp, port } from '../../command/args';
+
+const ipNat: CommandSpec = {
+  id: 'nat.ipNat',
+  modes: ['exec', 'config'],
+  tokens: [{ word: 'ip' }, { word: 'nat' }, { rest: 'args' }],
+  help: '',
+  writes: true,
+  topic: 'nat',
+  run: (args, ctx, tr) => {
+    const words = args.args.split(' ').filter((w) => w !== '');
+    const [kind, a, b, c] = words;
+    if ((kind === 'inside' || kind === 'outside') && port(a ?? '') !== null && words.length === 2) {
+      const id = ifaceIdOf(ctx.node, Number(a));
+      if (id === null) return portMissing(ctx, tr);
+      return changed(ctx, tr, { kind: 'nat', change: { op: 'iface', id, nat: kind } });
+    }
+    if (kind === 'napt' && words.length === 1) return changed(ctx, tr, { kind: 'nat', change: { op: 'napt', on: true } });
+    if (kind === 'static' && words.length === 4 && port(a ?? '') !== null && isIp(b ?? '') && port(c ?? '') !== null) {
+      return changed(ctx, tr, { kind: 'nat', change: { op: 'static', port: Number(a), insideIp: b, insidePort: Number(c) } });
+    }
+    return shown([err(tr('ui.terminal.usageNat'))]);
+  },
+};
 
 export const commands: readonly CommandSpec[] = [
   {
@@ -26,31 +50,11 @@ export const commands: readonly CommandSpec[] = [
       return shown([out(tr('ui.terminal.natHeader')), ...lines]);
     },
   },
-  {
-    id: 'nat.ipNat',
-    modes: ['exec'],
-    tokens: [{ word: 'ip' }, { word: 'nat' }, { rest: 'args' }],
-    help: '',
-    writes: true,
-    topic: 'nat',
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      const [kind, a, b, c] = words;
-      if ((kind === 'inside' || kind === 'outside') && port(a ?? '') !== null && words.length === 2) {
-        const id = ifaceIdOf(ctx.node, Number(a));
-        if (id === null) return portMissing(ctx, tr);
-        return changed(ctx, tr, { kind: 'nat', change: { op: 'iface', id, nat: kind } });
-      }
-      if (kind === 'napt' && words.length === 1) return changed(ctx, tr, { kind: 'nat', change: { op: 'napt', on: true } });
-      if (kind === 'static' && words.length === 4 && port(a ?? '') !== null && isIp(b ?? '') && port(c ?? '') !== null) {
-        return changed(ctx, tr, { kind: 'nat', change: { op: 'static', port: Number(a), insideIp: b, insidePort: Number(c) } });
-      }
-      return shown([err(tr('ui.terminal.usageNat'))]);
-    },
-  },
+  ipNat,
+  interfaceForm(ipNat, (words, p) => [words[0], String(p), ...words.slice(1)]),
   {
     id: 'nat.noIpNat',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'nat' }, { rest: 'args' }],
     help: '',
     writes: true,

@@ -4,6 +4,25 @@ import { ospfNeighborsOf } from '../../query/ospfNeighbors';
 import { changed, err, nameOf, out, portMissing, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
 import { ifaceIdOf, isIp } from '../../command/args';
+import { enterRouter, interfaceForm, wordsOf } from '../../command/modes';
+
+const ipOspf: CommandSpec = {
+  id: 'ospf.ipOspf',
+  modes: ['exec', 'config'],
+  tokens: [{ word: 'ip' }, { word: 'ospf' }, { rest: 'args' }],
+  help: '',
+  writes: true,
+  topic: 'ospf',
+  run: (args, ctx, tr) => {
+    const words = args.args.split(' ').filter((w) => w !== '');
+    const keys = { cost: 'cost', priority: 'priority', 'hello-interval': 'hello', 'dead-interval': 'dead' } as const;
+    const key = keys[words[0] as keyof typeof keys];
+    if (key === undefined || words.length !== 3 || !/^[0-9]+$/.test(words[1]) || !/^[0-9]+$/.test(words[2])) return shown([err(tr('ui.terminal.usageOspf'))]);
+    const id = ifaceIdOf(ctx.node, Number(words[1]));
+    if (id === null) return portMissing(ctx, tr);
+    return changed(ctx, tr, { kind: 'ospf', change: { op: 'iface', id, key, value: Number(words[2]) } });
+  },
+};
 
 export const commands: readonly CommandSpec[] = [
   {
@@ -28,7 +47,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'ospf.routerId',
-    modes: ['exec'],
+    modes: ['exec', 'config', 'router-ospf'],
     tokens: [{ word: 'router-id' }, { rest: 'args' }],
     help: '',
     writes: true,
@@ -41,7 +60,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'ospf.noRouterId',
-    modes: ['exec'],
+    modes: ['exec', 'config', 'router-ospf'],
     tokens: [{ word: 'no' }, { word: 'router-id' }, { rest: 'args' }],
     help: '',
     writes: true,
@@ -50,7 +69,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'ospf.defaultInformation',
-    modes: ['exec'],
+    modes: ['exec', 'config', 'router-ospf'],
     tokens: [{ word: 'default-information' }, { rest: 'args' }],
     help: '',
     writes: true,
@@ -63,7 +82,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'ospf.noDefaultInformation',
-    modes: ['exec'],
+    modes: ['exec', 'config', 'router-ospf'],
     tokens: [{ word: 'no' }, { word: 'default-information' }, { rest: 'args' }],
     help: '',
     writes: true,
@@ -74,37 +93,25 @@ export const commands: readonly CommandSpec[] = [
       return changed(ctx, tr, { kind: 'ospf', change: { op: 'defaultOriginate', on: false } });
     },
   },
-  {
-    id: 'ospf.ipOspf',
-    modes: ['exec'],
-    tokens: [{ word: 'ip' }, { word: 'ospf' }, { rest: 'args' }],
-    help: '',
-    writes: true,
-    topic: 'ospf',
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      const keys = { cost: 'cost', priority: 'priority', 'hello-interval': 'hello', 'dead-interval': 'dead' } as const;
-      const key = keys[words[0] as keyof typeof keys];
-      if (key === undefined || words.length !== 3 || !/^[0-9]+$/.test(words[1]) || !/^[0-9]+$/.test(words[2])) return shown([err(tr('ui.terminal.usageOspf'))]);
-      const id = ifaceIdOf(ctx.node, Number(words[1]));
-      if (id === null) return portMissing(ctx, tr);
-      return changed(ctx, tr, { kind: 'ospf', change: { op: 'iface', id, key, value: Number(words[2]) } });
-    },
-  },
+  ipOspf,
+  interfaceForm(ipOspf, (words, p) => [words[0], String(p), ...words.slice(1)]),
   {
     id: 'ospf.router',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'router' }, { word: 'ospf' }, { rest: 'args' }],
     help: '',
     writes: true,
     topic: 'ospf',
-    run: (_args, ctx, tr) => {
-      return changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', on: true } });
+    // config のモードでは、番号（プロセス）を1つ書き、router-ospf のモードへ入る
+    run: (args, ctx, tr) => {
+      const words = wordsOf(args.args);
+      if (ctx.session.mode === 'config' && (words.length !== 1 || !/^[0-9]+$/.test(words[0]))) return shown([err(tr('ui.terminal.usageOspf'))]);
+      return enterRouter(ctx, changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', on: true } }), 'router-ospf', Number(words[0]));
     },
   },
   {
     id: 'ospf.noRouter',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'no' }, { word: 'router' }, { word: 'ospf' }, { rest: 'args' }],
     help: '',
     writes: true,

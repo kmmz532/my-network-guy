@@ -5,13 +5,14 @@ import { isL2Category, isRoutingCategory } from '../category';
 import { framesOf } from '../frames';
 import { macOf } from '../mac';
 import { resolveName } from '../resolve';
-import { isIp, maskToPrefix, port } from './args';
+import { isIp, maskToPrefix, parseIfaceName, port } from './args';
+import { SUB_MODES, portFirst, sessionPortOf, wordsOf } from './modes';
 import { isValidHostname } from '../hostname';
 import type { NetNode } from '../types';
 import { deviceCategory } from '../../registry/query';
 import type { TerminalLine, Tr } from '../terminal';
 import { changed, err, nameOf, out, shown } from './lines';
-import type { CommandContext, CommandSpec } from './types';
+import type { CommandContext, CommandResult, CommandSpec, TerminalSession } from './types';
 
 // 機器の、ポートごとの接続先（ポート番号 → 相手の機器）
 const peersOf = (ctx: CommandContext): Map<number, NetNode | undefined> => {
@@ -80,10 +81,90 @@ const probe = (command: 'ping' | 'traceroute', rest: string, ctx: CommandContext
   return [...header, ...hops, err(tr('ui.terminal.traceNg')), err(tr(`error.${reason}`))];
 };
 
+// モードを変える結果。設定の操作は伴わない
+const enter = (session: TerminalSession): CommandResult => ({ lines: [], change: null, session });
+
+// SVI（interface vlan10）で使う ip address。書式は口と同じで、口の番号を書かない
+const sviAddress = (ctx: CommandContext, tr: Tr, vlan: number, words: string[]) => {
+  if (words.length !== 2) return shown([err(tr('ui.terminal.usageIpAddress'))]);
+  if (!isIp(words[0])) return shown([err(tr('ui.terminal.errIp'))]);
+  const prefix = maskToPrefix(words[1]);
+  if (prefix === null) return shown([err(tr('ui.terminal.errMask'))]);
+  return changed(ctx, tr, { kind: 'svi', vlan, ip: words[0], prefix });
+};
+
+const ipAddress: CommandSpec = {
+  id: 'core.ipAddress',
+  modes: ['exec', 'config'],
+  tokens: [{ word: 'ip' }, { word: 'address' }, { rest: 'args' }],
+  help: '',
+  writes: true,
+  topic: null,
+  // 形は2つ。DHCP（口 dhcp）→ 口（口 IP マスク）の順に当てる（SVI の ip address vlan は svi の論点）
+  run: (args, ctx, tr) => {
+    const words = args.args.split(' ').filter((w) => w !== '');
+    if (words.length === 2 && words[1] === 'dhcp') {
+      const p = port(words[0]);
+      if (p === null) return shown([err(tr('ui.terminal.errPort'))]);
+      return changed(ctx, tr, { kind: 'dhcp', change: { op: 'client', port: p } });
+    }
+    if (words.length !== 3) return shown([err(tr('ui.terminal.usageIpAddress'))]);
+    const p = port(words[0]);
+    if (p === null) return shown([err(tr('ui.terminal.errPort'))]);
+    if (!isIp(words[1])) return shown([err(tr('ui.terminal.errIp'))]);
+    const prefix = maskToPrefix(words[2]);
+    if (prefix === null) return shown([err(tr('ui.terminal.errMask'))]);
+    return changed(ctx, tr, { kind: 'iface', port: p, ip: words[1], prefix });
+  },
+};
+
 export const commands: readonly CommandSpec[] = [
   {
-    id: 'core.hostname',
+    id: 'core.configureTerminal',
     modes: ['exec'],
+    tokens: [{ word: 'configure' }, { word: 'terminal' }],
+    help: '',
+    writes: false,
+    topic: null,
+    run: () => enter({ mode: 'config', iface: null, process: null }),
+  },
+  {
+    id: 'core.interface',
+    modes: ['config'],
+    tokens: [{ word: 'interface' }, { rest: 'args' }],
+    help: '',
+    writes: false,
+    topic: null,
+    run: (args, ctx, tr) => {
+      const words = wordsOf(args.args);
+      if (words.length !== 1) return shown([err(tr('ui.terminal.errInterface'))]);
+      const iface = parseIfaceName(ctx.node.device, words[0]);
+      if (iface === null) return shown([err(tr('ui.terminal.errInterface'))]);
+      return enter({ mode: 'interface', iface, process: null });
+    },
+  },
+  {
+    id: 'core.exit',
+    modes: ['config', ...SUB_MODES],
+    tokens: [{ word: 'exit' }],
+    help: '',
+    writes: false,
+    topic: null,
+    // 1つ上へ。config からは exec へ、interface・router からは config へ
+    run: (_args, ctx) => enter({ mode: ctx.session.mode === 'config' ? 'exec' : 'config', iface: null, process: null }),
+  },
+  {
+    id: 'core.end',
+    modes: ['config', ...SUB_MODES],
+    tokens: [{ word: 'end' }],
+    help: '',
+    writes: false,
+    topic: null,
+    run: () => enter({ mode: 'exec', iface: null, process: null }),
+  },
+  {
+    id: 'core.hostname',
+    modes: ['exec', 'config'],
     tokens: [{ word: 'hostname' }, { rest: 'args' }],
     help: '',
     writes: true,
@@ -97,40 +178,44 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'core.noHostname',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'no' }, { word: 'hostname' }],
     help: '',
     writes: true,
     topic: null,
     run: (_args, ctx, tr) => changed(ctx, tr, { kind: 'hostname', hostname: null }),
   },
+  ipAddress,
   {
-    id: 'core.ipAddress',
-    modes: ['exec'],
+    id: 'core.ipAddressInterface',
+    modes: ['interface'],
     tokens: [{ word: 'ip' }, { word: 'address' }, { rest: 'args' }],
     help: '',
     writes: true,
     topic: null,
-    // 形は2つ。DHCP（口 dhcp）→ 口（口 IP マスク）の順に当てる（SVI の ip address vlan は svi の論点）
+    // 口は ip address <IP> <マスク>・ip address dhcp。SVI は ip address <IP> <マスク>
     run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words.length === 2 && words[1] === 'dhcp') {
-        const p = port(words[0]);
-        if (p === null) return shown([err(tr('ui.terminal.errPort'))]);
-        return changed(ctx, tr, { kind: 'dhcp', change: { op: 'client', port: p } });
-      }
-      if (words.length !== 3) return shown([err(tr('ui.terminal.usageIpAddress'))]);
-      const p = port(words[0]);
-      if (p === null) return shown([err(tr('ui.terminal.errPort'))]);
-      if (!isIp(words[1])) return shown([err(tr('ui.terminal.errIp'))]);
-      const prefix = maskToPrefix(words[2]);
-      if (prefix === null) return shown([err(tr('ui.terminal.errMask'))]);
-      return changed(ctx, tr, { kind: 'iface', port: p, ip: words[1], prefix });
+      const { iface } = ctx.session;
+      if (iface?.kind === 'svi') return sviAddress(ctx, tr, iface.vlan, wordsOf(args.args));
+      return ipAddress.run({ ...args, args: portFirst(wordsOf(args.args), sessionPortOf(ctx) as number).join(' ') }, ctx, tr);
+    },
+  },
+  {
+    id: 'core.noIpAddressInterface',
+    modes: ['interface'],
+    tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'address' }],
+    help: '',
+    writes: true,
+    topic: null,
+    run: (_args, ctx, tr) => {
+      const { iface } = ctx.session;
+      if (iface?.kind === 'svi') return changed(ctx, tr, { kind: 'svi', vlan: iface.vlan, ip: '', prefix: 24 });
+      return changed(ctx, tr, { kind: 'iface', port: sessionPortOf(ctx) as number, ip: '', prefix: 24 });
     },
   },
   {
     id: 'core.help',
-    modes: ['exec'],
+    modes: ['exec', 'config', ...SUB_MODES],
     tokens: [{ word: 'help' }, { rest: 'args' }], // 続く語は読まない
     help: '',
     writes: false,

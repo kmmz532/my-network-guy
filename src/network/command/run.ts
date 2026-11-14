@@ -1,13 +1,15 @@
 // 入力の行を実行する。木（COMMANDS）で解釈できる行は、その命令の run を呼ぶ。解釈できない行は、知らない命令の誤りにする。
 import type { Tr } from '../terminal';
 import { err, shown } from './lines';
+import { INITIAL_SESSION } from './modes';
 import { parseLine } from './parse';
-import type { CommandContext, CommandResult, TerminalContext } from './types';
+import type { CommandContext, CommandResult, TerminalContext, TerminalSession } from './types';
 
 // 画面・試験が持つ文脈に、命令の木が要る項目を足す。モードは常に exec とし、論点はすべて解放して値を隠さない
-export const commandContextOf = (base: TerminalContext, readOnly: boolean): CommandContext => ({
+// session は機器ごとのターミナルの場面。省略は exec の初めの状態
+export const commandContextOf = (base: TerminalContext, readOnly: boolean, session: TerminalSession = INITIAL_SESSION): CommandContext => ({
   ...base,
-  session: { mode: 'exec', iface: null, process: null },
+  session,
   unlocked: () => true,
   hideValues: false,
   readOnly,

@@ -2,7 +2,29 @@
 import { stpOf } from '../../query/stp';
 import { changed, err, nameOf, out, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
+import { interfaceForm } from '../../command/modes';
 import { port } from '../../command/args';
+
+const spanningTree: CommandSpec = {
+  id: 'stp.spanningTree',
+  modes: ['exec', 'config'],
+  tokens: [{ word: 'spanning-tree' }, { rest: 'args' }],
+  help: '',
+  writes: true,
+  topic: 'stp',
+  run: (args, ctx, tr) => {
+    const words = args.args.split(' ').filter((w) => w !== '');
+    if (words[0] === 'priority' && words.length === 2 && /^[0-9]+$/.test(words[1])) {
+      const v = Number(words[1]);
+      if (v > 61440 || v % 4096 !== 0) return shown([err(tr('ui.terminal.errStpPriority'))]);
+      return changed(ctx, tr, { kind: 'stp', change: { op: 'priority', value: v } });
+    }
+    if (words[0] === 'cost' && words.length === 3 && port(words[1]) !== null && /^[0-9]+$/.test(words[2]) && Number(words[2]) >= 1) {
+      return changed(ctx, tr, { kind: 'stp', change: { op: 'cost', port: Number(words[1]), value: Number(words[2]) } });
+    }
+    return shown([err(tr('ui.terminal.usageStp'))]);
+  },
+};
 
 export const commands: readonly CommandSpec[] = [
   {
@@ -22,24 +44,6 @@ export const commands: readonly CommandSpec[] = [
       return shown(lines);
     },
   },
-  {
-    id: 'stp.spanningTree',
-    modes: ['exec'],
-    tokens: [{ word: 'spanning-tree' }, { rest: 'args' }],
-    help: '',
-    writes: true,
-    topic: 'stp',
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words[0] === 'priority' && words.length === 2 && /^[0-9]+$/.test(words[1])) {
-        const v = Number(words[1]);
-        if (v > 61440 || v % 4096 !== 0) return shown([err(tr('ui.terminal.errStpPriority'))]);
-        return changed(ctx, tr, { kind: 'stp', change: { op: 'priority', value: v } });
-      }
-      if (words[0] === 'cost' && words.length === 3 && port(words[1]) !== null && /^[0-9]+$/.test(words[2]) && Number(words[2]) >= 1) {
-        return changed(ctx, tr, { kind: 'stp', change: { op: 'cost', port: Number(words[1]), value: Number(words[2]) } });
-      }
-      return shown([err(tr('ui.terminal.usageStp'))]);
-    },
-  },
+  spanningTree,
+  interfaceForm(spanningTree, (words, p) => (words[0] === 'cost' ? [words[0], String(p), ...words.slice(1)] : words)),
 ];

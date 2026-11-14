@@ -1,5 +1,6 @@
 # 場面: 教材 ospf_intro の初期の構成（架空の拠点の2台のルーター）
-# 気づいた点: configure terminal・conf t・interface・int・exit・end はモードを持たないため、すべて未知の命令になる（省略形 conf・int も未対応）。router ospf 1 は後ろの番号を無視して done になる。show 単独も未知の命令になる。
+# 気づいた点: exec の router ospf 1 は後ろの番号を無視して done になる。省略形 conf t・int g0/1 は未対応（config のモードでは未知の命令になる）。show 単独も未知の命令になる。
+# 後半（モードの節）は、configure terminal から入るモードの命令を流す。口の番号を行に書く古い形は、exec と config のモードで引き続き受け付ける。
 # 「@」の行で、命令を打つ機器を選ぶ
 @R1
 show
@@ -46,6 +47,72 @@ ip address 9 10.0.5.1 255.255.255.0
 no ip address vlan 1
 show ip ospf neighbor
 show ip route
+# モードの節: interface モード
+exit
+configure terminal
+interface g0/0
+ip address 10.0.5.1 255.255.255.0
+ip address 10.0.5.1
+ip address 10.0.5.1 255.0.255.0
+no ip address
+ip address dhcp
+ip ospf cost 10
+ip ospf priority 5
+ip ospf hello-interval 10
+ip ospf dead-interval 40
+ip ospf cost x
+switchport mode access
+channel-group 1 mode active
+ip nat inside
+ip helper-address 10.0.2.1
+vrrp 1 ip 10.0.1.254
+vrrp 1 priority 120
+spanning-tree cost 10
+show ip
+hostname R1-NEW
+interface g0/1
+exit
+interface gigabitethernet0/1
+exit
+interface gi0/1
+exit
+interface eth0
+interface g0/99
+interface
+interface vlan10
+ip address 10.0.10.1 255.255.255.0
+no ip address
+ip address dhcp
+switchport mode access
+exit
+# モードの節: router モード
+router rip
+network 10.0.1.0
+network 10.0.1.0 0.0.0.255 area 0
+network 10.0.1.0 mask 255.255.255.0
+no network 10.0.1.0
+exit
+router ospf 1
+network 10.0.12.0 0.0.0.3 area 0
+network 10.0.1.0
+router-id 1.1.1.1
+default-information originate
+no router-id
+show ip ospf neighbor
+exit
+router ospf
+router ospf x
+router bgp 65001
+neighbor 10.0.12.2 remote-as 65002
+network 10.0.1.0 mask 255.255.255.0
+network 10.0.1.0
+no neighbor 10.0.12.2 next-hop-self
+exit
+router bgp x
+end
+exit
+end
+show ip
 @PC1
 ping 10.0.2.10
 ping PC2

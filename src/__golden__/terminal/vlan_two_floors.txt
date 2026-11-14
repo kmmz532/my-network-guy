@@ -19,6 +19,20 @@ ip address vlan 10 192.168.10.1 255.0.255.0
 no ip address vlan 10
 ip address vlan 10
 show ip route
+# モードの節: interface モードの switchport
+configure terminal
+interface g0/0
+switchport mode trunk
+switchport trunk allowed vlan 10,20
+switchport trunk native vlan 10
+switchport trunk allowed vlan 1,x
+switchport mode access
+switchport access vlan 10
+switchport access vlan 0
+switchport mode routed
+no ip address
+end
+show vlan brief
 @SW2
 show vlan brief
 show mac address-table

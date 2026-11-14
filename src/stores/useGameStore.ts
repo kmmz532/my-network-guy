@@ -1,5 +1,6 @@
 // ゲーム全体の状態。時間・資金・評判・在庫・完了案件・依頼・受注中の案件・速度を持ち、Tick ごとに進める。
 import type { TerminalLine } from '../network/terminal';
+import type { TerminalSession } from '../network/command/types';
 import type { PlannedNet } from './gameHelpers';
 import { loadSettings } from '../settings/settings';
 import { playDeliver } from '../audio/sfx';
@@ -148,6 +149,8 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   // 機器ごとの端末の出力と、打った命令（保存しない。機器を撤去すると消す）
   terminalLog: Record<string, TerminalLine[]>;
   terminalCommands: Record<string, string[]>;
+  // 機器ごとのターミナルのモード（configure terminal などの後の場面。保存しない。機器を撤去するか案件をやめると消す）
+  terminalSession: Record<string, TerminalSession>;
   taskOpen: boolean;
   // 給与を払えない月に、払う前に時間を止めた月（paidMonths の値）。同じ月は、もう止めない（保存しない）
   payWarned: number | null;
@@ -233,6 +236,7 @@ export const useGameStore = create<GameState>((set, get, api) => {
     showNames: loadSettings().showNames,
     terminalLog: {},
     terminalCommands: {},
+    terminalSession: {},
     taskOpen: true,
     payWarned: null,
     tick: () => set((s) => runTick(s, { now: Date.now(), payPause: loadSettings().payPause })),

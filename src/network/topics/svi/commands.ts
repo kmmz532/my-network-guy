@@ -6,7 +6,7 @@ import type { CommandSpec } from '../../command/types';
 export const commands: readonly CommandSpec[] = [
   {
     id: 'svi.ipAddressVlan',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'ip' }, { word: 'address' }, { word: 'vlan' }, { rest: 'args' }],
     help: '',
     writes: true,
@@ -24,7 +24,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'svi.noIpAddressVlan',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'address' }, { word: 'vlan' }, { rest: 'args' }],
     help: '',
     writes: true,

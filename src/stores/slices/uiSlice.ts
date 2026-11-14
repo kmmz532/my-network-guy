@@ -1,5 +1,6 @@
 // 画面の状態（道具・配線の途中・通知・結果・表示の切り替え）の操作。
 import type { TerminalLine } from '../../network/terminal';
+import type { TerminalSession } from '../../network/command/types';
 import { appendLog, pushCommand } from '../../network/terminalLog';
 import { saveSettings } from '../../settings/settings';
 import { gameEnv } from '../../sim/env';
@@ -35,6 +36,8 @@ export interface UiSlice {
   appendTerminal: (uid: string, lines: TerminalLine[]) => void;
   recordTerminalCommand: (uid: string, line: string) => void;
   clearTerminalLog: (uid: string) => void;
+  setTerminalSession: (uid: string, session: TerminalSession) => void;
+  clearTerminalSessions: () => void;
   dropTerminal: (uid: string) => void;
   setTaskOpen: (open: boolean) => void;
   setPlacing: (deviceId: string | null) => void;
@@ -114,14 +117,18 @@ export const createUiSlice: StateCreator<GameState, [], [], UiSlice> = (set, get
     },
     appendTerminal: (uid, lines) => set((s) => ({ terminalLog: { ...s.terminalLog, [uid]: appendLog(s.terminalLog[uid] ?? [], lines) } })),
     recordTerminalCommand: (uid, line) => set((s) => ({ terminalCommands: { ...s.terminalCommands, [uid]: pushCommand(s.terminalCommands[uid] ?? [], line) } })),
+    setTerminalSession: (uid, session) => set((s) => ({ terminalSession: { ...s.terminalSession, [uid]: session } })),
+    clearTerminalSessions: () => set({ terminalSession: {} }),
     clearTerminalLog: (uid) => set((s) => ({ terminalLog: { ...s.terminalLog, [uid]: [] } })),
     dropTerminal: (uid) =>
       set((s) => {
         const log = { ...s.terminalLog };
         const commands = { ...s.terminalCommands };
+        const sessions = { ...s.terminalSession };
         delete log[uid];
         delete commands[uid];
-        return { terminalLog: log, terminalCommands: commands };
+        delete sessions[uid];
+        return { terminalLog: log, terminalCommands: commands, terminalSession: sessions };
       }),
     setTaskOpen: (open) => set({ taskOpen: open }),
     setPlacing: (deviceId) => set({ placing: deviceId }),

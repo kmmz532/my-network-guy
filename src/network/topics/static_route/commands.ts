@@ -35,7 +35,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'static_route.ipRoute',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'ip' }, { word: 'route' }, { rest: 'args' }],
     help: '',
     writes: true,
@@ -51,7 +51,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'static_route.noIpRoute',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'route' }, { rest: 'args' }],
     help: '',
     writes: true,
@@ -71,7 +71,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'static_route.ipDefaultGateway',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'ip' }, { word: 'default-gateway' }, { rest: 'args' }],
     help: '',
     writes: true,
@@ -85,7 +85,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'static_route.noIpDefaultGateway',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'default-gateway' }, { rest: 'args' }],
     help: '',
     writes: true,

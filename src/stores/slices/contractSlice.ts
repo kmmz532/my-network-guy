@@ -86,6 +86,7 @@ export const createContractSlice: StateCreator<GameState, [], [], ContractSlice>
       const focusId = focusedProject(get())?.id;
       const reason = apply(abandon(coreOf(get())));
       if (reason === null && focusId) dropHistory(projectHistoryKey(focusId));
+      if (reason === null) get().clearTerminalSessions();
       return reason;
     },
   };

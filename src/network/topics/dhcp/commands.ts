@@ -3,7 +3,22 @@ import { dhcpOf } from '../../query/dhcp';
 import { changed, err, nameOf, out, shown } from '../../command/lines';
 import type { DhcpPool } from '../../dhcp';
 import type { CommandSpec } from '../../command/types';
+import { interfaceForm, portFirst } from '../../command/modes';
 import { isIp, maskToPrefix, port } from '../../command/args';
+
+const ipHelperAddress: CommandSpec = {
+  id: 'dhcp.ipHelperAddress',
+  modes: ['exec', 'config'],
+  tokens: [{ word: 'ip' }, { word: 'helper-address' }, { rest: 'args' }],
+  help: '',
+  writes: true,
+  topic: 'dhcp',
+  run: (args, ctx, tr) => {
+    const words = args.args.split(' ').filter((w) => w !== '');
+    if (words.length !== 2 || port(words[0]) === null || !isIp(words[1])) return shown([err(tr('ui.terminal.usageDhcp'))]);
+    return changed(ctx, tr, { kind: 'dhcp', change: { op: 'helper', port: Number(words[0]), ip: words[1] } });
+  },
+};
 
 export const commands: readonly CommandSpec[] = [
   {
@@ -21,22 +36,11 @@ export const commands: readonly CommandSpec[] = [
       return shown(leases.map((l) => out(tr('ui.terminal.dhcpBinding', { ip: l.ip, name: nameOf(ctx, ctx.nodes.find((n) => n.uid === l.uid) ?? node), port: l.port }))));
     },
   },
-  {
-    id: 'dhcp.ipHelperAddress',
-    modes: ['exec'],
-    tokens: [{ word: 'ip' }, { word: 'helper-address' }, { rest: 'args' }],
-    help: '',
-    writes: true,
-    topic: 'dhcp',
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words.length !== 2 || port(words[0]) === null || !isIp(words[1])) return shown([err(tr('ui.terminal.usageDhcp'))]);
-      return changed(ctx, tr, { kind: 'dhcp', change: { op: 'helper', port: Number(words[0]), ip: words[1] } });
-    },
-  },
+  ipHelperAddress,
+  interfaceForm(ipHelperAddress, portFirst),
   {
     id: 'dhcp.noIpHelperAddress',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'helper-address' }, { rest: 'args' }],
     help: '',
     writes: true,
@@ -49,7 +53,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'dhcp.ipDhcpPool',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'ip' }, { word: 'dhcp' }, { word: 'pool' }, { rest: 'args' }],
     help: '',
     writes: true,
@@ -68,7 +72,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'dhcp.noIpDhcpPool',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'dhcp' }, { word: 'pool' }, { rest: 'args' }],
     help: '',
     writes: true,

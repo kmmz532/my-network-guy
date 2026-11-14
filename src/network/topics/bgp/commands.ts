@@ -4,6 +4,7 @@ import { changed, err, out, shown } from '../../command/lines';
 import type { CommandContext, CommandResult, CommandSpec } from '../../command/types';
 import type { Tr } from '../../terminal';
 import { isIp } from '../../command/args';
+import { enterRouter } from '../../command/modes';
 
 const showSummary = (_args: unknown, ctx: CommandContext, tr: Tr): CommandResult => {
   const bgp = bgpTableOf(ctx.state, ctx.node.uid);
@@ -46,7 +47,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'bgp.neighbor',
-    modes: ['exec'],
+    modes: ['exec', 'config', 'router-bgp'],
     tokens: [{ word: 'neighbor' }, { rest: 'args' }],
     help: '',
     writes: true,
@@ -66,7 +67,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'bgp.noNeighbor',
-    modes: ['exec'],
+    modes: ['exec', 'config', 'router-bgp'],
     tokens: [{ word: 'no' }, { word: 'neighbor' }, { rest: 'args' }],
     help: '',
     writes: true,
@@ -79,7 +80,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'bgp.router',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'router' }, { word: 'bgp' }, { rest: 'args' }],
     help: '',
     writes: true,
@@ -87,12 +88,12 @@ export const commands: readonly CommandSpec[] = [
     run: (args, ctx, tr) => {
       const [asn] = args.args.split(' ').filter((w) => w !== '');
       if (!/^[0-9]+$/.test(asn ?? '')) return shown([err(tr('ui.terminal.usageBgp'))]);
-      return changed(ctx, tr, { kind: 'bgp', change: { op: 'asn', asn: Number(asn) } });
+      return enterRouter(ctx, changed(ctx, tr, { kind: 'bgp', change: { op: 'asn', asn: Number(asn) } }), 'router-bgp', Number(asn));
     },
   },
   {
     id: 'bgp.noRouter',
-    modes: ['exec'],
+    modes: ['exec', 'config'],
     tokens: [{ word: 'no' }, { word: 'router' }, { word: 'bgp' }, { rest: 'args' }],
     help: '',
     writes: true,

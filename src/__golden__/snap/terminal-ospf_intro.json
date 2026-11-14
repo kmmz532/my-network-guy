@@ -80,9 +80,8 @@
     },
     {
       "line": "configure terminal",
-      "lines": [
-        "err:ui.terminal.unknown {\"cmd\":\"configure\"}"
-      ]
+      "lines": [],
+      "mode": "config"
     },
     {
       "line": "conf t",
@@ -92,9 +91,12 @@
     },
     {
       "line": "interface g0/1",
-      "lines": [
-        "err:ui.terminal.unknown {\"cmd\":\"interface\"}"
-      ]
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "port",
+        "port": 1
+      }
     },
     {
       "line": "int g0/1",
@@ -104,15 +106,13 @@
     },
     {
       "line": "exit",
-      "lines": [
-        "err:ui.terminal.unknown {\"cmd\":\"exit\"}"
-      ]
+      "lines": [],
+      "mode": "config"
     },
     {
       "line": "end",
-      "lines": [
-        "err:ui.terminal.unknown {\"cmd\":\"end\"}"
-      ]
+      "lines": [],
+      "mode": "exec"
     },
     {
       "line": "router ospf 1",
@@ -234,6 +234,344 @@
         "out:ui.terminal.routeConnected {\"net\":\"10.0.12.0\",\"prefix\":30,\"port\":1}",
         "out:ui.terminal.routeConnected {\"net\":\"10.0.5.0\",\"prefix\":24,\"port\":0}",
         "out:ui.terminal.routeConnected {\"net\":\"10.0.5.0\",\"prefix\":24,\"port\":9}"
+      ]
+    },
+    {
+      "line": "exit",
+      "lines": [
+        "err:ui.terminal.unknown {\"cmd\":\"exit\"}"
+      ]
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "interface g0/0",
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "port",
+        "port": 0
+      }
+    },
+    {
+      "line": "ip address 10.0.5.1 255.255.255.0",
+      "result": "done"
+    },
+    {
+      "line": "ip address 10.0.5.1",
+      "result": "error",
+      "text": "ui.terminal.usageIpAddress"
+    },
+    {
+      "line": "ip address 10.0.5.1 255.0.255.0",
+      "result": "error",
+      "text": "ui.terminal.errMask"
+    },
+    {
+      "line": "no ip address",
+      "result": "done"
+    },
+    {
+      "line": "ip address dhcp",
+      "result": "done"
+    },
+    {
+      "line": "ip ospf cost 10",
+      "result": "fail",
+      "reason": "ospf.not_joined"
+    },
+    {
+      "line": "ip ospf priority 5",
+      "result": "fail",
+      "reason": "ospf.not_joined"
+    },
+    {
+      "line": "ip ospf hello-interval 10",
+      "result": "fail",
+      "reason": "ospf.not_joined"
+    },
+    {
+      "line": "ip ospf dead-interval 40",
+      "result": "fail",
+      "reason": "ospf.not_joined"
+    },
+    {
+      "line": "ip ospf cost x",
+      "result": "error",
+      "text": "ui.terminal.usageOspf"
+    },
+    {
+      "line": "switchport mode access",
+      "result": "fail",
+      "reason": "port.mode"
+    },
+    {
+      "line": "channel-group 1 mode active",
+      "result": "done"
+    },
+    {
+      "line": "ip nat inside",
+      "result": "done"
+    },
+    {
+      "line": "ip helper-address 10.0.2.1",
+      "result": "fail",
+      "reason": "iface.none"
+    },
+    {
+      "line": "vrrp 1 ip 10.0.1.254",
+      "result": "fail",
+      "reason": "vrrp.vip"
+    },
+    {
+      "line": "vrrp 1 priority 120",
+      "result": "fail",
+      "reason": "vrrp.none"
+    },
+    {
+      "line": "spanning-tree cost 10",
+      "result": "fail",
+      "reason": "port.mode"
+    },
+    {
+      "line": "show ip",
+      "lines": [
+        "err:ui.terminal.unknown {\"cmd\":\"show ip\"}"
+      ]
+    },
+    {
+      "line": "hostname R1-NEW",
+      "lines": [
+        "err:ui.terminal.unknown {\"cmd\":\"hostname\"}"
+      ]
+    },
+    {
+      "line": "interface g0/1",
+      "lines": [
+        "err:ui.terminal.unknown {\"cmd\":\"interface\"}"
+      ]
+    },
+    {
+      "line": "exit",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "interface gigabitethernet0/1",
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "port",
+        "port": 1
+      }
+    },
+    {
+      "line": "exit",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "interface gi0/1",
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "port",
+        "port": 1
+      }
+    },
+    {
+      "line": "exit",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "interface eth0",
+      "lines": [
+        "err:ui.terminal.errInterface"
+      ]
+    },
+    {
+      "line": "interface g0/99",
+      "lines": [
+        "err:ui.terminal.errInterface"
+      ]
+    },
+    {
+      "line": "interface",
+      "lines": [
+        "err:ui.terminal.errInterface"
+      ]
+    },
+    {
+      "line": "interface vlan10",
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "svi",
+        "vlan": 10
+      }
+    },
+    {
+      "line": "ip address 10.0.10.1 255.255.255.0",
+      "result": "fail",
+      "reason": "svi.none"
+    },
+    {
+      "line": "no ip address",
+      "result": "fail",
+      "reason": "svi.none"
+    },
+    {
+      "line": "ip address dhcp",
+      "result": "error",
+      "text": "ui.terminal.usageIpAddress"
+    },
+    {
+      "line": "switchport mode access",
+      "result": "error",
+      "text": "ui.terminal.errIfaceKind"
+    },
+    {
+      "line": "exit",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "router rip",
+      "result": "done",
+      "mode": "router-rip"
+    },
+    {
+      "line": "network 10.0.1.0",
+      "result": "fail",
+      "reason": "iface.none"
+    },
+    {
+      "line": "network 10.0.1.0 0.0.0.255 area 0",
+      "result": "error",
+      "text": "ui.terminal.usageNetwork"
+    },
+    {
+      "line": "network 10.0.1.0 mask 255.255.255.0",
+      "result": "error",
+      "text": "ui.terminal.usageNetwork"
+    },
+    {
+      "line": "no network 10.0.1.0",
+      "result": "done"
+    },
+    {
+      "line": "exit",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "router ospf 1",
+      "result": "done",
+      "mode": "router-ospf",
+      "process": 1
+    },
+    {
+      "line": "network 10.0.12.0 0.0.0.3 area 0",
+      "result": "done"
+    },
+    {
+      "line": "network 10.0.1.0",
+      "result": "error",
+      "text": "ui.terminal.usageNetwork"
+    },
+    {
+      "line": "router-id 1.1.1.1",
+      "result": "done"
+    },
+    {
+      "line": "default-information originate",
+      "result": "done"
+    },
+    {
+      "line": "no router-id",
+      "result": "done"
+    },
+    {
+      "line": "show ip ospf neighbor",
+      "lines": [
+        "err:ui.terminal.unknown {\"cmd\":\"show ip ospf neighbor\"}"
+      ]
+    },
+    {
+      "line": "exit",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "router ospf",
+      "result": "error",
+      "text": "ui.terminal.usageOspf"
+    },
+    {
+      "line": "router ospf x",
+      "result": "error",
+      "text": "ui.terminal.usageOspf"
+    },
+    {
+      "line": "router bgp 65001",
+      "result": "done",
+      "mode": "router-bgp",
+      "process": 65001
+    },
+    {
+      "line": "neighbor 10.0.12.2 remote-as 65002",
+      "result": "done"
+    },
+    {
+      "line": "network 10.0.1.0 mask 255.255.255.0",
+      "result": "done"
+    },
+    {
+      "line": "network 10.0.1.0",
+      "result": "error",
+      "text": "ui.terminal.usageNetwork"
+    },
+    {
+      "line": "no neighbor 10.0.12.2 next-hop-self",
+      "result": "done"
+    },
+    {
+      "line": "exit",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "router bgp x",
+      "result": "error",
+      "text": "ui.terminal.usageBgp"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
+      "line": "exit",
+      "lines": [
+        "err:ui.terminal.unknown {\"cmd\":\"exit\"}"
+      ]
+    },
+    {
+      "line": "end",
+      "lines": [
+        "err:ui.terminal.unknown {\"cmd\":\"end\"}"
+      ]
+    },
+    {
+      "line": "show ip",
+      "lines": [
+        "out:ui.terminal.ifLine {\"port\":1,\"ip\":\"10.0.12.1\",\"prefix\":30}",
+        "out:ui.terminal.ifLine {\"port\":9,\"ip\":\"10.0.5.1\",\"prefix\":24}",
+        "out:ui.terminal.ifLine {\"port\":0,\"ip\":\"0.0.0.0\",\"prefix\":24}"
       ]
     },
     {
@@ -435,7 +773,14 @@
         "uid": "R1",
         "device": "router_basic",
         "macSerial": 2,
-        "ports": [],
+        "ports": [
+          {
+            "port": 0,
+            "mode": "routed",
+            "channelGroup": 1,
+            "lacp": "active"
+          }
+        ],
         "name": "R1",
         "x": 4,
         "y": 4,
@@ -450,28 +795,55 @@
             "prefix": 30,
             "ospf": {
               "area": 0
-            }
-          },
-          {
-            "id": "g0/0",
-            "kind": "port",
-            "port": 0,
-            "ip": "10.0.5.1",
-            "prefix": 24
+            },
+            "rip": true
           },
           {
             "id": "g0/9",
             "kind": "port",
             "port": 9,
             "ip": "10.0.5.1",
-            "prefix": 24
+            "prefix": 24,
+            "rip": true,
+            "ospf": {
+              "area": 0
+            }
+          },
+          {
+            "id": "g0/0",
+            "kind": "port",
+            "port": 0,
+            "ip": "0.0.0.0",
+            "prefix": 24,
+            "dhcp": true,
+            "nat": "inside",
+            "rip": true,
+            "ospf": {
+              "area": 0
+            }
           }
         ],
         "gateway": null,
         "routes": [],
         "services": [],
         "ospf": {
-          "defaultOriginate": false
+          "defaultOriginate": true
+        },
+        "bgp": {
+          "asn": 65001,
+          "neighbors": [
+            {
+              "ip": "10.0.12.2",
+              "remoteAs": 65002,
+              "nextHopSelf": false
+            }
+          ],
+          "networks": [
+            {
+              "dest": "10.0.1.0",
+              "prefix": 24
+            }
+          ]
         }
       },
       {
