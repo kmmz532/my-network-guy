@@ -1,5 +1,5 @@
 # アイテム
-価格は定価です。売却すると定価の80%となります。<br />
+価格は定価です。売却すると定価の80%となります。
 解禁欄は、ショップに並ぶ会社レベルです。Lv1 の品目は、ゲームの開始時から購入できます。
 
 ## 機器
@@ -19,7 +19,7 @@
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/l3_switch.png" width="72" alt="L3スイッチ"> | L3スイッチ | 130,000円 | LAN 8口・SFP 2口 | ルーティング、L3（VLAN ごとの SVI で中継する） | Lv20 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/router_basic.png" width="72" alt="ルーター"> | ルーター | 60,000円 | LAN 4口 | ルーティング | Lv4 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/router_sfp.png" width="72" alt="SFP対応ルーター"> | SFP対応ルーター | 65,000円 | LAN 4口・SFP 1口 | ルーティング | Lv16 |
-| <img style="image-rendering: pixelated" src="../src/assets/sprites/device/vpn_router.png" width="72" alt="エッジルーター"> | エッジルーター | 70,000円 | LAN 4口・SFP 2口 | ルーティング、BGP | Lv30 |
+| <img style="image-rendering: pixelated" src="../src/assets/sprites/device/edge_router.png" width="72" alt="エッジルーター"> | エッジルーター | 70,000円 | LAN 4口・SFP 2口 | ルーティング、BGP | Lv30 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/router_switch.png" width="72" alt="スイッチ付きルーター"> | スイッチ付きルーター | 80,000円 | WAN 1口、LAN 4口 | ルーティング、スイッチ | Lv9 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/home_router.png" width="72" alt="家庭用ルーター"> | 家庭用ルーター | 80,000円 | WAN 1口、LAN 4口 | ルーティング、スイッチ、ファイアウォール | Lv20 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/device/home_router_ap.png" width="72" alt="無線付き家庭用ルーター"> | 無線付き家庭用ルーター | 110,000円 | WAN 1口、LAN 4口 | ルーティング、スイッチ、ファイアウォール、無線 | Lv30 |
@@ -46,7 +46,19 @@ L2スイッチは、同じネットワーク内の機器をまとめてつなぎ
 | エッジルーター | ○ | ○ | ○ |
 | L3スイッチ | ○ | ○ | — |
 
-RIP と OSPF は、複数のルーターや L3 スイッチが経路を自動的に覚えるための機能です。BGP は AS 番号と隣接相手を設定して、組織や ISP など別のネットワークとの経路を交換する機能です。業務用ルーターは社内向け、エッジルーターは外部接続向けで、BGPはエッジルーターだけが対応します。現在のゲームでは、OSPF のエリアはエリア 0 のみです。スイッチ付きルーター、家庭用ルーター、ファイアウォール、L2スイッチは、これらの動的ルーティングには対応していません。
+RIP と OSPF は、複数のルーターや L3 スイッチが経路を自動的に覚えるための機能です。BGP は AS 番号と隣接相手を設定して、組織や ISP など別のネットワークとの経路を交換する機能です。エッジルーターは外部接続向けで、BGP に対応するのはエッジルーターだけです。OSPF は、エリアを分けられます。すべてのエリアは、エリア 0 に接する必要があります。スイッチ付きルーター、家庭用ルーター、ファイアウォール、L2スイッチは、これらの動的ルーティングには対応していません。
+
+### そのほかのネットワーク機能
+
+| 機器 | VLAN | STP | NAT | DHCP リレー | VRRP | LAG |
+| --- | --- | --- | --- | --- | --- | --- |
+| L2スイッチ（4ポート） | — | — | — | — | — | — |
+| L2スイッチ（8・16・24ポート） | ○ | ○ | — | — | — | ○ |
+| L3スイッチ | ○ | ○ | — | ○ | ○ | ○ |
+| ルーター・SFP対応ルーター・エッジルーター | サブインターフェース | — | ○ | ○ | ○ | ○ |
+| スイッチ付きルーター | — | — | ○ | ○ | — | — |
+| 家庭用ルーター・無線付き家庭用ルーター | — | — | ○ | — | — | — |
+| ファイアウォール・DMZ付きファイアウォール | サブインターフェース | — | ○ | — | — | — |
 
 ## 家具
 家具はポートや配線を使いません。オフィスの中に置いて、社員の施工力などを変えます。
@@ -70,9 +82,9 @@ RIP と OSPF は、複数のルーターや L3 スイッチが経路を自動的
 | 画像 | 名前 | 最大の長さ | 価格 | 速度 |
 | --- | --- | --- | --- | --- |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/icon/cable_utp_cat5e.png" width="48" alt="LANケーブル"> | LANケーブル（Cat5e） | 20マス | 1,000円/本 ＋ 300円/マス | 1000 Mbps |
-| <img style="image-rendering: pixelated" src="../src/assets/sprites/icon/cable_fiber_sm.png" width="48" alt="光ファイバーケーブル"> | 光ファイバーケーブル | 400マス | 5,000円/本 ＋ 1,500円/マス | 1000 Mbps |
+| <img style="image-rendering: pixelated" src="../src/assets/sprites/icon/cable_fiber_sm.png" width="48" alt="光ファイバーケーブル"> | 光ファイバーケーブル（シングルモード） | 400マス | 5,000円/本 ＋ 1,500円/マス | 1000 Mbps |
 
-「本」は、1本の配線（機器のポートとポートをつなぐ 1本）です。「マス」は、ケーブルが通るマップ上のマス数です。光ファイバーは長い距離を結べます。解禁は Lv18 です。
+「本」は、1本の配線（機器のポートとポートをつなぐ 1本）です。「マス」は、ケーブルが通るマップ上のマス数です。光ファイバーは SFP の口どうしを結び、長い距離を引けます。解禁は Lv18 です。
 
 ## 機能
 機器の機能は、機器の画面や施工の判定で使われます。定価の計算にも用いています。
