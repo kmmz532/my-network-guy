@@ -31,6 +31,7 @@ import { SviField } from './SviField';
 import { DhcpPoolField, DhcpPortField } from './DhcpField';
 import { portCountOf, deviceCategory } from '../registry/query';
 import { Button } from './ui/Button';
+import { Checkbox } from './ui/Checkbox';
 
 // ネットワークの既定候補（入力欄から任意のネットワークも指定できる）
 const NETWORK_CHOICES = Array.from({ length: 16 }, (_, i) => `192.168.${i + 1}.0`);
@@ -390,10 +391,9 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
     <div>
       <NameField key={node.uid} node={node} nodes={net.nodes} readOnly={readOnly} onError={onError} />
       {category !== CATEGORY.uplink && (
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, margin: '4px 0' }}>
-          <input type="checkbox" aria-label={t('ui.config.power')} checked={node.powered !== false} disabled={readOnly} onChange={(e) => onError(setPower(node.uid, e.target.checked))} />
+        <Checkbox label={t('ui.config.power')} checked={node.powered !== false} disabled={readOnly} onChange={(on) => onError(setPower(node.uid, on))} layout={{ margin: '4px 0' }}>
           {t('ui.config.power')}
-        </label>
+        </Checkbox>
       )}
       {can(node.device, 'wireless') && <WirelessField key={`w-${node.uid}`} node={node} state={netState} readOnly={readOnly} onError={onError} />}
       {node.configLocked && <div style={{ marginBottom: 6 }}>{t('ui.config.locked')}</div>}
@@ -533,10 +533,9 @@ function NatField({ node, readOnly, onError }: { node: NetNode; readOnly: boolea
         </div>
       ))}
       <div style={row}>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          <input type="checkbox" aria-label={t('ui.nat.napt')} checked={node.napt === true} disabled={readOnly} onChange={(e) => onError(setNat(node.uid, { op: 'napt', on: e.target.checked }))} />
+        <Checkbox label={t('ui.nat.napt')} checked={node.napt === true} disabled={readOnly} onChange={(on) => onError(setNat(node.uid, { op: 'napt', on }))}>
           {t('ui.nat.napt')}
-        </label>
+        </Checkbox>
       </div>
       <div style={{ fontWeight: 'bold', marginTop: 6 }}>{t('ui.nat.statics')}</div>
       {statics.length === 0 && <div style={{ color: greyColor }}>{t('ui.nat.noStatic')}</div>}

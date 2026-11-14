@@ -112,7 +112,7 @@
       "count": 22
     },
     "local/no-native-control": {
-      "count": 13
+      "count": 11
     }
   },
   "src/components/DhcpField.tsx": {

@@ -6,36 +6,7 @@ import { applyUiScale, AUTO_SAVE_MODES, loadSettings, PAUSED_BUILD_MODES, saveSe
 import { useGameStore } from '../stores/useGameStore';
 import { Modal } from './Modal';
 import { Button } from './ui/Button';
-
-interface Option<T> {
-  value: T;
-  label: string;
-}
-
-// 選択肢のボタン。選んでいるものは反転した見た目にする
-function Choice<T extends string | number | boolean>({
-  options,
-  value,
-  onChange,
-}: {
-  options: Option<T>[];
-  value: T;
-  onChange: (value: T) => void;
-}) {
-  return (
-    // 選択肢は同じ幅・同じ高さの箱にそろえる（折り返しても段の高さがそろい、指で押しやすい大きさにする）
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(104px, 1fr))', gap: 6 }}>
-      {options.map((o) => {
-        const on = o.value === value;
-        return (
-          <Button key={String(o.value)} variant="outline" size="choice" pressed={on} onClick={() => onChange(o.value)}>
-            {o.label}
-          </Button>
-        );
-      })}
-    </div>
-  );
-}
+import { Choice } from './ui/Choice';
 
 // 項目の名前と、その右下の選択肢
 function Row({ label, children }: { label: string; children: ReactNode }) {
