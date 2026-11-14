@@ -24,7 +24,8 @@ let problems = 0;
 // page.evaluate に渡すため、この関数の中だけで完結させる（外の変数を使わない）
 const runBuild = (untilResult) => {
   const g = window.__game;
-  g.getState().setSpeed(4);
+  // 4倍は会社のレベル3で解放されるため、Lv1 でも使える 1倍で進める
+  g.getState().setSpeed(1);
   g.getState().test();
   for (let i = 0; i < 20000 && g.getState().active?.[0]?.testedOk !== true; i++) g.getState().tick();
   if (g.getState().active?.[0]?.testedOk !== true) throw new Error('テストが通らなかった');
@@ -643,7 +644,7 @@ const scenes = {
     await page.waitForTimeout(300);
     await page.getByRole('button', { name: '詳しく', exact: true }).first().click();
     await page.waitForTimeout(300);
-    await page.getByRole('button', { name: 'ネットワーク', exact: true }).click();
+    await page.getByRole('combobox', { name: 'ネットワーク', exact: true }).click();
     await page.waitForTimeout(500);
   },
   // スイッチ付きルーターに、WAN と LAN の IP を入れた場面（マップの IP の表示が重ならないかを確かめる）
