@@ -64,7 +64,7 @@
       "count": 12
     },
     "local/no-native-control": {
-      "count": 16
+      "count": 2
     }
   },
   "src/components/DevicePanel.tsx": {

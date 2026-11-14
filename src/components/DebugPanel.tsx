@@ -2,6 +2,7 @@
 import { useState, type CSSProperties } from 'react';
 import { balance, guides } from 'virtual:game-data';
 import { tDyn } from '../i18n/t';
+import { Button } from './ui/Button';
 import { Select } from './ui/Select';
 import { SAVE_VERSION } from '../services/migrations';
 import { exportSave, importSave } from '../services/saveFile';
@@ -97,29 +98,29 @@ export default function DebugPanel() {
 
       <section style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div>更新</div>
-        <button type="button" style={buttonStyle} onClick={act(showUpdateNotice, '更新の通知を出しました')}>
+        <Button variant="secondary" size="s" onClick={act(showUpdateNotice, '更新の通知を出しました')}>
           更新の通知を出す
-        </button>
+        </Button>
       </section>
 
       <section style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div>時刻（今: {minute}分）</div>
-        <button type="button" style={buttonStyle} onClick={act(() => store().debugSetMinute(nextNight), '夜勤の開始へ進めました')}>
+        <Button variant="secondary" size="s" onClick={act(() => store().debugSetMinute(nextNight), '夜勤の開始へ進めました')}>
           夜勤の開始へ
-        </button>
-        <button type="button" style={buttonStyle} onClick={act(() => store().debugSetMinute(nextDay), '翌日の0時へ進めました')}>
+        </Button>
+        <Button variant="secondary" size="s" onClick={act(() => store().debugSetMinute(nextDay), '翌日の0時へ進めました')}>
           翌日の0時へ
-        </button>
+        </Button>
       </section>
 
       <section style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div>お金・経験値・レベル</div>
-        <button type="button" style={buttonStyle} onClick={act(() => store().debugAddMoney(1000000), 'お金を 100 万円足しました')}>
+        <Button variant="secondary" size="s" onClick={act(() => store().debugAddMoney(1000000), 'お金を 100 万円足しました')}>
           お金を 100 万円足す
-        </button>
-        <button
-          type="button"
-          style={buttonStyle}
+        </Button>
+        <Button
+          variant="secondary"
+          size="s"
           onClick={() => {
             const next = level + 1;
             store().debugSetCompanyLevel(next);
@@ -127,17 +128,17 @@ export default function DebugPanel() {
           }}
         >
           レベルを 1 上げる
-        </button>
-        <button type="button" style={buttonStyle} onClick={act(() => store().debugAddOwned('l2_switch_4p', 1), '4ポートスイッチをインベントリに加えました')}>
+        </Button>
+        <Button variant="secondary" size="s" onClick={act(() => store().debugAddOwned('l2_switch_4p', 1), '4ポートスイッチをインベントリに加えました')}>
           4ポートスイッチをインベントリに加える
-        </button>
+        </Button>
       </section>
 
       <section style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div>控えとセーブ</div>
-        <button
-          type="button"
-          style={buttonStyle}
+        <Button
+          variant="secondary"
+          size="s"
           disabled={backup === null}
           onClick={() => {
             if (backup) {
@@ -147,20 +148,20 @@ export default function DebugPanel() {
           }}
         >
           控えに戻す
-        </button>
-        <button
-          type="button"
-          style={buttonStyle}
+        </Button>
+        <Button
+          variant="secondary"
+          size="s"
           onClick={() => {
             setSaveText(exportSave(store().snapshot()));
             say('今のセーブを下の欄に書き出しました');
           }}
         >
           今のセーブを書き出す
-        </button>
-        <button
-          type="button"
-          style={buttonStyle}
+        </Button>
+        <Button
+          variant="secondary"
+          size="s"
           onClick={() => {
             // 欄の JSON を読み込む（形式が違えば、理由を出して何もしない）
             try {
@@ -172,16 +173,16 @@ export default function DebugPanel() {
           }}
         >
           欄のセーブを読み込む
-        </button>
-        <button type="button" style={buttonStyle} onClick={act(() => store().debugFinishBuild(), '施工を最後まで進めました')}>
+        </Button>
+        <Button variant="secondary" size="s" onClick={act(() => store().debugFinishBuild(), '施工を最後まで進めました')}>
           施工を今すぐ終える
-        </button>
-        <button type="button" style={buttonStyle} onClick={act(() => store().debugRefreshOffers(), '依頼を引き直しました')}>
+        </Button>
+        <Button variant="secondary" size="s" onClick={act(() => store().debugRefreshOffers(), '依頼を引き直しました')}>
           依頼を今すぐ引き直す
-        </button>
-        <button type="button" style={buttonStyle} onClick={act(() => store().debugResetGuides(), '案内を最初から出し直します')}>
+        </Button>
+        <Button variant="secondary" size="s" onClick={act(() => store().debugResetGuides(), '案内を最初から出し直します')}>
           案内を最初から
-        </button>
+        </Button>
         <div>案内（手順から始める）</div>
         <Select
           label="案件"
@@ -198,9 +199,9 @@ export default function DebugPanel() {
           options={(guides[guideContract] ?? []).map((_, i) => ({ value: String(i + 1), label: `${i + 1}` }))}
           onChange={(v) => setGuideStep(Number(v))}
         />
-        <button
-          type="button"
-          style={buttonStyle}
+        <Button
+          variant="secondary"
+          size="s"
           onClick={() => {
             const reason = store().debugStartGuide(guideContract, guideStep);
             // 受注できないときは理由を出す（何も変えていない）
@@ -208,14 +209,14 @@ export default function DebugPanel() {
           }}
         >
           この手順から始める
-        </button>
-        <button
-          type="button"
-          style={buttonStyle}
+        </Button>
+        <Button
+          variant="secondary"
+          size="s"
           onClick={act(() => store().debugMarkGuideDone(guideContract), '案内を済みにしました（経験値は増えません）')}
         >
           済みにする
-        </button>
+        </Button>
         <textarea
           aria-label="セーブの JSON"
           value={saveText}
