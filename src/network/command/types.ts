@@ -56,5 +56,6 @@ export interface CommandSpec {
   tokens: readonly Token[];
   help: string; // 言語ファイルの鍵 'ui.cmd.<id>'。鍵を足すまでは空文字
   topic: string | null; // src/network/topics.ts の論点の ID
+  writes: boolean; // 設定を変える命令は true（読み取り専用の機器では実行の前に拒否する）。解釈は生の語で行う
   run: (args: Readonly<Record<string, string>>, ctx: CommandContext, tr: Tr) => CommandResult;
 }

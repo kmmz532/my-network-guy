@@ -9,6 +9,7 @@ export const commands: readonly CommandSpec[] = [
     modes: ['exec'],
     tokens: [{ word: 'show' }, { word: 'vrrp' }],
     help: '',
+    writes: false,
     topic: 'vrrp',
     run: (_args, ctx, tr) => {
       const groups = vrrpStatusOf(ctx.state, ctx.node.uid);

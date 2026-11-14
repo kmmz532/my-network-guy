@@ -9,6 +9,7 @@ export const commands: readonly CommandSpec[] = [
     modes: ['exec'],
     tokens: [{ word: 'show' }, { word: 'ip' }, { word: 'nat' }, { word: 'translations' }],
     help: '',
+    writes: false,
     topic: 'nat',
     run: (_args, { node }, tr) => {
       // 設定から決まる変換（静的 NAT の転送と、NAPT の変換先）を出す。通信ごとの変換は保存しないため出さない（N146）

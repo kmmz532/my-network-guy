@@ -12,6 +12,7 @@ export const commands: readonly CommandSpec[] = [
     modes: ['exec'],
     tokens: [{ word: 'show' }, { word: 'ip' }, { word: 'route' }],
     help: '',
+    writes: false,
     topic: 'static_route',
     run: (_args, ctx, tr) => {
       const { node } = ctx;

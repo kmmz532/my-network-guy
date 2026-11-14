@@ -9,6 +9,7 @@ export const commands: readonly CommandSpec[] = [
     modes: ['exec'],
     tokens: [{ word: 'show' }, { word: 'ip' }, { word: 'rip' }, { word: 'database' }],
     help: '',
+    writes: false,
     topic: 'rip',
     run: (_args, ctx, tr) => {
       const routes = learnedRoutesOf(ctx.state, ctx.node.uid, 'rip');

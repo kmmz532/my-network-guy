@@ -6,6 +6,7 @@ import { framesOf } from '../frames';
 import { macOf } from '../mac';
 import { resolveName } from '../resolve';
 import { isIp } from '../terminalConfig';
+import { isValidHostname } from '../hostname';
 import type { NetNode } from '../types';
 import { deviceCategory } from '../../registry/query';
 import type { TerminalLine, Tr } from '../terminal';
@@ -81,10 +82,34 @@ const probe = (command: 'ping' | 'traceroute', rest: string, ctx: CommandContext
 
 export const commands: readonly CommandSpec[] = [
   {
+    id: 'core.hostname',
+    modes: ['exec'],
+    tokens: [{ word: 'hostname' }, { rest: 'args' }],
+    help: '',
+    writes: true,
+    topic: null,
+    run: (args, _ctx, tr) => {
+      const words = args.args.split(' ').filter((w) => w !== '');
+      if (words.length !== 1) return shown([err(tr('ui.terminal.usageHostname'))]);
+      if (!isValidHostname(words[0])) return shown([err(tr('ui.terminal.errHostname'))]);
+      return { lines: [], change: { kind: 'hostname', hostname: words[0] }, session: null };
+    },
+  },
+  {
+    id: 'core.noHostname',
+    modes: ['exec'],
+    tokens: [{ word: 'no' }, { word: 'hostname' }],
+    help: '',
+    writes: true,
+    topic: null,
+    run: () => ({ lines: [], change: { kind: 'hostname', hostname: null }, session: null }),
+  },
+  {
     id: 'core.help',
     modes: ['exec'],
     tokens: [{ word: 'help' }, { rest: 'args' }], // 続く語は読まない
     help: '',
+    writes: false,
     topic: null,
     run: (_args, _ctx, tr) => shown([out(tr('ui.terminal.help'))]),
   },
@@ -93,6 +118,7 @@ export const commands: readonly CommandSpec[] = [
     modes: ['exec'],
     tokens: [{ word: 'show' }, { word: 'ip' }],
     help: '',
+    writes: false,
     topic: null,
     run: (_args, { node }, tr) => {
       if (node.interfaces.length === 0) return shown([out(tr('ui.terminal.noIp'))]);
@@ -106,6 +132,7 @@ export const commands: readonly CommandSpec[] = [
     modes: ['exec'],
     tokens: [{ word: 'show' }, { word: 'interfaces' }],
     help: '',
+    writes: false,
     topic: null,
     run: (_args, ctx, tr) => {
       const { node } = ctx;
@@ -131,6 +158,7 @@ export const commands: readonly CommandSpec[] = [
     modes: ['exec'],
     tokens: [{ word: 'show' }, { word: 'arp' }],
     help: '',
+    writes: false,
     topic: null,
     run: (_args, ctx, tr) => {
       const rows = ctx.arp ?? [];
@@ -142,6 +170,7 @@ export const commands: readonly CommandSpec[] = [
     modes: ['exec'],
     tokens: [{ word: 'show' }, { word: 'running-config' }],
     help: '',
+    writes: false,
     topic: null,
     run: (_args, { node }, tr) => {
       const lines: TerminalLine[] = node.hostname ? [out(tr('ui.terminal.cfgHostname', { name: node.hostname }))] : [];
@@ -162,6 +191,7 @@ export const commands: readonly CommandSpec[] = [
     modes: ['exec'],
     tokens: [{ word: 'ping' }, { rest: 'args' }],
     help: '',
+    writes: false,
     topic: null,
     run: (args, ctx, tr) => shown(probe('ping', args.args, ctx, tr)),
   },
@@ -170,6 +200,7 @@ export const commands: readonly CommandSpec[] = [
     modes: ['exec'],
     tokens: [{ word: 'traceroute' }, { rest: 'args' }],
     help: '',
+    writes: false,
     topic: null,
     run: (args, ctx, tr) => shown(probe('traceroute', args.args, ctx, tr)),
   },

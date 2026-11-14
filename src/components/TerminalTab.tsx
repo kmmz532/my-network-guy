@@ -3,7 +3,7 @@
 import { useState, type KeyboardEvent } from 'react';
 import { t, tDyn } from '../i18n/t';
 import { completeLine, type TerminalLine } from '../network/terminal';
-import { commandContextOf, isLegacyConfig, runLine } from '../network/command/run';
+import { commandContextOf, isConfigLine, runLine } from '../network/command/run';
 import type { NetLink, NetNode } from '../network/types';
 import type { NetworkState } from '../network/public';
 import { gameEnv } from '../sim/env';
@@ -57,7 +57,7 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
       onTrace: showTrace,
     });
     // 設定の命令は、読み取り専用の機器では解釈の結果（誤りを含む）を見せず、先に拒否する
-    if (readOnly && isLegacyConfig(line, context.session, tr)) {
+    if (readOnly && isConfigLine(line, context.session, tr)) {
       useGameStore.getState().appendTerminal(node.uid, [{ text: `> ${line}`, kind: 'out' }, { text: t('ui.terminal.readOnly'), kind: 'err' }]);
       return;
     }

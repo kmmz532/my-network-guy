@@ -80,9 +80,12 @@ export const legacyChange = (action: ConfigAction, node: NetNode): ConfigChange 
   }
 };
 
-// 木で解釈できず、設定の命令（ConfigAction）と解釈される行か。読み取り専用の機器は、この行を実行前に拒否する
-export const isLegacyConfig = (line: string, session: TerminalSession, tr: Tr): boolean =>
-  parseLine(line, session) === null && parseConfig(line, tr).kind === 'action';
+// 設定を変える行か（木の writes の命令、または木で解釈できず設定の命令と解釈される行）。読み取り専用の機器は、この行を実行の前に拒否する
+export const isConfigLine = (line: string, session: TerminalSession, tr: Tr): boolean => {
+  const parsed = parseLine(line, session);
+  if (parsed !== null && !('error' in parsed)) return parsed.spec.writes;
+  return parseConfig(line, tr).kind === 'action';
+};
 
 export const runLine = (line: string, ctx: CommandContext, tr: Tr): CommandResult => {
   const parsed = parseLine(line, ctx.session);

@@ -8,6 +8,7 @@ export const commands: readonly CommandSpec[] = [
     modes: ['exec'],
     tokens: [{ word: 'show' }, { word: 'hosts' }],
     help: '',
+    writes: false,
     topic: 'dns',
     run: (_args, { node }, tr) => {
       const hosts = node.hosts ?? [];

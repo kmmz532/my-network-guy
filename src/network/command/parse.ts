@@ -71,12 +71,16 @@ const match = (spec: CommandSpec, words: readonly Word[]): Record<string, string
 
 // 木で解釈できない行は null を返す
 export const parseLine = (line: string, session: TerminalSession): ParseResult | null => {
-  const expanded = expand(wordsOf(line));
-  if ('ambiguousAt' in expanded) return { error: 'ambiguous', at: expanded.ambiguousAt };
+  const raw = wordsOf(line);
+  const expanded = expand(raw);
   for (const spec of COMMANDS.all()) {
     if (!spec.modes.includes(session.mode)) continue;
-    const args = match(spec, expanded.words);
+    // 設定の命令は略記を展開せず、生の語で照合する（今の受け付ける形を保つ。全語の略記は S3-2）
+    const words = spec.writes ? raw : 'ambiguousAt' in expanded ? null : expanded.words;
+    if (words === null) continue;
+    const args = match(spec, words);
     if (args !== null) return { spec, args };
   }
+  if ('ambiguousAt' in expanded) return { error: 'ambiguous', at: expanded.ambiguousAt };
   return null;
 };
