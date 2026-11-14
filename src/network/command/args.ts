@@ -56,6 +56,20 @@ export const prefixOfMask = (mask: string): number => {
 const rangeOk = (s: string, min: number, max: number): boolean => /^\d{1,10}$/.test(s) && Number(s) >= min && Number(s) <= max;
 const VLAN_LIST_RE = /^\d+(-\d+)?(,\d+(-\d+)?)*$/;
 
+// VLAN の一覧（10,20・10-12）を番号の並びに直す。範囲の両端が逆・範囲外の番号があれば null
+export const vlanListOf = (text: string): number[] | null => {
+  if (!VLAN_LIST_RE.test(text)) return null;
+  const list: number[] = [];
+  for (const part of text.split(',')) {
+    const [from = '', to = from] = part.split('-');
+    const lo = vlanNumber(from);
+    const hi = vlanNumber(to);
+    if (lo === null || hi === null || lo > hi) return null;
+    for (let v = lo; v <= hi; v++) list.push(v);
+  }
+  return list;
+};
+
 // 語が、引数の型の形に合うか。形だけを見る（口が機器にあるか・経路があるかなどの中身は、命令の run が検査する）
 export const isArg = (kind: ArgKind, text: string): boolean => {
   switch (kind) {
@@ -70,7 +84,7 @@ export const isArg = (kind: ArgKind, text: string): boolean => {
     }
     case 'prefix': return rangeOk(text, 0, 32);
     case 'vlan': return vlanNumber(text) !== null;
-    case 'vlanList': return VLAN_LIST_RE.test(text) && text.split(/[,-]/).every((n) => vlanNumber(n) !== null);
+    case 'vlanList': return vlanListOf(text) !== null;
     case 'area': return rangeOk(text, 0, 4294967295);
     case 'asn': return rangeOk(text, 1, 4294967295);
     case 'number': return /^\d{1,10}$/.test(text);

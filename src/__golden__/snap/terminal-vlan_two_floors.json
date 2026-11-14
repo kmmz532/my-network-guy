@@ -45,8 +45,10 @@
     },
     {
       "line": "switchport 1 access vlan 0",
-      "result": "error",
-      "text": "ui.terminal.errVlan"
+      "lines": [
+        "err:                           ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "switchport 1 trunk allowed 10,20 native 1",
@@ -58,13 +60,17 @@
     },
     {
       "line": "switchport 2 trunk allowed 1,x",
-      "result": "error",
-      "text": "ui.terminal.errVlan"
+      "lines": [
+        "err:                             ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "switchport 2 trunk bogus",
-      "result": "error",
-      "text": "ui.terminal.usageSwitchport"
+      "lines": [
+        "err:                     ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "switchport 3 access vlan 10",
@@ -72,18 +78,38 @@
     },
     {
       "line": "switchport x access vlan 10",
-      "result": "error",
-      "text": "ui.terminal.errPort"
+      "lines": [
+        "err:             ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "switchport 3 access 10",
-      "result": "error",
-      "text": "ui.terminal.usageSwitchport"
+      "lines": [
+        "err:                      ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "no switchport 3",
       "result": "fail",
       "reason": "port.mode"
+    },
+    {
+      "line": "switchport 3 trunk",
+      "result": "done"
+    },
+    {
+      "line": "switchport 3 trunk allowed 10-12,20",
+      "result": "done"
+    },
+    {
+      "line": "switchport 3 trunk allowed all",
+      "result": "done"
+    },
+    {
+      "line": "switchport 3 trunk native 10",
+      "result": "done"
     },
     {
       "line": "ip address vlan 10 192.168.10.1 255.255.255.0",
@@ -140,9 +166,27 @@
       "result": "done"
     },
     {
+      "line": "switchport trunk",
+      "result": "done"
+    },
+    {
+      "line": "switchport trunk allowed vlan all",
+      "result": "done"
+    },
+    {
+      "line": "switchport trunk allowed vlan 10,20 native vlan 10",
+      "result": "done"
+    },
+    {
+      "line": "switchport trunk allowed vlan all native vlan 10",
+      "result": "done"
+    },
+    {
       "line": "switchport trunk allowed vlan 1,x",
-      "result": "error",
-      "text": "ui.terminal.errVlan"
+      "lines": [
+        "err:                                ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "switchport mode access",
@@ -154,13 +198,17 @@
     },
     {
       "line": "switchport access vlan 0",
-      "result": "error",
-      "text": "ui.terminal.errVlan"
+      "lines": [
+        "err:                         ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "switchport mode routed",
-      "result": "error",
-      "text": "ui.terminal.usageSwitchport"
+      "lines": [
+        "err:                  ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "no ip address",
@@ -177,7 +225,7 @@
         "out:ui.terminal.vlanAccess {\"port\":0,\"vlan\":10}",
         "out:ui.terminal.vlanTrunk {\"port\":1,\"allowed\":\"10,20\",\"native\":1}",
         "out:ui.terminal.vlanTrunk {\"port\":2,\"allowed\":\"ui.terminal.vlanAll\",\"native\":10}",
-        "out:ui.terminal.vlanAccess {\"port\":3,\"vlan\":10}"
+        "out:ui.terminal.vlanTrunk {\"port\":3,\"allowed\":\"ui.terminal.vlanAll\",\"native\":10}"
       ]
     },
     {
@@ -323,8 +371,8 @@
           },
           {
             "port": 3,
-            "mode": "access",
-            "vlan": 10
+            "mode": "trunk",
+            "native": 10
           },
           {
             "port": 0,

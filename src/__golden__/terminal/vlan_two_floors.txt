@@ -14,6 +14,10 @@ switchport 3 access vlan 10
 switchport x access vlan 10
 switchport 3 access 10
 no switchport 3
+switchport 3 trunk
+switchport 3 trunk allowed 10-12,20
+switchport 3 trunk allowed all
+switchport 3 trunk native 10
 ip address vlan 10 192.168.10.1 255.255.255.0
 ip address vlan 10 192.168.10.1 255.0.255.0
 no ip address vlan 10
@@ -25,6 +29,10 @@ interface g0/0
 switchport mode trunk
 switchport trunk allowed vlan 10,20
 switchport trunk native vlan 10
+switchport trunk
+switchport trunk allowed vlan all
+switchport trunk allowed vlan 10,20 native vlan 10
+switchport trunk allowed vlan all native vlan 10
 switchport trunk allowed vlan 1,x
 switchport mode access
 switchport access vlan 10

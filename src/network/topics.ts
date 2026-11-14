@@ -31,7 +31,7 @@ export interface Topic {
 
 export const TOPICS = [
   { id: 'vlan', unlock: 12, command: 'switchport 1 access vlan 10', show: 'show vlan brief', failures: ['vlan.not_allowed'], warnings: ['vlan.mismatch', 'vlan.native_mismatch'], glossary: 'dot1q', lessons: ['vlan_two_floors'] },
-  { id: 'trunk', unlock: 16, command: 'switchport 7 trunk allowed 10,20', show: 'show vlan brief', failures: ['vlan.not_allowed'], warnings: ['vlan.native_mismatch'], glossary: 'native_vlan', lessons: ['vlan_two_floors'], known: ['command'] },
+  { id: 'trunk', unlock: 16, command: 'switchport 7 trunk allowed 10,20', show: 'show vlan brief', failures: ['vlan.not_allowed'], warnings: ['vlan.native_mismatch'], glossary: 'native_vlan', lessons: ['vlan_two_floors'] },
   { id: 'svi', unlock: 20, command: 'ip address vlan 10 192.168.10.1 255.255.255.0', show: 'show interfaces', failures: [], warnings: [], glossary: null, lessons: [], known: ['glossary', 'lesson'] },
   { id: 'static_route', unlock: 1, command: 'ip route 10.0.0.0 255.0.0.0 192.168.1.2', show: 'show ip route', failures: ['route.none', 'route.loop'], warnings: [], glossary: 'admin_distance', lessons: [], known: ['lesson'] },
   { id: 'rip', unlock: 56, command: 'router rip', show: 'show ip rip database', failures: ['rip.unreachable'], warnings: [], glossary: null, lessons: [], known: ['glossary', 'lesson'] },

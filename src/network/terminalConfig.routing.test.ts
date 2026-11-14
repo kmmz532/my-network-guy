@@ -44,6 +44,6 @@ describe('switchport trunk', () => {
     expect(viaTree('switchport 1 trunk', tr)).toEqual({ kind: 'action', action: { kind: 'portMode', port: 1, mode: { kind: 'trunk' } } });
     expect(viaTree('switchport 1 trunk allowed 10,20 native 10', tr)).toEqual({ kind: 'action', action: { kind: 'portMode', port: 1, mode: { kind: 'trunk', allowed: [10, 20], native: 10 } } });
     expect(viaTree('switchport 1 trunk allowed all', tr)).toEqual({ kind: 'action', action: { kind: 'portMode', port: 1, mode: { kind: 'trunk', allowed: null } } });
-    expect(viaTree('switchport 1 trunk allowed 0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errVlan' });
+    expect(viaTree('switchport 1 trunk allowed 0', tr)).toEqual({ kind: 'error', text: '                             ^' });
   });
 });

@@ -1,6 +1,6 @@
 // モードの命令に使う小さな部品。interface モードの命令は、口の番号を行に書かない形を、今の口の番号つきの形に直して、同じ命令の run に渡す。
 import { err, shown } from './lines';
-import type { CommandContext, CommandResult, CommandSpec, Mode, TerminalSession } from './types';
+import type { CommandContext, CommandResult, CommandSpec, Mode, TerminalSession, Token } from './types';
 
 export const INITIAL_SESSION: TerminalSession = { mode: 'exec', iface: null, process: null };
 
@@ -25,6 +25,20 @@ export const interfaceForm = (base: CommandSpec, form: (words: string[], port: n
     const port = sessionPortOf(ctx);
     if (port === null) return shown([err(tr('ui.terminal.errIfaceKind'))]);
     return base.run({ ...args, args: form(wordsOf(args.args), port).join(' ') }, ctx, tr);
+  },
+});
+
+// 口の番号を行に書く形（exec・config）の命令の、interface モードの形。口の番号の語（{ arg: 'number', name: 'port' }）を外した tokens で、
+// 今の口の番号を port に入れて base の run に渡す。tokens を省略すると、口の番号の語を外したものを使う
+export const interfaceOf = (base: CommandSpec, tokens: readonly Token[] = base.tokens.filter((t) => !('arg' in t && t.name === 'port'))): CommandSpec => ({
+  ...base,
+  id: `${base.id}Interface`,
+  modes: ['interface'],
+  tokens,
+  run: (args, ctx, tr) => {
+    const port = sessionPortOf(ctx);
+    if (port === null) return shown([err(tr('ui.terminal.errIfaceKind'))]);
+    return base.run({ ...args, port: String(port) }, ctx, tr);
   },
 });
 
