@@ -1,6 +1,6 @@
 // タイトルの場面。メニューと、会社の枠の画面、サンドボックスの広さを選ぶ画面を出す。
 // 何を出すかは titleFlow の値が決める。保存の読み書きはここで行い、結果を titleFlow に渡す。
-import { useEffect, useReducer } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { t } from '../../i18n/t';
 import { listSlots } from '../../services/db';
 import { suggestCompanyName, type CompanySave } from '../../services/companies';
@@ -10,6 +10,10 @@ import { saveSession } from '../../services/saveSession';
 import { Speed, useGameStore } from '../../stores/useGameStore';
 import { initialTitleState, titleReducer } from '../../ui/titleFlow';
 import { SandboxSizePanel } from '../SandboxSizePanel';
+import { LessonPicker } from '../LessonPicker';
+import { Button } from '../ui/Button';
+import { Dialog } from '../ui/Dialog';
+import { Text } from '../ui/Text';
 import { keyRouter } from '../../input/keyRouter';
 import { SaveSlotDialog } from './SaveSlotDialog';
 import { TitleScreen } from './TitleScreen';
@@ -22,7 +26,13 @@ import { useSceneStore } from '../../stores/useSceneStore';
 // 会社を開いて遊ぶ・新しく始めるとき、ゲームの場面へ移る
 const TitleScene = ({ opening }: { opening?: 'newCareer' }) => {
   const [state, dispatch] = useReducer(titleReducer, initialTitleState);
+  // 新しいサンドボックスの始め方（選ぶ → 自由に作る・教材から始める）
+  const [sandboxStart, setSandboxStart] = useState<'choose' | 'free' | 'lesson'>('choose');
   const { panel, mode, saves, broken, notice, message, pendingImport } = state;
+  // 広さの画面を閉じたら、次に開くときは選ぶところから
+  useEffect(() => {
+    if (panel.kind !== 'sandboxSize') setSandboxStart('choose');
+  }, [panel.kind]);
 
   // 読み込みに失敗したときは、メニューに知らせを出す（タイトルの操作は止めない）
   const loadFailed = (e: unknown) => dispatch({ type: 'menuMessage', message: t('ui.title.loadFailed', { reason: (e as Error).message }) });
@@ -169,11 +179,35 @@ const TitleScene = ({ opening }: { opening?: 'newCareer' }) => {
 
   return (
     <>
-      {panel.kind === 'sandboxSize' && (
+      {/* 新しいサンドボックス: まず「自由に作る」か「教材から始める」かを選ぶ */}
+      {panel.kind === 'sandboxSize' && sandboxStart === 'choose' && (
+        <Dialog onClose={() => dispatch({ type: 'closeSandboxSize' })} layout={{ width: 'min(320px, calc(100% - 32px))' }}>
+          <Text bold>{t('ui.sandbox.start.title')}</Text>
+          <Button variant="secondary" size="row" layout={{ width: '100%', margin: '10px 0 4px' }} onClick={() => setSandboxStart('free')}>
+            {t('ui.sandbox.start.free')}
+          </Button>
+          <Button variant="secondary" size="row" layout={{ width: '100%', margin: '4px 0' }} onClick={() => setSandboxStart('lesson')}>
+            {t('ui.sandbox.start.lesson')}
+          </Button>
+        </Dialog>
+      )}
+      {panel.kind === 'sandboxSize' && sandboxStart === 'lesson' && (
+        <LessonPicker
+          onClose={() => setSandboxStart('choose')}
+          onPick={(id) => {
+            const game = useGameStore.getState();
+            game.newSandbox();
+            game.openLesson(id);
+            dispatch({ type: 'closeSandboxSize' });
+            void onSandboxSized();
+          }}
+        />
+      )}
+      {panel.kind === 'sandboxSize' && sandboxStart === 'free' && (
         <SandboxSizePanel
           title={t('ui.sandbox.size.title')}
           start={t('ui.sandbox.size.start')}
-          onClose={() => dispatch({ type: 'closeSandboxSize' })}
+          onClose={() => setSandboxStart('choose')}
           submit={(size) => {
             useGameStore.getState().newSandbox(size);
             dispatch({ type: 'closeSandboxSize' });

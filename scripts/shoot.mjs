@@ -129,10 +129,26 @@ const scenes = {
     await setHour(page, 22);
     await page.waitForTimeout(6000);
   },
+  // サンドボックスの始め方を選ぶ画面
+  sandboxstart: async (page) => {
+    await page.getByText('サンドボックス').click();
+    await page.waitForTimeout(500);
+  },
+  // サンドボックスを教材から始める（社名を入れて、教材を開いた状態）
+  sandboxlesson: async (page) => {
+    await page.getByText('サンドボックス').click();
+    await page.getByRole('button', { name: '教材から始める' }).click();
+    await page.getByRole('button', { name: /OSPF/ }).first().click();
+    await page.waitForTimeout(500);
+    const start = page.getByRole('button', { name: '始める' });
+    if ((await start.count()) > 0) await start.first().click();
+    await page.waitForTimeout(1500);
+  },
   // サンドボックス
   sandbox: async (page) => {
     await page.getByText('サンドボックス').click();
-    // 部屋の広さを選ぶ画面、社名を入れる画面の順に、どちらも「始める」を押す
+    // 始め方は「自由に作る」。部屋の広さを選ぶ画面、社名を入れる画面の順に、どちらも「始める」を押す
+    await page.getByRole('button', { name: '自由に作る' }).click();
     await page.getByRole('button', { name: '始める' }).click();
     await page.waitForTimeout(500);
     const start = page.getByRole('button', { name: '始める' });
