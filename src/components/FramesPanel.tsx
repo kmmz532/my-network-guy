@@ -6,7 +6,7 @@ import { framesOf, isL2Category, isRoutingCategory, type Frame, type FrameContex
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
 import { labelOfUid } from './nodeLabel';
-import { secondaryButton } from './Modal';
+import { Button } from './ui/Button';
 import { Select } from './ui/Select';
 import { deviceCategory } from '../registry/query';
 
@@ -99,8 +99,8 @@ export function FramesBody({ goal }: { goal?: number }) {
         </table>
       </div>
       <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-        <button style={secondaryButton} disabled={frames.length === 0 || hop === 0} onClick={() => setHop(hop === null ? frames.length - 2 : hop - 1)}>{t('ui.frames.prev')}</button>
-        <button style={secondaryButton} disabled={hop === null || hop >= frames.length - 1} onClick={() => setHop(hop === null || hop + 1 >= frames.length - 1 ? null : hop + 1)}>{t('ui.frames.next')}</button>
+        <Button variant="secondary" disabled={frames.length === 0 || hop === 0} onClick={() => setHop(hop === null ? frames.length - 2 : hop - 1)}>{t('ui.frames.prev')}</Button>
+        <Button variant="secondary" disabled={hop === null || hop >= frames.length - 1} onClick={() => setHop(hop === null || hop + 1 >= frames.length - 1 ? null : hop + 1)}>{t('ui.frames.next')}</Button>
       </div>
     </div>
   );

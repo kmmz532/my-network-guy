@@ -145,9 +145,6 @@
   "src/components/FramesPanel.tsx": {
     "local/no-look-props": {
       "count": 8
-    },
-    "local/no-native-control": {
-      "count": 2
     }
   },
   "src/components/FundsPanel.tsx": {
