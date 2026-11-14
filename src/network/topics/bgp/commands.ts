@@ -3,7 +3,7 @@ import { bgpTableOf } from '../../query/bgpTable';
 import { changed, err, out, shown } from '../../command/lines';
 import type { CommandContext, CommandResult, CommandSpec } from '../../command/types';
 import type { Tr } from '../../terminal';
-import { isIp, prefixOfMask } from '../../command/args';
+import { prefixOfMask } from '../../command/args';
 import { enterRouter } from '../../command/modes';
 
 const showSummary = (_args: unknown, ctx: CommandContext, tr: Tr): CommandResult => {
@@ -46,26 +46,6 @@ export const commands: readonly CommandSpec[] = [
     run: showTable,
   },
   {
-    id: 'bgp.neighbor',
-    modes: ['exec', 'config', 'router-bgp'],
-    tokens: [{ word: 'neighbor' }, { rest: 'args' }],
-    help: '',
-    writes: true,
-    topic: 'bgp',
-    // 形は3つ。next-hop-self → 属性（local-preference・med・prepend の値）→ remote-as の順に当てる
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (isIp(words[0] ?? '') && words[1] === 'next-hop-self' && words.length === 2) return changed(ctx, tr, { kind: 'bgp', change: { op: 'attr', ip: words[0], key: 'nextHopSelf', value: true } });
-      if (isIp(words[0] ?? '') && words.length === 3 && /^[0-9]+$/.test(words[2])) {
-        const keys = { 'local-preference': 'localPref', med: 'med', prepend: 'prepend' } as const;
-        const key = keys[words[1] as keyof typeof keys];
-        if (key !== undefined) return changed(ctx, tr, { kind: 'bgp', change: { op: 'attr', ip: words[0], key, value: Number(words[2]) } });
-      }
-      if (words.length !== 3 || words[1] !== 'remote-as' || !isIp(words[0]) || !/^[0-9]+$/.test(words[2])) return shown([err(tr('ui.terminal.usageBgp'))]);
-      return changed(ctx, tr, { kind: 'bgp', change: { op: 'neighbor', ip: words[0], remoteAs: Number(words[2]) } });
-    },
-  },
-  {
     id: 'bgp.network',
     modes: ['exec', 'config', 'router-bgp'],
     tokens: [{ word: 'network' }, { arg: 'ip', name: 'dest' }, { word: 'mask' }, { arg: 'mask', name: 'mask' }],
@@ -75,40 +55,75 @@ export const commands: readonly CommandSpec[] = [
     run: (args, ctx, tr) => changed(ctx, tr, { kind: 'bgp', change: { op: 'network', dest: args.dest, prefix: prefixOfMask(args.mask) } }),
   },
   {
-    id: 'bgp.noNeighbor',
+    id: 'bgp.neighborNextHopSelf',
     modes: ['exec', 'config', 'router-bgp'],
-    tokens: [{ word: 'no' }, { word: 'neighbor' }, { rest: 'args' }],
+    tokens: [{ word: 'neighbor' }, { arg: 'ip', name: 'ip' }, { word: 'next-hop-self' }],
     help: '',
     writes: true,
     topic: 'bgp',
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (isIp(words[0] ?? '') && words[1] === 'next-hop-self' && words.length === 2) return changed(ctx, tr, { kind: 'bgp', change: { op: 'attr', ip: words[0], key: 'nextHopSelf', value: false } });
-      return shown([err(tr('ui.terminal.unknown'))]);
-    },
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'bgp', change: { op: 'attr', ip: args.ip, key: 'nextHopSelf', value: true } }),
+  },
+  {
+    id: 'bgp.neighborLocalPref',
+    modes: ['exec', 'config', 'router-bgp'],
+    tokens: [{ word: 'neighbor' }, { arg: 'ip', name: 'ip' }, { word: 'local-preference' }, { arg: 'number', name: 'value' }],
+    help: '',
+    writes: true,
+    topic: 'bgp',
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'bgp', change: { op: 'attr', ip: args.ip, key: 'localPref', value: Number(args.value) } }),
+  },
+  {
+    id: 'bgp.neighborMed',
+    modes: ['exec', 'config', 'router-bgp'],
+    tokens: [{ word: 'neighbor' }, { arg: 'ip', name: 'ip' }, { word: 'med' }, { arg: 'number', name: 'value' }],
+    help: '',
+    writes: true,
+    topic: 'bgp',
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'bgp', change: { op: 'attr', ip: args.ip, key: 'med', value: Number(args.value) } }),
+  },
+  {
+    id: 'bgp.neighborPrepend',
+    modes: ['exec', 'config', 'router-bgp'],
+    tokens: [{ word: 'neighbor' }, { arg: 'ip', name: 'ip' }, { word: 'prepend' }, { arg: 'number', name: 'value' }],
+    help: '',
+    writes: true,
+    topic: 'bgp',
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'bgp', change: { op: 'attr', ip: args.ip, key: 'prepend', value: Number(args.value) } }),
+  },
+  {
+    id: 'bgp.neighborRemoteAs',
+    modes: ['exec', 'config', 'router-bgp'],
+    tokens: [{ word: 'neighbor' }, { arg: 'ip', name: 'ip' }, { word: 'remote-as' }, { arg: 'asn', name: 'asn' }],
+    help: '',
+    writes: true,
+    topic: 'bgp',
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'bgp', change: { op: 'neighbor', ip: args.ip, remoteAs: Number(args.asn) } }),
+  },
+  {
+    id: 'bgp.noNeighborNextHopSelf',
+    modes: ['exec', 'config', 'router-bgp'],
+    tokens: [{ word: 'no' }, { word: 'neighbor' }, { arg: 'ip', name: 'ip' }, { word: 'next-hop-self' }],
+    help: '',
+    writes: true,
+    topic: 'bgp',
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'bgp', change: { op: 'attr', ip: args.ip, key: 'nextHopSelf', value: false } }),
   },
   {
     id: 'bgp.router',
     modes: ['exec', 'config'],
-    tokens: [{ word: 'router' }, { word: 'bgp' }, { rest: 'args' }],
+    tokens: [{ word: 'router' }, { word: 'bgp' }, { arg: 'asn', name: 'asn' }],
     help: '',
     writes: true,
     topic: 'bgp',
-    run: (args, ctx, tr) => {
-      const [asn] = args.args.split(' ').filter((w) => w !== '');
-      if (!/^[0-9]+$/.test(asn ?? '')) return shown([err(tr('ui.terminal.usageBgp'))]);
-      return enterRouter(ctx, changed(ctx, tr, { kind: 'bgp', change: { op: 'asn', asn: Number(asn) } }), 'router-bgp', Number(asn));
-    },
+    run: (args, ctx, tr) => enterRouter(ctx, changed(ctx, tr, { kind: 'bgp', change: { op: 'asn', asn: Number(args.asn) } }), 'router-bgp', Number(args.asn)),
   },
   {
     id: 'bgp.noRouter',
     modes: ['exec', 'config'],
-    tokens: [{ word: 'no' }, { word: 'router' }, { word: 'bgp' }, { rest: 'args' }],
+    tokens: [{ word: 'no' }, { word: 'router' }, { word: 'bgp' }],
     help: '',
     writes: true,
     topic: 'bgp',
-    run: (_args, ctx, tr) => {
-      return changed(ctx, tr, { kind: 'bgp', change: { op: 'off' } });
-    },
+    run: (_args, ctx, tr) => changed(ctx, tr, { kind: 'bgp', change: { op: 'off' } }),
   },
 ];

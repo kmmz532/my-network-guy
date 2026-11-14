@@ -53,8 +53,10 @@
     },
     {
       "line": "neighbor 1.2.3 remote-as 1",
-      "result": "error",
-      "text": "ui.terminal.usageBgp"
+      "lines": [
+        "err:           ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "network 10.0.1.0 mask 255.255.255.0",
@@ -88,8 +90,10 @@
     },
     {
       "line": "router bgp abc",
-      "result": "error",
-      "text": "ui.terminal.usageBgp"
+      "lines": [
+        "err:             ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "router bgp 65001",

@@ -576,8 +576,10 @@
     },
     {
       "line": "router bgp x",
-      "result": "error",
-      "text": "ui.terminal.usageBgp"
+      "lines": [
+        "err:             ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "end",
