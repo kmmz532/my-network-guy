@@ -12,7 +12,7 @@ const itemDefs: ItemDefs = { devices: devicesById, furniture: furnitureById, cab
 import { effectText } from '../game/effectText';
 import { purchaseDiscountOf, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
-import { secondaryButton } from './Modal';
+import { Button } from './ui/Button';
 import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
 import { RADIUS } from '../ui/theme';
 import { matchesQuery } from '../ui/search';
@@ -88,13 +88,13 @@ export function ShopBody() {
                     {!sandbox && <div style={{ fontSize: 12, opacity: 0.85 }}>{t('ui.shop.sellPrice', { price: yen(Math.floor(d.price * balance.sellRate)) })}</div>}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 64 }}>
-                    <button style={{ ...secondaryButton, opacity: money < cost(d.price) ? 0.4 : 1 }} disabled={money < cost(d.price)} onClick={() => buy(id)}>
+                    <Button variant="secondary" disabled={money < cost(d.price)} onClick={() => buy(id)}>
                       {t('ui.shop.buy')}
-                    </button>
+                    </Button>
                     {!sandbox && (
-                      <button style={{ ...secondaryButton, opacity: (owned[id] ?? 0) > 0 ? 1 : 0.4 }} disabled={(owned[id] ?? 0) <= 0} onClick={() => sell(id)}>
+                      <Button variant="secondary" disabled={(owned[id] ?? 0) <= 0} onClick={() => sell(id)}>
                         {t('ui.shop.sell')}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -120,13 +120,13 @@ export function ShopBody() {
                     {!sandbox && <div style={{ fontSize: 12, opacity: 0.85 }}>{t('ui.shop.sellPrice', { price: yen(Math.floor(f.price * balance.sellRate)) })}</div>}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 64 }}>
-                    <button style={{ ...secondaryButton, opacity: money < cost(f.price) ? 0.4 : 1 }} disabled={money < cost(f.price)} onClick={() => buy(id)}>
+                    <Button variant="secondary" disabled={money < cost(f.price)} onClick={() => buy(id)}>
                       {t('ui.shop.buy')}
-                    </button>
+                    </Button>
                     {!sandbox && (
-                      <button style={{ ...secondaryButton, opacity: (owned[id] ?? 0) > 0 ? 1 : 0.4 }} disabled={(owned[id] ?? 0) <= 0} onClick={() => sell(id)}>
+                      <Button variant="secondary" disabled={(owned[id] ?? 0) <= 0} onClick={() => sell(id)}>
                         {t('ui.shop.sell')}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>

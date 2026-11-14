@@ -319,13 +319,10 @@
       "count": 1
     },
     "local/no-look-props": {
-      "count": 25
+      "count": 21
     },
     "local/no-mode-branch": {
       "count": 2
-    },
-    "local/no-native-control": {
-      "count": 4
     }
   },
   "src/components/StaffCard.tsx": {
