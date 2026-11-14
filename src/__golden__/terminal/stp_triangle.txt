@@ -8,6 +8,11 @@ spanning-tree cost 0 19
 spanning-tree cost 1 0
 spanning-tree cost 1 19
 spanning-tree cost x 19
+configure terminal
+interface g0/0
+spanning-tree priority 4096
+spanning-tree cost 19
+end
 show spanning-tree
 show mac address-table
 @SW2

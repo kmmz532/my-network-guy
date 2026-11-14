@@ -1221,7 +1221,6 @@
   "ui.terminal.usageHostname": "使い方: hostname <名前>",
   "ui.terminal.usageIpAddress": "使い方: ip address <ポート> <IP> <マスク>",
   "ui.terminal.usagePing": "使い方: ping <IPアドレス>",
-  "ui.terminal.usageStp": "書式: spanning-tree priority <0〜61440（4096の倍数）> / spanning-tree cost <口> <値>",
   "ui.terminal.usageTrace": "使い方: traceroute <IPアドレス>",
   "ui.terminal.vlanAccess": "口{port}: access・VLAN {vlan}",
   "ui.terminal.vlanAll": "すべて",

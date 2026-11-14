@@ -31,8 +31,10 @@
     },
     {
       "line": "spanning-tree cost 1 0",
-      "result": "error",
-      "text": "ui.terminal.usageStp"
+      "lines": [
+        "err:                       ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "spanning-tree cost 1 19",
@@ -40,8 +42,37 @@
     },
     {
       "line": "spanning-tree cost x 19",
-      "result": "error",
-      "text": "ui.terminal.usageStp"
+      "lines": [
+        "err:                     ^",
+        "err:ui.terminal.invalidAt"
+      ]
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "interface g0/0",
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "port",
+        "port": 0
+      }
+    },
+    {
+      "line": "spanning-tree priority 4096",
+      "result": "done"
+    },
+    {
+      "line": "spanning-tree cost 19",
+      "result": "done"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
     },
     {
       "line": "show spanning-tree",
@@ -151,12 +182,12 @@
         "ports": [
           {
             "mode": "access",
-            "port": 0,
+            "port": 1,
             "stpCost": 19
           },
           {
             "mode": "access",
-            "port": 1,
+            "port": 0,
             "stpCost": 19
           }
         ],

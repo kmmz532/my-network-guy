@@ -94,6 +94,7 @@ export const isArg = (kind: ArgKind, text: string): boolean => {
     case 'channel': return rangeOk(text, 1, 13);
     case 'ssid': return text.length >= 1 && text.length <= 32;
     case 'psk': return text.length >= 8;
+    case 'cost': return /^\d{1,10}$/.test(text) && Number(text) >= 1;
     case 'number': return /^\d{1,10}$/.test(text);
     case 'word': return text !== '';
     case 'hostname': return isHostName(text);

@@ -2,28 +2,34 @@
 import { stpOf } from '../../query/stp';
 import { changed, err, nameOf, out, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
-import { interfaceForm } from '../../command/modes';
-import { port } from '../../command/args';
+import { interfaceOf } from '../../command/modes';
 
-const spanningTree: CommandSpec = {
-  id: 'stp.spanningTree',
+const PORT = { arg: 'number', name: 'port' } as const;
+
+// spanning-tree priority <値>。値の範囲（61440 以下・4096 の倍数）は run が検査する
+const stpPriority: CommandSpec = {
+  id: 'stp.spanningTreePriority',
   modes: ['exec', 'config'],
-  tokens: [{ word: 'spanning-tree' }, { rest: 'args' }],
+  tokens: [{ word: 'spanning-tree' }, { word: 'priority' }, { arg: 'number', name: 'value' }],
   help: '',
   writes: true,
   topic: 'stp',
   run: (args, ctx, tr) => {
-    const words = args.args.split(' ').filter((w) => w !== '');
-    if (words[0] === 'priority' && words.length === 2 && /^[0-9]+$/.test(words[1])) {
-      const v = Number(words[1]);
-      if (v > 61440 || v % 4096 !== 0) return shown([err(tr('ui.terminal.errStpPriority'))]);
-      return changed(ctx, tr, { kind: 'stp', change: { op: 'priority', value: v } });
-    }
-    if (words[0] === 'cost' && words.length === 3 && port(words[1]) !== null && /^[0-9]+$/.test(words[2]) && Number(words[2]) >= 1) {
-      return changed(ctx, tr, { kind: 'stp', change: { op: 'cost', port: Number(words[1]), value: Number(words[2]) } });
-    }
-    return shown([err(tr('ui.terminal.usageStp'))]);
+    const v = Number(args.value);
+    if (v > 61440 || v % 4096 !== 0) return shown([err(tr('ui.terminal.errStpPriority'))]);
+    return changed(ctx, tr, { kind: 'stp', change: { op: 'priority', value: v } });
   },
+};
+
+// spanning-tree cost <口> <値>（interface モードの形は口の番号を外す）
+const stpCost: CommandSpec = {
+  id: 'stp.spanningTreeCost',
+  modes: ['exec', 'config'],
+  tokens: [{ word: 'spanning-tree' }, { word: 'cost' }, PORT, { arg: 'cost', name: 'value' }],
+  help: '',
+  writes: true,
+  topic: 'stp',
+  run: (args, ctx, tr) => changed(ctx, tr, { kind: 'stp', change: { op: 'cost', port: Number(args.port), value: Number(args.value) } }),
 };
 
 export const commands: readonly CommandSpec[] = [
@@ -44,6 +50,8 @@ export const commands: readonly CommandSpec[] = [
       return shown(lines);
     },
   },
-  spanningTree,
-  interfaceForm(spanningTree, (words, p) => (words[0] === 'cost' ? [words[0], String(p), ...words.slice(1)] : words)),
+  stpPriority,
+  interfaceOf(stpPriority),
+  stpCost,
+  interfaceOf(stpCost),
 ];
