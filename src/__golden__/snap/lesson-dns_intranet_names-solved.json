@@ -1,6 +1,8 @@
 {
   "goals": [
     true,
+    true,
+    true,
     true
   ],
   "pings": [

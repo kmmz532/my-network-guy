@@ -196,6 +196,22 @@
     },
     {
       "type": "outside_reachable"
+    },
+    {
+      "type": "resolve_name",
+      "from": [
+        "PC1"
+      ],
+      "name": "files.office.internal",
+      "ip": "192.168.1.80"
+    },
+    {
+      "type": "resolve_name",
+      "from": [
+        "PC1"
+      ],
+      "name": "example.com",
+      "ip": "192.0.2.80"
     }
   ],
   "guide": [
