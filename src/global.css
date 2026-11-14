@@ -74,6 +74,19 @@ button {
   border: 1px solid #3b2a33;
 }
 
+/* 選択ボックス（button で描く）は、上の button の紺の地を受けず、入力欄と同じ見た目にする */
+button[role='combobox'] {
+  background: #f4f1e6;
+  color: #3b2a33;
+  border-width: 2px;
+  border-color: #3b2a33 #bcb9af #bcb9af #3b2a33;
+}
+
+button[role='combobox']:focus {
+  background: #d8eaff;
+  border-color: #392a3b #afb4bc #afb4bc #392a3b;
+}
+
 button:disabled {
   opacity: 0.5;
   cursor: default !important;
