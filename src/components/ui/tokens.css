@@ -31,11 +31,15 @@
   /* 状態 */
   --st-error: #ff6b6b;
   --st-warn: #ffd866;
+  --st-ok: #62d26f;
+  --bg-track: #1b2f57;
   --disabled-opacity: 0.5;
 
   /* 文字の大きさ。選択の一覧は今の 13 px を保つ */
   --fs-list: 13px;
+  --fs-xs: 11px;
   --fs-s: 12px;
+  --fs-sm: 13px;
   --fs-m: 14px;
   --fs-l: 16px;
   --fs-menu: 13px;

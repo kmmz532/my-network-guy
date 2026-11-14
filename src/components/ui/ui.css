@@ -587,3 +587,99 @@ input.ui-text-input--full {
   padding: 6px;
   white-space: pre-wrap;
 }
+
+/* Text: 文字の色と大きさ。地は持たない。sub は今の補足の淡さ（文字を 0.7 の不透明度にする） */
+.ui-text {
+  color: var(--fg);
+  font-size: var(--fs-m);
+}
+
+.ui-text--sub {
+  opacity: 0.7;
+}
+
+.ui-text--ok {
+  color: var(--st-ok);
+}
+
+.ui-text--warn {
+  color: var(--st-warn);
+}
+
+.ui-text--error {
+  color: var(--st-error);
+}
+
+.ui-text--xs {
+  font-size: var(--fs-xs);
+}
+
+.ui-text--s {
+  font-size: var(--fs-s);
+}
+
+.ui-text--sm {
+  font-size: var(--fs-sm);
+}
+
+.ui-text--l {
+  font-size: var(--fs-l);
+}
+
+.ui-text--bold {
+  font-weight: bold;
+}
+
+/* Heading: 窓の題と段の題 */
+.ui-heading {
+  color: var(--fg);
+  font-weight: bold;
+}
+
+.ui-heading--window {
+  font-size: var(--fs-l);
+}
+
+.ui-heading--section {
+  font-size: var(--fs-m);
+}
+
+/* Badge: 小さい枠の札。枠と文字の色は部品の color で受け取る */
+.ui-badge {
+  display: inline-block;
+  padding: 0 6px;
+  border: 1px solid;
+  background: var(--line);
+  font-size: var(--fs-s);
+  white-space: nowrap;
+  border-radius: 0;
+}
+
+/* ProgressBar: 進みの棒。塗りは fraction の分の幅 */
+.ui-progress {
+  position: relative;
+  box-sizing: border-box;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.ui-progress--m {
+  height: 8px;
+}
+
+.ui-progress--s {
+  height: 6px;
+  background: var(--bg-track);
+  border: 1px solid var(--line);
+}
+
+.ui-progress__fill {
+  display: block;
+  height: 100%;
+}
+
+/* Led: 口の点灯。色と大きさは部品の値で決まる */
+.ui-led {
+  display: block;
+  box-sizing: border-box;
+}
