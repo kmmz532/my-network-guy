@@ -337,7 +337,7 @@
   },
   "src/components/Toolbar.tsx": {
     "local/no-look-props": {
-      "count": 41
+      "count": 40
     },
     "local/no-mode-branch": {
       "count": 2

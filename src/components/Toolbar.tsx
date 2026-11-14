@@ -21,6 +21,7 @@ import { tipText } from '../input/keymap';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
 import { IconButton } from './ui/IconButton';
+import { Divider } from './ui/Divider';
 import { Inventory, inventoryCatalog } from './Inventory';
 import { RADIUS } from '../ui/theme';
 import { usePhone } from '../ui/usePhone';
@@ -84,7 +85,6 @@ const slot = (active: boolean) =>
     position: 'relative',
   }) as const;
 
-const sep = <span style={{ width: 1, height: 36, background: '#3b2a33', margin: '0 4px' }} />;
 
 // 道具の一覧（左端に並べる順）。action は input/keymap.ts の動作の識別子（押すキーの表示に使う）
 const TOOLS: { id: Tool; name: LangKey; action: string; icon: string }[] = [
@@ -323,7 +323,7 @@ export function Toolbar() {
           </span>
         </Fragment>
       ))}
-      {sep}
+      <Divider layout={{ margin: '0 4px' }} />
       {!sandbox && (
       <IconButton label={t('ui.offer.title')} tip={tipText('ui.offer.title', 'offers', !phone)} count={offers.length} onClick={() => { closeInventory(); onOffers(); }}>
         <Icon name="icon/mail" />
@@ -339,7 +339,7 @@ export function Toolbar() {
         </button></Tooltip>
       )}
       {/* 在庫はインベントリのアイコンにまとめる。品目の一覧はインベントリの欄で開く */}
-      {sep}
+      <Divider layout={{ margin: '0 4px' }} />
       <Tooltip text={tipText('ui.inventory.title', 'inventory', !phone)}><button aria-label={t('ui.inventory.title')} data-guide="inventory" style={{ ...sl(inventoryOpen && inventoryOpenable), opacity: inventoryOpenable ? 1 : 0.35 }}
         
         disabled={!inventoryOpenable}
@@ -352,9 +352,9 @@ export function Toolbar() {
       </button></Tooltip>
       {(design || sandbox) && (
         <>
-          {sep}
+          <Divider layout={{ margin: '0 4px' }} />
           {ipButton}
-          {sep}
+          <Divider layout={{ margin: '0 4px' }} />
           {/* テストは何度でも押せ、時間も費用もかからない。施工は、テストに合格してからだけ依頼できる（押すと案内を出す） */}
           <Tooltip text={tipText('ui.test', 'test', !phone)}>
             <button
@@ -410,7 +410,7 @@ export function Toolbar() {
       )}
       {active?.phase === 'build' && (
         <>
-          {sep}
+          <Divider layout={{ margin: '0 4px' }} />
           <Icon name="icon/hammer" />
           <div style={{ width: 200, height: 10, background: '#3b2a33', borderRadius: RADIUS.none }}>
             <div
