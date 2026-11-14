@@ -7,6 +7,7 @@ import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
 import { labelOfUid } from './nodeLabel';
 import { secondaryButton } from './Modal';
+import { Select } from './ui/Select';
 import { deviceCategory } from '../registry/query';
 
 const CHANGED = '#ffd866';
@@ -54,11 +55,13 @@ export function FramesBody({ goal }: { goal?: number }) {
   return (
     <div style={{ fontSize: 12 }}>
       {traces.length > 1 && (
-        <select value={index} onChange={(e) => { setIndex(Number(e.target.value)); setHop(null); }} style={{ marginBottom: 6, maxWidth: '100%' }}>
-          {traces.map((tr, i) => (
-            <option key={i} value={i}>{`${tr.kind} ${name(tr.src)} → ${name(tr.dst)}`}</option>
-          ))}
-        </select>
+        <Select
+          label={t('ui.frames.title')}
+          value={String(index)}
+          options={traces.map((tr, i) => ({ value: String(i), label: `${tr.kind} ${name(tr.src)} → ${name(tr.dst)}` }))}
+          onChange={(v) => { setIndex(Number(v)); setHop(null); }}
+          layout={{ marginBottom: 6, maxWidth: '100%' }}
+        />
       )}
       <div style={{ overflowX: 'auto' }}>
         <table style={{ borderCollapse: 'collapse' }}>
