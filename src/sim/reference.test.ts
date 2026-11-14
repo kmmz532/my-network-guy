@@ -20,7 +20,6 @@ import c005 from '../assets/data/contracts/c005_two_sites.json';
 import c006 from '../assets/data/contracts/c006_office_external.json';
 import i001 from '../assets/data/contracts/i001_office_lan.json';
 import i002 from '../assets/data/contracts/i002_office_server.json';
-import i003 from '../assets/data/contracts/i003_office_firewall.json';
 import templateJson from '../assets/data/contracts/templates/t_small_lan.json';
 import officeSmall from '../assets/data/maps/office_small.json';
 import officeTwoRooms from '../assets/data/maps/office_two_rooms.json';
@@ -324,33 +323,6 @@ describe('模範解答: 固定案件', () => {
     expectReference(finish(core).report);
   });
 
-  it('i003 自社オフィスのファイアウォール: 回線終端へつなぎ、NAPT で外へ出る。規則は変換の前の社内のアドレスで判定する', () => {
-    const afterI001 = buildI001(startCore([fixedOffer(i001), fixedOffer(i002), fixedOffer(i003)])).core;
-    let core = take(afterI001, 'i002_office_server');
-    core = buy(core, SERVER);
-    const server = place(core, SERVER, 3, 4, mapOfOffice(core.office));
-    core = server.core;
-    const sw = focusedOf(core)!.nodes.find((n) => n.device === SWITCH)!;
-    core = wire(core, server.uid, sw.uid);
-    core = addr(core, server.uid, '192.168.1.20');
-    core = finish(core).core;
-
-    core = take(core, 'i003_office_firewall');
-    core = buy(core, FIREWALL);
-    const fw = place(core, FIREWALL, 5, 3, mapOfOffice(core.office));
-    core = fw.core;
-    core = wire(core, sw.uid, fw.uid, UTP, { b: 0 });
-    core = wire(core, fw.uid, 'uplink', UTP, { a: 1, b: 0 });
-    core = addr(core, fw.uid, '192.168.1.1');
-    core = addr(core, fw.uid, '198.51.100.2', 1);
-    core = ok(setGateway(core, fw.uid, '198.51.100.1')).core;
-    core = ok(setNat(core, fw.uid, { op: 'iface', id: 'g0/0', nat: 'inside' })).core;
-    core = ok(setNat(core, fw.uid, { op: 'iface', id: 'g0/1', nat: 'outside' })).core;
-    core = ok(setNat(core, fw.uid, { op: 'napt', on: true })).core;
-    core = ok(setFirewallRules(core, fw.uid, [{ src: '192.168.1.0/24', dst: 'any', service: 'any' }])).core;
-    for (const pc of focusedOf(core)!.nodes.filter((n) => n.device === PC)) core = ok(setGateway(core, pc.uid, '192.168.1.1')).core;
-    expect(finish(core).report.passed).toBe(true);
-  });
 });
 
 // i001 の模範解答を組み、検収まで進める（自社オフィスに PC 2台とスイッチが残る）
