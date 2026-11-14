@@ -350,10 +350,10 @@
   },
   "src/components/TaskPanel.tsx": {
     "local/no-look-props": {
-      "count": 40
+      "count": 31
     },
     "local/no-native-control": {
-      "count": 5
+      "count": 1
     }
   },
   "src/components/TerminalTab.tsx": {

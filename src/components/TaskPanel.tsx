@@ -6,7 +6,6 @@ import { goalText } from './goalText';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 import { RADIUS } from '../ui/theme';
-import { secondaryButton } from './Modal';
 import { familiarKeyOf } from '../sim/familiar';
 import { usePhone } from '../ui/usePhone';
 import { useEffect, useRef, useState } from 'react';
@@ -19,8 +18,6 @@ const FIRST_CONTRACT = 'c001_direct_link';
 
 // top は札の上端（ヘッダーの下）。狭い画面では、案件を受けたときに畳んだ状態（件名だけ）で出す
 // 案件の欄の折りたたみの見出し（案件と教材で同じ）
-const foldHeaderStyle = { display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '4px 8px', background: 'transparent', color: 'inherit', border: 'none', cursor: 'pointer', fontWeight: 'bold', textAlign: 'left' } as const;
-
 export function TaskPanel() {
   const active = useGameStore(focusedProject);
   const open = useGameStore((s) => s.taskOpen);
@@ -79,11 +76,11 @@ export function TaskPanel() {
     return (
       <aside data-task-panel style={{ width: open ? 260 : 'auto', background: 'rgba(47, 79, 143, 0.92)', color: '#f4f1e6', border: '2px solid #3b2a33', borderRadius: RADIUS.chrome, fontSize: 13, zIndex: 4, zoom: 'var(--ui-scale, 1)' }}>
         {/* 案件の欄と同じ折りたたみの見出し（教材の題名を出す） */}
-        <button onClick={() => setOpen(!open)} style={foldHeaderStyle}>
+        <Button variant="plain" size="row" layout={{ width: '100%' }} onClick={() => setOpen(!open)}>
           <span style={{ width: 10 }}>{open ? '▾' : '▸'}</span>
           <Icon name="icon/mail" scale={1} />
           {(open || phone) && <span style={phone && !open ? { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : undefined}>{tDyn(`lesson.${lesson.id}.title`)}</span>}
-        </button>
+        </Button>
         {open && (
           <div style={{ padding: '0 8px 8px' }}>
             <div style={{ opacity: 0.85, lineHeight: 1.5 }}>{tDyn(`lesson.${lesson.id}.brief`)}</div>
@@ -135,22 +132,7 @@ export function TaskPanel() {
         zoom: 'var(--ui-scale, 1)',
       }}
     >
-      <button
-        onClick={() => setOpen(!open)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          width: '100%',
-          padding: '4px 8px',
-          background: 'transparent',
-          color: 'inherit',
-          border: 'none',
-          cursor: 'pointer',
-          fontWeight: 'bold',
-          textAlign: 'left',
-        }}
-      >
+      <Button variant="plain" size="row" layout={{ width: '100%' }} onClick={() => setOpen(!open)}>
         <span style={{ width: 10 }}>{open ? '▾' : '▸'}</span>
         <Icon name="icon/mail" scale={1} />
         {/* 畳んだときは、狭い画面だけ件名を出す（PC は従来どおり開いたときだけ） */}
@@ -159,7 +141,7 @@ export function TaskPanel() {
             {tDyn(`contract.${active.baseId}.title`, active.params)}
           </span>
         )}
-      </button>
+      </Button>
       {open && (
         <div style={{ padding: '0 8px 8px' }}>
           <div style={{ opacity: 0.85, lineHeight: 1.5 }}>
@@ -201,16 +183,16 @@ export function TaskPanel() {
                   )}
                   <span style={{ opacity: g.ok === true ? 0.7 : 1 }}>{g.text}</span>
                   {traces.some((tr) => tr.goal === i) && (
-                    <button style={{ ...secondaryButton, padding: '0 6px', flexShrink: 0 }} onClick={() => openWindow('frames', String(i))}>
+                    <Button variant="secondary" size="s" layout={{ flexShrink: 0 }} onClick={() => openWindow('frames', String(i))}>
                       {t('ui.frames.goal')}
-                    </button>
+                    </Button>
                   )}
                   {g.ok === false && g.term && (
                     // 初めて出すとき（この表示の中でも）と、開いたときだけ説明を出す。それ以外は「説明を見る」で開く
                     termsShown.includes(g.term) && !firstShownHere.current.has(g.term) && openTerm !== g.term ? (
-                      <button style={{ ...secondaryButton, padding: '0 6px', flexShrink: 0, fontSize: 12 }} onClick={() => setOpenTerm(g.term)}>
+                      <Button variant="secondary" size="s" layout={{ flexShrink: 0 }} onClick={() => setOpenTerm(g.term)}>
                         {t('ui.glossary.open')}
-                      </button>
+                      </Button>
                     ) : (
                       <div style={{ flexBasis: '100%', paddingLeft: 22, fontSize: 12, opacity: 0.85 }}>{tDyn(`glossary.${g.term}`)}</div>
                     )
