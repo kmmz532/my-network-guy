@@ -2,7 +2,7 @@
 import { addKeyLayer } from '../../input/keyRouter';
 import { useEffect, useState } from 'react';
 import { usePhone } from '../../ui/usePhone';
-import { Modal, dangerButton, primaryButton, secondaryButton } from '../Modal';
+import { Modal, primaryButton, secondaryButton } from '../Modal';
 import { t } from '../../i18n/t';
 import { balance } from 'virtual:game-data';
 import { levelOf } from '../../sim/level';
@@ -11,6 +11,7 @@ import { MAX_COMPANY_NAME, isValidCompanyName, sortByRecent, type CompanySave } 
 import type { GameMode } from '../../company/company';
 import type { SaveSlotView } from '../../ui/titleFlow';
 import type { BrokenSlot } from '../../services/saveRecords';
+import { Button } from '../ui/Button';
 
 // 会社の要約（経営は Lv・年目・月・日。サンドボックスは広さ）。一覧と確認の文言で使う
 export const companySummary = (save: CompanySave): string => {
@@ -71,9 +72,9 @@ function NameForm({ initial, submitLabel, onSubmit, onCancel }: { initial: strin
       </label>
       <div style={{ fontSize: 12, opacity: 0.8 }}>{t('ui.company.name.hint', { max: MAX_COMPANY_NAME })}</div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-        <button style={secondaryButton} onClick={onCancel}>
+        <Button variant="secondary" onClick={onCancel}>
           {t('ui.company.cancel')}
-        </button>
+        </Button>
         <button style={{ ...primaryButton, opacity: valid ? 1 : 0.5 }} disabled={!valid} onClick={submit}>
           {submitLabel}
         </button>
@@ -131,12 +132,12 @@ export function SaveSlotDialog(props: Props) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 320 }}>
           <div>{t('ui.company.overwrite.confirm', { name: save.data.name, summary: companySummary(save) })}</div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button style={primaryButton} onClick={() => toList('overwrite')}>
+            <Button variant="primary" onClick={() => toList('overwrite')}>
               {t('ui.company.cancel')}
-            </button>
-            <button style={dangerButton} onClick={() => (importing ? onOverwriteWith(save) : onView({ kind: 'name', slot: save.slot, suggested, from: 'overwrite' }))}>
+            </Button>
+            <Button variant="danger" onClick={() => (importing ? onOverwriteWith(save) : onView({ kind: 'name', slot: save.slot, suggested, from: 'overwrite' }))}>
               {t('ui.company.overwrite.ok')}
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>
@@ -150,12 +151,12 @@ export function SaveSlotDialog(props: Props) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 320 }}>
           <div>{t('ui.company.delete.confirm', { name: save.data.name, summary: companySummary(save) })}</div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button style={primaryButton} onClick={() => toList('play')}>
+            <Button variant="primary" onClick={() => toList('play')}>
               {t('ui.company.cancel')}
-            </button>
-            <button style={dangerButton} onClick={() => onDelete(save)}>
+            </Button>
+            <Button variant="danger" onClick={() => onDelete(save)}>
               {t('ui.company.delete.ok')}
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>
@@ -169,12 +170,12 @@ export function SaveSlotDialog(props: Props) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 320 }}>
           <div>{t('ui.company.broken.delete.confirm')}</div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button style={primaryButton} onClick={() => toList('play')}>
+            <Button variant="primary" onClick={() => toList('play')}>
               {t('ui.company.cancel')}
-            </button>
-            <button style={dangerButton} onClick={() => onDeleteBroken(slot)}>
+            </Button>
+            <Button variant="danger" onClick={() => onDeleteBroken(slot)}>
               {t('ui.company.delete.ok')}
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>
@@ -206,26 +207,26 @@ export function SaveSlotDialog(props: Props) {
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flexDirection: phone ? 'column' : 'row' }}>
               {purpose === 'play' ? (
                 <>
-                  <button style={primaryButton} onClick={() => onPlay(save)}>
+                  <Button variant="primary" onClick={() => onPlay(save)}>
                     {t('ui.company.play')}
-                  </button>
-                  <button style={secondaryButton} onClick={() => onView({ kind: 'rename', save })}>
+                  </Button>
+                  <Button variant="secondary" onClick={() => onView({ kind: 'rename', save })}>
                     {t('ui.company.rename')}
-                  </button>
-                  <button style={secondaryButton} onClick={() => onDuplicate(save)}>
+                  </Button>
+                  <Button variant="secondary" onClick={() => onDuplicate(save)}>
                     {t('ui.company.duplicate')}
-                  </button>
-                  <button style={secondaryButton} onClick={() => onExport(save)}>
+                  </Button>
+                  <Button variant="secondary" onClick={() => onExport(save)}>
                     {t('ui.company.export')}
-                  </button>
-                  <button style={dangerButton} onClick={() => onView({ kind: 'delete', save })}>
+                  </Button>
+                  <Button variant="danger" onClick={() => onView({ kind: 'delete', save })}>
                     {t('ui.company.delete')}
-                  </button>
+                  </Button>
                 </>
               ) : (
-                <button style={dangerButton} onClick={() => onView({ kind: 'confirmOverwrite', save })}>
+                <Button variant="danger" onClick={() => onView({ kind: 'confirmOverwrite', save })}>
                   {t('ui.company.overwrite')}
-                </button>
+                </Button>
               )}
             </div>
             )}
@@ -236,18 +237,18 @@ export function SaveSlotDialog(props: Props) {
             <div style={{ fontSize: 14 }}>{t('ui.company.list.broken')}</div>
             {purpose === 'play' && (
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <button style={dangerButton} onClick={() => onView({ kind: 'deleteBroken', slot: b.slot })}>
+                <Button variant="danger" onClick={() => onView({ kind: 'deleteBroken', slot: b.slot })}>
                   {t('ui.company.delete')}
-                </button>
+                </Button>
               </div>
             )}
           </div>
         ))}
         {purpose === 'play' && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <button style={primaryButton} onClick={onNewHere}>
+            <Button variant="primary" onClick={onNewHere}>
               {mode === 'sandbox' ? t('ui.company.newSandbox') : t('ui.company.newCompany')}
-            </button>
+            </Button>
             <label style={{ ...secondaryButton, display: 'inline-block', cursor: 'pointer' }}>
               {t('ui.company.import')}
               <input
