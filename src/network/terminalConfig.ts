@@ -101,22 +101,6 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   if (first !== 'ip' && first !== 'no' && first !== 'hostname' && first !== 'vrrp' && first !== 'channel-group' && first !== 'spanning-tree' && first !== 'router' && first !== 'router-id' && first !== 'default-information' && first !== 'network' && first !== 'neighbor' && first !== 'wireless' && first !== 'switchport') return { kind: 'none' };
   const error = (key: string) => ({ kind: 'error' as const, text: tr(key) });
 
-  // VRRP
-  const vrrpArgs = (w: string[]) => {
-    const p = port(w[0] ?? '');
-    const vrid = /^[0-9]+$/.test(w[1] ?? '') ? Number(w[1]) : null;
-    return p === null || vrid === null || vrid < 1 || vrid > 255 ? null : { p, vrid };
-  };
-  if (first === 'vrrp') {
-    const a = vrrpArgs(rest);
-    if (!a) return error('ui.terminal.usageVrrp');
-    const [, , key, v1, kw, v2] = rest;
-    if (key === 'ip' && rest.length === 4 && isIp(v1)) return { kind: 'action', action: { kind: 'vrrp', op: 'ip', port: a.p, vrid: a.vrid, ip: v1 } };
-    if (key === 'priority' && rest.length === 4 && /^[0-9]+$/.test(v1)) return { kind: 'action', action: { kind: 'vrrp', op: 'priority', port: a.p, vrid: a.vrid, value: Number(v1) } };
-    if (key === 'preempt' && rest.length === 3) return { kind: 'action', action: { kind: 'vrrp', op: 'preempt', port: a.p, vrid: a.vrid, on: true } };
-    if (key === 'track' && rest.length === 6 && port(v1) !== null && kw === 'decrement' && /^[0-9]+$/.test(v2)) return { kind: 'action', action: { kind: 'vrrp', op: 'track', port: a.p, vrid: a.vrid, trackPort: Number(v1), decrement: Number(v2) } };
-    return error('ui.terminal.usageVrrp');
-  }
   // リンクアグリゲーション
   if (first === 'channel-group') {
     const lacp = rest[3] === 'active' || rest[3] === 'passive' || rest[3] === 'on' ? rest[3] : null;
@@ -126,13 +110,6 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   if (first === 'no' && rest[0] === 'channel-group') {
     if (rest.length !== 2 || port(rest[1]) === null) return error('ui.terminal.usageChannel');
     return { kind: 'action', action: { kind: 'channel', port: Number(rest[1]), group: null } };
-  }
-  if (first === 'no' && rest[0] === 'vrrp') {
-    const a = vrrpArgs(rest.slice(1));
-    if (!a) return error('ui.terminal.usageVrrp');
-    if (rest.length === 3) return { kind: 'action', action: { kind: 'vrrp', op: 'remove', port: a.p, vrid: a.vrid } };
-    if (rest.length === 4 && rest[3] === 'preempt') return { kind: 'action', action: { kind: 'vrrp', op: 'preempt', port: a.p, vrid: a.vrid, on: false } };
-    return error('ui.terminal.usageVrrp');
   }
   // スパニングツリー
   if (first === 'spanning-tree') {
