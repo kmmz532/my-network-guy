@@ -84,14 +84,14 @@ describe('hostname', () => {
 
 describe('対応表（ip host）', () => {
   it('ip host は名前と IP を登録し、no ip host は名前を消す', () => {
-    expect(parseConfig('ip host R1 192.168.1.1', tr)).toEqual({ kind: 'action', action: { kind: 'host', name: 'R1', ip: '192.168.1.1' } });
-    expect(parseConfig('no ip host R1', tr)).toEqual({ kind: 'action', action: { kind: 'noHost', name: 'R1' } });
+    expect(viaTree('ip host R1 192.168.1.1', tr)).toEqual({ kind: 'action', action: { kind: 'host', name: 'R1', ip: '192.168.1.1' } });
+    expect(viaTree('no ip host R1', tr)).toEqual({ kind: 'action', action: { kind: 'removeHost', name: 'R1' } });
   });
 
   it('形の違う入力は理由のキーを出す', () => {
-    expect(parseConfig('ip host R1', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageHost' });
-    expect(parseConfig('ip host 日本 192.168.1.1', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
-    expect(parseConfig('ip host R1 192.168.1.999', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errIp' });
-    expect(parseConfig('no ip host', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageNoHost' });
+    expect(viaTree('ip host R1', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageHost' });
+    expect(viaTree('ip host 日本 192.168.1.1', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
+    expect(viaTree('ip host R1 192.168.1.999', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errIp' });
+    expect(viaTree('no ip host', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageNoHost' });
   });
 });

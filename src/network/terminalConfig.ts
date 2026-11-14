@@ -296,29 +296,5 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
     return { kind: 'action', action: { kind: 'portMode', port: p, mode: { kind: 'routed' } } };
   }
 
-  if (first === 'ip' && rest[0] === 'host') {
-    if (rest.length !== 3) return error('ui.terminal.usageHost');
-    if (!isHostName(rest[1])) return error('ui.terminal.errHostname');
-    if (!isIp(rest[2])) return error('ui.terminal.errIp');
-    return { kind: 'action', action: { kind: 'host', name: rest[1], ip: rest[2] } };
-  }
-
-  if (first === 'no' && rest[0] === 'ip' && rest[1] === 'host') {
-    if (rest.length !== 3) return error('ui.terminal.usageNoHost');
-    if (!isHostName(rest[2])) return error('ui.terminal.errHostname');
-    return { kind: 'action', action: { kind: 'noHost', name: rest[2] } };
-  }
-
-  if (first === 'ip' && rest[0] === 'name-server') {
-    if (rest.length !== 2) return error('ui.terminal.usageNameServer');
-    if (!isIp(rest[1])) return error('ui.terminal.errIp');
-    return { kind: 'action', action: { kind: 'nameServer', ip: rest[1] } };
-  }
-
-  if (first === 'no' && rest[0] === 'ip' && rest[1] === 'name-server') {
-    if (rest.length !== 2) return error('ui.terminal.usageNameServer');
-    return { kind: 'action', action: { kind: 'nameServer', ip: null } };
-  }
-
   return error('ui.terminal.unknown');
 };
