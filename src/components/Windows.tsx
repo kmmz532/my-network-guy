@@ -14,7 +14,7 @@ import { InventoryBody } from './Inventory';
 import { CompanyBody } from './CompanyPanel';
 import { FundsBody } from './FundsPanel';
 import { FramesBody } from './FramesPanel';
-import { primaryButton } from './Modal';
+import { Button } from './ui/Button';
 import { Tabs, TAB_COLORS } from './Tabs';
 import { TrimmedIcon } from './Icon';
 import { useGameStore, viewportNow } from '../stores/useGameStore';
@@ -190,9 +190,11 @@ export function Windows() {
           {w.kind === 'office' && <OfficeBody />}
           {/* スマホでは、本文の下に閉じるボタンを置く（パソコンは窓の×で閉じる） */}
           {narrow && (
-            <button style={{ ...primaryButton, display: 'block', marginTop: 8, marginLeft: 'auto' }} onClick={() => state.closeWindow(w.id)}>
-              {t('ui.panel.close')}
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+              <Button variant="primary" onClick={() => state.closeWindow(w.id)}>
+                {t('ui.panel.close')}
+              </Button>
+            </div>
           )}
         </Window>
       ))}
