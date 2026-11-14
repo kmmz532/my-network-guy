@@ -120,6 +120,13 @@ export const coreOf = (s: GameState): Core => ({
   termsShown: s.termsShown,
 });
 
+// 計算の結果の構成（Core）を、ストアの状態へ写す。Core のすべての項目を写し、項目を手で並べて写し漏らすことを防ぐ。
+// 購入の割引（purchaseDiscount）は状態から導く値のため写さない
+export const stateOfCore = (core: Core): Partial<GameState> => {
+  const { purchaseDiscount: _derived, ...rest } = core;
+  return rest;
+};
+
 // 操作を当てるときの周りの状況（設計の対象・案件の地図・自社オフィスの地図・モード）
 export const opContextOf = (s: GameState): OpContext => {
   const hq = s.maps.hq;

@@ -21,7 +21,7 @@ import { settleRetirements } from '../sim/retire';
 import { backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice } from '../sim/backOffice';
 import { bonusEnvOf, pcDesksOf } from '../sim/furniture';
 import { advanceBuild } from '../sim/progress';
-import { coreOf, refresh, reportState, salesArrivalPatch, trainingEnv, withLevelUps } from './gameHelpers';
+import { coreOf, refresh, reportState, salesArrivalPatch, stateOfCore, trainingEnv, withLevelUps } from './gameHelpers';
 import type { GameState, Speed } from './useGameStore';
 
 // ティックの外から渡す値（現在の時刻と設定）。系の中で Date.now() や loadSettings() を読まない
@@ -157,17 +157,7 @@ export const buildSystem = (s: GameState, next: Patch, clock: ClockState, hrP: n
   if (!r.ok) return next;
   return {
     ...next,
-    clock: r.core.clock,
-    companyExp: r.core.companyExp,
-    reputation: r.core.reputation,
-    completed: r.core.completed,
-    deliveries: r.core.deliveries,
-    familiarity: r.core.familiarity,
-    active: r.core.active,
-    focus: r.core.focus,
-    staff: r.core.staff,
-    office: r.core.office,
-    effects: r.core.effects,
+    ...stateOfCore(r.core),
     ...reportState(r.report),
   };
 };

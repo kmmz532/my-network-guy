@@ -9,7 +9,7 @@ import { requestBuild } from '../sim/progress';
 import { applyOperation } from '../company/apply';
 import type { Operation } from '../company/operation';
 
-import { plannedKey, type PlannedNet, coreOf, focusedProject, opContextOf, reportState, withLevelUps } from './gameHelpers';
+import { plannedKey, type PlannedNet, coreOf, focusedProject, opContextOf, reportState, stateOfCore, withLevelUps } from './gameHelpers';
 import type { GameState } from './useGameStore';
 import { useUiStore } from './useUiStore';
 import type { StoreApi } from 'zustand';
@@ -107,21 +107,8 @@ export const createOps = (set: Set, get: () => GameState) => {
     set(withLevelUps(get(), {
       lastError: null,
       ...(redesigned || (sandbox && c.office !== get().office) ? { check: null, helpUid: null } : {}),
+      ...stateOfCore(c),
       clock: sandbox ? get().clock : c.clock,
-      companyExp: c.companyExp,
-      reputation: c.reputation,
-      owned: c.owned,
-      completed: c.completed,
-      deliveries: c.deliveries,
-      familiarity: c.familiarity,
-      offers: c.offers,
-      active: c.active,
-      focus: c.focus,
-      office: c.office,
-      effects: c.effects,
-      staff: c.staff,
-      staffSeq: c.staffSeq,
-      candidates: c.candidates,
       ...reportState(outcome.report),
     }));
     return null;
