@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { COMMANDS, assertTokens } from './registry';
+import { COMMANDS } from './registry';
 import { parseLine } from './parse';
-import type { CommandSpec, TerminalSession } from './types';
+import type { TerminalSession } from './types';
 
 const exec: TerminalSession = { mode: 'exec', iface: null, process: null };
 const config: TerminalSession = { mode: 'config', iface: null, process: null };
@@ -12,9 +12,11 @@ describe('命令の解釈', () => {
     expect(parseLine('show ip', exec)).toEqual({ spec: COMMANDS.get('core.showIp'), args: {} });
   });
 
-  it('{ rest } は残りの語を空白でつないで受け取る。語がなければ空文字', () => {
-    expect(parseLine('ping 10.0.0.1', exec)).toEqual({ spec: COMMANDS.get('core.ping'), args: { args: '10.0.0.1' } });
-    expect(parseLine('ping', exec)).toEqual({ spec: COMMANDS.get('core.ping'), args: { args: '' } });
+  it('宛先の引数は、IP か名前の形の語だけを受け取る', () => {
+    expect(parseLine('ping 10.0.0.1', exec)).toEqual({ spec: COMMANDS.get('core.ping'), args: { target: '10.0.0.1' } });
+    expect(parseLine('ping sh', exec)).toEqual({ spec: COMMANDS.get('core.ping'), args: { target: 'sh' } });
+    expect(parseLine('ping 1.2.3', exec)).toEqual({ error: 'invalid', at: 5 });
+    expect(parseLine('ping', exec)).toEqual({ error: 'invalid', at: 5 });
   });
 
   it('空の行は null を返す。語が余る行・足りない行・登録のない語は、誤りの位置を返す', () => {
@@ -44,20 +46,8 @@ describe('命令の解釈', () => {
     expect(parseLine('no ip default-gateway x', exec)).toEqual({ error: 'invalid', at: 22 });
   });
 
-  it('{ rest } の後ろの語は展開せず、そのまま渡す', () => {
-    expect(parseLine('ping sh', exec)).toEqual({ spec: COMMANDS.get('core.ping'), args: { args: 'sh' } });
-    expect(parseLine('ping', exec)).toEqual({ spec: COMMANDS.get('core.ping'), args: { args: '' } });
-  });
-
   it('一意に決まらない略記は ambiguous と、その語の位置を返す', () => {
     expect(parseLine('sh i', exec)).toEqual({ error: 'ambiguous', at: 3 });
     expect(parseLine('h', exec)).toEqual({ error: 'ambiguous', at: 0 });
-  });
-});
-
-describe('命令の登録表の検査', () => {
-  it('{ rest } が最後の語でない命令は、登録の時に例外にする', () => {
-    const spec = { id: 'test.rest', modes: ['exec'], tokens: [{ rest: 'a' }, { word: 'x' }] } as unknown as CommandSpec;
-    expect(() => assertTokens([spec])).toThrow('{ rest } が最後の語でない: test.rest');
   });
 });

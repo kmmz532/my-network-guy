@@ -95,8 +95,10 @@
     },
     {
       "line": "ip address 0 dhcp extra",
-      "result": "error",
-      "text": "ui.terminal.errIp"
+      "lines": [
+        "err:                    ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "show ip dhcp binding",

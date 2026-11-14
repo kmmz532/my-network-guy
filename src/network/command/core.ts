@@ -5,9 +5,8 @@ import { isL2Category, isRoutingCategory } from '../category';
 import { framesOf } from '../frames';
 import { macOf } from '../mac';
 import { resolveName } from '../resolve';
-import { isIp, maskToPrefix, parseIfaceName, port } from './args';
-import { SUB_MODES, portFirst, sessionPortOf, wordsOf } from './modes';
-import { isValidHostname } from '../hostname';
+import { isIp, parseIfaceName, prefixOfMask } from './args';
+import { SUB_MODES, sessionPortOf } from './modes';
 import type { NetNode } from '../types';
 import { deviceCategory } from '../../registry/query';
 import type { TerminalLine, Tr } from '../terminal';
@@ -31,11 +30,8 @@ const macOfPort = (ctx: CommandContext, port: number): string => {
 };
 
 // ping と traceroute の共通の処理。宛先は IPアドレスか、名前（対応表 → ネームサーバーの順に引く）。名前は1行目に「名前 [IPアドレス]」を出す
-const probe = (command: 'ping' | 'traceroute', rest: string, ctx: CommandContext, tr: Tr): TerminalLine[] => {
+const probe = (command: 'ping' | 'traceroute', given: string, ctx: CommandContext, tr: Tr): TerminalLine[] => {
   const { node } = ctx;
-  const words = rest === '' ? [] : rest.split(' ');
-  if (words.length !== 1) return [err(tr(command === 'ping' ? 'ui.terminal.usagePing' : 'ui.terminal.usageTrace'))];
-  const given = words[0];
   let ip = given;
   let header: TerminalLine[] = [];
   if (!isIp(given)) {
@@ -84,37 +80,53 @@ const probe = (command: 'ping' | 'traceroute', rest: string, ctx: CommandContext
 // モードを変える結果。設定の操作は伴わない
 const enter = (session: TerminalSession): CommandResult => ({ lines: [], change: null, session });
 
-// SVI（interface vlan10）で使う ip address。書式は口と同じで、口の番号を書かない
-const sviAddress = (ctx: CommandContext, tr: Tr, vlan: number, words: string[]) => {
-  if (words.length !== 2) return shown([err(tr('ui.terminal.usageIpAddress'))]);
-  if (!isIp(words[0])) return shown([err(tr('ui.terminal.errIp'))]);
-  const prefix = maskToPrefix(words[1]);
-  if (prefix === null) return shown([err(tr('ui.terminal.errMask'))]);
-  return changed(ctx, tr, { kind: 'svi', vlan, ip: words[0], prefix });
-};
+const PORT = { arg: 'number', name: 'port' } as const;
 
-const ipAddress: CommandSpec = {
+// ip address <口> <IP> <マスク>・ip address <口> dhcp（exec・config）。口の番号を行に書く形
+const ipAddressPort: CommandSpec = {
   id: 'core.ipAddress',
   modes: ['exec', 'config'],
-  tokens: [{ word: 'ip' }, { word: 'address' }, { rest: 'args' }],
+  tokens: [{ word: 'ip' }, { word: 'address' }, PORT, { arg: 'ip', name: 'ip' }, { arg: 'mask', name: 'mask' }],
   help: '',
   writes: true,
   topic: null,
-  // 形は2つ。DHCP（口 dhcp）→ 口（口 IP マスク）の順に当てる（SVI の ip address vlan は svi の論点）
+  run: (args, ctx, tr) => changed(ctx, tr, { kind: 'iface', port: Number(args.port), ip: args.ip, prefix: prefixOfMask(args.mask) }),
+};
+const ipAddressDhcp: CommandSpec = {
+  id: 'core.ipAddressDhcp',
+  modes: ['exec', 'config'],
+  tokens: [{ word: 'ip' }, { word: 'address' }, PORT, { word: 'dhcp' }],
+  help: '',
+  writes: true,
+  topic: null,
+  run: (args, ctx, tr) => changed(ctx, tr, { kind: 'dhcp', change: { op: 'client', port: Number(args.port) } }),
+};
+
+// interface モードの ip address。口は ip address <IP> <マスク>・ip address dhcp、SVI は ip address <IP> <マスク>（口の番号は書かない）
+const ipAddressInterface: CommandSpec = {
+  id: 'core.ipAddressInterface',
+  modes: ['interface'],
+  tokens: [{ word: 'ip' }, { word: 'address' }, { arg: 'ip', name: 'ip' }, { arg: 'mask', name: 'mask' }],
+  help: '',
+  writes: true,
+  topic: null,
   run: (args, ctx, tr) => {
-    const words = args.args.split(' ').filter((w) => w !== '');
-    if (words.length === 2 && words[1] === 'dhcp') {
-      const p = port(words[0]);
-      if (p === null) return shown([err(tr('ui.terminal.errPort'))]);
-      return changed(ctx, tr, { kind: 'dhcp', change: { op: 'client', port: p } });
-    }
-    if (words.length !== 3) return shown([err(tr('ui.terminal.usageIpAddress'))]);
-    const p = port(words[0]);
-    if (p === null) return shown([err(tr('ui.terminal.errPort'))]);
-    if (!isIp(words[1])) return shown([err(tr('ui.terminal.errIp'))]);
-    const prefix = maskToPrefix(words[2]);
-    if (prefix === null) return shown([err(tr('ui.terminal.errMask'))]);
-    return changed(ctx, tr, { kind: 'iface', port: p, ip: words[1], prefix });
+    const { iface } = ctx.session;
+    if (iface?.kind === 'svi') return changed(ctx, tr, { kind: 'svi', vlan: iface.vlan, ip: args.ip, prefix: prefixOfMask(args.mask) });
+    return changed(ctx, tr, { kind: 'iface', port: sessionPortOf(ctx) as number, ip: args.ip, prefix: prefixOfMask(args.mask) });
+  },
+};
+const ipAddressInterfaceDhcp: CommandSpec = {
+  id: 'core.ipAddressInterfaceDhcp',
+  modes: ['interface'],
+  tokens: [{ word: 'ip' }, { word: 'address' }, { word: 'dhcp' }],
+  help: '',
+  writes: true,
+  topic: null,
+  run: (_args, ctx, tr) => {
+    const port = sessionPortOf(ctx);
+    if (port === null) return shown([err(tr('ui.terminal.errIfaceKind'))]);
+    return changed(ctx, tr, { kind: 'dhcp', change: { op: 'client', port } });
   },
 };
 
@@ -131,14 +143,12 @@ export const commands: readonly CommandSpec[] = [
   {
     id: 'core.interface',
     modes: ['config'],
-    tokens: [{ word: 'interface' }, { rest: 'args' }],
+    tokens: [{ word: 'interface' }, { arg: 'iface', name: 'name' }],
     help: '',
     writes: false,
     topic: null,
     run: (args, ctx, tr) => {
-      const words = wordsOf(args.args);
-      if (words.length !== 1) return shown([err(tr('ui.terminal.errInterface'))]);
-      const iface = parseIfaceName(ctx.node.device, words[0]);
+      const iface = parseIfaceName(ctx.node.device, args.name);
       if (iface === null) return shown([err(tr('ui.terminal.errInterface'))]);
       return enter({ mode: 'interface', iface, process: null });
     },
@@ -165,16 +175,11 @@ export const commands: readonly CommandSpec[] = [
   {
     id: 'core.hostname',
     modes: ['exec', 'config'],
-    tokens: [{ word: 'hostname' }, { rest: 'args' }],
+    tokens: [{ word: 'hostname' }, { arg: 'hostname', name: 'name' }],
     help: '',
     writes: true,
     topic: null,
-    run: (args, ctx, tr) => {
-      const words = args.args.split(' ').filter((w) => w !== '');
-      if (words.length !== 1) return shown([err(tr('ui.terminal.usageHostname'))]);
-      if (!isValidHostname(words[0])) return shown([err(tr('ui.terminal.errHostname'))]);
-      return changed(ctx, tr, { kind: 'hostname', hostname: words[0] });
-    },
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'hostname', hostname: args.name }),
   },
   {
     id: 'core.noHostname',
@@ -185,21 +190,10 @@ export const commands: readonly CommandSpec[] = [
     topic: null,
     run: (_args, ctx, tr) => changed(ctx, tr, { kind: 'hostname', hostname: null }),
   },
-  ipAddress,
-  {
-    id: 'core.ipAddressInterface',
-    modes: ['interface'],
-    tokens: [{ word: 'ip' }, { word: 'address' }, { rest: 'args' }],
-    help: '',
-    writes: true,
-    topic: null,
-    // 口は ip address <IP> <マスク>・ip address dhcp。SVI は ip address <IP> <マスク>
-    run: (args, ctx, tr) => {
-      const { iface } = ctx.session;
-      if (iface?.kind === 'svi') return sviAddress(ctx, tr, iface.vlan, wordsOf(args.args));
-      return ipAddress.run({ ...args, args: portFirst(wordsOf(args.args), sessionPortOf(ctx) as number).join(' ') }, ctx, tr);
-    },
-  },
+  ipAddressPort,
+  ipAddressDhcp,
+  ipAddressInterface,
+  ipAddressInterfaceDhcp,
   {
     id: 'core.noIpAddressInterface',
     modes: ['interface'],
@@ -216,7 +210,7 @@ export const commands: readonly CommandSpec[] = [
   {
     id: 'core.help',
     modes: ['exec', 'config', ...SUB_MODES],
-    tokens: [{ word: 'help' }, { rest: 'args' }], // 続く語は読まない
+    tokens: [{ word: 'help' }],
     help: '',
     writes: false,
     topic: null,
@@ -298,19 +292,19 @@ export const commands: readonly CommandSpec[] = [
   {
     id: 'core.ping',
     modes: ['exec'],
-    tokens: [{ word: 'ping' }, { rest: 'args' }],
+    tokens: [{ word: 'ping' }, { arg: 'hostOrIp', name: 'target' }],
     help: '',
     writes: false,
     topic: null,
-    run: (args, ctx, tr) => shown(probe('ping', args.args, ctx, tr)),
+    run: (args, ctx, tr) => shown(probe('ping', args.target, ctx, tr)),
   },
   {
     id: 'core.traceroute',
     modes: ['exec'],
-    tokens: [{ word: 'traceroute' }, { rest: 'args' }],
+    tokens: [{ word: 'traceroute' }, { arg: 'hostOrIp', name: 'target' }],
     help: '',
     writes: false,
     topic: null,
-    run: (args, ctx, tr) => shown(probe('traceroute', args.args, ctx, tr)),
+    run: (args, ctx, tr) => shown(probe('traceroute', args.target, ctx, tr)),
   },
 ];

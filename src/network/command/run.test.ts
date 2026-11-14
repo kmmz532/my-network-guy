@@ -10,8 +10,8 @@ const ctxOf = (readOnly: boolean) => commandContextOf({ node, nodes: [node], lin
 
 describe('読み取り専用の機器の誤り（設定の命令は、構文の検査の後で読み取り専用を返す）', () => {
   it('構文の誤りは、読み取り専用の機器でも使い方の誤りを返す', () => {
-    expect(runLine('hostname 1bad', ctxOf(true), tr).lines).toEqual([{ text: 'ui.terminal.errHostname', kind: 'err' }]);
-    expect(runLine('ip address 0 10.0.0.1', ctxOf(true), tr).lines).toEqual([{ text: 'ui.terminal.usageIpAddress', kind: 'err' }]);
+    expect(runLine('hostname 1bad', ctxOf(true), tr).lines).toEqual([{ text: '           ^', kind: 'err' }, { text: 'ui.terminal.invalidAt', kind: 'err' }]);
+    expect(runLine('ip address 0 10.0.0.1', ctxOf(true), tr).lines).toEqual([{ text: '                        ^', kind: 'err' }, { text: 'ui.terminal.invalidAt', kind: 'err' }]);
   });
 
   it('構文が正しい設定の命令は、読み取り専用の機器では設定を変えず、読み取り専用の誤りを返す', () => {

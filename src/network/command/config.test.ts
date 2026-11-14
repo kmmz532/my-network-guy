@@ -55,10 +55,10 @@ describe('設定のコマンド（段階3）', () => {
   });
 
   it('形の違う入力は、理由のキーを出す', () => {
-    expect(viaTree('ip address x 192.168.1.10 255.255.255.0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errPort' });
-    expect(viaTree('ip address 0 192.168.1.999 255.255.255.0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errIp' });
-    expect(viaTree('ip address 0 192.168.1.10 255.0.255.0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errMask' });
-    expect(viaTree('ip address 0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageIpAddress' });
+    expect(viaTree('ip address x 192.168.1.10 255.255.255.0', tr)).toEqual({ kind: 'error', text: '             ^' });
+    expect(viaTree('ip address 0 192.168.1.999 255.255.255.0', tr)).toEqual({ kind: 'error', text: '               ^' });
+    expect(viaTree('ip address 0 192.168.1.10 255.0.255.0', tr)).toEqual({ kind: 'error', text: '                            ^' });
+    expect(viaTree('ip address 0', tr)).toEqual({ kind: 'error', text: '               ^' });
     expect(viaTree('ip foo', tr)).toEqual({ kind: 'error', text: '     ^' });
   });
 
@@ -71,10 +71,10 @@ describe('hostname', () => {
   });
 
   it('使えない名前は理由のキーを出す', () => {
-    expect(viaTree('hostname 日本語', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
-    expect(viaTree('hostname ' + 'a'.repeat(64), tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
-    expect(viaTree('hostname 1pc', tr)).toEqual({ kind: 'error', text: 'ui.terminal.errHostname' });
-    expect(viaTree('hostname', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageHostname' });
+    expect(viaTree('hostname 日本語', tr)).toEqual({ kind: 'error', text: '           ^' });
+    expect(viaTree('hostname ' + 'a'.repeat(64), tr)).toEqual({ kind: 'error', text: '           ^' });
+    expect(viaTree('hostname 1pc', tr)).toEqual({ kind: 'error', text: '           ^' });
+    expect(viaTree('hostname', tr)).toEqual({ kind: 'error', text: '           ^' });
   });
 });
 

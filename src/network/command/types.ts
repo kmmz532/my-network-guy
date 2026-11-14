@@ -8,10 +8,7 @@ import type { Trace } from '../../sim/project';
 
 export type Mode = 'exec' | 'config' | 'interface' | 'router-rip' | 'router-ospf' | 'router-bgp';
 export type ArgKind = 'iface' | 'ip' | 'mask' | 'wildcard' | 'prefix' | 'vlan' | 'vlanList' | 'area' | 'asn' | 'vrid' | 'channel' | 'ssid' | 'psk' | 'cost' | 'number' | 'word' | 'hostname' | 'hostOrIp';
-export type Token =
-  | { word: string }
-  | { arg: ArgKind; name: string }
-  | { rest: string }; // 残りの語をまとめて受け取る。語がなければ空文字
+export type Token = { word: string } | { arg: ArgKind; name: string };
 
 export interface TerminalSession {
   mode: Mode;

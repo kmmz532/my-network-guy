@@ -84,7 +84,7 @@ describe('ターミナルのコマンド', () => {
 
   it('引数が合わない・宛先がない・知らないコマンドは、理由を出す', () => {
     const ctx = { node: nodes[0], nodes, links, data };
-    expect(run('ping', ctx, tr)).toEqual([{ text: 'ui.terminal.usagePing', kind: 'err' }]);
+    expect(run('ping', ctx, tr)).toEqual([{ text: '       ^', kind: 'err' }, { text: 'ui.terminal.invalidAt', kind: 'err' }]);
     expect(run('ping 10.0.0.1', ctx, tr)[0].text).toBe('ui.terminal.noHost {"ip":"10.0.0.1"}');
     expect(run('reboot', ctx, tr)).toEqual([{ text: '  ^', kind: 'err' }, { text: 'ui.terminal.invalidAt', kind: 'err' }]);
   });

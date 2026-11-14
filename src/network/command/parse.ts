@@ -17,18 +17,16 @@ interface Word {
 
 const wordsOf = (line: string): Word[] => [...line.matchAll(/\S+/g)].map((m) => ({ text: m[0], at: m.index }));
 
-// 突き合わせの途中の命令。tokens の何番目まで読んだかは、語の位置と同じ（{ rest } は残りをすべて読んで終わる）
+// 突き合わせの途中の命令。tokens の何番目まで読んだかは、語の位置と同じ
 interface Live {
   spec: CommandSpec;
   args: Record<string, string>;
-  done: boolean; // { rest } で残りを読み終えた
 }
 
 // 語が、命令の語の並びの i 番目に合うか。exact は固定の語と同じ、prefix は固定の語の頭と同じ、value は型・残りの語に合う
 const kindOf = (token: Token | undefined, text: string): 'exact' | 'prefix' | 'value' | null => {
   if (token === undefined) return null;
   if ('word' in token) return token.word === text ? 'exact' : token.word.startsWith(text) ? 'prefix' : null;
-  if ('rest' in token) return 'value';
   return isArg(token.arg, text) ? 'value' : null;
 };
 
@@ -36,9 +34,9 @@ const kindOf = (token: Token | undefined, text: string): 'exact' | 'prefix' | 'v
 export const parseLine = (line: string, session: TerminalSession): ParseResult | null => {
   const words = wordsOf(line);
   if (words.length === 0) return null;
-  let live: Live[] = COMMANDS.all().filter((spec) => spec.modes.includes(session.mode)).map((spec) => ({ spec, args: {}, done: false }));
+  let live: Live[] = COMMANDS.all().filter((spec) => spec.modes.includes(session.mode)).map((spec) => ({ spec, args: {} }));
   for (const [i, word] of words.entries()) {
-    const kinds = live.map((l) => (l.done ? 'value' : kindOf(l.spec.tokens[i], word.text)));
+    const kinds = live.map((l) => kindOf(l.spec.tokens[i], word.text));
     // 優先は、固定の語と同じ > 型・残りの語 > 略記（頭が同じ）
     const pick = (kind: 'exact' | 'prefix' | 'value'): Live[] => live.filter((_, n) => kinds[n] === kind);
     let next = pick('exact');
@@ -52,18 +50,13 @@ export const parseLine = (line: string, session: TerminalSession): ParseResult |
     }
     if (next.length === 0) return { error: 'invalid', at: word.at };
     live = next.map((l) => {
-      if (l.done) return l;
       const token = l.spec.tokens[i];
-      if ('arg' in token) return { ...l, args: { ...l.args, [token.name]: text } };
-      if ('rest' in token) return { ...l, args: { ...l.args, [token.rest]: words.slice(i).map((w) => w.text).join(' ') }, done: true };
-      return l;
+      return 'arg' in token ? { ...l, args: { ...l.args, [token.name]: text } } : l;
     });
   }
-  // 語を読み終えた。残りの語がない（または { rest } だけ）の命令に当てはまる
+  // 語を読み終えた。残りの語がない命令に当てはまる
   for (const l of live) {
-    const left = l.done ? [] : l.spec.tokens.slice(words.length);
-    if (left.length === 0) return { spec: l.spec, args: l.args };
-    if (left.length === 1 && 'rest' in left[0]) return { spec: l.spec, args: { ...l.args, [left[0].rest]: '' } };
+    if (l.spec.tokens.length === words.length) return { spec: l.spec, args: l.args };
   }
   return { error: 'invalid', at: line.trimEnd().length + 1 };
 };

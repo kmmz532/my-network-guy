@@ -216,13 +216,17 @@
     },
     {
       "line": "ip address 0 10.0.5.1 255.0.255.0",
-      "result": "error",
-      "text": "ui.terminal.errMask"
+      "lines": [
+        "err:                        ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "ip address 0 10.0.5.1",
-      "result": "error",
-      "text": "ui.terminal.usageIpAddress"
+      "lines": [
+        "err:                        ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "ip address 9 10.0.5.1 255.255.255.0",
@@ -274,13 +278,17 @@
     },
     {
       "line": "ip address 10.0.5.1",
-      "result": "error",
-      "text": "ui.terminal.usageIpAddress"
+      "lines": [
+        "err:                      ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "ip address 10.0.5.1 255.0.255.0",
-      "result": "error",
-      "text": "ui.terminal.errMask"
+      "lines": [
+        "err:                      ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "no ip address",
@@ -419,7 +427,8 @@
     {
       "line": "interface",
       "lines": [
-        "err:ui.terminal.errInterface"
+        "err:            ^",
+        "err:ui.terminal.invalidAt"
       ]
     },
     {
@@ -444,7 +453,7 @@
     {
       "line": "ip address dhcp",
       "result": "error",
-      "text": "ui.terminal.usageIpAddress"
+      "text": "ui.terminal.errIfaceKind"
     },
     {
       "line": "switchport mode access",
@@ -627,7 +636,8 @@
     {
       "line": "ping",
       "lines": [
-        "err:ui.terminal.usagePing"
+        "err:       ^",
+        "err:ui.terminal.invalidAt"
       ]
     },
     {
@@ -715,8 +725,10 @@
     },
     {
       "line": "hostname 1bad",
-      "result": "error",
-      "text": "ui.terminal.errHostname"
+      "lines": [
+        "err:           ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "no hostname",
