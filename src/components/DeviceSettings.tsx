@@ -16,7 +16,7 @@ import { wirelessAssociations } from '../network/engine/stages/links';
 import { channelOverlapsOf, networkColors, type NetworkState } from '../network/public';
 import { colorOfNetwork, UNSET_COLOR } from '../network/netColor';
 import { networkAddress, planFor, PREFIX_MAX, PREFIX_MIN } from '../network/segments';
-import { neighborRouterAddresses, planOf, routerAddressesOn } from '../network/query/plans';
+import { gatewayCandidatesOn, neighborRouterAddresses, planOf } from '../network/query/plans';
 import type { NetNode, NetworkPlan } from '../network/types';
 import { gameEnv } from '../sim/env';
 import { addressCandidates, PLANNED_NETWORK, PLANNED_PREFIX, plannedAddressCandidates, type AddressCandidate } from '../sim/project';
@@ -261,7 +261,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
 
   // ホストのデフォルトゲートウェイ（同じネットワークのルーターのアドレスを候補にする）
   const renderGateway = () => {
-    const routers = routerAddressesOn(netState, node.uid, 0);
+    const routers = gatewayCandidatesOn(netState, node.uid, 0);
     // 現在のゲートウェイが候補にない場合も、一覧に残す
     const extra = node.gateway && !routers.includes(node.gateway) ? [node.gateway] : [];
     const gatewayOptions: ComboOption[] = [...routers, ...extra].map((ip) => ({ value: ip, usedBy: null }));

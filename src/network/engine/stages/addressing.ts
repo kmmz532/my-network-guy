@@ -161,6 +161,17 @@ const complete = (input: Network, segs: readonly PlanDomain[]): { net: Network; 
       .filter((ip): ip is string => !!ip)
       .sort((a, b) => ipToInt(a) - ipToInt(b));
 
+  // 利用者が指定したゲートウェイとして使えるアドレス: 同じセグメントのルーターの口のアドレスと、その口の VRRP の仮想 IP
+  const gatewayCandidates = (seg: PlanDomain): Set<string> => {
+    const out = new Set<string>(routerIpsOf(seg));
+    for (const m of seg.members) {
+      const r = byUid.get(m.node)!;
+      if (!isRoutingCategory(cat(r))) continue;
+      for (const g of ifaceOf(r, m.port)?.vrrp ?? []) out.add(g.ip);
+    }
+    return out;
+  };
+
   const gatewayOf = new Map<string, string | null>();
   for (const n of input.nodes) {
     const c = cat(n);
@@ -173,7 +184,9 @@ const complete = (input: Network, segs: readonly PlanDomain[]): { net: Network; 
       gatewayOf.set(n.uid, n.gateway);
       if (seg && gw !== null && n.gateway !== gw) flag(n.uid, { reason: 'gateway.mismatch', gateway: n.gateway ?? '', ip: gw });
     } else {
-      gatewayOf.set(n.uid, gw);
+      // 指定があり、同じセグメントのルーターのアドレス（VRRP の仮想 IP を含む）なら、それを使う。指定がない、またはどれとも合わないときは自動（最も小さい実の IP）
+      const chosen = seg && n.gateway !== null && gatewayCandidates(seg).has(n.gateway) ? n.gateway : gw;
+      gatewayOf.set(n.uid, chosen);
       if (seg && gw === null && segs.length > 1) flag(n.uid, { reason: 'gateway.unset' });
     }
   }

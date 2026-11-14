@@ -109,6 +109,25 @@ describe('セグメントの設定から機器の設定を作る', () => {
     expect(out.nodes.find((n) => n.uid === 'a')?.gateway).toBe('192.168.1.1');
   });
 
+  it('固定されていないホストのゲートウェイは、指定があれば VRRP の仮想 IP やルーターの実の IP を使い、合わなければ自動になる', () => {
+    const vrrp = { vrid: 1, ip: '192.168.1.254', priority: 100, preempt: true };
+    const net = (gateway: string | null): Network => ({
+      nodes: [
+        { ...pc('a', '192.168.1.11'), gateway },
+        sw('s'),
+        router('r1', [{ id: 'g0/0', kind: 'port', port: 0, ip: '192.168.1.1', prefix: 24, vrrp: [vrrp] }]),
+        router('r2', [{ id: 'g0/0', kind: 'port', port: 0, ip: '192.168.1.2', prefix: 24, vrrp: [{ ...vrrp, priority: 90 }] }]),
+      ],
+      links: [link('l0', 'a:0', 's:0'), link('l1', 's:1', 'r1:0'), link('l2', 's:2', 'r2:0')],
+      plans: { 'a:0': seg('192.168.1.0') },
+    });
+    const gw = (g: string | null) => addressing(net(g)).net.nodes.find((n) => n.uid === 'a')?.gateway;
+    expect(gw(null)).toBe('192.168.1.1');
+    expect(gw('192.168.1.254')).toBe('192.168.1.254');
+    expect(gw('192.168.1.2')).toBe('192.168.1.2');
+    expect(gw('10.9.9.9')).toBe('192.168.1.1');
+  });
+
   it('ルーターをまたぐ2つのセグメントは、ゲートウェイ経由で疎通する', () => {
     const net: Network = {
       nodes: [

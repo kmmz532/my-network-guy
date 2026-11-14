@@ -57,6 +57,20 @@ export const routerAddressesOn = (state: NetworkState, uid: string, port: number
   return domain ? routerIpsOf(state, domain.members, uid) : [];
 };
 
+// ホストのデフォルトゲートウェイとして指定できるアドレス: 同じ L2 ドメインのルーターの口のアドレスと、その口の VRRP の仮想 IP
+export const gatewayCandidatesOn = (state: NetworkState, uid: string, port: number): string[] => {
+  const domain = planDomainOf(state, { node: uid, port });
+  if (!domain) return [];
+  const byUid = new Map(state.input.nodes.map((n) => [n.uid, n]));
+  const virtual = new Set<string>();
+  for (const m of domain.members) {
+    const node = byUid.get(m.node);
+    if (!node || !isRoutingCategory(deviceCategory(node.device))) continue;
+    for (const g of node.interfaces.find((i) => i.port === m.port)?.vrrp ?? []) virtual.add(g.ip);
+  }
+  return [...new Set([...routerIpsOf(state, domain.members, uid), ...virtual])].sort((a, b) => ipToInt(a) - ipToInt(b));
+};
+
 // 機器がつながる L2 ドメインにあるルーターのアドレス（自分を除く）。静的ルートのネクストホップの候補に使う
 export const neighborRouterAddresses = (state: NetworkState, uid: string): string[] =>
   routerIpsOf(
