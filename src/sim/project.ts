@@ -334,6 +334,7 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
     macSerial: i + 1,
     ports: [],
     ...(p.name ? { name: p.name } : {}),
+    ...(p.isp ? { isp: p.isp } : {}),
     x: p.x,
     y: p.y,
     locked: p.locked,
