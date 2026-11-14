@@ -773,3 +773,10 @@ input.ui-terminal-input__field {
   background: var(--accent);
   color: var(--fg-on-accent);
 }
+
+/* Divider: ツールバーの縦の区切り線 */
+.ui-divider {
+  width: 1px;
+  height: 36px;
+  background: var(--line);
+}
