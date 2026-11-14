@@ -18,7 +18,17 @@ export function FileButton({ variant, size = 'm', accept, onFile, layout, childr
   return (
     <label className={`ui-button ui-button--${variant} ui-button--${size} ui-button--file`} style={layoutStyle(layout)}>
       {children}
-      <input type="file" accept={accept} className="ui-button__file" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
+      <input
+        type="file"
+        accept={accept}
+        className="ui-button__file"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onFile(file);
+          // 同じファイルをもう一度選んでも onChange が出るよう、選びを空に戻す
+          e.target.value = '';
+        }}
+      />
     </label>
   );
 }
