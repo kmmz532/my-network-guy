@@ -6,7 +6,8 @@ import { analyze } from './engine/analyze';
 import { portStatesOf } from './query/portStates';
 import { stpOf } from './query/stp';
 import { computeLags, lacpCompatible } from './lag';
-import type { Iface, NetLink, NetNode, Network, PortConfig } from './types';
+import type { EngineData, Iface, NetLink, NetNode, Network, PortConfig } from './types';
+import type { NetworkState } from './engine/state';
 
 const warnings = (n: Network) => warningsOf(analyze(n, gameEnv.engine));
 
@@ -87,13 +88,17 @@ describe('リンクアグリゲーションの計算', () => {
 
 describe('リンクアグリゲーションのターミナル', () => {
   it('channel-group を読み、show etherchannel summary は口ごとのまとまりを (P)・(I) で出す', async () => {
-    const { parseConfig } = await import('./terminalConfig');
     const { commandContextOf, runLine } = await import('./command/run');
     const runShow = (line: string, c: Parameters<typeof commandContextOf>[0], tr: Parameters<typeof runLine>[2]) => runLine(line, commandContextOf(c, false), tr).lines;
     const tr = (k: string, p?: Record<string, unknown>) => (p ? `${k} ${JSON.stringify(p)}` : k);
-    expect(parseConfig('channel-group 0 1 mode active', tr)).toEqual({ kind: 'action', action: { kind: 'channel', port: 0, group: 1, lacp: 'active' } });
-    expect(parseConfig('no channel-group 0', tr)).toEqual({ kind: 'action', action: { kind: 'channel', port: 0, group: null } });
-    expect(parseConfig('channel-group 0 1 mode auto', tr)).toEqual({ kind: 'error', text: 'ui.terminal.usageChannel' });
+    const tctx = commandContextOf({ node: {} as NetNode, nodes: [], links: [], data: {} as EngineData, state: {} as NetworkState }, false);
+    const viaTree = (line: string) => {
+      const r = runLine(line, tctx, tr);
+      return r.change !== null ? { kind: 'action', action: r.change } : { kind: 'error', text: r.lines[0].text };
+    };
+    expect(viaTree('channel-group 0 1 mode active')).toEqual({ kind: 'action', action: { kind: 'channel', change: { port: 0, group: 1, lacp: 'active' } } });
+    expect(viaTree('no channel-group 0')).toEqual({ kind: 'action', action: { kind: 'channel', change: { port: 0, group: null } } });
+    expect(viaTree('channel-group 0 1 mode auto')).toEqual({ kind: 'error', text: 'ui.terminal.usageChannel' });
     const show = (net: Network) => runShow('show etherchannel summary', { node: net.nodes[0], nodes: net.nodes, links: net.links, data, state: analyze({ nodes: net.nodes, links: net.links }, data) }, tr)[0].text;
     expect(show(pair([], []))).toContain('"state":"P"');
     expect(show(pair([], []))).toContain('0(P) 1(P)');

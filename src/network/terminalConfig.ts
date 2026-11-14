@@ -101,16 +101,6 @@ export const parseConfig = (line: string, tr: Tr): ConfigParse => {
   if (first !== 'ip' && first !== 'no' && first !== 'hostname' && first !== 'vrrp' && first !== 'channel-group' && first !== 'spanning-tree' && first !== 'router' && first !== 'router-id' && first !== 'default-information' && first !== 'network' && first !== 'neighbor' && first !== 'wireless' && first !== 'switchport') return { kind: 'none' };
   const error = (key: string) => ({ kind: 'error' as const, text: tr(key) });
 
-  // リンクアグリゲーション
-  if (first === 'channel-group') {
-    const lacp = rest[3] === 'active' || rest[3] === 'passive' || rest[3] === 'on' ? rest[3] : null;
-    if (rest.length !== 4 || port(rest[0]) === null || !/^[0-9]+$/.test(rest[1]) || rest[2] !== 'mode' || lacp === null) return error('ui.terminal.usageChannel');
-    return { kind: 'action', action: { kind: 'channel', port: Number(rest[0]), group: Number(rest[1]), lacp } };
-  }
-  if (first === 'no' && rest[0] === 'channel-group') {
-    if (rest.length !== 2 || port(rest[1]) === null) return error('ui.terminal.usageChannel');
-    return { kind: 'action', action: { kind: 'channel', port: Number(rest[1]), group: null } };
-  }
   // スパニングツリー
   if (first === 'spanning-tree') {
     if (rest[0] === 'priority' && rest.length === 2 && /^[0-9]+$/.test(rest[1])) {
