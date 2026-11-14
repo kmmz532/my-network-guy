@@ -55,8 +55,10 @@ export class NetworkRenderer {
     const map = this.options.map();
     if (!selectedUid || !engine || !map) return;
     const ap = project.nodes.find((n) => n.uid === selectedUid);
-    const category = deviceCategory(ap?.device ?? '');
-    if (!ap || (category !== CATEGORY.accessPoint && category !== CATEGORY.homeRouter)) return;
+    // 選んだ物が機器でない（配線・家具）ときは描かない
+    if (!ap) return;
+    const category = deviceCategory(ap.device);
+    if (category !== CATEGORY.accessPoint && category !== CATEGORY.homeRouter) return;
     for (let dy = -WIRELESS_RADIUS; dy <= WIRELESS_RADIUS; dy++) {
       for (let dx = -WIRELESS_RADIUS; dx <= WIRELESS_RADIUS; dx++) {
         const tx = ap.x + dx;
