@@ -4,8 +4,8 @@ import { t } from '../i18n/t';
 import { isIp } from '../network/command/args';
 import type { NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
-import { dangerButton } from './Modal';
 import { buttonStyle, greyColor, inputStyle, sectionStyle } from './devicePorts';
+import { Button } from './ui/Button';
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
 const isPrivateAs = (asn: number): boolean => asn >= 64512 && asn <= 65534;
@@ -58,9 +58,9 @@ export function BgpField({ node, readOnly, onError }: { node: NetNode; readOnly:
         <NumberField label={t('ui.config.bgpAsn')} value={bgp.asn} min={1} disabled={readOnly} onCommit={(v) => onError(setBgp(node.uid, { op: 'asn', asn: v }))} />
         <span style={{ color: greyColor, fontSize: 12 }}>{t(isPrivateAs(bgp.asn) ? 'ui.config.bgpAsnPrivate' : 'ui.config.bgpAsnGlobal')}</span>
         {!readOnly && (
-          <button style={dangerButton} onClick={() => onError(setBgp(node.uid, { op: 'off' }))}>
+          <Button variant="danger" onClick={() => onError(setBgp(node.uid, { op: 'off' }))}>
             {t('ui.config.bgpOff')}
-          </button>
+          </Button>
         )}
       </div>
       {bgp.neighbors.map((nb) => (
@@ -75,9 +75,9 @@ export function BgpField({ node, readOnly, onError }: { node: NetNode; readOnly:
           <NumberField label={t('ui.config.bgpMed')} value={nb.med ?? 0} min={0} disabled={readOnly} onCommit={(v) => onError(setBgp(node.uid, { op: 'attr', ip: nb.ip, key: 'med', value: v }))} />
           <NumberField label={t('ui.config.bgpPrepend')} value={nb.prepend ?? 0} min={0} disabled={readOnly} onCommit={(v) => onError(setBgp(node.uid, { op: 'attr', ip: nb.ip, key: 'prepend', value: v }))} />
           {!readOnly && (
-            <button style={dangerButton} onClick={() => onError(setBgp(node.uid, { op: 'removeNeighbor', ip: nb.ip }))}>
+            <Button variant="danger" onClick={() => onError(setBgp(node.uid, { op: 'removeNeighbor', ip: nb.ip }))}>
               {t('ui.config.remove')}
-            </button>
+            </Button>
           )}
         </div>
       ))}
@@ -106,9 +106,9 @@ export function BgpField({ node, readOnly, onError }: { node: NetNode; readOnly:
         <div key={`${n.dest}/${n.prefix}`} style={row}>
           <span>{`${n.dest}/${n.prefix}`}</span>
           {!readOnly && (
-            <button style={dangerButton} onClick={() => onError(setBgp(node.uid, { op: 'removeNetwork', dest: n.dest, prefix: n.prefix }))}>
+            <Button variant="danger" onClick={() => onError(setBgp(node.uid, { op: 'removeNetwork', dest: n.dest, prefix: n.prefix }))}>
               {t('ui.config.remove')}
-            </button>
+            </Button>
           )}
         </div>
       ))}

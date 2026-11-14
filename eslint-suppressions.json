@@ -37,7 +37,7 @@
       "count": 7
     },
     "local/no-native-control": {
-      "count": 13
+      "count": 10
     }
   },
   "src/components/ChannelField.tsx": {
