@@ -58,7 +58,7 @@ describe('設定のコマンド（段階3）', () => {
     expect(viaTree('ip address x 192.168.1.10 255.255.255.0', tr)).toEqual({ kind: 'error', text: '             ^' });
     expect(viaTree('ip address 0 192.168.1.999 255.255.255.0', tr)).toEqual({ kind: 'error', text: '               ^' });
     expect(viaTree('ip address 0 192.168.1.10 255.0.255.0', tr)).toEqual({ kind: 'error', text: '                            ^' });
-    expect(viaTree('ip address 0', tr)).toEqual({ kind: 'error', text: '               ^' });
+    expect(viaTree('ip address 0', tr)).toEqual({ kind: 'error', text: 'ui.terminal.incomplete' });
     expect(viaTree('ip foo', tr)).toEqual({ kind: 'error', text: '     ^' });
   });
 
@@ -74,7 +74,7 @@ describe('hostname', () => {
     expect(viaTree('hostname 日本語', tr)).toEqual({ kind: 'error', text: '           ^' });
     expect(viaTree('hostname ' + 'a'.repeat(64), tr)).toEqual({ kind: 'error', text: '           ^' });
     expect(viaTree('hostname 1pc', tr)).toEqual({ kind: 'error', text: '           ^' });
-    expect(viaTree('hostname', tr)).toEqual({ kind: 'error', text: '           ^' });
+    expect(viaTree('hostname', tr)).toEqual({ kind: 'error', text: 'ui.terminal.incomplete' });
   });
 });
 
@@ -85,9 +85,9 @@ describe('対応表（ip host）', () => {
   });
 
   it('形の違う入力は理由のキーを出す', () => {
-    expect(viaTree('ip host R1', tr)).toEqual({ kind: 'error', text: '             ^' });
+    expect(viaTree('ip host R1', tr)).toEqual({ kind: 'error', text: 'ui.terminal.incomplete' });
     expect(viaTree('ip host 日本 192.168.1.1', tr)).toEqual({ kind: 'error', text: '          ^' });
     expect(viaTree('ip host R1 192.168.1.999', tr)).toEqual({ kind: 'error', text: '             ^' });
-    expect(viaTree('no ip host', tr)).toEqual({ kind: 'error', text: '             ^' });
+    expect(viaTree('no ip host', tr)).toEqual({ kind: 'error', text: 'ui.terminal.incomplete' });
   });
 });

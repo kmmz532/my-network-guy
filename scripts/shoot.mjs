@@ -684,6 +684,37 @@ const scenes = {
     await page.getByText('設定', { exact: true }).click();
     await page.waitForTimeout(500);
   },
+  // ターミナル: 入力の予測（薄い文字）・誤りの語の下線・Tab の候補の一覧
+  terminal: async (page) => {
+    await scenes.sandbox(page);
+    await openDevice(page, 'router_basic');
+    await page.getByText('ターミナル', { exact: true }).click();
+    const input = page.getByLabel('コマンドを入力');
+    await input.fill('show ip');
+    await input.press('?');
+    await input.fill('conf');
+    await input.press('Tab');
+    await input.fill('show fo');
+    await page.waitForTimeout(300);
+  },
+  // ターミナルの予測（薄い文字）。スマホでは次に打てる語のボタンと「→」のボタンも出る
+  terminalghost: async (page) => {
+    await scenes.sandbox(page);
+    await openDevice(page, 'router_basic');
+    await page.getByText('ターミナル', { exact: true }).click();
+    await page.getByLabel('コマンドを入力').fill('conf');
+    await page.waitForTimeout(300);
+  },
+  // ターミナルの Tab の候補の一覧
+  terminaltab: async (page) => {
+    await scenes.sandbox(page);
+    await openDevice(page, 'router_basic');
+    await page.getByText('ターミナル', { exact: true }).click();
+    const input = page.getByLabel('コマンドを入力');
+    await input.fill('show ip r');
+    await input.press('Tab');
+    await page.waitForTimeout(300);
+  },
 };
 
 // 時刻を、その日の指定の時（時）に合わせる（撮影用の window.__game を使う）

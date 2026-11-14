@@ -40,8 +40,7 @@
     {
       "line": "ip dhcp pool 192.168.1.0 255.255.255.0 192.168.1.100 192.168.1.199 gateway",
       "lines": [
-        "err:                                                                             ^",
-        "err:ui.terminal.invalidAt"
+        "err:ui.terminal.incomplete"
       ]
     },
     {

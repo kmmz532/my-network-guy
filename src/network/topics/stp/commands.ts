@@ -11,7 +11,7 @@ const stpPriority: CommandSpec = {
   id: 'stp.spanningTreePriority',
   modes: ['exec', 'config'],
   tokens: [{ word: 'spanning-tree' }, { word: 'priority' }, { arg: 'number', name: 'value' }],
-  help: '',
+  help: 'ui.cmd.stp.spanningTreePriority',
   writes: true,
   topic: 'stp',
   run: (args, ctx, tr) => {
@@ -26,7 +26,7 @@ const stpCost: CommandSpec = {
   id: 'stp.spanningTreeCost',
   modes: ['exec', 'config'],
   tokens: [{ word: 'spanning-tree' }, { word: 'cost' }, PORT, { arg: 'cost', name: 'value' }],
-  help: '',
+  help: 'ui.cmd.stp.spanningTreeCost',
   writes: true,
   topic: 'stp',
   run: (args, ctx, tr) => changed(ctx, tr, { kind: 'stp', change: { op: 'cost', port: Number(args.port), value: Number(args.value) } }),
@@ -37,7 +37,7 @@ export const commands: readonly CommandSpec[] = [
     id: 'stp.showSpanningTree',
     modes: ['exec'],
     tokens: [{ word: 'show' }, { word: 'spanning-tree' }],
-    help: '',
+    help: 'ui.cmd.stp.showSpanningTree',
     writes: false,
     topic: 'stp',
     run: (_args, ctx, tr) => {

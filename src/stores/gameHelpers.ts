@@ -5,6 +5,7 @@ import { rand } from '../sim/rng';
 import type { GameMap, Staff } from '../data/schema';
 import { initialStaff, staffCapOf } from '../sim/staff';
 import { levelOf, levelUpsBetween, type UnlockItem } from '../sim/level';
+import { TOPICS } from '../network/topics';
 import { type TrainingEnv } from '../sim/training';
 import type { NetLink, NetNode } from '../network/types';
 import { gameEnv } from '../sim/env';
@@ -197,6 +198,12 @@ export const refresh = (s: GameState): Partial<GameState> => {
     rng: r.rng,
     offerBurst: added >= 2 ? Math.max(added, s.offerBurst) : s.offerBurst,
   };
+};
+
+// ターミナルの予測と候補に出してよい論点（TOPICS の解放のレベルと会社のレベル。サンドボックスと、解放のレベルがない論点はすべて解放）
+export const unlockedTopicsOf = (s: Pick<GameState, 'mode' | 'companyExp'>): ReadonlySet<string> => {
+  const level = levelOf(s.companyExp, balance);
+  return new Set(TOPICS.filter((t) => s.mode === 'sandbox' || t.unlock === null || level >= t.unlock).map((t) => t.id));
 };
 
 // 検収の結果を画面の状態に反映する（パケット・納品後の表示・失敗の印）

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { completeLine } from './complete';
 import type { CommandContext } from './types';
 
-const ctx = { session: { mode: 'exec', iface: null, process: null }, unlocked: () => true } as unknown as CommandContext;
+const ctx = { session: { mode: 'exec', iface: null, process: null }, unlocked: () => true, hideValues: false, node: { uid: 'N1', device: 'router_basic', interfaces: [] }, nodes: [], links: [] } as unknown as CommandContext;
 
 describe('completeLine', () => {
   it('候補が1つなら、続きを書き足して空白を付ける', () => {

@@ -53,8 +53,7 @@
     {
       "line": "no channel-group",
       "lines": [
-        "err:                   ^",
-        "err:ui.terminal.invalidAt"
+        "err:ui.terminal.incomplete"
       ]
     },
     {

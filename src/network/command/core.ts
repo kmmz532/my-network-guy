@@ -7,6 +7,7 @@ import { macOf } from '../mac';
 import { resolveName } from '../resolve';
 import { isIp, parseIfaceName, prefixOfMask } from './args';
 import { SUB_MODES, sessionPortOf } from './modes';
+import { questionLines, questionList } from './suggest';
 import type { NetNode } from '../types';
 import { deviceCategory } from '../../registry/query';
 import type { TerminalLine, Tr } from '../terminal';
@@ -87,7 +88,7 @@ const ipAddressPort: CommandSpec = {
   id: 'core.ipAddress',
   modes: ['exec', 'config'],
   tokens: [{ word: 'ip' }, { word: 'address' }, PORT, { arg: 'ip', name: 'ip' }, { arg: 'mask', name: 'mask' }],
-  help: '',
+  help: 'ui.cmd.core.ipAddress',
   writes: true,
   topic: null,
   run: (args, ctx, tr) => changed(ctx, tr, { kind: 'iface', port: Number(args.port), ip: args.ip, prefix: prefixOfMask(args.mask) }),
@@ -96,7 +97,7 @@ const ipAddressDhcp: CommandSpec = {
   id: 'core.ipAddressDhcp',
   modes: ['exec', 'config'],
   tokens: [{ word: 'ip' }, { word: 'address' }, PORT, { word: 'dhcp' }],
-  help: '',
+  help: 'ui.cmd.core.ipAddressDhcp',
   writes: true,
   topic: null,
   run: (args, ctx, tr) => changed(ctx, tr, { kind: 'dhcp', change: { op: 'client', port: Number(args.port) } }),
@@ -107,7 +108,7 @@ const ipAddressInterface: CommandSpec = {
   id: 'core.ipAddressInterface',
   modes: ['interface'],
   tokens: [{ word: 'ip' }, { word: 'address' }, { arg: 'ip', name: 'ip' }, { arg: 'mask', name: 'mask' }],
-  help: '',
+  help: 'ui.cmd.core.ipAddressInterface',
   writes: true,
   topic: null,
   run: (args, ctx, tr) => {
@@ -120,7 +121,7 @@ const ipAddressInterfaceDhcp: CommandSpec = {
   id: 'core.ipAddressInterfaceDhcp',
   modes: ['interface'],
   tokens: [{ word: 'ip' }, { word: 'address' }, { word: 'dhcp' }],
-  help: '',
+  help: 'ui.cmd.core.ipAddressInterfaceDhcp',
   writes: true,
   topic: null,
   run: (_args, ctx, tr) => {
@@ -135,7 +136,7 @@ export const commands: readonly CommandSpec[] = [
     id: 'core.configureTerminal',
     modes: ['exec'],
     tokens: [{ word: 'configure' }, { word: 'terminal' }],
-    help: '',
+    help: 'ui.cmd.core.configureTerminal',
     writes: false,
     topic: null,
     run: () => enter({ mode: 'config', iface: null, process: null }),
@@ -144,7 +145,7 @@ export const commands: readonly CommandSpec[] = [
     id: 'core.interface',
     modes: ['config'],
     tokens: [{ word: 'interface' }, { arg: 'iface', name: 'name' }],
-    help: '',
+    help: 'ui.cmd.core.interface',
     writes: false,
     topic: null,
     run: (args, ctx, tr) => {
@@ -157,7 +158,7 @@ export const commands: readonly CommandSpec[] = [
     id: 'core.exit',
     modes: ['config', ...SUB_MODES],
     tokens: [{ word: 'exit' }],
-    help: '',
+    help: 'ui.cmd.core.exit',
     writes: false,
     topic: null,
     // 1つ上へ。config からは exec へ、interface・router からは config へ
@@ -167,7 +168,7 @@ export const commands: readonly CommandSpec[] = [
     id: 'core.end',
     modes: ['config', ...SUB_MODES],
     tokens: [{ word: 'end' }],
-    help: '',
+    help: 'ui.cmd.core.end',
     writes: false,
     topic: null,
     run: () => enter({ mode: 'exec', iface: null, process: null }),
@@ -176,7 +177,7 @@ export const commands: readonly CommandSpec[] = [
     id: 'core.hostname',
     modes: ['exec', 'config'],
     tokens: [{ word: 'hostname' }, { arg: 'hostname', name: 'name' }],
-    help: '',
+    help: 'ui.cmd.core.hostname',
     writes: true,
     topic: null,
     run: (args, ctx, tr) => changed(ctx, tr, { kind: 'hostname', hostname: args.name }),
@@ -185,7 +186,7 @@ export const commands: readonly CommandSpec[] = [
     id: 'core.noHostname',
     modes: ['exec', 'config'],
     tokens: [{ word: 'no' }, { word: 'hostname' }],
-    help: '',
+    help: 'ui.cmd.core.noHostname',
     writes: true,
     topic: null,
     run: (_args, ctx, tr) => changed(ctx, tr, { kind: 'hostname', hostname: null }),
@@ -198,7 +199,7 @@ export const commands: readonly CommandSpec[] = [
     id: 'core.noIpAddressInterface',
     modes: ['interface'],
     tokens: [{ word: 'no' }, { word: 'ip' }, { word: 'address' }],
-    help: '',
+    help: 'ui.cmd.core.noIpAddressInterface',
     writes: true,
     topic: null,
     run: (_args, ctx, tr) => {
@@ -211,16 +212,16 @@ export const commands: readonly CommandSpec[] = [
     id: 'core.help',
     modes: ['exec', 'config', ...SUB_MODES],
     tokens: [{ word: 'help' }],
-    help: '',
+    help: 'ui.cmd.core.help',
     writes: false,
     topic: null,
-    run: (_args, _ctx, tr) => shown([out(tr('ui.terminal.help'))]),
+    run: (_args, ctx, tr) => shown(questionLines(questionList('', ctx), tr).map(out)),
   },
   {
     id: 'core.showIp',
     modes: ['exec'],
     tokens: [{ word: 'show' }, { word: 'ip' }],
-    help: '',
+    help: 'ui.cmd.core.showIp',
     writes: false,
     topic: null,
     run: (_args, { node }, tr) => {
@@ -234,7 +235,7 @@ export const commands: readonly CommandSpec[] = [
     id: 'core.showInterfaces',
     modes: ['exec'],
     tokens: [{ word: 'show' }, { word: 'interfaces' }],
-    help: '',
+    help: 'ui.cmd.core.showInterfaces',
     writes: false,
     topic: null,
     run: (_args, ctx, tr) => {
@@ -260,7 +261,7 @@ export const commands: readonly CommandSpec[] = [
     id: 'core.showArp',
     modes: ['exec'],
     tokens: [{ word: 'show' }, { word: 'arp' }],
-    help: '',
+    help: 'ui.cmd.core.showArp',
     writes: false,
     topic: null,
     run: (_args, ctx, tr) => {
@@ -272,7 +273,7 @@ export const commands: readonly CommandSpec[] = [
     id: 'core.showRunningConfig',
     modes: ['exec'],
     tokens: [{ word: 'show' }, { word: 'running-config' }],
-    help: '',
+    help: 'ui.cmd.core.showRunningConfig',
     writes: false,
     topic: null,
     run: (_args, { node }, tr) => {
@@ -294,7 +295,7 @@ export const commands: readonly CommandSpec[] = [
     id: 'core.ping',
     modes: ['exec'],
     tokens: [{ word: 'ping' }, { arg: 'hostOrIp', name: 'target' }],
-    help: '',
+    help: 'ui.cmd.core.ping',
     writes: false,
     topic: null,
     run: (args, ctx, tr) => shown(probe('ping', args.target, ctx, tr)),
@@ -303,7 +304,7 @@ export const commands: readonly CommandSpec[] = [
     id: 'core.traceroute',
     modes: ['exec'],
     tokens: [{ word: 'traceroute' }, { arg: 'hostOrIp', name: 'target' }],
-    help: '',
+    help: 'ui.cmd.core.traceroute',
     writes: false,
     topic: null,
     run: (args, ctx, tr) => shown(probe('traceroute', args.target, ctx, tr)),

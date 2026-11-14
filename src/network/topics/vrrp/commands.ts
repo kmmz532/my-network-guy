@@ -13,7 +13,7 @@ const vrrpIp: CommandSpec = {
   id: 'vrrp.vrrpIp',
   modes: ['exec', 'config'],
   tokens: [{ word: 'vrrp' }, PORT, VRID, { word: 'ip' }, { arg: 'ip', name: 'ip' }],
-  help: '',
+  help: 'ui.cmd.vrrp.vrrpIp',
   writes: true,
   topic: 'vrrp',
   run: (args, ctx, tr) => {
@@ -27,7 +27,7 @@ const vrrpPriority: CommandSpec = {
   id: 'vrrp.vrrpPriority',
   modes: ['exec', 'config'],
   tokens: [{ word: 'vrrp' }, PORT, VRID, { word: 'priority' }, { arg: 'number', name: 'value' }],
-  help: '',
+  help: 'ui.cmd.vrrp.vrrpPriority',
   writes: true,
   topic: 'vrrp',
   run: (args, ctx, tr) => {
@@ -41,7 +41,7 @@ const vrrpPreempt: CommandSpec = {
   id: 'vrrp.vrrpPreempt',
   modes: ['exec', 'config'],
   tokens: [{ word: 'vrrp' }, PORT, VRID, { word: 'preempt' }],
-  help: '',
+  help: 'ui.cmd.vrrp.vrrpPreempt',
   writes: true,
   topic: 'vrrp',
   run: (args, ctx, tr) => {
@@ -55,7 +55,7 @@ const vrrpTrack: CommandSpec = {
   id: 'vrrp.vrrpTrack',
   modes: ['exec', 'config'],
   tokens: [{ word: 'vrrp' }, PORT, VRID, { word: 'track' }, { arg: 'number', name: 'track' }, { word: 'decrement' }, { arg: 'number', name: 'value' }],
-  help: '',
+  help: 'ui.cmd.vrrp.vrrpTrack',
   writes: true,
   topic: 'vrrp',
   run: (args, ctx, tr) => {
@@ -71,7 +71,7 @@ const noVrrp: CommandSpec = {
   id: 'vrrp.noVrrp',
   modes: ['exec', 'config'],
   tokens: [{ word: 'no' }, { word: 'vrrp' }, PORT, VRID],
-  help: '',
+  help: 'ui.cmd.vrrp.noVrrp',
   writes: true,
   topic: 'vrrp',
   run: (args, ctx, tr) => {
@@ -85,7 +85,7 @@ const noVrrpPreempt: CommandSpec = {
   id: 'vrrp.noVrrpPreempt',
   modes: ['exec', 'config'],
   tokens: [{ word: 'no' }, { word: 'vrrp' }, PORT, VRID, { word: 'preempt' }],
-  help: '',
+  help: 'ui.cmd.vrrp.noVrrpPreempt',
   writes: true,
   topic: 'vrrp',
   run: (args, ctx, tr) => {
@@ -102,7 +102,7 @@ export const commands: readonly CommandSpec[] = [
     id: 'vrrp.showVrrp',
     modes: ['exec'],
     tokens: [{ word: 'show' }, { word: 'vrrp' }],
-    help: '',
+    help: 'ui.cmd.vrrp.showVrrp',
     writes: false,
     topic: 'vrrp',
     run: (_args, ctx, tr) => {

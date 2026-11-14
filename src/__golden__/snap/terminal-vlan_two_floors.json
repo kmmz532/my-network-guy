@@ -129,8 +129,7 @@
     {
       "line": "ip address vlan 10",
       "lines": [
-        "err:                     ^",
-        "err:ui.terminal.invalidAt"
+        "err:ui.terminal.incomplete"
       ]
     },
     {

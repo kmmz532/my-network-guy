@@ -687,3 +687,71 @@ input.ui-text-input--full {
 .ui-badge--xs {
   font-size: var(--fs-xs);
 }
+
+/* TerminalInput: ターミナルの入力欄。予測は薄く、誤りの語は下線で示す */
+.ui-terminal-input {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  background: var(--bg-well);
+}
+
+.ui-terminal-input__mirror {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: monospace;
+  font-size: 13px;
+  white-space: pre;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ui-terminal-input__typed {
+  color: transparent;
+}
+
+.ui-terminal-input__error {
+  text-decoration: underline;
+  text-decoration-color: var(--st-warn);
+}
+
+.ui-terminal-input__ghost {
+  opacity: 0.4;
+}
+
+input.ui-terminal-input__field {
+  flex: 1;
+  min-width: 0;
+  font-family: monospace;
+  font-size: 13px;
+  background: transparent;
+  color: inherit;
+  border: none;
+  padding: 4px;
+}
+
+/* WordList: Tab の候補の一覧 */
+.ui-word-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.ui-word-list__word--selected {
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+/* 指で操作する端末では、入力欄の文字が 16px に上がる（global.css）。重ね描きも合わせる */
+@media (pointer: coarse) {
+  .ui-terminal-input__mirror {
+    font-size: 16px;
+  }
+}

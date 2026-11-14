@@ -332,10 +332,7 @@
       "count": 1
     },
     "local/no-look-props": {
-      "count": 8
-    },
-    "local/no-native-control": {
-      "count": 1
+      "count": 4
     }
   },
   "src/components/Toolbar.tsx": {
@@ -697,7 +694,7 @@
   },
   "src/stores/gameHelpers.ts": {
     "local/no-mode-branch": {
-      "count": 3
+      "count": 4
     }
   },
   "src/stores/gameOps.ts": {

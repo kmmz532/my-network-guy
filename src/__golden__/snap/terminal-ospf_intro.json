@@ -6,14 +6,30 @@
     {
       "line": "show",
       "lines": [
-        "err:       ^",
-        "err:ui.terminal.invalidAt"
+        "err:ui.terminal.incomplete"
       ]
     },
     {
       "line": "help",
       "lines": [
-        "out:ui.terminal.help"
+        "out:  ip                   ui.cmdWord.ip",
+        "out:  no                   ui.cmdWord.no",
+        "out:  configure            ui.cmd.core.configureTerminal",
+        "out:  hostname             ui.cmd.core.hostname",
+        "out:  help                 ui.cmd.core.help",
+        "out:  show                 ui.cmdWord.show",
+        "out:  ping                 ui.cmd.core.ping",
+        "out:  traceroute           ui.cmd.core.traceroute",
+        "out:  switchport           ui.cmdWord.switchport",
+        "out:  router               ui.cmdWord.router",
+        "out:  network              ui.cmdWord.network",
+        "out:  router-id            ui.cmd.ospf.routerId",
+        "out:  default-information  ui.cmd.ospf.defaultInformation",
+        "out:  neighbor             ui.cmdWord.neighbor",
+        "out:  vrrp                 ui.cmdWord.vrrp",
+        "out:  channel-group        ui.cmdWord.channel-group",
+        "out:  spanning-tree        ui.cmdWord.spanning-tree",
+        "out:  wireless             ui.cmdWord.wireless"
       ]
     },
     {
@@ -215,8 +231,7 @@
     {
       "line": "default-information",
       "lines": [
-        "err:                      ^",
-        "err:ui.terminal.invalidAt"
+        "err:ui.terminal.incomplete"
       ]
     },
     {
@@ -233,8 +248,7 @@
     {
       "line": "ip address 0 10.0.5.1",
       "lines": [
-        "err:                        ^",
-        "err:ui.terminal.invalidAt"
+        "err:ui.terminal.incomplete"
       ]
     },
     {
@@ -288,8 +302,7 @@
     {
       "line": "ip address 10.0.5.1",
       "lines": [
-        "err:                      ^",
-        "err:ui.terminal.invalidAt"
+        "err:ui.terminal.incomplete"
       ]
     },
     {
@@ -436,8 +449,7 @@
     {
       "line": "interface",
       "lines": [
-        "err:            ^",
-        "err:ui.terminal.invalidAt"
+        "err:ui.terminal.incomplete"
       ]
     },
     {
@@ -520,8 +532,7 @@
     {
       "line": "network 10.0.1.0",
       "lines": [
-        "err:                   ^",
-        "err:ui.terminal.invalidAt"
+        "err:ui.terminal.incomplete"
       ]
     },
     {
@@ -551,8 +562,7 @@
     {
       "line": "router ospf",
       "lines": [
-        "err:              ^",
-        "err:ui.terminal.invalidAt"
+        "err:ui.terminal.incomplete"
       ]
     },
     {
@@ -579,8 +589,7 @@
     {
       "line": "network 10.0.1.0",
       "lines": [
-        "err:                   ^",
-        "err:ui.terminal.invalidAt"
+        "err:ui.terminal.incomplete"
       ]
     },
     {
@@ -645,8 +654,7 @@
     {
       "line": "ping",
       "lines": [
-        "err:       ^",
-        "err:ui.terminal.invalidAt"
+        "err:ui.terminal.incomplete"
       ]
     },
     {
