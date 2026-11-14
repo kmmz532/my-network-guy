@@ -5,7 +5,7 @@ import { t } from '../i18n/t';
 import { vrrpStatusOf } from '../network/public';
 import type { Iface, NetNode } from '../network/types';
 import { netOfDevice, useGameStore } from '../stores/useGameStore';
-import { buttonStyle, greyColor, inputStyle, isIpText } from './devicePorts';
+import { buttonStyle, greyColor, isIpText } from './devicePorts';
 import { Checkbox } from './ui/Checkbox';
 import { Select } from './ui/Select';
 import { TextInput } from './ui/TextInput';
@@ -47,16 +47,15 @@ export function VrrpField({ node, iface, disabled, onError }: Props) {
             <span>{t('ui.config.vrrpVip')}: {g.ip}</span>
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               {t('ui.config.vrrpPriority')}
-              <input
+              <TextInput
                 type="number"
                 min={1}
                 max={254}
-                defaultValue={g.priority}
-                key={`${iface.id}-${g.vrid}-${g.priority}`}
+                value={String(g.priority)}
                 disabled={disabled}
-                style={{ ...inputStyle, width: 56 }}
-                onBlur={(e) => {
-                  const v = Number(e.target.value);
+                layout={{ width: 56 }}
+                onCommit={(text) => {
+                  const v = Number(text);
                   if (!Number.isInteger(v) || v === g.priority) return;
                   onError(setVrrp(node.uid, { op: 'priority', id: iface.id, vrid: g.vrid, value: v }));
                 }}
