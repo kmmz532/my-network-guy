@@ -1,6 +1,5 @@
 // ネットワーク機器を描く。機器本体・机・ポート・選択枠・LEDを受け持つ。
 import { Container, Graphics, Sprite } from 'pixi.js';
-import { isPcCategory } from '../data/categories';
 import { spriteNameOf } from '../sim/facing';
 import type { Facing } from '../sim/facing';
 import type { Project } from '../sim/project';
@@ -8,8 +7,10 @@ import type { NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
 import { spriteOf, texture } from './sprites';
 import { DESK_TOP, DEVICE_FOOT_INSET } from './deviceRules';
-import { restsOnDesk } from '../sim/placement';
-import { deviceCategory, portCountOf, maybeDevice } from '../registry/query';
+import { gameEnv } from '../sim/env';
+import { tileSourceOf } from '../stores/gameHelpers';
+import { needsDeskSprite, restsOnDesk } from '../world/tiles';
+import { portCountOf, maybeDevice } from '../registry/query';
 
 const OUTLINE = 0x3b2a33;
 const SELECT = 0xffd866;
@@ -22,7 +23,6 @@ type DeviceRendererOptions = {
   foreground: Graphics;
   sprites: Container;
   elapsed: () => number;
-  deskAt: (x: number, y: number) => boolean;
   deskFacingAt: (x: number, y: number) => Facing;
 };
 
@@ -31,7 +31,6 @@ export class DeviceRenderer {
 
   drawNode(node: NetNode, ts: number, selected: boolean, dim: boolean, project: Project, hot: boolean): void {
     const g = this.options.foreground;
-    const category = deviceCategory(node.device);
     const alpha = dim ? 0.5 : 1;
     const pad = ts * 0.18;
     const x = node.x * ts + pad;
@@ -44,10 +43,9 @@ export class DeviceRenderer {
     const tex = texture(spriteOf(deviceSprite));
     const foot = node.y * ts + ts - DEVICE_FOOT_INSET;
     if (!tex) return;
-    const deskTile = this.options.deskAt(node.x, node.y);
-    const anyFloor = useGameStore.getState().mode === 'sandbox';
-    const onDesk = restsOnDesk(node, this.options.deskAt);
-    const deskTex = !deskTile && isPcCategory(category) && !anyFloor ? texture('furniture/desk') : undefined;
+    const tiles = tileSourceOf(useGameStore.getState());
+    const onDesk = restsOnDesk(tiles, node, gameEnv);
+    const deskTex = needsDeskSprite(tiles, node, gameEnv) ? texture('furniture/desk') : undefined;
     if (deskTex) {
       const desk = new Sprite(deskTex);
       desk.position.set(node.x * ts, node.y * ts);

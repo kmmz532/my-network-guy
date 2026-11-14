@@ -1,6 +1,5 @@
 import { applyMoney, recordSaving } from './ledger';
 import type { Balance, GameMap } from '../data/schema';
-import { tileKind } from '../data/tileKind';
 import { furnitureOf } from '../contracts/layout';
 import { nextHostname } from '../network/hostname';
 import { nextMacSerial } from '../network/mac';
@@ -10,7 +9,8 @@ import type { NetLink, NetNode, Service } from '../network/types';
 import { isPcCategory } from '../data/categories';
 import { cableLengthOf, checkCableLength } from './cableLength';
 import { levelOf } from './level';
-import { Core, End, Env, NetTarget, OFFICE_UPLINK_UID, Outcome, PlacedFurniture, Project, cableCost, factoryConfigOf, fail, focusedOf, isDeskFurniture, isPcIn, netOf, officeLocked, officeUplinkOf, paidCable, requireDesign, withNet, withProject } from './project';
+import { Core, End, Env, NetTarget, OFFICE_UPLINK_UID, Outcome, Project, cableCost, factoryConfigOf, fail, focusedOf, isDeskFurniture, isPcIn, netOf, officeLocked, officeUplinkOf, paidCable, requireDesign, withNet, withProject } from './project';
+import { tileAt, type TileSource } from '../world/tiles';
 import { portCountOf, deviceCategory, deviceDef, cableDef, hasDevice } from '../registry/query';
 
 // 機材を置いたときに動いているサービス（ゲームデータの defaultServices を写す）
@@ -19,57 +19,31 @@ const servicesOf = (deviceId: string): Service[] => (deviceDef(deviceId).default
 // 自社オフィスに機器を置けるかを判定する。置けなければ失敗の理由を返す
 // PCは机の家具があり、その上に機器がないマスだけ。PC以外は床で、家具も機器もないマスだけ。
 // anyFloor（サンドボックス）のときは、PCは床（家具も機器もないマス）か机の上（機器がないマス）に置ける。机以外の家具の上は置けない
-const officePlaceReason = (
-  furniture: PlacedFurniture[],
-  nodes: NetNode[],
-  deviceId: string,
-  x: number,
-  y: number,
-  map: GameMap,
-  env: Env,
-  anyFloor = false,
-): string | null => {
-  const hasNode = nodes.some((n) => n.x === x && n.y === y);
+const officePlaceReason = (src: TileSource, deviceId: string, x: number, y: number, env: Env): string | null => {
+  const tile = tileAt(src, x, y, env);
+  const hasNode = tile.node !== null;
   const device = deviceDef(deviceId);
   const isPc = isPcCategory(device.category);
   // 机の上にも床にも置ける機器（N91）は、PC のような机の上の判定を使い、床にも置ける。PC でも deskable でもない機器は床だけ
   const desktop = device.deskable === true;
-  if (isPc && !desktop && !anyFloor) {
-    const onDesk = furniture.some((f) => f.x === x && f.y === y && isDeskFurniture(f.id, env));
-    return !onDesk || hasNode ? 'desk' : null;
-  }
-  const kind = tileKind(map, x, y);
-  if (kind !== 'floor') return 'tile';
+  if (isPc && !desktop && !src.anyFloor) return !tile.desk || hasNode ? 'desk' : null;
+  if (tile.kind !== 'floor') return 'tile';
   if (hasNode) return 'tile';
-  const here = furniture.filter((f) => f.x === x && f.y === y);
-  if (isPc || desktop) return here.some((f) => !isDeskFurniture(f.id, env)) ? 'tile' : null;
-  return here.length > 0 ? 'tile' : null;
+  if (isPc || desktop) return tile.furniture.some((f) => !isDeskFurniture(f.id, env)) ? 'tile' : null;
+  return tile.furniture.length > 0 ? 'tile' : null;
 };
 
 // 機材を置けるマスか（配置と移動で共通）。自社案件は自社オフィスの規則、それ以外は床（PCは机の上も可）。置けなければ理由を返す
-const placeReason = (
-  inhouse: boolean,
-  furniture: PlacedFurniture[],
-  nodes: NetNode[],
-  deviceId: string,
-  x: number,
-  y: number,
-  map: GameMap,
-  env: Env,
-  anyFloor = false,
-): string | null => {
-  if (inhouse) return officePlaceReason(furniture, nodes, deviceId, x, y, map, env, anyFloor);
-  const kind = tileKind(map, x, y);
+const placeReason = (src: TileSource, deviceId: string, x: number, y: number, env: Env): string | null => {
+  if (src.office) return officePlaceReason(src, deviceId, x, y, env);
+  const tile = tileAt(src, x, y, env);
   const deskOk = isPcIn(env, deviceId) || deviceDef(deviceId).deskable === true;
-  if (kind !== 'floor' && !(kind === 'desk' && deskOk)) return 'tile';
-  if (nodes.some((n) => n.x === x && n.y === y)) return 'tile';
+  if (tile.kind !== 'floor' && !(tile.kind === 'desk' && deskOk)) return 'tile';
+  if (tile.node) return 'tile';
   // 依頼先の家具（机・棚・飾り。N76）のあるマスには置けない
-  if (furniture.some((f) => f.x === x && f.y === y)) return 'tile';
+  if (tile.furniture.length > 0) return 'tile';
   return null;
 };
-
-// 機器が机の上にあるか。deskAt は置く処理と同じ規則で机のマスを答える（自社オフィスは机の家具、依頼先は地図の desk のマス）
-export const restsOnDesk = (node: NetNode, deskAt: (x: number, y: number) => boolean): boolean => deskAt(node.x, node.y);
 
 export const placeDevice = (core: Core, deviceId: string, x: number, y: number, map: GameMap, env: Env): Outcome => {
   const p = requireDesign(core);
@@ -78,7 +52,7 @@ export const placeDevice = (core: Core, deviceId: string, x: number, y: number, 
   if ((core.owned[deviceId] ?? 0) < 1) return fail('stock');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
   const furniture = p.contract.inhouse ? core.office.furniture : furnitureOf(map.furniture, p.contract.furniture);
-  const reason = placeReason(p.contract.inhouse, furniture, p.nodes, deviceId, x, y, map, env);
+  const reason = placeReason({ map, furniture, nodes: p.nodes, office: p.contract.inhouse, anyFloor: false }, deviceId, x, y, env);
   if (reason) return fail(reason);
   const node: NetNode = { ports: [],
     uid: `u${p.seq}`,
@@ -110,7 +84,7 @@ export const placeInOffice = (core: Core, deviceId: string, x: number, y: number
   if (!sandbox && (core.owned[deviceId] ?? 0) < 1) return fail('stock');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
   const office = core.office;
-  const reason = officePlaceReason(office.furniture, office.nodes, deviceId, x, y, map, env, anyFloor);
+  const reason = officePlaceReason({ map, furniture: office.furniture, nodes: office.nodes, office: true, anyFloor }, deviceId, x, y, env);
   if (reason) return fail(reason);
   const node: NetNode = { ports: [],
     uid: `u${office.seq}`,
@@ -274,7 +248,7 @@ export const moveNode = (core: Core, uid: string, x: number, y: number, env: Env
   const inhouse = project === null || project.contract.inhouse;
   const others = net.nodes.filter((n) => n.uid !== uid);
   const furniture = inhouse ? core.office.furniture : furnitureOf(map.furniture, project?.contract.furniture);
-  const reason = placeReason(inhouse, furniture, others, node.device, x, y, map, env, anyFloor);
+  const reason = placeReason({ map, furniture, nodes: others, office: inhouse, anyFloor }, node.device, x, y, env);
   if (reason) return fail(reason);
 
   const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, x, y } : n));
@@ -394,7 +368,7 @@ export const placeOfficeUplink = (core: Core, x: number, y: number, map: GameMap
   if (officeUplinkOf(core.office)) return fail('uplink.placed');
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return fail('tile');
   const office = core.office;
-  const reason = officePlaceReason(office.furniture, office.nodes, 'uplink', x, y, map, env);
+  const reason = officePlaceReason({ map, furniture: office.furniture, nodes: office.nodes, office: true, anyFloor: false }, 'uplink', x, y, env);
   if (reason) return fail(reason);
   const node: NetNode = { uid: OFFICE_UPLINK_UID, device: 'uplink', macSerial: nextMacSerial(office.nodes), x, y, locked: true, configLocked: true, interfaces: [], gateway: null, routes: [], services: [], ports: [] };
   return { ok: true, core: { ...core, office: { ...office, nodes: [...office.nodes, node] } } };

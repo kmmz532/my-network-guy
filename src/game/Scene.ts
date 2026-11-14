@@ -3,6 +3,7 @@
 import { Application, Container, Graphics, Text, type Ticker } from 'pixi.js';
 import { type GameMap } from '../data/schema';
 import { focusedProject, viewingOffice, frontDeviceUid, useGameStore, type Trace } from '../stores/useGameStore';
+import { tileSourceOf } from '../stores/gameHelpers';
 import { useUiStore } from '../stores/useUiStore';
 import { nodeLabel } from '../components/nodeLabel';
 import { centerPath, plugPoints } from './linkHit';
@@ -14,7 +15,7 @@ import { loadSettings } from '../settings/settings';
 import { furnitureOf } from '../contracts/layout';
 import { expandActionOf, expansionLocked, officeExpandCostOf, type ExpandSide } from '../sim/office';
 import { levelOf } from '../sim/level';
-import { isDeskFurniture, type Project } from '../sim/project';
+import { type Project } from '../sim/project';
 import { colorOfLink, type NetworkColors } from '../network/netColor';
 import { networkColors, type NetworkState } from '../network/public';
 import { balance } from 'virtual:game-data';
@@ -37,8 +38,7 @@ import { STAFF_FRAME_MS } from './staffHit';
 import { DeviceRenderer } from './DeviceRenderer';
 import { FurnitureRenderer } from './FurnitureRenderer';
 import { DESK_TOP, DEVICE_FOOT_INSET } from './deviceRules';
-import { restsOnDesk } from '../sim/placement';
-import { tileKind } from '../data/tileKind';
+import { restsOnDesk } from '../world/tiles';
 import { DeviceLabelRenderer } from './DeviceLabelRenderer';
 import { NetworkRenderer, PACKET_COUNT, PACKET_SPACING_TILES, PACKET_TILES_PER_SEC } from './NetworkRenderer';
 import { EffectRenderer, FLASH_MS } from './EffectRenderer';
@@ -157,7 +157,6 @@ export class Scene {
       foreground: this.g,
       sprites: this.sprites,
       elapsed: () => this.elapsed,
-      deskAt: (x, y) => this.deskAt(x, y),
       deskFacingAt: (x, y) => this.deskFacingAt(x, y),
     });
     this.deviceLabelRenderer = new DeviceLabelRenderer({
@@ -682,22 +681,13 @@ export class Scene {
   // 機器のスプライトの上端（マップの座標）。机の上（PCや机の家具のマス）は天板の高さ、床に置いた機器は足元から
   private spriteTopOf(node: NetNode, ts: number): number {
     // サンドボックスでは、PC は机の上に限らず床に置ける（天板の高さに上げない）
-    const onDesk = restsOnDesk(node, (x, y) => this.deskAt(x, y));
+    const onDesk = restsOnDesk(tileSourceOf(useGameStore.getState()), node, gameEnv);
     return (onDesk ? node.y * ts + DESK_TOP : node.y * ts + ts - DEVICE_FOOT_INSET) - 38;
   }
 
   // 自社オフィスでは、社員が机の前でキーボードを打つ
   private officeStaffHits(): StaffHit[] {
     return this.staffMotion.hits(this.map, this.elapsed, this.tileSize());
-  }
-
-  // 自社オフィスで、そのマスに机の家具があるか
-  // 置く処理と同じ規則: 自社オフィスは机の家具、依頼先は地図の机のマス
-  private deskAt(x: number, y: number): boolean {
-    if (this.map?.id === 'hq') {
-      return useGameStore.getState().office.furniture.some((f) => f.x === x && f.y === y && isDeskFurniture(f.id, gameEnv));
-    }
-    return !!this.map && tileKind(this.map, x, y) === 'desk';
   }
 
   // 社員のスプライト（16×24 px）。2コマで足踏みする

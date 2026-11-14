@@ -101,11 +101,6 @@
       "count": 3
     }
   },
-  "src/game/DeviceRenderer.ts": {
-    "local/no-mode-branch": {
-      "count": 1
-    }
-  },
   "src/game/FailureRenderer.ts": {
     "local/no-mode-branch": {
       "count": 1
@@ -279,7 +274,7 @@
   },
   "src/stores/gameHelpers.ts": {
     "local/no-mode-branch": {
-      "count": 2
+      "count": 3
     }
   },
   "src/stores/gameOps.ts": {

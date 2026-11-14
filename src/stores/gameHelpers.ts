@@ -17,6 +17,8 @@ import type { GameState } from './useGameStore';
 import { deviceCategory, maybeFurniture } from '../registry/query';
 import { registries } from '../registry/game';
 import type { OpContext } from '../world/apply';
+import type { TileSource } from '../world/tiles';
+import { furnitureOf } from '../contracts/layout';
 
 export interface PlannedNet {
   network: string;
@@ -124,6 +126,22 @@ export const opContextOf = (s: GameState): OpContext => {
   if (!hq) throw new Error('自社オフィスの地図がない');
   const project = focusedProject(s);
   return { env: gameEnv, target: netTargetOf(s), map: project ? (s.maps[project.contract.map] ?? null) : null, hq, mode: s.mode };
+};
+
+// いま表示している構成のタイルの引き元（自社オフィス、または設計中・表示中の案件）。anyFloor はサンドボックスのとき
+export const tileSourceOf = (s: GameState): TileSource => {
+  const anyFloor = s.mode === 'sandbox';
+  if (viewingOffice(s)) {
+    if (!s.maps.hq) throw new Error('自社オフィスの地図がない');
+    return { map: s.maps.hq, furniture: s.office.furniture, nodes: s.office.nodes, office: true, anyFloor };
+  }
+  const p = focusedProject(s) ?? s.showcase;
+  if (!p) throw new Error('表示している案件がない');
+  const map = s.maps[p.contract.map];
+  if (!map) throw new Error(`地図がない: ${p.contract.map}`);
+  const office = p.contract.inhouse;
+  const furniture = office ? s.office.furniture : furnitureOf(map.furniture, p.contract.furniture);
+  return { map, furniture, nodes: p.nodes, office, anyFloor };
 };
 
 // 依頼の一覧に出す案内（次の依頼までの日数と、届かない理由）
