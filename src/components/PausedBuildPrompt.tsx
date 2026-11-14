@@ -3,33 +3,25 @@
 import { useState } from 'react';
 import { t } from '../i18n/t';
 import { useGameStore } from '../stores/useGameStore';
-import { Modal } from './Modal';
-import { Button } from './ui/Button';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 import { PixelCheck } from './PixelControls';
 
 export function PausedBuildPrompt() {
   const answer = useGameStore((s) => s.answerPausedBuild);
   const [remember, setRemember] = useState(false);
   return (
-    <Modal
-      primary={() => answer('play', remember)}
-      onClose={() => answer('stay', remember)}
-      boxStyle={{ minWidth: 240 }}
+    <ConfirmDialog
+      onCancel={() => answer('stay', remember)}
+      cancelLabel={t('ui.paused.build.stay')}
+      action={{ label: t('ui.paused.build.play'), tone: 'primary', onClick: () => answer('play', remember) }}
+      layout={{ minWidth: 240 }}
     >
       <div style={{ fontWeight: 'bold', marginBottom: 12 }}>{t('ui.paused.build.title')}</div>
-      <div style={{ fontSize: 13, marginBottom: 12 }}>
+      <div style={{ fontSize: 13 }}>
         <PixelCheck checked={remember} onChange={setRemember}>
           {t('ui.paused.build.remember')}
         </PixelCheck>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-        <Button variant="secondary" onClick={() => answer('stay', remember)}>
-          {t('ui.paused.build.stay')}
-        </Button>
-        <Button variant="primary" onClick={() => answer('play', remember)}>
-          {t('ui.paused.build.play')}
-        </Button>
-      </div>
-    </Modal>
+    </ConfirmDialog>
   );
 }
