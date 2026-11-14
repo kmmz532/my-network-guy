@@ -2,7 +2,8 @@
 import { addKeyLayer } from '../../input/keyRouter';
 import { useEffect, useState } from 'react';
 import { usePhone } from '../../ui/usePhone';
-import { Modal, secondaryButton } from '../Modal';
+import { Modal } from '../Modal';
+import { FileButton } from '../ui/FileButton';
 import { t } from '../../i18n/t';
 import { balance } from 'virtual:game-data';
 import { levelOf } from '../../sim/level';
@@ -249,19 +250,9 @@ export function SaveSlotDialog(props: Props) {
             <Button variant="primary" onClick={onNewHere}>
               {mode === 'sandbox' ? t('ui.company.newSandbox') : t('ui.company.newCompany')}
             </Button>
-            <label style={{ ...secondaryButton, display: 'inline-block', cursor: 'pointer' }}>
+            <FileButton variant="secondary" accept=".json,application/json" onFile={onImport}>
               {t('ui.company.import')}
-              <input
-                type="file"
-                accept=".json,application/json"
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) onImport(file);
-                  e.target.value = '';
-                }}
-              />
-            </label>
+            </FileButton>
           </div>
         )}
       </div>
