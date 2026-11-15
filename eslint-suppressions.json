@@ -420,11 +420,6 @@
       "count": 3
     }
   },
-  "src/sim/dayTint.ts": {
-    "local/no-look-props": {
-      "count": 9
-    }
-  },
   "src/sim/guide.ts": {
     "local/no-category": {
       "count": 4

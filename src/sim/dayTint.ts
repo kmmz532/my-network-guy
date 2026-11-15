@@ -9,16 +9,16 @@ export interface Rgb {
 
 // 時刻（時）と色の対応。間は線形に補間する。0時と24時は同じ
 const NIGHT: Rgb = { r: 0.75, g: 0.8, b: 0.97 };
-const KEYS: { hour: number; color: Rgb }[] = [
-  { hour: 0, color: NIGHT },
-  { hour: 5, color: NIGHT },
-  { hour: 6, color: { r: 1, g: 0.93, b: 0.85 } },
-  { hour: 9, color: { r: 1, g: 1, b: 1 } },
-  { hour: 16, color: { r: 1, g: 1, b: 1 } },
-  { hour: 17, color: { r: 1, g: 0.85, b: 0.7 } },
-  { hour: 18, color: { r: 1, g: 0.85, b: 0.7 } },
-  { hour: 20, color: NIGHT },
-  { hour: 24, color: NIGHT },
+const KEYS: { hour: number; rgb: Rgb }[] = [
+  { hour: 0, rgb: NIGHT },
+  { hour: 5, rgb: NIGHT },
+  { hour: 6, rgb: { r: 1, g: 0.93, b: 0.85 } },
+  { hour: 9, rgb: { r: 1, g: 1, b: 1 } },
+  { hour: 16, rgb: { r: 1, g: 1, b: 1 } },
+  { hour: 17, rgb: { r: 1, g: 0.85, b: 0.7 } },
+  { hour: 18, rgb: { r: 1, g: 0.85, b: 0.7 } },
+  { hour: 20, rgb: NIGHT },
+  { hour: 24, rgb: NIGHT },
 ];
 
 // 1日の中の分から、重ねる色を求める（範囲の外の分は、1日の中に回す）
@@ -30,9 +30,9 @@ export const dayTintOf = (minuteOfDay: number): Rgb => {
     if (hour >= a.hour && hour <= b.hour) {
       const t = (hour - a.hour) / (b.hour - a.hour);
       return {
-        r: a.color.r + (b.color.r - a.color.r) * t,
-        g: a.color.g + (b.color.g - a.color.g) * t,
-        b: a.color.b + (b.color.b - a.color.b) * t,
+        r: a.rgb.r + (b.rgb.r - a.rgb.r) * t,
+        g: a.rgb.g + (b.rgb.g - a.rgb.g) * t,
+        b: a.rgb.b + (b.rgb.b - a.rgb.b) * t,
       };
     }
   }
