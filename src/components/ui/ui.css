@@ -429,6 +429,13 @@ input.ui-text-input--full {
   color: var(--fg);
 }
 
+/* 区切りの線を上に引く段（並んだ行の間の線）。余白は持たない */
+.ui-section--top {
+  padding: 0;
+  border-bottom: 0;
+  border-top: 1px solid var(--line);
+}
+
 .ui-window {
   display: flex;
   flex-direction: column;
@@ -608,6 +615,10 @@ input.ui-text-input--full {
 
 .ui-text--soft {
   opacity: 0.85;
+}
+
+.ui-text--note {
+  color: var(--fg-note);
 }
 
 .ui-text--faint {

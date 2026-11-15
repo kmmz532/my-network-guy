@@ -5,17 +5,18 @@ import { isIp } from '../network/command/args';
 import { getComponent } from '../network/components';
 import type { NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
-import { greyColor, sectionStyle } from './devicePorts';
 import { Button } from './ui/Button';
 import { Checkbox } from './ui/Checkbox';
+import { Section } from './ui/Section';
+import { Text } from './ui/Text';
 import { TextInput } from './ui/TextInput';
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
 const isPrivateAs = (asn: number): boolean => asn >= 64512 && asn <= 65534;
 
 const NumberField = ({ label, value, min, disabled, onCommit }: { label: string; value: number; min: number; disabled: boolean; onCommit: (v: number) => void }) => (
-  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-    {label}
+  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+    <Text as="span" size="s">{label}</Text>
     <TextInput
       type="number"
       min={min}
@@ -41,7 +42,7 @@ export function BgpField({ node, readOnly, onError }: { node: NetNode; readOnly:
 
   if (!bgp) {
     return (
-      <div style={sectionStyle}>
+      <Section layout={{ marginBottom: 10 }}>
         <b>{t('ui.config.bgp')}</b>
         <div style={row}>
           <TextInput label={t('ui.config.bgpAsn')} placeholder={t('ui.config.bgpAsn')} value={asn} disabled={readOnly} onChange={setAsn} layout={{ width: 80 }} />
@@ -49,16 +50,16 @@ export function BgpField({ node, readOnly, onError }: { node: NetNode; readOnly:
             {t('ui.config.bgpStart')}
           </Button>
         </div>
-      </div>
+      </Section>
     );
   }
 
   return (
-    <div style={sectionStyle}>
+    <Section layout={{ marginBottom: 10 }}>
       <b>{t('ui.config.bgp')}</b>
       <div style={row}>
         <NumberField label={t('ui.config.bgpAsn')} value={bgp.asn} min={1} disabled={readOnly} onCommit={(v) => onError(setBgp(node.uid, { op: 'asn', asn: v }))} />
-        <span style={{ color: greyColor, fontSize: 12 }}>{t(isPrivateAs(bgp.asn) ? 'ui.config.bgpAsnPrivate' : 'ui.config.bgpAsnGlobal')}</span>
+        <Text as="span" tone="note" size="s">{t(isPrivateAs(bgp.asn) ? 'ui.config.bgpAsnPrivate' : 'ui.config.bgpAsnGlobal')}</Text>
         {!readOnly && (
           <Button variant="danger" onClick={() => onError(setBgp(node.uid, { op: 'off' }))}>
             {t('ui.config.bgpOff')}
@@ -66,21 +67,23 @@ export function BgpField({ node, readOnly, onError }: { node: NetNode; readOnly:
         )}
       </div>
       {bgp.neighbors.map((nb) => (
-        <div key={nb.ip} style={{ ...row, borderTop: '1px solid #3b2a33' }}>
-          <span>{`${nb.ip}（AS ${nb.remoteAs}）`}</span>
-          <span style={{ color: greyColor, fontSize: 12 }}>{t(nb.remoteAs === bgp.asn ? 'ui.config.bgpKindIbgp' : 'ui.config.bgpKindEbgp')}</span>
-          <Checkbox size="s" checked={nb.nextHopSelf === true} disabled={readOnly} onChange={(on) => onError(setBgp(node.uid, { op: 'attr', ip: nb.ip, key: 'nextHopSelf', value: on }))}>
-            {t('ui.config.bgpNextHopSelf')}
-          </Checkbox>
-          <NumberField label={t('ui.config.bgpLocalPref')} value={nb.localPref ?? 100} min={0} disabled={readOnly} onCommit={(v) => onError(setBgp(node.uid, { op: 'attr', ip: nb.ip, key: 'localPref', value: v }))} />
-          <NumberField label={t('ui.config.bgpMed')} value={nb.med ?? 0} min={0} disabled={readOnly} onCommit={(v) => onError(setBgp(node.uid, { op: 'attr', ip: nb.ip, key: 'med', value: v }))} />
-          <NumberField label={t('ui.config.bgpPrepend')} value={nb.prepend ?? 0} min={0} disabled={readOnly} onCommit={(v) => onError(setBgp(node.uid, { op: 'attr', ip: nb.ip, key: 'prepend', value: v }))} />
-          {!readOnly && (
-            <Button variant="danger" onClick={() => onError(setBgp(node.uid, { op: 'removeNeighbor', ip: nb.ip }))}>
-              {t('ui.config.remove')}
-            </Button>
-          )}
-        </div>
+        <Section key={nb.ip} edge="top">
+          <div style={row}>
+            <span>{`${nb.ip}（AS ${nb.remoteAs}）`}</span>
+            <Text as="span" tone="note" size="s">{t(nb.remoteAs === bgp.asn ? 'ui.config.bgpKindIbgp' : 'ui.config.bgpKindEbgp')}</Text>
+            <Checkbox size="s" checked={nb.nextHopSelf === true} disabled={readOnly} onChange={(on) => onError(setBgp(node.uid, { op: 'attr', ip: nb.ip, key: 'nextHopSelf', value: on }))}>
+              {t('ui.config.bgpNextHopSelf')}
+            </Checkbox>
+            <NumberField label={t('ui.config.bgpLocalPref')} value={nb.localPref ?? 100} min={0} disabled={readOnly} onCommit={(v) => onError(setBgp(node.uid, { op: 'attr', ip: nb.ip, key: 'localPref', value: v }))} />
+            <NumberField label={t('ui.config.bgpMed')} value={nb.med ?? 0} min={0} disabled={readOnly} onCommit={(v) => onError(setBgp(node.uid, { op: 'attr', ip: nb.ip, key: 'med', value: v }))} />
+            <NumberField label={t('ui.config.bgpPrepend')} value={nb.prepend ?? 0} min={0} disabled={readOnly} onCommit={(v) => onError(setBgp(node.uid, { op: 'attr', ip: nb.ip, key: 'prepend', value: v }))} />
+            {!readOnly && (
+              <Button variant="danger" onClick={() => onError(setBgp(node.uid, { op: 'removeNeighbor', ip: nb.ip }))}>
+                {t('ui.config.remove')}
+              </Button>
+            )}
+          </div>
+        </Section>
       ))}
       {!readOnly && (
         <div style={row}>
@@ -132,6 +135,6 @@ export function BgpField({ node, readOnly, onError }: { node: NetNode; readOnly:
           </Button>
         </div>
       )}
-    </div>
+    </Section>
   );
 }
