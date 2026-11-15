@@ -259,11 +259,11 @@ export function Toolbar() {
           {(design || sandbox) && (
             <>
               {gap}
-              <IconButton label={t('ui.test')} guide="test" variant={testLit ? 'primary' : 'normal'} layout={shrink0} onClick={() => { closeInventory(); test(); }}>
+              <IconButton label={t('ui.test')} guide="test" variant={testLit ? 'primary' : 'accent'} layout={shrink0} onClick={() => { closeInventory(); test(); }}>
                 <Icon name="icon/test" />
               </IconButton>
               {design && (
-                <IconButton label={t('ui.build')} variant="primary" unavailable={!active.testedOk} layout={shrink0} onClick={() => { closeInventory(); requestBuild(); }}>
+                <IconButton label={t('ui.build')} variant="confirm" unavailable={!active.testedOk} layout={shrink0} onClick={() => { closeInventory(); requestBuild(); }}>
                   <Icon name="icon/hammer" />
                 </IconButton>
               )}
@@ -321,7 +321,7 @@ export function Toolbar() {
           <Divider layout={{ margin: '0 4px' }} />
           {/* テストは何度でも押せ、時間も費用もかからない。施工は、テストに合格してからだけ依頼できる（押すと案内を出す） */}
           <Tooltip text={tipText('ui.test', 'test', !phone)}>
-            <Button variant="secondary" size="bar" pressed={testLit} label={t('ui.test')} guide="test" onClick={() => { closeInventory(); test(); }}>
+            <Button variant="accent" size="wide" pressed={testLit} label={t('ui.test')} guide="test" onClick={() => { closeInventory(); test(); }}>
               <Icon name="icon/test" /> {t('ui.test')}
             </Button>
           </Tooltip>
@@ -329,12 +329,12 @@ export function Toolbar() {
           {design && (
           <>
           <Tooltip text={tipText('ui.build', 'build', !phone)}>
-            <Button variant="primary" size="bar" unavailable={!active.testedOk} label={t('ui.build')} onClick={() => { closeInventory(); requestBuild(); }}>
+            <Button variant="confirm" size="wide" unavailable={!active.testedOk} label={t('ui.build')} onClick={() => { closeInventory(); requestBuild(); }}>
               <Icon name="icon/hammer" /> {t('ui.build')}
             </Button>
           </Tooltip>
           <span style={{ marginLeft: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Icon name="icon/budget" /> <Text as="span">{yen(projectCostOf(active).total)} / {yen(active.contract.budget)}</Text>
+            <Icon name="icon/budget" /> <Text as="span" size="l">{yen(projectCostOf(active).total)} / {yen(active.contract.budget)}</Text>
           </span>
           <span style={{ marginLeft: 'auto', display: 'flex' }}>
             <IconButton label={t('ui.project.abandon')} layout={{ width: 32 }} onClick={() => { closeInventory(); abandon(); }}>
