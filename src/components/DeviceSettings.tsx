@@ -11,6 +11,7 @@ import { PixelSelect } from './PixelControls';
 import type { ComboOption } from './ui/comboOptions';
 import { isRelayPort, isRoutingCategory } from '../network/category';
 import { can } from '../network/capabilities';
+import { getComponent } from '../network/components';
 import { wirelessAssociations } from '../network/engine/stages/links';
 import { channelOverlapsOf, networkColors, type NetworkState } from '../network/public';
 import { colorOfNetwork, UNSET_COLOR } from '../network/netColor';
@@ -348,18 +349,18 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
           {t('ui.config.ospfRouterId')}
           <TextInput
-            value={node.ospf?.routerId ?? ''}
+            value={getComponent(node, 'ospf')?.routerId ?? ''}
             disabled={locked}
             layout={{ width: 110 }}
             onCommit={(text) => {
               const v = text.trim();
-              if (v === (node.ospf?.routerId ?? '')) return;
+              if (v === (getComponent(node, 'ospf')?.routerId ?? '')) return;
               if (v !== '' && !isIpText(v)) return onError('ip');
               onError(setOspf(node.uid, { op: 'routerId', ip: v === '' ? null : v }));
             }}
           />
         </label>
-        <Checkbox size="s" label={t('ui.config.ospfDefault')} checked={node.ospf?.defaultOriginate === true} disabled={locked} onChange={(on) => onError(setOspf(node.uid, { op: 'defaultOriginate', on }))}>
+        <Checkbox size="s" label={t('ui.config.ospfDefault')} checked={getComponent(node, 'ospf')?.defaultOriginate === true} disabled={locked} onChange={(on) => onError(setOspf(node.uid, { op: 'defaultOriginate', on }))}>
           {t('ui.config.ospfDefault')}
         </Checkbox>
       </div>

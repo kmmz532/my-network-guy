@@ -88,8 +88,8 @@ describe('interface モードの命令は、対象の口を行に書かない', 
 });
 
 describe('OSPF の番号（router ospf <n>）', () => {
-  // 番号を持つ機器（ospf.process が 1）
-  const withProcess = { ...node('l2_switch_8p'), ospf: { process: 1 } } as unknown as NetNode;
+  // 番号を持つ機器（components.ospf.process が 1）
+  const withProcess = { ...node('l2_switch_8p'), components: { ospf: { process: 1 } } } as unknown as NetNode;
   const runOn = (line: string, target: NetNode, session: TerminalSession) =>
     runLine(line, commandContextOf({ node: target, nodes: [], links: [], data: {} as EngineData, state: {} as NetworkState }, false, session), tr);
 

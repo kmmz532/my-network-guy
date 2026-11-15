@@ -8,6 +8,7 @@ import type { DnsRecord, DnsService, FirewallRule, Iface, IspLine, NetNode, Port
 import { WIRELESS_SECURITIES } from '../network/types';
 import { makeIface, makeSvi } from '../network/iface';
 import { can } from '../network/capabilities';
+import { getComponent, withComponent } from '../network/components';
 import { registries } from '../registry/game';
 import { BgpOp, Project, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, StpOp, VrrpOp, fail, netOf, planDomainAt, withNet, zoneFromNodes } from './project';
 import { portCountOf } from '../registry/query';
@@ -263,8 +264,8 @@ export const setRouting = (core: Core, uid: string, change: { proto: 'rip' | 'os
       });
       if (change.ip !== undefined && change.on && !node.interfaces.some(touches)) return 'iface.none';
       // OSPF の番号（process）は、指定があるときだけ書く（null で外す）
-      const ospf = change.proto === 'ospf' && change.process !== undefined ? { ...node.ospf, process: change.process ?? undefined } : node.ospf;
-      return { ...node, interfaces, ospf };
+      if (change.proto === 'ospf' && change.process !== undefined) return withComponent({ ...node, interfaces }, 'ospf', { ...getComponent(node, 'ospf'), process: change.process ?? undefined });
+      return { ...node, interfaces };
     },
     target,
   );
@@ -281,9 +282,8 @@ export const setOspf = (core: Core, uid: string, change: OspfOp, target: NetTarg
         const ospf = { ...iface.ospf, [change.key]: change.value };
         return { ...node, interfaces: node.interfaces.map((i) => (i.id === change.id ? { ...i, ospf } : i)) };
       }
-      const prev = node.ospf ?? {};
-      const next = change.op === 'routerId' ? { ...prev, routerId: change.ip ?? undefined } : { ...prev, defaultOriginate: change.on };
-      return { ...node, ospf: next };
+      const prev = getComponent(node, 'ospf') ?? {};
+      return withComponent(node, 'ospf', change.op === 'routerId' ? { ...prev, routerId: change.ip ?? undefined } : { ...prev, defaultOriginate: change.on });
     },
     target,
   );

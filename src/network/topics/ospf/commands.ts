@@ -3,6 +3,7 @@ import { ospfMismatchesOf } from '../../query/ospfMismatches';
 import { ospfNeighborsOf } from '../../query/ospfNeighbors';
 import { changed, err, nameOf, out, portMissing, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
+import { getComponent } from '../../components';
 import { areaOf, ifaceIdOf } from '../../command/args';
 import { enterRouter, interfaceOf } from '../../command/modes';
 
@@ -136,7 +137,7 @@ export const commands: readonly CommandSpec[] = [
     topic: 'ospf',
     run: (args, ctx, tr) => {
       // 番号が書いてあり、違うときは外さない（読み取り専用の拒否の後に、中身の検査をする）
-      const process = ctx.node.ospf?.process;
+      const process = getComponent(ctx.node, 'ospf')?.process;
       if (process !== undefined && process !== Number(args.process) && !ctx.readOnly) return shown([err(tr('ui.terminal.ospfProcessMismatch', { process }))]);
       return changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', on: false, process: null } });
     },

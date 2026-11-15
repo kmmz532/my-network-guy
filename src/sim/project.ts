@@ -339,7 +339,7 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
       ...(p.name ? { name: p.name } : {}),
       ...(p.isp ? { isp: p.isp } : {}),
       ...(p.wireless ? { wireless: { ...p.wireless } } : {}),
-      ...(setup?.ospf ? { ospf: { ...setup.ospf } } : {}),
+      ...(setup?.ospf ? { components: { ospf: { ...setup.ospf } } } : {}),
       ...(setup?.bgp ? { bgp: structuredClone(setup.bgp) } : {}),
       ...(setup?.dhcpPools ? { dhcpPools: structuredClone(setup.dhcpPools) } : {}),
       ...(setup?.stpPriority !== undefined ? { stpPriority: setup.stpPriority } : {}),

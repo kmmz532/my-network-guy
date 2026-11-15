@@ -968,9 +968,11 @@
         "gateway": null,
         "routes": [],
         "services": [],
-        "ospf": {
-          "process": 1,
-          "defaultOriginate": true
+        "components": {
+          "ospf": {
+            "defaultOriginate": true,
+            "process": 1
+          }
         },
         "bgp": {
           "asn": 65001,

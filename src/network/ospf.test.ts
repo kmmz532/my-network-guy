@@ -18,11 +18,11 @@ describe('OSPF のルーター ID', () => {
   it('設定がなければ、OSPF に参加したインターフェースの最大のアドレス。設定があればそれを使う', () => {
     const r = node('r', 'router_basic', [f(0, '10.0.1.1', { area: 0 }), f(1, '10.0.12.1', { area: 0 }), f(2, '192.168.9.1')]);
     expect(ospfRouterId(r)).toBe('10.0.12.1');
-    expect(ospfRouterId({ ...r, ospf: { routerId: '1.1.1.1' } })).toBe('1.1.1.1');
+    expect(ospfRouterId({ ...r, components: { ospf: { routerId: '1.1.1.1' } } })).toBe('1.1.1.1');
   });
   it('同じルーター ID の機器を見つける', () => {
-    const a = node('a', 'router_basic', [f(0, '10.0.1.1', { area: 0 })], { ospf: { routerId: '1.1.1.1' } });
-    const b = node('b', 'router_basic', [f(0, '10.0.2.1', { area: 0 })], { ospf: { routerId: '1.1.1.1' } });
+    const a = node('a', 'router_basic', [f(0, '10.0.1.1', { area: 0 })], { components: { ospf: { routerId: '1.1.1.1' } } });
+    const b = node('b', 'router_basic', [f(0, '10.0.2.1', { area: 0 })], { components: { ospf: { routerId: '1.1.1.1' } } });
     expect(duplicateRouterIds([a, b])).toEqual([['a', 'b']]);
   });
 });
@@ -91,7 +91,7 @@ describe('既定の経路の配布', () => {
     const mk = (originate: boolean): Network => ({
       nodes: [
         node('r1', 'router_basic', [f(0, '10.0.12.1', o)]),
-        node('r2', 'router_basic', [f(0, '10.0.12.2', o)], originate ? { ospf: { defaultOriginate: true } } : {}),
+        node('r2', 'router_basic', [f(0, '10.0.12.2', o)], originate ? { components: { ospf: { defaultOriginate: true } } } : {}),
       ],
       links: [link('l', 'r1', 0, 'r2', 0)],
       plans: {},
@@ -131,8 +131,8 @@ describe('ルーター ID の重複の警告', () => {
   it('同じルーター ID の2台に ospf.duplicate_router_id を出す', () => {
     const net: Network = {
       nodes: [
-        node('a', 'router_basic', [f(0, '10.0.0.1', { area: 0 })], { ospf: { routerId: '9.9.9.9' } }),
-        node('b', 'router_basic', [f(0, '10.0.0.2', { area: 0 })], { ospf: { routerId: '9.9.9.9' } }),
+        node('a', 'router_basic', [f(0, '10.0.0.1', { area: 0 })], { components: { ospf: { routerId: '9.9.9.9' } } }),
+        node('b', 'router_basic', [f(0, '10.0.0.2', { area: 0 })], { components: { ospf: { routerId: '9.9.9.9' } } }),
       ],
       links: [link('l', 'a', 0, 'b', 0)],
       plans: {},

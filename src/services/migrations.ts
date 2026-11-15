@@ -25,7 +25,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 52;
+export const SAVE_VERSION = 53;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -75,6 +75,28 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v52 → v53: 機器の OSPF の設定（ospf）を、機器のコンポーネントの表（components.ospf）へ移す
+  52: (data) => {
+    type OldNode = NetNode & { ospf?: NonNullable<NetNode['components']>['ospf'] };
+    const convert = <T extends { nodes: NetNode[] }>(x: T): T => ({
+      ...x,
+      nodes: x.nodes.map((n) => {
+        const { ospf, ...rest } = n as OldNode;
+        if (ospf === undefined) return n;
+        return { ...rest, components: { ...rest.components, ospf } };
+      }),
+    });
+    const d = data as { active: { nodes: NetNode[] }[]; office: { nodes: NetNode[] }; familiarity: { counts: object; blueprints: Record<string, { stars: number; design: { nodes: NetNode[] } }> } };
+    return {
+      ...d,
+      office: convert(d.office),
+      active: d.active.map(convert),
+      familiarity: {
+        ...d.familiarity,
+        blueprints: Object.fromEntries(Object.entries(d.familiarity.blueprints).map(([k, b]) => [k, { ...b, design: convert(b.design) }])),
+      },
+    };
+  },
   // v51 → v52: 機器の DNS の役割（dns.zone）を、サービスの一覧（services）の DNS のサービスへ写す。ゾーンの各行は種類 A の記録で、役割は権威
   51: (data) => {
     type OldNode = NetNode & { dns?: { zone: { name: string; ip: string }[] } };

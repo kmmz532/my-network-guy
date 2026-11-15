@@ -16,6 +16,20 @@ const dir = join(import.meta.dirname, '__fixtures__');
 const files = readdirSync(dir).filter((f) => /^save-v\d+\.json$/.test(f));
 type Fixture = Record<string, { saveVersion: number; data: unknown }>;
 
+describe('OSPF の設定の移行（機器の ospf を components.ospf へ移す）', () => {
+  it('移行前の機器の ospf は、移行後は components.ospf に入り、機器の直下には残らない', () => {
+    const old = JSON.parse(readFileSync(join(dir, 'save-v52.json'), 'utf8')) as Fixture;
+    const entry = Object.values(old)[0];
+    const data = structuredClone(entry.data) as { office: { nodes: Record<string, unknown>[] } };
+    const r1 = data.office.nodes.find((n) => n.uid === 'r1');
+    if (r1 === undefined) throw new Error('fixture に r1 がない');
+    r1.ospf = { routerId: '10.0.0.1', process: 1 };
+    const moved = migrate(entry.saveVersion, data).office.nodes.find((n) => n.uid === 'r1');
+    expect(moved?.components).toEqual({ ospf: { routerId: '10.0.0.1', process: 1 } });
+    expect('ospf' in (moved ?? {})).toBe(false);
+  });
+});
+
 describe('セーブの fixture', () => {
   it('今の版（SAVE_VERSION）の fixture がある', () => {
     expect(existsSync(join(dir, `save-v${SAVE_VERSION}.json`))).toBe(true);

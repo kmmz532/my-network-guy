@@ -1,5 +1,6 @@
 // OSPF の規則（純粋関数）: ルーター ID・隣接の条件・DR/BDR の選出
 import { ipToInt } from './engine';
+import { getComponent } from './components';
 import type { Iface, NetNode } from './types';
 
 export const OSPF_DEFAULT_PRIORITY = 1;
@@ -9,7 +10,8 @@ export const OSPF_DEFAULT_DEAD = 40;
 // ルーター ID。設定があればそれ、なければ、実機と同じく有効なインターフェースの最大のアドレス
 // （ループバックは扱わない。OSPF に参加したインターフェースがあれば、その中の最大）
 export const ospfRouterId = (node: NetNode): string | null => {
-  if (node.ospf?.routerId) return node.ospf.routerId;
+  const configured = getComponent(node, 'ospf')?.routerId;
+  if (configured) return configured;
   const withIp = node.interfaces.filter((i) => i.ip !== '');
   const joined = withIp.filter((i) => i.ospf !== undefined);
   const pool = joined.length > 0 ? joined : withIp;

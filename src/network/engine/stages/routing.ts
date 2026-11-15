@@ -3,6 +3,7 @@
 import { isRoutingCategory } from '../../category';
 import { computeBgp, type BgpEnv, type BgpResult } from '../../bgp';
 import { inSubnet, networkOf } from '../../ip';
+import { getComponent } from '../../components';
 import { ospfMismatch, type OspfMismatch } from '../../ospf';
 import type { Iface, NetNode, Network, Route } from '../../types';
 import { deviceCategory } from '../../../registry/query';
@@ -92,7 +93,7 @@ export const stageRouting = (net: Network, l2: L2Layer): RoutingLayer => {
           if (hop === undefined) continue;
           const metric = dist.get(o.uid) as number;
           // 既定の経路の配布（default-information originate）: 配る機器への最短の道を、0.0.0.0/0 の経路にする
-          if (proto === 'ospf' && o.ospf?.defaultOriginate === true) routes.push({ dest: '0.0.0.0', prefix: 0, nextHop: hop, protocol: 'ospf', metric });
+          if (proto === 'ospf' && getComponent(o, 'ospf')?.defaultOriginate === true) routes.push({ dest: '0.0.0.0', prefix: 0, nextHop: hop, protocol: 'ospf', metric });
           // RIP は 16 以上で届かない（rip.unreachable）
           if (proto === 'rip' && metric >= 16) continue;
           for (const oi of o.interfaces) {

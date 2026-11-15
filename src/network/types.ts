@@ -1,6 +1,7 @@
 // 配置された機器と配線の形式（セーブデータとシミュレーションの入力を兼ねる）
 import type { VrrpGroup } from './vrrp';
 import type { DhcpPool } from './dhcp';
+import type { Components } from './components';
 export type { VrrpGroup } from './vrrp';
 export type { DhcpPool } from './dhcp';
 
@@ -124,8 +125,8 @@ export interface NetNode {
   dhcpPools?: DhcpPool[];
   // スパニングツリーのブリッジ優先度（既定 32768、4096 刻み。小さいほどルートになりやすい）
   stpPriority?: number;
-  // OSPF の機器ごとの設定（routerId は省略すると自動。defaultOriginate は既定の経路を配る。process は router ospf の番号。省略は番号を書いていない）
-  ospf?: { routerId?: string; defaultOriginate?: boolean; process?: number };
+  // 機器の単位の設定を、能力ごとのコンポーネントで持つ（持てるものは機器の定義が決める。components.ts）
+  components?: Components;
   // BGP の設定（BGP を動かす機器だけ持つ）
   bgp?: BgpConfig;
   // 口の設定（機器ごと。設定のない口は既定のモード）
