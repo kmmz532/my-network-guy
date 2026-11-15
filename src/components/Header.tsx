@@ -9,27 +9,16 @@ import { t, tDyn } from "../i18n/t";
 import { levelOf } from "../sim/level";
 import { balance } from "virtual:game-data";
 import { toDate } from "../sim/clock";
-import { RADIUS } from '../ui/theme';
 import { nextFastSpeed, unlockedSpeedsOf } from "../sim/speed";
 import { Tooltip } from "./Tooltip";
 import { tipText } from "../input/keymap";
 import { Text } from "./ui/Text";
 import { ToolbarButton } from "./ui/ToolbarButton";
+import { Button } from "./ui/Button";
+import { HudBar } from "./ui/HudBar";
 
 // 速さのボタン: 停止・1倍のあとに、早送り（2倍・4倍・8倍。解放済みを押すたびに切り替える・N99）
 const SPEEDS: Speed[] = [0, 1];
-
-// 上部の操作（速さ・メニュー・社員）の大きさ。指で押すため、スマホでも 44 px の高さを確保する（M4）
-// 上部の操作の見た目。パソコンは文字の幅に合わせた横長で低いボタン。スマホは指で押すため 44 px 以上にする（M4・B11）
-const hudButton = (on: boolean, phone: boolean) => ({
-    padding: '4px 8px',
-    ...(phone ? { minHeight: 28, minWidth: 28 } : {}),
-    cursor: 'pointer',
-    background: on ? '#ffd866' : '#25406f',
-    color: on ? '#3b2a33' : '#f4f1e6',
-    border: '1px solid #3b2a33',
-    borderRadius: RADIUS.chrome,
-  }) as const;
 
 // 自動保存の印（ヘッダーの小さなアイコン）は、この時間で消す
 const SAVE_MARK_MS = 1000;
@@ -60,17 +49,17 @@ const Header = ({ headerRef }: { headerRef: RefObject<HTMLElement> }) => {
     const nightSpeed = useGameStore((s) => s.nightSpeed);
 
     return (
-        <header
-        ref={headerRef}
-        data-hud
-        style={{
+        <HudBar
+        as="header"
+        variant="top"
+        innerRef={headerRef}
+        marker="hud"
+        arrange={{
             position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
             padding: phone ? '2px 4px' : '4px 8px',
-            background: 'rgba(47, 79, 143, 0.75)',
-            color: '#f4f1e6',
             display: 'flex',
             flexWrap: 'nowrap',
             alignItems: 'center',
@@ -86,20 +75,16 @@ const Header = ({ headerRef }: { headerRef: RefObject<HTMLElement> }) => {
             <Icon name="icon/money" scale={1.5} /> ∞
             </span>
         ) : (
-            <button
-            aria-label={t('ui.funds.open')}
-            onClick={() => openWindow('funds', '')}
-            style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-            >
-            <Icon name="icon/money" scale={1.5} /> {clock.money.toLocaleString('ja-JP')}
-            </button>
+            <Button variant="plain" size="bare" label={t('ui.funds.open')} onClick={() => openWindow('funds', '')}>
+            <Icon name="icon/money" scale={1.5} /> <Text as="span">{clock.money.toLocaleString('ja-JP')}</Text>
+            </Button>
         )}
         {!sandbox && (
-        <button aria-label={t('ui.company.title')} onClick={() => openWindow('company', '')} style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <Button variant="plain" size="bare" label={t('ui.company.title')} onClick={() => openWindow('company', '')}>
             {/* 会社のレベルの印と、今のレベルの中の経験値のゲージ（N66）。押すと自社の情報の画面を開く */}
             <LevelMark level={levelNow} />
             <ExpGauge companyExp={companyExp} width={phone ? 56 : 96} />
-        </button>
+        </Button>
         )}
         {!sandbox && (
         <Text as="span" size="l" layout={{ marginLeft: '8px' }}>
@@ -149,11 +134,11 @@ const Header = ({ headerRef }: { headerRef: RefObject<HTMLElement> }) => {
             <Icon name="icon/save" scale={1} />
             </span>
         </Tooltip>
-        <button style={{ ...hudButton(false, phone), display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => useUiStore.getState().setPopup('menu')}>
+        <ToolbarButton label={t('ui.menu.settings')} onClick={() => useUiStore.getState().setPopup('menu')}>
             <Icon name="icon/menu" scale={1} />
-        </button>
+        </ToolbarButton>
         </div>
-        </header>
+        </HudBar>
     );
 };
 
