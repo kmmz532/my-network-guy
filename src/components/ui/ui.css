@@ -785,3 +785,50 @@ input.ui-terminal-input__field {
   min-width: 28px;
   min-height: 28px;
 }
+
+/* HudBar: 画面の上の帯（top）と下のツールバー（bottom）。tray はツールバーの上に浮く小さい欄（ケーブルの種類） */
+.ui-hud-bar {
+  color: var(--fg);
+}
+
+.ui-hud-bar--top {
+  background: var(--bg-hud-top);
+}
+
+.ui-hud-bar--bottom {
+  background: var(--bg-hud);
+}
+
+.ui-hud-bar--tray {
+  background: var(--bg-hud);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+/* IconButton の右下の数（持ち物の合計など） */
+.ui-icon-button__stock {
+  position: absolute;
+  right: 2px;
+  bottom: 0;
+  font-size: 11px;
+  font-weight: bold;
+  text-shadow: 0 0 2px var(--line);
+}
+
+/* 押しても受け付けるが、今は効かないことを薄く示す（disabled にはしない） */
+.ui-icon-button--unavailable,
+.ui-button--unavailable {
+  opacity: var(--disabled-opacity);
+}
+
+/* 余白のないボタン（絵と文字を並べる見出し）。plain の太字は受けない */
+.ui-button--bare {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+}
+
+.ui-button--plain.ui-button--bare {
+  font-weight: normal;
+}

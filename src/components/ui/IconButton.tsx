@@ -12,6 +12,10 @@ interface Props {
   onClick: () => void;
   selected?: boolean;
   count?: number;
+  // 右下に出す数（持ち物の合計など）。0 でも出す
+  stock?: number;
+  // 押せるが今は効かない印（薄く出す）
+  unavailable?: boolean;
   tip?: string;
   guide?: string;
   disabled?: boolean;
@@ -19,12 +23,13 @@ interface Props {
   children: ReactNode;
 }
 
-export function IconButton({ variant = 'normal', label, onClick, selected = false, count, tip, guide, disabled = false, layout, children }: Props) {
-  const cls = `ui-icon-button ui-icon-button--${variant}${selected ? ' ui-icon-button--selected' : ''}`;
+export function IconButton({ variant = 'normal', label, onClick, selected = false, count, stock, unavailable = false, tip, guide, disabled = false, layout, children }: Props) {
+  const cls = `ui-icon-button ui-icon-button--${variant}${selected ? ' ui-icon-button--selected' : ''}${unavailable ? ' ui-icon-button--unavailable' : ''}`;
   return (
     <Tooltip text={tip ?? label}>
-      <button type="button" aria-label={label} className={cls} disabled={disabled} data-guide={guide} onClick={onClick} style={layoutStyle(layout)}>
+      <button type="button" aria-label={label} className={cls} disabled={disabled} aria-disabled={unavailable || undefined} data-guide={guide} onClick={onClick} style={layoutStyle(layout)}>
         {children}
+        {stock !== undefined && <span className="ui-icon-button__stock">{stock}</span>}
         {count !== undefined && count > 0 && <span className="ui-icon-button__count">{count}</span>}
       </button>
     </Tooltip>
