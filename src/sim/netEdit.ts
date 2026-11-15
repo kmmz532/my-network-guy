@@ -7,7 +7,7 @@ import type { VrrpGroup } from '../network/vrrp';
 import type { DnsRecord, DnsService, FirewallRule, Iface, IspLine, NetNode, PortConfig, Route } from '../network/types';
 import { WIRELESS_SECURITIES } from '../network/types';
 import { makeIface, makeSvi } from '../network/iface';
-import { can } from '../network/capabilities';
+import { refusalFor } from './capabilityGate';
 import { getComponent, withComponent } from '../network/components';
 import { registries } from '../registry/game';
 import { BgpOp, Project, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, StpOp, VrrpOp, fail, netOf, planDomainAt, withNet, zoneFromNodes } from './project';
@@ -194,7 +194,8 @@ export const setSvi = (core: Core, uid: string, vlan: number, ip: string, prefix
   const node = net.nodes.find((n) => n.uid === uid);
   if (!node) return fail('none');
   if (node.configLocked) return fail('locked');
-  if (!can(node.device, 'svi')) return fail('svi.none');
+  const refusal = refusalFor(node.device, 'svi');
+  if (refusal) return fail(refusal);
   if (!Number.isInteger(vlan) || vlan < 1 || vlan > 4094) return fail('vlan.range');
   if (ip !== '' && !isIp(ip)) return fail('ip');
   const others = node.interfaces.filter((i) => !(i.kind === 'svi' && i.vlan === vlan));
@@ -222,15 +223,13 @@ export const setPortMode = (
   if (!node) return fail('none');
   if (node.configLocked) return fail('locked');
   if (!Number.isInteger(port) || port < 0 || port >= (portCountOf(node.device))) return fail('port.none');
+  const refusal = refusalFor(node.device, mode.kind === 'routed' ? 'routedPort' : 'switchport');
+  if (refusal) return fail(refusal);
   if (mode.kind === 'access') {
-    if (!can(node.device, 'switchport')) return fail('port.mode');
     if (!Number.isInteger(mode.vlan) || mode.vlan < 1 || mode.vlan > 4094) return fail('vlan.range');
   } else if (mode.kind === 'trunk') {
-    if (!can(node.device, 'switchport')) return fail('port.mode');
     const vlans = [...(mode.allowed ?? []), ...(mode.native === undefined ? [] : [mode.native])];
     if (vlans.some((v) => !Number.isInteger(v) || v < 1 || v > 4094)) return fail('vlan.range');
-  } else if (!can(node.device, 'routedPort')) {
-    return fail('port.mode');
   }
   const prev = (node.ports ?? []).find((p) => p.port === port);
   const prevTrunk = prev?.mode === 'trunk' ? prev : undefined;
@@ -300,7 +299,8 @@ export const setVrrp = (core: Core, uid: string, change: VrrpOp, target: NetTarg
     core,
     uid,
     (node) => {
-      if (!can(node.device, 'vrrp')) return 'vrrp.unsupported';
+      const refusal = refusalFor(node.device, 'vrrp');
+      if (refusal) return refusal;
       const iface = node.interfaces.find((i) => i.id === change.id);
       if (!iface) return 'iface.none';
       if (!Number.isInteger(change.vrid) || change.vrid < 1 || change.vrid > 255) return 'vrrp.vrid';
@@ -337,7 +337,8 @@ export const setStp = (core: Core, uid: string, change: StpOp, target: NetTarget
     core,
     uid,
     (node) => {
-      if (!can(node.device, 'stp')) return 'port.mode';
+      const refusal = refusalFor(node.device, 'stp');
+      if (refusal) return refusal;
       if (change.op === 'priority') {
         if (!Number.isInteger(change.value) || change.value < 0 || change.value > 61440 || change.value % 4096 !== 0) return 'stp.priority';
         return withComponent(node, 'stp', { priority: change.value });
@@ -358,18 +359,20 @@ export const setDhcp = (core: Core, uid: string, change: DhcpOp, target: NetTarg
       const portOk = (port: number) => Number.isInteger(port) && port >= 0 && port < (portCountOf(node.device));
       if (change.op === 'client') {
         if (!portOk(change.port)) return 'port.none';
-        if (can(node.device, 'switchport') && !can(node.device, 'routedPort')) return 'dhcp.unsupported';
+        if (refusalFor(node.device, 'switchport') === null && refusalFor(node.device, 'routedPort') !== null) return 'dhcp.unsupported';
         const others = node.interfaces.filter((i) => i.port !== change.port);
         return { ...node, interfaces: [...others, { ...makeIface(node.device, change.port, '0.0.0.0', 24), dhcp: true }] };
       }
       if (change.op === 'helper') {
-        if (!can(node.device, 'dhcpRelay')) return 'dhcp.unsupported';
+        const refusal = refusalFor(node.device, 'dhcpRelay');
+        if (refusal) return refusal;
         const iface = node.interfaces.find((i) => i.port === change.port && i.dhcp !== true);
         if (!iface) return 'iface.none';
         if (change.ip !== null && !isIp(change.ip)) return 'ip';
         return { ...node, interfaces: node.interfaces.map((i) => (i === iface ? { ...i, helper: change.ip ?? undefined } : i)) };
       }
-      if (!can(node.device, 'services')) return 'dhcp.unsupported';
+      const refusal = refusalFor(node.device, 'services');
+      if (refusal) return refusal;
       if (change.op === 'noPool') {
         const next = (getComponent(node, 'dhcpServer') ?? []).filter((p) => p.network !== change.network);
         return { ...node, components: { ...node.components, dhcpServer: next.length > 0 ? next : undefined } };
@@ -388,10 +391,11 @@ export const setChannel = (core: Core, uid: string, change: ChannelOp, target: N
     core,
     uid,
     (node) => {
-      if (!can(node.device, 'lag')) return 'lag.unsupported';
+      const refusal = refusalFor(node.device, 'lag');
+      if (refusal) return refusal;
       if (!Number.isInteger(change.port) || change.port < 0 || change.port >= (portCountOf(node.device))) return 'port.none';
       const prev = node.ports.find((p) => p.port === change.port);
-      const base: PortConfig = prev ?? { port: change.port, mode: can(node.device, 'switchport') ? 'access' : 'routed' };
+      const base: PortConfig = prev ?? { port: change.port, mode: refusalFor(node.device, 'switchport') === null ? 'access' : 'routed' };
       if (change.group === null) {
         const { channelGroup: _group, lacp: _lacp, ...rest } = base;
         return { ...node, ports: [...node.ports.filter((p) => p.port !== change.port), rest] };
@@ -420,7 +424,8 @@ export const setWireless = (core: Core, uid: string, key: 'ssid' | 'password' | 
     core,
     uid,
     (node) => {
-      if (!can(node.device, 'wireless')) return 'none';
+      const refusal = refusalFor(node.device, 'wireless');
+      if (refusal) return refusal;
       if (key === 'security' && !(WIRELESS_SECURITIES as readonly unknown[]).includes(value)) return 'wireless.security';
       return withComponent(node, 'wireless', { ...getComponent(node, 'wireless'), [key]: value });
     },
@@ -432,7 +437,8 @@ export const setNat = (core: Core, uid: string, change: NatOp, target: NetTarget
     core,
     uid,
     (node) => {
-      if (!can(node.device, 'nat')) return 'none';
+      const refusal = refusalFor(node.device, 'nat');
+      if (refusal) return refusal;
       const cur = getComponent(node, 'nat') ?? {};
       switch (change.op) {
         case 'iface': {
@@ -455,7 +461,8 @@ export const setBgp = (core: Core, uid: string, change: BgpOp, target: NetTarget
     core,
     uid,
     (node) => {
-      if (!can(node.device, 'bgp')) return 'none';
+      const refusal = refusalFor(node.device, 'bgp');
+      if (refusal) return refusal;
       const cur = getComponent(node, 'bgp') ?? { asn: 0, neighbors: [], networks: [] };
       switch (change.op) {
         case 'asn':
@@ -496,7 +503,8 @@ export const setFirewallRules = (core: Core, uid: string, rules: FirewallRule[],
     core,
     uid,
     (node) => {
-      if (!can(node.device, 'firewall')) return 'none';
+      const refusal = refusalFor(node.device, 'firewall');
+      if (refusal) return refusal;
       for (const r of rules) {
         if (r.src !== 'any' && !isCidr(r.src)) return 'ip';
         if (r.dst !== 'any' && !isCidr(r.dst)) return 'ip';
