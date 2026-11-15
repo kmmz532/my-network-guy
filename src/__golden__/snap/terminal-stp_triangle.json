@@ -200,7 +200,11 @@
         "gateway": null,
         "routes": [],
         "services": [],
-        "stpPriority": 4096
+        "components": {
+          "stp": {
+            "priority": 4096
+          }
+        }
       },
       {
         "uid": "SW2",
@@ -216,7 +220,11 @@
         "gateway": null,
         "routes": [],
         "services": [],
-        "stpPriority": 8192
+        "components": {
+          "stp": {
+            "priority": 8192
+          }
+        }
       },
       {
         "uid": "SW3",

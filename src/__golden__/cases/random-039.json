@@ -68,7 +68,7 @@
       "gateway": null,
       "routes": [],
       "services": [],
-      "stpPriority": 4096
+      "components": { "stp": { "priority": 4096 } }
     },
     {
       "uid": "n2",
@@ -95,7 +95,7 @@
       "gateway": null,
       "routes": [],
       "services": [],
-      "stpPriority": 32768
+      "components": { "stp": { "priority": 32768 } }
     },
     {
       "uid": "n3",

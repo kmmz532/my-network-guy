@@ -17,7 +17,7 @@ export const solutions: Record<string, Solve> = {
   vrrp_pair: on(['R1', 'R2'], (n) =>
     ifaces(n, (i) => ({ ...i, vrrp: [{ vrid: i.port === 0 ? 1 : 2, ip: i.port === 0 ? '192.168.1.254' : '10.0.9.254', priority: n.uid === 'R1' ? 110 : 100, preempt: true }] })),
   ),
-  stp_triangle: on(['SW2'], (n) => ({ ...n, stpPriority: 4096 })),
+  stp_triangle: on(['SW2'], (n) => ({ ...n, components: { stp: { priority: 4096 } } })),
   lag_uplink: on(['SW1', 'SW2'], (n) => ({ ...n, ports: [0, 1].map((port) => ({ port, mode: 'access' as const, channelGroup: 1, lacp: 'active' as const })) })),
   dhcp_relay: (nodes) =>
     nodes.map((n) =>

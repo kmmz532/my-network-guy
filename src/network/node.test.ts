@@ -8,7 +8,6 @@ const KEYS: Record<keyof NetNode, true> = {
   uid: true,
   device: true,
   powered: true,
-  stpPriority: true,
   components: true,
   bgp: true,
   ports: true,
@@ -36,7 +35,7 @@ const base: NetNode = { uid: 'a', device: 'router_basic', x: 0, y: 0, locked: fa
 describe('NetNode の項目', () => {
   it('項目の一覧を固定する', () => {
     expect(Object.keys(KEYS).sort()).toEqual(
-      ['uid', 'device', 'powered', 'stpPriority', 'components', 'bgp', 'ports', 'wireless', 'napt', 'statics', 'hostname', 'rules', 'name', 'x', 'y', 'locked', 'configLocked', 'interfaces', 'gateway', 'routes', 'services', 'hosts', 'nameServer', 'macSerial'].sort(),
+      ['uid', 'device', 'powered', 'components', 'bgp', 'ports', 'wireless', 'napt', 'statics', 'hostname', 'rules', 'name', 'x', 'y', 'locked', 'configLocked', 'interfaces', 'gateway', 'routes', 'services', 'hosts', 'nameServer', 'macSerial'].sort(),
     );
   });
 });

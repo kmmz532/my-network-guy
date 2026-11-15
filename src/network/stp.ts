@@ -3,6 +3,7 @@
 // - ルートポート: ルートまでのコスト（口のコストの合計。既定は1口 4）が最小の口。同じなら相手のブリッジ ID、相手の口の番号の順
 // - 指定ポート: 各リンクで、ルートに近い側。どちらでもない口は止める（ブロッキング）
 import type { NetLink, NetNode } from './types';
+import { getComponent } from './components';
 
 export const STP_DEFAULT_PRIORITY = 32768;
 export const STP_DEFAULT_COST = 4;
@@ -26,7 +27,7 @@ export const computeStp = (nodes: readonly NetNode[], links: readonly NetLink[],
   const empty: StpResult = { root: null, roles: new Map(), rootCost: new Map() };
   if (bridges.length === 0) return empty;
   // ブリッジ ID（優先度・連番）の比較。小さいほうが強い
-  const bid = (n: NetNode): [number, number] => [n.stpPriority ?? STP_DEFAULT_PRIORITY, n.macSerial ?? Number.MAX_SAFE_INTEGER];
+  const bid = (n: NetNode): [number, number] => [getComponent(n, 'stp')?.priority ?? STP_DEFAULT_PRIORITY, n.macSerial ?? Number.MAX_SAFE_INTEGER];
   const cmpBid = (a: NetNode, b: NetNode) => bid(a)[0] - bid(b)[0] || bid(a)[1] - bid(b)[1];
   const cost = (n: NetNode, port: number) => n.ports.find((p) => p.port === port)?.stpCost ?? STP_DEFAULT_COST;
   const shut = (n: NetNode, port: number) => n.ports.find((p) => p.port === port)?.shutdown === true;

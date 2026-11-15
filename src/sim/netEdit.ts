@@ -337,7 +337,7 @@ export const setStp = (core: Core, uid: string, change: StpOp, target: NetTarget
       if (!can(node.device, 'stp')) return 'port.mode';
       if (change.op === 'priority') {
         if (!Number.isInteger(change.value) || change.value < 0 || change.value > 61440 || change.value % 4096 !== 0) return 'stp.priority';
-        return { ...node, stpPriority: change.value };
+        return withComponent(node, 'stp', { priority: change.value });
       }
       if (!Number.isInteger(change.value) || change.value < 1) return 'stp.cost';
       const prev = node.ports.find((p) => p.port === change.port);

@@ -12,6 +12,8 @@ export const COMPONENT_SCHEMAS = {
   isp: z.object({ name: z.string(), network: z.string(), prefix: z.number().int().min(8).max(30), ispIp: z.string(), asn: z.number().int().positive().optional(), dns: ipv4.optional() }),
   // OSPF の機器ごとの設定（routerId は省略すると自動。defaultOriginate は既定の経路を配る。process は router ospf の番号。省略は番号を書いていない）
   ospf: z.object({ routerId: ipv4.optional(), defaultOriginate: z.boolean().optional(), process: z.number().int().nonnegative().optional() }),
+  // スパニングツリーのブリッジ優先度（既定 32768、4096 刻み。小さいほどルートになりやすい。省略は既定）
+  stp: z.object({ priority: z.number().int().nonnegative() }),
   // DHCP のプール（サーバーが配る範囲。口のアドレスがプールのネットワークの中にある口で配る）
   dhcpServer: z.array(
     z.object({
@@ -33,6 +35,7 @@ export type Components = { [K in ComponentId]?: z.infer<(typeof COMPONENT_SCHEMA
 const REQUIRES: Partial<Record<ComponentId, Capability>> = {
   isp: 'wan',
   ospf: 'ospf',
+  stp: 'stp',
 };
 
 export const getComponent = <K extends ComponentId>(node: NetNode, id: K): Components[K] => node.components?.[id];

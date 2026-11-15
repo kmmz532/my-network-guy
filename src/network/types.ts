@@ -118,8 +118,6 @@ export interface NetNode {
   device: string;
   // 機器の電源。false なら、すべての口が停止したものとして扱う（省略は入）
   powered?: boolean;
-  // スパニングツリーのブリッジ優先度（既定 32768、4096 刻み。小さいほどルートになりやすい）
-  stpPriority?: number;
   // 機器の単位の設定を、能力ごとのコンポーネントで持つ（持てるものは機器の定義が決める。components.ts）
   components?: Components;
   // BGP の設定（BGP を動かす機器だけ持つ）

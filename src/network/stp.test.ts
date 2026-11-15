@@ -17,7 +17,7 @@ const triangle = (priority3?: number): Network => ({
   nodes: [
     node('sw1', 'l2_switch_8p', 1),
     node('sw2', 'l2_switch_8p', 2),
-    node('sw3', 'l2_switch_8p', 3, priority3 === undefined ? {} : { stpPriority: priority3 }),
+    node('sw3', 'l2_switch_8p', 3, priority3 === undefined ? {} : { components: { stp: { priority: priority3 } } }),
     node('p1', 'pc_basic', 10, { interfaces: [f('192.168.1.11')] }),
     node('p2', 'pc_basic', 11, { interfaces: [f('192.168.1.12')] }),
   ],

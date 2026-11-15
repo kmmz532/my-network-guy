@@ -57,6 +57,18 @@ describe('DHCP のプールの移行（機器の dhcpPools を components.dhcpSe
   });
 });
 
+describe('スパニングツリーの優先度の移行（機器の stpPriority を components.stp へ移す）', () => {
+  it('移行前の機器の stpPriority は、移行後は components.stp.priority に入り、機器の直下には残らない', () => {
+    const old = JSON.parse(readFileSync(join(dir, 'save-v55.json'), 'utf8')) as Fixture;
+    const entry = Object.values(old)[0];
+    const data = structuredClone(entry.data) as { office: { nodes: Record<string, unknown>[] } };
+    data.office.nodes.push({ uid: 'sw_moved', device: 'l2_switch_8p', stpPriority: 0 });
+    const moved = migrate(entry.saveVersion, data).office.nodes.find((n) => n.uid === 'sw_moved');
+    expect(moved?.components).toEqual({ stp: { priority: 0 } });
+    expect('stpPriority' in (moved ?? {})).toBe(false);
+  });
+});
+
 describe('セーブの fixture', () => {
   it('今の版（SAVE_VERSION）の fixture がある', () => {
     expect(existsSync(join(dir, `save-v${SAVE_VERSION}.json`))).toBe(true);
