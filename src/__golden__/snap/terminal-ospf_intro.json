@@ -576,17 +576,17 @@
     {
       "line": "router bgp 65001",
       "result": "fail",
-      "reason": "none"
+      "reason": "capability"
     },
     {
       "line": "neighbor 10.0.12.2 remote-as 65002",
       "result": "fail",
-      "reason": "none"
+      "reason": "capability"
     },
     {
       "line": "network 10.0.1.0 mask 255.255.255.0",
       "result": "fail",
-      "reason": "none"
+      "reason": "capability"
     },
     {
       "line": "network 10.0.1.0",
@@ -596,7 +596,7 @@
     {
       "line": "no neighbor 10.0.12.2 next-hop-self",
       "result": "fail",
-      "reason": "none"
+      "reason": "capability"
     },
     {
       "line": "exit",

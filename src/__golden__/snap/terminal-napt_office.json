@@ -117,7 +117,7 @@
     {
       "line": "network 10.0.1.0 mask 255.255.255.0",
       "result": "fail",
-      "reason": "none"
+      "reason": "capability"
     },
     {
       "line": "show ip rip database",

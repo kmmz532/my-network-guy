@@ -12,10 +12,10 @@ export const CAPABILITY_REFUSALS = {
   dhcpRelay: 'dhcp.unsupported',
   services: 'dhcp.unsupported',
   lag: 'lag.unsupported',
-  wireless: 'none',
-  nat: 'none',
-  bgp: 'none',
-  firewall: 'none',
+  wireless: 'capability',
+  nat: 'capability',
+  bgp: 'capability',
+  firewall: 'capability',
 } as const satisfies Partial<Record<Capability, OpFailReason>>;
 
 export type GatedCapability = keyof typeof CAPABILITY_REFUSALS;

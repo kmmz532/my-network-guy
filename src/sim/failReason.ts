@@ -7,6 +7,7 @@ export const OP_FAIL_REASONS = [
   'cable.port_type',
   'cableTooLong',
   'cap',
+  'capability',
   'crew',
   'delegate.blueprint',
   'delegate.blueprint_fits',
