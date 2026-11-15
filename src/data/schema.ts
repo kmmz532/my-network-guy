@@ -273,7 +273,7 @@ const serviceSchema = z.discriminatedUnion('protocol', [
 ]);
 
 // 機器の能力（NET.md §4）。コードは機器の種類ではなく、この能力だけを見る（N134）
-export const CAPABILITY_IDS = ['switchport', 'vlan', 'stp', 'svi', 'routedPort', 'subif', 'routing', 'rip', 'ospf', 'bgp', 'nat', 'services', 'dhcpRelay', 'firewall', 'wireless', 'wan', 'vrrp', 'lag', 'wpa3', 'endpoint', 'uplink'] as const;
+export const CAPABILITY_IDS = ['switchport', 'vlan', 'stp', 'svi', 'routedPort', 'subif', 'routing', 'rip', 'ospf', 'bgp', 'nat', 'services', 'dhcpRelay', 'firewall', 'wireless', 'wan', 'vrrp', 'lag', 'wpa3', 'endpoint', 'uplink', 'firewallRules'] as const;
 export type Capability = (typeof CAPABILITY_IDS)[number];
 
 export const deviceSchema = z

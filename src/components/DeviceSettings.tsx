@@ -387,7 +387,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
       {can(node.device, 'uplink') && <IspField key={`isp-${node.uid}`} node={node} readOnly={locked} onError={onError} />}
       {can(node.device, 'bgp') && <BgpField key={`bgp-${node.uid}`} node={node} readOnly={locked} onError={onError} />}
       {isRoutingCategory(category ?? '') && <NatField node={node} readOnly={locked} onError={onError} />}
-      {category === CATEGORY.firewall && renderFirewallRules()}
+      {can(node.device, 'firewallRules') && renderFirewallRules()}
     </div>
   );
 }

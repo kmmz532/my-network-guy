@@ -9,7 +9,8 @@
         "routing",
         "nat",
         "firewall",
-        "wan"
+        "wan",
+        "firewallRules"
       ],
       "price": 120000,
       "ports": [

@@ -20,6 +20,7 @@
   "失敗:仕様だけ:ospf.hello_mismatch",
   "失敗:仕様だけ:wlan.no_radius",
   "能力:コードだけ:endpoint",
+  "能力:コードだけ:firewallRules",
   "能力:コードだけ:lag",
   "能力:コードだけ:uplink",
   "能力:コードだけ:vrrp",
