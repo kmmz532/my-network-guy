@@ -255,32 +255,9 @@
       "count": 3
     }
   },
-  "src/game/DeviceLabelRenderer.ts": {
-    "local/no-look-props": {
-      "count": 10
-    }
-  },
-  "src/game/DeviceRenderer.ts": {
-    "local/no-look-props": {
-      "count": 7
-    }
-  },
-  "src/game/EffectRenderer.ts": {
-    "local/no-look-props": {
-      "count": 7
-    }
-  },
   "src/game/FailureRenderer.ts": {
-    "local/no-look-props": {
-      "count": 4
-    },
     "local/no-mode-branch": {
       "count": 1
-    }
-  },
-  "src/game/InteractionRenderer.ts": {
-    "local/no-look-props": {
-      "count": 7
     }
   },
   "src/game/MapCamera.ts": {
@@ -293,11 +270,6 @@
       "count": 2
     }
   },
-  "src/game/NetworkRenderer.ts": {
-    "local/no-look-props": {
-      "count": 7
-    }
-  },
   "src/game/PixiStage.tsx": {
     "local/no-look-props": {
       "count": 1
@@ -307,26 +279,8 @@
     "local/no-engine-in-view": {
       "count": 1
     },
-    "local/no-look-props": {
-      "count": 10
-    },
     "local/no-mode-branch": {
       "count": 1
-    }
-  },
-  "src/game/SpeechRenderer.ts": {
-    "local/no-look-props": {
-      "count": 1
-    }
-  },
-  "src/game/StaffRenderer.ts": {
-    "local/no-look-props": {
-      "count": 3
-    }
-  },
-  "src/game/TileMap.ts": {
-    "local/no-look-props": {
-      "count": 4
     }
   },
   "src/input/keymap.test.ts": {

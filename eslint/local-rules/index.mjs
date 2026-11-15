@@ -4,7 +4,12 @@
 // ファイルの場所（/ 区切り）が、パターンのどれかに合うか
 const inFiles = (context, patterns) => {
   const file = `/${context.filename.split('\\').join('/')}`;
-  return patterns.some((p) => (p.endsWith('/**') ? file.includes(`/${p.slice(0, -2)}`) : file.endsWith(`/${p}`)));
+  return patterns.some((p) => {
+    // 「dir/**/*.ext」は、dir 以下の ext のファイル
+    const sub = p.match(/^(.*)\/\*\*\/\*(\.\w+)$/);
+    if (sub) return file.includes(`/${sub[1]}/`) && file.endsWith(sub[2]);
+    return p.endsWith('/**') ? file.includes(`/${p.slice(0, -2)}`) : file.endsWith(`/${p}`);
+  });
 };
 
 const rule = (description, message, create, exclude = []) => ({
@@ -155,7 +160,8 @@ const noLookProps = rule(
       if (typeof name === 'string' && LOOK_PROP.test(name)) context.report({ node, messageId: 'violation' });
     },
   }),
-  ['src/components/ui/**'],
+  // 地図の描画（Pixi）は fill({ color })・style の fontSize など、描画の API の名前として同じ語を使うため除く。画面の部品（.tsx）は除かない
+  ['src/components/ui/**', 'src/game/**/*.ts'],
 );
 
 const NATIVE_CONTROLS = new Set(['button', 'input', 'select', 'textarea']);
