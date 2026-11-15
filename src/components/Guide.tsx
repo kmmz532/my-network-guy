@@ -26,7 +26,7 @@ const sameBox = (a: Box | null, b: Box | null): boolean =>
   a === b || (a !== null && b !== null && a.left === b.left && a.top === b.top && a.width === b.width && a.height === b.height);
 
 // 光らせる枠の、ボタンの外側への出っ張り（画面の px）
-const GLOW_OUTSET_PX = 3;
+const GLOW_OUTSET_PX = 2;
 
 // スマホの吹き出しの上端（HUD と案件の欄の下端の、下の px）。どちらも測れないときは、画面の上の余白を使う
 const belowHud = (): number => {
@@ -213,9 +213,8 @@ export function Guide() {
             top: glow.top - GLOW_OUTSET_PX,
             width: glow.width + GLOW_OUTSET_PX * 2,
             height: glow.height + GLOW_OUTSET_PX * 2,
-            border: `${GLOW_OUTSET_PX}px solid #ffd866`,
-            boxShadow: '0 0 0 2px #3b2a33',
-            borderRadius: RADIUS.none,
+            border: `${GLOW_OUTSET_PX}px solid #66ff66`,
+            borderRadius: RADIUS.chrome,
             pointerEvents: 'none',
             zIndex: GUIDE_Z,
             animation: 'guide-blink 0.8s steps(1, end) infinite',

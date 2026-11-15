@@ -123,7 +123,7 @@
   },
   "src/components/Guide.tsx": {
     "local/no-look-props": {
-      "count": 13
+      "count": 12
     },
     "local/no-native-control": {
       "count": 1
