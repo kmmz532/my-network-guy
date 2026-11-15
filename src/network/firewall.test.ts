@@ -20,7 +20,7 @@ const host = (uid: string, device: string, ip: string, gateway: string, services
   services,
 });
 
-const firewall = (rules?: NetNode['rules']): NetNode => ({ ports: [],
+const firewall = (rules?: NonNullable<NetNode['components']>['firewall']): NetNode => ({ ports: [],
   uid: 'f',
   device: 'firewall',
   x: 0,
@@ -34,7 +34,7 @@ const firewall = (rules?: NetNode['rules']): NetNode => ({ ports: [],
   gateway: null,
   routes: [],
   services: [],
-  rules,
+  ...(rules ? { components: { firewall: rules } } : {}),
 });
 
 const link = (uid: string, a: string, aPort: number, b: string, bPort: number): NetLink => ({ paid: 0,
@@ -48,7 +48,7 @@ const link = (uid: string, a: string, aPort: number, b: string, bPort: number): 
   ],
 });
 
-const network = (rules?: NetNode['rules']): Network => ({
+const network = (rules?: NonNullable<NetNode['components']>['firewall']): Network => ({
   nodes: [
     host('a', 'pc_basic', '192.168.1.10', '192.168.1.1'),
     firewall(rules),

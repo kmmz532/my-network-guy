@@ -283,7 +283,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
   // ルーターの静的ルート（宛先・ネクストホップを一覧から選ぶ）
   // ファイアウォールの規則（許可する通信。一覧にない通信は通さない）
   const renderFirewallRules = () => {
-    const rules = node.rules ?? [];
+    const rules = getComponent(node, 'firewall') ?? [];
     return (
       <Section layout={{ marginBottom: 10 }}>
         <div>

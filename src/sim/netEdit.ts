@@ -493,11 +493,12 @@ export const setFirewallRules = (core: Core, uid: string, rules: FirewallRule[],
     core,
     uid,
     (node) => {
+      if (!can(node.device, 'firewall')) return 'none';
       for (const r of rules) {
         if (r.src !== 'any' && !isCidr(r.src)) return 'ip';
         if (r.dst !== 'any' && !isCidr(r.dst)) return 'ip';
       }
-      return { ...node, rules };
+      return withComponent(node, 'firewall', rules);
     },
     target,
   );

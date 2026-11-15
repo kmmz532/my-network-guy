@@ -109,6 +109,19 @@ describe('NAT の設定の移行（機器の napt・statics を components.nat �
   });
 });
 
+describe('ファイアウォールの規則の移行（機器の rules を components.firewall へ移す）', () => {
+  it('移行前の機器の rules は、移行後は components.firewall に入り、機器の直下には残らない', () => {
+    const old = JSON.parse(readFileSync(join(dir, 'save-v59.json'), 'utf8')) as Fixture;
+    const entry = Object.values(old)[0];
+    const data = structuredClone(entry.data) as { office: { nodes: Record<string, unknown>[] } };
+    const rules = [{ src: '192.168.1.0/24', dst: 'any', service: 'any' }];
+    data.office.nodes.push({ uid: 'fw_new', device: 'firewall', rules });
+    const moved = migrate(entry.saveVersion, data).office.nodes.find((n) => n.uid === 'fw_new');
+    expect(moved?.components).toEqual({ firewall: rules });
+    expect('rules' in (moved ?? {})).toBe(false);
+  });
+});
+
 describe('セーブの fixture', () => {
   it('今の版（SAVE_VERSION）の fixture がある', () => {
     expect(existsSync(join(dir, `save-v${SAVE_VERSION}.json`))).toBe(true);

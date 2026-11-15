@@ -15,7 +15,7 @@ const auth = (zone: DnsRecord[]): Service => ({ protocol: 'dns', role: 'auth', z
 const A = (name: string, value: string): DnsRecord => ({ type: 'A', name, value });
 
 // PC a・キャッシュ c・権威 d。rules がなければ同じスイッチ s につなぐ。rules があれば、PC a とサーバーの間にファイアウォール fw を置く
-const lan = (cache: Service, authZone: DnsRecord[], rules?: NetNode['rules']): Network => {
+const lan = (cache: Service, authZone: DnsRecord[], rules?: NonNullable<NetNode['components']>['firewall']): Network => {
   const nodes = [
     n('a', 'pc_basic', [f(0, rules ? '10.0.0.10' : '10.1.0.10')], { nameServer: '10.1.0.53', gateway: rules ? '10.0.0.1' : null }),
     n('c', 'server_basic', [f(0, '10.1.0.53')], { services: [cache], gateway: rules ? '10.1.0.1' : null }),
@@ -23,7 +23,7 @@ const lan = (cache: Service, authZone: DnsRecord[], rules?: NetNode['rules']): N
     n('s', 'l2_switch_8p', []),
   ];
   if (!rules) return { nodes, links: [l('l1', 'a', 0, 's', 0), l('l2', 'c', 0, 's', 1), l('l3', 'd', 0, 's', 2)], plans: {} };
-  nodes.push(n('fw', 'firewall', [f(0, '10.0.0.1'), f(1, '10.1.0.1')], { rules }));
+  nodes.push(n('fw', 'firewall', [f(0, '10.0.0.1'), f(1, '10.1.0.1')], { components: { firewall: rules } }));
   return { nodes, links: [l('l0', 'a', 0, 'fw', 0), l('l4', 'fw', 1, 's', 3), l('l2', 'c', 0, 's', 1), l('l3', 'd', 0, 's', 2)], plans: {} };
 };
 
@@ -92,7 +92,7 @@ describe('CNAME と MX', () => {
 });
 
 describe('53 番とファイアウォール', () => {
-  const rules = (...services: ('ping' | 'http' | 'dns')[]): NetNode['rules'] => services.map((service) => ({ src: 'any', dst: 'any', service }));
+  const rules = (...services: ('ping' | 'http' | 'dns')[]): NonNullable<NetNode['components']>['firewall'] => services.map((service) => ({ src: 'any', dst: 'any', service }));
 
   it('通す規則が ping だけなら、DNS の問い合わせは止まる', () => {
     const net = lan(cacheTo('10.1.0.54'), [A('files.corp.test', '10.1.0.99')], rules('ping'));

@@ -25,7 +25,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 59;
+export const SAVE_VERSION = 60;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -75,6 +75,28 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v59 → v60: 機器のファイアウォールの規則（rules）を、機器のコンポーネントの表（components.firewall）へ移す
+  59: (data) => {
+    type OldNode = NetNode & { rules?: NonNullable<NetNode['components']>['firewall'] };
+    const convert = <T extends { nodes: NetNode[] }>(x: T): T => ({
+      ...x,
+      nodes: x.nodes.map((n) => {
+        const { rules, ...rest } = n as OldNode;
+        if (rules === undefined) return n;
+        return { ...rest, components: { ...rest.components, firewall: rules } };
+      }),
+    });
+    const d = data as { active: { nodes: NetNode[] }[]; office: { nodes: NetNode[] }; familiarity: { counts: object; blueprints: Record<string, { stars: number; design: { nodes: NetNode[] } }> } };
+    return {
+      ...d,
+      office: convert(d.office),
+      active: d.active.map(convert),
+      familiarity: {
+        ...d.familiarity,
+        blueprints: Object.fromEntries(Object.entries(d.familiarity.blueprints).map(([k, b]) => [k, { ...b, design: convert(b.design) }])),
+      },
+    };
+  },
   // v58 → v59: 機器の NAT の設定（napt・statics）を、機器のコンポーネントの表（components.nat）へ移す
   58: (data) => {
     type OldNode = NetNode & { napt?: boolean; statics?: NonNullable<NonNullable<NetNode['components']>['nat']>['statics'] };

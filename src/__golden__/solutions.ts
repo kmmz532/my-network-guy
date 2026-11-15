@@ -37,5 +37,5 @@ export const solutions: Record<string, Solve> = {
           ? { ...ifaces(n, (i) => ({ ...i, nat: i.port === 0 ? ('outside' as const) : ('inside' as const) })), components: { ...n.components, nat: { napt: true } } }
           : n,
     ),
-  nat_firewall: on(['FW1'], (n) => ({ ...ifaces(n, (i) => ({ ...i, nat: i.port === 0 ? ('outside' as const) : ('inside' as const) })), components: { ...n.components, nat: { napt: true } }, rules: [{ src: '192.168.1.0/24', dst: 'any', service: 'any' as const }] })),
+  nat_firewall: on(['FW1'], (n) => ({ ...ifaces(n, (i) => ({ ...i, nat: i.port === 0 ? ('outside' as const) : ('inside' as const) })), components: { ...n.components, nat: { napt: true }, firewall: [{ src: '192.168.1.0/24', dst: 'any', service: 'any' as const }] } })),
 };

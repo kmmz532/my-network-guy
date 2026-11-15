@@ -160,7 +160,7 @@ export const deliver = (view: ForwardView, srcUid: string, dstUid: string, traff
     if (!isRouter(view, cur.uid)) return err(fail('route.none', cur.uid));
     path.push(cur.uid);
     // ファイアウォールは、規則に合う通信だけを通す（既定は拒否）
-    if (check && kindOf(view, cur.uid) === CATEGORY.firewall && !allows(cur.rules, srcIface.ip, dstIface.ip, traffic)) {
+    if (check && kindOf(view, cur.uid) === CATEGORY.firewall && !allows(getComponent(cur, 'firewall'), srcIface.ip, dstIface.ip, traffic)) {
       return err(fail('firewall.denied', cur.uid));
     }
 

@@ -9,7 +9,7 @@ describe('家庭用ルーターの出荷時の設定', () => {
     expect(c.interfaces).toHaveLength(1);
     expect(c.interfaces[0]).toMatchObject({ port: 1, ip: '192.168.1.1', prefix: 24, nat: 'inside' });
     expect(c.components?.nat).toEqual({ napt: true });
-    expect(c.rules).toEqual([{ src: '192.168.1.0/24', dst: 'any', service: 'any' }]);
+    expect(c.components?.firewall).toEqual([{ src: '192.168.1.0/24', dst: 'any', service: 'any' }]);
     expect(c.components?.wireless).toBeUndefined();
   });
   it('家庭用ルーターは、DHCP のプールを持ち、LAN の PC に 192.168.1.100 から配る', () => {

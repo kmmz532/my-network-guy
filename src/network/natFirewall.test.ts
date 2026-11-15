@@ -11,17 +11,17 @@ const n = (uid: string, device: string, interfaces: Iface[], x: number, extra: P
   ({ uid, device, x, y: 0, locked: false, configLocked: false, interfaces, gateway: null, routes: [], services: [], ports: [], macSerial: x + 1, ...extra }) as NetNode;
 const l = (uid: string, a: string, pa: number, b: string, pb: number): NetLink => ({ uid, cable: 'utp_cat5e', a: { node: a, port: pa }, b: { node: b, port: pb }, path: [[0, 0], [1, 0]], paid: 0 });
 
-const build = (rules: NonNullable<NetNode['rules']>): Network => ({
+const build = (rules: NonNullable<NonNullable<NetNode['components']>['firewall']>): Network => ({
   nodes: [
     n('pc', 'pc_basic', [{ ...f(0, '192.168.1.10'), id: 'eth0' }], 0, { gateway: '192.168.1.1' }),
-    n('fw', 'firewall', [f(0, '192.168.1.1', 'inside'), f(1, '198.51.100.2', 'outside')], 1, { components: { nat: { napt: true } }, gateway: '198.51.100.1', rules }),
+    n('fw', 'firewall', [f(0, '192.168.1.1', 'inside'), f(1, '198.51.100.2', 'outside')], 1, { components: { nat: { napt: true }, firewall: rules }, gateway: '198.51.100.1' }),
     n('line', 'uplink', [], 2, { components: { isp: { name: 'ISP-A', network: '198.51.100.0', prefix: 24, ispIp: '198.51.100.1' } } }),
   ],
   links: [l('a', 'pc', 0, 'fw', 0), l('b', 'fw', 1, 'line', 0)],
   plans: {},
 });
 
-const pingInternet = (rules: NonNullable<NetNode['rules']>) => {
+const pingInternet = (rules: NonNullable<NonNullable<NetNode['components']>['firewall']>) => {
   const withNet = withInternet(build(rules), gameEnv.engine);
   if (!withNet) throw new Error('回線がつながっていない');
   return ping(analyze(withNet, gameEnv.engine), 'pc', withNet.internetUid);

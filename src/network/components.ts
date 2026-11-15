@@ -36,6 +36,8 @@ export const COMPONENT_SCHEMAS = {
     napt: z.boolean().optional(),
     statics: z.array(z.object({ port: z.number().int(), insideIp: ipv4, insidePort: z.number().int() })).optional(),
   }),
+  // ファイアウォールの規則（許可する通信。一覧にない通信は通さない。送信元・宛先は 'any' か「a.b.c.d/nn」。http は port で絞れる。dns は 53 番）
+  firewall: z.array(z.object({ src: z.string(), dst: z.string(), service: z.enum(['any', 'ping', 'http', 'dns']), port: z.number().int().optional() })),
   // DHCP のプール（サーバーが配る範囲。口のアドレスがプールのネットワークの中にある口で配る）
   dhcpServer: z.array(
     z.object({
@@ -61,6 +63,7 @@ const REQUIRES: Partial<Record<ComponentId, Capability>> = {
   bgp: 'bgp',
   wireless: 'wireless',
   nat: 'nat',
+  firewall: 'firewall',
 };
 
 export const getComponent = <K extends ComponentId>(node: NetNode, id: K): Components[K] => node.components?.[id];

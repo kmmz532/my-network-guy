@@ -120,17 +120,17 @@ describe('ひな形の役割', () => {
 describe('銀行の支店の守り（模範解答で解ける）', () => {
   const bankData: EngineData = { wallAt: () => false };
   const pc = (uid: string, ip: string, gw: string): NetNode => ({ ...host(uid, 'pc_basic', ip), gateway: gw });
-  const fw = (rules: NetNode['rules']): NetNode => ({
+  const fw = (rules: NonNullable<NetNode['components']>['firewall']): NetNode => ({
     ...sw('fw'),
     device: 'firewall',
     interfaces: [
       { id: "g0/0", kind: "port", port: 0, ip: '192.168.1.1', prefix: 24 },
       { id: "g0/1", kind: "port", port: 1, ip: '192.168.2.1', prefix: 24 },
     ],
-    rules,
+    components: { firewall: rules },
   });
   const l = (uid: string, a: string, aPort: number, b: string, bPort: number): NetLink => ({ ...link(uid, a, b, bPort), a: { node: a, port: aPort } });
-  const bank = (rules: NetNode['rules']): Network => ({
+  const bank = (rules: NonNullable<NetNode['components']>['firewall']): Network => ({
     nodes: [
       pc('teller_1', '192.168.1.10', '192.168.1.1'),
       pc('teller_2', '192.168.1.11', '192.168.1.1'),

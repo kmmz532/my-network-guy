@@ -164,7 +164,7 @@ describe('教材を開いた直後の網の設定', () => {
     const withRule = (src: string) =>
       lessonNodes(l).map((n) =>
         n.uid === 'FW1'
-          ? { ...n, components: { nat: { napt: true } }, rules: [{ src, dst: 'any', service: 'any' as const }], interfaces: n.interfaces.map((i) => ({ ...i, nat: i.port === 0 ? ('outside' as const) : ('inside' as const) })) }
+          ? { ...n, components: { nat: { napt: true }, firewall: [{ src, dst: 'any', service: 'any' as const }] }, interfaces: n.interfaces.map((i) => ({ ...i, nat: i.port === 0 ? ('outside' as const) : ('inside' as const) })) }
           : n,
       );
     expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false]);

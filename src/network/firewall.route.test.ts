@@ -6,8 +6,8 @@ import { gameEnv } from '../sim/env';
 import type { Iface, NetNode, Network } from './types';
 
 const f = (port: number, ip: string): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24 });
-const n = (uid: string, device: string, interfaces: Iface[], gateway: string | null, routes: NetNode['routes'] = [], rules: NetNode['rules'] = [], x = 0): NetNode =>
-  ({ uid, device, x, y: 0, locked: false, configLocked: false, interfaces, gateway, routes, services: [], ports: [], rules }) as NetNode;
+const n = (uid: string, device: string, interfaces: Iface[], gateway: string | null, routes: NetNode['routes'] = [], rules: NonNullable<NetNode['components']>['firewall'] = [], x = 0): NetNode =>
+  ({ uid, device, x, y: 0, locked: false, configLocked: false, interfaces, gateway, routes, services: [], ports: [], components: { firewall: rules } }) as NetNode;
 const l = (uid: string, a: string, pa: number, b: string, pb: number) => ({ uid, cable: 'utp_cat5e', a: { node: a, port: pa }, b: { node: b, port: pb }, path: [[0, 0], [1, 0]] as [number, number][], paid: 0 });
 
 const build = (fwRoutes: NetNode['routes']): Network => ({

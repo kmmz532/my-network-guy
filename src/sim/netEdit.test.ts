@@ -8,7 +8,7 @@ import { initialOffice } from './furniture';
 import { placeInOffice } from './placement';
 import { getComponent } from '../network/components';
 import type { NetNode } from '../network/types';
-import { analyzeCore, setBgp, setNat, setWireless } from './netEdit';
+import { analyzeCore, setBgp, setFirewallRules, setNat, setWireless } from './netEdit';
 import type { Core, Env } from './project';
 
 const balance = balanceJson as unknown as Balance;
@@ -103,5 +103,29 @@ describe('setNat', () => {
     const next = r.core.office.nodes[0];
     expect(getComponent(next, 'nat')).toEqual({ napt: true });
     expect('napt' in next).toBe(false);
+  });
+});
+
+describe('setFirewallRules', () => {
+  const node = (uid: string, device: string): NetNode =>
+    ({ uid, device, x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [] }) as NetNode;
+  const coreOf = (...nodes: NetNode[]): Core =>
+    ({ office: { ...initialOffice(balance), nodes }, active: [], focus: null, owned: {} }) as unknown as Core;
+  const rules = [{ src: '192.168.1.0/24', dst: 'any', service: 'any' as const }];
+
+  it('ファイアウォールの能力のない機器では、規則の設定を拒否し、機器は変わらない', () => {
+    const core = coreOf(node('sw', 'l2_switch_8p'));
+    const r = setFirewallRules(core, 'sw', rules, 'office');
+    expect(r.ok).toBe(false);
+    expect(core.office.nodes[0].components).toBeUndefined();
+  });
+
+  it('ファイアウォールの能力のある機器では、components.firewall に規則が入り、機器の直下には入らない', () => {
+    const core = coreOf(node('fw', 'firewall'));
+    const r = setFirewallRules(core, 'fw', rules, 'office');
+    if (!r.ok) throw new Error(`設定できない: ${r.reason}`);
+    const next = r.core.office.nodes[0];
+    expect(getComponent(next, 'firewall')).toEqual(rules);
+    expect('rules' in next).toBe(false);
   });
 });
