@@ -417,8 +417,9 @@ export const setWireless = (core: Core, uid: string, key: 'ssid' | 'password' | 
     core,
     uid,
     (node) => {
+      if (!can(node.device, 'wireless')) return 'none';
       if (key === 'security' && !(WIRELESS_SECURITIES as readonly unknown[]).includes(value)) return 'wireless.security';
-      return { ...node, wireless: { ...(node.wireless ?? {}), [key]: value } };
+      return withComponent(node, 'wireless', { ...getComponent(node, 'wireless'), [key]: value });
     },
     target,
   );

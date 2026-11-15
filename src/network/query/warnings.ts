@@ -1,6 +1,7 @@
 import type { NetworkState } from '../engine/state';
 import type { PortConfig } from '../types';
 import { accessPointsOf } from '../engine/stages/links';
+import { getComponent } from '../components';
 import { inSubnet } from '../ip';
 import { dhcpOf } from './dhcp';
 import { duplicateRouterIds } from '../ospf';
@@ -22,8 +23,9 @@ export const warningsOf = (state: NetworkState): VlanWarning[] => {
   }
   // 無線: 暗号化のない SSID・弱い暗号（WEP・WPA）・WPA2/WPA3 の移行モード（アクセスポイントごとに1件）
   for (const ap of accessPointsOf(net, data)) {
-    if (ap.wireless?.ssid === undefined) continue;
-    const s = ap.wireless.security ?? 'wpa2';
+    const wifi = getComponent(ap, 'wireless');
+    if (wifi?.ssid === undefined) continue;
+    const s = wifi.security ?? 'wpa2';
     const id = s === 'open' ? 'wlan.open' : s === 'wep' || s === 'wpa' ? 'wlan.weak_cipher' : s === 'wpa2wpa3' ? 'wlan.transition' : null;
     if (id) out.push({ id, a: ap.uid, b: ap.uid });
   }

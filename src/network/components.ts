@@ -5,6 +5,7 @@ import type { Capability } from '../data/schema';
 import { ipv4 } from '../data/schema';
 import { can } from './capabilities';
 import type { NetNode } from './types';
+import { WIRELESS_SECURITIES } from './types';
 
 // コンポーネントごとの zod のスキーマ。型もここから決める
 export const COMPONENT_SCHEMAS = {
@@ -19,6 +20,16 @@ export const COMPONENT_SCHEMAS = {
     asn: z.number().int().nonnegative(),
     neighbors: z.array(z.object({ ip: ipv4, remoteAs: z.number().int().nonnegative(), nextHopSelf: z.boolean().optional(), localPref: z.number().int().optional(), med: z.number().int().optional(), prepend: z.number().int().nonnegative().optional() })),
     networks: z.array(z.object({ dest: ipv4, prefix: z.number().int().min(0).max(32) })),
+  }),
+  // 無線の設定（アクセスポイントは SSID・パスワード・チャネル・VLAN・MAC フィルター・暗号化の方式を持つ。無線の端末は SSID とパスワードを持ち、合うアクセスポイントにつながる）
+  // macs は登録した端末の MAC だけを通す。省略なら制限しない。security の省略は wpa2。wpa2wpa3 は WPA2/WPA3 の移行モード
+  wireless: z.object({
+    ssid: z.string().optional(),
+    password: z.string().optional(),
+    channel: z.number().int().optional(),
+    vlan: z.number().int().optional(),
+    macs: z.array(z.string()).optional(),
+    security: z.enum(WIRELESS_SECURITIES).optional(),
   }),
   // DHCP のプール（サーバーが配る範囲。口のアドレスがプールのネットワークの中にある口で配る）
   dhcpServer: z.array(
@@ -43,6 +54,7 @@ const REQUIRES: Partial<Record<ComponentId, Capability>> = {
   ospf: 'ospf',
   stp: 'stp',
   bgp: 'bgp',
+  wireless: 'wireless',
 };
 
 export const getComponent = <K extends ComponentId>(node: NetNode, id: K): Components[K] => node.components?.[id];

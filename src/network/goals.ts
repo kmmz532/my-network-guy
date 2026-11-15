@@ -1,4 +1,5 @@
 import { dhcpOf } from './query/dhcp';
+import { getComponent } from './components';
 // 案件の達成条件（goals）の判定ハンドラ。種類ごとにハンドラを登録し、案件データから呼び出す。
 import type { Contract, Goal } from '../data/schema';
 import { http, ping, wirelessAssociations } from './engine';
@@ -122,8 +123,8 @@ const handlers: { [K in Goal['type']]: Handler } = {
   wireless_secure: (goal, state) => {
     const { net, world: data } = state;
     if (goal.type !== 'wireless_secure') throw new Error('wireless_secure ハンドラに別の種類が渡された');
-    const aps = accessPointsOf(net, data).filter((n) => n.wireless?.ssid === goal.ssid);
-    const ok = aps.length > 0 && aps.every((n) => (n.wireless?.security ?? 'wpa2') === 'wpa2' || n.wireless?.security === 'wpa3');
+    const aps = accessPointsOf(net, data).filter((n) => getComponent(n, 'wireless')?.ssid === goal.ssid);
+    const ok = aps.length > 0 && aps.every((n) => (getComponent(n, 'wireless')?.security ?? 'wpa2') === 'wpa2' || getComponent(n, 'wireless')?.security === 'wpa3');
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // 指定したスイッチがルートブリッジになっている

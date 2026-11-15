@@ -61,9 +61,13 @@ const unpluggedReason = (view: ForwardView, uid: string): 'link.unplugged' | 'wi
   const node = view.addressing.nodeOf(uid);
   if (node === undefined || !can(node.device, 'wireless')) return 'link.unplugged';
   // 同じ SSID のアクセスポイントがあるのに、パスワードか暗号化の方式が合わない
-  const same = view.addressing.net.nodes.filter((n) => n.uid !== uid && n.wireless?.ssid !== undefined && n.wireless.ssid === node.wireless?.ssid && can(n.device, 'wireless') && n.wireless.password !== undefined);
-  if (same.some((ap) => (ap.wireless?.security ?? 'wpa2') !== 'open' && ap.wireless?.password !== node.wireless?.password)) return 'wlan.psk_mismatch';
-  if (same.some((ap) => ap.wireless?.security === 'wpa3') && !can(node.device, 'wpa3')) return 'wlan.auth_mismatch';
+  const mine = getComponent(node, 'wireless');
+  const same = view.addressing.net.nodes.filter((n) => {
+    const w = getComponent(n, 'wireless');
+    return n.uid !== uid && w?.ssid !== undefined && w.ssid === mine?.ssid && can(n.device, 'wireless') && w.password !== undefined;
+  });
+  if (same.some((ap) => (getComponent(ap, 'wireless')?.security ?? 'wpa2') !== 'open' && getComponent(ap, 'wireless')?.password !== mine?.password)) return 'wlan.psk_mismatch';
+  if (same.some((ap) => getComponent(ap, 'wireless')?.security === 'wpa3') && !can(node.device, 'wpa3')) return 'wlan.auth_mismatch';
   return 'wireless.unassociated';
 };
 

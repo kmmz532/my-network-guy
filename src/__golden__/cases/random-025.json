@@ -145,10 +145,10 @@
       "gateway": "10.0.1.11",
       "routes": [],
       "services": [],
-      "wireless": {
+      "components": { "wireless": {
         "ssid": "g",
         "password": "golden-pass"
-      }
+      } }
     },
     {
       "uid": "n5",

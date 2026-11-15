@@ -285,7 +285,8 @@ export const commands: readonly CommandSpec[] = [
       for (const i of node.interfaces) lines.push(out(tr('ui.terminal.cfgAddress', { ip: i.ip, prefix: i.prefix })));
       if (node.gateway) lines.push(out(tr('ui.terminal.cfgGateway', { gateway: node.gateway })));
       // 無線（SSID・チャネル・VLAN。パスワードは出さない）と RIP の参加を、設定として出す（N151・N141b）
-      if (node.wireless?.ssid !== undefined) lines.push(out(tr('ui.terminal.cfgWireless', { ssid: node.wireless.ssid })));
+      const wifi = getComponent(node, 'wireless');
+      if (wifi?.ssid !== undefined) lines.push(out(tr('ui.terminal.cfgWireless', { ssid: wifi.ssid })));
       if (node.interfaces.some((i) => i.rip === true)) lines.push(out(tr('ui.terminal.cfgRip')));
       const ospfProcess = getComponent(node, 'ospf')?.process;
       if (ospfProcess !== undefined) lines.push(out(tr('ui.terminal.cfgOspf', { process: ospfProcess })));

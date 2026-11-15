@@ -61,11 +61,11 @@
       "routes": [],
       "services": [],
       "napt": true,
-      "wireless": {
+      "components": { "wireless": {
         "ssid": "g",
         "password": "golden-pass",
         "security": "wpa2"
-      }
+      } }
     },
     {
       "uid": "n2",
@@ -89,10 +89,10 @@
       "gateway": "10.0.1.10",
       "routes": [],
       "services": [],
-      "wireless": {
+      "components": { "wireless": {
         "ssid": "g",
         "password": "golden-pass"
-      }
+      } }
     },
     {
       "uid": "n3",
@@ -161,10 +161,10 @@
       "gateway": "10.0.1.10",
       "routes": [],
       "services": [],
-      "wireless": {
+      "components": { "wireless": {
         "ssid": "g",
         "password": "golden-pass"
-      }
+      } }
     },
     {
       "uid": "n6",
@@ -201,10 +201,10 @@
       "gateway": "10.0.1.10",
       "routes": [],
       "services": [],
-      "wireless": {
+      "components": { "wireless": {
         "ssid": "g",
         "password": "golden-pass"
-      }
+      } }
     }
   ],
   "links": [

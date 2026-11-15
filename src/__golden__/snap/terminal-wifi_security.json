@@ -141,12 +141,14 @@
         "configLocked": false,
         "interfaces": [],
         "gateway": null,
-        "wireless": {
-          "ssid": "OFFICE-NET",
-          "password": "longerpass123",
-          "security": "wpa3",
-          "channel": 6,
-          "vlan": 10
+        "components": {
+          "wireless": {
+            "ssid": "OFFICE-NET",
+            "password": "longerpass123",
+            "channel": 6,
+            "vlan": 10,
+            "security": "wpa3"
+          }
         },
         "routes": [],
         "services": []
@@ -171,9 +173,11 @@
           }
         ],
         "gateway": null,
-        "wireless": {
-          "ssid": "office",
-          "password": "office-pass"
+        "components": {
+          "wireless": {
+            "ssid": "office",
+            "password": "office-pass"
+          }
         },
         "routes": [],
         "services": []
@@ -198,9 +202,11 @@
           }
         ],
         "gateway": null,
-        "wireless": {
-          "ssid": "office",
-          "password": "office-pass"
+        "components": {
+          "wireless": {
+            "ssid": "office",
+            "password": "office-pass"
+          }
         },
         "routes": [],
         "services": []

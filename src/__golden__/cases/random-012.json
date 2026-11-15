@@ -101,11 +101,11 @@
       "gateway": null,
       "routes": [],
       "services": [],
-      "wireless": {
+      "components": { "wireless": {
         "ssid": "g",
         "password": "golden-pass",
         "security": "wpa3"
-      }
+      } }
     },
     {
       "uid": "n4",

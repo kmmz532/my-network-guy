@@ -21,10 +21,10 @@
       "gateway": null,
       "routes": [],
       "services": [],
-      "wireless": {
+      "components": { "wireless": {
         "ssid": "g",
         "password": "wrong-pass"
-      }
+      } }
     },
     {
       "uid": "n1",

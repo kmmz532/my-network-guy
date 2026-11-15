@@ -2,6 +2,7 @@
 import { CATEGORY } from '../../../data/categories';
 import { cableMaxLength, deviceCategory, portSpeed } from '../../../registry/query';
 import { can } from '../../capabilities';
+import { getComponent } from '../../components';
 import { computeLags, type LagResult } from '../../lag';
 import { macOf } from '../../mac';
 import type { EngineData, NetLink, NetNode, Network, PortConfig } from '../../types';
@@ -59,8 +60,8 @@ export const wirelessAssociations = (net: Network, data: EngineData): { ap: NetN
     for (const ap of aps) {
       const d = Math.abs(ap.x - c.x) + Math.abs(ap.y - c.y);
       // SSID とパスワードが合うこと（どちらかがなければ、つながらない）
-      const w = ap.wireless;
-      const cw = c.wireless;
+      const w = getComponent(ap, 'wireless');
+      const cw = getComponent(c, 'wireless');
       const security = w?.security ?? 'wpa2';
       // パスワードは、暗号化のない SSID では要らない。WPA3 だけの SSID は、WPA3 に対応する端末だけがつながる
       if (w?.ssid === undefined || cw?.ssid !== w.ssid || (security !== 'open' && cw.password !== w.password)) continue;
@@ -86,7 +87,7 @@ export const withWireless = (net: Network, data: EngineData): Network => {
   for (const { ap, client: c } of pairs) {
     const port = 100 + (nextPort.get(ap.uid) ?? 0);
     nextPort.set(ap.uid, port - 100 + 1);
-    apPorts.set(ap.uid, [...(apPorts.get(ap.uid) ?? []), { port, mode: 'access', vlan: ap.wireless?.vlan ?? 1 }]);
+    apPorts.set(ap.uid, [...(apPorts.get(ap.uid) ?? []), { port, mode: 'access', vlan: getComponent(ap, 'wireless')?.vlan ?? 1 }]);
     extra.push({ uid: `__wifi_${c.uid}`, cable: 'utp_cat5e', a: { node: ap.uid, port }, b: { node: c.uid, port: 0 }, path: [[ap.x, ap.y], [c.x, c.y]], paid: 0 });
   }
   // アクセスポイントの口（つないだ端末の口）に、無線の VLAN を付ける

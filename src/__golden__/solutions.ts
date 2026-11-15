@@ -27,7 +27,7 @@ export const solutions: Record<string, Solve> = {
           ? ifaces(n, (i) => (i.port === 1 ? { ...i, helper: '10.0.1.2' } : i))
           : n,
     ),
-  wifi_security: on(['AP1'], (n) => ({ ...n, wireless: { ...n.wireless, security: 'wpa2' as const } })),
+  wifi_security: on(['AP1'], (n) => ({ ...n, components: { ...n.components, wireless: { ...n.components?.wireless, security: 'wpa2' as const } } })),
   napt_office: on(['R1'], (n) => ({ ...ifaces(n, (i) => ({ ...i, nat: i.port === 0 ? ('outside' as const) : ('inside' as const) })), napt: true })),
   dns_intranet_names: (nodes) =>
     nodes.map((n) =>

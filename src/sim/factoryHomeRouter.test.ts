@@ -10,7 +10,7 @@ describe('家庭用ルーターの出荷時の設定', () => {
     expect(c.interfaces[0]).toMatchObject({ port: 1, ip: '192.168.1.1', prefix: 24, nat: 'inside' });
     expect(c.napt).toBe(true);
     expect(c.rules).toEqual([{ src: '192.168.1.0/24', dst: 'any', service: 'any' }]);
-    expect(c.wireless).toBeUndefined();
+    expect(c.components?.wireless).toBeUndefined();
   });
   it('家庭用ルーターは、DHCP のプールを持ち、LAN の PC に 192.168.1.100 から配る', () => {
     const c = factoryConfigOf('home_router');
@@ -18,8 +18,8 @@ describe('家庭用ルーターの出荷時の設定', () => {
   });
   it('無線つきの家庭用ルーターは、SSID とパスワードを持つ', () => {
     const c = factoryConfigOf('home_router_ap');
-    expect(c.wireless?.ssid).toBe('HOME');
-    expect(c.wireless?.password).toBe('home1234');
+    expect(c.components?.wireless?.ssid).toBe('HOME');
+    expect(c.components?.wireless?.password).toBe('home1234');
   });
   it('ほかの機器は、何も持たない', () => {
     expect(factoryConfigOf('pc_basic')).toEqual({ interfaces: [] });

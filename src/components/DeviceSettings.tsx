@@ -564,7 +564,7 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
       ? t('ui.wireless.none')
       : t('ui.wireless.clients', { n: clients });
   const commit = (key: 'ssid' | 'password', value: string) => {
-    if ((node.wireless?.[key] ?? '') === value) return;
+    if ((getComponent(node, 'wireless')?.[key] ?? '') === value) return;
     onError(setWireless(node.uid, key, value));
   };
   const field = (label: string, value: string, key: 'ssid' | 'password', type: 'text' | 'password') => (
@@ -575,14 +575,14 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
   );
   return (
     <Section layout={{ marginBottom: 10 }}>
-      {field(t('ui.wireless.ssid'), node.wireless?.ssid ?? '', 'ssid', 'text')}
-      {field(t('ui.wireless.password'), node.wireless?.password ?? '', 'password', 'password')}
+      {field(t('ui.wireless.ssid'), getComponent(node, 'wireless')?.ssid ?? '', 'ssid', 'text')}
+      {field(t('ui.wireless.password'), getComponent(node, 'wireless')?.password ?? '', 'password', 'password')}
       {!isClient && (
         <div style={{ marginBottom: 8 }}>
           <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 2 }}>{t('ui.wireless.security')}</label>
           <Select
             label={t('ui.wireless.security')}
-            value={node.wireless?.security ?? 'wpa2'}
+            value={getComponent(node, 'wireless')?.security ?? 'wpa2'}
             disabled={readOnly}
             options={(['open', 'wep', 'wpa', 'wpa2', 'wpa3', 'wpa2wpa3'] as const).map((s) => ({ value: s, label: t(`ui.wireless.sec.${s}`) }))}
             onChange={(v) => onError(setWireless(node.uid, 'security', v))}

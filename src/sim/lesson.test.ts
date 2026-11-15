@@ -141,7 +141,7 @@ describe('教材を開いた直後の網の設定', () => {
     const l = lesson('wifi_security');
     const links = lessonLinks(l);
     const withSecurity = (security: 'wep' | 'wpa3' | 'wpa2wpa3' | 'wpa2') =>
-      lessonNodes(l).map((n) => (n.uid === 'AP1' ? { ...n, wireless: { ...n.wireless, security } } : n));
+      lessonNodes(l).map((n) => (n.uid === 'AP1' ? { ...n, components: { ...n.components, wireless: { ...n.components?.wireless, security } } } : n));
     expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([true, false]);
     expect(lessonGoalResults(l.goals, withSecurity('wpa3'), links, engine)).toEqual([false, true]);
     expect(lessonGoalResults(l.goals, withSecurity('wpa2wpa3'), links, engine)).toEqual([true, false]);

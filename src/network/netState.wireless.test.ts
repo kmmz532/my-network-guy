@@ -7,8 +7,8 @@ import { WIRELESS_RADIUS, wallsBetween } from './engine/stages/links';
 import type { Iface, NetNode, Network } from './types';
 
 const f = (port: number, ip: string): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24 });
-const n = (uid: string, device: string, interfaces: Iface[], gateway: string | null, x: number, y = 0, wireless?: NetNode['wireless']): NetNode =>
-  ({ uid, device, x, y, locked: false, configLocked: false, interfaces, gateway, routes: [], services: [], ports: [], ...(wireless ? { wireless } : {}) }) as NetNode;
+const n = (uid: string, device: string, interfaces: Iface[], gateway: string | null, x: number, y = 0, wireless?: NonNullable<NetNode['components']>['wireless']): NetNode =>
+  ({ uid, device, x, y, locked: false, configLocked: false, interfaces, gateway, routes: [], services: [], ports: [], ...(wireless ? { components: { wireless } } : {}) }) as NetNode;
 const WIFI = { ssid: 'home', password: 'pass1234' };
 const l = (uid: string, a: string, pa: number, b: string, pb: number) => ({ uid, cable: 'utp_cat5e', a: { node: a, port: pa }, b: { node: b, port: pb }, path: [[0, 0], [1, 0]] as [number, number][], paid: 0 });
 
@@ -32,7 +32,7 @@ describe('電波の範囲（N151）', () => {
 
   it('パスワードが違う端末は、アクセスポイントにつながらず届かない', () => {
     const net = build(2 + 3);
-    const wrong = { ...net, nodes: net.nodes.map((x) => (x.uid === 'lap' ? { ...x, wireless: { ssid: 'home', password: 'wrong' } } : x)) };
+    const wrong = { ...net, nodes: net.nodes.map((x) => (x.uid === 'lap' ? { ...x, components: { wireless: { ssid: 'home', password: 'wrong' } } } : x)) };
     expect(ping(analyze(wrong, gameEnv.engine), 'pc', 'lap').ok).toBe(false);
   });
 
@@ -77,7 +77,7 @@ describe('無線の MAC フィルター（N153）', () => {
   it('登録のない端末は、SSID とパスワードが合ってもつながらない', () => {
     const net = build(2 + 3);
     const ap = net.nodes.find((x) => x.uid === 'ap')!;
-    const filtered = { ...net, nodes: net.nodes.map((x) => (x.uid === 'ap' ? { ...ap, wireless: { ...ap.wireless, macs: ['02:00:00:00:00:00'] } } : x)) };
+    const filtered = { ...net, nodes: net.nodes.map((x) => (x.uid === 'ap' ? { ...ap, components: { wireless: { ...ap.components?.wireless, macs: ['02:00:00:00:00:00'] } } } : x)) };
     expect(ping(analyze(filtered, gameEnv.engine), 'pc', 'lap').ok).toBe(false);
   });
 });

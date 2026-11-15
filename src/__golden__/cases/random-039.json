@@ -150,11 +150,11 @@
       "gateway": null,
       "routes": [],
       "services": [],
-      "wireless": {
+      "components": { "wireless": {
         "ssid": "g",
         "password": "golden-pass",
         "security": "wep"
-      }
+      } }
     },
     {
       "uid": "n4",
@@ -177,10 +177,10 @@
       "gateway": "10.0.1.12",
       "routes": [],
       "services": [],
-      "wireless": {
+      "components": { "wireless": {
         "ssid": "g",
         "password": "golden-pass"
-      }
+      } }
     },
     {
       "uid": "n5",

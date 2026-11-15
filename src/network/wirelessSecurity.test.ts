@@ -10,8 +10,8 @@ import type { NetworkState } from './engine/state';
 
 const data = gameEnv.engine;
 const f = (port: number, ip: string): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24 });
-const n = (uid: string, device: string, interfaces: Iface[], x: number, wireless?: NetNode['wireless']): NetNode =>
-  ({ uid, device, macSerial: x + 1, x, y: 0, locked: false, configLocked: false, interfaces, gateway: null, routes: [], services: [], ports: [], ...(wireless ? { wireless } : {}) }) as NetNode;
+const n = (uid: string, device: string, interfaces: Iface[], x: number, wireless?: NonNullable<NetNode['components']>['wireless']): NetNode =>
+  ({ uid, device, macSerial: x + 1, x, y: 0, locked: false, configLocked: false, interfaces, gateway: null, routes: [], services: [], ports: [], ...(wireless ? { components: { wireless } } : {}) }) as NetNode;
 const l = (uid: string, a: string, pa: number, b: string, pb: number) => ({ uid, cable: 'utp_cat5e', a: { node: a, port: pa }, b: { node: b, port: pb }, path: [[0, 0], [1, 0]] as [number, number][], paid: 0 });
 
 // 有線の PC — スイッチ — アクセスポイント。端末（device）は電波で届く距離に置く

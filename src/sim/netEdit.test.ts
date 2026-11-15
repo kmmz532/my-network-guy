@@ -8,7 +8,7 @@ import { initialOffice } from './furniture';
 import { placeInOffice } from './placement';
 import { getComponent } from '../network/components';
 import type { NetNode } from '../network/types';
-import { analyzeCore, setBgp } from './netEdit';
+import { analyzeCore, setBgp, setWireless } from './netEdit';
 import type { Core, Env } from './project';
 
 const balance = balanceJson as unknown as Balance;
@@ -57,5 +57,28 @@ describe('setBgp', () => {
     const next = r.core.office.nodes[0];
     expect(getComponent(next, 'bgp')).toEqual({ asn: 65001, neighbors: [], networks: [] });
     expect('bgp' in next).toBe(false);
+  });
+});
+
+describe('setWireless', () => {
+  const node = (uid: string, device: string): NetNode =>
+    ({ uid, device, x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [] }) as NetNode;
+  const coreOf = (...nodes: NetNode[]): Core =>
+    ({ office: { ...initialOffice(balance), nodes }, active: [], focus: null, owned: {} }) as unknown as Core;
+
+  it('無線の能力のない機器では、wireless の設定を拒否し、機器は変わらない', () => {
+    const core = coreOf(node('pc', 'pc_basic'));
+    const r = setWireless(core, 'pc', 'ssid', 'lab', 'office');
+    expect(r.ok).toBe(false);
+    expect(core.office.nodes[0].components).toBeUndefined();
+  });
+
+  it('無線の能力のある機器では、components.wireless に設定が入り、機器の直下には入らない', () => {
+    const core = coreOf(node('ap', 'access_point'));
+    const r = setWireless(core, 'ap', 'ssid', 'lab', 'office');
+    if (!r.ok) throw new Error(`設定できない: ${r.reason}`);
+    const next = r.core.office.nodes[0];
+    expect(getComponent(next, 'wireless')).toEqual({ ssid: 'lab' });
+    expect('wireless' in next).toBe(false);
   });
 });
