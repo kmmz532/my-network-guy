@@ -1088,6 +1088,7 @@
   "ui.loop.banner": "社内の通信が止まらない。{name}で配線が輪になっている。",
   "ui.map.zoomIn": "＋",
   "ui.map.zoomOut": "－",
+  "ui.menu.open": "メニュー",
   "ui.menu.settings": "設定",
   "ui.nat.inside": "inside（社内）",
   "ui.nat.insideIp": "社内のIP",

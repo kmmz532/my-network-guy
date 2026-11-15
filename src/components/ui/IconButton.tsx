@@ -7,7 +7,7 @@ import './tokens.css';
 import './ui.css';
 
 interface Props {
-  variant?: 'normal' | 'primary';
+  variant?: 'normal' | 'primary' | 'accent' | 'confirm';
   label: string;
   onClick: () => void;
   selected?: boolean;

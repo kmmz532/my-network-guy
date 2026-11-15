@@ -832,12 +832,32 @@ input.ui-terminal-input__field {
   font-weight: normal;
 }
 
-.ui-button--bar {
+.ui-button--wide {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 0 14px;
+  padding: 0 8px;
   min-height: 44px;
   font-size: var(--fs-l);
+  border-width: 2px;
+  border-radius: 4px;
+}
+
+/* 目立たせる操作（accent。押している間は黄の地）と、確定・進める操作（confirm） */
+.ui-button--accent,
+.ui-icon-button--accent {
+  background: var(--bg-emphasis);
+  color: var(--fg);
+}
+
+.ui-button--accent[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--fg-on-emphasis-pressed);
+}
+
+.ui-button--confirm,
+.ui-icon-button--confirm {
+  background: var(--bg-confirm);
+  color: var(--fg);
 }
