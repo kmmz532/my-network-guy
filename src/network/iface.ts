@@ -2,13 +2,10 @@
 // PC・サーバー・プリンターは eth（eth0）、ネットワーク機器は g0/（g0/1）
 import type { Iface } from './types';
 import { sviPortOf } from './category';
-import { maybeDevice } from '../registry/query';
-
-const ENDPOINT_CATEGORIES = new Set(['pc', 'server', 'printer']);
+import { can } from './capabilities';
 
 export const ifacePrefixOf = (device: string): string => {
-  const category = maybeDevice(device)?.category;
-  return category !== undefined && ENDPOINT_CATEGORIES.has(category) ? 'eth' : 'g0/';
+  return can(device, 'endpoint') ? 'eth' : 'g0/';
 };
 
 // VLAN のインターフェース（SVI・N138）。名前は vlan10 の形

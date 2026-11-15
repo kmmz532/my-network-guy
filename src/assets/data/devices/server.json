@@ -4,7 +4,8 @@
       "id": "server_basic",
       "category": "server",
       "capabilities": [
-        "services"
+        "services",
+        "endpoint"
       ],
       "price": 300000,
       "ports": [
@@ -30,7 +31,8 @@
       "id": "gpu_server",
       "category": "server",
       "capabilities": [
-        "services"
+        "services",
+        "endpoint"
       ],
       "price": 1200000,
       "ports": [

@@ -3,7 +3,9 @@
     {
       "id": "printer_basic",
       "category": "printer",
-      "capabilities": [],
+      "capabilities": [
+        "endpoint"
+      ],
       "deskable": true,
       "price": 30000,
       "ports": [

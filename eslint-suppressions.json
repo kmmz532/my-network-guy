@@ -572,11 +572,6 @@
       "count": 2
     }
   },
-  "src/network/iface.ts": {
-    "local/no-category": {
-      "count": 1
-    }
-  },
   "src/network/learn.ts": {
     "local/no-category": {
       "count": 1

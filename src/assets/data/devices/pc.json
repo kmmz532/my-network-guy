@@ -3,7 +3,9 @@
     {
       "id": "pc_basic",
       "category": "pc",
-      "capabilities": [],
+      "capabilities": [
+        "endpoint"
+      ],
       "price": 80000,
       "ports": [
         {
@@ -20,7 +22,8 @@
       "id": "pc_wifi",
       "category": "pc",
       "capabilities": [
-        "wireless"
+        "wireless",
+        "endpoint"
       ],
       "price": 110000,
       "ports": [
@@ -41,7 +44,8 @@
       "category": "pc",
       "capabilities": [
         "wireless",
-        "wpa3"
+        "wpa3",
+        "endpoint"
       ],
       "deskable": true,
       "price": 120000,
