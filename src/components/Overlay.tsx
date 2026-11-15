@@ -8,12 +8,11 @@ import { RewardPictures, UnlockCards, type UnlockCardKind } from './UnlockList';
 import type { LevelUp } from '../sim/level';
 import { Modal } from './Modal';
 import { Button } from './ui/Button';
-import { RADIUS } from '../ui/theme';
+import { Card } from './ui/Card';
+import { Text } from './ui/Text';
+import { Toast } from './ui/Toast';
 import { openOf, visibleNotices } from '../ui/notices';
 import { JOB_DEFS } from '../sim/jobs';
-
-// 既存の import 先（modalBack・modalBox）を保つため、部品の定義は Modal.tsx にあり、ここから出す
-export { modalBack, modalBox } from './Modal';
 
 // 納品の結果は、パケットが流れ切ってから出す
 const REPORT_DELAY_MS = 1500;
@@ -55,20 +54,22 @@ function EvaluationRows({ report }: { report: Report }) {
   ];
   // 1つの格子に並べ、行の幅をそろえる。基準と実績の見出しは1回だけ出す（N65）。文字が長いときは列の中で折り返す（B14）
   return (
-    <div style={{ marginTop: 10, fontSize: 13, textAlign: 'left', display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) minmax(0, 1.4fr) auto', alignItems: 'center', columnGap: 8, rowGap: 2 }}>
-      <span />
-      <span style={{ opacity: 0.7 }}>{t('report.target')}</span>
-      <span style={{ opacity: 0.7 }}>{t('report.actual')}</span>
-      <span />
-      {rows.map((row) => (
-        <Fragment key={row.label}>
-          <span>{row.label}</span>
-          <span style={{ opacity: 0.85 }}>{row.target}</span>
-          <span>{row.actual}</span>
-          <Icon name={row.ok ? 'icon/ok' : 'icon/close'} scale={1} />
-        </Fragment>
-      ))}
-    </div>
+    <Text size="sm" layout={{ marginTop: 10 }}>
+      <div style={{ textAlign: 'left', display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) minmax(0, 1.4fr) auto', alignItems: 'center', columnGap: 8, rowGap: 2 }}>
+        <span />
+        <Text as="span" size="sm" tone="sub">{t('report.target')}</Text>
+        <Text as="span" size="sm" tone="sub">{t('report.actual')}</Text>
+        <span />
+        {rows.map((row) => (
+          <Fragment key={row.label}>
+            <span>{row.label}</span>
+            <Text as="span" size="sm" tone="soft">{row.target}</Text>
+            <span>{row.actual}</span>
+            <Icon name={row.ok ? 'icon/ok' : 'icon/close'} scale={1} />
+          </Fragment>
+        ))}
+      </div>
+    </Text>
   );
 }
 
@@ -132,49 +133,55 @@ export function ReportModal() {
       <div style={{ minHeight: 0, overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 6 }}>
           {[1, 2, 3].map((i) => (
-            <span key={i} style={{ opacity: i <= stars ? 1 : 0.25 }}>
+            <Text as="span" key={i} tone={i <= stars ? 'normal' : 'faint'}>
               <Icon name="icon/star" scale={3} />
-            </span>
+            </Text>
           ))}
         </div>
-        <div style={{ fontSize: 20, marginTop: 8 }}>
+        <Text size="xl" layout={{ marginTop: 8 }}>
           <Icon name="icon/money" /> +{(report.money ?? 0).toLocaleString('ja-JP')}
-        </div>
+        </Text>
         {/* 評判（★の数の積み上げ）と経験値は別の行。経験値の行には星のアイコンを付けない（N55） */}
-        <div style={{ fontSize: 16, marginTop: 4 }}>
+        <Text size="l" layout={{ marginTop: 4 }}>
           <Icon name="icon/star" /> {t('report.reputationGain', { stars: report.stars ?? 0 })}
-        </div>
-        <div style={{ fontSize: 16, marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-          <Icon name="icon/level" /> {t('report.expGain', { exp: report.expGain ?? 0 })}
-        </div>
+        </Text>
+        <Text size="l" layout={{ marginTop: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+            <Icon name="icon/level" /> {t('report.expGain', { exp: report.expGain ?? 0 })}
+          </div>
+        </Text>
         {/* レベルアップの札（N131）。種類ごとに同じ形の札にそろえ、2つ以上のレベルが一度に上がったら、見出しと報酬と札を1つにまとめる */}
         {levelUpBlocks(report.levelUps ?? []).map((block) => (
-          <div key={block.key} style={{ marginTop: 8, padding: 8, background: '#25406f', fontSize: 14 }}>
-            <div style={{ fontWeight: 'bold', color: '#ffd866', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              <Icon name="icon/level" /> {block.title}
-            </div>
-            <div>{t('report.levelUp.money', { money: block.money.toLocaleString('ja-JP') })}</div>
-            {block.jobs.length > 0 && <div>{t('ui.company.jobs', { jobs: block.jobs.map((j) => tDyn(`staff.job.${j}`)).join('・') })}</div>}
-            {block.devices.length > 0 && (
-              <div>
-                {t('report.rewardDevices')}
-                <RewardPictures items={block.devices.map((d) => ({ kind: 'device' as const, id: d.device, count: d.count }))} />
-              </div>
-            )}
-            {block.cards.length > 0 && (
-              <div>
-                {t('report.levelUp.unlockCards')}
-                <UnlockCards items={block.cards} />
-              </div>
-            )}
-          </div>
+          <Card key={block.key} layout={{ marginTop: 8 }}>
+            <Text>
+              <Text tone="warn" bold>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                  <Icon name="icon/level" /> {block.title}
+                </div>
+              </Text>
+              <div>{t('report.levelUp.money', { money: block.money.toLocaleString('ja-JP') })}</div>
+              {block.jobs.length > 0 && <div>{t('ui.company.jobs', { jobs: block.jobs.map((j) => tDyn(`staff.job.${j}`)).join('・') })}</div>}
+              {block.devices.length > 0 && (
+                <div>
+                  {t('report.rewardDevices')}
+                  <RewardPictures items={block.devices.map((d) => ({ kind: 'device' as const, id: d.device, count: d.count }))} />
+                </div>
+              )}
+              {block.cards.length > 0 && (
+                <div>
+                  {t('report.levelUp.unlockCards')}
+                  <UnlockCards items={block.cards} />
+                </div>
+              )}
+            </Text>
+          </Card>
         ))}
         {/* 受け取った機器は、絵と名前と台数の札で並べる（N56）。札は横に並び、収まらなければ折り返す */}
         {(report.rewardDevices ?? []).length > 0 && (
-          <div style={{ fontSize: 14, marginTop: 6 }}>
+          <Text layout={{ marginTop: 6 }}>
             <div>{t('report.rewardDevices')}</div>
             <RewardPictures items={(report.rewardDevices ?? []).map((r) => ({ kind: 'device' as const, id: r.device, count: r.count }))} />
-          </div>
+          </Text>
         )}
         <EvaluationRows report={report} />
       </div>
@@ -204,42 +211,16 @@ export function NoticeToast() {
       {visible.map((n) => {
         const pressable = openOf(n.kind) !== null;
         return (
-          <div
+          <Toast
             key={n.id}
-            onClick={() => (pressable ? openNotice(n.id) : undefined)}
-            style={{
-              background: 'rgba(47, 79, 143, 0.95)',
-              color: '#ffd866',
-              padding: '6px 14px',
-              borderRadius: RADIUS.chrome,
-              cursor: pressable ? 'pointer' : 'default',
-              whiteSpace: 'nowrap',
-            }}
+            pressable={pressable}
+            onPress={() => openNotice(n.id)}
+            action={n.kind === 'payPause' ? { label: t('ui.funds.open'), onClick: () => openNotice(n.id) } : undefined}
+            closeLabel={n.kind === 'payPause' ? undefined : t('ui.notice.close')}
+            onClose={() => dismissNotice(n.id)}
           >
             {tDyn(`ui.notice.${n.kind}`, n.params)}
-            {n.kind === 'payPause' ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openNotice(n.id);
-                }}
-                style={{ marginLeft: 10, background: '#ffd866', color: '#3b2a33', border: 'none', padding: '2px 8px', cursor: 'pointer', fontWeight: 'bold' }}
-              >
-                {t('ui.funds.open')}
-              </button>
-            ) : (
-              <button
-                aria-label={t('ui.notice.close')}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  dismissNotice(n.id);
-                }}
-                style={{ marginLeft: 10, background: 'transparent', color: '#f4f1e6', border: 'none', cursor: 'pointer' }}
-              >
-                ×
-              </button>
-            )}
-          </div>
+          </Toast>
         );
       })}
     </div>

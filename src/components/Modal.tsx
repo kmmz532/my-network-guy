@@ -2,39 +2,8 @@
 // 主のボタンは、子の部品が usePrimary で指定する（一番上のポップアップの主のボタンになる）。
 import { createContext, useCallback, useContext, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { pushPopup, type PopupEntry } from '../input/popupStack';
-import { RADIUS } from '../ui/theme';
-
-export const modalBack = {
-  position: 'absolute',
-  inset: 0,
-  background: 'rgba(20, 20, 30, 0.45)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 10,
-  zoom: 'var(--ui-scale, 1)',
-} as const;
-
-export const modalBox = {
-  background: '#2f4f8f',
-  color: '#f4f1e6',
-  padding: 16,
-  borderRadius: RADIUS.chrome,
-  border: '2px solid #f4f1e6',
-  // 画面の幅は、背景（modalBack）の幅に対する割合で決める（vw は UI の大きさの倍率を受けるため使わない）
-  maxWidth: 'calc(100% - 32px)',
-} as const;
-
-// 普通のボタン（主のボタンの次に使う）。ブラウザ標準の白い部品の代わりに、画面と同じ紺の箱にする
-export const secondaryButton = {
-  padding: '4px 12px',
-  cursor: 'pointer',
-  background: '#25406f',
-  color: '#f4f1e6',
-  border: '1px solid #3b2a33',
-  borderRadius: RADIUS.none,
-  fontFamily: 'inherit',
-} as const;
+import './ui/tokens.css';
+import './ui/ui.css';
 
 type SetPrimary = (run: (() => void) | undefined) => void;
 const PopupContext = createContext<SetPrimary | null>(null);
@@ -44,7 +13,7 @@ interface Props {
   onClose?: () => void;
   // Enter で押す主のボタン（子の部品から指定する場合は usePrimary を使う）
   primary?: () => void;
-  // 背景と箱の見た目を差し替える（破産の画面など）
+  // 背景と箱の配置を差し替える（破産の画面など）
   backStyle?: CSSProperties;
   boxStyle?: CSSProperties;
   children: ReactNode;
@@ -68,8 +37,8 @@ export function Modal({ onClose, primary, backStyle, boxStyle, children }: Props
   });
   return (
     <PopupContext.Provider value={setPrimary}>
-      <div style={{ ...modalBack, ...backStyle }} onClick={onClose}>
-        <div style={{ ...modalBox, ...boxStyle }} onClick={(e) => e.stopPropagation()}>
+      <div className="ui-modal-back" style={backStyle} onClick={onClose}>
+        <div className="ui-modal-box" style={boxStyle} onClick={(e) => e.stopPropagation()}>
           {children}
         </div>
       </div>

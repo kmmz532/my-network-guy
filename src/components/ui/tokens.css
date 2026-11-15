@@ -13,6 +13,7 @@
   --bg-tile-selected: #3a5fa8;
   --bg-field: #f4f1e6;
   --bg-field-focus: #d8eaff;
+  --bg-scrim: rgba(20, 20, 30, 0.45);
   --danger: #b5473b;
 
   /* 強調 */
@@ -56,5 +57,9 @@
   --fs-sm: 13px;
   --fs-m: 14px;
   --fs-l: 16px;
+  --fs-xl: 20px;
   --fs-menu: 13px;
+
+  /* UI の大きさの倍率。設定の読み込みが document の要素に上書きする */
+  --ui-scale: 1;
 }

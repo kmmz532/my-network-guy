@@ -13,7 +13,7 @@ import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { RADIUS } from '../ui/theme';
 import { staffSpriteName } from '../data/schema';
 import { Icon } from './Icon';
-import { secondaryButton } from './Modal';
+import { Button } from './ui/Button';
 
 interface Box {
   left: number;
@@ -274,19 +274,12 @@ export function Guide() {
             <Icon name={`staff/${staffLook}_0`} scale={2} />
           )}
           <span style={phone ? { flex: 1, minWidth: 0 } : undefined}>{tDyn(step.key)}</span>
-          <button
-            onClick={skip}
-            style={{
-              ...secondaryButton,
-              pointerEvents: 'auto',
-              flexShrink: 0,
-              whiteSpace: 'nowrap',
-              padding: '2px 8px',
-              fontSize: 13,
-            }}
-          >
-            {t('ui.guide.skip')}
-          </button>
+          {/* 外枠は指の操作を通すため、押せる部分だけ受け取る */}
+          <span style={{ pointerEvents: 'auto', flexShrink: 0, display: 'flex' }}>
+            <Button variant="secondary" size="fit" onClick={skip}>
+              {t('ui.guide.skip')}
+            </Button>
+          </span>
           {/* 吹き出しの尻尾（社員の方向を向く） */}
           <span
             aria-hidden

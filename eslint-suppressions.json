@@ -80,10 +80,7 @@
   },
   "src/components/Guide.tsx": {
     "local/no-look-props": {
-      "count": 12
-    },
-    "local/no-native-control": {
-      "count": 1
+      "count": 11
     }
   },
   "src/components/Header.tsx": {
@@ -128,11 +125,6 @@
       "count": 2
     }
   },
-  "src/components/Modal.tsx": {
-    "local/no-look-props": {
-      "count": 9
-    }
-  },
   "src/components/OfferCards.tsx": {
     "local/no-category": {
       "count": 1
@@ -144,14 +136,6 @@
     },
     "local/no-native-control": {
       "count": 1
-    }
-  },
-  "src/components/Overlay.tsx": {
-    "local/no-look-props": {
-      "count": 23
-    },
-    "local/no-native-control": {
-      "count": 2
     }
   },
   "src/components/PausedBuildPrompt.tsx": {

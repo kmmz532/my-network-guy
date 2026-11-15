@@ -661,6 +661,10 @@ input.ui-text-input--full {
   font-size: var(--fs-l);
 }
 
+.ui-text--xl {
+  font-size: var(--fs-xl);
+}
+
 .ui-text--bold {
   font-weight: bold;
 }
@@ -1138,4 +1142,57 @@ input.ui-terminal-input__field {
 
 .ui-tab-panel--window {
   background: var(--bg-panel);
+}
+
+/* Toast: 画面の上に重ねる通知の札 */
+.ui-toast {
+  background: var(--bg-window);
+  color: var(--st-warn);
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.ui-toast--pressable {
+  cursor: pointer;
+}
+
+.ui-toast__action {
+  margin-left: 10px;
+  background: var(--accent);
+  color: var(--fg-on-accent);
+  border: none;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.ui-toast__close {
+  margin-left: 10px;
+  background: transparent;
+  color: var(--fg);
+  border: none;
+  cursor: pointer;
+}
+
+/* Modal: 操作を止める窓の背景の幕と箱。画面の幅は幕の幅に対する割合で決める（vw は UI の大きさの倍率を受けるため使わない） */
+.ui-modal-back {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-scrim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  zoom: var(--ui-scale, 1);
+}
+
+.ui-modal-box {
+  background: var(--bg-panel);
+  color: var(--fg);
+  padding: 16px;
+  border-radius: 4px;
+  border: 2px solid var(--line-window);
+  max-width: calc(100% - 32px);
 }
