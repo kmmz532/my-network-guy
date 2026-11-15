@@ -391,9 +391,6 @@
     }
   },
   "src/components/devicePorts.ts": {
-    "local/no-category": {
-      "count": 4
-    },
     "local/no-look-export": {
       "count": 9
     },
