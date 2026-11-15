@@ -8,13 +8,11 @@ import { useUiStore } from '../stores/useUiStore';
 import { labelOfUid } from './nodeLabel';
 import { Button } from './ui/Button';
 import { Select } from './ui/Select';
+import { Cell, HeadCell, HeadRow, Row, Table } from './ui/Table';
+import { Text } from './ui/Text';
 import { deviceCategory } from '../registry/query';
 
-const CHANGED = '#ffd866';
-
-const cell = (value: string | number, changed: boolean) => (
-  <td style={{ padding: '2px 6px', whiteSpace: 'nowrap', color: changed ? CHANGED : undefined, fontWeight: changed ? 'bold' : undefined }}>{value}</td>
-);
+const cell = (value: string | number, changed: boolean) => <Cell mark={changed ? 'changed' : undefined}>{value}</Cell>;
 
 const portText = (f: Frame) => (f.l4 ? `${f.l4.srcPort}→${f.l4.dstPort}` : '-');
 
@@ -36,7 +34,7 @@ export function FramesBody({ goal }: { goal?: number }) {
   if (netState === null) throw new Error('設計中の案件のネットワークの計算の結果がない');
   const nodes = netState.input.nodes;
   const links = netState.input.links;
-  if (traces.length === 0) return <div style={{ fontSize: 13 }}>{t('ui.frames.none')}</div>;
+  if (traces.length === 0) return <Text size="sm">{t('ui.frames.none')}</Text>;
   const trace = traces[Math.min(index, traces.length - 1)];
 
   const category = (uid: string) => deviceCategory(nodes.find((n) => n.uid === uid)?.device ?? '');
@@ -53,7 +51,7 @@ export function FramesBody({ goal }: { goal?: number }) {
   const name = (uid: string) => labelOfUid(state, uid, nodes);
 
   return (
-    <div style={{ fontSize: 12 }}>
+    <Text size="s">
       {traces.length > 1 && (
         <Select
           label={t('ui.frames.title')}
@@ -64,19 +62,17 @@ export function FramesBody({ goal }: { goal?: number }) {
         />
       )}
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ textAlign: 'left', opacity: 0.8 }}>
-              {['hop', 'dstMac', 'srcMac', 'vlan', 'srcIp', 'dstIp', 'ttl', 'port'].map((c) => (
-                <th key={c} style={{ padding: '2px 6px', whiteSpace: 'nowrap' }}>{tDyn(`ui.frames.col.${c}`)}</th>
-              ))}
-            </tr>
-          </thead>
+        <Table>
+          <HeadRow>
+            {['hop', 'dstMac', 'srcMac', 'vlan', 'srcIp', 'dstIp', 'ttl', 'port'].map((c) => (
+              <HeadCell key={c}>{tDyn(`ui.frames.col.${c}`)}</HeadCell>
+            ))}
+          </HeadRow>
           <tbody>
             {frames.slice(0, shown).map((f, i) => {
               const p = i > 0 ? frames[i - 1] : null;
               return (
-                <tr key={i} style={{ background: hop === i ? 'rgba(255,255,255,0.12)' : undefined }}>
+                <Row key={i} selected={hop === i}>
                   {cell(`${name(f.from)} → ${name(f.to)}`, false)}
                   {cell(f.l2.dstMac, p !== null && p.l2.dstMac !== f.l2.dstMac)}
                   {cell(f.l2.srcMac, p !== null && p.l2.srcMac !== f.l2.srcMac)}
@@ -85,23 +81,23 @@ export function FramesBody({ goal }: { goal?: number }) {
                   {cell(f.l3.dstIp, f.nat !== undefined || (p !== null && p.l3.dstIp !== f.l3.dstIp))}
                   {cell(f.l3.ttl, p !== null && p.l3.ttl !== f.l3.ttl)}
                   {cell(portText(f), f.nat !== undefined)}
-                </tr>
+                </Row>
               );
             })}
             {failure && shown === frames.length && (
-              <tr>
-                <td colSpan={8} style={{ padding: '4px 6px', color: CHANGED }}>
+              <Row>
+                <Cell colSpan={8} mark="warn">
                   {t('ui.frames.stopped', { from: name(failure.node), reason: tDyn(`error.${failure.reason}`) })}
-                </td>
-              </tr>
+                </Cell>
+              </Row>
             )}
           </tbody>
-        </table>
+        </Table>
       </div>
       <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
         <Button variant="secondary" disabled={frames.length === 0 || hop === 0} onClick={() => setHop(hop === null ? frames.length - 2 : hop - 1)}>{t('ui.frames.prev')}</Button>
         <Button variant="secondary" disabled={hop === null || hop >= frames.length - 1} onClick={() => setHop(hop === null || hop + 1 >= frames.length - 1 ? null : hop + 1)}>{t('ui.frames.next')}</Button>
       </div>
-    </div>
+    </Text>
   );
 }

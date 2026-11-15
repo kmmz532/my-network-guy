@@ -1294,3 +1294,52 @@ input.ui-terminal-input__field {
   border: none;
   padding: 8px 16px;
 }
+
+.ui-text-area--data,
+textarea.ui-text-area--data:focus {
+  background: var(--bg-card);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  font-size: var(--fs-xs);
+}
+
+.ui-button--debug {
+  padding: 4px 8px;
+  min-height: 32px;
+  background: var(--bg-debug);
+  color: var(--fg);
+  border: 2px solid var(--line);
+  border-radius: 4px;
+  font-size: var(--fs-s);
+  text-align: left;
+}
+
+/* Table: 罫線のない表 */
+.ui-table {
+  border-collapse: collapse;
+}
+
+.ui-table th,
+.ui-table td {
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.ui-table__head {
+  text-align: left;
+  opacity: 0.8;
+}
+
+.ui-table__row--selected {
+  background: var(--bg-row-selected);
+}
+
+.ui-table__cell--changed {
+  color: var(--st-warn);
+  font-weight: bold;
+}
+
+.ui-table__cell--warn {
+  color: var(--st-warn);
+}
+
