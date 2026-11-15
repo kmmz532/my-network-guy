@@ -5,7 +5,7 @@ import { duplicateHostnames } from '../sim/project';
 import { useState } from 'react';
 import { t, tDyn } from '../i18n/t';
 import type { DnsRecordType, DnsService, NetLink, NetNode } from '../network/types';
-import { seenSourcesOf, type NetworkState } from '../network/public';
+import { isL2Category, seenSourcesOf, type NetworkState } from '../network/public';
 import { focusedProject, netOfDevice, useGameStore, type GameState } from '../stores/useGameStore';
 import { RearTab as DeviceRear } from './DeviceRear';
 import { DeviceSettings } from './DeviceSettings';
@@ -102,7 +102,7 @@ function DeviceView({
   const category = deviceCategory(node.device);
   const isServer = category === CATEGORY.server;
   // 設定できるもの（IPアドレスなど）がない機器（L2 スイッチ）は、設定タブを出さない
-  const hasConfig = category !== CATEGORY.l2Switch;
+  const hasConfig = !isL2Category(category);
   const issue = netState.addressing.issues[node.uid];
 
   return (
