@@ -1,9 +1,11 @@
 // デバッグのパネル（N54）。?debug=1 のときだけ、App が遅延読み込みで出す。操作は既存の操作（ストアと update.ts）を呼ぶ
-import { useState, type CSSProperties } from 'react';
+import { useState } from 'react';
 import { balance, guides } from 'virtual:game-data';
 import { tDyn } from '../i18n/t';
 import { Button } from './ui/Button';
 import { Select } from './ui/Select';
+import { Text } from './ui/Text';
+import { TextArea } from './ui/TextArea';
 import { SAVE_VERSION } from '../services/migrations';
 import { exportSave, importSave } from '../services/saveFile';
 import { showUpdateNotice } from '../pwa/update';
@@ -12,21 +14,8 @@ import { levelOf } from '../sim/level';
 import { useGameStore, viewportNow } from '../stores/useGameStore';
 import { clampRect, narrowRect, resizeRect, type Rect } from '../ui/windows';
 import { Window } from './Window';
-import { RADIUS } from '../ui/theme';
 
 const MINUTES_PER_DAY = 1440;
-
-const buttonStyle: CSSProperties = {
-  padding: '4px 8px',
-  minHeight: 32,
-  background: '#25406f',
-  color: '#f4f1e6',
-  border: '2px solid #3b2a33',
-  borderRadius: RADIUS.chrome,
-  cursor: 'pointer',
-  fontSize: 12,
-  textAlign: 'left',
-};
 
 export default function DebugPanel() {
   const [open, setOpen] = useState(false);
@@ -64,9 +53,9 @@ export default function DebugPanel() {
 
   if (!open) {
     return (
-      <button type="button" onClick={toggle} style={{ ...buttonStyle, position: 'fixed', top: 4, right: 4, zIndex: 2000, background: '#8a2b2b' }}>
+      <Button variant="debug" onClick={toggle} layout={{ position: 'fixed', top: 4, right: 4, zIndex: 2000 }}>
         DEBUG
-      </button>
+      </Button>
     );
   }
 
@@ -86,7 +75,8 @@ export default function DebugPanel() {
       onClose={() => setOpen(false)}
       tabs={null}
     >
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, color: '#f4f1e6' }}>
+    <Text size="s">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
 
       <section style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div>ビルド: {__BUILD_ID__}</div>
@@ -217,17 +207,12 @@ export default function DebugPanel() {
         >
           済みにする
         </Button>
-        <textarea
-          aria-label="セーブの JSON"
-          value={saveText}
-          rows={4}
-          onChange={(e) => setSaveText(e.target.value)}
-          style={{ fontSize: 10, background: '#25406f', color: '#f4f1e6', border: '1px solid #3b2a33' }}
-        />
+        <TextArea variant="data" label="セーブの JSON" value={saveText} rows={4} onChange={setSaveText} />
       </section>
 
       {message && <div role="status">{message}</div>}
     </div>
+    </Text>
     </Window>
   );
 }

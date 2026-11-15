@@ -16,6 +16,7 @@ export interface Layout {
   flex?: CSSProperties['flex'];
   flexShrink?: CSSProperties['flexShrink'];
   alignSelf?: CSSProperties['alignSelf'];
+  top?: CSSProperties['top'];
   right?: CSSProperties['right'];
   bottom?: CSSProperties['bottom'];
   zIndex?: CSSProperties['zIndex'];
