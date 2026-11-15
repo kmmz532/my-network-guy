@@ -57,17 +57,6 @@
       "count": 2
     }
   },
-  "src/components/IspField.tsx": {
-    "local/no-look-export": {
-      "count": 3
-    },
-    "local/no-look-props": {
-      "count": 3
-    },
-    "local/no-native-control": {
-      "count": 1
-    }
-  },
   "src/components/LoopBanner.tsx": {
     "local/no-mode-branch": {
       "count": 2
@@ -78,51 +67,13 @@
       "count": 1
     }
   },
-  "src/components/PortMenu.tsx": {
-    "local/no-look-export": {
-      "count": 2
-    },
-    "local/no-look-props": {
-      "count": 3
-    },
-    "local/no-native-control": {
-      "count": 2
-    }
-  },
   "src/components/ShopCards.tsx": {
     "local/no-mode-branch": {
       "count": 2
     }
   },
-  "src/components/SviField.tsx": {
-    "local/no-look-export": {
-      "count": 2
-    },
-    "local/no-look-props": {
-      "count": 3
-    },
-    "local/no-native-control": {
-      "count": 2
-    }
-  },
-  "src/components/TerminalTab.tsx": {
-    "local/no-look-export": {
-      "count": 1
-    },
-    "local/no-look-props": {
-      "count": 4
-    }
-  },
   "src/components/Toolbar.tsx": {
     "local/no-mode-branch": {
-      "count": 2
-    }
-  },
-  "src/components/VlanPortField.tsx": {
-    "local/no-look-export": {
-      "count": 1
-    },
-    "local/no-look-props": {
       "count": 2
     }
   },

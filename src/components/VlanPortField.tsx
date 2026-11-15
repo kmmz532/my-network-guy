@@ -2,11 +2,11 @@
 import { t } from '../i18n/t';
 import type { NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
-import { greyColor } from './devicePorts';
 import { Select } from './ui/Select';
+import { Text } from './ui/Text';
 import { TextInput } from './ui/TextInput';
 
-const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0', fontSize: 12 } as const;
+const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
 const parseList = (text: string): number[] | null | 'error' => {
   if (text.trim() === '' || text.trim() === 'all') return null;
   const list = text.split(',').map((x) => Number(x.trim()));
@@ -35,6 +35,7 @@ export function VlanPortField({ node, port, readOnly, onError }: { node: NetNode
     </label>
   );
   return (
+    <Text size="s">
     <div style={row}>
       <Select
         label={t('ui.config.vlanMode')}
@@ -66,7 +67,8 @@ export function VlanPortField({ node, port, readOnly, onError }: { node: NetNode
           {numberField(t('ui.config.vlanNative'), cfg?.native ?? 1, (v) => setPortMode(node.uid, port, { kind: 'trunk', native: v }))}
         </>
       )}
-      <span style={{ color: greyColor }}>{t('ui.config.vlanNote')}</span>
+      <Text as="span" tone="note" size="s">{t('ui.config.vlanNote')}</Text>
     </div>
+    </Text>
   );
 }

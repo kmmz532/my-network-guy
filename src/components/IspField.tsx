@@ -6,7 +6,9 @@ import { isIp } from '../network/command/args';
 import { getComponent } from '../network/components';
 import type { IspLine, NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
-import { buttonStyle, greyColor, sectionStyle } from './devicePorts';
+import { Button } from './ui/Button';
+import { Section } from './ui/Section';
+import { Text } from './ui/Text';
 import { TextInput } from './ui/TextInput';
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
@@ -26,28 +28,30 @@ export function IspField({ node, readOnly, onError }: { node: NetNode; readOnly:
     onError(setIsp(node.uid, line));
   };
   const field = (label: string, value: string, set: (v: string) => void, width: number) => (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
       {label}
       <TextInput value={value} disabled={readOnly} onChange={set} layout={{ width }} />
     </label>
   );
 
   return (
-    <div style={sectionStyle}>
+    <Section layout={{ marginBottom: 10 }}>
       <b>{t('ui.config.isp')}</b>
-      <div style={row}>
-        {field(t('ui.config.ispName'), name, setName, 100)}
-        {field(t('ui.config.ispIp'), ispIp, setIspIp, 110)}
-        {field(t('ui.config.ispPrefix'), prefix, setPrefix, 40)}
-        {field(t('ui.config.ispAsn'), asn, setAsn, 70)}
-        {field(t('ui.config.ispDns'), dns, setDns, 110)}
-      </div>
-      <div style={{ color: greyColor, fontSize: 12 }}>{t('ui.config.ispNote')}</div>
+      <Text size="s">
+        <div style={row}>
+          {field(t('ui.config.ispName'), name, setName, 100)}
+          {field(t('ui.config.ispIp'), ispIp, setIspIp, 110)}
+          {field(t('ui.config.ispPrefix'), prefix, setPrefix, 40)}
+          {field(t('ui.config.ispAsn'), asn, setAsn, 70)}
+          {field(t('ui.config.ispDns'), dns, setDns, 110)}
+        </div>
+        <Text tone="note" size="s">{t('ui.config.ispNote')}</Text>
+      </Text>
       {!readOnly && (
-        <button style={buttonStyle} disabled={!valid} onClick={apply}>
+        <Button variant="secondary" size="fit" disabled={!valid} onClick={apply}>
           {t('ui.config.ispApply')}
-        </button>
+        </Button>
       )}
-    </div>
+    </Section>
   );
 }

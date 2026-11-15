@@ -4,7 +4,9 @@ import { t } from '../i18n/t';
 import { editNetOf, useGameStore } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
 import type { NetLink, NetNode } from '../network/types';
-import { buttonStyle, panelStyle, portLabel } from './devicePorts';
+import { portLabel } from './devicePorts';
+import { Button } from './ui/Button';
+import { Popover } from './ui/Popover';
 import { loadSettings } from '../settings/settings';
 import { deviceCategory, portCountOf } from '../registry/query';
 
@@ -47,35 +49,19 @@ export function PortMenu() {
   const k = loadSettings().uiScale;
   const left = Math.max(8, Math.min(menu.x, window.innerWidth - 280 * k)) / k;
   const top = Math.max(8, Math.min(menu.y, window.innerHeight - ((rows.length + 1) * ROW_PX + 24) * k)) / k;
-  const rowStyle = {
-    ...buttonStyle,
-    display: 'flex',
-    justifyContent: 'space-between',
-    gap: 12,
-    width: '100%',
-    textAlign: 'left',
-    padding: '3px 8px',
-    marginTop: 2,
-    fontSize: 12,
-  } as const;
   return (
-    <div style={{ ...panelStyle, position: 'fixed', top, left, right: 'auto', width: 260, maxHeight: 'none', padding: 4, fontSize: 12, zIndex: 6, zoom: 'var(--ui-scale, 1)' }}>
-      <button style={rowStyle} onClick={() => state.pickPort(null)}>
+    <Popover variant="port" layout={{ position: 'fixed', top, left, width: 260, zIndex: 6 }}>
+      <Button variant="secondary" size="port" layout={{ marginTop: 2 }} onClick={() => state.pickPort(null)}>
         {t('ui.wire.auto')}
-      </button>
+      </Button>
       {rows.map((row) => (
-        <button
-          key={row.port}
-          style={{ ...rowStyle, opacity: row.used ? 0.45 : 1, cursor: row.used ? 'default' : 'pointer' }}
-          disabled={row.used}
-          onClick={() => state.pickPort(row.port)}
-        >
+        <Button key={row.port} variant="secondary" size="port" layout={{ marginTop: 2 }} disabled={row.used} onClick={() => state.pickPort(row.port)}>
           <span>{row.label}</span>
           <span>
             {row.partner ? labelOfUid(state, row.partner.uid, net.nodes) : t('ui.port.free')}
           </span>
-        </button>
+        </Button>
       ))}
-    </div>
+    </Popover>
   );
 }

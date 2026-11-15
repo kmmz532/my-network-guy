@@ -17,9 +17,10 @@ import { createOps } from '../stores/gameOps';
 import { unlockedTopicsOf } from '../stores/gameHelpers';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { usePhone } from '../ui/usePhone';
-import { warnColor } from './devicePorts';
 import { Button } from './ui/Button';
 import { TerminalInput } from './ui/TerminalInput';
+import { TerminalOutput } from './ui/TerminalOutput';
+import { Text } from './ui/Text';
 import { WordList } from './ui/WordList';
 
 const NO_LINES: TerminalLine[] = [];
@@ -159,17 +160,7 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
   const openWindow = useGameStore((s) => s.openWindow);
   return (
     <div>
-      <div
-        aria-live="polite"
-        data-terminal-output
-        style={{ fontFamily: 'monospace', fontSize: 12, height: 160, overflowY: 'auto', background: '#0f1d33', padding: 6, marginBottom: 6 }}
-      >
-        {history.map((l, i) => (
-          <div key={i} style={{ color: l.kind === 'err' ? warnColor : undefined, whiteSpace: 'pre-wrap' }}>
-            {l.text}
-          </div>
-        ))}
-      </div>
+      <TerminalOutput lines={history.map((l) => ({ text: l.text, warn: l.kind === 'err' }))} />
       {hasTraces && (
         <Button variant="secondary" layout={{ marginBottom: 6 }} onClick={() => openWindow('frames', '')}>
           {t('ui.frames.open')}
@@ -193,7 +184,7 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
         style={{ display: 'flex', gap: 6 }}
       >
         {/* プロンプト: ホスト名（なければ画面の名前）とモード */}
-        <span style={{ fontFamily: 'monospace', fontSize: 13, alignSelf: 'center' }}>{tDyn(promptKeyOf(session.mode), { name: node.hostname ?? nodeLabel(state, node, nodes) })}</span>
+        <Text as="span" mono size="sm" layout={{ alignSelf: 'center' }}>{tDyn(promptKeyOf(session.mode), { name: node.hostname ?? nodeLabel(state, node, nodes) })}</Text>
         <TerminalInput value={input} ghost={suggestion.ghost} errorAt={suggestion.errorAt} onChange={changeInput} onKeyDown={onKeyDown} label={t('ui.terminal.input')} placeholder="help" />
         {phone && suggestion.ghost !== '' && (
           <Button variant="secondary" label={t('ui.terminal.acceptGhost')} onClick={() => changeInput(input + suggestion.ghost)}>
