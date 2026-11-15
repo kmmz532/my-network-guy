@@ -1,5 +1,5 @@
 // オフィスの設備と操作（N126）。外部への接続・サーバーの貸し出し・プリンターの効果・床の変更を、自社の情報から移した画面
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { balance } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import { levelOf } from '../sim/level';
@@ -10,8 +10,20 @@ import { printerArrivalBonusOf } from '../sim/backOffice';
 import { floorOfRoom, roomTileCount } from '../sim/office';
 import { officeUplinkOf, type RoomId } from '../sim/project';
 import type { FloorId } from '../data/schema';
+import { Button } from './ui/Button';
+import { Section } from './ui/Section';
 import { Select } from './ui/Select';
+import { Text } from './ui/Text';
 import { deviceCategory } from '../registry/query';
+
+// 左に項目、右に値や操作を置く行。下に区切りの線を引く
+function Line({ children }: { children: ReactNode }) {
+  return (
+    <Section>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>{children}</div>
+    </Section>
+  );
+}
 
 export function OfficeBody() {
   const office = useGameStore((s) => s.office);
@@ -22,38 +34,39 @@ export function OfficeBody() {
   const rental = rentalOf(office, gameEnv.engine, balance.rental, level, balance.time.daysPerMonth);
   // プリンターが営業の依頼に足す確率（N98）
   const printerBonus = useGameStore((s) => printerArrivalBonusOf(s.office, (d) => deviceCategory(d) === 'printer', balance));
-  const row = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #3b2a33' } as const;
   const uplink = officeUplinkOf(office);
   const setPlacing = useGameStore((s) => s.setPlacing);
   return (
-    <div style={{ padding: 12, fontSize: 14, color: '#f4f1e6' }}>
+    <div style={{ padding: 12 }}>
+      <Text>
       {/* 回線終端。解放のレベルに届いてから、置き場所を選んで置く。置いた後は有料で位置を変更できる */}
       {level >= balance.featureUnlocks.uplink && (
-        <div style={row}>
+        <Line>
           <span>{t('ui.company.uplink')}</span>
-          <button type="button" onClick={() => setPlacing('uplink')}>
+          <Button variant="secondary" size="fit" onClick={() => setPlacing('uplink')}>
             {uplink ? t('ui.company.uplink.move', { cost: balance.office.uplinkMoveCost.toLocaleString('ja-JP') }) : t('ui.company.uplink.place')}
-          </button>
-        </div>
+          </Button>
+        </Line>
       )}
-      <div style={row}>
+      <Line>
         <span>{t('ui.company.outside')}</span>
         <span>{!outside.attached ? t('ui.company.outside.none') : outside.pcsReachOutside ? t('ui.company.outside.ok') : t('ui.company.outside.ng')}</span>
-      </div>
+      </Line>
       {outside.attached && (
-        <div style={row}>
+        <Line>
           <span>{t('ui.company.rental')}</span>
           <span>{outside.leaks ? t('ui.company.rental.leak') : t('ui.company.rental.value', { count: outside.exposedServers.length, income: rental.monthly.toLocaleString('ja-JP') })}</span>
-        </div>
+        </Line>
       )}
       {printerBonus > 0 && (
-        <div style={row}>
+        <Line>
           <span>{t('ui.company.printer')}</span>
           <span>{t('ui.company.printer.value', { pct: Math.round(printerBonus * 1000) / 10 })}</span>
-        </div>
+        </Line>
       )}
       {/* 床（部屋ごとの床の種類）。解禁のレベルに届いてから出す（N92） */}
       {level >= balance.featureUnlocks.floorChange && <FloorRows />}
+      </Text>
     </div>
   );
 }
@@ -68,7 +81,7 @@ function FloorRows() {
   const rooms: RoomId[] = ['main', ...office.annexes];
   return (
     <div style={{ marginTop: 6 }}>
-      <div style={{ color: '#ffd866' }}>{t('ui.floor.title')}</div>
+      <Text tone="warn">{t('ui.floor.title')}</Text>
       {rooms.map((room) => {
         const current = floorOfRoom(office, room);
         const tiles = roomTileCount(office, room);
@@ -93,7 +106,7 @@ function FloorRows() {
           </div>
         );
       })}
-      {message && <div style={{ color: '#ffd866', fontSize: 12 }}>{message}</div>}
+      {message && <Text tone="warn" size="s">{message}</Text>}
     </div>
   );
 }
