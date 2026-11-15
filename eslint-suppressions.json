@@ -126,11 +126,6 @@
       "count": 2
     }
   },
-  "src/components/UnlockList.tsx": {
-    "local/no-look-props": {
-      "count": 4
-    }
-  },
   "src/components/VlanPortField.tsx": {
     "local/no-look-export": {
       "count": 1

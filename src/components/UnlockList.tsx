@@ -6,6 +6,7 @@ import { ItemIcon } from './ItemIcon';
 import { Tooltip } from './Tooltip';
 import { Icon } from './Icon';
 import { itemSpriteOf } from './itemSprite';
+import { Chip } from './ui/Chip';
 import { Tile } from './ui/Tile';
 
 // 解放された品目の名前（機材・ケーブル・家具・依頼）
@@ -32,13 +33,13 @@ export function ItemCards({ items }: { items: { kind: 'device' | 'furniture'; id
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
       {items.map((x) => (
-        <div key={`${x.kind}_${x.id}`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 2px', background: '#25406f', border: '1px solid #3b2a33' }}>
+        <Chip key={`${x.kind}_${x.id}`}>
           <ItemIcon name={itemSpriteOf(x.kind, x.id)} box={{ width: 36, height: 36 }} maxScale={2} />
           <span>
             {tDyn(`${x.kind}.${x.id}.name`)}
             {x.count !== undefined ? ` ×${x.count}` : ''}
           </span>
-        </div>
+        </Chip>
       ))}
     </div>
   );
@@ -89,10 +90,7 @@ export function UnlockCards({ items }: { items: { kind: UnlockCardKind; id: stri
             </Tile>
           </Tooltip>
         ) : (
-        <div
-          key={`${x.kind}_${x.id}_${i}`}
-          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 2px', background: '#25406f', border: '1px solid #3b2a33', whiteSpace: 'nowrap' }}
-        >
+        <Chip key={`${x.kind}_${x.id}_${i}`} nowrap>
           {x.kind === 'device' || x.kind === 'furniture' ? (
             <ItemIcon name={itemSpriteOf(x.kind, x.id)} box={{ width: 36, height: 36 }} maxScale={2} />
           ) : (
@@ -102,7 +100,7 @@ export function UnlockCards({ items }: { items: { kind: UnlockCardKind; id: stri
             {cardNameOf(x)}
             {x.count !== undefined ? ` ×${x.count}` : ''}
           </span>
-        </div>
+        </Chip>
         ),
       )}
     </div>
