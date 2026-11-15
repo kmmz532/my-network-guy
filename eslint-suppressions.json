@@ -157,9 +157,6 @@
   "src/components/scene/TitleScreen.tsx": {
     "local/no-mode-branch": {
       "count": 1
-    },
-    "local/no-native-control": {
-      "count": 1
     }
   },
   "src/contracts/templateBudget.test.ts": {

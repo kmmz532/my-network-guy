@@ -5,7 +5,7 @@ import pkg from '../../../package.json';
 import { spriteOf, spriteUrl } from '../../game/sprites';
 import { t } from '../../i18n/t';
 import { listCompanies } from '../../services/db';
-import { RADIUS } from '../../ui/theme';
+import { MenuButton } from '../ui/MenuButton';
 
 interface Props {
   onNew: () => void;
@@ -174,48 +174,6 @@ const CSS = `
   align-items: center;
   gap: 12px;
   margin-top: 24px;
-}
-.ts-btn {
-  position: relative;
-  box-sizing: border-box;
-  width: 240px;
-  padding: 10px 12px 10px 12px;
-  font-family: 'DotGothic16', inherit;
-  font-size: 20px;
-  text-align: center;
-  color: #3b2a33;
-  background: #f4f1e6;
-  border: 2px solid #3b2a33;
-  border-radius: ${RADIUS.none}px;
-  box-shadow: inset -3px -3px 0 #cfc3aa, inset 3px 3px 0 #ffffff;
-  cursor: pointer;
-  transition: transform 60ms;
-}
-.ts-btn::before {
-  content: '';
-  position: absolute;
-  left: 24px;
-  top: 50%;
-  margin-top: -6px;
-  border-left: 9px solid transparent;
-  border-top: 6px solid transparent;
-  border-bottom: 6px solid transparent;
-}
-.ts-btn-selected {
-  background: #ffd866;
-  box-shadow: inset -3px -3px 0 #c9962e, inset 3px 3px 0 #fff3c4;
-}
-.ts-btn-selected::before {
-  border-left-color: #3b2a33;
-}
-.ts-btn:active:not(:disabled) {
-  transform: translateY(1px);
-  box-shadow: inset -3px -3px 0 #c9962e, inset 3px 3px 0 #fff3c4;
-}
-.ts-btn:disabled {
-  color: #8a7f86;
-  background: #d9d2c3;
-  cursor: not-allowed;
 }
 .ts-note {
   margin: 4px 0 0;
@@ -387,16 +345,9 @@ export function TitleScreen({ onNew, onContinue, onSandbox, message, locked = fa
 
         <div className="ts-menu" role="group" aria-label={t('ui.title.menu')}>
           {items.map((item, i) => (
-            <button
-              key={i}
-              type="button"
-              className={`ts-btn${i === selected ? ' ts-btn-selected' : ''}`}
-              disabled={!item.enabled}
-              onMouseEnter={() => item.enabled && setPicked(i)}
-              onClick={item.run}
-            >
+            <MenuButton key={i} selected={i === selected} disabled={!item.enabled} onHover={() => item.enabled && setPicked(i)} onClick={item.run}>
               {item.label}
-            </button>
+            </MenuButton>
           ))}
           {hasSave === false && <p className="ts-note">{t('ui.title.none')}</p>}
           {message && message !== t('ui.title.none') && <p className="ts-message">{message}</p>}
