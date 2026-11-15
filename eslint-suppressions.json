@@ -592,11 +592,6 @@
       "count": 1
     }
   },
-  "src/network/pcWifi.test.ts": {
-    "local/no-category": {
-      "count": 1
-    }
-  },
   "src/services/companies.test.ts": {
     "local/no-mode-branch": {
       "count": 11
@@ -651,11 +646,6 @@
   "src/sim/placement.ts": {
     "local/no-category": {
       "count": 1
-    }
-  },
-  "src/sim/pricing.test.ts": {
-    "local/no-category": {
-      "count": 2
     }
   },
   "src/sim/pricing.ts": {
