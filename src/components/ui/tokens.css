@@ -44,6 +44,7 @@
   --fg-on-status: #2a2f36;
   --bg-track: #1b2f57;
   --disabled-opacity: 0.5;
+  --dim-opacity: 0.45;
 
   /* 文字の大きさ。選択の一覧は今の 13 px を保つ */
   --fs-list: 13px;

@@ -21,7 +21,7 @@ import type { NetNode, NetworkPlan } from '../network/types';
 import { gameEnv } from '../sim/env';
 import { addressCandidates, PLANNED_NETWORK, PLANNED_PREFIX, plannedAddressCandidates, type AddressCandidate } from '../sim/project';
 import { coreOf, netOfDevice, netTargetOf, plannedKey, useGameStore } from '../stores/useGameStore';
-import { greyColor, hexColor, isIpText, portLabel, sectionStyle, unsetColor } from './devicePorts';
+import { isIpText, portLabel } from './devicePorts';
 import { Section } from './ui/Section';
 import { BgpField } from './BgpField';
 import { IspField } from './IspField';
@@ -33,6 +33,8 @@ import { DhcpPoolField, DhcpPortField } from './DhcpField';
 import { portCountOf, deviceCategory } from '../registry/query';
 import { Button } from './ui/Button';
 import { Checkbox } from './ui/Checkbox';
+import { Swatch } from './ui/Swatch';
+import { Text } from './ui/Text';
 import { TextInput } from './ui/TextInput';
 
 // ネットワークの既定候補（入力欄から任意のネットワークも指定できる）
@@ -147,12 +149,12 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
       ...(NETWORK_CHOICES.includes(shown.network) ? [] : [shown.network]),
     ].map((network) => ({ value: network, usedBy: null }));
     return (
-      <div key={port} style={unlinkedRouter ? { ...sectionStyle, opacity: 0.45 } : sectionStyle}>
+      <Section key={port} dim={unlinkedRouter} layout={{ marginBottom: 10 }}>
         {heading}
         {can(node.device, 'switchport') && <VlanPortField node={node} port={port} readOnly={locked} onError={onError} />}
         {can(node.device, 'lag') && <ChannelField node={node} port={port} disabled={locked || unlinkedRouter} onError={onError} />}
         <div>
-          {t('ui.config.ip')}: {iface ? <b>{iface.ip}</b> : <span style={{ color: unsetColor }}>{t('ui.config.unset')}</span>}
+          {t('ui.config.ip')}: {iface ? <b>{iface.ip}</b> : <Text as="span" tone="error">{t('ui.config.unset')}</Text>}
         </div>
         <DhcpPortField node={node} port={port} iface={iface} client={!isRoutingCategory(category ?? '') && !can(node.device, 'switchport')} disabled={locked || unlinkedRouter} onError={onError} />
         <div style={row}>
@@ -188,8 +190,8 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
                   ['dead', 'ui.config.ospfDead', iface.ospf.dead ?? 40, 1],
                 ] as const
               ).map(([key, label, value, min]) => (
-                <label key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                  {t(label)}
+                <label key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Text as="span" size="s">{t(label)}</Text>
                   <TextInput
                     type="number"
                     min={min}
@@ -207,12 +209,12 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
           </div>
         )}
         {iface && can(node.device, 'vrrp') && <VrrpField node={node} iface={iface} disabled={locked || unlinkedRouter} onError={onError} />}
-        <div style={{ ...row, fontSize: 12 }}>
-          <span style={{ color: greyColor, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ display: 'inline-block', width: 10, height: 10, background: hexColor(color), border: '1px solid #3b2a33' }} />
-            {t('ui.config.networkLine', { network: shown.network, prefix: shown.prefix })}
+        <div style={row}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Swatch color={color} framed />
+            <Text as="span" tone="note" size="s">{t('ui.config.networkLine', { network: shown.network, prefix: shown.prefix })}</Text>
           </span>
-          <Button variant="secondary" size="fit" disabled={unlinkedRouter} onClick={onToggleDetail}>
+          <Button variant="secondary" size="s" disabled={unlinkedRouter} onClick={onToggleDetail}>
             {detailOpen ? t('ui.config.detailClose') : t('ui.config.detail')}
           </Button>
         </div>
@@ -243,7 +245,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
             />
           </div>
         )}
-      </div>
+      </Section>
     );
   };
 
@@ -257,7 +259,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
       <Section layout={{ marginBottom: 10 }}>
         <div>{t('ui.config.gateway')}</div>
         {routers.length === 0 ? (
-          <div style={{ color: greyColor }}>{t('ui.config.noRouter')}</div>
+          <Text tone="note">{t('ui.config.noRouter')}</Text>
         ) : (
           <>
             <div style={row}>
@@ -271,7 +273,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
                 allowEmpty
                 onCommit={(ip) => setGateway(node.uid, ip || null)}
               />
-              {!node.gateway && <span style={{ color: unsetColor }}>{t('ui.config.unset')}</span>}
+              {!node.gateway && <Text as="span" tone="error">{t('ui.config.unset')}</Text>}
             </div>
           </>
         )}
@@ -288,7 +290,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
         <div>
           <b>{t('ui.fw.rules')}</b>
         </div>
-        {rules.length === 0 && <div style={{ color: greyColor }}>{t('ui.fw.none')}</div>}
+        {rules.length === 0 && <Text tone="note">{t('ui.fw.none')}</Text>}
         {rules.map((r, i) => (
           <div key={`${r.src}-${r.dst}-${r.service}-${r.port ?? ''}-${i}`} style={row}>
             <span>{t('ui.fw.rule', { src: r.src === 'any' ? t('ui.fw.any') : r.src, dst: r.dst === 'any' ? t('ui.fw.any') : r.dst, service: ruleServiceText(r) })}</span>
@@ -316,7 +318,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
         <div>
           <b>{t('ui.config.routes')}</b>
         </div>
-        {node.routes.length === 0 && <div style={{ color: greyColor }}>{t('ui.config.noRoute')}</div>}
+        {node.routes.length === 0 && <Text tone="note">{t('ui.config.noRoute')}</Text>}
         {node.routes.map((r, i) => (
           <div key={`${r.dest}-${r.prefix}-${r.nextHop}-${i}`} style={row}>
             <span>{t('ui.config.routeItem', { dest: r.dest, prefix: r.prefix, next: r.nextHop })}</span>
@@ -329,7 +331,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
         ))}
         {!locked &&
           (hops.length === 0 ? (
-            <div style={{ color: greyColor }}>{t('ui.config.noNextHop')}</div>
+            <Text tone="note">{t('ui.config.noNextHop')}</Text>
           ) : (
             <RouteAdd
               dests={[...dests.entries()].map(([value, d]) => ({ value, ...d }))}
@@ -345,8 +347,8 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
   const renderOspf = () => (
     <Section layout={{ marginBottom: 10 }}>
       <div style={{ ...row, flexWrap: 'wrap', gap: 6 }}>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-          {t('ui.config.ospfRouterId')}
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Text as="span" size="s">{t('ui.config.ospfRouterId')}</Text>
           <TextInput
             value={getComponent(node, 'ospf')?.routerId ?? ''}
             disabled={locked}
@@ -517,8 +519,8 @@ function NatField({ node, readOnly, onError }: { node: NetNode; readOnly: boolea
           {t('ui.nat.napt')}
         </Checkbox>
       </div>
-      <div style={{ fontWeight: 'bold', marginTop: 6 }}>{t('ui.nat.statics')}</div>
-      {statics.length === 0 && <div style={{ color: greyColor }}>{t('ui.nat.noStatic')}</div>}
+      <Text bold layout={{ marginTop: 6 }}>{t('ui.nat.statics')}</Text>
+      {statics.length === 0 && <Text tone="note">{t('ui.nat.noStatic')}</Text>}
       {statics.map((s) => (
         <div key={s.port} style={row}>
           <span>{t('ui.nat.staticItem', { port: s.port, ip: s.insideIp, insidePort: s.insidePort })}</span>
@@ -568,7 +570,7 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
   };
   const field = (label: string, value: string, key: 'ssid' | 'password', type: 'text' | 'password') => (
     <div style={{ marginBottom: 8 }}>
-      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 2 }}>{label}</label>
+      <label style={{ display: 'block', marginBottom: 2 }}><Text as="span" bold>{label}</Text></label>
       <TextInput label={label} type={type} width="full" value={value} disabled={readOnly} maxLength={32} onCommit={(text) => commit(key, text)} />
     </div>
   );
@@ -578,7 +580,7 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
       {field(t('ui.wireless.password'), getComponent(node, 'wireless')?.password ?? '', 'password', 'password')}
       {!isClient && (
         <div style={{ marginBottom: 8 }}>
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 2 }}>{t('ui.wireless.security')}</label>
+          <label style={{ display: 'block', marginBottom: 2 }}><Text as="span" bold>{t('ui.wireless.security')}</Text></label>
           <Select
             label={t('ui.wireless.security')}
             value={getComponent(node, 'wireless')?.security ?? 'wpa2'}
@@ -588,8 +590,8 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
           />
         </div>
       )}
-      <div style={{ fontSize: 12 }}>{statusText}</div>
-      {overlapping && <div style={{ fontSize: 12, color: "#ffd866" }}>{t("ui.wireless.overlap")}</div>}
+      <Text size="s">{statusText}</Text>
+      {overlapping && <Text tone="warn" size="s">{t('ui.wireless.overlap')}</Text>}
     </Section>
   );
 }
@@ -603,7 +605,7 @@ function NameField({ node, nodes, readOnly, onError }: { node: NetNode; nodes: r
   };
   return (
     <div style={{ marginBottom: 8 }}>
-      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 2 }}>{t('ui.config.name')}</label>
+      <label style={{ display: 'block', marginBottom: 2 }}><Text as="span" bold>{t('ui.config.name')}</Text></label>
       <TextInput label={t('ui.config.name')} width="full" value={node.name ?? ''} placeholder={current} disabled={readOnly} maxLength={24} onCommit={commit} />
     </div>
   );
