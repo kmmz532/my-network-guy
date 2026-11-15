@@ -38,6 +38,9 @@
   --st-error: #ff6b6b;
   --st-warn: #ffd866;
   --st-ok: #62d26f;
+  --st-standby: #8a8f98;
+  --st-init: #f0a030;
+  --fg-on-status: #2a2f36;
   --bg-track: #1b2f57;
   --disabled-opacity: 0.5;
 

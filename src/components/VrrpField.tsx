@@ -5,15 +5,18 @@ import { t } from '../i18n/t';
 import { vrrpStatusOf } from '../network/public';
 import type { Iface, NetNode } from '../network/types';
 import { netOfDevice, useGameStore } from '../stores/useGameStore';
-import { buttonStyle, greyColor, isIpText } from './devicePorts';
+import { isIpText } from './devicePorts';
+import { Badge } from './ui/Badge';
+import { Button } from './ui/Button';
 import { Checkbox } from './ui/Checkbox';
 import { Select } from './ui/Select';
+import { Text } from './ui/Text';
 import { TextInput } from './ui/TextInput';
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
 
 // 状態の札の色（マスター: 緑・バックアップ: 灰・停止: 橙）
-const BADGE = { Master: '#62d26f', Backup: '#8a8f98', Init: '#f0a030' } as const;
+const BADGE = { Master: 'var(--st-ok)', Backup: 'var(--st-standby)', Init: 'var(--st-init)' } as const;
 
 interface Props {
   node: NetNode;
@@ -37,16 +40,20 @@ export function VrrpField({ node, iface, disabled, onError }: Props) {
   const addable = /^\d+$/.test(vrid) && isIpText(ip);
   return (
     <div style={{ margin: '4px 0' }}>
-      <div style={{ color: greyColor, fontSize: 12 }}>{t('ui.config.vrrp')}</div>
+      <Text tone="note" size="s">{t('ui.config.vrrp')}</Text>
       {groups.map((g) => {
         const s = status.find((x) => x.vrid === g.vrid);
         return (
-          <div key={g.vrid} style={{ ...row, fontSize: 12 }}>
-            <b>{t('ui.config.vrrpGroup', { vrid: g.vrid })}</b>
-            {s && <span style={{ background: BADGE[s.state], color: '#2a2f36', padding: '0 6px' }}>{t(`ui.config.vrrpState.${s.state}`)}</span>}
-            <span>{t('ui.config.vrrpVip')}: {g.ip}</span>
+          <div key={g.vrid} style={row}>
+            <Text as="span" size="s" bold>{t('ui.config.vrrpGroup', { vrid: g.vrid })}</Text>
+            {s && (
+              <Badge color="var(--fg-on-status)" border={BADGE[s.state]} fill={BADGE[s.state]}>
+                {t(`ui.config.vrrpState.${s.state}`)}
+              </Badge>
+            )}
+            <Text as="span" size="s">{t('ui.config.vrrpVip')}: {g.ip}</Text>
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              {t('ui.config.vrrpPriority')}
+              <Text as="span" size="s">{t('ui.config.vrrpPriority')}</Text>
               <TextInput
                 type="number"
                 min={1}
@@ -61,14 +68,14 @@ export function VrrpField({ node, iface, disabled, onError }: Props) {
                 }}
               />
             </label>
-            <Checkbox checked={g.preempt} disabled={disabled} onChange={(on) => onError(setVrrp(node.uid, { op: 'preempt', id: iface.id, vrid: g.vrid, on }))}>
+            <Checkbox size="s" checked={g.preempt} disabled={disabled} onChange={(on) => onError(setVrrp(node.uid, { op: 'preempt', id: iface.id, vrid: g.vrid, on }))}>
               {t('ui.config.vrrpPreempt')}
             </Checkbox>
-            <button style={buttonStyle} disabled={disabled} onClick={() => onError(setVrrp(node.uid, { op: 'remove', id: iface.id, vrid: g.vrid }))}>
+            <Button variant="secondary" size="fit" disabled={disabled} onClick={() => onError(setVrrp(node.uid, { op: 'remove', id: iface.id, vrid: g.vrid }))}>
               {t('ui.config.vrrpRemove')}
-            </button>
+            </Button>
             {(g.track ?? []).map((tr) => (
-              <span key={tr.iface} style={{ color: greyColor }}>{t('ui.config.vrrpTrackLine', { iface: tr.iface, decrement: tr.decrement })}</span>
+              <Text key={tr.iface} as="span" tone="note" size="s">{t('ui.config.vrrpTrackLine', { iface: tr.iface, decrement: tr.decrement })}</Text>
             ))}
             {others.length > 0 && (
               <>
@@ -80,13 +87,14 @@ export function VrrpField({ node, iface, disabled, onError }: Props) {
                   onChange={(v) => setTrackIface(v)}
                 />
                 <TextInput label={t('ui.config.vrrpTrackDecrement')} type="number" min={1} max={253} value={decrement} disabled={disabled} onChange={setDecrement} layout={{ width: 56 }} />
-                <button
-                  style={buttonStyle}
+                <Button
+                  variant="secondary"
+                  size="fit"
                   disabled={disabled || trackIface === '' || !/^\d+$/.test(decrement)}
                   onClick={() => onError(setVrrp(node.uid, { op: 'track', id: iface.id, vrid: g.vrid, iface: trackIface, decrement: Number(decrement) }))}
                 >
                   {t('ui.config.vrrpTrackAdd')}
-                </button>
+                </Button>
               </>
             )}
           </div>
@@ -95,8 +103,9 @@ export function VrrpField({ node, iface, disabled, onError }: Props) {
       <div style={row}>
         <TextInput label={t('ui.config.vrrpVrid')} placeholder={t('ui.config.vrrpVrid')} value={vrid} disabled={disabled} onChange={setVrid} layout={{ width: 56 }} />
         <TextInput label={t('ui.config.vrrpVip')} placeholder={t('ui.config.vrrpVip')} value={ip} disabled={disabled} onChange={setIp} layout={{ width: 120 }} />
-        <button
-          style={buttonStyle}
+        <Button
+          variant="secondary"
+          size="fit"
           disabled={disabled || !addable}
           onClick={() => {
             const reason = setVrrp(node.uid, { op: 'ip', id: iface.id, vrid: Number(vrid), ip });
@@ -108,7 +117,7 @@ export function VrrpField({ node, iface, disabled, onError }: Props) {
           }}
         >
           {t('ui.config.vrrpAdd')}
-        </button>
+        </Button>
       </div>
     </div>
   );
