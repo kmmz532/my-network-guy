@@ -370,7 +370,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
   return (
     <div>
       <NameField key={node.uid} node={node} nodes={net.nodes} readOnly={readOnly} onError={onError} />
-      {category !== CATEGORY.uplink && (
+      {!can(node.device, 'uplink') && (
         <Checkbox label={t('ui.config.power')} checked={node.powered !== false} disabled={readOnly} onChange={(on) => onError(setPower(node.uid, on))} layout={{ margin: '4px 0' }}>
           {t('ui.config.power')}
         </Checkbox>
@@ -384,7 +384,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
       {isRoutingCategory(category ?? '') && renderRoutes()}
       {isRoutingCategory(category ?? '') && node.interfaces.some((i) => i.ospf !== undefined) && renderOspf()}
       {can(node.device, 'services') && <DhcpPoolField key={`dhcp-${node.uid}`} node={node} disabled={locked} onError={onError} />}
-      {category === CATEGORY.uplink && <IspField key={`isp-${node.uid}`} node={node} readOnly={locked} onError={onError} />}
+      {can(node.device, 'uplink') && <IspField key={`isp-${node.uid}`} node={node} readOnly={locked} onError={onError} />}
       {can(node.device, 'bgp') && <BgpField key={`bgp-${node.uid}`} node={node} readOnly={locked} onError={onError} />}
       {isRoutingCategory(category ?? '') && <NatField node={node} readOnly={locked} onError={onError} />}
       {category === CATEGORY.firewall && renderFirewallRules()}

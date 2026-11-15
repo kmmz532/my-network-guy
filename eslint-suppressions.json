@@ -88,7 +88,7 @@
   },
   "src/components/DeviceSettings.tsx": {
     "local/no-category": {
-      "count": 5
+      "count": 3
     },
     "local/no-engine-in-view": {
       "count": 1
@@ -544,7 +544,7 @@
   },
   "src/network/category.ts": {
     "local/no-category": {
-      "count": 4
+      "count": 2
     }
   },
   "src/network/engine/forward.ts": {
@@ -555,11 +555,6 @@
   "src/network/engine/stages/links.ts": {
     "local/no-category": {
       "count": 4
-    }
-  },
-  "src/network/external.ts": {
-    "local/no-category": {
-      "count": 1
     }
   },
   "src/network/frames.ts": {
@@ -650,7 +645,7 @@
   },
   "src/sim/project.ts": {
     "local/no-category": {
-      "count": 5
+      "count": 4
     }
   },
   "src/sim/sandbox.ts": {

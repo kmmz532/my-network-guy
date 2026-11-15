@@ -21,6 +21,7 @@
   "失敗:仕様だけ:wlan.no_radius",
   "能力:コードだけ:endpoint",
   "能力:コードだけ:lag",
+  "能力:コードだけ:uplink",
   "能力:コードだけ:vrrp",
   "能力:コードだけ:wpa3",
   "警告:仕様だけ:stp.blocked_path",

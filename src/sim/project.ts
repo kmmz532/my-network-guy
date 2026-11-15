@@ -517,7 +517,7 @@ export const checkConnect = (
   if (core.clock.money < paidCable(core, cable.pricePerLink + cable.pricePerTile * length)) return 'money';
   // 回線終端（uplink）は、回線（wan）の能力を持つ機器だけとつなげる（N144）
   const uplinkRule = (x: NetNode, y: NetNode): OpFailReason | null =>
-    deviceCategory(x.device) === 'uplink' && !can(y.device, 'wan') ? 'uplink.no_wan' : null;
+    can(x.device, 'uplink') && !can(y.device, 'wan') ? 'uplink.no_wan' : null;
   const uplinkBad = uplinkRule(a, b) ?? uplinkRule(b, a);
   if (uplinkBad) return uplinkBad;
   // ケーブルの口の種類（光ファイバーは sfp の口だけ）が、両端の口と合うか（N-sfp）
@@ -723,7 +723,7 @@ export const isPcIn = (_env: Env, device: string): boolean => isPcCategory(devic
 export const OFFICE_UPLINK_UID = 'uplink';
 
 export const officeUplinkOf = (office: Office): NetNode | undefined =>
-  office.nodes.find((n) => deviceCategory(n.device) === CATEGORY.uplink);
+  office.nodes.find((n) => can(n.device, 'uplink'));
 
 // 修理の依頼の変更の数: 最初の状態（案件の定義）から、設定を変えた機器の数と、足したり外したりした機器と配線の数を足す。機器の位置と画面の名前は設定に数えない
 export const changesOf = (contract: Contract, nodes: NetNode[], links: NetLink[]): number => {

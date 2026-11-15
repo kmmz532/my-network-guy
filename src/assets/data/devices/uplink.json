@@ -4,7 +4,8 @@
       "id": "uplink",
       "category": "uplink",
       "capabilities": [
-        "wan"
+        "wan",
+        "uplink"
       ],
       "deskable": false,
       "price": 0,

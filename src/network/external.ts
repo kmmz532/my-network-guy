@@ -6,7 +6,8 @@ import { getComponent } from './components';
 // 公開: インターネットから、サーバーへ HTTP（80）が届き、社内の PC へは外から届かないこと（NAT・ポート転送は扱わない）。
 import { http, ping } from './engine';
 import { isRoutingCategory } from './category';
-import { CATEGORY, isPcCategory } from '../data/categories';
+import { can } from './capabilities';
+import { isPcCategory } from '../data/categories';
 import type { DnsRecord, EngineData, NetLink, NetNode, Network } from './types';
 import { INTERNET_DEVICE, deviceCategory } from '../registry/query';
 
@@ -62,7 +63,7 @@ export const withInternet = (net: Network, _data: EngineData): (Network & { inte
   const links: NetLink[] = [];
   const uids: string[] = [];
   const ispDns: IspDns[] = [];
-  for (const uplink of net.nodes.filter((n) => deviceCategory(n.device) === CATEGORY.uplink)) {
+  for (const uplink of net.nodes.filter((n) => can(n.device, 'uplink'))) {
     const routerLink = net.links.find((l) => (l.a.node === uplink.uid && l.a.port === UPLINK_ROUTER_PORT) || (l.b.node === uplink.uid && l.b.port === UPLINK_ROUTER_PORT));
     if (!routerLink) continue;
     const routerEnd = routerLink.a.node === uplink.uid ? routerLink.b : routerLink.a;
