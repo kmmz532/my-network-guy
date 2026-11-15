@@ -5,7 +5,6 @@ import { hasKey, t, tDyn } from '../i18n/t';
 import { goalText } from './goalText';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
-import { RADIUS } from '../ui/theme';
 import { familiarKeyOf } from '../sim/familiar';
 import { usePhone } from '../ui/usePhone';
 import { useEffect, useRef, useState } from 'react';
@@ -13,6 +12,8 @@ import { GLOSSARY_OF_FAILURE } from '../network/glossaryOf';
 import { lessonEntryOf } from '../sim/lessonCatalog';
 import { lessonCatalog } from '../stores/lessonCatalog';
 import { Button } from './ui/Button';
+import { HudBar } from './ui/HudBar';
+import { Text } from './ui/Text';
 
 // 最初の案件（c001）の手順。配線・疎通・施工依頼の順に、済んだものに印を付ける
 const FIRST_CONTRACT = 'c001_direct_link';
@@ -75,7 +76,7 @@ export function TaskPanel() {
     // 教材: 案件と同じ欄に、題名・依頼文・達成条件（最後のテストの結果）を出す
     const lessonResult = check && check.projectId === 'hq' ? check.goals : null;
     return (
-      <aside data-task-panel style={{ width: open ? 260 : 'auto', background: 'rgba(47, 79, 143, 0.92)', color: '#f4f1e6', border: '2px solid #3b2a33', borderRadius: RADIUS.chrome, fontSize: 13, zIndex: 4, zoom: 'var(--ui-scale, 1)' }}>
+      <HudBar as="aside" variant="panel" marker="task-panel" arrange={{ width: open ? 260 : 'auto', zIndex: 4, zoom: 'var(--ui-scale, 1)' }}>
         {/* 案件の欄と同じ折りたたみの見出し（教材の題名を出す） */}
         <Button variant="plain" size="row" layout={{ width: '100%' }} onClick={() => setOpen(!open)}>
           <span style={{ width: 10 }}>{open ? '▾' : '▸'}</span>
@@ -84,16 +85,16 @@ export function TaskPanel() {
         </Button>
         {open && (
           <div style={{ padding: '0 8px 8px' }}>
-            <div style={{ opacity: 0.85, lineHeight: 1.5 }}>{tDyn(lesson.briefKey)}</div>
+            <div style={{ lineHeight: 1.5 }}><Text tone="soft" size="sm">{tDyn(lesson.briefKey)}</Text></div>
             <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>
               {lesson.goals.map((goal, i) => {
                 const ok = lessonResult?.[i] ? lessonResult[i].ok : null;
                 return (
                   <li key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginTop: 4 }}>
-                    <span style={{ opacity: ok === null ? 0.25 : 1, flexShrink: 0 }}>
+                    <Text as="span" tone={ok === null ? 'faint' : 'normal'} size="sm" layout={{ flexShrink: 0 }}>
                       <Icon name={ok === false ? 'icon/close' : 'icon/ok'} scale={1} />
-                    </span>
-                    <span style={{ opacity: ok === true ? 0.7 : 1 }}>{goalText(goal, (id) => labelOfUid(useGameStore.getState(), id, officeNodes))}</span>
+                    </Text>
+                    <Text as="span" tone={ok === true ? 'sub' : 'normal'} size="sm">{goalText(goal, (id) => labelOfUid(useGameStore.getState(), id, officeNodes))}</Text>
                   </li>
                 );
               })}
@@ -102,7 +103,7 @@ export function TaskPanel() {
             <Button variant="secondary" layout={{ marginTop: 8 }} onClick={closeLesson}>{t('ui.lesson.end')}</Button>
           </div>
         )}
-      </aside>
+      </HudBar>
     );
   }
 
@@ -118,17 +119,14 @@ export function TaskPanel() {
       : [];
 
   return (
-    <aside
+    <HudBar
+      as="aside"
+      variant="panel"
       // 案内の吹き出しを、スマホで案件の欄の下に置くために測る（B2）
-      data-task-panel
-      style={{
+      marker="task-panel"
+      arrange={{
         width: open ? 260 : 'auto',
         maxWidth: phone ? 'calc((100vw - 16px) / var(--ui-scale, 1))' : undefined,
-        background: 'rgba(47, 79, 143, 0.92)',
-        color: '#f4f1e6',
-        border: '2px solid #3b2a33',
-        borderRadius: RADIUS.chrome,
-        fontSize: 13,
         zIndex: 4,
         zoom: 'var(--ui-scale, 1)',
       }}
@@ -145,20 +143,20 @@ export function TaskPanel() {
       </Button>
       {open && (
         <div style={{ padding: '0 8px 8px' }}>
-          <div style={{ opacity: 0.85, lineHeight: 1.5 }}>
-            {tDyn(`contract.${active.baseId}.story`, active.params)}
+          <div style={{ lineHeight: 1.5 }}>
+            <Text tone="soft" size="sm">{tDyn(`contract.${active.baseId}.story`, active.params)}</Text>
           </div>
           {hasHint && (
-            <div style={{ marginTop: 4, color: '#ffd866' }}>
+            <Text tone="warn" size="sm" layout={{ marginTop: 4 }}>
               {t('ui.task.hint', { text: tDyn(hintKey) })}
-            </div>
+            </Text>
           )}
           {active.phase === 'design' && hasBlueprint && (
             <>
               <Button variant="secondary" layout={{ marginTop: 6 }} onClick={() => setBlueprintError(useBlueprint())}>
                 {t('ui.blueprint.use')}
               </Button>
-              {blueprintError && <div style={{ marginTop: 4, color: '#ffd866' }}>{tDyn(`ui.error.${blueprintError}`)}</div>}
+              {blueprintError && <Text tone="warn" size="sm" layout={{ marginTop: 4 }}>{tDyn(`ui.error.${blueprintError}`)}</Text>}
             </>
           )}
           <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>
@@ -168,21 +166,23 @@ export function TaskPanel() {
               return (
                 <li key={i} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'flex-start', marginTop: 4 }}>
                   {g.ok === false && g.node ? (
-                    <button
-                      aria-label={t('ui.check.open')}
+                    <Button
+                      variant="plain"
+                      size="bare"
+                      label={t('ui.check.open')}
                       title={t('ui.check.open')}
+                      layout={{ flexShrink: 0 }}
                       onClick={() => {
                         setTool('select');
                         if (g.node) openWindow('device', g.node);
                       }}
-                      style={{ flexShrink: 0, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit' }}
                     >
                       {icon}
-                    </button>
+                    </Button>
                   ) : (
-                    <span style={{ opacity: g.ok === null ? 0.25 : 1, flexShrink: 0 }}>{icon}</span>
+                    <Text as="span" tone={g.ok === null ? 'faint' : 'normal'} size="sm" layout={{ flexShrink: 0 }}>{icon}</Text>
                   )}
-                  <span style={{ opacity: g.ok === true ? 0.7 : 1 }}>{g.text}</span>
+                  <Text as="span" tone={g.ok === true ? 'sub' : 'normal'} size="sm">{g.text}</Text>
                   {traces.some((tr) => tr.goal === i) && (
                     <Button variant="secondary" size="s" layout={{ flexShrink: 0 }} onClick={() => openWindow('frames', String(i))}>
                       {t('ui.frames.goal')}
@@ -195,7 +195,7 @@ export function TaskPanel() {
                         {t('ui.glossary.open')}
                       </Button>
                     ) : (
-                      <div style={{ flexBasis: '100%', paddingLeft: 22, fontSize: 12, opacity: 0.85 }}>{tDyn(`glossary.${g.term}`)}</div>
+                      <div style={{ flexBasis: '100%', paddingLeft: 22 }}><Text tone="soft" size="s">{tDyn(`glossary.${g.term}`)}</Text></div>
                     )
                   )}
                 </li>
@@ -209,14 +209,14 @@ export function TaskPanel() {
           )}
           {warnings.length > 0 && (
             <div style={{ marginTop: 8 }}>
-              <div style={{ fontWeight: 'bold', color: '#ffd866' }}>{t('ui.check.warnings')}</div>
+              <Text tone="warn" size="sm" bold>{t('ui.check.warnings')}</Text>
               <ul style={{ listStyle: 'none', margin: '2px 0 0', padding: 0 }}>
                 {warnings.map((warning, i) => (
-                  <li key={`${warning.id}-${warning.a}-${warning.b}-${i}`} style={{ marginTop: 4, color: '#ffd866' }}>
-                    <span>{tDyn(`warn.${warning.id}`)}</span>
-                    <div style={{ fontSize: 11, opacity: 0.9 }}>
+                  <li key={`${warning.id}-${warning.a}-${warning.b}-${i}`} style={{ marginTop: 4 }}>
+                    <Text as="span" tone="warn" size="sm">{tDyn(`warn.${warning.id}`)}</Text>
+                    <Text tone="warn" size="xs">
                       {labelOfUid(useGameStore.getState(), warning.a, active.nodes)} / {labelOfUid(useGameStore.getState(), warning.b, active.nodes)}
-                    </div>
+                    </Text>
                   </li>
                 ))}
               </ul>
@@ -224,14 +224,14 @@ export function TaskPanel() {
           )}
           {steps.length > 0 && (
             <>
-              <div style={{ marginTop: 8, fontWeight: 'bold' }}>{t('ui.task.steps')}</div>
+              <Text size="sm" bold layout={{ marginTop: 8 }}>{t('ui.task.steps')}</Text>
               <ul style={{ listStyle: 'none', margin: '2px 0 0', padding: 0 }}>
                 {steps.map((s, i) => (
                   <li key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginTop: 4 }}>
-                    <span style={{ opacity: s.done ? 1 : 0.25, flexShrink: 0 }}>
+                    <Text as="span" tone={s.done ? 'normal' : 'faint'} size="sm" layout={{ flexShrink: 0 }}>
                       <Icon name="icon/ok" scale={1} />
-                    </span>
-                    <span style={{ opacity: s.done ? 0.7 : 1 }}>{s.text}</span>
+                    </Text>
+                    <Text as="span" tone={s.done ? 'sub' : 'normal'} size="sm">{s.text}</Text>
                   </li>
                 ))}
               </ul>
@@ -239,6 +239,6 @@ export function TaskPanel() {
           )}
         </div>
       )}
-    </aside>
+    </HudBar>
   );
 }
