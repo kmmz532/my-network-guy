@@ -13,9 +13,10 @@ import type { NetNode, NetworkPlan } from '../network/types';
 import { focusedOf, netOf, withNet, type Core, type Env, type NetTarget } from './project';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { deviceCategory } from '../registry/query';
+import { categoryCan } from '../network/capabilities';
 
-// ルーターと、ファイアウォール（経路の設定を持つ機器）
-const isRoutingFirewall = (category: string): boolean => category === CATEGORY.router || category === CATEGORY.firewall;
+// ルーターと、ファイアウォール（口ごとにアドレスを持つルーテッドポートの機器。L3スイッチは含めない）
+const isRoutingFirewall = (category: string): boolean => categoryCan(category, 'routedPort') && !categoryCan(category, 'switchport');
 
 // 振り始めのアドレス（ホストの末尾）。使えなければ .1 から探す
 const FIRST_HOST = 10;
