@@ -290,7 +290,6 @@ input.ui-combobox:disabled {
 .ui-icon-button--selected {
   border-color: var(--accent);
   background: var(--bg-card-pressed);
-  box-shadow: inset 2px 2px 0 rgba(20, 30, 50, 0.7);
 }
 
 .ui-icon-button:disabled {
@@ -831,4 +830,14 @@ input.ui-terminal-input__field {
 
 .ui-button--plain.ui-button--bare {
   font-weight: normal;
+}
+
+.ui-button--bar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  min-height: 44px;
+  font-size: var(--fs-l);
 }

@@ -22,8 +22,11 @@ import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
 import { IconButton } from './ui/IconButton';
 import { Divider } from './ui/Divider';
+import { Button } from './ui/Button';
+import { HudBar } from './ui/HudBar';
+import { ProgressBar } from './ui/ProgressBar';
+import { Text } from './ui/Text';
 import { Inventory, inventoryCatalog } from './Inventory';
-import { RADIUS } from '../ui/theme';
 import { usePhone } from '../ui/usePhone';
 import { useUiStore } from '../stores/useUiStore';
 import { setInventoryOpen, useInventoryOpen } from '../ui/inventoryOpen';
@@ -35,8 +38,6 @@ const bar = {
   right: 0,
   bottom: 0,
   padding: '6px 12px',
-  background: 'rgba(47, 79, 143, 0.92)',
-  color: '#f4f1e6',
   display: 'flex',
   flexWrap: 'wrap',
   alignItems: 'center',
@@ -67,24 +68,6 @@ const scrollerPhone = {
 
 // PC では行を作らず、子の部品を従来どおり footer の並びに置く
 const scrollerDesktop = { display: 'contents' } as const;
-
-const slot = (active: boolean) =>
-  ({
-    width: 44,
-    height: 44,
-    padding: 2,
-    border: `2px solid ${active ? '#ffd866' : '#3b2a33'}`,
-    background: active ? '#3a5fa8' : '#25406f',
-    borderRadius: RADIUS.chrome,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#f4f1e6',
-    fontSize: 18,
-    position: 'relative',
-  }) as const;
-
 
 // 道具の一覧（左端に並べる順）。action は input/keymap.ts の動作の識別子（押すキーの表示に使う）
 const TOOLS: { id: Tool; name: LangKey; action: string; icon: string }[] = [
@@ -146,23 +129,19 @@ export function Toolbar() {
   const design = active?.phase === 'design';
   const yen = (n: number) => n.toLocaleString('ja-JP');
   const phone = usePhone();
-  // スマホのボタンは、幅 44 px（指の場所）と高さ 38 px（N58）。パソコンは今の正方形のまま
-  // 左の道具（選択・配線・撤去）と同じ 44 px の正方形にそろえ、横スクロールの行で縮まないようにする
-  const sl = (active: boolean) => (phone ? { ...slot(active), flexShrink: 0 } : slot(active));
+  // スマホの横スクロールの行では、ボタンが縮まないようにする
+  const shrink0 = phone ? ({ flexShrink: 0 } as const) : undefined;
   // IPアドレスの表示の切り替え。設計中は施工のボタンの左、それ以外は右端に出す
   const ipButton = (
-    <Tooltip text={tipText('ui.showIp', 'showIp', !phone)}><button aria-label={t('ui.showIp')} style={{ ...sl(showIp), fontSize: 13, fontWeight: 'bold' }}
-      
-      onClick={() => setShowIp(!showIp)}
-    >
-      IP
-    </button></Tooltip>
+    <IconButton label={t('ui.showIp')} tip={tipText('ui.showIp', 'showIp', !phone)} selected={showIp} layout={shrink0} onClick={() => setShowIp(!showIp)}>
+      <Text as="span" size="sm" bold>IP</Text>
+    </IconButton>
   );
   // 元に戻す・やり直す。設計中は施工のボタンの左、自社オフィスでは IP の表示の左に出す
   const historyButtons = (
     <>
       {historyError && (
-        <span style={{ fontSize: 13, color: '#ffd3c9', maxWidth: 320 }}>{tDyn(`ui.error.${historyError}`)}</span>
+        <Text as="span" size="sm" tone="error" layout={{ maxWidth: 320 }}>{tDyn(`ui.error.${historyError}`)}</Text>
       )}
       <IconButton label={t('keys.undo')} tip={tipText('keys.undo', 'undo', !phone)} disabled={!canUndo} onClick={() => undo()}>
         <Icon name="icon/undo" />
@@ -196,10 +175,12 @@ export function Toolbar() {
 
   // ケーブルの種類の欄。PC は配線のボタンの上に浮かせ、狭い画面は行の上に出す（スクロールで切れないように）
   const cablePopup = (
-    <div
+    <HudBar
+      as="div"
+      variant="tray"
       // ツールバーの上に浮く欄の印（案内の吹き出しの位置を測るため・N106）
-      data-toolbar-popup
-      style={{
+      marker="toolbar-popup"
+      arrange={{
         position: phone ? 'static' : 'absolute',
         left: 0,
         bottom: phone ? undefined : '100%',
@@ -208,9 +189,6 @@ export function Toolbar() {
         display: 'flex',
         gap: 4,
         padding: 4,
-        background: 'rgba(47, 79, 143, 0.92)',
-        border: '1px solid #3b2a33',
-        borderRadius: RADIUS.chrome,
         whiteSpace: 'nowrap',
       }}
     >
@@ -220,41 +198,39 @@ export function Toolbar() {
         // 値段は、ボタンの文字には出さず、ツールチップの2行目に出す
         const price = t('ui.cable.price', { link: yen(cable.pricePerLink), tile: yen(cable.pricePerTile) });
         return (
-          <Tooltip text={sandbox ? name : `${name}\n${price}`} key={id}>
-            <button aria-label={name} style={{ ...sl(wireCable === id), width: 36, height: 36 }} onClick={() => setWireCable(id)}>
-              <Icon name={`icon/cable_${id}`} scale={1} />
-            </button>
-          </Tooltip>
+          <IconButton key={id} label={name} tip={sandbox ? name : `${name}\n${price}`} selected={wireCable === id} layout={{ width: 36, maxHeight: 36, ...shrink0 }} onClick={() => setWireCable(id)}>
+            <Icon name={`icon/cable_${id}`} scale={1} />
+          </IconButton>
         );
       })}
-    </div>
+    </HudBar>
   );
   const showCables = tool === 'wire' && cableIds.length > 0;
 
   // スマホは場面ごとに中身を替え、1段に収める（横スクロールしない）。
   // IP の表示は設定画面で切り替える。戻す・やり直すは、地図の右下の拡大・縮小のボタンの上に置く（MapZoomButtons.tsx）。予算・やめる・施工の進み具合はバーの上の帯に出す
   if (phone) {
-    const strip = { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, fontSize: 13 } as const;
+    const strip = { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 } as const;
     const gap = <span style={{ width: 6, flexShrink: 0 }} />;
     return (
       <>
-      <footer style={barPhone} data-toolbar>
+      <HudBar as="footer" variant="bottom" arrange={barPhone} marker="toolbar">
         {showCables && cablePopup}
         {design && (
           <div style={strip}>
-            <Icon name="icon/budget" /> {yen(projectCostOf(active).total)} / {yen(active.contract.budget)}
-            <button aria-label={t('ui.project.abandon')} style={{ ...sl(false), width: 32, height: 32, marginLeft: 'auto' }} onClick={() => { closeInventory(); abandon(); }}>
-              <Icon name="icon/close" />
-            </button>
+            <Icon name="icon/budget" /> <Text as="span" size="sm">{yen(projectCostOf(active).total)} / {yen(active.contract.budget)}</Text>
+            <span style={{ marginLeft: 'auto', display: 'flex' }}>
+              <IconButton label={t('ui.project.abandon')} layout={{ width: 32, maxHeight: 32, ...shrink0 }} onClick={() => { closeInventory(); abandon(); }}>
+                <Icon name="icon/close" />
+              </IconButton>
+            </span>
           </div>
         )}
         {active?.phase === 'build' && (
           <div style={strip}>
             <Icon name="icon/hammer" />
-            <div style={{ flex: 1, height: 10, background: '#3b2a33', borderRadius: RADIUS.none }}>
-              <div style={{ width: `${active.total ? Math.min(100, (active.progress / active.total) * 100) : 0}%`, height: '100%', background: workingNow ? '#ffd866' : '#8a8a8a' }} />
-            </div>
-            {!workingNow && <span style={{ whiteSpace: 'nowrap' }}>{t('ui.build.offHours', { hour: balance.build.workStartHour })}</span>}
+            <ProgressBar size="m" fraction={active.total ? Math.min(1, active.progress / active.total) : 0} color={workingNow ? 'var(--accent)' : 'var(--fg-disabled)'} layout={{ flex: 1 }} />
+            {!workingNow && <span style={{ whiteSpace: 'nowrap' }}><Text as="span" size="sm">{t('ui.build.offHours', { hour: balance.build.workStartHour })}</Text></span>}
           </div>
         )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -265,40 +241,36 @@ export function Toolbar() {
           ))}
           {gap}
           {!sandbox && !design && (
-            <button aria-label={t('ui.offer.title')} style={sl(false)} onClick={() => { closeInventory(); onOffers(); }}>
+            <IconButton label={t('ui.offer.title')} count={offers.length} layout={shrink0} onClick={() => { closeInventory(); onOffers(); }}>
               <Icon name="icon/mail" />
-              {offers.length > 0 && (
-                <span style={{ position: 'absolute', top: 2, right: 2, background: '#e84a4a', borderRadius: RADIUS.chrome, fontSize: 11, padding: '0 5px' }}>{offers.length}</span>
-              )}
-            </button>
+            </IconButton>
           )}
           <IconButton label={t('ui.shop.title')} guide="shop" layout={{ flexShrink: 0 }} onClick={() => { closeInventory(); onShop(); }}>
             <Icon name="icon/cart" />
           </IconButton>
           {!sandbox && !design && (
-            <button aria-label={t('ui.staff.hire')} style={sl(hiringOpen)} onClick={() => { closeInventory(); onHire(); }}>
+            <IconButton label={t('ui.staff.hire')} selected={hiringOpen} layout={shrink0} onClick={() => { closeInventory(); onHire(); }}>
               <Icon name="icon/person" />
-            </button>
+            </IconButton>
           )}
-          <button aria-label={t('ui.inventory.title')} data-guide="inventory" style={{ ...sl(inventoryOpen && inventoryOpenable), opacity: inventoryOpenable ? 1 : 0.35 }} disabled={!inventoryOpenable} onClick={() => setInventoryOpen(!inventoryOpen)}>
+          <IconButton label={t('ui.inventory.title')} guide="inventory" selected={inventoryOpen && inventoryOpenable} stock={stockTotal} disabled={!inventoryOpenable} layout={shrink0} onClick={() => setInventoryOpen(!inventoryOpen)}>
             <Icon name="icon/inventory" />
-            <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>{stockTotal}</span>
-          </button>
+          </IconButton>
           {(design || sandbox) && (
             <>
               {gap}
-              <button aria-label={t('ui.test')} data-guide="test" style={{ ...sl(false), background: testLit ? '#ffd866' : '#3a7bd0' }} onClick={() => { closeInventory(); test(); }}>
+              <IconButton label={t('ui.test')} guide="test" variant={testLit ? 'primary' : 'normal'} layout={shrink0} onClick={() => { closeInventory(); test(); }}>
                 <Icon name="icon/test" />
-              </button>
+              </IconButton>
               {design && (
-                <button aria-label={t('ui.build')} style={{ ...sl(false), background: '#5aa860', opacity: active.testedOk ? 1 : 0.55 }} onClick={() => { closeInventory(); requestBuild(); }}>
+                <IconButton label={t('ui.build')} variant="primary" unavailable={!active.testedOk} layout={shrink0} onClick={() => { closeInventory(); requestBuild(); }}>
                   <Icon name="icon/hammer" />
-                </button>
+                </IconButton>
               )}
             </>
           )}
         </div>
-      </footer>
+      </HudBar>
       {inventoryOpen && inventoryOpenable && (
         <Inventory items={inventoryItemList} owned={owned} sandbox={sandbox} placing={placing} onPick={pickInventoryItem} onShop={onShop} />
       )}
@@ -308,7 +280,7 @@ export function Toolbar() {
 
   return (
     <>
-    <footer style={bar} data-toolbar>
+    <HudBar as="footer" variant="bottom" arrange={bar} marker="toolbar">
       {/* 狭い画面では、ケーブルの欄を行の上に出す */}
       {phone && showCables && cablePopup}
       <div style={phone ? scrollerPhone : scrollerDesktop}>
@@ -333,23 +305,15 @@ export function Toolbar() {
         <Icon name="icon/cart" />
       </IconButton>
       {!sandbox && (
-        // 候補が0人のときは押せない（半透明）
-        <Tooltip text={t('ui.staff.hire')}><button aria-label={t('ui.staff.hire')} style={sl(hiringOpen)} onClick={() => { closeInventory(); onHire(); }}>
+        <IconButton label={t('ui.staff.hire')} selected={hiringOpen} onClick={() => { closeInventory(); onHire(); }}>
           <Icon name="icon/person" />
-        </button></Tooltip>
+        </IconButton>
       )}
       {/* 在庫はインベントリのアイコンにまとめる。品目の一覧はインベントリの欄で開く */}
       <Divider layout={{ margin: '0 4px' }} />
-      <Tooltip text={tipText('ui.inventory.title', 'inventory', !phone)}><button aria-label={t('ui.inventory.title')} data-guide="inventory" style={{ ...sl(inventoryOpen && inventoryOpenable), opacity: inventoryOpenable ? 1 : 0.35 }}
-        
-        disabled={!inventoryOpenable}
-        onClick={() => setInventoryOpen(!inventoryOpen)}
-      >
+      <IconButton label={t('ui.inventory.title')} tip={tipText('ui.inventory.title', 'inventory', !phone)} guide="inventory" selected={inventoryOpen && inventoryOpenable} stock={stockTotal} disabled={!inventoryOpenable} onClick={() => setInventoryOpen(!inventoryOpen)}>
         <Icon name="icon/inventory" />
-        <span style={{ position: 'absolute', right: 2, bottom: 0, fontSize: 11, fontWeight: 'bold', textShadow: '0 0 2px #3b2a33' }}>
-          {stockTotal}
-        </span>
-      </button></Tooltip>
+      </IconButton>
       {(design || sandbox) && (
         <>
           <Divider layout={{ margin: '0 4px' }} />
@@ -357,47 +321,26 @@ export function Toolbar() {
           <Divider layout={{ margin: '0 4px' }} />
           {/* テストは何度でも押せ、時間も費用もかからない。施工は、テストに合格してからだけ依頼できる（押すと案内を出す） */}
           <Tooltip text={tipText('ui.test', 'test', !phone)}>
-            <button
-              aria-label={t('ui.test')}
-              data-guide="test"
-              style={{
-                ...sl(false),
-                width: 'auto',
-                padding: '0 14px',
-                background: testLit ? '#ffd866' : '#3a7bd0',
-                color: testLit ? '#1d3664' : '#f4f1e6',
-                fontSize: 16,
-              }}
-              onClick={() => { closeInventory(); test(); }}
-            >
+            <Button variant="secondary" size="bar" pressed={testLit} label={t('ui.test')} guide="test" onClick={() => { closeInventory(); test(); }}>
               <Icon name="icon/test" /> {t('ui.test')}
-            </button>
+            </Button>
           </Tooltip>
           {historyButtons}
           {design && (
           <>
           <Tooltip text={tipText('ui.build', 'build', !phone)}>
-            <button
-              aria-label={t('ui.build')}
-              style={{
-                ...sl(false),
-                width: 'auto',
-                padding: '0 14px',
-                background: '#5aa860',
-                fontSize: 16,
-                opacity: active.testedOk ? 1 : 0.55,
-              }}
-              onClick={() => { closeInventory(); requestBuild(); }}
-            >
+            <Button variant="primary" size="bar" unavailable={!active.testedOk} label={t('ui.build')} onClick={() => { closeInventory(); requestBuild(); }}>
               <Icon name="icon/hammer" /> {t('ui.build')}
-            </button>
+            </Button>
           </Tooltip>
           <span style={{ marginLeft: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Icon name="icon/budget" /> {yen(projectCostOf(active).total)} / {yen(active.contract.budget)}
+            <Icon name="icon/budget" /> <Text as="span">{yen(projectCostOf(active).total)} / {yen(active.contract.budget)}</Text>
           </span>
-          <Tooltip text={t('ui.project.abandon')} style={{ marginLeft: 'auto' }}><button aria-label={t('ui.project.abandon')} style={{ ...sl(false), width: 32 }}  onClick={() => { closeInventory(); abandon(); }}>
-            <Icon name="icon/close" />
-          </button></Tooltip>
+          <span style={{ marginLeft: 'auto', display: 'flex' }}>
+            <IconButton label={t('ui.project.abandon')} layout={{ width: 32 }} onClick={() => { closeInventory(); abandon(); }}>
+              <Icon name="icon/close" />
+            </IconButton>
+          </span>
           </>
           )}
         </>
@@ -412,24 +355,16 @@ export function Toolbar() {
         <>
           <Divider layout={{ margin: '0 4px' }} />
           <Icon name="icon/hammer" />
-          <div style={{ width: 200, height: 10, background: '#3b2a33', borderRadius: RADIUS.none }}>
-            <div
-              style={{
-                width: `${active.total ? Math.min(100, (active.progress / active.total) * 100) : 0}%`,
-                height: '100%',
-                background: workingNow ? '#ffd866' : '#8a8a8a',
-              }}
-            />
-          </div>
+          <ProgressBar size="m" fraction={active.total ? Math.min(1, active.progress / active.total) : 0} color={workingNow ? 'var(--accent)' : 'var(--fg-disabled)'} layout={{ width: 200 }} />
           {!workingNow && (
-            <span style={{ fontSize: 13, whiteSpace: 'nowrap' }}>
-              {t('ui.build.offHours', { hour: balance.build.workStartHour })}
+            <span style={{ whiteSpace: 'nowrap' }}>
+              <Text as="span" size="sm">{t('ui.build.offHours', { hour: balance.build.workStartHour })}</Text>
             </span>
           )}
         </>
       )}
       </div>
-    </footer>
+    </HudBar>
     {/* パソコンのインベントリはウィンドウ（Windows.tsx の InventoryBody）で出す */}
     </>
   );
