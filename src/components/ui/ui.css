@@ -1343,3 +1343,56 @@ textarea.ui-text-area--data:focus {
   color: var(--st-warn);
 }
 
+/* Glow: 案内で光らせる枠 */
+@keyframes guide-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.ui-glow {
+  position: fixed;
+  box-sizing: border-box;
+  border: 2px solid var(--glow);
+  border-radius: 4px;
+  pointer-events: none;
+  animation: guide-blink 0.8s steps(1, end) infinite;
+}
+
+/* Bubble: 案内の吹き出し */
+.ui-bubble {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg-field);
+  color: var(--fg-on-field);
+  border: 3px solid var(--line);
+  box-shadow: 0 0 0 2px var(--bg-field);
+  border-radius: 0;
+  white-space: nowrap;
+  font-size: var(--fs-m);
+}
+
+.ui-bubble--wrap {
+  white-space: normal;
+}
+
+.ui-bubble__tail {
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: var(--bg-field);
+  border-right: 3px solid var(--line);
+  border-bottom: 3px solid var(--line);
+  transform: rotate(45deg);
+}
+

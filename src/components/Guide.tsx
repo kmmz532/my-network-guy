@@ -10,10 +10,11 @@ import { t, tDyn } from '../i18n/t';
 import { loadSettings } from '../settings/settings';
 import { currentGuideStep, type GuideState } from '../sim/guide';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
-import { RADIUS } from '../ui/theme';
 import { staffSpriteName } from '../data/schema';
 import { Icon } from './Icon';
+import { Bubble } from './ui/Bubble';
 import { Button } from './ui/Button';
+import { Glow } from './ui/Glow';
 
 interface Box {
   left: number;
@@ -201,24 +202,11 @@ export function Guide() {
 
   return (
     <>
-      <style>{'@keyframes guide-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }'}</style>
       {glow && (
-        <div
-          aria-hidden
-          style={{
-            // ボタンの外側に 3 px（画面の px。この枠は UI の大きさの zoom の外にあるので換算しない）。枠は border-box で、枠の内側がボタンの外形に接する
-            position: 'fixed',
-            boxSizing: 'border-box',
-            left: glow.left - GLOW_OUTSET_PX,
-            top: glow.top - GLOW_OUTSET_PX,
-            width: glow.width + GLOW_OUTSET_PX * 2,
-            height: glow.height + GLOW_OUTSET_PX * 2,
-            border: `${GLOW_OUTSET_PX}px solid #66ff66`,
-            borderRadius: RADIUS.chrome,
-            pointerEvents: 'none',
-            zIndex: GUIDE_Z,
-            animation: 'guide-blink 0.8s steps(1, end) infinite',
-          }}
+        // ボタンの外側に GLOW_OUTSET_PX（画面の px。この枠は UI の大きさの zoom の外にあるので換算しない）。枠の内側がボタンの外形に接する
+        <Glow
+          box={{ left: glow.left - GLOW_OUTSET_PX, top: glow.top - GLOW_OUTSET_PX, width: glow.width + GLOW_OUTSET_PX * 2, height: glow.height + GLOW_OUTSET_PX * 2 }}
+          zIndex={GUIDE_Z}
         />
       )}
       <div
@@ -249,22 +237,7 @@ export function Guide() {
               }
         }
       >
-        <div
-          style={{
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '6px 10px',
-            background: '#f4f1e6',
-            color: '#3b2a33',
-            border: '3px solid #3b2a33',
-            boxShadow: '0 0 0 2px #f4f1e6',
-            borderRadius: RADIUS.none,
-            whiteSpace: phone ? 'normal' : 'nowrap',
-            fontSize: 14,
-          }}
-        >
+        <Bubble wrap={phone}>
           {/* 狭い画面では、社員の絵と「飛ばす」は縮めず、文字の欄が残りの幅を使う */}
           {phone ? (
             <span style={{ flexShrink: 0, display: 'flex' }}>
@@ -280,23 +253,7 @@ export function Guide() {
               {t('ui.guide.skip')}
             </Button>
           </span>
-          {/* 吹き出しの尻尾（社員の方向を向く） */}
-          <span
-            aria-hidden
-            style={{
-              position: 'absolute',
-              left: '50%',
-              bottom: -9,
-              width: 10,
-              height: 10,
-              marginLeft: -5,
-              background: '#f4f1e6',
-              borderRight: '3px solid #3b2a33',
-              borderBottom: '3px solid #3b2a33',
-              transform: 'rotate(45deg)',
-            }}
-          />
-        </div>
+        </Bubble>
       </div>
     </>
   );
