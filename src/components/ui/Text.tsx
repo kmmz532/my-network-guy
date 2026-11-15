@@ -1,11 +1,11 @@
 // 本文・補足・状態の文。地は持たず、文字の色と大きさを tone と size で決める。周りの文字の色は継承しない。
-// tone: sub は補足（今の 0.7 の淡さ）、soft は本文より少し淡い説明（0.85）、faint は未判定の印（0.25）、note は補足の灰（地の上でも読める明るさ）、ok は成功、warn は注意、error は未設定・失敗。size は今の値を持つ（11・12・13・14・16 px）。
+// tone: sub は補足（今の 0.7 の淡さ）、soft は本文より少し淡い説明（0.85）、faint は未判定の印（0.25）、halt は停止・分離の橙、note は補足の灰（地の上でも読める明るさ）、ok は成功、warn は注意、error は未設定・失敗。size は今の値を持つ（11・12・13・14・16 px）。
 import type { ReactNode } from 'react';
 import { layoutStyle, type Layout } from './layout';
 import './tokens.css';
 import './ui.css';
 
-export type TextTone = 'normal' | 'sub' | 'soft' | 'faint' | 'ok' | 'warn' | 'error' | 'note';
+export type TextTone = 'normal' | 'sub' | 'soft' | 'faint' | 'ok' | 'warn' | 'error' | 'note' | 'halt';
 export type TextSize = 'xs' | 's' | 'sm' | 'm' | 'l';
 
 interface Props {

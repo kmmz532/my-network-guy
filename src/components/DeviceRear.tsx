@@ -14,12 +14,16 @@ import { networkColors, portStatesOf } from '../network/public';
 import { stpOf } from '../network/public';
 import { loadSettings } from '../settings/settings';
 import { netOfDevice, useGameStore } from '../stores/useGameStore';
-import { buttonStyle, greyColor, portLabel } from './devicePorts';
+import { portLabel } from './devicePorts';
+import { Button } from './ui/Button';
 import { ListRow } from './ui/ListRow';
+import { Plate } from './ui/Plate';
+import { PlugMore, PlugStripe } from './ui/PlugStripe';
+import { PortButton } from './ui/PortButton';
+import { Swatch } from './ui/Swatch';
 import { Led } from './ui/Led';
 import { Text } from './ui/Text';
 import { portHoverAt, replugTargetAt, type PortBox, type PortHover } from './rearDrag';
-import { RADIUS } from '../ui/theme';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { portCountOf, deviceCategory } from '../registry/query';
 
@@ -167,21 +171,14 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
   const uiScale = loadSettings().uiScale;
   const plugW = 12 * SCALE;
   const plugH = 10 * SCALE;
+  const carryColors = carry
+    ? carry.networks.length > 0
+      ? carry.networks.slice(0, 3).map((network) => colorOfNetwork(colors, network) ?? colorOfLink(colors, ''))
+      : [colorOfLink(colors, '')]
+    : [];
   return (
     <div>
-      <div
-        style={{
-          background: '#3d434b',
-          border: '2px solid #3b2a33',
-          borderRadius: RADIUS.none,
-          padding: '8px 6px',
-          display: 'flex',
-          alignItems: 'flex-end',
-          gap: 10,
-          marginBottom: 8,
-          overflowX: 'auto',
-        }}
-      >
+      <Plate layout={{ marginBottom: 8 }}>
         <img draggable={false} src={spriteUrl('rear/power')} width={12 * SCALE} height={10 * SCALE} alt="" style={{ imageRendering: 'pixelated', display: 'block' }} />
         {/* ポートは板の幅に収まるよう、1段の口数を決めて段を分ける（9口以上は1段6口） */}
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(Math.max(portCount, 1), portsPerRow)}, auto)`, gap: 4 }}>
@@ -192,10 +189,8 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
             const slot = lifted ? (portTypeOf(node.device, p) === 'sfp' ? 'rear/port_sfp_empty' : 'rear/port_empty') : plugSlot(link, portTypeOf(node.device, p) === 'sfp');
             const linkNetworks = link ? networksOfLink(colors, link.uid) : [];
             const stripeNetworks = linkNetworks.slice(0, 3);
-            const stripeColors = stripeNetworks.map((network) => colorOfNetwork(colors, network) ?? colorOfLink(colors, link!.uid));
-            const stripeBackground = stripeColors.length > 1
-              ? `repeating-linear-gradient(90deg, ${stripeColors.map((color, i) => `#${color.toString(16).padStart(6, '0')} ${i * 100 / stripeColors.length}% ${(i + 1) * 100 / stripeColors.length}%`).join(', ')})`
-              : `#${(stripeColors[0] ?? colorOfLink(colors, link?.uid ?? '')).toString(16).padStart(6, '0')}`;
+            const stripeColors = stripeNetworks.length > 0 ? stripeNetworks.map((network) => colorOfNetwork(colors, network) ?? colorOfLink(colors, link!.uid)) : [colorOfLink(colors, link?.uid ?? '')];
+            const maskOf = (isFiber: boolean) => spriteUrl(spriteOf(isFiber ? 'rear/sfp_mask' : 'rear/plug_mask'));
             const fiber = link?.cable.startsWith('fiber') ?? false;
             const lit = !lifted && link !== undefined;
             // LED: 緑＝つながっている・橙＝スパニングツリーで止めている・灰＝停止・消灯＝配線なし（NET.md §5.1）
@@ -204,24 +199,27 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
             // 挿し替え中は、空いているポートを光らせて挿し替え先を示す
             const replugFree = active !== null && link === undefined;
             // ドラッグ中は、重なっているポートを明るく（空き）・暗く（埋まり）示す。それ以外は押しているポートを明るくする
-            const filter = carry
+            const tone = carry
               ? carry.over?.port === p
                 ? carry.over.state === 'free'
-                  ? 'brightness(1.35)'
-                  : 'brightness(0.55)'
+                  ? 'lift'
+                  : 'dim'
                 : undefined
               : replugFree
-                ? 'brightness(1.35) drop-shadow(0 0 4px #ffd866)'
+                ? 'glow'
                 : hover === p
-                  ? 'brightness(1.35)'
+                  ? 'lift'
                   : undefined;
             return (
-              <button
+              <PortButton
                 key={p}
-                ref={(el) => {
+                buttonRef={(el) => {
                   portRefs.current[p] = el;
                 }}
-                aria-label={portLabel(category, p)}
+                label={portLabel(category, p)}
+                mark={selected === p ? 'selected' : replugFree ? 'target' : undefined}
+                tone={tone}
+                grab={link !== undefined && grabbable}
                 onClick={() => {
                   if (ignoreClick.current) return;
                   press(p);
@@ -230,60 +228,30 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
                 onDragStart={(e) => e.preventDefault()}
                 onMouseEnter={() => setHover(p)}
                 onMouseLeave={() => setHover(null)}
-                style={{
-                  background: 'none',
-                  border: selected === p ? '2px solid #ffd866' : replugFree ? '2px dashed #ffd866' : '2px solid transparent',
-                  borderRadius: RADIUS.none,
-                  padding: 0,
-                  cursor: link && grabbable ? 'grab' : 'pointer',
-                  // スマートフォンでもプラグをドラッグできるよう、ブラウザのスクロールに渡さない
-                  touchAction: 'none',
-                  userSelect: 'none',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 2,
-                  filter,
-                }}
               >
                 {/* LED（緑・橙・灰・消灯）。2×2 の点を3倍にする */}
                 <Led color={led} size={2 * SCALE} />
                 <span style={{ position: 'relative', width: (fiber ? 8 : 12) * SCALE, height: 10 * SCALE, display: 'block' }}>
                   <img src={spriteUrl(spriteOf(slot))} width={(fiber ? 8 : 12) * SCALE} height={10 * SCALE} alt="" draggable={false} style={{ imageRendering: 'pixelated', display: 'block' }} />
-                  {!lifted && link && (
-                    <span
-                      style={{
-                        position: 'absolute',
-                        inset: 0,
-                        background: stripeBackground,
-                        maskImage: `url(${spriteUrl(spriteOf(fiber ? 'rear/sfp_mask' : 'rear/plug_mask'))})`,
-                        WebkitMaskImage: `url(${spriteUrl(spriteOf(fiber ? 'rear/sfp_mask' : 'rear/plug_mask'))})`,
-                        maskSize: '100% 100%',
-                        WebkitMaskSize: '100% 100%',
-                        maskRepeat: 'no-repeat',
-                        WebkitMaskRepeat: 'no-repeat',
-                        pointerEvents: 'none',
-                      }}
-                    />
-                  )}
+                  {!lifted && link && <PlugStripe colors={stripeColors} mask={maskOf(fiber)} />}
                   {!lifted && link && <img src={spriteUrl(spriteOf(fiber ? 'rear/sfp_shade' : 'rear/plug_shade'))} width={(fiber ? 8 : 12) * SCALE} height={10 * SCALE} alt="" draggable={false} style={{ position: 'absolute', inset: 0, imageRendering: 'pixelated', display: 'block', pointerEvents: 'none' }} />}
-                  {!lifted && linkNetworks.length > 3 && <span style={{ position: 'absolute', right: 1, bottom: 0, color: '#f4f1e6', fontSize: Math.max(8, SCALE * 3), lineHeight: 1, textShadow: '1px 1px #3b2a33', pointerEvents: 'none' }}>…</span>}
+                  {!lifted && linkNetworks.length > 3 && <PlugMore scale={SCALE} />}
                 </span>
                 <Text as="span" size="xs">{portLabel(category, p)}</Text>
-              </button>
+              </PortButton>
             );
           })}
         </div>
         {fan && <img draggable={false} src={spriteUrl('rear/fan')} width={16 * SCALE} height={16 * SCALE} alt="" style={{ imageRendering: 'pixelated', display: 'block' }} />}
-      </div>
+      </Plate>
 
       {/* ドラッグ中のプラグ。指やカーソルに付いて動く（画面の上に出し、ポインターの動きを邪魔しない） */}
       {carry &&
         createPortal(
           <span style={{ position: 'fixed', left: carry.x / uiScale - plugW / 2, top: carry.y / uiScale - plugH / 2, width: (carry.fiber ? 8 : 12) * SCALE, height: plugH, pointerEvents: 'none', zIndex: 1000, zoom: 'var(--ui-scale, 1)' }}>
             <img src={spriteUrl(spriteOf(carry.fiber ? 'rear/port_sfp_empty' : 'rear/port_empty'))} alt="" draggable={false} style={{ imageRendering: 'pixelated', display: 'block', width: (carry.fiber ? 8 : 12) * SCALE, height: plugH }} />
-            <span style={{ position: 'absolute', inset: 0, background: carry.networks.length > 1 ? `repeating-linear-gradient(90deg, ${carry.networks.slice(0, 3).map((network, i, shown) => `#${(colorOfNetwork(colors, network) ?? colorOfLink(colors, '')).toString(16).padStart(6, '0')} ${i * 100 / shown.length}% ${(i + 1) * 100 / shown.length}%`).join(', ')})` : `#${(colorOfNetwork(colors, carry.networks[0]) ?? colorOfLink(colors, '')).toString(16).padStart(6, '0')}`, maskImage: `url(${spriteUrl(spriteOf(carry.fiber ? 'rear/sfp_mask' : 'rear/plug_mask'))})`, WebkitMaskImage: `url(${spriteUrl(spriteOf(carry.fiber ? 'rear/sfp_mask' : 'rear/plug_mask'))})`, maskSize: '100% 100%', WebkitMaskSize: '100% 100%', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat' }} />
-            {carry.networks.length > 3 && <span style={{ position: 'absolute', right: 1, bottom: 0, color: '#f4f1e6', fontSize: Math.max(8, SCALE * 3), lineHeight: 1, textShadow: '1px 1px #3b2a33' }}>…</span>}
+            <PlugStripe colors={carryColors} mask={spriteUrl(spriteOf(carry.fiber ? 'rear/sfp_mask' : 'rear/plug_mask'))} />
+            {carry.networks.length > 3 && <PlugMore scale={SCALE} />}
             <img src={spriteUrl(spriteOf(carry.fiber ? 'rear/sfp_shade' : 'rear/plug_shade'))} alt="" draggable={false} style={{ position: 'absolute', inset: 0, imageRendering: 'pixelated', display: 'block', width: (carry.fiber ? 8 : 12) * SCALE, height: plugH }} />
           </span>,
           document.body,
@@ -299,44 +267,55 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
         return (
           <ListRow key={p} layout={{ marginBottom: 3 }} active={selected === p} onClick={() => press(p)}>
             <div>
-              <span style={{ fontWeight: 'bold', marginRight: 6 }}>{portLabel(category, p)}</span>
-              <span style={{ color: link ? '#62d26f' : greyColor }}>{link ? peerName : t('ui.rear.free')}</span>
+              <Text as="span" bold layout={{ marginRight: 6 }}>{portLabel(category, p)}</Text>
+              <Text as="span" tone={link ? 'ok' : 'note'}>{link ? peerName : t('ui.rear.free')}</Text>
             </div>
-            {link && states.get(p)?.shutdown && <div style={{ color: greyColor, fontSize: 11 }}>{t('ui.rear.shutdown')}</div>}
-            {link && states.get(p)?.stp && <div style={{ color: states.get(p)?.stp === 'blocking' ? '#f0a030' : greyColor, fontSize: 11 }}>{t(states.get(p)?.stp === 'blocking' ? 'ui.rear.stpBlocking' : states.get(p)?.stp === 'root' ? 'ui.rear.stpRootPort' : 'ui.rear.stpDesignated')}</div>}
-            {link && states.get(p)?.channel && <div style={{ color: states.get(p)?.channel?.bundled ? '#62d26f' : '#f0a030', fontSize: 11 }}>{t(states.get(p)?.channel?.bundled ? 'ui.rear.channelBundled' : 'ui.rear.channelSplit', { group: states.get(p)?.channel?.group ?? 0 })}</div>}
-            {link && <div style={{ color: greyColor, fontSize: 11 }}>{tDyn(`cable.${link.cable}.name`)} {networksOfLink(colors, link.uid).map((network) => <span key={network} style={{ marginLeft: 5 }}><span style={{ display: 'inline-block', width: 8, height: 8, background: `#${(colorOfNetwork(colors, network) ?? colorOfLink(colors, link.uid)).toString(16).padStart(6, '0')}` }} /> {networkLabelOf(colors, network)}</span>)}</div>}
+            {link && states.get(p)?.shutdown && <Text tone="note" size="xs">{t('ui.rear.shutdown')}</Text>}
+            {link && states.get(p)?.stp && <Text tone={states.get(p)?.stp === 'blocking' ? 'halt' : 'note'} size="xs">{t(states.get(p)?.stp === 'blocking' ? 'ui.rear.stpBlocking' : states.get(p)?.stp === 'root' ? 'ui.rear.stpRootPort' : 'ui.rear.stpDesignated')}</Text>}
+            {link && states.get(p)?.channel && <Text tone={states.get(p)?.channel?.bundled ? 'ok' : 'halt'} size="xs">{t(states.get(p)?.channel?.bundled ? 'ui.rear.channelBundled' : 'ui.rear.channelSplit', { group: states.get(p)?.channel?.group ?? 0 })}</Text>}
+            {link && (
+              <Text tone="note" size="xs">
+                {tDyn(`cable.${link.cable}.name`)}{' '}
+                {networksOfLink(colors, link.uid).map((network) => (
+                  <span key={network} style={{ marginLeft: 5 }}>
+                    <Swatch color={colorOfNetwork(colors, network) ?? colorOfLink(colors, link.uid)} /> {networkLabelOf(colors, network)}
+                  </span>
+                ))}
+              </Text>
+            )}
           </ListRow>
         );
       })}
 
       {active && (
         <div style={{ marginTop: 6 }}>
-          <button style={buttonStyle} onClick={() => setReplugging(null)}>
+          <Button variant="secondary" size="fit" onClick={() => setReplugging(null)}>
             {t('ui.rear.cancel')}
-          </button>
+          </Button>
         </div>
       )}
       {!active && selected !== null && selectedLink && !readOnly && (
         <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-          <button
-            style={buttonStyle}
+          <Button
+            variant="secondary"
+            size="fit"
             onClick={() => {
               onError(removeLink(selectedLink.uid));
               setSelected(null);
             }}
           >
             {t('ui.rear.unplug')}
-          </button>
-          <button
-            style={buttonStyle}
+          </Button>
+          <Button
+            variant="secondary"
+            size="fit"
             onClick={() => {
               onError(null);
               setReplugging({ linkUid: selectedLink.uid, end: selectedLink.a.node === node.uid ? 'a' : 'b' });
             }}
           >
             {t('ui.rear.replug')}
-          </button>
+          </Button>
         </div>
       )}
     </div>

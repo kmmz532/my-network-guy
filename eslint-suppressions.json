@@ -58,15 +58,6 @@
     },
     "local/no-engine-in-view": {
       "count": 1
-    },
-    "local/no-look-export": {
-      "count": 2
-    },
-    "local/no-look-props": {
-      "count": 23
-    },
-    "local/no-native-control": {
-      "count": 4
     }
   },
   "src/components/DeviceSettings.tsx": {
