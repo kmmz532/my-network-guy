@@ -6,8 +6,10 @@ import { can } from '../network/capabilities';
 import { getComponent } from '../network/components';
 import type { DhcpPool, Iface, NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
-import { buttonStyle, greyColor, isIpText } from './devicePorts';
+import { isIpText } from './devicePorts';
+import { Button } from './ui/Button';
 import { Checkbox } from './ui/Checkbox';
+import { Text } from './ui/Text';
 import { TextInput } from './ui/TextInput';
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
@@ -22,15 +24,15 @@ export function DhcpPortField({ node, port, iface, client, disabled, onError }: 
         <Checkbox label={t('ui.config.dhcpAuto')} checked={iface?.dhcp === true} disabled={disabled} onChange={(on) => onError(on ? setDhcp(node.uid, { op: 'client', port }) : iface ? setIface(node.uid, port, iface.ip === '0.0.0.0' ? '' : iface.ip, iface.prefix) : null)}>
           {t('ui.config.dhcpAuto')}
         </Checkbox>
-        {iface?.dhcp === true && <span style={{ color: greyColor, fontSize: 12 }}>{t('ui.config.dhcpLease', { ip: iface.ip })}</span>}
+        {iface?.dhcp === true && <Text as="span" tone="note" size="s">{t('ui.config.dhcpLease', { ip: iface.ip })}</Text>}
       </div>
     );
   }
   if (iface && can(node.device, 'dhcpRelay')) {
     return (
       <div style={row}>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-          {t('ui.config.dhcpHelper')}
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Text as="span" size="s">{t('ui.config.dhcpHelper')}</Text>
           <TextInput
             value={iface.helper ?? ''}
             disabled={disabled}
@@ -59,13 +61,13 @@ export function DhcpPoolField({ node, disabled, onError }: { node: NetNode; disa
   const text = (p: DhcpPool) => t('ui.config.dhcpPoolLine', { network: p.network, prefix: p.prefix, start: p.start, end: p.end, gateway: p.gateway ?? '-', dns: p.dns ?? '-' });
   return (
     <div style={{ margin: '8px 0' }}>
-      <div style={{ color: greyColor, fontSize: 12 }}>{t('ui.config.dhcpPools')}</div>
+      <Text tone="note" size="s">{t('ui.config.dhcpPools')}</Text>
       {(getComponent(node, 'dhcpServer') ?? []).map((p) => (
-        <div key={p.network} style={{ ...row, fontSize: 12 }}>
-          <span>{text(p)}</span>
-          <button style={buttonStyle} disabled={disabled} onClick={() => onError(setDhcp(node.uid, { op: 'noPool', network: p.network }))}>
+        <div key={p.network} style={row}>
+          <Text as="span" size="s">{text(p)}</Text>
+          <Button variant="secondary" size="fit" disabled={disabled} onClick={() => onError(setDhcp(node.uid, { op: 'noPool', network: p.network }))}>
             {t('ui.config.vrrpRemove')}
-          </button>
+          </Button>
         </div>
       ))}
       <div style={row}>
@@ -75,8 +77,9 @@ export function DhcpPoolField({ node, disabled, onError }: { node: NetNode; disa
         {field('end', 'ui.config.dhcpEnd', 110)}
         {field('gateway', 'ui.config.dhcpGateway', 110)}
         {field('dns', 'ui.config.dhcpDns', 110)}
-        <button
-          style={buttonStyle}
+        <Button
+          variant="secondary"
+          size="fit"
           disabled={disabled || !addable}
           onClick={() => {
             const reason = setDhcp(node.uid, { op: 'pool', pool: { network: f.network, prefix: Number(f.prefix), start: f.start, end: f.end, ...(f.gateway ? { gateway: f.gateway } : {}), ...(f.dns ? { dns: f.dns } : {}) } });
@@ -85,7 +88,7 @@ export function DhcpPoolField({ node, disabled, onError }: { node: NetNode; disa
           }}
         >
           {t('ui.config.dhcpPoolAdd')}
-        </button>
+        </Button>
       </div>
     </div>
   );

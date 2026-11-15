@@ -89,17 +89,6 @@
       "count": 21
     }
   },
-  "src/components/DhcpField.tsx": {
-    "local/no-look-export": {
-      "count": 2
-    },
-    "local/no-look-props": {
-      "count": 6
-    },
-    "local/no-native-control": {
-      "count": 2
-    }
-  },
   "src/components/ErrorScreen.tsx": {
     "local/no-look-props": {
       "count": 10
