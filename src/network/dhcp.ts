@@ -4,6 +4,7 @@
 // 受け取れた口の ip・prefix は、store が機器へ書き戻す（dhcpWriteBack）ため、機器を消しても後ろの機器のアドレスは動かない
 import { ipToInt, inSubnet } from './engine';
 import type { Endpoint, Iface, NetNode } from './types';
+import { getComponent } from './components';
 
 export interface DhcpPool {
   network: string;
@@ -60,7 +61,7 @@ const addressesOf = (pool: DhcpPool): string[] => {
 
 export const assignDhcp = (nodes: readonly NetNode[], env: DhcpEnv): DhcpResult => {
   const result: DhcpResult = { leases: [], failed: [], multiple: [] };
-  const servers = nodes.filter((n) => (n.dhcpPools?.length ?? 0) > 0);
+  const servers = nodes.filter((n) => (getComponent(n, 'dhcpServer')?.length ?? 0) > 0);
   const used = new Map<string, Set<string>>();
   const clients = nodes
     .filter((n) => n.interfaces.some((i) => i.dhcp === true))
@@ -73,7 +74,7 @@ export const assignDhcp = (nodes: readonly NetNode[], env: DhcpEnv): DhcpResult 
       for (const m of members) {
         const s = servers.find((x) => x.uid === m.node);
         const si = s ? ifaceOn(s, m.port) : undefined;
-        const pool = s && si ? s.dhcpPools!.find((p) => inSubnet(si.ip, p.network, p.prefix)) : undefined;
+        const pool = s && si ? getComponent(s, 'dhcpServer')!.find((p) => inSubnet(si.ip, p.network, p.prefix)) : undefined;
         if (s && pool && s.uid !== client.uid) found.push({ server: s, pool });
       }
       // なければ、同じドメインのリレー（helper）を持つルーターの口から、リレー先のサーバーへ
@@ -83,7 +84,7 @@ export const assignDhcp = (nodes: readonly NetNode[], env: DhcpEnv): DhcpResult 
           const ri = r ? ifaceOn(r, m.port) : undefined;
           if (!r || !ri?.helper) continue;
           const s = servers.find((x) => x.interfaces.some((i) => i.ip === ri.helper));
-          const pool = s?.dhcpPools!.find((p) => inSubnet(ri.ip, p.network, p.prefix));
+          const pool = s ? getComponent(s, 'dhcpServer')!.find((p) => inSubnet(ri.ip, p.network, p.prefix)) : undefined;
           if (s && pool && env.reaches(r.uid, ri.ip, s.uid, ri.helper)) found.push({ server: s, pool });
         }
       }

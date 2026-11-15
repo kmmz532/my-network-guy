@@ -37,7 +37,7 @@ const solved = (helper: boolean): Network => {
   return {
     nodes: [
       ...pcs.map(base),
-      mk('dhcp_srv', 'server_basic', 50, [f('eth0', 0, '10.0.0.2')], { gateway: '10.0.0.1', dhcpPools: [pool(1), pool(2)] }),
+      mk('dhcp_srv', 'server_basic', 50, [f('eth0', 0, '10.0.0.2')], { gateway: '10.0.0.1', components: { dhcpServer: [pool(1), pool(2)] } }),
       mk('r1', 'router_basic', 51, [f('g0/0', 0, '10.0.0.1'), f('g0/1', 1, '192.168.1.1', helper ? { helper: '10.0.0.2' } : {}), f('g0/2', 2, '192.168.2.1', helper ? { helper: '10.0.0.2' } : {})]),
       mk('swl', 'l2_switch_24p', 52, []),
       mk('swr', 'l2_switch_24p', 53, []),

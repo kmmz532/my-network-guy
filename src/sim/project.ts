@@ -330,7 +330,11 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
   contract.placed.map((p, i) => {
     const setup = p.setup;
     const extra = (port: number) => setup?.interfaces?.find((e) => e.port === port);
-    const components = { ...(p.isp ? { isp: p.isp } : {}), ...(setup?.ospf ? { ospf: { ...setup.ospf } } : {}) };
+    const components = {
+      ...(p.isp ? { isp: p.isp } : {}),
+      ...(setup?.ospf ? { ospf: { ...setup.ospf } } : {}),
+      ...(setup?.dhcpPools ? { dhcpServer: structuredClone(setup.dhcpPools) } : {}),
+    };
     return {
       uid: p.ref,
       device: p.device,
@@ -338,10 +342,9 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
       macSerial: i + 1,
       ports: (setup?.ports ?? []).map((c) => ({ ...c })),
       ...(p.name ? { name: p.name } : {}),
-      ...(components.isp || components.ospf ? { components } : {}),
+      ...(Object.keys(components).length > 0 ? { components } : {}),
       ...(p.wireless ? { wireless: { ...p.wireless } } : {}),
       ...(setup?.bgp ? { bgp: structuredClone(setup.bgp) } : {}),
-      ...(setup?.dhcpPools ? { dhcpPools: structuredClone(setup.dhcpPools) } : {}),
       ...(setup?.stpPriority !== undefined ? { stpPriority: setup.stpPriority } : {}),
       ...(setup?.napt !== undefined ? { napt: setup.napt } : {}),
       ...(setup?.rules ? { rules: structuredClone(setup.rules) } : {}),
@@ -392,7 +395,7 @@ export const requireDesign = (core: Core): Project | OpFailReason => {
 // 在庫から機器を1台配置する。自社案件では自社オフィスと同じ規則に従い、ほかの案件では床（PCは机の上も可）に置ける。
 // 家庭用ルーターの出荷時の設定（NET.md §4）: LAN の口（1）に 192.168.1.1/24・社内側の口・NAPT 有効・DHCP（192.168.1.100〜199 を配る）。無線つきは SSID とパスワードも持つ。ほかの機器は何も持たない
 const FACTORY_WIFI = { ssid: 'HOME', password: 'home1234' };
-export const factoryConfigOf = (deviceId: string): Pick<NetNode, 'interfaces' | 'napt' | 'wireless' | 'rules' | 'dhcpPools'> => {
+export const factoryConfigOf = (deviceId: string): Pick<NetNode, 'interfaces' | 'napt' | 'wireless' | 'rules' | 'components'> => {
   const category = deviceCategory(deviceId);
   if (category !== CATEGORY.homeRouter) return { interfaces: [] };
   const lan = { ...makeIface(deviceId, 1, '192.168.1.1', 24), nat: 'inside' as const };
@@ -401,7 +404,7 @@ export const factoryConfigOf = (deviceId: string): Pick<NetNode, 'interfaces' | 
     interfaces: [lan],
     napt: true,
     rules: [{ src: '192.168.1.0/24', dst: 'any', service: 'any' }],
-    dhcpPools: [{ network: '192.168.1.0', prefix: 24, start: '192.168.1.100', end: '192.168.1.199', gateway: '192.168.1.1', dns: '192.168.1.1' }],
+    components: { dhcpServer: [{ network: '192.168.1.0', prefix: 24, start: '192.168.1.100', end: '192.168.1.199', gateway: '192.168.1.1', dns: '192.168.1.1' }] },
     ...wireless,
   };
 };

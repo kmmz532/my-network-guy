@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { t } from '../i18n/t';
 import { can } from '../network/capabilities';
+import { getComponent } from '../network/components';
 import type { DhcpPool, Iface, NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, isIpText } from './devicePorts';
@@ -59,7 +60,7 @@ export function DhcpPoolField({ node, disabled, onError }: { node: NetNode; disa
   return (
     <div style={{ margin: '8px 0' }}>
       <div style={{ color: greyColor, fontSize: 12 }}>{t('ui.config.dhcpPools')}</div>
-      {(node.dhcpPools ?? []).map((p) => (
+      {(getComponent(node, 'dhcpServer') ?? []).map((p) => (
         <div key={p.network} style={{ ...row, fontSize: 12 }}>
           <span>{text(p)}</span>
           <button style={buttonStyle} disabled={disabled} onClick={() => onError(setDhcp(node.uid, { op: 'noPool', network: p.network }))}>

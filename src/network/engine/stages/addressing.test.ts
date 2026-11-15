@@ -288,7 +288,7 @@ describe('アドレスの層', () => {
   });
 
   it('同じドメインの DHCP サーバーから、プールの最も小さいアドレスとゲートウェイを受け取る', () => {
-    const srv: NetNode = { ...node('srv', 'server_basic', [{ id: 'eth0', kind: 'port', port: 0, ip: '192.168.1.2', prefix: 24 }]), dhcpPools: [pool(1)] };
+    const srv: NetNode = { ...node('srv', 'server_basic', [{ id: 'eth0', kind: 'port', port: 0, ip: '192.168.1.2', prefix: 24 }]), components: { dhcpServer: [pool(1)] } };
     const layer = layerOf({ nodes: [auto('a'), sw('s'), srv], links: [link('l0', 'a:0', 's:0'), link('l1', 'srv:0', 's:1')], plans: {} });
     expect(layer.dhcp.leases).toEqual([{ uid: 'a', port: 0, ip: '192.168.1.100', prefix: 24, gateway: '192.168.1.1', server: 'srv' }]);
     const a = layer.net.nodes.find((n) => n.uid === 'a');
@@ -296,7 +296,7 @@ describe('アドレスの層', () => {
   });
 
   it('DHCP のリレーは、ルーターからサーバーへ届くときだけ、サーバーのプールから配る', () => {
-    const srv: NetNode = { ...node('srv', 'server_basic', [{ id: 'eth0', kind: 'port', port: 0, ip: '10.0.0.2', prefix: 24 }]), dhcpPools: [pool(2)] };
+    const srv: NetNode = { ...node('srv', 'server_basic', [{ id: 'eth0', kind: 'port', port: 0, ip: '10.0.0.2', prefix: 24 }]), components: { dhcpServer: [pool(2)] } };
     const r = router('r', [
       { id: 'g0/0', kind: 'port', port: 0, ip: '10.0.0.1', prefix: 24 },
       { id: 'g0/1', kind: 'port', port: 1, ip: '192.168.2.1', prefix: 24, helper: '10.0.0.2' },

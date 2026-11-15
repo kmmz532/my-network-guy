@@ -44,6 +44,19 @@ describe('回線終端の設定の移行（機器の isp を components.isp へ�
   });
 });
 
+describe('DHCP のプールの移行（機器の dhcpPools を components.dhcpServer へ移す）', () => {
+  it('移行前の機器の dhcpPools は、移行後は components.dhcpServer に入り、機器の直下には残らない', () => {
+    const old = JSON.parse(readFileSync(join(dir, 'save-v54.json'), 'utf8')) as Fixture;
+    const entry = Object.values(old)[0];
+    const data = structuredClone(entry.data) as { office: { nodes: Record<string, unknown>[] } };
+    const pool = { network: '192.168.1.0', prefix: 24, start: '192.168.1.100', end: '192.168.1.199', gateway: '192.168.1.1' };
+    data.office.nodes.push({ uid: 'srv1', device: 'server_basic', dhcpPools: [pool] });
+    const moved = migrate(entry.saveVersion, data).office.nodes.find((n) => n.uid === 'srv1');
+    expect(moved?.components).toEqual({ dhcpServer: [pool] });
+    expect('dhcpPools' in (moved ?? {})).toBe(false);
+  });
+});
+
 describe('セーブの fixture', () => {
   it('今の版（SAVE_VERSION）の fixture がある', () => {
     expect(existsSync(join(dir, `save-v${SAVE_VERSION}.json`))).toBe(true);

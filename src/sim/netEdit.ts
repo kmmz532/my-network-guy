@@ -368,14 +368,14 @@ export const setDhcp = (core: Core, uid: string, change: DhcpOp, target: NetTarg
       }
       if (!can(node.device, 'services')) return 'dhcp.unsupported';
       if (change.op === 'noPool') {
-        const next = (node.dhcpPools ?? []).filter((p) => p.network !== change.network);
-        return { ...node, dhcpPools: next.length > 0 ? next : undefined };
+        const next = (getComponent(node, 'dhcpServer') ?? []).filter((p) => p.network !== change.network);
+        return { ...node, components: { ...node.components, dhcpServer: next.length > 0 ? next : undefined } };
       }
       const p = change.pool;
       if (![p.network, p.start, p.end].every(isIp) || ipToInt(p.start) > ipToInt(p.end) || !inSubnet(p.start, p.network, p.prefix) || !inSubnet(p.end, p.network, p.prefix)) return 'dhcp.pool';
       if ((p.gateway !== undefined && !isIp(p.gateway)) || (p.dns !== undefined && !isIp(p.dns))) return 'dhcp.pool';
       if ((p.excluded ?? []).some((r) => ![r.start, r.end].every(isIp) || ipToInt(r.start) > ipToInt(r.end))) return 'dhcp.pool';
-      return { ...node, dhcpPools: [...(node.dhcpPools ?? []).filter((x) => x.network !== p.network), p] };
+      return withComponent(node, 'dhcpServer', [...(getComponent(node, 'dhcpServer') ?? []).filter((x) => x.network !== p.network), p]);
     },
     target,
   );

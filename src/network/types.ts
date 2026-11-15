@@ -1,6 +1,5 @@
 // 配置された機器と配線の形式（セーブデータとシミュレーションの入力を兼ねる）
 import type { VrrpGroup } from './vrrp';
-import type { DhcpPool } from './dhcp';
 import type { Components } from './components';
 export type { VrrpGroup } from './vrrp';
 export type { DhcpPool } from './dhcp';
@@ -119,8 +118,6 @@ export interface NetNode {
   device: string;
   // 機器の電源。false なら、すべての口が停止したものとして扱う（省略は入）
   powered?: boolean;
-  // DHCP のプール（サーバーだけが持つ。口のアドレスがプールのネットワークの中にある口で配る）
-  dhcpPools?: DhcpPool[];
   // スパニングツリーのブリッジ優先度（既定 32768、4096 刻み。小さいほどルートになりやすい）
   stpPriority?: number;
   // 機器の単位の設定を、能力ごとのコンポーネントで持つ（持てるものは機器の定義が決める。components.ts）

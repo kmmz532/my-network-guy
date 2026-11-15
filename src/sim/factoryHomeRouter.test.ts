@@ -14,7 +14,7 @@ describe('家庭用ルーターの出荷時の設定', () => {
   });
   it('家庭用ルーターは、DHCP のプールを持ち、LAN の PC に 192.168.1.100 から配る', () => {
     const c = factoryConfigOf('home_router');
-    expect(c.dhcpPools).toEqual([{ network: '192.168.1.0', prefix: 24, start: '192.168.1.100', end: '192.168.1.199', gateway: '192.168.1.1', dns: '192.168.1.1' }]);
+    expect(c.components?.dhcpServer).toEqual([{ network: '192.168.1.0', prefix: 24, start: '192.168.1.100', end: '192.168.1.199', gateway: '192.168.1.1', dns: '192.168.1.1' }]);
   });
   it('無線つきの家庭用ルーターは、SSID とパスワードを持つ', () => {
     const c = factoryConfigOf('home_router_ap');

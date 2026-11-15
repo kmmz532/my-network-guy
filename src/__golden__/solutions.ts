@@ -22,7 +22,7 @@ export const solutions: Record<string, Solve> = {
   dhcp_relay: (nodes) =>
     nodes.map((n) =>
       n.uid === 'SRV'
-        ? { ...n, dhcpPools: [{ network: '192.168.1.0', prefix: 24, start: '192.168.1.100', end: '192.168.1.150', gateway: '192.168.1.1' }] }
+        ? { ...n, components: { dhcpServer: [{ network: '192.168.1.0', prefix: 24, start: '192.168.1.100', end: '192.168.1.150', gateway: '192.168.1.1' }] } }
         : n.uid === 'R1'
           ? ifaces(n, (i) => (i.port === 1 ? { ...i, helper: '10.0.1.2' } : i))
           : n,
