@@ -16,7 +16,7 @@ import { useUiStore } from '../stores/useUiStore';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
 import { Dialog } from './ui/Dialog';
-import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
+import { Tabs, TabPanel, TAB_COLORS } from './Tabs';
 import { Select } from './ui/Select';
 import { CertChips } from './StaffCard';
 import { requiresPc } from '../sim/jobs';
@@ -25,6 +25,7 @@ import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Text } from './ui/Text';
 import { Badge } from './ui/Badge';
+import { Popover } from './ui/Popover';
 
 // 開くタブは useUiStore の hiring が決める。社員の札の「研修・資格へ」から開くときは staff
 export function HiringPanel() {
@@ -45,12 +46,12 @@ export function HiringPanel() {
         onSelect={onTab}
         colors={TAB_COLORS.window}
       />
-      <div style={tabPanelStyle(TAB_COLORS.window.selected)}>
+      <TabPanel tone="window">
         <div style={{ maxHeight: 'min(60vh, 480px)', overflowY: 'auto' }}>
           {tab === 'hiring' ? <Candidates onMessage={setMessage} /> : <StaffList onMessage={setMessage} />}
         </div>
         {message && <Text tone="warn" size="sm" layout={{ marginTop: 6 }}>{message}</Text>}
-      </div>
+      </TabPanel>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
         <Button variant="primary" onClick={onClose}>
           {t('ui.panel.close')}
@@ -88,7 +89,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
     <>
       {hrP > 0 && (
         <div style={{ marginBottom: 6 }}>
-          <div style={{ fontSize: 12, opacity: 0.85 }}>{t('ui.hiring.wish.label')}</div>
+          <Text tone="soft" size="s">{t('ui.hiring.wish.label')}</Text>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
             {[null, ...jobsOpen].map((j) => (
               <Button key={j ?? 'none'} variant="secondary" size="s" pressed={wish === j} onClick={() => setHiringWish(j)}>
@@ -112,14 +113,14 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
               <Text size="s">
                 {tDyn(`staff.job.${c.job}`)} · {t('ui.staff.level', { level: c.level })}
                 {/* 札: 内勤（非エンジニア枠）とエンジニア枠を分ける */}
-                <Badge color={back ? 'var(--fg-on-accent)' : 'var(--fg)'} border="var(--line)" fill={back ? 'var(--accent)' : '#5aa860'} size="xs" layout={{ marginLeft: 6 }}>
+                <Badge color={back ? 'var(--fg-on-accent)' : 'var(--fg)'} border="var(--line)" fill={back ? 'var(--accent)' : 'var(--bg-confirm)'} size="xs" layout={{ marginLeft: 6 }}>
                   {t(back ? 'ui.hiring.tag.backOffice' : 'ui.hiring.tag.engineer')}
                 </Badge>
               </Text>
               <Text size="s">
                 {t('ui.hiring.salary', { salary: yen(c.salary) })}
                 {/* 雇ったあとの、月給の合計（今の月給の合計に足した額）。雇う前に負担が分かるように（N156） */}
-                <span style={{ opacity: 0.8 }}> {t('ui.hiring.salaryTotal', { total: yen(totalSalary(allStaff, balance.nightPayRate) + c.salary) })}</span>
+                <Text as="span" tone="soft" size="s"> {t('ui.hiring.salaryTotal', { total: yen(totalSalary(allStaff, balance.nightPayRate) + c.salary) })}</Text>
               </Text>
               {/* PC が要る職種は、次に座る机に PC がないと働けない（採用はできる）（N102） */}
               {requiresPc(c.job) && !nextDeskHasPc && !full && (
@@ -155,13 +156,13 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
               {t('ui.hiring.hire')}
             </Button>
             {confirmUid === c.uid && requiresPc(c.job) && !nextDeskHasPc && !full && (
-              <div style={{ position: 'absolute', right: 12, bottom: 42, zIndex: 1, maxWidth: 260, padding: 8, background: '#1b2f57', border: '1px solid #ffd866' }}>
-                <div style={{ fontSize: 12, marginBottom: 6 }}>{t('ui.hiring.noPc.confirm')}</div>
+              <Popover variant="caution" layout={{ position: 'absolute', right: 12, bottom: 42, zIndex: 1, maxWidth: 260 }}>
+                <Text size="s" layout={{ marginBottom: 6 }}>{t('ui.hiring.noPc.confirm')}</Text>
                 <Button variant="secondary" layout={{ marginRight: 6 }} onClick={() => { setConfirmUid(null); const reason = hire(c.uid, shiftOf[c.uid] ?? 'day'); onMessage(reason ? reasonText(reason) : ''); }}>
                   {t('ui.hiring.hire')}
                 </Button>
                 <Button variant="secondary" onClick={() => setConfirmUid(null)}>{t('ui.panel.close')}</Button>
-              </div>
+              </Popover>
             )}
           </div>
         </Card>
@@ -193,13 +194,13 @@ function StaffList({ onMessage }: { onMessage: (m: string) => void }) {
         return (
           <Card key={s.uid} layout={{ marginBottom: 6 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-              <span style={{ fontWeight: 'bold' }}>
-                {tDyn(s.name)}{' '}
-                <span style={{ fontWeight: 'normal', fontSize: 12 }}>
+              <span>
+                <Text as="span" bold>{tDyn(s.name)}</Text>{' '}
+                <Text as="span" size="s">
                   {tDyn(`staff.job.${s.job}`)} · {t('ui.staff.level', { level: s.level })}
-                </span>
+                </Text>
               </span>
-              {locked && <span style={{ fontSize: 12, color: '#ffd866', whiteSpace: 'nowrap' }}>{s.training ? t('ui.training.busy') : t('ui.training.onProject')}</span>}
+              {locked && <span style={{ whiteSpace: 'nowrap' }}><Text as="span" tone="warn" size="s">{s.training ? t('ui.training.busy') : t('ui.training.onProject')}</Text></span>}
             </div>
             <div style={{ marginTop: 4 }}>
               <CertChips certs={s.certs} />

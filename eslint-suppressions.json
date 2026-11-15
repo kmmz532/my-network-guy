@@ -134,14 +134,6 @@
       "count": 2
     }
   },
-  "src/components/HiringPanel.tsx": {
-    "local/no-look-export": {
-      "count": 1
-    },
-    "local/no-look-props": {
-      "count": 11
-    }
-  },
   "src/components/Inventory.tsx": {
     "local/no-look-export": {
       "count": 1
