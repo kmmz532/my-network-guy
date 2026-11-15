@@ -2,9 +2,9 @@ import type { NetworkState } from '../engine/state';
 import { accessPointsOf, WIRELESS_RADIUS } from '../engine/stages/links';
 import { getComponent } from '../components';
 
-// 同じチャネルで、電波の範囲が重なるアクセスポイントの組（干渉の警告に使う）
+// 同じチャネルで、電波の範囲が重なるアクセスポイントの組（干渉の警告に使う）。SSID のないものは電波を出さないため数えない
 export const channelOverlapsOf = (state: NetworkState): { a: string; b: string }[] => {
-  const aps = accessPointsOf(state.input, state.world);
+  const aps = accessPointsOf(state.input, state.world).filter((ap) => getComponent(ap, 'wireless')?.ssid !== undefined);
   const out: { a: string; b: string }[] = [];
   for (let i = 0; i < aps.length; i++) {
     for (let j = i + 1; j < aps.length; j++) {

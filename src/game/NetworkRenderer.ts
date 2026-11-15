@@ -3,6 +3,7 @@ import { Graphics } from 'pixi.js';
 import type { Trace } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
 import { can } from '../network/capabilities';
+import { getComponent } from '../network/components';
 import { WALL_LOSS, WIRELESS_RADIUS, wallsBetween, wirelessAssociations } from '../network/engine';
 import type { EngineData } from '../network/types';
 import { cumulativeLengths, pointAt, type Point } from './animation';
@@ -56,7 +57,8 @@ export class NetworkRenderer {
     const ap = project.nodes.find((n) => n.uid === selectedUid);
     // 前面の機器の窓が、表示中でない地図の機器（自社と依頼先を切り替えた後など）や撤去した機器を指すときは描かない
     if (!ap) return;
-    if (!can(ap.device, 'accessPoint')) return;
+    // 無線の能力も無線の設定もない機器（無線のない家庭用ルーター）は、電波を出さないため描かない
+    if (!can(ap.device, 'accessPoint') || (!can(ap.device, 'wireless') && getComponent(ap, 'wireless') === undefined)) return;
     for (let dy = -WIRELESS_RADIUS; dy <= WIRELESS_RADIUS; dy++) {
       for (let dx = -WIRELESS_RADIUS; dx <= WIRELESS_RADIUS; dx++) {
         const tx = ap.x + dx;

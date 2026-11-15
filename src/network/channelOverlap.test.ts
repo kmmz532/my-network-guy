@@ -19,4 +19,8 @@ describe('チャネルの重なり（N152）', () => {
   it('遠ければ重ならない（届く範囲の2倍より遠い）', () => {
     expect(channelOverlapsOf(analyze(net([ap('a', 0), ap('b', 20)]), data))).toEqual([]);
   });
+  it('SSID のないアクセスポイント（無線を設定していない家庭用ルーターなど）は、近くのアクセスポイントと重ならない', () => {
+    const router = { ...ap('r', 3), device: 'home_router', components: {} } as NetNode;
+    expect(channelOverlapsOf(analyze(net([ap('a', 0), router]), data))).toEqual([]);
+  });
 });
