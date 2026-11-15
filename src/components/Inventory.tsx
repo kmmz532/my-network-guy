@@ -16,7 +16,7 @@ import { Tooltip } from './Tooltip';
 import { matchesQuery } from '../ui/search';
 import { SearchField } from './SearchField';
 import { itemSpriteOf } from './itemSprite';
-import { deviceDef, devicesById, furnitureById } from '../registry/query';
+import { deviceCategory, devicesById, furnitureById } from '../registry/query';
 import { Button } from './ui/Button';
 import { Tile } from './ui/Tile';
 
@@ -61,7 +61,7 @@ const INVENTORY_TABS: readonly InventoryTab[] = ['all', 'device', 'furniture'];
 // 検索の対象（名前・ID・機器の分類）
 const itemSearchFields = (item: InventoryItem): string[] =>
   item.kind === 'device'
-    ? [tDyn(`device.${item.id}.name`), tDyn(`device.${item.id}.kana`), item.id, tDyn(`category.${deviceDef(item.id).category}`)]
+    ? [tDyn(`device.${item.id}.name`), tDyn(`device.${item.id}.kana`), item.id, tDyn(`category.${deviceCategory(item.id)}`)]
     : [tDyn(`furniture.${item.id}.name`), tDyn(`furniture.${item.id}.kana`), item.id];
 
 // パソコンのインベントリのウィンドウの中身。上にショップと同じタブ（先頭は「すべて」）、下に品目の格子

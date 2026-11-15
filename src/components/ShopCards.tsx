@@ -19,7 +19,7 @@ import { matchesQuery } from '../ui/search';
 import { SearchField } from './SearchField';
 import { ItemIcon as SharedItemIcon } from './ItemIcon';
 import { itemSpriteOf } from './itemSprite';
-import { deviceDef, furnitureDef } from '../registry/query';
+import { deviceCategory, deviceDef, furnitureDef } from '../registry/query';
 
 // 区分のタブ（並びの順）
 type Section = 'device' | 'furniture';
@@ -49,7 +49,7 @@ export function ShopBody() {
   // 購入の割引（経理）。売却には掛けない
   const discount = useGameStore((s) => purchaseDiscountOf(s));
   const cost = (n: number) => (sandbox ? 0 : Math.round(n * (1 - discount)));
-  const deviceRows = ids.filter((id) => matchesQuery(query, [tDyn(`device.${id}.name`), tDyn(`device.${id}.kana`), id, tDyn(`category.${deviceDef(id).category}`)]));
+  const deviceRows = ids.filter((id) => matchesQuery(query, [tDyn(`device.${id}.name`), tDyn(`device.${id}.kana`), id, tDyn(`category.${deviceCategory(id)}`)]));
   const furnitureRows = furnitureIds.filter((id) => matchesQuery(query, [tDyn(`furniture.${id}.name`), tDyn(`furniture.${id}.kana`), id]));
 
   return (
