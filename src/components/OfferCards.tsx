@@ -18,7 +18,6 @@ import { sortOffers } from '../contracts/offers';
 import { minutesPerDay, toDate } from '../sim/clock';
 import { PixelCheck } from './PixelControls';
 import { Icon } from './Icon';
-import { RADIUS } from '../ui/theme';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { Select } from './ui/Select';
 import { levelOf } from '../sim/level';
@@ -28,6 +27,8 @@ import { usePhone } from '../ui/usePhone';
 import { deviceCategory } from '../registry/query';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
+import { Text } from './ui/Text';
+import { Badge } from './ui/Badge';
 
 // 依頼の一覧。Enter は一番上の依頼の受注（主のボタン）
 
@@ -57,17 +58,17 @@ export function OfferBody({ onClose }: { onClose: () => void }) {
 
   return (
     <div style={{ minWidth: 300 }}>
-      <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 8 }}>
-        {burst >= 2 && <div style={{ color: '#ffd866' }}>{t('ui.offer.burst', { count: burst })}</div>}
+      <Text tone="soft" size="sm" layout={{ marginBottom: 8 }}>
+        {burst >= 2 && <Text tone="warn" size="sm">{t('ui.offer.burst', { count: burst })}</Text>}
         <div>{t('ui.offer.next', { days: hint.days })}</div>
         {hint.block?.kind === 'level' && (
-          <div style={{ color: '#ffd866' }}>{t('ui.offer.blocked.level', { need: hint.block.need, now: levelOf(companyExp, balance) })}</div>
+          <Text tone="warn" size="sm">{t('ui.offer.blocked.level', { need: hint.block.need, now: levelOf(companyExp, balance) })}</Text>
         )}
         {hint.block?.kind === 'fixed' && (
-          <div style={{ color: '#ffd866' }}>{t('ui.offer.blocked.fixed', { title: tDyn(`contract.${hint.block.after}.title`) })}</div>
+          <Text tone="warn" size="sm">{t('ui.offer.blocked.fixed', { title: tDyn(`contract.${hint.block.after}.title`) })}</Text>
         )}
-      </div>
-      {offers.length === 0 && <div style={{ opacity: 0.7 }}>…</div>}
+      </Text>
+      {offers.length === 0 && <Text tone="sub">…</Text>}
       {offers.length > 0 && (
         // 並べ替えは選択ボックスにまとめる（幅を取らない。N61）。スマホでは OS の選択画面が開く
         <Select
@@ -107,7 +108,7 @@ function CrewPicker({ selected, onChange }: { selected: string[]; onChange: (cre
   const active = useGameStore((s) => s.active);
   const bonusEnv = bonusEnvOf({ staff: staff, office: office }, gameEnv);
   return (
-    <div style={{ marginTop: 6, fontSize: 13 }}>
+    <Text size="sm" layout={{ marginTop: 6 }}>
       <div style={{ marginBottom: 2 }}>{t('ui.offer.crew')}</div>
       {/* 内勤（営業・人事・経理）は担当に出さない */}
       {staff.filter((s) => !isBackOffice(s.job)).map((s) => {
@@ -127,7 +128,7 @@ function CrewPicker({ selected, onChange }: { selected: string[]; onChange: (cre
           </PixelCheck>
         );
       })}
-    </div>
+    </Text>
   );
 }
 
@@ -191,38 +192,38 @@ function OfferCard({
   const phone = usePhone();
   return (
     <Card layout={{ marginBottom: 8 }}>
-      <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
+      <Text bold layout={{ marginBottom: 4 }}>
         {offer.contract.inhouse && (
-          <span style={{ background: '#5aa860', borderRadius: RADIUS.none, padding: '0 6px', marginRight: 6, fontSize: 12 }}>
+          <Badge color="var(--fg)" fill="var(--bg-confirm)" border="var(--bg-confirm)" layout={{ marginRight: 6 }}>
             {t('ui.offer.inhouse')}
-          </span>
+          </Badge>
         )}
         {tDyn(`contract.${offer.baseId}.title`, offer.params)}
         {/* 営業が持ってきた依頼の印（N81） */}
-        {(offer as Offer & { fromSales?: true }).fromSales && <span style={{ marginLeft: 6, fontSize: 12, color: '#ffd866' }}>{t('ui.offer.fromSales')}</span>}
-      </div>
-      <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 6 }}>
+        {(offer as Offer & { fromSales?: true }).fromSales && <Text as="span" tone="warn" size="s" layout={{ marginLeft: 6 }}>{t('ui.offer.fromSales')}</Text>}
+      </Text>
+      <Text tone="soft" size="sm" layout={{ marginBottom: 6 }}>
         {tDyn(`contract.${offer.baseId}.story`, offer.params)}
-      </div>
+      </Text>
       {offer.arrivedMinute !== undefined && (
-        <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 4 }}>
+        <Text tone="sub" size="s" layout={{ marginBottom: 4 }}>
           {t('ui.offer.arrived', { month: toDate(offer.arrivedMinute, balance).month, day: toDate(offer.arrivedMinute, balance).day })}
-        </div>
+        </Text>
       )}
       {(offer.contract.jobs?.length ?? 0) > 0 && (
-        <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>
+        <Text tone="soft" size="s" layout={{ marginBottom: 4 }}>
           {t('ui.offer.jobs', { jobs: (offer.contract.jobs ?? []).map((j) => tDyn(`staff.job.${j}`)).join('・') })}
-        </div>
+        </Text>
       )}
       {offer.contract.goals.map((goal, i) => (
-        <div key={i} style={{ fontSize: 12, opacity: 0.85 }}>
+        <Text key={i} tone="soft" size="s">
           ・{goalText(goal, (id) => offerNodeName(offer, id))}
-        </div>
+        </Text>
       ))}
       {hasKey(`contract.${offer.baseId}.hint`) && (
-        <div style={{ fontSize: 12, color: '#ffd866', marginTop: 4 }}>
+        <Text tone="warn" size="s" layout={{ marginTop: 4 }}>
           {t('ui.task.hint', { text: tDyn(`contract.${offer.baseId}.hint`) })}
-        </div>
+        </Text>
       )}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', alignItems: 'center' }}>
         <span>
@@ -233,11 +234,11 @@ function OfferCard({
         </span>
         {offer.contract.deadlineDays !== undefined && <span style={{ whiteSpace: 'nowrap' }}>{t('ui.offer.deadline', { days: offer.contract.deadlineDays })}</span>}
         {offer.expiresMinute !== undefined && (
-          <span style={{ color: '#ffd866' }}>{t('ui.offer.expires', { days: Math.max(0, Math.ceil((offer.expiresMinute - now) / minutesPerDay)) })}</span>
+          <Text as="span" tone="warn">{t('ui.offer.expires', { days: Math.max(0, Math.ceil((offer.expiresMinute - now) / minutesPerDay)) })}</Text>
         )}
-        <span style={{ color: '#ffd866' }}>
+        <Text as="span" tone="warn">
           <Icon name="icon/money" /> {yen(offer.contract.reward.money)}
-        </span>
+        </Text>
         {/* 断る・任せる・受注を1つのまとまりにして右寄せにする。折り返さない（スマホで受注が次の行に落ちないように・N109b） */}
         <div style={phone ? { display: 'flex', flexWrap: 'nowrap', gap: 6, width: '100%', alignItems: 'center', justifyContent: 'flex-end' } : { display: 'flex', gap: 6, marginLeft: 'auto', flexShrink: 0, alignItems: 'center' }}>
           {asking ? (

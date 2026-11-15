@@ -190,9 +190,6 @@
   "src/components/OfferCards.tsx": {
     "local/no-category": {
       "count": 1
-    },
-    "local/no-look-props": {
-      "count": 25
     }
   },
   "src/components/OfficePanel.tsx": {
