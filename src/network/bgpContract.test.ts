@@ -23,7 +23,7 @@ const node = (ref: string, extra: Partial<NetNode> = {}): NetNode => {
     configLocked: p.config?.locked ?? false,
     interfaces: (p.config?.interfaces ?? []).map((i, k) => ({ id: `eth${k}`, kind: 'port', port: i.port, ip: i.ip, prefix: i.prefix })),
     gateway: p.config?.gateway ?? null,
-    ...(p.isp ? { isp: p.isp } : {}),
+    ...(p.isp ? { components: { isp: p.isp } } : {}),
     routes: [],
     services: [],
     ...extra,

@@ -406,7 +406,7 @@ export const setIsp = (core: Core, uid: string, line: IspLine, target: NetTarget
     uid,
     (node) => {
       if (!isIp(line.ispIp)) return 'ip';
-      return { ...node, isp: line };
+      return withComponent(node, 'isp', line);
     },
     target,
   );

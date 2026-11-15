@@ -9,6 +9,7 @@ import { expAtLevel } from './level';
 import { emptyOffice, noEffects, officeUplinkOf, type Core, type Outcome } from './project';
 import { moveOfficeUplink, placeOfficeUplink } from './placement';
 import { fixedNodes } from './project';
+import { getComponent } from '../network/components';
 import b001 from '../assets/data/contracts/b001_two_isps.json';
 import type { Contract } from '../data/schema';
 
@@ -89,6 +90,6 @@ describe('自社オフィスの回線終端', () => {
 describe('案件の回線終端', () => {
   it('案件の定義の回線の情報（ISP の名前・AS 番号）を、置かれた機器に引き継ぐ', () => {
     const nodes = fixedNodes(b001 as unknown as Contract).filter((n) => n.device === 'uplink');
-    expect(nodes.map((n) => n.isp?.asn)).toEqual([65001, 65002]);
+    expect(nodes.map((n) => getComponent(n, 'isp')?.asn)).toEqual([65001, 65002]);
   });
 });

@@ -1,5 +1,6 @@
 import { analyze } from './engine/analyze';
 import { makeIface } from './iface';
+import { getComponent } from './components';
 // 外部（インターネット）の表し方（N71・N72）。仮想のインターネットを、ルーターの空いている WAN の口（ポート0）につなぐ。
 // 配線はプレイヤーが行わない（判定のときだけ使う）。ルーターの WAN の口に 198.51.100.0/24 の IPアドレスと既定の経路を設定すると、外部へ届く。
 // 公開: インターネットから、サーバーへ HTTP（80）が届き、社内の PC へは外から届かないこと（NAT・ポート転送は扱わない）。
@@ -70,7 +71,7 @@ export const withInternet = (net: Network, _data: EngineData): (Network & { inte
     // 戻りの経路: 外部の側の既定のゲートウェイは、つないだルーターの WAN の IPアドレス（WAN に IPアドレスがなければ戻れない）
     const wanIp = router.interfaces.find((i) => i.port === routerEnd.port)?.ip ?? null;
     const uid = uids.length === 0 ? INTERNET_UID : `${INTERNET_UID}_${uplink.uid}`;
-    const line = uplink.isp;
+    const line = getComponent(uplink, 'isp');
     const bgp = line?.asn !== undefined && router.bgp && wanIp ? { asn: line.asn, neighbors: [{ ip: wanIp, remoteAs: router.bgp.asn }], networks: [{ dest: INTERNET_NETWORK, prefix: INTERNET_NETWORK_PREFIX }] } : undefined;
     nodes.push({
       ports: [],

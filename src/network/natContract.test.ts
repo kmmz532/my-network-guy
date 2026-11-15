@@ -21,7 +21,7 @@ const base = (p: (typeof contract.placed)[number], i: number): NetNode =>
     configLocked: p.config?.locked ?? false,
     interfaces: (p.config?.interfaces ?? []).map((x) => ({ id: 'eth0', kind: 'port' as const, port: x.port, ip: x.ip, prefix: x.prefix })),
     gateway: p.config?.gateway ?? null,
-    ...(p.isp ? { isp: p.isp } : {}),
+    ...(p.isp ? { components: { isp: p.isp } } : {}),
     routes: [],
     services: [],
   }) as NetNode;

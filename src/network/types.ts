@@ -117,8 +117,6 @@ export type WirelessSecurity = (typeof WIRELESS_SECURITIES)[number];
 export interface NetNode {
   uid: string;
   device: string;
-  // 回線終端（uplink）の回線の情報（ISP の名前・回線のネットワーク・ISP 側のアドレス・ISP の AS 番号）。省略すると、既定の ISP（198.51.100.1/24）
-  isp?: IspLine;
   // 機器の電源。false なら、すべての口が停止したものとして扱う（省略は入）
   powered?: boolean;
   // DHCP のプール（サーバーだけが持つ。口のアドレスがプールのネットワークの中にある口で配る）

@@ -111,8 +111,8 @@ describe('2社の ISP（回線終端ごと）', () => {
         bgp: { asn: 64512, neighbors: [{ ip: '198.51.100.1', remoteAs: 65001 }, { ip: '203.0.113.1', remoteAs: 65002 }], networks: [] },
       }),
       node('a', 'pc_basic', { interfaces: [{ id: 'g0/0', kind: 'port', port: 0, ip: '192.168.1.10', prefix: 24 }], gateway: '192.168.1.1' }),
-      node('u1', 'uplink', { isp: { name: 'ISP-A', network: '198.51.100.0', prefix: 24, ispIp: '198.51.100.1', asn: 65001 } }),
-      node('u2', 'uplink', { isp: { name: 'ISP-B', network: '203.0.113.0', prefix: 24, ispIp: '203.0.113.1', asn: 65002 } }),
+      node('u1', 'uplink', { components: { isp: { name: 'ISP-A', network: '198.51.100.0', prefix: 24, ispIp: '198.51.100.1', asn: 65001 } } }),
+      node('u2', 'uplink', { components: { isp: { name: 'ISP-B', network: '203.0.113.0', prefix: 24, ispIp: '203.0.113.1', asn: 65002 } } }),
     ],
     links: [link('l1', 'a', 0, 'r', 1), link('l0', 'r', 0, 'u1', 0), link('l2', 'r', 2, 'u2', 0)],
   });

@@ -254,11 +254,13 @@
         "configLocked": false,
         "interfaces": [],
         "gateway": null,
-        "isp": {
-          "name": "ISP-A",
-          "network": "198.51.100.0",
-          "prefix": 24,
-          "ispIp": "198.51.100.1"
+        "components": {
+          "isp": {
+            "name": "ISP-A",
+            "network": "198.51.100.0",
+            "prefix": 24,
+            "ispIp": "198.51.100.1"
+          }
         },
         "routes": [],
         "services": []

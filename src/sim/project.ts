@@ -330,6 +330,7 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
   contract.placed.map((p, i) => {
     const setup = p.setup;
     const extra = (port: number) => setup?.interfaces?.find((e) => e.port === port);
+    const components = { ...(p.isp ? { isp: p.isp } : {}), ...(setup?.ospf ? { ospf: { ...setup.ospf } } : {}) };
     return {
       uid: p.ref,
       device: p.device,
@@ -337,9 +338,8 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
       macSerial: i + 1,
       ports: (setup?.ports ?? []).map((c) => ({ ...c })),
       ...(p.name ? { name: p.name } : {}),
-      ...(p.isp ? { isp: p.isp } : {}),
+      ...(components.isp || components.ospf ? { components } : {}),
       ...(p.wireless ? { wireless: { ...p.wireless } } : {}),
-      ...(setup?.ospf ? { components: { ospf: { ...setup.ospf } } } : {}),
       ...(setup?.bgp ? { bgp: structuredClone(setup.bgp) } : {}),
       ...(setup?.dhcpPools ? { dhcpPools: structuredClone(setup.dhcpPools) } : {}),
       ...(setup?.stpPriority !== undefined ? { stpPriority: setup.stpPriority } : {}),

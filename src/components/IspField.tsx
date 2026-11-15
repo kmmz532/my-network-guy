@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { t } from '../i18n/t';
 import { INTERNET_IP, INTERNET_PREFIX } from '../network/external';
 import { isIp } from '../network/command/args';
+import { getComponent } from '../network/components';
 import type { IspLine, NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
 import { buttonStyle, greyColor, sectionStyle } from './devicePorts';
@@ -12,7 +13,7 @@ const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', m
 
 export function IspField({ node, readOnly, onError }: { node: NetNode; readOnly: boolean; onError: (reason: string | null) => void }) {
   const setIsp = useGameStore((s) => s.setIsp);
-  const cur = node.isp;
+  const cur = getComponent(node, 'isp');
   const [name, setName] = useState(cur?.name ?? '');
   const [ispIp, setIspIp] = useState(cur?.ispIp ?? INTERNET_IP);
   const [prefix, setPrefix] = useState(String(cur?.prefix ?? INTERNET_PREFIX));

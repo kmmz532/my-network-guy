@@ -30,6 +30,20 @@ describe('OSPF の設定の移行（機器の ospf を components.ospf へ移す
   });
 });
 
+describe('回線終端の設定の移行（機器の isp を components.isp へ移す）', () => {
+  it('移行前の機器の isp は、移行後は components.isp に入り、機器の直下には残らない', () => {
+    const old = JSON.parse(readFileSync(join(dir, 'save-v53.json'), 'utf8')) as Fixture;
+    const entry = Object.values(old)[0];
+    const data = structuredClone(entry.data) as { office: { nodes: Record<string, unknown>[] } };
+    const line = { name: 'ISP-A', network: '198.51.100.0', prefix: 24, ispIp: '198.51.100.1', asn: 65001 };
+    const uplink = { uid: 'u1', device: 'uplink', isp: line };
+    data.office.nodes.push(uplink);
+    const moved = migrate(entry.saveVersion, data).office.nodes.find((n) => n.uid === 'u1');
+    expect(moved?.components).toEqual({ isp: line });
+    expect('isp' in (moved ?? {})).toBe(false);
+  });
+});
+
 describe('セーブの fixture', () => {
   it('今の版（SAVE_VERSION）の fixture がある', () => {
     expect(existsSync(join(dir, `save-v${SAVE_VERSION}.json`))).toBe(true);

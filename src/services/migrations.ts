@@ -25,7 +25,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 53;
+export const SAVE_VERSION = 54;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -75,6 +75,28 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v53 → v54: 回線終端の回線の情報（isp）を、機器のコンポーネントの表（components.isp）へ移す
+  53: (data) => {
+    type OldNode = NetNode & { isp?: NonNullable<NetNode['components']>['isp'] };
+    const convert = <T extends { nodes: NetNode[] }>(x: T): T => ({
+      ...x,
+      nodes: x.nodes.map((n) => {
+        const { isp, ...rest } = n as OldNode;
+        if (isp === undefined) return n;
+        return { ...rest, components: { ...rest.components, isp } };
+      }),
+    });
+    const d = data as { active: { nodes: NetNode[] }[]; office: { nodes: NetNode[] }; familiarity: { counts: object; blueprints: Record<string, { stars: number; design: { nodes: NetNode[] } }> } };
+    return {
+      ...d,
+      office: convert(d.office),
+      active: d.active.map(convert),
+      familiarity: {
+        ...d.familiarity,
+        blueprints: Object.fromEntries(Object.entries(d.familiarity.blueprints).map(([k, b]) => [k, { ...b, design: convert(b.design) }])),
+      },
+    };
+  },
   // v52 → v53: 機器の OSPF の設定（ospf）を、機器のコンポーネントの表（components.ospf）へ移す
   52: (data) => {
     type OldNode = NetNode & { ospf?: NonNullable<NetNode['components']>['ospf'] };

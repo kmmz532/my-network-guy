@@ -179,12 +179,14 @@
         "configLocked": false,
         "interfaces": [],
         "gateway": null,
-        "isp": {
-          "name": "ISP-A",
-          "network": "198.51.100.0",
-          "prefix": 24,
-          "ispIp": "198.51.100.1",
-          "asn": 65001
+        "components": {
+          "isp": {
+            "name": "ISP-A",
+            "network": "198.51.100.0",
+            "prefix": 24,
+            "ispIp": "198.51.100.1",
+            "asn": 65001
+          }
         },
         "routes": [],
         "services": []
@@ -201,12 +203,14 @@
         "configLocked": false,
         "interfaces": [],
         "gateway": null,
-        "isp": {
-          "name": "ISP-B",
-          "network": "203.0.113.0",
-          "prefix": 24,
-          "ispIp": "203.0.113.1",
-          "asn": 65002
+        "components": {
+          "isp": {
+            "name": "ISP-B",
+            "network": "203.0.113.0",
+            "prefix": 24,
+            "ispIp": "203.0.113.1",
+            "asn": 65002
+          }
         },
         "routes": [],
         "services": []
