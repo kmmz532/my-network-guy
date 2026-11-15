@@ -251,12 +251,6 @@
     }
   },
   "src/components/ShopCards.tsx": {
-    "local/no-look-export": {
-      "count": 1
-    },
-    "local/no-look-props": {
-      "count": 17
-    },
     "local/no-mode-branch": {
       "count": 2
     }

@@ -14,7 +14,8 @@ import { purchaseDiscountOf, useGameStore } from '../stores/useGameStore';
 import { Icon } from './Icon';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
-import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
+import { Text } from './ui/Text';
+import { Tabs, TabPanel, TAB_COLORS } from './Tabs';
 import { matchesQuery } from '../ui/search';
 import { SearchField } from './SearchField';
 import { ItemIcon as SharedItemIcon } from './ItemIcon';
@@ -63,7 +64,7 @@ export function ShopBody() {
         colors={TAB_COLORS.shop}
         style={{ paddingLeft: 8 }}
       />
-      <div id="shop-panel" role="tabpanel" aria-labelledby={`shop-tab-${section}`} style={tabPanelStyle(TAB_COLORS.shop.selected)}>
+      <TabPanel tone="shop" id="shop-panel" labelledBy={`shop-tab-${section}`}>
         <SearchField value={query} onChange={setQuery} />
         <div style={{ maxHeight: 'min(60vh, 480px)', overflowY: 'auto', paddingRight: 4 }}>
           {section === 'device' &&
@@ -74,16 +75,16 @@ export function ShopBody() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <ItemIcon name={d.sprite} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 'bold' }}>{tDyn(`device.${id}.name`)}</div>
-                      <div style={{ fontSize: 12, opacity: 0.85 }}>{tDyn(`device.${id}.desc`)}</div>
-                      <div style={{ fontSize: 12 }}>
+                      <Text bold>{tDyn(`device.${id}.name`)}</Text>
+                      <Text tone="soft" size="s">{tDyn(`device.${id}.desc`)}</Text>
+                      <Text size="s">
                         {t('ui.shop.spec', { ports: d.ports.reduce((sum, p) => sum + p.count, 0), speed: d.ports[0]?.speedMbps ?? 0 })}
-                      </div>
-                      <div style={{ fontSize: 13 }}>
-                        <Icon name="icon/money" scale={1} /> {discount > 0 && !sandbox && <s style={{ opacity: 0.6, marginRight: 4 }}>{yen(d.price)}</s>}{yen(cost(d.price))}　×{owned[id] ?? 0}
-                      </div>
+                      </Text>
+                      <Text size="sm">
+                        <Icon name="icon/money" scale={1} /> {discount > 0 && !sandbox && <s><Text as="span" tone="sub" size="sm" layout={{ marginRight: 4 }}>{yen(d.price)}</Text></s>}{yen(cost(d.price))}　×{owned[id] ?? 0}
+                      </Text>
                       {/* 売却の値段は、ボタンではなく値段の下に小さく出す（ボタンの幅をそろえる） */}
-                      {!sandbox && <div style={{ fontSize: 12, opacity: 0.85 }}>{t('ui.shop.sellPrice', { price: yen(Math.floor(d.price * balance.sellRate)) })}</div>}
+                      {!sandbox && <Text tone="soft" size="s">{t('ui.shop.sellPrice', { price: yen(Math.floor(d.price * balance.sellRate)) })}</Text>}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 64 }}>
                       <Button variant="secondary" disabled={money < cost(d.price)} onClick={() => buy(id)}>
@@ -108,13 +109,13 @@ export function ShopBody() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <ItemIcon name={itemSpriteOf('furniture', f.id)} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 'bold' }}>{tDyn(`furniture.${id}.name`)}</div>
-                      <div style={{ fontSize: 12, opacity: 0.85 }}>{tDyn(`furniture.${id}.desc`)}</div>
-                      {effectText(f.effect) && <div style={{ fontSize: 12, color: '#ffd866' }}>{effectText(f.effect)}</div>}
-                      <div style={{ fontSize: 13 }}>
-                        <Icon name="icon/money" scale={1} /> {discount > 0 && !sandbox && <s style={{ opacity: 0.6, marginRight: 4 }}>{yen(f.price)}</s>}{yen(cost(f.price))}　×{owned[id] ?? 0}
-                      </div>
-                      {!sandbox && <div style={{ fontSize: 12, opacity: 0.85 }}>{t('ui.shop.sellPrice', { price: yen(Math.floor(f.price * balance.sellRate)) })}</div>}
+                      <Text bold>{tDyn(`furniture.${id}.name`)}</Text>
+                      <Text tone="soft" size="s">{tDyn(`furniture.${id}.desc`)}</Text>
+                      {effectText(f.effect) && <Text tone="warn" size="s">{effectText(f.effect)}</Text>}
+                      <Text size="sm">
+                        <Icon name="icon/money" scale={1} /> {discount > 0 && !sandbox && <s><Text as="span" tone="sub" size="sm" layout={{ marginRight: 4 }}>{yen(f.price)}</Text></s>}{yen(cost(f.price))}　×{owned[id] ?? 0}
+                      </Text>
+                      {!sandbox && <Text tone="soft" size="s">{t('ui.shop.sellPrice', { price: yen(Math.floor(f.price * balance.sellRate)) })}</Text>}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 64 }}>
                       <Button variant="secondary" disabled={money < cost(f.price)} onClick={() => buy(id)}>
@@ -131,7 +132,7 @@ export function ShopBody() {
               );
             })}
         </div>
-      </div>
+      </TabPanel>
     </div>
   );
 }
