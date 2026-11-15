@@ -13,13 +13,13 @@ interface Props {
   onClose?: () => void;
   // Enter で押す主のボタン（子の部品から指定する場合は usePrimary を使う）
   primary?: () => void;
-  // 背景と箱の配置を差し替える（破産の画面など）
-  backStyle?: CSSProperties;
+  // screen は箱を持たない全画面の幕（破産の画面）。既定は窓の箱
+  variant?: 'dialog' | 'screen';
   boxStyle?: CSSProperties;
   children: ReactNode;
 }
 
-export function Modal({ onClose, primary, backStyle, boxStyle, children }: Props) {
+export function Modal({ onClose, primary, variant = 'dialog', boxStyle, children }: Props) {
   const latestClose = useRef(onClose);
   const entry = useRef<PopupEntry>({});
   useEffect(() => {
@@ -37,8 +37,8 @@ export function Modal({ onClose, primary, backStyle, boxStyle, children }: Props
   });
   return (
     <PopupContext.Provider value={setPrimary}>
-      <div className="ui-modal-back" style={backStyle} onClick={onClose}>
-        <div className="ui-modal-box" style={boxStyle} onClick={(e) => e.stopPropagation()}>
+      <div className={variant === 'screen' ? 'ui-modal-back ui-modal-back--screen' : 'ui-modal-back'} onClick={onClose}>
+        <div className={variant === 'screen' ? 'ui-modal-box ui-modal-box--bare' : 'ui-modal-box'} style={boxStyle} onClick={(e) => e.stopPropagation()}>
           {children}
         </div>
       </div>

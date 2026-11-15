@@ -15,6 +15,7 @@ import { Guide } from '../Guide';
 import Header from '../Header';
 import { HiringPanel } from '../HiringPanel';
 import { Modal } from '../Modal';
+import { Heading } from '../ui/Heading';
 import { ReportModal } from '../Overlay';
 import { PausedBuildPrompt } from '../PausedBuildPrompt';
 import { PortMenu } from '../PortMenu';
@@ -40,10 +41,9 @@ function GameOver({ onRetry }: { onRetry: () => void }) {
   return (
     <Modal
       primary={onRetry}
-      backStyle={{ background: 'rgba(20, 20, 30, 0.8)', flexDirection: 'column', gap: 12, color: '#f4f1e6' }}
-      boxStyle={{ background: 'none', border: 'none', padding: 0, maxWidth: 'none', alignItems: 'center', display: 'flex', flexDirection: 'column', gap: 12 }}
+      variant="screen"
     >
-      <h2 style={{ fontSize: 28, margin: 0 }}>{t('ui.gameover.title')}</h2>
+      <Heading level="screen">{t('ui.gameover.title')}</Heading>
       <Button variant="primary" size="l" onClick={onRetry}>
         {t('ui.gameover.retry')}
       </Button>

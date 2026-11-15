@@ -12,6 +12,7 @@ import { readSandboxFile, writeSandboxFile } from '../../sim/sandboxFile';
 import { Button } from '../ui/Button';
 import { Dialog } from '../ui/Dialog';
 import { FileButton } from '../ui/FileButton';
+import { Text } from '../ui/Text';
 
 // メニューの項目。ボタンとファイルを選ぶラベルで、文字の大きさと見た目をそろえる
 const menuLayout = { width: '100%', margin: '4px 0' } as const;
@@ -114,7 +115,7 @@ export function GamePopups({ onExit }: { onExit: () => void }) {
               </Button>
             </>
           )}
-          {message && <div style={{ marginTop: 6, fontSize: 13 }}>{message}</div>}
+          {message && <Text size="sm" layout={{ marginTop: 6 }}>{message}</Text>}
         </Dialog>
       )}
       {popup === 'sandboxResize' && (
@@ -132,7 +133,7 @@ export function GamePopups({ onExit }: { onExit: () => void }) {
       {popup === 'sandboxResetConfirm' && (
         // Enter で作り直しの広さを選ぶ画面へ進み、Esc で取り消す
         <Dialog onClose={() => setPopup(null)} primary={() => setPopup('sandboxReset')} layout={{ minWidth: 240 }}>
-          <div style={{ fontWeight: 'bold', marginBottom: 12 }}>{t('ui.sandbox.size.resetConfirm')}</div>
+          <Text bold size="l" layout={{ marginBottom: 12 }}>{t('ui.sandbox.size.resetConfirm')}</Text>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
             <Button variant="outline" onClick={() => setPopup(null)}>
               {t('ui.sandbox.size.cancel')}
