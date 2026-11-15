@@ -32,9 +32,9 @@ export interface Topic {
 export const TOPICS = [
   { id: 'vlan', unlock: 12, command: 'switchport 1 access vlan 10', show: 'show vlan brief', failures: ['vlan.not_allowed'], warnings: ['vlan.mismatch', 'vlan.native_mismatch'], glossary: 'dot1q', lessons: ['vlan_two_floors'] },
   { id: 'trunk', unlock: 16, command: 'switchport 7 trunk allowed 10,20', show: 'show vlan brief', failures: ['vlan.not_allowed'], warnings: ['vlan.native_mismatch'], glossary: 'native_vlan', lessons: ['vlan_two_floors'] },
-  { id: 'svi', unlock: 20, command: 'ip address vlan 10 192.168.10.1 255.255.255.0', show: 'show interfaces', failures: [], warnings: [], glossary: null, lessons: [], known: ['glossary', 'lesson'] },
+  { id: 'svi', unlock: 20, command: 'ip address vlan 10 192.168.10.1 255.255.255.0', show: 'show interfaces', failures: [], warnings: [], glossary: 'svi', lessons: [], known: ['lesson'] },
   { id: 'static_route', unlock: 1, command: 'ip route 10.0.0.0 255.0.0.0 192.168.1.2', show: 'show ip route', failures: ['route.none', 'route.loop'], warnings: [], glossary: 'admin_distance', lessons: [], known: ['lesson'] },
-  { id: 'rip', unlock: 56, command: 'router rip', show: 'show ip rip database', failures: ['rip.unreachable'], warnings: [], glossary: null, lessons: [], known: ['glossary', 'lesson'] },
+  { id: 'rip', unlock: 56, command: 'router rip', show: 'show ip rip database', failures: ['rip.unreachable'], warnings: [], glossary: 'rip', lessons: [], known: ['lesson'] },
   { id: 'ospf', unlock: 58, command: 'router ospf 1', show: 'show ip ospf neighbor', failures: ['ospf.area_detached', 'ospf.no_neighbor'], warnings: ['ospf.duplicate_router_id'], glossary: 'backbone_area', lessons: ['ospf_intro', 'ospf_three_sites'] },
   { id: 'bgp', unlock: 88, command: 'router bgp 64512', show: 'show ip bgp summary', failures: ['bgp.no_session', 'bgp.nexthop_unreachable'], warnings: [], glossary: 'as_number', lessons: ['bgp_two_isps'] },
   { id: 'vrrp', unlock: null, command: 'vrrp 0 1 ip 192.168.1.254', show: 'show vrrp', failures: ['vrrp.no_master'], warnings: ['vrrp.vip_mismatch', 'vrrp.gateway_real_ip'], glossary: 'vrrp', lessons: ['vrrp_pair'] },
@@ -43,6 +43,6 @@ export const TOPICS = [
   { id: 'dhcp', unlock: 14, command: 'ip dhcp pool 192.168.1.0 255.255.255.0 192.168.1.100 192.168.1.150', show: 'show ip dhcp binding', failures: ['dhcp.exhausted', 'dhcp.no_offer'], warnings: ['dhcp.multiple_servers'], glossary: 'dhcp_relay', lessons: ['dhcp_relay'] },
   { id: 'wireless', unlock: 40, command: 'wireless ssid home', show: null, failures: ['wireless.unassociated', 'wlan.psk_mismatch', 'wlan.auth_mismatch'], warnings: ['wlan.open', 'wlan.weak_cipher', 'wlan.channel_overlap', 'wlan.transition'], glossary: 'wpa2', lessons: ['wifi_security'], known: ['show'] },
   { id: 'stp', unlock: 70, command: 'spanning-tree priority 4096', show: 'show spanning-tree', failures: [], warnings: [], glossary: 'root_bridge', lessons: ['stp_triangle'] },
-  { id: 'firewall', unlock: null, command: null, show: null, failures: ['firewall.denied'], warnings: [], glossary: null, lessons: [], known: ['command', 'show', 'glossary', 'lesson'] },
+  { id: 'firewall', unlock: null, command: null, show: null, failures: ['firewall.denied'], warnings: [], glossary: 'firewall', lessons: ['nat_firewall'], known: ['command', 'show'] },
   { id: 'dns', unlock: 18, command: 'ip name-server 192.168.1.53', show: 'show hosts', failures: ['name.unresolved'], warnings: [], glossary: 'dns_auth_cache', lessons: ['dns_intranet_names'] },
 ] as const satisfies readonly Topic[];
