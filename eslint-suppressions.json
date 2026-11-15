@@ -544,7 +544,7 @@
   },
   "src/network/category.ts": {
     "local/no-category": {
-      "count": 7
+      "count": 4
     }
   },
   "src/network/engine/forward.ts": {

@@ -12,7 +12,7 @@ export const isSviPort = (port: number): boolean => port >= SVI_PORT_BASE;
 // routed の設定、または IP を持つ口（設定がなければ）は、ルーターの口として経路を持つ（今までと同じ動き）
 export const isL3FabricPort = (category: string, port: number, cfg: PortConfig | undefined, hasIp: boolean): boolean => {
   // SVI の仮想の口は、口の扱いの対象ではない
-  if (category !== CATEGORY.l3Switch || isSviPort(port)) return false;
+  if (isSviPort(port) || !(categoryCan(category, 'switchport') && categoryCan(category, 'routing'))) return false;
   if (cfg !== undefined) return cfg.mode === 'access' || cfg.mode === 'trunk';
   return !hasIp;
 };
@@ -23,8 +23,8 @@ export const isL3FabricPort = (category: string, port: number, cfg: PortConfig |
 export const ROUTER_SWITCH_WAN_PORT = 0;
 export const ROUTER_SWITCH_LAN_HOST_PORT = 1;
 
-// 内蔵スイッチを持つルーター（スイッチ付きルーター・家庭用ルーター）。WAN の口0と、内蔵スイッチにつながる LAN の口（1〜）を持つ
-export const isSwitchedRouterCategory = (category: string): boolean => category === CATEGORY.routerSwitch || category === CATEGORY.homeRouter;
+// 内蔵スイッチを持つルーター（スイッチ付きルーター・家庭用ルーター）。WAN の口0と、内蔵スイッチにつながる LAN の口（1〜）を持つ。経路を持つが、口を routed にできない機器
+export const isSwitchedRouterCategory = (category: string): boolean => categoryCan(category, 'routing') && !categoryCan(category, 'routedPort');
 
 // L2スイッチ（口を VLAN に分けられる中継機。ルーティングを持たない）。能力（switchport）で決める（N134）
 export const isL2Category = (category: string): boolean => categoryCan(category, 'switchport') && !categoryCan(category, 'routing');
