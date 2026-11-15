@@ -65,14 +65,6 @@
       "count": 1
     }
   },
-  "src/components/ErrorScreen.tsx": {
-    "local/no-look-props": {
-      "count": 10
-    },
-    "local/no-native-control": {
-      "count": 1
-    }
-  },
   "src/components/FramesPanel.tsx": {
     "local/no-look-props": {
       "count": 8
@@ -194,14 +186,6 @@
     },
     "local/no-native-control": {
       "count": 2
-    }
-  },
-  "src/components/TabConflict.tsx": {
-    "local/no-look-props": {
-      "count": 10
-    },
-    "local/no-native-control": {
-      "count": 1
     }
   },
   "src/components/TerminalTab.tsx": {

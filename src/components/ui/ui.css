@@ -1245,3 +1245,52 @@ input.ui-terminal-input__field {
   border: 2px solid var(--line-window);
   max-width: calc(100% - 32px);
 }
+
+/* 画面全体を占める面（描画の例外の画面）。書体は標準のものにする */
+.ui-screen {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 24px;
+  background: var(--bg-card);
+  color: var(--fg);
+  font-family: sans-serif;
+  line-height: 1.6;
+}
+
+.ui-code-block {
+  margin: 0 0 12px;
+  white-space: pre-wrap;
+  background: var(--bg-card-pressed);
+  padding: 12px;
+  font-size: var(--fs-sm);
+  overflow-x: auto;
+}
+
+/* 画面全体を覆い、操作を止めて知らせる札 */
+.ui-blocker {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-blocker);
+}
+
+.ui-blocker__panel {
+  background: var(--bg-card);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  padding: 20px;
+  max-width: 360px;
+  line-height: 1.6;
+  font-size: var(--fs-l);
+}
+
+.ui-button--alert {
+  background: var(--accent);
+  color: var(--fg-on-emphasis-pressed);
+  font-weight: bold;
+  border: none;
+  padding: 8px 16px;
+}
