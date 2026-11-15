@@ -15,6 +15,8 @@ import type { GameMode } from '../../company/company';
 import type { SaveSlotView } from '../../ui/titleFlow';
 import type { BrokenSlot } from '../../services/saveRecords';
 import { Button } from '../ui/Button';
+import { Text } from '../ui/Text';
+import { TextInput } from '../ui/TextInput';
 
 // 会社の要約（経営は Lv・年目・月・日。サンドボックスは広さ）。一覧と確認の文言で使う
 export const companySummary = (save: CompanySave): string => {
@@ -58,22 +60,13 @@ function NameForm({ initial, submitLabel, onSubmit, onCancel }: { initial: strin
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 260 }}>
-      <label style={{ fontSize: 13 }}>
-        {t('ui.company.name.label')}
-        <input
-          autoFocus
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              submit();
-            }
-          }}
-          style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 4, padding: '6px 8px', background: '#1e3260', color: '#f4f1e6', border: '1px solid #3b2a33', font: 'inherit' }}
-        />
-      </label>
-      <div style={{ fontSize: 12, opacity: 0.8 }}>{t('ui.company.name.hint', { max: MAX_COMPANY_NAME })}</div>
+      <div>
+        <Text size="sm">{t('ui.company.name.label')}</Text>
+        <TextInput autoFocus tone="inset" width="full" label={t('ui.company.name.label')} value={name} onChange={setName} onEnter={submit} layout={{ marginTop: 4 }} />
+      </div>
+      <Text size="s" tone="soft">
+        {t('ui.company.name.hint', { max: MAX_COMPANY_NAME })}
+      </Text>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <Button variant="secondary" onClick={onCancel}>
           {t('ui.company.cancel')}
@@ -109,7 +102,7 @@ export function SaveSlotDialog(props: Props) {
     return (
       <Dialog onClose={back}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ fontSize: 15 }}>{mode === 'sandbox' ? t('ui.company.name.titleSandbox') : t('ui.company.name.title')}</div>
+          <Text size="l">{mode === 'sandbox' ? t('ui.company.name.titleSandbox') : t('ui.company.name.title')}</Text>
           <NameForm initial={view.suggested} submitLabel={t('ui.company.start')} onSubmit={(name) => onStartIn(view.slot, name)} onCancel={back} />
         </div>
       </Dialog>
@@ -120,7 +113,7 @@ export function SaveSlotDialog(props: Props) {
     return (
       <Dialog onClose={() => toList('play')}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ fontSize: 15 }}>{t('ui.company.rename.title')}</div>
+          <Text size="l">{t('ui.company.rename.title')}</Text>
           <NameForm initial={view.save.data.name} submitLabel={t('ui.company.rename.ok')} onSubmit={(name) => onRename(view.save, name)} onCancel={() => toList('play')} />
         </div>
       </Dialog>
@@ -168,22 +161,32 @@ export function SaveSlotDialog(props: Props) {
   return (
     <Dialog onClose={close}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 280, maxWidth: 380 }}>
-        <div style={{ fontSize: 15 }}>{purpose === 'overwrite' ? t('ui.company.list.overwrite') : t('ui.company.list.title')}</div>
-        {notice !== '' && <div style={{ color: '#ffd866', fontSize: 13 }}>{notice}</div>}
-        {saves.length === 0 && broken.length === 0 && <div style={{ opacity: 0.8 }}>{t('ui.company.list.empty')}</div>}
+        <Text size="l">{purpose === 'overwrite' ? t('ui.company.list.overwrite') : t('ui.company.list.title')}</Text>
+        {notice !== '' && (
+          <Text size="sm" tone="warn">
+            {notice}
+          </Text>
+        )}
+        {saves.length === 0 && broken.length === 0 && <Text tone="soft">{t('ui.company.list.empty')}</Text>}
         {sortByRecent(saves).map((save, index) => (
           <ListRow key={save.slot}>
             <div
-              style={{ fontSize: 16, cursor: phone ? 'pointer' : 'default' }}
+              style={{ cursor: phone ? 'pointer' : 'default' }}
               // スマホは、先頭（最後に遊んだ会社）の行を押すとすぐ始める。ほかの行は押すと操作を開く（N157）
               onClick={phone ? () => (purpose === 'play' && index === 0 ? onPlay(save) : setOpenSlot(openSlot === save.slot ? null : save.slot)) : undefined}
             >
-              {save.data.name}
-              {purpose === 'play' && index === 0 && <span style={{ fontSize: 12, color: '#ffd866', marginLeft: 8 }}>{t('ui.company.last')}</span>}
+              <Text size="l">
+                {save.data.name}
+                {purpose === 'play' && index === 0 && (
+                  <Text as="span" size="s" tone="warn" layout={{ marginLeft: 8 }}>
+                    {t('ui.company.last')}
+                  </Text>
+                )}
+              </Text>
             </div>
-            <div style={{ fontSize: 12, opacity: 0.85 }}>
+            <Text size="s" tone="soft">
               {companySummary(save)}・{t('ui.company.list.saved', { at: savedAtText(save.savedAt) })}
-            </div>
+            </Text>
             {(!phone || openSlot === save.slot) && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flexDirection: phone ? 'column' : 'row' }}>
               {purpose === 'play' ? (
@@ -214,8 +217,8 @@ export function SaveSlotDialog(props: Props) {
           </ListRow>
         ))}
         {broken.map((b) => (
-          <div key={`broken-${b.slot}`} style={{ border: '1px solid #3b2a33', padding: 8, display: 'flex', flexDirection: 'column', gap: 6, opacity: 0.8 }}>
-            <div style={{ fontSize: 14 }}>{t('ui.company.list.broken')}</div>
+          <ListRow key={`broken-${b.slot}`}>
+            <Text tone="soft">{t('ui.company.list.broken')}</Text>
             {purpose === 'play' && (
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <Button variant="danger" onClick={() => onView({ kind: 'deleteBroken', slot: b.slot })}>
@@ -223,7 +226,7 @@ export function SaveSlotDialog(props: Props) {
                 </Button>
               </div>
             )}
-          </div>
+          </ListRow>
         ))}
         {purpose === 'play' && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>

@@ -1,7 +1,7 @@
 // 1行の入力欄。種類（text・number・search）と幅（s・m・l・full）で見た目が決まる（ui.css の ui-text-input）。
 // onCommit を渡すと、入力中の文字は部品の中に持ち、欄を離れたとき（Enter でも離れる）に onCommit(文字列) を呼ぶ。Esc で value に戻す。
 // その場合の value は確定済みの値で、変わると入力中の文字も差し替わる。onChange は渡さない。
-// tone が unset のときは、未設定を示す赤い文字にする。配置は layout で渡す（幅も layout の width が優先する）。
+// tone が unset のときは、未設定を示す赤い文字にする。inset は窓の地に沈む暗い欄（社名の入力）。autoFocus は開いたとき欄に入る。onEnter は Enter で呼ぶ。配置は layout で渡す（幅も layout の width が優先する）。
 import { useState } from 'react';
 import { layoutStyle, type Layout } from './layout';
 import './tokens.css';
@@ -15,7 +15,7 @@ interface Props {
   onChange?: (value: string) => void;
   onCommit?: (value: string) => void;
   type?: TextInputType;
-  tone?: 'normal' | 'unset';
+  tone?: 'normal' | 'unset' | 'inset';
   width?: TextInputWidth;
   label?: string;
   placeholder?: string;
@@ -23,10 +23,12 @@ interface Props {
   min?: number;
   max?: number;
   maxLength?: number;
+  autoFocus?: boolean;
+  onEnter?: () => void;
   layout?: Layout;
 }
 
-export function TextInput({ value, onChange, onCommit, type = 'text', tone = 'normal', width = 'm', label, placeholder, disabled = false, min, max, maxLength, layout }: Props) {
+export function TextInput({ value, onChange, onCommit, type = 'text', tone = 'normal', width = 'm', label, placeholder, disabled = false, min, max, maxLength, autoFocus, onEnter, layout }: Props) {
   const [draft, setDraft] = useState(value);
   const [seen, setSeen] = useState(value);
   if (seen !== value) {
@@ -37,7 +39,7 @@ export function TextInput({ value, onChange, onCommit, type = 'text', tone = 'no
   return (
     <input
       type={type}
-      className={`ui-text-input ui-text-input--${width}${tone === 'unset' ? ' ui-text-input--unset' : ''}`}
+      className={`ui-text-input ui-text-input--${width}${tone === 'unset' ? ' ui-text-input--unset' : ''}${tone === 'inset' ? ' ui-text-input--inset' : ''}`}
       value={committing ? draft : value}
       aria-label={label}
       placeholder={placeholder}
@@ -45,6 +47,7 @@ export function TextInput({ value, onChange, onCommit, type = 'text', tone = 'no
       min={min}
       max={max}
       maxLength={maxLength}
+      autoFocus={autoFocus}
       onChange={(e) => (committing ? setDraft(e.target.value) : onChange?.(e.target.value))}
       onBlur={committing ? () => onCommit(draft) : undefined}
       onKeyDown={
@@ -53,7 +56,13 @@ export function TextInput({ value, onChange, onCommit, type = 'text', tone = 'no
               if (e.key === 'Enter') e.currentTarget.blur();
               if (e.key === 'Escape') setDraft(value);
             }
-          : undefined
+          : onEnter
+            ? (e) => {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                onEnter();
+              }
+            : undefined
       }
       style={layoutStyle(layout)}
     />

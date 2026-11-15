@@ -344,6 +344,15 @@ input.ui-text-input--unset {
   color: var(--st-error);
 }
 
+input.ui-text-input--inset,
+input.ui-text-input--inset:focus,
+input.ui-text-input--inset:disabled {
+  padding: 6px 8px;
+  background: var(--bg-input-inset);
+  color: var(--fg);
+  border: 1px solid var(--line);
+}
+
 input.ui-text-input--s {
   width: 56px;
 }
