@@ -50,8 +50,8 @@ export function ExpGauge({ companyExp, width }: { companyExp: number; width: num
   return (
     <ProgressBar fraction={fraction} color={GAUGE_COLOR} size="m" layout={{ width }}>
       {gain && (
-        <span style={{ position: 'absolute', right: 2, top: '50%', transform: 'translateY(-50%)', color: '#f4f1e6', fontSize: 12, lineHeight: 1, fontWeight: 'bold', whiteSpace: 'nowrap', textShadow: '0 0 2px #3b2a33, 0 0 1px #3b2a33' }}>
-          +{gain.amount}
+        <span style={{ position: 'absolute', right: 2, top: '50%', transform: 'translateY(-50%)', lineHeight: 1, whiteSpace: 'nowrap', textShadow: '0 0 2px #3b2a33, 0 0 1px #3b2a33' }}>
+          <Text as="span" size="s" bold>+{gain.amount}</Text>
         </span>
       )}
     </ProgressBar>
@@ -87,82 +87,86 @@ export function CompanyBody() {
   const row = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 } as const;
   // 会社の総覧。社員・資金・外部への接続は要約だけを出し、押すとそれぞれの画面を開く（詳細は各画面・N126）
   return (
-    <div style={{ padding: 12, fontSize: 14, color: '#f4f1e6' }}>
-      <Section>
-        <div style={{ ...row, fontSize: 16 }}>
-          <LevelMark level={level} />
-          {titleKey && <Text as="span" tone="warn">{tDyn(titleKey)}</Text>}
-        </div>
-      </Section>
-      <Section>
-        <div style={row}>
-          <span>{t('ui.company.exp')}</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>{next ? `${inLevel} / ${need}` : t('ui.company.max')}</span>
-            <ExpGauge companyExp={companyExp} width={120} />
-          </span>
-        </div>
-      </Section>
-      <Section>
-        <div style={row}>
-          <span>{t('ui.company.reputation')}</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Icon name="icon/star" scale={1} />
-            {reputation}
-          </span>
-        </div>
-      </Section>
-      <Section>
-        <div style={row}>
-          <span>{t('ui.company.staff')}</span>
-          {/* 社員の一覧を開くボタンはここだけ（採用の画面は候補が0人だと開けない）。キーは H */}
-          <Tooltip text={tipText('keys.staffList', 'staffList')}>
-            <Link onClick={() => open('staffList')}>
-              {t('ui.company.staffCount', { total: staff.length, day: staff.length - night, night })}
-            </Link>
-          </Tooltip>
-        </div>
-      </Section>
-      {noPcCount > 0 && (
+    <div style={{ padding: 12 }}>
+      <Text>
+        <Section>
+          <Text size="l">
+            <div style={row}>
+              <LevelMark level={level} />
+              {titleKey && <Text as="span" size="l" tone="warn">{tDyn(titleKey)}</Text>}
+            </div>
+          </Text>
+        </Section>
         <Section>
           <div style={row}>
-            <span>{t('ui.company.noPc')}</span>
-            <Link emphasis onClick={() => open('staffList')}>
-              {t('ui.company.noPc.count', { count: noPcCount })}
+            <span>{t('ui.company.exp')}</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>{next ? `${inLevel} / ${need}` : t('ui.company.max')}</span>
+              <ExpGauge companyExp={companyExp} width={120} />
+            </span>
+          </div>
+        </Section>
+        <Section>
+          <div style={row}>
+            <span>{t('ui.company.reputation')}</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Icon name="icon/star" scale={1} />
+              {reputation}
+            </span>
+          </div>
+        </Section>
+        <Section>
+          <div style={row}>
+            <span>{t('ui.company.staff')}</span>
+            {/* 社員の一覧を開くボタンはここだけ（採用の画面は候補が0人だと開けない）。キーは H */}
+            <Tooltip text={tipText('keys.staffList', 'staffList')}>
+              <Link onClick={() => open('staffList')}>
+                {t('ui.company.staffCount', { total: staff.length, day: staff.length - night, night })}
+              </Link>
+            </Tooltip>
+          </div>
+        </Section>
+        {noPcCount > 0 && (
+          <Section>
+            <div style={row}>
+              <span>{t('ui.company.noPc')}</span>
+              <Link emphasis onClick={() => open('staffList')}>
+                {t('ui.company.noPc.count', { count: noPcCount })}
+              </Link>
+            </div>
+          </Section>
+        )}
+        <Section>
+          <div style={row}>
+            <span>{t('ui.company.funds')}</span>
+            <Link onClick={() => open('funds')}>
+              {money.toLocaleString('ja-JP')}円
             </Link>
           </div>
         </Section>
-      )}
-      <Section>
-        <div style={row}>
-          <span>{t('ui.company.funds')}</span>
-          <Link onClick={() => open('funds')}>
-            {money.toLocaleString('ja-JP')}円
-          </Link>
+        <Section>
+          <div style={row}>
+            <span>{t('ui.company.outside')}</span>
+            <Link onClick={() => open('office')}>
+              {!outside.attached ? t('ui.company.outside.none') : outside.pcsReachOutside ? t('ui.company.outside.ok') : t('ui.company.outside.ng')}
+            </Link>
+          </div>
+        </Section>
+        <Section>
+          <div style={row}>
+            <span>{t('ui.company.delivered')}</span>
+            <span>{t('ui.company.count', { count: deliveries })}</span>
+          </div>
+        </Section>
+        <div style={{ paddingTop: 8 }}>
+          <Text tone="warn">{next ? t('ui.company.next', { level: next.level }) : t('ui.company.max')}</Text>
+          {next && unlocks.length === 0 && <Text tone="soft">{t('ui.company.nothing')}</Text>}
+          {devices.length > 0 && <UnlockCards items={devices.map((d) => ({ ...d, level: next?.level }))} />}
+          {others.length > 0 && <div style={{ marginTop: 4 }}>{others.map((x) => unlockNameOf(x)).join('・')}</div>}
+          {/* 職種（採用の候補に出る職種）も、解放のレベルで案内する（N84） */}
+          {jobsUnlockedAt.length > 0 && <div style={{ marginTop: 4 }}>{t('ui.company.jobs', { jobs: jobsUnlockedAt.map((j) => tDyn(`staff.job.${j}`)).join('・') })}</div>}
         </div>
-      </Section>
-      <Section>
-        <div style={row}>
-          <span>{t('ui.company.outside')}</span>
-          <Link onClick={() => open('office')}>
-            {!outside.attached ? t('ui.company.outside.none') : outside.pcsReachOutside ? t('ui.company.outside.ok') : t('ui.company.outside.ng')}
-          </Link>
-        </div>
-      </Section>
-      <Section>
-        <div style={row}>
-          <span>{t('ui.company.delivered')}</span>
-          <span>{t('ui.company.count', { count: deliveries })}</span>
-        </div>
-      </Section>
-      <div style={{ paddingTop: 8 }}>
-        <Text tone="warn">{next ? t('ui.company.next', { level: next.level }) : t('ui.company.max')}</Text>
-        {next && unlocks.length === 0 && <div style={{ opacity: 0.85 }}>{t('ui.company.nothing')}</div>}
-        {devices.length > 0 && <UnlockCards items={devices.map((d) => ({ ...d, level: next?.level }))} />}
-        {others.length > 0 && <div style={{ marginTop: 4 }}>{others.map((x) => unlockNameOf(x)).join('・')}</div>}
-        {/* 職種（採用の候補に出る職種）も、解放のレベルで案内する（N84） */}
-        {jobsUnlockedAt.length > 0 && <div style={{ marginTop: 4 }}>{t('ui.company.jobs', { jobs: jobsUnlockedAt.map((j) => tDyn(`staff.job.${j}`)).join('・') })}</div>}
-      </div>
+      </Text>
     </div>
   );
 }
