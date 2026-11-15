@@ -1,7 +1,7 @@
 // インベントリ。スマホはツールバーの上に横スクロールの帯（strip）、パソコンはウィンドウの中の格子（grid。InventoryBody）で在庫の品目を並べる。
 // 品目を押すと配置の操作に入る。品目をマウス・ペンでドラッグしてマップの上で離すと、そのマスに置く（置けなければ何もしない）
 import { trackDrag } from '../input/trackDrag';
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ComponentProps, type ReactNode } from 'react';
 import { shop as catalogShop } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import { focusedProject } from '../stores/useGameStore';
@@ -18,6 +18,8 @@ import { SearchField } from './SearchField';
 import { itemSpriteOf } from './itemSprite';
 import { deviceCategory, devicesById, furnitureById } from '../registry/query';
 import { Button } from './ui/Button';
+import { DragGhost } from './ui/DragGhost';
+import { HudBar } from './ui/HudBar';
 import { Tile } from './ui/Tile';
 
 const strip = {
@@ -30,9 +32,6 @@ const strip = {
   gap: 6,
   padding: 6,
   overflowX: 'auto',
-  background: 'rgba(47, 79, 143, 0.95)',
-  color: '#f4f1e6',
-  border: '2px solid #3b2a33',
   zoom: 'var(--ui-scale, 1)',
 } as const;
 
@@ -42,7 +41,6 @@ const grid = {
   flexWrap: 'wrap',
   alignContent: 'flex-start',
   gap: 4,
-  color: '#f4f1e6',
   marginTop: 4,
 } as const;
 
@@ -132,6 +130,15 @@ export function Inventory({
   onShop: () => void;
 }) {
   const box = layout === 'strip' ? strip : grid;
+  // 帯（スマホ）は窓と同じ地と枠の箱、格子（パソコン）は窓の中にそのまま並べる
+  const renderBox = (arrange: ComponentProps<typeof HudBar>['arrange'], children: ReactNode) =>
+    layout === 'strip' ? (
+      <HudBar as="div" variant="strip" arrange={arrange}>
+        {children}
+      </HudBar>
+    ) : (
+      <div style={arrange}>{children}</div>
+    );
   const itemDrag = useUiStore((s) => s.itemDrag);
   const setItemDrag = useGameStore((s) => s.setItemDrag);
   // ドラッグを終えたあとに続く click を1回無視する
@@ -180,19 +187,23 @@ export function Inventory({
 
   if (items.length === 0) {
     return (
-      <div style={{ ...box, justifyContent: 'center', overflowX: 'visible', alignItems: 'center' }}>
-        <span>{t('ui.inventory.empty')}</span>
-        <Button variant="secondary" onClick={onShop}>
-          {t('ui.inventory.openShop')}
-        </Button>
-      </div>
+      renderBox(
+        { ...box, justifyContent: 'center', overflowX: 'visible', alignItems: 'center' },
+        <>
+          <span>{t('ui.inventory.empty')}</span>
+          <Button variant="secondary" onClick={onShop}>
+            {t('ui.inventory.openShop')}
+          </Button>
+        </>,
+      )
     );
   }
   const dragged = itemDrag ? items.find((item) => item.id === itemDrag.id) : undefined;
   return (
     <>
-      <div style={box}>
-        {items.map((item) => {
+      {renderBox(
+        box,
+        items.map((item) => {
           const key = `${item.kind}-${item.id}`;
           const name =
             item.kind === 'device' ? tDyn(`device.${item.id}.name`) : tDyn(`furniture.${item.id}.name`);
@@ -218,13 +229,13 @@ ${t('ui.inventory.blocked.design')}` : name} key={key}>
               </Tile>
             </Tooltip>
           );
-        })}
-      </div>
+        }),
+      )}
       {itemDrag && dragged && (
         // ドラッグ中の品目の絵。ポインターに付いて動く（マップの判定には使わない）
-        <div style={{ position: 'fixed', left: itemDrag.x - 16, top: itemDrag.y - 16, pointerEvents: 'none', opacity: 0.85, zIndex: 1000 }}>
+        <DragGhost left={itemDrag.x - 16} top={itemDrag.y - 16}>
           <ItemIcon name={spriteOf(dragged)} box={{ width: 40, height: 40 }} maxScale={2} />
-        </div>
+        </DragGhost>
       )}
     </>
   );
