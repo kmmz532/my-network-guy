@@ -5,6 +5,7 @@ import { t } from '../i18n/t';
 import { useGameStore } from '../stores/useGameStore';
 import { ConfirmDialog } from './ui/ConfirmDialog';
 import { Checkbox } from './ui/Checkbox';
+import { Text } from './ui/Text';
 
 export function PausedBuildPrompt() {
   const answer = useGameStore((s) => s.answerPausedBuild);
@@ -16,12 +17,12 @@ export function PausedBuildPrompt() {
       action={{ label: t('ui.paused.build.play'), tone: 'primary', onClick: () => answer('play', remember) }}
       layout={{ minWidth: 240 }}
     >
-      <div style={{ fontWeight: 'bold', marginBottom: 12 }}>{t('ui.paused.build.title')}</div>
-      <div style={{ fontSize: 13 }}>
+      <Text bold size="l" layout={{ marginBottom: 12 }}>{t('ui.paused.build.title')}</Text>
+      <Text size="sm">
         <Checkbox box="pixel" checked={remember} onChange={setRemember}>
           {t('ui.paused.build.remember')}
         </Checkbox>
-      </div>
+      </Text>
     </ConfirmDialog>
   );
 }

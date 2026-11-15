@@ -7,12 +7,13 @@ import { useGameStore } from '../stores/useGameStore';
 import { Button } from './ui/Button';
 import { Choice } from './ui/Choice';
 import { Dialog } from './ui/Dialog';
+import { Text } from './ui/Text';
 
 // 項目の名前と、その右下の選択肢
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div style={{ marginTop: 12 }}>
-      <div style={{ marginBottom: 4, fontWeight: 'bold' }}>{label}</div>
+      <Text bold size="l" layout={{ marginBottom: 4 }}>{label}</Text>
       {children}
     </div>
   );
@@ -41,9 +42,9 @@ export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; on
 
   return (
     <Dialog onClose={onClose} primary={onClose} layout={{ width: 'min(380px, calc(100% - 32px))', maxHeight: 'calc(100% - 32px)', overflowY: 'auto' }}>
-      <div style={{ fontWeight: 'bold' }}>{t('ui.settings.title')}</div>
+      <Text bold size="l">{t('ui.settings.title')}</Text>
       <Row label={t('ui.settings.saveKeep')}>
-        <span style={{ fontSize: 13 }}>{kept === null ? '…' : kept ? t('ui.settings.saveKept') : t('ui.settings.saveNotKept')}</span>
+        <Text as="span" size="sm">{kept === null ? '…' : kept ? t('ui.settings.saveKept') : t('ui.settings.saveNotKept')}</Text>
       </Row>
       <Row label={t('ui.settings.uiScale')}>
         <Choice

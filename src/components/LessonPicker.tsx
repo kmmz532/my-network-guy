@@ -6,6 +6,7 @@ import { t, tDyn } from '../i18n/t';
 import { useGameStore } from '../stores/useGameStore';
 import { Button } from './ui/Button';
 import { Dialog } from './ui/Dialog';
+import { Text } from './ui/Text';
 
 // onPick を渡すと、置き換えの確認を出さずに選んだ教材を返す（新しく始めるときは失う構成がないため）
 export function LessonPicker({ onClose, onPick }: { onClose: () => void; onPick?: (id: string) => void }) {
@@ -17,8 +18,8 @@ export function LessonPicker({ onClose, onPick }: { onClose: () => void; onPick?
   if (picked !== null) {
     return (
       <Dialog onClose={() => setPicked(null)} primary={() => { openLesson(picked); onClose(); }} layout={{ width: 'min(320px, calc(100% - 32px))' }}>
-        <div style={{ fontWeight: 'bold' }}>{titleOf(picked)}</div>
-        <div style={{ marginTop: 8, fontSize: 13 }}>{t('ui.lesson.confirm')}</div>
+        <Text bold size="l">{titleOf(picked)}</Text>
+        <Text size="sm" layout={{ marginTop: 8 }}>{t('ui.lesson.confirm')}</Text>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
           <Button variant="secondary" onClick={() => setPicked(null)}>{t('ui.sandbox.size.cancel')}</Button>
           <Button variant="primary" onClick={() => { openLesson(picked); onClose(); }}>{t('ui.lesson.start')}</Button>
@@ -28,10 +29,10 @@ export function LessonPicker({ onClose, onPick }: { onClose: () => void; onPick?
   }
   return (
     <Dialog onClose={onClose} layout={{ width: 'min(320px, calc(100% - 32px))', maxHeight: 'calc(100% - 32px)', overflowY: 'auto' }}>
-      <div style={{ fontWeight: 'bold' }}>{t('ui.lesson.open')}</div>
+      <Text bold size="l">{t('ui.lesson.open')}</Text>
       {topics.map((topic) => (
         <div key={topic} style={{ marginTop: 8 }}>
-          <div style={{ fontSize: 12, opacity: 0.8 }}>{tDyn(`ui.lesson.topic.${topic}`)}</div>
+          <Text tone="soft" size="s">{tDyn(`ui.lesson.topic.${topic}`)}</Text>
           {lessonCatalog
             .filter((l) => l.group === topic)
             .sort((a, b) => a.order - b.order)

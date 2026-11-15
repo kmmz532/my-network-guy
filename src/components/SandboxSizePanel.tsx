@@ -6,6 +6,7 @@ import type { OfficeSize } from '../sim/project';
 import { SANDBOX_DEFAULT_SIZE, SANDBOX_SIZES } from '../sim/sandbox';
 import { Button } from './ui/Button';
 import { Dialog } from './ui/Dialog';
+import { Text } from './ui/Text';
 
 const sizeLabel = (size: OfficeSize) => `${size.w}×${size.h}`;
 
@@ -38,7 +39,7 @@ export function SandboxSizePanel({
 
   return (
     <Dialog onClose={onClose} primary={run} layout={{ width: 'min(320px, calc(100% - 32px))' }}>
-      <div style={{ fontWeight: 'bold' }}>{title}</div>
+      <Text bold size="l">{title}</Text>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
         {SANDBOX_SIZES.map((size) => (
           <Button
@@ -54,7 +55,7 @@ export function SandboxSizePanel({
           </Button>
         ))}
       </div>
-      {error && <div style={{ marginTop: 8, color: '#ffb4a8', fontSize: 13 }}>{error}</div>}
+      {error && <Text tone="reason" size="sm" layout={{ marginTop: 8 }}>{error}</Text>}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
         <Button variant="outline" onClick={onClose}>
           {t('ui.sandbox.size.cancel')}

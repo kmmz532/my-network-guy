@@ -29,11 +29,6 @@
       "count": 2
     }
   },
-  "src/components/ChannelField.tsx": {
-    "local/no-look-props": {
-      "count": 1
-    }
-  },
   "src/components/DevicePanel.tsx": {
     "local/no-category": {
       "count": 1
@@ -76,16 +71,6 @@
       "count": 1
     }
   },
-  "src/components/KeyHelp.tsx": {
-    "local/no-look-props": {
-      "count": 5
-    }
-  },
-  "src/components/LessonPicker.tsx": {
-    "local/no-look-props": {
-      "count": 5
-    }
-  },
   "src/components/LoopBanner.tsx": {
     "local/no-look-props": {
       "count": 3
@@ -107,11 +92,6 @@
       "count": 1
     }
   },
-  "src/components/PausedBuildPrompt.tsx": {
-    "local/no-look-props": {
-      "count": 2
-    }
-  },
   "src/components/PortMenu.tsx": {
     "local/no-look-export": {
       "count": 2
@@ -123,22 +103,12 @@
       "count": 2
     }
   },
-  "src/components/SandboxSizePanel.tsx": {
-    "local/no-look-props": {
-      "count": 3
-    }
-  },
   "src/components/SearchField.tsx": {
     "local/no-look-props": {
       "count": 4
     },
     "local/no-native-control": {
       "count": 1
-    }
-  },
-  "src/components/SettingsPanel.tsx": {
-    "local/no-look-props": {
-      "count": 3
     }
   },
   "src/components/ShopCards.tsx": {
