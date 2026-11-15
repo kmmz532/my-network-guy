@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProper
 import { createPortal } from 'react-dom';
 import { balance } from 'virtual:game-data';
 import { placeTip, type Anchor } from '../game/tipLayout';
-import { RADIUS } from '../ui/theme';
+import { TipBox } from './ui/TipBox';
 import { isPhoneNow } from '../ui/usePhone';
 
 interface Tip extends Anchor {
@@ -26,21 +26,6 @@ const setTip = (tip: Tip | null) => {
 export const showTipAt = (anchor: Anchor, text: string): void => setTip({ ...anchor, text });
 export const hideTip = (): void => setTip(null);
 
-const boxStyle: CSSProperties = {
-  position: 'fixed',
-  zIndex: 1000,
-  pointerEvents: 'none',
-  background: 'rgba(47, 79, 143, 0.78)',
-  color: '#f4f1e6',
-  border: '1px solid rgba(59, 42, 51, 0.8)',
-  borderRadius: RADIUS.chrome,
-  padding: '4px 8px',
-  fontSize: 12,
-  maxWidth: 'calc(220px * var(--ui-scale, 1))',
-  whiteSpace: 'pre-line',
-  lineHeight: 1.4,
-};
-
 // 画面に1つだけ置く。App の最上位で描く
 export function TooltipHost() {
   const tip = useSyncExternalStore(subscribe, () => current);
@@ -59,13 +44,7 @@ export function TooltipHost() {
   if (!tip) return null;
   const [name, ...rest] = tip.text.split('\n');
   return createPortal(
-    <div ref={ref} style={{ ...boxStyle, left: pos?.left ?? -9999, top: pos?.top ?? -9999, visibility: pos ? 'visible' : 'hidden' }}>
-      {/* 文字は UI の大きさの倍率を受ける。箱の位置は画面の座標のまま（箱には掛けない） */}
-      <div style={{ zoom: 'var(--ui-scale, 1)' }}>
-        <div style={{ fontWeight: 'bold' }}>{name}</div>
-        {rest.length > 0 && <div>{rest.join('\n')}</div>}
-      </div>
-    </div>,
+    <TipBox boxRef={ref} left={pos?.left ?? -9999} top={pos?.top ?? -9999} visible={pos !== null} name={name} rest={rest.length > 0 ? rest.join('\n') : undefined} />,
     document.body,
   );
 }

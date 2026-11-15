@@ -15,6 +15,7 @@ import { CompanyBody } from './CompanyPanel';
 import { FundsBody } from './FundsPanel';
 import { FramesBody } from './FramesPanel';
 import { Button } from './ui/Button';
+import { Scrim } from './ui/Scrim';
 import { Tabs } from './Tabs';
 import { TrimmedIcon } from './Icon';
 import { useGameStore, viewportNow } from '../stores/useGameStore';
@@ -148,11 +149,7 @@ export function Windows() {
     <>
       {/* スマホでパネルを開いている間は、後ろを暗くする。暗い所を押すとパネルを閉じる */}
       {narrow && front && (
-        <div
-          aria-hidden
-          onClick={() => state.closeWindow(front.id)}
-          style={{ position: 'absolute', inset: 0, zIndex: 4, background: 'rgba(10, 16, 32, 0.45)' }}
-        />
+        <Scrim onClick={() => state.closeWindow(front.id)} />
       )}
       {shown.map((w) => (
         <Window
