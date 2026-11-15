@@ -686,9 +686,8 @@ const scenes = {
   },
   // サンドボックスで、2台のPCを直結して IP を入れ、テストを押す（「すべての疎通が通った」を出す）
   sandboxok: async (page) => {
-    await page.getByText('サンドボックス').click();
-    await page.getByRole('button', { name: '始める' }).click();
-    await page.waitForTimeout(1200);
+    // 始め方の選択（自由に作る）を含む共通の手順で始める。自前の手順では選択の画面で止まり、機器を置けなかった
+    await scenes.sandbox(page);
     await page.evaluate(() => {
       const g = window.__game.getState();
       g.buy('pc_basic');
