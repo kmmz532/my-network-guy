@@ -266,7 +266,7 @@ export const setRouting = (core: Core, uid: string, change: { proto: 'rip' | 'os
       });
       if (change.ip !== undefined && change.on && !node.interfaces.some(touches)) return 'iface.none';
       // OSPF の番号（process）は、指定があるときだけ書く（null で外す）
-      if (change.proto === 'ospf' && change.process !== undefined) return withComponent({ ...node, interfaces }, 'ospf', { ...getComponent(node, 'ospf'), process: change.process ?? undefined });
+      if (change.proto === 'ospf' && change.process !== undefined) return refusalFor(node.device, 'ospf') ?? withComponent({ ...node, interfaces }, 'ospf', { ...getComponent(node, 'ospf'), process: change.process ?? undefined });
       return { ...node, interfaces };
     },
     target,
@@ -284,6 +284,8 @@ export const setOspf = (core: Core, uid: string, change: OspfOp, target: NetTarg
         const ospf = { ...iface.ospf, [change.key]: change.value };
         return { ...node, interfaces: node.interfaces.map((i) => (i.id === change.id ? { ...i, ospf } : i)) };
       }
+      const refusal = refusalFor(node.device, 'ospf');
+      if (refusal) return refusal;
       const prev = getComponent(node, 'ospf') ?? {};
       return withComponent(node, 'ospf', change.op === 'routerId' ? { ...prev, routerId: change.ip ?? undefined } : { ...prev, defaultOriginate: change.on });
     },
@@ -412,6 +414,8 @@ export const setIsp = (core: Core, uid: string, line: IspLine, target: NetTarget
     core,
     uid,
     (node) => {
+      const refusal = refusalFor(node.device, 'wan');
+      if (refusal) return refusal;
       if (!isIp(line.ispIp)) return 'ip';
       return withComponent(node, 'isp', line);
     },

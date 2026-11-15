@@ -61,7 +61,7 @@ export type ComponentId = keyof typeof COMPONENT_SCHEMAS;
 export type Components = { [K in ComponentId]?: z.infer<(typeof COMPONENT_SCHEMAS)[K]> };
 
 // コンポーネントを持てる条件（機器の定義の能力）。条件のないものは、どの機器にも付けられる
-const REQUIRES: Partial<Record<ComponentId, Capability>> = {
+export const REQUIRES: Partial<Record<ComponentId, Capability>> = {
   isp: 'wan',
   ospf: 'ospf',
   stp: 'stp',

@@ -5,7 +5,8 @@ import type { Balance } from '../data/schema';
 import type { NetNode } from '../network/types';
 import { CAPABILITY_REFUSALS, type GatedCapability } from './capabilityGate';
 import { initialOffice } from './furniture';
-import { setBgp, setChannel, setDhcp, setFirewallRules, setNat, setPortMode, setStp, setSvi, setVrrp, setWireless } from './netEdit';
+import { REQUIRES } from '../network/components';
+import { setBgp, setChannel, setDhcp, setFirewallRules, setIsp, setNat, setOspf, setPortMode, setRouting, setStp, setSvi, setVrrp, setWireless } from './netEdit';
 import type { Core, Env, Outcome } from './project';
 
 const balance = balanceJson as unknown as Balance;
@@ -30,9 +31,22 @@ const ATTEMPTS: Record<GatedCapability, { device: string; run: (core: Core) => O
   nat: { device: 'pc_basic', run: (c) => setNat(c, 'n', { op: 'napt', on: true }, 'office') },
   bgp: { device: 'pc_basic', run: (c) => setBgp(c, 'n', { op: 'asn', asn: 65001 }, 'office') },
   firewall: { device: 'pc_basic', run: (c) => setFirewallRules(c, 'n', [], 'office') },
+  ospf: { device: 'pc_basic', run: (c) => setOspf(c, 'n', { op: 'routerId', ip: '1.1.1.1' }, 'office') },
+  wan: { device: 'pc_basic', run: (c) => setIsp(c, 'n', { name: 'ISP', network: '198.51.100.0', prefix: 24, ispIp: '198.51.100.1' }, 'office') },
 };
 
 describe('能力の表', () => {
+  // コンポーネントを付ける条件の能力が拒否の表になければ、能力のない機器への編集が拒否でなく例外になる
+  it('コンポーネントを持てる条件の能力は、すべて拒否の表にある', () => {
+    const missing = Object.values(REQUIRES).filter((c) => !(c in CAPABILITY_REFUSALS));
+    expect(missing).toEqual([]);
+  });
+
+  it('OSPF の番号の指定も、能力のない機器では拒否される', () => {
+    const core = coreOf('pc_basic');
+    expect(setRouting(core, 'n', { proto: 'ospf', on: true, process: 1 }, 'office')).toEqual({ ok: false, reason: CAPABILITY_REFUSALS.ospf });
+  });
+
   it.each(Object.keys(CAPABILITY_REFUSALS) as GatedCapability[])('%s の能力のない機器では、編集が表の理由で拒否される', (capability) => {
     const { device, run } = ATTEMPTS[capability];
     const core = coreOf(device);
