@@ -25,7 +25,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 58;
+export const SAVE_VERSION = 59;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -75,6 +75,28 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v58 → v59: 機器の NAT の設定（napt・statics）を、機器のコンポーネントの表（components.nat）へ移す
+  58: (data) => {
+    type OldNode = NetNode & { napt?: boolean; statics?: NonNullable<NonNullable<NetNode['components']>['nat']>['statics'] };
+    const convert = <T extends { nodes: NetNode[] }>(x: T): T => ({
+      ...x,
+      nodes: x.nodes.map((n) => {
+        const { napt, statics, ...rest } = n as OldNode;
+        if (napt === undefined && statics === undefined) return n;
+        return { ...rest, components: { ...rest.components, nat: { ...(napt !== undefined ? { napt } : {}), ...(statics !== undefined ? { statics } : {}) } } };
+      }),
+    });
+    const d = data as { active: { nodes: NetNode[] }[]; office: { nodes: NetNode[] }; familiarity: { counts: object; blueprints: Record<string, { stars: number; design: { nodes: NetNode[] } }> } };
+    return {
+      ...d,
+      office: convert(d.office),
+      active: d.active.map(convert),
+      familiarity: {
+        ...d.familiarity,
+        blueprints: Object.fromEntries(Object.entries(d.familiarity.blueprints).map(([k, b]) => [k, { ...b, design: convert(b.design) }])),
+      },
+    };
+  },
   // v57 → v58: 機器の無線の設定（wireless）を、機器のコンポーネントの表（components.wireless）へ移す
   57: (data) => {
     type OldNode = NetNode & { wireless?: NonNullable<NetNode['components']>['wireless'] };

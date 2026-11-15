@@ -14,7 +14,7 @@ const l = (uid: string, a: string, pa: number, b: string, pb: number): NetLink =
 const build = (rules: NonNullable<NetNode['rules']>): Network => ({
   nodes: [
     n('pc', 'pc_basic', [{ ...f(0, '192.168.1.10'), id: 'eth0' }], 0, { gateway: '192.168.1.1' }),
-    n('fw', 'firewall', [f(0, '192.168.1.1', 'inside'), f(1, '198.51.100.2', 'outside')], 1, { napt: true, gateway: '198.51.100.1', rules }),
+    n('fw', 'firewall', [f(0, '192.168.1.1', 'inside'), f(1, '198.51.100.2', 'outside')], 1, { components: { nat: { napt: true } }, gateway: '198.51.100.1', rules }),
     n('line', 'uplink', [], 2, { components: { isp: { name: 'ISP-A', network: '198.51.100.0', prefix: 24, ispIp: '198.51.100.1' } } }),
   ],
   links: [l('a', 'pc', 0, 'fw', 0), l('b', 'fw', 1, 'line', 0)],

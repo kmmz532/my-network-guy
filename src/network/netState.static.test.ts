@@ -11,10 +11,10 @@ const n = (uid: string, device: string, interfaces: Iface[], gateway: string | n
 const l = (uid: string, a: string, pa: number, b: string, pb: number) => ({ uid, cable: 'utp_cat5e', a: { node: a, port: pa }, b: { node: b, port: pb }, path: [[0, 0], [1, 0]] as [number, number][], paid: 0 });
 
 // 外（198.51.100.1）— R（外 198.51.100.2・社内 192.168.1.1）— サーバー（192.168.1.20・HTTP 80）
-const build = (statics: NonNullable<NetNode['statics']>): Network => ({
+const build = (statics: NonNullable<NonNullable<NetNode['components']>['nat']>['statics']): Network => ({
   nodes: [
     n('net', 'internet', [f(0, '198.51.100.1')], null, {}, 0),
-    n('r', 'router_basic', [f(0, '198.51.100.2', 'outside'), f(1, '192.168.1.1', 'inside')], null, { routes: [{ dest: '192.168.1.20', prefix: 32, nextHop: '192.168.1.20' }], statics } as Partial<NetNode>, 1),
+    n('r', 'router_basic', [f(0, '198.51.100.2', 'outside'), f(1, '192.168.1.1', 'inside')], null, { routes: [{ dest: '192.168.1.20', prefix: 32, nextHop: '192.168.1.20' }], components: { nat: { statics } } } as Partial<NetNode>, 1),
     n('srv', 'server_basic', [f(0, '192.168.1.20')], '192.168.1.1', { services: [{ protocol: 'http', port: 80 }] }, 2),
   ],
   links: [l('l0', 'net', 0, 'r', 0), l('l1', 'r', 1, 'srv', 0)],

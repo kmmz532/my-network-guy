@@ -230,8 +230,12 @@
         "gateway": "198.51.100.1",
         "routes": [],
         "services": [],
-        "napt": true,
-        "statics": []
+        "components": {
+          "nat": {
+            "napt": true,
+            "statics": []
+          }
+        }
       },
       {
         "uid": "U1",

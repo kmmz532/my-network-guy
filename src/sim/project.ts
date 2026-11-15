@@ -337,6 +337,7 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
       ...(setup?.dhcpPools ? { dhcpServer: structuredClone(setup.dhcpPools) } : {}),
       ...(setup?.stpPriority !== undefined ? { stp: { priority: setup.stpPriority } } : {}),
       ...(setup?.bgp ? { bgp: structuredClone(setup.bgp) } : {}),
+      ...(setup?.napt !== undefined ? { nat: { napt: setup.napt } } : {}),
     };
     return {
       uid: p.ref,
@@ -346,7 +347,6 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
       ports: (setup?.ports ?? []).map((c) => ({ ...c })),
       ...(p.name ? { name: p.name } : {}),
       ...(Object.keys(components).length > 0 ? { components } : {}),
-      ...(setup?.napt !== undefined ? { napt: setup.napt } : {}),
       ...(setup?.rules ? { rules: structuredClone(setup.rules) } : {}),
       x: p.x,
       y: p.y,
@@ -395,16 +395,15 @@ export const requireDesign = (core: Core): Project | OpFailReason => {
 // 在庫から機器を1台配置する。自社案件では自社オフィスと同じ規則に従い、ほかの案件では床（PCは机の上も可）に置ける。
 // 家庭用ルーターの出荷時の設定（NET.md §4）: LAN の口（1）に 192.168.1.1/24・社内側の口・NAPT 有効・DHCP（192.168.1.100〜199 を配る）。無線つきは SSID とパスワードも持つ。ほかの機器は何も持たない
 const FACTORY_WIFI = { ssid: 'HOME', password: 'home1234' };
-export const factoryConfigOf = (deviceId: string): Pick<NetNode, 'interfaces' | 'napt' | 'rules' | 'components'> => {
+export const factoryConfigOf = (deviceId: string): Pick<NetNode, 'interfaces' | 'rules' | 'components'> => {
   const category = deviceCategory(deviceId);
   if (category !== CATEGORY.homeRouter) return { interfaces: [] };
   const lan = { ...makeIface(deviceId, 1, '192.168.1.1', 24), nat: 'inside' as const };
   const wireless = deviceId === 'home_router_ap' ? { wireless: { ...FACTORY_WIFI } } : {};
   return {
     interfaces: [lan],
-    napt: true,
     rules: [{ src: '192.168.1.0/24', dst: 'any', service: 'any' }],
-    components: { dhcpServer: [{ network: '192.168.1.0', prefix: 24, start: '192.168.1.100', end: '192.168.1.199', gateway: '192.168.1.1', dns: '192.168.1.1' }], ...wireless },
+    components: { nat: { napt: true }, dhcpServer: [{ network: '192.168.1.0', prefix: 24, start: '192.168.1.100', end: '192.168.1.199', gateway: '192.168.1.1', dns: '192.168.1.1' }], ...wireless },
   };
 };
 

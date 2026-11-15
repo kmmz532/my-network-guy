@@ -31,6 +31,11 @@ export const COMPONENT_SCHEMAS = {
     macs: z.array(z.string()).optional(),
     security: z.enum(WIRELESS_SECURITIES).optional(),
   }),
+  // NAT の設定（napt は inside から outside へ出る通信の送信元を outside の口のアドレスに変える。statics は静的 NAT で、外の口へのこのポートの通信を、社内の宛先（アドレスとポート）へ届ける）
+  nat: z.object({
+    napt: z.boolean().optional(),
+    statics: z.array(z.object({ port: z.number().int(), insideIp: ipv4, insidePort: z.number().int() })).optional(),
+  }),
   // DHCP のプール（サーバーが配る範囲。口のアドレスがプールのネットワークの中にある口で配る）
   dhcpServer: z.array(
     z.object({
@@ -55,6 +60,7 @@ const REQUIRES: Partial<Record<ComponentId, Capability>> = {
   stp: 'stp',
   bgp: 'bgp',
   wireless: 'wireless',
+  nat: 'nat',
 };
 
 export const getComponent = <K extends ComponentId>(node: NetNode, id: K): Components[K] => node.components?.[id];

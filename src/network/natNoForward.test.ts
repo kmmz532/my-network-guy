@@ -9,10 +9,10 @@ const f = (port: number, ip: string, nat?: 'inside' | 'outside'): Iface => ({ id
 const n = (uid: string, device: string, interfaces: Iface[], x: number, extra: Partial<NetNode> = {}): NetNode =>
   ({ uid, device, x, y: 0, locked: false, configLocked: false, interfaces, gateway: null, routes: [], services: [], ports: [], ...extra }) as NetNode;
 const l = (uid: string, a: string, pa: number, b: string, pb: number): NetLink => ({ uid, cable: 'utp_cat5e', a: { node: a, port: pa }, b: { node: b, port: pb }, path: [[0, 0], [1, 0]], paid: 0 });
-const build = (statics: NonNullable<NetNode['statics']>): Network => ({
+const build = (statics: NonNullable<NonNullable<NetNode['components']>['nat']>['statics']): Network => ({
   nodes: [
     n('ext', 'pc_basic', [f(0, '203.0.113.50')], 0, { gateway: '203.0.113.1' }),
-    n('hr', 'home_router', [f(0, '203.0.113.1', 'outside'), f(1, '192.168.1.1', 'inside')], 1, { napt: true, statics }),
+    n('hr', 'home_router', [f(0, '203.0.113.1', 'outside'), f(1, '192.168.1.1', 'inside')], 1, { components: { nat: { napt: true, statics } } }),
     n('srv', 'server_basic', [f(0, '192.168.1.10')], 2, { gateway: '192.168.1.1', services: [{ protocol: 'http', port: 80 }] }),
   ],
   links: [l('l0', 'ext', 0, 'hr', 0), l('l1', 'hr', 1, 'srv', 0)],

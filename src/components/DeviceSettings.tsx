@@ -485,7 +485,7 @@ function NatField({ node, readOnly, onError }: { node: NetNode; readOnly: boolea
   const [port, setPort] = useState('80');
   const [insideIp, setInsideIp] = useState('');
   const [insidePort, setInsidePort] = useState('80');
-  const statics = node.statics ?? [];
+  const statics = getComponent(node, 'nat')?.statics ?? [];
   const addStatic = () => {
     const p = Number(port);
     const ip = Number(insidePort);
@@ -514,7 +514,7 @@ function NatField({ node, readOnly, onError }: { node: NetNode; readOnly: boolea
         </div>
       ))}
       <div style={row}>
-        <Checkbox label={t('ui.nat.napt')} checked={node.napt === true} disabled={readOnly} onChange={(on) => onError(setNat(node.uid, { op: 'napt', on }))}>
+        <Checkbox label={t('ui.nat.napt')} checked={getComponent(node, 'nat')?.napt === true} disabled={readOnly} onChange={(on) => onError(setNat(node.uid, { op: 'napt', on }))}>
           {t('ui.nat.napt')}
         </Checkbox>
       </div>

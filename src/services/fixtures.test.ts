@@ -95,6 +95,20 @@ describe('無線の設定の移行（機器の wireless を components.wireless 
   });
 });
 
+describe('NAT の設定の移行（機器の napt・statics を components.nat へ移す）', () => {
+  it('移行前の機器の napt・statics は、移行後は components.nat に入り、機器の直下には残らない', () => {
+    const old = JSON.parse(readFileSync(join(dir, 'save-v58.json'), 'utf8')) as Fixture;
+    const entry = Object.values(old)[0];
+    const data = structuredClone(entry.data) as { office: { nodes: Record<string, unknown>[] } };
+    const statics = [{ port: 80, insideIp: '192.168.1.20', insidePort: 8080 }];
+    data.office.nodes.push({ uid: 'r_nat', device: 'router_basic', napt: true, statics });
+    const moved = migrate(entry.saveVersion, data).office.nodes.find((n) => n.uid === 'r_nat');
+    expect(moved?.components).toEqual({ nat: { napt: true, statics } });
+    expect('napt' in (moved ?? {})).toBe(false);
+    expect('statics' in (moved ?? {})).toBe(false);
+  });
+});
+
 describe('セーブの fixture', () => {
   it('今の版（SAVE_VERSION）の fixture がある', () => {
     expect(existsSync(join(dir, `save-v${SAVE_VERSION}.json`))).toBe(true);

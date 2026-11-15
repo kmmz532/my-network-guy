@@ -174,7 +174,7 @@ export const deliver = (view: ForwardView, srcUid: string, dstUid: string, traff
     if (connected) {
       // 直結の外の口へ出るときも、NAPT で送信元を外の口のアドレスに変える（N145）
       const inIf = cur.interfaces.find((i) => i.port === current.port);
-      if (cur.napt && inIf?.nat === 'inside' && connected.nat === 'outside' && natHit === undefined) {
+      if (getComponent(cur, 'nat')?.napt && inIf?.nat === 'inside' && connected.nat === 'outside' && natHit === undefined) {
         natHit = { router: cur.uid, insideIp: curSrcIp, outsideIp: connected.ip };
         curSrcIp = connected.ip;
       }
@@ -212,7 +212,7 @@ export const deliver = (view: ForwardView, srcUid: string, dstUid: string, traff
     if (!egress) return err(fail('route.none', cur.uid));
     // NAPT: 社内の口（inside）から外の口（outside）へ出る通信の送信元を、外の口のアドレスに変える（N145）
     const ingress = cur.interfaces.find((i) => i.port === current.port);
-    if (cur.napt && ingress?.nat === 'inside' && egress.nat === 'outside' && natHit === undefined) {
+    if (getComponent(cur, 'nat')?.napt && ingress?.nat === 'inside' && egress.nat === 'outside' && natHit === undefined) {
       natHit = { router: cur.uid, insideIp: curSrcIp, outsideIp: egress.ip };
       curSrcIp = egress.ip;
     }
@@ -247,7 +247,7 @@ const viaStatic = (view: ForwardView, srcUid: string, routerUid: string, traffic
   const r = view.addressing.nodeOf(routerUid);
   if (!r || traffic.kind === 'ping') return null;
   const outerPort = traffic.kind === 'http' ? traffic.port : DNS_PORT;
-  const map = r.statics?.find((s) => s.port === outerPort);
+  const map = getComponent(r, 'nat')?.statics?.find((s) => s.port === outerPort);
   if (!map) return null;
   const outside = r.interfaces.find((i) => i.nat === 'outside');
   const inside = r.interfaces.find((i) => i.nat === 'inside' && inSubnet(map.insideIp, i.ip, i.prefix));
@@ -285,7 +285,7 @@ export const http = (view: ForwardView, srcUid: string, dstUid: string, port: nu
   if (!forward.ok) return forward;
   const dst = view.addressing.nodeOf(dstUid);
   // 外から、NAT のルーターの外の口へ来た通信に、静的 NAT の転送先がない（nat.no_forward・NET.md §6）
-  if (dst && dst.napt && dst.interfaces.some((i) => i.nat === 'outside') && !dst.statics?.some((s) => s.port === port)) {
+  if (dst && getComponent(dst, 'nat')?.napt && dst.interfaces.some((i) => i.nat === 'outside') && !getComponent(dst, 'nat')?.statics?.some((s) => s.port === port)) {
     const srcIp = view.addressing.nodeOf(srcUid)?.interfaces[0]?.ip;
     if (srcIp !== undefined && !isPrivateIp(srcIp)) return { ok: false, path: forward.path, failure: fail('nat.no_forward', dstUid) };
   }

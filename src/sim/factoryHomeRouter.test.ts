@@ -8,7 +8,7 @@ describe('家庭用ルーターの出荷時の設定', () => {
     const c = factoryConfigOf('home_router');
     expect(c.interfaces).toHaveLength(1);
     expect(c.interfaces[0]).toMatchObject({ port: 1, ip: '192.168.1.1', prefix: 24, nat: 'inside' });
-    expect(c.napt).toBe(true);
+    expect(c.components?.nat).toEqual({ napt: true });
     expect(c.rules).toEqual([{ src: '192.168.1.0/24', dst: 'any', service: 'any' }]);
     expect(c.components?.wireless).toBeUndefined();
   });

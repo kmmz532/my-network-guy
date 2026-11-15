@@ -149,7 +149,11 @@
       "gateway": null,
       "routes": [],
       "services": [],
-      "napt": true
+      "components": {
+        "nat": {
+          "napt": true
+        }
+      }
     },
     {
       "uid": "n4",

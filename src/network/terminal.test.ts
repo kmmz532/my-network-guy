@@ -271,7 +271,7 @@ describe('show ip nat translations（N146）', () => {
   });
 
   it('静的 NAT の転送と NAPT の変換先を、外の口のアドレスで出す', () => {
-    const r = router({ napt: true, statics: [{ port: 80, insideIp: '192.168.1.10', insidePort: 8080 }] });
+    const r = router({ components: { nat: { napt: true, statics: [{ port: 80, insideIp: '192.168.1.10', insidePort: 8080 }] } } });
     expect(run('show ip nat translations', { node: r, nodes: [r], links: [], data }, tr).map((l) => l.text)).toEqual([
       'ui.terminal.natHeader',
       `ui.terminal.natStatic ${JSON.stringify({ outsideIp: '203.0.113.2', outsidePort: 80, insideIp: '192.168.1.10', insidePort: 8080 })}`,
@@ -280,7 +280,7 @@ describe('show ip nat translations（N146）', () => {
   });
 
   it('外の口がなければ失敗の行を出す', () => {
-    const r = router({ napt: true, interfaces: [] });
+    const r = router({ components: { nat: { napt: true } }, interfaces: [] });
     expect(run('show ip nat translations', { node: r, nodes: [r], links: [], data }, tr)).toEqual([{ text: 'ui.terminal.natNoOutside', kind: 'err' }]);
   });
 });

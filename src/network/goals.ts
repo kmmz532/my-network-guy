@@ -115,7 +115,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
     if (goal.type !== 'outside_reachable') throw new Error('outside_reachable ハンドラに別の種類が渡された');
     // 回線終端につながるルーターは、NAPT（外側の口と内側の口・ip nat napt）を設定している
     const lineRouters = net.nodes.filter((n) => net.links.some((l) => (l.a.node === n.uid && net.nodes.some((u) => u.uid === l.b.node && deviceCategory(u.device) === 'uplink')) || (l.b.node === n.uid && net.nodes.some((u) => u.uid === l.a.node && deviceCategory(u.device) === 'uplink'))));
-    const nat = lineRouters.length > 0 && lineRouters.every((r) => r.napt === true && r.interfaces.some((i) => i.nat === 'outside') && r.interfaces.some((i) => i.nat === 'inside'));
+    const nat = lineRouters.length > 0 && lineRouters.every((r) => getComponent(r, 'nat')?.napt === true && r.interfaces.some((i) => i.nat === 'outside') && r.interfaces.some((i) => i.nat === 'inside'));
     const ok = nat && outsideCheck(net, data).pcsReachOutside;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },

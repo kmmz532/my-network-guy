@@ -22,10 +22,12 @@
       "gateway": null,
       "routes": [],
       "services": [],
-      "components": { "wireless": {
-        "ssid": "g",
-        "password": "golden-pass"
-      } }
+      "components": {
+        "wireless": {
+          "ssid": "g",
+          "password": "golden-pass"
+        }
+      }
     },
     {
       "uid": "n1",
@@ -50,11 +52,13 @@
       "gateway": null,
       "routes": [],
       "services": [],
-      "components": { "wireless": {
-        "ssid": "g",
-        "password": "golden-pass",
-        "security": "open"
-      } }
+      "components": {
+        "wireless": {
+          "ssid": "g",
+          "password": "golden-pass",
+          "security": "open"
+        }
+      }
     },
     {
       "uid": "n2",
@@ -84,11 +88,13 @@
       "gateway": null,
       "routes": [],
       "services": [],
-      "components": { "wireless": {
-        "ssid": "g",
-        "password": "golden-pass",
-        "security": "wep"
-      } }
+      "components": {
+        "wireless": {
+          "ssid": "g",
+          "password": "golden-pass",
+          "security": "wep"
+        }
+      }
     },
     {
       "uid": "n3",
@@ -117,11 +123,13 @@
       "gateway": null,
       "routes": [],
       "services": [],
-      "components": { "wireless": {
-        "ssid": "g",
-        "password": "golden-pass",
-        "security": "open"
-      } }
+      "components": {
+        "wireless": {
+          "ssid": "g",
+          "password": "golden-pass",
+          "security": "open"
+        }
+      }
     },
     {
       "uid": "n5",
@@ -157,7 +165,11 @@
       "gateway": null,
       "routes": [],
       "services": [],
-      "napt": true
+      "components": {
+        "nat": {
+          "napt": true
+        }
+      }
     }
   ],
   "links": [

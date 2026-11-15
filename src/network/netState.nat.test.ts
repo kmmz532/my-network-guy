@@ -8,7 +8,7 @@ import type { Iface, NetNode, Network } from './types';
 
 const f = (port: number, ip: string, nat?: 'inside' | 'outside', prefix = 24): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix, ...(nat ? { nat } : {}) });
 const n = (uid: string, device: string, interfaces: Iface[], gateway: string | null, routes: NetNode['routes'] = [], napt = false, x = 0): NetNode =>
-  ({ uid, device, x, y: 0, locked: false, configLocked: false, interfaces, gateway, routes, services: [], ports: [], ...(napt ? { napt: true } : {}) }) as NetNode;
+  ({ uid, device, x, y: 0, locked: false, configLocked: false, interfaces, gateway, routes, services: [], ports: [], ...(napt ? { components: { nat: { napt: true } } } : {}) }) as NetNode;
 const l = (uid: string, a: string, pa: number, b: string, pb: number) => ({ uid, cable: 'utp_cat5e', a: { node: a, port: pa }, b: { node: b, port: pb }, path: [[0, 0], [1, 0]] as [number, number][], paid: 0 });
 
 // PC(192.168.1.10) — R(LAN 192.168.1.1・WAN 198.51.100.2) — インターネット(198.51.100.1)

@@ -6,6 +6,7 @@ import { dnsQuery } from './engine/forward';
 import { analyze } from './engine/analyze';
 import type { NetworkState } from './engine/state';
 import { can } from './capabilities';
+import { getComponent } from './components';
 import { EXTERNAL_ZONE, withInternet, type IspDns } from './external';
 import { DNS_PORT } from './types';
 import type { DnsRecord, DnsRecordType, DnsService, EngineData, NetNode, Network } from './types';
@@ -96,7 +97,7 @@ const askIsp = (c: Ctx, isp: NetNode, name: string, type: DnsRecordType, steps: 
   for (const server of servers) {
     // 外から届く先: サーバー自身、または 53 番を静的 NAT でサーバーへ転送するルーター
     const ips = new Set(server.interfaces.map((i) => i.ip));
-    const via = [server, ...c.state.net.nodes.filter((n) => n.statics?.some((s) => s.port === DNS_PORT && ips.has(s.insideIp)))];
+    const via = [server, ...c.state.net.nodes.filter((n) => getComponent(n, 'nat')?.statics?.some((s) => s.port === DNS_PORT && ips.has(s.insideIp)))];
     const reach = via.find((v) => dnsQuery(c.state, isp.uid, v.uid).ok);
     steps.push({ from: isp.uid, to: server.uid, mode: 'iterative' });
     if (!reach) return unreachable(first, steps);

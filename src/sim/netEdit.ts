@@ -429,17 +429,19 @@ export const setNat = (core: Core, uid: string, change: NatOp, target: NetTarget
     core,
     uid,
     (node) => {
+      if (!can(node.device, 'nat')) return 'none';
+      const cur = getComponent(node, 'nat') ?? {};
       switch (change.op) {
         case 'iface': {
           if (!node.interfaces.some((i) => i.id === change.id)) return 'iface.none';
           return { ...node, interfaces: node.interfaces.map((i) => (i.id === change.id ? { ...i, nat: change.nat ?? undefined } : i)) };
         }
         case 'napt':
-          return { ...node, napt: change.on || undefined };
+          return withComponent(node, 'nat', { ...cur, napt: change.on || undefined });
         case 'static':
-          return { ...node, statics: [...(node.statics ?? []).filter((s) => s.port !== change.port), { port: change.port, insideIp: change.insideIp, insidePort: change.insidePort }] };
+          return withComponent(node, 'nat', { ...cur, statics: [...(cur.statics ?? []).filter((s) => s.port !== change.port), { port: change.port, insideIp: change.insideIp, insidePort: change.insidePort }] });
         case 'noStatic':
-          return { ...node, statics: (node.statics ?? []).filter((s) => s.port !== change.port) };
+          return withComponent(node, 'nat', { ...cur, statics: (cur.statics ?? []).filter((s) => s.port !== change.port) });
       }
     },
     target,

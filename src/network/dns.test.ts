@@ -109,7 +109,7 @@ describe('53 番とファイアウォール', () => {
 describe('ISP の DNS', () => {
   const home = (isp: IspLine): Network => ({
     nodes: [
-      n('hr', 'home_router', [f(0, '198.51.100.2'), f(1, '192.168.1.1')], { routes: [{ dest: '0.0.0.0', prefix: 0, nextHop: '198.51.100.1' }], napt: true }),
+      n('hr', 'home_router', [f(0, '198.51.100.2'), f(1, '192.168.1.1')], { routes: [{ dest: '0.0.0.0', prefix: 0, nextHop: '198.51.100.1' }], components: { nat: { napt: true } } }),
       n('a', 'pc_basic', [f(0, '192.168.1.10')], { gateway: '192.168.1.1', nameServer: '192.168.1.1' }),
       n('u', 'uplink', [], { components: { isp } }),
     ],

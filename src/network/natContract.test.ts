@@ -31,7 +31,7 @@ const link = (uid: string, a: string, pa: number, b: string, pb: number): NetLin
 const solved = (napt: boolean): Network => ({
   nodes: [
     ...contract.placed.map(base),
-    { uid: 'r1', device: 'router_basic', macSerial: 50, ports: [], x: 0, y: 0, locked: false, configLocked: false, interfaces: [f(0, '198.51.100.2', 'outside'), f(1, '192.168.1.1', 'inside')], gateway: '198.51.100.1', routes: [], services: [], napt } as NetNode,
+    { uid: 'r1', device: 'router_basic', macSerial: 50, ports: [], x: 0, y: 0, locked: false, configLocked: false, interfaces: [f(0, '198.51.100.2', 'outside'), f(1, '192.168.1.1', 'inside')], gateway: '198.51.100.1', routes: [], services: [], components: { nat: { napt } } } as NetNode,
     { uid: 'sw', device: 'l2_switch_4p', macSerial: 51, ports: [], x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [] } as NetNode,
   ],
   links: [link('w', 'r1', 0, 'line', 0), link('a', 'r1', 1, 'sw', 0), link('b', 'sw', 1, 'staff_a', 0), link('c', 'sw', 2, 'staff_b', 0)],
