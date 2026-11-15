@@ -1,11 +1,11 @@
-// 吹き出し・選択の一覧の箱。menu は窓と同じ段階1の箱（選択の一覧・口のメニュー）、tip は紙の色の吹き出し（段階3）。位置は layout で渡す。
+// 吹き出し・選択の一覧の箱。menu は窓と同じ段階1の箱（選択の一覧・口のメニュー）、tip は紙の色の吹き出し（段階3）、caution は札の上に重ねる確認の欄（黄の枠）。位置は layout で渡す。
 import type { ReactNode } from 'react';
 import { layoutStyle, type Layout } from './layout';
 import './tokens.css';
 import './ui.css';
 
 interface Props {
-  variant: 'menu' | 'tip';
+  variant: 'menu' | 'tip' | 'caution';
   layout?: Layout;
   children: ReactNode;
 }

@@ -16,6 +16,9 @@ export interface Layout {
   flex?: CSSProperties['flex'];
   flexShrink?: CSSProperties['flexShrink'];
   alignSelf?: CSSProperties['alignSelf'];
+  right?: CSSProperties['right'];
+  bottom?: CSSProperties['bottom'];
+  zIndex?: CSSProperties['zIndex'];
   // 中の絵や札を絶対の位置で置くときの基準（relative）
   position?: CSSProperties['position'];
 }

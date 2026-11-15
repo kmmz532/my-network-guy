@@ -7,6 +7,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import { nextTab } from './tabNav';
 import { RADIUS } from '../ui/theme';
+import type { Layout } from './ui/layout';
 
 const BORDER = '#3b2a33';
 const TEXT = '#f4f1e6';
@@ -32,6 +33,15 @@ export const tabPanelStyle = (bg: string): CSSProperties => ({
   padding: 8,
   marginTop: -1,
 });
+
+// タブの下に続けるパネル（tone はタブの色の組と同じ）。id・role・aria は呼び出し側が渡す
+export function TabPanel({ tone, id, labelledBy, layout, children }: { tone: 'shop' | 'window'; id?: string; labelledBy?: string; layout?: Layout; children: ReactNode }) {
+  return (
+    <div id={id} role={id ? 'tabpanel' : undefined} aria-labelledby={labelledBy} style={{ ...tabPanelStyle(TAB_COLORS[tone].selected), ...layout }}>
+      {children}
+    </div>
+  );
+}
 
 export interface TabItem<T extends string> {
   id: T;

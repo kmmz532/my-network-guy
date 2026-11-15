@@ -553,6 +553,15 @@ input.ui-text-input--full {
   border-radius: 0;
 }
 
+.ui-popover--caution {
+  box-sizing: border-box;
+  background: var(--bg-track);
+  color: var(--fg);
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  padding: 8px;
+}
+
 .ui-popover--tip {
   background: var(--bg-field);
   color: var(--fg-on-field);
@@ -595,6 +604,14 @@ input.ui-text-input--full {
 
 .ui-text--sub {
   opacity: 0.7;
+}
+
+.ui-text--soft {
+  opacity: 0.85;
+}
+
+.ui-text--faint {
+  opacity: 0.25;
 }
 
 .ui-text--ok {
@@ -796,6 +813,13 @@ input.ui-terminal-input__field {
 
 .ui-hud-bar--bottom {
   background: var(--bg-hud);
+}
+
+.ui-hud-bar--panel {
+  background: var(--bg-hud);
+  border: 2px solid var(--line);
+  border-radius: 4px;
+  font-size: var(--fs-sm);
 }
 
 .ui-hud-bar--tray {
