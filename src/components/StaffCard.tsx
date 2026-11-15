@@ -59,13 +59,12 @@ export function StaffBody({ uid }: { uid: string }) {
   // 次の level までの経験値（level n から n+1 に上がるのに expPerLevel × n）
   const next = balance.staff.expPerLevel * member.level;
   const ratio = Math.min(1, member.exp / next);
-  const label = { color: 'rgba(244, 241, 230, 0.7)', fontSize: 12 } as const;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         <Icon name={`staff/${staffSpriteName(member.look)}_0`} scale={3} />
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 'bold', fontSize: 15 }}>{tDyn(member.name)}</div>
+          <Text bold size="l">{tDyn(member.name)}</Text>
           <div>{tDyn(`staff.job.${member.job}`)}</div>
           <div>
             {t('ui.staff.level', { level: member.level })}
@@ -79,33 +78,33 @@ export function StaffBody({ uid }: { uid: string }) {
         <ProgressBar fraction={ratio} size="s" layout={{ marginTop: 2 }} />
       </div>
       <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 10px', margin: 0 }}>
-        <dt style={label}>{t('ui.staff.card.certs')}</dt>
+        <dt><Text tone="sub" size="s">{t('ui.staff.card.certs')}</Text></dt>
         <dd style={{ margin: 0 }}>
           <CertChips certs={member.certs} />
         </dd>
-        <dt style={label}>{t('ui.staff.card.status')}</dt>
+        <dt><Text tone="sub" size="s">{t('ui.staff.card.status')}</Text></dt>
         <dd style={{ margin: 0 }}>{statusText(status)}</dd>
         {/* 施工力はエンジニア枠の社員。内勤は施工力の代わりに、その社員の効果を出す（システムエンジニアは両方） */}
         {!back && (
           <>
-            <dt style={label}>{t('ui.staff.card.power')}</dt>
+            <dt><Text tone="sub" size="s">{t('ui.staff.card.power')}</Text></dt>
             <dd style={{ margin: 0 }}>{staffPower(member, undefined, state.office, env).toFixed(2)}</dd>
           </>
         )}
         {requiresPc(member.job) && (
           <>
-            <dt style={label}>{t('ui.staff.card.pc')}</dt>
+            <dt><Text tone="sub" size="s">{t('ui.staff.card.pc')}</Text></dt>
             <dd style={{ margin: 0 }}>{hasPcAt(member, env) ? t('ui.staff.pc.yes') : t('ui.staff.pc.no')}</dd>
           </>
         )}
         {(back || isDevJob(member.job)) && (
           <>
-            <dt style={label}>{t('ui.staff.card.effect')}</dt>
+            <dt><Text tone="sub" size="s">{t('ui.staff.card.effect')}</Text></dt>
             <dd style={{ margin: 0 }}>{effect && (contribution > 0 || isDevJob(member.job)) ? jobEffectText(effect) : t('ui.effect.job.none')}</dd>
           </>
         )}
       </dl>
-      <div style={{ fontStyle: 'italic', opacity: 0.9 }}>{tDyn(`staff.quirk.${member.quirk}`)}</div>
+      <div style={{ fontStyle: 'italic' }}><Text tone="soft">{tDyn(`staff.quirk.${member.quirk}`)}</Text></div>
       <div>
         <Button variant="secondary" onClick={() => useUiStore.getState().openHiring('staff')}>
           {t('ui.staff.card.goto')}
@@ -192,46 +191,47 @@ export function StaffListBody() {
   const openWindow = state.openWindow;
   // 机に PC がない社内の職種（システムエンジニア・人事・経理）は、一覧に印を出す（N102）
   const pcDesks = pcDesksOf(state.office, isPcDevice);
-  if (state.staff.length === 0) return <div style={{ opacity: 0.7 }}>{t('ui.staff.list.empty')}</div>;
-  const head = { fontSize: 12, opacity: 0.7, padding: '0 6px' } as const;
+  if (state.staff.length === 0) return <Text tone="sub">{t('ui.staff.list.empty')}</Text>;
   // 社員の人数と、PC がなく働けない社内の職種の人数（自社の情報から移した・N126）
   const night = state.staff.filter((m) => m.shift === 'night').length;
   const noPcCount = state.staff.filter((m) => requiresPc(m.job) && !(m.desk !== null && pcDesks.includes(m.desk))).length;
   return (
     <div>
-      <div style={{ fontSize: 13, padding: '0 6px 6px' }}>
-        <div>{t('ui.company.staffCount', { total: state.staff.length, day: state.staff.length - night, night })}</div>
-        {noPcCount > 0 && <div style={{ color: '#ffd866' }}>{t('ui.company.noPc.count', { count: noPcCount })}</div>}
+      <div style={{ padding: '0 6px 6px' }}>
+        <Text size="sm">
+          <div>{t('ui.company.staffCount', { total: state.staff.length, day: state.staff.length - night, night })}</div>
+          {noPcCount > 0 && <Text tone="warn" size="sm">{t('ui.company.noPc.count', { count: noPcCount })}</Text>}
+        </Text>
       </div>
-      <div style={{ ...head, display: 'grid', gridTemplateColumns: COLUMNS, gap: 6, marginBottom: 4 }}>
-        <span>{t('ui.staff.list.col.name')}</span>
-        <span>{t('ui.staff.list.col.job')}</span>
-        <span>{t('ui.staff.list.col.salary')}</span>
-        <span>{t('ui.staff.list.col.status')}</span>
+      <div style={{ display: 'grid', gridTemplateColumns: COLUMNS, gap: 6, marginBottom: 4, padding: '0 6px' }}>
+        <Text as="span" tone="sub" size="s">{t('ui.staff.list.col.name')}</Text>
+        <Text as="span" tone="sub" size="s">{t('ui.staff.list.col.job')}</Text>
+        <Text as="span" tone="sub" size="s">{t('ui.staff.list.col.salary')}</Text>
+        <Text as="span" tone="sub" size="s">{t('ui.staff.list.col.status')}</Text>
       </div>
       {state.staff.map((m) => {
         const status = staffStatus(m, state.active, state.clock.minute);
         return (
           <ListRow key={m.uid} layout={{ marginBottom: 4 }} onClick={() => openWindow('staff', m.uid)}>
-            <span style={{ display: 'grid', gridTemplateColumns: COLUMNS, gap: 6, alignItems: 'center', fontSize: 12 }}>
-              <span style={{ fontWeight: 'bold' }}>{tDyn(m.name)}</span>
-              <span>
+            <span style={{ display: 'grid', gridTemplateColumns: COLUMNS, gap: 6, alignItems: 'center' }}>
+              <Text as="span" size="s" bold>{tDyn(m.name)}</Text>
+              <Text as="span" size="s">
                 {tDyn(`staff.job.${m.job}`)} · {t('ui.staff.level', { level: m.level })}
-              </span>
-              <span>{yen(m.salary)}円</span>
-              <span>
+              </Text>
+              <Text as="span" size="s">{yen(m.salary)}円</Text>
+              <Text as="span" size="s">
                 {statusText(status)}
-                {m.level >= m.levelCap && <span style={{ marginLeft: 4, color: '#ffd866' }}>{t('ui.staff.cap')}</span>}
+                {m.level >= m.levelCap && <Text as="span" tone="warn" size="s" layout={{ marginLeft: 4 }}>{t('ui.staff.cap')}</Text>}
                 {requiresPc(m.job) && !(m.desk !== null && pcDesks.includes(m.desk)) && (
-                  <span style={{ marginLeft: 4, color: '#ffd866' }}>{t('ui.staff.pc.no.short')}</span>
+                  <Text as="span" tone="warn" size="s" layout={{ marginLeft: 4 }}>{t('ui.staff.pc.no.short')}</Text>
                 )}
-              </span>
+              </Text>
             </span>
           </ListRow>
         );
       })}
-      <div style={{ textAlign: 'right', fontWeight: 'bold', marginTop: 6 }}>
-        {t('ui.staff.list.total', { salary: yen(totalSalary(state.staff, balance.nightPayRate)) })}
+      <div style={{ textAlign: 'right', marginTop: 6 }}>
+        <Text bold>{t('ui.staff.list.total', { salary: yen(totalSalary(state.staff, balance.nightPayRate)) })}</Text>
       </div>
     </div>
   );
