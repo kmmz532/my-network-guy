@@ -1,5 +1,23 @@
-/* UI 部品の見た目。クラス名は ui-<部品>--<種類>。地・文字・枠は部品が必ず自分で決める。
-   src/global.css の要素ごとの規則（button・input・button[role='combobox']）より詳細度を高くして、その影響を受けない。 */
+/* UI 部品の見た目。クラス名は ui-<部品>--<種類>。地・文字・枠・文字の大きさは部品が必ず自分で決め、ブラウザ標準の見た目や全体の CSS には頼らない。 */
+
+/* 標準の button・input を使う部品は、文字を周りから継ぎ（ブラウザ標準の書体・大きさにしない）、焦点の輪は出さない。個別の大きさは、この後ろの各部品の規則が決める */
+.ui-icon-button,
+.ui-link,
+.ui-list-row,
+.ui-tile,
+.ui-tab__label,
+.ui-tab__close,
+.ui-tab-arrow,
+.ui-toast__action,
+.ui-toast__close,
+.ui-toolbar-button,
+.ui-window__close,
+.ui-port-button,
+input.ui-terminal-input__field {
+  font: inherit;
+  letter-spacing: inherit;
+  outline: none;
+}
 
 /* Select: 欄は入力欄と同じ見た目。押すと一覧が開く */
 button.ui-select[role='combobox'] {
@@ -163,7 +181,7 @@ input.ui-combobox:disabled {
   white-space: nowrap;
 }
 
-/* Button・FileButton: 種類で地と文字、大きさで余白と文字の大きさが決まる。global.css の button より詳細度が高い */
+/* Button・FileButton: 種類で地と文字、大きさで余白と文字の大きさが決まる */
 .ui-button {
   font: inherit;
   letter-spacing: inherit;
@@ -339,7 +357,7 @@ input.ui-combobox:disabled {
   font-size: 11px;
 }
 
-/* TextInput・TextArea: 入力欄。global.css の input・textarea より詳細度が高い */
+/* TextInput・TextArea: 入力欄 */
 input.ui-text-input,
 textarea.ui-text-area {
   font: inherit;
@@ -415,6 +433,15 @@ input.ui-text-input--full {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.ui-checkbox input {
+  outline: none;
+}
+
+.ui-checkbox:not(.ui-checkbox--pixel) input:disabled {
+  opacity: var(--disabled-opacity);
+  cursor: default;
 }
 
 .ui-checkbox--s {
@@ -917,6 +944,8 @@ input.ui-terminal-input__field {
   color: inherit;
   border: none;
   padding: 4px;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 /* WordList: Tab の候補の一覧 */
@@ -1599,6 +1628,9 @@ input.ui-search-input__field {
   border: 1px solid var(--line);
   border-radius: 0;
   font: inherit;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 /* MenuButton: タイトルのメニューのボタン。角のある箱に、内側の明暗の線 */
@@ -1742,4 +1774,14 @@ input.ui-search-input__field {
 /* Text（mono）: 固定幅の文字 */
 .ui-text--mono {
   font-family: monospace;
+}
+
+/* 入力欄の薄い案内の文字。背景（#f4f1e6）との明るさの比は 4.5:1 以上（5.68:1） */
+input.ui-text-input::placeholder,
+textarea.ui-text-area::placeholder,
+input.ui-combobox::placeholder,
+input.ui-search-input__field::placeholder,
+input.ui-terminal-input__field::placeholder {
+  color: var(--fg-placeholder);
+  opacity: 1;
 }
