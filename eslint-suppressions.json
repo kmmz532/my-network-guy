@@ -92,9 +92,6 @@
     }
   },
   "src/components/Inventory.tsx": {
-    "local/no-look-export": {
-      "count": 1
-    },
     "local/no-look-props": {
       "count": 5
     },
@@ -221,17 +218,6 @@
     },
     "local/no-native-control": {
       "count": 1
-    }
-  },
-  "src/components/Tabs.tsx": {
-    "local/no-look-export": {
-      "count": 1
-    },
-    "local/no-look-props": {
-      "count": 22
-    },
-    "local/no-native-control": {
-      "count": 4
     }
   },
   "src/components/TerminalTab.tsx": {

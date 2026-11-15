@@ -6,7 +6,7 @@ import { shop as catalogShop } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import { focusedProject } from '../stores/useGameStore';
 import { inventoryItems, inventoryMode, type InventoryItem } from '../sim/inventory';
-import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
+import { Tabs, TabPanel } from './Tabs';
 import { mapViewOf } from '../game/mapView';
 import { useGameStore } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
@@ -97,17 +97,17 @@ export function InventoryBody() {
         }))}
         selected={tab}
         onSelect={setTab}
-        colors={TAB_COLORS.shop}
+        tone="shop"
         style={{ paddingLeft: 8 }}
       />
-      <div id="inventory-panel" role="tabpanel" aria-labelledby={`inventory-tab-${tab}`} style={{ ...tabPanelStyle(TAB_COLORS.shop.selected), flex: 1 }}>
+      <TabPanel tone="shop" id="inventory-panel" labelledBy={`inventory-tab-${tab}`} layout={{ flex: 1 }}>
         <SearchField value={query} onChange={setQuery} />
         {query !== '' && items.length === 0 ? (
           <div style={{ padding: 8 }}>{t('ui.search.none')}</div>
         ) : (
           <Inventory layout="grid" items={items} owned={owned} sandbox={sandbox} placing={placing} onPick={pick} onShop={() => useGameStore.getState().openWindow('shop', '')} />
         )}
-      </div>
+      </TabPanel>
     </div>
   );
 }

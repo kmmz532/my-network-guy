@@ -1,47 +1,14 @@
 // タブの部品。ショップ・機器の画面・採用の画面・ウィンドウのタブの帯で使う。
 // 見た目は、パネルの上辺に付いた見出しの形。選んでいるタブはパネルと同じ色でつながり、下の縁がない。選んでいないタブは一段暗く、下の縁がパネルとの境の線になる。
-// パネルは tabPanelStyle で作り、タブの下に続けて置く。キー操作は tabNav.ts（左右の矢印で隣、Home と End で先頭と末尾）。
+// パネルは TabPanel で作り、タブの下に続けて置く。キー操作は tabNav.ts（左右の矢印で隣、Home と End で先頭と末尾）。
 // 押せないタブ（disabled）は薄く出し、選べず、キー操作の対象にもしない。
 // 帯の幅に収まらないときは横にスクロールし、ホイール（縦の回転を横に変換）・左右の矢印のボタンで送る。選んだタブは見える位置まで送る。
 // reorderable を付けた帯だけ、ドラッグでタブの並べ替えを行う（開いて増えるウィンドウのタブ）。
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import { nextTab } from './tabNav';
-import { RADIUS } from '../ui/theme';
-import type { Layout } from './ui/layout';
+import { Tab, TabArrow, TabDropMark, type TabTone } from './ui/Tab';
 
-const BORDER = '#3b2a33';
-const TEXT = '#f4f1e6';
-
-export interface TabColors {
-  // 選んでいるタブと、その下のパネルの背景（同じ色にする）
-  selected: string;
-  // 選んでいないタブの背景（selected より暗くする）
-  idle: string;
-}
-
-// ショップ（パネルは暗い青）と、機器・採用・ウィンドウの画面（#2f4f8f）の色
-export const TAB_COLORS: Record<'shop' | 'window', TabColors> = {
-  shop: { selected: '#1d3664', idle: '#16294f' },
-  window: { selected: '#2f4f8f', idle: '#25406f' },
-};
-
-// タブの下に続けるパネルの見た目。上の縁はタブの下の縁に重ねる（-1 px）
-export const tabPanelStyle = (bg: string): CSSProperties => ({
-  background: bg,
-  border: `1px solid ${BORDER}`,
-  borderRadius: RADIUS.none,
-  padding: 8,
-  marginTop: -1,
-});
-
-// タブの下に続けるパネル（tone はタブの色の組と同じ）。id・role・aria は呼び出し側が渡す
-export function TabPanel({ tone, id, labelledBy, layout, children }: { tone: 'shop' | 'window'; id?: string; labelledBy?: string; layout?: Layout; children: ReactNode }) {
-  return (
-    <div id={id} role={id ? 'tabpanel' : undefined} aria-labelledby={labelledBy} style={{ ...tabPanelStyle(TAB_COLORS[tone].selected), ...layout }}>
-      {children}
-    </div>
-  );
-}
+export { TabPanel } from './ui/Tab';
 
 export interface TabItem<T extends string> {
   id: T;
@@ -59,7 +26,8 @@ interface Props<T extends string> {
   onSelect: (id: T) => void;
   // 閉じるの処理（×のクリックと、中ボタンのクリック）
   onClose?: (id: T) => void;
-  colors: TabColors;
+  // タブの色の組（shop はショップ、window は機器・採用・ウィンドウの画面）
+  tone: TabTone;
   // 指定すると、タブのボタンに `${idPrefix}-${id}` の id を付ける（パネルの aria-labelledby 用）
   idPrefix?: string;
   ariaLabel?: string;
@@ -71,82 +39,17 @@ interface Props<T extends string> {
   onReorder?: (from: number, to: number) => void;
 }
 
-const boxStyle = (active: boolean, disabled: boolean | undefined, closable: boolean, colors: TabColors, tabHeight: number | undefined): CSSProperties => ({
-  display: 'inline-flex',
-  alignItems: 'center',
-  flexShrink: 0,
-  maxWidth: 180,
-  position: 'relative',
-  zIndex: 1,
-  paddingRight: closable ? 2 : 0,
-  border: `1px solid ${BORDER}`,
-  borderBottom: active ? 'none' : `1px solid ${BORDER}`,
-  borderRadius: `${RADIUS.tab}px ${RADIUS.tab}px 0 0`,
-  background: active ? colors.selected : colors.idle,
-  color: TEXT,
-  opacity: disabled ? 0.4 : 1,
-  ...(tabHeight !== undefined ? { height: tabHeight, boxSizing: 'border-box' as const, overflow: 'hidden' } : {}),
-});
-
-// 上の余白は、選んでいるタブ（下の縁なし）と選んでいないタブ（下の縁あり）の高さが揃うように決める
-// 高さを固定したとき（tabHeight）は、ボタンを箱の高さいっぱいに広げ、中身は縦の中央に置く（中身が高くても箱からはみ出さない）
-const labelStyle = (active: boolean, closable: boolean, disabled: boolean | undefined, fixed: boolean): CSSProperties => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: 6,
-  minWidth: 0,
-  ...(fixed
-    ? { height: '100%', boxSizing: 'border-box', lineHeight: '20px', padding: `0 ${closable ? 6 : 10}px 0 10px` }
-    : { padding: `${active ? 5 : 4}px ${closable ? 6 : 10}px 4px 10px` }),
-  background: 'transparent',
-  color: 'inherit',
-  border: 'none',
-  font: 'inherit',
-  fontSize: 14,
-  fontWeight: active ? 'bold' : 'normal',
-  whiteSpace: 'nowrap',
-  cursor: disabled ? 'default' : 'pointer',
-});
-
-const closeStyle: CSSProperties = {
-  flexShrink: 0,
-  width: 18,
-  height: 18,
-  padding: 0,
-  cursor: 'pointer',
-  background: 'transparent',
-  color: 'inherit',
-  border: 'none',
-  font: 'inherit',
-  lineHeight: '16px',
-};
-
 // 矢印のボタンで1回に送る幅（px）
 const SCROLL_STEP = 120;
 // ドラッグと判定するまでの移動（px）。これより小さい動きは押して選ぶままにする
 const DRAG_PX = 6;
-
-const arrowStyle: CSSProperties = {
-  flexShrink: 0,
-  alignSelf: 'center',
-  width: 20,
-  height: 22,
-  padding: 0,
-  cursor: 'pointer',
-  background: '#25406f',
-  color: TEXT,
-  border: `1px solid ${BORDER}`,
-  borderRadius: RADIUS.none,
-  font: 'inherit',
-  lineHeight: '18px',
-};
 
 export function Tabs<T extends string>({
   items,
   selected,
   onSelect,
   onClose,
-  colors,
+  tone,
   idPrefix,
   ariaLabel,
   style,
@@ -267,9 +170,9 @@ export function Tabs<T extends string>({
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, minWidth: 0, ...style }}>
       {overflowing && (
-        <button type="button" aria-label="左へ送る" onClick={() => send(-1)} style={arrowStyle}>
+        <TabArrow label="左へ送る" onClick={() => send(-1)}>
           ‹
-        </button>
+        </TabArrow>
       )}
       <div
         ref={scroller}
@@ -289,14 +192,25 @@ export function Tabs<T extends string>({
         }}
       >
         {items.map((item, index) => {
-          const active = item.id === selected;
           const close = onClose && item.closeLabel !== undefined ? onClose : undefined;
-          const closeLabel = item.closeLabel;
           return (
-            <div
+            <Tab
               key={item.id}
-              data-tab={String(item.id)}
-              style={boxStyle(active, item.disabled, close !== undefined, colors, tabHeight)}
+              tone={tone}
+              tabId={String(item.id)}
+              active={item.id === selected}
+              disabled={item.disabled}
+              height={tabHeight}
+              id={idPrefix ? `${idPrefix}-${item.id}` : undefined}
+              labelRef={(el) => {
+                refs.current[item.id] = el;
+              }}
+              icon={item.icon}
+              label={item.label}
+              closeLabel={item.closeLabel}
+              onClose={close ? () => close(item.id) : undefined}
+              onSelect={() => onSelect(item.id)}
+              onKeyDown={onKeyDown}
               onPointerDown={reorderable && !item.disabled ? onPointerDown(index) : undefined}
               // 中ボタンで閉じる（閉じられるタブだけ）。既定の自動スクロールは Window の mousedown で止める
               onAuxClick={
@@ -308,54 +222,15 @@ export function Tabs<T extends string>({
                     }
                   : undefined
               }
-            >
-              <button
-                type="button"
-                role="tab"
-                id={idPrefix ? `${idPrefix}-${item.id}` : undefined}
-                ref={(el) => {
-                  refs.current[item.id] = el;
-                }}
-                aria-selected={active}
-                aria-disabled={item.disabled || undefined}
-                disabled={item.disabled}
-                tabIndex={active ? 0 : -1}
-                style={labelStyle(active, close !== undefined, item.disabled, tabHeight !== undefined)}
-                onClick={() => onSelect(item.id)}
-                onKeyDown={onKeyDown}
-              >
-                {item.icon}
-                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>
-              </button>
-              {close && closeLabel !== undefined && (
-                <button
-                  type="button"
-                  aria-label={closeLabel}
-                  // タブを選ぶ処理を始めないよう、押した位置の処理を止める
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    close(item.id);
-                  }}
-                  style={closeStyle}
-                >
-                  ×
-                </button>
-              )}
-            </div>
+            />
           );
         })}
-        {drop && (
-          <div
-            aria-hidden="true"
-            style={{ position: 'absolute', left: drop.left - 2, top: 0, bottom: 0, width: 3, background: '#ffd866', pointerEvents: 'none', zIndex: 3 }}
-          />
-        )}
+        {drop && <TabDropMark left={drop.left} />}
       </div>
       {overflowing && (
-        <button type="button" aria-label="右へ送る" onClick={() => send(1)} style={arrowStyle}>
+        <TabArrow label="右へ送る" onClick={() => send(1)}>
           ›
-        </button>
+        </TabArrow>
       )}
     </div>
   );

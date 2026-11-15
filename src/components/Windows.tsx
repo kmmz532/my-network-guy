@@ -15,7 +15,7 @@ import { CompanyBody } from './CompanyPanel';
 import { FundsBody } from './FundsPanel';
 import { FramesBody } from './FramesPanel';
 import { Button } from './ui/Button';
-import { Tabs, TAB_COLORS } from './Tabs';
+import { Tabs } from './Tabs';
 import { TrimmedIcon } from './Icon';
 import { useGameStore, viewportNow } from '../stores/useGameStore';
 import { WINDOW_TAB_GAP, WINDOW_TAB_HEIGHT, uiScaled } from '../ui/theme';
@@ -109,7 +109,7 @@ function TabStrip({
         selected={win.active}
         onSelect={onSelect}
         onClose={onClose}
-        colors={TAB_COLORS.window}
+        tone="window"
         tabHeight={WINDOW_TAB_HEIGHT}
         // 開いて増えるタブは、ドラッグで並べ替えられる
         reorderable

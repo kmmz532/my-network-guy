@@ -990,3 +990,152 @@ input.ui-terminal-input__field {
   height: 10px;
   border: 1px solid var(--line);
 }
+
+/* Tab: タブの帯。選んでいるタブは TabPanel と同じ色でつながり下の縁がない。選んでいないタブは一段暗く、下の縁がパネルとの境になる */
+.ui-tab {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  max-width: 180px;
+  position: relative;
+  z-index: 1;
+  border: 1px solid var(--line);
+  border-radius: 2px 2px 0 0;
+  color: var(--fg);
+}
+
+.ui-tab--shop {
+  background: var(--bg-tab-idle);
+}
+
+.ui-tab--window {
+  background: var(--bg-card);
+}
+
+.ui-tab--shop.ui-tab--active {
+  background: var(--bg-card-pressed);
+}
+
+.ui-tab--window.ui-tab--active {
+  background: var(--bg-panel);
+}
+
+.ui-tab--active {
+  border-bottom: none;
+}
+
+.ui-tab--closable {
+  padding-right: 2px;
+}
+
+.ui-tab--disabled {
+  opacity: var(--tab-disabled-opacity);
+}
+
+/* 高さを固定したとき、ボタンを箱の高さいっぱいに広げ、中身は縦の中央に置く（中身が高くても箱からはみ出さない） */
+.ui-tab--fixed {
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* 上の余白は、選んでいるタブ（下の縁なし）と選んでいないタブ（下の縁あり）の高さが揃うように決める */
+.ui-tab__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px 10px 4px 10px;
+  background: transparent;
+  color: inherit;
+  border: none;
+  font: inherit;
+  font-size: var(--fs-m);
+  font-weight: normal;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ui-tab--active .ui-tab__label {
+  padding-top: 5px;
+  font-weight: bold;
+}
+
+.ui-tab--closable .ui-tab__label {
+  padding-right: 6px;
+}
+
+.ui-tab--fixed .ui-tab__label,
+.ui-tab--fixed.ui-tab--active .ui-tab__label {
+  height: 100%;
+  box-sizing: border-box;
+  line-height: 20px;
+  padding: 0 10px 0 10px;
+}
+
+.ui-tab--fixed.ui-tab--closable .ui-tab__label {
+  padding-right: 6px;
+}
+
+.ui-tab__label:disabled {
+  cursor: default;
+}
+
+.ui-tab__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ui-tab__close {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  color: inherit;
+  border: none;
+  font: inherit;
+  line-height: 16px;
+}
+
+.ui-tab-arrow {
+  flex-shrink: 0;
+  align-self: center;
+  width: 20px;
+  height: 22px;
+  padding: 0;
+  cursor: pointer;
+  background: var(--bg-card);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  font: inherit;
+  line-height: 18px;
+}
+
+.ui-tab-drop {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  margin-left: -2px;
+  width: 3px;
+  background: var(--accent);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.ui-tab-panel {
+  border: 1px solid var(--line);
+  border-radius: 0;
+  padding: 8px;
+  margin-top: -1px;
+}
+
+.ui-tab-panel--shop {
+  background: var(--bg-card-pressed);
+}
+
+.ui-tab-panel--window {
+  background: var(--bg-panel);
+}

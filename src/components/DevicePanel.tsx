@@ -11,7 +11,7 @@ import { RearTab as DeviceRear } from './DeviceRear';
 import { DeviceSettings } from './DeviceSettings';
 import { TrimmedIcon } from './Icon';
 import { TerminalTab } from './TerminalTab';
-import { Tabs, TabPanel, TAB_COLORS } from './Tabs';
+import { Tabs, TabPanel } from './Tabs';
 import { isIpText } from './devicePorts';
 import { PixelSelect } from './PixelControls';
 import { TextInput } from './ui/TextInput';
@@ -122,7 +122,7 @@ function DeviceView({
           setTab(id);
           setError(null);
         }}
-        colors={TAB_COLORS.window}
+        tone="window"
       />
       <TabPanel tone="window">
         {error && <Text tone="warn" layout={{ marginBottom: 6 }}>{tDyn(`ui.error.${error}`)}</Text>}

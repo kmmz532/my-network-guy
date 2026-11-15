@@ -6,6 +6,8 @@
   --bg-plate: #3d434b;
   --bg-card: #25406f;
   --bg-card-pressed: #1d3664;
+  --bg-panel: #2f4f8f;
+  --bg-tab-idle: #16294f;
   --bg-hud-top: rgba(47, 79, 143, 0.75);
   --bg-hud: rgba(47, 79, 143, 0.92);
   --bg-tile-selected: #3a5fa8;
@@ -45,6 +47,7 @@
   --bg-track: #1b2f57;
   --disabled-opacity: 0.5;
   --dim-opacity: 0.45;
+  --tab-disabled-opacity: 0.4;
 
   /* 文字の大きさ。選択の一覧は今の 13 px を保つ */
   --fs-list: 13px;

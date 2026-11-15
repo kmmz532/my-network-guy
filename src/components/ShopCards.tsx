@@ -15,7 +15,7 @@ import { Icon } from './Icon';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Text } from './ui/Text';
-import { Tabs, TabPanel, TAB_COLORS } from './Tabs';
+import { Tabs, TabPanel } from './Tabs';
 import { matchesQuery } from '../ui/search';
 import { SearchField } from './SearchField';
 import { ItemIcon as SharedItemIcon } from './ItemIcon';
@@ -61,7 +61,7 @@ export function ShopBody() {
         items={SECTIONS.map((s) => ({ id: s, icon: <Icon name={`icon/${s}`} scale={1} />, label: tDyn(`ui.shop.tab.${s}`) }))}
         selected={section}
         onSelect={setSection}
-        colors={TAB_COLORS.shop}
+        tone="shop"
         style={{ paddingLeft: 8 }}
       />
       <TabPanel tone="shop" id="shop-panel" labelledBy={`shop-tab-${section}`}>

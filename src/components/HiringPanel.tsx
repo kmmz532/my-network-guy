@@ -16,7 +16,7 @@ import { useUiStore } from '../stores/useUiStore';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
 import { Dialog } from './ui/Dialog';
-import { Tabs, TabPanel, TAB_COLORS } from './Tabs';
+import { Tabs, TabPanel } from './Tabs';
 import { Select } from './ui/Select';
 import { CertChips } from './StaffCard';
 import { requiresPc } from '../sim/jobs';
@@ -44,7 +44,7 @@ export function HiringPanel() {
         ]}
         selected={tab}
         onSelect={onTab}
-        colors={TAB_COLORS.window}
+        tone="window"
       />
       <TabPanel tone="window">
         <div style={{ maxHeight: 'min(60vh, 480px)', overflowY: 'auto' }}>
