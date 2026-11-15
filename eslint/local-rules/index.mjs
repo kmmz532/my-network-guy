@@ -161,7 +161,8 @@ const noLookProps = rule(
     },
   }),
   // 地図の描画（Pixi）は fill({ color })・style の fontSize など、描画の API の名前として同じ語を使うため除く。画面の部品（.tsx）は除かない
-  ['src/components/ui/**', 'src/game/**/*.ts'],
+  // 試験の記録と過去の版の色の表の color は、CSS の色ではなく、古い版でネットワークを見分けた「色」の印
+  ['src/components/ui/**', 'src/game/**/*.ts', 'src/__golden__/record.ts', 'src/services/legacyColors.ts'],
 );
 
 const NATIVE_CONTROLS = new Set(['button', 'input', 'select', 'textarea']);

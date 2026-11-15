@@ -4,11 +4,6 @@
       "count": 3
     }
   },
-  "src/__golden__/record.ts": {
-    "local/no-look-props": {
-      "count": 1
-    }
-  },
   "src/__golden__/terminal.test.ts": {
     "local/no-mode-branch": {
       "count": 1
@@ -193,9 +188,6 @@
   "src/services/legacyColors.ts": {
     "local/no-category": {
       "count": 7
-    },
-    "local/no-look-props": {
-      "count": 1
     }
   },
   "src/services/migrations.ts": {
