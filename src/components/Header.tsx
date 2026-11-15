@@ -76,7 +76,7 @@ const Header = ({ headerRef }: { headerRef: RefObject<HTMLElement> }) => {
             </span>
         ) : (
             <Button variant="plain" size="bare" label={t('ui.funds.open')} onClick={() => openWindow('funds', '')}>
-            <Icon name="icon/money" scale={1.5} /> <Text as="span">{clock.money.toLocaleString('ja-JP')}</Text>
+            <Icon name="icon/money" scale={1.5} /> <Text as="span" size="l">{clock.money.toLocaleString('ja-JP')}</Text>
             </Button>
         )}
         {!sandbox && (
@@ -134,7 +134,7 @@ const Header = ({ headerRef }: { headerRef: RefObject<HTMLElement> }) => {
             <Icon name="icon/save" scale={1} />
             </span>
         </Tooltip>
-        <ToolbarButton label={t('ui.menu.settings')} onClick={() => useUiStore.getState().setPopup('menu')}>
+        <ToolbarButton label={t('ui.menu.open')} onClick={() => useUiStore.getState().setPopup('menu')}>
             <Icon name="icon/menu" scale={1} />
         </ToolbarButton>
         </div>
