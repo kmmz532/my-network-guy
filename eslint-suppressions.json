@@ -112,14 +112,6 @@
       "count": 2
     }
   },
-  "src/components/PixelControls.tsx": {
-    "local/no-look-props": {
-      "count": 22
-    },
-    "local/no-native-control": {
-      "count": 3
-    }
-  },
   "src/components/PortMenu.tsx": {
     "local/no-look-export": {
       "count": 2

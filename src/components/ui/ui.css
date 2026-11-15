@@ -380,6 +380,50 @@ input.ui-text-input--full {
   font-size: 12px;
 }
 
+.ui-checkbox--pixel {
+  display: flex;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.ui-checkbox--pixel:has(input:disabled) {
+  cursor: default;
+  opacity: var(--disabled-opacity);
+}
+
+.ui-checkbox--pixel input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+}
+
+.ui-checkbox__box {
+  position: relative;
+  flex-shrink: 0;
+  box-sizing: content-box;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--line);
+  background: var(--bg-field);
+}
+
+.ui-checkbox--pixel input:checked + .ui-checkbox__box {
+  background: var(--accent);
+}
+
+.ui-checkbox__mark {
+  position: absolute;
+  left: 3px;
+  top: 0;
+  width: 4px;
+  height: 8px;
+  border-right: 2px solid var(--line);
+  border-bottom: 2px solid var(--line);
+  transform: rotate(45deg);
+}
+
 /* Choice: 同じ幅・同じ高さの箱を並べる */
 .ui-choice {
   display: grid;

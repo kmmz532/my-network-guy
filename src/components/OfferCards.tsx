@@ -16,7 +16,7 @@ import { Tooltip } from './Tooltip';
 import { loadSettings, saveSettings, OFFER_SORTS, type OfferSort } from '../settings/settings';
 import { sortOffers } from '../contracts/offers';
 import { minutesPerDay, toDate } from '../sim/clock';
-import { PixelCheck } from './PixelControls';
+import { Checkbox } from './ui/Checkbox';
 import { Icon } from './Icon';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { Select } from './ui/Select';
@@ -115,7 +115,8 @@ function CrewPicker({ selected, onChange }: { selected: string[]; onChange: (cre
         const unavailable = crewBlock({ active }, s) !== null;
         const power = staffPower(s, undefined, office, bonusEnv);
         return (
-          <PixelCheck
+          <Checkbox
+            box="pixel"
             key={s.uid}
             disabled={unavailable}
             checked={selected.includes(s.uid)}
@@ -125,7 +126,7 @@ function CrewPicker({ selected, onChange }: { selected: string[]; onChange: (cre
             <span>{tDyn(`staff.job.${s.job}`)}</span>
             <span>{t('ui.staff.level', { level: s.level })}</span>
             <span>{t('ui.staff.power', { power: power.toFixed(2) })}</span>
-          </PixelCheck>
+          </Checkbox>
         );
       })}
     </Text>

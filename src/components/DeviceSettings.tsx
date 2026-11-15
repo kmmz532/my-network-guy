@@ -7,7 +7,6 @@ import { t, tDyn } from '../i18n/t';
 import { AddressInput } from './AddressInput';
 import { ComboBox } from './ui/ComboBox';
 import { Select } from './ui/Select';
-import { PixelSelect } from './PixelControls';
 import type { ComboOption } from './ui/comboOptions';
 import { isRelayPort, isRoutingCategory } from '../network/category';
 import { can } from '../network/capabilities';
@@ -233,12 +232,13 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
                 return null;
               }}
             />
-            <PixelSelect<number>
-              ariaLabel={t('ui.config.prefix')}
-              value={shown.prefix}
+            <Select
+              label={t('ui.config.prefix')}
+              value={String(shown.prefix)}
               disabled={locked || unlinkedRouter}
-              options={PREFIX_CHOICES.map((p) => ({ value: p, label: `/${p}` }))}
-              onChange={(prefix) => {
+              options={PREFIX_CHOICES.map((p) => ({ value: String(p), label: `/${p}` }))}
+              onChange={(v) => {
+                const prefix = Number(v);
                 if (cfg) onError(setPlan(node.uid, port, cfg.network, prefix));
                 else changePlanned({ ...shown, prefix });
               }}
@@ -415,10 +415,10 @@ function FirewallRuleAdd({ onAdd }: { onAdd: (rule: { src: string; dst: string; 
   };
   return (
     <div style={{ ...row, flexWrap: 'wrap' }}>
-      <PixelSelect<string> ariaLabel={t('ui.fw.src')} value={src} options={nets} onChange={setSrc} />
-      <PixelSelect<string> ariaLabel={t('ui.fw.dst')} value={dst} options={nets} onChange={setDst} />
-      <PixelSelect<string>
-        ariaLabel={t('ui.fw.service')}
+      <Select label={t('ui.fw.src')} value={src} options={nets} onChange={setSrc} />
+      <Select label={t('ui.fw.dst')} value={dst} options={nets} onChange={setDst} />
+      <Select
+        label={t('ui.fw.service')}
         value={service}
         options={[
           { value: 'any', label: t('ui.fw.service.any') },
@@ -462,15 +462,15 @@ function RouteAdd({
   };
   return (
     <div style={row}>
-      <PixelSelect<string>
-        ariaLabel={t('ui.config.routeDest')}
+      <Select
+        label={t('ui.config.routeDest')}
         value={dest}
         disabled={dests.length === 0}
         options={[{ value: '', label: t('ui.config.routeDest') }, ...dests.map((d) => ({ value: d.value, label: d.value }))]}
         onChange={(v) => pick(v, next)}
       />
-      <PixelSelect<string>
-        ariaLabel={t('ui.config.routeNext')}
+      <Select
+        label={t('ui.config.routeNext')}
         value={next}
         options={[{ value: '', label: t('ui.config.routeNext') }, ...hops.map((ip) => ({ value: ip, label: ip }))]}
         onChange={(v) => pick(dest, v)}
@@ -505,8 +505,8 @@ function NatField({ node, readOnly, onError }: { node: NetNode; readOnly: boolea
       {node.interfaces.map((i) => (
         <div key={i.id} style={row}>
           <span>{t('ui.nat.port', { id: i.id })}</span>
-          <PixelSelect<string>
-            ariaLabel={t('ui.nat.role')}
+          <Select
+            label={t('ui.nat.role')}
             value={i.nat ?? ''}
             disabled={readOnly}
             options={[{ value: '', label: t('ui.nat.none') }, ...NAT_ROLES.map((r) => ({ value: r, label: t(`ui.nat.${r}`) }))]}

@@ -13,7 +13,7 @@ import { TrimmedIcon } from './Icon';
 import { TerminalTab } from './TerminalTab';
 import { Tabs, TabPanel } from './Tabs';
 import { isIpText } from './devicePorts';
-import { PixelSelect } from './PixelControls';
+import { Select } from './ui/Select';
 import { TextInput } from './ui/TextInput';
 import { Button } from './ui/Button';
 import { Text } from './ui/Text';
@@ -180,7 +180,7 @@ function DnsEditor({ node, dns, locked, onError }: { node: NetNode; dns: DnsServ
   return (
     <div style={{ marginTop: 4 }}>
       <div style={dnsRow}>
-        <PixelSelect<'auth' | 'cache'> ariaLabel={t('ui.dns.role')} value={dns.role} options={roles} disabled={locked} onChange={(v) => onError(setDnsRole(node.uid, true, v))} />
+        <Select label={t('ui.dns.role')} value={dns.role} options={roles} disabled={locked} onChange={(v) => onError(setDnsRole(node.uid, true, v as 'auth' | 'cache'))} />
       </div>
       {dns.role === 'cache' && (
         <div style={dnsRow}>
@@ -200,7 +200,7 @@ function DnsEditor({ node, dns, locked, onError }: { node: NetNode; dns: DnsServ
         </div>
       ))}
       <div style={dnsRow}>
-        <PixelSelect<DnsRecordType> ariaLabel={t('ui.dns.recordType')} value={type} options={DNS_RECORD_TYPES.map((v) => ({ value: v, label: v }))} disabled={locked} onChange={setType} />
+        <Select label={t('ui.dns.recordType')} value={type} options={DNS_RECORD_TYPES.map((v) => ({ value: v, label: v }))} disabled={locked} onChange={(v) => setType(v as DnsRecordType)} />
         <TextInput placeholder={t('ui.dns.recordName')} value={name} onChange={setName} disabled={locked} layout={{ width: 120 }} />
         <TextInput placeholder={t('ui.dns.recordValue')} value={value} onChange={setValue} disabled={locked} layout={{ width: 120 }} />
         {type === 'MX' && <TextInput placeholder={t('ui.dns.recordPref')} value={pref} onChange={setPref} disabled={locked} layout={{ width: 40 }} />}

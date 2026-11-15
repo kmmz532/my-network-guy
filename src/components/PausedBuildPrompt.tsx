@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { t } from '../i18n/t';
 import { useGameStore } from '../stores/useGameStore';
 import { ConfirmDialog } from './ui/ConfirmDialog';
-import { PixelCheck } from './PixelControls';
+import { Checkbox } from './ui/Checkbox';
 
 export function PausedBuildPrompt() {
   const answer = useGameStore((s) => s.answerPausedBuild);
@@ -18,9 +18,9 @@ export function PausedBuildPrompt() {
     >
       <div style={{ fontWeight: 'bold', marginBottom: 12 }}>{t('ui.paused.build.title')}</div>
       <div style={{ fontSize: 13 }}>
-        <PixelCheck checked={remember} onChange={setRemember}>
+        <Checkbox box="pixel" checked={remember} onChange={setRemember}>
           {t('ui.paused.build.remember')}
-        </PixelCheck>
+        </Checkbox>
       </div>
     </ConfirmDialog>
   );
