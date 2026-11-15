@@ -2,7 +2,7 @@
 // 位置と大きさの計算は ui/windows.ts が受け持ち、ここはポインターの処理と見た目だけを扱う（マウス・タッチ・ペンは同じ処理）。
 import { useRef, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import type { Edges, Rect } from '../ui/windows';
-import { RADIUS, WINDOW_BAR_HEIGHT, uiScaled } from '../ui/theme';
+import { Window as UiWindow } from './ui/Window';
 
 interface Props {
   title: ReactNode;
@@ -46,20 +46,6 @@ const RESIZE_HANDLES: { name: string; edges: Edges; cursor: string; style: CSSPr
   { name: 'sw', edges: { s: true, w: true }, cursor: 'nesw-resize', style: { bottom: 0, left: 0, width: CORNER_PX, height: CORNER_PX } },
 ];
 
-const frame = {
-  position: 'absolute',
-  zIndex: 5,
-  display: 'flex',
-  flexDirection: 'column',
-  boxSizing: 'border-box',
-  background: 'rgba(47, 79, 143, 0.95)',
-  color: '#f4f1e6',
-  border: '1px solid #3b2a33',
-  borderRadius: RADIUS.chrome,
-  fontSize: 13,
-  overflow: 'hidden',
-} as const;
-
 export function Window({ title, rect, movable, closeLabel, closeText, onFocus, onMove, onResize, onClose, tabs, children }: Props) {
   const drag = useRef<Drag | null>(null);
 
@@ -86,89 +72,49 @@ export function Window({ title, rect, movable, closeLabel, closeText, onFocus, o
   };
 
   return (
-    <div
-      role="dialog"
-      onPointerDownCapture={onFocus}
-      // 中ボタンの既定の動き（自動スクロール）を止める
-      onMouseDown={(e) => {
-        if (e.button === 1) e.preventDefault();
+    <UiWindow
+      title={title}
+      closeLabel={closeLabel}
+      closeText={closeText}
+      onClose={onClose}
+      rect={rect}
+      movable={movable}
+      tabs={tabs}
+      frameProps={{
+        onPointerDownCapture: onFocus,
+        // 中ボタンの既定の動き（自動スクロール）を止める
+        onMouseDown: (e) => {
+          if (e.button === 1) e.preventDefault();
+        },
       }}
-      style={{ ...frame, left: rect.x, top: rect.y, width: rect.w, height: rect.h }}
-    >
-      <div
-        onPointerDown={begin('move')}
-        onPointerMove={move}
-        onPointerUp={end}
-        onPointerCancel={end}
+      barProps={{
+        onPointerDown: begin('move'),
+        onPointerMove: move,
+        onPointerUp: end,
+        onPointerCancel: end,
         // 帯を中ボタンで押すと、ウィンドウごと閉じる
-        onAuxClick={(e) => {
+        onAuxClick: (e) => {
           if (e.button !== 1) return;
           e.preventDefault();
           onClose();
-        }}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 6,
-          // 高さは固定する（中身の絵や文字の大きさで帯が高くならないように、はみ出しは切る）
-          height: uiScaled(WINDOW_BAR_HEIGHT),
-          boxSizing: 'border-box',
-          overflow: 'hidden',
-          padding: '0 6px',
-          flexShrink: 0,
-          background: '#25406f',
-          borderBottom: '1px solid #3b2a33',
-          cursor: movable ? 'move' : 'default',
-          touchAction: 'none',
-          userSelect: 'none',
-        }}
-      >
-        {/* 文字と余白は UI の大きさの倍率を受ける（枠の大きさは、動かしたり大きさを変えたりした値のまま） */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, minWidth: 0, width: '100%', zoom: 'var(--ui-scale, 1)' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap' }}>{title}</span>
-          <button
-            aria-label={closeLabel}
-            // 帯の移動を始めないよう、押した位置の処理を止める（止めないと、ボタンの上で移動が始まる）
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={onClose}
-            style={{ position: 'relative', zIndex: 1, flexShrink: 0, width: closeText ? 'auto' : 22, minWidth: 22, height: 22, padding: closeText ? '0 8px' : 0, cursor: 'pointer', background: '#25406f', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: RADIUS.none, lineHeight: '20px' }}
-          >
-            {closeText ?? '×'}
-          </button>
-        </div>
-      </div>
-      {tabs}
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 8 }}>
-        {/* 中身はウィンドウの高さいっぱいまで伸ばせる（インベントリの枠など）。zoom を掛けるため、高さは倍率で割る */}
-        <div style={{ width: '100%', minHeight: 'calc(100% / var(--ui-scale, 1))', display: 'flex', flexDirection: 'column', zoom: 'var(--ui-scale, 1)' }}>{children}</div>
-      </div>
-      {movable && RESIZE_HANDLES.map((h) => (
-        <div
-          key={h.name}
-          onPointerDown={begin('resize', h.edges)}
-          onPointerMove={move}
-          onPointerUp={end}
-          onPointerCancel={end}
-          aria-hidden="true"
-          style={{ position: 'absolute', zIndex: 2, touchAction: 'none', cursor: h.cursor, ...h.style }}
-        />
-      ))}
-      {movable && (
-        // 右下の取っ手は大きさを変えられることの目印（動きは右下の角の判定が受け持つ）
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            right: 0,
-            bottom: 0,
-            width: 16,
-            height: 16,
-            pointerEvents: 'none',
-            background: 'linear-gradient(135deg, transparent 0 50%, #b8bfcc 50% 58%, transparent 58% 74%, #b8bfcc 74% 82%, transparent 82%)',
-          }}
-        />
-      )}
-    </div>
+        },
+      }}
+      handles={
+        movable &&
+        RESIZE_HANDLES.map((h) => (
+          <div
+            key={h.name}
+            onPointerDown={begin('resize', h.edges)}
+            onPointerMove={move}
+            onPointerUp={end}
+            onPointerCancel={end}
+            aria-hidden="true"
+            style={{ position: 'absolute', zIndex: 2, touchAction: 'none', cursor: h.cursor, ...h.style }}
+          />
+        ))
+      }
+    >
+      {children}
+    </UiWindow>
   );
 }

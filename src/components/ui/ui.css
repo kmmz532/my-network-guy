@@ -441,6 +441,8 @@ input.ui-text-input--full {
 }
 
 .ui-window {
+  position: absolute;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -448,20 +450,41 @@ input.ui-text-input--full {
   color: var(--fg);
   border: 1px solid var(--line);
   border-radius: 4px;
-  font-size: var(--fs-m);
+  font-size: var(--fs-sm);
   overflow: hidden;
 }
 
+/* 帯の高さは固定する（中身の絵や文字の大きさで帯が高くならないように、はみ出しは切る）。高さには UI の大きさの倍率を掛ける */
 .ui-window__bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  height: 28px;
+  height: calc(28px * var(--ui-scale, 1));
   box-sizing: border-box;
+  overflow: hidden;
   padding: 0 6px;
+  flex-shrink: 0;
   background: var(--bg-card);
   border-bottom: 1px solid var(--line);
+  cursor: default;
+  touch-action: none;
+  user-select: none;
+}
+
+.ui-window__bar--movable {
+  cursor: move;
+}
+
+/* 文字と余白は UI の大きさの倍率を受ける（枠の大きさは、動かしたり大きさを変えたりした値のまま） */
+.ui-window__bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+  zoom: var(--ui-scale, 1);
 }
 
 .ui-window__title {
@@ -474,6 +497,8 @@ input.ui-text-input--full {
 }
 
 .ui-window__close {
+  position: relative;
+  z-index: 1;
   flex-shrink: 0;
   width: 22px;
   min-width: 22px;
@@ -487,11 +512,35 @@ input.ui-text-input--full {
   cursor: pointer;
 }
 
+.ui-window__close--text {
+  width: auto;
+  padding: 0 8px;
+}
+
 .ui-window__body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   padding: 8px;
+}
+
+.ui-window__content {
+  width: 100%;
+  min-height: calc(100% / var(--ui-scale, 1));
+  display: flex;
+  flex-direction: column;
+  zoom: var(--ui-scale, 1);
+}
+
+/* 右下の取っ手は大きさを変えられることの目印（動きは右下の角の判定が受け持つ） */
+.ui-window__grip {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+  background: linear-gradient(135deg, transparent 0 50%, var(--fg-note) 50% 58%, transparent 58% 74%, var(--fg-note) 74% 82%, transparent 82%);
 }
 
 .ui-confirm {
