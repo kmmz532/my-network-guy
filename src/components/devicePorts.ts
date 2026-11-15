@@ -1,6 +1,5 @@
-// 機器の画面（DevicePanel・DeviceRear・DeviceSettings）で共通に使う、ポートの名前と見た目の部品。
+// 機器の画面（DevicePanel・DeviceRear・DeviceSettings）で共通に使う、ポートの名前と入力の確かめ。
 import { t } from '../i18n/t';
-import { RADIUS } from '../ui/theme';
 import { isL2Category, isSwitchedRouterCategory, ROUTER_SWITCH_WAN_PORT } from '../network/category';
 import { categoryCan } from '../network/capabilities';
 
@@ -11,40 +10,6 @@ export const portLabel = (category: string | undefined, port: number): string =>
   if (category !== undefined && isL2Category(category)) return String(port + 1);
   return t('ui.rear.lan');
 };
-
-// 色の番号（0xRRGGBB）を CSS の色にする
-export const hexColor = (color: number): string => `#${color.toString(16).padStart(6, '0')}`;
-
-// 画面の欄の文字の大きさは 12 px と 14 px の2種類に寄せる（CORE.md「見た目」）
-export const panelStyle = {
-  position: 'absolute',
-  top: 44,
-  right: 8,
-  width: 300,
-  maxHeight: 'calc(100vh - 150px)',
-  overflowY: 'auto',
-  background: 'rgba(47, 79, 143, 0.95)',
-  color: '#f4f1e6',
-  border: '2px solid #3b2a33',
-  borderRadius: RADIUS.chrome,
-  padding: 8,
-  fontSize: 13,
-  zIndex: 4,
-} as const;
-
-// 色・枠・余白は全体の CSS（src/global.css）から当てる。ここには配置の幅だけを置く
-export const inputStyle = { width: 120 } as const;
-
-// 色・枠・余白は全体の CSS から当てる。ここには配置の最大の幅だけを置く
-export const selectStyle = { maxWidth: 150 } as const;
-
-export const buttonStyle = { cursor: 'pointer', padding: '2px 8px', background: '#25406f', color: '#f4f1e6', border: '1px solid #3b2a33', borderRadius: RADIUS.none } as const;
-
-export const sectionStyle = { marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #3b2a33' } as const;
-
-export const warnColor = '#ffd866';
-export const unsetColor = '#ff6b6b';
-export const greyColor = '#b8bfcc';
 
 // IPアドレスの形式（各区切りは 0〜255）。入力欄の確かめに使う
 export const isIpText = (s: string): boolean => /^\d{1,3}(\.\d{1,3}){3}$/.test(s) && s.split('.').every((n) => Number(n) <= 255);

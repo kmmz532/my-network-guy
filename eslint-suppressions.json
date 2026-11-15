@@ -77,14 +77,6 @@
       "count": 2
     }
   },
-  "src/components/devicePorts.ts": {
-    "local/no-look-export": {
-      "count": 9
-    },
-    "local/no-look-props": {
-      "count": 10
-    }
-  },
   "src/components/goalText.ts": {
     "local/no-category": {
       "count": 2
