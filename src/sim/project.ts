@@ -339,6 +339,7 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
       ...(setup?.bgp ? { bgp: structuredClone(setup.bgp) } : {}),
       ...(setup?.napt !== undefined ? { nat: { napt: setup.napt } } : {}),
       ...(setup?.rules ? { firewall: structuredClone(setup.rules) } : {}),
+      ...(p.config?.nameServer ? { resolver: { nameServer: p.config.nameServer } } : {}),
     };
     return {
       uid: p.ref,
@@ -357,7 +358,6 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
         return { ...makeIface(p.device, i.port, i.ip, i.prefix), ...(i.dhcp ? { dhcp: true as const } : {}), ...structuredClone(rest) };
       }),
       gateway: p.config?.gateway ?? null,
-      ...(p.config?.nameServer ? { nameServer: p.config.nameServer } : {}),
       routes: [],
       services: (p.config?.services ?? []).map((s) => ({ ...s })),
     };

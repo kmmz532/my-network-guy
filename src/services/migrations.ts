@@ -25,7 +25,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 60;
+export const SAVE_VERSION = 61;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -75,6 +75,30 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v60 → v61: 機器の名前の引き方（hosts・nameServer）を、機器のコンポーネントの表（components.resolver）へ移す。空の対応表と未設定のネームサーバーは移さない
+  60: (data) => {
+    type Resolver = NonNullable<NonNullable<NetNode['components']>['resolver']>;
+    type OldNode = NetNode & { hosts?: Resolver['hosts']; nameServer?: string };
+    const convert = <T extends { nodes: NetNode[] }>(x: T): T => ({
+      ...x,
+      nodes: x.nodes.map((n) => {
+        const { hosts, nameServer, ...rest } = n as OldNode;
+        if (hosts === undefined && nameServer === undefined) return n;
+        const resolver: Resolver = { ...(hosts !== undefined && hosts.length > 0 ? { hosts } : {}), ...(nameServer !== undefined ? { nameServer } : {}) };
+        return Object.keys(resolver).length === 0 ? rest : { ...rest, components: { ...rest.components, resolver } };
+      }),
+    });
+    const d = data as { active: { nodes: NetNode[] }[]; office: { nodes: NetNode[] }; familiarity: { counts: object; blueprints: Record<string, { stars: number; design: { nodes: NetNode[] } }> } };
+    return {
+      ...d,
+      office: convert(d.office),
+      active: d.active.map(convert),
+      familiarity: {
+        ...d.familiarity,
+        blueprints: Object.fromEntries(Object.entries(d.familiarity.blueprints).map(([k, b]) => [k, { ...b, design: convert(b.design) }])),
+      },
+    };
+  },
   // v59 → v60: 機器のファイアウォールの規則（rules）を、機器のコンポーネントの表（components.firewall）へ移す
   59: (data) => {
     type OldNode = NetNode & { rules?: NonNullable<NetNode['components']>['firewall'] };
@@ -584,7 +608,7 @@ export const migrations: Record<number, Migration> = {
   // v19 → v20: 機器に、名前と IPアドレスの対応表（hosts）を追加する。移行前の機器は、対応表が空だったものとする
   19: (data) => {
     const d = data as { office: { nodes: NetNode[] }; active: { nodes: NetNode[] }[] };
-    const withHosts = (nodes: NetNode[]) => nodes.map((n) => ({ ...n, hosts: n.hosts ?? [] }));
+    const withHosts = (nodes: NetNode[]) => nodes.map((n) => ({ ...n, hosts: (n as NetNode & { hosts?: unknown[] }).hosts ?? [] }));
     return {
       ...d,
       office: { ...d.office, nodes: withHosts(d.office.nodes) },

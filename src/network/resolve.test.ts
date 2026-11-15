@@ -37,14 +37,14 @@ const link = (uid: string, a: string, aPort: number, b: string, bPort: number): 
 // a（PC）・b（PC）・d（DNS サーバー）を、スイッチ s につなぐ
 const dnsServer = host('d', '192.168.1.20', { services: [{ protocol: 'dns', role: 'auth', zone: [{ type: 'A', name: 'fileserver', value: '192.168.1.20' }, { type: 'A', name: 'PC-2', value: '192.168.1.11' }] }] });
 const base = () => ({
-  nodes: [host('a', '192.168.1.10', { nameServer: '192.168.1.20' }), host('b', '192.168.1.11'), sw, dnsServer],
+  nodes: [host('a', '192.168.1.10', { components: { resolver: { nameServer: '192.168.1.20' } } }), host('b', '192.168.1.11'), sw, dnsServer],
   links: [link('l1', 'a', 0, 's', 0), link('l2', 'b', 0, 's', 1), link('l3', 'd', 0, 's', 2)],
 });
 
 describe('名前の解決', () => {
   it('機器の対応表にあれば、それを使う（ネームサーバーは見ない）', () => {
     const net = base();
-    const from = { ...net.nodes[0], hosts: [{ name: 'PC-2', ip: '192.168.1.99' }] };
+    const from = { ...net.nodes[0], components: { resolver: { hosts: [{ name: 'PC-2', ip: '192.168.1.99' }] } } };
     expect(resolveName(from, 'PC-2', { nodes: [from, ...net.nodes.slice(1)], links: net.links }, data)).toEqual({
       ok: true,
       ip: '192.168.1.99',
@@ -70,7 +70,7 @@ describe('名前の解決', () => {
 
   it('ネームサーバーを設定していなければ、対応表になければ見つからない', () => {
     const net = base();
-    const plain = { ...net.nodes[0], nameServer: undefined };
+    const plain = { ...net.nodes[0], components: undefined };
     expect(resolveName(plain, 'fileserver', net, data)).toEqual({ ok: false, reason: 'not_found' });
   });
 
@@ -87,7 +87,7 @@ describe('目標 reach_by_name', () => {
   const dataWithServer: EngineData = { wallAt: () => false };
   const build = (unplugFileserver: boolean) => {
     const file = host('d', '192.168.1.20', { device: 'server_basic', hostname: 'fileserver', services: [{ protocol: 'dns', role: 'auth', zone: [{ type: 'A', name: 'fileserver', value: '192.168.1.20' }] }] });
-    const pc = (uid: string, ip: string) => host(uid, ip, { nameServer: '192.168.1.20', hostname: `PC-${uid}` });
+    const pc = (uid: string, ip: string) => host(uid, ip, { components: { resolver: { nameServer: '192.168.1.20' } }, hostname: `PC-${uid}` });
     const nodes = [pc('a', '192.168.1.10'), pc('b', '192.168.1.11'), sw, file];
     const links = [link('l1', 'a', 0, 's', 0), link('l2', 'b', 0, 's', 1), link('l3', 'd', 0, 's', 2)];
     return { nodes, links: unplugFileserver ? links.filter((l) => l.uid !== 'l3') : links };

@@ -22,8 +22,9 @@ export const lessonNodes = (lesson: Lesson): NetNode[] =>
     configLocked: p.config?.locked ?? false,
     interfaces: (p.config?.interfaces ?? []).map((i) => ({ ...makeIface(p.device, i.port, i.ip, i.prefix), ...(i.dhcp ? { dhcp: true as const } : {}) })),
     gateway: p.config?.gateway ?? null,
-      ...(p.config?.nameServer ? { nameServer: p.config.nameServer } : {}),
-    ...(p.isp || p.wireless ? { components: { ...(p.isp ? { isp: p.isp } : {}), ...(p.wireless ? { wireless: { ...p.wireless } } : {}) } } : {}),
+    ...(p.isp || p.wireless || p.config?.nameServer
+      ? { components: { ...(p.isp ? { isp: p.isp } : {}), ...(p.wireless ? { wireless: { ...p.wireless } } : {}), ...(p.config?.nameServer ? { resolver: { nameServer: p.config.nameServer } } : {}) } }
+      : {}),
     routes: [],
     services: (p.config?.services ?? []).map((s) => ({ ...s })),
   }));

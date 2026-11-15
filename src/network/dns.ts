@@ -118,13 +118,14 @@ const ask = (c: Ctx, fromUid: string, target: NetNode, ip: string, name: string,
   return answerAt(c, target, svc!, name, type, steps, head, chain, depth);
 };
 
-// 名前を、ネームサーバーの IPアドレス（from.nameServer）の DNS サービスへ問い合わせる。type の記録を返す（CNAME は辿った鎖が先に並ぶ）
+// 名前を、ネームサーバーの IPアドレス（コンポーネント resolver の nameServer）の DNS サービスへ問い合わせる。type の記録を返す（CNAME は辿った鎖が先に並ぶ）
 export const lookupName = (from: NetNode, name: string, type: DnsRecordType, net: Network, data: EngineData): DnsLookup => {
-  if (!from.nameServer) return { ok: false, reason: 'not_found', steps: [] };
+  const nameServer = getComponent(from, 'resolver')?.nameServer;
+  if (!nameServer) return { ok: false, reason: 'not_found', steps: [] };
   const withNet = withInternet(net, data);
   const c: Ctx = { state: analyze(withNet ?? net, data), ispDns: withNet?.ispDns ?? [] };
-  const target = nodeByIp(c, from.nameServer);
+  const target = nodeByIp(c, nameServer);
   const steps: DnsStep[] = [];
   if (!target) return unreachable(undefined, steps);
-  return ask(c, from.uid, target, from.nameServer, name, type, 'recursive', steps, undefined, [], 0);
+  return ask(c, from.uid, target, nameServer, name, type, 'recursive', steps, undefined, [], 0);
 };

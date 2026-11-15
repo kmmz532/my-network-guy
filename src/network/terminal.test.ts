@@ -156,7 +156,7 @@ describe('確認のコマンド（段階2）', () => {
 });
 
 describe('対応表による名前の解決（段階5の準備）', () => {
-  const withHosts = (hosts: { name: string; ip: string }[]) => ({ ...nodes[0], hosts });
+  const withHosts = (hosts: { name: string; ip: string }[]) => ({ ...nodes[0], components: { resolver: { hosts } } });
 
   it('ping は対応表の名前を IPアドレスに直して届ける', () => {
     const src = withHosts([{ name: 'PC-B', ip: '192.168.1.11' }]);

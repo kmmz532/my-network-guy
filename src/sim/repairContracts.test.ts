@@ -43,7 +43,7 @@ describe('修理の依頼', () => {
     { contract: r009 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'edge' && getComponent(n, 'bgp') ? { ...n, components: { ...n.components, bgp: { ...getComponent(n, 'bgp')!, neighbors: getComponent(n, 'bgp')!.neighbors.map((x) => (x.ip === '203.0.113.1' ? { ...x, remoteAs: 65002 } : x)) } } } : n)), links }) },
     { contract: r010 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'home' ? { ...n, components: { dhcpServer: [] } } : n)), links }) },
     { contract: r011 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid.startsWith('staff_') ? { ...n, gateway: '192.168.1.254' } : n)), links }) },
-    { contract: r012 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'staff_a' ? { ...n, nameServer: '192.168.1.53' } : n)), links }) },
+    { contract: r012 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'staff_a' ? { ...n, components: { ...n.components, resolver: { nameServer: '192.168.1.53' } } } : n)), links }) },
     { contract: r004 as unknown as Contract, fix: (nodes, links) => ({ nodes: withIface(nodes, 'pc_new', '192.168.1.20', 24), links }) },
   ];
   for (const { contract, fix } of cases) {

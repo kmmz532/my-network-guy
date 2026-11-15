@@ -122,6 +122,25 @@ describe('ファイアウォールの規則の移行（機器の rules を compo
   });
 });
 
+describe('名前の引き方の移行（機器の hosts・nameServer を components.resolver へ移す）', () => {
+  it('移行前の機器の hosts・nameServer は、移行後は components.resolver に入り、機器の直下には残らない', () => {
+    const old = JSON.parse(readFileSync(join(dir, 'save-v60.json'), 'utf8')) as Fixture;
+    const entry = Object.values(old)[0];
+    const data = structuredClone(entry.data) as { office: { nodes: Record<string, unknown>[] } };
+    const hosts = [{ name: 'files', ip: '192.168.1.20' }];
+    data.office.nodes.push({ uid: 'pc_new', device: 'pc_basic', hosts, nameServer: '192.168.1.53' });
+    data.office.nodes.push({ uid: 'pc_empty', device: 'pc_basic', hosts: [] });
+    const nodes = migrate(entry.saveVersion, data).office.nodes;
+    const moved = nodes.find((n) => n.uid === 'pc_new');
+    expect(moved?.components).toEqual({ resolver: { hosts, nameServer: '192.168.1.53' } });
+    expect('hosts' in (moved ?? {})).toBe(false);
+    expect('nameServer' in (moved ?? {})).toBe(false);
+    const empty = nodes.find((n) => n.uid === 'pc_empty');
+    expect(empty?.components).toBeUndefined();
+    expect('hosts' in (empty ?? {})).toBe(false);
+  });
+});
+
 describe('セーブの fixture', () => {
   it('今の版（SAVE_VERSION）の fixture がある', () => {
     expect(existsSync(join(dir, `save-v${SAVE_VERSION}.json`))).toBe(true);

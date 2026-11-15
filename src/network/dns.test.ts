@@ -17,7 +17,7 @@ const A = (name: string, value: string): DnsRecord => ({ type: 'A', name, value 
 // PC a・キャッシュ c・権威 d。rules がなければ同じスイッチ s につなぐ。rules があれば、PC a とサーバーの間にファイアウォール fw を置く
 const lan = (cache: Service, authZone: DnsRecord[], rules?: NonNullable<NetNode['components']>['firewall']): Network => {
   const nodes = [
-    n('a', 'pc_basic', [f(0, rules ? '10.0.0.10' : '10.1.0.10')], { nameServer: '10.1.0.53', gateway: rules ? '10.0.0.1' : null }),
+    n('a', 'pc_basic', [f(0, rules ? '10.0.0.10' : '10.1.0.10')], { components: { resolver: { nameServer: '10.1.0.53' } }, gateway: rules ? '10.0.0.1' : null }),
     n('c', 'server_basic', [f(0, '10.1.0.53')], { services: [cache], gateway: rules ? '10.1.0.1' : null }),
     n('d', 'server_basic', [f(0, '10.1.0.54')], { services: [auth(authZone)], gateway: rules ? '10.1.0.1' : null }),
     n('s', 'l2_switch_8p', []),
@@ -110,7 +110,7 @@ describe('ISP の DNS', () => {
   const home = (isp: IspLine): Network => ({
     nodes: [
       n('hr', 'home_router', [f(0, '198.51.100.2'), f(1, '192.168.1.1')], { routes: [{ dest: '0.0.0.0', prefix: 0, nextHop: '198.51.100.1' }], components: { nat: { napt: true } } }),
-      n('a', 'pc_basic', [f(0, '192.168.1.10')], { gateway: '192.168.1.1', nameServer: '192.168.1.1' }),
+      n('a', 'pc_basic', [f(0, '192.168.1.10')], { gateway: '192.168.1.1', components: { resolver: { nameServer: '192.168.1.1' } } }),
       n('u', 'uplink', [], { components: { isp } }),
     ],
     links: [l('l0', 'a', 0, 'hr', 1), l('l1', 'hr', 0, 'u', 0)],

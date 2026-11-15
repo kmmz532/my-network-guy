@@ -1,4 +1,5 @@
 // DNS の論点の命令。
+import { getComponent } from '../../components';
 import { lookupName } from '../../dns';
 import { isArg } from '../../command/args';
 import { changed, err, nameOf, out, shown } from '../../command/lines';
@@ -34,7 +35,7 @@ const dnsServiceOf = (node: NetNode): DnsService | undefined => node.services.fi
 // 名前を引く。経路（機器の列と、再帰・反復の別）を先に出し、答えの記録か失敗の理由を続ける
 const nslookup = (name: string, type: DnsRecordType, ctx: CommandContext, tr: Tr): CommandResult => {
   if (!isDnsName(name)) return shown([err(tr('ui.terminal.dnsBadName'))]);
-  if (!ctx.node.nameServer) return shown([err(tr('ui.terminal.nslookupNoServer'))]);
+  if (!getComponent(ctx.node, 'resolver')?.nameServer) return shown([err(tr('ui.terminal.nslookupNoServer'))]);
   const r = lookupName(ctx.node, name, type, { nodes: ctx.nodes, links: ctx.links }, ctx.data);
   const steps = r.steps.map((s) =>
     out(tr('ui.terminal.nslookupStep', { from: labelOf(ctx, s.from), to: labelOf(ctx, s.to), mode: tr(s.mode === 'recursive' ? 'ui.terminal.dnsRecursive' : 'ui.terminal.dnsIterative') })),
@@ -63,7 +64,7 @@ export const commands: readonly CommandSpec[] = [
     writes: false,
     topic: 'dns',
     run: (_args, { node }, tr) => {
-      const hosts = (node.hosts ?? []).map((h) => out(tr('ui.terminal.hostLine', { name: h.name, ip: h.ip })));
+      const hosts = (getComponent(node, 'resolver')?.hosts ?? []).map((h) => out(tr('ui.terminal.hostLine', { name: h.name, ip: h.ip })));
       const zone = (dnsServiceOf(node)?.zone ?? []).map((r) => out(tr('ui.terminal.zoneLine', { name: r.name, type: r.type, value: valueText(r) })));
       const lines = [...hosts, ...zone];
       return shown(lines.length > 0 ? lines : [out(tr('ui.terminal.noHosts'))]);

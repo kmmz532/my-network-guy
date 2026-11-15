@@ -36,7 +36,7 @@ export const setHostname = (core: Core, uid: string, hostname: string | null, ta
 
 // ネームサーバー（ip name-server）を設定する。null で外す（N68）
 export const setNameServer = (core: Core, uid: string, ip: string | null, target: NetTarget = 'focus'): Outcome =>
-  editNode(core, uid, (node) => ({ ...node, nameServer: ip ?? undefined }), target);
+  editNode(core, uid, (node) => withComponent(node, 'resolver', { ...getComponent(node, 'resolver'), nameServer: ip ?? undefined }), target);
 
 // DNS のサービスを動かす（起動は権威で、ゾーンは空から。role で役割を選ぶ）。止めるとゾーンも消える（N68）。動いているときは role だけを変え、ゾーンと転送先は残す
 export const setDnsRole = (core: Core, uid: string, on: boolean, target: NetTarget = 'focus', role?: 'auth' | 'cache'): Outcome =>
@@ -130,14 +130,17 @@ export const setName = (core: Core, uid: string, name: string, target: NetTarget
 
 // 対応表に名前と IPアドレスを登録する（同じ名前があれば入れ替える）。名前は機器の中だけで有効
 export const setHost = (core: Core, uid: string, name: string, ip: string, target: NetTarget = 'focus'): Outcome =>
-  editNode(core, uid, (node) => ({ ...node, hosts: [...(node.hosts ?? []).filter((h) => h.name !== name), { name, ip }] }), target);
+  editNode(core, uid, (node) => withComponent(node, 'resolver', { ...getComponent(node, 'resolver'), hosts: [...(getComponent(node, 'resolver')?.hosts ?? []).filter((h) => h.name !== name), { name, ip }] }), target);
 
 // 対応表から名前を消す。なければ none
 export const removeHost = (core: Core, uid: string, name: string, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
     uid,
-    (node) => ((node.hosts ?? []).some((h) => h.name === name) ? { ...node, hosts: (node.hosts ?? []).filter((h) => h.name !== name) } : 'none'),
+    (node) => {
+      const hosts = getComponent(node, 'resolver')?.hosts ?? [];
+      return hosts.some((h) => h.name === name) ? withComponent(node, 'resolver', { ...getComponent(node, 'resolver'), hosts: hosts.filter((h) => h.name !== name) }) : 'none';
+    },
     target,
   );
 

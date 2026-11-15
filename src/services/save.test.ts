@@ -334,8 +334,8 @@ describe('v13 → v14', () => {
     const busy = node('o_srv', 'server_basic', { services: [{ protocol: 'http', port: 8080 }] });
     const v13 = { ...withoutNet, office: { ...legacySample.office, nodes: [pc, busy] }, active: [] };
     const out = migrate(13, v13);
-    // 対応表（hosts）は v19 → v20 で空の配列が入る
-    expect(out.office.nodes[0]).toEqual({ ...pc, hosts: [], hostname: 'PC-1', macSerial: 1, ports: [] });
+    // 空の対応表（hosts）は、最新の版までの移行で残らない
+    expect(out.office.nodes[0]).toEqual({ ...pc, hostname: 'PC-1', macSerial: 1, ports: [] });
     expect(out.office.nodes[1].services).toEqual([{ protocol: 'http', port: 8080 }]);
   });
 });
@@ -407,12 +407,12 @@ describe('v18 → v19', () => {
 });
 
 describe('v19 → v20: 機器の対応表（hosts）', () => {
-  it('既存の機器には空の対応表を入れる（自社オフィスと案件の両方）', () => {
+  it('既存の機器は、空の対応表を持たない（自社オフィスと案件の両方）', () => {
     const node = { uid: 'n1', device: 'pc_basic', x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [] };
     const v19 = { ...legacySample, office: { ...legacySample.office, nodes: [node] }, active: [{ id: 'p', nodes: [node], links: [], contract: { inhouse: false } }] } as unknown;
     const out = migrate(19, v19);
-    expect(out.office.nodes[0]).toMatchObject({ uid: 'n1', hosts: [] });
-    expect(out.active[0].nodes[0]).toMatchObject({ uid: 'n1', hosts: [] });
+    expect(out.office.nodes[0]).not.toHaveProperty('hosts');
+    expect(out.active[0].nodes[0]).not.toHaveProperty('hosts');
   });
 });
 
@@ -432,11 +432,11 @@ describe('古いセーブの読み込み（版ごとの架空のセーブ）', (
 });
 
 describe('古いセーブの読み込み（v19）', () => {
-  it('v19 の機器には、名前と IP の対応表（hosts）が空で入る', () => {
+  it('v19 の機器は、名前と IP の対応表（hosts）を持たない', () => {
     const node = { uid: 'pc1', device: 'pc_basic', x: 1, y: 1, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [] };
     const v19 = { ...legacySample, office: { ...legacySample.office, nodes: [node] }, active: [] };
     const migrated = migrate(19, v19);
-    expect(migrated.office.nodes[0]).toMatchObject({ uid: 'pc1', hosts: [] });
+    expect(migrated.office.nodes[0]).not.toHaveProperty('hosts');
   });
 });
 

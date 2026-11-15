@@ -8,7 +8,7 @@ import { initialOffice } from './furniture';
 import { placeInOffice } from './placement';
 import { getComponent } from '../network/components';
 import type { NetNode } from '../network/types';
-import { analyzeCore, setBgp, setFirewallRules, setNat, setWireless } from './netEdit';
+import { analyzeCore, removeHost, setBgp, setFirewallRules, setHost, setNameServer, setNat, setWireless } from './netEdit';
 import type { Core, Env } from './project';
 
 const balance = balanceJson as unknown as Balance;
@@ -127,5 +127,28 @@ describe('setFirewallRules', () => {
     const next = r.core.office.nodes[0];
     expect(getComponent(next, 'firewall')).toEqual(rules);
     expect('rules' in next).toBe(false);
+  });
+});
+
+describe('名前の引き方（resolver）', () => {
+  const node = (uid: string, device: string): NetNode =>
+    ({ uid, device, x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [] }) as NetNode;
+  const coreOf = (...nodes: NetNode[]): Core =>
+    ({ office: { ...initialOffice(balance), nodes }, active: [], focus: null, owned: {} }) as unknown as Core;
+
+  it('対応表とネームサーバーは、components.resolver に入り、機器の直下には入らない', () => {
+    let core = coreOf(node('pc', 'pc_basic'));
+    const step = (r: ReturnType<typeof setHost>) => {
+      if (!r.ok) throw new Error(`設定できない: ${r.reason}`);
+      return r.core;
+    };
+    core = step(setHost(core, 'pc', 'files', '192.168.1.20', 'office'));
+    core = step(setNameServer(core, 'pc', '192.168.1.53', 'office'));
+    const next = core.office.nodes[0];
+    expect(getComponent(next, 'resolver')).toEqual({ hosts: [{ name: 'files', ip: '192.168.1.20' }], nameServer: '192.168.1.53' });
+    expect('hosts' in next).toBe(false);
+    expect('nameServer' in next).toBe(false);
+    core = step(removeHost(core, 'pc', 'files', 'office'));
+    expect(getComponent(core.office.nodes[0], 'resolver')?.hosts).toEqual([]);
   });
 });

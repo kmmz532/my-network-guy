@@ -136,10 +136,6 @@ export interface NetNode {
   gateway: string | null;
   routes: Route[];
   services: Service[];
-  // 名前と IPアドレスの対応表（ping・traceroute の宛先の名前を引く）。移行前のセーブは空
-  hosts?: HostEntry[];
-  // ネームサーバー（ip name-server）の IPアドレス。機器の対応表で引けない名前を、この DNS サーバーに問い合わせる（N68）
-  nameServer?: string;
   // MAC アドレスの機器ごとの連番（機器を置いたときに決める。mac.ts）（N69）
   macSerial?: number;
 }

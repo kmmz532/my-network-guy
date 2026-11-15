@@ -32,7 +32,7 @@ export const solutions: Record<string, Solve> = {
   dns_intranet_names: (nodes) =>
     nodes.map((n) =>
       n.uid === 'PC1'
-        ? { ...n, nameServer: '192.168.1.53' }
+        ? { ...n, components: { ...n.components, resolver: { nameServer: '192.168.1.53' } } }
         : n.uid === 'R1'
           ? { ...ifaces(n, (i) => ({ ...i, nat: i.port === 0 ? ('outside' as const) : ('inside' as const) })), components: { ...n.components, nat: { napt: true } } }
           : n,
