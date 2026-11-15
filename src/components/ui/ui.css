@@ -779,6 +779,14 @@ input.ui-text-input--full {
   color: var(--st-error);
 }
 
+.ui-text--reason {
+  color: var(--st-error-soft);
+}
+
+.ui-text--refusal {
+  color: var(--st-error-pale);
+}
+
 .ui-text--xs {
   font-size: var(--fs-xs);
 }
@@ -807,6 +815,10 @@ input.ui-text-input--full {
 .ui-heading {
   color: var(--fg);
   font-weight: bold;
+}
+
+.ui-heading--screen {
+  font-size: var(--fs-title);
 }
 
 .ui-heading--window {
@@ -1481,3 +1493,253 @@ textarea.ui-text-area--data:focus {
   transform: rotate(45deg);
 }
 
+
+/* Chip: 絵と名前を並べた小さな札 */
+.ui-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.ui-chip--nowrap {
+  white-space: nowrap;
+}
+
+/* Notice（flash）: 短く出す表示。押しても何もしない */
+.ui-notice--flash {
+  padding: 6px 14px;
+  background: var(--bg-window);
+  color: var(--st-warn);
+  border: 0;
+  border-radius: 4px;
+  pointer-events: none;
+  zoom: var(--ui-scale, 1);
+}
+
+/* Notice（banner）: 画面の上に出す止まっている知らせの帯。押しても何もしない */
+.ui-notice--banner {
+  padding: 6px 12px;
+  background: var(--bg-debug);
+  border: 0;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* TipBox: ツールチップの箱 */
+.ui-tip-box {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  background: var(--bg-tip);
+  color: var(--fg);
+  border: 1px solid var(--line-tip);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: var(--fs-s);
+  max-width: calc(220px * var(--ui-scale, 1));
+  white-space: pre-line;
+  line-height: 1.4;
+}
+
+.ui-tip-box__zoom {
+  zoom: var(--ui-scale, 1);
+}
+
+.ui-tip-box__name {
+  font-weight: bold;
+}
+
+/* Scrim: 狭い画面で窓を開いている間の暗い幕 */
+.ui-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: var(--bg-scrim-panel);
+}
+
+/* DragGhost: ドラッグ中の品目の絵 */
+.ui-drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  opacity: 0.85;
+  z-index: 1000;
+}
+
+/* HudBar（strip）: スマホのインベントリの帯。窓と同じ地・太い枠・角は丸めない */
+.ui-hud-bar--strip {
+  background: var(--bg-window);
+  border: 2px solid var(--line);
+}
+
+/* SearchInput: 左端に絵を重ねた暗い地の検索の欄 */
+.ui-search-input {
+  position: relative;
+}
+
+.ui-search-input__icon {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  display: flex;
+}
+
+input.ui-search-input__field {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 8px 4px 30px;
+  background: var(--bg-input-inset);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  font: inherit;
+}
+
+/* MenuButton: タイトルのメニューのボタン。角のある箱に、内側の明暗の線 */
+.ui-menu-button {
+  position: relative;
+  box-sizing: border-box;
+  width: 240px;
+  padding: 10px 12px;
+  font: inherit;
+  letter-spacing: inherit;
+  font-family: 'DotGothic16', inherit;
+  font-size: var(--fs-xl);
+  text-align: center;
+  color: var(--fg-on-field);
+  background: var(--bg-field);
+  border: 2px solid var(--line);
+  border-radius: 0;
+  box-shadow: inset -3px -3px 0 var(--menu-bevel-dark), inset 3px 3px 0 var(--menu-bevel-light);
+  cursor: pointer;
+  transition: transform 60ms;
+}
+
+.ui-menu-button::before {
+  content: '';
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  margin-top: -6px;
+  border-left: 9px solid transparent;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+}
+
+.ui-menu-button--selected {
+  background: var(--accent);
+  box-shadow: inset -3px -3px 0 var(--menu-bevel-dark-hot), inset 3px 3px 0 var(--menu-bevel-light-hot);
+}
+
+.ui-menu-button--selected::before {
+  border-left-color: var(--line);
+}
+
+.ui-menu-button:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset -3px -3px 0 var(--menu-bevel-dark-hot), inset 3px 3px 0 var(--menu-bevel-light-hot);
+}
+
+.ui-menu-button:disabled {
+  color: var(--fg-menu-disabled);
+  background: var(--bg-menu-disabled);
+  opacity: var(--disabled-opacity);
+  cursor: default;
+}
+
+/* Modal（screen）: 箱を持たない全画面の幕。中身は縦に並べて中央に置く */
+.ui-modal-back--screen {
+  background: var(--bg-scrim-heavy);
+  flex-direction: column;
+  gap: 12px;
+  color: var(--fg);
+}
+
+.ui-modal-box--bare {
+  background: none;
+  border: none;
+  padding: 0;
+  max-width: none;
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Notice（card）: 札の地の帯。文字と操作を横に並べる */
+.ui-notice--card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: var(--bg-card);
+  border: 0;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+
+/* Button（notify）: 通知の中の操作 */
+.ui-button--notify {
+  background: var(--bg-emphasis);
+  color: var(--fg);
+  border: none;
+  padding: 2px 10px;
+}
+
+
+/* Popover（port）: 口の一覧の箱。暗い枠・小さい字。UI の大きさの倍率を受ける */
+.ui-popover--port {
+  background: var(--bg-window);
+  color: var(--fg);
+  border: 2px solid var(--line);
+  border-radius: 4px;
+  padding: 4px;
+  font-size: var(--fs-s);
+  zoom: var(--ui-scale, 1);
+}
+
+/* Button（port）: 口の一覧の行。左に口の名前、右に相手。使えない行は暗く出す */
+.ui-button--port {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 3px 8px;
+  font-size: var(--fs-s);
+}
+
+.ui-button--port:disabled {
+  opacity: var(--dim-opacity);
+}
+
+/* TerminalOutput: ターミナルの出力の欄 */
+.ui-terminal-output {
+  font-family: monospace;
+  font-size: var(--fs-s);
+  height: 160px;
+  overflow-y: auto;
+  background: var(--bg-well);
+  color: var(--fg);
+  padding: 6px;
+  margin-bottom: 6px;
+}
+
+.ui-terminal-output__line {
+  white-space: pre-wrap;
+}
+
+.ui-terminal-output__line--warn {
+  color: var(--st-warn);
+}
+
+/* Text（mono）: 固定幅の文字 */
+.ui-text--mono {
+  font-family: monospace;
+}

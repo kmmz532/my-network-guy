@@ -1,4 +1,4 @@
-// 画面の上の帯・下のツールバー・ツールバーの上に浮く欄・地図に重ねる案件の欄。地と文字の色は variant が決める（top・bottom・tray・panel）。
+// 画面の上の帯・下のツールバー・ツールバーの上に浮く欄・地図に重ねる案件の欄。地と文字の色は variant が決める（top・bottom・tray・panel・strip）。strip はスマホのインベントリの帯（窓と同じ地・太い枠）。
 // as は header・footer・aside・div。arrange は並べ方と位置（flex・padding・position など）で、見た目（色・枠）は渡せない。marker は案内が探す印（data-hud・data-toolbar など）。
 import type { CSSProperties, ReactNode, Ref } from 'react';
 import './tokens.css';
@@ -8,7 +8,7 @@ type Arrange = Omit<CSSProperties, 'color' | 'background' | 'backgroundColor' | 
 
 interface Props {
   as: 'header' | 'footer' | 'aside' | 'div';
-  variant: 'top' | 'bottom' | 'tray' | 'panel';
+  variant: 'top' | 'bottom' | 'tray' | 'panel' | 'strip';
   arrange: Arrange;
   marker?: string;
   innerRef?: Ref<HTMLElement>;

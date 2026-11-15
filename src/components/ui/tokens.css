@@ -15,8 +15,12 @@
   --bg-field-focus: #d8eaff;
   --bg-input-inset: #1e3260;
   --bg-scrim: rgba(20, 20, 30, 0.45);
+  --bg-scrim-heavy: rgba(20, 20, 30, 0.8);
+  --bg-scrim-panel: rgba(10, 16, 32, 0.45);
+  --bg-tip: rgba(47, 79, 143, 0.78);
   --bg-blocker: rgba(29, 54, 100, 0.85);
   --bg-debug: #8a2b2b;
+  --bg-menu-disabled: #d9d2c3;
   --bg-row-selected: rgba(255, 255, 255, 0.12);
   --danger: #b5473b;
 
@@ -33,18 +37,26 @@
   --fg-disabled: #8a8f99;
   --fg-on-fg: #2f4f8f;
   --fg-note: #b8bfcc;
+  --fg-menu-disabled: #8a7f86;
 
   /* 枠 */
   --line-window: #f4f1e6;
+  --menu-bevel-dark: #cfc3aa;
+  --menu-bevel-light: #ffffff;
+  --menu-bevel-dark-hot: #c9962e;
+  --menu-bevel-light-hot: #fff3c4;
   --line-focus: #ffd866;
   --glow: #66ff66;
   --line: #3b2a33;
+  --line-tip: rgba(59, 42, 51, 0.8);
   --line-field-light: #bcb9af;
   --line-field-focus: #392a3b;
   --line-field-focus-light: #afb4bc;
 
   /* 状態 */
   --st-error: #ff6b6b;
+  --st-error-soft: #ffb4a8;
+  --st-error-pale: #ffd3c9;
   --st-warn: #ffd866;
   --st-ok: #62d26f;
   --st-standby: #8a8f98;
@@ -63,6 +75,7 @@
   --fs-m: 14px;
   --fs-l: 16px;
   --fs-xl: 20px;
+  --fs-title: 28px;
   --fs-menu: 13px;
 
   /* UI の大きさの倍率。設定の読み込みが document の要素に上書きする */
