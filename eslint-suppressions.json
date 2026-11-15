@@ -72,9 +72,6 @@
     }
   },
   "src/components/LoopBanner.tsx": {
-    "local/no-look-props": {
-      "count": 3
-    },
     "local/no-mode-branch": {
       "count": 2
     }
@@ -150,14 +147,6 @@
       "count": 4
     }
   },
-  "src/components/UpdateNotice.tsx": {
-    "local/no-look-props": {
-      "count": 6
-    },
-    "local/no-native-control": {
-      "count": 1
-    }
-  },
   "src/components/VlanPortField.tsx": {
     "local/no-look-export": {
       "count": 1
@@ -213,11 +202,6 @@
     },
     "local/no-native-control": {
       "count": 1
-    }
-  },
-  "src/components/scene/TopNotices.tsx": {
-    "local/no-look-props": {
-      "count": 3
     }
   },
   "src/contracts/templateBudget.test.ts": {

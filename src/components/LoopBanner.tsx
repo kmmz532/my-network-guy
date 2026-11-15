@@ -4,6 +4,7 @@ import { t } from '../i18n/t';
 import { loopNodeOf } from '../network/public';
 import { useGameStore } from '../stores/useGameStore';
 import { labelOfUid } from './nodeLabel';
+import { Notice } from './ui/Notice';
 
 export function LoopBanner() {
   const state = useGameStore();
@@ -14,18 +15,8 @@ export function LoopBanner() {
   const loopUid = useMemo(() => (sandbox ? null : loopNodeOf(netState)), [sandbox, netState]);
   if (loopUid === null) return null;
   return (
-    <div
-      role="alert"
-      style={{
-        padding: '6px 12px',
-        background: '#8a2b2b',
-        color: '#f4f1e6',
-        fontSize: 13,
-        whiteSpace: 'nowrap',
-        pointerEvents: 'none',
-      }}
-    >
+    <Notice tone="banner" role="alert">
       {t('ui.loop.banner', { name: labelOfUid(state, loopUid, office.nodes) })}
-    </div>
+    </Notice>
   );
 }
