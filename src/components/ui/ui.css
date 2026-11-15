@@ -42,6 +42,37 @@ button.ui-select[role='combobox']:disabled {
   font-size: 10px;
 }
 
+/* Select（box が pixel）: 一様な枠・内容なりの幅・線で描いた三角 */
+button.ui-select--pixel[role='combobox'],
+button.ui-select--pixel[role='combobox']:focus,
+button.ui-select--pixel[role='combobox']:disabled {
+  background: var(--bg-field);
+  color: var(--fg-on-field);
+  border-color: var(--line);
+  font-size: 13px;
+  padding: 2px 6px;
+  gap: 6px;
+  min-width: 0;
+  max-width: 150px;
+}
+
+.ui-select--pixel > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-select--pixel .ui-select__caret {
+  font-size: 0;
+  width: 0;
+  height: 0;
+  flex-shrink: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--line);
+}
+
 /* ComboBox: 候補つきの入力欄 */
 input.ui-combobox {
   font: inherit;

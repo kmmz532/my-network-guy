@@ -233,6 +233,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
               }}
             />
             <Select
+              box="pixel"
               label={t('ui.config.prefix')}
               value={String(shown.prefix)}
               disabled={locked || unlinkedRouter}
@@ -415,9 +416,10 @@ function FirewallRuleAdd({ onAdd }: { onAdd: (rule: { src: string; dst: string; 
   };
   return (
     <div style={{ ...row, flexWrap: 'wrap' }}>
-      <Select label={t('ui.fw.src')} value={src} options={nets} onChange={setSrc} />
-      <Select label={t('ui.fw.dst')} value={dst} options={nets} onChange={setDst} />
+      <Select box="pixel" label={t('ui.fw.src')} value={src} options={nets} onChange={setSrc} />
+      <Select box="pixel" label={t('ui.fw.dst')} value={dst} options={nets} onChange={setDst} />
       <Select
+        box="pixel"
         label={t('ui.fw.service')}
         value={service}
         options={[
@@ -463,6 +465,7 @@ function RouteAdd({
   return (
     <div style={row}>
       <Select
+        box="pixel"
         label={t('ui.config.routeDest')}
         value={dest}
         disabled={dests.length === 0}
@@ -470,6 +473,7 @@ function RouteAdd({
         onChange={(v) => pick(v, next)}
       />
       <Select
+        box="pixel"
         label={t('ui.config.routeNext')}
         value={next}
         options={[{ value: '', label: t('ui.config.routeNext') }, ...hops.map((ip) => ({ value: ip, label: ip }))]}
@@ -506,6 +510,7 @@ function NatField({ node, readOnly, onError }: { node: NetNode; readOnly: boolea
         <div key={i.id} style={row}>
           <span>{t('ui.nat.port', { id: i.id })}</span>
           <Select
+            box="pixel"
             label={t('ui.nat.role')}
             value={i.nat ?? ''}
             disabled={readOnly}

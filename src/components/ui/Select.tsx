@@ -1,5 +1,6 @@
 // 選択ボックス（N63）。ブラウザ標準の <select> の代わりに使う。押すと選択肢の一覧が欄の下（下に収まらなければ上）に開く。
 // 欄は ComboBox と同じ見た目（ui.css の ui-select）。配置は layout で渡す。文字は打てず、右端に下向きの印を付ける。
+// box が pixel のときは、一様な枠・内容なりの幅（最大 150 px）・線で描いた三角にする。
 // 一覧の箱は OptionList（ComboBox と共通）。操作: 押して開く・項目を押して確定・外を押すか Esc で閉じる・↑↓で動かし Enter で確定。
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { usePhone } from '../../ui/usePhone';
@@ -20,6 +21,7 @@ interface Props {
   options: SelectOption[];
   onChange: (value: string) => void;
   disabled?: boolean;
+  box?: 'native' | 'pixel';
   layout?: Layout;
 }
 
@@ -31,7 +33,7 @@ const measure = (el: HTMLElement): OptionAnchor => {
 // スマホで指で押せるように、行を 44 px 以上にする（M4）
 const PHONE_ROW_PX = 44;
 
-export function Select({ label, value, options, onChange, disabled = false, layout }: Props) {
+export function Select({ label, value, options, onChange, disabled = false, box = 'native', layout }: Props) {
   const id = useId();
   const phone = usePhone();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -130,7 +132,7 @@ export function Select({ label, value, options, onChange, disabled = false, layo
         disabled={disabled}
         onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={onKeyDown}
-        className="ui-select"
+        className={`ui-select${box === 'pixel' ? ' ui-select--pixel' : ''}`}
         style={layoutStyle(layout)}
       >
         <span>{currentLabel}</span>
