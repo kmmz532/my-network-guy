@@ -20,6 +20,7 @@ import type { NetLink, NetNode } from '../network/types';
 import { gameEnv } from './env';
 import { changesOf, contractLinks, fixedNodes } from './project';
 import { repairStarsOf } from './rating';
+import { getComponent } from '../network/components';
 
 const passes = (contract: Contract, nodes: NetNode[], links: NetLink[]): boolean => {
   const state = analyze({ nodes, links, plans: {} }, gameEnv.engine);
@@ -39,7 +40,7 @@ describe('修理の依頼', () => {
     { contract: r006 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'r3' ? { ...n, interfaces: n.interfaces.map((i) => (i.ospf?.hello ? { ...i, ospf: { area: i.ospf.area } } : i)) } : n)), links }) },
     { contract: r007 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'r2' ? { ...n, interfaces: n.interfaces.map((i) => (i.port === 0 ? { ...i, ospf: { area: 0 } } : i)) } : n)), links }) },
     { contract: r008 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'ap' ? { ...n, wireless: { ...n.wireless, security: 'wpa2wpa3' } } : n)), links }) },
-    { contract: r009 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'edge' && n.bgp ? { ...n, bgp: { ...n.bgp, neighbors: n.bgp.neighbors.map((x) => (x.ip === '203.0.113.1' ? { ...x, remoteAs: 65002 } : x)) } } : n)), links }) },
+    { contract: r009 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'edge' && getComponent(n, 'bgp') ? { ...n, components: { bgp: { ...getComponent(n, 'bgp')!, neighbors: getComponent(n, 'bgp')!.neighbors.map((x) => (x.ip === '203.0.113.1' ? { ...x, remoteAs: 65002 } : x)) } } } : n)), links }) },
     { contract: r010 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'home' ? { ...n, components: { dhcpServer: [] } } : n)), links }) },
     { contract: r011 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid.startsWith('staff_') ? { ...n, gateway: '192.168.1.254' } : n)), links }) },
     { contract: r012 as unknown as Contract, fix: (nodes, links) => ({ nodes: nodes.map((n) => (n.uid === 'staff_a' ? { ...n, nameServer: '192.168.1.53' } : n)), links }) },

@@ -575,32 +575,33 @@
     },
     {
       "line": "router bgp 65001",
-      "result": "done",
-      "mode": "router-bgp",
-      "process": 65001
+      "result": "fail",
+      "reason": "none"
     },
     {
       "line": "neighbor 10.0.12.2 remote-as 65002",
-      "result": "done"
+      "result": "fail",
+      "reason": "none"
     },
     {
       "line": "network 10.0.1.0 mask 255.255.255.0",
-      "result": "done"
+      "result": "fail",
+      "reason": "none"
     },
     {
       "line": "network 10.0.1.0",
-      "lines": [
-        "err:ui.terminal.incomplete"
-      ]
+      "result": "fail",
+      "reason": "iface.none"
     },
     {
       "line": "no neighbor 10.0.12.2 next-hop-self",
-      "result": "done"
+      "result": "fail",
+      "reason": "none"
     },
     {
       "line": "exit",
       "lines": [],
-      "mode": "config"
+      "mode": "exec"
     },
     {
       "line": "router bgp x",
@@ -611,8 +612,10 @@
     },
     {
       "line": "end",
-      "lines": [],
-      "mode": "exec"
+      "lines": [
+        "err:  ^",
+        "err:ui.terminal.invalidAt"
+      ]
     },
     {
       "line": "exit",
@@ -973,22 +976,6 @@
             "defaultOriginate": true,
             "process": 1
           }
-        },
-        "bgp": {
-          "asn": 65001,
-          "neighbors": [
-            {
-              "ip": "10.0.12.2",
-              "remoteAs": 65002,
-              "nextHopSelf": false
-            }
-          ],
-          "networks": [
-            {
-              "dest": "10.0.1.0",
-              "prefix": 24
-            }
-          ]
         }
       },
       {

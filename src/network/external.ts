@@ -72,7 +72,7 @@ export const withInternet = (net: Network, _data: EngineData): (Network & { inte
     const wanIp = router.interfaces.find((i) => i.port === routerEnd.port)?.ip ?? null;
     const uid = uids.length === 0 ? INTERNET_UID : `${INTERNET_UID}_${uplink.uid}`;
     const line = getComponent(uplink, 'isp');
-    const bgp = line?.asn !== undefined && router.bgp && wanIp ? { asn: line.asn, neighbors: [{ ip: wanIp, remoteAs: router.bgp.asn }], networks: [{ dest: INTERNET_NETWORK, prefix: INTERNET_NETWORK_PREFIX }] } : undefined;
+    const bgp = line?.asn !== undefined && getComponent(router, 'bgp') && wanIp ? { asn: line.asn, neighbors: [{ ip: wanIp, remoteAs: getComponent(router, 'bgp')!.asn }], networks: [{ dest: INTERNET_NETWORK, prefix: INTERNET_NETWORK_PREFIX }] } : undefined;
     nodes.push({
       ports: [],
       uid,
@@ -87,7 +87,7 @@ export const withInternet = (net: Network, _data: EngineData): (Network & { inte
       gateway: wanIp,
       routes: [],
       services: [],
-      ...(bgp ? { bgp } : {}),
+      ...(bgp ? { components: { bgp } } : {}),
     });
     links.push({
       uid: uids.length === 0 ? '__internet_link' : `__internet_link_${uplink.uid}`,

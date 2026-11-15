@@ -18,10 +18,10 @@ const net: Network = {
     node('r1', [iface(0, '10.0.12.1', { ospf: { area: 0 } }), iface(1, '10.0.1.1', { ospf: { area: 0 } })]),
     node('r2', [iface(0, '10.0.12.2', { ospf: { area: 0 } }), iface(1, '10.0.23.2'), iface(2, '10.0.2.1')], {
       routes: [{ dest: '10.9.0.0', prefix: 24, nextHop: '10.0.23.3' }],
-      bgp: { asn: 200, neighbors: [{ ip: '10.0.23.3', remoteAs: 300 }], networks: [{ dest: '10.0.2.0', prefix: 24 }] },
+      components: { bgp: { asn: 200, neighbors: [{ ip: '10.0.23.3', remoteAs: 300 }], networks: [{ dest: '10.0.2.0', prefix: 24 }] } },
     }),
     node('r3', [iface(0, '10.0.23.3'), iface(1, '10.0.3.1')], {
-      bgp: { asn: 300, neighbors: [{ ip: '10.0.23.2', remoteAs: 200 }], networks: [{ dest: '10.0.3.0', prefix: 24 }] },
+      components: { bgp: { asn: 300, neighbors: [{ ip: '10.0.23.2', remoteAs: 200 }], networks: [{ dest: '10.0.3.0', prefix: 24 }] } },
     }),
   ],
   links: [link('l0', 'r1', 0, 'r2', 0), link('l1', 'r2', 1, 'r3', 0)],

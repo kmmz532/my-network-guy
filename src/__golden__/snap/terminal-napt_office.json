@@ -116,7 +116,8 @@
     },
     {
       "line": "network 10.0.1.0 mask 255.255.255.0",
-      "result": "done"
+      "result": "fail",
+      "reason": "none"
     },
     {
       "line": "show ip rip database",
@@ -230,17 +231,7 @@
         "routes": [],
         "services": [],
         "napt": true,
-        "statics": [],
-        "bgp": {
-          "asn": 0,
-          "neighbors": [],
-          "networks": [
-            {
-              "dest": "10.0.1.0",
-              "prefix": 24
-            }
-          ]
-        }
+        "statics": []
       },
       {
         "uid": "U1",

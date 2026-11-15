@@ -120,8 +120,6 @@ export interface NetNode {
   powered?: boolean;
   // 機器の単位の設定を、能力ごとのコンポーネントで持つ（持てるものは機器の定義が決める。components.ts）
   components?: Components;
-  // BGP の設定（BGP を動かす機器だけ持つ）
-  bgp?: BgpConfig;
   // 口の設定（機器ごと。設定のない口は既定のモード）
   ports: PortConfig[];
   // 無線の設定（N151）。アクセスポイントは SSID・パスワード・チャネル・VLAN を持つ。無線の端末は SSID とパスワードを持ち、合うアクセスポイントにつながる

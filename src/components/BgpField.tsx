@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { t } from '../i18n/t';
 import { isIp } from '../network/command/args';
+import { getComponent } from '../network/components';
 import type { NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
 import { greyColor, sectionStyle } from './devicePorts';
@@ -36,7 +37,7 @@ export function BgpField({ node, readOnly, onError }: { node: NetNode; readOnly:
   const [remoteAs, setRemoteAs] = useState('');
   const [dest, setDest] = useState('');
   const [prefix, setPrefix] = useState('24');
-  const bgp = node.bgp;
+  const bgp = getComponent(node, 'bgp');
 
   if (!bgp) {
     return (

@@ -25,7 +25,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 56;
+export const SAVE_VERSION = 57;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -75,6 +75,28 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v56 → v57: 機器の BGP の設定（bgp）を、機器のコンポーネントの表（components.bgp）へ移す
+  56: (data) => {
+    type OldNode = NetNode & { bgp?: NonNullable<NetNode['components']>['bgp'] };
+    const convert = <T extends { nodes: NetNode[] }>(x: T): T => ({
+      ...x,
+      nodes: x.nodes.map((n) => {
+        const { bgp, ...rest } = n as OldNode;
+        if (bgp === undefined) return n;
+        return { ...rest, components: { ...rest.components, bgp } };
+      }),
+    });
+    const d = data as { active: { nodes: NetNode[] }[]; office: { nodes: NetNode[] }; familiarity: { counts: object; blueprints: Record<string, { stars: number; design: { nodes: NetNode[] } }> } };
+    return {
+      ...d,
+      office: convert(d.office),
+      active: d.active.map(convert),
+      familiarity: {
+        ...d.familiarity,
+        blueprints: Object.fromEntries(Object.entries(d.familiarity.blueprints).map(([k, b]) => [k, { ...b, design: convert(b.design) }])),
+      },
+    };
+  },
   // v55 → v56: 機器のスパニングツリーの優先度（stpPriority）を、機器のコンポーネントの表（components.stp.priority）へ移す
   55: (data) => {
     type OldNode = NetNode & { stpPriority?: number };

@@ -108,7 +108,7 @@ describe('2社の ISP（回線終端ごと）', () => {
           { id: 'g0/1', kind: 'port', port: 1, ip: '192.168.1.1', prefix: 24 },
           { id: 'g0/2', kind: 'port', port: 2, ip: '203.0.113.2', prefix: 24 },
         ],
-        bgp: { asn: 64512, neighbors: [{ ip: '198.51.100.1', remoteAs: 65001 }, { ip: '203.0.113.1', remoteAs: 65002 }], networks: [] },
+        components: { bgp: { asn: 64512, neighbors: [{ ip: '198.51.100.1', remoteAs: 65001 }, { ip: '203.0.113.1', remoteAs: 65002 }], networks: [] } },
       }),
       node('a', 'pc_basic', { interfaces: [{ id: 'g0/0', kind: 'port', port: 0, ip: '192.168.1.10', prefix: 24 }], gateway: '192.168.1.1' }),
       node('u1', 'uplink', { components: { isp: { name: 'ISP-A', network: '198.51.100.0', prefix: 24, ispIp: '198.51.100.1', asn: 65001 } } }),
@@ -119,7 +119,7 @@ describe('2社の ISP（回線終端ごと）', () => {
   it('回線終端ごとに ISP を加え、それぞれの AS 番号と BGP の隣接を持つ', () => {
     const w = withInternet(two(), data);
     expect(w?.internetUids).toEqual(['__internet', '__internet_u2']);
-    expect(w?.nodes.find((n) => n.uid === '__internet_u2')?.bgp?.asn).toBe(65002);
+    expect(w?.nodes.find((n) => n.uid === '__internet_u2')?.components?.bgp?.asn).toBe(65002);
   });
   it('どちらの ISP からも外部の経路を BGP で覚え、PC が外部へ届く', async () => {
     const { bgpTableOf } = await import('./query/bgpTable');

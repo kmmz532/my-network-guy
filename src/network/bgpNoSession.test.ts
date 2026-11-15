@@ -14,8 +14,8 @@ const l = (uid: string, a: string, pa: number, b: string, pb: number): NetLink =
 const net = (remoteAs: number): Network => ({
   nodes: [
     n('pa', 'pc_basic', [f(0, '10.0.1.10')], 0, { gateway: '10.0.1.1' }),
-    n('r1', 'router_basic', [f(0, '10.0.1.1'), f(1, '10.0.12.1')], 1, { bgp: { asn: 65001, neighbors: [{ ip: '10.0.12.2', remoteAs }], networks: [{ dest: '10.0.1.0', prefix: 24 }] } }),
-    n('r2', 'router_basic', [f(0, '10.0.12.2'), f(1, '10.0.2.1')], 2, { bgp: { asn: 65002, neighbors: [{ ip: '10.0.12.1', remoteAs: 65001 }], networks: [{ dest: '10.0.2.0', prefix: 24 }] } }),
+    n('r1', 'router_basic', [f(0, '10.0.1.1'), f(1, '10.0.12.1')], 1, { components: { bgp: { asn: 65001, neighbors: [{ ip: '10.0.12.2', remoteAs }], networks: [{ dest: '10.0.1.0', prefix: 24 }] } } }),
+    n('r2', 'router_basic', [f(0, '10.0.12.2'), f(1, '10.0.2.1')], 2, { components: { bgp: { asn: 65002, neighbors: [{ ip: '10.0.12.1', remoteAs: 65001 }], networks: [{ dest: '10.0.2.0', prefix: 24 }] } } }),
     n('pb', 'pc_basic', [f(0, '10.0.2.10')], 3, { gateway: '10.0.2.1' }),
   ],
   links: [l('l0', 'pa', 0, 'r1', 0), l('l1', 'r1', 1, 'r2', 0), l('l2', 'r2', 1, 'pb', 0)],

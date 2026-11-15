@@ -113,7 +113,7 @@ export const stageRouting = (net: Network, l2: L2Layer): RoutingLayer => {
   // 各機器は自分の network 文の宛先を AS パス [自分の AS] で広告し、受け取った経路は自分の AS を含まないものだけ使う。短い AS パスを選ぶ。
   // 静的・RIP・OSPF の経路が決まった後に求め、BGP で覚えた経路を足す
   const bgpRoutes = (out: Map<string, Route[]>): Map<string, BgpResult> => {
-    const routers = [...nodes.values()].filter((n) => n.bgp !== undefined && isRouter(n.uid));
+    const routers = [...nodes.values()].filter((n) => getComponent(n, 'bgp') !== undefined && isRouter(n.uid));
     const igp = (r: NetNode): Route[] => [...r.routes, ...(out.get(r.uid) ?? [])];
     const covers = (ip: string, route: Route) => inSubnet(ip, route.dest, route.prefix);
     const env: BgpEnv = {

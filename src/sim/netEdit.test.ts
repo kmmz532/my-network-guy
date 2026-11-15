@@ -6,7 +6,9 @@ import officeSmall from '../assets/data/maps/office_small.json';
 import type { Balance, Furniture, GameMap } from '../data/schema';
 import { initialOffice } from './furniture';
 import { placeInOffice } from './placement';
-import { analyzeCore } from './netEdit';
+import { getComponent } from '../network/components';
+import type { NetNode } from '../network/types';
+import { analyzeCore, setBgp } from './netEdit';
 import type { Core, Env } from './project';
 
 const balance = balanceJson as unknown as Balance;
@@ -32,5 +34,28 @@ describe('analyzeCore', () => {
     const result = analyzeCore(placed, env, { hq: map });
     expect(result.office.net.nodes.some((n) => n.uid === uid)).toBe(true);
     expect(result.focus).toBeNull();
+  });
+});
+
+describe('setBgp', () => {
+  const node = (uid: string, device: string): NetNode =>
+    ({ uid, device, x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [] }) as NetNode;
+  const coreOf = (...nodes: NetNode[]): Core =>
+    ({ office: { ...initialOffice(balance), nodes }, active: [], focus: null, owned: {} }) as unknown as Core;
+
+  it('BGP の能力のない機器では、router bgp の設定を拒否し、機器は変わらない', () => {
+    const core = coreOf(node('pc', 'pc_basic'));
+    const r = setBgp(core, 'pc', { op: 'asn', asn: 65001 }, 'office');
+    expect(r.ok).toBe(false);
+    expect(core.office.nodes[0].components).toBeUndefined();
+  });
+
+  it('BGP の能力のある機器では、components.bgp に設定が入り、機器の直下には入らない', () => {
+    const core = coreOf(node('r', 'edge_router'));
+    const r = setBgp(core, 'r', { op: 'asn', asn: 65001 }, 'office');
+    if (!r.ok) throw new Error(`設定できない: ${r.reason}`);
+    const next = r.core.office.nodes[0];
+    expect(getComponent(next, 'bgp')).toEqual({ asn: 65001, neighbors: [], networks: [] });
+    expect('bgp' in next).toBe(false);
   });
 });

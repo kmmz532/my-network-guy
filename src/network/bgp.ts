@@ -4,6 +4,7 @@
 // - 経路のネクストホップに届かないと使えない（iBGP は next-hop-self がないと外の相手のアドレスのまま。bgp.nexthop_unreachable）
 import { ipToInt } from './engine';
 import type { NetNode } from './types';
+import { getComponent } from './components';
 
 export const BGP_DEFAULT_LOCAL_PREF = 100;
 
@@ -68,13 +69,13 @@ export const computeBgp = (routers: NetNode[], env: BgpEnv): Map<string, BgpResu
   const sessionsOf = new Map<string, BgpSession[]>();
   for (const r of routers) {
     const list: BgpSession[] = [];
-    for (const nb of r.bgp!.neighbors) {
-      const ebgp = nb.remoteAs !== r.bgp!.asn;
+    for (const nb of getComponent(r, 'bgp')!.neighbors) {
+      const ebgp = nb.remoteAs !== getComponent(r, 'bgp')!.asn;
       const peer = ownerOf(nb.ip);
       let status: BgpSessionState;
       if (!peer || peer.uid === r.uid) status = { state: 'idle', reason: 'no_peer' };
-      else if (peer.bgp!.asn !== nb.remoteAs) status = { state: 'idle', reason: 'as_mismatch' };
-      else if (!peer.bgp!.neighbors.some((x) => x.remoteAs === r.bgp!.asn && r.interfaces.some((i) => i.ip === x.ip))) status = { state: 'idle', reason: 'not_configured_back' };
+      else if (getComponent(peer, 'bgp')!.asn !== nb.remoteAs) status = { state: 'idle', reason: 'as_mismatch' };
+      else if (!getComponent(peer, 'bgp')!.neighbors.some((x) => x.remoteAs === getComponent(r, 'bgp')!.asn && r.interfaces.some((i) => i.ip === x.ip))) status = { state: 'idle', reason: 'not_configured_back' };
       else if (ebgp ? !env.direct(r, nb.ip) : !env.direct(r, nb.ip) && !env.reaches(r, nb.ip)) status = { state: 'idle', reason: 'unreachable' };
       else status = { state: 'established' };
       list.push({ ip: nb.ip, remoteAs: nb.remoteAs, ebgp, peer: peer?.uid ?? null, status });
@@ -97,7 +98,7 @@ export const computeBgp = (routers: NetNode[], env: BgpEnv): Map<string, BgpResu
   for (const r of routers) {
     tables.set(
       r.uid,
-      r.bgp!.networks.map((n) => ({ dest: n.dest, prefix: n.prefix, path: [], localPref: BGP_DEFAULT_LOCAL_PREF, med: 0, ebgp: false, local: true, nextHop: null, from: null, valid: true, best: false })),
+      getComponent(r, 'bgp')!.networks.map((n) => ({ dest: n.dest, prefix: n.prefix, path: [], localPref: BGP_DEFAULT_LOCAL_PREF, med: 0, ebgp: false, local: true, nextHop: null, from: null, valid: true, best: false })),
     );
   }
   for (let round = 0; round < routers.length + 2; round++) {
@@ -109,16 +110,16 @@ export const computeBgp = (routers: NetNode[], env: BgpEnv): Map<string, BgpResu
       for (const s of sessionsOf.get(r.uid)!) {
         if (s.status.state !== 'established' || s.peer === null) continue;
         const peer = byUid.get(s.peer)!;
-        const mine = r.bgp!.neighbors.find((n) => n.ip === s.ip)!;
+        const mine = getComponent(r, 'bgp')!.neighbors.find((n) => n.ip === s.ip)!;
         // 相手（広告する側）の、自分（r）に向けた設定（プリペンド・next-hop-self）
-        const peerNb = peer.bgp!.neighbors.find((n) => n.remoteAs === r.bgp!.asn && r.interfaces.some((i) => i.ip === n.ip))!;
+        const peerNb = getComponent(peer, 'bgp')!.neighbors.find((n) => n.remoteAs === getComponent(r, 'bgp')!.asn && r.interfaces.some((i) => i.ip === n.ip))!;
         const peerBest = bestOf(tables.get(peer.uid)!);
         for (const c of peerBest.values()) {
           // iBGP で学んだ経路は、別の iBGP の相手へ伝えない
           if (!s.ebgp && !c.local && !c.ebgp) continue;
           // 受け取る側（r）が自分の AS を含む経路は捨てる（ループ）
-          const advPath = s.ebgp ? [peer.bgp!.asn, ...Array.from({ length: peerNb.prepend ?? 0 }, () => peer.bgp!.asn), ...c.path] : c.path;
-          if (advPath.includes(r.bgp!.asn)) continue;
+          const advPath = s.ebgp ? [getComponent(peer, 'bgp')!.asn, ...Array.from({ length: peerNb.prepend ?? 0 }, () => getComponent(peer, 'bgp')!.asn), ...c.path] : c.path;
+          if (advPath.includes(getComponent(r, 'bgp')!.asn)) continue;
           // eBGP は、相手のアドレスがネクストホップ。iBGP は、そのまま（next-hop-self なら相手のアドレス）
           const peerAddr = s.ip;
           const nextHop = s.ebgp || peerNb.nextHopSelf === true || c.local ? peerAddr : c.nextHop;

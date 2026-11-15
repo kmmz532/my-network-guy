@@ -161,10 +161,12 @@
         "gateway": null,
         "routes": [],
         "services": [],
-        "bgp": {
-          "asn": 65001,
-          "neighbors": [],
-          "networks": []
+        "components": {
+          "bgp": {
+            "asn": 65001,
+            "neighbors": [],
+            "networks": []
+          }
         }
       },
       {

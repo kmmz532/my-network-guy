@@ -335,6 +335,7 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
       ...(setup?.ospf ? { ospf: { ...setup.ospf } } : {}),
       ...(setup?.dhcpPools ? { dhcpServer: structuredClone(setup.dhcpPools) } : {}),
       ...(setup?.stpPriority !== undefined ? { stp: { priority: setup.stpPriority } } : {}),
+      ...(setup?.bgp ? { bgp: structuredClone(setup.bgp) } : {}),
     };
     return {
       uid: p.ref,
@@ -345,7 +346,6 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
       ...(p.name ? { name: p.name } : {}),
       ...(Object.keys(components).length > 0 ? { components } : {}),
       ...(p.wireless ? { wireless: { ...p.wireless } } : {}),
-      ...(setup?.bgp ? { bgp: structuredClone(setup.bgp) } : {}),
       ...(setup?.napt !== undefined ? { napt: setup.napt } : {}),
       ...(setup?.rules ? { rules: structuredClone(setup.rules) } : {}),
       x: p.x,

@@ -38,11 +38,11 @@ const solved = (neighborB: boolean): Network => ({
     node('staff_b'),
     node('edge', {
       interfaces: [port('g0/0', 0, '192.168.1.1'), port('g0/1', 1, '198.51.100.2'), port('g0/2', 2, '203.0.113.2')],
-      bgp: {
+      components: { bgp: {
         asn: 65100,
         neighbors: [{ ip: '198.51.100.1', remoteAs: 65001 }, ...(neighborB ? [{ ip: '203.0.113.1', remoteAs: 65002 }] : [])],
         networks: [{ dest: '192.168.1.0', prefix: 24 }],
-      },
+      } },
     }),
     { uid: 'sw', device: 'l2_switch_4p', macSerial: 90, ports: [], x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [] } as NetNode,
     node('isp_a'),

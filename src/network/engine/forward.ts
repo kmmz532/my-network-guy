@@ -10,6 +10,7 @@ import { deviceCategory } from '../../registry/query';
 import type { NetworkState } from './state';
 import type { L2Domain } from './stages/l2';
 import { adOf } from './stages/routing';
+import { getComponent } from '../components';
 
 // 転送が読む層。解析の結果（NetworkState）と、DHCP のリレーの到達を仮に確かめるときの仮の層が、同じ形で渡せる
 export type ForwardView = Pick<NetworkState, 'links' | 'l2' | 'addressing' | 'routing'>;
@@ -190,7 +191,7 @@ export const deliver = (view: ForwardView, srcUid: string, dstUid: string, traff
     const matches = view.routing.routesOf(cur.uid).filter((r) => inSubnet(dstIface.ip, r.dest, r.prefix));
     if (matches.length === 0) {
       // BGP の相手と隣接しない（アドレスか AS 番号が合わない）ときは bgp.no_session（N147）
-      const bgp = cur.bgp ? view.routing.bgpOf(cur.uid) : undefined;
+      const bgp = getComponent(cur, 'bgp') ? view.routing.bgpOf(cur.uid) : undefined;
       // 経路は学んだが、ネクストホップに届かない（iBGP の next-hop-self がない）ときは bgp.nexthop_unreachable
       if (bgp?.candidates.some((c) => !c.valid && inSubnet(dstIface.ip, c.dest, c.prefix))) return err(fail('bgp.nexthop_unreachable', cur.uid));
       if (bgp?.sessions.some((x) => x.status.state !== 'established')) return err(fail('bgp.no_session', cur.uid));

@@ -449,24 +449,25 @@ export const setBgp = (core: Core, uid: string, change: BgpOp, target: NetTarget
     core,
     uid,
     (node) => {
-      const cur = node.bgp ?? { asn: 0, neighbors: [], networks: [] };
+      if (!can(node.device, 'bgp')) return 'none';
+      const cur = getComponent(node, 'bgp') ?? { asn: 0, neighbors: [], networks: [] };
       switch (change.op) {
         case 'asn':
-          return { ...node, bgp: { ...cur, asn: change.asn } };
+          return withComponent(node, 'bgp', { ...cur, asn: change.asn });
         case 'off':
-          return { ...node, bgp: undefined };
+          return { ...node, components: { ...node.components, bgp: undefined } };
         case 'neighbor':
-          return { ...node, bgp: { ...cur, neighbors: [...cur.neighbors.filter((n) => n.ip !== change.ip), { ...cur.neighbors.find((n) => n.ip === change.ip), ip: change.ip, remoteAs: change.remoteAs }] } };
+          return withComponent(node, 'bgp', { ...cur, neighbors: [...cur.neighbors.filter((n) => n.ip !== change.ip), { ...cur.neighbors.find((n) => n.ip === change.ip), ip: change.ip, remoteAs: change.remoteAs }] });
         case 'removeNeighbor':
-          return { ...node, bgp: { ...cur, neighbors: cur.neighbors.filter((n) => n.ip !== change.ip) } };
+          return withComponent(node, 'bgp', { ...cur, neighbors: cur.neighbors.filter((n) => n.ip !== change.ip) });
         case 'removeNetwork':
-          return { ...node, bgp: { ...cur, networks: cur.networks.filter((n) => !(n.dest === change.dest && n.prefix === change.prefix)) } };
+          return withComponent(node, 'bgp', { ...cur, networks: cur.networks.filter((n) => !(n.dest === change.dest && n.prefix === change.prefix)) });
         case 'attr': {
           if (!cur.neighbors.some((n) => n.ip === change.ip)) return 'bgp.no_neighbor';
-          return { ...node, bgp: { ...cur, neighbors: cur.neighbors.map((n) => (n.ip === change.ip ? { ...n, [change.key]: change.value } : n)) } };
+          return withComponent(node, 'bgp', { ...cur, neighbors: cur.neighbors.map((n) => (n.ip === change.ip ? { ...n, [change.key]: change.value } : n)) });
         }
         case 'network':
-          return { ...node, bgp: { ...cur, networks: [...cur.networks.filter((n) => !(n.dest === change.dest && n.prefix === change.prefix)), { dest: change.dest, prefix: change.prefix }] } };
+          return withComponent(node, 'bgp', { ...cur, networks: [...cur.networks.filter((n) => !(n.dest === change.dest && n.prefix === change.prefix)), { dest: change.dest, prefix: change.prefix }] });
       }
     },
     target,

@@ -8,7 +8,7 @@ import type { NetworkState } from './engine/state';
 
 const f = (port: number, ip: string): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24 });
 const router = (uid: string, interfaces: Iface[], bgp: BgpConfig): NetNode =>
-  ({ uid, device: 'router_basic', x: 0, y: 0, locked: false, configLocked: false, interfaces, gateway: null, routes: [], services: [], ports: [], bgp }) as NetNode;
+  ({ uid, device: 'router_basic', x: 0, y: 0, locked: false, configLocked: false, interfaces, gateway: null, routes: [], services: [], ports: [], components: { bgp } }) as NetNode;
 const link = (uid: string, a: string, pa: number, b: string, pb: number) => ({ uid, cable: 'utp_cat5e', a: { node: a, port: pa }, b: { node: b, port: pb }, path: [[0, 0], [1, 0]] as [number, number][], paid: 0 });
 const data = gameEnv.engine;
 const DEST = { dest: '203.0.113.0', prefix: 24 };

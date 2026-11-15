@@ -18,7 +18,7 @@ const node = (uid: string, device: string, interfaces: Iface[], gateway: string 
   routes: [],
   services: [],
   ports: [],
-  ...(bgp ? { bgp } : {}),
+  ...(bgp ? { components: { bgp } } : {}),
 });
 const link = (uid: string, a: string, pa: number, b: string, pb: number) => ({ uid, cable: 'utp_cat5e', a: { node: a, port: pa }, b: { node: b, port: pb }, path: [[0, 0], [1, 0]] as [number, number][], paid: 0 });
 
