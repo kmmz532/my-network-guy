@@ -6,6 +6,7 @@ import { historyKeyOf } from '../sim/history';
 import { focusedProject } from '../stores/useGameStore';
 import { Icon } from '../components/Icon';
 import { IconButton } from '../components/ui/IconButton';
+import { Text } from '../components/ui/Text';
 import { usePhone } from '../ui/usePhone';
 import { mapCommands } from './mapControl';
 import { useGameStore } from '../stores/useGameStore';
@@ -28,9 +29,9 @@ function PhoneHistoryButtons() {
   return (
     <>
       {historyError && (
-        <span style={{ position: 'absolute', right: '100%', marginRight: 8, width: 180, fontSize: 13, color: '#ffd3c9', textAlign: 'right' }}>
+        <Text as="span" tone="refusal" size="sm" layout={{ position: 'absolute', right: '100%', marginRight: 8, width: 180, textAlign: 'right' }}>
           {tDyn(`ui.error.${historyError}`)}
-        </span>
+        </Text>
       )}
       <IconButton label={t('keys.undo')} disabled={!canUndo} onClick={() => undo()}>
         <Icon name="icon/undo" />

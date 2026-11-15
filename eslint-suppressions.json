@@ -174,16 +174,6 @@
       "count": 1
     }
   },
-  "src/game/MapZoomButtons.tsx": {
-    "local/no-look-props": {
-      "count": 2
-    }
-  },
-  "src/game/PixiStage.tsx": {
-    "local/no-look-props": {
-      "count": 1
-    }
-  },
   "src/game/Scene.ts": {
     "local/no-engine-in-view": {
       "count": 1

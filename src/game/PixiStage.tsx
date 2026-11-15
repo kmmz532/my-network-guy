@@ -21,10 +21,13 @@ export function PixiStage() {
       const instance = new Application();
       await instance.init({
         resizeTo: host,
-        background: '#2f4f8f',
         antialias: false,
         roundPixels: true,
       });
+      // 地の色は窓の地と同じ（トークン --bg-panel）
+      const ground = getComputedStyle(document.documentElement).getPropertyValue('--bg-panel').trim();
+      if (ground === '') throw new Error('地の色のトークン（--bg-panel）が読めない');
+      instance.renderer.background.color = ground;
       await loadTextures();
       if (disposed) {
         instance.destroy(true, { children: true });
