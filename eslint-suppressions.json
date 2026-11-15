@@ -121,11 +121,6 @@
       "count": 8
     }
   },
-  "src/components/FundsPanel.tsx": {
-    "local/no-look-props": {
-      "count": 10
-    }
-  },
   "src/components/Guide.tsx": {
     "local/no-look-props": {
       "count": 13

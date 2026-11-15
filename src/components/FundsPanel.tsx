@@ -9,6 +9,8 @@ import { rentalOf } from '../network/external';
 import { gameEnv } from '../sim/env';
 import { useGameStore } from '../stores/useGameStore';
 import { Section } from './ui/Section';
+import { Text } from './ui/Text';
+import { ProgressBar } from './ui/ProgressBar';
 
 const yen = (n: number) => `${Math.round(n).toLocaleString('ja-JP')}円`;
 
@@ -35,43 +37,40 @@ export function FundsBody() {
   const rowLine = { display: 'flex', justifyContent: 'space-between', gap: 8 } as const;
   return (
     // スクロールはウィンドウの本体だけで行う（中身の枠は持たない・N105）
-    <div style={{ padding: 12, fontSize: 14, color: '#f4f1e6' }}>
+    <div style={{ padding: 12 }}>
       <Section>
-        <div style={{ ...rowLine, fontSize: 16 }}>
-          <span>{t('ui.funds.balance')}</span>
-          <span>{clock.ledger === null ? '∞' : yen(clock.money)}</span>
+        <div style={rowLine}>
+          <Text as="span" size="l">{t('ui.funds.balance')}</Text>
+          <Text as="span" size="l">{clock.ledger === null ? '∞' : yen(clock.money)}</Text>
         </div>
       </Section>
       <Section>
         <div style={rowLine}>
-          <span>{t('ui.funds.outlook')}</span>
-          <span style={{ color: outlook < 0 ? '#ff8a80' : undefined }}>{yen(outlook)}</span>
+          <Text as="span">{t('ui.funds.outlook')}</Text>
+          <Text as="span" tone={outlook < 0 ? 'error' : 'normal'}>{yen(outlook)}</Text>
         </div>
       </Section>
-      <div style={{ paddingTop: 8, color: '#ffd866' }}>{t('ui.funds.thisMonth')}</div>
+      <Text tone="warn" layout={{ marginTop: 8 }}>{t('ui.funds.thisMonth')}</Text>
       {LEDGER_CATEGORIES.map((c: LedgerCategory) => {
         const value = thisMonth?.totals[c] ?? 0;
         return (
           <Section key={c}>
             <div style={rowLine}>
-              <span>{tDyn(`ledger.${c}`)}</span>
-              <span style={{ color: value < 0 ? '#ff8a80' : undefined }}>{value === 0 ? '—' : yen(value)}</span>
+              <Text as="span">{tDyn(`ledger.${c}`)}</Text>
+              <Text as="span" tone={value < 0 ? 'error' : 'normal'}>{value === 0 ? '—' : yen(value)}</Text>
             </div>
           </Section>
         );
       })}
-      <div style={{ paddingTop: 8, color: '#ffd866' }}>{t('ui.funds.history')}</div>
-      {history.length === 0 && <div style={{ opacity: 0.85 }}>{t('ui.funds.none')}</div>}
+      <Text tone="warn" layout={{ marginTop: 8 }}>{t('ui.funds.history')}</Text>
+      {history.length === 0 && <Text tone="sub">{t('ui.funds.none')}</Text>}
       {history.map((m) => {
         const value = net(m);
-        const width = `${(Math.abs(value) / maxAbs) * 100}%`;
         return (
           <div key={m.month} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0' }}>
-            <span style={{ width: 40 }}>{`${(m.month % 12) + 1}月`}</span>
-            <span style={{ flex: 1, height: 10, background: '#3b2a33', position: 'relative' }}>
-              <span style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width, background: value < 0 ? '#ff8a80' : '#62d26f' }} />
-            </span>
-            <span style={{ width: 96, textAlign: 'right' }}>{yen(value)}</span>
+            <Text as="span" layout={{ width: 40 }}>{`${(m.month % 12) + 1}月`}</Text>
+            <ProgressBar size="m" fraction={Math.abs(value) / maxAbs} color={value < 0 ? 'var(--st-error)' : 'var(--st-ok)'} layout={{ flex: 1 }} />
+            <div style={{ width: 96, textAlign: 'right' }}><Text as="span">{yen(value)}</Text></div>
           </div>
         );
       })}
