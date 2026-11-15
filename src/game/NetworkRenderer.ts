@@ -2,12 +2,11 @@
 import { Graphics } from 'pixi.js';
 import type { Trace } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
-import { CATEGORY } from '../data/categories';
+import { can } from '../network/capabilities';
 import { WALL_LOSS, WIRELESS_RADIUS, wallsBetween, wirelessAssociations } from '../network/engine';
 import type { EngineData } from '../network/types';
 import { cumulativeLengths, pointAt, type Point } from './animation';
 import type { Project } from '../sim/project';
-import { deviceCategory } from '../registry/query';
 
 // つながった瞬間に、ケーブルの上を光が走る時間（ms）。
 const PULSE_MS = 450;
@@ -57,8 +56,7 @@ export class NetworkRenderer {
     const ap = project.nodes.find((n) => n.uid === selectedUid);
     // 前面の機器の窓が、表示中でない地図の機器（自社と依頼先を切り替えた後など）や撤去した機器を指すときは描かない
     if (!ap) return;
-    const category = deviceCategory(ap.device);
-    if (category !== CATEGORY.accessPoint && category !== CATEGORY.homeRouter) return;
+    if (!can(ap.device, 'accessPoint')) return;
     for (let dy = -WIRELESS_RADIUS; dy <= WIRELESS_RADIUS; dy++) {
       for (let dx = -WIRELESS_RADIUS; dx <= WIRELESS_RADIUS; dx++) {
         const tx = ap.x + dx;

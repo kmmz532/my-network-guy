@@ -87,9 +87,6 @@
     }
   },
   "src/components/DeviceSettings.tsx": {
-    "local/no-category": {
-      "count": 2
-    },
     "local/no-engine-in-view": {
       "count": 1
     },
@@ -489,9 +486,6 @@
     }
   },
   "src/game/NetworkRenderer.ts": {
-    "local/no-category": {
-      "count": 2
-    },
     "local/no-look-props": {
       "count": 7
     }
@@ -550,11 +544,6 @@
   "src/network/engine/forward.ts": {
     "local/no-category": {
       "count": 2
-    }
-  },
-  "src/network/engine/stages/links.ts": {
-    "local/no-category": {
-      "count": 4
     }
   },
   "src/network/frames.ts": {

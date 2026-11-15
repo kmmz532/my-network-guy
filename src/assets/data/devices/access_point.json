@@ -4,7 +4,8 @@
       "id": "access_point",
       "category": "access_point",
       "capabilities": [
-        "wireless"
+        "wireless",
+        "accessPoint"
       ],
       "deskable": false,
       "price": 33000,

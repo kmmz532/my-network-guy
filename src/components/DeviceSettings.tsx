@@ -23,7 +23,6 @@ import { addressCandidates, PLANNED_NETWORK, PLANNED_PREFIX, plannedAddressCandi
 import { coreOf, netOfDevice, netTargetOf, plannedKey, useGameStore } from '../stores/useGameStore';
 import { greyColor, hexColor, isIpText, portLabel, sectionStyle, unsetColor } from './devicePorts';
 import { Section } from './ui/Section';
-import { CATEGORY } from '../data/categories';
 import { BgpField } from './BgpField';
 import { IspField } from './IspField';
 import { VlanPortField } from './VlanPortField';
@@ -555,7 +554,7 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
   const status = pairs.find((p) => p.client.uid === node.uid);
   const clients = pairs.filter((p) => p.ap.uid === node.uid).length;
   // アクセスポイントは、つながっている端末の数を出す。端末は、つながった先か、つながっていないことを出す
-  const isClient = deviceCategory(node.device) !== CATEGORY.accessPoint && deviceCategory(node.device) !== CATEGORY.homeRouter;
+  const isClient = !can(node.device, 'accessPoint');
   // 同じチャネルで近いアクセスポイントがあれば、注意を出す（N152）
   const overlapping = channelOverlapsOf(state).some((o) => o.a === node.uid || o.b === node.uid);
   const statusText = status

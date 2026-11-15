@@ -1,5 +1,4 @@
 // 配線の層: 無線の結びつきと仮想の配線、論理リンク（LAG）、口の停止、配線の長さの超過
-import { CATEGORY } from '../../../data/categories';
 import { cableMaxLength, deviceCategory, portSpeed } from '../../../registry/query';
 import { can } from '../../capabilities';
 import { getComponent } from '../../components';
@@ -44,11 +43,11 @@ export const wallsBetween = (wallAt: (x: number, y: number) => boolean, ax: numb
 // アクセスポイントの無線の VLAN は、つながった端末の口を、その VLAN の access の口として扱う
 // アクセスポイント（と無線つきの家庭用ルーター）
 export const accessPointsOf = (net: Network, _data: EngineData): NetNode[] =>
-  net.nodes.filter((n) => deviceCategory(n.device) === CATEGORY.accessPoint || deviceCategory(n.device) === CATEGORY.homeRouter);
+  net.nodes.filter((n) => can(n.device, 'accessPoint'));
 
 // 無線の端末とつながるアクセスポイントの組（端末ごとに最も近い、SSID・パスワードの合う、範囲の中のもの）。画面の点線にも使う（N151・N152）
 export const wirelessAssociations = (net: Network, data: EngineData): { ap: NetNode; client: NetNode }[] => {
-  const aps = net.nodes.filter((n) => deviceCategory(n.device) === CATEGORY.accessPoint || deviceCategory(n.device) === CATEGORY.homeRouter);
+  const aps = net.nodes.filter((n) => can(n.device, 'accessPoint'));
   if (aps.length === 0) return [];
   const wired = new Set(net.links.flatMap((l) => [`${l.a.node}:${l.a.port}`, `${l.b.node}:${l.b.port}`]));
   const out: { ap: NetNode; client: NetNode }[] = [];
