@@ -50,7 +50,7 @@ const barPhone = {
   flexWrap: 'nowrap',
   flexDirection: 'column',
   alignItems: 'stretch',
-  padding: '6px 8px 18px',
+  padding: '6px 8px',
   gap: 0,
 } as const;
 
