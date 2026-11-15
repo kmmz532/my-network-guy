@@ -11,11 +11,12 @@ import { RearTab as DeviceRear } from './DeviceRear';
 import { DeviceSettings } from './DeviceSettings';
 import { TrimmedIcon } from './Icon';
 import { TerminalTab } from './TerminalTab';
-import { Tabs, TAB_COLORS, tabPanelStyle } from './Tabs';
-import { buttonStyle, greyColor, isIpText, warnColor } from './devicePorts';
+import { Tabs, TabPanel, TAB_COLORS } from './Tabs';
+import { isIpText } from './devicePorts';
 import { PixelSelect } from './PixelControls';
 import { TextInput } from './ui/TextInput';
 import { Button } from './ui/Button';
+import { Text } from './ui/Text';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { deviceCategory, deviceDef } from '../registry/query';
 
@@ -107,7 +108,7 @@ function DeviceView({
 
   return (
     <div>
-      {issue && <div style={{ color: warnColor, marginBottom: 6 }}>{tDyn(`issue.${issue.reason}`, { ip: issue.ip ?? '', segment: issue.segment ?? '', gateway: issue.gateway ?? '' })}</div>}
+      {issue && <Text tone="warn" layout={{ marginBottom: 6 }}>{tDyn(`issue.${issue.reason}`, { ip: issue.ip ?? '', segment: issue.segment ?? '', gateway: issue.gateway ?? '' })}</Text>}
       {readOnly && <div style={{ marginBottom: 6 }}>{t('ui.config.readOnly')}</div>}
       <Tabs<Tab>
         items={[
@@ -123,15 +124,15 @@ function DeviceView({
         }}
         colors={TAB_COLORS.window}
       />
-      <div style={tabPanelStyle(TAB_COLORS.window.selected)}>
-        {error && <div style={{ color: warnColor, marginBottom: 6 }}>{tDyn(`ui.error.${error}`)}</div>}
+      <TabPanel tone="window">
+        {error && <Text tone="warn" layout={{ marginBottom: 6 }}>{tDyn(`ui.error.${error}`)}</Text>}
         {tab === 'rear' && <DeviceRear node={node} nodes={nodes} links={links} readOnly={readOnly} onError={setError} />}
         {tab === 'config' && hasConfig && (
           <DeviceSettings node={node} readOnly={readOnly} detailOpen={detailOpen} onToggleDetail={onToggleDetail} onError={setError} />
         )}
         {tab === 'service' && isServer && <ServiceTab node={node} nodes={nodes} state={netState} readOnly={readOnly} onError={setError} />}
         {tab === 'terminal' && <TerminalTab node={node} nodes={nodes} links={links} state={netState} readOnly={readOnly} />}
-      </div>
+      </TabPanel>
     </div>
   );
 }
@@ -145,14 +146,14 @@ function SeenSources({ node, nodes, state }: { node: NetNode; nodes: NetNode[]; 
   const byUid = new Map(nodes.map((n) => [n.uid, n]));
   const seen = seenSourcesOf(state, node.uid, http.port, clients);
   return (
-    <div style={{ marginTop: 6, fontSize: 13 }}>
+    <Text size="sm" layout={{ marginTop: 6 }}>
       <b>{t('ui.service.seen')}</b>
-      {seen.length === 0 && <div style={{ color: greyColor }}>{t('ui.service.seenNone')}</div>}
+      {seen.length === 0 && <Text tone="note" size="sm">{t('ui.service.seenNone')}</Text>}
       {seen.map((s) => {
         const client = byUid.get(s.client);
         return client ? <div key={s.client}>{t('ui.service.seenItem', { name: nodeLabel(store, client, nodes), ip: s.seenIp })}</div> : null;
       })}
-    </div>
+    </Text>
   );
 }
 
@@ -177,7 +178,7 @@ function DnsEditor({ node, dns, locked, onError }: { node: NetNode; dns: DnsServ
   const addValid = name !== '' && value !== '' && (type !== 'MX' || /^\d+$/.test(pref));
   const add = () => onError(setDnsRecord(node.uid, { type, name, value, ...(type === 'MX' ? { pref: Number(pref) } : {}) }));
   return (
-    <div style={{ marginTop: 4, fontSize: 13 }}>
+    <div style={{ marginTop: 4 }}>
       <div style={dnsRow}>
         <PixelSelect<'auth' | 'cache'> ariaLabel={t('ui.dns.role')} value={dns.role} options={roles} disabled={locked} onChange={(v) => onError(setDnsRole(node.uid, true, v))} />
       </div>
@@ -189,10 +190,10 @@ function DnsEditor({ node, dns, locked, onError }: { node: NetNode; dns: DnsServ
           </Button>
         </div>
       )}
-      {dns.zone.length === 0 && <div>{t('ui.dns.empty')}</div>}
+      {dns.zone.length === 0 && <Text size="sm">{t('ui.dns.empty')}</Text>}
       {dns.zone.map((r) => (
         <div key={`${r.type}-${r.name}`} style={dnsRow}>
-          <span>{`${r.name}  ${r.type}  ${r.pref === undefined ? r.value : `${r.pref} ${r.value}`}`}</span>
+          <Text as="span" size="sm">{`${r.name}  ${r.type}  ${r.pref === undefined ? r.value : `${r.pref} ${r.value}`}`}</Text>
           <Button variant="secondary" size="s" disabled={locked} onClick={() => onError(removeDnsRecord(node.uid, r.type, r.name))}>
             {t('ui.dns.remove')}
           </Button>
@@ -226,26 +227,26 @@ function ServiceTab({ node, nodes, state, readOnly, onError }: { node: NetNode; 
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
         <b>{t('ui.dns.title')}</b>
-        <span style={{ color: dns ? '#62d26f' : greyColor }}>{dns ? t('ui.service.running') : t('ui.service.stopped')}</span>
-        <button style={buttonStyle} disabled={locked} onClick={() => onError(setDnsRole(node.uid, !dns))}>
+        <Text as="span" tone={dns ? 'ok' : 'note'}>{dns ? t('ui.service.running') : t('ui.service.stopped')}</Text>
+        <Button variant="secondary" size="fit" disabled={locked} onClick={() => onError(setDnsRole(node.uid, !dns))}>
           {dns ? t('ui.service.stop') : t('ui.service.start')}
-        </button>
+        </Button>
         {dns && (
-          <button style={buttonStyle} disabled={locked} onClick={() => onError(autoRegisterZone(node.uid))}>
+          <Button variant="secondary" size="fit" disabled={locked} onClick={() => onError(autoRegisterZone(node.uid))}>
             {t('ui.dns.register')}
-          </button>
+          </Button>
         )}
       </div>
       {dns && <DnsEditor key={node.uid} node={node} dns={dns} locked={locked} onError={onError} />}
-      {dns && duplicates.length > 0 && <div style={{ marginTop: 4, color: '#ffd866' }}>{t('ui.dns.duplicate', { names: duplicates.join('・') })}</div>}
+      {dns && duplicates.length > 0 && <Text tone="warn" layout={{ marginTop: 4 }}>{t('ui.dns.duplicate', { names: duplicates.join('・') })}</Text>}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <b>{t('ui.service.http')}</b>
         <span>{running ? t('ui.service.port', { port: http.port }) : null}</span>
-        <span style={{ color: running ? '#62d26f' : greyColor }}>{running ? t('ui.service.running') : t('ui.service.stopped')}</span>
-        <button style={buttonStyle} disabled={locked} onClick={() => onError(setService(node.uid, 'http', !running))}>
+        <Text as="span" tone={running ? 'ok' : 'note'}>{running ? t('ui.service.running') : t('ui.service.stopped')}</Text>
+        <Button variant="secondary" size="fit" disabled={locked} onClick={() => onError(setService(node.uid, 'http', !running))}>
           {running ? t('ui.service.stop') : t('ui.service.start')}
-        </button>
+        </Button>
       </div>
       {running && <SeenSources node={node} nodes={nodes} state={state} />}
       {node.configLocked && <div style={{ marginTop: 6 }}>{t('ui.service.locked')}</div>}

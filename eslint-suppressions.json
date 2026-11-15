@@ -50,15 +50,6 @@
   "src/components/DevicePanel.tsx": {
     "local/no-category": {
       "count": 1
-    },
-    "local/no-look-export": {
-      "count": 4
-    },
-    "local/no-look-props": {
-      "count": 8
-    },
-    "local/no-native-control": {
-      "count": 3
     }
   },
   "src/components/DeviceRear.tsx": {
