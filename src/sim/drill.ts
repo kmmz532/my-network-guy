@@ -203,15 +203,40 @@ export const inspectChoices = (state: NetworkState, ask: InspectAsk): string[] =
 export const judgeInspect = (state: NetworkState, ask: InspectAsk, answer: string): boolean => inspectAnswer(state, ask) === answer;
 
 // 原因を選ぶ問いの失敗（段5の失敗）。届くときは、直す対象がないため例外
+const diagnoseResult = (state: NetworkState, q: Extract<Question, { kind: 'diagnose' }>): PathResult =>
+  q.traffic.kind === 'ping' ? ping(state, q.from, q.to) : q.traffic.kind === 'http' ? http(state, q.from, q.to, q.traffic.port) : deliver(state, q.from, q.to, { kind: 'dns' });
+
+// 原因を選ぶ問いの通信が、今の構成で届くか（直した後の合否）
+export const diagnoseReaches = (state: NetworkState, q: Extract<Question, { kind: 'diagnose' }>): boolean => diagnoseResult(state, q).ok;
+
 const diagnoseFailure = (state: NetworkState, q: Extract<Question, { kind: 'diagnose' }>): NonNullable<PathResult['failure']> => {
-  const result =
-    q.traffic.kind === 'ping' ? ping(state, q.from, q.to) : q.traffic.kind === 'http' ? http(state, q.from, q.to, q.traffic.port) : deliver(state, q.from, q.to, { kind: 'dns' });
+  const result = diagnoseResult(state, q);
   if (result.ok || !result.failure) throw new Error(`演習: 問い ${q.id} の通信は届くため、原因がない`);
   return result.failure;
 };
 
 // 原因の候補: 構成の機器すべてと、失敗の理由すべて
 export const diagnoseChoices = (state: NetworkState): { nodes: string[]; reasons: readonly FailureReason[] } => ({ nodes: state.net.nodes.map((n) => n.uid), reasons: FAILURE_REASONS });
+
+// 原因の問いが出す理由の候補。正解と、問いの id から決まる並びの先頭の数件（仮の絞り方）。FAILURE_REASONS の順に並べる
+export const DIAGNOSE_REASON_COUNT = 6;
+const seeded = (text: string): number => [...text].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+export const diagnoseReasonChoices = (state: NetworkState, q: Extract<Question, { kind: 'diagnose' }>): FailureReason[] => {
+  const correct = diagnoseFailure(state, q).reason;
+  const others = FAILURE_REASONS.filter((r) => r !== correct)
+    .map((r) => ({ r, k: seeded(`${q.id}:${r}`) }))
+    .sort((a, b) => a.k - b.k || a.r.localeCompare(b.r))
+    .slice(0, DIAGNOSE_REASON_COUNT - 1)
+    .map((x) => x.r);
+  const picked = new Set<FailureReason>([correct, ...others]);
+  return FAILURE_REASONS.filter((r) => picked.has(r));
+};
+
+// 原因の問いの正解（機器と理由）
+export const diagnoseAnswer = (state: NetworkState, q: Extract<Question, { kind: 'diagnose' }>): { node: string; reason: FailureReason } => {
+  const { node, reason } = diagnoseFailure(state, q);
+  return { node, reason };
+};
 
 // 選んだ機器と理由が、段5の失敗の機器と理由に一致するか
 export const judgeDiagnose = (state: NetworkState, q: Extract<Question, { kind: 'diagnose' }>, answer: { node: string; reason: FailureReason }): boolean => {

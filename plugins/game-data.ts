@@ -15,6 +15,7 @@ import {
   furnitureFileSchema,
   guidesFileSchema,
   lessonSchema,
+  drillSchema,
   langSchema,
   levelsFileSchema,
   mapSchema,
@@ -29,6 +30,7 @@ import {
   type Furniture,
   type GuideFile,
   type Lesson,
+  type Drill,
   type Goal,
   type GameMap,
   type Lang,
@@ -42,6 +44,7 @@ const BASE_LANG = 'ja_jp';
 const GUIDE_TEXT_MAX = 20;
 // 案内の文言のキー（案件ごとの i 番目の手順。0から数える）
 const lessonKey = (id: string, part: string): string => `lesson.${id}.${part}`;
+const drillKey = (id: string, part: string): string => `drill.${id}.${part}`;
 const guideKey = (contract: string, index: number): string => `guide.${contract}.${index + 1}`;
 
 // 実行時に存在が必要な翻訳キー（ID以外から導出されない固定のもの）
@@ -75,6 +78,7 @@ interface GameData {
   templates: ContractTemplate[];
   guides: GuideFile[];
   lessons: Lesson[];
+  drills: Drill[];
   maps: GameMap[];
   langs: Record<string, Lang>;
   missingFilled: Record<string, number>;
@@ -168,6 +172,14 @@ const loadData = (dataDir: string, langDir: string, spriteDir: string): GameData
     return lesson;
   });
 
+  const drills = jsonFiles(join(dataDir, 'drills')).map((file) => {
+    const drill = parseWith(drillSchema, readJson(file), file);
+    if (drill.id !== basename(file, '.json')) {
+      throw new GameDataError([`${file}: id（${drill.id}）がファイル名と一致しない`]);
+    }
+    return drill;
+  });
+
   const contractsDir = join(dataDir, 'contracts');
   const contracts = jsonFiles(contractsDir).map((file) => {
     const contract = parseWith(contractSchema, readJson(file), file);
@@ -206,6 +218,7 @@ const loadData = (dataDir: string, langDir: string, spriteDir: string): GameData
     templates,
     guides,
     lessons,
+    drills,
     maps,
     langs,
     missingFilled: {},
@@ -316,6 +329,30 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
         const ports = device ? device.ports.reduce((sum, port) => sum + port.count, 0) : 0;
         ensure(placed !== undefined && end.port < ports, `lessons/${l.id}.json: 配線の端 ${end.ref}:${end.port} がない`);
       }
+    }
+  }
+
+  // 演習: 教材と同じ構成の確かめに加え、問いの id の重複と、setup が指す問いと機器を確かめる
+  unique(data.drills, (d) => d.id, 'drills/');
+  for (const d of data.drills) {
+    const refs = new Set(d.placed.map((p) => p.ref));
+    ensure(refs.size === d.placed.length, `drills/${d.id}.json: ref が重複している`);
+    for (const p of d.placed) {
+      ensure(deviceIds.has(p.device), `drills/${d.id}.json: ${p.ref} の機材 ${p.device} がない`);
+    }
+    for (const k of d.links) {
+      ensure(cableIds.has(k.cable), `drills/${d.id}.json: ケーブル ${k.cable} がない`);
+      for (const end of [k.a, k.b]) {
+        const placed = d.placed.find((p) => p.ref === end.ref);
+        const device = placed ? data.devices.find((x) => x.id === placed.device) : undefined;
+        const ports = device ? device.ports.reduce((sum, port) => sum + port.count, 0) : 0;
+        ensure(placed !== undefined && end.port < ports, `drills/${d.id}.json: 配線の端 ${end.ref}:${end.port} がない`);
+      }
+    }
+    const questionIds = unique(d.questions, (q) => q.id, `drills/${d.id}.json の問い`);
+    for (const s of d.setup ?? []) {
+      ensure(questionIds.has(s.before), `drills/${d.id}.json: setup の before（${s.before}）という問いがない`);
+      for (const c of s.change) ensure(refs.has(c.uid), `drills/${d.id}.json: setup の機器 ${c.uid} がない`);
     }
   }
 
@@ -475,6 +512,15 @@ const fillLanguages = (data: GameData): void => {
     l.guide.forEach((_, i) => required.add(lessonKey(l.id, `step.${i + 1}`)));
     for (const g of l.goals) required.add(`goal.${g.type}`);
   }
+  for (const d of data.drills) {
+    required.add(drillKey(d.id, 'title'));
+    for (const q of d.questions) {
+      required.add(drillKey(d.id, `q.${q.id}`));
+      if (q.kind === 'inspect') required.add(`drill.hint.${q.ask.what}`);
+      if (q.kind === 'diagnose') required.add('drill.hint.diagnose');
+      if (q.kind === 'build') for (const g of q.goals) required.add(`goal.${g.type}`);
+    }
+  }
   for (const g of [...data.contracts.flatMap((c) => c.goals), ...data.templates.flatMap((t) => t.goals)]) {
     required.add(`goal.${g.type}`);
   }
@@ -559,6 +605,7 @@ const gameDataModule = (data: GameData): string => {
     `export const contracts = ${JSON.stringify(data.contracts)};`,
     `export const contractTemplates = ${JSON.stringify(data.templates)};`,
     `export const lessons = ${JSON.stringify(data.lessons)};`,
+    `export const drills = ${JSON.stringify(data.drills)};`,
     `export const guides = ${JSON.stringify(
       Object.fromEntries(
         data.guides.map((g) => [

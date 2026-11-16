@@ -1,6 +1,6 @@
 // game-data プラグインが出力する仮想モジュールの型
 declare module 'virtual:game-data' {
-  import type { Balance, Cable, CertDef, ContractTemplate, Contract, Device, Furniture, Lesson, ShopItem, TrainingCourse } from './data/schema';
+  import type { Balance, Cable, CertDef, ContractTemplate, Contract, Device, Drill, Furniture, Lesson, ShopItem, TrainingCourse } from './data/schema';
   import type { CableId, DeviceId, FurnitureId } from './generated/ids';
   export const balance: Balance;
   export const devices: Record<DeviceId, Device>;
@@ -13,6 +13,8 @@ declare module 'virtual:game-data' {
   export const guides: Record<string, import('./sim/guide').GuideStep[]>;
   // 教材（学習モード）
   export const lessons: Lesson[];
+  // 演習（学習モード）
+  export const drills: Drill[];
   export const training: Record<string, TrainingCourse>;
   export const certs: Record<string, CertDef>;
   // 会社のレベルの節目の報酬（N45。解放は書かない）
