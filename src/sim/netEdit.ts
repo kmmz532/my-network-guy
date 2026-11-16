@@ -1,6 +1,7 @@
 import { renameNode } from '../network/nodeName';
 import type { OpFailReason } from './failReason';
 import { inSubnet, ipToInt } from '../network/engine';
+import { inWildcard } from '../network/ip';
 import { PREFIX_MAX, PREFIX_MIN, hostCapacity, networkAddress } from '../network/segments';
 import { fillPlans } from '../network/query/plans';
 import type { VrrpGroup } from '../network/vrrp';
@@ -252,22 +253,40 @@ export const setPortMode = (
 };
 
 // デフォルトゲートウェイを設定する。null で外す
-// RIP・OSPF の参加（N141b・N142・N143）。network 文は、そのサブネットのインターフェースを参加させる。router rip / ospf は、参加を止める（on が false のとき全部）
-export const setRouting = (core: Core, uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; area?: number; process?: number | null }, target: NetTarget = 'focus'): Outcome =>
+// RIP・OSPF の参加。RIP の network 文は、そのサブネットの口を参加させる。OSPF の network 文は、口のアドレスが prefix とワイルドカードで一致する口を、その文の area で参加させ、文を記録する。router rip / ospf は、参加を止める（on が false のとき全部）
+export const setRouting = (core: Core, uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; wildcard?: string; area?: number; process?: number | null }, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
     uid,
     (node) => {
-      const touches = (i: Iface) => (change.ip === undefined ? true : inSubnet(change.ip, i.ip, i.prefix));
+      if (change.proto === 'ospf' && change.ip !== undefined && change.wildcard === undefined) throw new Error('OSPF の network 文にワイルドカードがない');
+      const touches = (i: Iface) => {
+        if (change.ip === undefined) return true;
+        if (change.proto === 'ospf') return i.ip !== '' && inWildcard(i.ip, change.ip, change.wildcard!);
+        return inSubnet(change.ip, i.ip, i.prefix);
+      };
       const interfaces = node.interfaces.map((i) => {
         if (!touches(i)) return i;
         if (change.proto === 'rip') return { ...i, rip: change.on };
         return change.on ? { ...i, ospf: { ...i.ospf, area: change.area ?? i.ospf?.area ?? 0 } } : { ...i, ospf: undefined };
       });
       if (change.ip !== undefined && change.on && !node.interfaces.some(touches)) return 'iface.none';
-      // OSPF の番号（process）は、指定があるときだけ書く（null で外す）
-      if (change.proto === 'ospf' && change.process !== undefined) return refusalFor(node.device, 'ospf') ?? withComponent({ ...node, interfaces }, 'ospf', { ...getComponent(node, 'ospf'), process: change.process ?? undefined });
-      return { ...node, interfaces };
+      if (change.proto !== 'ospf') return { ...node, interfaces };
+      const prev = getComponent(node, 'ospf');
+      const statementOf = (n: { prefix: string; wildcard: string }) => n.prefix === change.ip && n.wildcard === change.wildcard;
+      let networks = prev?.networks;
+      if (change.ip === undefined) {
+        if (!change.on) networks = undefined;
+      } else if (change.on) {
+        networks = [...(networks ?? []).filter((n) => !statementOf(n)), { prefix: change.ip, wildcard: change.wildcard!, area: change.area ?? 0 }];
+      } else {
+        // 止めた口に当たる文を外す
+        const stopped = node.interfaces.filter(touches);
+        networks = networks?.filter((n) => !stopped.some((i) => i.ip !== '' && inWildcard(i.ip, n.prefix, n.wildcard)));
+      }
+      const process = change.process === undefined ? prev?.process : (change.process ?? undefined);
+      if (prev === undefined && networks === undefined && change.process === undefined) return { ...node, interfaces };
+      return refusalFor(node.device, 'ospf') ?? withComponent({ ...node, interfaces }, 'ospf', { ...prev, process, networks });
     },
     target,
   );

@@ -14,6 +14,7 @@ import { getComponent } from '../network/components';
 import { wirelessAssociations } from '../network/engine/stages/links';
 import { channelOverlapsOf, networkColors, type NetworkState } from '../network/public';
 import { colorOfNetwork, UNSET_COLOR } from '../network/netColor';
+import { networkOf, wildcardOf } from '../network/ip';
 import { networkAddress, planFor, PREFIX_MAX, PREFIX_MIN } from '../network/segments';
 import { gatewayCandidatesOn, neighborRouterAddresses, planOf } from '../network/query/plans';
 import type { NetNode, NetworkPlan } from '../network/types';
@@ -39,6 +40,10 @@ import { TextInput } from './ui/TextInput';
 // ネットワークの既定候補（入力欄から任意のネットワークも指定できる）
 const NETWORK_CHOICES = Array.from({ length: 16 }, (_, i) => `192.168.${i + 1}.0`);
 const PREFIX_CHOICES = Array.from({ length: PREFIX_MAX - PREFIX_MIN + 1 }, (_, i) => PREFIX_MIN + i);
+
+// 画面の「OSPF に参加」が保存する network 文。ワイルドカードは入力させず、口のアドレスとプレフィックス長から求める（アドレスがない口は、どの口にも当たらない文）
+const ospfStatementOf = (iface: { ip: string; prefix: number }) =>
+  iface.ip === '' ? { ip: '', wildcard: '0.0.0.0' } : { ip: networkOf(iface.ip, iface.prefix), wildcard: wildcardOf(iface.prefix) };
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
 
@@ -176,7 +181,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
         )}
         {iface && isRoutingCategory(category ?? '') && (
           <div style={{ ...row, flexWrap: 'wrap', gap: 6 }}>
-            <Checkbox label={t('ui.config.ospfJoin')} checked={iface.ospf !== undefined} disabled={locked || unlinkedRouter} onChange={(on) => onError(setRouting(node.uid, { proto: 'ospf', on, ip: iface.ip }))}>
+            <Checkbox label={t('ui.config.ospfJoin')} checked={iface.ospf !== undefined} disabled={locked || unlinkedRouter} onChange={(on) => onError(setRouting(node.uid, { proto: 'ospf', on, ...ospfStatementOf(iface) }))}>
               {t('ui.config.ospfJoin')}
             </Checkbox>
             {iface.ospf !== undefined &&
@@ -200,7 +205,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
                     onCommit={(text) => {
                       const v = Number(text);
                       if (!Number.isInteger(v) || v < min || v === value) return;
-                      onError(key === 'area' ? setRouting(node.uid, { proto: 'ospf', on: true, ip: iface.ip, area: v }) : setOspf(node.uid, { op: 'iface', id: iface.id, key, value: v }));
+                      onError(key === 'area' ? setRouting(node.uid, { proto: 'ospf', on: true, ...ospfStatementOf(iface), area: v }) : setOspf(node.uid, { op: 'iface', id: iface.id, key, value: v }));
                     }}
                   />
                 </label>

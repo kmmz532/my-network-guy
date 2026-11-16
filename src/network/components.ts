@@ -11,8 +11,13 @@ import { WIRELESS_SECURITIES } from './types';
 export const COMPONENT_SCHEMAS = {
   // 回線終端（uplink）の回線の情報（ISP の名前・回線のネットワーク・ISP 側のアドレス・ISP の AS 番号・ISP の DNS）。省略すると、既定の ISP（198.51.100.1/24）
   isp: z.object({ name: z.string(), network: z.string(), prefix: z.number().int().min(8).max(30), ispIp: z.string(), asn: z.number().int().positive().optional(), dns: ipv4.optional() }),
-  // OSPF の機器ごとの設定（routerId は省略すると自動。defaultOriginate は既定の経路を配る。process は router ospf の番号。省略は番号を書いていない）
-  ospf: z.object({ routerId: ipv4.optional(), defaultOriginate: z.boolean().optional(), process: z.number().int().nonnegative().optional() }),
+  // OSPF の機器ごとの設定（routerId は省略すると自動。defaultOriginate は既定の経路を配る。process は router ospf の番号。省略は番号を書いていない。networks は network 文の記録で、口のアドレスが prefix とワイルドカードで一致した口がその文の area で参加する）
+  ospf: z.object({
+    routerId: ipv4.optional(),
+    defaultOriginate: z.boolean().optional(),
+    process: z.number().int().nonnegative().optional(),
+    networks: z.array(z.object({ prefix: ipv4, wildcard: ipv4, area: z.number().int().nonnegative() })).optional(),
+  }),
   // スパニングツリーのブリッジ優先度（既定 32768、4096 刻み。小さいほどルートになりやすい。省略は既定）
   stp: z.object({ priority: z.number().int().nonnegative() }),
   // BGP の設定（BGP を動かす機器だけ持つ。neighbors は隣接の相手、networks は広告する宛先）

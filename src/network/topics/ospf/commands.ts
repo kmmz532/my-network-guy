@@ -97,7 +97,7 @@ export const commands: readonly CommandSpec[] = [
     help: 'ui.cmd.ospf.network',
     writes: true,
     topic: 'ospf',
-    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', ip: args.ip, area: areaOf(args.area), on: true } }),
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', ip: args.ip, wildcard: args.wildcard, area: areaOf(args.area), on: true } }),
   },
   {
     id: 'ospf.router',

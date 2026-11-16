@@ -974,7 +974,19 @@
         "components": {
           "ospf": {
             "defaultOriginate": true,
-            "process": 1
+            "process": 1,
+            "networks": [
+              {
+                "prefix": "10.0.1.0",
+                "wildcard": "0.0.0.255",
+                "area": 0
+              },
+              {
+                "prefix": "10.0.12.0",
+                "wildcard": "0.0.0.3",
+                "area": 0
+              }
+            ]
           }
         }
       },
