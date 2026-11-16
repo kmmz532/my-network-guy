@@ -18,6 +18,9 @@ import { Button } from '../ui/Button';
 import { Text } from '../ui/Text';
 import { TextInput } from '../ui/TextInput';
 
+// 一覧に一度に出す会社の高さ（続けて遊ぶ一覧の行は約145px。5件ぶんを上限にし、画面が低いときは画面に収まる高さにする。残りは一覧の中で縦にスクロールする）
+const SAVE_LIST_MAX = 'min(765px, calc(100vh - 200px))';
+
 // 会社の要約（経営は Lv・年目・月・日。サンドボックスは広さ）。一覧と確認の文言で使う
 export const companySummary = (save: CompanySave): string => {
   if (save.data.mode === 'sandbox') return `広さ ${save.data.office.size.w}×${save.data.office.size.h}`;
@@ -168,66 +171,68 @@ export function SaveSlotDialog(props: Props) {
           </Text>
         )}
         {saves.length === 0 && broken.length === 0 && <Text tone="soft">{t('ui.company.list.empty')}</Text>}
-        {sortByRecent(saves).map((save, index) => (
-          <ListRow key={save.slot}>
-            <div
-              style={{ cursor: phone ? 'pointer' : 'default' }}
-              // スマホは、先頭（最後に遊んだ会社）の行を押すとすぐ始める。ほかの行は押すと操作を開く（N157）
-              onClick={phone ? () => (purpose === 'play' && index === 0 ? onPlay(save) : setOpenSlot(openSlot === save.slot ? null : save.slot)) : undefined}
-            >
-              <Text size="l">
-                {save.data.name}
-                {purpose === 'play' && index === 0 && (
-                  <Text as="span" size="s" tone="warn" layout={{ marginLeft: 8 }}>
-                    {t('ui.company.last')}
-                  </Text>
-                )}
+        <div style={{ maxHeight: SAVE_LIST_MAX, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, paddingRight: 4 }}>
+          {sortByRecent(saves).map((save, index) => (
+            <ListRow key={save.slot}>
+              <div
+                style={{ cursor: phone ? 'pointer' : 'default' }}
+                // スマホは、先頭（最後に遊んだ会社）の行を押すとすぐ始める。ほかの行は押すと操作を開く（N157）
+                onClick={phone ? () => (purpose === 'play' && index === 0 ? onPlay(save) : setOpenSlot(openSlot === save.slot ? null : save.slot)) : undefined}
+              >
+                <Text size="l">
+                  {save.data.name}
+                  {purpose === 'play' && index === 0 && (
+                    <Text as="span" size="s" tone="warn" layout={{ marginLeft: 8 }}>
+                      {t('ui.company.last')}
+                    </Text>
+                  )}
+                </Text>
+              </div>
+              <Text size="s" tone="soft">
+                {companySummary(save)}・{t('ui.company.list.saved', { at: savedAtText(save.savedAt) })}
               </Text>
-            </div>
-            <Text size="s" tone="soft">
-              {companySummary(save)}・{t('ui.company.list.saved', { at: savedAtText(save.savedAt) })}
-            </Text>
-            {(!phone || openSlot === save.slot) && (
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flexDirection: phone ? 'column' : 'row' }}>
-              {purpose === 'play' ? (
-                <>
-                  <Button variant="primary" onClick={() => onPlay(save)}>
-                    {t('ui.company.play')}
+              {(!phone || openSlot === save.slot) && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flexDirection: phone ? 'column' : 'row' }}>
+                {purpose === 'play' ? (
+                  <>
+                    <Button variant="primary" onClick={() => onPlay(save)}>
+                      {t('ui.company.play')}
+                    </Button>
+                    <Button variant="secondary" onClick={() => onView({ kind: 'rename', save })}>
+                      {t('ui.company.rename')}
+                    </Button>
+                    <Button variant="secondary" onClick={() => onDuplicate(save)}>
+                      {t('ui.company.duplicate')}
+                    </Button>
+                    <Button variant="secondary" onClick={() => onExport(save)}>
+                      {t('ui.company.export')}
+                    </Button>
+                    <Button variant="danger" onClick={() => onView({ kind: 'delete', save })}>
+                      {t('ui.company.delete')}
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant="danger" onClick={() => onView({ kind: 'confirmOverwrite', save })}>
+                    {t('ui.company.overwrite')}
                   </Button>
-                  <Button variant="secondary" onClick={() => onView({ kind: 'rename', save })}>
-                    {t('ui.company.rename')}
-                  </Button>
-                  <Button variant="secondary" onClick={() => onDuplicate(save)}>
-                    {t('ui.company.duplicate')}
-                  </Button>
-                  <Button variant="secondary" onClick={() => onExport(save)}>
-                    {t('ui.company.export')}
-                  </Button>
-                  <Button variant="danger" onClick={() => onView({ kind: 'delete', save })}>
+                )}
+              </div>
+              )}
+            </ListRow>
+          ))}
+          {broken.map((b) => (
+            <ListRow key={`broken-${b.slot}`}>
+              <Text tone="soft">{t('ui.company.list.broken')}</Text>
+              {purpose === 'play' && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <Button variant="danger" onClick={() => onView({ kind: 'deleteBroken', slot: b.slot })}>
                     {t('ui.company.delete')}
                   </Button>
-                </>
-              ) : (
-                <Button variant="danger" onClick={() => onView({ kind: 'confirmOverwrite', save })}>
-                  {t('ui.company.overwrite')}
-                </Button>
+                </div>
               )}
-            </div>
-            )}
-          </ListRow>
-        ))}
-        {broken.map((b) => (
-          <ListRow key={`broken-${b.slot}`}>
-            <Text tone="soft">{t('ui.company.list.broken')}</Text>
-            {purpose === 'play' && (
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <Button variant="danger" onClick={() => onView({ kind: 'deleteBroken', slot: b.slot })}>
-                  {t('ui.company.delete')}
-                </Button>
-              </div>
-            )}
-          </ListRow>
-        ))}
+            </ListRow>
+          ))}
+        </div>
         {purpose === 'play' && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <Button variant="primary" onClick={onNewHere}>

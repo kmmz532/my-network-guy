@@ -105,6 +105,43 @@ const roleMapScene = (offerId, map, placed, goals) => async (page) => {
   await page.waitForTimeout(500);
 };
 
+// 会社の一覧の撮影用に、経営の会社を n 社ぶん作る（1社目を始め、その記録を写して枠を増やす）
+const seedCompanies = async (page, n) => {
+  await page.getByText('新しくプレイ').click();
+  await page.waitForTimeout(800);
+  const start = page.getByRole('button', { name: '始める' });
+  if ((await start.count()) > 0) await start.first().click();
+  await page.waitForTimeout(1500);
+  await page.evaluate(async (n) => {
+    const open = () =>
+      new Promise((resolve, reject) => {
+        const req = indexedDB.open('my-network-guy');
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    const db = await open();
+    const all = await new Promise((resolve, reject) => {
+      const req = db.transaction('saves').objectStore('saves').getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    const template = all[0];
+    const tx = db.transaction('saves', 'readwrite');
+    for (let i = 0; i < n; i++) {
+      const data = { ...template.data, name: `試用社${i + 1}` };
+      tx.objectStore('saves').put({ ...template, slot: 11 + i, savedAt: Date.now() - i * 60000, data });
+    }
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  }, n);
+  await page.goto(URL_BASE);
+  await page.waitForFunction(() => window.__game !== undefined, null, { timeout: 30000 });
+  await page.waitForTimeout(1500);
+};
+
 const scenes = {
   // タイトル画面
   title: async () => {},
@@ -128,6 +165,18 @@ const scenes = {
     await scenes.career(page);
     await setHour(page, 22);
     await page.waitForTimeout(6000);
+  },
+  // 会社の一覧（続けて遊ぶ）。会社を多く作り、一覧が5件まで出て残りは縦にスクロールすることを撮る
+  companylist: async (page) => {
+    await seedCompanies(page, 12);
+    await page.getByText('コンティニュー').click();
+    await page.waitForTimeout(800);
+  },
+  // 同じ一覧を最後まで送った状態（最後の会社が見えること）
+  companylistend: async (page) => {
+    await scenes.companylist(page);
+    await page.getByText('試用社12').first().scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
   },
   // サンドボックスの始め方を選ぶ画面
   sandboxstart: async (page) => {

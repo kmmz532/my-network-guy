@@ -7,7 +7,7 @@ import type { GameMode } from '../company/company';
 export const FIRST_SLOT = 11;
 
 // 範囲の大きさ（枠の総数）
-export const SLOT_COUNT = 8;
+export const SLOT_COUNT = 50;
 
 // 空いた枠を探す範囲
 export const SLOT_RANGE: readonly number[] = Array.from({ length: SLOT_COUNT }, (_, i) => FIRST_SLOT + i);
