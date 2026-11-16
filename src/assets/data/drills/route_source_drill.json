@@ -1,0 +1,146 @@
+{
+  "id": "route_source_drill",
+  "topic": "routing",
+  "order": 105,
+  "size": {
+    "w": 12,
+    "h": 6
+  },
+  "placed": [
+    {
+      "ref": "R1",
+      "device": "router_basic",
+      "x": 2,
+      "y": 2,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "172.16.70.1",
+            "prefix": 24
+          },
+          {
+            "port": 1,
+            "ip": "172.16.50.1",
+            "prefix": 30
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "R1"
+    },
+    {
+      "ref": "R2",
+      "device": "router_basic",
+      "x": 8,
+      "y": 2,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "172.16.50.2",
+            "prefix": 30
+          },
+          {
+            "port": 1,
+            "ip": "172.16.60.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "R2"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "R1",
+        "port": 1
+      },
+      "b": {
+        "ref": "R2",
+        "port": 0
+      }
+    }
+  ],
+  "questions": [
+    {
+      "kind": "inspect",
+      "id": "q1",
+      "ask": {
+        "what": "route_source",
+        "node": "R1",
+        "prefix": "172.16.60.0/24"
+      }
+    },
+    {
+      "kind": "inspect",
+      "id": "q2",
+      "ask": {
+        "what": "route_source",
+        "node": "R1",
+        "prefix": "172.16.60.0/24"
+      }
+    }
+  ],
+  "setup": [
+    {
+      "before": "q1",
+      "change": [
+        {
+          "kind": "config",
+          "uid": "R1",
+          "change": {
+            "kind": "routing",
+            "change": {
+              "proto": "ospf",
+              "on": true,
+              "ip": "172.16.0.0",
+              "wildcard": "0.0.255.255",
+              "area": 0
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "R2",
+          "change": {
+            "kind": "routing",
+            "change": {
+              "proto": "ospf",
+              "on": true,
+              "ip": "172.16.0.0",
+              "wildcard": "0.0.255.255",
+              "area": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "before": "q2",
+      "change": [
+        {
+          "kind": "config",
+          "uid": "R1",
+          "change": {
+            "kind": "addRoute",
+            "route": {
+              "dest": "172.16.60.0",
+              "prefix": 24,
+              "nextHop": "172.16.50.2"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
