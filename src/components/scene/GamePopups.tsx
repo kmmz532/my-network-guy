@@ -98,10 +98,10 @@ export function GamePopups({ onExit }: { onExit: () => void }) {
           </Button>
           {sandbox && (
             <>
-              <Button variant="secondary" size="menu" layout={menuLayout} onClick={onSandboxExport}>
+              <Button variant="secondary" size="menu" layout={menuLayout} onClick={onSandboxExport} title={t('ui.sandboxFile.hint')}>
                 {t('ui.sandboxFile.export')}
               </Button>
-              <FileButton variant="secondary" size="menu" layout={menuLayout} accept="application/json" onFile={onSandboxImport}>
+              <FileButton variant="secondary" size="menu" layout={menuLayout} accept="application/json" onFile={onSandboxImport} title={t('ui.sandboxFile.hint')}>
                 {t('ui.sandboxFile.import')}
               </FileButton>
               <Button variant="secondary" size="menu" layout={menuLayout} onClick={() => setPopup('lessons')}>

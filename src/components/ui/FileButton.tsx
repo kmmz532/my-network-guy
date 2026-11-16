@@ -11,12 +11,13 @@ interface Props {
   accept: string;
   onFile: (file: File) => void;
   layout?: Layout;
+  title?: string;
   children: ReactNode;
 }
 
-export function FileButton({ variant, size = 'm', accept, onFile, layout, children }: Props) {
+export function FileButton({ variant, size = 'm', accept, onFile, layout, title, children }: Props) {
   return (
-    <label className={`ui-button ui-button--${variant} ui-button--${size} ui-button--file`} style={layoutStyle(layout)}>
+    <label className={`ui-button ui-button--${variant} ui-button--${size} ui-button--file`} style={layoutStyle(layout)} title={title}>
       {children}
       <input
         type="file"
