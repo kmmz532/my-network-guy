@@ -6,7 +6,7 @@ import { nextHostname } from '../network/hostname';
 import { nextMacSerial } from '../network/mac';
 import { fillPlans } from '../network/query/plans';
 import { analyze } from '../network/engine/analyze';
-import type { NetLink, NetNode, Service } from '../network/types';
+import type { Iface, NetLink, NetNode, Service } from '../network/types';
 import { isPcCategory } from '../data/categories';
 import { cableLengthOf, checkCableLength } from './cableLength';
 import { levelOf } from './level';
@@ -114,10 +114,16 @@ export const placeInOffice = (core: Core, deviceId: string, x: number, y: number
 // 機器を複製する。選んだ機器の機種・設定を、隣の空いたマス（右・左・下・上、続いて斜め）に写す。配線は写さない。
 // ホスト名は重ならない名前を付け、手で付けた名前は写さない。自動（DHCP）の口のアドレスは 0.0.0.0 にして、次の計算で新しく受け取らせる。
 // 固定のアドレスは写すため、同じアドレスの警告は今の仕組みで出る。回線終端は複製できない。
+// 複製では OSPF の routerId と VRRP のグループを持たせない（同じ routerId の機器が2台にならないように。VRRP は仮想アドレスの重複を避ける）
 // 在庫は置くときと同じ規則で数える（経営は1つ使い、在庫がなければ置かない。サンドボックスは数えない）
 const NEIGHBOR_OFFSETS: readonly (readonly [number, number])[] = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
 
-export const duplicateNode = (core: Core, uid: string, env: Env, target: NetTarget, map: GameMap, sandbox = false): Outcome => {
+const copyIface = (i: Iface): Iface => {
+  const { vrrp: _vrrp, ...rest } = i;
+  return i.dhcp === true ? { ...rest, ip: '0.0.0.0' } : rest;
+};
+
+export const duplicateNode =  (core: Core, uid: string, env: Env, target: NetTarget, map: GameMap, sandbox = false): Outcome => {
   const net = netOf(core, target);
   if (typeof net === 'string') return fail(net);
   const node = net.nodes.find((n) => n.uid === uid);
@@ -141,7 +147,10 @@ export const duplicateNode = (core: Core, uid: string, env: Env, target: NetTarg
     y: at.y,
     locked: false,
     configLocked: false,
-    interfaces: node.interfaces.map((i) => (i.dhcp === true ? { ...i, ip: '0.0.0.0' } : i)),
+    interfaces: node.interfaces.map(copyIface),
+    components: node.components?.ospf
+      ? { ...node.components, ospf: { ...node.components.ospf, routerId: undefined } }
+      : node.components,
   };
   const next = withNet(core, target, { ...net, nodes: [...net.nodes, copy], seq: net.seq + 1 });
   return {

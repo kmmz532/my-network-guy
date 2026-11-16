@@ -103,6 +103,32 @@ describe('機器の複製', () => {
     expect(pcsOf(copied).find((n) => n.uid === pc.uid)!.interfaces[0].ip).toBe('192.168.1.50');
   });
 
+  it('OSPF の routerId と VRRP のグループは写さず、元の機器には残す', () => {
+    let core = sandboxCore();
+    core = ok(placeInOffice(core, 'pc_basic', 3, 3, map, env, true, true));
+    const [pc] = pcsOf(core);
+    core = {
+      ...core,
+      office: {
+        ...core.office,
+        nodes: core.office.nodes.map((n) =>
+          n.uid === pc.uid
+            ? { ...n, components: { ospf: { routerId: '10.0.0.1', defaultOriginate: true } }, interfaces: [{ ...n.interfaces[0], ip: '192.168.1.10', prefix: 24, vrrp: [{ vrid: 1, ip: '192.168.1.1', priority: 100, preempt: true }] }] }
+            : n,
+        ),
+      },
+    };
+    const copied = ok(duplicateNode(core, pc.uid, env, 'office', map, true));
+    const copy = pcsOf(copied).find((n) => n.uid !== pc.uid)!;
+    expect(copy.components?.ospf?.routerId).toBeUndefined();
+    expect(copy.components?.ospf?.defaultOriginate).toBe(true);
+    expect(copy.interfaces[0].vrrp).toBeUndefined();
+    expect(copy.interfaces[0].ip).toBe('192.168.1.10');
+    const original = pcsOf(copied).find((n) => n.uid === pc.uid)!;
+    expect(original.components?.ospf?.routerId).toBe('10.0.0.1');
+    expect(original.interfaces[0].vrrp).toHaveLength(1);
+  });
+
   it('経営モードでは在庫を1つ使い、在庫がなければ複製しない。サンドボックスは在庫を数えない', () => {
     let core: Core = { ...start(), owned: { l2_switch_8p: 2 } };
     core = ok(placeInOffice(core, 'l2_switch_8p', 2, 4, map, env));
