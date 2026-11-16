@@ -163,5 +163,32 @@
       "target": "SW1",
       "done": "cmd:show spanning-tree"
     }
+  ],
+  "followUps": [
+    {
+      "kind": "inspect",
+      "id": "f1",
+      "ask": {
+        "what": "stp_root"
+      }
+    }
+  ],
+  "followUpSetup": [
+    {
+      "before": "f1",
+      "change": [
+        {
+          "kind": "config",
+          "uid": "SW1",
+          "change": {
+            "kind": "stp",
+            "change": {
+              "op": "priority",
+              "value": 0
+            }
+          }
+        }
+      ]
+    }
   ]
 }

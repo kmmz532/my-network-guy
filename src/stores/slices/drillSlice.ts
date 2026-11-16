@@ -1,6 +1,6 @@
 // 演習（学習モード）の進行。問いの判定は sim/drill、段の遷移は sim/drillRun。ここは今の構成（office）を渡して結果を状態に載せる。保存しない
 import type { StateCreator } from 'zustand';
-import type { Drill } from '../../data/schema';
+import type { QuestionSet } from '../../data/schema';
 import { analyze } from '../../network/engine/analyze';
 import type { FailureReason } from '../../network/types';
 import { diagnoseAnswer, diagnoseReasonChoices, diagnoseReaches, inspectAnswer, inspectChoices, judgeDiagnose, judgeInspect } from '../../sim/drill';
@@ -29,13 +29,20 @@ export interface DrillSlice {
   sandboxDrill: DrillRun | null;
   drillView: DrillView | null;
   drillAnswer: DrillAnswer | null;
+  // 教材の発展の問いを閉じた（教材を開き直すまで出さない）
+  followUpsClosed: boolean;
+  // 正しく答えた発展の問いの id（教材を開いている間だけ持つ）
+  lessonAnswers: string[];
   // 構成を変えたため、今の構成では正解を求められない
   drillBroken: boolean;
   // 学習の記録（端末ごと。セーブに入れない）
   learn: LearnRecord;
   // 教材の達成を記録する
   achieveLesson: (id: string) => void;
-  beginDrill: (drill: Drill) => void;
+  beginDrill: (drill: QuestionSet) => void;
+  // 教材の発展の問いを始める（達成した後に一度だけ。すでに始めた、閉じた、発展の問いがない教材では何もしない）
+  beginFollowUps: () => void;
+  closeFollowUps: () => void;
   answerInspect: (choice: string) => void;
   answerDiagnose: (node: string, reason: FailureReason) => void;
   proceedDrill: () => void;
@@ -49,12 +56,18 @@ export const createDrillSlice: StateCreator<GameState, [], [], DrillSlice> = (se
     saveLearn(learn);
     set({ learn });
   };
-  const drillOf = (): Drill => {
+  // 今の問いの組。演習はその演習、教材は発展の問い
+  const drillOf = (): QuestionSet => {
     const id = get().sandboxLesson?.id;
     if (id === undefined) throw new Error('演習を開いていない');
-    const drill = lessonEntryOf(lessonCatalog, id).drill;
-    if (!drill) throw new Error(`${id} は演習ではない`);
-    return drill;
+    const entry = lessonEntryOf(lessonCatalog, id);
+    const questions = entry.drill ?? entry.followUps;
+    if (!questions) throw new Error(`${id} は演習でも、発展の問いのある教材でもない`);
+    return questions;
+  };
+  // 教材の発展の問いに正しく答えた
+  const markAnswered = (id: string): void => {
+    if (get().sandboxLesson !== null && !get().lessonAnswers.includes(id)) set({ lessonAnswers: [...get().lessonAnswers, id] });
   };
   const runOf = (): DrillRun => {
     const run = get().sandboxDrill;
@@ -67,8 +80,9 @@ export const createDrillSlice: StateCreator<GameState, [], [], DrillSlice> = (se
   };
 
   // 進行を next にする。問い（from の番号）が変わるときは、その問いの前の設定を構成に当て、候補を求める
-  const move = (drill: Drill, next: DrillRun, from: number): void => {
-    if (next.stage === 'done') updateLearn((rec) => finishDrill(rec, drill.id));
+  const move = (drill: QuestionSet, next: DrillRun, from: number): void => {
+    // 最後まで解いた記録は演習だけ（教材の発展の問いは任意）
+    if (next.stage === 'done' && lessonEntryOf(lessonCatalog, drill.id).drill) updateLearn((rec) => finishDrill(rec, drill.id));
     if (next.stage === 'done' || next.index === from) {
       set({ sandboxDrill: next, drillAnswer: null, drillBroken: false, ...(next.stage === 'done' ? { drillView: null } : {}) });
       return;
@@ -96,7 +110,16 @@ export const createDrillSlice: StateCreator<GameState, [], [], DrillSlice> = (se
     achieveLesson: (id) => updateLearn((rec) => achieveLesson(rec, id)),
     drillView: null,
     drillAnswer: null,
+    followUpsClosed: false,
+    lessonAnswers: [],
     drillBroken: false,
+    beginFollowUps: () => {
+      const { sandboxLesson, sandboxDrill, followUpsClosed } = get();
+      if (sandboxLesson === null || sandboxDrill !== null || followUpsClosed) return;
+      const followUps = lessonEntryOf(lessonCatalog, sandboxLesson.id).followUps;
+      if (followUps) get().beginDrill(followUps);
+    },
+    closeFollowUps: () => set({ followUpsClosed: true }),
     beginDrill: (drill) => {
       const run = startRun(drill);
       // 最初の問いの前の設定は、開いた構成に当てる
@@ -121,6 +144,7 @@ export const createDrillSlice: StateCreator<GameState, [], [], DrillSlice> = (se
         return;
       }
       updateLearn((rec) => recordAnswer(rec, drill.id, q.id, correct));
+      if (correct) markAnswered(q.id);
       move(drill, next, run.index);
       set({ drillAnswer: answer });
     },
@@ -137,6 +161,7 @@ export const createDrillSlice: StateCreator<GameState, [], [], DrillSlice> = (se
       }
       const correct = judgeDiagnose(state, q, { node, reason });
       updateLearn((rec) => recordAnswer(rec, drill.id, q.id, correct));
+      if (correct) markAnswered(q.id);
       const next = submit(drill, run, correct);
       move(drill, next, run.index);
       set({ drillAnswer: next.stage === 'revealed' ? diagnoseAnswer(state, q) : null });

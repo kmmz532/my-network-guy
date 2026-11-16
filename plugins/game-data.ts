@@ -332,6 +332,20 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
     }
   }
 
+  // 教材の発展の問い: 問いの id の重複と、setup が指す問いと機器を確かめる
+  for (const l of data.lessons) {
+    if (l.followUps === undefined) {
+      ensure(l.followUpSetup === undefined, `lessons/${l.id}.json: followUpSetup があるのに followUps がない`);
+      continue;
+    }
+    const questionIds = unique(l.followUps, (q) => q.id, `lessons/${l.id}.json の発展の問い`);
+    const refs = new Set(l.placed.map((p) => p.ref));
+    for (const s of l.followUpSetup ?? []) {
+      ensure(questionIds.has(s.before), `lessons/${l.id}.json: followUpSetup の before（${s.before}）という問いがない`);
+      for (const c of s.change) ensure(refs.has(c.uid), `lessons/${l.id}.json: followUpSetup の機器 ${c.uid} がない`);
+    }
+  }
+
   // 演習: 教材と同じ構成の確かめに加え、問いの id の重複と、setup が指す問いと機器を確かめる
   unique(data.drills, (d) => d.id, 'drills/');
   for (const d of data.drills) {
@@ -511,6 +525,12 @@ const fillLanguages = (data: GameData): void => {
     required.add(lessonKey(l.id, 'brief'));
     l.guide.forEach((_, i) => required.add(lessonKey(l.id, `step.${i + 1}`)));
     for (const g of l.goals) required.add(`goal.${g.type}`);
+    for (const q of l.followUps ?? []) {
+      required.add(drillKey(l.id, `q.${q.id}`));
+      if (q.kind === 'inspect') required.add(`drill.hint.${q.ask.what}`);
+      if (q.kind === 'diagnose') required.add('drill.hint.diagnose');
+      if (q.kind === 'build') for (const g of q.goals) required.add(`goal.${g.type}`);
+    }
   }
   for (const d of data.drills) {
     required.add(drillKey(d.id, 'title'));

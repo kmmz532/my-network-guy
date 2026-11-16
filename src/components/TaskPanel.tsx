@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import { GLOSSARY_OF_FAILURE } from '../network/glossaryOf';
 import { lessonEntryOf } from '../sim/lessonCatalog';
 import { lessonCatalog } from '../stores/lessonCatalog';
-import { DrillPanel } from './DrillPanel';
+import { DrillPanel, QuestionFlow } from './DrillPanel';
 import { Button } from './ui/Button';
 import { HudBar } from './ui/HudBar';
 import { Text } from './ui/Text';
@@ -31,6 +31,10 @@ export function TaskPanel() {
   const phone = usePhone();
   const lessonId = useGameStore((s) => s.sandboxLesson?.id ?? null);
   const closeLesson = useGameStore((s) => s.closeLesson);
+  // 達成の後に出す発展の問い（始まっていて、閉じていないとき）
+  const followUpsRun = useGameStore((s) => s.sandboxDrill);
+  const followUpsClosed = useGameStore((s) => s.followUpsClosed);
+  const closeFollowUps = useGameStore((s) => s.closeFollowUps);
   const officeNodes = useGameStore((s) => s.office.nodes);
   const traces = useGameStore((s) => s.traces);
   const hasTraces = traces.length > 0;
@@ -101,6 +105,13 @@ export function TaskPanel() {
                 );
               })}
             </ul>
+            {lesson.followUps && followUpsRun !== null && !followUpsClosed && (
+              <div style={{ marginTop: 10 }}>
+                <Text size="sm" bold>{t('ui.followup.title')}</Text>
+                <QuestionFlow drill={lesson.followUps} />
+                <Button variant="secondary" layout={{ marginTop: 8 }} onClick={closeFollowUps}>{t('ui.followup.close')}</Button>
+              </div>
+            )}
             {hasTraces && <Button variant="secondary" layout={{ marginTop: 8, marginRight: 6 }} onClick={() => openWindow('frames', '')}>{t('ui.frames.open')}</Button>}
             <Button variant="secondary" layout={{ marginTop: 8 }} onClick={closeLesson}>{t('ui.lesson.end')}</Button>
           </div>

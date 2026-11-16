@@ -264,5 +264,36 @@
       "target": "R1",
       "done": "cmd:traceroute"
     }
+  ],
+  "followUps": [
+    {
+      "kind": "inspect",
+      "id": "f1",
+      "ask": {
+        "what": "next_hop",
+        "node": "R1",
+        "prefix": "10.0.3.0/24"
+      }
+    }
+  ],
+  "followUpSetup": [
+    {
+      "before": "f1",
+      "change": [
+        {
+          "kind": "config",
+          "uid": "R1",
+          "change": {
+            "kind": "ospf",
+            "change": {
+              "op": "iface",
+              "id": "g0/2",
+              "key": "cost",
+              "value": 100
+            }
+          }
+        }
+      ]
+    }
   ]
 }

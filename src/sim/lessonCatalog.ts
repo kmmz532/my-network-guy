@@ -1,5 +1,5 @@
 // 学習モードで開ける構成の目録。教材と、修理の依頼（経営と関係なく練習できるように）を同じ形で扱う
-import type { Contract, Drill, Goal, Lesson } from '../data/schema';
+import type { Contract, Drill, Goal, Lesson, QuestionSet } from '../data/schema';
 import type { GuideStep } from './guide';
 import { drillConfig } from './drill';
 import { lessonLinks, lessonNodes, lessonPlans } from './lesson';
@@ -16,6 +16,8 @@ export interface LessonEntry {
   goals: Goal[];
   // 演習のとき、その演習（画面は教材の欄ではなく演習の欄。titleKey 以外の文言は使わない）
   drill?: Drill;
+  // 教材のとき、達成の後に出す発展の問い（id は教材の id）
+  followUps?: QuestionSet;
   // 案内の手順（修理の依頼・演習は案内を持たない）
   guide: Pick<GuideStep, 'target' | 'done'>[];
   build: (engine: EngineData) => { size: { w: number; h: number }; nodes: NetNode[]; links: NetLink[]; plans: Record<string, NetworkPlan> };
@@ -47,6 +49,7 @@ export const lessonCatalogOf = (lessons: Lesson[], contracts: Contract[], drills
     briefKey: `lesson.${l.id}.brief`,
     goals: l.goals,
     guide: l.guide,
+    ...(l.followUps ? { followUps: { id: l.id, questions: l.followUps, setup: l.followUpSetup } } : {}),
     build: (engine) => {
       const nodes = lessonNodes(l);
       const links = lessonLinks(l);

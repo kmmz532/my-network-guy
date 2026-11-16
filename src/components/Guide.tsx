@@ -88,6 +88,7 @@ export function Guide() {
   // 教材を開いているとき（案件がない）は、教材の手順を出す。教材は何度でもやり直せるため guidesDone に入れず、sandboxLesson.done に覚える
   const sandboxLesson = useGameStore((s) => s.sandboxLesson);
   const lessonCommands = useGameStore((s) => s.lessonCommands);
+  const lessonAnswers = useGameStore((s) => s.lessonAnswers);
   const finishLessonGuide = useGameStore((s) => s.finishLessonGuide);
   const lesson = project === null && sandboxLesson !== null && !sandboxLesson.done ? lessonEntryOf(lessonCatalog, sandboxLesson.id) : undefined;
   const id = lesson ? `lesson:${lesson.id}` : project?.phase === 'design' ? project.baseId : null;
@@ -113,6 +114,7 @@ export function Guide() {
     commands: lessonCommands,
     framesOpened: windows.some((w) => w.kind === 'frames'),
     lessonGoals,
+    answers: lessonAnswers,
   };
 
   // デバッグの指定の手順（N54）は、表示の計算に直接使う（効果で上書きすると、下の効果が古い値に戻すため）

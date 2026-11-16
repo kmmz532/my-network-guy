@@ -691,29 +691,6 @@ export const guidesFileSchema = z.object({
   ),
 });
 
-// 教材（学習モード。サンドボックスで開く、報酬・期限・費用のない小さな案件）。機器は ref で指す。
-// 題名・依頼文・案内の文言は言語ファイルの lesson.<id>.title・lesson.<id>.brief・lesson.<id>.step.<n>（n は1から）
-export const LESSON_TOPICS = ['l2', 'routing', 'redundancy', 'service', 'nat', 'wireless', 'security'] as const;
-const lessonEndSchema = z.object({ ref: z.string().min(1), port: nonNegativeInt });
-export const placedLinkSchema = z.object({ cable: z.string().min(1), a: lessonEndSchema, b: lessonEndSchema });
-export const lessonSchema = z.object({
-  id: z.string().min(1),
-  topic: z.enum(LESSON_TOPICS),
-  order: int,
-  size: z.object({ w: int.positive(), h: int.positive() }),
-  placed: z.array(placedSchema).min(1),
-  links: z.array(placedLinkSchema),
-  goals: z.array(goalSchema).min(1),
-  guide: z
-    .array(
-      z.object({
-        target: z.string().min(1),
-        done: z.string().refine((v) => parseCondition(v) !== null, '完了の条件の書式が正しくない'),
-      }),
-    )
-    .min(1),
-});
-
 // 演習（学習モード。構成と問いと答えの判定）。正解はデータに書かず、構成から求める。問題の文は言語ファイルの drill.<id>.q.<問いの id>
 // 機器の設定の変更（機器の uid と変更）。netEdit の編集の関数を通して構成に当てる
 export type Change = Extract<Operation, { kind: 'config' }>;
@@ -744,6 +721,35 @@ export const questionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('build'), id: z.string().min(1), goals: z.array(goalSchema).min(1) }),
   z.object({ kind: z.literal('diagnose'), id: z.string().min(1), from: z.string().min(1), to: z.string().min(1), traffic: trafficSchema }),
 ]);
+const setupSchema = z.array(z.object({ before: z.string().min(1), change: z.array(changeSchema).min(1) })).min(1);
+
+// 教材（学習モード。サンドボックスで開く、報酬・期限・費用のない小さな案件）。機器は ref で指す。
+// 題名・依頼文・案内の文言は言語ファイルの lesson.<id>.title・lesson.<id>.brief・lesson.<id>.step.<n>（n は1から）
+export const LESSON_TOPICS = ['l2', 'routing', 'redundancy', 'service', 'nat', 'wireless', 'security'] as const;
+const lessonEndSchema = z.object({ ref: z.string().min(1), port: nonNegativeInt });
+export const placedLinkSchema = z.object({ cable: z.string().min(1), a: lessonEndSchema, b: lessonEndSchema });
+export const lessonSchema = z.object({
+  id: z.string().min(1),
+  topic: z.enum(LESSON_TOPICS),
+  order: int,
+  size: z.object({ w: int.positive(), h: int.positive() }),
+  placed: z.array(placedSchema).min(1),
+  links: z.array(placedLinkSchema),
+  goals: z.array(goalSchema).min(1),
+  guide: z
+    .array(
+      z.object({
+        target: z.string().min(1),
+        done: z.string().refine((v) => parseCondition(v) !== null, '完了の条件の書式が正しくない'),
+      }),
+    )
+    .min(1),
+  // 達成の後に出す発展の問い（任意）。問いの文は言語ファイルの drill.<教材の id>.q.<問いの id>
+  followUps: z.array(questionSchema).min(1).optional(),
+  // 発展の問いの前に構成を変える（before は問いの id）
+  followUpSetup: setupSchema.optional(),
+});
+
 export const drillSchema = z.object({
   id: z.string().min(1),
   topic: z.enum(LESSON_TOPICS),
@@ -754,7 +760,7 @@ export const drillSchema = z.object({
   // 順に解く。前の問いの後の構成のまま次へ進む
   questions: z.array(questionSchema).min(1),
   // その問いの前に構成を変える（「R3 の電源を切った」など）。before は問いの id
-  setup: z.array(z.object({ before: z.string().min(1), change: z.array(changeSchema).min(1) })).optional(),
+  setup: setupSchema.optional(),
 });
 
 // 研修の課程（STAFF.md「4. 育成」）。受講中は担当に選べず、期日に経験値を得る
@@ -800,6 +806,8 @@ export type PlacedLink = z.infer<typeof placedLinkSchema>;
 export type Question = z.infer<typeof questionSchema>;
 export type InspectAsk = z.infer<typeof inspectAskSchema>;
 export type Drill = z.infer<typeof drillSchema>;
+// 順に解く問いの組。演習と、教材の発展の問いで同じ進行を使う
+export type QuestionSet = Pick<Drill, 'id' | 'questions' | 'setup'>;
 export type GuideFile = z.infer<typeof guidesFileSchema>['guides'][number];
 
 // 会社のレベルの節目の報酬（N45）。解放は書かない（解放は品目の unlockLevel）

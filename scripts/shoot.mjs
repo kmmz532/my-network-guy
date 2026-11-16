@@ -268,6 +268,18 @@ const scenes = {
     });
     await page.waitForTimeout(800);
   },
+  // 教材を達成した後に、発展の問いが左上の欄の下に出る
+  followup: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      g.openLesson('stp_triangle');
+      const reason = g.setStp('SW2', { op: 'priority', value: 4096 });
+      if (reason) throw new Error('優先度を変えられない: ' + reason);
+      window.__game.getState().test();
+    });
+    await page.waitForTimeout(1000);
+  },
   // 教材の一覧に演習が並ぶ
   drillpicker: async (page) => {
     await scenes.sandbox(page);

@@ -95,11 +95,11 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       if (s.mode !== 'sandbox') throw new Error('教材はサンドボックスだけで開ける');
       const { size, nodes, links, plans } = lessonEntryOf(lessonCatalog, id).build(gameEnv.engine);
       const office = { ...emptyOffice(size), nodes, links, plans };
-      set({ office, maps: { ...s.maps, hq: mapOfOffice(office) }, sandboxLesson: { id, step: 0, done: false }, sandboxDrill: null, lessonCommands: [], check: null, helpUid: null, traces: [] });
+      set({ office, maps: { ...s.maps, hq: mapOfOffice(office) }, sandboxLesson: { id, step: 0, done: false }, sandboxDrill: null, followUpsClosed: false, lessonAnswers: [], lessonCommands: [], check: null, helpUid: null, traces: [] });
       const { drill } = lessonEntryOf(lessonCatalog, id);
       if (drill) get().beginDrill(drill);
     },
-    closeLesson: () => set({ sandboxLesson: null, lessonCommands: [] }),
+    closeLesson: () => set({ sandboxLesson: null, sandboxDrill: null, followUpsClosed: false, lessonAnswers: [], lessonCommands: [] }),
     lessonCommands: [],
     recordLessonCommand: (line) => {
       if (get().sandboxLesson) set((s) => ({ lessonCommands: [...s.lessonCommands, line] }));
@@ -117,7 +117,10 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
         }
         const sr = sandboxTest(s.office, gameEnv, lesson?.goals);
         // 教材の達成条件をすべて満たしたら、達成として記録する
-        if (lesson && sr?.passed) get().achieveLesson(lesson.id);
+        if (lesson && sr?.passed) {
+          get().achieveLesson(lesson.id);
+          get().beginFollowUps();
+        }
         if (!sr) {
           set({ lastError: 'none' });
           return 'none';
