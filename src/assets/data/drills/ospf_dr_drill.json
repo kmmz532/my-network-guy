@@ -1,0 +1,229 @@
+{
+  "id": "ospf_dr_drill",
+  "topic": "routing",
+  "order": 101,
+  "size": {
+    "w": 12,
+    "h": 8
+  },
+  "placed": [
+    {
+      "ref": "R1",
+      "device": "router_basic",
+      "x": 2,
+      "y": 2,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "172.16.10.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "R1"
+    },
+    {
+      "ref": "R2",
+      "device": "router_basic",
+      "x": 5,
+      "y": 2,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "172.16.10.2",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "R2"
+    },
+    {
+      "ref": "R3",
+      "device": "router_basic",
+      "x": 8,
+      "y": 2,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "172.16.10.3",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "R3"
+    },
+    {
+      "ref": "SW1",
+      "device": "l2_switch_8p",
+      "x": 5,
+      "y": 5,
+      "locked": false
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "R1",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "R2",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "R3",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 2
+      }
+    }
+  ],
+  "questions": [
+    {
+      "kind": "inspect",
+      "id": "q1",
+      "ask": {
+        "what": "ospf_dr",
+        "segment": "172.16.10.0/24"
+      }
+    },
+    {
+      "kind": "inspect",
+      "id": "q2",
+      "ask": {
+        "what": "ospf_dr",
+        "segment": "172.16.10.0/24"
+      }
+    }
+  ],
+  "setup": [
+    {
+      "before": "q1",
+      "change": [
+        {
+          "kind": "config",
+          "uid": "R1",
+          "change": {
+            "kind": "routing",
+            "change": {
+              "proto": "ospf",
+              "on": true,
+              "ip": "172.16.10.0",
+              "wildcard": "0.0.0.255",
+              "area": 0
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "R2",
+          "change": {
+            "kind": "routing",
+            "change": {
+              "proto": "ospf",
+              "on": true,
+              "ip": "172.16.10.0",
+              "wildcard": "0.0.0.255",
+              "area": 0
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "R3",
+          "change": {
+            "kind": "routing",
+            "change": {
+              "proto": "ospf",
+              "on": true,
+              "ip": "172.16.10.0",
+              "wildcard": "0.0.0.255",
+              "area": 0
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "R1",
+          "change": {
+            "kind": "ospf",
+            "change": {
+              "op": "routerId",
+              "ip": "172.16.255.1"
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "R2",
+          "change": {
+            "kind": "ospf",
+            "change": {
+              "op": "routerId",
+              "ip": "172.16.255.2"
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "R3",
+          "change": {
+            "kind": "ospf",
+            "change": {
+              "op": "routerId",
+              "ip": "172.16.255.3"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "before": "q2",
+      "change": [
+        {
+          "kind": "config",
+          "uid": "R1",
+          "change": {
+            "kind": "ospf",
+            "change": {
+              "op": "routerId",
+              "ip": "172.16.255.9"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

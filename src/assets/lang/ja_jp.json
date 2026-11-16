@@ -1670,6 +1670,9 @@
   "drill.hint.route_source": "経路表（show ip route）で、宛先のネットワークの行の先頭の記号を見る。",
   "drill.hint.stp_root": "show spanning-tree で、ルートブリッジの表示を見る。",
   "drill.hint.vrrp_master": "show vrrp で、各ルーターの状態を見る。",
+  "drill.ospf_dr_drill.q.q1": "172.16.10.0/24 の OSPF で、DR になるルーターを選んでください。",
+  "drill.ospf_dr_drill.q.q2": "R1 のルーター ID が変わりました。172.16.10.0/24 の DR になるルーターを選んでください。",
+  "drill.ospf_dr_drill.title": "演習: OSPF の DR",
   "drill.static_route_basics.q.q1": "R2 が 10.0.3.0/24 宛てのパケットを送る、次のホップを選んでください。",
   "drill.static_route_basics.q.q2": "PC1 から PC3 へ Ping が通るように、足りない設定を追加してください。",
   "drill.static_route_basics.title": "演習: 静的経路"
