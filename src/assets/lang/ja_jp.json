@@ -1675,5 +1675,8 @@
   "drill.ospf_dr_drill.title": "演習: OSPF の DR",
   "drill.static_route_basics.q.q1": "R2 が 10.0.3.0/24 宛てのパケットを送る、次のホップを選んでください。",
   "drill.static_route_basics.q.q2": "PC1 から PC3 へ Ping が通るように、足りない設定を追加してください。",
-  "drill.static_route_basics.title": "演習: 静的経路"
+  "drill.static_route_basics.title": "演習: 静的経路",
+  "drill.stp_root_drill.q.q1": "3台のスイッチの輪で、ルートブリッジになるスイッチを選んでください。",
+  "drill.stp_root_drill.q.q2": "SW3 のブリッジ優先度が変わりました。ルートブリッジになるスイッチを選んでください。",
+  "drill.stp_root_drill.title": "演習: スパニングツリーのルート"
 }
