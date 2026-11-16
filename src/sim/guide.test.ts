@@ -3,7 +3,7 @@ import { guides } from 'virtual:game-data';
 import ja from '../assets/lang/ja_jp.json';
 import type { NetLink, NetNode } from '../network/types';
 import { deviceCategory } from '../registry/query';
-import { currentGuideStep, guideStepDone, parseCondition, type GuideState, type GuideStep } from './guide';
+import { guideProgress, guideStepDone, parseCondition, type GuideState, type GuideStep } from './guide';
 
 const node = (uid: string, device: string, extra: Partial<NetNode> = {}): NetNode => ({
   uid,
@@ -87,41 +87,71 @@ describe('guideStepDone', () => {
   });
 });
 
-describe('currentGuideStep（c001）', () => {
+describe('guideProgress（c001）', () => {
+  const ipOf = (uid: string, ip: string) => node(uid, 'pc_basic', { interfaces: [{ id: 'g0/0', kind: 'port', port: 0, ip, prefix: 24 }] });
+  const key = (state: GuideState, seen: number[] = []) => guideProgress(c001, state, seen).current?.step.key ?? null;
+
   it('状態を変えるたびに、次の手順へ順に進む', () => {
     let state = base();
-    let done = 0;
-    const at = () => {
-      const cur = currentGuideStep(c001, state, done);
-      if (cur) done = cur.index;
-      return cur ? cur.step.key : null;
-    };
-
-    expect(at()).toBe('guide.c001_direct_link.1');
+    expect(key(state)).toBe('guide.c001_direct_link.1');
     state = { ...state, tool: 'wire' };
-    expect(at()).toBe('guide.c001_direct_link.2');
+    expect(key(state, [0])).toBe('guide.c001_direct_link.2');
     state = { ...state, links: [link('l1', ['pc_a', 0], ['pc_b', 0])] };
-    expect(at()).toBe('guide.c001_direct_link.3');
-    state = { ...state, nodes: [node('pc_a', 'pc_basic', { interfaces: [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.10', prefix: 24 }] }), state.nodes[1]] };
-    expect(at()).toBe('guide.c001_direct_link.4');
-    state = { ...state, nodes: [state.nodes[0], node('pc_b', 'pc_basic', { interfaces: [{ id: "g0/0", kind: "port", port: 0, ip: '192.168.1.11', prefix: 24 }] })] };
-    expect(at()).toBe('guide.c001_direct_link.5');
+    expect(key(state, [0])).toBe('guide.c001_direct_link.3');
+    state = { ...state, nodes: [ipOf('pc_a', '192.168.1.10'), state.nodes[1]] };
+    expect(key(state, [0])).toBe('guide.c001_direct_link.4');
+    state = { ...state, nodes: [state.nodes[0], ipOf('pc_b', '192.168.1.11')] };
+    expect(key(state, [0])).toBe('guide.c001_direct_link.5');
     state = { ...state, testPassed: true };
-    expect(at()).toBeNull();
+    expect(key(state, [0])).toBeNull();
   });
 
-  it('一度満たした手順は、元に戻しても前に戻らない', () => {
+  it('構成を戻すと、手順も戻る', () => {
+    const wired = { ...base(), tool: 'wire', links: [link('l1', ['pc_a', 0], ['pc_b', 0])] };
+    expect(key(wired, [0])).toBe('guide.c001_direct_link.3');
+    expect(key({ ...wired, links: [] }, [0])).toBe('guide.c001_direct_link.2');
+  });
+
+  it('構成に残らない条件は、満たした手順を記録し、道具を選び直しても戻らない', () => {
     const wired = { ...base(), tool: 'wire' };
-    const first = currentGuideStep(c001, wired, 0);
-    expect(first?.index).toBe(1);
-    // 道具を選び直しても、完了の位置は保たれる
-    const back = currentGuideStep(c001, { ...wired, tool: 'select' }, first!.index);
-    expect(back?.index).toBe(1);
+    const first = guideProgress(c001, wired);
+    expect(first.current?.index).toBe(1);
+    expect(first.latch).toEqual([0]);
+    // 記録がなければ、道具を戻した時点で最初の手順に戻る。記録があれば戻らない
+    expect(guideProgress(c001, base()).current?.index).toBe(0);
+    expect(guideProgress(c001, base(), [0]).current?.index).toBe(1);
+  });
+
+  it('開き直して記録が消えると、満たされていない最初の手順から始まる', () => {
+    const state = { ...base(), tool: 'select', links: [link('l1', ['pc_a', 0], ['pc_b', 0])] };
+    // 記録なし: 道具の手順が満たされていないため、最初から
+    expect(guideProgress(c001, state, []).current?.index).toBe(0);
   });
 
   it('条件を満たしている手順は飛ばす（1回の操作で複数の手順が進む場合）', () => {
     const state = { ...base(), tool: 'wire', links: [link('l1', ['pc_a', 0], ['pc_b', 0])] };
-    expect(currentGuideStep(c001, state, 0)?.index).toBe(2);
+    expect(guideProgress(c001, state).current?.index).toBe(2);
+  });
+
+  it('命令・問い・パケットの欄の条件を判定し、パケットの欄は記録で保つ', () => {
+    const steps: GuideStep[] = [
+      { key: 'a', target: 'x', done: 'cmd:show ip route' },
+      { key: 'b', target: 'x', done: 'frames:open' },
+      { key: 'c', target: 'x', done: 'answer:q1' },
+    ];
+    const state = { ...base(), commands: ['show ip route'], framesOpened: true };
+    const p = guideProgress(steps, state);
+    expect(p.current?.step.key).toBe('c');
+    expect(p.latch).toEqual([1]);
+    // 欄を閉じても、記録があれば戻らない。命令の履歴が消えた（開き直した）ときは最初から
+    expect(guideProgress(steps, { ...state, framesOpened: false }, [1]).current?.step.key).toBe('c');
+    expect(guideProgress(steps, { ...base(), framesOpened: false }, []).current?.step.key).toBe('a');
+    // 問いに答えると完了する
+    expect(guideProgress(steps, { ...state, answers: ['q1'] }).current).toBeNull();
+  });
+
+  it('開始位置より前の手順は済んだものとして飛ばす', () => {
+    expect(guideProgress(c001, base(), [], 2).current?.index).toBe(2);
   });
 });
 

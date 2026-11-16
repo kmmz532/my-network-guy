@@ -8,7 +8,7 @@ import { lessonCatalog } from '../stores/lessonCatalog';
 import { deviceCategory } from '../registry/query';
 import { t, tDyn } from '../i18n/t';
 import { loadSettings } from '../settings/settings';
-import { currentGuideStep, type GuideState } from '../sim/guide';
+import { guideProgress, type GuideState } from '../sim/guide';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { staffSpriteName } from '../data/schema';
 import { Icon } from './Icon';
@@ -54,8 +54,9 @@ export function Guide() {
   const staffLook = useGameStore((s) => staffSpriteName(s.staff[0]?.look ?? 'blue'));
   const setGuideTarget = useGameStore((s) => s.setGuideTarget);
   const markGuideDone = useGameStore((s) => s.markGuideDone);
-  // 案件ごとに、完了した手順の数を覚える（画面の中だけ。条件を満たした手順は戻らない）
-  const [progress, setProgress] = useState<{ id: string; index: number }>({ id: '', index: 0 });
+  // 構成に残らない条件を満たした手順の記録（教材を開いている間だけ）
+  const guideSeen = useGameStore((s) => s.guideSeen);
+  const markGuideSeen = useGameStore((s) => s.markGuideSeen);
   // デバッグの「この手順から始める」（N54）: 指定の手順から出す。受け取ったら一度だけ使う
   const debugGuide = useGameStore((s) => s.debugGuide);
   const debugConsumeGuide = useGameStore((s) => s.debugConsumeGuide);
@@ -119,23 +120,23 @@ export function Guide() {
 
   // デバッグの指定の手順（N54）は、表示の計算に直接使う（効果で上書きすると、下の効果が古い値に戻すため）
   const debugStart = debugGuide !== null && debugGuide.id === id ? debugGuide.step - 1 : null;
-  const index = progress.id === id ? progress.index : (debugStart ?? 0);
-  const current = steps ? currentGuideStep(steps, state, index) : null;
-  const currentIndex = current ? current.index : -1;
+  const seen = id === null ? [] : guideSeen.filter((k) => k.startsWith(`${id}:`)).map((k) => Number(k.slice(id.length + 1)));
+  const progress = steps ? guideProgress(steps, state, seen, debugStart ?? 0) : null;
+  const current = progress ? progress.current : null;
+  const finished = steps !== null && current === null;
+  const latchKeys = id !== null && progress ? progress.latch.map((i) => `${id}:${i}`) : [];
 
-
-  // 完了した手順の数を覚える。すべて終えたら案件の案内を終える
+  // 構成に残らない条件を満たした手順を記録する。すべて終えたら案件の案内を終える
   useEffect(() => {
     if (id === null || steps === null) return;
-    if (current === null) {
+    if (latchKeys.length > 0) markGuideSeen(latchKeys);
+    if (finished) {
       if (lesson) finishLessonGuide();
       else markGuideDone(id);
       // 案内を終えたら、デバッグの開始の指定も消す（別の案件の案内に残さない）
       if (debugGuide !== null && debugGuide.id === id) debugConsumeGuide();
-      return;
     }
-    if (progress.id !== id || progress.index !== currentIndex) setProgress({ id, index: currentIndex });
-  }, [id, steps, currentIndex, progress.id, progress.index, markGuideDone, lesson, finishLessonGuide, debugGuide, debugConsumeGuide]);
+  }, [id, steps, finished, latchKeys.join(','), markGuideSeen, markGuideDone, lesson, finishLessonGuide, debugGuide, debugConsumeGuide]);
 
   const step = current ? current.step : null;
   // 対象が機器（案件の機器の ref）なら、マップの機器を光らせるため、ストアに置く（描画は行わない）

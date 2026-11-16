@@ -188,14 +188,29 @@ export const guideStepDone = (step: GuideStep, state: GuideState): boolean => {
   return c !== null && conditionDone(c, state);
 };
 
-// いまの手順を返す。done は完了した手順の数（案内はここから先へ進むだけで、戻らない）。
-// 条件を満たした手順は順に完了として飛ばす。すべて完了したら null
-export const currentGuideStep = (
+// 構成に残らない条件（道具の選択・画面を開いたこと・パケットの欄を開いたこと）。一度満たした手順を記録しておかないと、操作を終えた時点で条件が外れる
+export const isTransient = (step: GuideStep): boolean => {
+  const c = parseCondition(step.done);
+  return c !== null && (c.kind === 'tool' || c.kind === 'open' || c.kind === 'frames');
+};
+
+// 案内の進み具合。手順の位置は、条件と今の構成から求める（満たしていない最初の手順がいまの手順）。
+// seen は、構成に残らない条件を満たした手順の位置の記録。from より前の手順は済んだものとして飛ばす（デバッグの開始位置）。
+// latch は、今回新しく記録する手順の位置。すべて完了したら current は null
+export const guideProgress = (
   steps: GuideStep[],
   state: GuideState,
-  done: number,
-): { index: number; step: GuideStep } | null => {
-  let i = done;
-  while (i < steps.length && guideStepDone(steps[i], state)) i++;
-  return i < steps.length ? { index: i, step: steps[i] } : null;
+  seen: readonly number[] = [],
+  from = 0,
+): { current: { index: number; step: GuideStep } | null; latch: number[] } => {
+  const latch: number[] = [];
+  let i = from;
+  while (i < steps.length) {
+    const transient = isTransient(steps[i]);
+    const satisfied = guideStepDone(steps[i], state);
+    if (!satisfied && !(transient && seen.includes(i))) break;
+    if (satisfied && transient && !seen.includes(i)) latch.push(i);
+    i++;
+  }
+  return { current: i < steps.length ? { index: i, step: steps[i] } : null, latch };
 };

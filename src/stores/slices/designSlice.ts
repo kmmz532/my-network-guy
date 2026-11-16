@@ -33,6 +33,9 @@ export interface DesignSlice {
   // 教材を開いている間にターミナルで打った命令（保存しない。案内の cmd 条件に使う）
   lessonCommands: string[];
   recordLessonCommand: (line: string) => void;
+  // 案内で、構成に残らない条件を満たした手順の記録（`<案内の id>:<手順の位置>`。保存しない。教材を開き直すと消える）
+  guideSeen: string[];
+  markGuideSeen: (keys: string[]) => void;
   // 教材の案内を終えた（飛ばした）
   finishLessonGuide: () => void;
   connect: (aUid: string, bUid: string, cableId: string, ports?: PortChoice) => string | null;
@@ -95,12 +98,14 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       if (s.mode !== 'sandbox') throw new Error('教材はサンドボックスだけで開ける');
       const { size, nodes, links, plans } = lessonEntryOf(lessonCatalog, id).build(gameEnv.engine);
       const office = { ...emptyOffice(size), nodes, links, plans };
-      set({ office, maps: { ...s.maps, hq: mapOfOffice(office) }, sandboxLesson: { id, step: 0, done: false }, sandboxDrill: null, followUpsClosed: false, lessonAnswers: [], lessonCommands: [], check: null, helpUid: null, traces: [] });
+      set({ office, maps: { ...s.maps, hq: mapOfOffice(office) }, sandboxLesson: { id, step: 0, done: false }, sandboxDrill: null, followUpsClosed: false, lessonAnswers: [], lessonCommands: [], guideSeen: [], check: null, helpUid: null, traces: [] });
       const { drill } = lessonEntryOf(lessonCatalog, id);
       if (drill) get().beginDrill(drill);
     },
-    closeLesson: () => set({ sandboxLesson: null, sandboxDrill: null, followUpsClosed: false, lessonAnswers: [], lessonCommands: [] }),
+    closeLesson: () => set({ sandboxLesson: null, sandboxDrill: null, followUpsClosed: false, lessonAnswers: [], lessonCommands: [], guideSeen: [] }),
     lessonCommands: [],
+    guideSeen: [],
+    markGuideSeen: (keys) => set((s) => ({ guideSeen: [...s.guideSeen, ...keys.filter((k) => !s.guideSeen.includes(k))] })),
     recordLessonCommand: (line) => {
       if (get().sandboxLesson) set((s) => ({ lessonCommands: [...s.lessonCommands, line] }));
     },

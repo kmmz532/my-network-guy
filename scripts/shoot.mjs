@@ -219,6 +219,22 @@ const scenes = {
     await page.evaluate(() => window.__game.getState().openLesson('ospf_three_sites'));
     await page.waitForTimeout(1000);
   },
+  // 手順を進めてから同じ教材を開き直すと、案内が最初の手順から始まる
+  guidereopen: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      g.openLesson('ospf_three_sites');
+      g.openWindow('device', 'R1');
+    });
+    await page.waitForTimeout(500);
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      for (const w of [...g.windows]) g.closeWindow(w.id);
+      window.__game.getState().openLesson('ospf_three_sites');
+    });
+    await page.waitForTimeout(1000);
+  },
   // 修理の依頼を学習モードで開き、テストする（左上の欄に依頼文と × の条件が出る）
   lessonrepair: async (page) => {
     await scenes.sandbox(page);
