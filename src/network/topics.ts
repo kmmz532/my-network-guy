@@ -34,7 +34,7 @@ export const TOPICS = [
   { id: 'trunk', unlock: 16, command: 'switchport 7 trunk allowed 10,20', show: 'show vlan brief', failures: ['vlan.not_allowed'], warnings: ['vlan.native_mismatch'], glossary: 'native_vlan', lessons: ['vlan_two_floors'] },
   { id: 'svi', unlock: 20, command: 'ip address vlan 10 192.168.10.1 255.255.255.0', show: 'show interfaces', failures: [], warnings: [], glossary: 'svi', lessons: [], known: ['lesson'] },
   { id: 'static_route', unlock: 1, command: 'ip route 10.0.0.0 255.0.0.0 192.168.1.2', show: 'show ip route', failures: ['route.none', 'route.loop'], warnings: [], glossary: 'admin_distance', lessons: [], known: ['lesson'] },
-  { id: 'rip', unlock: 56, command: 'router rip', show: 'show ip rip database', failures: ['rip.unreachable'], warnings: [], glossary: 'rip', lessons: [], known: ['lesson'] },
+  { id: 'rip', unlock: 56, command: 'router rip', show: 'show ip rip database', failures: ['rip.unreachable'], warnings: [], glossary: 'rip', lessons: ['rip_three_sites'] },
   { id: 'ospf', unlock: 58, command: 'router ospf 1', show: 'show ip ospf neighbor', failures: ['ospf.area_detached', 'ospf.no_neighbor'], warnings: ['ospf.duplicate_router_id'], glossary: 'backbone_area', lessons: ['ospf_intro', 'ospf_three_sites'] },
   { id: 'bgp', unlock: 88, command: 'router bgp 64512', show: 'show ip bgp summary', failures: ['bgp.no_session', 'bgp.nexthop_unreachable'], warnings: [], glossary: 'as_number', lessons: ['bgp_two_isps'] },
   { id: 'vrrp', unlock: null, command: 'vrrp 0 1 ip 192.168.1.254', show: 'show vrrp', failures: ['vrrp.no_master'], warnings: ['vrrp.vip_mismatch', 'vrrp.gateway_real_ip'], glossary: 'vrrp', lessons: ['vrrp_pair'] },

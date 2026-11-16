@@ -39,6 +39,13 @@ describe('教材（学習モード）', () => {
     expect(lessonGoalResults(l.goals, solutions[l.id](lessonNodes(l)), links, engine)).toEqual([true, true]);
   });
 
+  it('RIP の3拠点: 初めは達成条件を満たさず、RIP を設定すると満たす', () => {
+    const l = lesson('rip_three_sites');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false, false]);
+    expect(lessonGoalResults(l.goals, solutions[l.id](lessonNodes(l)), links, engine)).toEqual([true, true]);
+  });
+
   it('DNS の教材: 初めは外へ出られず、NAT を設定すると通る。ネームサーバーを向けると社内と外の名前が引ける', () => {
     const l = lesson('dns_intranet_names');
     const links = lessonLinks(l);
