@@ -5,6 +5,7 @@ import type { CommandSpec } from '../../command/types';
 import { interfaceOf } from '../../command/modes';
 import { ifaceIdOf } from '../../command/args';
 import { getComponent } from '../../components';
+import { networkOf } from '../../ip';
 
 const PORT = { arg: 'number', name: 'port' } as const;
 
@@ -60,11 +61,26 @@ export const commands: readonly CommandSpec[] = [
       const statics = nat?.statics ?? [];
       if (!nat?.napt && statics.length === 0) return shown([out(tr('ui.terminal.natNone'))]);
       if (!outside) return shown([err(tr('ui.terminal.natNoOutside'))]);
+      const inside = node.interfaces.find((i) => i.nat === 'inside');
+      if (nat?.napt && !inside) return shown([err(tr('ui.terminal.natNoInside'))]);
+      // 見出しの欄（Pro・Inside global・Inside local・Outside local・Outside global）に合わせ、各欄を幅にそろえて詰める。
+      // 外の欄は通信ごとの変換を保存しないため、NAPT・静的 NAT とも `---`
+      const row = (key: 'ui.terminal.natStatic' | 'ui.terminal.natNapt', c: { proto: string; inGlobal: string; inLocal: string }) =>
+        out(
+          tr(key, {
+            proto: c.proto.padEnd(3),
+            inGlobal: c.inGlobal.padEnd(21),
+            inLocal: c.inLocal.padEnd(21),
+            outLocal: '---'.padEnd(13),
+            outGlobal: '---',
+          }),
+        );
       const lines: TerminalLine[] = statics.map((s) =>
-        out(tr('ui.terminal.natStatic', { outsideIp: outside.ip, outsidePort: s.port, insideIp: s.insideIp, insidePort: s.insidePort })),
+        row('ui.terminal.natStatic', { proto: 'tcp', inGlobal: `${outside.ip}:${s.port}`, inLocal: `${s.insideIp}:${s.insidePort}` }),
       );
-      if (nat?.napt) lines.push(out(tr('ui.terminal.natNapt', { outsideIp: outside.ip })));
-      // 4 つの欄（内部グローバル・内部ローカル・外部ローカル・外部グローバル）の見出しを先頭に出す
+      if (nat?.napt && inside) {
+        lines.push(row('ui.terminal.natNapt', { proto: '---', inGlobal: outside.ip, inLocal: `${networkOf(inside.ip, inside.prefix)}/${inside.prefix}` }));
+      }
       return shown([out(tr('ui.terminal.natHeader')), ...lines]);
     },
   },

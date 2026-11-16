@@ -25,7 +25,7 @@
       "line": "show ip nat translations",
       "lines": [
         "out:ui.terminal.natHeader",
-        "out:ui.terminal.natNapt {\"outsideIp\":\"192.168.1.1\"}"
+        "out:ui.terminal.natNapt {\"proto\":\"---\",\"inGlobal\":\"192.168.1.1          \",\"inLocal\":\"198.51.100.0/24      \",\"outLocal\":\"---          \",\"outGlobal\":\"---\"}"
       ]
     },
     {
@@ -43,8 +43,8 @@
       "line": "show ip nat translations",
       "lines": [
         "out:ui.terminal.natHeader",
-        "out:ui.terminal.natStatic {\"outsideIp\":\"192.168.1.1\",\"outsidePort\":0,\"insideIp\":\"192.168.1.10\",\"insidePort\":80}",
-        "out:ui.terminal.natNapt {\"outsideIp\":\"192.168.1.1\"}"
+        "out:ui.terminal.natStatic {\"proto\":\"tcp\",\"inGlobal\":\"192.168.1.1:0        \",\"inLocal\":\"192.168.1.10:80      \",\"outLocal\":\"---          \",\"outGlobal\":\"---\"}",
+        "out:ui.terminal.natNapt {\"proto\":\"---\",\"inGlobal\":\"192.168.1.1          \",\"inLocal\":\"198.51.100.0/24      \",\"outLocal\":\"---          \",\"outGlobal\":\"---\"}"
       ]
     },
     {

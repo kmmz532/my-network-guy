@@ -270,13 +270,31 @@ describe('show ip nat translations（N146）', () => {
     expect(run('show ip nat translations', { node: r, nodes: [r], links: [], data }, tr)).toEqual([{ text: 'ui.terminal.natNone', kind: 'out' }]);
   });
 
-  it('静的 NAT の転送と NAPT の変換先を、外の口のアドレスで出す', () => {
+  it('静的 NAT の転送と NAPT の変換先を、見出しの欄に合わせて出す', () => {
     const r = router({ components: { nat: { napt: true, statics: [{ port: 80, insideIp: '192.168.1.10', insidePort: 8080 }] } } });
+    const param = (o: Record<string, string>) => JSON.stringify(o);
     expect(run('show ip nat translations', { node: r, nodes: [r], links: [], data }, tr).map((l) => l.text)).toEqual([
       'ui.terminal.natHeader',
-      `ui.terminal.natStatic ${JSON.stringify({ outsideIp: '203.0.113.2', outsidePort: 80, insideIp: '192.168.1.10', insidePort: 8080 })}`,
-      `ui.terminal.natNapt ${JSON.stringify({ outsideIp: '203.0.113.2' })}`,
+      `ui.terminal.natStatic ${param({
+        proto: 'tcp',
+        inGlobal: '203.0.113.2:80'.padEnd(21),
+        inLocal: '192.168.1.10:8080'.padEnd(21),
+        outLocal: '---'.padEnd(13),
+        outGlobal: '---',
+      })}`,
+      `ui.terminal.natNapt ${param({
+        proto: '---',
+        inGlobal: '203.0.113.2'.padEnd(21),
+        inLocal: '192.168.1.0/24'.padEnd(21),
+        outLocal: '---'.padEnd(13),
+        outGlobal: '---',
+      })}`,
     ]);
+  });
+
+  it('NAPT で内の口がなければ失敗の行を出す', () => {
+    const r = router({ components: { nat: { napt: true } }, interfaces: [{ id: 'g0/1', kind: 'port', port: 1, ip: '203.0.113.2', prefix: 30, nat: 'outside' }] } as Partial<NetNode>);
+    expect(run('show ip nat translations', { node: r, nodes: [r], links: [], data }, tr)).toEqual([{ text: 'ui.terminal.natNoInside', kind: 'err' }]);
   });
 
   it('外の口がなければ失敗の行を出す', () => {

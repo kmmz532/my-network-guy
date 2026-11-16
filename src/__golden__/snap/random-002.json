@@ -169,7 +169,7 @@
       "cmd": "show ip nat translations",
       "lines": [
         "out:ui.terminal.natHeader",
-        "out:ui.terminal.natNapt {\"outsideIp\":\"10.0.1.16\"}"
+        "out:ui.terminal.natNapt {\"proto\":\"---\",\"inGlobal\":\"10.0.1.16            \",\"inLocal\":\"10.0.1.0/24          \",\"outLocal\":\"---          \",\"outGlobal\":\"---\"}"
       ]
     },
     {

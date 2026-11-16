@@ -123,7 +123,7 @@
       "cmd": "show ip nat translations",
       "lines": [
         "out:ui.terminal.natHeader",
-        "out:ui.terminal.natNapt {\"outsideIp\":\"198.51.100.2\"}"
+        "out:ui.terminal.natNapt {\"proto\":\"---\",\"inGlobal\":\"198.51.100.2         \",\"inLocal\":\"192.168.1.0/24       \",\"outLocal\":\"---          \",\"outGlobal\":\"---\"}"
       ]
     },
     {
