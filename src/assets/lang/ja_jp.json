@@ -1090,6 +1090,7 @@
   "ui.lesson.confirm": "いまの構成は、教材の初期の構成に置き換わります。保存していない構成は失われます。",
   "ui.lesson.end": "教材を終える",
   "ui.lesson.open": "教材を開く",
+  "ui.lesson.rate": "正答率 {pct}%",
   "ui.lesson.start": "開く",
   "ui.lesson.topic.l2": "L2・VLAN",
   "ui.lesson.topic.nat": "NAT",

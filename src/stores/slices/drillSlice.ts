@@ -8,6 +8,7 @@ import { proceed, questionOf, startRun, submit, tested, type DrillRun } from '..
 import { gameEnv } from '../../sim/env';
 import { lessonEntryOf } from '../../sim/lessonCatalog';
 import { sandboxTest } from '../../sim/sandbox';
+import { type LearnRecord, achieveLesson, finishDrill, loadLearn, recordAnswer, saveLearn } from '../../settings/learn';
 import { lessonCatalog } from '../lessonCatalog';
 import { createOps } from '../gameOps';
 import type { GameState } from '../useGameStore';
@@ -30,6 +31,10 @@ export interface DrillSlice {
   drillAnswer: DrillAnswer | null;
   // 構成を変えたため、今の構成では正解を求められない
   drillBroken: boolean;
+  // 学習の記録（端末ごと。セーブに入れない）
+  learn: LearnRecord;
+  // 教材の達成を記録する
+  achieveLesson: (id: string) => void;
   beginDrill: (drill: Drill) => void;
   answerInspect: (choice: string) => void;
   answerDiagnose: (node: string, reason: FailureReason) => void;
@@ -39,6 +44,11 @@ export interface DrillSlice {
 
 export const createDrillSlice: StateCreator<GameState, [], [], DrillSlice> = (set, get) => {
   const { applyUnrecorded } = createOps(set, get);
+  const updateLearn = (f: (rec: LearnRecord) => LearnRecord): void => {
+    const learn = f(get().learn);
+    saveLearn(learn);
+    set({ learn });
+  };
   const drillOf = (): Drill => {
     const id = get().sandboxLesson?.id;
     if (id === undefined) throw new Error('演習を開いていない');
@@ -58,6 +68,7 @@ export const createDrillSlice: StateCreator<GameState, [], [], DrillSlice> = (se
 
   // 進行を next にする。問い（from の番号）が変わるときは、その問いの前の設定を構成に当て、候補を求める
   const move = (drill: Drill, next: DrillRun, from: number): void => {
+    if (next.stage === 'done') updateLearn((rec) => finishDrill(rec, drill.id));
     if (next.stage === 'done' || next.index === from) {
       set({ sandboxDrill: next, drillAnswer: null, drillBroken: false, ...(next.stage === 'done' ? { drillView: null } : {}) });
       return;
@@ -81,6 +92,8 @@ export const createDrillSlice: StateCreator<GameState, [], [], DrillSlice> = (se
 
   return {
     sandboxDrill: null,
+    learn: loadLearn(),
+    achieveLesson: (id) => updateLearn((rec) => achieveLesson(rec, id)),
     drillView: null,
     drillAnswer: null,
     drillBroken: false,
@@ -107,6 +120,7 @@ export const createDrillSlice: StateCreator<GameState, [], [], DrillSlice> = (se
         set({ drillBroken: true });
         return;
       }
+      updateLearn((rec) => recordAnswer(rec, drill.id, q.id, correct));
       move(drill, next, run.index);
       set({ drillAnswer: answer });
     },
@@ -121,7 +135,9 @@ export const createDrillSlice: StateCreator<GameState, [], [], DrillSlice> = (se
         move(drill, tested(drill, submit(drill, run, true), true), run.index);
         return;
       }
-      const next = submit(drill, run, judgeDiagnose(state, q, { node, reason }));
+      const correct = judgeDiagnose(state, q, { node, reason });
+      updateLearn((rec) => recordAnswer(rec, drill.id, q.id, correct));
+      const next = submit(drill, run, correct);
       move(drill, next, run.index);
       set({ drillAnswer: next.stage === 'revealed' ? diagnoseAnswer(state, q) : null });
     },

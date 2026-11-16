@@ -271,6 +271,15 @@ const scenes = {
   // 教材の一覧に演習が並ぶ
   drillpicker: async (page) => {
     await scenes.sandbox(page);
+    // 学習の記録を入れて、一覧の ✓ と正答率を出す
+    await page.evaluate(() => {
+      window.__game.setState({
+        learn: {
+          lessons: ['bgp_two_isps'],
+          drills: { stp_root_drill: { done: true, questions: { q1: { right: 1, wrong: 1, first: false }, q2: { right: 1, wrong: 0, first: true } } } },
+        },
+      });
+    });
     await page.locator('header button').last().click();
     await page.getByRole('button', { name: '教材を開く' }).click();
     await page.waitForTimeout(800);
