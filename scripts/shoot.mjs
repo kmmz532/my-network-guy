@@ -228,6 +228,53 @@ const scenes = {
     });
     await page.waitForTimeout(1000);
   },
+  // 演習を開く（左上の欄に問いの文と候補が出る）。drillhint は誤答1回（調べる場所の一言）、drillreveal は誤答2回（正解）、drillfix は正解の後の設定する問い
+  drill: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => window.__game.getState().openLesson('static_route_basics'));
+    await page.waitForTimeout(1000);
+  },
+  drillhint: async (page) => {
+    await scenes.drill(page);
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      g.answerInspect(g.drillView.choices.find((c) => c !== '10.0.23.2'));
+    });
+    await page.waitForTimeout(500);
+  },
+  drillreveal: async (page) => {
+    await scenes.drillhint(page);
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      g.answerInspect(g.drillView.choices.find((c) => c !== '10.0.23.2'));
+    });
+    await page.waitForTimeout(500);
+  },
+  drillfix: async (page) => {
+    await scenes.drill(page);
+    await page.evaluate(() => {
+      window.__game.getState().answerInspect('10.0.23.2');
+      window.__game.getState().test();
+    });
+    await page.waitForTimeout(1000);
+  },
+  drilldone: async (page) => {
+    await scenes.drillfix(page);
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      const reason = g.addRoute('R3', { dest: '10.0.1.0', prefix: 24, nextHop: '10.0.23.1' });
+      if (reason) throw new Error('経路を足せない: ' + reason);
+      window.__game.getState().test();
+    });
+    await page.waitForTimeout(800);
+  },
+  // 教材の一覧に演習が並ぶ
+  drillpicker: async (page) => {
+    await scenes.sandbox(page);
+    await page.locator('header button').last().click();
+    await page.getByRole('button', { name: '教材を開く' }).click();
+    await page.waitForTimeout(800);
+  },
   // マップのポインタ操作（ホイール・中ボタンの移動・各道具での押す・ドラッグ・乗せる）を一通り行う。位置は決め打ちせず、画面全体を走査する。
   // 例外や console のエラーが出ないことを --check で確かめる
   pointer: async (page) => {

@@ -95,7 +95,9 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       if (s.mode !== 'sandbox') throw new Error('教材はサンドボックスだけで開ける');
       const { size, nodes, links, plans } = lessonEntryOf(lessonCatalog, id).build(gameEnv.engine);
       const office = { ...emptyOffice(size), nodes, links, plans };
-      set({ office, maps: { ...s.maps, hq: mapOfOffice(office) }, sandboxLesson: { id, step: 0, done: false }, lessonCommands: [], check: null, helpUid: null, traces: [] });
+      set({ office, maps: { ...s.maps, hq: mapOfOffice(office) }, sandboxLesson: { id, step: 0, done: false }, sandboxDrill: null, lessonCommands: [], check: null, helpUid: null, traces: [] });
+      const { drill } = lessonEntryOf(lessonCatalog, id);
+      if (drill) get().beginDrill(drill);
     },
     closeLesson: () => set({ sandboxLesson: null, lessonCommands: [] }),
     lessonCommands: [],
@@ -108,6 +110,11 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       // サンドボックスは、案件の達成条件なしで、PC とサーバーの疎通を判定する
       if (s.mode === 'sandbox') {
         const lesson = s.sandboxLesson ? lessonEntryOf(lessonCatalog, s.sandboxLesson.id) : undefined;
+        // 演習は、今の問いの直した後を判定する
+        if (lesson?.drill) {
+          get().testDrill();
+          return null;
+        }
         const sr = sandboxTest(s.office, gameEnv, lesson?.goals);
         if (!sr) {
           set({ lastError: 'none' });

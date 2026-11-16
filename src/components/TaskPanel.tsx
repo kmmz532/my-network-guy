@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import { GLOSSARY_OF_FAILURE } from '../network/glossaryOf';
 import { lessonEntryOf } from '../sim/lessonCatalog';
 import { lessonCatalog } from '../stores/lessonCatalog';
+import { DrillPanel } from './DrillPanel';
 import { Button } from './ui/Button';
 import { HudBar } from './ui/HudBar';
 import { Text } from './ui/Text';
@@ -73,6 +74,7 @@ export function TaskPanel() {
   if (!active) {
     const lesson = lessonId === null ? undefined : lessonEntryOf(lessonCatalog, lessonId);
     if (!lesson) return null;
+    if (lesson.drill) return <DrillPanel drill={lesson.drill} />;
     // 教材: 案件と同じ欄に、題名・依頼文・達成条件（最後のテストの結果）を出す
     const lessonResult = check && check.projectId === 'hq' ? check.goals : null;
     return (

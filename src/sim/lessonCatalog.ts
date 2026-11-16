@@ -1,6 +1,7 @@
 // 学習モードで開ける構成の目録。教材と、修理の依頼（経営と関係なく練習できるように）を同じ形で扱う
-import type { Contract, Goal, Lesson } from '../data/schema';
+import type { Contract, Drill, Goal, Lesson } from '../data/schema';
 import type { GuideStep } from './guide';
+import { drillConfig } from './drill';
 import { lessonLinks, lessonNodes, lessonPlans } from './lesson';
 import { contractLinks, fixedNodes } from './project';
 import type { EngineData, NetLink, NetNode, NetworkPlan } from '../network/types';
@@ -13,7 +14,9 @@ export interface LessonEntry {
   titleKey: string;
   briefKey: string;
   goals: Goal[];
-  // 案内の手順（修理の依頼は案内を持たない）
+  // 演習のとき、その演習（画面は教材の欄ではなく演習の欄。titleKey 以外の文言は使わない）
+  drill?: Drill;
+  // 案内の手順（修理の依頼・演習は案内を持たない）
   guide: Pick<GuideStep, 'target' | 'done'>[];
   build: (engine: EngineData) => { size: { w: number; h: number }; nodes: NetNode[]; links: NetLink[]; plans: Record<string, NetworkPlan> };
 }
@@ -21,7 +24,21 @@ export interface LessonEntry {
 // 修理の依頼の部屋の広さ。地図は非同期で読むため、置かれた機器を囲む広さにする
 const REPAIR_MARGIN = 3;
 
-export const lessonCatalogOf = (lessons: Lesson[], contracts: Contract[]): LessonEntry[] => [
+export const lessonCatalogOf = (lessons: Lesson[], contracts: Contract[], drills: Drill[]): LessonEntry[] => [
+  ...drills.map((d): LessonEntry => ({
+    id: d.id,
+    group: d.topic,
+    order: d.order,
+    titleKey: `drill.${d.id}.title`,
+    briefKey: `drill.${d.id}.title`,
+    goals: [],
+    drill: d,
+    guide: [],
+    build: (engine) => {
+      const { nodes, links } = drillConfig(d);
+      return { size: d.size, nodes, links, plans: lessonPlans(nodes, links, engine) };
+    },
+  })),
   ...lessons.map((l): LessonEntry => ({
     id: l.id,
     group: l.topic,

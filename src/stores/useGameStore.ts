@@ -26,6 +26,7 @@ import { createEconomySlice, type EconomySlice } from './slices/economySlice';
 import { createUiSlice, type UiSlice } from './slices/uiSlice';
 import { createDebugSlice, type DebugSlice } from './slices/debugSlice';
 import { createSessionSlice, type SessionSlice } from './slices/sessionSlice';
+import { createDrillSlice, type DrillSlice } from './slices/drillSlice';
 export { frontDeviceUid, viewportNow } from './slices/windowsSlice';
 import { initialOffice } from '../sim/furniture';
 import { gameEnv } from '../sim/env';
@@ -46,7 +47,7 @@ export type Speed = number;
 export type { PlannedNet } from './gameHelpers';
 export { plannedKey } from './gameHelpers';
 
-export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, OfficeSlice, ContractSlice, EconomySlice, UiSlice, DebugSlice, SessionSlice {
+export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, OfficeSlice, ContractSlice, EconomySlice, UiSlice, DebugSlice, SessionSlice, DrillSlice {
   // 詳しくで選んだネットワーク（画面の状態。セーブには入らない）。キーは plannedKey
   planned: Record<string, PlannedNet>;
   // 遊び方（career は案件の経営ゲーム、sandbox は自由に設計する練習場）。セーブデータに入る
@@ -179,6 +180,7 @@ export const useGameStore = create<GameState>((set, get, api) => {
     ...createUiSlice(set, get, api),
     ...createDebugSlice(set, get, api),
     ...createSessionSlice(set, get, api),
+    ...createDrillSlice(set, get, api),
     mode: 'career',
     name: DEFAULT_COMPANY_NAME,
     clock: initialClock(balance),
