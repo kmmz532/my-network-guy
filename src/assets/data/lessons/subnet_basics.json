@@ -1,0 +1,183 @@
+{
+  "id": "subnet_basics",
+  "topic": "l2",
+  "order": 1,
+  "size": {
+    "w": 15,
+    "h": 9
+  },
+  "placed": [
+    {
+      "ref": "PC1",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.1.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "PC1"
+    },
+    {
+      "ref": "PC2",
+      "device": "pc_basic",
+      "x": 4,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.1.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "PC2"
+    },
+    {
+      "ref": "SW1",
+      "device": "l2_switch_8p",
+      "x": 7,
+      "y": 6,
+      "locked": false,
+      "config": {
+        "interfaces": [],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "SW1"
+    },
+    {
+      "ref": "PC3",
+      "device": "pc_basic",
+      "x": 10,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.2.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "PC3"
+    },
+    {
+      "ref": "PC4",
+      "device": "pc_basic",
+      "x": 12,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.2.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "PC4"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PC1",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PC2",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PC3",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 2
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PC4",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 3
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": [
+        "PC1",
+        "PC2",
+        "PC3",
+        "PC4"
+      ]
+    },
+    {
+      "type": "no_static_route"
+    }
+  ],
+  "guide": [
+    {
+      "target": "PC1",
+      "done": "cmd:ping"
+    },
+    {
+      "target": "PC3",
+      "done": "open:PC3"
+    },
+    {
+      "target": "PC4",
+      "done": "open:PC4"
+    },
+    {
+      "target": "test",
+      "done": "goal:1"
+    }
+  ]
+}

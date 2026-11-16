@@ -66,6 +66,16 @@ describe('教材（学習モード）', () => {
     expect(drOf(boosted)).toBe('R1');
   });
 
+  it('サブネットの教材: 初めは同じスイッチでも届かず、同じネットワークに直すと4台が通じる。別のネットワークのアドレスに戻すと、また届かなくなる', () => {
+    const l = lesson('subnet_basics');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false, false]);
+    const solved = solutions[l.id](lessonNodes(l));
+    expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true, true]);
+    const moved = solved.map((n) => (n.uid === 'PC4' ? { ...n, interfaces: n.interfaces.map((i) => ({ ...i, ip: '10.0.2.11' })) } : n));
+    expect(lessonGoalResults(l.goals, moved, links, engine)[0]).toBe(false);
+  });
+
   it('RIP の3拠点: 初めは達成条件を満たさず、RIP を設定すると満たす', () => {
     const l = lesson('rip_three_sites');
     const links = lessonLinks(l);

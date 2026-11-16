@@ -1,0 +1,262 @@
+{
+  "goals": [
+    false,
+    false
+  ],
+  "pings": [
+    {
+      "from": "PC1",
+      "to": "PC2",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC1",
+        "PC2"
+      ]
+    },
+    {
+      "from": "PC1",
+      "to": "PC3",
+      "ok": false,
+      "reason": "gateway.unset",
+      "path": [
+        "PC1"
+      ]
+    },
+    {
+      "from": "PC1",
+      "to": "PC4",
+      "ok": false,
+      "reason": "gateway.unset",
+      "path": [
+        "PC1"
+      ]
+    },
+    {
+      "from": "PC2",
+      "to": "PC1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC2",
+        "PC1"
+      ]
+    },
+    {
+      "from": "PC2",
+      "to": "PC3",
+      "ok": false,
+      "reason": "gateway.unset",
+      "path": [
+        "PC2"
+      ]
+    },
+    {
+      "from": "PC2",
+      "to": "PC4",
+      "ok": false,
+      "reason": "gateway.unset",
+      "path": [
+        "PC2"
+      ]
+    },
+    {
+      "from": "PC3",
+      "to": "PC1",
+      "ok": false,
+      "reason": "gateway.unset",
+      "path": [
+        "PC3"
+      ]
+    },
+    {
+      "from": "PC3",
+      "to": "PC2",
+      "ok": false,
+      "reason": "gateway.unset",
+      "path": [
+        "PC3"
+      ]
+    },
+    {
+      "from": "PC3",
+      "to": "PC4",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC3",
+        "PC4"
+      ]
+    },
+    {
+      "from": "PC4",
+      "to": "PC1",
+      "ok": false,
+      "reason": "gateway.unset",
+      "path": [
+        "PC4"
+      ]
+    },
+    {
+      "from": "PC4",
+      "to": "PC2",
+      "ok": false,
+      "reason": "gateway.unset",
+      "path": [
+        "PC4"
+      ]
+    },
+    {
+      "from": "PC4",
+      "to": "PC3",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC4",
+        "PC3"
+      ]
+    }
+  ],
+  "https": [],
+  "shows": [
+    {
+      "node": "SW1",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"SW1\",\"cost\":0}"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:04:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:05:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:04:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:05:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:04:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:05:00\"}",
+        "out:ui.terminal.macEntry {\"port\":3,\"mac\":\"02:10:00:00:05:00\"}",
+        "out:ui.terminal.macEntry {\"port\":3,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":3,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":3,\"mac\":\"02:10:00:00:04:00\"}"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "lesson_link_1",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_2",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_3",
+      "color": 10132122
+    },
+    {
+      "link": "lesson_link_4",
+      "color": 10132122
+    }
+  ],
+  "ports": [
+    {
+      "node": "PC1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "PC2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "PC3",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "PC4",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "SW1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        },
+        {
+          "port": 3,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [
+    [
+      "PC3",
+      {
+        "reason": "ip.out_of_segment",
+        "ip": "10.0.2.10",
+        "segment": "10.0.1.0/24"
+      }
+    ],
+    [
+      "PC4",
+      {
+        "reason": "ip.out_of_segment",
+        "ip": "10.0.2.11",
+        "segment": "10.0.1.0/24"
+      }
+    ]
+  ],
+  "warnings": []
+}
