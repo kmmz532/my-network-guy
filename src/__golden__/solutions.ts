@@ -13,6 +13,7 @@ export const solutions: Record<string, Solve> = {
   rip_three_sites: on(['R1', 'R2', 'R3'], (n) => ifaces(n, (i) => ({ ...i, rip: true }))),
   ospf_three_sites: on(['R1', 'R2', 'R3'], (n) => ifaces(n, (i) => ({ ...i, ospf: { area: 0 } }))),
   ospf_intro: on(['R1', 'R2'], (n) => ifaces(n, (i) => ({ ...i, ospf: { area: 0 } }))),
+  ospf_dr: on(['R1', 'R2', 'R3'], (n) => ifaces(n, (i) => ({ ...i, ospf: { area: 0 } }))),
   ospf_areas: on(['R1', 'R2', 'R3'], (n) => ifaces(n, (i) => ({ ...i, ospf: { area: AREA_OF[n.uid]?.[i.port] ?? 0 } }))),
   bgp_two_isps: on(['R1'], (n) => ({ ...n, components: { bgp: { asn: 64512, neighbors: [{ ip: '198.51.100.1', remoteAs: 65001 }, { ip: '203.0.113.1', remoteAs: 65002 }], networks: [] } } })),
   vlan_two_floors: on(['SW1', 'SW2'], (n) => ({

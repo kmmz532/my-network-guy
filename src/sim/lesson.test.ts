@@ -7,6 +7,7 @@ import type { EngineData } from '../network/types';
 import { lessonGoalResults, lessonLinks, lessonNodes, lessonPlans } from './lesson';
 import { planFor } from '../network/segments';
 import { analyze } from '../network/engine/analyze';
+import { ospfNeighborsOf } from '../network/query/ospfNeighbors';
 import type { Network } from '../network/types';
 
 const domainsOf = (net: Network, data: EngineData) => analyze(net, data).l2.planDomains;
@@ -48,6 +49,21 @@ describe('教材（学習モード）', () => {
       n.uid === 'R3' ? { ...n, interfaces: n.interfaces.map((i) => (i.port === 0 ? { ...i, ospf: { area: 2 } } : i)) } : n,
     );
     expect(lessonGoalResults(l.goals, detached, links, engine)[0]).toBe(false);
+  });
+
+  it('OSPF の DR: 初めは届かず、3台に OSPF を設定すると届く。R1 の優先度を上げると、DR が R1 に替わる', () => {
+    const l = lesson('ospf_dr');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false, false]);
+    const solved = solutions[l.id](lessonNodes(l));
+    expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true, true]);
+    const drOf = (nodes: typeof solved) =>
+      ospfNeighborsOf(analyze({ nodes, links, plans: {} }, engine), 'R2').find((nb) => nb.state === 'FULL/DR')?.uid;
+    expect(drOf(solved)).toBe('R3');
+    const boosted = solved.map((n) =>
+      n.uid === 'R1' ? { ...n, interfaces: n.interfaces.map((i) => (i.port === 1 ? { ...i, ospf: { area: 0, priority: 200 } } : i)) } : n,
+    );
+    expect(drOf(boosted)).toBe('R1');
   });
 
   it('RIP の3拠点: 初めは達成条件を満たさず、RIP を設定すると満たす', () => {
