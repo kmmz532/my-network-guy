@@ -76,6 +76,16 @@ describe('教材（学習モード）', () => {
     expect(lessonGoalResults(l.goals, moved, links, engine)[0]).toBe(false);
   });
 
+  it('ワイルドカードの教材: 初めは届かず、R1 と R2 の口を参加させると届く。R1 の1つの口が参加から外れると、その先へ届かない', () => {
+    const l = lesson('wildcard_mask');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false, false]);
+    const solved = solutions[l.id](lessonNodes(l));
+    expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true, true]);
+    const missed = solved.map((n) => (n.uid === 'R1' ? { ...n, interfaces: n.interfaces.map((i) => (i.port === 1 ? { ...i, ospf: undefined } : i)) } : n));
+    expect(lessonGoalResults(l.goals, missed, links, engine)[0]).toBe(false);
+  });
+
   it('RIP の3拠点: 初めは達成条件を満たさず、RIP を設定すると満たす', () => {
     const l = lesson('rip_three_sites');
     const links = lessonLinks(l);

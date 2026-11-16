@@ -12,6 +12,7 @@ const AREA_OF: Record<string, Record<number, number>> = { R1: { 0: 1, 1: 0 }, R2
 export const solutions: Record<string, Solve> = {
   rip_three_sites: on(['R1', 'R2', 'R3'], (n) => ifaces(n, (i) => ({ ...i, rip: true }))),
   ospf_three_sites: on(['R1', 'R2', 'R3'], (n) => ifaces(n, (i) => ({ ...i, ospf: { area: 0 } }))),
+  wildcard_mask: on(['R1', 'R2'], (n) => ifaces(n, (i) => ({ ...i, ospf: { area: 0 } }))),
   ospf_intro: on(['R1', 'R2'], (n) => ifaces(n, (i) => ({ ...i, ospf: { area: 0 } }))),
   subnet_basics: on(['PC3', 'PC4'], (n) => ifaces(n, (i) => ({ ...i, ip: n.uid === 'PC3' ? '10.0.1.12' : '10.0.1.13' }))),
   ospf_dr: on(['R1', 'R2', 'R3'], (n) => ifaces(n, (i) => ({ ...i, ospf: { area: 0 } }))),
