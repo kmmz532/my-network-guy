@@ -85,6 +85,7 @@ export function DrillPanel({ drill }: { drill: Drill }) {
               {run.stage === 'revealed' && (
                 <>
                   <Text size="sm" layout={{ marginTop: 6 }}>{t('ui.drill.reveal', { answer: answerText })}</Text>
+                  <Text tone="soft" size="sm" layout={{ marginTop: 4 }}>{tDyn(q.kind === 'inspect' ? `drill.hint.${q.ask.what}` : 'drill.hint.diagnose')}</Text>
                   <Button variant="secondary" layout={{ marginTop: 6, marginRight: 6 }} onClick={proceedDrill}>{t('ui.drill.next')}</Button>
                 </>
               )}
@@ -109,7 +110,7 @@ export function DrillPanel({ drill }: { drill: Drill }) {
             </>
           )}
           {hasTraces && <Button variant="secondary" layout={{ marginTop: 8, marginRight: 6 }} onClick={() => openWindow('frames', '')}>{t('ui.frames.open')}</Button>}
-          <Button variant="secondary" layout={{ marginTop: 8 }} onClick={closeLesson}>{t('ui.lesson.end')}</Button>
+          <Button variant="secondary" layout={{ marginTop: 8 }} onClick={closeLesson}>{t('ui.drill.quit')}</Button>
         </div>
       )}
     </HudBar>

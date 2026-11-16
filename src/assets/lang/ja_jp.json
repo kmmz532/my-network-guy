@@ -902,6 +902,7 @@
   "ui.drill.next": "次へ",
   "ui.drill.node": "機器",
   "ui.drill.progress": "{n} / {total}",
+  "ui.drill.quit": "演習を終える",
   "ui.drill.reach": "{from} から {to} へ届く",
   "ui.drill.reason": "理由",
   "ui.drill.reveal": "正解は {answer} です。",
