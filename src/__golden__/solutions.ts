@@ -6,10 +6,14 @@ type Solve = (nodes: NetNode[]) => NetNode[];
 const on = (uids: string[], f: (n: NetNode) => NetNode): Solve => (nodes) => nodes.map((n) => (uids.includes(n.uid) ? f(n) : n));
 const ifaces = (n: NetNode, f: (i: NetNode['interfaces'][number]) => NetNode['interfaces'][number]): NetNode => ({ ...n, interfaces: n.interfaces.map(f) });
 
+// ospf_areas の口ごとのエリア（機器の uid と口の番号）
+const AREA_OF: Record<string, Record<number, number>> = { R1: { 0: 1, 1: 0 }, R2: { 0: 0, 1: 0, 2: 0 }, R3: { 0: 0, 1: 2 } };
+
 export const solutions: Record<string, Solve> = {
   rip_three_sites: on(['R1', 'R2', 'R3'], (n) => ifaces(n, (i) => ({ ...i, rip: true }))),
   ospf_three_sites: on(['R1', 'R2', 'R3'], (n) => ifaces(n, (i) => ({ ...i, ospf: { area: 0 } }))),
   ospf_intro: on(['R1', 'R2'], (n) => ifaces(n, (i) => ({ ...i, ospf: { area: 0 } }))),
+  ospf_areas: on(['R1', 'R2', 'R3'], (n) => ifaces(n, (i) => ({ ...i, ospf: { area: AREA_OF[n.uid]?.[i.port] ?? 0 } }))),
   bgp_two_isps: on(['R1'], (n) => ({ ...n, components: { bgp: { asn: 64512, neighbors: [{ ip: '198.51.100.1', remoteAs: 65001 }, { ip: '203.0.113.1', remoteAs: 65002 }], networks: [] } } })),
   vlan_two_floors: on(['SW1', 'SW2'], (n) => ({
     ...n,

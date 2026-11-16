@@ -39,6 +39,17 @@ describe('教材（学習モード）', () => {
     expect(lessonGoalResults(l.goals, solutions[l.id](lessonNodes(l)), links, engine)).toEqual([true, true]);
   });
 
+  it('OSPF のエリア: 初めは届かず、エリアを分けて ABR を置くと届く。R3 を両方エリア 2 にすると、エリア 0 から切り離されて届かない', () => {
+    const l = lesson('ospf_areas');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false, false]);
+    expect(lessonGoalResults(l.goals, solutions[l.id](lessonNodes(l)), links, engine)).toEqual([true, true]);
+    const detached = solutions[l.id](lessonNodes(l)).map((n) =>
+      n.uid === 'R3' ? { ...n, interfaces: n.interfaces.map((i) => (i.port === 0 ? { ...i, ospf: { area: 2 } } : i)) } : n,
+    );
+    expect(lessonGoalResults(l.goals, detached, links, engine)[0]).toBe(false);
+  });
+
   it('RIP の3拠点: 初めは達成条件を満たさず、RIP を設定すると満たす', () => {
     const l = lesson('rip_three_sites');
     const links = lessonLinks(l);
