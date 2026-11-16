@@ -256,6 +256,12 @@ const viaStatic = (view: ForwardView, srcUid: string, routerUid: string, traffic
   const toRouter = deliver(view, srcUid, routerUid, traffic, true, undefined, outside.ip);
   if (!toRouter.ok) return toRouter;
   const innerTraffic: Traffic = traffic.kind === 'http' ? { kind: 'http', port: map.insidePort } : traffic;
+  // 転送を行う機器がファイアウォールなら、規則を変換の前のアドレス（外の機器の元の IP と社内のサーバーの IP）で判定する。公開のアドレスは規則に書かせない
+  const srcIp = view.addressing.nodeOf(srcUid)?.interfaces[0]?.ip;
+  if (srcIp === undefined) return { ok: false, path: toRouter.path, failure: fail('ip.unset', srcUid) };
+  if (can(r.device, 'firewallRules') && !allows(getComponent(r, 'firewall'), srcIp, map.insideIp, innerTraffic)) {
+    return { ok: false, path: toRouter.path, failure: fail('firewall.denied', routerUid) };
+  }
   const toServer = deliver(view, routerUid, server.uid, innerTraffic, false, inside.ip, map.insideIp);
   if (!toServer.ok) return { ok: false, path: toRouter.path, failure: toServer.failure };
   const listening = traffic.kind === 'http' ? server.services.some((s) => s.protocol === 'http' && s.port === map.insidePort) : server.services.some((s) => s.protocol === 'dns');
