@@ -172,7 +172,7 @@
   },
   "src/services/companies.test.ts": {
     "local/no-mode-branch": {
-      "count": 11
+      "count": 7
     }
   },
   "src/services/companies.ts": {
@@ -182,7 +182,7 @@
   },
   "src/services/companySlots.test.ts": {
     "local/no-mode-branch": {
-      "count": 16
+      "count": 18
     }
   },
   "src/services/legacyColors.ts": {
@@ -199,6 +199,11 @@
     }
   },
   "src/services/save.test.ts": {
+    "local/no-mode-branch": {
+      "count": 6
+    }
+  },
+  "src/services/saveRecords.test.ts": {
     "local/no-mode-branch": {
       "count": 6
     }

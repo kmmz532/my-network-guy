@@ -1,5 +1,6 @@
 // タイトル場面の流れ（何を出すか・どこへ移るか）
 import { describe, expect, it } from 'vitest';
+import { SLOT_RANGE } from '../services/slots';
 import type { CompanySave } from '../services/companies';
 import type { Company } from '../company/company';
 import { initialTitleState, titleReducer, type TitleEvent, type TitleState } from './titleFlow';
@@ -7,8 +8,8 @@ import { initialTitleState, titleReducer, type TitleEvent, type TitleState } fro
 const save = (slot: number, name: string): CompanySave => ({ slot, savedAt: 0, data: { name } as unknown as Company });
 const run = (events: TitleEvent[], from: TitleState = initialTitleState): TitleState => events.reduce(titleReducer, from);
 
-const CAREER_FULL = [11, 12, 13, 14, 15].map((slot) => save(slot, `会社${slot}`));
-const SANDBOX_FULL = [21, 22, 23].map((slot) => save(slot, `箱${slot}`));
+const CAREER_FULL = SLOT_RANGE.map((slot) => save(slot, `会社${slot}`));
+const SANDBOX_FULL = SLOT_RANGE.map((slot) => save(slot, `箱${slot}`));
 
 describe('titleReducer（タイトル場面の流れ）', () => {
   it('最初はメニュー', () => {
@@ -16,13 +17,13 @@ describe('titleReducer（タイトル場面の流れ）', () => {
   });
 
   it('新しく始める: 空いた枠があれば社名を決める画面へ（空いた最小の枠・既定の社名）', () => {
-    const s = run([{ type: 'newCareer', broken: [], saves: [save(11, 'A')] }]);
+    const s = run([{ type: 'newCareer', broken: [], saves: [save(11, 'A')], occupied: [11] }]);
     expect(s.mode).toBe('career');
     expect(s.panel).toEqual({ kind: 'slots', view: { kind: 'name', slot: 12, suggested: expect.any(String), from: 'new' } });
   });
 
   it('新しく始める: 枠が全部埋まっていれば、上書きする会社を選ぶ一覧へ', () => {
-    const s = run([{ type: 'newCareer', broken: [], saves: CAREER_FULL }]);
+    const s = run([{ type: 'newCareer', broken: [], saves: CAREER_FULL, occupied: SLOT_RANGE }]);
     expect(s.panel).toEqual({ kind: 'slots', view: { kind: 'list', purpose: 'overwrite' } });
   });
 
@@ -42,8 +43,8 @@ describe('titleReducer（タイトル場面の流れ）', () => {
   });
 
   it('広さを決めたサンドボックスは社名を決める。枠が全部埋まっていれば上書きの一覧', () => {
-    expect(run([{ type: 'sandboxSized', broken: [], saves: [] }]).panel).toMatchObject({ kind: 'slots', view: { kind: 'name', slot: 21, from: 'new' } });
-    expect(run([{ type: 'sandboxSized', broken: [], saves: SANDBOX_FULL }]).panel).toEqual({ kind: 'slots', view: { kind: 'list', purpose: 'overwrite' } });
+    expect(run([{ type: 'sandboxSized', broken: [], saves: [], occupied: [] }]).panel).toMatchObject({ kind: 'slots', view: { kind: 'name', slot: 11, from: 'new' } });
+    expect(run([{ type: 'sandboxSized', broken: [], saves: SANDBOX_FULL, occupied: SLOT_RANGE }]).panel).toEqual({ kind: 'slots', view: { kind: 'list', purpose: 'overwrite' } });
   });
 
   it('画面を閉じるとメニューに戻り、読み込み中の会社は捨てる', () => {
@@ -58,7 +59,7 @@ describe('titleReducer（タイトル場面の流れ）', () => {
 
   it('枠の画面の中の移り変わり（変更・消す）', () => {
     const target = save(11, 'A');
-    const s = run([{ type: 'newCareer', broken: [], saves: [target] }, { type: 'show', view: { kind: 'rename', save: target } }]);
+    const s = run([{ type: 'newCareer', broken: [], saves: [target], occupied: [target.slot] }, { type: 'show', view: { kind: 'rename', save: target } }]);
     expect(s.panel).toEqual({ kind: 'slots', view: { kind: 'rename', save: target } });
     const back = run([{ type: 'refreshed', saves: [target], view: { kind: 'list', purpose: 'play' } }], { ...s, notice: '古い知らせ' });
     expect(back.notice).toBe('');

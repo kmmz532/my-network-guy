@@ -1,6 +1,6 @@
 // タイトルの会社の一覧の操作（改名・複製・消去・読み込み）。保存先への読み書きはここで行い、
 // 画面は結果の種類（done・taken・full など）を見て知らせと画面を決める。保存先は引数で渡し、テストでは差し替える。
-import { listBrokenSlots, listCompanies, saveSlot, deleteSlot } from './db';
+import { listBrokenSlots, listCompanies, listOccupiedSlots, saveSlot, deleteSlot } from './db';
 import { copyNameOf, freeSlotOf, isNameTaken, isValidCompanyName, uniqueNameFrom, type CompanySave } from './companies';
 import type { BrokenSlot } from './saveRecords';
 import type { GameMode, Company } from '../company/company';
@@ -8,6 +8,8 @@ import type { GameMode, Company } from '../company/company';
 export interface SlotStore {
   list: (mode: GameMode) => Promise<CompanySave[]>;
   listBroken: (mode: GameMode) => Promise<BrokenSlot[]>;
+  // 使われている枠の番号（遊び方を問わない）
+  occupied: () => Promise<number[]>;
   save: (slot: number, data: Company) => Promise<void>;
   remove: (slot: number) => Promise<void>;
 }
@@ -15,12 +17,10 @@ export interface SlotStore {
 export const dbSlotStore: SlotStore = {
   list: listCompanies,
   listBroken: listBrokenSlots,
+  occupied: listOccupiedSlots,
   save: saveSlot,
   remove: deleteSlot,
 };
-
-// 空き枠を決めるときに数える枠（読める会社と、読めない枠）
-const occupiedSlots = async (store: SlotStore, mode: GameMode, list: CompanySave[]): Promise<{ slot: number }[]> => [...list, ...(await store.listBroken(mode))];
 
 export type RenameResult = { kind: 'invalid' } | { kind: 'taken'; saves: CompanySave[] } | { kind: 'done'; saves: CompanySave[] };
 
@@ -39,7 +39,7 @@ export type CopyResult = { kind: 'full'; saves: CompanySave[] } | { kind: 'done'
 // 複製する（空いた枠に同じ会社を写し、社名に「（コピー）」を付ける）。空きがなければ、一覧を返す
 export async function copyCompany(store: SlotStore, mode: GameMode, save: CompanySave): Promise<CopyResult> {
   const list = await store.list(mode);
-  const free = freeSlotOf(mode, await occupiedSlots(store, mode, list));
+  const free = freeSlotOf(await store.occupied());
   if (free === null) return { kind: 'full', saves: list };
   await store.save(free, { ...save.data, name: copyNameOf(save.data.name, list) });
   return { kind: 'done', saves: await store.list(mode) };
@@ -74,7 +74,7 @@ export type ImportResult =
 export async function importCompany(store: SlotStore, mode: GameMode, data: Company): Promise<ImportResult> {
   if (data.mode !== mode) return { kind: 'wrongMode' };
   const list = await store.list(mode);
-  const free = freeSlotOf(mode, await occupiedSlots(store, mode, list));
+  const free = freeSlotOf(await store.occupied());
   if (free === null) return { kind: 'held', data, saves: list };
   await store.save(free, { ...data, name: uniqueNameFrom(data.name, list) });
   return { kind: 'done', saves: await store.list(mode) };

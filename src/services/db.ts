@@ -3,9 +3,10 @@
 import Dexie, { type Table } from 'dexie';
 import { SAVE_VERSION, migrate } from './migrations';
 import type { GameMode, Company } from '../company/company';
-import { LEGACY_SLOT, SLOTS } from './slots';
+import { FIRST_SLOT, LEGACY_SLOT } from './slots';
 import type { CompanySave } from './companies';
-import { splitRecords, type BrokenSlot, type SaveRecord, type SplitRecords } from './saveRecords';
+import { recordsOfMode, type BrokenSlot, type ModeRecords, type SaveRecord } from './saveRecords';
+import { freeSlotOf } from './companies';
 
 class GameDb extends Dexie {
   saves!: Table<SaveRecord, number>;
@@ -28,31 +29,34 @@ export const loadSlot = async (slot: number): Promise<Company | null> => {
   return migrate(record.saveVersion, record.data);
 };
 
-// 遊び方の会社の一覧（その遊び方の枠に保存されているもの）。読むときに移行を通す。移行できない枠は含めない（listBrokenSlots で受け取る）
-export const listCompanies = async (mode: GameMode): Promise<CompanySave[]> => splitRecords(await modeRecords(mode)).saves;
+// 遊び方の会社の一覧（記録の遊び方がその遊び方のもの）。読むときに移行を通す。移行できない枠は含めない（listBrokenSlots で受け取る）
+export const listCompanies = async (mode: GameMode): Promise<CompanySave[]> => recordsOfMode(await slotRecords(), mode).saves;
 
 // 遊び方の会社と読めない枠を、1回の読み込みでまとめて返す
-export const listSlots = async (mode: GameMode): Promise<SplitRecords> => splitRecords(await modeRecords(mode));
+export const listSlots = async (mode: GameMode): Promise<ModeRecords> => recordsOfMode(await slotRecords(), mode);
 
 // 遊び方の読めない枠（移行で例外になった枠）
-export const listBrokenSlots = async (mode: GameMode): Promise<BrokenSlot[]> => splitRecords(await modeRecords(mode)).broken;
+export const listBrokenSlots = async (mode: GameMode): Promise<BrokenSlot[]> => recordsOfMode(await slotRecords(), mode).broken;
 
-const modeRecords = (mode: GameMode): Promise<SaveRecord[]> => db.saves.where('slot').anyOf([...SLOTS[mode]]).toArray();
+// 会社の枠の記録（移行前の枠は含めない）
+const slotRecords = (): Promise<SaveRecord[]> => db.saves.where('slot').aboveOrEqual(FIRST_SLOT).toArray();
+
+// 使われている枠の番号（遊び方を問わない）
+export const listOccupiedSlots = async (): Promise<number[]> => (await db.saves.where('slot').aboveOrEqual(FIRST_SLOT).primaryKeys()) as number[];
 
 // 会社を消す（元に戻せない）
 export const deleteSlot = async (slot: number): Promise<void> => {
   await db.saves.delete(slot);
 };
 
-// 移行前の枠（経営は枠1、サンドボックスは枠2）のセーブを、その遊び方の空いた枠へ移す。
+// 移行前の枠（経営は枠1、サンドボックスは枠2）のセーブを、範囲の空いた枠へ移す。
 // 移す先がなければ、移行前の枠はそのまま残す（セーブを消さない）
 export const moveLegacySlots = async (): Promise<void> => {
   for (const mode of Object.keys(LEGACY_SLOT) as GameMode[]) {
     const legacy = await db.saves.get(LEGACY_SLOT[mode]);
     if (!legacy) continue;
-    const used = (await db.saves.where('slot').anyOf([...SLOTS[mode]]).primaryKeys()) as number[];
-    const free = SLOTS[mode].find((slot) => !used.includes(slot));
-    if (free === undefined) continue;
+    const free = freeSlotOf(await listOccupiedSlots());
+    if (free === null) continue;
     await db.transaction('rw', db.saves, async () => {
       await db.saves.put({ ...legacy, slot: free });
       await db.saves.delete(LEGACY_SLOT[mode]);

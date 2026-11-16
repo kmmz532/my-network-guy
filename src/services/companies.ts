@@ -1,7 +1,7 @@
 // 会社（セーブの枠）の規則。画面と保存の両方で使う純粋な関数だけを置く（N133）
 import type { GameMode, Company } from '../company/company';
 import { DEFAULT_COMPANY_NAME, DEFAULT_SANDBOX_NAME } from './migrations';
-import { SLOTS } from './slots';
+import { SLOT_RANGE } from './slots';
 
 // 保存されている会社（枠・保存の日時・中身）
 export interface CompanySave {
@@ -22,11 +22,8 @@ export const isValidCompanyName = (name: string): boolean => {
 // 遊び方の既定の社名
 export const defaultNameOf = (mode: GameMode): string => (mode === 'sandbox' ? DEFAULT_SANDBOX_NAME : DEFAULT_COMPANY_NAME);
 
-// 空いている枠（最も小さい番号）。全部埋まっていれば null。読めない枠も埋まっているものとして数える（上書きで消さないため）
-export const freeSlotOf = (mode: GameMode, saves: readonly { slot: number }[]): number | null => {
-  const used = new Set(saves.map((s) => s.slot));
-  return SLOTS[mode].find((slot) => !used.has(slot)) ?? null;
-};
+// 空いている枠（範囲の中で最も小さい番号）。全部埋まっていれば null。occupied は遊び方を問わず使われている番号で、読めない枠も含める（上書きで消さないため）
+export const freeSlotOf = (occupied: readonly number[]): number | null => SLOT_RANGE.find((slot) => !occupied.includes(slot)) ?? null;
 
 // 社名が既に使われているか
 export const isNameTaken = (name: string, saves: readonly CompanySave[]): boolean => {

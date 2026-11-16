@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CompanySave } from './companies';
 import { copyCompany, deleteCompany, importCompany, overwriteCompany, renameCompany, type SlotStore } from './companySlots';
+import { SLOT_RANGE } from './slots';
 import { GameMode, Company } from '../company/company';
 
 // 保存先の代わり（枠の番号ごとに会社を持つ）
@@ -9,6 +10,7 @@ const fakeStore = (initial: CompanySave[]) => {
   const store: SlotStore = {
     list: async (mode: GameMode) => [...slots.values()].filter((s) => s.data.mode === mode).sort((a, b) => a.slot - b.slot),
     listBroken: async () => [],
+    occupied: async () => [...slots.keys()],
     save: async (slot, data) => {
       slots.set(slot, { slot, savedAt: 0, data });
     },
@@ -19,7 +21,7 @@ const fakeStore = (initial: CompanySave[]) => {
   return { store, slots };
 };
 
-// 枠の番号は SLOTS の値（経営 11〜15、サンドボックス 21〜23）
+// 枠の番号は SLOT_RANGE の値（11 から）
 const company = (slot: number, name: string, mode: GameMode = 'career'): CompanySave => ({
   slot,
   savedAt: slot,
@@ -28,7 +30,7 @@ const company = (slot: number, name: string, mode: GameMode = 'career'): Company
 
 const data = (name: string, mode: GameMode = 'career') => ({ name, mode }) as unknown as Company;
 
-const CAREER_FULL = [11, 12, 13, 14, 15].map((slot) => company(slot, `社${slot}`));
+const CAREER_FULL = SLOT_RANGE.map((slot) => company(slot, `社${slot}`));
 
 describe('renameCompany', () => {
   it('社名の形が悪ければ、保存せずに invalid を返す', async () => {
@@ -72,7 +74,15 @@ describe('copyCompany', () => {
     const { store, slots } = fakeStore(CAREER_FULL);
     const result = await copyCompany(store, 'career', CAREER_FULL[0]);
     expect(result.kind).toBe('full');
-    expect(slots.size).toBe(5);
+    expect(slots.size).toBe(SLOT_RANGE.length);
+  });
+
+  it('別の遊び方の会社が使っている枠は避けて複製する', async () => {
+    const { store, slots } = fakeStore([company(11, 'A社'), company(12, 'B社', 'sandbox')]);
+    const result = await copyCompany(store, 'career', company(11, 'A社'));
+    expect(result.kind).toBe('done');
+    expect(slots.get(13)?.data.name).toBe('A社（コピー）');
+    expect(slots.get(12)?.data.name).toBe('B社');
   });
 });
 
@@ -121,6 +131,6 @@ describe('importCompany', () => {
     const result = await importCompany(store, 'career', read);
     expect(result.kind).toBe('held');
     if (result.kind === 'held') expect(result.data).toBe(read);
-    expect(slots.size).toBe(5);
+    expect(slots.size).toBe(SLOT_RANGE.length);
   });
 });

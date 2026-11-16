@@ -42,13 +42,13 @@ export const initialTitleState: TitleState = { panel: { kind: 'menu' }, mode: 'c
 // 一覧を読み直した結果を伴う変化には saves を持たせる
 export type TitleEvent =
   // 「新しく始める」（経営）
-  | { type: 'newCareer'; saves: readonly CompanySave[]; broken: readonly BrokenSlot[] }
+  | { type: 'newCareer'; saves: readonly CompanySave[]; broken: readonly BrokenSlot[]; occupied: readonly number[] }
   // 「コンティニュー」（経営）
   | { type: 'continueCareer'; saves: readonly CompanySave[]; broken: readonly BrokenSlot[]; noneMessage: string }
   // 「サンドボックス」
   | { type: 'sandbox'; saves: readonly CompanySave[]; broken: readonly BrokenSlot[] }
   // サンドボックスの広さを決めた
-  | { type: 'sandboxSized'; saves: readonly CompanySave[]; broken: readonly BrokenSlot[] }
+  | { type: 'sandboxSized'; saves: readonly CompanySave[]; broken: readonly BrokenSlot[]; occupied: readonly number[] }
   // 読み込みに失敗した（メニューに知らせを出す）
   | { type: 'menuMessage'; message: string }
   // 一覧の「新しく作る」でサンドボックスの広さを選ぶ
@@ -69,15 +69,15 @@ export type TitleEvent =
 const slots = (view: SaveSlotView): TitlePanel => ({ kind: 'slots', view });
 
 // 空いた枠があれば社名を決める画面、全部埋まっていれば上書きする会社を選ぶ一覧
-const startOrOverwrite = (mode: GameMode, saves: readonly CompanySave[], broken: readonly BrokenSlot[]): TitlePanel => {
-  const free = freeSlotOf(mode, [...saves, ...broken]);
+const startOrOverwrite = (mode: GameMode, saves: readonly CompanySave[], occupied: readonly number[]): TitlePanel => {
+  const free = freeSlotOf(occupied);
   return free !== null ? slots({ kind: 'name', slot: free, suggested: suggestCompanyName(mode, saves), from: 'new' }) : slots({ kind: 'list', purpose: 'overwrite' });
 };
 
 export function titleReducer(state: TitleState, event: TitleEvent): TitleState {
   switch (event.type) {
     case 'newCareer':
-      return { ...state, mode: 'career', notice: '', message: '', saves: event.saves, broken: event.broken, panel: startOrOverwrite('career', event.saves, event.broken) };
+      return { ...state, mode: 'career', notice: '', message: '', saves: event.saves, broken: event.broken, panel: startOrOverwrite('career', event.saves, event.occupied) };
     case 'continueCareer':
       if (event.saves.length === 0 && event.broken.length === 0) return { ...state, mode: 'career', notice: '', saves: event.saves, broken: event.broken, message: event.noneMessage };
       return { ...state, mode: 'career', notice: '', message: '', saves: event.saves, broken: event.broken, panel: slots({ kind: 'list', purpose: 'play' }) };
@@ -86,7 +86,7 @@ export function titleReducer(state: TitleState, event: TitleEvent): TitleState {
         ? { ...state, mode: 'sandbox', message: '', saves: event.saves, broken: event.broken, panel: slots({ kind: 'list', purpose: 'play' }) }
         : { ...state, mode: 'sandbox', message: '', saves: event.saves, broken: event.broken, panel: { kind: 'sandboxSize' } };
     case 'sandboxSized':
-      return { ...state, mode: 'sandbox', saves: event.saves, broken: event.broken, panel: startOrOverwrite('sandbox', event.saves, event.broken) };
+      return { ...state, mode: 'sandbox', saves: event.saves, broken: event.broken, panel: startOrOverwrite('sandbox', event.saves, event.occupied) };
     case 'menuMessage':
       return { ...state, message: event.message };
     case 'openSandboxSize':
