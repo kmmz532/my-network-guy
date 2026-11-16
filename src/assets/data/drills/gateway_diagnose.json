@@ -1,0 +1,118 @@
+{
+  "id": "gateway_diagnose",
+  "topic": "routing",
+  "order": 104,
+  "size": {
+    "w": 12,
+    "h": 8
+  },
+  "placed": [
+    {
+      "ref": "PC1",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 5,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "172.16.30.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "PC1"
+    },
+    {
+      "ref": "SW1",
+      "device": "l2_switch_8p",
+      "x": 5,
+      "y": 5,
+      "locked": false
+    },
+    {
+      "ref": "R1",
+      "device": "router_basic",
+      "x": 5,
+      "y": 2,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "172.16.30.1",
+            "prefix": 24
+          },
+          {
+            "port": 1,
+            "ip": "172.16.40.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "R1"
+    },
+    {
+      "ref": "PC2",
+      "device": "pc_basic",
+      "x": 8,
+      "y": 2,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "172.16.40.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "172.16.40.1",
+        "services": [],
+        "locked": false
+      },
+      "name": "PC2"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PC1",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "R1",
+        "port": 1
+      },
+      "b": {
+        "ref": "PC2",
+        "port": 0
+      }
+    }
+  ],
+  "questions": [
+    {
+      "kind": "diagnose",
+      "id": "q1",
+      "from": "PC1",
+      "to": "PC2",
+      "traffic": {
+        "kind": "ping"
+      }
+    }
+  ]
+}
