@@ -53,6 +53,20 @@ export const commands: readonly CommandSpec[] = [
     },
   },
   {
+    id: 'ospf.showIpOspfInterface',
+    modes: ['exec'],
+    tokens: [{ word: 'show' }, { word: 'ip' }, { word: 'ospf' }, { word: 'interface' }],
+    help: 'ui.cmd.ospf.showIpOspfInterface',
+    writes: false,
+    topic: 'ospf',
+    run: (_args, ctx, tr) => {
+      const joined = ctx.node.interfaces.filter((i) => i.ospf !== undefined);
+      if (joined.length === 0) return shown([out(tr('ui.terminal.ospfInterfaceNone'))]);
+      // コストは、経路の計算と同じく、設定がなければ 1
+      return shown(joined.map((i) => out(tr('ui.terminal.ospfInterface', { port: i.port, ip: i.ip, prefix: i.prefix, area: i.ospf!.area, cost: i.ospf!.cost ?? 1 }))));
+    },
+  },
+  {
     id: 'ospf.routerId',
     modes: ['exec', 'config', 'router-ospf'],
     tokens: [{ word: 'router-id' }, { arg: 'ip', name: 'ip' }],

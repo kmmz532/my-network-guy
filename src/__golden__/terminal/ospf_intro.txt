@@ -13,6 +13,7 @@ show running-config
 show arp
 show hosts
 show ip ospf neighbor
+show ip ospf interface
 show xyz
 configure terminal
 conf t
@@ -48,6 +49,7 @@ ip address 0 10.0.5.1
 ip address 9 10.0.5.1 255.255.255.0
 no ip address vlan 1
 show ip ospf neighbor
+show ip ospf interface
 show ip route
 # モードの節: interface モード
 exit
@@ -101,6 +103,7 @@ router-id 1.1.1.1
 default-information originate
 no router-id
 show ip ospf neighbor
+show ip ospf interface
 exit
 router ospf
 router ospf x

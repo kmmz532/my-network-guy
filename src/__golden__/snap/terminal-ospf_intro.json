@@ -90,6 +90,12 @@
       ]
     },
     {
+      "line": "show ip ospf interface",
+      "lines": [
+        "out:ui.terminal.ospfInterfaceNone"
+      ]
+    },
+    {
       "line": "show xyz",
       "lines": [
         "err:       ^",
@@ -265,6 +271,12 @@
       "line": "show ip ospf neighbor",
       "lines": [
         "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "line": "show ip ospf interface",
+      "lines": [
+        "out:ui.terminal.ospfInterface {\"port\":1,\"ip\":\"10.0.12.1\",\"prefix\":30,\"area\":0,\"cost\":1}"
       ]
     },
     {
@@ -550,6 +562,13 @@
     },
     {
       "line": "show ip ospf neighbor",
+      "lines": [
+        "err:  ^",
+        "err:ui.terminal.invalidAt"
+      ]
+    },
+    {
+      "line": "show ip ospf interface",
       "lines": [
         "err:  ^",
         "err:ui.terminal.invalidAt"

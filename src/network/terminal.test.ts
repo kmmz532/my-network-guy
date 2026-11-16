@@ -223,6 +223,27 @@ describe('show ip ospf neighbor（N143）', () => {
   });
 });
 
+describe('show ip ospf interface', () => {
+  const node = (ospf: { area: number; cost?: number } | undefined) =>
+    ({ uid: 'r1', device: 'router_basic', x: 0, y: 0, locked: false, configLocked: false, gateway: null, routes: [], services: [], ports: [], interfaces: [
+      { id: 'g0/0', kind: 'port' as const, port: 0, ip: '10.0.0.1', prefix: 24, ...(ospf ? { ospf } : {}) },
+      { id: 'g0/1', kind: 'port' as const, port: 1, ip: '10.0.1.1', prefix: 24 },
+    ] }) as NetNode;
+
+  it('参加した口だけを、アドレス・エリア・コストと合わせて出す', () => {
+    const nodes = [node({ area: 1, cost: 20 })];
+    const lines = run('show ip ospf interface', { node: nodes[0], nodes, links: [], data }, tr);
+    expect(lines).toHaveLength(1);
+    expect(lines[0].text).toContain('10.0.0.1');
+    expect(lines[0].text).toContain('20');
+  });
+
+  it('参加した口がなければ、その旨を出す', () => {
+    const nodes = [node(undefined)];
+    expect(run('show ip ospf interface', { node: nodes[0], nodes, links: [], data }, tr)).toEqual([{ text: 'ui.terminal.ospfInterfaceNone', kind: 'out' }]);
+  });
+});
+
 describe('show ip rip database（N141b）', () => {
   it('RIP で覚えた経路がなければ、その旨を出す', () => {
     const nodes = [{ uid: 'r1', device: 'router_basic', x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [] } as unknown as NetNode];
