@@ -1,0 +1,234 @@
+{
+  "id": "vrrp_master_drill",
+  "topic": "redundancy",
+  "order": 103,
+  "size": {
+    "w": 12,
+    "h": 8
+  },
+  "placed": [
+    {
+      "ref": "R1",
+      "device": "router_basic",
+      "x": 2,
+      "y": 2,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "172.16.20.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "R1"
+    },
+    {
+      "ref": "R2",
+      "device": "router_basic",
+      "x": 8,
+      "y": 2,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "172.16.20.2",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "R2"
+    },
+    {
+      "ref": "PC1",
+      "device": "pc_basic",
+      "x": 5,
+      "y": 7,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "172.16.20.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "172.16.20.254",
+        "services": [],
+        "locked": false
+      },
+      "name": "PC1"
+    },
+    {
+      "ref": "SW1",
+      "device": "l2_switch_8p",
+      "x": 5,
+      "y": 4,
+      "locked": false
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "R1",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "R2",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PC1",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 2
+      }
+    }
+  ],
+  "questions": [
+    {
+      "kind": "inspect",
+      "id": "q1",
+      "ask": {
+        "what": "vrrp_master",
+        "vrid": 1
+      }
+    },
+    {
+      "kind": "inspect",
+      "id": "q2",
+      "ask": {
+        "what": "vrrp_master",
+        "vrid": 1
+      }
+    }
+  ],
+  "setup": [
+    {
+      "before": "q1",
+      "change": [
+        {
+          "kind": "config",
+          "uid": "R1",
+          "change": {
+            "kind": "vrrp",
+            "change": {
+              "op": "ip",
+              "id": "g0/0",
+              "vrid": 1,
+              "ip": "172.16.20.254"
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "R1",
+          "change": {
+            "kind": "vrrp",
+            "change": {
+              "op": "priority",
+              "id": "g0/0",
+              "vrid": 1,
+              "value": 110
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "R1",
+          "change": {
+            "kind": "vrrp",
+            "change": {
+              "op": "preempt",
+              "id": "g0/0",
+              "vrid": 1,
+              "on": true
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "R2",
+          "change": {
+            "kind": "vrrp",
+            "change": {
+              "op": "ip",
+              "id": "g0/0",
+              "vrid": 1,
+              "ip": "172.16.20.254"
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "R2",
+          "change": {
+            "kind": "vrrp",
+            "change": {
+              "op": "priority",
+              "id": "g0/0",
+              "vrid": 1,
+              "value": 100
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "R2",
+          "change": {
+            "kind": "vrrp",
+            "change": {
+              "op": "preempt",
+              "id": "g0/0",
+              "vrid": 1,
+              "on": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "before": "q2",
+      "change": [
+        {
+          "kind": "config",
+          "uid": "R2",
+          "change": {
+            "kind": "vrrp",
+            "change": {
+              "op": "priority",
+              "id": "g0/0",
+              "vrid": 1,
+              "value": 120
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
