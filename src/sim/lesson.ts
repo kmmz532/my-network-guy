@@ -8,7 +8,7 @@ import type { NetworkPlan } from '../network/types';
 import type { EngineData, NetLink, NetNode } from '../network/types';
 
 // 教材の置かれた機器。機器の uid は教材の ref と同じにする（案内の条件・達成条件が ref で指すため）
-export const lessonNodes = (lesson: Lesson): NetNode[] =>
+export const lessonNodes = (lesson: Pick<Lesson, 'placed'>): NetNode[] =>
   lesson.placed.map((p, i) => ({
     uid: p.ref,
     device: p.device,
@@ -34,7 +34,7 @@ export const lessonPlans = (nodes: NetNode[], links: NetLink[], engine: EngineDa
   fillPlans(analyze({ nodes, links, plans: {} }, engine));
 
 // 教材の配線済みのケーブル。配線の長さは機器の間の最短の経路（直線）で足りるものとして、端のマスだけを持つ
-export const lessonLinks = (lesson: Lesson): NetLink[] =>
+export const lessonLinks = (lesson: Pick<Lesson, 'id' | 'placed' | 'links'>): NetLink[] =>
   lesson.links.map((l, i) => {
     const at = (ref: string) => {
       const p = lesson.placed.find((x) => x.ref === ref);

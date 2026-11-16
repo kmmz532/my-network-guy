@@ -36,7 +36,7 @@ export interface OpContext {
 }
 
 // 機器の設定の変更を当てる。1つの変更は netEdit の関数1つに対応する
-const applyConfig = (core: Core, uid: string, change: ConfigChange, ctx: OpContext): Outcome => {
+export const applyConfig = (core: Core, uid: string, change: ConfigChange, ctx: Pick<OpContext, 'env' | 'target'>): Outcome => {
   const { env, target } = ctx;
   switch (change.kind) {
     case 'iface': return setInterface(core, uid, change.port, change.ip, change.prefix ?? 24, env, target);

@@ -1,6 +1,7 @@
 // ゲームデータのzodスキーマ。ビルド時（game-data プラグイン）でのみ使用し、実行時のjsには含めない。
 import { z } from 'zod';
 import { parseCondition } from '../sim/guide';
+import type { Operation } from '../company/operation';
 import { CATEGORY_IDS } from './categories';
 import { VOID_CHAR } from './tileKind';
 
@@ -694,13 +695,14 @@ export const guidesFileSchema = z.object({
 // 題名・依頼文・案内の文言は言語ファイルの lesson.<id>.title・lesson.<id>.brief・lesson.<id>.step.<n>（n は1から）
 export const LESSON_TOPICS = ['l2', 'routing', 'redundancy', 'service', 'nat', 'wireless', 'security'] as const;
 const lessonEndSchema = z.object({ ref: z.string().min(1), port: nonNegativeInt });
+export const placedLinkSchema = z.object({ cable: z.string().min(1), a: lessonEndSchema, b: lessonEndSchema });
 export const lessonSchema = z.object({
   id: z.string().min(1),
   topic: z.enum(LESSON_TOPICS),
   order: int,
   size: z.object({ w: int.positive(), h: int.positive() }),
   placed: z.array(placedSchema).min(1),
-  links: z.array(z.object({ cable: z.string().min(1), a: lessonEndSchema, b: lessonEndSchema })),
+  links: z.array(placedLinkSchema),
   goals: z.array(goalSchema).min(1),
   guide: z
     .array(
@@ -710,6 +712,49 @@ export const lessonSchema = z.object({
       }),
     )
     .min(1),
+});
+
+// 演習（学習モード。構成と問いと答えの判定）。正解はデータに書かず、構成から求める。問題の文は言語ファイルの drill.<id>.q.<問いの id>
+// 機器の設定の変更（機器の uid と変更）。netEdit の編集の関数を通して構成に当てる
+export type Change = Extract<Operation, { kind: 'config' }>;
+const changeSchema = z.custom<Change>(
+  (v) => typeof v === 'object' && v !== null && (v as { kind?: unknown }).kind === 'config' && typeof (v as { uid?: unknown }).uid === 'string' && typeof (v as { change?: { kind?: unknown } }).change?.kind === 'string',
+  '機器の設定の変更の形が正しくない',
+);
+export const trafficSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('ping') }),
+  z.object({ kind: z.literal('http'), port: z.number().int().min(1).max(65535) }),
+  z.object({ kind: z.literal('dns') }),
+]);
+const prefixText = z.string().regex(/^\d{1,3}(\.\d{1,3}){3}\/\d{1,2}$/);
+export const FRAME_FIELDS = ['srcMac', 'dstMac', 'srcIp', 'ttl', 'vlan'] as const;
+export const inspectAskSchema = z.discriminatedUnion('what', [
+  z.object({ what: z.literal('next_hop'), node: z.string().min(1), prefix: prefixText }),
+  z.object({ what: z.literal('route_source'), node: z.string().min(1), prefix: prefixText }),
+  // segment は OSPF のネットワーク（ネットワークアドレス/プレフィックス長）
+  z.object({ what: z.literal('ospf_dr'), segment: prefixText }),
+  z.object({ what: z.literal('stp_root') }),
+  z.object({ what: z.literal('vrrp_master'), vrid: int.min(1).max(255) }),
+  z.object({ what: z.literal('bgp_best'), node: z.string().min(1), prefix: prefixText }),
+  // hop は、通った順に並べたフレーム（往路の最初から数えて 0 始まり）の番号
+  z.object({ what: z.literal('frame_field'), from: z.string().min(1), to: z.string().min(1), hop: nonNegativeInt, field: z.enum(FRAME_FIELDS) }),
+]);
+export const questionSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('inspect'), id: z.string().min(1), ask: inspectAskSchema }),
+  z.object({ kind: z.literal('build'), id: z.string().min(1), goals: z.array(goalSchema).min(1) }),
+  z.object({ kind: z.literal('diagnose'), id: z.string().min(1), from: z.string().min(1), to: z.string().min(1), traffic: trafficSchema }),
+]);
+export const drillSchema = z.object({
+  id: z.string().min(1),
+  topic: z.enum(LESSON_TOPICS),
+  order: int,
+  size: z.object({ w: int.positive(), h: int.positive() }),
+  placed: z.array(placedSchema).min(1),
+  links: z.array(placedLinkSchema),
+  // 順に解く。前の問いの後の構成のまま次へ進む
+  questions: z.array(questionSchema).min(1),
+  // その問いの前に構成を変える（「R3 の電源を切った」など）。before は問いの id
+  setup: z.array(z.object({ before: z.string().min(1), change: z.array(changeSchema).min(1) })).optional(),
 });
 
 // 研修の課程（STAFF.md「4. 育成」）。受講中は担当に選べず、期日に経験値を得る
@@ -750,6 +795,11 @@ export type ContractTemplate = z.infer<typeof templateSchema>;
 export type GameMap = z.infer<typeof mapSchema>;
 export type Lang = z.infer<typeof langSchema>;
 export type Lesson = z.infer<typeof lessonSchema>;
+export type PlacedNode = z.infer<typeof placedSchema>;
+export type PlacedLink = z.infer<typeof placedLinkSchema>;
+export type Question = z.infer<typeof questionSchema>;
+export type InspectAsk = z.infer<typeof inspectAskSchema>;
+export type Drill = z.infer<typeof drillSchema>;
 export type GuideFile = z.infer<typeof guidesFileSchema>['guides'][number];
 
 // 会社のレベルの節目の報酬（N45）。解放は書かない（解放は品目の unlockLevel）
