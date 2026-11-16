@@ -14,6 +14,7 @@ import { staffSpriteName } from '../data/schema';
 import { Icon } from './Icon';
 import { Bubble } from './ui/Bubble';
 import { Button } from './ui/Button';
+import { termOfStep } from '../network/glossaryOf';
 import { Glow } from './ui/Glow';
 
 interface Box {
@@ -57,6 +58,10 @@ export function Guide() {
   // 構成に残らない条件を満たした手順の記録（教材を開いている間だけ）
   const guideSeen = useGameStore((s) => s.guideSeen);
   const markGuideSeen = useGameStore((s) => s.markGuideSeen);
+  // 吹き出しに出す用語（手順・設定の欄・失敗の理由で初めて出るもの）
+  const termNotice = useGameStore((s) => s.termNotice);
+  const introduceTerm = useGameStore((s) => s.introduceTerm);
+  const closeTermNotice = useGameStore((s) => s.closeTermNotice);
   // デバッグの「この手順から始める」（N54）: 指定の手順から出す。受け取ったら一度だけ使う
   const debugGuide = useGameStore((s) => s.debugGuide);
   const debugConsumeGuide = useGameStore((s) => s.debugConsumeGuide);
@@ -139,6 +144,14 @@ export function Guide() {
   }, [id, steps, finished, latchKeys.join(','), markGuideSeen, markGuideDone, lesson, finishLessonGuide, debugGuide, debugConsumeGuide]);
 
   const step = current ? current.step : null;
+  // 手順が変わったら、前の用語を下げ、その手順で初めて出る用語があれば出す
+  const stepKey = step === null ? null : step.key;
+  useEffect(() => {
+    if (stepKey === null) return;
+    closeTermNotice();
+    const term = termOfStep(stepKey);
+    if (term !== null) introduceTerm(term);
+  }, [stepKey, closeTermNotice, introduceTerm]);
   // 対象が機器（案件の機器の ref）なら、マップの機器を光らせるため、ストアに置く（描画は行わない）
   const deviceTarget = step !== null && nodes.some((n) => n.uid === step.target) ? step.target : null;
   useEffect(() => {
@@ -198,8 +211,13 @@ export function Guide() {
     };
   }, [glowName, measureGlow]);
 
-  if (id === null || step === null) return null;
-  const skip = () => (lesson ? finishLessonGuide() : markGuideDone(id));
+  if (step === null && termNotice === null) return null;
+  const skip = () => {
+    closeTermNotice();
+    if (step === null || id === null) return;
+    if (lesson) finishLessonGuide();
+    else markGuideDone(id);
+  };
   // スマホの吹き出しは、HUD と案件の欄の下に置く（ツールバー・インベントリ・シートの操作の欄とは重ならない）
   const topBelowHud = phone ? belowHud() : 0;
 
@@ -249,11 +267,15 @@ export function Guide() {
           ) : (
             <Icon name={`staff/${staffLook}_0`} scale={2} />
           )}
-          <span style={phone ? { flex: 1, minWidth: 0 } : undefined}>{tDyn(step.key)}</span>
+          <span style={phone ? { flex: 1, minWidth: 0 } : undefined}>
+            {step !== null && tDyn(step.key)}
+            {/* 案内の文の後に、用語の短い説明を1つだけ出す */}
+            {termNotice !== null && <div style={{ marginTop: 2 }}>{tDyn(`glossary.${termNotice}`)}</div>}
+          </span>
           {/* 外枠は指の操作を通すため、押せる部分だけ受け取る */}
           <span style={{ pointerEvents: 'auto', flexShrink: 0, display: 'flex' }}>
             <Button variant="secondary" size="fit" onClick={skip}>
-              {t('ui.guide.skip')}
+              {step !== null ? t('ui.guide.skip') : t('ui.notice.close')}
             </Button>
           </span>
         </Bubble>

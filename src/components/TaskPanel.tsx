@@ -8,7 +8,7 @@ import { Icon } from './Icon';
 import { familiarKeyOf } from '../sim/familiar';
 import { usePhone } from '../ui/usePhone';
 import { useEffect, useRef, useState } from 'react';
-import { GLOSSARY_OF_FAILURE } from '../network/glossaryOf';
+import { GLOSSARY_OF_FAILURE, termOfGoal } from '../network/glossaryOf';
 import { lessonEntryOf } from '../sim/lessonCatalog';
 import { lessonCatalog } from '../stores/lessonCatalog';
 import { DrillPanel, QuestionFlow } from './DrillPanel';
@@ -58,22 +58,29 @@ export function TaskPanel() {
   const goals = active
     ? active.contract.goals.map((goal, i) => {
         const g = result?.[i];
-        return { text: goalText(goal, (id) => labelOfUid(useGameStore.getState(), id, active.nodes)), ok: g ? g.ok : null, node: g?.failures[0]?.node ?? null, term: g?.failures[0] ? (GLOSSARY_OF_FAILURE[g.failures[0].reason] ?? null) : null };
+        return { text: goalText(goal, (id) => labelOfUid(useGameStore.getState(), id, active.nodes)), ok: g ? g.ok : null, node: g?.failures[0]?.node ?? null, term: (g?.failures[0] ? GLOSSARY_OF_FAILURE[g.failures[0].reason] : undefined) ?? termOfGoal(goal.type) };
       })
     : [];
   // 用語: 初めて出すときは説明を出し、記録する。2回目からは「用語の説明を見る」で開く
   const termsShown = useGameStore((s) => s.termsShown);
+  const introduceTerm = useGameStore((s) => s.introduceTerm);
   const markTermShown = useGameStore((s) => s.markTermShown);
   const [openTerm, setOpenTerm] = useState<string | null>(null);
   const firstShownHere = useRef(new Set<string>());
   const failingTerms = goals.filter((g) => g.ok === false && g.term).map((g) => g.term as string);
   useEffect(() => {
+    // 吹き出しには、まだ出していない最初の用語だけを出す（残りは案件の欄だけで説明し、記録する）
+    let noticed = false;
     for (const term of failingTerms) {
-      if (!termsShown.includes(term)) markTermShown(term);
+      if (!termsShown.includes(term)) {
+        if (noticed) markTermShown(term);
+        else introduceTerm(term);
+        noticed = true;
+      }
       firstShownHere.current.add(term);
     }
     // failingTerms は描画のたびに作り直すため、用語の並びだけで判定する
-  }, [failingTerms.join(','), termsShown, markTermShown]);
+  }, [failingTerms.join(','), termsShown, introduceTerm, markTermShown]);
 
   if (!active) {
     const lesson = lessonId === null ? undefined : lessonEntryOf(lessonCatalog, lessonId);

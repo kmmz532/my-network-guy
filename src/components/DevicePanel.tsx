@@ -2,7 +2,7 @@
 // 背面・設定・サービス（サーバーだけ）・ターミナルのタブを持つ。閉じるのは、ウィンドウの×か Esc（キーは input/keymap.ts が受け取る）。
 import { nodeLabel } from './nodeLabel';
 import { duplicateHostnames } from '../sim/project';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { t, tDyn } from '../i18n/t';
 import type { DnsRecordType, DnsService, NetLink, NetNode } from '../network/types';
 import { isL2Category, seenSourcesOf, type NetworkState } from '../network/public';
@@ -19,6 +19,8 @@ import { Button } from './ui/Button';
 import { Text } from './ui/Text';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { deviceCategory, deviceDef } from '../registry/query';
+import { can } from '../network/capabilities';
+import { termOfSettings } from '../network/glossaryOf';
 
 type Tab = 'rear' | 'config' | 'service' | 'terminal';
 // 機器ごとの、最後に開いた欄。窓を開き直したり機器を押し直したりしても、その欄から開く（初めての機器は背面）
@@ -106,6 +108,13 @@ function DeviceView({
   // 設定できるもの（IPアドレスなど）がない機器（L2 スイッチ）は、設定タブを出さない
   const hasConfig = !isL2Category(category);
   const issue = netState.addressing.issues[node.uid];
+  // 設定の欄を初めて開いたとき、その機器の設定の部品に対応する用語を、社員の吹き出しで1つ出す
+  const introduceTerm = useGameStore((s) => s.introduceTerm);
+  useEffect(() => {
+    if (tab !== 'config' || !hasConfig) return;
+    const term = termOfSettings((capability) => can(node.device, capability), useGameStore.getState().termsShown);
+    if (term !== null) introduceTerm(term);
+  }, [tab, hasConfig, node.device, introduceTerm]);
 
   return (
     <div>

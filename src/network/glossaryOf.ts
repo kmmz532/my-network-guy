@@ -1,4 +1,5 @@
 // 失敗の理由ごとに、案件の欄で説明する用語（用語集の ID。言語ファイルの glossary.<ID>）。対応のない理由は説明を出さない
+import type { Capability, Goal } from '../data/schema';
 import type { FailureReason } from './types';
 
 export const GLOSSARY_OF_FAILURE: Partial<Record<FailureReason, string>> = {
@@ -12,3 +13,60 @@ export const GLOSSARY_OF_FAILURE: Partial<Record<FailureReason, string>> = {
   'wlan.psk_mismatch': 'wpa2',
   'wlan.auth_mismatch': 'wpa3',
 };
+
+// 教材の案内の手順（文言のキー）ごとに、その手順で初めて出す用語。対応のない手順は説明を出さない
+export const GLOSSARY_OF_STEP: Record<string, string> = {
+  'lesson.bgp_two_isps.step.2': 'as_number',
+  'lesson.bgp_two_isps.step.3': 'ebgp_ibgp',
+  'lesson.bgp_two_isps.step.5': 'as_path',
+  'lesson.dhcp_relay.step.3': 'dhcp_relay',
+  'lesson.dns_intranet_names.step.2': 'dns_auth_cache',
+  'lesson.lag_uplink.step.2': 'lacp',
+  'lesson.napt_office.step.4': 'napt',
+  'lesson.nat_firewall.step.5': 'firewall',
+  'lesson.ospf_areas.step.1': 'abr',
+  'lesson.ospf_dr.step.7': 'dr_bdr',
+  'lesson.ospf_intro.step.4': 'wildcard_mask',
+  'lesson.ospf_three_sites.step.3': 'backbone_area',
+  'lesson.rip_three_sites.step.3': 'rip',
+  'lesson.stp_triangle.step.2': 'root_bridge',
+  'lesson.vlan_two_floors.step.5': 'dot1q',
+  'lesson.vrrp_pair.step.2': 'vrrp',
+  'lesson.wifi_security.step.2': 'wep',
+  'lesson.wifi_security.step.3': 'wpa3',
+  'lesson.wildcard_mask.step.3': 'wildcard_mask',
+};
+
+// 機器の設定の欄に出る設定の部品（機器の能力）ごとの用語。並びが、欄を開いたときに先に出す順になる
+export const GLOSSARY_OF_SETTING: readonly (readonly [Capability, string])[] = [
+  ['svi', 'svi'],
+  ['vrrp', 'vrrp'],
+  ['bgp', 'as_number'],
+  ['lag', 'lacp'],
+  ['switchport', 'dot1q'],
+  ['nat', 'napt'],
+  ['wireless', 'wpa2'],
+];
+
+// 達成条件の種類ごとの用語（失敗の理由に対応がないときに使う）
+export const GLOSSARY_OF_GOAL: Partial<Record<Goal['type'], string>> = {
+  bgp_established: 'as_number',
+  lag_bundled: 'lacp',
+  stp_root: 'root_bridge',
+  ospf_dr: 'dr_bdr',
+  wireless_secure: 'wpa2',
+  outside_reachable: 'napt',
+  firewall: 'firewall',
+  blocked: 'firewall',
+  blocked_all: 'firewall',
+  reach_by_name: 'dns_auth_cache',
+  resolve_name: 'dns_auth_cache',
+};
+
+export const termOfStep = (key: string): string | null => GLOSSARY_OF_STEP[key] ?? null;
+
+export const termOfGoal = (type: Goal['type']): string | null => GLOSSARY_OF_GOAL[type] ?? null;
+
+// 設定の欄を開いたときに出す用語: 機器が持つ設定の部品のうち、まだ出していない最初のもの。なければ null
+export const termOfSettings = (has: (capability: Capability) => boolean, shown: readonly string[]): string | null =>
+  GLOSSARY_OF_SETTING.find(([capability, term]) => has(capability) && !shown.includes(term))?.[1] ?? null;

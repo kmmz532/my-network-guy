@@ -235,6 +235,16 @@ const scenes = {
     });
     await page.waitForTimeout(1000);
   },
+  // 教材の案内の吹き出しに用語が出た場面（VRRP の教材で R1 を開き、手順 2 の文の後に VRRP の説明が出る）
+  guideterm: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      g.openLesson('vrrp_pair');
+      g.openWindow('device', 'R1');
+    });
+    await page.waitForTimeout(1000);
+  },
   // 修理の依頼を学習モードで開き、テストする（左上の欄に依頼文と × の条件が出る）
   lessonrepair: async (page) => {
     await scenes.sandbox(page);

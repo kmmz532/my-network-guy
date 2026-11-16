@@ -133,6 +133,10 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   traces: Trace[];
   // 用語を初めて出したことを記録する（2回目から出さない）
   markTermShown: (id: string) => void;
+  // 吹き出しに出している用語（保存しない）。初めて出す用語だけ入れ、記録する。出した用語が記録にあれば何もしない
+  termNotice: string | null;
+  introduceTerm: (id: string) => void;
+  closeTermNotice: () => void;
   // 納品した直後の案件（結果を閉じるまでマップに表示する）
   showcase: Project | null;
   // 操作の種類
@@ -228,6 +232,9 @@ export const useGameStore = create<GameState>((set, get, api) => {
     wireCable: 'utp_cat5e',
     traces: [],
     markTermShown: (id) => set((s) => (s.termsShown.includes(id) ? {} : { termsShown: [...s.termsShown, id] })),
+    termNotice: null,
+    introduceTerm: (id) => set((s) => (s.termsShown.includes(id) ? {} : { termsShown: [...s.termsShown, id], termNotice: id })),
+    closeTermNotice: () => set((s) => (s.termNotice === null ? {} : { termNotice: null })),
     showcase: null,
     check: null,
     helpUid: null,
