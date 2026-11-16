@@ -111,6 +111,45 @@ export const placeInOffice = (core: Core, deviceId: string, x: number, y: number
   };
 };
 
+// 機器を複製する。選んだ機器の機種・設定を、隣の空いたマス（右・左・下・上、続いて斜め）に写す。配線は写さない。
+// ホスト名は重ならない名前を付け、手で付けた名前は写さない。自動（DHCP）の口のアドレスは 0.0.0.0 にして、次の計算で新しく受け取らせる。
+// 固定のアドレスは写すため、同じアドレスの警告は今の仕組みで出る。回線終端は複製できない。
+// 在庫は置くときと同じ規則で数える（経営は1つ使い、在庫がなければ置かない。サンドボックスは数えない）
+const NEIGHBOR_OFFSETS: readonly (readonly [number, number])[] = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
+
+export const duplicateNode = (core: Core, uid: string, env: Env, target: NetTarget, map: GameMap, sandbox = false): Outcome => {
+  const net = netOf(core, target);
+  if (typeof net === 'string') return fail(net);
+  const node = net.nodes.find((n) => n.uid === uid);
+  if (!node) return fail('none');
+  if (node.device === 'uplink') return fail('locked');
+  if (!sandbox && (core.owned[node.device] ?? 0) < 1) return fail('stock');
+  const project = target === 'focus' ? (focusedOf(core) as Project) : null;
+  const inhouse = project === null || project.contract.inhouse;
+  const furniture = inhouse ? core.office.furniture : furnitureOf(map.furniture, project?.contract.furniture);
+  const at = NEIGHBOR_OFFSETS.map(([dx, dy]) => ({ x: node.x + dx, y: node.y + dy })).find(
+    ({ x, y }) => x >= 0 && y >= 0 && x < map.width && y < map.height && placeReason({ map, furniture, nodes: net.nodes, office: inhouse, anyFloor: sandbox }, node.device, x, y, env) === null,
+  );
+  if (!at) return fail('tile');
+  const { name: _name, ...rest } = node;
+  const copy: NetNode = {
+    ...rest,
+    uid: `u${net.seq}`,
+    hostname: nextHostname(net.nodes, deviceCategory(node.device)),
+    macSerial: nextMacSerial(net.nodes),
+    x: at.x,
+    y: at.y,
+    locked: false,
+    configLocked: false,
+    interfaces: node.interfaces.map((i) => (i.dhcp === true ? { ...i, ip: '0.0.0.0' } : i)),
+  };
+  const next = withNet(core, target, { ...net, nodes: [...net.nodes, copy], seq: net.seq + 1 });
+  return {
+    ok: true,
+    core: sandbox ? next : { ...next, owned: { ...next.owned, [node.device]: core.owned[node.device] - 1 } },
+  };
+};
+
 // 自社オフィスの機器を在庫に戻す。つながるケーブルも一緒に撤去する（ケーブルは在庫を持たない）
 export const removeFromOffice = (core: Core, uid: string, env: Env, sandbox = false): Outcome => {
   if (officeLocked(core)) return fail('inhouse');

@@ -172,6 +172,19 @@ export const KEYMAP: KeyBinding[] = [
       return true;
     },
   },
+  // 一番手前のウィンドウの機器を、隣の空いたマスに複製する
+  {
+    key: 'Ctrl+D',
+    id: 'duplicate',
+    name: 'keys.duplicate',
+    run: () => {
+      const s = useGameStore.getState();
+      const uid = frontDeviceUid(s);
+      if (!uid) return false;
+      s.duplicateNode(uid);
+      return true;
+    },
+  },
   { key: 'Ctrl+Z', id: 'undo', name: 'keys.undo', run: act((s) => s.undo()) },
   // Ctrl+Shift+Z は、この行（Ctrl+Y）と同じ「やり直す」として handleKey で扱う
   { key: 'Ctrl+Y', id: 'redo', name: 'keys.redo', run: act((s) => s.redo()) },

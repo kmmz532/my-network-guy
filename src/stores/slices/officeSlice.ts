@@ -18,6 +18,8 @@ import { hasFurniture } from '../../registry/query';
 
 export interface OfficeSlice {
   place: (deviceId: string, x: number, y: number) => string | null;
+  // 選んだ機器を、設定ごと隣の空いたマスに複製する（配線は写さない）。失敗したら理由を返す
+  duplicateNode: (uid: string) => string | null;
   // 自社オフィスの家具と社員。失敗したら理由を返す
   placeFurniture: (id: string, x: number, y: number) => string | null;
   // 自社オフィスの部屋の辺を買って2マス広げる（確認なし。取り消しの対象外）。失敗したら理由を返す
@@ -65,6 +67,10 @@ export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (
       const map = get().maps[project.contract.map];
       if (!map) return 'map';
       return releaseWhenEmpty(deviceId, dispatch({ kind: 'placeDevice', device: deviceId, x, y }, { tx: x, ty: y }));
+    },
+    duplicateNode: (uid) => {
+      const n = focusedProject(get())?.nodes.find((x) => x.uid === uid) ?? get().office.nodes.find((x) => x.uid === uid);
+      return dispatch({ kind: 'duplicateNode', uid }, n ? { tx: n.x, ty: n.y } : undefined);
     },
     expandOffice: (side) => {
       const office = get().office;

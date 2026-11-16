@@ -25,6 +25,7 @@ export type Operation =
   | { kind: 'placeDevice'; device: string; x: number; y: number }
   | { kind: 'moveNode'; uid: string; x: number; y: number }
   | { kind: 'removeNode'; uid: string }
+  | { kind: 'duplicateNode'; uid: string }
   | { kind: 'connect'; a: string; b: string; cable: string; ports?: PortChoice }
   | { kind: 'removeLink'; uid: string }
   | { kind: 'replug'; link: string; end: End; port: number }

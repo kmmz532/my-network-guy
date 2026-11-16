@@ -7,6 +7,7 @@ import {
   moveNode,
   moveOfficeUplink,
   placeDevice,
+  duplicateNode,
   placeInOffice,
   placeOfficeUplink,
   removeFromOffice,
@@ -107,6 +108,11 @@ export const applyOperation = (core: Core, op: Operation, ctx: OpContext): Outco
       const map = target === 'focus' ? designMap : hq;
       if (!map) return fail('map');
       return moveNode(core, op.uid, op.x, op.y, env, target, map, sandbox);
+    }
+    case 'duplicateNode': {
+      const map = target === 'focus' ? designMap : hq;
+      if (!map) return fail('map');
+      return duplicateNode(core, op.uid, env, target, map, sandbox);
     }
     case 'removeNode':
       return target === 'office' ? removeFromOffice(core, op.uid, env, sandbox) : removeNode(core, op.uid, env);
