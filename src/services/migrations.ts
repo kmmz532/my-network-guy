@@ -19,13 +19,14 @@ import { nextHostname } from '../network/hostname';
 import l3Json from '../assets/data/devices/l3_switch.json';
 import routerSwitchJson from '../assets/data/devices/router_switch.json';
 import homeRouterJson from '../assets/data/devices/home_router.json';
+import accessPointJson from '../assets/data/devices/access_point.json';
 import firewallJson from '../assets/data/devices/firewall.json';
 import firewallDmzJson from '../assets/data/devices/firewall_dmz.json';
 import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 61;
+export const SAVE_VERSION = 62;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -75,6 +76,30 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v61 → v62: 電波を出すアクセスポイント（と無線つきの家庭用ルーター）の無線の設定に、帯（band）を足す。移行前は 2.4GHz だけだったため '2.4'。
+  // 無線の設定のないアクセスポイントも、帯だけを持たせる。チャネルが 2.4GHz の範囲（1〜13）の外のものは、設定を外す（帯の既定のチャネルになる）
+  61: (data) => {
+    const apIds = new Set([...accessPointJson.devices, ...homeRouterJson.devices].filter((d) => d.capabilities.includes('accessPoint') && d.capabilities.includes('wireless')).map((d) => d.id));
+    const convert = <T extends { nodes: NetNode[] }>(x: T): T => ({
+      ...x,
+      nodes: x.nodes.map((n) => {
+        if (!apIds.has(n.device)) return n;
+        const { channel, ...rest } = n.components?.wireless ?? {};
+        const keep = channel !== undefined && Number.isInteger(channel) && channel >= 1 && channel <= 13;
+        return { ...n, components: { ...n.components, wireless: { ...rest, ...(keep ? { channel } : {}), band: '2.4' as const } } };
+      }),
+    });
+    const d = data as { active: { nodes: NetNode[] }[]; office: { nodes: NetNode[] }; familiarity: { counts: object; blueprints: Record<string, { stars: number; design: { nodes: NetNode[] } }> } };
+    return {
+      ...d,
+      office: convert(d.office),
+      active: d.active.map(convert),
+      familiarity: {
+        ...d.familiarity,
+        blueprints: Object.fromEntries(Object.entries(d.familiarity.blueprints).map(([k, b]) => [k, { ...b, design: convert(b.design) }])),
+      },
+    };
+  },
   // v60 → v61: 機器の名前の引き方（hosts・nameServer）を、機器のコンポーネントの表（components.resolver）へ移す。空の対応表と未設定のネームサーバーは移さない
   60: (data) => {
     type Resolver = NonNullable<NonNullable<NetNode['components']>['resolver']>;

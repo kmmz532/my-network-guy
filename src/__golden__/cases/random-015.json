@@ -32,6 +32,7 @@
       "routes": [],
       "services": [],
       "components": { "wireless": {
+        "band": "2.4",
         "ssid": "g",
         "password": "golden-pass",
         "security": "wep"

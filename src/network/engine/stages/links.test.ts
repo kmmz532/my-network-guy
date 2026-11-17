@@ -18,7 +18,7 @@ describe('stageLinks', () => {
   it('無線の端末は、アクセスポイントへの仮想の配線として現れる', () => {
     const wifi = { ssid: 'home', password: 'pass1234' };
     const net: Network = {
-      nodes: [node('ap', 'access_point', 1, { x: 2, components: { wireless: wifi } }), node('lap', 'laptop', 2, { x: 4, components: { wireless: wifi } })],
+      nodes: [node('ap', 'access_point', 1, { x: 2, components: { wireless: { ...wifi, band: '2.4' as const } } }), node('lap', 'laptop', 2, { x: 4, components: { wireless: wifi } })],
       links: [],
       plans: {},
     };
@@ -30,7 +30,7 @@ describe('stageLinks', () => {
   it('無線の端末は、アクセスポイントの L2 ドメインの計画を引く（鍵には使わない）', () => {
     const wifi = { ssid: 'home', password: 'pass1234' };
     const net: Network = {
-      nodes: [node('ap', 'access_point', 1, { x: 2, components: { wireless: wifi } }), node('lap', 'laptop', 2, { x: 4, components: { wireless: wifi } }), node('pc', 'pc_basic', 3)],
+      nodes: [node('ap', 'access_point', 1, { x: 2, components: { wireless: { ...wifi, band: '2.4' as const } } }), node('lap', 'laptop', 2, { x: 4, components: { wireless: wifi } }), node('pc', 'pc_basic', 3)],
       links: [link('w', 'pc', 0, 'ap', 0)],
       plans: { 'pc:0': { network: '192.168.1.0', prefix: 24 } },
     };

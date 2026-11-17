@@ -145,6 +145,7 @@
           "wireless": {
             "ssid": "OFFICE-NET",
             "password": "longerpass123",
+            "band": "2.4",
             "channel": 6,
             "vlan": 10,
             "security": "wpa3"

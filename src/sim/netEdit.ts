@@ -10,6 +10,10 @@ import { WIRELESS_SECURITIES } from '../network/types';
 import { makeIface, makePo, makeSvi } from '../network/iface';
 import { refusalFor } from './capabilityGate';
 import { getComponent, withComponent } from '../network/components';
+import { can } from '../network/capabilities';
+import { bandChannels, deviceBands } from '../registry/wireless';
+import { bandOf } from '../network/wirelessBand';
+import type { WirelessBand } from '../data/schema';
 import { registries } from '../registry/game';
 import { BgpOp, Project, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, StpOp, VrrpOp, fail, netOf, planDomainAt, withNet, zoneFromNodes } from './project';
 import { portCountOf } from '../registry/query';
@@ -462,8 +466,8 @@ export const setIsp = (core: Core, uid: string, line: IspLine, target: NetTarget
     target,
   );
 
-// 無線の設定（N151）。SSID・パスワード・チャネル・VLAN
-export const setWireless = (core: Core, uid: string, key: 'ssid' | 'password' | 'channel' | 'vlan' | 'security', value: string | number, target: NetTarget = 'focus'): Outcome =>
+// 無線の設定（N151）。SSID・パスワード・帯・チャネル・VLAN。帯は機器が選べるものだけ、チャネルは帯で選べるものだけ。帯を変えて今のチャネルが新しい帯で選べないときは、チャネルの設定を外す（帯の既定のチャネルになる）
+export const setWireless = (core: Core, uid: string, key: 'ssid' | 'password' | 'band' | 'channel' | 'vlan' | 'security', value: string | number, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
     uid,
@@ -471,7 +475,15 @@ export const setWireless = (core: Core, uid: string, key: 'ssid' | 'password' | 
       const refusal = refusalFor(node.device, 'wireless');
       if (refusal) return refusal;
       if (key === 'security' && !(WIRELESS_SECURITIES as readonly unknown[]).includes(value)) return 'wireless.security';
-      return withComponent(node, 'wireless', { ...getComponent(node, 'wireless'), [key]: value });
+      const cur = getComponent(node, 'wireless');
+      if (key === 'band') {
+        if (!can(node.device, 'accessPoint') || !(deviceBands(node.device) as readonly unknown[]).includes(value)) return 'wireless.band';
+        const band = value as WirelessBand;
+        const { channel, ...rest } = { ...cur, band };
+        return withComponent(node, 'wireless', channel !== undefined && bandChannels(band).includes(channel) ? { ...rest, channel } : rest);
+      }
+      if (key === 'channel' && (!can(node.device, 'accessPoint') || typeof value !== 'number' || !bandChannels(bandOf(node)).includes(value))) return 'wireless.channel';
+      return withComponent(node, 'wireless', { ...cur, [key]: value });
     },
     target,
   );

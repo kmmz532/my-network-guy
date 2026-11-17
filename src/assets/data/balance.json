@@ -22,6 +22,30 @@
   "startMoney": 1000000,
   "sellRate": 0.8,
   "metersPerTile": 5,
+  "wireless": {
+    "bands": {
+      "2.4": {
+        "radius": 8,
+        "wallLoss": 2,
+        "defaultChannel": 1,
+        "channels": [
+          { "from": 1, "to": 13, "step": 1 }
+        ],
+        "overlapDiff": 4
+      },
+      "5": {
+        "radius": 6,
+        "wallLoss": 3,
+        "defaultChannel": 36,
+        "channels": [
+          { "from": 36, "to": 48, "step": 4 },
+          { "from": 52, "to": 64, "step": 4 },
+          { "from": 100, "to": 140, "step": 4 }
+        ],
+        "overlapDiff": 0
+      }
+    }
+  },
   "nightPayRate": 1.5,
   "exp": {
     "delivery": 0.3,

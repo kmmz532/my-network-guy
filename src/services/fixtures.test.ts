@@ -90,7 +90,7 @@ describe('無線の設定の移行（機器の wireless を components.wireless 
     const wireless = { ssid: 'lab', password: 'lab-pass', channel: 6, security: 'wpa3' };
     data.office.nodes.push({ uid: 'ap_new', device: 'access_point', wireless });
     const moved = migrate(entry.saveVersion, data).office.nodes.find((n) => n.uid === 'ap_new');
-    expect(moved?.components).toEqual({ wireless });
+    expect(moved?.components).toEqual({ wireless: { ...wireless, band: '2.4' } });
     expect('wireless' in (moved ?? {})).toBe(false);
   });
 });
@@ -138,6 +138,26 @@ describe('名前の引き方の移行（機器の hosts・nameServer を compone
     const empty = nodes.find((n) => n.uid === 'pc_empty');
     expect(empty?.components).toBeUndefined();
     expect('hosts' in (empty ?? {})).toBe(false);
+  });
+});
+
+describe('無線の帯の移行（アクセスポイントの無線の設定に band を足す）', () => {
+  it('移行前の電波を出すアクセスポイントに 2.4GHz の帯が付き、2.4GHz の範囲の外のチャネルは外れる。ほかの機器は変わらない', () => {
+    const old = JSON.parse(readFileSync(join(dir, 'save-v61.json'), 'utf8')) as Fixture;
+    const entry = Object.values(old)[0];
+    const data = structuredClone(entry.data) as { office: { nodes: Record<string, unknown>[] } };
+    data.office.nodes.push({ uid: 'ap_ok', device: 'access_point', components: { wireless: { ssid: 'lab', channel: 11 } } });
+    data.office.nodes.push({ uid: 'ap_out', device: 'access_point', components: { wireless: { ssid: 'lab', channel: 36 } } });
+    data.office.nodes.push({ uid: 'ap_bare', device: 'access_point' });
+    data.office.nodes.push({ uid: 'hr_ap', device: 'home_router_ap', components: { wireless: { ssid: 'HOME', password: 'home1234' } } });
+    data.office.nodes.push({ uid: 'hr_plain', device: 'home_router' });
+    const nodes = migrate(entry.saveVersion, data).office.nodes;
+    const wireless = (uid: string) => nodes.find((n) => n.uid === uid)?.components?.wireless;
+    expect(wireless('ap_ok')).toEqual({ ssid: 'lab', channel: 11, band: '2.4' });
+    expect(wireless('ap_out')).toEqual({ ssid: 'lab', band: '2.4' });
+    expect(wireless('ap_bare')).toEqual({ band: '2.4' });
+    expect(wireless('hr_ap')).toEqual({ ssid: 'HOME', password: 'home1234', band: '2.4' });
+    expect(nodes.find((n) => n.uid === 'hr_plain')?.components).toBeUndefined();
   });
 });
 

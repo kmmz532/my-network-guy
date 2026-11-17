@@ -54,7 +54,13 @@
         "wireless"
       ],
       "sprite": "device/home_router_ap",
-      "unlockLevel": 30
+      "unlockLevel": 30,
+      "wlan": {
+        "bands": [
+          "2.4",
+          "5"
+        ]
+      }
     }
   ]
 }

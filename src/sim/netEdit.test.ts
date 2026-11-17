@@ -81,6 +81,24 @@ describe('setWireless', () => {
     expect(getComponent(next, 'wireless')).toEqual({ ssid: 'lab' });
     expect('wireless' in next).toBe(false);
   });
+
+  it('帯に合わないチャネルを拒否する（2.4GHz は 1〜13、5GHz は 36 などの決まった番号）', () => {
+    const at = (band: '2.4' | '5') => coreOf({ ...node('ap', 'access_point'), components: { wireless: { band } } } as NetNode);
+    expect(setWireless(at('2.4'), 'ap', 'channel', 36, 'office').ok).toBe(false);
+    expect(setWireless(at('2.4'), 'ap', 'channel', 14, 'office').ok).toBe(false);
+    expect(setWireless(at('2.4'), 'ap', 'channel', 11, 'office').ok).toBe(true);
+    expect(setWireless(at('5'), 'ap', 'channel', 1, 'office').ok).toBe(false);
+    expect(setWireless(at('5'), 'ap', 'channel', 50, 'office').ok).toBe(false);
+    expect(setWireless(at('5'), 'ap', 'channel', 100, 'office').ok).toBe(true);
+  });
+
+  it('機器が選べない帯を拒否する。帯を変えて今のチャネルが合わなければ、チャネルの設定を外す', () => {
+    const core = coreOf({ ...node('ap', 'access_point'), components: { wireless: { band: '2.4', channel: 6 } } } as NetNode);
+    expect(setWireless(core, 'ap', 'band', '6', 'office').ok).toBe(false);
+    const r = setWireless(core, 'ap', 'band', '5', 'office');
+    if (!r.ok) throw new Error(`設定できない: ${r.reason}`);
+    expect(getComponent(r.core.office.nodes[0], 'wireless')).toEqual({ band: '5' });
+  });
 });
 
 describe('setNat', () => {

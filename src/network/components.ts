@@ -2,7 +2,7 @@
 // 持てるコンポーネントは機器の定義（能力）が決め、持てない機器に付けようとすれば例外で止める。
 import { z } from 'zod';
 import type { Capability } from '../data/schema';
-import { ipv4 } from '../data/schema';
+import { ipv4, WIRELESS_BANDS } from '../data/schema';
 import { can } from './capabilities';
 import type { NetNode } from './types';
 import { WIRELESS_SECURITIES } from './types';
@@ -26,11 +26,12 @@ export const COMPONENT_SCHEMAS = {
     neighbors: z.array(z.object({ ip: ipv4, remoteAs: z.number().int().nonnegative(), nextHopSelf: z.boolean().optional(), localPref: z.number().int().optional(), med: z.number().int().optional(), prepend: z.number().int().nonnegative().optional() })),
     networks: z.array(z.object({ dest: ipv4, prefix: z.number().int().min(0).max(32) })),
   }),
-  // 無線の設定（アクセスポイントは SSID・パスワード・チャネル・VLAN・MAC フィルター・暗号化の方式を持つ。無線の端末は SSID とパスワードを持ち、合うアクセスポイントにつながる）
+  // 無線の設定（アクセスポイントは SSID・パスワード・帯（band。必須）・チャネル・VLAN・MAC フィルター・暗号化の方式を持つ。無線の端末は SSID とパスワードを持ち、合うアクセスポイントにつながる）
   // macs は登録した端末の MAC だけを通す。省略なら制限しない。security の省略は wpa2。wpa2wpa3 は WPA2/WPA3 の移行モード
   wireless: z.object({
     ssid: z.string().optional(),
     password: z.string().optional(),
+    band: z.enum(WIRELESS_BANDS).optional(),
     channel: z.number().int().optional(),
     vlan: z.number().int().optional(),
     macs: z.array(z.string()).optional(),

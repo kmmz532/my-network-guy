@@ -996,6 +996,8 @@
   "ui.error.vrrp.unsupported": "この機器は VRRP を使えません",
   "ui.error.vrrp.vip": "仮想の IP アドレスは、そのインターフェースのサブネットの中にしてください",
   "ui.error.vrrp.vrid": "VRID は 1〜255 にしてください",
+  "ui.error.wireless.band": "この機器では、その帯は選べません",
+  "ui.error.wireless.channel": "チャネルは、アクセスポイントの帯で選べる番号にしてください",
   "ui.error.wireless.security": "暗号化の方式は、open・wep・wpa・wpa2・wpa3・wpa2-wpa3 のどれかにしてください",
   "ui.exam.button": "{name}（{fee}円・合格率 {rate}%）",
   "ui.exam.done": "受験しました",

@@ -25,7 +25,8 @@
       "wireless": {
         "ssid": "office-wifi",
         "password": "office-pass-2026",
-        "security": "wpa3"
+        "security": "wpa3",
+        "band": "2.4"
       }
     },
     {

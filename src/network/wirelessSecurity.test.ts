@@ -19,7 +19,7 @@ const build = (security: WirelessSecurity | undefined, device: string, password 
   nodes: [
     n('pc', 'pc_basic', [f(0, '192.168.1.10')], 0),
     n('sw', 'l2_switch_8p', [], 1),
-    n('ap', 'access_point', [], 2, { ssid: 'home', password: 'pass1234', ...(security ? { security } : {}) }),
+    n('ap', 'access_point', [], 2, { ssid: 'home', password: 'pass1234', band: '2.4', ...(security ? { security } : {}) }),
     n('cl', device, [f(0, '192.168.1.20')], 4, { ssid: 'home', password }),
   ],
   links: [l('a', 'pc', 0, 'sw', 0), l('b', 'sw', 1, 'ap', 0)],

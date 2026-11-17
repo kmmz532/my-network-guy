@@ -5,6 +5,8 @@ import { getComponent } from '../../components';
 import { computeLags, type LagResult } from '../../lag';
 import { macOf } from '../../mac';
 import { resolvePo } from '../../po';
+import { bandRadius, bandWallLoss } from '../../../registry/wireless';
+import { bandOf } from '../../wirelessBand';
 import type { EngineData, NetLink, NetNode, Network, PortConfig } from '../../types';
 
 // 配線の長さ（タイル数）。折れ点ごとの縦横の距離の合計
@@ -15,11 +17,6 @@ export const linkLength = (path: [number, number][]): number => {
   }
   return length;
 };
-
-// 電波の範囲（マス。仮の値・WIRELESS.md §3 の減衰は後続）。範囲の中の無線の端末は、最も近いアクセスポイントの LAN に入る（N151）
-export const WIRELESS_RADIUS = 6;
-// 壁1マスを通るごとに、電波の届く距離から失われるマス数（仮の値・WIRELESS.md §3）
-export const WALL_LOSS = 2;
 
 // アクセスポイントから端末までの経路（x を先、次に y）にある壁のマスの数（両端は数えない）
 export const wallsBetween = (wallAt: (x: number, y: number) => boolean, ax: number, ay: number, cx: number, cy: number): number => {
@@ -70,7 +67,8 @@ export const wirelessAssociations = (net: Network, data: EngineData): { ap: NetN
       if (w.macs !== undefined && (c.macSerial === undefined || !w.macs.includes(macOf(deviceCategory(c.device), c.macSerial, 0)))) continue;
       // 壁を通るたびに減衰し、減衰後に届く範囲だけが有効（壁の判定がないときは減衰しない）
       const walls = wallsBetween(data.wallAt, ap.x, ap.y, c.x, c.y);
-      if (d + walls * WALL_LOSS <= WIRELESS_RADIUS && (best === undefined || d < best.d || (d === best.d && ap.uid < best.ap.uid))) best = { ap, d };
+      const band = bandOf(ap);
+      if (d + walls * bandWallLoss(band) <= bandRadius(band) && (best === undefined || d < best.d || (d === best.d && ap.uid < best.ap.uid))) best = { ap, d };
     }
     if (best) out.push({ ap: best.ap, client: c });
   }

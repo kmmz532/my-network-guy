@@ -394,9 +394,11 @@ export const requireDesign = (core: Core): Project | OpFailReason => {
 
 // 在庫から機器を1台配置する。自社案件では自社オフィスと同じ規則に従い、ほかの案件では床（PCは机の上も可）に置ける。
 // 家庭用ルーターの出荷時の設定（NET.md §4）: LAN の口（1）に 192.168.1.1/24・社内側の口・NAPT 有効・DHCP（192.168.1.100〜199 を配る）。無線つきは SSID とパスワードも持つ。ほかの機器は何も持たない
-const FACTORY_WIFI = { ssid: 'HOME', password: 'home1234' };
+const FACTORY_WIFI = { ssid: 'HOME', password: 'home1234', band: '2.4' as const };
 export const factoryConfigOf = (deviceId: string): Pick<NetNode, 'interfaces' | 'components'> => {
   const category = deviceCategory(deviceId);
+  // アクセスポイントは、SSID を設定するまで電波を出さない。帯だけ持って置く
+  if (deviceId === 'access_point') return { interfaces: [], components: { wireless: { band: '2.4' } } };
   if (category !== CATEGORY.homeRouter) return { interfaces: [] };
   const lan = { ...makeIface(deviceId, 1, '192.168.1.1', 24), nat: 'inside' as const };
   const wireless = deviceId === 'home_router_ap' ? { wireless: { ...FACTORY_WIFI } } : {};

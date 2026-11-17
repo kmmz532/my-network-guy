@@ -44,7 +44,8 @@
       "wireless": {
         "ssid": "office",
         "password": "office-pass",
-        "security": "wep"
+        "security": "wep",
+        "band": "2.4"
       },
       "name": "AP1"
     },

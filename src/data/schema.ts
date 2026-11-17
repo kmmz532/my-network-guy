@@ -66,6 +66,14 @@ export const FLOOR_IDS = ['wood', 'tile', 'carpet', 'concrete', 'linoleum'] as c
 export type FloorId = (typeof FLOOR_IDS)[number];
 const floorIdSchema = z.enum(FLOOR_IDS);
 
+const wirelessBandSchema = z.object({
+  radius: int.positive(),
+  wallLoss: nonNegativeInt,
+  defaultChannel: int.positive(),
+  channels: z.array(z.object({ from: int.positive(), to: int.positive(), step: int.positive() })).min(1),
+  overlapDiff: nonNegativeInt,
+});
+
 export const balanceSchema = z.object({
   time: z.object({
     realMsPerTick: int.positive(),
@@ -80,6 +88,10 @@ export const balanceSchema = z.object({
   sellRate: z.number().min(0).max(1),
   // 地図の1マスの長さ（メートル）。ケーブルの上限と表示に使う（N49）
   metersPerTile: int.positive(),
+  // 無線の帯ごとの数値。届く半径・壁1マスの減衰（マス）、選べるチャネル（範囲の列）、既定のチャネル、重なるチャネルの差の上限（差がこれ以下なら重なる）
+  wireless: z.object({
+    bands: z.object({ '2.4': wirelessBandSchema, '5': wirelessBandSchema }),
+  }),
   // 夜勤の給与の倍率（日勤の給与に掛ける。N48）
   nightPayRate: z.number().positive(),
   // 納品以外の経験値の量と、1日の上限（N55）
@@ -277,6 +289,10 @@ const serviceSchema = z.discriminatedUnion('protocol', [
 export const CAPABILITY_IDS = ['switchport', 'vlan', 'stp', 'svi', 'routedPort', 'subif', 'routing', 'rip', 'ospf', 'bgp', 'nat', 'services', 'dhcpRelay', 'firewall', 'wireless', 'wan', 'vrrp', 'lag', 'wpa3', 'endpoint', 'uplink', 'firewallRules', 'accessPoint'] as const;
 export type Capability = (typeof CAPABILITY_IDS)[number];
 
+// 無線の帯（2.4GHz・5GHz）
+export const WIRELESS_BANDS = ['2.4', '5'] as const;
+export type WirelessBand = (typeof WIRELESS_BANDS)[number];
+
 export const deviceSchema = z
   .object({
   id: z.string().min(1),
@@ -298,6 +314,8 @@ export const deviceSchema = z
     )
     .min(1),
   features: z.array(z.string()).default([]),
+  // 無線の対応（アクセスポイントが選べる帯）。電波を出すアクセスポイント（能力 accessPoint と wireless）は必須
+  wlan: z.object({ bands: z.array(z.enum(WIRELESS_BANDS)).min(1) }).optional(),
   defaultServices: z.array(serviceSchema).default([]),
   sprite: z.string().min(1),
   unlockLevel: unlockLevelSchema,
@@ -312,6 +330,7 @@ export const deviceSchema = z
     if (has('subif') && !has('routedPort')) fail('subif には routedPort が必要');
     if ((has('ospf') || has('bgp') || has('nat')) && !has('routing')) fail('ospf・bgp・nat には routing が必要');
     if (has('vlan') && !has('switchport')) fail('vlan には switchport が必要');
+    if (has('accessPoint') && has('wireless') && d.wlan === undefined) fail('accessPoint と wireless を持つ機器には wlan が必要');
   });
 
 export const devicesFileSchema = z.object({ devices: z.array(deviceSchema) });
@@ -378,8 +397,8 @@ export const placedSchema = z.object({
   config: placedConfigSchema.optional(),
   // 回線終端の回線の情報（ISP の名前・回線のネットワーク・ISP 側のアドレス・ISP の AS 番号）
   isp: z.object({ name: z.string(), network: z.string(), prefix: z.number().int().min(8).max(30), ispIp: z.string(), asn: z.number().int().positive().optional(), dns: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/).optional() }).optional(),
-  // 無線の設定（教材のアクセスポイント・端末の初期の設定。SSID・パスワード・暗号化の方式）
-  wireless: z.object({ ssid: z.string().min(1), password: z.string().min(1), security: z.enum(['open', 'wep', 'wpa', 'wpa2', 'wpa3', 'wpa2wpa3']).optional() }).optional(),
+  // 無線の設定（教材のアクセスポイント・端末の初期の設定。SSID・パスワード・帯・暗号化の方式。帯はアクセスポイントだけが持つ）
+  wireless: z.object({ ssid: z.string().min(1), password: z.string().min(1), band: z.enum(WIRELESS_BANDS).optional(), security: z.enum(['open', 'wep', 'wpa', 'wpa2', 'wpa3', 'wpa2wpa3']).optional() }).optional(),
   // 場所の名前（「受付のPC」など。画面の機器の名前になる。なければ「PC-1」などの仮の名前）
   name: z.string().min(1).max(24).optional(),
 });

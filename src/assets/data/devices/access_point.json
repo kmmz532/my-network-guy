@@ -20,7 +20,13 @@
         "wireless"
       ],
       "sprite": "device/access_point",
-      "unlockLevel": 25
+      "unlockLevel": 25,
+      "wlan": {
+        "bands": [
+          "2.4",
+          "5"
+        ]
+      }
     }
   ]
 }

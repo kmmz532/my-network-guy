@@ -73,6 +73,8 @@ export const OP_FAIL_REASONS = [
   'vrrp.unsupported',
   'vrrp.vip',
   'vrrp.vrid',
+  'wireless.band',
+  'wireless.channel',
   'wireless.security',
 ] as const;
 

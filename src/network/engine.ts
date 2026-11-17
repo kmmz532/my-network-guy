@@ -4,5 +4,5 @@ export type { Traffic } from './engine/forward';
 export { inSubnet, ipToInt, isPrivateIp } from './ip';
 export { adOf } from './engine/stages/routing';
 export { dhcpWriteBack } from './engine/analyze';
-export { accessPointsOf, linkLength, wallsBetween, WALL_LOSS, WIRELESS_RADIUS, wirelessAssociations, withWireless } from './engine/stages/links';
+export { accessPointsOf, linkLength, wallsBetween, wirelessAssociations, withWireless } from './engine/stages/links';
 export type { VlanWarning } from './query/warnings';

@@ -54,6 +54,7 @@
       "services": [],
       "components": {
         "wireless": {
+          "band": "2.4",
           "ssid": "g",
           "password": "golden-pass",
           "security": "open"
@@ -90,6 +91,7 @@
       "services": [],
       "components": {
         "wireless": {
+          "band": "2.4",
           "ssid": "g",
           "password": "golden-pass",
           "security": "wep"
@@ -125,6 +127,7 @@
       "services": [],
       "components": {
         "wireless": {
+          "band": "2.4",
           "ssid": "g",
           "password": "golden-pass",
           "security": "open"

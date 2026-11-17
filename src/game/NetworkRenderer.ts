@@ -4,7 +4,9 @@ import type { Trace } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
 import { can } from '../network/capabilities';
 import { getComponent } from '../network/components';
-import { WALL_LOSS, WIRELESS_RADIUS, wallsBetween, wirelessAssociations } from '../network/engine';
+import { wallsBetween, wirelessAssociations } from '../network/engine';
+import { bandRadius, bandWallLoss } from '../registry/wireless';
+import { bandOf } from '../network/wirelessBand';
 import type { EngineData } from '../network/types';
 import { cumulativeLengths, pointAt, type Point } from './animation';
 import type { Project } from '../sim/project';
@@ -59,14 +61,16 @@ export class NetworkRenderer {
     if (!ap) return;
     // 無線の能力も無線の設定もない機器（無線のない家庭用ルーター）は、電波を出さないため描かない
     if (!can(ap.device, 'accessPoint') || (!can(ap.device, 'wireless') && getComponent(ap, 'wireless') === undefined)) return;
-    for (let dy = -WIRELESS_RADIUS; dy <= WIRELESS_RADIUS; dy++) {
-      for (let dx = -WIRELESS_RADIUS; dx <= WIRELESS_RADIUS; dx++) {
+    const band = bandOf(ap);
+    const radius = bandRadius(band);
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
         const tx = ap.x + dx;
         const ty = ap.y + dy;
         if (tx < 0 || ty < 0 || tx >= map.width || ty >= map.height) continue;
         const distance = Math.abs(dx) + Math.abs(dy);
         const walls = wallsBetween(engine.wallAt, ap.x, ap.y, tx, ty);
-        if (distance + walls * WALL_LOSS <= WIRELESS_RADIUS) {
+        if (distance + walls * bandWallLoss(band) <= radius) {
           this.options.graphics.rect(tx * ts, ty * ts, ts, ts).fill({ color: 0x62d26f, alpha: 0.12 });
         }
       }
