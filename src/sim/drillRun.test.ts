@@ -100,4 +100,16 @@ describe('同梱の演習', () => {
     const after = applySetup(fixed, 'q1', drillConfig(fixed), env);
     expect(judgeBuild(q, after, engine)).toBe(true);
   });
+
+  it('wifi_overlap_drill: 重なるチャネルの片方を 6 に変えると、設定する問いが合格になる', () => {
+    const d = drills.find((x) => x.id === 'wifi_overlap_drill');
+    if (!d) throw new Error('演習 wifi_overlap_drill がない');
+    const q = d.questions[0];
+    if (q.kind !== 'build') throw new Error('1 問目が設定する問いでない');
+    const before = applySetup(d, 'q1', drillConfig(d), env);
+    expect(judgeBuild(q, before, engine)).toBe(false);
+    const fixed: Drill = { ...d, setup: [{ before: 'q1', change: [{ kind: 'config', uid: 'AP2', change: { kind: 'wireless', key: 'channel', value: 6 } }] }] };
+    const after = applySetup(fixed, 'q1', drillConfig(fixed), env);
+    expect(judgeBuild(q, after, engine)).toBe(true);
+  });
 });

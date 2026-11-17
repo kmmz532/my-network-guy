@@ -1,0 +1,53 @@
+{
+  "id": "wifi_overlap_drill",
+  "topic": "wireless",
+  "order": 107,
+  "size": {
+    "w": 12,
+    "h": 6
+  },
+  "placed": [
+    {
+      "ref": "AP1",
+      "device": "access_point",
+      "x": 3,
+      "y": 2,
+      "locked": false,
+      "wireless": {
+        "ssid": "office",
+        "password": "office-pass",
+        "security": "wpa2",
+        "band": "2.4",
+        "channel": 1
+      },
+      "name": "AP1"
+    },
+    {
+      "ref": "AP2",
+      "device": "access_point",
+      "x": 7,
+      "y": 2,
+      "locked": false,
+      "wireless": {
+        "ssid": "office",
+        "password": "office-pass",
+        "security": "wpa2",
+        "band": "2.4",
+        "channel": 3
+      },
+      "name": "AP2"
+    }
+  ],
+  "links": [],
+  "questions": [
+    {
+      "kind": "build",
+      "id": "q1",
+      "goals": [
+        {
+          "type": "wireless_clean"
+        }
+      ]
+    }
+  ]
+}
