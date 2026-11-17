@@ -44,6 +44,7 @@ export interface DesignSlice {
   // 機器の設定（設計中のみ）。失敗したら理由を返す
   setIface: (uid: string, port: number, ip: string, prefix?: number) => string | null;
   setSvi: (uid: string, vlan: number, ip: string, prefix?: number) => string | null;
+  setPo: (uid: string, channel: number, ip: string, prefix?: number) => string | null;
   setPortMode: (uid: string, port: number, mode: PortModeChange) => string | null;
   setGateway: (uid: string, gateway: string | null) => string | null;
   setRouting: (uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; wildcard?: string; area?: number; process?: number | null }) => string | null;
@@ -179,6 +180,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
     },
     setIface: (uid, port, ip, prefix = 24) => dispatch({ kind: 'config', uid, change: { kind: 'iface', port, ip, prefix } }, tileOf(uid)),
     setSvi: (uid, vlan, ip, prefix = 24) => dispatch({ kind: 'config', uid, change: { kind: 'svi', vlan, ip, prefix } }, tileOf(uid)),
+    setPo: (uid, channel, ip, prefix = 24) => dispatch({ kind: 'config', uid, change: { kind: 'po', channel, ip, prefix } }, tileOf(uid)),
     setPortMode: (uid, port, mode) => dispatch({ kind: 'config', uid, change: { kind: 'portMode', port, mode } }, tileOf(uid)),
     setGateway: (uid, gateway) => dispatch({ kind: 'config', uid, change: { kind: 'gateway', gateway } }, tileOf(uid)),
     setVrrp: (uid, change) => dispatch({ kind: 'config', uid, change: { kind: 'vrrp', change } }, tileOf(uid)),

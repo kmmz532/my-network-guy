@@ -846,6 +846,8 @@
   "ui.config.ospfJoin": "OSPF に参加",
   "ui.config.ospfPriority": "優先度",
   "ui.config.ospfRouterId": "OSPF のルーター ID（空欄で自動）",
+  "ui.config.po": "束ねた口のインターフェース（Po）",
+  "ui.config.poAdd": "Po を追加",
   "ui.config.power": "電源",
   "ui.config.prefix": "プレフィックス長",
   "ui.config.readOnly": "設計中のみ変更できる。",

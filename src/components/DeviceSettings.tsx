@@ -29,6 +29,7 @@ import { VlanPortField } from './VlanPortField';
 import { VrrpField } from './VrrpField';
 import { ChannelField } from './ChannelField';
 import { SviField } from './SviField';
+import { PoField } from './PoField';
 import { DhcpPoolField, DhcpPortField } from './DhcpField';
 import { portCountOf, deviceCategory } from '../registry/query';
 import { Button } from './ui/Button';
@@ -386,6 +387,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
       {node.configLocked && <div style={{ marginBottom: 6 }}>{t('ui.config.locked')}</div>}
       {ports.map(renderPort)}
       {can(node.device, 'svi') && <SviField node={node} disabled={locked} onError={onError} />}
+      {can(node.device, 'lag') && can(node.device, 'routedPort') && <PoField key={`po-${node.uid}`} node={node} disabled={locked} onError={onError} />}
       {!isRoutingCategory(category ?? '') && renderGateway()}
       {/* ファイアウォールも経路を持つ（直列の構成で、戻りの経路を置くため）。規則と静的ルートの両方を出す（N-fw） */}
       {isRoutingCategory(category ?? '') && renderRoutes()}

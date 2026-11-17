@@ -851,6 +851,21 @@ const scenes = {
     await page.getByText('設定', { exact: true }).click();
     await page.waitForTimeout(500);
   },
+  // 束ねた口（Po）の欄。チャネル1は口 0・1 を束ねて IP を入れ、チャネル2は口 2・3 を束ねて IP の欄を出した状態
+  poline: async (page) => {
+    await scenes.career(page);
+    await openDevice(page, 'router_basic');
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      const n = g.office.nodes.find((x) => x.device === 'router_basic');
+      for (const port of [0, 1]) g.setChannel(n.uid, { port, group: 1, lacp: 'active' });
+      for (const port of [2, 3]) g.setChannel(n.uid, { port, group: 2, lacp: 'active' });
+      g.setPo(n.uid, 1, '10.0.12.1', 30);
+    });
+    await page.getByText('設定', { exact: true }).click();
+    await page.getByText('束ねた口のインターフェース（Po）', { exact: true }).scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
+  },
   // ファイアウォールの許可する通信の欄（通信の選択に DNS を出す）
   firewall: async (page) => {
     await scenes.sandbox(page);
