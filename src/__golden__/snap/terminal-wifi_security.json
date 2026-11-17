@@ -110,6 +110,75 @@
       ]
     },
     {
+      "line": "wireless band 6",
+      "lines": [
+        "err:                ^",
+        "err:ui.terminal.invalidAt"
+      ]
+    },
+    {
+      "line": "wireless band 5",
+      "result": "done"
+    },
+    {
+      "line": "wireless channel 52",
+      "result": "done"
+    },
+    {
+      "line": "wireless channel 36",
+      "result": "done"
+    },
+    {
+      "line": "wireless security wpa2-eap",
+      "result": "done"
+    },
+    {
+      "line": "wireless radius-server 192.168.1.50",
+      "result": "done"
+    },
+    {
+      "line": "wireless radius-server 999.1.1.1",
+      "lines": [
+        "err:                         ^",
+        "err:ui.terminal.invalidAt"
+      ]
+    },
+    {
+      "line": "show wireless",
+      "lines": [
+        "out:ui.terminal.wlSsid {\"ssid\":\"OFFICE-NET\"}",
+        "out:ui.terminal.wlBand {\"band\":\"ui.wireless.band5\"}",
+        "out:ui.terminal.wlChannel {\"channel\":36}",
+        "out:ui.terminal.wlSecurity {\"security\":\"ui.wireless.sec.wpa2_eap\"}",
+        "out:ui.terminal.wlRadius {\"ip\":\"192.168.1.50\"}"
+      ]
+    },
+    {
+      "line": "no wireless radius-server",
+      "result": "done"
+    },
+    {
+      "line": "wireless security wpa3-eap",
+      "result": "done"
+    },
+    {
+      "line": "wireless security wpa2-wpa3",
+      "result": "done"
+    },
+    {
+      "line": "wireless band 2.4",
+      "result": "done"
+    },
+    {
+      "line": "show wireless",
+      "lines": [
+        "out:ui.terminal.wlSsid {\"ssid\":\"OFFICE-NET\"}",
+        "out:ui.terminal.wlBand {\"band\":\"ui.wireless.band24\"}",
+        "out:ui.terminal.wlChannel {\"channel\":1}",
+        "out:ui.terminal.wlSecurity {\"security\":\"ui.wireless.sec.wpa2wpa3\"}"
+      ]
+    },
+    {
       "node": "PC1"
     },
     {
@@ -124,6 +193,12 @@
       "lines": [
         "err:ui.terminal.pingNg",
         "err:error.wireless.unassociated"
+      ]
+    },
+    {
+      "line": "show wireless",
+      "lines": [
+        "out:ui.terminal.wlNone"
       ]
     }
   ],
@@ -146,9 +221,8 @@
             "ssid": "OFFICE-NET",
             "password": "longerpass123",
             "band": "2.4",
-            "channel": 6,
             "vlan": 10,
-            "security": "wpa3"
+            "security": "wpa2wpa3"
           }
         },
         "routes": [],

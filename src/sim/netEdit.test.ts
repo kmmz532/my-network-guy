@@ -106,6 +106,16 @@ describe('setWireless', () => {
     expect(setWireless(coreOf(node('hr', 'home_router_ap')), 'hr', 'security', 'wpa3_eap', 'office').ok).toBe(false);
     expect(setWireless(coreOf(node('hr', 'home_router_ap')), 'hr', 'security', 'wpa2', 'office').ok).toBe(true);
   });
+
+  it('RADIUS のアドレスは、設定すると入り、null で外れる（アクセスポイントだけ）', () => {
+    const set = setWireless(coreOf(node('ap', 'access_point')), 'ap', 'radius', '192.168.1.50', 'office');
+    if (!set.ok) throw new Error(`設定できない: ${set.reason}`);
+    expect(getComponent(set.core.office.nodes[0], 'wireless')?.radius).toBe('192.168.1.50');
+    const unset = setWireless(set.core, 'ap', 'radius', null, 'office');
+    if (!unset.ok) throw new Error(`外せない: ${unset.reason}`);
+    expect(getComponent(unset.core.office.nodes[0], 'wireless')?.radius).toBeUndefined();
+    expect(setWireless(coreOf(node('pc', 'laptop')), 'pc', 'radius', '192.168.1.50', 'office').ok).toBe(false);
+  });
 });
 
 describe('setNat', () => {

@@ -52,3 +52,9 @@ export const securitySupported = (device: string, security: WirelessSecurity): b
 
 // 802.1X（RADIUS による認証）の方式か。パスワードの一致を求めず、アクセスポイントの radius のアドレスへ認証を問い合わせる
 export const isEapSecurity = (security: WirelessSecurity): boolean => security === 'wpa2_eap' || security === 'wpa3_eap';
+
+// 機器が選べる方式（アクセスポイントの wlan.security）
+export const deviceSecurities = (device: string): readonly WirelessSecurity[] => wlanOf(device).security;
+
+// DFS の対象のチャネル（W53 の 52〜64、W56 の 100〜140）。レーダーを検知すると停波する
+export const isDfsChannel = (channel: number): boolean => (channel >= 52 && channel <= 64) || (channel >= 100 && channel <= 140);

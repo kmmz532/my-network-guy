@@ -2,6 +2,7 @@
 import { isValidHostname } from '../hostname';
 import { ifacePrefixOf } from '../iface';
 import { portCountOf } from '../../registry/query';
+import { bandChannels } from '../../registry/wireless';
 import type { NetNode } from '../types';
 import type { ArgKind, TerminalSession } from './types';
 
@@ -91,7 +92,8 @@ export const isArg = (kind: ArgKind, text: string): boolean => {
     case 'area': return rangeOk(text, 0, 4294967295) || isIp(text);
     case 'asn': return rangeOk(text, 1, 4294967295);
     case 'vrid': return rangeOk(text, 1, 255);
-    case 'channel': return rangeOk(text, 1, 13);
+    // チャネルは、どの帯のものでも番号の形だけを見る。帯で選べるかは設定の検査（sim/netEdit）が見る
+    case 'channel': return /^\d{1,3}$/.test(text) && [...bandChannels('2.4'), ...bandChannels('5')].includes(Number(text));
     case 'ssid': return text.length >= 1 && text.length <= 32;
     case 'psk': return text.length >= 8;
     case 'cost': return /^\d{1,10}$/.test(text) && Number(text) >= 1;

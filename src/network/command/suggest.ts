@@ -28,7 +28,7 @@ const FORM_OF: Record<ArgKind, string> = {
   area: '<area>',
   asn: '<1-4294967295>',
   vrid: '<1-255>',
-  channel: '<1-13>',
+  channel: '<channel>',
   ssid: '<WORD>',
   psk: '<WORD>',
   cost: '<1-4294967295>',

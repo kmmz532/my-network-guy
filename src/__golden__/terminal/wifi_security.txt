@@ -20,6 +20,20 @@ wireless security wpa3
 wireless foo bar
 show running-config
 show mac address-table
+wireless band 6
+wireless band 5
+wireless channel 52
+wireless channel 36
+wireless security wpa2-eap
+wireless radius-server 192.168.1.50
+wireless radius-server 999.1.1.1
+show wireless
+no wireless radius-server
+wireless security wpa3-eap
+wireless security wpa2-wpa3
+wireless band 2.4
+show wireless
 @PC1
 show running-config
 ping 192.168.1.22
+show wireless

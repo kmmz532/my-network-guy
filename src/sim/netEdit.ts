@@ -467,7 +467,7 @@ export const setIsp = (core: Core, uid: string, line: IspLine, target: NetTarget
   );
 
 // 無線の設定（N151）。SSID・パスワード・帯・チャネル・VLAN。帯は機器が選べるものだけ、チャネルは帯で選べるものだけ。帯を変えて今のチャネルが新しい帯で選べないときは、チャネルの設定を外す（帯の既定のチャネルになる）
-export const setWireless = (core: Core, uid: string, key: 'ssid' | 'password' | 'band' | 'channel' | 'vlan' | 'security' | 'radius', value: string | number, target: NetTarget = 'focus'): Outcome =>
+export const setWireless = (core: Core, uid: string, key: 'ssid' | 'password' | 'band' | 'channel' | 'vlan' | 'security' | 'radius', value: string | number | null, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
     uid,
@@ -477,8 +477,15 @@ export const setWireless = (core: Core, uid: string, key: 'ssid' | 'password' | 
       if (key === 'security' && !(WIRELESS_SECURITIES as readonly unknown[]).includes(value)) return 'wireless.security';
       // アクセスポイントは、機器が選べる方式だけ（家庭用ルーターは 802.1X を選べない）
       if (key === 'security' && can(node.device, 'accessPoint') && !(deviceDef(node.device).wlan?.security as readonly unknown[] | undefined)?.includes(value)) return 'wireless.security';
-      if (key === 'radius' && (!can(node.device, 'accessPoint') || typeof value !== 'string' || !isIp(value))) return 'ip';
+      // RADIUS のアドレスは、アクセスポイントだけが持つ。null なら外す（無線の設定から radius の鍵を消す）
+      if (key === 'radius' && !can(node.device, 'accessPoint')) return 'ip';
+      if (value === null && key !== 'radius') throw new Error(`無線の ${key} に null は渡せない（外せるのは radius だけ）`);
       const cur = getComponent(node, 'wireless');
+      if (key === 'radius' && value === null) {
+        const { radius: _old, ...rest } = cur ?? {};
+        return withComponent(node, 'wireless', rest);
+      }
+      if (key === 'radius' && (typeof value !== 'string' || !isIp(value))) return 'ip';
       if (key === 'band') {
         if (!can(node.device, 'accessPoint') || !(deviceBands(node.device) as readonly unknown[]).includes(value)) return 'wireless.band';
         const band = value as WirelessBand;
