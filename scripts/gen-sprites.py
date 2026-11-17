@@ -1649,6 +1649,23 @@ def coffee():
     return outline(img)
 
 
+def microwave():
+    # 台の上の電子レンジ。台と本体は天面を見せる。扉の窓と、右の操作パネル
+    img, d = new(32, 36)
+    box3q(d, 2, 16, 28, 5, 14, 'F1', 'F2', edge='e')
+    d.line([(16, 23), (16, 33)], fill=C['F3'])
+    box3q(d, 4, 4, 24, 3, 12, 'w', 'g', edge='e')
+    rect(d, 7, 9, 12, 8, 'd', 'o')
+    rect(d, 8, 10, 10, 6, 's')
+    rect(d, 9, 11, 3, 1, 'S')
+    rect(d, 21, 9, 5, 8, 'd')
+    px(d, 22, 10, 'l')
+    px(d, 24, 10, 'r')
+    rect(d, 22, 12, 3, 1, 'g')
+    rect(d, 22, 14, 3, 1, 'g')
+    return outline(img)
+
+
 def water():
     # ウォーターサーバー: 上にボトル、本体は天面を見せる
     img, d = new(32, 48)
@@ -1937,6 +1954,7 @@ if __name__ == '__main__':
         'bookshelf': bookshelf(),
         'cabinet': cabinet(),
         'coffee': coffee(),
+        'microwave': microwave(),
         'water': water(),
         'trash': trash(),
         'boxes': boxes(),

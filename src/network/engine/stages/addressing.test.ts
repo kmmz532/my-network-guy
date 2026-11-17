@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { ping } from '../../engine';
 import type { EngineData, Iface, NetLink, NetNode, Network, Route, NetworkPlan } from '../../types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 
 // アドレスの層の補完した構成と不備
 const addressing = (net: Network) => {

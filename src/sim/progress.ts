@@ -1,6 +1,6 @@
 import { applyMoney } from './ledger';
 import type { Staff } from '../data/schema';
-import { engineWithWalls } from './walls';
+import { engineWithSite, siteFurnitureOf } from './walls';
 import type { Offer } from '../contracts/template';
 import { evaluateContract } from '../network/goals';
 import { linkLength } from '../network/engine';
@@ -73,7 +73,7 @@ export const acceptDelegated = (core: Core, offerId: string, slots: number, crew
   const copied = copiedOut.core.active.find((x) => x.id === offerId);
   if (!copied) return fail('none');
   // 写した設計がテストを通らなければ、受注しない（この場合は状態を変えない）
-  if (!judge(copied, env).passed) return fail('delegate.test');
+  if (!judge(copied, env, copiedOut.core.office.furniture).passed) return fail('delegate.test');
   return keepFocus(core, requestBuild(withProject(copiedOut.core, { ...copied, testedOk: true }), env));
 };
 
@@ -209,9 +209,10 @@ export const advanceBuild = (core: Core, env: Env, hour: number, juniorRate = 1)
 };
 
 // 設計を判定する（テストと検収で同じ判定を使う）。達成条件ごとに、失敗した機器と理由をまとめる
-const judge = (p: Project, env: Env) => {
-  const engine = engineWithWalls(env.engine, env.mapOf?.(p.contract.map));
-  const result = evaluateContract(p.contract, stateOfProject(p, { ...env, engine }));
+const judge = (p: Project, env: Env, officeFurniture: Core['office']['furniture']) => {
+  const engine = engineWithSite(env.engine, env.mapOf?.(p.contract.map), siteFurnitureOf(p.contract, env.mapOf?.(p.contract.map), officeFurniture));
+  const state = stateOfProject(p, { ...env, engine });
+  const result = evaluateContract(p.contract, state);
   const traces: Trace[] = result.results.map((r) => {
     const goal = p.contract.goals.indexOf(r.goal);
     return { kind: r.kind, src: r.src, dst: r.dst, result: r.result, ...(goal >= 0 ? { goal } : {}) };
@@ -229,15 +230,15 @@ const judge = (p: Project, env: Env) => {
     }
     return { ok: rs.length > 0 && rs.every((r) => r.ok), failures };
   });
-  return { passed: result.passed, results: result.results, traces, goals };
+  return { passed: result.passed, results: result.results, traces, goals, warnings: warningsOf(state) };
 };
 
 // テストを押す。設計を判定し、合格なら施工を依頼できるようにする（testedOk）。時間も費用もかからない。何度でも押せる
 export const testDesign = (core: Core, env: Env): TestOutcome => {
   const p = requireDesign(core);
   if (typeof p === 'string') return { ok: false, reason: p };
-  const j = judge(p, env);
-  const result: TestResult = { passed: j.passed, goals: j.goals, traces: j.traces, warnings: warningsOf(stateOfProject(p, env)) };
+  const j = judge(p, env, core.office.furniture);
+  const result: TestResult = { passed: j.passed, goals: j.goals, traces: j.traces, warnings: j.warnings };
   return { ok: true, core: withProject(core, { ...p, testedOk: j.passed }), result };
 };
 
@@ -325,7 +326,7 @@ const repairRate = (p: Project, cost: number, late: boolean, issues: number, env
 export const inspect = (core: Core, env: Env, id: string): Outcome => {
   const p = core.active.find((x) => x.id === id);
   if (!p) return fail('none');
-  const j = judge(p, env);
+  const j = judge(p, env, core.office.furniture);
   const traces = j.traces;
   if (j.passed) {
     // 期日に遅れたら、遅れた日数に応じて報酬が減る。遅れた案件と設計の不備がある案件は、★は2が上限になる
@@ -392,7 +393,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
   return {
     ok: true,
     core: withProject(core, next),
-    report: { passed: false, traces, failures, check: { projectId: p.id, goals: j.goals, warnings: warningsOf(stateOfProject(p, env)) } },
+    report: { passed: false, traces, failures, check: { projectId: p.id, goals: j.goals, warnings: j.warnings } },
   };
 };
 

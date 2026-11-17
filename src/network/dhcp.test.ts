@@ -136,7 +136,7 @@ describe('DHCP の前回のアドレス', () => {
 describe('DHCP の書き戻し（store）', () => {
   it('操作の確定のあとに、受け取ったアドレスを機器へ書き戻す。書き戻すものがなければ同じ core を返す', () => {
     const net = office(['p1', 'p2']);
-    const core = { office: { nodes: net.nodes, links: net.links, plans: net.plans ?? {} }, active: [] } as unknown as Core;
+    const core = { office: { nodes: net.nodes, links: net.links, plans: net.plans ?? {}, furniture: [] }, active: [] } as unknown as Core;
     const written = writeBackDhcp(core, gameEnv);
     expect(written.office.nodes.find((n) => n.uid === 'p2')?.interfaces[0].ip).toBe('192.168.1.101');
     expect(writeBackDhcp(written, gameEnv)).toBe(written);

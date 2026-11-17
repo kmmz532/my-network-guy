@@ -4,7 +4,7 @@ import { macOf } from './mac';
 import { learnFromPing } from './learn';
 import type { EngineData, NetLink, NetNode } from './types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 const host = (uid: string, ip: string, serial: number, extra: Partial<NetNode> = {}): NetNode => ({
   uid,
   device: 'pc_basic',

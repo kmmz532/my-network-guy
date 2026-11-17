@@ -5,7 +5,7 @@ import { resolveName } from './resolve';
 import { evaluateGoal } from './goals';
 import type { EngineData, NetLink, NetNode } from './types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 
 const host = (uid: string, ip: string, extra: Partial<NetNode> = {}): NetNode => ({
   uid,
@@ -84,7 +84,7 @@ describe('名前の解決', () => {
 
 // 目標 reach_by_name（N68）: すべての PC が、名前で指定の機器へ届く
 describe('目標 reach_by_name', () => {
-  const dataWithServer: EngineData = { wallAt: () => false };
+  const dataWithServer: EngineData = { wallAt: () => false, interferers: [] };
   const build = (unplugFileserver: boolean) => {
     const file = host('d', '192.168.1.20', { device: 'server_basic', hostname: 'fileserver', services: [{ protocol: 'dns', role: 'auth', zone: [{ type: 'A', name: 'fileserver', value: '192.168.1.20' }] }] });
     const pc = (uid: string, ip: string) => host(uid, ip, { components: { resolver: { nameServer: '192.168.1.20' } }, hostname: `PC-${uid}` });

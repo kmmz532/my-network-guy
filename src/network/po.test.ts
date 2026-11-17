@@ -10,7 +10,7 @@ import { makePo } from './iface';
 import { learnedRoutesOf } from './query/learnedRoutes';
 import type { EngineData, Iface, NetLink, NetNode, Network, PortConfig } from './types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 const node = (uid: string, interfaces: Iface[], ports: PortConfig[]): NetNode =>
   ({ uid, device: 'l3_switch', x: 0, y: 0, locked: false, configLocked: false, interfaces, gateway: null, routes: [], services: [], ports }) as NetNode;
 const link = (uid: string, pa: number, pb: number): NetLink => ({ uid, cable: 'utp_cat5e', a: { node: 'sw1', port: pa }, b: { node: 'sw2', port: pb }, path: [[0, 0], [1, 0]], paid: 0 });

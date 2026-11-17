@@ -74,6 +74,7 @@ RIP と OSPF は、複数のルーターや L3 スイッチが経路を自動的
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/furniture/water.png" width="96" alt="ウォーターサーバー"> | ウォーターサーバー | 10,000円 | 座っている社員全員の施工力を、+5% する | Lv7 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/furniture/trash.png" width="96" alt="ゴミ箱"> | ゴミ箱 | 2,000円 | 効果なし（置くだけ） | Lv1 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/furniture/sofa.png" width="96" alt="ソファ"> | ソファ | 25,000円 | 席がない社員の施工力の係数を、0.5 から 0.7 に上げる | Lv9 |
+| <img style="image-rendering: pixelated" src="../src/assets/sprites/furniture/microwave.png" width="96" alt="電子レンジ"> | 電子レンジ | 15,000円 | 近く（3マス以内）の 2.4GHz のアクセスポイントに電波の干渉を起こし、警告が出る。5GHz には影響しない | Lv4 |
 | <img style="image-rendering: pixelated" src="../src/assets/sprites/furniture/boxes.png" width="96" alt="段ボール"> | 段ボール | 2,000円 | 効果なし（置くだけ） | Lv1 |
 
 家具の効果（施工力・経験値）は、座っている社員だけに効きます。席のない社員は、ソファの係数だけが効きます。近くの範囲は、家具と席のマスの距離が 2マス以内のときです。

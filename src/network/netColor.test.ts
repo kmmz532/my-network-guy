@@ -6,7 +6,7 @@ import { neighborRouterAddresses, routerAddressesOn } from './query/plans';
 import type { Iface } from './types';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 
 const node = (uid: string, device: string, ifaces: Iface[] = []): NetNode => ({ ports: [],
   uid,

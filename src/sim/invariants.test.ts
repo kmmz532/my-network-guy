@@ -22,7 +22,7 @@ const map = officeJson as unknown as GameMap;
 const env: Env = {
   balance,
   furniture: Object.fromEntries(furnitureJson.furniture.map((f) => [f.id, f as unknown as Furniture])),
-  engine: { wallAt: () => false },
+  engine: { wallAt: () => false, interferers: [] },
 };
 
 // 自社オフィスだけの開始状態（机が2つ、社員が2人）

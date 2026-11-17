@@ -10,7 +10,7 @@ import { setBgp, setChannel, setDhcp, setFirewallRules, setIsp, setNat, setOspf,
 import type { Core, Env, Outcome } from './project';
 
 const balance = balanceJson as unknown as Balance;
-const env = { balance, furniture: {}, engine: { wallAt: () => false } } as unknown as Env;
+const env = { balance, furniture: {}, engine: { wallAt: () => false, interferers: [] } } as unknown as Env;
 
 // 何の能力も持たない機器（PC）と、スイッチ口だけを持つ機器（L2 スイッチ）
 const node = (device: string): NetNode =>

@@ -8,7 +8,7 @@ import type { EngineData } from '../network/types';
 import { applySetup, diagnoseChoices, drillConfig, drillState, inspectAnswer, inspectChoices, judgeBuild, judgeDiagnose, judgeInspect, type DrillConfig } from './drill';
 import type { Env } from './project';
 
-const engine: EngineData = { wallAt: () => false };
+const engine: EngineData = { wallAt: () => false, interferers: [] };
 const env: Env = { balance: balanceJson as unknown as Balance, engine };
 
 // 演習の構成は教材の構成を流用する（問いと setup だけをここで組む）

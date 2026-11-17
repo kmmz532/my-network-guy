@@ -92,6 +92,8 @@ export const balanceSchema = z.object({
   // 無線の帯ごとの数値。届く半径・壁1マスの減衰（マス）、選べるチャネル（範囲の列）、既定のチャネル、重なるチャネルの差の上限（差がこれ以下なら重なる）
   wireless: z.object({
     bands: z.object({ '2.4': wirelessBandSchema, '5': wirelessBandSchema }),
+    // 干渉源の家具（電子レンジなど）。半径（マス）の中にある 2.4GHz のアクセスポイントが干渉を受ける
+    interference: z.object({ radius: int.positive(), sources: z.array(z.string().min(1)).min(1) }),
   }),
   // 夜勤の給与の倍率（日勤の給与に掛ける。N48）
   nightPayRate: z.number().positive(),

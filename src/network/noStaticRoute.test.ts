@@ -4,7 +4,7 @@ import { analyze } from './engine/analyze';
 import { evaluateGoal } from './goals';
 import type { EngineData, NetLink, NetNode, Network, Route } from './types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 const iface = (port: number, ip: string, ospf = false) => ({ id: `g0/${port}`, kind: 'port' as const, port, ip, prefix: 24, ...(ospf ? { ospf: { area: 0 } } : {}) });
 const node = (uid: string, device: string, interfaces: NetNode['interfaces'], routes: Route[] = [], gateway: string | null = null, x = 0): NetNode =>
   ({ uid, device, x, y: 0, locked: false, configLocked: false, interfaces, gateway, routes, services: [], ports: [] }) as NetNode;

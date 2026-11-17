@@ -15,7 +15,7 @@ import { commandContextOf, runLine } from './run';
 import type { TerminalSession } from './types';
 
 const tr = (key: string) => key;
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 const balance = balanceJson as unknown as Balance;
 const config: TerminalSession = { mode: 'config', iface: null, process: null };
 

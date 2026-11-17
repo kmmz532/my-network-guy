@@ -5,7 +5,7 @@ import type { TerminalContext } from './command/types';
 import { analyze } from './engine/analyze';
 import type { EngineData, NetLink, NetNode } from './types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 
 // 問い合わせの結果を、ターミナルの文脈に付けて実行する
 const run = (line: string, ctx: Omit<TerminalContext, 'state'>, tr: Tr): TerminalLine[] => [...runLine(line, commandContextOf({ ...ctx, state: analyze({ nodes: ctx.nodes, links: ctx.links }, ctx.data) }, false), tr).lines];
@@ -204,7 +204,7 @@ describe('show ip ospf neighbor（N143）', () => {
       services: [],
       interfaces: [{ id: 'g0/0', kind: 'port' as const, port: 0, ip, prefix: 24, ...(area === null ? {} : { ospf: { area } }) }],
     }) as NetNode;
-  const ospfData: EngineData = { wallAt: () => false };
+  const ospfData: EngineData = { wallAt: () => false, interferers: [] };
   const link = (a: string, b: string): NetLink => ({ uid: `l-${a}-${b}`, cable: 'utp_cat5e', a: { node: a, port: 0 }, b: { node: b, port: 0 }, path: [[0, 0], [1, 0]], paid: 0 });
 
   it('同じエリアで同じサブネットの OSPF の相手を、隣接として出す', () => {
@@ -259,7 +259,7 @@ describe('show mac address-table（N153）', () => {
     const pc1 = { uid: 'pc1', device: 'pc_basic', macSerial: 7, x: 1, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [] } as unknown as NetNode;
     const nodes = [sw, pc1];
     const links: NetLink[] = [{ uid: 'l', cable: 'utp_cat5e', a: { node: 'sw', port: 2 }, b: { node: 'pc1', port: 0 }, path: [[0, 0], [1, 0]], paid: 0 }];
-    const d: EngineData = { wallAt: () => false };
+    const d: EngineData = { wallAt: () => false, interferers: [] };
     const lines = run('show mac address-table', { node: sw, nodes, links, data: d }, tr);
     expect(lines).toEqual([{ text: `ui.terminal.macEntry ${JSON.stringify({ port: 2, mac: macOf('pc', 7, 0) })}`, kind: 'out' }]);
   });
@@ -326,7 +326,7 @@ describe('show ip nat translations（N146）', () => {
 
 describe('traceroute の表示', () => {
   // 2台のルーターを越える構成。r2 は口1のアドレスを先に並べ、先頭のアドレスを出していないかを確かめる
-  const routerData: EngineData = { wallAt: () => false };
+  const routerData: EngineData = { wallAt: () => false, interferers: [] };
   const router = (uid: string, ifaces: { port: number; ip: string }[], routes: { dest: string; prefix: number; nextHop: string }[], serial: number): NetNode => ({ ports: [],
     uid,
     device: 'router_basic',

@@ -4,7 +4,7 @@ import { analyze } from './engine/analyze';
 import { customersOf, outsideCheck, rentalOf, withInternet } from './external';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 
 const node = (uid: string, device: string, extra: Partial<NetNode> = {}): NetNode => ({
   uid,

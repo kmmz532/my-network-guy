@@ -6,7 +6,7 @@ import { lookupName } from './dns';
 import { resolveName } from './resolve';
 import type { DnsRecord, EngineData, Iface, IspLine, NetLink, NetNode, Network, Service } from './types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 const f = (port: number, ip: string): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24 });
 const n = (uid: string, device: string, interfaces: Iface[], extra: Partial<NetNode> = {}): NetNode =>
   ({ uid, device, x: 0, y: 0, locked: false, configLocked: false, interfaces, gateway: null, routes: [], services: [], ports: [], ...extra }) as NetNode;

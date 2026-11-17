@@ -7,7 +7,7 @@ import { isPcIn } from './project';
 export const gameEnv: Env = {
   balance,
   furniture: furnitureById,
-  engine: { wallAt: () => false },
+  engine: { wallAt: () => false, interferers: [] },
 };
 
 // 機器の種類が PC かどうか（N102）

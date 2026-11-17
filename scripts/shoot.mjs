@@ -815,6 +815,36 @@ const scenes = {
     await page.getByRole('combobox', { name: 'ネットワーク', exact: true }).click();
     await page.waitForTimeout(500);
   },
+  // 電子レンジの近くの 2.4GHz のアクセスポイントにつながったノート PC の画面（設定タブの通信の品質の欄）
+  wirelessquality: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      const put = (id, x, y) => {
+        g.buy(id);
+        const reason = window.__game.getState().place(id, x, y);
+        if (reason !== null) throw new Error(`${id} を置けない: ${reason}`);
+      };
+      put('microwave', 2, 2);
+      put('access_point', 4, 2);
+      put('laptop', 6, 2);
+      const st = window.__game.getState();
+      const ap = st.office.nodes.find((n) => n.device === 'access_point');
+      const cl = st.office.nodes.find((n) => n.device === 'laptop');
+      for (const n of [ap, cl]) {
+        for (const [key, value] of [['ssid', 'home'], ['password', 'pass1234']]) {
+          const err = window.__game.getState().setWireless(n.uid, key, value);
+          if (err) throw new Error(`${key}: ${err}`);
+        }
+      }
+      const err = window.__game.getState().setWireless(ap.uid, 'band', '2.4');
+      if (err) throw new Error(`band: ${err}`);
+      window.__game.getState().openWindow('device', cl.uid);
+    });
+    await page.waitForTimeout(800);
+    await page.getByText('設定', { exact: true }).click();
+    await page.waitForTimeout(500);
+  },
   // スイッチ付きルーターに、WAN と LAN の IP を入れた場面（マップの IP の表示が重ならないかを確かめる）
   routerswitch: async (page) => {
     await scenes.career(page);

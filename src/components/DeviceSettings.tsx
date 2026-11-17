@@ -12,7 +12,7 @@ import { isRelayPort, isRoutingCategory } from '../network/category';
 import { can } from '../network/capabilities';
 import { getComponent } from '../network/components';
 import { wirelessAssociations } from '../network/engine/stages/links';
-import { channelOverlapsOf, networkColors, type NetworkState } from '../network/public';
+import { channelOverlapsOf, networkColors, wirelessQualityOf, type NetworkState } from '../network/public';
 import { colorOfNetwork, UNSET_COLOR } from '../network/netColor';
 import { networkOf, wildcardOf } from '../network/ip';
 import { networkAddress, planFor, PREFIX_MAX, PREFIX_MIN } from '../network/segments';
@@ -571,6 +571,7 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
   const isClient = !can(node.device, 'accessPoint');
   // 同じチャネルで近いアクセスポイントがあれば、注意を出す（N152）
   const overlapping = channelOverlapsOf(state).some((o) => o.a === node.uid || o.b === node.uid);
+  const quality = isClient ? wirelessQualityOf(state, node.uid) : null;
   const statusText = status
     ? t('ui.wireless.connected', { ap: nodeLabel(store, status.ap, net.nodes) })
     : isClient
@@ -603,6 +604,7 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
         </div>
       )}
       <Text size="s">{statusText}</Text>
+      {quality !== null && <Text size="s" tone={quality === 'good' ? undefined : 'warn'}>{t('ui.wireless.quality', { q: t(`ui.wireless.quality.${quality}`) })}</Text>}
       {overlapping && <Text tone="warn" size="s">{t('ui.wireless.overlap')}</Text>}
     </Section>
   );

@@ -44,7 +44,7 @@ const gameMinutesPerTick = balance.time.gameMinutesPerTick;
 const env: Env = {
   balance,
   furniture: Object.fromEntries(furnitureJson.furniture.map((f) => [f.id, f as unknown as Furniture])),
-  engine: { wallAt: () => false },
+  engine: { wallAt: () => false, interferers: [] },
 };
 
 const UTP = 'utp_cat5e';

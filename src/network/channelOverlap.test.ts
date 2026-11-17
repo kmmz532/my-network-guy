@@ -4,7 +4,7 @@ import { channelOverlapsOf } from './query/channelOverlaps';
 import { analyze } from './engine/analyze';
 import type { EngineData, NetNode, Network } from './types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 const ap = (uid: string, x: number, channel?: number, band: '2.4' | '5' = '2.4'): NetNode =>
   ({ uid, device: 'access_point', x, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [], components: { wireless: { ssid: 'HOME', password: 'p', band, ...(channel === undefined ? {} : { channel }) } } }) as NetNode;
 const net = (nodes: NetNode[]): Network => ({ nodes, links: [], plans: {} });

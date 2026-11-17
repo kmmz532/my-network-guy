@@ -28,6 +28,12 @@ export const bandDefaultChannel = (band: WirelessBand): number => bandBalance(ba
 // 同じ帯の2つのチャネルが重なるか
 export const channelsOverlap = (band: WirelessBand, a: number, b: number): boolean => Math.abs(a - b) <= bandBalance(band).overlapDiff;
 
+// 干渉源の家具（電子レンジなど）か
+export const isInterferenceSource = (furnitureId: string): boolean => balance.wireless.interference.sources.includes(furnitureId);
+
+// 干渉源から 2.4GHz のアクセスポイントまで、干渉の届く半径（マス）
+export const interferenceRadius = (): number => balance.wireless.interference.radius;
+
 // 機器の無線の対応（wlan）。無線の対応を持たない機器は例外
 const wlanOf = (device: string) => {
   const wlan = deviceDef(device).wlan;

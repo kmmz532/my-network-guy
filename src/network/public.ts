@@ -13,6 +13,7 @@ export { dhcpOf } from './query/dhcp';
 export { seenSourcesOf, type SeenSource } from './query/seenSources';
 export { loopNodeOf } from './query/loopNode';
 export { channelOverlapsOf } from './query/channelOverlaps';
+export { wirelessQualityOf, type WirelessQuality } from './query/wirelessQuality';
 export { ping, http } from './engine/forward';
 export { networkColors } from './query/networkColors';
 export { framesOf, type Frame, type FrameContext } from './frames';

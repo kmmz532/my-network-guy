@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { macOf } from './mac';
 import type { EngineData, Iface, NetLink, NetNode, Network, PortConfig } from './types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 const f = (port: number, ip: string): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24 });
 const host = (uid: string, ip: string, serial: number, x: number): NetNode =>
   ({ uid, device: 'pc_basic', macSerial: serial, x, y: 0, locked: false, configLocked: false, interfaces: [f(0, ip)], gateway: null, routes: [], services: [], ports: [] }) as NetNode;

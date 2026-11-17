@@ -7,7 +7,7 @@ import type { Tr } from '../terminal';
 import { commandContextOf, runLine } from './run';
 import type { TerminalSession } from './types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 const exec: TerminalSession = { mode: 'exec', iface: null, process: null };
 
 // 表の文言は、そのまま読める形で返す（列の並びを試験で確かめるため）

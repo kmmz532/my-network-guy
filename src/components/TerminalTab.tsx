@@ -11,7 +11,7 @@ import { canonicalLine, commandContextOf, runLine } from '../network/command/run
 import type { NetLink, NetNode } from '../network/types';
 import type { NetworkState } from '../network/public';
 import { gameEnv } from '../sim/env';
-import { engineWithWalls } from '../sim/walls';
+import { engineWithSite, siteFurnitureOf } from '../sim/walls';
 import { nodeLabel } from './nodeLabel';
 import { createOps } from '../stores/gameOps';
 import { unlockedTopicsOf } from '../stores/gameHelpers';
@@ -49,11 +49,17 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
   // 予測に使う全機器の履歴
   const allCommands = useGameStore((s) => s.terminalCommands);
 
+  const siteEngine = () => {
+    const project = focusedProject(state);
+    return project
+      ? engineWithSite(gameEnv.engine, state.maps[project.contract.map], siteFurnitureOf(project.contract, state.maps[project.contract.map], state.office.furniture))
+      : engineWithSite(gameEnv.engine, state.maps.hq, state.office.furniture);
+  };
   const contextOf = () => commandContextOf({
     node,
     nodes,
     links,
-    data: engineWithWalls(gameEnv.engine, state.maps[focusedProject(state)?.contract.map ?? 'hq']),
+    data: siteEngine(),
     state: netState,
     nameOf: (n) => nodeLabel(state, n, nodes),
     arp,

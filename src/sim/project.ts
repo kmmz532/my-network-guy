@@ -10,7 +10,7 @@ import type { Facing } from './facing';
 
 
 import { isSwitchedRouterCategory } from '../network/category';
-import { engineWithWalls } from './walls';
+import { engineWithSite, siteFurnitureOf } from './walls';
 import type { Offer } from '../contracts/template';
 
 import { ipToInt } from '../network/engine';
@@ -438,10 +438,10 @@ export const netOf = (core: Core, target: NetTarget): Net | OpFailReason => {
 // 受け取れた自動（DHCP）の口のアドレスを、前回のアドレスとして機器へ書き戻す（NET.md §5.7）。store が操作を確定するたびに呼ぶ。
 // 判定のデータは、ping などと同じ（案件の地図の壁を含む）ものを使う。書き戻すものがなければ同じ core を返す
 export const writeBackDhcp = (core: Core, env: Env): Core => {
-  const officeNodes = dhcpWriteBack(core.office.nodes, core.office.links, core.office.plans, engineWithWalls(env.engine, env.mapOf?.('hq')));
+  const officeNodes = dhcpWriteBack(core.office.nodes, core.office.links, core.office.plans, engineWithSite(env.engine, env.mapOf?.('hq'), core.office.furniture));
   let changed = officeNodes !== core.office.nodes;
   const active = core.active.map((p) => {
-    const nodes = dhcpWriteBack(p.nodes, p.links, p.plans, engineWithWalls(env.engine, env.mapOf?.(p.contract.map)));
+    const nodes = dhcpWriteBack(p.nodes, p.links, p.plans, engineWithSite(env.engine, env.mapOf?.(p.contract.map), siteFurnitureOf(p.contract, env.mapOf?.(p.contract.map), core.office.furniture)));
     if (nodes === p.nodes) return p;
     changed = true;
     return { ...p, nodes: [...nodes] };

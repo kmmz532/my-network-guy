@@ -8,7 +8,7 @@ import { ospfMismatchesOf } from './query/ospfMismatches';
 import { evaluateGoal } from './goals';
 import type { EngineData, Iface, NetLink, NetNode, Network } from './types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 const f = (port: number, ip: string, ospf?: Iface['ospf'], prefix = 24): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix, ...(ospf ? { ospf } : {}) });
 const node = (uid: string, device: string, interfaces: Iface[], extra: Partial<NetNode> = {}): NetNode =>
   ({ uid, device, x: 0, y: 0, locked: false, configLocked: false, interfaces, gateway: null, routes: [], services: [], ports: [], ...extra }) as NetNode;

@@ -7,7 +7,7 @@ import type { EngineData, Iface, NetLink, NetNode, Network } from './types';
 const domainsOf = (net: Network, data: EngineData) => analyze(net, data).l2.planDomains;
 
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 
 const node = (uid: string, device: string, interfaces: Iface[] = [], configLocked = false): NetNode => ({ ports: [],
   uid,

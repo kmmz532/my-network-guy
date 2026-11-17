@@ -5,7 +5,7 @@ import { http, ping } from './engine';
 import { evaluateGoal } from './goals';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 
 const host = (uid: string, device: string, ip: string, gateway: string, services: NetNode['services'] = []): NetNode => ({ ports: [],
   uid,

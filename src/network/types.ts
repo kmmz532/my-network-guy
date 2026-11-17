@@ -181,6 +181,8 @@ export interface Network {
 export interface EngineData {
   // 壁のマスか（電波の減衰・N151）。壁のない場面は () => false を渡す
   wallAt: (x: number, y: number) => boolean;
+  // 干渉源（電子レンジなど）の家具のマス。干渉源のない場面は [] を渡す
+  interferers: readonly { x: number; y: number }[];
 }
 
 // 疎通の失敗の理由。文言は言語ファイルの error.<理由> と error.<理由>.fix に置く

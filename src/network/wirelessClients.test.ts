@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { evaluateGoal } from './goals';
 import type { EngineData, NetNode, Network } from './types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 const WIFI = { ssid: 'home', password: 'pass1234' };
 const node = (uid: string, device: string, x: number, wireless?: NonNullable<NetNode['components']>['wireless']): NetNode =>
   ({ uid, device, x, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [], ...(wireless ? { components: { wireless } } : {}) }) as NetNode;

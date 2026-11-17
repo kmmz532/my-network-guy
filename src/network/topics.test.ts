@@ -12,7 +12,7 @@ import type { EngineData, NetNode, NetLink } from './types';
 
 const ALL: readonly Topic[] = TOPICS;
 
-const engine: EngineData = { wallAt: () => false };
+const engine: EngineData = { wallAt: () => false, interferers: [] };
 const text = ja as Record<string, string>;
 const tr: Tr = (key) => key;
 

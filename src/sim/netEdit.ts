@@ -20,7 +20,7 @@ import { portCountOf } from '../registry/query';
 import { analyze } from '../network/engine/analyze';
 import type { NetworkState } from '../network/engine/state';
 import type { GameMap } from '../data/schema';
-import { engineWithWalls } from './walls';
+import { engineWithSite, siteFurnitureOf } from './walls';
 
 // 機器の設定を書き換える。配線の設定が固定された機器は変えられない。
 const editNode = (core: Core, uid: string, edit: (n: NetNode) => NetNode | OpFailReason, target: NetTarget = 'focus'): Outcome => {
@@ -641,14 +641,14 @@ export const analyzeCore = (
 ): { office: NetworkState; focus: NetworkState | null; showcase: NetworkState | null } => {
   const office = analyze(
     { nodes: core.office.nodes, links: core.office.links, plans: core.office.plans },
-    engineWithWalls(env.engine, maps.hq),
+    engineWithSite(env.engine, maps.hq, core.office.furniture),
   );
   const p = core.focus === null ? null : (core.active.find((q) => q.id === core.focus) ?? null);
   const focus = p === null ? null : analyze(
     { nodes: p.nodes, links: p.links, plans: p.plans },
-    engineWithWalls(env.engine, maps[p.contract.map]),
+    engineWithSite(env.engine, maps[p.contract.map], siteFurnitureOf(p.contract, maps[p.contract.map], core.office.furniture)),
   );
   const q = core.showcase ?? null;
-  const showcase = q === null ? null : analyze({ nodes: q.nodes, links: q.links, plans: q.plans }, engineWithWalls(env.engine, maps[q.contract.map]));
+  const showcase = q === null ? null : analyze({ nodes: q.nodes, links: q.links, plans: q.plans }, engineWithSite(env.engine, maps[q.contract.map], siteFurnitureOf(q.contract, maps[q.contract.map], core.office.furniture)));
   return { office, focus, showcase };
 };

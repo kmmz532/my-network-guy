@@ -8,7 +8,7 @@ import { applySetup, diagnoseChoices, diagnoseReasonChoices, drillConfig, drillS
 import { proceed, questionOf, startRun, submit, tested } from './drillRun';
 import type { Env } from './project';
 
-const engine: EngineData = { wallAt: () => false };
+const engine: EngineData = { wallAt: () => false, interferers: [] };
 const env: Env = { balance: balanceJson as unknown as Balance, engine };
 
 const drill: Drill = {

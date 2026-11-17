@@ -4,7 +4,7 @@ import { analyze } from './engine/analyze';
 import { evaluateGoal } from './goals';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 
 const host = (uid: string, device: string, ip: string): NetNode => ({ ports: [],
   uid,

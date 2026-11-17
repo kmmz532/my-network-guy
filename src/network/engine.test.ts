@@ -4,7 +4,7 @@ import { loopNodeOf } from './query/loopNode';
 import { analyze } from './engine/analyze';
 import type { EngineData, NetLink, NetNode, Network } from './types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 
 const pc = (uid: string, ip: string | null, gateway: string | null = null): NetNode => ({ ports: [],
   uid,

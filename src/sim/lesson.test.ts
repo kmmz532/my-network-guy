@@ -14,7 +14,7 @@ const domainsOf = (net: Network, data: EngineData) => analyze(net, data).l2.plan
 
 import { solutions } from '../__golden__/solutions';
 
-const engine: EngineData = { wallAt: () => false };
+const engine: EngineData = { wallAt: () => false, interferers: [] };
 
 const lesson = (id: string): Lesson => {
   const found = lessons.find((l) => l.id === id);

@@ -3,7 +3,7 @@ import { analyze } from './analyze';
 import { ping } from '../engine';
 import type { EngineData, NetLink, NetNode, Network } from '../types';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 
 const pc = (uid: string, ip: string): NetNode => ({
   ports: [],

@@ -6,7 +6,7 @@ import type { EngineData, NetLink, NetNode, Network } from './types';
 import { instantiateTemplate } from '../contracts/template';
 import type { ContractTemplate, GameMap, Goal } from '../data/schema';
 
-const data: EngineData = { wallAt: () => false };
+const data: EngineData = { wallAt: () => false, interferers: [] };
 
 const host = (uid: string, device: string, ip: string): NetNode => ({ ports: [],
   uid,
@@ -118,7 +118,7 @@ describe('ひな形の役割', () => {
 // t_bank_secure の模範解答: 窓口（192.168.1.0/24）と、事務室とサーバー（192.168.2.0/24）を、ポート2つのファイアウォールで分ける。
 // 規則は「窓口からサーバーへの http を許す」1本だけ。既定は拒否のため、窓口から事務室への Ping は止まる
 describe('銀行の支店の守り（模範解答で解ける）', () => {
-  const bankData: EngineData = { wallAt: () => false };
+  const bankData: EngineData = { wallAt: () => false, interferers: [] };
   const pc = (uid: string, ip: string, gw: string): NetNode => ({ ...host(uid, 'pc_basic', ip), gateway: gw });
   const fw = (rules: NonNullable<NetNode['components']>['firewall']): NetNode => ({
     ...sw('fw'),

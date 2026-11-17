@@ -92,6 +92,13 @@
       "sprite": "furniture/boxes",
       "seat": false,
       "unlockLevel": 1
+    },
+    {
+      "id": "microwave",
+      "price": 15000,
+      "sprite": "furniture/microwave",
+      "seat": false,
+      "unlockLevel": 4
     }
   ]
 }
