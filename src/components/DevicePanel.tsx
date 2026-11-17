@@ -101,7 +101,6 @@ function DeviceView({
     setTabState(next);
   };
   const [error, setError] = useState<string | null>(null);
-  const duplicateNode = useGameStore((s) => s.duplicateNode);
 
   const category = deviceCategory(node.device);
   const isServer = category === CATEGORY.server;
@@ -120,11 +119,6 @@ function DeviceView({
     <div>
       {issue && <Text tone="warn" layout={{ marginBottom: 6 }}>{tDyn(`issue.${issue.reason}`, { ip: issue.ip ?? '', segment: issue.segment ?? '', gateway: issue.gateway ?? '' })}</Text>}
       {readOnly && <div style={{ marginBottom: 6 }}>{t('ui.config.readOnly')}</div>}
-      {!readOnly && (
-        <Button variant="secondary" size="fit" onClick={() => setError(duplicateNode(node.uid))}>
-          {t('ui.device.duplicate')}
-        </Button>
-      )}
       <Tabs<Tab>
         items={[
           { id: 'rear', label: t('ui.panel.tab.rear') },

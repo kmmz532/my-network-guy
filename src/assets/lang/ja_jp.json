@@ -879,7 +879,6 @@
   "ui.delegate.blind": "社員に任せる",
   "ui.delegate.button": "型紙で任せる",
   "ui.delegate.stars": "予想の★: {range}",
-  "ui.device.duplicate": "複製",
   "ui.dns.add": "記録を追加",
   "ui.dns.apply": "転送先を設定",
   "ui.dns.duplicate": "同じ名前の機器があります: {names}",
