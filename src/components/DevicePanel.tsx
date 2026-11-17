@@ -228,6 +228,7 @@ function ServiceTab({ node, nodes, state, readOnly, onError }: { node: NetNode; 
   const autoRegisterZone = useGameStore((s) => s.autoRegisterZone);
   const http = node.services.find((s) => s.protocol === 'http');
   const running = http !== undefined;
+  const radius = node.services.some((x) => x.protocol === 'radius');
   const locked = readOnly || node.configLocked;
   // DNS のサービス。同じ名前の機器があれば警告する（N68）
   const dns = node.services.find((s): s is DnsService => s.protocol === 'dns');
@@ -255,6 +256,13 @@ function ServiceTab({ node, nodes, state, readOnly, onError }: { node: NetNode; 
         <Text as="span" tone={running ? 'ok' : 'note'}>{running ? t('ui.service.running') : t('ui.service.stopped')}</Text>
         <Button variant="secondary" size="fit" disabled={locked} onClick={() => onError(setService(node.uid, 'http', !running))}>
           {running ? t('ui.service.stop') : t('ui.service.start')}
+        </Button>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <b>{t('ui.service.radius')}</b>
+        <Text as='span' tone={radius ? 'ok' : 'note'}>{radius ? t('ui.service.running') : t('ui.service.stopped')}</Text>
+        <Button variant='secondary' size='fit' disabled={locked} onClick={() => onError(setService(node.uid, 'radius', !radius))}>
+          {radius ? t('ui.service.stop') : t('ui.service.start')}
         </Button>
       </div>
       {running && <SeenSources node={node} nodes={nodes} state={state} />}

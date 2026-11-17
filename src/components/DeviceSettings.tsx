@@ -12,6 +12,8 @@ import { isRelayPort, isRoutingCategory } from '../network/category';
 import { can } from '../network/capabilities';
 import { getComponent } from '../network/components';
 import { wirelessAssociations } from '../network/engine/stages/links';
+import { bandOf, channelOf } from '../network/wirelessBand';
+import { bandChannels, deviceBands, deviceSecurities, isDfsChannel, isEapSecurity } from '../registry/wireless';
 import { channelOverlapsOf, networkColors, wirelessQualityOf, type NetworkState } from '../network/public';
 import { colorOfNetwork, UNSET_COLOR } from '../network/netColor';
 import { networkOf, wildcardOf } from '../network/ip';
@@ -559,6 +561,7 @@ function NatField({ node, readOnly, onError }: { node: NetNode; readOnly: boolea
 
 // 機器の名前の欄。欄を離れたとき・Enter で確定する。空にすると既定の名前に戻る
 // 無線の設定（N152）: SSID とパスワード。アクセスポイントと無線の端末の SSID・パスワードが合うとつながる。空欄は未設定
+const BAND_LABEL = { '2.4': 'ui.wireless.band24', '5': 'ui.wireless.band5' } as const;
 function WirelessField({ node, state, readOnly, onError }: { node: NetNode; state: NetworkState; readOnly: boolean; onError: (reason: string | null) => void }) {
   const setWireless = useGameStore((s) => s.setWireless);
   const store = useGameStore.getState();
@@ -569,6 +572,7 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
   const clients = pairs.filter((p) => p.ap.uid === node.uid).length;
   // アクセスポイントは、つながっている端末の数を出す。端末は、つながった先か、つながっていないことを出す
   const isClient = !can(node.device, 'accessPoint');
+  const wifi = getComponent(node, 'wireless');
   // 同じチャネルで近いアクセスポイントがあれば、注意を出す（N152）
   const overlapping = channelOverlapsOf(state).some((o) => o.a === node.uid || o.b === node.uid);
   const quality = isClient ? wirelessQualityOf(state, node.uid) : null;
@@ -577,9 +581,16 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
     : isClient
       ? t('ui.wireless.none')
       : t('ui.wireless.clients', { n: clients });
+  // 802.1X の方式のとき、パスワードの欄の代わりに RADIUS サーバーのアドレスの欄を出す
+  const eap = !isClient && isEapSecurity(wifi?.security ?? 'wpa2');
   const commit = (key: 'ssid' | 'password', value: string) => {
     if ((getComponent(node, 'wireless')?.[key] ?? '') === value) return;
     onError(setWireless(node.uid, key, value));
+  };
+  const commitRadius = (text: string) => {
+    const v = text.trim();
+    if ((wifi?.radius ?? '') === v) return;
+    onError(setWireless(node.uid, 'radius', v === '' ? null : v));
   };
   const field = (label: string, value: string, key: 'ssid' | 'password', type: 'text' | 'password') => (
     <div style={{ marginBottom: 8 }}>
@@ -587,21 +598,56 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
       <TextInput label={label} type={type} width="full" value={value} disabled={readOnly} maxLength={32} onCommit={(text) => commit(key, text)} />
     </div>
   );
+  const labelOf = (text: string) => (
+    <label style={{ display: 'block', marginBottom: 2 }}><Text as="span" bold>{text}</Text></label>
+  );
+  // アクセスポイントの帯・チャネル・方式。チャネルは帯で選べる番号だけを出し、DFS の対象のチャネルには説明を出す
+  const apChannel = isClient ? undefined : channelOf(node);
   return (
     <Section layout={{ marginBottom: 10 }}>
-      {field(t('ui.wireless.ssid'), getComponent(node, 'wireless')?.ssid ?? '', 'ssid', 'text')}
-      {field(t('ui.wireless.password'), getComponent(node, 'wireless')?.password ?? '', 'password', 'password')}
+      {field(t('ui.wireless.ssid'), wifi?.ssid ?? '', 'ssid', 'text')}
       {!isClient && (
+        <>
+          <div style={{ marginBottom: 8 }}>
+            {labelOf(t('ui.wireless.band'))}
+            <Select
+              label={t('ui.wireless.band')}
+              value={bandOf(node)}
+              disabled={readOnly}
+              options={deviceBands(node.device).map((b) => ({ value: b, label: t(BAND_LABEL[b]) }))}
+              onChange={(v) => onError(setWireless(node.uid, 'band', v))}
+            />
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            {labelOf(t('ui.wireless.channel'))}
+            <Select
+              label={t('ui.wireless.channel')}
+              value={String(apChannel)}
+              disabled={readOnly}
+              options={bandChannels(bandOf(node)).map((c) => ({ value: String(c), label: String(c) }))}
+              onChange={(v) => onError(setWireless(node.uid, 'channel', Number(v)))}
+            />
+            {apChannel !== undefined && isDfsChannel(apChannel) && <Text size="s" tone="note">{t('ui.wireless.dfs')}</Text>}
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            {labelOf(t('ui.wireless.security'))}
+            <Select
+              label={t('ui.wireless.security')}
+              value={wifi?.security ?? 'wpa2'}
+              disabled={readOnly}
+              options={deviceSecurities(node.device).map((s) => ({ value: s, label: t(`ui.wireless.sec.${s}`) }))}
+              onChange={(v) => onError(setWireless(node.uid, 'security', v))}
+            />
+          </div>
+        </>
+      )}
+      {eap ? (
         <div style={{ marginBottom: 8 }}>
-          <label style={{ display: 'block', marginBottom: 2 }}><Text as="span" bold>{t('ui.wireless.security')}</Text></label>
-          <Select
-            label={t('ui.wireless.security')}
-            value={getComponent(node, 'wireless')?.security ?? 'wpa2'}
-            disabled={readOnly}
-            options={(['open', 'wep', 'wpa', 'wpa2', 'wpa3', 'wpa2wpa3'] as const).map((s) => ({ value: s, label: t(`ui.wireless.sec.${s}`) }))}
-            onChange={(v) => onError(setWireless(node.uid, 'security', v))}
-          />
+          {labelOf(t('ui.wireless.radius'))}
+          <TextInput label={t('ui.wireless.radius')} width="full" value={wifi?.radius ?? ''} disabled={readOnly} onCommit={commitRadius} />
         </div>
+      ) : (
+        field(t('ui.wireless.password'), wifi?.password ?? '', 'password', 'password')
       )}
       <Text size="s">{statusText}</Text>
       {quality !== null && <Text size="s" tone={quality === 'good' ? undefined : 'warn'}>{t('ui.wireless.quality', { q: t(`ui.wireless.quality.${quality}`) })}</Text>}
