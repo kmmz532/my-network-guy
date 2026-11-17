@@ -19,6 +19,9 @@ channel-group 1 mode on
 exit
 end
 show etherchannel summary
+configure terminal
+interface port-channel 1
+end
 @SW2
 channel-group 0 1 mode active
 show etherchannel summary

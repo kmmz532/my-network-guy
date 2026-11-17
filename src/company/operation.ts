@@ -6,6 +6,7 @@ import type { BgpOp, ChannelOp, DhcpOp, End, NatOp, OspfOp, PortChoice, PortMode
 export type ConfigChange =
   | { kind: 'iface'; port: number; ip: string; prefix?: number }
   | { kind: 'svi'; vlan: number; ip: string; prefix?: number }
+  | { kind: 'po'; channel: number; ip: string; prefix?: number }
   | { kind: 'portMode'; port: number; mode: PortModeChange }
   | { kind: 'gateway'; gateway: string | null }
   | { kind: 'routing'; change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; wildcard?: string; area?: number; process?: number | null } }

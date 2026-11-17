@@ -103,6 +103,22 @@
       ]
     },
     {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "interface port-channel 1",
+      "lines": [
+        "err:ui.error.port.mode"
+      ]
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
       "node": "SW2"
     },
     {

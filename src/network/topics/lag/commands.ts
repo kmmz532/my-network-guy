@@ -1,8 +1,9 @@
 // リンクアグリゲーションの論点の命令。
 import { lagBundlesOf } from '../../query/lagBundles';
-import { changed, out, shown } from '../../command/lines';
+import { changed, err, out, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
 import { interfaceOf } from '../../command/modes';
+import { refusalFor } from '../../../sim/capabilityGate';
 
 const PORT = { arg: 'number', name: 'port' } as const;
 
@@ -19,6 +20,22 @@ const channelGroups: CommandSpec[] = LACP_MODES.map((lacp) => ({
 }));
 
 export const commands: readonly CommandSpec[] = [
+  {
+    // interface port-channel <n>: 束ねた口（Po）のインターフェースに入る。lag と routedPort の両方を持つ機器だけ
+    id: 'lag.interfacePortChannel',
+    modes: ['config'],
+    tokens: [{ word: 'interface' }, { word: 'port-channel' }, { arg: 'number', name: 'channel' }],
+    help: 'ui.cmd.lag.interfacePortChannel',
+    writes: false,
+    topic: 'lag',
+    run: (args, ctx, tr) => {
+      const refusal = refusalFor(ctx.node.device, 'lag') ?? refusalFor(ctx.node.device, 'routedPort');
+      if (refusal) return shown([err(tr(`ui.error.${refusal}`))]);
+      const channel = Number(args.channel);
+      if (channel < 1 || channel > 64) return shown([err(tr('ui.error.lag.group'))]);
+      return { lines: [], change: null, session: { mode: 'interface', iface: { kind: 'po', channel }, process: null } };
+    },
+  },
   {
     id: 'lag.showEtherchannelSummary',
     modes: ['exec'],

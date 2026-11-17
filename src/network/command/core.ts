@@ -115,6 +115,7 @@ const ipAddressInterface: CommandSpec = {
   run: (args, ctx, tr) => {
     const { iface } = ctx.session;
     if (iface?.kind === 'svi') return changed(ctx, tr, { kind: 'svi', vlan: iface.vlan, ip: args.ip, prefix: prefixOfMask(args.mask) });
+    if (iface?.kind === 'po') return changed(ctx, tr, { kind: 'po', channel: iface.channel, ip: args.ip, prefix: prefixOfMask(args.mask) });
     return changed(ctx, tr, { kind: 'iface', port: sessionPortOf(ctx) as number, ip: args.ip, prefix: prefixOfMask(args.mask) });
   },
 };
@@ -206,6 +207,7 @@ export const commands: readonly CommandSpec[] = [
     run: (_args, ctx, tr) => {
       const { iface } = ctx.session;
       if (iface?.kind === 'svi') return changed(ctx, tr, { kind: 'svi', vlan: iface.vlan, ip: '', prefix: 24 });
+      if (iface?.kind === 'po') return changed(ctx, tr, { kind: 'po', channel: iface.channel, ip: '', prefix: 24 });
       return changed(ctx, tr, { kind: 'iface', port: sessionPortOf(ctx) as number, ip: '', prefix: 24 });
     },
   },
@@ -227,7 +229,9 @@ export const commands: readonly CommandSpec[] = [
     topic: null,
     run: (_args, { node }, tr) => {
       if (node.interfaces.length === 0) return shown([out(tr('ui.terminal.noIp'))]);
-      const lines = node.interfaces.map((i) => out(tr('ui.terminal.ifLine', { port: i.port, ip: i.ip, prefix: i.prefix })));
+      const lines = node.interfaces.map((i) => out(i.kind === 'po'
+        ? tr('ui.terminal.poLine', { channel: i.channel ?? 0, ip: i.ip, prefix: i.prefix })
+        : tr('ui.terminal.ifLine', { port: i.port, ip: i.ip, prefix: i.prefix })));
       if (node.gateway) lines.push(out(tr('ui.terminal.gateway', { gateway: node.gateway })));
       return shown(lines);
     },
@@ -279,7 +283,7 @@ export const commands: readonly CommandSpec[] = [
     topic: null,
     run: (_args, { node }, tr) => {
       const lines: TerminalLine[] = node.hostname ? [out(tr('ui.terminal.cfgHostname', { name: node.hostname }))] : [];
-      for (const i of node.interfaces) lines.push(out(tr('ui.terminal.cfgInterface', { port: i.port })));
+      for (const i of node.interfaces) lines.push(out(i.kind === 'po' ? tr('ui.terminal.cfgPoInterface', { channel: i.channel ?? 0 }) : tr('ui.terminal.cfgInterface', { port: i.port })));
       for (const h of getComponent(node, 'resolver')?.hosts ?? []) lines.push(out(tr('ui.terminal.cfgHost', { name: h.name, ip: h.ip })));
       const nameServer = getComponent(node, 'resolver')?.nameServer;
       if (nameServer) lines.push(out(tr('ui.terminal.cfgNameServer', { ip: nameServer })));
