@@ -1,0 +1,263 @@
+{
+  "id": "w001_guest_ssid",
+  "kind": "build",
+  "stage": 2,
+  "order": 265,
+  "requires": [
+    "r008_wireless_wpa3"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_rooms",
+  "budget": 40000,
+  "deadlineDays": 5,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "FW1",
+      "device": "firewall_dmz",
+      "x": 10,
+      "y": 5,
+      "locked": true,
+      "name": "ファイアウォール",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "198.51.100.2",
+            "prefix": 24
+          },
+          {
+            "port": 1,
+            "ip": "192.168.1.1",
+            "prefix": 24
+          },
+          {
+            "port": 2,
+            "ip": "192.168.20.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": "198.51.100.1",
+        "services": [],
+        "locked": true
+      },
+      "setup": {
+        "napt": true,
+        "interfaces": [
+          {
+            "port": 0,
+            "nat": "outside"
+          },
+          {
+            "port": 1,
+            "nat": "inside"
+          },
+          {
+            "port": 2,
+            "nat": "inside"
+          }
+        ],
+        "rules": [
+          {
+            "src": "192.168.1.0/24",
+            "dst": "any",
+            "service": "any"
+          },
+          {
+            "src": "192.168.20.0/24",
+            "dst": "198.51.100.0/24",
+            "service": "any"
+          }
+        ]
+      }
+    },
+    {
+      "ref": "line",
+      "device": "uplink",
+      "x": 18,
+      "y": 4,
+      "locked": true,
+      "isp": {
+        "name": "ISP-A",
+        "network": "198.51.100.0",
+        "prefix": 24,
+        "ispIp": "198.51.100.1"
+      },
+      "name": "回線終端"
+    },
+    {
+      "ref": "SW1",
+      "device": "l2_switch_8p",
+      "x": 4,
+      "y": 5,
+      "locked": false,
+      "name": "SW1"
+    },
+    {
+      "ref": "SRV",
+      "device": "server_basic",
+      "x": 2,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.5",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "社内のサーバー"
+    },
+    {
+      "ref": "STAFF_AP",
+      "device": "access_point",
+      "x": 6,
+      "y": 3,
+      "locked": true,
+      "wireless": {
+        "ssid": "office-wifi",
+        "password": "office-pass-2026",
+        "security": "wpa2",
+        "band": "2.4"
+      },
+      "name": "社員用のアクセスポイント"
+    },
+    {
+      "ref": "STAFF",
+      "device": "laptop",
+      "x": 2,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      },
+      "wireless": {
+        "ssid": "office-wifi",
+        "password": "office-pass-2026"
+      },
+      "name": "社員のノートPC"
+    },
+    {
+      "ref": "GUEST_AP",
+      "device": "access_point",
+      "x": 14,
+      "y": 3,
+      "locked": false,
+      "wireless": {
+        "ssid": "guest-wifi",
+        "password": "guest-pass-2026",
+        "security": "wpa2",
+        "band": "2.4"
+      },
+      "name": "来客用のアクセスポイント"
+    },
+    {
+      "ref": "GUEST",
+      "device": "pc_wifi",
+      "x": 16,
+      "y": 6,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.20.50",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.20.1",
+        "services": [],
+        "locked": true
+      },
+      "wireless": {
+        "ssid": "guest-wifi",
+        "password": "guest-pass-2026"
+      },
+      "name": "来客のPC"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "FW1",
+        "port": 0
+      },
+      "b": {
+        "ref": "line",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "FW1",
+        "port": 1
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "SW1",
+        "port": 1
+      },
+      "b": {
+        "ref": "STAFF_AP",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "SW1",
+        "port": 2
+      },
+      "b": {
+        "ref": "SRV",
+        "port": 0
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "wireless_clients",
+      "min": 2
+    },
+    {
+      "type": "isolated",
+      "from": [
+        "GUEST"
+      ],
+      "to": [
+        "SRV"
+      ]
+    },
+    {
+      "type": "outside_reachable"
+    }
+  ],
+  "reward": {
+    "money": 500000
+  },
+  "unlockLevel": 50
+}
