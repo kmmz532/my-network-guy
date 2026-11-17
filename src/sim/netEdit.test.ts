@@ -99,6 +99,13 @@ describe('setWireless', () => {
     if (!r.ok) throw new Error(`設定できない: ${r.reason}`);
     expect(getComponent(r.core.office.nodes[0], 'wireless')).toEqual({ band: '5' });
   });
+
+  it('802.1X の方式は、選べる機器（アクセスポイント）だけ。家庭用ルーターは拒否する', () => {
+    expect(setWireless(coreOf(node('ap', 'access_point')), 'ap', 'security', 'wpa2_eap', 'office').ok).toBe(true);
+    expect(setWireless(coreOf(node('hr', 'home_router_ap')), 'hr', 'security', 'wpa2_eap', 'office').ok).toBe(false);
+    expect(setWireless(coreOf(node('hr', 'home_router_ap')), 'hr', 'security', 'wpa3_eap', 'office').ok).toBe(false);
+    expect(setWireless(coreOf(node('hr', 'home_router_ap')), 'hr', 'security', 'wpa2', 'office').ok).toBe(true);
+  });
 });
 
 describe('setNat', () => {

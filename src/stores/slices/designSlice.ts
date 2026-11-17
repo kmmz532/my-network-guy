@@ -69,7 +69,7 @@ export interface DesignSlice {
   // ケーブルの端を、別の機器の空いているポートへ挿す（port が null なら空いている最小の番号）
   replugTo: (linkUid: string, end: End, nodeUid: string, port: number | null) => string | null;
   // サービスを起動（on）・停止する
-  setService: (uid: string, protocol: 'http', on: boolean) => string | null;
+  setService: (uid: string, protocol: 'http' | 'radius', on: boolean) => string | null;
   setName: (uid: string, name: string) => string | null;
   // ホスト名を付ける（null で外す）（N46）
   setHostname: (uid: string, hostname: string | null) => string | null;

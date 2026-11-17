@@ -36,6 +36,8 @@ export const COMPONENT_SCHEMAS = {
     vlan: z.number().int().optional(),
     macs: z.array(z.string()).optional(),
     security: z.enum(WIRELESS_SECURITIES).optional(),
+    // 802.1X（security が wpa2_eap・wpa3_eap）の認証を任せる RADIUS サーバーのアドレス
+    radius: ipv4.optional(),
   }),
   // NAT の設定（napt は inside から outside へ出る通信の送信元を outside の口のアドレスに変える。statics は静的 NAT で、外の口へのこのポートの通信を、社内の宛先（アドレスとポート）へ届ける）
   nat: z.object({

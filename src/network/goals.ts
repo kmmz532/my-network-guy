@@ -124,7 +124,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
     const { net, world: data } = state;
     if (goal.type !== 'wireless_secure') throw new Error('wireless_secure ハンドラに別の種類が渡された');
     const aps = accessPointsOf(net, data).filter((n) => getComponent(n, 'wireless')?.ssid === goal.ssid);
-    const ok = aps.length > 0 && aps.every((n) => (getComponent(n, 'wireless')?.security ?? 'wpa2') === 'wpa2' || getComponent(n, 'wireless')?.security === 'wpa3');
+    const ok = aps.length > 0 && aps.every((n) => ['wpa2', 'wpa3', 'wpa2_eap', 'wpa3_eap'].includes(getComponent(n, 'wireless')?.security ?? 'wpa2'));
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // 指定したスイッチがルートブリッジになっている

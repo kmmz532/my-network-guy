@@ -13,9 +13,9 @@ export type ConfigChange =
   | { kind: 'ospf'; change: OspfOp } | { kind: 'isp'; line: IspLine } | { kind: 'stp'; change: StpOp }
   | { kind: 'channel'; change: ChannelOp } | { kind: 'dhcp'; change: DhcpOp } | { kind: 'power'; on: boolean }
   | { kind: 'vrrp'; change: VrrpOp } | { kind: 'bgp'; change: BgpOp } | { kind: 'nat'; change: NatOp }
-  | { kind: 'wireless'; key: 'ssid' | 'password' | 'band' | 'channel' | 'vlan' | 'security'; value: string | number }
+  | { kind: 'wireless'; key: 'ssid' | 'password' | 'band' | 'channel' | 'vlan' | 'security' | 'radius'; value: string | number }
   | { kind: 'firewallRules'; rules: FirewallRule[] } | { kind: 'plan'; port: number; network: string; prefix: number }
-  | { kind: 'service'; protocol: 'http'; on: boolean } | { kind: 'name'; name: string } | { kind: 'hostname'; hostname: string | null }
+  | { kind: 'service'; protocol: 'http' | 'radius'; on: boolean } | { kind: 'name'; name: string } | { kind: 'hostname'; hostname: string | null }
   | { kind: 'nameServer'; ip: string | null } | { kind: 'dnsRole'; on: boolean; role?: 'auth' | 'cache' } | { kind: 'autoRegisterZone' }
   | { kind: 'dnsForwarder'; ip: string | null } | { kind: 'dnsRecord'; record: DnsRecord } | { kind: 'removeDnsRecord'; type: DnsRecord['type']; name: string }
   | { kind: 'host'; name: string; ip: string } | { kind: 'removeHost'; name: string }

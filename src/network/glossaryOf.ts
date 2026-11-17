@@ -12,6 +12,7 @@ export const GLOSSARY_OF_FAILURE: Partial<Record<FailureReason, string>> = {
   'vlan.not_allowed': 'dot1q',
   'wlan.psk_mismatch': 'wpa2',
   'wlan.auth_mismatch': 'wpa3',
+  'wlan.no_radius': 'radius',
 };
 
 // 教材の案内の手順（文言のキー）ごとに、その手順で初めて出す用語。対応のない手順は説明を出さない

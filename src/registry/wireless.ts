@@ -49,3 +49,6 @@ export const securitySupported = (device: string, security: WirelessSecurity): b
   const supported: readonly WirelessSecurity[] = wlanOf(device).security;
   return security === 'wpa2wpa3' ? supported.includes('wpa2') || supported.includes('wpa3') : supported.includes(security);
 };
+
+// 802.1X（RADIUS による認証）の方式か。パスワードの一致を求めず、アクセスポイントの radius のアドレスへ認証を問い合わせる
+export const isEapSecurity = (security: WirelessSecurity): boolean => security === 'wpa2_eap' || security === 'wpa3_eap';

@@ -11,7 +11,7 @@ import type { NetworkState } from './state';
 import type { L2Domain } from './stages/l2';
 import { adOf } from './stages/routing';
 import { getComponent } from '../components';
-import { deviceBands, securitySupported } from '../../registry/wireless';
+import { deviceBands, isEapSecurity, securitySupported } from '../../registry/wireless';
 import { bandOf } from '../wirelessBand';
 
 // 転送が読む層。解析の結果（NetworkState）と、DHCP のリレーの到達を仮に確かめるときの仮の層が、同じ形で渡せる
@@ -39,7 +39,8 @@ const duplicateReason = (view: ForwardView, members: { node: string; port: numbe
 
 // 片道の判定（src → dst）。dstIp は宛先のIPアドレス
 // 通信の種類（ping は ICMP、http は指定のポートへの TCP、dns は 53 番への問い合わせ）。ファイアウォールの規則の判定に使う
-export type Traffic = { kind: 'ping' } | { kind: 'http'; port: number } | { kind: 'dns' };
+// radius は UDP 1812 への認証の問い合わせ（アクセスポイントから RADIUS サーバーへ）。ファイアウォールは、サービスを any にした規則だけが通す
+export type Traffic = { kind: 'ping' } | { kind: 'http'; port: number } | { kind: 'dns' } | { kind: 'radius' };
 
 // 規則の送信元・宛先（'any' か「a.b.c.d/nn」）に、IPアドレスが入るか
 const matchNet = (spec: string, ip: string): boolean => {
@@ -62,20 +63,22 @@ const allows = (rules: readonly FirewallRule[] | undefined, srcIp: string, dstIp
 
 // 通信を1方向に届ける。check が true のときは、通り道のファイアウォールの規則を確かめる（戻りの通信は、往路で許した通信の戻りとして確かめない）
 // 口に線がないときの理由。無線の端末は、ケーブルがないのではなく、アクセスポイントにつながっていない（N152）
-const unpluggedReason = (view: ForwardView, uid: string): 'link.unplugged' | 'wireless.unassociated' | 'wlan.psk_mismatch' | 'wlan.auth_mismatch' | 'wlan.band_mismatch' => {
+const unpluggedReason = (view: ForwardView, uid: string): 'link.unplugged' | 'wireless.unassociated' | 'wlan.psk_mismatch' | 'wlan.auth_mismatch' | 'wlan.band_mismatch' | 'wlan.no_radius' => {
   const node = view.addressing.nodeOf(uid);
   if (node === undefined || !can(node.device, 'wireless')) return 'link.unplugged';
   // 同じ SSID のアクセスポイントがあるのに、パスワードか暗号化の方式が合わない
   const mine = getComponent(node, 'wireless');
   const same = view.addressing.net.nodes.filter((n) => {
     const w = getComponent(n, 'wireless');
-    return n.uid !== uid && w?.ssid !== undefined && w.ssid === mine?.ssid && can(n.device, 'wireless') && w.password !== undefined;
+    return n.uid !== uid && w?.ssid !== undefined && w.ssid === mine?.ssid && can(n.device, 'wireless') && (w.password !== undefined || isEapSecurity(w.security ?? 'wpa2'));
   });
-  if (same.some((ap) => (getComponent(ap, 'wireless')?.security ?? 'wpa2') !== 'open' && getComponent(ap, 'wireless')?.password !== mine?.password)) return 'wlan.psk_mismatch';
+  if (same.some((ap) => !['open', 'wpa2_eap', 'wpa3_eap'].includes(getComponent(ap, 'wireless')?.security ?? 'wpa2') && getComponent(ap, 'wireless')?.password !== mine?.password)) return 'wlan.psk_mismatch';
   // 同じ SSID のアクセスポイント（端末を除く）の、暗号化の方式と帯が、端末に合わない
   const aps = same.filter((n) => can(n.device, 'accessPoint'));
   if (aps.some((ap) => !securitySupported(node.device, getComponent(ap, 'wireless')?.security ?? 'wpa2'))) return 'wlan.auth_mismatch';
   if (aps.some((ap) => !deviceBands(node.device).includes(bandOf(ap)))) return 'wlan.band_mismatch';
+  // 802.1X の SSID で、RADIUS サーバーへ届かない
+  if (aps.some((ap) => isEapSecurity(getComponent(ap, 'wireless')?.security ?? 'wpa2') && view.links.radiusDown.has(ap.uid))) return 'wlan.no_radius';
   return 'wireless.unassociated';
 };
 
@@ -326,4 +329,33 @@ export const dnsQuery = (view: ForwardView, srcUid: string, dstUid: string, dstI
     return { ok: false, path: forward.path, failure: { reason: 'return.failed', node: dstUid, cause: back.failure }, nat: forward.nat };
   }
   return { ...forward, back: back.path };
+};
+
+// 802.1X の認証の問い合わせの判定。アクセスポイントから、設定した RADIUS のアドレスのサーバーへ UDP 1812 が往復できること。
+// アクセスポイントは L2 の機器でアドレスを持たないため、上り口（口0）の L2 ドメインから見る。サーバーが同じドメインにあればそのまま届き、
+// なければ、同じドメインにいるルーターが、自分の口のアドレスからサーバーへ届くこと（アクセスポイントの通信はそのルーターが中継する）。
+// アドレスが未設定、そのアドレスのサーバーがない、サーバーが radius のサービスを持たない、のときも届かない（wlan.no_radius）
+export const radiusQuery = (view: ForwardView, apUid: string, radiusIp: string | undefined): PathResult => {
+  const noRadius = (): PathResult => ({ ok: false, path: [], failure: fail('wlan.no_radius', apUid) });
+  if (radiusIp === undefined) return noRadius();
+  const server = view.addressing.net.nodes.find((n) => n.interfaces.some((i) => i.ip === radiusIp));
+  if (!server || !server.services.some((s) => s.protocol === 'radius')) return noRadius();
+  const apEp: Endpoint = { node: apUid, port: 0 };
+  if (!view.l2.linkAt(apEp)) return noRadius();
+  const domain = view.l2.domainOf(apEp);
+  if (domain.tooLong) return { ok: false, path: [], failure: fail('link.too_long', domain.tooLong.node) };
+  if (domain.loop) return { ok: false, path: [], failure: fail('link.loop', domain.loop.node) };
+  if (domain.members.some((m) => m.node === server.uid && ifaceAt(view, m.node, m.port)?.ip === radiusIp)) return { ok: true, path: [apUid, server.uid] };
+  for (const m of domain.members) {
+    if (!isRouter(view, m.node)) continue;
+    const ip = ifaceAt(view, m.node, m.port)?.ip;
+    if (ip === undefined || ip === '') continue;
+    // ルーターを送信元にするため、ゲートウェイを自分の口のアドレスとした端末として扱い、自分から経路表を引かせる
+    const relay: ForwardView = { ...view, addressing: { ...view.addressing, nodeOf: (uid) => (uid === m.node ? { ...view.addressing.nodeOf(uid)!, gateway: ip } : view.addressing.nodeOf(uid)) } };
+    const forward = deliver(relay, m.node, server.uid, { kind: 'radius' }, true, ip, radiusIp);
+    if (!forward.ok) continue;
+    const back = forward.nat ? backOf(relay, server.uid, m.node, { kind: 'radius' }, forward) : deliver(relay, server.uid, m.node, { kind: 'radius' }, false, radiusIp, ip);
+    if (back.ok) return { ok: true, path: [apUid, ...forward.path], back: back.path };
+  }
+  return noRadius();
 };

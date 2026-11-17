@@ -48,7 +48,8 @@
           "wep",
           "wpa",
           "wpa2",
-          "wpa2wpa3"
+          "wpa2wpa3",
+          "wpa2_eap"
         ]
       }
     },
@@ -84,7 +85,9 @@
           "wpa",
           "wpa2",
           "wpa3",
-          "wpa2wpa3"
+          "wpa2wpa3",
+          "wpa2_eap",
+          "wpa3_eap"
         ]
       }
     },
@@ -116,7 +119,8 @@
           "wep",
           "wpa",
           "wpa2",
-          "wpa2wpa3"
+          "wpa2wpa3",
+          "wpa2_eap"
         ]
       }
     }

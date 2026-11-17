@@ -63,6 +63,8 @@ export interface DnsRecord {
 // 機器が動かすサービス。DNS は 53 番で待ち受ける。auth は自分のゾーンだけを答え、cache はゾーンにない名前を forwarder（転送先の DNS の IP）へ聞く
 export type Service =
   | { protocol: 'http'; port: number }
+  // RADIUS は UDP 1812 に固定
+  | { protocol: 'radius' }
   | { protocol: 'dns'; role: 'auth' | 'cache'; zone: DnsRecord[]; forwarder?: string };
 export type DnsService = Extract<Service, { protocol: 'dns' }>;
 export const DNS_PORT = 53;
@@ -116,7 +118,8 @@ export interface IspLine {
   dns?: string;
 }
 
-export const WIRELESS_SECURITIES = ['open', 'wep', 'wpa', 'wpa2', 'wpa3', 'wpa2wpa3'] as const;
+// wpa2_eap・wpa3_eap は 802.1X（RADIUS による認証）。パスワードの一致は求めない
+export const WIRELESS_SECURITIES = ['open', 'wep', 'wpa', 'wpa2', 'wpa3', 'wpa2wpa3', 'wpa2_eap', 'wpa3_eap'] as const;
 export type WirelessSecurity = (typeof WIRELESS_SECURITIES)[number];
 
 export interface NetNode {
@@ -192,6 +195,8 @@ export const FAILURE_REASONS = [
   'wlan.psk_mismatch',
   'wlan.auth_mismatch',
   'wlan.band_mismatch',
+  // 802.1X の SSID で、アクセスポイントから RADIUS サーバー（UDP 1812）へ届かない（アドレスの未設定・届かない・radius のサービスがない）
+  'wlan.no_radius',
   // DHCP サーバーが見つからず、アドレスを受け取れない（NET.md §5.7）
   'dhcp.no_offer',
   // DHCP のプールのアドレスが足りない

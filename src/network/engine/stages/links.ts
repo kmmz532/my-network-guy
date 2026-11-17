@@ -5,7 +5,7 @@ import { getComponent } from '../../components';
 import { computeLags, type LagResult } from '../../lag';
 import { macOf } from '../../mac';
 import { resolvePo } from '../../po';
-import { bandRadius, bandWallLoss, deviceBands, securitySupported } from '../../../registry/wireless';
+import { bandRadius, bandWallLoss, deviceBands, isEapSecurity, securitySupported } from '../../../registry/wireless';
 import { bandOf } from '../../wirelessBand';
 import type { EngineData, NetLink, NetNode, Network, PortConfig } from '../../types';
 
@@ -44,7 +44,8 @@ export const accessPointsOf = (net: Network, _data: EngineData): NetNode[] =>
   net.nodes.filter((n) => can(n.device, 'accessPoint'));
 
 // 無線の端末とつながるアクセスポイントの組（端末ごとに最も近い、SSID・パスワードの合う、範囲の中のもの）。画面の点線にも使う（N151・N152）
-export const wirelessAssociations = (net: Network, data: EngineData): { ap: NetNode; client: NetNode }[] => {
+// radiusDown は、RADIUS サーバーへ届かないアクセスポイントの uid。802.1X の SSID のそのアクセスポイントには、端末がつながらない（届くかは配線・アドレス・経路の層の後に分かるため、解析が求めて渡す）
+export const wirelessAssociations = (net: Network, data: EngineData, radiusDown: ReadonlySet<string> = new Set()): { ap: NetNode; client: NetNode }[] => {
   const aps = net.nodes.filter((n) => can(n.device, 'accessPoint'));
   if (aps.length === 0) return [];
   const wired = new Set(net.links.flatMap((l) => [`${l.a.node}:${l.a.port}`, `${l.b.node}:${l.b.port}`]));
@@ -61,7 +62,9 @@ export const wirelessAssociations = (net: Network, data: EngineData): { ap: NetN
       const cw = getComponent(c, 'wireless');
       const security = w?.security ?? 'wpa2';
       // パスワードは、暗号化のない SSID では要らない。WPA3 だけの SSID は、WPA3 に対応する端末だけがつながる
-      if (w?.ssid === undefined || cw?.ssid !== w.ssid || (security !== 'open' && cw.password !== w.password)) continue;
+      if (w?.ssid === undefined || cw?.ssid !== w.ssid || (security !== 'open' && !isEapSecurity(security) && cw.password !== w.password)) continue;
+      // 802.1X の SSID は、RADIUS サーバーへ届かなければ認証できない
+      if (isEapSecurity(security) && radiusDown.has(ap.uid)) continue;
       // 端末が SSID の暗号化の方式に対応しない（WPA3 のみの SSID に、WPA3 に対応しない端末など）ならつながらない
       if (!securitySupported(c.device, security)) continue;
       // 端末が対応しない帯のアクセスポイントにはつながらない
@@ -79,8 +82,8 @@ export const wirelessAssociations = (net: Network, data: EngineData): { ap: NetN
 };
 
 // 無線の端末を、つながるアクセスポイントへ仮想の配線でつなぐ（仮想の配線）。アクセスポイントの口は 100 番から、端末ごとに1つ使う
-export const withWireless = (net: Network, data: EngineData): Network => {
-  const pairs = wirelessAssociations(net, data);
+export const withWireless = (net: Network, data: EngineData, radiusDown: ReadonlySet<string> = new Set()): Network => {
+  const pairs = wirelessAssociations(net, data, radiusDown);
   if (pairs.length === 0) return net;
   const extra: NetLink[] = [];
   const nextPort = new Map<string, number>();
@@ -99,6 +102,8 @@ export const withWireless = (net: Network, data: EngineData): Network => {
 export interface LinkLayer {
   // 無線の端末とつながるアクセスポイントの組
   readonly associations: readonly { ap: NetNode; client: NetNode }[];
+  // RADIUS サーバーへ届かないアクセスポイントの uid（802.1X の SSID に端末がつながらない）
+  readonly radiusDown: ReadonlySet<string>;
   // 無線の仮想の配線（とアクセスポイントの口の設定）を入れ、束ねた口（Po）を代表の口に読み替えた構成
   readonly net: Network;
   // まとまっていない Po を持つ機器の uid（その Po は落ちた口として、net から取り除いてある）
@@ -111,9 +116,9 @@ export interface LinkLayer {
   readonly tooLong: ReadonlySet<string>;
 }
 
-export const stageLinks = (input: Network, world: EngineData): LinkLayer => {
-  const associations = wirelessAssociations(input, world);
-  const wired = withWireless(input, world);
+export const stageLinks = (input: Network, world: EngineData, radiusDown: ReadonlySet<string> = new Set()): LinkLayer => {
+  const associations = wirelessAssociations(input, world, radiusDown);
+  const wired = withWireless(input, world, radiusDown);
   const lag = computeLags(wired.nodes, wired.links, (n) => can(n.device, 'lag'), (n, port) => portSpeed(n.device, port));
   const poweredOff = new Set<string>();
   const shut = new Set<string>();
@@ -132,6 +137,7 @@ export const stageLinks = (input: Network, world: EngineData): LinkLayer => {
   const tooLong = new Set(net.links.filter((l) => linkLength(l.path) > cableMaxLength(l.cable)).map((l) => l.uid));
   return {
     associations,
+    radiusDown,
     net,
     unbundledPo: unbundled,
     lag,

@@ -16,7 +16,7 @@ import { bandOf } from '../network/wirelessBand';
 import type { WirelessBand } from '../data/schema';
 import { registries } from '../registry/game';
 import { BgpOp, Project, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, StpOp, VrrpOp, fail, netOf, planDomainAt, withNet, zoneFromNodes } from './project';
-import { portCountOf } from '../registry/query';
+import { deviceDef, portCountOf } from '../registry/query';
 import { analyze } from '../network/engine/analyze';
 import type { NetworkState } from '../network/engine/state';
 import type { GameMap } from '../data/schema';
@@ -467,7 +467,7 @@ export const setIsp = (core: Core, uid: string, line: IspLine, target: NetTarget
   );
 
 // 無線の設定（N151）。SSID・パスワード・帯・チャネル・VLAN。帯は機器が選べるものだけ、チャネルは帯で選べるものだけ。帯を変えて今のチャネルが新しい帯で選べないときは、チャネルの設定を外す（帯の既定のチャネルになる）
-export const setWireless = (core: Core, uid: string, key: 'ssid' | 'password' | 'band' | 'channel' | 'vlan' | 'security', value: string | number, target: NetTarget = 'focus'): Outcome =>
+export const setWireless = (core: Core, uid: string, key: 'ssid' | 'password' | 'band' | 'channel' | 'vlan' | 'security' | 'radius', value: string | number, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
     uid,
@@ -475,6 +475,9 @@ export const setWireless = (core: Core, uid: string, key: 'ssid' | 'password' | 
       const refusal = refusalFor(node.device, 'wireless');
       if (refusal) return refusal;
       if (key === 'security' && !(WIRELESS_SECURITIES as readonly unknown[]).includes(value)) return 'wireless.security';
+      // アクセスポイントは、機器が選べる方式だけ（家庭用ルーターは 802.1X を選べない）
+      if (key === 'security' && can(node.device, 'accessPoint') && !(deviceDef(node.device).wlan?.security as readonly unknown[] | undefined)?.includes(value)) return 'wireless.security';
+      if (key === 'radius' && (!can(node.device, 'accessPoint') || typeof value !== 'string' || !isIp(value))) return 'ip';
       const cur = getComponent(node, 'wireless');
       if (key === 'band') {
         if (!can(node.device, 'accessPoint') || !(deviceBands(node.device) as readonly unknown[]).includes(value)) return 'wireless.band';
@@ -593,7 +596,7 @@ const HTTP_PORT = 80;
 export const setService = (
   core: Core,
   uid: string,
-  protocol: 'http',
+  protocol: 'http' | 'radius',
   on: boolean,
   target: NetTarget = 'focus',
 ): Outcome =>
@@ -604,7 +607,7 @@ export const setService = (
       const others = node.services.filter((s) => s.protocol !== protocol);
       if (!on) return { ...node, services: others };
       const current = node.services.find((s) => s.protocol === protocol);
-      return { ...node, services: [...others, current ?? { protocol, port: HTTP_PORT }] };
+      return { ...node, services: [...others, current ?? (protocol === 'http' ? { protocol, port: HTTP_PORT } : { protocol })] };
     },
     target,
   );
