@@ -330,7 +330,11 @@ export const commands: readonly CommandSpec[] = [
     topic: null,
     run: (_args, { node }, tr) => {
       const lines: TerminalLine[] = node.hostname ? [out(tr('ui.terminal.cfgHostname', { name: node.hostname }))] : [];
-      for (const i of node.interfaces) lines.push(out(i.kind === 'po' ? tr('ui.terminal.cfgPoInterface', { channel: i.channel ?? 0 }) : tr('ui.terminal.cfgInterface', { port: i.port })));
+      // SVI は口を持たないため、口の番号（仮想の番号）ではなく VLAN の番号で出す
+      for (const i of node.interfaces) {
+        if (i.kind === 'svi') lines.push(out(tr('ui.terminal.cfgVlanInterface', { vlan: i.vlan as number })));
+        else lines.push(out(i.kind === 'po' ? tr('ui.terminal.cfgPoInterface', { channel: i.channel ?? 0 }) : tr('ui.terminal.cfgInterface', { port: i.port })));
+      }
       for (const h of getComponent(node, 'resolver')?.hosts ?? []) lines.push(out(tr('ui.terminal.cfgHost', { name: h.name, ip: h.ip })));
       const nameServer = getComponent(node, 'resolver')?.nameServer;
       if (nameServer) lines.push(out(tr('ui.terminal.cfgNameServer', { ip: nameServer })));

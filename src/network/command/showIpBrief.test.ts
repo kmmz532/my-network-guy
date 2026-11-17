@@ -20,6 +20,10 @@ const text: Record<string, (p?: Record<string, string | number>) => string> = {
   'ui.terminal.briefUnassigned': () => 'unassigned',
   'ui.terminal.briefVlan': (p) => `Vlan${p?.vlan}`,
   'ui.terminal.briefPo': (p) => `Port-channel${p?.channel}`,
+  'ui.terminal.cfgInterface': (p) => `interface port ${p?.port}`,
+  'ui.terminal.cfgPoInterface': (p) => `interface Port-channel${p?.channel}`,
+  'ui.terminal.cfgVlanInterface': (p) => `interface Vlan${p?.vlan}`,
+  'ui.terminal.cfgAddress': (p) => `ip address ${p?.ip} ${p?.prefix}`,
 };
 const tr: Tr = (key, params) => {
   const f = text[key];
@@ -50,5 +54,14 @@ describe('show ip interface brief', () => {
       ['Port-channel1', '10.0.12.1', 'up'],
       ['Port-channel2', '10.0.13.1', 'down'],
     ]);
+  });
+});
+
+describe('show running-config の口の行', () => {
+  it('SVI は interface Vlan<n> と出し、仮想の口の番号（port 1010）では出さない', () => {
+    const config = linesOf('show running-config');
+    expect(config).toContain('interface Vlan10');
+    expect(config).toContain('interface Port-channel1');
+    expect(config).not.toContain('interface port 1010');
   });
 });

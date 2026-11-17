@@ -1375,6 +1375,7 @@
   "ui.terminal.cfgPoInterface": "interface Port-channel {channel}",
   "ui.terminal.cfgRip": "router rip",
   "ui.terminal.cfgRoute": "ip route {dest} {prefix} {nextHop}",
+  "ui.terminal.cfgVlanInterface": "interface Vlan{vlan}",
   "ui.terminal.cfgWireless": "wireless ssid {ssid}",
   "ui.terminal.channelLine": "Po{group}（{state}）・{lacp}・口: {ports}",
   "ui.terminal.channelNone": "チャネルの設定のある口はない",
