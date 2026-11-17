@@ -1,0 +1,197 @@
+{
+  "goals": [
+    true,
+    true
+  ],
+  "pings": [
+    {
+      "from": "NEW1",
+      "to": "NEW2",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "NEW1",
+        "NEW2"
+      ]
+    },
+    {
+      "from": "NEW1",
+      "to": "PC1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "NEW1",
+        "PC1"
+      ]
+    },
+    {
+      "from": "NEW2",
+      "to": "NEW1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "NEW2",
+        "NEW1"
+      ]
+    },
+    {
+      "from": "NEW2",
+      "to": "PC1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "NEW2",
+        "PC1"
+      ]
+    },
+    {
+      "from": "PC1",
+      "to": "NEW1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC1",
+        "NEW1"
+      ]
+    },
+    {
+      "from": "PC1",
+      "to": "NEW2",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC1",
+        "NEW2"
+      ]
+    }
+  ],
+  "https": [],
+  "shows": [
+    {
+      "node": "SW1",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"SW1\",\"cost\":0}"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:06:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:07:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:06:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:07:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:06:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:07:00\"}",
+        "out:ui.terminal.macEntry {\"port\":3,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":3,\"mac\":\"02:10:00:00:07:00\"}",
+        "out:ui.terminal.macEntry {\"port\":3,\"mac\":\"02:10:00:00:06:00\"}"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "lesson_link_1",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_2",
+      "color": 10132122
+    },
+    {
+      "link": "lesson_link_3",
+      "color": 10132122
+    },
+    {
+      "link": "lesson_link_4",
+      "color": 10132122
+    }
+  ],
+  "ports": [
+    {
+      "node": "AP1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "AP2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "AP3",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "NEW1",
+      "ports": []
+    },
+    {
+      "node": "NEW2",
+      "ports": []
+    },
+    {
+      "node": "PC1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "SW1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        },
+        {
+          "port": 3,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [],
+  "warnings": []
+}

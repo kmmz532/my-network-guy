@@ -1,0 +1,211 @@
+{
+  "id": "wifi_channels",
+  "topic": "wireless",
+  "order": 11,
+  "size": {
+    "w": 15,
+    "h": 8
+  },
+  "placed": [
+    {
+      "ref": "PC1",
+      "device": "pc_basic",
+      "x": 1,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "PC1"
+    },
+    {
+      "ref": "SW1",
+      "device": "l2_switch_8p",
+      "x": 4,
+      "y": 5,
+      "locked": false,
+      "name": "SW1"
+    },
+    {
+      "ref": "AP1",
+      "device": "access_point",
+      "x": 7,
+      "y": 2,
+      "locked": false,
+      "wireless": {
+        "ssid": "office",
+        "password": "office-pass",
+        "security": "wpa2",
+        "band": "2.4"
+      },
+      "name": "AP1"
+    },
+    {
+      "ref": "AP2",
+      "device": "access_point",
+      "x": 7,
+      "y": 4,
+      "locked": false,
+      "wireless": {
+        "ssid": "office",
+        "password": "office-pass",
+        "security": "wpa2",
+        "band": "2.4"
+      },
+      "name": "AP2"
+    },
+    {
+      "ref": "AP3",
+      "device": "access_point",
+      "x": 7,
+      "y": 6,
+      "locked": false,
+      "wireless": {
+        "ssid": "office",
+        "password": "office-pass",
+        "security": "wpa2",
+        "band": "2.4"
+      },
+      "name": "AP3"
+    },
+    {
+      "ref": "NEW1",
+      "device": "pc_wifi",
+      "x": 10,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "wireless": {
+        "ssid": "office",
+        "password": "office-pass"
+      },
+      "name": "NEW1"
+    },
+    {
+      "ref": "NEW2",
+      "device": "pc_wifi",
+      "x": 10,
+      "y": 6,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "wireless": {
+        "ssid": "office",
+        "password": "office-pass"
+      },
+      "name": "NEW2"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PC1",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "SW1",
+        "port": 1
+      },
+      "b": {
+        "ref": "AP1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "SW1",
+        "port": 2
+      },
+      "b": {
+        "ref": "AP2",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "SW1",
+        "port": 3
+      },
+      "b": {
+        "ref": "AP3",
+        "port": 0
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": [
+        "PC1",
+        "NEW1",
+        "NEW2"
+      ]
+    },
+    {
+      "type": "wireless_clients",
+      "min": 2
+    }
+  ],
+  "guide": [
+    {
+      "target": "AP2",
+      "done": "open:AP2"
+    },
+    {
+      "target": "AP2",
+      "done": "cmd:wireless channel 6"
+    },
+    {
+      "target": "AP3",
+      "done": "cmd:wireless channel 11"
+    },
+    {
+      "target": "AP3",
+      "done": "cmd:wireless band 5"
+    },
+    {
+      "target": "test",
+      "done": "goal:1"
+    }
+  ]
+}

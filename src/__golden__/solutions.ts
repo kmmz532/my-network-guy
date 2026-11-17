@@ -36,6 +36,14 @@ export const solutions: Record<string, Solve> = {
           : n,
     ),
   wifi_security: on(['AP1'], (n) => ({ ...n, components: { ...n.components, wireless: { ...n.components?.wireless, security: 'wpa2' as const } } })),
+  wifi_channels: (nodes) =>
+    nodes.map((n) =>
+      n.uid === 'AP2'
+        ? { ...n, components: { ...n.components, wireless: { ...n.components?.wireless, channel: 6 } } }
+        : n.uid === 'AP3'
+          ? { ...n, components: { ...n.components, wireless: { ...n.components?.wireless, band: '5' as const, channel: 36 } } }
+          : n,
+    ),
   napt_office: on(['R1'], (n) => ({ ...ifaces(n, (i) => ({ ...i, nat: i.port === 0 ? ('outside' as const) : ('inside' as const) })), components: { ...n.components, nat: { napt: true } } })),
   dns_intranet_names: (nodes) =>
     nodes.map((n) =>
