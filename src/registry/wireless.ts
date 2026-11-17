@@ -1,6 +1,7 @@
 // 無線の帯ごとの数値（balance.json の wireless）を引く小さな問い合わせ。
 import { balance } from 'virtual:game-data';
 import type { WirelessBand } from '../data/schema';
+import type { WirelessSecurity } from '../network/types';
 import { deviceDef } from './query';
 
 type BandBalance = (typeof balance.wireless.bands)[WirelessBand];
@@ -27,9 +28,18 @@ export const bandDefaultChannel = (band: WirelessBand): number => bandBalance(ba
 // 同じ帯の2つのチャネルが重なるか
 export const channelsOverlap = (band: WirelessBand, a: number, b: number): boolean => Math.abs(a - b) <= bandBalance(band).overlapDiff;
 
-// 機器が選べる帯。無線の対応（wlan）を持たない機器は例外
-export const deviceBands = (device: string): readonly WirelessBand[] => {
+// 機器の無線の対応（wlan）。無線の対応を持たない機器は例外
+const wlanOf = (device: string) => {
   const wlan = deviceDef(device).wlan;
   if (wlan === undefined) throw new Error(`機器 ${device} は無線の対応（wlan）を持たない`);
-  return wlan.bands;
+  return wlan;
+};
+
+// 機器が選べる帯（端末なら対応する帯）
+export const deviceBands = (device: string): readonly WirelessBand[] => wlanOf(device).bands;
+
+// 端末が、SSID の暗号化の方式につながれるか。WPA2/WPA3 の移行モード（wpa2wpa3）は、WPA2 か WPA3 のどちらかに対応すればつながる
+export const securitySupported = (device: string, security: WirelessSecurity): boolean => {
+  const supported: readonly WirelessSecurity[] = wlanOf(device).security;
+  return security === 'wpa2wpa3' ? supported.includes('wpa2') || supported.includes('wpa3') : supported.includes(security);
 };

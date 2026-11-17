@@ -59,6 +59,14 @@
         "bands": [
           "2.4",
           "5"
+        ],
+        "security": [
+          "open",
+          "wep",
+          "wpa",
+          "wpa2",
+          "wpa3",
+          "wpa2wpa3"
         ]
       }
     }

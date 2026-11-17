@@ -11,6 +11,8 @@ import type { NetworkState } from './state';
 import type { L2Domain } from './stages/l2';
 import { adOf } from './stages/routing';
 import { getComponent } from '../components';
+import { deviceBands, securitySupported } from '../../registry/wireless';
+import { bandOf } from '../wirelessBand';
 
 // 転送が読む層。解析の結果（NetworkState）と、DHCP のリレーの到達を仮に確かめるときの仮の層が、同じ形で渡せる
 export type ForwardView = Pick<NetworkState, 'links' | 'l2' | 'addressing' | 'routing'>;
@@ -60,7 +62,7 @@ const allows = (rules: readonly FirewallRule[] | undefined, srcIp: string, dstIp
 
 // 通信を1方向に届ける。check が true のときは、通り道のファイアウォールの規則を確かめる（戻りの通信は、往路で許した通信の戻りとして確かめない）
 // 口に線がないときの理由。無線の端末は、ケーブルがないのではなく、アクセスポイントにつながっていない（N152）
-const unpluggedReason = (view: ForwardView, uid: string): 'link.unplugged' | 'wireless.unassociated' | 'wlan.psk_mismatch' | 'wlan.auth_mismatch' => {
+const unpluggedReason = (view: ForwardView, uid: string): 'link.unplugged' | 'wireless.unassociated' | 'wlan.psk_mismatch' | 'wlan.auth_mismatch' | 'wlan.band_mismatch' => {
   const node = view.addressing.nodeOf(uid);
   if (node === undefined || !can(node.device, 'wireless')) return 'link.unplugged';
   // 同じ SSID のアクセスポイントがあるのに、パスワードか暗号化の方式が合わない
@@ -70,7 +72,10 @@ const unpluggedReason = (view: ForwardView, uid: string): 'link.unplugged' | 'wi
     return n.uid !== uid && w?.ssid !== undefined && w.ssid === mine?.ssid && can(n.device, 'wireless') && w.password !== undefined;
   });
   if (same.some((ap) => (getComponent(ap, 'wireless')?.security ?? 'wpa2') !== 'open' && getComponent(ap, 'wireless')?.password !== mine?.password)) return 'wlan.psk_mismatch';
-  if (same.some((ap) => getComponent(ap, 'wireless')?.security === 'wpa3') && !can(node.device, 'wpa3')) return 'wlan.auth_mismatch';
+  // 同じ SSID のアクセスポイント（端末を除く）の、暗号化の方式と帯が、端末に合わない
+  const aps = same.filter((n) => can(n.device, 'accessPoint'));
+  if (aps.some((ap) => !securitySupported(node.device, getComponent(ap, 'wireless')?.security ?? 'wpa2'))) return 'wlan.auth_mismatch';
+  if (aps.some((ap) => !deviceBands(node.device).includes(bandOf(ap)))) return 'wlan.band_mismatch';
   return 'wireless.unassociated';
 };
 

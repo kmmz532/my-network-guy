@@ -5,7 +5,7 @@ import { getComponent } from '../../components';
 import { computeLags, type LagResult } from '../../lag';
 import { macOf } from '../../mac';
 import { resolvePo } from '../../po';
-import { bandRadius, bandWallLoss } from '../../../registry/wireless';
+import { bandRadius, bandWallLoss, deviceBands, securitySupported } from '../../../registry/wireless';
 import { bandOf } from '../../wirelessBand';
 import type { EngineData, NetLink, NetNode, Network, PortConfig } from '../../types';
 
@@ -62,7 +62,10 @@ export const wirelessAssociations = (net: Network, data: EngineData): { ap: NetN
       const security = w?.security ?? 'wpa2';
       // パスワードは、暗号化のない SSID では要らない。WPA3 だけの SSID は、WPA3 に対応する端末だけがつながる
       if (w?.ssid === undefined || cw?.ssid !== w.ssid || (security !== 'open' && cw.password !== w.password)) continue;
-      if (security === 'wpa3' && !can(c.device, 'wpa3')) continue;
+      // 端末が SSID の暗号化の方式に対応しない（WPA3 のみの SSID に、WPA3 に対応しない端末など）ならつながらない
+      if (!securitySupported(c.device, security)) continue;
+      // 端末が対応しない帯のアクセスポイントにはつながらない
+      if (!deviceBands(c.device).includes(bandOf(ap))) continue;
       // 無線の MAC フィルター（N153）: 登録のない端末は通さない
       if (w.macs !== undefined && (c.macSerial === undefined || !w.macs.includes(macOf(deviceCategory(c.device), c.macSerial, 0)))) continue;
       // 壁を通るたびに減衰し、減衰後に届く範囲だけが有効（壁の判定がないときは減衰しない）

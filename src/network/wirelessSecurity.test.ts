@@ -15,11 +15,11 @@ const n = (uid: string, device: string, interfaces: Iface[], x: number, wireless
 const l = (uid: string, a: string, pa: number, b: string, pb: number) => ({ uid, cable: 'utp_cat5e', a: { node: a, port: pa }, b: { node: b, port: pb }, path: [[0, 0], [1, 0]] as [number, number][], paid: 0 });
 
 // 有線の PC — スイッチ — アクセスポイント。端末（device）は電波で届く距離に置く
-const build = (security: WirelessSecurity | undefined, device: string, password = 'pass1234'): Network => ({
+const build = (security: WirelessSecurity | undefined, device: string, password = 'pass1234', band: '2.4' | '5' = '2.4'): Network => ({
   nodes: [
     n('pc', 'pc_basic', [f(0, '192.168.1.10')], 0),
     n('sw', 'l2_switch_8p', [], 1),
-    n('ap', 'access_point', [], 2, { ssid: 'home', password: 'pass1234', band: '2.4', ...(security ? { security } : {}) }),
+    n('ap', 'access_point', [], 2, { ssid: 'home', password: 'pass1234', band, ...(security ? { security } : {}) }),
     n('cl', device, [f(0, '192.168.1.20')], 4, { ssid: 'home', password }),
   ],
   links: [l('a', 'pc', 0, 'sw', 0), l('b', 'sw', 1, 'ap', 0)],
@@ -44,6 +44,18 @@ describe('無線の方式', () => {
   it('WPA3 のみの SSID に、WPA3 に対応しない端末（pc_wifi）はつながらず wlan.auth_mismatch。対応する端末（laptop）はつながる', () => {
     expect(ping(analyze(build('wpa3', 'pc_wifi'), data), 'pc', 'cl').failure?.reason).toBe('wlan.auth_mismatch');
     expect(ping(analyze(build('wpa3', 'laptop'), data), 'pc', 'cl').ok).toBe(true);
+  });
+  it('古いノートPC（2.4GHz のみ・WPA3 に非対応）は、5GHz のアクセスポイントにつながらず wlan.band_mismatch。2.4GHz なら、つながる', () => {
+    expect(ping(analyze(build(undefined, 'laptop_old', 'pass1234', '5'), data), 'pc', 'cl').failure?.reason).toBe('wlan.band_mismatch');
+    expect(ping(analyze(build(undefined, 'laptop_old'), data), 'pc', 'cl').ok).toBe(true);
+  });
+  it('WPA3 のみの SSID に、古いノートPCはつながらず wlan.auth_mismatch。移行モードにはつながる', () => {
+    expect(ping(analyze(build('wpa3', 'laptop_old'), data), 'pc', 'cl').failure?.reason).toBe('wlan.auth_mismatch');
+    expect(ping(analyze(build('wpa2wpa3', 'laptop_old'), data), 'pc', 'cl').ok).toBe(true);
+  });
+  it('ノートPC（両方の帯・WPA3 に対応）は、2.4GHz と 5GHz のどちらにもつながる', () => {
+    expect(ping(analyze(build(undefined, 'laptop', 'pass1234', '5'), data), 'pc', 'cl').ok).toBe(true);
+    expect(ping(analyze(build(undefined, 'laptop'), data), 'pc', 'cl').ok).toBe(true);
   });
   it('WPA2/WPA3 の移行モードは、どちらの端末もつながり、警告 wlan.transition を出す', () => {
     expect(ping(analyze(build('wpa2wpa3', 'pc_wifi'), data), 'pc', 'cl').ok).toBe(true);

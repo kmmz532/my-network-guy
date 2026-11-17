@@ -96,6 +96,9 @@
     },
     {
       "device": "home_router_ap"
+    },
+    {
+      "device": "laptop_old"
     }
   ]
 }

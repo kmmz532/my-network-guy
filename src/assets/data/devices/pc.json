@@ -37,14 +37,26 @@
         "wireless"
       ],
       "sprite": "device/pc_wifi",
-      "unlockLevel": 25
+      "unlockLevel": 25,
+      "wlan": {
+        "bands": [
+          "2.4",
+          "5"
+        ],
+        "security": [
+          "open",
+          "wep",
+          "wpa",
+          "wpa2",
+          "wpa2wpa3"
+        ]
+      }
     },
     {
       "id": "laptop",
       "category": "pc",
       "capabilities": [
         "wireless",
-        "wpa3",
         "endpoint"
       ],
       "deskable": true,
@@ -60,7 +72,53 @@
         "portable"
       ],
       "sprite": "device/laptop",
-      "unlockLevel": 8
+      "unlockLevel": 8,
+      "wlan": {
+        "bands": [
+          "2.4",
+          "5"
+        ],
+        "security": [
+          "open",
+          "wep",
+          "wpa",
+          "wpa2",
+          "wpa3",
+          "wpa2wpa3"
+        ]
+      }
+    },
+    {
+      "id": "laptop_old",
+      "category": "pc",
+      "capabilities": [
+        "wireless",
+        "endpoint"
+      ],
+      "deskable": true,
+      "price": 80000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 1,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [],
+      "sprite": "device/laptop",
+      "unlockLevel": 8,
+      "wlan": {
+        "bands": [
+          "2.4"
+        ],
+        "security": [
+          "open",
+          "wep",
+          "wpa",
+          "wpa2",
+          "wpa2wpa3"
+        ]
+      }
     }
   ]
 }

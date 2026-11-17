@@ -4,6 +4,7 @@ import { parseCondition } from '../sim/guide';
 import type { Operation } from '../company/operation';
 import { CATEGORY_IDS } from './categories';
 import { VOID_CHAR } from './tileKind';
+import { WIRELESS_SECURITIES } from '../network/types';
 
 const int = z.number().int();
 // 解放のレベル（会社のレベル。N45）。品目ごとに必ず書く
@@ -286,7 +287,7 @@ const serviceSchema = z.discriminatedUnion('protocol', [
 ]);
 
 // 機器の能力（NET.md §4）。コードは機器の種類ではなく、この能力だけを見る（N134）
-export const CAPABILITY_IDS = ['switchport', 'vlan', 'stp', 'svi', 'routedPort', 'subif', 'routing', 'rip', 'ospf', 'bgp', 'nat', 'services', 'dhcpRelay', 'firewall', 'wireless', 'wan', 'vrrp', 'lag', 'wpa3', 'endpoint', 'uplink', 'firewallRules', 'accessPoint'] as const;
+export const CAPABILITY_IDS = ['switchport', 'vlan', 'stp', 'svi', 'routedPort', 'subif', 'routing', 'rip', 'ospf', 'bgp', 'nat', 'services', 'dhcpRelay', 'firewall', 'wireless', 'wan', 'vrrp', 'lag', 'endpoint', 'uplink', 'firewallRules', 'accessPoint'] as const;
 export type Capability = (typeof CAPABILITY_IDS)[number];
 
 // 無線の帯（2.4GHz・5GHz）
@@ -314,8 +315,8 @@ export const deviceSchema = z
     )
     .min(1),
   features: z.array(z.string()).default([]),
-  // 無線の対応（アクセスポイントが選べる帯）。電波を出すアクセスポイント（能力 accessPoint と wireless）は必須
-  wlan: z.object({ bands: z.array(z.enum(WIRELESS_BANDS)).min(1) }).optional(),
+  // 無線の対応。帯（アクセスポイントが選べる帯・端末が対応する帯）と、暗号化の方式（端末が対応する方式の一覧）。無線の能力を持つ機器は必須
+  wlan: z.object({ bands: z.array(z.enum(WIRELESS_BANDS)).min(1), security: z.array(z.enum(WIRELESS_SECURITIES)).min(1) }).optional(),
   defaultServices: z.array(serviceSchema).default([]),
   sprite: z.string().min(1),
   unlockLevel: unlockLevelSchema,
@@ -330,7 +331,8 @@ export const deviceSchema = z
     if (has('subif') && !has('routedPort')) fail('subif には routedPort が必要');
     if ((has('ospf') || has('bgp') || has('nat')) && !has('routing')) fail('ospf・bgp・nat には routing が必要');
     if (has('vlan') && !has('switchport')) fail('vlan には switchport が必要');
-    if (has('accessPoint') && has('wireless') && d.wlan === undefined) fail('accessPoint と wireless を持つ機器には wlan が必要');
+    if (has('wireless') && d.wlan === undefined) fail('wireless を持つ機器には wlan が必要');
+    if (!has('wireless') && d.wlan !== undefined) fail('wlan は wireless を持つ機器だけ');
   });
 
 export const devicesFileSchema = z.object({ devices: z.array(deviceSchema) });
