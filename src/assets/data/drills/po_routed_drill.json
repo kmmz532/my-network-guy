@@ -1,0 +1,161 @@
+{
+  "id": "po_routed_drill",
+  "topic": "redundancy",
+  "order": 106,
+  "size": {
+    "w": 12,
+    "h": 6
+  },
+  "placed": [
+    {
+      "ref": "SW1",
+      "device": "l3_switch",
+      "x": 2,
+      "y": 2,
+      "locked": false
+    },
+    {
+      "ref": "SW2",
+      "device": "l3_switch",
+      "x": 8,
+      "y": 2,
+      "locked": false
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "SW1",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW2",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "SW1",
+        "port": 1
+      },
+      "b": {
+        "ref": "SW2",
+        "port": 1
+      }
+    }
+  ],
+  "questions": [
+    {
+      "kind": "build",
+      "id": "q1",
+      "goals": [
+        {
+          "type": "ping",
+          "from": "SW1",
+          "to": "SW2"
+        }
+      ]
+    }
+  ],
+  "setup": [
+    {
+      "before": "q1",
+      "change": [
+        {
+          "kind": "config",
+          "uid": "SW1",
+          "change": {
+            "kind": "portMode",
+            "port": 0,
+            "mode": {
+              "kind": "routed"
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "SW1",
+          "change": {
+            "kind": "portMode",
+            "port": 1,
+            "mode": {
+              "kind": "routed"
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "SW2",
+          "change": {
+            "kind": "portMode",
+            "port": 0,
+            "mode": {
+              "kind": "routed"
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "SW2",
+          "change": {
+            "kind": "portMode",
+            "port": 1,
+            "mode": {
+              "kind": "routed"
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "SW1",
+          "change": {
+            "kind": "channel",
+            "change": {
+              "port": 0,
+              "group": 1,
+              "lacp": "active"
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "SW1",
+          "change": {
+            "kind": "channel",
+            "change": {
+              "port": 1,
+              "group": 1,
+              "lacp": "active"
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "SW2",
+          "change": {
+            "kind": "channel",
+            "change": {
+              "port": 0,
+              "group": 1,
+              "lacp": "active"
+            }
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "SW2",
+          "change": {
+            "kind": "channel",
+            "change": {
+              "port": 1,
+              "group": 1,
+              "lacp": "active"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

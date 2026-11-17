@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { drills } from 'virtual:game-data';
 import balanceJson from '../assets/data/balance.json';
-import type { Balance, Drill } from '../data/schema';
+import type { Balance, Change, Drill } from '../data/schema';
 import type { EngineData } from '../network/types';
 import { applySetup, diagnoseChoices, diagnoseReasonChoices, drillConfig, drillState, inspectAnswer, inspectChoices, judgeBuild } from './drill';
 import { proceed, questionOf, startRun, submit, tested } from './drillRun';
@@ -85,6 +85,19 @@ describe('同梱の演習', () => {
     const before = applySetup(d, 'q1', drillConfig(d), env);
     expect(judgeBuild(q, before, engine)).toBe(false);
     const after = applySetup({ ...d, setup: [{ before: 'q2', change: [{ kind: 'config', uid: 'R3', change: { kind: 'addRoute', route: { dest: '10.0.1.0', prefix: 24, nextHop: '10.0.23.1' } } }] }] }, 'q2', before, env);
+    expect(judgeBuild(q, after, engine)).toBe(true);
+  });
+
+  it('po_routed_drill: SW1 と SW2 の Po1 に同じネットワークの IP を付けると、設定する問いが合格になる', () => {
+    const d = drills.find((x) => x.id === 'po_routed_drill');
+    if (!d) throw new Error('演習 po_routed_drill がない');
+    const q = d.questions[0];
+    if (q.kind !== 'build') throw new Error('1 問目が設定する問いでない');
+    const before = applySetup(d, 'q1', drillConfig(d), env);
+    expect(judgeBuild(q, before, engine)).toBe(false);
+    const po = (uid: string, channel: number, ip: string): Change => ({ kind: 'config', uid, change: { kind: 'po', channel, ip, prefix: 24 } });
+    const fixed: Drill = { ...d, setup: [...(d.setup ?? []), { before: 'q1', change: [po('SW1', 1, '10.20.30.1'), po('SW2', 1, '10.20.30.2')] }] };
+    const after = applySetup(fixed, 'q1', drillConfig(fixed), env);
     expect(judgeBuild(q, after, engine)).toBe(true);
   });
 });

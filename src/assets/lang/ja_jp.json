@@ -1700,6 +1700,8 @@
   "drill.ospf_dr_drill.q.q2": "R1 のルーター ID が変わりました。172.16.10.0/24 の DR になるルーターを選んでください。",
   "drill.ospf_dr_drill.title": "演習: OSPF の DR",
   "drill.ospf_three_sites.q.f1": "R1 と R3 の間の口のコストを 100 に上げました。R1 が 10.0.3.0/24 宛てのパケットを送る、次のホップを選んでください。",
+  "drill.po_routed_drill.q.q1": "SW1 と SW2 の束ねた口（Po1）に、同じネットワークの IP を付け、SW1 から SW2 へ Ping が通るようにしてください。",
+  "drill.po_routed_drill.title": "演習: 束ねた口の IP",
   "drill.route_source_drill.q.q1": "R1 の経路表で、172.16.60.0/24 の行の先頭の記号（経路の出どころ）を選んでください。",
   "drill.route_source_drill.q.q2": "R1 に 172.16.60.0/24 への経路が加わりました。経路表で選ばれる、その行の先頭の記号を選んでください。",
   "drill.route_source_drill.title": "演習: 経路の出どころ",
