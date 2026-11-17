@@ -397,15 +397,6 @@ def antennas(d, top, bottom):
         px(d, x, top, 'e')
 
 
-def wifi_router():
-    # アクセスポイント付きのルーター: 赤い箱の天面の奥から2本のアンテナ
-    img, d = new(24, 40)
-    antennas(d, 6, 21)
-    router_box(d, 19, 14)
-    base(d)
-    return img
-
-
 def vpn_router():
     # VPNルーター: 赤い箱の前面に、黄色の錠前の印
     img, d = new(24, 40)
@@ -1850,7 +1841,6 @@ if __name__ == '__main__':
     save(router(sfp=True), 'device/router_sfp.png')
     # これから機材に加える候補（データはまだない）
     save(l3_switch(), 'device/l3_switch.png')
-    save(wifi_router(), 'device/wifi_router.png')
     save(vpn_router(), 'device/vpn_router.png')
     save(router_switch(), 'device/router_switch.png')
     save(home_router(), 'device/home_router.png')
