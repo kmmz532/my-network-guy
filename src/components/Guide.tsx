@@ -17,6 +17,9 @@ import { Button } from './ui/Button';
 import { termOfStep } from '../network/glossaryOf';
 import { Glow } from './ui/Glow';
 
+// 社員の吹き出しに出す用語の文（「名前: 説明」）。名前と説明を組み立てるのは、ここの1か所だけ
+const termLine = (id: string): string => tDyn('ui.notice.term', { name: tDyn(`termName.${id}`), text: tDyn(`glossary.${id}`) });
+
 interface Box {
   left: number;
   top: number;
@@ -270,7 +273,7 @@ export function Guide() {
           <span style={phone ? { flex: 1, minWidth: 0 } : undefined}>
             {step !== null && tDyn(step.key)}
             {/* 案内の文の後に、用語の短い説明を1つだけ出す */}
-            {termNotice !== null && <div style={{ marginTop: 2 }}>{tDyn(`glossary.${termNotice}`)}</div>}
+            {termNotice !== null && <div style={{ marginTop: 2 }}>{termLine(termNotice)}</div>}
           </span>
           {/* 外枠は指の操作を通すため、押せる部分だけ受け取る */}
           <span style={{ pointerEvents: 'auto', flexShrink: 0, display: 'flex' }}>

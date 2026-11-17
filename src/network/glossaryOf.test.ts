@@ -9,6 +9,7 @@ describe('失敗の理由と用語集', () => {
   it('対応する用語は、言語ファイルの glossary.<ID> にある', () => {
     for (const [reason, id] of Object.entries(GLOSSARY_OF_FAILURE)) {
       expect(dict[`glossary.${id}`], reason).toBeTruthy();
+      expect(dict[`termName.${id}`], reason).toBeTruthy();
     }
   });
 });
@@ -18,9 +19,16 @@ describe('手順・設定の部品・達成条件と用語集', () => {
     for (const [key, id] of Object.entries(GLOSSARY_OF_STEP)) {
       expect(dict[key], key).toBeTruthy();
       expect(dict[`glossary.${id}`], key).toBeTruthy();
+      expect(dict[`termName.${id}`], key).toBeTruthy();
     }
-    for (const [capability, id] of GLOSSARY_OF_SETTING) expect(dict[`glossary.${id}`], capability).toBeTruthy();
-    for (const [type, id] of Object.entries(GLOSSARY_OF_GOAL)) expect(dict[`glossary.${id}`], type).toBeTruthy();
+    for (const [capability, id] of GLOSSARY_OF_SETTING) {
+      expect(dict[`glossary.${id}`], capability).toBeTruthy();
+      expect(dict[`termName.${id}`], capability).toBeTruthy();
+    }
+    for (const [type, id] of Object.entries(GLOSSARY_OF_GOAL)) {
+      expect(dict[`glossary.${id}`], type).toBeTruthy();
+      expect(dict[`termName.${id}`], type).toBeTruthy();
+    }
   });
 
   it('対応のない手順・達成条件は null を返す', () => {
