@@ -1,9 +1,10 @@
-// 論点のない命令: help・show ip・show interfaces・show running-config・show arp・ping・traceroute。
+// 論点のない命令: help・show ip・show ip interface brief・show interfaces・show running-config・show arp・ping・traceroute。
 // 命令は CommandSpec 1つ。tokens が語の並び、run が実行で、出力の行を返す（設定は変えない）。
 import { ping } from '../engine';
 import { isL2Category, isRoutingCategory } from '../category';
 import { framesOf } from '../frames';
 import { macOf } from '../mac';
+import { lagBundlesOf } from '../query/lagBundles';
 import { resolveName } from '../resolve';
 import { isIp, parseIfaceName, prefixOfMask } from './args';
 import { SUB_MODES, sessionPortOf } from './modes';
@@ -23,6 +24,40 @@ const peersOf = (ctx: CommandContext): Map<number, NetNode | undefined> => {
     if (link.b.node === ctx.node.uid) peers.set(link.b.port, ctx.nodes.find((n) => n.uid === link.a.node));
   }
   return peers;
+};
+
+// 束ねた口（Po）のうち、まとまっている物理の口の番号（show etherchannel summary と同じ読み方）
+const bundledPortsOf = (ctx: CommandContext): Set<number> =>
+  new Set(
+    lagBundlesOf(ctx.state, ctx.node.uid)
+      .flatMap((b) => b.links.flatMap((l) => [l.a, l.b]))
+      .filter((e) => e.node === ctx.node.uid)
+      .map((e) => e.port),
+  );
+
+// show ip interface brief の表。先頭の行は列見出し。行は、物理の口・SVI（Vlan）・Po（Port-channel）の順に、番号の順
+// 情報源は show ip と同じ（機器のインターフェース）。状態は、物理の口が配線されていて停止していなければ up、SVI は停止の設定がないため up、Po はまとまった口があれば up
+const briefTable = (ctx: CommandContext, tr: Tr): string[] => {
+  const { node } = ctx;
+  const linked = peersOf(ctx);
+  const bundled = bundledPortsOf(ctx);
+  const rows = node.interfaces.map((i) => {
+    const up = i.kind === 'svi'
+      ? true
+      : i.kind === 'po'
+        ? node.ports.some((p) => p.channelGroup === i.channel && bundled.has(p.port))
+        : linked.has(i.port) && !ctx.state.links.isShut(node.uid, i.port);
+    const name = i.kind === 'svi' ? tr('ui.terminal.briefVlan', { vlan: i.vlan as number }) : i.kind === 'po' ? tr('ui.terminal.briefPo', { channel: i.channel as number }) : i.id;
+    const ip = i.ip !== '' ? i.ip : tr(i.dhcp === true ? 'ui.terminal.briefDhcp' : 'ui.terminal.briefUnassigned');
+    const rank = i.kind === 'port' ? 0 : i.kind === 'svi' ? 1 : 2;
+    const no = i.kind === 'svi' ? (i.vlan as number) : i.kind === 'po' ? (i.channel as number) : i.port;
+    return { rank, no, cells: [name, ip, tr(up ? 'ui.terminal.briefUp' : 'ui.terminal.briefDown')] };
+  });
+  rows.sort((a, b) => a.rank - b.rank || a.no - b.no);
+  const head = [tr('ui.terminal.briefInterface'), tr('ui.terminal.briefIp'), tr('ui.terminal.briefStatus')];
+  const table = [head, ...rows.map((r) => r.cells)];
+  const widths = head.map((_, c) => Math.max(...table.map((r) => r[c].length)));
+  return table.map((r) => r.map((cell, c) => cell.padEnd(widths[c])).join('  ').trimEnd());
 };
 
 // 機器のポートの MAC アドレス（機器の連番が必要）。連番のない機器は例外にする
@@ -234,6 +269,18 @@ export const commands: readonly CommandSpec[] = [
         : tr('ui.terminal.ifLine', { port: i.port, ip: i.ip, prefix: i.prefix })));
       if (node.gateway) lines.push(out(tr('ui.terminal.gateway', { gateway: node.gateway })));
       return shown(lines);
+    },
+  },
+  {
+    id: 'core.showIpInterfaceBrief',
+    modes: ['exec'],
+    tokens: [{ word: 'show' }, { word: 'ip' }, { word: 'interface' }, { word: 'brief' }],
+    help: 'ui.cmd.core.showIpInterfaceBrief',
+    writes: false,
+    topic: null,
+    run: (_args, ctx, tr) => {
+      if (ctx.node.interfaces.length === 0) return shown([out(tr('ui.terminal.noIp'))]);
+      return shown(briefTable(ctx, tr).map(out));
     },
   },
   {

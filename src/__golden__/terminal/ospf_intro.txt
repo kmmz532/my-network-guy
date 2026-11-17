@@ -6,6 +6,7 @@
 show
 help
 show ip
+show ip interface brief
 sh ip r
 show ip route
 show interfaces
