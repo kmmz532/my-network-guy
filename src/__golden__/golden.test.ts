@@ -4,7 +4,8 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { lessons } from 'virtual:game-data';
 import { gameEnv } from '../sim/env';
-import { lessonGoalResults, lessonLinks, lessonNodes } from '../sim/lesson';
+import { lessonFurniture, lessonGoalResults, lessonLinks, lessonNodes } from '../sim/lesson';
+import { engineWithSite } from '../sim/walls';
 import type { Network } from '../network/types';
 import { recordOf } from './record';
 import { solutions } from './solutions';
@@ -21,7 +22,8 @@ describe('教材（初期の構成と正解の構成）', () => {
         const nodes = stage === 'solved' ? solutions[lesson.id](lessonNodes(lesson)) : lessonNodes(lesson);
         const links = lessonLinks(lesson);
         const net: Network = { nodes, links, plans: {} };
-        await expect(json({ goals: lessonGoalResults(lesson.goals, nodes, links, engine), ...recordOf(net, engine) })).toMatchFileSnapshot(snap(`lesson-${lesson.id}-${stage}`));
+        const site = engineWithSite(engine, undefined, lessonFurniture(lesson));
+        await expect(json({ goals: lessonGoalResults(lesson.goals, nodes, links, site), ...recordOf(net, site) })).toMatchFileSnapshot(snap(`lesson-${lesson.id}-${stage}`));
       });
     }
   }

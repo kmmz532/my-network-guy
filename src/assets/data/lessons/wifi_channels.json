@@ -45,7 +45,8 @@
         "ssid": "office",
         "password": "office-pass",
         "security": "wpa2",
-        "band": "2.4"
+        "band": "2.4",
+        "channel": 1
       },
       "name": "AP1"
     },
@@ -59,7 +60,8 @@
         "ssid": "office",
         "password": "office-pass",
         "security": "wpa2",
-        "band": "2.4"
+        "band": "2.4",
+        "channel": 3
       },
       "name": "AP2"
     },
@@ -73,7 +75,8 @@
         "ssid": "office",
         "password": "office-pass",
         "security": "wpa2",
-        "band": "2.4"
+        "band": "2.4",
+        "channel": 5
       },
       "name": "AP3"
     },
@@ -184,6 +187,9 @@
     {
       "type": "wireless_clients",
       "min": 2
+    },
+    {
+      "type": "wireless_clean"
     }
   ],
   "guide": [
@@ -205,7 +211,14 @@
     },
     {
       "target": "test",
-      "done": "goal:1"
+      "done": "goal:3"
+    }
+  ],
+  "furniture": [
+    {
+      "id": "microwave",
+      "x": 8,
+      "y": 7
     }
   ]
 }

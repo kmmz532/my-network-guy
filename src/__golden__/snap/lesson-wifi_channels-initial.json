@@ -1,7 +1,8 @@
 {
   "goals": [
     true,
-    true
+    true,
+    false
   ],
   "pings": [
     {
@@ -193,5 +194,11 @@
     }
   ],
   "issues": [],
-  "warnings": []
+  "warnings": [
+    {
+      "id": "wlan.interference",
+      "a": "AP3",
+      "b": "AP3"
+    }
+  ]
 }
