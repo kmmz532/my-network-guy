@@ -6,6 +6,7 @@ import { analyze } from '../network/engine/analyze';
 import { warningsOf } from '../network/query/warnings';
 import type { NetNode } from '../network/types';
 import type { ClockState } from './clock';
+import { engineWithSite } from './walls';
 import { emptyOffice, type Env, type GoalCheck, type Office, type OfficeSize, type TestResult } from './project';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { deviceCategory } from '../registry/query';
@@ -58,7 +59,7 @@ const testGoals = (nodes: NetNode[], categoryOf: (device: string) => string): Go
 export const sandboxTest = (office: Office, env: Env, lessonGoals?: Goal[]): TestResult | null => {
   const goals = lessonGoals ?? testGoals(office.nodes, deviceCategory);
   if (goals.length === 0) return null;
-  const state = analyze({ nodes: office.nodes, links: office.links, plans: office.plans }, env.engine);
+  const state = analyze({ nodes: office.nodes, links: office.links, plans: office.plans }, engineWithSite(env.engine, undefined, office.furniture));
   const results = goals.flatMap((goal) => evaluateGoal(goal, state));
   const checks: GoalCheck[] = goals.map((goal) => {
     const rs = results.filter((r) => r.goal === goal);

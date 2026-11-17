@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { gameEnv } from '../sim/env';
 import { analyze } from './engine/analyze';
+import { evaluateGoal } from './goals';
 import { warningsOf } from './query/warnings';
 import { wirelessQualityOf } from './query/wirelessQuality';
 import { interferenceRadius } from '../registry/wireless';
@@ -45,5 +46,22 @@ describe('通信の品質', () => {
   });
   it('つながっていない端末は品質を持たない', () => {
     expect(quality(net(apOf('ap', 0, '2.4'), node('cl', 'laptop', 3, { ssid: 'home', password: 'wrong' })), noOven)).toBeNull();
+  });
+});
+
+describe('達成条件 wireless_clean', () => {
+  const clean = (n: Network, d: EngineData) => evaluateGoal({ type: 'wireless_clean' }, analyze(n, d)).every((r) => r.ok);
+  const two = (channel: number, band: '2.4' | '5' = '2.4') => net(apOf('a', 0, '2.4', 'home', 1), apOf('b', 5, band, 'home', channel));
+  it('チャネルが重なる間は不合格で、重ならないチャネルか別の帯にすると合格', () => {
+    expect(clean(two(3), noOven)).toBe(false);
+    expect(clean(two(6), noOven)).toBe(true);
+    expect(clean(two(36, '5'), noOven)).toBe(true);
+  });
+  it('干渉源の近くの 2.4GHz は不合格で、5GHz に移すと合格', () => {
+    expect(clean(two(6), withOven(5))).toBe(false);
+    expect(clean(two(36, '5'), withOven(5))).toBe(true);
+  });
+  it('アクセスポイントがなければ不合格', () => {
+    expect(clean(net(), noOven)).toBe(false);
   });
 });

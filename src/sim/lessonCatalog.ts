@@ -2,7 +2,8 @@
 import type { Contract, Drill, Goal, Lesson, QuestionSet } from '../data/schema';
 import type { GuideStep } from './guide';
 import { drillConfig } from './drill';
-import { lessonLinks, lessonNodes, lessonPlans } from './lesson';
+import { lessonFurniture, lessonLinks, lessonNodes, lessonPlans } from './lesson';
+import type { PlacedFurniture } from './project';
 import { contractLinks, fixedNodes } from './project';
 import type { EngineData, NetLink, NetNode, NetworkPlan } from '../network/types';
 
@@ -20,7 +21,7 @@ export interface LessonEntry {
   followUps?: QuestionSet;
   // 案内の手順（修理の依頼・演習は案内を持たない）
   guide: Pick<GuideStep, 'target' | 'done'>[];
-  build: (engine: EngineData) => { size: { w: number; h: number }; nodes: NetNode[]; links: NetLink[]; plans: Record<string, NetworkPlan> };
+  build: (engine: EngineData) => { size: { w: number; h: number }; nodes: NetNode[]; links: NetLink[]; plans: Record<string, NetworkPlan>; furniture: PlacedFurniture[] };
 }
 
 // 修理の依頼の部屋の広さ。地図は非同期で読むため、置かれた機器を囲む広さにする
@@ -38,7 +39,7 @@ export const lessonCatalogOf = (lessons: Lesson[], contracts: Contract[], drills
     guide: [],
     build: (engine) => {
       const { nodes, links } = drillConfig(d);
-      return { size: d.size, nodes, links, plans: lessonPlans(nodes, links, engine) };
+      return { size: d.size, nodes, links, plans: lessonPlans(nodes, links, engine), furniture: lessonFurniture(d) };
     },
   })),
   ...lessons.map((l): LessonEntry => ({
@@ -53,7 +54,7 @@ export const lessonCatalogOf = (lessons: Lesson[], contracts: Contract[], drills
     build: (engine) => {
       const nodes = lessonNodes(l);
       const links = lessonLinks(l);
-      return { size: l.size, nodes, links, plans: lessonPlans(nodes, links, engine) };
+      return { size: l.size, nodes, links, plans: lessonPlans(nodes, links, engine), furniture: lessonFurniture(l) };
     },
   })),
   ...contracts
@@ -72,6 +73,7 @@ export const lessonCatalogOf = (lessons: Lesson[], contracts: Contract[], drills
         nodes: fixedNodes(c),
         links: contractLinks(c),
         plans: {},
+        furniture: lessonFurniture(c),
       }),
     })),
 ];

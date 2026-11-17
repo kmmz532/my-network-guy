@@ -56,6 +56,7 @@ export const GLOSSARY_OF_GOAL: Partial<Record<Goal['type'], string>> = {
   stp_root: 'root_bridge',
   ospf_dr: 'dr_bdr',
   wireless_secure: 'wpa2',
+  wireless_clean: 'channel_overlap',
   outside_reachable: 'napt',
   firewall: 'firewall',
   blocked: 'firewall',

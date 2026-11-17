@@ -5,6 +5,8 @@ import type { Contract, Goal } from '../data/schema';
 import { http, ping, wirelessAssociations } from './engine';
 import { accessPointsOf } from './engine/stages/links';
 import { lagBundlesOf } from './query/lagBundles';
+import { channelOverlapsOf } from './query/channelOverlaps';
+import { interferedAccessPointsOf } from './query/wirelessQuality';
 import { ospfNeighborsOf } from './query/ospfNeighbors';
 import { analyze } from './engine/analyze';
 import type { NetworkState } from './engine/state';
@@ -125,6 +127,13 @@ const handlers: { [K in Goal['type']]: Handler } = {
     if (goal.type !== 'wireless_secure') throw new Error('wireless_secure ハンドラに別の種類が渡された');
     const aps = accessPointsOf(net, data).filter((n) => getComponent(n, 'wireless')?.ssid === goal.ssid);
     const ok = aps.length > 0 && aps.every((n) => ['wpa2', 'wpa3', 'wpa2_eap', 'wpa3_eap'].includes(getComponent(n, 'wireless')?.security ?? 'wpa2'));
+    return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
+  },
+  // アクセスポイントがあり、どれもチャネルの重なりと干渉源の干渉がない
+  wireless_clean: (goal, state) => {
+    if (goal.type !== 'wireless_clean') throw new Error('wireless_clean ハンドラに別の種類が渡された');
+    const overlapped = channelOverlapsOf(state).length > 0;
+    const ok = accessPointsOf(state.input, state.world).length > 0 && !overlapped && interferedAccessPointsOf(state).size === 0;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // 指定したスイッチがルートブリッジになっている

@@ -8,6 +8,7 @@ import { proceed, questionOf, startRun, submit, tested, type DrillRun } from '..
 import { gameEnv } from '../../sim/env';
 import { lessonEntryOf } from '../../sim/lessonCatalog';
 import { sandboxTest } from '../../sim/sandbox';
+import { engineWithSite } from '../../sim/walls';
 import { type LearnRecord, achieveLesson, finishDrill, loadLearn, recordAnswer, saveLearn } from '../../settings/learn';
 import { lessonCatalog } from '../lessonCatalog';
 import { createOps } from '../gameOps';
@@ -76,7 +77,7 @@ export const createDrillSlice: StateCreator<GameState, [], [], DrillSlice> = (se
   };
   const stateOf = () => {
     const { office } = get();
-    return analyze({ nodes: office.nodes, links: office.links, plans: office.plans }, gameEnv.engine);
+    return analyze({ nodes: office.nodes, links: office.links, plans: office.plans }, engineWithSite(gameEnv.engine, undefined, office.furniture));
   };
 
   // 進行を next にする。問い（from の番号）が変わるときは、その問いの前の設定を構成に当て、候補を求める

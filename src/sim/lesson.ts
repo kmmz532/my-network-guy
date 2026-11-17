@@ -6,6 +6,7 @@ import { makeIface } from '../network/iface';
 import { fillPlans } from '../network/query/plans';
 import type { NetworkPlan } from '../network/types';
 import type { EngineData, NetLink, NetNode } from '../network/types';
+import type { PlacedFurniture } from './project';
 
 // 教材の置かれた機器。機器の uid は教材の ref と同じにする（案内の条件・達成条件が ref で指すため）
 export const lessonNodes = (lesson: Pick<Lesson, 'placed'>): NetNode[] =>
@@ -28,6 +29,10 @@ export const lessonNodes = (lesson: Pick<Lesson, 'placed'>): NetNode[] =>
     routes: [],
     services: (p.config?.services ?? []).map((s) => ({ ...s })),
   }));
+
+// 教材に置かれた家具。自社オフィスの家具と同じ形にする（uid は置いた順の連番）
+export const lessonFurniture = (lesson: Pick<Lesson, 'furniture'>): PlacedFurniture[] =>
+  (lesson.furniture ?? []).map((f, i) => ({ uid: `f${i + 1}`, id: f.id, x: f.x, y: f.y, ...(f.facing ? { facing: f.facing } : {}) }));
 
 // 教材のアドレスの計画。IP アドレスから補う（色は保存された設定から決まる。補わないと、教材を開いた直後のケーブルが灰色のまま）
 export const lessonPlans = (nodes: NetNode[], links: NetLink[], engine: EngineData): Record<string, NetworkPlan> =>

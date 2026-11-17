@@ -254,6 +254,7 @@ const goalRefs = (goal: Goal): string[] => {
     case 'firewall':
     case 'reach_category':
     case 'wireless_clients':
+    case 'wireless_clean':
     case 'no_static_route':
     case 'reach_by_name':
       return [];

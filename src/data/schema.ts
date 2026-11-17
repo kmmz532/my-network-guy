@@ -403,8 +403,8 @@ export const placedSchema = z.object({
   config: placedConfigSchema.optional(),
   // 回線終端の回線の情報（ISP の名前・回線のネットワーク・ISP 側のアドレス・ISP の AS 番号）
   isp: z.object({ name: z.string(), network: z.string(), prefix: z.number().int().min(8).max(30), ispIp: z.string(), asn: z.number().int().positive().optional(), dns: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/).optional() }).optional(),
-  // 無線の設定（教材のアクセスポイント・端末の初期の設定。SSID・パスワード・帯・暗号化の方式。帯はアクセスポイントだけが持つ）
-  wireless: z.object({ ssid: z.string().min(1), password: z.string().min(1), band: z.enum(WIRELESS_BANDS).optional(), security: z.enum(WIRELESS_SECURITIES).optional() }).optional(),
+  // 無線の設定（教材のアクセスポイント・端末の初期の設定。SSID・パスワード・帯・チャネル・暗号化の方式。帯とチャネルはアクセスポイントだけが持つ）
+  wireless: z.object({ ssid: z.string().min(1), password: z.string().min(1), band: z.enum(WIRELESS_BANDS).optional(), channel: int.positive().optional(), security: z.enum(WIRELESS_SECURITIES).optional() }).optional(),
   // 場所の名前（「受付のPC」など。画面の機器の名前になる。なければ「PC-1」などの仮の名前）
   name: z.string().min(1).max(24).optional(),
 });
@@ -507,6 +507,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('outside_reachable') }),
   // 指定した SSID のアクセスポイントがすべて WPA2 以上で、無線の警告（暗号化なし・弱い暗号・移行モード）がない
   z.object({ type: z.literal('wireless_secure'), ssid: z.string().min(1) }),
+  // すべてのアクセスポイントに、チャネルの重なりも干渉源の干渉もない
+  z.object({ type: z.literal('wireless_clean') }),
   // 指定したスイッチが、スパニングツリーのルートブリッジになっている
   z.object({ type: z.literal('stp_root'), node: z.string().min(1) }),
   // 回線終端（uplink）が2つ以上あり、どれか1つを失っても、すべての PC が外部へ届く
@@ -760,6 +762,8 @@ export const lessonSchema = z.object({
   size: z.object({ w: int.positive(), h: int.positive() }),
   placed: z.array(placedSchema).min(1),
   links: z.array(placedLinkSchema),
+  // 置いてある家具（電子レンジなど干渉源の位置。無線の干渉の判定に使う）
+  furniture: z.array(placedFurnitureSchema).optional(),
   goals: z.array(goalSchema).min(1),
   guide: z
     .array(
@@ -782,6 +786,8 @@ export const drillSchema = z.object({
   size: z.object({ w: int.positive(), h: int.positive() }),
   placed: z.array(placedSchema).min(1),
   links: z.array(placedLinkSchema),
+  // 置いてある家具（電子レンジなど干渉源の位置。無線の干渉の判定に使う）
+  furniture: z.array(placedFurnitureSchema).optional(),
   // 順に解く。前の問いの後の構成のまま次へ進む
   questions: z.array(questionSchema).min(1),
   // その問いの前に構成を変える（「R3 の電源を切った」など）。before は問いの id
