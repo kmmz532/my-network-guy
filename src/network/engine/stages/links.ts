@@ -4,6 +4,7 @@ import { can } from '../../capabilities';
 import { getComponent } from '../../components';
 import { computeLags, type LagResult } from '../../lag';
 import { macOf } from '../../mac';
+import { resolvePo } from '../../po';
 import type { EngineData, NetLink, NetNode, Network, PortConfig } from '../../types';
 
 // 配線の長さ（タイル数）。折れ点ごとの縦横の距離の合計
@@ -97,8 +98,10 @@ export const withWireless = (net: Network, data: EngineData): Network => {
 export interface LinkLayer {
   // 無線の端末とつながるアクセスポイントの組
   readonly associations: readonly { ap: NetNode; client: NetNode }[];
-  // 無線の仮想の配線（とアクセスポイントの口の設定）を入れた構成
+  // 無線の仮想の配線（とアクセスポイントの口の設定）を入れ、束ねた口（Po）を代表の口に読み替えた構成
   readonly net: Network;
+  // まとまっていない Po を持つ機器の uid（その Po は落ちた口として、net から取り除いてある）
+  readonly unbundledPo: ReadonlySet<string>;
   // 論理リンク（リンクアグリゲーション）
   readonly lag: LagResult;
   // 口が停止しているか（shutdown・電源を切った機器）
@@ -109,11 +112,11 @@ export interface LinkLayer {
 
 export const stageLinks = (input: Network, world: EngineData): LinkLayer => {
   const associations = wirelessAssociations(input, world);
-  const net = withWireless(input, world);
-  const lag = computeLags(net.nodes, net.links, (n) => can(n.device, 'lag'), (n, port) => portSpeed(n.device, port));
+  const wired = withWireless(input, world);
+  const lag = computeLags(wired.nodes, wired.links, (n) => can(n.device, 'lag'), (n, port) => portSpeed(n.device, port));
   const poweredOff = new Set<string>();
   const shut = new Set<string>();
-  for (const n of net.nodes) {
+  for (const n of wired.nodes) {
     if (n.powered === false) poweredOff.add(n.uid);
     // 同じ番号の設定が複数あれば、最初のものに従う
     const seen = new Set<number>();
@@ -123,12 +126,15 @@ export const stageLinks = (input: Network, world: EngineData): LinkLayer => {
       if (p.shutdown === true) shut.add(`${n.uid}:${p.port}`);
     }
   }
+  const isShut = (uid: string, port: number): boolean => poweredOff.has(uid) || shut.has(`${uid}:${port}`);
+  const { net, unbundled } = resolvePo(wired, lag, isShut);
   const tooLong = new Set(net.links.filter((l) => linkLength(l.path) > cableMaxLength(l.cable)).map((l) => l.uid));
   return {
     associations,
     net,
+    unbundledPo: unbundled,
     lag,
-    isShut: (uid, port) => poweredOff.has(uid) || shut.has(`${uid}:${port}`),
+    isShut,
     tooLong,
   };
 };

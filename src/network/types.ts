@@ -5,15 +5,21 @@ export type { VrrpGroup } from './vrrp';
 export type { DhcpPool } from './dhcp';
 
 // インターフェース（IPアドレスを持つ場所）。口（port）とは別に、名前（id）と種類（kind）を持つ（N135）
+// po のインターフェースが持つ口の番号（物理の口ではない印）
+export const PO_PORT = -1;
+
 export interface Iface {
   // 名前（eth0・g0/1 など。画面とターミナルで同じ名前を出す）
   id: string;
-  // 種類: port（口のインターフェース）・svi（VLAN のインターフェース・N138）。sub・lan は後続
-  kind: 'port' | 'svi';
-  // 口の番号（svi は判定の中だけの仮想の口・SVI_PORT_BASE + VLAN）
+  // 種類: port（口のインターフェース）・svi（VLAN のインターフェース・N138）・po（束ねた口。チャネルの番号で持ち、
+  // 計算の入口（resolvePo）で、まとまった配線の代表の口の port に読み替える）。sub・lan は後続
+  kind: 'port' | 'svi' | 'po';
+  // 口の番号（svi は判定の中だけの仮想の口・SVI_PORT_BASE + VLAN。po は物理の口を持たず PO_PORT。読み替えの後の構成には po は残らない）
   port: number;
   // svi のときの VLAN 番号
   vlan?: number;
+  // po のときのチャネルの番号（口の設定の channelGroup と同じ）
+  channel?: number;
   ip: string;
   prefix: number;
   // NAT の役割（N145）: inside（社内の側）・outside（外の側）
@@ -220,6 +226,8 @@ export const FAILURE_REASONS = [
   'link.too_long',
   'link.loop',
   'ip.unset',
+  // 束ねた口（Po）がまとまっていない（メンバーの口のチャネルの番号・モードが相手と合わない）。Po は落ちた口になる
+  'po.not_bundled',
   'ip.duplicate',
   'ip.duplicate.dhcp',
   'ip.unreachable',

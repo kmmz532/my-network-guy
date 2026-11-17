@@ -7,7 +7,7 @@ import { fillPlans } from '../network/query/plans';
 import type { VrrpGroup } from '../network/vrrp';
 import type { DnsRecord, DnsService, FirewallRule, Iface, IspLine, NetNode, PortConfig, Route } from '../network/types';
 import { WIRELESS_SECURITIES } from '../network/types';
-import { makeIface, makeSvi } from '../network/iface';
+import { makeIface, makePo, makeSvi } from '../network/iface';
 import { refusalFor } from './capabilityGate';
 import { getComponent, withComponent } from '../network/components';
 import { registries } from '../registry/game';
@@ -179,6 +179,8 @@ export const setInterface = (
   if (!node) return fail('none');
   if (node.configLocked) return fail('locked');
   if (ip !== '' && !isIp(ip)) return fail('ip');
+  // 束ねたメンバーの口は IP を持たない（IP は Po に設定する）
+  if (ip !== '' && node.ports.some((p) => p.port === port && p.channelGroup !== undefined)) return fail('po.member_has_ip');
   const interfaces: Iface[] =
     ip === ''
       ? node.interfaces.filter((i) => i.port !== port)
@@ -202,6 +204,24 @@ export const setSvi = (core: Core, uid: string, vlan: number, ip: string, prefix
   const others = node.interfaces.filter((i) => !(i.kind === 'svi' && i.vlan === vlan));
   const interfaces: Iface[] = ip === '' ? others : [...others, makeSvi(vlan, ip, prefix)];
   if (interfaces.filter((i) => i.kind === 'svi').length > sviMaxOf(node.device)) return fail('svi.max');
+  const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, interfaces } : n));
+  const plans = fillPlans(analyze({ nodes, links: net.links, plans: net.plans }, env.engine));
+  return { ok: true, core: withNet(core, target, { ...net, nodes, plans }) };
+};
+
+// 束ねた口（Po・ポートチャネルのインターフェース）の IP を設定する。ip が '' なら外す。Po を持てるのは、リンクアグリゲーションと routed の口の両方を持つ機器だけ
+export const setPo = (core: Core, uid: string, channel: number, ip: string, prefix: number, env: Env, target: NetTarget = 'focus'): Outcome => {
+  const net = netOf(core, target);
+  if (typeof net === 'string') return fail(net);
+  const node = net.nodes.find((n) => n.uid === uid);
+  if (!node) return fail('none');
+  if (node.configLocked) return fail('locked');
+  const refusal = refusalFor(node.device, 'lag') ?? refusalFor(node.device, 'routedPort');
+  if (refusal) return fail(refusal);
+  if (!Number.isInteger(channel) || channel < 1 || channel > 64) return fail('lag.group');
+  if (ip !== '' && !isIp(ip)) return fail('ip');
+  const others = node.interfaces.filter((i) => !(i.kind === 'po' && i.channel === channel));
+  const interfaces: Iface[] = ip === '' ? others : [...others, makePo(channel, ip, prefix)];
   const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, interfaces } : n));
   const plans = fillPlans(analyze({ nodes, links: net.links, plans: net.plans }, env.engine));
   return { ok: true, core: withNet(core, target, { ...net, nodes, plans }) };
@@ -422,6 +442,7 @@ export const setChannel = (core: Core, uid: string, change: ChannelOp, target: N
         return { ...node, ports: [...node.ports.filter((p) => p.port !== change.port), rest] };
       }
       if (!Number.isInteger(change.group) || change.group < 1 || change.group > 64 || change.lacp === undefined) return 'lag.group';
+      if (node.interfaces.some((i) => i.port === change.port)) return 'po.member_has_ip';
       return { ...node, ports: [...node.ports.filter((p) => p.port !== change.port), { ...base, channelGroup: change.group, lacp: change.lacp }] };
     },
     target,

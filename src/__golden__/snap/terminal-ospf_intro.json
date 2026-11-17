@@ -367,7 +367,8 @@
     },
     {
       "line": "channel-group 1 mode active",
-      "result": "done"
+      "result": "fail",
+      "reason": "po.member_has_ip"
     },
     {
       "line": "ip nat inside",
@@ -937,14 +938,7 @@
         "uid": "R1",
         "device": "router_basic",
         "macSerial": 2,
-        "ports": [
-          {
-            "port": 0,
-            "mode": "routed",
-            "channelGroup": 1,
-            "lacp": "active"
-          }
-        ],
+        "ports": [],
         "name": "R1",
         "x": 4,
         "y": 4,

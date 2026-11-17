@@ -40,6 +40,7 @@ export const OP_FAIL_REASONS = [
   'port',
   'port.mode',
   'port.none',
+  'po.member_has_ip',
   'portUsed',
   'redo',
   'retire.already',

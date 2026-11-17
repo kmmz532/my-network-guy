@@ -17,6 +17,7 @@ import type { LinkLayer } from './links';
 
 // 機器の不備の種類（sim-3 の失敗の理由）
 export type Issue =
+  | 'po.not_bundled'
   | 'ip.unset'
   | 'segment.unset'
   | 'ip.out_of_segment'
@@ -27,6 +28,7 @@ export type Issue =
 
 // 同じ機器に複数の不備があるとき、先に並べたものを出す
 const ISSUE_ORDER: Issue[] = [
+  'po.not_bundled',
   'ip.unset',
   'segment.unset',
   'ip.out_of_segment',
@@ -63,7 +65,7 @@ export interface AddressLayer {
 
 const label = (cfg: NetworkPlan): string => `${cfg.network}/${cfg.prefix}`;
 
-const complete = (input: Network, segs: readonly PlanDomain[]): { net: Network; issues: Record<string, IssueDetail> } => {
+const complete = (input: Network, segs: readonly PlanDomain[], unbundledPo: ReadonlySet<string>): { net: Network; issues: Record<string, IssueDetail> } => {
   const byUid = new Map(input.nodes.map((n) => [n.uid, n]));
   const cat = (n: NetNode) => deviceCategory(n.device);
   const fixed = (n: NetNode) => n.configLocked && n.interfaces.length > 0;
@@ -83,6 +85,7 @@ const complete = (input: Network, segs: readonly PlanDomain[]): { net: Network; 
     const cur = issues[uid];
     if (!cur || ISSUE_ORDER.indexOf(d.reason) < ISSUE_ORDER.indexOf(cur.reason)) issues[uid] = d;
   };
+  for (const uid of unbundledPo) flag(uid, { reason: 'po.not_bundled' });
 
   // ルーターでつながった L2 ドメインの組（ルーターが両方のドメインに口を持てば、同じ組にまとめる）
   const group = new Map<string, string>();
@@ -282,7 +285,10 @@ const withLeases = (net: Network, dhcp: DhcpResult): Network => ({
 
 export const stageAddressing = (input: Network, links: LinkLayer, l2: L2Layer): AddressLayer => {
   // 計画は L2 ドメインで引く。無線の端末は計画の不備とゲートウェイの補完の対象にしない
-  const { net: completed, issues } = complete(input, l2.planDomains);
+  // 束ねた口（Po）は、配線の層で代表の口に読み替えてある。その結果の口を、保存の構成に重ねて補完する
+  const resolved = new Map(links.net.nodes.map((n) => [n.uid, n.interfaces]));
+  const withPo: Network = { ...input, nodes: input.nodes.map((n) => (resolved.get(n.uid) === n.interfaces ? n : { ...n, interfaces: resolved.get(n.uid) ?? n.interfaces })) };
+  const { net: completed, issues } = complete(withPo, l2.planDomains, links.unbundledPo);
   // 無線の仮想の配線と口の設定は、配線の層の構成から取り、補完を入れた機器に重ねる
   const portsOf = new Map(links.net.nodes.map((n) => [n.uid, n.ports]));
   const before: Network = { ...completed, nodes: completed.nodes.map((n) => (portsOf.get(n.uid) === n.ports ? n : { ...n, ports: portsOf.get(n.uid) ?? n.ports })), links: links.net.links };

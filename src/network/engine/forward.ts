@@ -26,6 +26,9 @@ const ifaceAt = (view: ForwardView, uid: string, port: number): Iface | undefine
 // 口の設定（PortConfig）。設定のない口は、VLAN 1 の access として動く
 const portCfg = (view: ForwardView, uid: string, port: number): PortConfig | undefined => view.addressing.nodeOf(uid)?.ports?.find((p) => p.port === port);
 
+// 口がないときの理由。束ねていない Po が落ちているなら po.not_bundled、そうでなければ ip.unset
+const noIfaceReason = (view: ForwardView, uid: string): FailureReason => (view.links.unbundledPo.has(uid) ? 'po.not_bundled' : 'ip.unset');
+
 export const fail = (reason: FailureReason, node: string): Failure => ({ reason, node });
 
 // 重複したアドレスのどれかが DHCP で配られたものなら、理由を分けて示す
@@ -94,7 +97,7 @@ export const deliver = (view: ForwardView, srcUid: string, dstUid: string, traff
 
   // 送信元・宛先のアドレスを指定したときは、そのインターフェース（省略は最初の口）
   const srcIface = srcIp === undefined ? src.interfaces[0] : src.interfaces.find((i) => i.ip === srcIp);
-  if (!srcIface) return err(fail('ip.unset', src.uid));
+  if (!srcIface) return err(fail(noIfaceReason(view, src.uid), src.uid));
   // 自動（DHCP）の口がアドレスを受け取れなかった
   if (srcIface.dhcp === true && view.addressing.dhcp.failed.some((f) => f.uid === src.uid && f.port === srcIface.port)) return err(fail(view.addressing.dhcp.failed.find((f) => f.uid === src.uid && f.port === srcIface.port)?.reason ?? 'dhcp.no_offer', src.uid));
   const srcEp: Endpoint = { node: src.uid, port: srcIface.port };
@@ -107,7 +110,7 @@ export const deliver = (view: ForwardView, srcUid: string, dstUid: string, traff
   if (view.links.isShut(srcPeer.node, srcPeer.port)) return err(fail('port.shutdown', srcPeer.node));
 
   const dstIface = dstIp === undefined ? dst.interfaces[0] : dst.interfaces.find((i) => i.ip === dstIp);
-  if (!dstIface) return err(fail('ip.unset', dst.uid));
+  if (!dstIface) return err(fail(noIfaceReason(view, dst.uid), dst.uid));
   const dstEp: Endpoint = { node: dst.uid, port: dstIface.port };
   if (!view.l2.linkAt(dstEp)) return err(fail(unpluggedReason(view, dst.uid), dst.uid));
   const dstSecurity = securityDenied(view, dst, dstIface.port);
