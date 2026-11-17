@@ -12,7 +12,10 @@ import { TextInput } from './ui/TextInput';
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
 
 export function PoField({ node, disabled, onError }: { node: NetNode; disabled: boolean; onError: (reason: string | null) => void }) {
-  const channels = [...new Set(node.ports.map((p) => p.channelGroup).filter((g): g is number => g !== undefined))].sort((a, b) => a - b);
+  // 行は、口の channelGroup のチャネルと、既にある po のインターフェースのチャネルの和集合（チャネルの設定を外しても、IP を外せるように）
+  const groups = node.ports.map((p) => p.channelGroup).filter((g): g is number => g !== undefined);
+  const poChannels = node.interfaces.filter((i) => i.kind === 'po').map((i) => i.channel).filter((c): c is number => c !== undefined);
+  const channels = [...new Set([...groups, ...poChannels])].sort((a, b) => a - b);
   if (channels.length === 0) return null;
   return (
     <div style={{ margin: '8px 0' }}>
