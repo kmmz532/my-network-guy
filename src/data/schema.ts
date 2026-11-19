@@ -89,6 +89,8 @@ export const balanceSchema = z.object({
   sellRate: z.number().min(0).max(1),
   // 地図の1マスの長さ（メートル）。ケーブルの上限と表示に使う（N49）
   metersPerTile: int.positive(),
+  // シーケンス図の再生で、1行を流してから次の行に進むまでの時間（ミリ秒）
+  sequence: z.object({ stepMs: int.positive() }),
   // 無線の帯ごとの数値。届く半径・壁1マスの減衰（マス）、選べるチャネル（範囲の列）、既定のチャネル、重なるチャネルの差の上限（差がこれ以下なら重なる）
   wireless: z.object({
     bands: z.object({ '2.4': wirelessBandSchema, '5': wirelessBandSchema }),

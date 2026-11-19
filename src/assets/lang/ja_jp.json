@@ -1317,6 +1317,8 @@
   "ui.search.placeholder": "名前、分類で探す",
   "ui.sequence.none": "表示できる通信がありません。テストか ping を実行してください。",
   "ui.sequence.open": "シーケンス図を見る",
+  "ui.sequence.play": "再生",
+  "ui.sequence.stop": "止める",
   "ui.sequence.title": "シーケンス図",
   "ui.service.http": "HTTP",
   "ui.service.locked": "案件で固定",

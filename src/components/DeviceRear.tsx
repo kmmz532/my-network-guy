@@ -15,6 +15,7 @@ import { stpOf } from '../network/public';
 import { loadSettings } from '../settings/settings';
 import { netOfDevice, useGameStore } from '../stores/useGameStore';
 import { portLabel } from './devicePorts';
+import { sequenceRefOf } from './SequencePanel';
 import { Button } from './ui/Button';
 import { ListRow } from './ui/ListRow';
 import { Plate } from './ui/Plate';
@@ -87,6 +88,9 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
   const byUid = new Map(nodes.map((n) => [n.uid, n]));
   const states = new Map(portStatesOf(state, node.uid).map((s) => [s.port, s]));
   const isRootBridge = stpOf(state).root === node.uid;
+  // STP が動いている（どの口にも STP の役割がある）ときだけ、シーケンス図の入口を出す
+  const stpOn = [...states.values()].some((s) => s.stp !== undefined);
+  const openWindow = useGameStore((s) => s.openWindow);
   const colors = networkColors(state);
   const linkAt = (port: number) =>
     links.find((l) => (l.a.node === node.uid && l.a.port === port) || (l.b.node === node.uid && l.b.port === port));
@@ -277,6 +281,7 @@ ${rest}`);
         )}
 
       {isRootBridge && <Text tone="warn" size="s" layout={{ marginBottom: 6 }}>{t('ui.rear.stpRootBridge')}</Text>}
+      {stpOn && <Button variant="secondary" size="s" layout={{ marginBottom: 6 }} onClick={() => openWindow('sequence', sequenceRefOf({ kind: 'stp' }))}>{t('ui.sequence.open')}</Button>}
 
       {/* ポートの一覧: 相手の機器名とポート、ケーブルの種類 */}
       {ports.map((p) => {

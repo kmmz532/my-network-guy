@@ -1028,6 +1028,12 @@ const scenes = {
     await page.getByRole('button', { name: 'シーケンス図を見る' }).click();
     await page.waitForTimeout(500);
   },
+  // シーケンス図の行を押した場面。ICMP エコー要求の行を押すと、パケットの中身の窓がその区間で開く
+  sequencepick: async (page) => {
+    await scenes.sequence(page);
+    await page.locator('.ui-sequence__row', { hasText: 'ICMP エコー要求' }).first().locator('.ui-sequence__hit').click();
+    await page.waitForTimeout(500);
+  },
   // ターミナルの予測（薄い文字）。スマホでは次に打てる語のボタンと「→」のボタンも出る
   terminalghost: async (page) => {
     await scenes.sandbox(page);

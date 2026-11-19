@@ -6,6 +6,7 @@ import { vrrpStatusOf } from '../network/public';
 import type { Iface, NetNode } from '../network/types';
 import { netOfDevice, useGameStore } from '../stores/useGameStore';
 import { isIpText } from './devicePorts';
+import { sequenceRefOf } from './SequencePanel';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
 import { Checkbox } from './ui/Checkbox';
@@ -27,6 +28,7 @@ interface Props {
 
 export function VrrpField({ node, iface, disabled, onError }: Props) {
   const setVrrp = useGameStore((s) => s.setVrrp);
+  const openWindow = useGameStore((s) => s.openWindow);
   // 画面の計算は、ストアの計算の結果を読む
   const netState = useGameStore((s) => netOfDevice(s, node.uid));
   const [vrid, setVrid] = useState('');
@@ -73,6 +75,9 @@ export function VrrpField({ node, iface, disabled, onError }: Props) {
             </Checkbox>
             <Button variant="secondary" size="fit" disabled={disabled} onClick={() => onError(setVrrp(node.uid, { op: 'remove', id: iface.id, vrid: g.vrid }))}>
               {t('ui.config.vrrpRemove')}
+            </Button>
+            <Button variant="secondary" size="fit" onClick={() => openWindow('sequence', sequenceRefOf({ kind: 'vrrp', group: g.vrid }))}>
+              {t('ui.sequence.open')}
             </Button>
             {(g.track ?? []).map((tr) => (
               <Text key={tr.iface} as="span" tone="note" size="s">{t('ui.config.vrrpTrackLine', { iface: tr.iface, decrement: tr.decrement })}</Text>

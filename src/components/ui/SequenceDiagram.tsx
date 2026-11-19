@@ -1,5 +1,6 @@
 // シーケンス図の絵。上に名前を並べ、機器ごとの縦の線を引き、1行1本の矢印（根元 from、先 targets）を上から順に描く。
-// dashed は点線。failure があれば、矢印の先に × と理由を出し、行を失敗の色にする。大きさに合わせて、窓の中で縦横にスクロールする
+// dashed は点線。failure があれば、矢印の先に × と理由を出し、行を失敗の色にする。大きさに合わせて、窓の中で縦横にスクロールする。
+// onPick を渡すと行を押せる（選んだ行は selected の地の色で示す）
 import './tokens.css';
 import './ui.css';
 
@@ -18,7 +19,7 @@ const HEAD_H = 34;
 const MARGIN_X = 70;
 const ARROW = 7;
 
-export function SequenceDiagram({ title, lanes, rows }: { title: string; lanes: string[]; rows: SequenceDiagramRow[] }) {
+export function SequenceDiagram({ title, lanes, rows, selected = null, onPick }: { title: string; lanes: string[]; rows: SequenceDiagramRow[]; selected?: number | null; onPick?: (row: number) => void }) {
   const x = (i: number) => MARGIN_X + i * LANE_W;
   const width = MARGIN_X * 2 + Math.max(0, lanes.length - 1) * LANE_W;
   const height = HEAD_H + rows.length * ROW_H + 8;
@@ -32,13 +33,25 @@ export function SequenceDiagram({ title, lanes, rows }: { title: string; lanes: 
           </g>
         ))}
         {rows.map((row, r) => {
-          const y = HEAD_H + r * ROW_H + ROW_H * 0.65;
+          const top = HEAD_H + r * ROW_H;
+          const y = top + ROW_H * 0.65;
           const fx = x(row.from);
           const span = [fx, ...row.targets.map(x)];
           const mid = (Math.min(...span) + Math.max(...span)) / 2;
           const failed = row.failure !== undefined;
+          const picked = selected === r;
+          const pick = onPick ? () => onPick(r) : undefined;
+          const cls = ['ui-sequence__row', failed && 'ui-sequence__row--failed'].filter(Boolean).join(' ');
           return (
-            <g key={r} className={failed ? 'ui-sequence__row ui-sequence__row--failed' : 'ui-sequence__row'}>
+            <g
+              key={r}
+              className={cls}
+              role={onPick ? 'button' : undefined}
+              tabIndex={onPick ? 0 : undefined}
+              onClick={pick}
+              onKeyDown={pick && ((e) => { if (e.key === 'Enter' || e.key === ' ') pick(); })}
+            >
+              {onPick && <rect x={0} y={top} width={width} height={ROW_H} className={picked ? 'ui-sequence__hit ui-sequence__hit--picked' : 'ui-sequence__hit'} />}
               <text x={mid} y={y - 6} textAnchor="middle" className="ui-sequence__text">{row.label}</text>
               {row.targets.map((ti) => {
                 const tx = x(ti);

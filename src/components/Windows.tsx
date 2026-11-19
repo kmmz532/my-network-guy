@@ -185,7 +185,7 @@ export function Windows() {
           {w.kind === 'inventory' && <InventoryBody />}
           {w.kind === 'company' && <CompanyBody />}
           {w.kind === 'funds' && <FundsBody />}
-          {w.kind === 'frames' && <FramesBody key={w.active} goal={/^\d+$/.test(w.active) ? Number(w.active) : undefined} />}
+          {w.kind === 'frames' && <FramesBody key={w.active} goal={/^\d+$/.test(w.active) ? Number(w.active) : undefined} hop={/^h\d+$/.test(w.active) ? Number(w.active.slice(1)) : undefined} />}
           {w.kind === 'sequence' && <SequenceBody key={w.active} trigger={w.active} />}
           {w.kind === 'office' && <OfficeBody />}
           {/* スマホでは、本文の下に閉じるボタンを置く（パソコンは窓の×で閉じる） */}

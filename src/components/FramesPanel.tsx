@@ -2,7 +2,8 @@
 // 前の区間から変わった欄は色を変える（MAC の付け替え・NAT の変換・TTL の減少）。失敗した通信は、止まった機器と理由を最後の行に出す
 import { useEffect, useState } from 'react';
 import { t, tDyn } from '../i18n/t';
-import { framesOf, isL2Category, isRoutingCategory, type Frame, type FrameContext } from '../network/public';
+import { framesOf, isL2Category, isRoutingCategory, type Frame, type FrameContext, type NetworkState } from '../network/public';
+import type { Trace } from '../sim/project';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
 import { labelOfUid } from './nodeLabel';
@@ -16,12 +17,26 @@ const cell = (value: string | number, changed: boolean) => <Cell mark={changed ?
 
 const portText = (f: Frame) => (f.l4 ? `${f.l4.srcPort}→${f.l4.dstPort}` : '-');
 
-// goal が あれば、その達成条件の通信から開く（案件の欄の行から開いたとき）
-export function FramesBody({ goal }: { goal?: number }) {
+// 通信の結果のフレームの列（欄とシーケンス図で同じ列を使う）
+export const framesOfTrace = (netState: NetworkState, trace: Trace): Frame[] => {
+  const nodes = netState.input.nodes;
+  const category = (uid: string) => deviceCategory(nodes.find((n) => n.uid === uid)?.device ?? '');
+  const ctx: FrameContext = {
+    nodes,
+    links: netState.input.links,
+    categoryOf: deviceCategory,
+    isSwitch: (uid) => isL2Category(category(uid)),
+    isRouter: (uid) => isRoutingCategory(category(uid)),
+  };
+  return framesOf(ctx, trace.result, trace.kind === 'http' ? { kind: 'http', port: 80 } : { kind: 'ping' });
+};
+
+// goal が あれば、その達成条件の通信から開く（案件の欄の行から開いたとき）。hop が あれば、その区間を選んだ状態で開く（シーケンス図の行から開いたとき）
+export function FramesBody({ goal, hop: initialHop }: { goal?: number; hop?: number }) {
   const state = useGameStore();
   const traces = useGameStore((s) => s.traces);
   const [index, setIndex] = useState(() => Math.max(0, traces.findIndex((tr) => goal !== undefined && tr.goal === goal)));
-  const [hop, setHop] = useState<number | null>(null);
+  const [hop, setHop] = useState<number | null>(initialHop ?? null);
   // 選んだ区間を、マップのパケットの位置に反映する。欄を閉じたら元に戻す
   const setFrameView = useUiStore((s) => s.setFrameView);
   useEffect(() => {
@@ -33,19 +48,10 @@ export function FramesBody({ goal }: { goal?: number }) {
   const netState = target ? state.network.focus : state.network.office;
   if (netState === null) throw new Error('設計中の案件のネットワークの計算の結果がない');
   const nodes = netState.input.nodes;
-  const links = netState.input.links;
   if (traces.length === 0) return <Text size="sm">{t('ui.frames.none')}</Text>;
   const trace = traces[Math.min(index, traces.length - 1)];
 
-  const category = (uid: string) => deviceCategory(nodes.find((n) => n.uid === uid)?.device ?? '');
-  const ctx: FrameContext = {
-    nodes,
-    links,
-    categoryOf: deviceCategory,
-    isSwitch: (uid) => isL2Category(category(uid)),
-    isRouter: (uid) => isRoutingCategory(category(uid)),
-  };
-  const frames = framesOf(ctx, trace.result, trace.kind === 'http' ? { kind: 'http', port: 80 } : { kind: 'ping' });
+  const frames = framesOfTrace(netState, trace);
   const failure = trace.result.ok ? null : trace.result.failure;
   const shown = hop === null ? frames.length : Math.min(hop + 1, frames.length);
   const name = (uid: string) => labelOfUid(state, uid, nodes);

@@ -1833,3 +1833,13 @@ input.ui-terminal-input__field::placeholder {
 .ui-sequence__row--failed .ui-sequence__arrow {
   stroke: var(--st-error);
 }
+
+/* 押せる行（onPick）。選んだ行は既存の選択の地の色で示す */
+.ui-sequence__hit {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.ui-sequence__hit--picked {
+  fill: var(--bg-row-selected);
+}

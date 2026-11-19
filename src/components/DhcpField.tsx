@@ -7,6 +7,7 @@ import { getComponent } from '../network/components';
 import type { DhcpPool, Iface, NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
 import { isIpText } from './devicePorts';
+import { sequenceRefOf } from './SequencePanel';
 import { Button } from './ui/Button';
 import { Checkbox } from './ui/Checkbox';
 import { Text } from './ui/Text';
@@ -18,6 +19,7 @@ const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', m
 export function DhcpPortField({ node, port, iface, client, disabled, onError }: { node: NetNode; port: number; iface: Iface | undefined; client: boolean; disabled: boolean; onError: (reason: string | null) => void }) {
   const setDhcp = useGameStore((s) => s.setDhcp);
   const setIface = useGameStore((s) => s.setIface);
+  const openWindow = useGameStore((s) => s.openWindow);
   if (client) {
     return (
       <div style={row}>
@@ -25,6 +27,11 @@ export function DhcpPortField({ node, port, iface, client, disabled, onError }: 
           {t('ui.config.dhcpAuto')}
         </Checkbox>
         {iface?.dhcp === true && <Text as="span" tone="note" size="s">{t('ui.config.dhcpLease', { ip: iface.ip })}</Text>}
+        {iface?.dhcp === true && (
+          <Button variant="secondary" size="s" onClick={() => openWindow('sequence', sequenceRefOf({ kind: 'dhcp', client: node.uid }))}>
+            {t('ui.sequence.open')}
+          </Button>
+        )}
       </div>
     );
   }

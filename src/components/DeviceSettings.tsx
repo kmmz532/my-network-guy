@@ -1,7 +1,8 @@
 // 機器の画面の「設定」タブ。ポートごとのIPアドレス（ネットワークは「詳しく」を開いたときだけ出す）、ホストのデフォルトゲートウェイ、ルーターの静的ルートを置く。
 // IPアドレスとゲートウェイの欄は、候補から選べる1つの入力欄（AddressInput）にする。確定は候補を選んだとき・Enter・欄を離れたとき。
 // PC・サーバーは、ケーブルでつなぐ前でもIPアドレスを設定できる。ルーターのポートはつないでから設定する。
-import { nodeLabel } from './nodeLabel';
+import { labelOfUid, nodeLabel } from './nodeLabel';
+import { sequenceRefOf } from './SequencePanel';
 import { useState } from 'react';
 import { t, tDyn } from '../i18n/t';
 import { AddressInput } from './AddressInput';
@@ -14,7 +15,7 @@ import { getComponent } from '../network/components';
 import { wirelessAssociations } from '../network/engine/stages/links';
 import { bandOf, channelOf } from '../network/wirelessBand';
 import { bandChannels, deviceBands, deviceSecurities, isDfsChannel, isEapSecurity } from '../registry/wireless';
-import { channelOverlapsOf, networkColors, wirelessQualityOf, type NetworkState } from '../network/public';
+import { channelOverlapsOf, networkColors, ospfNeighborsOf, wirelessQualityOf, type NetworkState } from '../network/public';
 import { colorOfNetwork, UNSET_COLOR } from '../network/netColor';
 import { networkOf, wildcardOf } from '../network/ip';
 import { networkAddress, planFor, PREFIX_MAX, PREFIX_MIN } from '../network/segments';
@@ -67,6 +68,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
   const setPlan = useGameStore((s) => s.setPlan);
   const setRouting = useGameStore((s) => s.setRouting);
   const setOspf = useGameStore((s) => s.setOspf);
+  const openWindow = useGameStore((s) => s.openWindow);
   const setPower = useGameStore((s) => s.setPower);
   const addRoute = useGameStore((s) => s.addRoute);
   const removeRoute = useGameStore((s) => s.removeRoute);
@@ -375,6 +377,15 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
           {t('ui.config.ospfDefault')}
         </Checkbox>
       </div>
+      {/* 隣接の行ごとに、その隣接ができるまでの制御（Hello・DBD・LSU）をシーケンス図で見る */}
+      {ospfNeighborsOf(netState, node.uid).map((nb) => (
+        <div key={nb.uid} style={{ ...row, flexWrap: 'wrap', gap: 6 }}>
+          <Text as="span" size="s">{t('ui.terminal.ospfNeighbor', { name: labelOfUid(useGameStore.getState(), nb.uid, net.nodes), ip: nb.neighborIp, port: nb.port, routerId: nb.routerId, priority: nb.priority, state: nb.state })}</Text>
+          <Button variant="secondary" size="s" onClick={() => openWindow('sequence', sequenceRefOf({ kind: 'ospf', a: node.uid, b: nb.uid }))}>
+            {t('ui.sequence.open')}
+          </Button>
+        </div>
+      ))}
     </Section>
   );
 
