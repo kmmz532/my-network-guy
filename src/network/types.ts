@@ -259,6 +259,8 @@ export const FAILURE_REASONS = [
   'lb.no_healthy_member',
   // ロードバランサー: SNAT がなく、サーバーから利用者への戻りがロードバランサーを通らない
   'lb.asymmetric',
+  // 達成条件 load_balanced: 届くが、健全な振り分け先の数が指定に足りない（札はロードバランサー）
+  'lb.few_healthy',
 ] as const;
 
 export type FailureReason = (typeof FAILURE_REASONS)[number];

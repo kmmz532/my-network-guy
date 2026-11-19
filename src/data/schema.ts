@@ -503,6 +503,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('bgp_established'), node: z.string().min(1), min: z.number().int().positive() }),
   // 指定した機器のどれか1台の電源を切っても、残りの PC・サーバーがすべて互いに届く
   z.object({ type: z.literal('survive_device_failure'), nodes: z.array(z.string().min(1)).min(1) }),
+  // from から、ロードバランサー lb（機器の uid）の port の仮想サーバーへ HTTP が届き、その仮想サーバーの健全な振り分け先が minHealthy 以上ある
+  z.object({ type: z.literal('load_balanced'), from: z.string().min(1), lb: z.string().min(1), port: z.number().int().min(1).max(65535), minHealthy: z.number().int().positive() }),
   // 指定した機器が、物理のリンク min 本以上を1本の論理リンクにまとめている（リンクアグリゲーション）
   z.object({ type: z.literal('lag_bundled'), node: z.string().min(1), min: z.number().int().min(2) }),
   // 社内のすべての PC が、回線の先（インターネット）へ届く（NAPT で社内のアドレスを外のアドレスに変える）

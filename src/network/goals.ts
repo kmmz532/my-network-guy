@@ -3,6 +3,8 @@ import { getComponent } from './components';
 // 案件の達成条件（goals）の判定ハンドラ。種類ごとにハンドラを登録し、案件データから呼び出す。
 import type { Contract, Goal } from '../data/schema';
 import { http, ping, wirelessAssociations } from './engine';
+import { reach } from './engine/forward';
+import { healthyMembers } from './query/loadBalancer';
 import { accessPointsOf } from './engine/stages/links';
 import { lagBundlesOf } from './query/lagBundles';
 import { channelOverlapsOf } from './query/channelOverlaps';
@@ -62,6 +64,18 @@ const handlers: { [K in Goal['type']]: Handler } = {
     if (slow.length === 0) return [{ ...base, ok: true, result: r }];
     const nodes = [...new Set(slow.flatMap((h) => [h.from, h.to]))];
     return nodes.map((node) => ({ ...base, ok: false, failure: { reason: 'speed.slow' as const, node }, result: { ...r, ok: false } }));
+  },
+  // from から、ロードバランサーのその port の仮想サーバーへ HTTP が届き、健全な振り分け先が minHealthy 以上なら合格。届かなければ HTTP の失敗をそのまま、足りなければ lb.few_healthy（ロードバランサーに出す）
+  load_balanced: (goal, state) => {
+    if (goal.type !== 'load_balanced') throw new Error('load_balanced ハンドラに別の種類が渡された');
+    const r = http(state, goal.from, goal.lb, goal.port);
+    const base = { goal, kind: 'http' as const, src: goal.from, dst: goal.lb };
+    if (!r.ok) return [{ ...base, ok: false, failure: r.failure, result: r }];
+    const lb = state.addressing.nodeOf(goal.lb);
+    const vs = lb ? getComponent(lb, 'loadBalancer')?.find((v) => v.port === goal.port && lb.interfaces.some((i) => i.ip === v.vip)) : undefined;
+    if (!lb || !vs) throw new Error(`HTTP が届いたのに仮想サーバーがない: ${goal.lb}:${goal.port}`);
+    if (healthyMembers(state, lb, vs, reach).length >= goal.minHealthy) return [{ ...base, ok: true, result: r }];
+    return [{ ...base, ok: false, failure: { reason: 'lb.few_healthy' as const, node: goal.lb }, result: { ...r, ok: false } }];
   },
   ping_all: (goal, state) => {
     const { net, world: data } = state;
@@ -161,7 +175,16 @@ const handlers: { [K in Goal['type']]: Handler } = {
     const ok = goal.nodes.every((uid) => {
       const off: Network = { ...net, nodes: net.nodes.map((n) => (n.uid === uid ? { ...n, powered: false } : n)) };
       const ends = off.nodes.filter((n) => n.uid !== uid && (isPcCategory(deviceCategory(n.device)) || deviceCategory(n.device) === 'server')).map((n) => n.uid);
-      for (let i = 0; i < ends.length; i++) for (let j = i + 1; j < ends.length; j++) if (!ping(analyze(off, data), ends[i], ends[j]).ok) return false;
+      const after = analyze(off, data);
+      for (let i = 0; i < ends.length; i++) for (let j = i + 1; j < ends.length; j++) if (!ping(after, ends[i], ends[j]).ok) return false;
+      // ロードバランサーの仮想サーバーへも、残りの PC から HTTP が届く
+      const pcs = ends.filter((u) => isPcCategory(deviceCategory(off.nodes.find((n) => n.uid === u)!.device)));
+      for (const lb of off.nodes.filter((n) => n.uid !== uid && n.powered !== false)) {
+        for (const vs of getComponent(lb, 'loadBalancer') ?? []) {
+          if (!lb.interfaces.some((i) => i.ip === vs.vip)) continue;
+          if (!pcs.every((pc) => http(after, pc, lb.uid, vs.port).ok)) return false;
+        }
+      }
       return ends.length >= 2;
     });
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];

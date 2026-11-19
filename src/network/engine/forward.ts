@@ -272,7 +272,7 @@ export const backOf = (view: ForwardView, dstUid: string, srcUid: string, traffi
 
 
 // ロードバランサーの口からの片道。同じサブネットの宛先は直接、経路表に合う宛先は経路表で、どちらでもなければゲートウェイで届ける。復路は確かめない
-const reach: Reach = (view, from, to, traffic, srcIp, dstIp) => {
+export const reach: Reach = (view, from, to, traffic, srcIp, dstIp) => {
   const node = view.addressing.nodeOf(from);
   if (node && can(node.device, 'loadBalance') && view.routing.routesOf(from).some((r) => inSubnet(dstIp, r.dest, r.prefix))) {
     // ルーターを送信元にするため、ゲートウェイを自分の口のアドレスとした端末として扱い、自分から経路表を引かせる

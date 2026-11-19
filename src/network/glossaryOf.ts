@@ -13,6 +13,7 @@ export const GLOSSARY_OF_FAILURE: Partial<Record<FailureReason, string>> = {
   'wlan.psk_mismatch': 'wpa2',
   'wlan.auth_mismatch': 'wpa3',
   'wlan.no_radius': 'radius',
+  'lb.few_healthy': 'load_balancer',
 };
 
 // 教材の案内の手順（文言のキー）ごとに、その手順で初めて出す用語。対応のない手順は説明を出さない
@@ -64,6 +65,7 @@ export const GLOSSARY_OF_GOAL: Partial<Record<Goal['type'], string>> = {
   reach_by_name: 'dns_auth_cache',
   resolve_name: 'dns_auth_cache',
   min_speed: 'link_speed',
+  load_balanced: 'load_balancer',
 };
 
 export const termOfStep = (key: string): string | null => GLOSSARY_OF_STEP[key] ?? null;
