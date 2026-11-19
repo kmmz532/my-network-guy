@@ -1,7 +1,7 @@
 // 転送（ping・http・配送）。往路と復路の判定は、計算の結果（配線・L2・アドレス・経路の層）を読むだけで、計算し直さない
 import { CATEGORY } from '../../data/categories';
 import { can } from '../capabilities';
-import { isRoutingCategory } from '../category';
+import { isRoutingCategory, isSviPort } from '../category';
 import { inSubnet, isPrivateIp } from '../ip';
 import { macOf } from '../mac';
 import { DNS_PORT } from '../types';
@@ -96,6 +96,19 @@ const securityDenied = (view: ForwardView, device: NetNode, devicePort: number):
   return macs.includes(mac) ? null : fail('port.security', sw.node);
 };
 
+// 配線・停止・ポートセキュリティを確かめる口。SVI は配線を持たないため、実機と同じく、その VLAN を通す有効な（配線があり停止していない）物理の口のどれかを使う。なければ undefined
+const wiredPort = (view: ForwardView, uid: string, iface: Iface): number | undefined => {
+  if (!isSviPort(iface.port)) return view.l2.linkAt({ node: uid, port: iface.port }) ? iface.port : undefined;
+  const vlan = iface.vlan;
+  if (vlan === undefined) throw new Error(`SVI に VLAN がない: ${uid} ${iface.id}`);
+  for (const l of view.addressing.net.links) {
+    for (const end of [l.a, l.b]) {
+      if (end.node === uid && !isSviPort(end.port) && view.l2.carries(uid, end.port, vlan) && !view.links.isShut(uid, end.port)) return end.port;
+    }
+  }
+  return undefined;
+};
+
 export const deliver = (view: ForwardView, srcUid: string, dstUid: string, traffic: Traffic = { kind: 'ping' }, check = true, srcIp?: string, dstIp?: string): PathResult => {
   const path: string[] = [];
   const src = view.addressing.nodeOf(srcUid);
@@ -111,18 +124,20 @@ export const deliver = (view: ForwardView, srcUid: string, dstUid: string, traff
   if (srcIface.dhcp === true && view.addressing.dhcp.failed.some((f) => f.uid === src.uid && f.port === srcIface.port)) return err(fail(view.addressing.dhcp.failed.find((f) => f.uid === src.uid && f.port === srcIface.port)?.reason ?? 'dhcp.no_offer', src.uid));
   const srcEp: Endpoint = { node: src.uid, port: srcIface.port };
   if (view.links.isShut(src.uid, srcIface.port)) return err(fail('port.shutdown', src.uid));
-  if (!view.l2.linkAt(srcEp)) return err(fail(unpluggedReason(view, src.uid), src.uid));
-  const srcSecurity = securityDenied(view, src, srcIface.port);
+  const srcWired = wiredPort(view, src.uid, srcIface);
+  if (srcWired === undefined) return err(fail(unpluggedReason(view, src.uid), src.uid));
+  const srcSecurity = securityDenied(view, src, srcWired);
   if (srcSecurity) return err(srcSecurity);
   // 相手の口が停止していれば、その口で止まる（port.shutdown）
-  const srcPeer = view.l2.linkAt(srcEp)!.peer;
+  const srcPeer = view.l2.linkAt({ node: src.uid, port: srcWired })!.peer;
   if (view.links.isShut(srcPeer.node, srcPeer.port)) return err(fail('port.shutdown', srcPeer.node));
 
   const dstIface = dstIp === undefined ? dst.interfaces[0] : dst.interfaces.find((i) => i.ip === dstIp);
   if (!dstIface) return err(fail(noIfaceReason(view, dst.uid), dst.uid));
   const dstEp: Endpoint = { node: dst.uid, port: dstIface.port };
-  if (!view.l2.linkAt(dstEp)) return err(fail(unpluggedReason(view, dst.uid), dst.uid));
-  const dstSecurity = securityDenied(view, dst, dstIface.port);
+  const dstWired = wiredPort(view, dst.uid, dstIface);
+  if (dstWired === undefined) return err(fail(unpluggedReason(view, dst.uid), dst.uid));
+  const dstSecurity = securityDenied(view, dst, dstWired);
   if (dstSecurity) return err(dstSecurity);
 
   path.push(src.uid);

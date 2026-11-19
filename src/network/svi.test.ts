@@ -51,3 +51,22 @@ describe('SVI（N138 の段1・段2）', () => {
     expect(ping(analyze(build(false), gameEnv.engine), 'pc1', 'pc3').ok).toBe(false);
   });
 });
+
+describe('SVI のアドレスを送信元・宛先にした ping', () => {
+  // SVI は配線を持たない。その VLAN を通す物理の口のどれかから出入りする
+  it('SVI から、同じ VLAN の PC へ届く', () => {
+    expect(ping(analyze(build(true), gameEnv.engine), 'l3', 'pc1').ok).toBe(true);
+  });
+
+  it('PC から、SVI へ届く', () => {
+    expect(ping(analyze(build(true), gameEnv.engine), 'pc1', 'l3').ok).toBe(true);
+  });
+
+  it('VLAN に有効な口がなければ、link.unplugged のまま', () => {
+    const net = build(true);
+    const noPort: Network = { ...net, links: net.links.filter((l) => l.uid === 'l3x') };
+    const r = ping(analyze(noPort, gameEnv.engine), 'l3', 'pc1');
+    expect(r.ok).toBe(false);
+    expect(r.failure?.reason).toBe('link.unplugged');
+  });
+});
