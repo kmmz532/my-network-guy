@@ -379,6 +379,7 @@
   "goal.outside_reachable": "すべての PC が、回線の先（インターネット）へつながる",
   "goal.ping": "{from} から {to} へ Ping が通る",
   "goal.ping_all": "{nodes} が相互に Ping で通信できる",
+  "goal.public_http": "インターネットから {to} のポート {port} へ HTTP が届く",
   "goal.reach_by_name": "すべてのPCから {name} の名前で届く",
   "goal.reach_category": "すべてのPCから{name}に届く",
   "goal.resolve_name": "{from} から {name} の名前を引ける",

@@ -66,6 +66,7 @@ export const GLOSSARY_OF_GOAL: Partial<Record<Goal['type'], string>> = {
   resolve_name: 'dns_auth_cache',
   min_speed: 'link_speed',
   load_balanced: 'load_balancer',
+  public_http: 'napt',
 };
 
 export const termOfStep = (key: string): string | null => GLOSSARY_OF_STEP[key] ?? null;

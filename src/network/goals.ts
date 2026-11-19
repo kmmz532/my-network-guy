@@ -15,7 +15,7 @@ import { analyze } from './engine/analyze';
 import type { NetworkState } from './engine/state';
 import { bgpTableOf } from './query/bgpTable';
 import { stpOf } from './query/stp';
-import { outsideCheck, withInternet } from './external';
+import { UPLINK_ROUTER_PORT, outsideCheck, withInternet } from './external';
 import { resolveName } from './resolve';
 import { isPcCategory } from '../data/categories';
 import type { EngineData, Failure, Network, PathResult } from './types';
@@ -76,6 +76,30 @@ const handlers: { [K in Goal['type']]: Handler } = {
     if (!lb || !vs) throw new Error(`HTTP が届いたのに仮想サーバーがない: ${goal.lb}:${goal.port}`);
     if (healthyMembers(state, lb, vs, reach).length >= goal.minHealthy) return [{ ...base, ok: true, result: r }];
     return [{ ...base, ok: false, failure: { reason: 'lb.few_healthy' as const, node: goal.lb }, result: { ...r, ok: false } }];
+  },
+  // インターネット側から、to の port へ HTTP が届けば合格。外から届く道は、回線につながるルーターの静的 NAT（外の port → 社内のアドレス）だけ。静的 NAT の先が to の IP アドレスでなければ届かない扱い
+  public_http: (goal, state) => {
+    const { net, world: data } = state;
+    if (goal.type !== 'public_http') throw new Error('public_http ハンドラに別の種類が渡された');
+    const target = net.nodes.find((n) => n.uid === goal.to);
+    if (!target) throw new Error(`public_http の宛先がない: ${goal.to}`);
+    const unreachable = (src: string): GoalResult => ({ goal, ok: false, kind: 'http', src, dst: goal.to, failure: { reason: 'route.none', node: goal.to }, result: { ok: false, path: [] } });
+    const withNet = withInternet(net, data);
+    if (!withNet) return [unreachable('')];
+    const view = analyze(withNet, data);
+    const results = withNet.internetUids.map((isp): GoalResult => {
+      const ispLink = withNet.links.find((l) => l.a.node === isp || l.b.node === isp);
+      const uplinkUid = ispLink && (ispLink.a.node === isp ? ispLink.b.node : ispLink.a.node);
+      const routerLink = withNet.links.find((l) => (l.a.node === uplinkUid && l.a.port === UPLINK_ROUTER_PORT) || (l.b.node === uplinkUid && l.b.port === UPLINK_ROUTER_PORT));
+      const router = routerLink && (routerLink.a.node === uplinkUid ? routerLink.b.node : routerLink.a.node);
+      if (!router) throw new Error(`回線終端の先のルーターがない: ${isp}`);
+      const r = http(view, isp, router, goal.port);
+      const base = { goal, kind: 'http' as const, src: isp, dst: goal.to };
+      if (!r.ok) return { ...base, ok: false, failure: r.failure, result: r };
+      if (!r.staticNat || !target.interfaces.some((i) => i.ip === r.staticNat!.insideIp)) return { ...unreachable(isp), result: { ...r, ok: false } };
+      return { ...base, ok: true, result: r };
+    });
+    return [results.find((r) => r.ok) ?? results[0]];
   },
   ping_all: (goal, state) => {
     const { net, world: data } = state;

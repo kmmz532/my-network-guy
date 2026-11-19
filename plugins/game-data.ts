@@ -247,6 +247,8 @@ const goalRefs = (goal: Goal): string[] => {
     case 'http':
     case 'min_speed':
       return [goal.from, goal.to];
+    case 'public_http':
+      return [goal.to];
     case 'load_balanced':
       return [goal.from, goal.lb];
     case 'ping_all':

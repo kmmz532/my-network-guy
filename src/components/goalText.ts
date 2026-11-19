@@ -25,6 +25,8 @@ export const goalText = (goal: Goal, nameOf: (id: string) => string = (id) => id
           ? { node: nameOf(goal.node), min: goal.min }
         : goal.type === 'stp_root'
           ? { node: nameOf(goal.node) }
+        : goal.type === 'public_http'
+          ? { to: nameOf(goal.to), port: goal.port }
         : goal.type === 'load_balanced'
           ? { from: nameOf(goal.from), lb: nameOf(goal.lb), minHealthy: goal.minHealthy }
         : goal.type === 'survive_device_failure'
