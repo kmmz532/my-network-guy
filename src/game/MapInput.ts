@@ -290,7 +290,8 @@ export class MapInput {
     const store = useGameStore.getState();
     const node = this.host.hit.nodeNear(p, nodes);
     if (node) {
-      store.removeNode(node.uid);
+      // 撤去の道具で機器を片付けられたら、間違えたときの戻し方を教える
+      if (store.removeNode(node.uid) === null) store.toolEvent('removed');
       return;
     }
     const tile = this.host.hit.tileOf(p);
@@ -379,6 +380,8 @@ export class MapInput {
       if (!isDragMove(press.x0, press.y0, e.clientX, e.clientY)) return true;
       press.dragging = true;
       this.host.tip.reset();
+      // 選択の道具で機器が動き出したら、つなぐなら配線の道具だと教える（指は長押しで持ち上げるため、マウスだけ）
+      if (press.target.kind === 'node') useGameStore.getState().toolEvent('dragMove');
     }
     press.at = this.host.hit.toMapAt(press.last);
     if (press.dragging && press.target.kind === 'end') {
@@ -612,8 +615,9 @@ export class MapInput {
     if (picked) {
       store.connect(from, picked.uid, store.wireCable, picked.port === null ? {} : { b: picked.port });
     } else if (target && target.uid === from) {
-      // 押して離した場合は、起点のポートの一覧を出す
+      // 押して離した場合は、起点のポートの一覧を出す。設定を開くつもりなら選択の道具だと教える
       this.openMenuAt(target);
+      store.toolEvent('portList');
     }
     this.host.redraw();
   };

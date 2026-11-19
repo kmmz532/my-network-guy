@@ -102,7 +102,11 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
   const missingPc = (state: GameState): number =>
     missingPcCount(state.staff, { pcDesks: pcDesksOf(state.office, isPcDevice), defs: gameEnv.furniture ?? {}, balance: gameEnv.balance, staff: state.staff });
   return {
-    undo: () => stepHistory('undo'),
+    undo: () => {
+      stepHistory('undo');
+      // 元に戻す一言は、押したら下げる
+      if (get().toolHint === 'undo') set({ toolHint: null });
+    },
     redo: () => stepHistory('redo'),
     openLesson: (id) => {
       const s = get();

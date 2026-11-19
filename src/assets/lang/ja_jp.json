@@ -2113,5 +2113,8 @@
   "seq.vpn.p2.3": "IKE フェーズ2: 確認（ESP の SA を作る）",
   "seq.vrrp.advertisement": "VRRP Advertisement（グループ {vrid}、優先度 {priority}）",
   "seq.vrrp.no_master": "VRRP Advertisement を出すマスターがいない（グループ {vrid}）",
-  "seq.vrrp.takeover": "マスターを止めた場合: VRRP Advertisement（グループ {vrid}、優先度 {priority}）"
+  "seq.vrrp.takeover": "マスターを止めた場合: VRRP Advertisement（グループ {vrid}、優先度 {priority}）",
+  "toolHint.select": "設定は『選択』で開こう",
+  "toolHint.undo": "間違えたら『元に戻す』",
+  "toolHint.wire": "つなぐときは『配線』を選ぼう"
 }

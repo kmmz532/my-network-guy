@@ -144,6 +144,35 @@ const seedCompanies = async (page, n) => {
   await page.waitForTimeout(1500);
 };
 
+// 道具の取り違えの一言の撮影用に、新しく始めた直後の案内を終えて、自社オフィスに機器を1台置き、その画面上の位置を返す（右クリックのメニューが出る位置を走査して探す）
+const toolHintSetup = async (page) => {
+  await scenes.career(page);
+  await page.evaluate(() => {
+    const g = window.__game;
+    g.getState().markGuideDone('start');
+    g.getState().buy('home_router');
+    let placed = false;
+    for (let y = 1; y < 12 && !placed; y++) for (let x = 1; x < 12 && !placed; x++) placed = g.getState().place('home_router', x, y) === null;
+    if (!placed) throw new Error('機器を置けなかった');
+  });
+  await page.waitForTimeout(800);
+  const box = await page.locator('canvas').first().boundingBox();
+  const menu = page.locator('[data-context-menu]');
+  for (let j = 0; j < 40; j++) {
+    for (let i = 0; i < 60; i++) {
+      const x = box.x + 20 + i * ((box.width - 40) / 60);
+      const y = box.y + 80 + j * ((box.height - 160) / 40);
+      await page.mouse.click(x, y, { button: 'right' });
+      if ((await menu.count()) > 0) {
+        await page.keyboard.press('Escape');
+        await page.mouse.click(box.x + 5, box.y + box.height - 5);
+        return { x, y };
+      }
+    }
+  }
+  throw new Error('機器の位置が見つからない');
+};
+
 const scenes = {
   // タイトル画面
   title: async () => {},
@@ -485,6 +514,29 @@ const scenes = {
   startguide2: async (page) => {
     await scenes.career(page);
     await page.getByRole('button', { name: '依頼' }).first().click();
+    await page.waitForTimeout(800);
+  },
+  // 配線の道具のまま機器を押して口の一覧が出たとき（選択の道具のボタンが光り、「設定は『選択』で開こう」が出る）
+  toolhint1: async (page) => {
+    const pos = await toolHintSetup(page);
+    await page.evaluate(() => window.__game.getState().setTool('wire'));
+    await page.mouse.click(pos.x, pos.y);
+    await page.waitForTimeout(800);
+  },
+  // 選択の道具で機器をドラッグして動かしたとき（配線の道具のボタンが光り、「つなぐときは『配線』を選ぼう」が出る）
+  toolhint2: async (page) => {
+    const pos = await toolHintSetup(page);
+    await page.mouse.move(pos.x, pos.y);
+    await page.mouse.down();
+    await page.mouse.move(pos.x + 40, pos.y + 10, { steps: 4 });
+    await page.mouse.up();
+    await page.waitForTimeout(800);
+  },
+  // 撤去の道具で機器を片付けたとき（元に戻すのボタンが光り、「間違えたら『元に戻す』」が出る）
+  toolhint3: async (page) => {
+    const pos = await toolHintSetup(page);
+    await page.evaluate(() => window.__game.getState().setTool('remove'));
+    await page.mouse.click(pos.x, pos.y);
     await page.waitForTimeout(800);
   },
   // 新しく始めた直後の案内を閉じた状態（依頼のボタンの上に、案内を戻す札が出る）

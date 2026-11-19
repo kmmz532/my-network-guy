@@ -1,5 +1,6 @@
 // 端末ごとの設定（UIの大きさ・案内・名前とIPの表示・初期の速さ）。セーブデータとは別に localStorage へ保存する。
 // 読めないときや壊れているときは既定の値で動く（例外を外へ出さない）。
+import { TOOL_HINT_KINDS, type ToolHintKind } from '../sim/toolHint';
 
 export const UI_SCALES = [0.8, 1, 1.25, 1.5] as const;
 export type UiScale = (typeof UI_SCALES)[number];
@@ -50,6 +51,9 @@ export interface Settings {
   dayTint: boolean;
   // 新しく始めた直後の案内（start）を終えたか。会社ごとのセーブとは別に、この端末で覚える（2社目以降では出さない）
   startGuideDone: boolean;
+  // 道具の取り違えの一言（toolHint）を出した種類と、この端末で新しく始めた会社の数。初めての会社の間だけ出すため、端末で覚える
+  toolHintsShown: ToolHintKind[];
+  companiesStarted: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -69,6 +73,8 @@ export const DEFAULT_SETTINGS: Settings = {
   dayTint: true,
   nightFast: true,
   startGuideDone: false,
+  toolHintsShown: [],
+  companiesStarted: 0,
 };
 
 export const SETTINGS_KEY = 'network-ya.settings.v1';
@@ -109,6 +115,8 @@ export function parseSettings(raw: string | null): Settings {
     dayTint: typeof d.dayTint === 'boolean' ? d.dayTint : DEFAULT_SETTINGS.dayTint,
     nightFast: typeof d.nightFast === 'boolean' ? d.nightFast : DEFAULT_SETTINGS.nightFast,
     startGuideDone: typeof d.startGuideDone === 'boolean' ? d.startGuideDone : DEFAULT_SETTINGS.startGuideDone,
+    toolHintsShown: Array.isArray(d.toolHintsShown) ? d.toolHintsShown.filter((k): k is ToolHintKind => (TOOL_HINT_KINDS as readonly unknown[]).includes(k)) : [],
+    companiesStarted: typeof d.companiesStarted === 'number' && Number.isInteger(d.companiesStarted) && d.companiesStarted >= 0 ? d.companiesStarted : DEFAULT_SETTINGS.companiesStarted,
   };
 }
 

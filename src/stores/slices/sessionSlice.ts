@@ -1,6 +1,7 @@
 // セーブの読み込み・書き出しと、新しい会社・サンドボックスの開始。
 import { balance } from 'virtual:game-data';
 import { initialClock } from '../../sim/clock';
+import { loadSettings, saveSettings } from '../../settings/settings';
 import type { Offer } from '../../contracts/template';
 import { type Company, companyOf } from '../../company/company';
 import { resizeSandboxOffice, sandboxClock, sandboxOffice } from '../../sim/sandbox';
@@ -99,6 +100,9 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
       if (trimmed !== '') set({ name: trimmed });
     },
     newGame: (name) => {
+      // 新しく始めた会社の数を端末に数える（道具の取り違えの一言は、初めての会社の間だけ出す）
+      saveSettings({ companiesStarted: loadSettings().companiesStarted + 1 });
+      set({ toolHint: null });
       useUiStore.setState({ wireStart: null, portMenu: null });
       set((s) => {
         const base: Partial<GameState> = {

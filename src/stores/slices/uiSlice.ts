@@ -2,7 +2,9 @@
 import type { TerminalLine } from '../../network/terminal';
 import type { TerminalSession } from '../../network/command/types';
 import { appendLog, pushCommand } from '../../network/terminalLog';
-import { saveSettings } from '../../settings/settings';
+import { loadSettings, saveSettings } from '../../settings/settings';
+import { MODE_TRAITS } from '../../company/company';
+import { TOOL_HINTS, toolHintOf, type ToolEvent } from '../../sim/toolHint';
 import { gameEnv } from '../../sim/env';
 import { learnFromPing } from '../../network/learn';
 
@@ -21,6 +23,11 @@ export interface UiSlice {
   // 期限の過ぎた通知を消し、待っている通知を出す
   tickNotices: () => void;
   setTool: (tool: Tool) => void;
+  // 道具と合わない操作の出来事を受け、出せるなら一言を出す（種類ごとに1回。出した種類は端末に覚える）
+  toolEvent: (event: ToolEvent) => void;
+  closeToolHint: () => void;
+  // 案件などの案内の手順を出している間か（Guide が置く。保存しない）
+  setGuideShowing: (showing: boolean) => void;
   // 画面の対象を、自社オフィス（null）か進行中の案件に切り替える（N111）。配線の途中と置く予定は取り消す
   setFocus: (id: string | null) => void;
   // 配線の道具で機器を押したとき、ポートの一覧を開く（起点を選ぶか、相手を選ぶかは起点の有無で決まる）
@@ -84,8 +91,25 @@ export const createUiSlice: StateCreator<GameState, [], [], UiSlice> = (set, get
       const s = get();
       if (s.tool === tool && !s.placing) return;
       set({ tool, placing: null });
+      // 合う道具を選んだら、道具の一言を下げる
+      if (s.toolHint !== null && TOOL_HINTS[s.toolHint].target === `tool.${tool}`) set({ toolHint: null });
       useUiStore.setState({ wireStart: null, portMenu: null });
     },
+    toolEvent: (event) => {
+      const s = get();
+      const settings = loadSettings();
+      const kind = toolHintOf(event, s.tool, settings.toolHintsShown, {
+        offers: MODE_TRAITS[s.mode].offers,
+        companiesStarted: settings.companiesStarted,
+        guideOn: settings.guide,
+        guideShowing: s.guideShowing,
+      });
+      if (kind === null) return;
+      saveSettings({ toolHintsShown: [...settings.toolHintsShown, kind] });
+      set({ toolHint: kind });
+    },
+    closeToolHint: () => set((s) => (s.toolHint === null ? {} : { toolHint: null })),
+    setGuideShowing: (showing) => set((s) => (s.guideShowing === showing ? {} : { guideShowing: showing })),
     openPortMenu: (uid, x, y, blocked) => {
       if (blocked) {
         useUiStore.setState({ portMenu: { uid, x, y, role: 'drag', blocked, hot: null } });

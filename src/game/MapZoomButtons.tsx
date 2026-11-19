@@ -33,7 +33,7 @@ function PhoneHistoryButtons() {
           {tDyn(`ui.error.${historyError}`)}
         </Text>
       )}
-      <IconButton label={t('keys.undo')} disabled={!canUndo} onClick={() => undo()}>
+      <IconButton label={t('keys.undo')} guide="undo" disabled={!canUndo} onClick={() => undo()}>
         <Icon name="icon/undo" />
       </IconButton>
       <IconButton label={t('keys.redo')} disabled={!canRedo} layout={{ marginBottom: 12 }} onClick={() => redo()}>

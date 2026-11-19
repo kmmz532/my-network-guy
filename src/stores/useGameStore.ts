@@ -6,6 +6,7 @@ import { loadSettings } from '../settings/settings';
 import { playDeliver } from '../audio/sfx';
 import { create } from 'zustand';
 import { balance } from 'virtual:game-data';
+import type { ToolHintKind } from '../sim/toolHint';
 import { initialClock, type ClockState } from '../sim/clock';
 import type { Offer } from '../contracts/template';
 import type { GameMap, JobId, Staff } from '../data/schema';
@@ -127,6 +128,9 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   notices: NoticeItem[];
   // 設計の取り消しの履歴（案件ごと・自社オフィスごと）。保存しない
   histories: Record<string, History<DesignEntry>>;
+  // 道具と合わない操作のあとに出している一言の種類（保存しない）と、案内の手順を出している間か（Guide が置く）
+  toolHint: ToolHintKind | null;
+  guideShowing: boolean;
   // 資金か在庫が足りず、元に戻せなかった・やり直せなかったとき、その種類（保存しない）
   historyError: 'undo' | 'redo' | null;
   // 直近に失敗した操作の理由（保存しない）
@@ -236,6 +240,8 @@ export const useGameStore = create<GameState>((set, get, api) => {
     notices: [],
     histories: {},
     historyError: null,
+    toolHint: null,
+    guideShowing: false,
     lastError: null,
     placing: null,
     wireCable: 'utp_cat5e',

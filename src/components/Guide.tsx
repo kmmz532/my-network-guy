@@ -15,6 +15,7 @@ import { staffSpriteName } from '../data/schema';
 import { Icon } from './Icon';
 import { Bubble } from './ui/Bubble';
 import { Button } from './ui/Button';
+import { TOOL_HINTS } from '../sim/toolHint';
 import { termOfStep } from '../network/glossaryOf';
 import { Glow } from './ui/Glow';
 
@@ -72,6 +73,10 @@ export function Guide() {
   // 吹き出しに出す用語（手順・設定の欄・失敗の理由で初めて出るもの）
   const termNotice = useGameStore((s) => s.termNotice);
   const introduceTerm = useGameStore((s) => s.introduceTerm);
+  // 道具と合わない操作のあとの一言（案内の手順を出していないときだけ出す）
+  const toolHint = useGameStore((s) => s.toolHint);
+  const closeToolHint = useGameStore((s) => s.closeToolHint);
+  const setGuideShowing = useGameStore((s) => s.setGuideShowing);
   const closeTermNotice = useGameStore((s) => s.closeTermNotice);
   // デバッグの「この手順から始める」（N54）: 指定の手順から出す。受け取ったら一度だけ使う
   const debugGuide = useGameStore((s) => s.debugGuide);
@@ -179,6 +184,13 @@ export function Guide() {
   // しまっている間は、吹き出し・光る枠・機器の強調を出さない（手順の進みは続く）
   const step = current && !hidden ? current.step : null;
   const shelvedKey = current && hidden ? current.step.key : null;
+  const hint = step === null && toolHint !== null ? TOOL_HINTS[toolHint] : null;
+  // 案内の手順を出している間は、道具の一言を出さず、出ていた一言も下げる
+  useEffect(() => {
+    setGuideShowing(step !== null);
+    if (step !== null) closeToolHint();
+  }, [step !== null, setGuideShowing, closeToolHint]);
+  useEffect(() => () => setGuideShowing(false), [setGuideShowing]);
   useEffect(() => {
     setGuideShelved(id !== null && shelvedKey !== null ? { id, key: shelvedKey } : null);
   }, [id, shelvedKey, setGuideShelved]);
@@ -199,7 +211,7 @@ export function Guide() {
   useEffect(() => () => setGuideTarget(null), [setGuideTarget]);
 
   // 対象がツールバーのボタン（data-guide の名前）なら、その位置を測って枠を重ねる。画面の大きさが変わったら測り直す
-  const glowName = step !== null && deviceTarget === null ? step.target : null;
+  const glowName = step !== null ? (deviceTarget === null ? step.target : null) : hint !== null ? hint.target : null;
   // 対象のボタンの位置を測って枠に入れる（画面の px のまま。同じ位置なら状態を変えない）
   const measureGlow = useCallback(() => {
     if (glowName === null) return;
@@ -253,9 +265,10 @@ export function Guide() {
     };
   }, [glowName, measureGlow]);
 
-  if (step === null && termNotice === null) return null;
+  if (step === null && termNotice === null && hint === null) return null;
   const skip = () => {
     closeTermNotice();
+    closeToolHint();
     if (step === null || id === null) return;
     setGuideHidden(id, true);
   };
@@ -310,6 +323,7 @@ export function Guide() {
           )}
           <span style={phone ? { flex: 1, minWidth: 0 } : undefined}>
             {step !== null && tDyn(step.key)}
+            {hint !== null && tDyn(hint.key)}
             {/* 案内の文の後に、用語の短い説明を1つだけ出す */}
             {termNotice !== null && <div style={{ marginTop: 2 }}>{termLine(termNotice)}</div>}
           </span>
