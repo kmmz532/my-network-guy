@@ -27,6 +27,12 @@ type Tab = 'rear' | 'config' | 'service' | 'terminal';
 // 機器ごとの、最後に開いた欄。窓を開き直したり機器を押し直したりしても、その欄から開く（初めての機器は背面）
 const lastTab = new Map<string, Tab>();
 
+// 要求された欄を、その機器が持つ欄から選ぶ。持っていなければ（設定のない機器に設定を要求した、別の機器の uid の記憶が残っていた）最初の欄（背面）にする
+export function pickTab(requested: Tab | undefined, tabs: readonly Tab[]): Tab {
+  if (requested !== undefined && tabs.includes(requested)) return requested;
+  return tabs[0];
+}
+
 // uid の機器を探す。表示中の案件（設計中、または納品の結果）を優先し、なければ自社オフィス。見つからなければ null
 export function findDevice(state: GameState, uid: string) {
   const active = focusedProject(state);
@@ -96,7 +102,13 @@ function DeviceView({
   detailOpen: boolean;
   onToggleDetail: () => void;
 }) {
-  const [tab, setTabState] = useState<Tab>(() => lastTab.get(node.uid) ?? 'rear');
+  const category = deviceCategory(node.device);
+  const isServer = category === CATEGORY.server;
+  // 設定できるもの（IPアドレスなど）がない機器（L2 スイッチ）は、設定タブを出さない
+  const hasConfig = !isL2Category(category);
+  const tabIds: Tab[] = ['rear', ...(hasConfig ? (['config'] as const) : []), ...(isServer ? (['service'] as const) : []), 'terminal'];
+  const [tab, setTabState] = useState<Tab>(() => pickTab(lastTab.get(node.uid), tabIds));
+  const current = pickTab(tab, tabIds);
   const setTab = (next: Tab) => {
     lastTab.set(node.uid, next);
     setTabState(next);
@@ -106,25 +118,20 @@ function DeviceView({
   const tabRequest = useUiStore((s) => s.deviceTabRequest);
   useEffect(() => {
     if (tabRequest?.uid !== node.uid) return;
-    setTab(tabRequest.tab);
+    setTab(pickTab(tabRequest.tab, tabIds));
     useUiStore.getState().setDeviceTabRequest(null);
   }, [tabRequest, node.uid]);
-
-  const category = deviceCategory(node.device);
-  const isServer = category === CATEGORY.server;
-  // 設定できるもの（IPアドレスなど）がない機器（L2 スイッチ）は、設定タブを出さない
-  const hasConfig = !isL2Category(category);
   const issue = netState.addressing.issues[node.uid];
   // 設定の欄を初めて開いたとき、その機器の設定の部品に対応する用語を、社員の吹き出しで1つ出す
   const introduceTerm = useGameStore((s) => s.introduceTerm);
   // 教材を開いている間は、その教材の論点の用語に限る
   const lessonId = useGameStore((s) => s.sandboxLesson?.id ?? null);
   useEffect(() => {
-    if (tab !== 'config' || !hasConfig) return;
+    if (current !== 'config' || !hasConfig) return;
     const allowed = lessonId === null ? undefined : termsOfLesson(lessonId);
     const term = termOfSettings((capability) => can(node.device, capability), useGameStore.getState().termsShown, allowed);
     if (term !== null) introduceTerm(term);
-  }, [tab, hasConfig, node.device, introduceTerm, lessonId]);
+  }, [current, hasConfig, node.device, introduceTerm, lessonId]);
 
   return (
     <div>
@@ -137,7 +144,7 @@ function DeviceView({
           ...(isServer ? [{ id: 'service' as const, label: t('ui.panel.tab.service') }] : []),
           { id: 'terminal', label: t('ui.panel.tab.terminal') },
         ]}
-        selected={tab}
+        selected={current}
         onSelect={(id) => {
           setTab(id);
           setError(null);
@@ -146,12 +153,12 @@ function DeviceView({
       />
       <TabPanel tone="window">
         {error && <Text tone="warn" layout={{ marginBottom: 6 }}>{tDyn(`ui.error.${error}`)}</Text>}
-        {tab === 'rear' && <DeviceRear node={node} nodes={nodes} links={links} readOnly={readOnly} onError={setError} />}
-        {tab === 'config' && hasConfig && (
+        {current === 'rear' && <DeviceRear node={node} nodes={nodes} links={links} readOnly={readOnly} onError={setError} />}
+        {current === 'config' && hasConfig && (
           <DeviceSettings node={node} readOnly={readOnly} detailOpen={detailOpen} onToggleDetail={onToggleDetail} onError={setError} />
         )}
-        {tab === 'service' && isServer && <ServiceTab node={node} nodes={nodes} state={netState} readOnly={readOnly} onError={setError} />}
-        {tab === 'terminal' && <TerminalTab node={node} nodes={nodes} links={links} state={netState} readOnly={readOnly} />}
+        {current === 'service' && isServer && <ServiceTab node={node} nodes={nodes} state={netState} readOnly={readOnly} onError={setError} />}
+        {current === 'terminal' && <TerminalTab node={node} nodes={nodes} links={links} state={netState} readOnly={readOnly} />}
       </TabPanel>
     </div>
   );
