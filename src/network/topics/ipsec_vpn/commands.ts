@@ -92,7 +92,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'ipsec_vpn.setPeer',
-    modes: ['config', 'crypto-map'],
+    modes: ['crypto-map'],
     tokens: [{ word: 'set' }, { word: 'peer' }, { arg: 'ip', name: 'peer' }],
     help: 'ui.cmd.ipsec_vpn.setPeer',
     writes: true,
@@ -101,7 +101,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'ipsec_vpn.setTransformSet',
-    modes: ['config', 'crypto-map'],
+    modes: ['crypto-map'],
     tokens: [{ word: 'set' }, { word: 'transform-set' }, { arg: 'word', name: 'cipher' }],
     help: 'ui.cmd.ipsec_vpn.setTransformSet',
     writes: true,
@@ -114,7 +114,7 @@ export const commands: readonly CommandSpec[] = [
   },
   {
     id: 'ipsec_vpn.matchAddress',
-    modes: ['config', 'crypto-map'],
+    modes: ['crypto-map'],
     tokens: [
       { word: 'match' },
       { word: 'address' },

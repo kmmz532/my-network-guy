@@ -1,0 +1,30 @@
+# 場面: 教材 ipsec_vpn_two_sites の初期の構成（本社と支社の VPN ルーター）
+# 節: IPsec VPN の命令（set peer・set transform-set・match address は crypto map のモードだけで受ける）
+@HQ_VPN
+configure terminal
+set peer 203.0.113.2
+crypto map VPN 10 ipsec-isakmp
+set peer 203.0.113.2
+set transform-set des
+set transform-set 3des
+match address 10.1.0.0 255.255.255.0 10.2.0.0 255.255.255.0
+exit
+crypto isakmp key tunnel-key-42 address 203.0.113.2
+no crypto isakmp key address 203.0.113.2
+crypto isakmp key tunnel-key-42 address 203.0.113.2
+end
+show crypto session
+configure terminal
+no crypto map VPN 10
+end
+show crypto session
+@BR_VPN
+configure terminal
+crypto map VPN 10 ipsec-isakmp
+set peer 198.51.100.2
+set transform-set aes
+match address 10.2.0.0 255.255.255.0 10.1.0.0 255.255.255.0
+exit
+crypto isakmp key tunnel-key-42 address 198.51.100.2
+end
+show crypto session

@@ -1,0 +1,478 @@
+{
+  "log": [
+    {
+      "node": "HQ_VPN"
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "set peer 203.0.113.2",
+      "lines": [
+        "err:  ^",
+        "err:ui.terminal.invalidAt"
+      ]
+    },
+    {
+      "line": "crypto map VPN 10 ipsec-isakmp",
+      "result": "done",
+      "mode": "crypto-map",
+      "process": 10
+    },
+    {
+      "line": "set peer 203.0.113.2",
+      "result": "done"
+    },
+    {
+      "line": "set transform-set des",
+      "result": "error",
+      "text": "ui.terminal.vpnCipher"
+    },
+    {
+      "line": "set transform-set 3des",
+      "result": "done"
+    },
+    {
+      "line": "match address 10.1.0.0 255.255.255.0 10.2.0.0 255.255.255.0",
+      "result": "done"
+    },
+    {
+      "line": "exit",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "crypto isakmp key tunnel-key-42 address 203.0.113.2",
+      "result": "done"
+    },
+    {
+      "line": "no crypto isakmp key address 203.0.113.2",
+      "result": "done"
+    },
+    {
+      "line": "crypto isakmp key tunnel-key-42 address 203.0.113.2",
+      "result": "done"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
+      "line": "show crypto session",
+      "lines": [
+        "out:ui.terminal.vpnDown {\"peer\":\"203.0.113.2\",\"reason\":\"error.vpn.peer_unreachable\"}"
+      ]
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "no crypto map VPN 10",
+      "result": "done"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
+      "line": "show crypto session",
+      "lines": [
+        "out:ui.terminal.vpnNone"
+      ]
+    },
+    {
+      "node": "BR_VPN"
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "crypto map VPN 10 ipsec-isakmp",
+      "result": "done",
+      "mode": "crypto-map",
+      "process": 10
+    },
+    {
+      "line": "set peer 198.51.100.2",
+      "result": "done"
+    },
+    {
+      "line": "set transform-set aes",
+      "result": "done"
+    },
+    {
+      "line": "match address 10.2.0.0 255.255.255.0 10.1.0.0 255.255.255.0",
+      "result": "done"
+    },
+    {
+      "line": "exit",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "crypto isakmp key tunnel-key-42 address 198.51.100.2",
+      "result": "done"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
+      "line": "show crypto session",
+      "lines": [
+        "out:ui.terminal.vpnDown {\"peer\":\"198.51.100.2\",\"reason\":\"error.vpn.peer_unreachable\"}"
+      ]
+    }
+  ],
+  "network": {
+    "nodes": [
+      {
+        "uid": "BR_LINE",
+        "device": "uplink",
+        "macSerial": 5,
+        "ports": [],
+        "name": "ISP-B",
+        "x": 9,
+        "y": 6,
+        "locked": true,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "components": {
+          "isp": {
+            "name": "ISP-B",
+            "network": "203.0.113.0",
+            "prefix": 24,
+            "ispIp": "203.0.113.1"
+          }
+        },
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "BR_PC",
+        "device": "pc_basic",
+        "macSerial": 8,
+        "ports": [],
+        "name": "BR-PC",
+        "x": 16,
+        "y": 6,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "10.2.0.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.2.0.1",
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "BR_SW",
+        "device": "l2_switch_8p",
+        "macSerial": 7,
+        "ports": [],
+        "name": "BR-SW",
+        "x": 14,
+        "y": 6,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "BR_VPN",
+        "device": "vpn_router",
+        "macSerial": 6,
+        "ports": [],
+        "name": "BR-VPN",
+        "x": 12,
+        "y": 6,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [
+          {
+            "id": "g0/0",
+            "kind": "port",
+            "port": 0,
+            "ip": "203.0.113.2",
+            "prefix": 24
+          },
+          {
+            "id": "g0/1",
+            "kind": "port",
+            "port": 1,
+            "ip": "10.2.0.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": "203.0.113.1",
+        "routes": [],
+        "services": [],
+        "components": {
+          "vpn": [
+            {
+              "peer": "198.51.100.2",
+              "psk": "tunnel-key-42",
+              "cipher": "aes",
+              "local": "10.2.0.0/24",
+              "remote": "10.1.0.0/24",
+              "map": "VPN",
+              "seq": 10
+            }
+          ]
+        }
+      },
+      {
+        "uid": "HQ_LINE",
+        "device": "uplink",
+        "macSerial": 4,
+        "ports": [],
+        "name": "ISP-A",
+        "x": 9,
+        "y": 2,
+        "locked": true,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "components": {
+          "isp": {
+            "name": "ISP-A",
+            "network": "198.51.100.0",
+            "prefix": 24,
+            "ispIp": "198.51.100.1"
+          }
+        },
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "HQ_PC",
+        "device": "pc_basic",
+        "macSerial": 1,
+        "ports": [],
+        "name": "HQ-PC",
+        "x": 1,
+        "y": 2,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "10.1.0.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.1.0.1",
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "HQ_SW",
+        "device": "l2_switch_8p",
+        "macSerial": 2,
+        "ports": [],
+        "name": "HQ-SW",
+        "x": 3,
+        "y": 2,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "HQ_VPN",
+        "device": "vpn_router",
+        "macSerial": 3,
+        "ports": [],
+        "name": "HQ-VPN",
+        "x": 6,
+        "y": 2,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [
+          {
+            "id": "g0/0",
+            "kind": "port",
+            "port": 0,
+            "ip": "198.51.100.2",
+            "prefix": 24
+          },
+          {
+            "id": "g0/1",
+            "kind": "port",
+            "port": 1,
+            "ip": "10.1.0.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": "198.51.100.1",
+        "routes": [],
+        "services": [],
+        "components": {
+          "vpn": []
+        }
+      }
+    ],
+    "links": [
+      {
+        "uid": "lesson_link_1",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "HQ_PC",
+          "port": 0
+        },
+        "b": {
+          "node": "HQ_SW",
+          "port": 1
+        },
+        "path": [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            2
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_2",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "HQ_SW",
+          "port": 0
+        },
+        "b": {
+          "node": "HQ_VPN",
+          "port": 1
+        },
+        "path": [
+          [
+            3,
+            2
+          ],
+          [
+            6,
+            2
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_3",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "HQ_VPN",
+          "port": 0
+        },
+        "b": {
+          "node": "HQ_LINE",
+          "port": 0
+        },
+        "path": [
+          [
+            6,
+            2
+          ],
+          [
+            9,
+            2
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_4",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "BR_PC",
+          "port": 0
+        },
+        "b": {
+          "node": "BR_SW",
+          "port": 1
+        },
+        "path": [
+          [
+            16,
+            6
+          ],
+          [
+            14,
+            6
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_5",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "BR_SW",
+          "port": 0
+        },
+        "b": {
+          "node": "BR_VPN",
+          "port": 1
+        },
+        "path": [
+          [
+            14,
+            6
+          ],
+          [
+            12,
+            6
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_6",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "BR_VPN",
+          "port": 0
+        },
+        "b": {
+          "node": "BR_LINE",
+          "port": 0
+        },
+        "path": [
+          [
+            12,
+            6
+          ],
+          [
+            9,
+            6
+          ]
+        ],
+        "paid": 0
+      }
+    ]
+  }
+}

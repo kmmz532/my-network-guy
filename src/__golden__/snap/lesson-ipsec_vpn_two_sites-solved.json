@@ -1,0 +1,256 @@
+{
+  "goals": [
+    true,
+    true
+  ],
+  "pings": [
+    {
+      "from": "BR_PC",
+      "to": "HQ_PC",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "BR_PC",
+        "BR_VPN",
+        "HQ_VPN",
+        "HQ_PC"
+      ]
+    },
+    {
+      "from": "HQ_PC",
+      "to": "BR_PC",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "HQ_PC",
+        "HQ_VPN",
+        "BR_VPN",
+        "BR_PC"
+      ]
+    }
+  ],
+  "https": [],
+  "shows": [
+    {
+      "node": "BR_SW",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "node": "BR_SW",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "err:ui.terminal.stpOff"
+      ]
+    },
+    {
+      "node": "BR_SW",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "BR_SW",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:08:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:08:00\"}"
+      ]
+    },
+    {
+      "node": "BR_VPN",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"203.0.113.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.2.0.0\",\"prefix\":24,\"port\":1}"
+      ]
+    },
+    {
+      "node": "BR_VPN",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    },
+    {
+      "node": "HQ_SW",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "node": "HQ_SW",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"HQ_SW\",\"cost\":0}"
+      ]
+    },
+    {
+      "node": "HQ_SW",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "HQ_SW",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:01:00\"}"
+      ]
+    },
+    {
+      "node": "HQ_VPN",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"198.51.100.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.1.0.0\",\"prefix\":24,\"port\":1}"
+      ]
+    },
+    {
+      "node": "HQ_VPN",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "lesson_link_1",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_2",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_3",
+      "color": 10132122
+    },
+    {
+      "link": "lesson_link_4",
+      "color": 15909966
+    },
+    {
+      "link": "lesson_link_5",
+      "color": 15909966
+    },
+    {
+      "link": "lesson_link_6",
+      "color": 10132122
+    }
+  ],
+  "ports": [
+    {
+      "node": "BR_LINE",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "BR_PC",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "BR_SW",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "BR_VPN",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "HQ_LINE",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "HQ_PC",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "HQ_SW",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "HQ_VPN",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [
+    [
+      "BR_VPN",
+      {
+        "reason": "segment.unset",
+        "ip": "203.0.113.2"
+      }
+    ],
+    [
+      "HQ_VPN",
+      {
+        "reason": "segment.unset",
+        "ip": "198.51.100.2"
+      }
+    ]
+  ],
+  "warnings": []
+}

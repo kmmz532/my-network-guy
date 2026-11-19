@@ -28,18 +28,3 @@ exit
 end
 show vrrp
 show load-balancer
-# 節: IPsec VPN の命令（crypto map のモードと、鍵・相手・暗号・守るネットワークの設定）
-@R1
-configure terminal
-crypto isakmp key secret123 address 198.51.100.2
-crypto map VPN 10 ipsec-isakmp
-set peer 198.51.100.2
-set transform-set des
-set transform-set 3des
-match address 10.1.0.0 255.255.255.0 10.2.0.0 255.255.255.0
-exit
-crypto isakmp key secret123 address 198.51.100.2
-no crypto isakmp key address 198.51.100.2
-no crypto map VPN 10
-show crypto session
-end

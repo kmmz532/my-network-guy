@@ -46,6 +46,14 @@ describe('IPsec VPN の命令', () => {
     expect(match.change).toEqual({ kind: 'vpn', tunnels: [entry({ local: '10.1.0.0/24', remote: '10.2.0.0/24' }), entry({ map: 'OTHER', seq: 20 })] });
   });
 
+  it('set peer・set transform-set・match address は config のモードでは受けず、crypto map のモードでだけ受ける', () => {
+    const node = router([entry()]);
+    for (const line of ['set peer 198.51.100.2', 'set transform-set 3des', 'match address 10.1.0.0 255.255.255.0 10.2.0.0 255.255.255.0']) {
+      expect(runLine(line, ctxOf(node, CONFIG), tr).change, line).toBeNull();
+    }
+    expect(runLine('set peer 198.51.100.2', ctxOf(node, inMap('VPN', 10)), tr).change).not.toBeNull();
+  });
+
   it('transform-set は aes か 3des だけを受け付け、それ以外は誤りにする', () => {
     const r = runLine('set transform-set des', ctxOf(router([entry()]), inMap('VPN', 10)), tr);
     expect(r.change).toBeNull();

@@ -152,6 +152,23 @@ describe('教材（学習モード）', () => {
     expect(dns.slice(0, 2).map((s) => [s.from, s.to])).toEqual([['PC1', 'CACHE'], ['CACHE', 'AUTH']]);
   });
 
+  it('拠点間の IPsec VPN の教材: 置いた直後は2条件とも満たさず、両方のトンネルを設定すると満たす', () => {
+    const l = lesson('ipsec_vpn_two_sites');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false, false]);
+    expect(lessonGoalResults(l.goals, solutions[l.id](lessonNodes(l)), links, engine)).toEqual([true, true]);
+  });
+
+  it('拠点間の IPsec VPN の発展の問い: 支社の鍵を変えると、HQ-PC から BR-PC への ping は鍵の不一致で止まる', () => {
+    const l = lessons.find((x) => x.id === 'ipsec_vpn_two_sites');
+    if (!l?.followUps || !l.followUpSetup) throw new Error('発展の問いがない');
+    const q = l.followUps[0] as Extract<Question, { kind: 'diagnose' }>;
+    const base = drillConfig(l);
+    const set = { id: l.id, questions: l.followUps, setup: l.followUpSetup };
+    const s = drillState(applySetup(set, 'f1', { nodes: solutions[l.id](base.nodes), links: base.links }, env), engine);
+    expect(judgeDiagnose(s, q, { node: 'HQ_VPN', reason: 'vpn.psk_mismatch' })).toBe(true);
+  });
+
   it('DNS の教材: 初めは外へ出られず、NAT を設定すると通る。ネームサーバーを向けると社内と外の名前が引ける', () => {
     const l = lesson('dns_intranet_names');
     const links = lessonLinks(l);
