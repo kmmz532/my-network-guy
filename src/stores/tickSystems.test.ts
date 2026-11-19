@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
 import type { Balance } from '../data/schema';
 import { minutesPerMonth } from '../sim/clock';
-import { payPauseSystem, runTick } from './tickSystems';
+import { nightSpeedSystem, payPauseSystem, runTick } from './tickSystems';
 import { useGameStore } from './useGameStore';
 
 const balance = balanceJson as unknown as Balance;
@@ -44,5 +44,16 @@ describe('毎ティックの系', () => {
   it('納品の結果を開いている間は何も変えない', () => {
     useGameStore.setState({ showcase: { nodes: [], links: [], plans: {}, contract: { map: 'hq' } } as never });
     expect(runTick(st(), { now: 1, payPause: false, nightFast: false })).toEqual({});
+  });
+});
+
+describe('夜の自動の早送り', () => {
+  it('夜勤の社員がいても、序盤でも、夜は balance の夜の速さで進める', () => {
+    const night = { ...st().clock, minute: 23 * 60 };
+    const staff = st().staff.map((m) => ({ ...m, shift: 'night' as const }));
+    useGameStore.setState({ speed: 1, nightSpeed: null, companyExp: 0, staff, active: [] });
+    const out = nightSpeedSystem(st(), {}, night, { now: 0, payPause: false, nightFast: true });
+    expect(out.speed).toBe(balance.time.nightSpeed);
+    expect(out.nightSpeed).toBe(1);
   });
 });

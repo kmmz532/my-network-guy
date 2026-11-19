@@ -81,6 +81,8 @@ export const balanceSchema = z.object({
     gameMinutesPerTick: int.positive(),
     daysPerMonth: int.positive(),
     speeds: z.array(z.number().nonnegative()).min(1),
+    // 夜（昼の勤務時間の外）に自動で進める速さ。解放のレベルに関わらず使う
+    nightSpeed: int.positive(),
     // 早送りの速さが解放されるレベル（N99）。ここにない速さは最初から使える（停止・1倍・2倍）
     speedUnlockLevels: z.record(z.string(), unlockLevelSchema),
   }),

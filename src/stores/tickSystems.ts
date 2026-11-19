@@ -12,7 +12,6 @@ import { finishTrainings } from '../sim/training';
 import { gameEnv, isPcDevice } from '../sim/env';
 import { rentalOf } from '../network/external';
 import { applyMoney } from '../sim/ledger';
-import { unlockedSpeedsOf } from '../sim/speed';
 import { pushNotice } from '../ui/notices';
 import { busyStaff } from '../sim/crew';
 import { isDevJob, isFieldEngineerJob, jobOf } from '../sim/jobs';
@@ -169,14 +168,15 @@ export const buildSystem = (s: GameState, next: Patch, clock: ClockState, hrP: n
 export const nightSpeedSystem = (s: GameState, next: Patch, clock: ClockState, env: TickEnv): Patch => {
   const activeNow = next.active ?? s.active;
   const minuteOfDay = clock.minute % minutesPerDay;
-  const staffNow = next.staff ?? s.staff;
   const night = nightSpeedStep({
-    working: staffNow.some((m) => isOnShift(minuteOfDay, m.shift, balance)),
+    // 昼の勤務時間かどうかで決める（夜勤の社員がいても、夜は速く進める）
+    working: isOnShift(minuteOfDay, 'day', balance),
     building: activeNow.some((p) => p.phase === 'build'),
     always: env.nightFast,
     speed: s.speed,
     saved: s.nightSpeed,
-    fastest: Math.max(...unlockedSpeedsOf(levelOf(s.companyExp, balance), balance)),
+    // 夜の速さは、速さの解放のレベルに関わらず balance の値（序盤でも夜を待たせない）
+    fastest: balance.time.nightSpeed,
   });
   if (night.speed === s.speed && night.saved === s.nightSpeed) return next;
   return { ...next, speed: night.speed as Speed, nightSpeed: night.saved as Speed | null };
