@@ -58,7 +58,8 @@ const allows = (rules: readonly FirewallRule[] | undefined, srcIp: string, dstIp
       (r.service === 'any' ||
         (r.service === 'ping' && traffic.kind === 'ping') ||
         (r.service === 'http' && traffic.kind === 'http' && (r.port === undefined || r.port === traffic.port)) ||
-        (r.service === 'dns' && traffic.kind === 'dns')),
+        (r.service === 'dns' && traffic.kind === 'dns') ||
+        (r.service === 'radius' && traffic.kind === 'radius')),
   );
 
 // 通信を1方向に届ける。check が true のときは、通り道のファイアウォールの規則を確かめる（戻りの通信は、往路で許した通信の戻りとして確かめない）

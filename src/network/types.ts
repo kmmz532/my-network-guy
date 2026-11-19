@@ -79,7 +79,7 @@ export interface HostEntry {
 export interface FirewallRule {
   src: string;
   dst: string;
-  service: 'any' | 'ping' | 'http' | 'dns';
+  service: 'any' | 'ping' | 'http' | 'dns' | 'radius';
   port?: number;
 }
 

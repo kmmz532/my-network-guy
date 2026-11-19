@@ -73,6 +73,20 @@ describe('802.1X の無線', () => {
     expect(ping(analyze(routed(false), data), 'pc', 'cl').failure?.reason).toBe('wlan.no_radius');
   });
 
+  it('サーバーがファイアウォールの先にあるとき、radius の規則で通し、http だけの規則では wlan.no_radius', () => {
+    const fenced = (service: 'radius' | 'http'): Network => {
+      const base = build({ radius: '10.0.0.50' });
+      const rules = [{ src: '192.168.1.0/24', dst: '10.0.0.0/24', service }];
+      return {
+        ...base,
+        nodes: [...base.nodes.filter((x) => x.uid !== 'srv'), n('fw', 'firewall', [f(0, '192.168.1.1'), f(1, '10.0.0.1')], 5, { components: { firewall: rules } }), n('srv', 'server_basic', [f(0, '10.0.0.50')], 3, { services: [{ protocol: 'radius' }], gateway: '10.0.0.1' })],
+        links: [l('a', 'pc', 0, 'sw', 0), l('b', 'sw', 1, 'ap', 0), l('r0', 'sw', 2, 'fw', 0), l('r1', 'fw', 1, 'srv', 0)],
+      };
+    };
+    expect(ping(analyze(fenced('radius'), data), 'pc', 'cl').ok).toBe(true);
+    expect(ping(analyze(fenced('http'), data), 'pc', 'cl').failure?.reason).toBe('wlan.no_radius');
+  });
+
   it('方式に対応しない端末（WPA3 の 802.1X に pc_wifi）は、wlan.auth_mismatch', () => {
     expect(reason({ security: 'wpa3_eap', device: 'pc_wifi' })).toBe('wlan.auth_mismatch');
     expect(reason({ security: 'wpa2_eap', device: 'pc_wifi' })).toBeUndefined();

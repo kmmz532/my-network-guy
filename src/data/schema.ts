@@ -467,7 +467,7 @@ const placedSetupSchema = z.object({
     .optional(),
   stpPriority: int.positive().optional(),
   napt: z.boolean().optional(),
-  rules: z.array(z.object({ src: z.string().min(1), dst: z.string().min(1), service: z.enum(['any', 'ping', 'http', 'dns']), port: int.min(1).max(65535).optional() })).optional(),
+  rules: z.array(z.object({ src: z.string().min(1), dst: z.string().min(1), service: z.enum(['any', 'ping', 'http', 'dns', 'radius']), port: int.min(1).max(65535).optional() })).optional(),
 });
 const contractPlacedSchema = placedSchema.extend({ setup: placedSetupSchema.optional() });
 
