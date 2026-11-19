@@ -1,6 +1,9 @@
 // 受注中の案件の内容（タイトル・依頼文・達成条件・ヒント・最初の案件の手順）。左上に重ねて表示し、折りたためる。
 // 達成条件は最後のテスト（または検収）の結果で ✓／× を出す。× は失敗した機器を選んで機器の画面を開く
 import { labelOfUid } from './nodeLabel';
+import { guides } from 'virtual:game-data';
+import { deviceCategory } from '../registry/query';
+import { guideProgress, type GuideState } from '../sim/guide';
 import { hasKey, t, tDyn } from '../i18n/t';
 import { goalText } from './goalText';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
@@ -41,6 +44,19 @@ export function TaskPanel() {
   const traces = useGameStore((s) => s.traces);
   const hasTraces = traces.length > 0;
   const activeId = active?.id ?? null;
+  // 案内の一覧（手順の進みは Guide と同じ判定で求める）
+  const guidesDone = useGameStore((s) => s.guidesDone);
+  const guideSeen = useGameStore((s) => s.guideSeen);
+  const restartGuide = useGameStore((s) => s.restartGuide);
+  const tool = useGameStore((s) => s.tool);
+  const owned = useGameStore((s) => s.owned);
+  const windows = useGameStore((s) => s.windows);
+  const debugGuide = useGameStore((s) => s.debugGuide);
+  const lessonCommands = useGameStore((s) => s.lessonCommands);
+  const lessonAnswers = useGameStore((s) => s.lessonAnswers);
+  const [guideOpen, setGuideOpen] = useState(false);
+  // 用語集の行で開いている用語
+  const [openGlossary, setOpenGlossary] = useState<string | null>(null);
   // 同じ依頼の型紙があるか（「型紙を使う」を出す。N70）
   const hasBlueprint = useGameStore((s) => (active ? s.familiarity.blueprints[familiarKeyOf(active.kind, active.baseId, active.contract.map)] !== undefined : false));
   const useBlueprint = useGameStore((s) => s.useBlueprint);
@@ -70,6 +86,32 @@ export function TaskPanel() {
   const [openTerm, setOpenTerm] = useState<string | null>(null);
   const firstShownHere = useRef(new Set<string>());
   const failingTerms = goals.filter((g) => g.ok === false && g.term).map((g) => g.term as string);
+  // 用語集の行: 失敗の用語と、吹き出しで一度出した用語（重複は出さない）
+  const glossaryTerms = [...new Set([...failingTerms, ...termsShown])];
+  // 案内の手順の数と、今の手順の位置（終えた案件は手順の数。満たしていない最初の手順が今の手順）
+  const guideSteps = active ? (guides[active.baseId] ?? null) : null;
+  const guideCurrent = ((): number | null => {
+    if (!active || !guideSteps) return null;
+    if (guidesDone.includes(active.baseId)) return guideSteps.length;
+    const seen = guideSeen.filter((k) => k.startsWith(`${active.baseId}:`)).map((k) => Number(k.slice(active.baseId.length + 1)));
+    const from = debugGuide !== null && debugGuide.id === active.baseId ? debugGuide.step - 1 : 0;
+    const state: GuideState = {
+      tool,
+      nodes: active.nodes,
+      links: active.links,
+      owned,
+      testPassed: result !== null && result.length > 0 && result.every((g) => g.ok),
+      openRefs: windows.filter((w) => w.kind === 'device').flatMap((w) => w.tabs),
+      categoryOf: deviceCategory,
+      commands: lessonCommands,
+      framesOpened: windows.some((w) => w.kind === 'frames'),
+      sequenceOpened: windows.some((w) => w.kind === 'sequence'),
+      lessonGoals: [],
+      answers: lessonAnswers,
+    };
+    const { current } = guideProgress(guideSteps, state, seen, from);
+    return current ? current.index : guideSteps.length;
+  })();
   useEffect(() => {
     // 吹き出しには、まだ出していない最初の用語だけを出す（残りは案件の欄だけで説明し、記録する）
     let noticed = false;
@@ -270,6 +312,59 @@ export function TaskPanel() {
                 ))}
               </ul>
             </>
+          )}
+          {guideSteps !== null && active && (
+            <div style={{ marginTop: 8 }}>
+              <Button variant="plain" size="row" layout={{ width: '100%' }} onClick={() => setGuideOpen(!guideOpen)}>
+                <span style={{ width: 10 }}>{guideOpen ? '▾' : '▸'}</span>
+                <Text as="span" size="sm" bold>{t('ui.task.guide')}</Text>
+              </Button>
+              {guideOpen && (
+                <>
+                  <ul style={{ listStyle: 'none', margin: '2px 0 0', padding: 0 }}>
+                    {guideSteps.map((step, i) => {
+                      const doneStep = guideCurrent !== null && i < guideCurrent;
+                      const now = guideCurrent === i;
+                      return (
+                        <li key={step.key} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginTop: 4 }}>
+                          <Text as="span" tone={doneStep ? 'normal' : 'faint'} size="sm" layout={{ flexShrink: 0 }}>
+                            <Icon name="icon/ok" scale={1} />
+                          </Text>
+                          <Text as="span" tone={doneStep ? 'sub' : 'normal'} size="sm" bold={now}>{tDyn(step.key)}</Text>
+                          {now && <Text as="span" tone="warn" size="xs" layout={{ flexShrink: 0 }}>{t('ui.task.guide.now')}</Text>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <Button variant="secondary" size="s" layout={{ marginTop: 6 }} onClick={() => restartGuide(active.baseId)}>
+                    {t('ui.guide.restart')}
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+          {glossaryTerms.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <Text size="sm" bold>{t('ui.glossary.title')}</Text>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                {glossaryTerms.map((term) => (
+                  <Button
+                    key={term}
+                    variant="secondary"
+                    size="s"
+                    pressed={openGlossary === term}
+                    onClick={() => setOpenGlossary(openGlossary === term ? null : term)}
+                  >
+                    {tDyn(`termName.${term}`)}
+                  </Button>
+                ))}
+              </div>
+              {openGlossary !== null && (
+                <div style={{ marginTop: 4, lineHeight: 1.5 }}>
+                  <Text tone="soft" size="s">{tDyn(`glossary.${openGlossary}`)}</Text>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

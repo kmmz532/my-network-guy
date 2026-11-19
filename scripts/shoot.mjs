@@ -480,6 +480,12 @@ const scenes = {
     await page.getByRole('button', { name: '閉じる' }).click();
     await page.waitForTimeout(500);
   },
+  // 案件の欄の「案内」の行を開いた状態（手順の一覧と、済み・今の手順の印、「最初から見る」）
+  guidereview: async (page) => {
+    await scenes.guide(page);
+    await page.locator('[data-task-panel]').getByRole('button', { name: /案内$/ }).first().click();
+    await page.waitForTimeout(500);
+  },
   // ショップ
   shop: async (page) => {
     await scenes.career(page);

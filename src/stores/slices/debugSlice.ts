@@ -21,6 +21,8 @@ export interface DebugSlice {
   markGuideDone: (contractId: string) => void;
   // 案内をしまう・戻す（guidesDone には入れない）
   setGuideHidden: (id: string, hidden: boolean) => void;
+  // 案内を最初から出し直す（終えた・しまった記録と、この案件の手順の記録を外す。手順の位置は構成から求め直す）
+  restartGuide: (id: string) => void;
   // しまっている案内の、今の手順の文のキーを置く（なければ null）
   setGuideShelved: (shelved: { id: string; key: string } | null) => void;
   // デバッグ（N54）: 案内の進みを最初に戻す
@@ -65,6 +67,12 @@ export const createDebugSlice: StateCreator<GameState, [], [], DebugSlice> = (se
         if (s.guidesHidden.includes(id) === hidden) return {};
         return { guidesHidden: hidden ? [...s.guidesHidden, id] : s.guidesHidden.filter((g) => g !== id) };
       }),
+    restartGuide: (id) =>
+      set((s) => ({
+        guidesDone: s.guidesDone.filter((g) => g !== id),
+        guidesHidden: s.guidesHidden.filter((g) => g !== id),
+        guideSeen: s.guideSeen.filter((k) => !k.startsWith(`${id}:`)),
+      })),
     setGuideShelved: (shelved) => set({ guideShelved: shelved }),
     debugResetGuides: () => set({ guidesDone: [], guidesHidden: [] }),
     debugRefreshOffers: () => set((s) => refresh({ ...s, nextOfferMinute: s.clock.minute })),
