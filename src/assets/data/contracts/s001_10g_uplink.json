@@ -1,0 +1,149 @@
+{
+  "id": "s001_10g_uplink",
+  "kind": "build",
+  "stage": 2,
+  "order": 237,
+  "requires": [
+    "r005_vlan_trunk"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_sites",
+  "budget": 60000,
+  "deadlineDays": 5,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "HQ_SW",
+      "device": "l3_switch",
+      "x": 8,
+      "y": 5,
+      "locked": true,
+      "name": "本社のL3スイッチ",
+      "config": {
+        "interfaces": [
+          {
+            "port": 8,
+            "ip": "10.0.9.1",
+            "prefix": 30
+          },
+          {
+            "port": 0,
+            "ip": "10.0.1.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      }
+    },
+    {
+      "ref": "DC_SW",
+      "device": "l3_switch",
+      "x": 27,
+      "y": 5,
+      "locked": true,
+      "name": "倉庫のL3スイッチ",
+      "config": {
+        "interfaces": [
+          {
+            "port": 8,
+            "ip": "10.0.9.2",
+            "prefix": 30
+          },
+          {
+            "port": 0,
+            "ip": "10.0.2.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      }
+    },
+    {
+      "ref": "HQ_PC",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "name": "本社のPC",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.1.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.0.1.1",
+        "services": [],
+        "locked": true
+      }
+    },
+    {
+      "ref": "DC_PC",
+      "device": "pc_basic",
+      "x": 37,
+      "y": 3,
+      "locked": true,
+      "name": "倉庫のPC",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.2.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.0.2.1",
+        "services": [],
+        "locked": true
+      }
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "HQ_PC",
+        "port": 0
+      },
+      "b": {
+        "ref": "HQ_SW",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "DC_PC",
+        "port": 0
+      },
+      "b": {
+        "ref": "DC_SW",
+        "port": 0
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping",
+      "from": "HQ_PC",
+      "to": "DC_PC"
+    },
+    {
+      "type": "min_speed",
+      "from": "HQ_SW",
+      "to": "DC_SW",
+      "mbps": 10000
+    }
+  ],
+  "reward": {
+    "money": 400000
+  },
+  "unlockLevel": 22
+}
