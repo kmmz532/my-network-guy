@@ -232,6 +232,8 @@ export const FAILURE_REASONS = [
   // ケーブルの口の種類が、機器の口と合わない（光ファイバーは sfp の口だけ・N-sfp）
   'cable.port_type',
   'link.too_long',
+  // Ping は届くが、通り道に指定の速さに足りない区間がある
+  'speed.slow',
   'link.loop',
   'ip.unset',
   // 束ねた口（Po）がまとまっていない（メンバーの口のチャネルの番号・モードが相手と合わない）。Po は落ちた口になる

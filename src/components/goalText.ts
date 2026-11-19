@@ -45,6 +45,8 @@ export const goalText = (goal: Goal, nameOf: (id: string) => string = (id) => id
             ? { nodes: goal.nodes.map(nameOf).join('・') }
             : goal.type === 'isolated' || goal.type === 'blocked_all'
               ? { from: goal.from.map(nameOf).join('・'), to: goal.to.map(nameOf).join('・') }
-              : { from: nameOf(goal.from), to: nameOf(goal.to) };
+              : goal.type === 'min_speed'
+                ? { from: nameOf(goal.from), to: nameOf(goal.to), mbps: goal.mbps }
+                : { from: nameOf(goal.from), to: nameOf(goal.to) };
   return tDyn(`goal.${goal.type}`, params);
 };

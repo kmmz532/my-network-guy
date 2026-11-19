@@ -245,6 +245,7 @@ const goalRefs = (goal: Goal): string[] => {
   switch (goal.type) {
     case 'ping':
     case 'http':
+    case 'min_speed':
       return [goal.from, goal.to];
     case 'ping_all':
       return goal.nodes === '$all_pcs' ? [] : goal.nodes;

@@ -7,6 +7,7 @@ import { accessPointsOf } from './engine/stages/links';
 import { lagBundlesOf } from './query/lagBundles';
 import { channelOverlapsOf } from './query/channelOverlaps';
 import { interferedAccessPointsOf } from './query/wirelessQuality';
+import { hopSpeedsOf } from './query/pathSpeeds';
 import { ospfNeighborsOf } from './query/ospfNeighbors';
 import { analyze } from './engine/analyze';
 import type { NetworkState } from './engine/state';
@@ -50,6 +51,17 @@ const handlers: { [K in Goal['type']]: Handler } = {
     if (goal.type !== 'ping') throw new Error('ping ハンドラに別の種類が渡された');
     const r = ping(state, goal.from, goal.to);
     return [{ goal, ok: r.ok, failure: r.failure, kind: 'ping', src: goal.from, dst: goal.to, result: r }];
+  },
+  // 届き、通り道の区間の速さがすべて mbps 以上なら合格。遅い区間があれば、その区間の両端の機器ごとに speed.slow を返す。届かなければ Ping の失敗をそのまま返す
+  min_speed: (goal, state) => {
+    if (goal.type !== 'min_speed') throw new Error('min_speed ハンドラに別の種類が渡された');
+    const r = ping(state, goal.from, goal.to);
+    const base = { goal, kind: 'ping' as const, src: goal.from, dst: goal.to };
+    if (!r.ok) return [{ ...base, ok: false, failure: r.failure, result: r }];
+    const slow = hopSpeedsOf(state, r.path).filter((h) => h.mbps < goal.mbps);
+    if (slow.length === 0) return [{ ...base, ok: true, result: r }];
+    const nodes = [...new Set(slow.flatMap((h) => [h.from, h.to]))];
+    return nodes.map((node) => ({ ...base, ok: false, failure: { reason: 'speed.slow' as const, node }, result: { ...r, ok: false } }));
   },
   ping_all: (goal, state) => {
     const { net, world: data } = state;

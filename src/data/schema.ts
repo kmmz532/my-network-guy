@@ -485,6 +485,8 @@ export const goalSchema = z.discriminatedUnion('type', [
     to: z.string().min(1),
     port: z.number().int().min(1).max(65535),
   }),
+  // from から to へ Ping が届き、その通り道の速さ（配線ごと・まとまった論理リンクは合計）がすべて mbps 以上ある。無線の区間は数えない
+  z.object({ type: z.literal('min_speed'), from: z.string().min(1), to: z.string().min(1), mbps: z.number().int().positive() }),
   // 指定した種類の機器が一定数以上ある
   z.object({ type: z.literal('count'), category: z.string().min(1), min: z.number().int().positive() }),
   // 指定した型の機器が一定数以上ある（例: GPUサーバー。カテゴリでは区別できない機器に使う）
