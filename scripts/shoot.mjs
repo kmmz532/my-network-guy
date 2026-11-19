@@ -851,6 +851,19 @@ const scenes = {
     await page.getByRole('combobox', { name: 'ネットワーク', exact: true }).click();
     await page.waitForTimeout(500);
   },
+  // 効果のある家具（観葉植物）を選んだ状態。効果の範囲（植物の周りの5×5マス）を、無線の範囲と同じ描き方で薄く塗る
+  furniturerange: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      g.buy('plant');
+      const reason = window.__game.getState().place('plant', 5, 5);
+      if (reason !== null) throw new Error(`plant を置けない: ${reason}`);
+      const plant = window.__game.getState().office.furniture.find((f) => f.id === 'plant');
+      window.__ui.getState().setFurnitureRange(plant.uid);
+    });
+    await page.waitForTimeout(800);
+  },
   // 電子レンジの近くの 2.4GHz のアクセスポイントにつながったノート PC の画面（設定タブの通信の品質の欄）
   wirelessquality: async (page) => {
     await scenes.sandbox(page);

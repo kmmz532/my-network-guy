@@ -59,6 +59,9 @@ interface UiState {
   // マップの右クリック（長押し）のメニュー
   contextMenu: ContextMenuState | null;
   setContextMenu: (menu: ContextMenuState | null) => void;
+  // 効果の範囲を見る家具（メニューの「効果の範囲」で選ぶ。マップの押下で外す）。保存しない
+  furnitureRange: string | null;
+  setFurnitureRange: (uid: string | null) => void;
   // 機器の画面で開く欄の要求（メニューの「設定を開く」）。開いたあとに消す
   deviceTabRequest: { uid: string; tab: 'config' } | null;
   setDeviceTabRequest: (request: { uid: string; tab: 'config' } | null) => void;
@@ -87,6 +90,8 @@ export const useUiStore = create<UiState>((set) => ({
   portMenu: null,
   contextMenu: null,
   setContextMenu: (menu) => set({ contextMenu: menu }),
+  furnitureRange: null,
+  setFurnitureRange: (uid) => set({ furnitureRange: uid }),
   deviceTabRequest: null,
   setDeviceTabRequest: (request) => set({ deviceTabRequest: request }),
   itemDrag: null,

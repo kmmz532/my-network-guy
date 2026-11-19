@@ -21,6 +21,8 @@ import { balance } from 'virtual:game-data';
 import { can } from '../network/capabilities';
 import { isL2Category } from '../network/public';
 import { menuItemsOf, type MenuActions, type MenuTarget } from '../ui/contextMenuItems';
+import { gameEnv } from '../sim/env';
+import { hasEffectRange } from '../sim/furniture';
 
 // 機器を押した瞬間の反応を出す時間（ms）
 export const PRESS_MS = 220;
@@ -118,6 +120,8 @@ export class MapInput {
   onDown = (e: FederatedPointerEvent): void => {
     // 指が2本のときはピンチが扱う
     if (this.host.cam.multiTouch) return;
+    // 効果の範囲の表示は、マップを押したら消す
+    if (useUiStore.getState().furnitureRange !== null) useUiStore.getState().setFurnitureRange(null);
     if (e.pointerType === 'touch') this.host.tip.startTouch(e);
     // 中ボタンのドラッグは、どの道具でも動かす
     if (e.button === 1) {
@@ -221,9 +225,11 @@ export class MapInput {
     const node = target.kind === 'node' ? (this.host.hit.editNodes() ?? this.host.project()?.nodes ?? []).find((n) => n.uid === target.uid) : undefined;
     if (target.kind === 'node' && !node) throw new Error(`メニューの対象の機器がない: ${target.uid}`);
     const hasConfig = node ? !isL2Category(deviceCategory(node.device)) : false;
+    const furniture = target.kind === 'furniture' ? store.office.furniture.find((f) => f.uid === target.uid) : undefined;
     const items = menuItemsOf(target, {
       allows: (op) => editable && this.canApply(op),
       node: node ? { hasConfig, hasPower: !can(node.device, 'uplink'), powered: node.powered !== false, name: node.name ?? '' } : undefined,
+      furniture: furniture ? { hasEffectRange: hasEffectRange(gameEnv.furniture?.[furniture.id]) } : undefined,
     });
     if (items.length === 0) {
       ui.setContextMenu(null);
@@ -240,6 +246,7 @@ export class MapInput {
       removeLink: (uid) => void store.removeLink(uid),
       rotateFurniture: (uid) => void store.rotateFurniture(uid),
       removeFurniture: (uid) => void store.removeFurniture(uid),
+      showEffectRange: (uid) => useUiStore.getState().setFurnitureRange(uid),
     };
     this.host.tip.reset();
     ui.setContextMenu({ x: clientX, y: clientY, items: items.map((item) => ({ ...item, run: () => item.run(actions) })) });

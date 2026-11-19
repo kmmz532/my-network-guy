@@ -1,7 +1,7 @@
 import { EMPTY_FAMILIARITY } from './familiar';
 import { describe, expect, it } from 'vitest';
 import type { GameMap } from '../data/schema';
-import { assignDesks, freeDesks, furnitureBonus, hire, moveFurniture, placeFurniture, removeFurniture, rotateFurniture, seatedStaff, type BonusEnv } from './furniture';
+import { assignDesks, effectRangeTiles, freeDesks, furnitureBonus, hasEffectRange, hire, moveFurniture, placeFurniture, removeFurniture, rotateFurniture, seatedStaff, type BonusEnv } from './furniture';
 import type { NetNode } from '../network/types';
 import balanceJson from '../assets/data/balance.json';
 import furnitureJson from '../assets/data/furniture.json';
@@ -212,6 +212,33 @@ describe('家具の補正', () => {
       { id: 'bookshelf', x: 5, y: 7 },
     ]);
     expect(furnitureBonus(office, 'nobody', env)).toEqual({ power: 0, exp: 0, seatless: 0.5 });
+  });
+
+  it('効果の範囲のマスに机があるときだけ、その机の社員に効く（範囲の表示と判定は同じマス）', () => {
+    const plant = { id: 'plant', x: 4, y: 4 };
+    const area = effectRangeTiles(plant, 2, { width: 10, height: 10 });
+    for (let y = 0; y < 10; y++) {
+      for (let x = 0; x < 10; x++) {
+        if (x === plant.x && y === plant.y) continue;
+        const office = { ...emptyOffice({ w: 10, h: 10 }), furniture: [{ uid: 'd', id: 'desk', x, y }, { uid: 'p', ...plant }], furnitureSeq: 2 };
+        const bonus = furnitureBonus(office, 's0', { ...env, staff: [{ uid: 's0', desk: 'd' }] }).power;
+        expect(bonus > 0, `(${x},${y})`).toBe(area.some((t) => t.x === x && t.y === y));
+      }
+    }
+  });
+
+  it('効果の範囲は中心の周りの正方形で、マップの外を含めない', () => {
+    expect(effectRangeTiles({ x: 5, y: 5 }, 2, { width: 20, height: 20 })).toHaveLength(25);
+    expect(effectRangeTiles({ x: 0, y: 0 }, 2, { width: 20, height: 20 })).toHaveLength(9);
+  });
+
+  it('範囲のない効果（コーヒー・ソファ）は、マスを持たない', () => {
+    expect(effectRangeTiles({ x: 5, y: 5 }, undefined, { width: 20, height: 20 })).toEqual([]);
+    expect(hasEffectRange(defs.plant)).toBe(true);
+    expect(hasEffectRange(defs.bookshelf)).toBe(true);
+    expect(hasEffectRange(defs.coffee)).toBe(false);
+    expect(hasEffectRange(defs.sofa)).toBe(false);
+    expect(hasEffectRange(defs.desk)).toBe(false);
   });
 
   it('ソファがあれば、席のない社員の係数は 0.7 になる', () => {

@@ -50,7 +50,8 @@ export class MapTip {
     if (viewingOffice(store)) {
       const f = store.office.furniture.find((x) => x.x === tx && x.y === ty);
       if (f) {
-        const lines = [tDyn(`furniture.${f.id}.name`), effectText(gameEnv.furniture?.[f.id]?.effect)];
+        const effect = gameEnv.furniture?.[f.id]?.effect;
+        const lines = [tDyn(`furniture.${f.id}.name`), effectText(effect), effect?.range !== undefined ? t('ui.effect.range', { range: effect.range }) : null];
         return { key: `f:${f.uid}`, text: lines.filter((l): l is string => l !== null).join('\n') };
       }
     }

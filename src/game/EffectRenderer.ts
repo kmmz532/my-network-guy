@@ -1,10 +1,10 @@
 // 一時的な操作状態を描く。効果範囲・ホバー枠・失敗フラッシュ・押下エフェクトを受け持つ。
 import { Graphics, Container, Text } from 'pixi.js';
-import { focusedProject, useGameStore } from '../stores/useGameStore';
+import { focusedProject, useGameStore, viewingOffice } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
 import { gameEnv } from '../sim/env';
+import { effectRangeTiles } from '../sim/furniture';
 import type { Project } from '../sim/project';
-import { rangeTiles } from './effectRange';
 import { PRESS_MS, type MapInput } from './MapInput';
 import { tDyn } from '../i18n/t';
 
@@ -34,8 +34,22 @@ export class EffectRenderer {
     if (!store.placing || focusedProject(store) || !this.options.input.cursorTile || !map) return;
     const range = gameEnv.furniture?.[store.placing]?.effect?.range;
     if (range === undefined) return;
-    for (const { tx, ty } of rangeTiles(this.options.input.cursorTile.tx, this.options.input.cursorTile.ty, range, map.width, map.height)) {
-      this.options.graphics.rect(tx * ts, ty * ts, ts, ts).fill({ color: 0x62d26f, alpha: 0.35 });
+    for (const { x, y } of effectRangeTiles({ x: this.options.input.cursorTile.tx, y: this.options.input.cursorTile.ty }, range, map)) {
+      this.options.graphics.rect(x * ts, y * ts, ts, ts).fill({ color: 0x62d26f, alpha: 0.35 });
+    }
+  }
+
+  // 選んだ家具の効果の範囲を、無線の範囲と同じ描き方（マスを薄く塗る）で塗る。自社オフィスの家具だけ
+  drawFurnitureRange(ts: number): void {
+    const uid = useUiStore.getState().furnitureRange;
+    const map = this.options.map();
+    if (!uid || !map) return;
+    const store = useGameStore.getState();
+    if (!viewingOffice(store)) return;
+    const furniture = store.office.furniture.find((f) => f.uid === uid);
+    if (!furniture) return;
+    for (const { x, y } of effectRangeTiles(furniture, gameEnv.furniture?.[furniture.id]?.effect?.range, map)) {
+      this.options.graphics.rect(x * ts, y * ts, ts, ts).fill({ color: SELECT, alpha: 0.12 });
     }
   }
 

@@ -231,6 +231,25 @@ export interface BonusEnv {
 export const pcDesksOf = (office: Office, isPc: (device: string) => boolean): string[] =>
   office.furniture.filter((f) => office.nodes.some((n) => n.x === f.x && n.y === f.y && isPc(n.device))).map((f) => f.uid);
 
+// 効果の範囲に入るか（チェビシェフ距離）。range がなければ全体に及ぶ。家具の補正の判定と、範囲の表示の両方がこの規則を使う
+export const inEffectRange = (range: number | undefined, from: { x: number; y: number }, at: { x: number; y: number }): boolean =>
+  range === undefined || Math.max(Math.abs(at.x - from.x), Math.abs(at.y - from.y)) <= range;
+
+// 効果の範囲のマス（マップの外は含めない）。範囲のない効果は、マスを持たないため空の一覧になる
+export const effectRangeTiles = (from: { x: number; y: number }, range: number | undefined, map: { width: number; height: number }): { x: number; y: number }[] => {
+  if (range === undefined) return [];
+  const tiles: { x: number; y: number }[] = [];
+  for (let y = from.y - range; y <= from.y + range; y++) {
+    for (let x = from.x - range; x <= from.x + range; x++) {
+      if (x >= 0 && y >= 0 && x < map.width && y < map.height && inEffectRange(range, from, { x, y })) tiles.push({ x, y });
+    }
+  }
+  return tiles;
+};
+
+// 家具の効果が範囲を持つか（植物・本棚のように、範囲の中の社員の席に効くもの）。ソファ（席のない社員の係数）と範囲のない効果は含めない
+export const hasEffectRange = (def: Furniture | undefined): boolean => def?.effect !== undefined && def.effect.stat !== 'seatless' && def.effect.range !== undefined;
+
 // 社員1人の家具の補正。机の位置から範囲（チェビシェフ距離）を測る。同じ家具IDは1つ分だけ数える
 export const furnitureBonus = (office: Office, staffUid: string, env: BonusEnv): StaffBonus => {
   // 席のない社員の係数: ソファがあればその値、なければ既定の係数（効果は重ねない）
@@ -249,9 +268,7 @@ export const furnitureBonus = (office: Office, staffUid: string, env: BonusEnv):
   for (const f of office.furniture) {
     const effect = env.defs[f.id]?.effect;
     if (!effect || effect.stat === 'seatless' || counted.has(f.id)) continue;
-    const inRange =
-      effect.range === undefined || Math.max(Math.abs(f.x - desk.x), Math.abs(f.y - desk.y)) <= effect.range;
-    if (!inRange) continue;
+    if (!inEffectRange(effect.range, f, desk)) continue;
     counted.add(f.id);
     if (effect.stat === 'power') power += effect.value;
     else exp += effect.value;

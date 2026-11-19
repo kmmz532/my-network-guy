@@ -19,6 +19,8 @@ export interface NodeFacts {
 export interface MenuFacts {
   allows: (op: Operation) => boolean;
   node?: NodeFacts;
+  // 家具が効果の範囲を持つか（植物・本棚など）。持つときだけ「効果の範囲」を出す
+  furniture?: { hasEffectRange: boolean };
 }
 
 // 項目が呼ぶ既存の操作
@@ -30,10 +32,11 @@ export interface MenuActions {
   removeLink: (uid: string) => void;
   rotateFurniture: (uid: string) => void;
   removeFurniture: (uid: string) => void;
+  showEffectRange: (uid: string) => void;
 }
 
 export interface MenuItem {
-  id: 'settings' | 'rename' | 'power' | 'duplicate' | 'remove' | 'unplug' | 'rotate';
+  id: 'settings' | 'rename' | 'power' | 'duplicate' | 'remove' | 'unplug' | 'rotate' | 'effectRange';
   // 言語ファイルのキー
   label: string;
   run: (actions: MenuActions) => void;
@@ -60,6 +63,7 @@ export function menuItemsOf(target: MenuTarget, facts: MenuFacts): MenuItem[] {
     if (facts.allows({ kind: 'removeLink', uid })) items.push({ id: 'unplug', label: 'ui.cmenu.unplug', run: (a) => a.removeLink(uid) });
     return items;
   }
+  if (facts.furniture?.hasEffectRange) items.push({ id: 'effectRange', label: 'ui.cmenu.effectRange', run: (a) => a.showEffectRange(uid) });
   if (facts.allows({ kind: 'rotateFurniture', uid })) items.push({ id: 'rotate', label: 'ui.cmenu.rotate', run: (a) => a.rotateFurniture(uid) });
   if (facts.allows({ kind: 'removeFurniture', uid })) items.push({ id: 'remove', label: 'ui.cmenu.remove', run: (a) => a.removeFurniture(uid) });
   return items;

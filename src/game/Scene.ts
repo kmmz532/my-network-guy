@@ -663,6 +663,7 @@ export class Scene {
     this.interactionRenderer.drawPlugMarks(ts);
     this.effectRenderer.drawHover(project, ts);
     this.networkRenderer.drawWireless(project, ts, frontDeviceUid(s));
+    this.effectRenderer.drawFurnitureRange(ts);
     this.effectRenderer.drawEffectRange(ts);
     this.interactionRenderer.drawPlacePreview(ts);
     this.interactionRenderer.drawDrag(ts);

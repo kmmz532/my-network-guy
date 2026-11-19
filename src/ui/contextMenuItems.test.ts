@@ -50,6 +50,13 @@ describe('右クリックのメニューの項目', () => {
     expect(ids(furniture, [])).toEqual([]);
   });
 
+  it('効果の範囲は、範囲を持つ家具だけに出し、回すより前に並ぶ', () => {
+    const furniture = { kind: 'furniture', uid: 'f1' } as const;
+    const all = { allows: () => true, furniture: { hasEffectRange: true } };
+    expect(menuItemsOf(furniture, all).map((i) => i.id)).toEqual(['effectRange', 'rotate', 'remove']);
+    expect(menuItemsOf(furniture, { allows: () => true, furniture: { hasEffectRange: false } }).map((i) => i.id)).toEqual(['rotate', 'remove']);
+  });
+
   it('項目は対象の uid で既存の操作を呼ぶ', () => {
     const calls: string[] = [];
     const actions: MenuActions = {
@@ -60,6 +67,7 @@ describe('右クリックのメニューの項目', () => {
       removeLink: (u) => calls.push(`unplug:${u}`),
       rotateFurniture: (u) => calls.push(`rot:${u}`),
       removeFurniture: (u) => calls.push(`rmf:${u}`),
+      showEffectRange: (u) => calls.push(`range:${u}`),
     };
     for (const item of menuItemsOf(node, { allows: () => true, node: { hasConfig: true, hasPower: true, powered: true, name: '' } })) item.run(actions);
     expect(calls).toEqual(['settings:n1', 'settings:n1', 'power:n1:false', 'dup:n1', 'rm:n1']);
