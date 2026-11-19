@@ -19,3 +19,5 @@ export { networkColors } from './query/networkColors';
 export { framesOf, type Frame, type FrameContext } from './frames';
 export { isL2Category, isRoutingCategory } from './category';
 export { warningsOf } from './query/warnings';
+
+export { controlSequence, type ControlStep, type ControlTrigger } from './control';

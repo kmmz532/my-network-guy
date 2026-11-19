@@ -1900,5 +1900,17 @@
   "termName.wildcard_mask": "ワイルドカードマスク",
   "termName.wpa": "WPA",
   "termName.wpa2": "WPA2",
-  "termName.wpa3": "WPA3"
+  "termName.wpa3": "WPA3",
+  "seq.arp.reply": "ARP 応答（{ip} は {mac}）",
+  "seq.arp.request": "ARP 要求（だれが {ip}？）",
+  "seq.dns.query": "DNS 問い合わせ（{name}）",
+  "seq.dns.response": "DNS 応答（{name}）",
+  "seq.http.request": "HTTP 要求",
+  "seq.http.response": "HTTP 応答",
+  "seq.icmp.reply": "ICMP エコー応答",
+  "seq.icmp.request": "ICMP エコー要求",
+  "seq.tcp.ack": "TCP ACK",
+  "seq.tcp.fin": "TCP FIN",
+  "seq.tcp.syn": "TCP SYN（ポート {port}）",
+  "seq.tcp.synack": "TCP SYN/ACK"
 }
