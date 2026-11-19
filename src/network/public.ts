@@ -10,7 +10,7 @@ export { portStatesOf, type PortState } from './query/portStates';
 export { lagBundlesOf } from './query/lagBundles';
 export { learnedRoutesOf } from './query/learnedRoutes';
 export { dhcpOf } from './query/dhcp';
-export { seenSourcesOf, type SeenSource } from './query/seenSources';
+export { seenIpOf, seenSourcesOf, type SeenSource } from './query/seenSources';
 export { loopNodeOf } from './query/loopNode';
 export { channelOverlapsOf } from './query/channelOverlaps';
 export { wirelessQualityOf, type WirelessQuality } from './query/wirelessQuality';
@@ -21,4 +21,5 @@ export { framesOf, type Frame, type FrameContext } from './frames';
 export { isL2Category, isRoutingCategory } from './category';
 export { warningsOf } from './query/warnings';
 
+export { internetStateOf, stateForPath } from './external';
 export { controlSequence, type ControlStep, type ControlTrigger } from './control';

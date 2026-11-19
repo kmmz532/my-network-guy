@@ -76,7 +76,10 @@ export interface DesignSlice {
   // 同じ機器の2つの口の配線を入れ替える（口の番号を交換する）
   swapPlugs: (nodeUid: string, from: number, to: number) => string | null;
   // サービスを起動（on）・停止する
-  setService: (uid: string, protocol: 'http' | 'radius', on: boolean) => string | null;
+  setService: (uid: string, protocol: 'http' | 'radius' | 'proxy', on: boolean) => string | null;
+  // 端末のプロキシ（アドレスとポート。null で外す）と、PAC の direct（直接つなぐ名前の接尾辞。null で外す）
+  setProxy: (uid: string, proxy: { ip: string; port: number } | null) => string | null;
+  setPac: (uid: string, direct: string[] | null) => string | null;
   setName: (uid: string, name: string) => string | null;
   // ホスト名を付ける（null で外す）（N46）
   setHostname: (uid: string, hostname: string | null) => string | null;
@@ -224,6 +227,8 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       dispatch({ kind: 'replugTo', link: linkUid, end, node: nodeUid, port }, tileOf(nodeUid)),
     swapPlugs: (nodeUid, from, to) => dispatch({ kind: 'swapPlugs', node: nodeUid, from, to }),
     setService: (uid, protocol, on) => dispatch({ kind: 'config', uid, change: { kind: 'service', protocol, on } }, tileOf(uid)),
+    setProxy: (uid, proxy) => dispatch({ kind: 'config', uid, change: { kind: 'proxy', proxy } }, tileOf(uid)),
+    setPac: (uid, direct) => dispatch({ kind: 'config', uid, change: { kind: 'pac', direct } }, tileOf(uid)),
     setHostname: (uid, hostname) => dispatch({ kind: 'config', uid, change: { kind: 'hostname', hostname } }, tileOf(uid)),
     setNameServer: (uid, ip) => dispatch({ kind: 'config', uid, change: { kind: 'nameServer', ip } }, tileOf(uid)),
     setDnsRole: (uid, on, role) => dispatch({ kind: 'config', uid, change: { kind: 'dnsRole', on, ...(role === undefined ? {} : { role }) } }, tileOf(uid)),

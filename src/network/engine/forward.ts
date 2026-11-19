@@ -418,8 +418,53 @@ const withFragments = (view: ForwardView, r: PathResult): PathResult => {
   return { ...r, ...(fwd.fragments ? { fragments: fwd.fragments } : {}), ...(back.fragments ? { backFragments: back.fragments } : {}) };
 };
 
-// HTTP の判定。往路で宛先に届き、宛先が指定ポートでサービスを待ち受けていて、復路も通ること
-export const http = (view: ForwardView, srcUid: string, dstUid: string, port: number): PathResult => withFragments(view, httpPath(view, srcUid, dstUid, port));
+// HTTP の判定。往路で宛先に届き、宛先が指定ポートでサービスを待ち受けていて、復路も通ること。
+// 端末にプロキシの設定があれば、まず端末からプロキシへ届け、プロキシが宛先へ出し直す。name（名前で引いた HTTP の名前）が PAC の direct の接尾辞に合う宛先と、宛先がプロキシ自身のときは、直接つなぐ
+export const http = (view: ForwardView, srcUid: string, dstUid: string, port: number, name?: string): PathResult => {
+  const src = view.addressing.nodeOf(srcUid);
+  const setting = src ? getComponent(src, 'proxyClient') : undefined;
+  if (!setting?.proxy || (name !== undefined && (setting.pac?.direct ?? []).some((suffix) => name.endsWith(suffix)))) return withFragments(view, httpPath(view, srcUid, dstUid, port));
+  const server = view.addressing.net.nodes.find((n) => n.interfaces.some((i) => i.ip === setting.proxy!.ip));
+  if (server?.uid === dstUid) return withFragments(view, httpPath(view, srcUid, dstUid, port));
+  return viaProxy(view, srcUid, dstUid, port, setting.proxy, server);
+};
+
+// 区間ごとの分割の数を、2つの区間をつないだ経路の分にそろえる（どちらにもなければ持たない）
+const joinFragments = (a: PathResult, aFragments: number[] | undefined, b: PathResult, bFragments: number[] | undefined): number[] | undefined =>
+  aFragments === undefined && bFragments === undefined
+    ? undefined
+    : [...(aFragments ?? Array<number>(a.path.length - 1).fill(1)), ...(bFragments ?? Array<number>(b.path.length - 1).fill(1))];
+
+// プロキシ経由の HTTP。端末からプロキシ（設定のポート）へ届き、プロキシがサービスを動かしていること。続けて、プロキシが自分のアドレスから宛先へ出し直す（送信元はプロキシ）。
+// プロキシへ届かない・サービスがない・戻れないときは proxy.unreachable（札はプロキシの機器。アドレスの機器がなければ端末）
+const viaProxy = (view: ForwardView, srcUid: string, dstUid: string, port: number, setting: { ip: string; port: number }, server: NetNode | undefined): PathResult => {
+  const unreachable = (path: string[]): PathResult => ({ ok: false, path, failure: fail('proxy.unreachable', server?.uid ?? srcUid) });
+  if (!server) return unreachable([srcUid]);
+  const traffic: Traffic = { kind: 'http', port: setting.port };
+  const toProxy = deliver(view, srcUid, server.uid, traffic, true, undefined, setting.ip);
+  if (!toProxy.ok || !server.services.some((s) => s.protocol === 'proxy' && s.port === setting.port)) return unreachable(toProxy.path);
+  const toClient = backOf(view, server.uid, srcUid, traffic, toProxy);
+  if (!toClient.ok) return unreachable(toProxy.path);
+  const client = withFragments(view, { ...toProxy, back: toClient.path });
+  const upstream = withFragments(view, httpPath(view, server.uid, dstUid, port));
+  const path = [...client.path, ...upstream.path.slice(1)];
+  const proxy = { uid: server.uid, port: setting.port, client, upstream };
+  if (!upstream.ok || !upstream.back || !client.back) return { ok: false, path, ...(upstream.failure ? { failure: upstream.failure } : {}), proxy };
+  const fragments = joinFragments(client, client.fragments, upstream, upstream.fragments);
+  // 戻りは、宛先からプロキシ、プロキシから端末の順
+  const backFragments = joinFragments(upstream, upstream.backFragments, client, client.backFragments);
+  return {
+    ok: true,
+    path,
+    back: [...upstream.back, ...client.back.slice(1)],
+    ...(upstream.nat ? { nat: upstream.nat } : {}),
+    ...(upstream.staticNat ? { staticNat: upstream.staticNat } : {}),
+    ...(upstream.tunnel ? { tunnel: upstream.tunnel } : {}),
+    ...(fragments ? { fragments } : {}),
+    ...(backFragments ? { backFragments } : {}),
+    proxy,
+  };
+};
 
 const httpPath = (view: ForwardView, srcUid: string, dstUid: string, port: number): PathResult => {
   // 外の口への通信が、静的 NAT で社内のサーバーへ届く場合（N145）

@@ -44,6 +44,52 @@ export const setHostname = (core: Core, uid: string, hostname: string | null, ta
 export const setNameServer = (core: Core, uid: string, ip: string | null, target: NetTarget = 'focus'): Outcome =>
   editNode(core, uid, (node) => withComponent(node, 'resolver', { ...getComponent(node, 'resolver'), nameServer: ip ?? undefined }), target);
 
+// 端末のプロキシの設定（ブラウザの設定）。null で外す。proxyClient が空になれば、コンポーネントごと外す
+const setProxyClient = (core: Core, uid: string, edit: (cur: NonNullable<Components['proxyClient']>) => NonNullable<Components['proxyClient']> | OpFailReason, target: NetTarget): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      const next = edit(getComponent(node, 'proxyClient') ?? {});
+      if (typeof next === 'string') return next;
+      if (next.proxy === undefined && next.pac === undefined) {
+        const { proxyClient: _removed, ...rest } = node.components ?? {};
+        return { ...node, components: Object.keys(rest).length > 0 ? rest : undefined };
+      }
+      return withComponent(node, 'proxyClient', next);
+    },
+    target,
+  );
+
+// プロキシのアドレスとポートを設定する。null で外す（PAC は残す）
+export const setProxy = (core: Core, uid: string, proxy: { ip: string; port: number } | null, target: NetTarget = 'focus'): Outcome =>
+  setProxyClient(
+    core,
+    uid,
+    (cur) => {
+      if (proxy === null) {
+        const { proxy: _old, ...rest } = cur;
+        return rest;
+      }
+      if (!isIp(proxy.ip)) return 'ip';
+      if (!Number.isInteger(proxy.port) || proxy.port < 1 || proxy.port > 65535) return 'port.none';
+      return { ...cur, proxy };
+    },
+    target,
+  );
+
+// PAC の direct（プロキシを通さず直接つなぐ名前の接尾辞の一覧）を設定する。null か空の一覧で外す（プロキシは残す）
+export const setPac = (core: Core, uid: string, direct: string[] | null, target: NetTarget = 'focus'): Outcome =>
+  setProxyClient(
+    core,
+    uid,
+    (cur) => {
+      const { pac: _old, ...rest } = cur;
+      return direct === null || direct.length === 0 ? rest : { ...rest, pac: { direct } };
+    },
+    target,
+  );
+
 // DNS のサービスを動かす（起動は権威で、ゾーンは空から。role で役割を選ぶ）。止めるとゾーンも消える（N68）。動いているときは role だけを変え、ゾーンと転送先は残す
 export const setDnsRole = (core: Core, uid: string, on: boolean, target: NetTarget = 'focus', role?: 'auth' | 'cache'): Outcome =>
   editNode(
@@ -660,12 +706,13 @@ export const removeRoute = (core: Core, uid: string, index: number, target: NetT
 
 // サービスの既定の待ち受けポート（プロトコルごと）。起動するときに使う
 const HTTP_PORT = 80;
+const PROXY_PORT = 8080;
 
 // サービスを起動する（on）または停止する（off）。配線の設定が固定された機器は変えられない
 export const setService = (
   core: Core,
   uid: string,
-  protocol: 'http' | 'radius',
+  protocol: 'http' | 'radius' | 'proxy',
   on: boolean,
   target: NetTarget = 'focus',
 ): Outcome =>
@@ -676,7 +723,7 @@ export const setService = (
       const others = node.services.filter((s) => s.protocol !== protocol);
       if (!on) return { ...node, services: others };
       const current = node.services.find((s) => s.protocol === protocol);
-      return { ...node, services: [...others, current ?? (protocol === 'http' ? { protocol, port: HTTP_PORT } : { protocol })] };
+      return { ...node, services: [...others, current ?? (protocol === 'http' ? { protocol, port: HTTP_PORT } : protocol === 'proxy' ? { protocol, port: PROXY_PORT } : { protocol })] };
     },
     target,
   );

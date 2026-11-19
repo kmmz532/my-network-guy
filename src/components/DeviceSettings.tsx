@@ -32,6 +32,8 @@ import { VlanPortField } from './VlanPortField';
 import { VrrpField } from './VrrpField';
 import { LoadBalancerField } from './LoadBalancerField';
 import { VpnField } from './VpnField';
+import { ProxyField } from './ProxyField';
+import { isPcCategory } from '../data/categories';
 import { ChannelField } from './ChannelField';
 import { SviField } from './SviField';
 import { PoField } from './PoField';
@@ -414,6 +416,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
       {can(node.device, 'firewallRules') && renderFirewallRules()}
       {can(node.device, 'loadBalance') && <LoadBalancerField node={node} netState={netState} disabled={locked} onError={onError} />}
       {can(node.device, 'vpn') && <VpnField node={node} netState={netState} disabled={locked} onError={onError} />}
+      {isPcCategory(category ?? '') && <ProxyField key={`proxy-${node.uid}`} node={node} disabled={locked} onError={onError} />}
     </div>
   );
 }

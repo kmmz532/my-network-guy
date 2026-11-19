@@ -1,7 +1,7 @@
 // 制御のパケットの列（シーケンス図の元）。ping・http の結果（経路）と framesOf（frames.ts）、DNS の名前の解決（dns.ts）、DHCP・OSPF・STP・VRRP の既存の結果を並べるだけで、通信は計算し直さない。
 // STP の BPDU だけは、スイッチ間の制御のため、スイッチが from・to になる。
 // ARP の表は持たず、区間ごとに最初の通信の前に「初回」として出す。乱数は使わない。
-import { deviceCategory } from '../registry/query';
+import { INTERNET_DEVICE, deviceCategory } from '../registry/query';
 import { can } from './capabilities';
 import { isL2Category, isRoutingCategory } from './category';
 import { getComponent } from './components';
@@ -10,7 +10,7 @@ import { analyze } from './engine/analyze';
 import { deliver, dnsQuery, http, ping } from './engine/forward';
 import type { Traffic } from './engine/forward';
 import type { NetworkState } from './engine/state';
-import { withInternet } from './external';
+import { stateForPath, withInternet } from './external';
 import { framesOf, type Frame, type FrameContext } from './frames';
 import { inSubnet } from './engine';
 import { l2Path } from './mac';
@@ -63,9 +63,12 @@ const frameCtx = (state: NetworkState): FrameContext => {
   };
 };
 
+// 仮想のインターネットの機器を含む経路は、フレームも ARP も持たない（仮想の機器には MAC アドレスがない）
+const hasInternet = (ctx: FrameContext, path: readonly string[]): boolean => path.some((uid) => ctx.nodes.find((n) => n.uid === uid)?.device === INTERNET_DEVICE);
+
 // 往路と復路のフレーム（framesOf は往路に復路を続けて返すため、往路だけの数で分ける）
 const framesFor = (ctx: FrameContext, result: PathResult, traffic: Traffic): { forward: Frame[]; back: Frame[] } => {
-  if (result.path.length < 2) return { forward: [], back: [] };
+  if (result.path.length < 2 || hasInternet(ctx, result.path)) return { forward: [], back: [] };
   const { nat, staticNat, tunnel, fragments, backFragments } = result;
   const base = { ok: true, path: result.path, ...(nat ? { nat } : {}), ...(staticNat ? { staticNat } : {}), ...(tunnel ? { tunnel } : {}), ...(fragments ? { fragments } : {}), ...(backFragments ? { backFragments } : {}) };
   const forward = framesOf(ctx, base, traffic);
@@ -112,6 +115,7 @@ const broadcastReach = (b: Builder, from: string, to: string): string[] => {
 
 // 区間ごとの ARP の要求・応答。同じ区間は最初の1回だけ
 const pushArp = (b: Builder, path: readonly string[], frames: readonly Frame[]): void => {
+  if (hasInternet(b.ctx, path)) return;
   const segs = segmentFrames(frames, path);
   for (let i = 0; i + 1 < path.length; i++) {
     const [from, to] = [path[i], path[i + 1]];
@@ -195,10 +199,74 @@ const pushDns = (b: Builder, from: string, name: string): boolean => {
   return lookup.ok;
 };
 
+// プロキシを通る HTTP。端末→プロキシの TCP と HTTP、プロキシ→宛先の TCP と HTTP、プロキシ→端末の HTTP 応答と切断の順に並べる。
+// プロキシへ届かないとき（proxy.unreachable）は、端末からプロキシへの SYN で止める
+const pushProxyHttp = (b: Builder, trigger: Extract<ControlTrigger, { kind: 'http' }>, result: PathResult, proxy: NonNullable<PathResult['proxy']>): void => {
+  const { from, to, port } = trigger;
+  const { client, upstream } = proxy;
+  const proxyParams = { port: proxy.port };
+  const clientFrames = framesFor(b.ctx, client, { kind: 'http', port: proxy.port });
+  const upstreamFrames = framesFor(b.ctx, upstream, { kind: 'http', port });
+  if (client.path.length >= 2) pushArp(b, client.path, clientFrames.forward);
+  const cFwd = endToEndFrame(clientFrames.forward);
+  const cBack = endToEndFrame(clientFrames.back);
+  const toProxy = (proto: ControlStep['proto'], label: string, extra: Partial<ControlStep> = {}): ControlStep => unicast(from, proxy.uid, proto, label, client.path, { frame: cFwd, params: proxyParams, ...extra });
+  const toClient = (proto: ControlStep['proto'], label: string, extra: Partial<ControlStep> = {}): ControlStep => {
+    if (!client.back) throw new Error('制御の列: プロキシの端末への復路がない');
+    return unicast(proxy.uid, from, proto, label, client.back, { frame: cBack, params: proxyParams, ...extra });
+  };
+  b.steps.push(toProxy('tcp', 'seq.tcp.syn'), toClient('tcp', 'seq.tcp.synack'), toProxy('tcp', 'seq.tcp.ack'), toProxy('http', 'seq.http.request'));
+  if (upstream.path.length >= 2) pushArp(b, upstream.path, upstreamFrames.forward);
+  const uFwd = endToEndFrame(upstreamFrames.forward);
+  const uBack = endToEndFrame(upstreamFrames.back);
+  const params = { port };
+  const c2s = (proto: ControlStep['proto'], label: string, extra: Partial<ControlStep> = {}): ControlStep => unicast(proxy.uid, to, proto, label, upstream.path, { frame: uFwd, params, ...extra });
+  const s2c = (proto: ControlStep['proto'], label: string, extra: Partial<ControlStep> = {}): ControlStep => {
+    if (!upstream.back) throw new Error('制御の列: プロキシの宛先からの復路がない');
+    return unicast(to, proxy.uid, proto, label, upstream.back, { frame: uBack, params, ...extra });
+  };
+  if (!upstream.ok) {
+    const failure = failureOf(upstream);
+    if (failure.reason === 'return.failed') {
+      b.steps.push(c2s('tcp', 'seq.tcp.syn'), unicast(to, proxy.uid, 'tcp', 'seq.tcp.synack', [to], { params, failure }));
+    } else {
+      b.steps.push(c2s('tcp', 'seq.tcp.syn', { failure, reached: upstream.path[upstream.path.length - 1] === to ? [to] : [] }));
+    }
+    return;
+  }
+  if (!result.ok) throw new Error('制御の列: プロキシの先は届くのに、全体が届かない');
+  b.steps.push(
+    c2s('tcp', 'seq.tcp.syn'),
+    s2c('tcp', 'seq.tcp.synack'),
+    c2s('tcp', 'seq.tcp.ack'),
+    c2s('http', 'seq.http.request'),
+    s2c('http', 'seq.http.response'),
+    c2s('tcp', 'seq.tcp.fin'),
+    s2c('tcp', 'seq.tcp.ack'),
+    s2c('tcp', 'seq.tcp.fin'),
+    c2s('tcp', 'seq.tcp.ack'),
+    toClient('http', 'seq.http.response'),
+    toProxy('tcp', 'seq.tcp.fin'),
+    toClient('tcp', 'seq.tcp.ack'),
+    toClient('tcp', 'seq.tcp.fin'),
+    toProxy('tcp', 'seq.tcp.ack'),
+  );
+};
+
 const pushHttp = (b: Builder, trigger: Extract<ControlTrigger, { kind: 'http' }>, result: PathResult): void => {
   const { from, to, port } = trigger;
-  const { forward, back } = framesFor(b.ctx, result, { kind: 'http', port });
   if (trigger.name !== undefined && !pushDns(b, from, trigger.name)) return;
+  if (result.proxy) {
+    pushProxyHttp(b, trigger, result, result.proxy);
+    return;
+  }
+  if (result.failure?.reason === 'proxy.unreachable') {
+    // プロキシへ届かない: 端末からプロキシへの SYN で止める（プロキシの機器がなければ、宛先の線へ向ける）
+    const target = result.failure.node === from ? to : result.failure.node;
+    b.steps.push(unicast(from, target, 'tcp', 'seq.tcp.syn', result.path.length > 0 ? result.path : [from], { params: { port }, failure: result.failure, reached: [] }));
+    return;
+  }
+  const { forward, back } = framesFor(b.ctx, result, { kind: 'http', port });
   const path = result.path;
   if (path.length >= 2) pushArp(b, path, forward);
   const fwdFrame = endToEndFrame(forward);
@@ -407,7 +475,9 @@ const pushVpn = (b: Builder, trigger: Extract<ControlTrigger, { kind: 'vpn' }>):
   });
 };
 
-export const controlSequence = (state: NetworkState, trigger: ControlTrigger): ControlStep[] => {
+export const controlSequence = (given: NetworkState, trigger: ControlTrigger): ControlStep[] => {
+  // インターネットへの HTTP は、仮想のインターネットを加えた構成で描く
+  const state = trigger.kind === 'http' ? stateForPath(given, [trigger.from, trigger.to]) : given;
   const b: Builder = { state, ctx: frameCtx(state), steps: [], arpDone: new Set() };
   switch (trigger.kind) {
     case 'vpn':
@@ -417,7 +487,7 @@ export const controlSequence = (state: NetworkState, trigger: ControlTrigger): C
       pushPing(b, trigger, ping(state, trigger.from, trigger.to, { size: trigger.size, df: trigger.df }));
       break;
     case 'http':
-      pushHttp(b, trigger, http(state, trigger.from, trigger.to, trigger.port));
+      pushHttp(b, trigger, http(state, trigger.from, trigger.to, trigger.port, trigger.name));
       break;
     case 'dhcp':
       pushDhcp(b, trigger);

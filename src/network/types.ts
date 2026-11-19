@@ -74,6 +74,8 @@ export type Service =
   | { protocol: 'http'; port: number }
   // RADIUS は UDP 1812 に固定
   | { protocol: 'radius' }
+  // プロキシ。port で待ち受け（既定 8080）、受けた HTTP を宛先へ出し直す
+  | { protocol: 'proxy'; port: number }
   | { protocol: 'dns'; role: 'auth' | 'cache'; zone: DnsRecord[]; forwarder?: string };
 export type DnsService = Extract<Service, { protocol: 'dns' }>;
 export const DNS_PORT = 53;
@@ -288,6 +290,8 @@ export const FAILURE_REASONS = [
   'mtu.exceeded',
   // 同時に流れる通信が混む区間で削られた。札は、削られた区間の入口の機器
   'qos.dropped',
+  // プロキシを設定した端末から、プロキシへ届かない（アドレスの誤り・サービスが動いていない・途中で止まる）。札は、プロキシの機器（機器がなければ端末）
+  'proxy.unreachable',
 ] as const;
 
 export type FailureReason = (typeof FAILURE_REASONS)[number];
@@ -316,4 +320,6 @@ export interface PathResult {
   fragments?: number[];
   // 復路の区間ごとの分割の数
   backFragments?: number[];
+  // プロキシを通った。端末からプロキシまでの区間（client）と、プロキシから宛先までの区間（upstream）。path・back は両方をつないだもの
+  proxy?: { uid: string; port: number; client: PathResult; upstream: PathResult };
 }

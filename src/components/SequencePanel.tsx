@@ -4,7 +4,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { balance } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
-import { controlSequence, http, ping, type ControlStep, type ControlTrigger, type Frame } from '../network/public';
+import { controlSequence, http, ping, stateForPath, type ControlStep, type ControlTrigger, type Frame } from '../network/public';
 import type { Trace } from '../sim/project';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { nextPlayIndex } from '../ui/sequencePlay';
@@ -63,9 +63,10 @@ export function SequenceBody({ trigger: ref }: { trigger: string }) {
   // 本体の通信（ping・HTTP）の区間でない行（HTTP の前の DNS の問い合わせなど）は false を返し、経路を流すだけにする
   const openFrame = (frame: Frame): boolean => {
     if (trigger.kind !== 'ping' && trigger.kind !== 'http') return false;
+    const view = stateForPath(netState, [trigger.from, trigger.to]);
     const trace: Trace = trigger.kind === 'http'
-      ? { kind: 'http', src: trigger.from, dst: trigger.to, result: http(netState, trigger.from, trigger.to, trigger.port) }
-      : { kind: 'ping', src: trigger.from, dst: trigger.to, ...(trigger.size !== undefined ? { size: trigger.size } : {}), ...(trigger.df !== undefined ? { df: trigger.df } : {}), result: ping(netState, trigger.from, trigger.to, { size: trigger.size, df: trigger.df }) };
+      ? { kind: 'http', src: trigger.from, dst: trigger.to, result: http(view, trigger.from, trigger.to, trigger.port, trigger.name) }
+      : { kind: 'ping', src: trigger.from, dst: trigger.to, ...(trigger.size !== undefined ? { size: trigger.size } : {}), ...(trigger.df !== undefined ? { df: trigger.df } : {}), result: ping(view, trigger.from, trigger.to, { size: trigger.size, df: trigger.df }) };
     // 区間は、通った配線と向きで同じものを探す（中身の値の並びには頼らない）
     const hop = framesOfTrace(netState, trace).findIndex((f) => f.link === frame.link && f.from === frame.from && f.to === frame.to);
     if (hop < 0) return false;

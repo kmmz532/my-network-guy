@@ -40,6 +40,5 @@
   "達成条件:コードだけ:ping_all",
   "達成条件:コードだけ:reach_by_name",
   "達成条件:コードだけ:reach_category",
-  "達成条件:仕様だけ:outside_sees",
   "達成条件:仕様だけ:survive_link_failure"
 ]

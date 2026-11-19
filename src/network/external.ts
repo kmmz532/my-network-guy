@@ -1,4 +1,5 @@
 import { analyze } from './engine/analyze';
+import type { NetworkState } from './engine/state';
 import { makeIface } from './iface';
 import { getComponent } from './components';
 // 外部（インターネット）の表し方（N71・N72）。仮想のインターネットを、ルーターの空いている WAN の口（ポート0）につなぐ。
@@ -87,7 +88,8 @@ export const withInternet = (net: Network, _data: EngineData): (Network & { inte
       interfaces: [makeIface(bgp ? ISP_ROUTER_DEVICE : INTERNET_DEVICE, 0, line?.ispIp ?? INTERNET_IP, line?.prefix ?? INTERNET_PREFIX)],
       gateway: wanIp,
       routes: [],
-      services: [],
+      // インターネットの Web サイト。HTTP（80）に応える
+      services: [{ protocol: 'http', port: PUBLIC_PORT }],
       ...(bgp ? { components: { bgp } } : {}),
     });
     links.push({
@@ -106,6 +108,20 @@ export const withInternet = (net: Network, _data: EngineData): (Network & { inte
   }
   if (uids.length === 0) return null;
   return { nodes: [...net.nodes, ...nodes], links: [...net.links, ...links], plans: net.plans, internetUid: uids[0], internetUids: uids, ispDns };
+};
+
+// 仮想のインターネットを加えて計算し直した結果。インターネットの機器を含む通信を、シーケンス図とパケットの中身で描くときに使う。使える回線がなければ null
+export const internetStateOf = (state: NetworkState): NetworkState | null => {
+  const net = withInternet(state.net, state.world);
+  return net ? analyze(net, state.world) : null;
+};
+
+// 通信の経路にある機器がすべて state の機器なら state、仮想のインターネットの機器を含むなら、インターネットを加えた結果を返す
+export const stateForPath = (state: NetworkState, path: readonly string[]): NetworkState => {
+  if (path.every((uid) => state.net.nodes.some((n) => n.uid === uid))) return state;
+  const world = internetStateOf(state);
+  if (!world) throw new Error(`経路の機器が構成にない: ${path.join(',')}`);
+  return world;
 };
 
 // 外部への接続と、公開しているサーバー、社内への漏れを調べる

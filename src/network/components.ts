@@ -66,6 +66,11 @@ export const COMPONENT_SCHEMAS = {
     hosts: z.array(z.object({ name: z.string(), ip: ipv4 })).optional(),
     nameServer: ipv4.optional(),
   }),
+  // プロキシの利用側（ブラウザの設定）。proxy を持つ端末の HTTP は、まずそのプロキシへ届ける。pac の direct は、プロキシを通さず直接つなぐ名前の接尾辞（例 ".corp.example"）
+  proxyClient: z.object({
+    proxy: z.object({ ip: ipv4, port: z.number().int().min(1).max(65535) }).optional(),
+    pac: z.object({ direct: z.array(z.string().min(1)) }).optional(),
+  }),
   // DHCP のプール（サーバーが配る範囲。口のアドレスがプールのネットワークの中にある口で配る）
   dhcpServer: z.array(
     z.object({

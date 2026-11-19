@@ -213,6 +213,30 @@ describe('教材（学習モード）', () => {
     expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true, true, true, true]);
   });
 
+  it('プロキシの教材: 置いた直後はファイアウォールに止められて外へ届かず、両方の PC にプロキシを設定すると2条件とも満たす', () => {
+    const l = lesson('proxy_firewall');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false, false]);
+    expect(lessonGoalResults(l.goals, solutions[l.id](lessonNodes(l)), links, engine)).toEqual([true, true]);
+  });
+
+  it('プロキシの教材の発展の問い: プロキシのサービスが止まると、PC1 の HTTP はプロキシで止まる', () => {
+    const l = lessons.find((x) => x.id === 'proxy_firewall');
+    if (!l?.followUps || !l.followUpSetup) throw new Error('発展の問いがない');
+    const q = l.followUps[0] as Extract<Question, { kind: 'diagnose' }>;
+    const base = drillConfig(l);
+    const set = { id: l.id, questions: l.followUps, setup: l.followUpSetup };
+    const s = drillState(applySetup(set, 'f1', { nodes: solutions[l.id](base.nodes), links: base.links }, env), engine);
+    expect(judgeDiagnose(s, q, { node: 'PROXY', reason: 'proxy.unreachable' })).toBe(true);
+  });
+
+  it('プロキシを通る HTTP の図は、PC からプロキシ、プロキシから外へ分かれて流れる', () => {
+    const l = lesson('proxy_firewall');
+    const state = analyze({ nodes: solutions[l.id](lessonNodes(l)), links: lessonLinks(l), plans: {} }, engine);
+    const http = controlSequence(state, { kind: 'http', from: 'PC1', to: '__internet', port: 80 }).filter((s) => s.proto === 'tcp' && s.label === 'seq.tcp.syn');
+    expect(http.map((s) => [s.from, s.to])).toEqual([['PC1', 'PROXY'], ['PROXY', '__internet']]);
+  });
+
   it('教材の機器に、MAC アドレスの連番が置いた順に振られる', () => {
     const nodes = lessonNodes(lesson('ospf_three_sites'));
     expect(nodes.map((n) => n.macSerial)).toEqual(nodes.map((_, i) => i + 1));

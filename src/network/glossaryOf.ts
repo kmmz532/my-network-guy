@@ -78,6 +78,7 @@ export const GLOSSARY_OF_GOAL: Partial<Record<Goal['type'], string>> = {
   qos_voice: 'qos',
   load_balanced: 'load_balancer',
   public_http: 'napt',
+  outside_sees: 'proxy',
   vpn_up: 'ipsec_vpn',
 };
 

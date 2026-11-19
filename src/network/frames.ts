@@ -214,6 +214,17 @@ const legFrames = (ctx: FrameContext, path: string[], traffic: Traffic, tr: Tran
 // 往路と復路のフレーム。NAPT は往路の送信元と復路の宛先を、静的 NAT は往路の宛先を変換する
 export const framesOf = (ctx: FrameContext, result: PathResult, traffic: Traffic = { kind: 'ping' }): Frame[] => {
   if (!result.ok || result.path.length < 2) return [];
+  // プロキシを通った通信は、端末からプロキシまでと、プロキシから宛先までを別の通信として並べる（往路は端末側から、復路は宛先側から）
+  if (result.proxy) {
+    const { client, upstream, port } = result.proxy;
+    const parts = (leg: PathResult, tr: Traffic): { forward: Frame[]; back: Frame[] } => {
+      const forward = framesOf(ctx, { ...leg, back: undefined }, tr);
+      return { forward, back: framesOf(ctx, leg, tr).slice(forward.length) };
+    };
+    const c = parts(client, { kind: 'http', port });
+    const u = parts(upstream, traffic);
+    return [...c.forward, ...u.forward, ...u.back, ...c.back];
+  }
   const forwardTr: Translation | undefined = result.nat
     ? { router: result.nat.router, field: 'src', before: result.nat.insideIp, after: result.nat.outsideIp }
     : result.staticNat

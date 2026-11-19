@@ -237,6 +237,7 @@ function ServiceTab({ node, nodes, state, readOnly, onError }: { node: NetNode; 
   const http = node.services.find((s) => s.protocol === 'http');
   const running = http !== undefined;
   const radius = node.services.some((x) => x.protocol === 'radius');
+  const proxy = node.services.find((s) => s.protocol === 'proxy');
   const locked = readOnly || node.configLocked;
   // DNS のサービス。同じ名前の機器があれば警告する（N68）
   const dns = node.services.find((s): s is DnsService => s.protocol === 'dns');
@@ -271,6 +272,14 @@ function ServiceTab({ node, nodes, state, readOnly, onError }: { node: NetNode; 
         <Text as='span' tone={radius ? 'ok' : 'note'}>{radius ? t('ui.service.running') : t('ui.service.stopped')}</Text>
         <Button variant='secondary' size='fit' disabled={locked} onClick={() => onError(setService(node.uid, 'radius', !radius))}>
           {radius ? t('ui.service.stop') : t('ui.service.start')}
+        </Button>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <b>{t('ui.service.proxy')}</b>
+        <span>{proxy ? t('ui.service.port', { port: proxy.port }) : null}</span>
+        <Text as="span" tone={proxy ? 'ok' : 'note'}>{proxy ? t('ui.service.running') : t('ui.service.stopped')}</Text>
+        <Button variant="secondary" size="fit" disabled={locked} onClick={() => onError(setService(node.uid, 'proxy', proxy === undefined))}>
+          {proxy ? t('ui.service.stop') : t('ui.service.start')}
         </Button>
       </div>
       {running && <SeenSources node={node} nodes={nodes} state={state} />}

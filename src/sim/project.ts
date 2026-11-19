@@ -348,6 +348,7 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
       ...(setup?.rules ? { firewall: structuredClone(setup.rules) } : {}),
       ...(setup?.vpn ? { vpn: structuredClone(setup.vpn) } : {}),
       ...(p.config?.nameServer ? { resolver: { nameServer: p.config.nameServer } } : {}),
+      ...(p.config?.proxy || p.config?.pac ? { proxyClient: { ...(p.config.proxy ? { proxy: { ...p.config.proxy } } : {}), ...(p.config.pac ? { pac: { direct: [...p.config.pac.direct] } } : {}) } } : {}),
     };
     return {
       uid: p.ref,

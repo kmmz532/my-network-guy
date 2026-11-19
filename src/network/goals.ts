@@ -12,6 +12,7 @@ import { channelOverlapsOf } from './query/channelOverlaps';
 import { interferedAccessPointsOf } from './query/wirelessQuality';
 import { hopSpeedsOf } from './query/pathSpeeds';
 import { qosOf } from './query/qos';
+import { seenIpOf } from './query/seenSources';
 import { ospfNeighborsOf } from './query/ospfNeighbors';
 import { analyze } from './engine/analyze';
 import type { NetworkState } from './engine/state';
@@ -127,6 +128,25 @@ const handlers: { [K in Goal['type']]: Handler } = {
       return { ...base, ok: true, result: r };
     });
     return [results.find((r) => r.ok) ?? results[0]];
+  },
+  // 指定した端末ごとに、インターネットへ HTTP で届けば合格。by があれば、インターネットから見た送信元が機器 by のアドレスであること（プロキシを通る通信の送信元は、プロキシのアドレス）。届かなければその失敗を返す
+  outside_sees: (goal, state) => {
+    if (goal.type !== 'outside_sees') throw new Error('outside_sees ハンドラに別の種類が渡された');
+    const { net, world } = state;
+    const withNet = withInternet(net, world);
+    const by = goal.by === undefined ? undefined : net.nodes.find((n) => n.uid === goal.by);
+    if (goal.by !== undefined && !by) throw new Error(`outside_sees の機器がない: ${goal.by}`);
+    return goal.from.map((uid): GoalResult => {
+      if (!net.nodes.some((n) => n.uid === uid)) throw new Error(`機器が見つからない: ${uid}`);
+      if (!withNet) return { goal, ok: false, kind: 'http', src: uid, dst: '', failure: { reason: 'route.none', node: uid }, result: { ok: false, path: [] } };
+      const view = analyze(withNet, world);
+      const results = withNet.internetUids.map((isp) => ({ isp, r: http(view, uid, isp, goal.port) }));
+      const hit = results.find((x) => x.r.ok) ?? results[0];
+      const base = { goal, kind: 'http' as const, src: uid, dst: hit.isp, result: hit.r };
+      if (!hit.r.ok) return { ...base, ok: false, failure: hit.r.failure };
+      const seen = seenIpOf(net.nodes, uid, hit.r);
+      return { ...base, ok: by === undefined || (seen !== undefined && by.interfaces.some((i) => i.ip === seen)) };
+    });
   },
   // 指定した flow（省くと voice すべて）が、削られずに届けば合格。届かなければ Ping の失敗を、削られていれば qos.dropped を、削られた区間の入口の機器に出す
   qos_voice: (goal, state, flows) => {
@@ -321,7 +341,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
       const r = resolveName(from, goal.name, net, world);
       const dst = r.ok ? net.nodes.find((n) => n.interfaces.some((i) => i.ip === r.ip)) : undefined;
       if (!dst) return { goal, ok: false, failure: { reason: 'name.unresolved' as const, node: uid }, kind: 'http' as const, src: uid, dst: uid, result: { ok: false, path: [] }, name: goal.name };
-      const result = http(state, uid, dst.uid, goal.port);
+      const result = http(state, uid, dst.uid, goal.port, goal.name);
       return { goal, ok: result.ok, failure: result.failure, kind: 'http' as const, src: uid, dst: dst.uid, result, name: goal.name };
     });
   },

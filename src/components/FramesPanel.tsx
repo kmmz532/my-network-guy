@@ -2,7 +2,7 @@
 // 前の区間から変わった欄は色を変える（MAC の付け替え・NAT の変換・TTL の減少）。失敗した通信は、止まった機器と理由を最後の行に出す
 import { Fragment, useEffect, useState } from 'react';
 import { t, tDyn } from '../i18n/t';
-import { framesOf, isL2Category, isRoutingCategory, type Frame, type FrameContext, type NetworkState } from '../network/public';
+import { framesOf, isL2Category, isRoutingCategory, stateForPath, type Frame, type FrameContext, type NetworkState } from '../network/public';
 import type { Trace } from '../sim/project';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
@@ -11,14 +11,16 @@ import { Button } from './ui/Button';
 import { Select } from './ui/Select';
 import { Cell, HeadCell, HeadRow, Row, Table } from './ui/Table';
 import { Text } from './ui/Text';
-import { deviceCategory } from '../registry/query';
+import { INTERNET_DEVICE, deviceCategory } from '../registry/query';
 
 const cell = (value: string | number, changed: boolean) => <Cell mark={changed ? 'changed' : undefined}>{value}</Cell>;
 
 const portText = (f: Frame) => (f.l4 ? `${f.l4.srcPort}→${f.l4.dstPort}` : '-');
 
 // 通信の結果のフレームの列（欄とシーケンス図で同じ列を使う）
-export const framesOfTrace = (netState: NetworkState, trace: Trace): Frame[] => {
+export const framesOfTrace = (given: NetworkState, trace: Trace): Frame[] => {
+  // インターネットの機器を含む通信は、インターネットを加えた構成で計算する
+  const netState = stateForPath(given, trace.result.path);
   const nodes = netState.input.nodes;
   const category = (uid: string) => deviceCategory(nodes.find((n) => n.uid === uid)?.device ?? '');
   const ctx: FrameContext = {
@@ -28,6 +30,8 @@ export const framesOfTrace = (netState: NetworkState, trace: Trace): Frame[] => 
     isSwitch: (uid) => isL2Category(category(uid)),
     isRouter: (uid) => isRoutingCategory(category(uid)),
   };
+  // 仮想のインターネットの機器には MAC アドレスがないため、それを含む通信のフレームは出さない
+  if (trace.result.path.some((uid) => nodes.find((n) => n.uid === uid)?.device === INTERNET_DEVICE)) return [];
   return framesOf(ctx, trace.result, trace.kind === 'http' ? { kind: 'http', port: 80 } : { kind: 'ping' });
 };
 

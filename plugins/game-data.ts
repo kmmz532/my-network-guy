@@ -259,6 +259,8 @@ const goalRefs = (goal: Goal): string[] => {
       return [goal.from, goal.lb];
     case 'http_by_name':
       return goal.from;
+    case 'outside_sees':
+      return [...goal.from, ...(goal.by === undefined ? [] : [goal.by])];
     case 'ping_all':
       return goal.nodes === '$all_pcs' ? [] : goal.nodes;
     case 'count':

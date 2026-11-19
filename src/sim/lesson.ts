@@ -21,14 +21,14 @@ export const lessonNodes = (lesson: Pick<Lesson, 'placed'>): NetNode[] =>
     y: p.y,
     locked: p.locked,
     configLocked: p.config?.locked ?? false,
-    // setup は、口の MTU など IP アドレス以外の最初の設定と、VPN のトンネル（案件の setup と同じ形）
+    // setup は、口の MTU など IP アドレス以外の最初の設定と、VPN のトンネル・ファイアウォールの規則（案件の setup と同じ形）
     interfaces: (p.config?.interfaces ?? []).map((i) => {
       const { port: _port, ...extra } = p.setup?.interfaces?.find((e) => e.port === i.port) ?? { port: i.port };
       return { ...makeIface(p.device, i.port, i.ip, i.prefix), ...(i.dhcp ? { dhcp: true as const } : {}), ...structuredClone(extra) };
     }),
     gateway: p.config?.gateway ?? null,
-    ...(p.isp || p.wireless || p.config?.nameServer || p.setup?.vpn
-      ? { components: { ...(p.isp ? { isp: p.isp } : {}), ...(p.wireless ? { wireless: { ...p.wireless } } : {}), ...(p.config?.nameServer ? { resolver: { nameServer: p.config.nameServer } } : {}), ...(p.setup?.vpn ? { vpn: structuredClone(p.setup.vpn) } : {}) } }
+    ...(p.isp || p.wireless || p.config?.nameServer || p.config?.proxy || p.config?.pac || p.setup?.vpn || p.setup?.rules
+      ? { components: { ...(p.isp ? { isp: p.isp } : {}), ...(p.wireless ? { wireless: { ...p.wireless } } : {}), ...(p.config?.nameServer ? { resolver: { nameServer: p.config.nameServer } } : {}), ...(p.config?.proxy || p.config?.pac ? { proxyClient: { ...(p.config.proxy ? { proxy: { ...p.config.proxy } } : {}), ...(p.config.pac ? { pac: { direct: [...p.config.pac.direct] } } : {}) } } : {}), ...(p.setup?.vpn ? { vpn: structuredClone(p.setup.vpn) } : {}), ...(p.setup?.rules ? { firewall: structuredClone(p.setup.rules) } : {}) } }
       : {}),
     routes: [],
     services: (p.config?.services ?? []).map((s) => ({ ...s })),
