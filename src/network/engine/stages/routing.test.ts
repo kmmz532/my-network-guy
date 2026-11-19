@@ -41,3 +41,36 @@ describe('stageRouting', () => {
     expect(routing.bgpOf('r2')?.sessions[0].status.state).toBe('established');
   });
 });
+
+// 同じコストの2経路（a→b→d と a→c→d）。a から見て d の LAN へのネクストホップは、b 側の 10.0.1.2 と c 側の 10.0.2.2
+const diamond = (proto: 'ospf' | 'rip', nodeOrder: 'asc' | 'desc', linkOrder: 'asc' | 'desc'): Network => {
+  const p = proto === 'ospf' ? { ospf: { area: 0 } } : { rip: true };
+  const nodes = [
+    node('a', [iface(0, '10.0.1.1', p), iface(1, '10.0.2.1', p)]),
+    node('b', [iface(0, '10.0.1.2', p), iface(1, '10.0.3.1', p)]),
+    node('c', [iface(0, '10.0.2.2', p), iface(1, '10.0.4.1', p)]),
+    node('d', [iface(0, '10.0.3.2', p), iface(1, '10.0.4.2', p), iface(2, '10.0.5.1', p)]),
+  ];
+  const links = [link('l0', 'a', 0, 'b', 0), link('l1', 'a', 1, 'c', 0), link('l2', 'b', 1, 'd', 0), link('l3', 'c', 1, 'd', 1)];
+  return {
+    nodes: nodeOrder === 'asc' ? nodes : [...nodes].reverse(),
+    links: linkOrder === 'asc' ? links : [...links].reverse(),
+    plans: {},
+  };
+};
+
+describe('stageRouting の同じコストの経路', () => {
+  for (const proto of ['ospf', 'rip'] as const) {
+    it(`${proto}: 配線と機器の並び順に関係なく、ネクストホップの小さいほうを選ぶ`, () => {
+      for (const nodeOrder of ['asc', 'desc'] as const) {
+        for (const linkOrder of ['asc', 'desc'] as const) {
+          const links = stageLinks(diamond(proto, nodeOrder, linkOrder), gameEnv.engine);
+          const routing = stageRouting(links.net, stageL2(links.net, links), links);
+          const route = routing.routesOf('a').find((r) => r.dest === '10.0.5.0' && r.protocol === proto);
+          expect(route?.nextHop, `${nodeOrder}/${linkOrder}`).toBe('10.0.1.2');
+          expect(route?.metric).toBe(2);
+        }
+      }
+    });
+  }
+});

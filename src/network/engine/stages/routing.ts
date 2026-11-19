@@ -2,7 +2,7 @@
 // 実効の構成（アドレスの層の net）と L2 の層だけから求める。経路の計算は、最初に読まれたときに1回だけ行う
 import { isRoutingCategory } from '../../category';
 import { computeBgp, type BgpEnv, type BgpResult } from '../../bgp';
-import { inSubnet, networkOf } from '../../ip';
+import { inSubnet, ipToInt, networkOf } from '../../ip';
 import { getComponent } from '../../components';
 import { isSviPort } from '../../category';
 import { OSPF_DEFAULT_REFERENCE_MBPS, OSPF_SVI_SPEED_MBPS, ospfCostOfSpeed, ospfMismatch, type OspfMismatch } from '../../ospf';
@@ -96,10 +96,17 @@ export const stageRouting = (net: Network, l2: L2Layer, links: LinkLayer): Routi
             const d = dist.get(from);
             if (d === undefined) continue;
             for (const e of edges) {
+              if (e.to === r.uid) continue;
               const nd = d + e.cost;
-              if (dist.get(e.to) === undefined || nd < (dist.get(e.to) as number)) {
+              const hop = from === r.uid ? e.nextHop : (first.get(from) as string);
+              const cur = dist.get(e.to);
+              if (cur === undefined || nd < cur) {
                 dist.set(e.to, nd);
-                first.set(e.to, from === r.uid ? e.nextHop : (first.get(from) as string));
+                first.set(e.to, hop);
+                changed = true;
+              } else if (nd === cur && ipToInt(hop) < ipToInt(first.get(e.to) as string)) {
+                // 同じコストの経路が複数あるときは、ネクストホップのアドレスが小さいほうを使う（辺の並び順に依らない）
+                first.set(e.to, hop);
                 changed = true;
               }
             }
