@@ -90,25 +90,25 @@ export function SequenceBody({ trigger: ref }: { trigger: string }) {
   const { lanes, rows } = sequenceLayout(steps);
 
   // フレームのある行は、その区間を選んだパケットの中身の窓を開く（マップのパケットも同じ区間に止まる）
-  const openFrame = (frame: Frame) => {
-    if (trigger.kind !== 'ping' && trigger.kind !== 'http') return;
+  // 本体の通信（ping・HTTP）の区間でない行（HTTP の前の DNS の問い合わせなど）は false を返し、経路を流すだけにする
+  const openFrame = (frame: Frame): boolean => {
+    if (trigger.kind !== 'ping' && trigger.kind !== 'http') return false;
     const trace: Trace = trigger.kind === 'http'
       ? { kind: 'http', src: trigger.from, dst: trigger.to, result: http(netState, trigger.from, trigger.to, trigger.port) }
       : { kind: 'ping', src: trigger.from, dst: trigger.to, result: ping(netState, trigger.from, trigger.to) };
-    const hop = framesOfTrace(netState, trace).findIndex((f) => JSON.stringify(f) === JSON.stringify(frame));
-    if (hop < 0) throw new Error(`シーケンス図: 行のフレームが通信のフレームにない ${ref}`);
+    // 区間は、通った配線と向きで同じものを探す（中身の値の並びには頼らない）
+    const hop = framesOfTrace(netState, trace).findIndex((f) => f.link === frame.link && f.from === frame.from && f.to === frame.to);
+    if (hop < 0) return false;
     showTrace(trace);
     openWindow('frames', `h${hop}`);
+    return true;
   };
 
   const pickRow = (i: number) => {
     setPlaying(false);
     setPick(i);
     const step = steps[i];
-    if (step.frame) {
-      openFrame(step.frame);
-      return;
-    }
+    if (step.frame && openFrame(step.frame)) return;
     const trace = pathTraceOf(step, trigger.kind === 'http' ? 'http' : 'ping');
     if (trace) showTrace(trace);
   };
