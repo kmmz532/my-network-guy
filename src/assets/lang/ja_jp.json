@@ -1138,7 +1138,7 @@
   "ui.glossary.open": "用語の説明を見る",
   "ui.guide.next": "次: {text}",
   "ui.guide.restore": "案内を出す",
-  "ui.guide.skip": "しまう",
+  "ui.guide.skip": "閉じる",
   "ui.help.action": "動き",
   "ui.help.key": "キー",
   "ui.help.title": "キー操作",
