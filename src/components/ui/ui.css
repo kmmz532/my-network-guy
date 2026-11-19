@@ -1785,3 +1785,51 @@ input.ui-terminal-input__field::placeholder {
   color: var(--fg-placeholder);
   opacity: 1;
 }
+
+/* SequenceDiagram: シーケンス図。線と文字は本文の色、失敗の行は失敗の色 */
+.ui-sequence {
+  overflow: auto;
+}
+
+.ui-sequence__name,
+.ui-sequence__text,
+.ui-sequence__cross {
+  fill: var(--fg);
+  font-size: var(--fs-s);
+}
+
+.ui-sequence__name {
+  font-weight: bold;
+}
+
+.ui-sequence__lane {
+  stroke: var(--fg-note);
+  stroke-width: 1;
+}
+
+.ui-sequence__arrow {
+  stroke: var(--fg);
+  stroke-width: 1.5;
+}
+
+.ui-sequence__arrow--dashed {
+  stroke-dasharray: 5 4;
+}
+
+.ui-sequence__head {
+  fill: var(--fg);
+}
+
+.ui-sequence__cross {
+  font-size: var(--fs-l);
+  font-weight: bold;
+}
+
+.ui-sequence__row--failed .ui-sequence__text,
+.ui-sequence__row--failed .ui-sequence__cross {
+  fill: var(--st-error);
+}
+
+.ui-sequence__row--failed .ui-sequence__arrow {
+  stroke: var(--st-error);
+}

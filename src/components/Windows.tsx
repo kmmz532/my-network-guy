@@ -14,6 +14,7 @@ import { InventoryBody } from './Inventory';
 import { CompanyBody } from './CompanyPanel';
 import { FundsBody } from './FundsPanel';
 import { FramesBody } from './FramesPanel';
+import { SequenceBody } from './SequencePanel';
 import { Button } from './ui/Button';
 import { Scrim } from './ui/Scrim';
 import { Tabs } from './Tabs';
@@ -69,6 +70,7 @@ const tabLabel = (kind: WindowKind, ref: string): ReactNode => {
     );
   }
   if (kind === 'frames') return <b style={{ whiteSpace: 'nowrap' }}>{t('ui.frames.title')}</b>;
+  if (kind === 'sequence') return <b style={{ whiteSpace: 'nowrap' }}>{t('ui.sequence.title')}</b>;
   if (kind === 'funds') {
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -184,6 +186,7 @@ export function Windows() {
           {w.kind === 'company' && <CompanyBody />}
           {w.kind === 'funds' && <FundsBody />}
           {w.kind === 'frames' && <FramesBody key={w.active} goal={/^\d+$/.test(w.active) ? Number(w.active) : undefined} />}
+          {w.kind === 'sequence' && <SequenceBody key={w.active} trigger={w.active} />}
           {w.kind === 'office' && <OfficeBody />}
           {/* スマホでは、本文の下に閉じるボタンを置く（パソコンは窓の×で閉じる） */}
           {narrow && (

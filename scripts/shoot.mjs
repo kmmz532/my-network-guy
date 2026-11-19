@@ -995,6 +995,39 @@ const scenes = {
     await input.fill('show fo');
     await page.waitForTimeout(300);
   },
+  // シーケンス図。ルーターを越える ping をターミナルで打ち、結果の欄の「シーケンス図を見る」から窓を開く
+  sequence: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      g.buy('pc_basic');
+      g.buy('pc_basic');
+      g.buy('router_basic');
+      g.place('pc_basic', 2, 2);
+      g.place('pc_basic', 14, 2);
+      g.place('router_basic', 8, 2);
+      const st = () => window.__game.getState();
+      const pcs = st().office.nodes.filter((n) => n.device === 'pc_basic');
+      const r = st().office.nodes.find((n) => n.device === 'router_basic');
+      st().connect(pcs[0].uid, r.uid, 'utp_cat5e');
+      st().connect(pcs[1].uid, r.uid, 'utp_cat5e');
+      st().setIface(pcs[0].uid, 0, '192.168.1.10', 24);
+      st().setGateway(pcs[0].uid, '192.168.1.1');
+      st().setIface(pcs[1].uid, 0, '192.168.2.10', 24);
+      st().setGateway(pcs[1].uid, '192.168.2.1');
+      st().setIface(r.uid, 0, '192.168.1.1', 24);
+      st().setIface(r.uid, 1, '192.168.2.1', 24);
+      st().openWindow('device', pcs[0].uid);
+    });
+    await page.waitForTimeout(800);
+    await page.getByText('ターミナル', { exact: true }).click();
+    const input = page.getByLabel('コマンドを入力');
+    await input.fill('ping 192.168.2.10');
+    await input.press('Enter');
+    await page.waitForTimeout(500);
+    await page.getByRole('button', { name: 'シーケンス図を見る' }).click();
+    await page.waitForTimeout(500);
+  },
   // ターミナルの予測（薄い文字）。スマホでは次に打てる語のボタンと「→」のボタンも出る
   terminalghost: async (page) => {
     await scenes.sandbox(page);

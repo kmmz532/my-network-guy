@@ -21,6 +21,7 @@ import { Button } from './ui/Button';
 import { TerminalInput } from './ui/TerminalInput';
 import { TerminalOutput } from './ui/TerminalOutput';
 import { Text } from './ui/Text';
+import { sequenceRef } from './SequencePanel';
 import { WordList } from './ui/WordList';
 
 const NO_LINES: TerminalLine[] = [];
@@ -163,6 +164,7 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
   };
 
   const hasTraces = useGameStore((s) => s.traces.length > 0);
+  const firstTrace = useGameStore((s) => s.traces[0]);
   const openWindow = useGameStore((s) => s.openWindow);
   return (
     <div>
@@ -170,6 +172,11 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
       {hasTraces && (
         <Button variant="secondary" layout={{ marginBottom: 6 }} onClick={() => openWindow('frames', '')}>
           {t('ui.frames.open')}
+        </Button>
+      )}
+      {firstTrace && (
+        <Button variant="secondary" layout={{ marginBottom: 6 }} onClick={() => openWindow('sequence', sequenceRef(firstTrace))}>
+          {t('ui.sequence.open')}
         </Button>
       )}
       {tabList !== null && <WordList words={tabList.items} selected={tabList.index} />}

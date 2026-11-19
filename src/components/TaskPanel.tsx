@@ -12,6 +12,7 @@ import { GLOSSARY_OF_FAILURE, termOfGoal } from '../network/glossaryOf';
 import { lessonEntryOf } from '../sim/lessonCatalog';
 import { lessonCatalog } from '../stores/lessonCatalog';
 import { DrillPanel, QuestionFlow } from './DrillPanel';
+import { sequenceRef } from './SequencePanel';
 import { Button } from './ui/Button';
 import { HudBar } from './ui/HudBar';
 import { Text } from './ui/Text';
@@ -183,6 +184,7 @@ export function TaskPanel() {
             {goals.map((g, i) => {
               // × は失敗した機器を選び、機器の画面を開く（失敗の機器がないものは押せない）
               const icon = <Icon name={g.ok === false ? 'icon/close' : 'icon/ok'} scale={1} />;
+              const goalTrace = traces.find((tr) => tr.goal === i);
               return (
                 <li key={i} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'flex-start', marginTop: 4 }}>
                   {g.ok === false && g.node ? (
@@ -206,6 +208,11 @@ export function TaskPanel() {
                   {traces.some((tr) => tr.goal === i) && (
                     <Button variant="secondary" size="s" layout={{ flexShrink: 0 }} onClick={() => openWindow('frames', String(i))}>
                       {t('ui.frames.goal')}
+                    </Button>
+                  )}
+                  {goalTrace && (
+                    <Button variant="secondary" size="s" layout={{ flexShrink: 0 }} onClick={() => openWindow('sequence', sequenceRef(goalTrace))}>
+                      {t('ui.sequence.open')}
                     </Button>
                   )}
                   {g.ok === false && g.term && (
