@@ -1,0 +1,244 @@
+{
+  "goals": [
+    true,
+    true
+  ],
+  "pings": [
+    {
+      "from": "PC1",
+      "to": "WEB1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC1",
+        "WEB1"
+      ]
+    },
+    {
+      "from": "PC1",
+      "to": "WEB2",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC1",
+        "WEB2"
+      ]
+    },
+    {
+      "from": "WEB1",
+      "to": "PC1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "WEB1",
+        "PC1"
+      ]
+    },
+    {
+      "from": "WEB1",
+      "to": "WEB2",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "WEB1",
+        "WEB2"
+      ]
+    },
+    {
+      "from": "WEB2",
+      "to": "PC1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "WEB2",
+        "PC1"
+      ]
+    },
+    {
+      "from": "WEB2",
+      "to": "WEB1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "WEB2",
+        "WEB1"
+      ]
+    }
+  ],
+  "https": [
+    {
+      "from": "PC1",
+      "to": "WEB1",
+      "ok": true,
+      "reason": null
+    },
+    {
+      "from": "PC1",
+      "to": "WEB2",
+      "ok": true,
+      "reason": null
+    },
+    {
+      "from": "WEB1",
+      "to": "WEB2",
+      "ok": true,
+      "reason": null
+    },
+    {
+      "from": "WEB2",
+      "to": "WEB1",
+      "ok": true,
+      "reason": null
+    }
+  ],
+  "shows": [
+    {
+      "node": "LB",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.1.0\",\"prefix\":24,\"port\":0}"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"SW1\",\"cost\":0}"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:20:00:00:04:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:20:00:00:05:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:20:00:00:04:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:20:00:00:05:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:20:00:00:04:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:20:00:00:05:00\"}",
+        "out:ui.terminal.macEntry {\"port\":3,\"mac\":\"02:20:00:00:05:00\"}",
+        "out:ui.terminal.macEntry {\"port\":3,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":3,\"mac\":\"02:20:00:00:04:00\"}"
+      ]
+    },
+    {
+      "node": "WEB1",
+      "cmd": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    },
+    {
+      "node": "WEB2",
+      "cmd": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "lesson_link_1",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_2",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_3",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_4",
+      "color": 6472959
+    }
+  ],
+  "ports": [
+    {
+      "node": "LB",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "PC1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "SW1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        },
+        {
+          "port": 3,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "WEB1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "WEB2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [
+    [
+      "PC1",
+      {
+        "reason": "gateway.mismatch",
+        "gateway": "",
+        "ip": "10.0.1.100"
+      }
+    ]
+  ],
+  "warnings": []
+}

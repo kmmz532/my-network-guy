@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { lessons } from 'virtual:game-data';
 import { deviceCategory } from '../registry/query';
 import ja from '../assets/lang/ja_jp.json';
-import type { Lesson } from '../data/schema';
+import type { Balance, Lesson, Question } from '../data/schema';
+import balanceJson from '../assets/data/balance.json';
+import { applySetup, drillConfig, drillState, judgeDiagnose } from './drill';
+import type { Env } from './project';
 import type { EngineData } from '../network/types';
 import { lessonGoalResults, lessonLinks, lessonNodes, lessonPlans } from './lesson';
 import { planFor } from '../network/segments';
@@ -15,6 +18,7 @@ const domainsOf = (net: Network, data: EngineData) => analyze(net, data).l2.plan
 import { solutions } from '../__golden__/solutions';
 
 const engine: EngineData = { wallAt: () => false, interferers: [] };
+const env: Env = { balance: balanceJson as unknown as Balance, engine };
 
 const lesson = (id: string): Lesson => {
   const found = lessons.find((l) => l.id === id);
@@ -103,6 +107,24 @@ describe('教材（学習モード）', () => {
     expect(lessonGoalResults(l.goals, on('rip')(lessonNodes(l)), links, engine)).toEqual([true, false]);
     expect(lessonGoalResults(l.goals, on('ospf')(lessonNodes(l)), links, engine)).toEqual([true, false]);
     expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true, true]);
+  });
+
+  it('ロードバランサーの教材: 置いた直後は負荷分散の達成条件を満たさず、仮想サーバーを設定すると2条件とも満たす', () => {
+    const l = lesson('lb_basics');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)[0]).toBe(false);
+    expect(lessonGoalResults(l.goals, solutions[l.id](lessonNodes(l)), links, engine)).toEqual([true, true]);
+  });
+
+
+  it('ロードバランサーの教材の発展の問い: ヘルスチェックなしで WEB2 が止まると、PC1 からの HTTP は LB で止まる', () => {
+    const l = lessons.find((x) => x.id === 'lb_basics');
+    if (!l?.followUps || !l.followUpSetup) throw new Error('発展の問いがない');
+    const q = l.followUps[0] as Extract<Question, { kind: 'diagnose' }>;
+    const base = drillConfig(l);
+    const set = { id: l.id, questions: l.followUps, setup: l.followUpSetup };
+    const s = drillState(applySetup(set, 'f1', { nodes: solutions[l.id](base.nodes), links: base.links }, env), engine);
+    expect(judgeDiagnose(s, q, { node: 'LB', reason: 'lb.member_down' })).toBe(true);
   });
 
   it('DNS の教材: 初めは外へ出られず、NAT を設定すると通る。ネームサーバーを向けると社内と外の名前が引ける', () => {

@@ -1,0 +1,130 @@
+{
+  "id": "lb_basics",
+  "topic": "redundancy",
+  "order": 21,
+  "size": {
+    "w": 12,
+    "h": 8
+  },
+  "placed": [
+    {
+      "ref": "PC1",
+      "device": "pc_basic",
+      "x": 1,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [{ "port": 0, "ip": "10.0.1.10", "prefix": 24 }],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "PC1"
+    },
+    {
+      "ref": "SW1",
+      "device": "l2_switch_8p",
+      "x": 4,
+      "y": 3,
+      "locked": false,
+      "name": "SW1"
+    },
+    {
+      "ref": "LB",
+      "device": "load_balancer",
+      "x": 6,
+      "y": 3,
+      "locked": false,
+      "config": {
+        "interfaces": [{ "port": 0, "ip": "10.0.1.100", "prefix": 24 }],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "LB"
+    },
+    {
+      "ref": "WEB1",
+      "device": "server_basic",
+      "x": 9,
+      "y": 1,
+      "locked": true,
+      "config": {
+        "interfaces": [{ "port": 0, "ip": "10.0.1.11", "prefix": 24 }],
+        "gateway": null,
+        "services": [{ "protocol": "http", "port": 80 }],
+        "locked": false
+      },
+      "name": "WEB1"
+    },
+    {
+      "ref": "WEB2",
+      "device": "server_basic",
+      "x": 9,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [{ "port": 0, "ip": "10.0.1.12", "prefix": 24 }],
+        "gateway": null,
+        "services": [{ "protocol": "http", "port": 80 }],
+        "locked": false
+      },
+      "name": "WEB2"
+    }
+  ],
+  "links": [
+    { "cable": "utp_cat5e", "a": { "ref": "PC1", "port": 0 }, "b": { "ref": "SW1", "port": 1 } },
+    { "cable": "utp_cat5e", "a": { "ref": "LB", "port": 0 }, "b": { "ref": "SW1", "port": 0 } },
+    { "cable": "utp_cat5e", "a": { "ref": "WEB1", "port": 0 }, "b": { "ref": "SW1", "port": 2 } },
+    { "cable": "utp_cat5e", "a": { "ref": "WEB2", "port": 0 }, "b": { "ref": "SW1", "port": 3 } }
+  ],
+  "goals": [
+    { "type": "load_balanced", "from": "PC1", "lb": "LB", "port": 80, "minHealthy": 2 },
+    { "type": "survive_device_failure", "nodes": ["WEB1", "WEB2"] }
+  ],
+  "guide": [
+    { "target": "LB", "done": "open:LB" },
+    { "target": "LB", "done": "cmd:show load-balancer" },
+    { "target": "test", "done": "goal:1" },
+    { "target": "WEB1", "done": "down:WEB1" },
+    { "target": "test", "done": "goal:2" }
+  ],
+  "followUps": [
+    {
+      "kind": "diagnose",
+      "id": "f1",
+      "from": "PC1",
+      "to": "LB",
+      "traffic": { "kind": "http", "port": 80 }
+    }
+  ],
+  "followUpSetup": [
+    {
+      "before": "f1",
+      "change": [
+        {
+          "kind": "config",
+          "uid": "LB",
+          "change": {
+            "kind": "loadBalancer",
+            "servers": [
+              {
+                "vip": "10.0.1.100",
+                "port": 80,
+                "members": [{ "ip": "10.0.1.11", "port": 80 }, { "ip": "10.0.1.12", "port": 80 }],
+                "method": "round_robin",
+                "healthCheck": "none",
+                "snat": true
+              }
+            ]
+          }
+        },
+        {
+          "kind": "config",
+          "uid": "WEB2",
+          "change": { "kind": "power", "on": false }
+        }
+      ]
+    }
+  ]
+}

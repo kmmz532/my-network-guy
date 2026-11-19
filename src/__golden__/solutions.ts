@@ -11,6 +11,7 @@ const AREA_OF: Record<string, Record<number, number>> = { R1: { 0: 1, 1: 0 }, R2
 
 export const solutions: Record<string, Solve> = {
   rip_three_sites: on(['R1', 'R2', 'R3'], (n) => ifaces(n, (i) => ({ ...i, rip: true }))),
+  lb_basics: on(['LB'], (n) => ({ ...n, components: { loadBalancer: [{ vip: '10.0.1.100', port: 80, members: [{ ip: '10.0.1.11', port: 80 }, { ip: '10.0.1.12', port: 80 }], method: 'round_robin', healthCheck: 'http', snat: true }] } })),
   rip_vs_ospf: on(['R1', 'R2', 'R3'], (n) => ({ ...ifaces(n, (i) => ({ ...i, ospf: { area: 0 } })), components: { ospf: { referenceBandwidth: 1000 } } })),
   ospf_three_sites: on(['R1', 'R2', 'R3'], (n) => ifaces(n, (i) => ({ ...i, ospf: { area: 0 } }))),
   wildcard_mask: on(['R1', 'R2'], (n) => ifaces(n, (i) => ({ ...i, ospf: { area: 0 } }))),
