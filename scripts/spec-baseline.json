@@ -24,7 +24,6 @@
   "能力:コードだけ:lag",
   "能力:コードだけ:uplink",
   "能力:コードだけ:vrrp",
-  "警告:コードだけ:link.cable_bottleneck",
   "警告:仕様だけ:stp.blocked_path",
   "達成条件:コードだけ:bgp_established",
   "達成条件:コードだけ:blocked",
