@@ -9,7 +9,7 @@ import type { Facing } from './facing';
 
 
 
-import { isSwitchedRouterCategory } from '../network/category';
+import { isSviPort, isSwitchedRouterCategory, SVI_PORT_BASE } from '../network/category';
 import { engineWithSite, siteFurnitureOf } from './walls';
 import type { Offer } from '../contracts/template';
 
@@ -35,7 +35,7 @@ import { type Stars } from './blindDelegate';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { cableLengthOf, checkCableLength } from './cableLength';
 
-import { makeIface } from '../network/iface';
+import { makeIface, makeSvi } from '../network/iface';
 import { can } from '../network/capabilities';
 import { deviceCategory, portCountOf, devicePrice, devicePortType, cableDef } from '../registry/query';
 import type { CableDef } from '../registry/defs';
@@ -355,7 +355,7 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
       configLocked: p.config?.locked ?? false,
       interfaces: (p.config?.interfaces ?? []).map((i) => {
         const { port: _port, ...rest } = extra(i.port) ?? { port: i.port };
-        return { ...makeIface(p.device, i.port, i.ip, i.prefix), ...(i.dhcp ? { dhcp: true as const } : {}), ...structuredClone(rest) };
+        return { ...(isSviPort(i.port) ? makeSvi(i.port - SVI_PORT_BASE, i.ip, i.prefix) : makeIface(p.device, i.port, i.ip, i.prefix)), ...(i.dhcp ? { dhcp: true as const } : {}), ...structuredClone(rest) };
       }),
       gateway: p.config?.gateway ?? null,
       routes: [],
