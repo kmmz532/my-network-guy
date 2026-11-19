@@ -742,7 +742,7 @@ const cableWidthOf = (nodes: readonly { uid: string; device: string }[], link: {
   const speedAt = (end: { node: string; port: number }) => {
     const node = nodes.find((n) => n.uid === end.node);
     const speed = node ? portSpeed(node.device, end.port) : undefined;
-    if (speed === undefined) throw new Error(`配線の端の口が見つからない: ${end.node}#${end.port}`);
+    if (speed === undefined) throw new Error(`配線の端のポートが見つからない: ${end.node}#${end.port}`);
     return speed;
   };
   const speed = Math.min(cablesById[link.cable].bandwidthMbps, speedAt(link.a), speedAt(link.b));

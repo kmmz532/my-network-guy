@@ -257,7 +257,7 @@ export class MapInput {
       openStaff: (uid) => store.openWindow('staff', uid),
       // 口の一覧は配線の道具の一覧なので、道具も配線に変えてから開く
       openPorts: () => {
-        if (!node) throw new Error('口の一覧の対象の機器がない');
+        if (!node) throw new Error('ポートの一覧の対象の機器がない');
         store.setTool('wire');
         this.openMenuAt(node);
       },
