@@ -6,7 +6,7 @@ import type { NetNode } from '../network/types';
 import { CAPABILITY_REFUSALS, type GatedCapability } from './capabilityGate';
 import { initialOffice } from './furniture';
 import { REQUIRES } from '../network/components';
-import { setBgp, setChannel, setDhcp, setFirewallRules, setIsp, setNat, setOspf, setPortMode, setRouting, setStp, setSvi, setVrrp, setWireless } from './netEdit';
+import { setBgp, setChannel, setDhcp, setFirewallRules, setIsp, setLoadBalancer, setNat, setOspf, setPortMode, setRouting, setStp, setSvi, setVrrp, setWireless } from './netEdit';
 import type { Core, Env, Outcome } from './project';
 
 const balance = balanceJson as unknown as Balance;
@@ -33,6 +33,7 @@ const ATTEMPTS: Record<GatedCapability, { device: string; run: (core: Core) => O
   firewall: { device: 'pc_basic', run: (c) => setFirewallRules(c, 'n', [], 'office') },
   ospf: { device: 'pc_basic', run: (c) => setOspf(c, 'n', { op: 'routerId', ip: '1.1.1.1' }, 'office') },
   wan: { device: 'pc_basic', run: (c) => setIsp(c, 'n', { name: 'ISP', network: '198.51.100.0', prefix: 24, ispIp: '198.51.100.1' }, 'office') },
+  loadBalance: { device: 'pc_basic', run: (c) => setLoadBalancer(c, 'n', [], 'office') },
 };
 
 describe('能力の表', () => {

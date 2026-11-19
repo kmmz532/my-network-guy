@@ -253,6 +253,12 @@ export const FAILURE_REASONS = [
   'cableTooLong',
   // 名前（ホスト名）を引けない（対応表にもネームサーバーにもない、またはネームサーバーまで届かない）（N68）
   'name.unresolved',
+  // ロードバランサー: 選んだ振り分け先が止まっている（ヘルスチェックがなく、届かない・サービスがない）
+  'lb.member_down',
+  // ロードバランサー: 健全な振り分け先が1つもない
+  'lb.no_healthy_member',
+  // ロードバランサー: SNAT がなく、サーバーから利用者への戻りがロードバランサーを通らない
+  'lb.asymmetric',
 ] as const;
 
 export type FailureReason = (typeof FAILURE_REASONS)[number];

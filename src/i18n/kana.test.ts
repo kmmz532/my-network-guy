@@ -14,10 +14,11 @@ import printerJson from '../assets/data/devices/printer.json';
 import accessPointJson from '../assets/data/devices/access_point.json';
 import uplinkJson from '../assets/data/devices/uplink.json';
 import homeRouterJson from '../assets/data/devices/home_router.json';
+import loadBalancerJson from '../assets/data/devices/load_balancer.json';
 import { matchesQuery } from '../ui/search';
 
 const dict = lang as Record<string, string>;
-const deviceIds = [pcJson, serverJson, routerJson, switchJson, l3Json, routerSwitchJson, firewallJson, firewallDmzJson, printerJson, accessPointJson, uplinkJson, homeRouterJson].flatMap((j) => j.devices.map((d) => d.id));
+const deviceIds = [pcJson, serverJson, routerJson, switchJson, l3Json, routerSwitchJson, firewallJson, firewallDmzJson, printerJson, accessPointJson, uplinkJson, homeRouterJson, loadBalancerJson].flatMap((j) => j.devices.map((d) => d.id));
 const furnitureIds = furnitureJson.furniture.map((f) => f.id);
 
 describe('検索用のひらがな名', () => {

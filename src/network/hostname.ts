@@ -20,6 +20,7 @@ const ABBR: Record<string, string> = {
   printer: 'PRN',
   access_point: 'AP',
   uplink: 'UL',
+  load_balancer: 'LB',
 };
 
 export const hostLabelOf = (category: string): string => {

@@ -72,7 +72,8 @@
       "l3_switch": 0,
       "firewall": 0,
       "printer": 30000,
-      "access_point": 0
+      "access_point": 0,
+      "load_balancer": 100000
     },
     "perPort": {
       "l2_switch": 1500,
@@ -84,7 +85,8 @@
       "pc": 0,
       "server": 0,
       "printer": 0,
-      "access_point": 3000
+      "access_point": 3000,
+      "load_balancer": 5000
     },
     "features": {
       "routing": 40000,

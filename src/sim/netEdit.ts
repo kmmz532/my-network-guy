@@ -10,6 +10,7 @@ import { WIRELESS_SECURITIES } from '../network/types';
 import { makeIface, makePo, makeSvi } from '../network/iface';
 import { refusalFor } from './capabilityGate';
 import { getComponent, withComponent } from '../network/components';
+import type { Components } from '../network/components';
 import { can } from '../network/capabilities';
 import { bandChannels, deviceBands } from '../registry/wireless';
 import { bandOf } from '../network/wirelessBand';
@@ -578,6 +579,20 @@ export const setFirewallRules = (core: Core, uid: string, rules: FirewallRule[],
         if (r.dst !== 'any' && !isCidr(r.dst)) return 'ip';
       }
       return withComponent(node, 'firewall', rules);
+    },
+    target,
+  );
+
+// ロードバランサーの仮想サーバーの一覧を置き換える。仮想の IP アドレスは、その機器の口のアドレスでなければならない
+export const setLoadBalancer = (core: Core, uid: string, servers: NonNullable<Components['loadBalancer']>, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      const refusal = refusalFor(node.device, 'loadBalance');
+      if (refusal) return refusal;
+      if (servers.some((v) => !node.interfaces.some((i) => i.ip === v.vip))) return 'ip';
+      return withComponent(node, 'loadBalancer', servers);
     },
     target,
   );

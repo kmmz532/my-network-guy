@@ -1,0 +1,26 @@
+{
+  "devices": [
+    {
+      "id": "load_balancer",
+      "category": "load_balancer",
+      "capabilities": [
+        "routedPort",
+        "routing",
+        "loadBalance"
+      ],
+      "price": 150000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 2,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [
+        "routing"
+      ],
+      "sprite": "device/router_basic",
+      "unlockLevel": 86
+    }
+  ]
+}

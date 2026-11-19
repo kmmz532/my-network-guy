@@ -10,7 +10,7 @@ import { interferedAccessPointsOf } from './wirelessQuality';
 import { channelOverlapsOf } from './channelOverlaps';
 
 // 通れば通るが直すべき設定（警告・NET.md §6）: 直結の両端の口の VLAN が違う access（vlan.mismatch）、両端の native が違う trunk（vlan.native_mismatch）
-export type VlanWarning = { id: 'wlan.open' | 'wlan.channel_overlap' | 'wlan.interference' | 'wlan.weak_cipher' | 'wlan.transition' | 'dhcp.multiple_servers' | 'lag.mismatch' | 'link.cable_bottleneck' | 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch'; a: string; b: string };
+export type VlanWarning = { id: 'wlan.open' | 'wlan.channel_overlap' | 'wlan.interference' | 'wlan.weak_cipher' | 'wlan.transition' | 'dhcp.multiple_servers' | 'lag.mismatch' | 'link.cable_bottleneck' | 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch' | 'lb.single_member' | 'lb.no_health_check'; a: string; b: string };
 
 export const warningsOf = (state: NetworkState): VlanWarning[] => {
   const net = state.input;
@@ -74,6 +74,13 @@ export const warningsOf = (state: NetworkState): VlanWarning[] => {
     if (!n.gateway || n.interfaces.some((i) => i.vrrp !== undefined)) continue;
     const owner = groups.find((x) => x.iface.ip === n.gateway);
     if (owner) out.push({ id: 'vrrp.gateway_real_ip', a: n.uid, b: owner.uid });
+  }
+  // ロードバランサー: 振り分け先が1つだけの仮想サーバー、ヘルスチェックのない仮想サーバー（仮想サーバーごとに1件）
+  for (const n of net.nodes) {
+    for (const vs of getComponent(n, 'loadBalancer') ?? []) {
+      if (vs.members.length === 1) out.push({ id: 'lb.single_member', a: n.uid, b: n.uid });
+      if (vs.healthCheck === 'none') out.push({ id: 'lb.no_health_check', a: n.uid, b: n.uid });
+    }
   }
   // 同じルーター ID の OSPF のルーター（組ごとに1件）
   for (const uids of duplicateRouterIds(net.nodes)) out.push({ id: 'ospf.duplicate_router_id', a: uids[0], b: uids[1] });

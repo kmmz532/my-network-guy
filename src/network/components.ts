@@ -48,6 +48,17 @@ export const COMPONENT_SCHEMAS = {
   }),
   // ファイアウォールの規則（許可する通信。一覧にない通信は通さない。送信元・宛先は 'any' か「a.b.c.d/nn」。http は port で絞れる。dns は 53 番）
   firewall: z.array(z.object({ src: z.string(), dst: z.string(), service: z.enum(['any', 'ping', 'http', 'dns', 'radius']), port: z.number().int().optional() })),
+  // ロードバランサーの仮想サーバーの一覧（vip はロードバランサーの口のアドレス、port は HTTP のサービスのポート。members は振り分け先、method は選び方、healthCheck は振り分け先の健全の確かめ方、snat は振り分け先へ届く通信の送信元をロードバランサーのアドレスにするか）
+  loadBalancer: z.array(
+    z.object({
+      vip: ipv4,
+      port: z.number().int().min(1).max(65535),
+      members: z.array(z.object({ ip: ipv4, port: z.number().int().min(1).max(65535) })).min(1),
+      method: z.enum(['round_robin', 'source_ip']),
+      healthCheck: z.enum(['none', 'ping', 'http']),
+      snat: z.boolean(),
+    }),
+  ),
   // 名前の引き方（hosts は機器ごとの対応表で、ping・traceroute の宛先の名前を引く。Debian の /etc/hosts と同じ考え方。nameServer は ip name-server の DNS サーバーで、対応表で引けない名前を問い合わせる）
   resolver: z.object({
     hosts: z.array(z.object({ name: z.string(), ip: ipv4 })).optional(),
@@ -79,6 +90,7 @@ export const REQUIRES: Partial<Record<ComponentId, Capability>> = {
   wireless: 'wireless',
   nat: 'nat',
   firewall: 'firewall',
+  loadBalancer: 'loadBalance',
 };
 
 export const getComponent = <K extends ComponentId>(node: NetNode, id: K): Components[K] => node.components?.[id];

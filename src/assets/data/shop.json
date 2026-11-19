@@ -102,6 +102,9 @@
     },
     {
       "device": "laptop_old"
+    },
+    {
+      "device": "load_balancer"
     }
   ]
 }

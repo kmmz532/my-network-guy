@@ -291,7 +291,7 @@ const serviceSchema = z.discriminatedUnion('protocol', [
 ]);
 
 // 機器の能力（NET.md §4）。コードは機器の種類ではなく、この能力だけを見る（N134）
-export const CAPABILITY_IDS = ['switchport', 'vlan', 'stp', 'svi', 'routedPort', 'subif', 'routing', 'rip', 'ospf', 'bgp', 'nat', 'services', 'dhcpRelay', 'firewall', 'wireless', 'wan', 'vrrp', 'lag', 'endpoint', 'uplink', 'firewallRules', 'accessPoint'] as const;
+export const CAPABILITY_IDS = ['switchport', 'vlan', 'stp', 'svi', 'routedPort', 'subif', 'routing', 'rip', 'ospf', 'bgp', 'nat', 'services', 'dhcpRelay', 'firewall', 'wireless', 'wan', 'vrrp', 'lag', 'endpoint', 'uplink', 'firewallRules', 'accessPoint', 'loadBalance'] as const;
 export type Capability = (typeof CAPABILITY_IDS)[number];
 
 // 無線の帯（2.4GHz・5GHz）
@@ -333,7 +333,7 @@ export const deviceSchema = z
     if (has('svi') && d.sviMax === undefined) fail('svi には sviMax が必要');
     if (!has('svi') && d.sviMax !== undefined) fail('sviMax は svi を持つ機器だけ');
     if (has('subif') && !has('routedPort')) fail('subif には routedPort が必要');
-    if ((has('ospf') || has('bgp') || has('nat')) && !has('routing')) fail('ospf・bgp・nat には routing が必要');
+    if ((has('ospf') || has('bgp') || has('nat') || has('loadBalance')) && !has('routing')) fail('ospf・bgp・nat・loadBalance には routing が必要');
     if (has('vlan') && !has('switchport')) fail('vlan には switchport が必要');
     if (has('wireless') && d.wlan === undefined) fail('wireless を持つ機器には wlan が必要');
     if (!has('wireless') && d.wlan !== undefined) fail('wlan は wireless を持つ機器だけ');

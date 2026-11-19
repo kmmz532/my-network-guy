@@ -13,6 +13,8 @@ import { adOf } from './stages/routing';
 import { getComponent } from '../components';
 import { deviceBands, isEapSecurity, securitySupported } from '../../registry/wireless';
 import { bandOf } from '../wirelessBand';
+import { egressIface, healthyMembers, memberUp, pickMember, serverOf } from '../query/loadBalancer';
+import type { Reach, VirtualServer } from '../query/loadBalancer';
 
 // 転送が読む層。解析の結果（NetworkState）と、DHCP のリレーの到達を仮に確かめるときの仮の層が、同じ形で渡せる
 export type ForwardView = Pick<NetworkState, 'links' | 'l2' | 'addressing' | 'routing'>;
@@ -269,6 +271,64 @@ export const backOf = (view: ForwardView, dstUid: string, srcUid: string, traffi
 };
 
 
+// ロードバランサーの口からの片道。同じサブネットの宛先は直接、経路表に合う宛先は経路表で、どちらでもなければゲートウェイで届ける。復路は確かめない
+const reach: Reach = (view, from, to, traffic, srcIp, dstIp) => {
+  const node = view.addressing.nodeOf(from);
+  if (node && can(node.device, 'loadBalance') && view.routing.routesOf(from).some((r) => inSubnet(dstIp, r.dest, r.prefix))) {
+    // ルーターを送信元にするため、ゲートウェイを自分の口のアドレスとした端末として扱い、自分から経路表を引かせる
+    const relay: ForwardView = { ...view, addressing: { ...view.addressing, nodeOf: (uid) => (uid === from ? { ...node, gateway: srcIp } : view.addressing.nodeOf(uid)) } };
+    return deliver(relay, from, to, traffic, false, srcIp, dstIp);
+  }
+  return deliver(view, from, to, traffic, false, srcIp, dstIp);
+};
+
+// ロードバランサーの振り分け。利用者の通信がロードバランサーの仮想の IP アドレスへ届いた後（entry）、健全な振り分け先から1つ選び、サーバーへ届けて戻りを確かめる。
+// toUser は、戻りの通信の行き先（利用者、または静的 NAT の機器の社内の口）。SNAT があれば戻りはロードバランサーを経て toUser へ、なければサーバーから toUser へ直接で、ロードバランサーを通らなければ lb.asymmetric
+const balance = (view: ForwardView, userUid: string, lb: NetNode, vs: VirtualServer, entry: PathResult, toUser: { uid: string; ip: string }): PathResult => {
+  const userIp = view.addressing.nodeOf(userUid)?.interfaces[0]?.ip;
+  if (userIp === undefined) return { ok: false, path: entry.path, failure: fail('ip.unset', userUid) };
+  const down = (reason: 'lb.member_down' | 'lb.no_healthy_member'): PathResult => ({ ok: false, path: entry.path, failure: fail(reason, lb.uid) });
+  const healthy = healthyMembers(view, lb, vs, reach);
+  if (healthy.length === 0) return down('lb.no_healthy_member');
+  const member = pickMember(view, vs.method, healthy, { uid: userUid, ip: userIp });
+  // ヘルスチェックのない振り分け先、ping だけのヘルスチェックの振り分け先は、サービスが動いていないことがある
+  if (!memberUp(view, lb, member, 'http', reach)) return down('lb.member_down');
+  const server = serverOf(view, member);
+  const iface = egressIface(view, lb, member.ip);
+  if (!server || !iface) throw new Error(`振り分け先を選んだ後に、サーバーまたは出る口がない: ${member.ip}`);
+  const traffic: Traffic = { kind: 'http', port: member.port };
+  const toServer = reach(view, lb.uid, server.uid, traffic, iface.ip, member.ip);
+  const path = [...entry.path, ...toServer.path.slice(1)];
+  const returned = (cause: Failure): PathResult => ({ ok: false, path, failure: { reason: 'return.failed', node: server.uid, cause } });
+  if (vs.snat) {
+    // 送信元はロードバランサーのアドレス。戻りはサーバーからロードバランサーへ、ロードバランサーから利用者へ
+    const toLb = deliver(view, server.uid, lb.uid, traffic, false, member.ip, iface.ip);
+    if (!toLb.ok) return returned(toLb.failure!);
+    const toBack = reach(view, lb.uid, toUser.uid, { kind: 'http', port: vs.port }, vs.vip, toUser.ip);
+    if (!toBack.ok) return returned(toBack.failure!);
+    return { ok: true, path, back: [...toLb.path, ...toBack.path.slice(1)] };
+  }
+  // 送信元は利用者のまま。戻りはサーバーから利用者へ直接で、ロードバランサーを通らなければ、利用者が応答を受け取れない
+  const back = deliver(view, server.uid, toUser.uid, traffic, false, member.ip, toUser.ip);
+  if (!back.ok) return returned(back.failure!);
+  if (!back.path.includes(lb.uid)) return { ok: false, path, failure: fail('lb.asymmetric', server.uid) };
+  return { ok: true, path, back: back.path };
+};
+
+// ロードバランサーの仮想の IP アドレスの HTTP のポートへ届いた通信を、振り分ける。仮想サーバーがなければ null
+const viaBalancer = (view: ForwardView, srcUid: string, lbUid: string, port: number): PathResult | null => {
+  const lb = view.addressing.nodeOf(lbUid);
+  if (!lb || !can(lb.device, 'loadBalance')) return null;
+  const vs = getComponent(lb, 'loadBalancer')?.find((v) => v.port === port && lb.interfaces.some((i) => i.ip === v.vip));
+  if (!vs) return null;
+  // ファイアウォールの規則は、仮想の IP アドレスで判定する
+  const entry = deliver(view, srcUid, lbUid, { kind: 'http', port }, true, undefined, vs.vip);
+  if (!entry.ok) return entry;
+  const userIp = view.addressing.nodeOf(srcUid)?.interfaces[0]?.ip;
+  if (userIp === undefined) return { ok: false, path: entry.path, failure: fail('ip.unset', srcUid) };
+  return balance(view, srcUid, lb, vs, entry, { uid: srcUid, ip: userIp });
+};
+
 // 静的 NAT（ポートの転送）: 外からルーターの外の口へのポートの通信を、社内のサーバーへ届ける。往路は外→外の口→社内の口→サーバー、復路は逆に戻す（N145）
 const viaStatic = (view: ForwardView, srcUid: string, routerUid: string, traffic: Traffic): PathResult | null => {
   const r = view.addressing.nodeOf(routerUid);
@@ -288,6 +348,14 @@ const viaStatic = (view: ForwardView, srcUid: string, routerUid: string, traffic
   if (srcIp === undefined) return { ok: false, path: toRouter.path, failure: fail('ip.unset', srcUid) };
   if (can(r.device, 'firewallRules') && !allows(getComponent(r, 'firewall'), srcIp, map.insideIp, innerTraffic)) {
     return { ok: false, path: toRouter.path, failure: fail('firewall.denied', routerUid) };
+  }
+  // 社内の宛先がロードバランサーの仮想の IP アドレスなら、振り分けへつなぐ
+  const virtual = can(server.device, 'loadBalance') ? getComponent(server, 'loadBalancer')?.find((v) => v.vip === map.insideIp && v.port === map.insidePort) : undefined;
+  if (virtual !== undefined && traffic.kind === 'http') {
+    const toLb = deliver(view, routerUid, server.uid, innerTraffic, false, inside.ip, map.insideIp);
+    if (!toLb.ok) return { ok: false, path: toRouter.path, failure: toLb.failure };
+    const balanced = balance(view, srcUid, server, virtual, { ok: true, path: [...toRouter.path, ...toLb.path.slice(1)] }, { uid: routerUid, ip: inside.ip });
+    return balanced.ok ? { ...balanced, staticNat: { router: routerUid, insideIp: map.insideIp, outsideIp: outside.ip } } : balanced;
   }
   const toServer = deliver(view, routerUid, server.uid, innerTraffic, false, inside.ip, map.insideIp);
   if (!toServer.ok) return { ok: false, path: toRouter.path, failure: toServer.failure };
@@ -314,6 +382,8 @@ export const http = (view: ForwardView, srcUid: string, dstUid: string, port: nu
   // 外の口への通信が、静的 NAT で社内のサーバーへ届く場合（N145）
   const nat = viaStatic(view, srcUid, dstUid, { kind: 'http', port });
   if (nat !== null) return nat;
+  const balanced = viaBalancer(view, srcUid, dstUid, port);
+  if (balanced !== null) return balanced;
   const forward = deliver(view, srcUid, dstUid, { kind: 'http', port });
   if (!forward.ok) return forward;
   const dst = view.addressing.nodeOf(dstUid);
