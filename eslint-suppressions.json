@@ -248,11 +248,6 @@
       "count": 1
     }
   },
-  "src/stores/gameHelpers.ts": {
-    "local/no-mode-branch": {
-      "count": 3
-    }
-  },
   "src/stores/gameOps.ts": {
     "local/no-mode-branch": {
       "count": 2

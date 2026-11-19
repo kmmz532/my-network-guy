@@ -61,7 +61,7 @@ export const salesEffectsOf = (s: { staff: Staff[]; office: Office }): OfferEffe
 // 営業の依頼の到着（日ごとの確率）。日が替わった分だけ振り、届いた依頼は通常の一覧に入る
 export const salesArrivalPatch = (s: GameState, days: number): Partial<GameState> => {
   const fx = salesEffectsOf(s);
-  if (days <= 0 || fx.arrivalChance <= 0 || s.mode !== 'career' || s.clock.bankrupt) return {};
+  if (days <= 0 || fx.arrivalChance <= 0 || !MODE_TRAITS[s.mode].offers || s.clock.bankrupt) return {};
   let state: OfferState = {
     minute: s.clock.minute,
     companyExp: s.companyExp,
@@ -148,7 +148,7 @@ export const opContextOf = (s: GameState): OpContext => {
 
 // いま表示している構成のタイルの引き元（自社オフィス、または設計中・表示中の案件）。anyFloor はサンドボックスのとき
 export const tileSourceOf = (s: GameState): TileSource => {
-  const anyFloor = s.mode === 'sandbox';
+  const anyFloor = MODE_TRAITS[s.mode].anyFloor;
   if (viewingOffice(s)) {
     if (!s.maps.hq) throw new Error('自社オフィスの地図がない');
     return { map: s.maps.hq, furniture: s.office.furniture, nodes: s.office.nodes, office: true, anyFloor };
@@ -182,7 +182,7 @@ export const offerHintOf = (s: GameState): OfferHint =>
 // 依頼の追加を1回分進める。受注中の案件と同じ依頼は出さない
 export const refresh = (s: GameState): Partial<GameState> => {
   // 依頼はサンドボックスには出さない
-  if (s.clock.bankrupt || s.mode === 'sandbox') return {};
+  if (s.clock.bankrupt || !MODE_TRAITS[s.mode].offers) return {};
   const r = refreshOffers(
     {
       minute: s.clock.minute,
