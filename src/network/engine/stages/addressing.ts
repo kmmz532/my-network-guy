@@ -297,7 +297,7 @@ export const stageAddressing = (input: Network, links: LinkLayer, l2: L2Layer): 
 
   // DHCP の割り当ては、割り当て前の構成で求める。同じドメインは L2 の層から引く。
   // リレーの到達は、割り当て前の構成で経路を仮に求め、リレーのルーターからサーバーまでたどる（この層の中だけで使い、外へ出さない）
-  const routed = { links, l2, addressing: unassigned, routing: stageRouting(unassigned.net, l2) };
+  const routed = { links, l2, addressing: unassigned, routing: stageRouting(unassigned.net, l2, links) };
   const nodeOf = new Map(before.nodes.map((n) => [n.uid, n]));
   const dhcp = assignDhcp(before.nodes, {
     domainOf: (uid, port) => l2.domainOf({ node: uid, port }).members,

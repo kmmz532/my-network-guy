@@ -613,6 +613,7 @@ export type PortModeChange =
 export type OspfOp =
   | { op: 'routerId'; ip: string | null }
   | { op: 'defaultOriginate'; on: boolean }
+  | { op: 'referenceBandwidth'; mbps: number | null }
   | { op: 'iface'; id: string; key: 'cost' | 'priority' | 'hello' | 'dead'; value: number };
 
 // VRRP の設定（グループの作成・仮想の IP アドレス・優先度・プリエンプト・追跡・削除）。ip で、グループがなければ作る（優先度 100・プリエンプトあり）

@@ -62,8 +62,8 @@ export const commands: readonly CommandSpec[] = [
     run: (_args, ctx, tr) => {
       const joined = ctx.node.interfaces.filter((i) => i.ospf !== undefined);
       if (joined.length === 0) return shown([out(tr('ui.terminal.ospfInterfaceNone'))]);
-      // コストは、経路の計算と同じく、設定がなければ 1
-      return shown(joined.map((i) => out(tr('ui.terminal.ospfInterface', { port: i.port, ip: i.ip, prefix: i.prefix, area: i.ospf!.area, cost: i.ospf!.cost ?? 1 }))));
+      // コストは、経路の計算と同じ値（口の設定、なければ速さから）
+      return shown(joined.map((i) => out(tr('ui.terminal.ospfInterface', { port: i.port, ip: i.ip, prefix: i.prefix, area: i.ospf!.area, cost: ctx.state.routing.ospfCostOf(ctx.node.uid, i.port) }))));
     },
   },
   {
@@ -101,6 +101,24 @@ export const commands: readonly CommandSpec[] = [
     writes: true,
     topic: 'ospf',
     run: (_args, ctx, tr) => changed(ctx, tr, { kind: 'ospf', change: { op: 'defaultOriginate', on: false } }),
+  },
+  {
+    id: 'ospf.autoCostReferenceBandwidth',
+    modes: ['exec', 'config', 'router-ospf'],
+    tokens: [{ word: 'auto-cost' }, { word: 'reference-bandwidth' }, { arg: 'cost', name: 'mbps' }],
+    help: 'ui.cmd.ospf.autoCostReferenceBandwidth',
+    writes: true,
+    topic: 'ospf',
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'ospf', change: { op: 'referenceBandwidth', mbps: Number(args.mbps) } }),
+  },
+  {
+    id: 'ospf.noAutoCostReferenceBandwidth',
+    modes: ['exec', 'config', 'router-ospf'],
+    tokens: [{ word: 'no' }, { word: 'auto-cost' }, { word: 'reference-bandwidth' }],
+    help: 'ui.cmd.ospf.noAutoCostReferenceBandwidth',
+    writes: true,
+    topic: 'ospf',
+    run: (_args, ctx, tr) => changed(ctx, tr, { kind: 'ospf', change: { op: 'referenceBandwidth', mbps: null } }),
   },
   ...ipOspf,
   ...ipOspf.map((s) => interfaceOf(s)),

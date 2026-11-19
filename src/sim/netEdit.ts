@@ -330,7 +330,9 @@ export const setOspf = (core: Core, uid: string, change: OspfOp, target: NetTarg
       const refusal = refusalFor(node.device, 'ospf');
       if (refusal) return refusal;
       const prev = getComponent(node, 'ospf') ?? {};
-      return withComponent(node, 'ospf', change.op === 'routerId' ? { ...prev, routerId: change.ip ?? undefined } : { ...prev, defaultOriginate: change.on });
+      if (change.op === 'routerId') return withComponent(node, 'ospf', { ...prev, routerId: change.ip ?? undefined });
+      if (change.op === 'referenceBandwidth') return withComponent(node, 'ospf', { ...prev, referenceBandwidth: change.mbps ?? undefined });
+      return withComponent(node, 'ospf', { ...prev, defaultOriginate: change.on });
     },
     target,
   );

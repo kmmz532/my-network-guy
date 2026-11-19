@@ -4,10 +4,12 @@ import { isRoutingCategory } from '../../category';
 import { computeBgp, type BgpEnv, type BgpResult } from '../../bgp';
 import { inSubnet, networkOf } from '../../ip';
 import { getComponent } from '../../components';
-import { ospfMismatch, type OspfMismatch } from '../../ospf';
+import { isSviPort } from '../../category';
+import { OSPF_DEFAULT_REFERENCE_MBPS, OSPF_SVI_SPEED_MBPS, ospfCostOfSpeed, ospfMismatch, type OspfMismatch } from '../../ospf';
 import type { Iface, NetNode, Network, Route } from '../../types';
-import { deviceCategory } from '../../../registry/query';
+import { deviceCategory, portSpeed } from '../../../registry/query';
 import type { L2Layer } from './l2';
+import type { LinkLayer } from './links';
 
 // OSPF の隣接の候補（同じサブネットで OSPF に参加した相手のルーターの口）。条件が合わなければ mismatch に理由を持つ
 export interface OspfPeer {
@@ -25,18 +27,36 @@ export interface RoutingLayer {
   bgpOf(uid: string): BgpResult | undefined;
   // OSPF の隣接の候補
   ospfPeersOf(uid: string): OspfPeer[];
+  // OSPF の口のコスト。口に設定があればその値、なければ基準の帯域 ÷ 口の配線の速さ（まとまった口は論理リンクの速さ）
+  ospfCostOf(uid: string, port: number): number;
 }
 
 // 経路の管理距離（AD）。static 1・OSPF 110・RIP 120・eBGP 20・iBGP 200
 export const adOf = (r: Route): number => (r.protocol === 'ospf' ? 110 : r.protocol === 'rip' ? 120 : r.protocol === 'bgp' ? (r.ibgp ? 200 : 20) : 1);
 
-export const stageRouting = (net: Network, l2: L2Layer): RoutingLayer => {
+export const stageRouting = (net: Network, l2: L2Layer, links: LinkLayer): RoutingLayer => {
   const nodes = new Map<string, NetNode>();
   for (const node of net.nodes) nodes.set(node.uid, node);
   const isRouter = (uid: string): boolean => {
     const node = nodes.get(uid);
     return node !== undefined && isRoutingCategory(deviceCategory(node.device));
   };
+
+  // 口の速さ（Mbps）。配線があればその速さ（まとまった口は論理リンクの速さ）、SVI は一定、配線がなければ口の定義の速さ
+  const speedOfIface = (n: NetNode, i: Iface): number => {
+    if (isSviPort(i.port)) return OSPF_SVI_SPEED_MBPS;
+    const linked = l2.linkAt({ node: n.uid, port: i.port });
+    if (linked !== undefined) {
+      const bundle = links.lag.bundles.find((b) => b.links.some((l) => l.uid === linked.link.uid));
+      const speed = bundle !== undefined ? links.lagSpeeds.get(bundle.links[0].uid) : links.speeds.get(linked.link.uid);
+      if (speed !== undefined) return speed;
+    }
+    const own = portSpeed(n.device, i.port);
+    if (own === undefined) throw new Error(`口の速さがない: ${n.device}:${i.port}`);
+    return own;
+  };
+  const ospfCostOfIface = (n: NetNode, i: Iface): number =>
+    i.ospf?.cost ?? ospfCostOfSpeed(getComponent(n, 'ospf')?.referenceBandwidth ?? OSPF_DEFAULT_REFERENCE_MBPS, speedOfIface(n, i));
 
   // 動的経路（RIP・OSPF の MVP）。RIP・OSPF に参加したインターフェースどうしが、同じ L2 ドメインでつながる隣接をたどり、
   // 宛先のサブネットへの経路を作る。RIP は跳ね数（16 以上は届かない）、OSPF はコストの合計の最短経路（エリア 0 だけ）。
@@ -59,7 +79,7 @@ export const stageRouting = (net: Network, l2: L2Layer): RoutingLayer => {
             if (!oi || !joined(oi) || !inSubnet(oi.ip, i.ip, i.prefix)) continue;
             // OSPF の隣接は、同じエリアの口どうしだけ（エリアが違えば隣接しない・N142）
             if (proto === 'ospf' && ospfMismatch(i, oi) !== null) continue;
-            const cost = proto === 'rip' ? 1 : (i.ospf?.cost ?? 1);
+            const cost = proto === 'rip' ? 1 : ospfCostOfIface(r, i);
             (adj.get(r.uid) ?? adj.set(r.uid, []).get(r.uid)!).push({ to: other.uid, cost, nextHop: oi.ip });
           }
         }
@@ -153,6 +173,12 @@ export const stageRouting = (net: Network, l2: L2Layer): RoutingLayer => {
   return {
     routesOf: (uid) => [...(nodes.get(uid)?.routes ?? []), ...(compute().dynamic.get(uid) ?? [])],
     bgpOf: (uid) => compute().bgp.get(uid),
+    ospfCostOf: (uid, port) => {
+      const n = nodes.get(uid);
+      const i = n?.interfaces.find((x) => x.port === port);
+      if (n === undefined || i === undefined) throw new Error(`口がない: ${uid}:${port}`);
+      return ospfCostOfIface(n, i);
+    },
     ospfPeersOf: (uid) => {
       const r = nodes.get(uid);
       if (!r) return [];

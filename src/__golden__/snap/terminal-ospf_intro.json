@@ -25,6 +25,7 @@
         "out:  network              ui.cmdWord.network",
         "out:  router-id            ui.cmd.ospf.routerId",
         "out:  default-information  ui.cmd.ospf.defaultInformation",
+        "out:  auto-cost            ui.cmd.ospf.autoCostReferenceBandwidth",
         "out:  neighbor             ui.cmdWord.neighbor",
         "out:  vrrp                 ui.cmdWord.vrrp",
         "out:  channel-group        ui.cmdWord.channel-group",
@@ -248,6 +249,27 @@
       "lines": [
         "err:ui.terminal.incomplete"
       ]
+    },
+    {
+      "line": "auto-cost reference-bandwidth 1000",
+      "result": "done"
+    },
+    {
+      "line": "auto-cost reference-bandwidth 0",
+      "lines": [
+        "err:                                ^",
+        "err:ui.terminal.invalidAt"
+      ]
+    },
+    {
+      "line": "auto-cost reference-bandwidth",
+      "lines": [
+        "err:ui.terminal.incomplete"
+      ]
+    },
+    {
+      "line": "no auto-cost reference-bandwidth",
+      "result": "done"
     },
     {
       "line": "ip address 0 10.0.5.1 255.255.255.0",
@@ -567,6 +589,14 @@
     },
     {
       "line": "no router-id",
+      "result": "done"
+    },
+    {
+      "line": "auto-cost reference-bandwidth 10000",
+      "result": "done"
+    },
+    {
+      "line": "no auto-cost reference-bandwidth",
       "result": "done"
     },
     {

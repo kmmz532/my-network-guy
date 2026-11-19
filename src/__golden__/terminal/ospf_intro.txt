@@ -44,6 +44,10 @@ network 10.0.1.0
 default-information originate
 no default-information originate
 default-information
+auto-cost reference-bandwidth 1000
+auto-cost reference-bandwidth 0
+auto-cost reference-bandwidth
+no auto-cost reference-bandwidth
 ip address 0 10.0.5.1 255.255.255.0
 ip address 0 10.0.5.1 255.0.255.0
 ip address 0 10.0.5.1
@@ -103,6 +107,8 @@ network 10.0.1.0
 router-id 1.1.1.1
 default-information originate
 no router-id
+auto-cost reference-bandwidth 10000
+no auto-cost reference-bandwidth
 show ip ospf neighbor
 show ip ospf interface
 exit

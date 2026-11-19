@@ -106,7 +106,13 @@ export const stageL2 = (net: Network, links: LinkLayer): L2Layer => {
     if (stpResult === undefined) {
       // まとまった物理のリンクは、代表の1本だけを渡す（論理リンクは1本）
       const reps = [...new Set([...linkByEndpoint.values()].map((x) => x.link))].filter((l) => (stpRep.get(l.uid) ?? l.uid) === l.uid);
-      stpResult = computeStp([...nodes.values()], reps, (n) => can(n.device, 'stp'));
+      stpResult = computeStp([...nodes.values()], reps, (n) => can(n.device, 'stp'), (l) => {
+        // まとまった論理リンクは、メンバーの速さの合計
+        const bundle = links.lag.bundles.find((b) => b.links.some((m) => m.uid === l.uid));
+        const speed = bundle !== undefined ? links.lagSpeeds.get(bundle.links[0].uid) : links.speeds.get(l.uid);
+        if (speed === undefined) throw new Error(`配線の速さがない: ${l.uid}`);
+        return speed;
+      });
     }
     return stpResult;
   };

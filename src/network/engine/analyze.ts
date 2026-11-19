@@ -15,7 +15,7 @@ const compute = (input: Network, world: EngineData, radiusDown: ReadonlySet<stri
   // L2 の層は、アドレスの層の結果を読まない（口にアドレスが残るかの規則を、配線の層の構成に当てて求める）
   const l2 = stageL2(links.net, links);
   const addressing = stageAddressing(input, links, l2);
-  const routing = stageRouting(addressing.net, l2);
+  const routing = stageRouting(addressing.net, l2, links);
   return { input, world, net: addressing.net, links, l2, addressing, routing };
 };
 

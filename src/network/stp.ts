@@ -1,12 +1,19 @@
 // スパニングツリーの計算（純粋関数）。stp を持つスイッチの間のリンクだけを対象に、全体で1つの木を作る。
 // - ルートブリッジ: 優先度（既定 32768）が最小、同じなら MAC アドレス（macSerial）が最小のスイッチ
-// - ルートポート: ルートまでのコスト（口のコストの合計。既定は1口 4）が最小の口。同じなら相手のブリッジ ID、相手の口の番号の順
+// - ルートポート: ルートまでのコスト（口のコストの合計。口の設定がなければ配線の速さから求める）が最小の口。同じなら相手のブリッジ ID、相手の口の番号の順
 // - 指定ポート: 各リンクで、ルートに近い側。どちらでもない口は止める（ブロッキング）
 import type { NetLink, NetNode } from './types';
 import { getComponent } from './components';
 
 export const STP_DEFAULT_PRIORITY = 32768;
-export const STP_DEFAULT_COST = 4;
+// 配線の速さ（Mbps）ごとの口のコスト。速さが表の値に満たなければ一つ遅い行、最も遅い行にも満たなければ最後の行を適用する
+export const STP_COST_BY_SPEED: readonly (readonly [speedMbps: number, cost: number])[] = [
+  [10000, 2],
+  [1000, 4],
+  [100, 19],
+  [10, 100],
+];
+export const stpCostOfSpeed = (speedMbps: number): number => (STP_COST_BY_SPEED.find(([s]) => speedMbps >= s) ?? STP_COST_BY_SPEED[STP_COST_BY_SPEED.length - 1])[1];
 
 export type StpRole = 'root' | 'designated' | 'blocking';
 
@@ -21,7 +28,7 @@ export interface StpResult {
 
 const keyOf = (uid: string, port: number) => `${uid}:${port}`;
 
-export const computeStp = (nodes: readonly NetNode[], links: readonly NetLink[], isStpSwitch: (node: NetNode) => boolean): StpResult => {
+export const computeStp = (nodes: readonly NetNode[], links: readonly NetLink[], isStpSwitch: (node: NetNode) => boolean, speedOf: (link: NetLink) => number): StpResult => {
   const bridges = nodes.filter((n) => n.powered !== false && isStpSwitch(n));
   const byUid = new Map(bridges.map((n) => [n.uid, n]));
   const empty: StpResult = { root: null, roles: new Map(), rootCost: new Map() };
@@ -29,7 +36,7 @@ export const computeStp = (nodes: readonly NetNode[], links: readonly NetLink[],
   // ブリッジ ID（優先度・連番）の比較。小さいほうが強い
   const bid = (n: NetNode): [number, number] => [getComponent(n, 'stp')?.priority ?? STP_DEFAULT_PRIORITY, n.macSerial ?? Number.MAX_SAFE_INTEGER];
   const cmpBid = (a: NetNode, b: NetNode) => bid(a)[0] - bid(b)[0] || bid(a)[1] - bid(b)[1];
-  const cost = (n: NetNode, port: number) => n.ports.find((p) => p.port === port)?.stpCost ?? STP_DEFAULT_COST;
+  const cost = (n: NetNode, port: number, link: NetLink) => n.ports.find((p) => p.port === port)?.stpCost ?? stpCostOfSpeed(speedOf(link));
   const shut = (n: NetNode, port: number) => n.ports.find((p) => p.port === port)?.shutdown === true;
 
   // スイッチの間のリンク（両端とも stp のスイッチで、停止していない）
@@ -44,7 +51,7 @@ export const computeStp = (nodes: readonly NetNode[], links: readonly NetLink[],
       for (const [from, to] of [[l.a, l.b], [l.b, l.a]] as const) {
         const d = dist.get(from.node);
         if (d === undefined) continue;
-        const nd = d + cost(byUid.get(to.node)!, to.port);
+        const nd = d + cost(byUid.get(to.node)!, to.port, l);
         if (dist.get(to.node) === undefined || nd < (dist.get(to.node) as number)) {
           dist.set(to.node, nd);
           changed = true;
@@ -59,9 +66,9 @@ export const computeStp = (nodes: readonly NetNode[], links: readonly NetLink[],
   for (const b of bridges) {
     if (b.uid === root.uid || dist.get(b.uid) === undefined) continue;
     const options = inner
-      .flatMap((l) => [[l.a, l.b], [l.b, l.a]] as const)
+      .flatMap((l) => [[l.a, l.b, l], [l.b, l.a, l]] as const)
       .filter(([me]) => me.node === b.uid)
-      .map(([me, other]) => ({ me, other, total: (dist.get(other.node) ?? Infinity) + cost(b, me.port) }))
+      .map(([me, other, l]) => ({ me, other, total: (dist.get(other.node) ?? Infinity) + cost(b, me.port, l) }))
       .filter((o) => o.total === dist.get(b.uid))
       .sort((x, y) => cmpBid(byUid.get(x.other.node)!, byUid.get(y.other.node)!) || x.other.port - y.other.port);
     rootPort.set(b.uid, keyOf(b.uid, options[0].me.port));

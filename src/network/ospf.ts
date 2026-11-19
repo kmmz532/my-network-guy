@@ -6,6 +6,13 @@ import type { Iface, NetNode } from './types';
 export const OSPF_DEFAULT_PRIORITY = 1;
 export const OSPF_DEFAULT_HELLO = 10;
 export const OSPF_DEFAULT_DEAD = 40;
+// コストを求める基準の帯域（Mbps）。機器の設定（referenceBandwidth）がなければこの値
+export const OSPF_DEFAULT_REFERENCE_MBPS = 100;
+// 仮想インターフェース（SVI）は配線を持たないため、この速さ（Mbps）として扱う
+export const OSPF_SVI_SPEED_MBPS = 1000;
+
+// 速さ（Mbps）から求めるコスト。基準の帯域 ÷ 速さの切り捨てで、最小は 1
+export const ospfCostOfSpeed = (referenceMbps: number, speedMbps: number): number => Math.max(1, Math.floor(referenceMbps / speedMbps));
 
 // ルーター ID。設定があればそれ、なければ、実機と同じく有効なインターフェースの最大のアドレス
 // （ループバックは扱わない。OSPF に参加したインターフェースがあれば、その中の最大）

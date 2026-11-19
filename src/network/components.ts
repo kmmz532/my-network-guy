@@ -15,6 +15,8 @@ export const COMPONENT_SCHEMAS = {
   ospf: z.object({
     routerId: ipv4.optional(),
     defaultOriginate: z.boolean().optional(),
+    // コストを求める基準の帯域（Mbps）。省略は 100
+    referenceBandwidth: z.number().int().positive().optional(),
     process: z.number().int().nonnegative().optional(),
     networks: z.array(z.object({ prefix: ipv4, wildcard: ipv4, area: z.number().int().nonnegative() })).optional(),
   }),

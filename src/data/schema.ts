@@ -444,7 +444,7 @@ const ifaceSetupSchema = z.object({
 const placedSetupSchema = z.object({
   ports: z.array(portConfigSchema).optional(),
   interfaces: z.array(ifaceSetupSchema).optional(),
-  ospf: z.object({ routerId: ipv4.optional(), defaultOriginate: z.boolean().optional() }).optional(),
+  ospf: z.object({ routerId: ipv4.optional(), defaultOriginate: z.boolean().optional(), referenceBandwidth: int.positive().optional() }).optional(),
   bgp: z
     .object({
       asn: int.positive(),
