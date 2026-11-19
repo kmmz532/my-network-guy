@@ -91,6 +91,8 @@ export const balanceSchema = z.object({
   metersPerTile: int.positive(),
   // シーケンス図の再生で、1行を流してから次の行に進むまでの時間（ミリ秒）
   sequence: z.object({ stepMs: int.positive() }),
+  // 指で長押ししたとき、右クリックのメニューを出すまでの時間（ミリ秒）。押して機器の画面を開く操作と分けるため、ツールチップより長くする
+  contextMenu: z.object({ longPressMs: int.positive() }),
   // 無線の帯ごとの数値。届く半径・壁1マスの減衰（マス）、選べるチャネル（範囲の列）、既定のチャネル、重なるチャネルの差の上限（差がこれ以下なら重なる）
   wireless: z.object({
     bands: z.object({ '2.4': wirelessBandSchema, '5': wirelessBandSchema }),
@@ -525,6 +527,7 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('ospf_dr'), node: z.string().min(1) }),
   // すべての PC が、名前（ホスト名）で指定の機器へ届く。名前は各 PC が対応表・ネームサーバーで引く（N68）
   z.object({ type: z.literal('reach_by_name'), name: z.string().min(1) }),
+  z.object({ type: z.literal('http_by_name'), from: z.array(z.string().min(1)).min(1), name: z.string().min(1), port: z.number().int().min(1).max(65535) }),
   // 指定した機器がすべて、名前を引ける（ネームサーバーへ問い合わせて A の記録が返る）。ip を書けば、その IP アドレスであること
   z.object({ type: z.literal('resolve_name'), from: z.array(z.string().min(1)).min(1), name: z.string().min(1), ip: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/).optional() }),
   // すべてのPCから、到達できるサーバー（外部）への経路にファイアウォールがある

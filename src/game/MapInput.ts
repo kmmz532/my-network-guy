@@ -255,7 +255,7 @@ export class MapInput {
       this.host.cam.endPan();
       this.openContextMenu(p, tile, x0, y0);
       this.host.redraw();
-    }, balance.tooltip.longPressMs);
+    }, balance.contextMenu.longPressMs);
     this.longPress = { x0, y0, timer };
   }
 

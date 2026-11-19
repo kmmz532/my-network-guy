@@ -25,6 +25,9 @@
   "sequence": {
     "stepMs": 900
   },
+  "contextMenu": {
+    "longPressMs": 500
+  },
   "wireless": {
     "bands": {
       "2.4": {
