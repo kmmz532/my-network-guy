@@ -58,6 +58,7 @@ const start = (): Core => ({
   staffSeq: 2,
   candidates: [],
   guidesDone: [],
+  guidesHidden: [],
   termsShown: [],
 });
 

@@ -169,7 +169,7 @@
   "contract.v003_five_depts.hint": "L3スイッチの口を部署ごとの VLAN に分け、VLAN ごとに SVI を作ろう。来客用は別の VLAN にして SVI を作らない",
   "contract.v003_five_depts.story": "部署が4つになり、部署の間の通信も要る。ただし、来客用の席だけは社内から切り離したい。ルーターを2台置くより、L3スイッチ1台で済ませたい。",
   "contract.v003_five_depts.title": "部署の間をつなぎ、来客用を切り離す",
-  "contract.w001_guest_ssid.hint": "来客用の親機は、社内のスイッチにつながず、ファイアウォールの来客用の口（2番）につなぐ",
+  "contract.w001_guest_ssid.hint": "来客用の親機は、社内のスイッチにつながず、ファイアウォールの来客用の口（G0/2）につなぐ",
   "contract.w001_guest_ssid.story": "受付の奥に、来客用の無線の親機を置いた。来客のPCは来客用の SSID（guest-wifi）につながっているが、まだどこにも届かない。来客のPCはインターネットへ届き、社内のサーバーへは届かないようにしてほしい。",
   "contract.w001_guest_ssid.title": "来客用の無線を社内から分ける",
   "device.access_point.desc": "有線LANにつなぎ、電波でPCやノートPCを結ぶ。",

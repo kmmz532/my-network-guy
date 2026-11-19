@@ -44,6 +44,7 @@ const core = (office: Office = sandboxOffice(), owned: Record<string, number> = 
   staffSeq: 0,
   candidates: [],
   guidesDone: [],
+  guidesHidden: [],
   termsShown: [],
 });
 

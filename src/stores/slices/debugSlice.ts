@@ -19,6 +19,10 @@ export interface DebugSlice {
   debugSetMinute: (minute: number) => void;
   // 案内を終えた案件として記録する
   markGuideDone: (contractId: string) => void;
+  // 案内をしまう・戻す（guidesDone には入れない）
+  setGuideHidden: (id: string, hidden: boolean) => void;
+  // しまっている案内の、今の手順の文のキーを置く（なければ null）
+  setGuideShelved: (shelved: { id: string; key: string } | null) => void;
   // デバッグ（N54）: 案内の進みを最初に戻す
   debugResetGuides: () => void;
   // デバッグ（N54）: 依頼を今すぐ引き直す（届く時刻を今に合わせ、判定を1回行う）
@@ -56,7 +60,13 @@ export const createDebugSlice: StateCreator<GameState, [], [], DebugSlice> = (se
       set((s) => ({ guidesDone: [...s.guidesDone, contractId] }));
       get().grantCompanyExp('guide');
     },
-    debugResetGuides: () => set({ guidesDone: [] }),
+    setGuideHidden: (id, hidden) =>
+      set((s) => {
+        if (s.guidesHidden.includes(id) === hidden) return {};
+        return { guidesHidden: hidden ? [...s.guidesHidden, id] : s.guidesHidden.filter((g) => g !== id) };
+      }),
+    setGuideShelved: (shelved) => set({ guideShelved: shelved }),
+    debugResetGuides: () => set({ guidesDone: [], guidesHidden: [] }),
     debugRefreshOffers: () => set((s) => refresh({ ...s, nextOfferMinute: s.clock.minute })),
     debugFinishBuild: () => {
       // 施工の進みは時間で決まるため、既存の tick を速い速さで回す（速さは終わったら戻す）
@@ -86,7 +96,7 @@ export const createDebugSlice: StateCreator<GameState, [], [], DebugSlice> = (se
         const reason = get().accept(offer.id, crew);
         if (reason) return reason;
       }
-      set((st) => ({ guidesDone: st.guidesDone.filter((g) => g !== contractId), debugGuide: { id: contractId, step } }));
+      set((st) => ({ guidesDone: st.guidesDone.filter((g) => g !== contractId), guidesHidden: st.guidesHidden.filter((g) => g !== contractId), debugGuide: { id: contractId, step } }));
       return null;
     },
     debugMarkGuideDone: (contractId) =>

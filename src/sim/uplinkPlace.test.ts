@@ -44,6 +44,7 @@ const core = (level: number, money = 1000000): Core => ({
   staffSeq: 0,
   candidates: [],
   guidesDone: [],
+  guidesHidden: [],
 } as unknown as Core);
 
 const okCore = (o: Outcome): Core => {

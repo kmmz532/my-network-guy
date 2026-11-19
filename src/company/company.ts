@@ -49,6 +49,8 @@ export interface Company {
   candidates: Staff[];
   // 初めての概念の案内を終えた（または飛ばした）固定案件のID
   guidesDone: string[];
+  // 案内をしまった案件のID（教材は lesson:<教材のID>）。しまった案内は、戻すまで吹き出しを出さない
+  guidesHidden: string[];
   // サンドボックスで開いている教材（なければ null）
   sandboxLesson: SandboxLesson | null;
   // 初めて出した用語（用語集の ID）。出したものは2回目から出さない
@@ -65,7 +67,7 @@ export interface SandboxLesson {
 export const COMPANY_KEYS = [
   'mode', 'name', 'clock', 'companyExp', 'reputation', 'expDay', 'expToday', 'owned', 'completed', 'deliveries',
   'familiarity', 'offers', 'nextOfferMinute', 'offerSeq', 'newArrivals', 'rng', 'active', 'focus', 'office', 'effects',
-  'staff', 'staffSeq', 'candidates', 'guidesDone', 'sandboxLesson', 'termsShown',
+  'staff', 'staffSeq', 'candidates', 'guidesDone', 'guidesHidden', 'sandboxLesson', 'termsShown',
 ] as const satisfies readonly (keyof Company)[];
 type Missing = Exclude<keyof Company, (typeof COMPANY_KEYS)[number]>;
 export const noMissing: [Missing] extends [never] ? true : never = true; // キーの書き漏れを型で落とす

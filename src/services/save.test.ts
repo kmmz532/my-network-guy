@@ -51,6 +51,7 @@ const sample: Company = {
   staffSeq: 2,
   candidates: [],
   guidesDone: ['c001_direct_link'],
+  guidesHidden: [],
   sandboxLesson: null,
   termsShown: [],
 };
@@ -254,6 +255,19 @@ describe('v12 → v13', () => {
   it('色を持たない案件は、そのまま残す', () => {
     const v12 = { ...legacySample, active: [{ id: 'x', nodes: [], links: [], contract: { inhouse: false } }] };
     expect(migrate(12, v12).active[0]).toMatchObject({ id: 'x', nodes: [], links: [], testedOk: false });
+  });
+});
+
+describe('v62 → v63', () => {
+  const { guidesHidden: _guidesHidden, ...v62 } = sample;
+
+  it('案内をしまった案件は、移行前は空のまま', () => {
+    expect(migrate(62, v62).guidesHidden).toEqual([]);
+  });
+
+  it('guidesHidden が文字列の配列でなければ拒否する', () => {
+    expect(() => migrate(63, { ...sample, guidesHidden: [1] })).toThrow();
+    expect(() => migrate(63, v62)).toThrow();
   });
 });
 

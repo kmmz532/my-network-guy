@@ -62,6 +62,7 @@ describe('セーブのバージョン移行', () => {
       // なじみの依頼は移行前は空（N70）
       familiarity: { counts: {}, blueprints: {} },
       guidesDone: [],
+      guidesHidden: [],
       sandboxLesson: null,
       offers: [],
       nextOfferMinute: 0,

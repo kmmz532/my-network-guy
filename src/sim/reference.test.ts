@@ -84,6 +84,7 @@ const startCore = (offers: Offer[]): Core => ({
   staffSeq: 2,
   candidates: [],
   guidesDone: [],
+  guidesHidden: [],
   termsShown: [],
 });
 

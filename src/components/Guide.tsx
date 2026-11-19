@@ -1,5 +1,5 @@
 // 初めての概念の案内（P7）。案件を初めて開いたとき、画面の下に社員の吹き出しで次にやることを1行出し、操作する場所を光らせる。
-// 操作は縛らない。条件を満たしたら次の手順へ進み、最後まで行くか「飛ばす」で案件の案内を終える（guidesDone に入る）
+// 操作は縛らない。条件を満たしたら次の手順へ進み、最後まで行くと案件の案内を終える（guidesDone に入る）。「しまう」は終えず、案件の欄の札から戻せる（guidesHidden に入る）
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { usePhone } from '../ui/usePhone';
 import { guides } from 'virtual:game-data';
@@ -58,6 +58,9 @@ export function Guide() {
   const staffLook = useGameStore((s) => staffSpriteName(s.staff[0]?.look ?? 'blue'));
   const setGuideTarget = useGameStore((s) => s.setGuideTarget);
   const markGuideDone = useGameStore((s) => s.markGuideDone);
+  const guidesHidden = useGameStore((s) => s.guidesHidden);
+  const setGuideHidden = useGameStore((s) => s.setGuideHidden);
+  const setGuideShelved = useGameStore((s) => s.setGuideShelved);
   // 構成に残らない条件を満たした手順の記録（教材を開いている間だけ）
   const guideSeen = useGameStore((s) => s.guideSeen);
   const markGuideSeen = useGameStore((s) => s.markGuideSeen);
@@ -94,7 +97,7 @@ export function Guide() {
   const scrolledFor = useRef<string | null>(null);
 
   // 設計中の案件の、まだ終えていない案内だけを出す。案内を出さない設定のときは出さない
-  // 教材を開いているとき（案件がない）は、教材の手順を出す。教材は何度でもやり直せるため guidesDone に入れず、sandboxLesson.done に覚える
+  // 教材を開いているとき（案件がない）は、教材の手順を出す。教材は何度でもやり直せるため guidesDone に入れず、sandboxLesson.done に覚える。しまった状態は教材も guidesHidden（lesson:<id>）
   const sandboxLesson = useGameStore((s) => s.sandboxLesson);
   const lessonCommands = useGameStore((s) => s.lessonCommands);
   const lessonAnswers = useGameStore((s) => s.lessonAnswers);
@@ -147,7 +150,14 @@ export function Guide() {
     }
   }, [id, steps, finished, latchKeys.join(','), markGuideSeen, markGuideDone, lesson, finishLessonGuide, debugGuide, debugConsumeGuide]);
 
-  const step = current ? current.step : null;
+  const hidden = id !== null && guidesHidden.includes(id);
+  // しまっている間は、吹き出し・光る枠・機器の強調を出さない（手順の進みは続く）
+  const step = current && !hidden ? current.step : null;
+  const shelvedKey = current && hidden ? current.step.key : null;
+  useEffect(() => {
+    setGuideShelved(id !== null && shelvedKey !== null ? { id, key: shelvedKey } : null);
+  }, [id, shelvedKey, setGuideShelved]);
+  useEffect(() => () => setGuideShelved(null), [setGuideShelved]);
   // 手順が変わったら、前の用語を下げ、その手順で初めて出る用語があれば出す
   const stepKey = step === null ? null : step.key;
   useEffect(() => {
@@ -219,8 +229,7 @@ export function Guide() {
   const skip = () => {
     closeTermNotice();
     if (step === null || id === null) return;
-    if (lesson) finishLessonGuide();
-    else markGuideDone(id);
+    setGuideHidden(id, true);
   };
   // スマホの吹き出しは、HUD と案件の欄の下に置く（ツールバー・インベントリ・シートの操作の欄とは重ならない）
   const topBelowHud = phone ? belowHud() : 0;
@@ -236,7 +245,7 @@ export function Guide() {
       )}
       <div
         role="status"
-        // 外枠は指の操作を通す（下のインベントリ・ツールバー・マップを押せる）。押せる部品（「飛ばす」）だけが指の操作を受け取る（B2）
+        // 外枠は指の操作を通す（下のインベントリ・ツールバー・マップを押せる）。押せる部品（「しまう」）だけが指の操作を受け取る（B2）
         style={
           phone
             ? {
@@ -263,7 +272,7 @@ export function Guide() {
         }
       >
         <Bubble wrap={phone}>
-          {/* 狭い画面では、社員の絵と「飛ばす」は縮めず、文字の欄が残りの幅を使う */}
+          {/* 狭い画面では、社員の絵と「しまう」は縮めず、文字の欄が残りの幅を使う */}
           {phone ? (
             <span style={{ flexShrink: 0, display: 'flex' }}>
               <Icon name={`staff/${staffLook}_0`} scale={2} />

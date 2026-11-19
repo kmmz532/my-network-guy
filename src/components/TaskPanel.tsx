@@ -14,6 +14,7 @@ import { lessonCatalog } from '../stores/lessonCatalog';
 import { DrillPanel, QuestionFlow } from './DrillPanel';
 import { sequenceRef } from './SequencePanel';
 import { Button } from './ui/Button';
+import { GuideRestore } from './GuideRestore';
 import { HudBar } from './ui/HudBar';
 import { Text } from './ui/Text';
 
@@ -92,11 +93,14 @@ export function TaskPanel() {
     return (
       <HudBar as="aside" variant="panel" marker="task-panel" arrange={{ width: open ? 260 : 'auto', zIndex: 4, zoom: 'var(--ui-scale, 1)' }}>
         {/* 案件の欄と同じ折りたたみの見出し（教材の題名を出す） */}
-        <Button variant="plain" size="row" layout={{ width: '100%' }} onClick={() => setOpen(!open)}>
-          <span style={{ width: 10 }}>{open ? '▾' : '▸'}</span>
-          <Icon name="icon/mail" scale={1} />
-          {(open || phone) && <span style={phone && !open ? { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : undefined}>{tDyn(lesson.titleKey)}</span>}
-        </Button>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', minWidth: 0 }}>
+          <Button variant="plain" size="row" layout={{ flex: '1 1 auto', minWidth: 0 }} onClick={() => setOpen(!open)}>
+            <span style={{ width: 10 }}>{open ? '▾' : '▸'}</span>
+            <Icon name="icon/mail" scale={1} />
+            {(open || phone) && <span style={phone && !open ? { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : undefined}>{tDyn(lesson.titleKey)}</span>}
+          </Button>
+          <GuideRestore />
+        </div>
         {open && (
           <div style={{ padding: '0 8px 8px' }}>
             <div style={{ lineHeight: 1.5 }}><Text tone="soft" size="sm">{tDyn(lesson.briefKey)}</Text></div>
@@ -152,16 +156,19 @@ export function TaskPanel() {
         zoom: 'var(--ui-scale, 1)',
       }}
     >
-      <Button variant="plain" size="row" layout={{ width: '100%' }} onClick={() => setOpen(!open)}>
-        <span style={{ width: 10 }}>{open ? '▾' : '▸'}</span>
-        <Icon name="icon/mail" scale={1} />
-        {/* 畳んだときは、狭い画面だけ件名を出す（PC は従来どおり開いたときだけ） */}
-        {(open || phone) && (
-          <span style={phone && !open ? { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : undefined}>
-            {tDyn(`contract.${active.baseId}.title`, active.params)}
-          </span>
-        )}
-      </Button>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', minWidth: 0 }}>
+        <Button variant="plain" size="row" layout={{ flex: '1 1 auto', minWidth: 0 }} onClick={() => setOpen(!open)}>
+          <span style={{ width: 10 }}>{open ? '▾' : '▸'}</span>
+          <Icon name="icon/mail" scale={1} />
+          {/* 畳んだときは、狭い画面だけ件名を出す（PC は従来どおり開いたときだけ） */}
+          {(open || phone) && (
+            <span style={phone && !open ? { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : undefined}>
+              {tDyn(`contract.${active.baseId}.title`, active.params)}
+            </span>
+          )}
+        </Button>
+        <GuideRestore />
+      </div>
       {open && (
         <div style={{ padding: '0 8px 8px' }}>
           <div style={{ lineHeight: 1.5 }}>

@@ -480,6 +480,12 @@ const scenes = {
     await page.getByRole('button', { name: 'しまう' }).click();
     await page.waitForTimeout(500);
   },
+  // 案内を出してから「しまう」を押した状態（吹き出しと枠が消え、案件の欄の見出しの行に顔のボタンと「次: 〜」の札が残る）
+  guidehidden: async (page) => {
+    await scenes.guide(page);
+    await page.getByRole('button', { name: 'しまう' }).click();
+    await page.waitForTimeout(500);
+  },
   // ショップ
   shop: async (page) => {
     await scenes.career(page);

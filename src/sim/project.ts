@@ -269,6 +269,8 @@ export interface Core {
   candidates: Staff[];
   // 初めての概念の案内を終えた（または飛ばした）固定案件のID
   guidesDone: string[];
+  // 案内をしまった案件（教材は lesson:<教材のID>）のID
+  guidesHidden: string[];
   // 初めて出した用語（用語集の ID）。セーブに入る
   termsShown: string[];
 }

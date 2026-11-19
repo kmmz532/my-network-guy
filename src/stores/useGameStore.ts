@@ -100,6 +100,10 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   hiringWish: JobId | null;
   // 初めての概念の案内を終えた（または飛ばした）固定案件のID（セーブデータに入る）
   guidesDone: string[];
+  // 案内をしまった案件（教材は lesson:<教材のID>）のID（セーブデータに入る）
+  guidesHidden: string[];
+  // しまっている案内の、今の手順の文のキー（案件の欄の「戻す」札に出す。Guide が置く。保存しない）
+  guideShelved: { id: string; key: string } | null;
   // 初めて出した用語（用語集の ID。セーブデータに入る）
   termsShown: string[];
   // 案内が光らせている機器の uid（マップの描画は別の担当。保存しない）
@@ -215,6 +219,8 @@ export const useGameStore = create<GameState>((set, get, api) => {
     network: startNetwork,
     effects: noEffects(),
     guidesDone: [],
+    guidesHidden: [],
+    guideShelved: null,
     termsShown: [],
     guideTarget: null,
     speed: 0,

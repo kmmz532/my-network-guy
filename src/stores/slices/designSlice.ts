@@ -102,7 +102,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       if (s.mode !== 'sandbox') throw new Error('教材はサンドボックスだけで開ける');
       const { size, nodes, links, plans, furniture } = lessonEntryOf(lessonCatalog, id).build(gameEnv.engine);
       const office = { ...emptyOffice(size), nodes, links, plans, furniture, furnitureSeq: furniture.length };
-      set({ office, maps: { ...s.maps, hq: mapOfOffice(office) }, sandboxLesson: { id, step: 0, done: false }, sandboxDrill: null, followUpsClosed: false, lessonAnswers: [], lessonCommands: [], guideSeen: [], check: null, helpUid: null, traces: [] });
+      set({ office, maps: { ...s.maps, hq: mapOfOffice(office) }, sandboxLesson: { id, step: 0, done: false }, guidesHidden: s.guidesHidden.filter((g) => g !== `lesson:${id}`), sandboxDrill: null, followUpsClosed: false, lessonAnswers: [], lessonCommands: [], guideSeen: [], check: null, helpUid: null, traces: [] });
       const { drill } = lessonEntryOf(lessonCatalog, id);
       if (drill) get().beginDrill(drill);
     },

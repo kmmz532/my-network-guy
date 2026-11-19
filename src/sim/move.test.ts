@@ -68,6 +68,7 @@ const start = (owned: Record<string, number> = {}): Core => ({
   staffSeq: 2,
   candidates: [],
   guidesDone: [],
+  guidesHidden: [],
   termsShown: [],
 });
 

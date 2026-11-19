@@ -118,6 +118,7 @@ export const coreOf = (s: GameState): Core => ({
   candidates: s.candidates,
   focus: s.focus,
   guidesDone: s.guidesDone,
+  guidesHidden: s.guidesHidden,
   termsShown: s.termsShown,
 });
 

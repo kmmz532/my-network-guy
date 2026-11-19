@@ -21,6 +21,7 @@ beforeEach(() => {
     check: null,
     lastError: null,
     guidesDone: [],
+    guidesHidden: [],
     debugGuide: null,
     staff: initialStaff,
   });

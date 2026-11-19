@@ -26,7 +26,7 @@ import printerJson from '../assets/data/devices/printer.json';
 import furnitureDefsJson from '../assets/data/furniture.json';
 import cablesJson from '../assets/data/cables.json';
 
-export const SAVE_VERSION = 62;
+export const SAVE_VERSION = 63;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -76,6 +76,8 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v62 → v63: 案内をしまった案件のID（guidesHidden）を足す。移行前は、しまった案内がないため空
+  62: (data) => ({ ...(data as object), guidesHidden: [] }),
   // v61 → v62: 電波を出すアクセスポイント（と無線つきの家庭用ルーター）の無線の設定に、帯（band）を足す。移行前は 2.4GHz だけだったため '2.4'。
   // 無線の設定のないアクセスポイントも、帯だけを持たせる。チャネルが 2.4GHz の範囲（1〜13）の外のものは、設定を外す（帯の既定のチャネルになる）
   61: (data) => {
@@ -718,6 +720,8 @@ export const isCompany = (value: unknown): value is Company => {
     Array.isArray(v.candidates) &&
     Array.isArray(v.guidesDone) &&
     v.guidesDone.every((id) => typeof id === 'string') &&
+    Array.isArray(v.guidesHidden) &&
+    v.guidesHidden.every((id) => typeof id === 'string') &&
     isSandboxLesson(v.sandboxLesson) &&
     Array.isArray(v.termsShown) &&
     v.termsShown.every((id) => typeof id === 'string') &&
