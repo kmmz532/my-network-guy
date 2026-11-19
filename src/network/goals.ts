@@ -105,7 +105,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
     const first = toward[0];
     return [{ ...base, ok: false, failure: { reason: first && !first.ok ? first.reason : 'vpn.peer_unreachable', node: goal.a } }];
   },
-  // インターネット側から、to の port へ HTTP が届けば合格。外から届く道は、回線につながるルーターの静的 NAT（外の port → 社内のアドレス）だけ。静的 NAT の先が to の IP アドレスでなければ届かない扱い
+  // インターネット側から、to の port へ HTTP が届けば合格。外から届く道は、回線につながるルーターの静的 NAT（外の port → 社内のアドレス）だけ。静的 NAT の先が to の IPアドレスでなければ届かない扱い
   public_http: (goal, state) => {
     const { net, world: data } = state;
     if (goal.type !== 'public_http') throw new Error('public_http ハンドラに別の種類が渡された');
@@ -331,7 +331,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
       return { goal, ok: result.ok, failure: result.failure, kind: 'ping' as const, src: pc, dst: dst.uid, result };
     });
   },
-  // 指定の機器が名前を引き、引けた IP アドレスの機器へ HTTP する。名前は結果に持ち、シーケンス図で DNS の問い合わせを出す
+  // 指定の機器が名前を引き、引けた IPアドレスの機器へ HTTP する。名前は結果に持ち、シーケンス図で DNS の問い合わせを出す
   http_by_name: (goal, state) => {
     const { net, world } = state;
     if (goal.type !== 'http_by_name') throw new Error('http_by_name ハンドラに別の種類が渡された');
@@ -345,7 +345,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
       return { goal, ok: result.ok, failure: result.failure, kind: 'http' as const, src: uid, dst: dst.uid, result, name: goal.name };
     });
   },
-  // 指定した機器ごとに名前を引く。引けて、ip の指定があればその IP アドレスなら合格
+  // 指定した機器ごとに名前を引く。引けて、ip の指定があればその IPアドレスなら合格
   resolve_name: (goal, state) => {
     const { net, world: data } = state;
     if (goal.type !== 'resolve_name') throw new Error('resolve_name ハンドラに別の種類が渡された');

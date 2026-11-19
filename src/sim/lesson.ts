@@ -21,7 +21,7 @@ export const lessonNodes = (lesson: Pick<Lesson, 'placed'>): NetNode[] =>
     y: p.y,
     locked: p.locked,
     configLocked: p.config?.locked ?? false,
-    // setup は、口の MTU など IP アドレス以外の最初の設定と、VPN のトンネル・ファイアウォールの規則（案件の setup と同じ形）
+    // setup は、口の MTU など IPアドレス以外の最初の設定と、VPN のトンネル・ファイアウォールの規則（案件の setup と同じ形）
     interfaces: (p.config?.interfaces ?? []).map((i) => {
       const { port: _port, ...extra } = p.setup?.interfaces?.find((e) => e.port === i.port) ?? { port: i.port };
       return { ...makeIface(p.device, i.port, i.ip, i.prefix), ...(i.dhcp ? { dhcp: true as const } : {}), ...structuredClone(extra) };
@@ -38,7 +38,7 @@ export const lessonNodes = (lesson: Pick<Lesson, 'placed'>): NetNode[] =>
 export const lessonFurniture = (lesson: Pick<Lesson, 'furniture'>): PlacedFurniture[] =>
   (lesson.furniture ?? []).map((f, i) => ({ uid: `f${i + 1}`, id: f.id, x: f.x, y: f.y, ...(f.facing ? { facing: f.facing } : {}) }));
 
-// 教材のアドレスの計画。IP アドレスから補う（色は保存された設定から決まる。補わないと、教材を開いた直後のケーブルが灰色のまま）
+// 教材のアドレスの計画。IPアドレスから補う（色は保存された設定から決まる。補わないと、教材を開いた直後のケーブルが灰色のまま）
 export const lessonPlans = (nodes: NetNode[], links: NetLink[], engine: EngineData): Record<string, NetworkPlan> =>
   fillPlans(analyze({ nodes, links, plans: {} }, engine));
 

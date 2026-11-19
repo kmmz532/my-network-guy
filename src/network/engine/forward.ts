@@ -174,7 +174,7 @@ export const deliver = (view: ForwardView, srcUid: string, dstUid: string, traff
   if (!src.gateway) return err(fail('gateway.unset', src.uid));
   const gwMember = srcDomain.members.find((m) => ifaceAt(view, m.node, m.port)?.ip === src.gateway || view.addressing.vrrpOwns(m.node, m.port, src.gateway as string));
   if (!gwMember) {
-    // 仮想の IP アドレスの持ち主（マスター）がいない: 同じ VRID の全員が止まっている
+    // 仮想の IPアドレスの持ち主（マスター）がいない: 同じ VRID の全員が止まっている
     if (view.addressing.net.nodes.some((n) => n.interfaces.some((i) => i.vrrp?.some((g) => g.ip === src.gateway)))) return err(fail('vrrp.no_master', src.uid));
     return err(fail('gateway.unreachable', src.uid));
   }
@@ -305,7 +305,7 @@ export const reach: Reach = (view, from, to, traffic, srcIp, dstIp) => relayDeli
 // IPsec の鍵交換（UDP 500）の片道。通り道のファイアウォールの規則を確かめる
 export const ikeSend: Send = (view, from, to, srcIp, dstIp) => relayDeliver(view, from, to, { kind: 'ike' }, srcIp, dstIp, true);
 
-// ロードバランサーの振り分け。利用者の通信がロードバランサーの仮想の IP アドレスへ届いた後（entry）、健全な振り分け先から1つ選び、サーバーへ届けて戻りを確かめる。
+// ロードバランサーの振り分け。利用者の通信がロードバランサーの仮想の IPアドレスへ届いた後（entry）、健全な振り分け先から1つ選び、サーバーへ届けて戻りを確かめる。
 // toUser は、戻りの通信の行き先（利用者、または静的 NAT の機器の社内の口）。SNAT があれば戻りはロードバランサーを経て toUser へ、なければサーバーから toUser へ直接で、ロードバランサーを通らなければ lb.asymmetric
 const balance = (view: ForwardView, userUid: string, lb: NetNode, vs: VirtualServer, entry: PathResult, toUser: { uid: string; ip: string }): PathResult => {
   const userIp = view.addressing.nodeOf(userUid)?.interfaces[0]?.ip;
@@ -338,13 +338,13 @@ const balance = (view: ForwardView, userUid: string, lb: NetNode, vs: VirtualSer
   return { ok: true, path, back: back.path };
 };
 
-// ロードバランサーの仮想の IP アドレスの HTTP のポートへ届いた通信を、振り分ける。仮想サーバーがなければ null
+// ロードバランサーの仮想の IPアドレスの HTTP のポートへ届いた通信を、振り分ける。仮想サーバーがなければ null
 const viaBalancer = (view: ForwardView, srcUid: string, lbUid: string, port: number): PathResult | null => {
   const lb = view.addressing.nodeOf(lbUid);
   if (!lb || !can(lb.device, 'loadBalance')) return null;
   const vs = getComponent(lb, 'loadBalancer')?.find((v) => v.port === port && lb.interfaces.some((i) => i.ip === v.vip));
   if (!vs) return null;
-  // ファイアウォールの規則は、仮想の IP アドレスで判定する
+  // ファイアウォールの規則は、仮想の IPアドレスで判定する
   const entry = deliver(view, srcUid, lbUid, { kind: 'http', port }, true, undefined, vs.vip);
   if (!entry.ok) return entry;
   const userIp = view.addressing.nodeOf(srcUid)?.interfaces[0]?.ip;
@@ -372,7 +372,7 @@ const viaStatic = (view: ForwardView, srcUid: string, routerUid: string, traffic
   if (can(r.device, 'firewallRules') && !allows(getComponent(r, 'firewall'), srcIp, map.insideIp, innerTraffic)) {
     return { ok: false, path: toRouter.path, failure: fail('firewall.denied', routerUid) };
   }
-  // 社内の宛先がロードバランサーの仮想の IP アドレスなら、振り分けへつなぐ
+  // 社内の宛先がロードバランサーの仮想の IPアドレスなら、振り分けへつなぐ
   const virtual = can(server.device, 'loadBalance') ? getComponent(server, 'loadBalancer')?.find((v) => v.vip === map.insideIp && v.port === map.insidePort) : undefined;
   if (virtual !== undefined && traffic.kind === 'http') {
     const toLb = deliver(view, routerUid, server.uid, innerTraffic, false, inside.ip, map.insideIp);

@@ -60,7 +60,7 @@ export interface AddressLayer {
   readonly dhcp: DhcpResult;
   // 同じブロードキャストドメインで、同じ VRID のグループを持つインターフェース（自分を含む）
   vrrpMembers(uid: string, port: number, vrid: number): VrrpMember[];
-  // この口が、仮想の IP アドレス ip のマスター（持ち主）か
+  // この口が、仮想の IPアドレス ip のマスター（持ち主）か
   vrrpOwns(uid: string, port: number, ip: string): boolean;
 }
 

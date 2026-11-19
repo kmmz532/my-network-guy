@@ -224,7 +224,7 @@ export const FAILURE_REASONS = [
   'ospf.no_neighbor',
   // BGP の相手のアドレスか AS 番号が合わず、隣接しない（N147）
   'bgp.no_session',
-  // 同じ VRID の全員が止まっている（仮想の IP アドレスをゲートウェイにした端末からの通信・NET.md §5.12）
+  // 同じ VRID の全員が止まっている（仮想の IPアドレスをゲートウェイにした端末からの通信・NET.md §5.12）
   'vrrp.no_master',
   // iBGP で学んだ経路のネクストホップに届かない（next-hop-self がない・NET.md §5.5）
   'bgp.nexthop_unreachable',

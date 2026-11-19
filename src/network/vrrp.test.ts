@@ -32,7 +32,7 @@ const via = (net: Network) => ping(analyze(net, data), 'host', 'srv');
 
 describe('VRRP のマスターの選出', () => {
   const m = (uid: string, ip: string, priority: number, up = true, extra: Partial<VrrpGroup> = {}) => ({ uid, realIp: ip, group: g(1, '10.0.0.254', priority, extra), downTracked: [] as string[], up });
-  it('優先度が高いほうがマスター。同じなら実の IP アドレスが大きいほう', () => {
+  it('優先度が高いほうがマスター。同じなら実の IPアドレスが大きいほう', () => {
     expect(electVrrpMaster([m('a', '10.0.0.1', 100), m('b', '10.0.0.2', 110)])).toBe('b');
     expect(electVrrpMaster([m('a', '10.0.0.1', 100), m('b', '10.0.0.2', 100)])).toBe('b');
   });
@@ -76,7 +76,7 @@ describe('VRRP と通信', () => {
 });
 
 describe('VRRP の警告', () => {
-  it('端末のゲートウェイが実の IP アドレスなら vrrp.gateway_real_ip、仮想の IP アドレスが食い違えば vrrp.vip_mismatch', async () => {
+  it('端末のゲートウェイが実の IPアドレスなら vrrp.gateway_real_ip、仮想の IPアドレスが食い違えば vrrp.vip_mismatch', async () => {
     const { warningsOf: raw } = await import('./query/warnings');
     const { analyze } = await import('./engine/analyze');
     const { gameEnv } = await import('../sim/env');
@@ -108,7 +108,7 @@ describe('VRRP のターミナル', () => {
 });
 
 describe('survive_device_failure（機器の電源）', () => {
-  it('VRRP でゲートウェイを冗長にすると、ルーターのどちらを止めても届く。実の IP アドレスのゲートウェイでは、止めると届かない', async () => {
+  it('VRRP でゲートウェイを冗長にすると、ルーターのどちらを止めても届く。実の IPアドレスのゲートウェイでは、止めると届かない', async () => {
     const { evaluateGoal } = await import('./goals');
     const goal = { type: 'survive_device_failure' as const, nodes: ['r1', 'r2'] };
     expect(evaluateGoal(goal, analyze(build(), data))[0].ok).toBe(true);

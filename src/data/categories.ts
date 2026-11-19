@@ -16,7 +16,7 @@ export const CATEGORY = {
   uplink: 'uplink',
   // 無線のアクセスポイント（有線の LAN の口1つと電波。N151 の最初の段）
   accessPoint: 'access_point',
-  // ロードバランサー（仮想の IP アドレスへの HTTP の通信を、サーバーへ振り分ける）
+  // ロードバランサー（仮想の IPアドレスへの HTTP の通信を、サーバーへ振り分ける）
   loadBalancer: 'load_balancer',
 } as const;
 

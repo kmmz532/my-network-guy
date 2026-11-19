@@ -396,7 +396,7 @@ const interfaceSchema = z.object({
 const placedConfigSchema = z.object({
   interfaces: z.array(interfaceSchema),
   gateway: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/).nullable(),
-  // ネームサーバー（ip name-server）の IP アドレス
+  // ネームサーバー（ip name-server）の IPアドレス
   nameServer: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/).optional(),
   // プロキシ（ブラウザの設定）。HTTP はまずこのプロキシへ届ける。pac の direct は、プロキシを通さず直接つなぐ名前の接尾辞
   proxy: z.object({ ip: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/), port: z.number().int().min(1).max(65535) }).optional(),
@@ -570,7 +570,7 @@ export const goalSchema = z.discriminatedUnion('type', [
   // 指定の端末が、インターネットへ HTTP で届けば合格。by を持つときは、インターネットから見た送信元が機器 by のアドレスであること
   z.object({ type: z.literal('outside_sees'), from: z.array(z.string().min(1)).min(1), port: z.number().int().min(1).max(65535), by: z.string().min(1).optional() }),
   z.object({ type: z.literal('http_by_name'), from: z.array(z.string().min(1)).min(1), name: z.string().min(1), port: z.number().int().min(1).max(65535) }),
-  // 指定した機器がすべて、名前を引ける（ネームサーバーへ問い合わせて A の記録が返る）。ip を書けば、その IP アドレスであること
+  // 指定した機器がすべて、名前を引ける（ネームサーバーへ問い合わせて A の記録が返る）。ip を書けば、その IPアドレスであること
   z.object({ type: z.literal('resolve_name'), from: z.array(z.string().min(1)).min(1), name: z.string().min(1), ip: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/).optional() }),
   // すべてのPCから、到達できるサーバー（外部）への経路にファイアウォールがある
   z.object({ type: z.literal('firewall') }),

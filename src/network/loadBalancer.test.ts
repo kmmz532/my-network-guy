@@ -1,4 +1,4 @@
-// ロードバランサー: 仮想の IP アドレスの HTTP を、健全なサーバーへ振り分ける
+// ロードバランサー: 仮想の IPアドレスの HTTP を、健全なサーバーへ振り分ける
 import { describe, expect, it } from 'vitest';
 import { http } from './engine';
 import { analyze } from './engine/analyze';
@@ -28,7 +28,7 @@ interface Options {
   members?: Virtual['members'];
 }
 
-// 利用者 u1・u2 と、ロードバランサーの仮想の IP アドレスが 10.0.0.0/24、サーバー s1・s2 が 10.0.1.0/24。別のルーター r は両方に口を持つ
+// 利用者 u1・u2 と、ロードバランサーの仮想の IPアドレスが 10.0.0.0/24、サーバー s1・s2 が 10.0.1.0/24。別のルーター r は両方に口を持つ
 const build = ({ method = 'round_robin', healthCheck = 'http', snat = true, s1 = web, s2 = web, gateway = 'lb', members }: Options = {}): Network => ({
   nodes: [
     n('u1', 'pc_basic', [f(0, '10.0.0.11')], 0, { gateway: '10.0.0.1' }),
@@ -106,7 +106,7 @@ describe('ロードバランサーの振り分け', () => {
   });
 });
 
-describe('静的 NAT の先がロードバランサーの仮想の IP アドレス', () => {
+describe('静的 NAT の先がロードバランサーの仮想の IPアドレス', () => {
   // 外の機器 → NAT のルーター gw（外 203.0.113.1・内 10.0.0.1）→ ロードバランサー（10.0.0.100）→ サーバー
   const external = (): Network => ({
     nodes: [

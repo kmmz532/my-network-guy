@@ -45,7 +45,7 @@ interface Props {
 export function LoadBalancerField({ node, netState, disabled, onError }: Props) {
   const setLoadBalancer = useGameStore((s) => s.setLoadBalancer);
   const servers = getComponent(node, 'loadBalancer') ?? [];
-  // 仮想の IP アドレスは、この機器の口のアドレスから選ぶ
+  // 仮想の IPアドレスは、この機器の口のアドレスから選ぶ
   const addresses = node.interfaces.filter((i) => Boolean(i.ip)).map((i) => i.ip);
   const save = (next: VirtualServer[]) => onError(setLoadBalancer(node.uid, next));
 

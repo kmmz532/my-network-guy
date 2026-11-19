@@ -335,7 +335,7 @@ export const delegationReason = (familiarity: Familiarity, offer: Offer): OpFail
 // 任せて受注したあとも、画面の対象（focus）は受注の前のまま残す（現場に移さない・N111）
 export const keepFocus = (before: Core, outcome: Outcome): Outcome => (outcome.ok ? { ...outcome, core: { ...outcome.core, focus: before.focus } } : outcome);
 
-// 案件で最初から置かれている機器。setup は、口の VLAN・OSPF・VRRP・DHCP・BGP など、IP アドレス以外の最初の設定
+// 案件で最初から置かれている機器。setup は、口の VLAN・OSPF・VRRP・DHCP・BGP など、IPアドレス以外の最初の設定
 export const fixedNodes = (contract: Contract): NetNode[] =>
   contract.placed.map((p, i) => {
     const setup = p.setup;
@@ -628,7 +628,7 @@ export type OspfOp =
   | { op: 'referenceBandwidth'; mbps: number | null }
   | { op: 'iface'; id: string; key: 'cost' | 'priority' | 'hello' | 'dead'; value: number };
 
-// VRRP の設定（グループの作成・仮想の IP アドレス・優先度・プリエンプト・追跡・削除）。ip で、グループがなければ作る（優先度 100・プリエンプトあり）
+// VRRP の設定（グループの作成・仮想の IPアドレス・優先度・プリエンプト・追跡・削除）。ip で、グループがなければ作る（優先度 100・プリエンプトあり）
 export type VrrpOp =
   | { op: 'ip'; id: string; vrid: number; ip: string }
   | { op: 'priority'; id: string; vrid: number; value: number }

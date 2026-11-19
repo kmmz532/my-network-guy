@@ -1,7 +1,7 @@
 import type { NetworkState } from '../engine/state';
 import { effectivePriority, electVrrpMaster } from '../vrrp';
 
-// VRRP の状態（show vrrp に出す）。インターフェースのグループごとに、状態・仮想の IP アドレス・有効な優先度
+// VRRP の状態（show vrrp に出す）。インターフェースのグループごとに、状態・仮想の IPアドレス・有効な優先度
 export interface VrrpStatus {
   iface: string;
   vrid: number;

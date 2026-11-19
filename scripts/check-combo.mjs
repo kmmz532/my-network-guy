@@ -16,7 +16,7 @@ const check = (name, ok, detail = '') => {
   if (!ok) failures++;
 };
 
-// 機器の設定の「詳しく」→「ネットワーク」を開き、IP アドレスの欄（最初の combobox）を出す
+// 機器の設定の「詳しく」→「ネットワーク」を開き、IPアドレスの欄（最初の combobox）を出す
 async function openIpField(page) {
   await page.getByText('新しくプレイ').click();
   await page.waitForTimeout(1200);

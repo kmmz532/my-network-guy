@@ -123,12 +123,12 @@ const pushArp = (b: Builder, path: readonly string[], frames: readonly Frame[]):
     if (b.arpDone.has(key)) continue;
     b.arpDone.add(key);
     const { first, last } = segs[i];
-    // 次の機器が受け取る口の IP アドレス
+    // 次の機器が受け取る口の IPアドレス
     const link = b.ctx.links.find((l) => l.uid === last.link);
     if (!link) throw new Error(`制御の列: 配線がない ${last.link}`);
     const port = link.a.node === to ? link.a.port : link.b.port;
     const ip = nodeOf(b.state, to).interfaces.find((x) => x.port === port)?.ip;
-    if (ip === undefined) throw new Error(`制御の列: IP アドレスが未設定 ${to} の口${port}`);
+    if (ip === undefined) throw new Error(`制御の列: IPアドレスが未設定 ${to} の口${port}`);
     b.steps.push({ from, to: '*', reached: broadcastReach(b, from, to), proto: 'arp', label: 'seq.arp.request', params: { ip }, path: [from, to] });
     b.steps.push({ from: to, to: from, reached: [from], proto: 'arp', label: 'seq.arp.reply', params: { ip, mac: first.l2.dstMac }, path: [to, from] });
   }

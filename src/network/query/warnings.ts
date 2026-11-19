@@ -61,7 +61,7 @@ export const warningsOf = (state: NetworkState): VlanWarning[] => {
     const portMin = Math.min(...[l.a, l.b].map((e) => portSpeed(net.nodes.find((n) => n.uid === e.node)!.device, e.port)!));
     if (speed < portMin) out.push({ id: 'link.cable_bottleneck', a: l.a.node, b: l.b.node });
   }
-  // VRRP: 同じネットワーク・同じ VRID で仮想の IP アドレスが違う（組ごとに1件）と、端末のゲートウェイが仮想ではなく実の IP アドレス
+  // VRRP: 同じネットワーク・同じ VRID で仮想の IPアドレスが違う（組ごとに1件）と、端末のゲートウェイが仮想ではなく実の IPアドレス
   const groups = net.nodes.flatMap((n) => n.interfaces.flatMap((i) => (i.vrrp ?? []).map((g) => ({ uid: n.uid, iface: i, g }))));
   for (let x = 0; x < groups.length; x++) {
     for (let y = x + 1; y < groups.length; y++) {

@@ -661,7 +661,7 @@ export const setFirewallRules = (core: Core, uid: string, rules: FirewallRule[],
     target,
   );
 
-// ロードバランサーの仮想サーバーの一覧を置き換える。仮想の IP アドレスは、その機器の口のアドレスでなければならない
+// ロードバランサーの仮想サーバーの一覧を置き換える。仮想の IPアドレスは、その機器の口のアドレスでなければならない
 export const setLoadBalancer = (core: Core, uid: string, servers: NonNullable<Components['loadBalancer']>, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,

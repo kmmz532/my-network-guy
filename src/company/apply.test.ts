@@ -66,7 +66,7 @@ describe('applyOperation', () => {
 });
 
 describe('負荷分散の設定の操作', () => {
-  // ロードバランサーを置き、口に 10.0.0.100 を持たせた構成（仮想の IP アドレスは口のアドレスでなければならない）
+  // ロードバランサーを置き、口に 10.0.0.100 を持たせた構成（仮想の IPアドレスは口のアドレスでなければならない）
   const withBalancer = (): { core: Core; uid: string } => {
     const placed = placeInOffice(start(), 'load_balancer', 1, 1, map, env, false, true);
     if (!placed.ok) throw new Error(`配置に失敗: ${placed.reason}`);

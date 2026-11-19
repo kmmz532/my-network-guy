@@ -2,13 +2,13 @@
 import { ipToInt } from './engine';
 
 export const VRRP_DEFAULT_PRIORITY = 100;
-// アドレスの所有者（仮想の IP アドレスと実の IP アドレスが同じ）の優先度
+// アドレスの所有者（仮想の IPアドレスと実の IPアドレスが同じ）の優先度
 export const VRRP_OWNER_PRIORITY = 255;
 
 export interface VrrpGroup {
   // 1〜255
   vrid: number;
-  // 仮想の IP アドレス（インターフェースのサブネットの中）
+  // 仮想の IPアドレス（インターフェースのサブネットの中）
   ip: string;
   // 1〜254。既定 100
   priority: number;
@@ -23,7 +23,7 @@ export const vrrpMac = (vrid: number): string => `00:00:5e:00:01:${vrid.toString
 
 export interface VrrpMember {
   uid: string;
-  // 実の IP アドレス
+  // 実の IPアドレス
   realIp: string;
   group: VrrpGroup;
   // 追跡のインターフェースのうち、止まっているものの id
@@ -39,7 +39,7 @@ export const effectivePriority = (m: VrrpMember): number => {
   return Math.max(1, m.group.priority - down);
 };
 
-// マスターの選出。動いているものの中で、有効な優先度が最大、同じなら実の IP アドレスが最大。
+// マスターの選出。動いているものの中で、有効な優先度が最大、同じなら実の IPアドレスが最大。
 // previous（直前のマスター）が preempt なしで、まだ動いていれば、そのまま。全員が止まっていれば null
 export const electVrrpMaster = (members: VrrpMember[], previous: string | null = null): string | null => {
   const alive = members.filter((m) => m.up);
