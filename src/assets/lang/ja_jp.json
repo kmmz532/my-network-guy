@@ -1649,6 +1649,7 @@
   "lesson.dhcp_relay.step.3": "R1 を開き、ip helper-address 1 10.0.1.2 で、PC 側の口 1 に DHCP サーバーのアドレスを指定しましょう。ブロードキャストを中継して届けるのがリレーです。",
   "lesson.dhcp_relay.step.4": "PC1・PC2 がアドレスを受け取り、SRV へ届けば、テストに合格します。",
   "lesson.dhcp_relay.step.5": "SRV で show ip dhcp binding を実行し、配ったアドレスを確認しましょう。リレーを外すと dhcp.no_offer になります。",
+  "lesson.dhcp_relay.step.6": "PC1 の DHCP の欄から「シーケンス図を見る」を開きましょう。R1 と SRV の間は、宛先を SRV の1台に決めたユニキャストで届いていることを確かめます。",
   "lesson.dhcp_relay.title": "DHCP リレーで別のネットワークへアドレスを配る",
   "lesson.dns_intranet_names.brief": "PC1 のネームサーバーを、社内のキャッシュ DNS に向けてください。社内のファイルサーバーと、ルーターの外への通信が届けば合格です。",
   "lesson.dns_intranet_names.step.1": "CACHE を開きましょう。",

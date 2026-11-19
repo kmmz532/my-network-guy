@@ -186,6 +186,10 @@
     {
       "target": "SRV",
       "done": "cmd:show ip dhcp binding"
+    },
+    {
+      "target": "PC1",
+      "done": "sequence:open"
     }
   ]
 }

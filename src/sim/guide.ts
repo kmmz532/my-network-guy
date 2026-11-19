@@ -23,6 +23,7 @@ export interface GuideStep {
 //   cmd:<命令の頭>      ターミナルでその命令を打った（教材を開いている間の履歴）
 //   down:<ref>[:<口>]   機器の口をすべて、または指定の口を shutdown した
 //   frames:open         パケットの中身の欄を開いた
+//   sequence:open       シーケンス図の窓を開いた
 //   goal:<n>            教材の n 番目（1から）の達成条件を満たした
 //   answer:<問いの id>  発展の問いに正しく答えた
 export type Condition =
@@ -40,6 +41,7 @@ export type Condition =
   | { kind: 'cmd'; prefix: string }
   | { kind: 'down'; ref: string; port: number | null }
   | { kind: 'frames' }
+  | { kind: 'sequence' }
   | { kind: 'goal'; n: number }
   | { kind: 'answer'; id: string };
 
@@ -83,6 +85,8 @@ export const parseCondition = (text: string): Condition | null => {
     }
     case 'frames':
       return value === 'open' ? { kind: 'frames' } : null;
+    case 'sequence':
+      return value === 'open' ? { kind: 'sequence' } : null;
     case 'goal': {
       const n = /^(\d+)$/.exec(value);
       return n && Number(n[1]) >= 1 ? { kind: 'goal', n: Number(n[1]) } : null;
@@ -113,6 +117,8 @@ export interface GuideState {
   commands?: string[];
   // パケットの中身の欄を開いたか
   framesOpened?: boolean;
+  // シーケンス図の窓を開いたか
+  sequenceOpened?: boolean;
   // 教材の達成条件ごとの、最後のテストの結果（順は教材の goals）
   lessonGoals?: boolean[];
   // 正しく答えた発展の問いの id
@@ -175,6 +181,8 @@ const conditionDone = (c: Condition, s: GuideState): boolean => {
     }
     case 'frames':
       return s.framesOpened === true;
+    case 'sequence':
+      return s.sequenceOpened === true;
     case 'goal':
       return s.lessonGoals?.[c.n - 1] === true;
     case 'answer':
@@ -188,10 +196,10 @@ export const guideStepDone = (step: GuideStep, state: GuideState): boolean => {
   return c !== null && conditionDone(c, state);
 };
 
-// 構成に残らない条件（道具の選択・画面を開いたこと・パケットの欄を開いたこと）。一度満たした手順を記録しておかないと、操作を終えた時点で条件が外れる
+// 構成に残らない条件（道具の選択・画面を開いたこと・パケットの欄を開いたこと・シーケンス図を開いたこと）。一度満たした手順を記録しておかないと、操作を終えた時点で条件が外れる
 export const isTransient = (step: GuideStep): boolean => {
   const c = parseCondition(step.done);
-  return c !== null && (c.kind === 'tool' || c.kind === 'open' || c.kind === 'frames');
+  return c !== null && (c.kind === 'tool' || c.kind === 'open' || c.kind === 'frames' || c.kind === 'sequence');
 };
 
 // 案内の進み具合。手順の位置は、条件と今の構成から求める（満たしていない最初の手順がいまの手順）。

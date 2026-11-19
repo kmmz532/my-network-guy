@@ -180,6 +180,7 @@ describe('学習の条件', () => {
     expect(guideStepDone(step('goal:2'), { ...base(), lessonGoals: [true, false] })).toBe(false);
     expect(guideStepDone(step('goal:1'), { ...base(), lessonGoals: [true, false] })).toBe(true);
     expect(guideStepDone(step('frames:open'), { ...base(), framesOpened: true })).toBe(true);
+    expect(guideStepDone(step('sequence:open'), { ...base(), sequenceOpened: true })).toBe(true);
     expect(guideStepDone(step('answer:q1'), { ...base(), answers: ['q1'] })).toBe(true);
   });
   it('down は、指定した口を shutdown していれば完了する', () => {

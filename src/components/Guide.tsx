@@ -122,6 +122,7 @@ export function Guide() {
     categoryOf: deviceCategory,
     commands: lessonCommands,
     framesOpened: windows.some((w) => w.kind === 'frames'),
+    sequenceOpened: windows.some((w) => w.kind === 'sequence'),
     lessonGoals,
     answers: lessonAnswers,
   };
