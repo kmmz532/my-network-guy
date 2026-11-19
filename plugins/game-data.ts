@@ -31,6 +31,7 @@ import {
   type GuideFile,
   type Lesson,
   type Drill,
+  type Flow,
   type Goal,
   type GameMap,
   type Lang,
@@ -247,6 +248,8 @@ const goalRefs = (goal: Goal): string[] => {
     case 'http':
     case 'min_speed':
       return [goal.from, goal.to];
+    case 'qos_voice':
+      return [];
     case 'public_http':
       return [goal.to];
     case 'vpn_up':
@@ -315,6 +318,20 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
     if (!ok) errors.push(message);
   };
 
+  // 同時に流れる通信（flows）の機器が placed にあること。qos_voice は flows を持ち、flow の添字が範囲内で、対象があること
+  const checkFlows = (owner: string, goals: Goal[], flows: Flow[] | undefined, refs: Set<string>) => {
+    for (const f of flows ?? []) {
+      for (const ref of [f.from, f.to]) ensure(refs.has(ref), `${owner}: flows の参照 ${ref} が placed にない`);
+    }
+    for (const goal of goals) {
+      if (goal.type !== 'qos_voice') continue;
+      ensure(flows !== undefined, `${owner}: qos_voice があるのに flows がない`);
+      const picked = goal.flow ?? (flows ?? []).flatMap((f, i) => (f.kind === 'voice' ? [i] : []));
+      ensure(picked.length > 0, `${owner}: qos_voice の対象の通信がない`);
+      for (const i of picked) ensure(flows?.[i] !== undefined, `${owner}: qos_voice の flow ${i} が flows にない`);
+    }
+  };
+
   // 案内は固定案件ごとに1つ。案件のIDは固定案件のものだけ
   unique(data.guides, (g) => g.contract, 'guides.json');
   for (const g of data.guides) {
@@ -329,6 +346,7 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
   for (const l of data.lessons) {
     const refs = new Set(l.placed.map((p) => p.ref));
     ensure(refs.size === l.placed.length, `lessons/${l.id}.json: ref が重複している`);
+    checkFlows(`lessons/${l.id}.json`, l.goals, l.flows, refs);
     for (const p of l.placed) {
       ensure(deviceIds.has(p.device), `lessons/${l.id}.json: ${p.ref} の機材 ${p.device} がない`);
     }
@@ -438,6 +456,7 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
     ensure(!!map || contract.map === OFFICE_MAP_ID, `${owner}: 未定義のマップ ${contract.map}`);
     const refs = checkPlacement(owner, contract.placed, map);
     checkGoals(owner, contract.goals, refs);
+    checkFlows(owner, contract.goals, contract.flows, refs);
     for (const p of contract.placed) {
       if (!p.setup) continue;
       const device = data.devices.find((d) => d.id === p.device);

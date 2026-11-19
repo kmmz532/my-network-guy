@@ -314,7 +314,10 @@ export const commands: readonly CommandSpec[] = [
               : out(tr('ui.terminal.ifLinked', { port, peer: nameOf(ctx, peer) }));
           const speed = portSpeedOf(ctx.state, ctx.links, node.uid, node.device, port);
           const lines = [line, out(tr('ui.terminal.mac', { port, mac: macOfPort(ctx, port) })), out(tr('ui.terminal.ifSpeed', { port, speed: speedText(speed) }))];
-          return iface ? [...lines, out(tr('ui.terminal.ifMtu', { port, mtu: iface.mtu ?? MTU_DEFAULT }))] : lines;
+          const withMtu = iface ? [...lines, out(tr('ui.terminal.ifMtu', { port, mtu: iface.mtu ?? MTU_DEFAULT }))] : lines;
+          // QoS は、設定した口だけに行を出す（設定のない口は none・信頼しない）
+          const cfg = node.ports.find((p) => p.port === port);
+          return cfg?.qos !== undefined || cfg?.trust !== undefined ? [...withMtu, out(tr('ui.terminal.ifQos', { port, qos: cfg.qos ?? 'none', trust: cfg.trust ? 'dscp' : 'no' }))] : withMtu;
         }),
       );
     },

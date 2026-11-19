@@ -12,6 +12,7 @@ export type ConfigChange =
   | { kind: 'gateway'; gateway: string | null }
   | { kind: 'routing'; change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; wildcard?: string; area?: number; process?: number | null } }
   | { kind: 'ifaceTune'; port: number; key: 'mtu' | 'adjustMss'; value: number | null }
+  | { kind: 'portQos'; port: number; change: { qos: 'none' | 'priority' } | { trust: boolean } }
   | { kind: 'ospf'; change: OspfOp } | { kind: 'isp'; line: IspLine } | { kind: 'stp'; change: StpOp }
   | { kind: 'channel'; change: ChannelOp } | { kind: 'dhcp'; change: DhcpOp } | { kind: 'power'; on: boolean }
   | { kind: 'vrrp'; change: VrrpOp } | { kind: 'bgp'; change: BgpOp } | { kind: 'nat'; change: NatOp }

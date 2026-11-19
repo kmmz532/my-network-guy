@@ -1,0 +1,234 @@
+{
+  "id": "qos_voice",
+  "topic": "service",
+  "order": 37,
+  "size": {
+    "w": 15,
+    "h": 8
+  },
+  "placed": [
+    {
+      "ref": "HQ_PC",
+      "device": "pc_basic",
+      "x": 1,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.10.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "HQ-PC"
+    },
+    {
+      "ref": "HQ_DATA",
+      "device": "pc_basic",
+      "x": 1,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.10.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "HQ-DATA"
+    },
+    {
+      "ref": "HQ_SW",
+      "device": "l2_switch_8p",
+      "x": 4,
+      "y": 3,
+      "locked": false,
+      "name": "HQ-SW"
+    },
+    {
+      "ref": "BR_SW",
+      "device": "l2_switch_8p",
+      "x": 10,
+      "y": 3,
+      "locked": false,
+      "name": "BR-SW"
+    },
+    {
+      "ref": "BR_PC",
+      "device": "pc_basic",
+      "x": 13,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.10.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "BR-PC"
+    },
+    {
+      "ref": "BR_DATA",
+      "device": "pc_basic",
+      "x": 13,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.10.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "BR-DATA"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "HQ_PC",
+        "port": 0
+      },
+      "b": {
+        "ref": "HQ_SW",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "HQ_DATA",
+        "port": 0
+      },
+      "b": {
+        "ref": "HQ_SW",
+        "port": 2
+      }
+    },
+    {
+      "cable": "utp_cat5",
+      "a": {
+        "ref": "HQ_SW",
+        "port": 0
+      },
+      "b": {
+        "ref": "BR_SW",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "BR_PC",
+        "port": 0
+      },
+      "b": {
+        "ref": "BR_SW",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "BR_DATA",
+        "port": 0
+      },
+      "b": {
+        "ref": "BR_SW",
+        "port": 2
+      }
+    }
+  ],
+  "flows": [
+    {
+      "from": "HQ_DATA",
+      "to": "BR_DATA",
+      "kind": "data",
+      "mbps": 150
+    },
+    {
+      "from": "HQ_PC",
+      "to": "BR_PC",
+      "kind": "voice",
+      "mbps": 1
+    }
+  ],
+  "goals": [
+    {
+      "type": "qos_voice"
+    }
+  ],
+  "guide": [
+    {
+      "target": "HQ_SW",
+      "done": "open:HQ_SW"
+    },
+    {
+      "target": "HQ_SW",
+      "done": "cmd:show interfaces"
+    },
+    {
+      "target": "HQ_SW",
+      "done": "cmd:mls qos"
+    },
+    {
+      "target": "HQ_SW",
+      "done": "cmd:priority-queue"
+    },
+    {
+      "target": "test",
+      "done": "goal:1"
+    }
+  ],
+  "followUps": [
+    {
+      "kind": "build",
+      "id": "f1",
+      "goals": [
+        {
+          "type": "qos_voice"
+        }
+      ]
+    }
+  ],
+  "followUpSetup": [
+    {
+      "before": "f1",
+      "change": [
+        {
+          "kind": "config",
+          "uid": "HQ_SW",
+          "change": {
+            "kind": "portQos",
+            "port": 1,
+            "change": {
+              "trust": false
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

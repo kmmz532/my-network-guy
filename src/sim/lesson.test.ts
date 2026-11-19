@@ -4,7 +4,7 @@ import { deviceCategory } from '../registry/query';
 import ja from '../assets/lang/ja_jp.json';
 import type { Balance, Lesson, Question } from '../data/schema';
 import balanceJson from '../assets/data/balance.json';
-import { applySetup, drillConfig, drillState, judgeDiagnose } from './drill';
+import { applySetup, drillConfig, drillState, judgeBuild, judgeDiagnose } from './drill';
 import type { Env } from './project';
 import type { EngineData } from '../network/types';
 import { lessonGoalResults, lessonLinks, lessonNodes, lessonPlans } from './lesson';
@@ -188,6 +188,21 @@ describe('教材（学習モード）', () => {
     const set = { id: l.id, questions: l.followUps, setup: l.followUpSetup };
     const s = drillState(applySetup(set, 'f1', { nodes: solutions[l.id](base.nodes), links: base.links }, env), engine);
     expect(judgeDiagnose(s, q, { node: 'HQ_VPN', reason: 'mtu.exceeded' })).toBe(true);
+  });
+
+  it('QoS の教材: 置いた直後は音声が削られ、信頼と priority-queue を設定すると削られずに届く。発展の問いは信頼を外した構成から始まり、戻すと合格', () => {
+    const l = lesson('qos_voice');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine, l.flows)).toEqual([false]);
+    const solved = solutions[l.id](lessonNodes(l));
+    expect(lessonGoalResults(l.goals, solved, links, engine, l.flows)).toEqual([true]);
+    if (!l.followUps || !l.followUpSetup) throw new Error('発展の問いがない');
+    const q = l.followUps[0];
+    if (q.kind !== 'build') throw new Error('発展の問いが設定する問いでない');
+    const set = { id: l.id, questions: l.followUps, setup: l.followUpSetup };
+    const broken = applySetup(set, 'f1', { nodes: solved, links }, env);
+    expect(judgeBuild(q, broken, engine, l.flows)).toBe(false);
+    expect(judgeBuild(q, { nodes: solved, links }, engine, l.flows)).toBe(true);
   });
 
   it('DNS の教材: 初めは外へ出られず、NAT を設定すると通る。ネームサーバーを向けると社内と外の名前が引ける', () => {

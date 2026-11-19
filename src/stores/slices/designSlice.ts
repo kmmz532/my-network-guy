@@ -128,7 +128,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
           get().testDrill();
           return null;
         }
-        const sr = sandboxTest(s.office, gameEnv, lesson?.goals);
+        const sr = sandboxTest(s.office, gameEnv, lesson?.goals, lesson?.flows);
         // 教材の達成条件をすべて満たしたら、達成として記録する
         if (lesson && sr?.passed) {
           get().achieveLesson(lesson.id);

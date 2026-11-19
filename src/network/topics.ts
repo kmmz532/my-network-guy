@@ -47,5 +47,6 @@ export const TOPICS = [
   { id: 'load_balancer', unlock: null, command: null, show: 'show load-balancer', failures: ['lb.member_down', 'lb.no_healthy_member', 'lb.asymmetric'], warnings: ['lb.single_member', 'lb.no_health_check'], glossary: 'load_balancer', lessons: ['lb_basics'], known: ['command'] },
   { id: 'ipsec_vpn', unlock: null, command: 'crypto map VPN 10 ipsec-isakmp', show: 'show crypto session', failures: ['vpn.peer_unreachable', 'vpn.psk_mismatch', 'vpn.proposal_mismatch', 'vpn.selector_mismatch', 'vpn.nat_before_tunnel'], warnings: ['vpn.weak_cipher'], glossary: 'ipsec', lessons: ['ipsec_vpn_two_sites'] },
   { id: 'mtu', unlock: null, command: 'ip mtu 0 1400', show: 'show interfaces', failures: ['mtu.exceeded'], warnings: [], glossary: 'mtu', lessons: ['mtu_vpn'] },
+  { id: 'qos', unlock: null, command: 'priority-queue 0', show: 'show interfaces', failures: ['qos.dropped'], warnings: [], glossary: 'qos', lessons: ['qos_voice'] },
   { id: 'dns', unlock: 18, command: 'ip name-server 192.168.1.53', show: 'show hosts', failures: ['name.unresolved'], warnings: [], glossary: 'dns_auth_cache', lessons: ['dns_intranet_names', 'dns_cache_auth'] },
 ] as const satisfies readonly Topic[];

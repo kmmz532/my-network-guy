@@ -397,6 +397,21 @@ export const setIfaceTune = (core: Core, uid: string, port: number, key: 'mtu' |
     target,
   );
 
+// 口の QoS（出口の並べ方 qos・入口のマーキングの信頼 trust）。none・false は設定を消す。設定のない口は、機器の既定のモードで作る
+export const setPortQos = (core: Core, uid: string, port: number, change: { qos: 'none' | 'priority' } | { trust: boolean }, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      if (!Number.isInteger(port) || port < 0 || port >= portCountOf(node.device)) return 'port.none';
+      const prev = node.ports.find((p) => p.port === port);
+      const base: PortConfig = prev ?? { port, mode: refusalFor(node.device, 'switchport') === null ? 'access' : 'routed' };
+      const next: PortConfig = 'qos' in change ? { ...base, qos: change.qos === 'priority' ? 'priority' : undefined } : { ...base, trust: change.trust ? true : undefined };
+      return { ...node, ports: [...node.ports.filter((p) => p.port !== port), next] };
+    },
+    target,
+  );
+
 export const setStp = (core: Core, uid: string, change: StpOp, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,

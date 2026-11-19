@@ -1,6 +1,6 @@
 // 演習（学習モード）の問いの判定。画面・ストアに依存しない純粋関数。
 // 正解はデータに書かず、構成から計算の結果（NetworkState）で求める。候補も構成から集める。
-import type { Change, Drill, InspectAsk, Question } from '../data/schema';
+import type { Change, Drill, Flow, InspectAsk, Question } from '../data/schema';
 import { applyConfig } from '../company/apply';
 import { isL2Category, isRoutingCategory } from '../network/category';
 import { analyze } from '../network/engine/analyze';
@@ -245,4 +245,4 @@ export const judgeDiagnose = (state: NetworkState, q: Extract<Question, { kind: 
 };
 
 // 設定する問い: 達成条件がすべて満たされているか
-export const judgeBuild = (q: Extract<Question, { kind: 'build' }>, config: DrillConfig, engine: EngineData): boolean => lessonGoalResults(q.goals, config.nodes, config.links, engine).every(Boolean);
+export const judgeBuild = (q: Extract<Question, { kind: 'build' }>, config: DrillConfig, engine: EngineData, flows?: readonly Flow[]): boolean => lessonGoalResults(q.goals, config.nodes, config.links, engine, flows).every(Boolean);

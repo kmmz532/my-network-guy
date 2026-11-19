@@ -1,0 +1,393 @@
+{
+  "log": [
+    {
+      "node": "HQ_SW"
+    },
+    {
+      "line": "show interfaces",
+      "lines": [
+        "out:ui.terminal.ifLinked {\"port\":0,\"peer\":\"BR_SW\"}",
+        "out:ui.terminal.mac {\"port\":0,\"mac\":\"02:30:00:00:03:00\"}",
+        "out:ui.terminal.ifSpeed {\"port\":0,\"speed\":\"100Mb/s\"}",
+        "out:ui.terminal.ifLinked {\"port\":1,\"peer\":\"HQ_PC\"}",
+        "out:ui.terminal.mac {\"port\":1,\"mac\":\"02:30:00:00:03:01\"}",
+        "out:ui.terminal.ifSpeed {\"port\":1,\"speed\":\"1000Mb/s\"}",
+        "out:ui.terminal.ifLinked {\"port\":2,\"peer\":\"HQ_DATA\"}",
+        "out:ui.terminal.mac {\"port\":2,\"mac\":\"02:30:00:00:03:02\"}",
+        "out:ui.terminal.ifSpeed {\"port\":2,\"speed\":\"1000Mb/s\"}"
+      ]
+    },
+    {
+      "line": "priority-queue 0",
+      "result": "done"
+    },
+    {
+      "line": "priority-queue 9",
+      "result": "fail",
+      "reason": "port.none"
+    },
+    {
+      "line": "mls qos 1 trust dscp",
+      "result": "done"
+    },
+    {
+      "line": "show interfaces",
+      "lines": [
+        "out:ui.terminal.ifLinked {\"port\":0,\"peer\":\"BR_SW\"}",
+        "out:ui.terminal.mac {\"port\":0,\"mac\":\"02:30:00:00:03:00\"}",
+        "out:ui.terminal.ifSpeed {\"port\":0,\"speed\":\"100Mb/s\"}",
+        "out:ui.terminal.ifQos {\"port\":0,\"qos\":\"priority\",\"trust\":\"no\"}",
+        "out:ui.terminal.ifLinked {\"port\":1,\"peer\":\"HQ_PC\"}",
+        "out:ui.terminal.mac {\"port\":1,\"mac\":\"02:30:00:00:03:01\"}",
+        "out:ui.terminal.ifSpeed {\"port\":1,\"speed\":\"1000Mb/s\"}",
+        "out:ui.terminal.ifQos {\"port\":1,\"qos\":\"none\",\"trust\":\"dscp\"}",
+        "out:ui.terminal.ifLinked {\"port\":2,\"peer\":\"HQ_DATA\"}",
+        "out:ui.terminal.mac {\"port\":2,\"mac\":\"02:30:00:00:03:02\"}",
+        "out:ui.terminal.ifSpeed {\"port\":2,\"speed\":\"1000Mb/s\"}"
+      ]
+    },
+    {
+      "line": "no priority-queue 0",
+      "result": "done"
+    },
+    {
+      "line": "no mls qos 1 trust",
+      "result": "done"
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "interface g0/0",
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "port",
+        "port": 0
+      }
+    },
+    {
+      "line": "priority-queue",
+      "result": "done"
+    },
+    {
+      "line": "mls qos trust dscp",
+      "result": "done"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
+      "line": "show interfaces",
+      "lines": [
+        "out:ui.terminal.ifLinked {\"port\":0,\"peer\":\"BR_SW\"}",
+        "out:ui.terminal.mac {\"port\":0,\"mac\":\"02:30:00:00:03:00\"}",
+        "out:ui.terminal.ifSpeed {\"port\":0,\"speed\":\"100Mb/s\"}",
+        "out:ui.terminal.ifQos {\"port\":0,\"qos\":\"priority\",\"trust\":\"dscp\"}",
+        "out:ui.terminal.ifLinked {\"port\":1,\"peer\":\"HQ_PC\"}",
+        "out:ui.terminal.mac {\"port\":1,\"mac\":\"02:30:00:00:03:01\"}",
+        "out:ui.terminal.ifSpeed {\"port\":1,\"speed\":\"1000Mb/s\"}",
+        "out:ui.terminal.ifLinked {\"port\":2,\"peer\":\"HQ_DATA\"}",
+        "out:ui.terminal.mac {\"port\":2,\"mac\":\"02:30:00:00:03:02\"}",
+        "out:ui.terminal.ifSpeed {\"port\":2,\"speed\":\"1000Mb/s\"}"
+      ]
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "interface g0/0",
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "port",
+        "port": 0
+      }
+    },
+    {
+      "line": "no priority-queue",
+      "result": "done"
+    },
+    {
+      "line": "no mls qos trust",
+      "result": "done"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
+      "line": "show interfaces",
+      "lines": [
+        "out:ui.terminal.ifLinked {\"port\":0,\"peer\":\"BR_SW\"}",
+        "out:ui.terminal.mac {\"port\":0,\"mac\":\"02:30:00:00:03:00\"}",
+        "out:ui.terminal.ifSpeed {\"port\":0,\"speed\":\"100Mb/s\"}",
+        "out:ui.terminal.ifLinked {\"port\":1,\"peer\":\"HQ_PC\"}",
+        "out:ui.terminal.mac {\"port\":1,\"mac\":\"02:30:00:00:03:01\"}",
+        "out:ui.terminal.ifSpeed {\"port\":1,\"speed\":\"1000Mb/s\"}",
+        "out:ui.terminal.ifLinked {\"port\":2,\"peer\":\"HQ_DATA\"}",
+        "out:ui.terminal.mac {\"port\":2,\"mac\":\"02:30:00:00:03:02\"}",
+        "out:ui.terminal.ifSpeed {\"port\":2,\"speed\":\"1000Mb/s\"}"
+      ]
+    }
+  ],
+  "network": {
+    "nodes": [
+      {
+        "uid": "BR_DATA",
+        "device": "pc_basic",
+        "macSerial": 6,
+        "ports": [],
+        "name": "BR-DATA",
+        "x": 13,
+        "y": 5,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "192.168.10.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "BR_PC",
+        "device": "pc_basic",
+        "macSerial": 5,
+        "ports": [],
+        "name": "BR-PC",
+        "x": 13,
+        "y": 2,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "192.168.10.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "BR_SW",
+        "device": "l2_switch_8p",
+        "macSerial": 4,
+        "ports": [],
+        "name": "BR-SW",
+        "x": 10,
+        "y": 3,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "HQ_DATA",
+        "device": "pc_basic",
+        "macSerial": 2,
+        "ports": [],
+        "name": "HQ-DATA",
+        "x": 1,
+        "y": 5,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "192.168.10.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "HQ_PC",
+        "device": "pc_basic",
+        "macSerial": 1,
+        "ports": [],
+        "name": "HQ-PC",
+        "x": 1,
+        "y": 2,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "192.168.10.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "HQ_SW",
+        "device": "l2_switch_8p",
+        "macSerial": 3,
+        "ports": [
+          {
+            "port": 1,
+            "mode": "access"
+          },
+          {
+            "port": 0,
+            "mode": "access"
+          }
+        ],
+        "name": "HQ-SW",
+        "x": 4,
+        "y": 3,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      }
+    ],
+    "links": [
+      {
+        "uid": "lesson_link_1",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "HQ_PC",
+          "port": 0
+        },
+        "b": {
+          "node": "HQ_SW",
+          "port": 1
+        },
+        "path": [
+          [
+            1,
+            2
+          ],
+          [
+            4,
+            3
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_2",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "HQ_DATA",
+          "port": 0
+        },
+        "b": {
+          "node": "HQ_SW",
+          "port": 2
+        },
+        "path": [
+          [
+            1,
+            5
+          ],
+          [
+            4,
+            3
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_3",
+        "cable": "utp_cat5",
+        "a": {
+          "node": "HQ_SW",
+          "port": 0
+        },
+        "b": {
+          "node": "BR_SW",
+          "port": 0
+        },
+        "path": [
+          [
+            4,
+            3
+          ],
+          [
+            10,
+            3
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_4",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "BR_PC",
+          "port": 0
+        },
+        "b": {
+          "node": "BR_SW",
+          "port": 1
+        },
+        "path": [
+          [
+            13,
+            2
+          ],
+          [
+            10,
+            3
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_5",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "BR_DATA",
+          "port": 0
+        },
+        "b": {
+          "node": "BR_SW",
+          "port": 2
+        },
+        "path": [
+          [
+            13,
+            5
+          ],
+          [
+            10,
+            3
+          ]
+        ],
+        "paid": 0
+      }
+    ]
+  }
+}

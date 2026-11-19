@@ -8,6 +8,7 @@ import { commands as lag } from '../topics/lag/commands';
 import { commands as loadBalancer } from '../topics/load_balancer/commands';
 import { commands as mtu } from '../topics/mtu/commands';
 import { commands as nat } from '../topics/nat/commands';
+import { commands as qos } from '../topics/qos/commands';
 import { commands as ospf } from '../topics/ospf/commands';
 import { commands as rip } from '../topics/rip/commands';
 import { commands as svi } from '../topics/svi/commands';
@@ -21,7 +22,7 @@ import { commands as core } from './core';
 import type { CommandSpec } from './types';
 
 const registry = new Registry<CommandSpec>('命令');
-for (const spec of [...svi, ...core, ...vlan, ...staticRoute, ...rip, ...ospf, ...bgp, ...vrrp, ...lag, ...loadBalancer, ...ipsecVpn, ...mtu, ...nat, ...dhcp, ...stp, ...dns, ...wireless, ...trunk]) 
+for (const spec of [...svi, ...core, ...vlan, ...staticRoute, ...rip, ...ospf, ...bgp, ...vrrp, ...lag, ...loadBalancer, ...ipsecVpn, ...mtu, ...qos, ...nat, ...dhcp, ...stp, ...dns, ...wireless, ...trunk]) 
   registry.register(spec);
 
 registry.freeze();

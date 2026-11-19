@@ -1,5 +1,5 @@
 // 教材（学習モード）の初期の構成と、達成条件の判定。画面・ストアに依存しない純粋関数
-import type { Goal, Lesson } from '../data/schema';
+import type { Flow, Goal, Lesson } from '../data/schema';
 import { evaluateGoal } from '../network/goals';
 import { analyze } from '../network/engine/analyze';
 import { makeIface } from '../network/iface';
@@ -54,10 +54,10 @@ export const lessonLinks = (lesson: Pick<Lesson, 'id' | 'placed' | 'links'>): Ne
   });
 
 // 教材の達成条件を、構成に対して判定する（教材の goals の順）。条件ごとに、すべての通信が通れば true
-export const lessonGoalResults = (goals: Goal[], nodes: NetNode[], links: NetLink[], engine: EngineData): boolean[] => {
+export const lessonGoalResults = (goals: Goal[], nodes: NetNode[], links: NetLink[], engine: EngineData, flows?: readonly Flow[]): boolean[] => {
   const state = analyze({ nodes, links, plans: {} }, engine);
   return goals.map((goal) => {
-    const rs = evaluateGoal(goal, state);
+    const rs = evaluateGoal(goal, state, flows);
     return rs.length > 0 && rs.every((r) => r.ok);
   });
 };

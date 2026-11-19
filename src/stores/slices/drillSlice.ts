@@ -179,7 +179,7 @@ export const createDrillSlice: StateCreator<GameState, [], [], DrillSlice> = (se
       const q = questionOf(drill, run);
       let passed: boolean;
       if (q.kind === 'build') {
-        const sr = sandboxTest(get().office, gameEnv, q.goals);
+        const sr = sandboxTest(get().office, gameEnv, q.goals, drill.flows);
         if (!sr) throw new Error(`問い ${q.id}: 判定できる達成条件がない`);
         set({ lastError: null, traces: sr.traces, check: { projectId: 'hq', goals: sr.goals, warnings: sr.warnings }, helpUid: null });
         passed = sr.passed;

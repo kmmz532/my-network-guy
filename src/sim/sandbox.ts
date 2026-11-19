@@ -1,6 +1,6 @@
 // サンドボックス（自由に設計する練習場）の規則。資金・解禁・案件・時間を使わず、自社オフィスの床に機器を置いて配線する。
 // 費用は差し引かず、設計は施工の待ちなしで反映する。テストは、PC とサーバーどうしの ping と、PC からサーバーへの HTTP を判定する。
-import type { Goal } from '../data/schema';
+import type { Flow, Goal } from '../data/schema';
 import { evaluateGoal } from '../network/goals';
 import { analyze } from '../network/engine/analyze';
 import { warningsOf } from '../network/query/warnings';
@@ -56,11 +56,11 @@ const testGoals = (nodes: NetNode[], categoryOf: (device: string) => string): Go
 
 // サンドボックスの床のネットワークをテストする。判定できる組み合わせがなければ null
 // 教材を開いているときは、教材の達成条件（lessonGoals）で判定する
-export const sandboxTest = (office: Office, env: Env, lessonGoals?: Goal[]): TestResult | null => {
+export const sandboxTest = (office: Office, env: Env, lessonGoals?: Goal[], flows?: readonly Flow[]): TestResult | null => {
   const goals = lessonGoals ?? testGoals(office.nodes, deviceCategory);
   if (goals.length === 0) return null;
   const state = analyze({ nodes: office.nodes, links: office.links, plans: office.plans }, engineWithSite(env.engine, undefined, office.furniture));
-  const results = goals.flatMap((goal) => evaluateGoal(goal, state));
+  const results = goals.flatMap((goal) => evaluateGoal(goal, state, flows));
   const checks: GoalCheck[] = goals.map((goal) => {
     const rs = results.filter((r) => r.goal === goal);
     const seen = new Set<string>();

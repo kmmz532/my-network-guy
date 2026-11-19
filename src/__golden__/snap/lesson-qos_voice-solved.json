@@ -1,0 +1,315 @@
+{
+  "goals": [
+    true
+  ],
+  "pings": [
+    {
+      "from": "BR_DATA",
+      "to": "BR_PC",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "BR_DATA",
+        "BR_PC"
+      ]
+    },
+    {
+      "from": "BR_DATA",
+      "to": "HQ_DATA",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "BR_DATA",
+        "HQ_DATA"
+      ]
+    },
+    {
+      "from": "BR_DATA",
+      "to": "HQ_PC",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "BR_DATA",
+        "HQ_PC"
+      ]
+    },
+    {
+      "from": "BR_PC",
+      "to": "BR_DATA",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "BR_PC",
+        "BR_DATA"
+      ]
+    },
+    {
+      "from": "BR_PC",
+      "to": "HQ_DATA",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "BR_PC",
+        "HQ_DATA"
+      ]
+    },
+    {
+      "from": "BR_PC",
+      "to": "HQ_PC",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "BR_PC",
+        "HQ_PC"
+      ]
+    },
+    {
+      "from": "HQ_DATA",
+      "to": "BR_DATA",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "HQ_DATA",
+        "BR_DATA"
+      ]
+    },
+    {
+      "from": "HQ_DATA",
+      "to": "BR_PC",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "HQ_DATA",
+        "BR_PC"
+      ]
+    },
+    {
+      "from": "HQ_DATA",
+      "to": "HQ_PC",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "HQ_DATA",
+        "HQ_PC"
+      ]
+    },
+    {
+      "from": "HQ_PC",
+      "to": "BR_DATA",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "HQ_PC",
+        "BR_DATA"
+      ]
+    },
+    {
+      "from": "HQ_PC",
+      "to": "BR_PC",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "HQ_PC",
+        "BR_PC"
+      ]
+    },
+    {
+      "from": "HQ_PC",
+      "to": "HQ_DATA",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "HQ_PC",
+        "HQ_DATA"
+      ]
+    }
+  ],
+  "https": [],
+  "shows": [
+    {
+      "node": "BR_SW",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "node": "BR_SW",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpRoot {\"root\":\"HQ_SW\",\"cost\":19}",
+        "out:ui.terminal.stpPort.root {\"port\":0}"
+      ]
+    },
+    {
+      "node": "BR_SW",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "BR_SW",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:05:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:06:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:05:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:06:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:06:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:05:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:02:00\"}"
+      ]
+    },
+    {
+      "node": "HQ_SW",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanAccess {\"port\":0,\"vlan\":1}",
+        "out:ui.terminal.vlanAccess {\"port\":1,\"vlan\":1}"
+      ]
+    },
+    {
+      "node": "HQ_SW",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"HQ_SW\",\"cost\":0}",
+        "out:ui.terminal.stpPort.designated {\"port\":0}"
+      ]
+    },
+    {
+      "node": "HQ_SW",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "HQ_SW",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:05:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:06:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:05:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:06:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:02:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:05:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:06:00\"}"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "lesson_link_1",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_2",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_3",
+      "color": 10132122
+    },
+    {
+      "link": "lesson_link_4",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_5",
+      "color": 6472959
+    }
+  ],
+  "ports": [
+    {
+      "node": "BR_DATA",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "BR_PC",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "BR_SW",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false,
+          "stp": "root"
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "HQ_DATA",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "HQ_PC",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "HQ_SW",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false,
+          "stp": "designated"
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [],
+  "warnings": [
+    {
+      "id": "link.cable_bottleneck",
+      "a": "HQ_SW",
+      "b": "BR_SW"
+    }
+  ]
+}

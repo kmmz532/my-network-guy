@@ -1,5 +1,5 @@
 // 学習モードで開ける構成の目録。教材と、修理の依頼（経営と関係なく練習できるように）を同じ形で扱う
-import type { Contract, Drill, Goal, Lesson, QuestionSet } from '../data/schema';
+import type { Contract, Drill, Flow, Goal, Lesson, QuestionSet } from '../data/schema';
 import type { GuideStep } from './guide';
 import { drillConfig } from './drill';
 import { lessonFurniture, lessonLinks, lessonNodes, lessonPlans } from './lesson';
@@ -15,6 +15,8 @@ export interface LessonEntry {
   titleKey: string;
   briefKey: string;
   goals: Goal[];
+  // 同時に流れる通信（達成条件 qos_voice が読む）
+  flows?: Flow[];
   // 演習のとき、その演習（画面は教材の欄ではなく演習の欄。titleKey 以外の文言は使わない）
   drill?: Drill;
   // 教材のとき、達成の後に出す発展の問い（id は教材の id）
@@ -49,8 +51,9 @@ export const lessonCatalogOf = (lessons: Lesson[], contracts: Contract[], drills
     titleKey: `lesson.${l.id}.title`,
     briefKey: `lesson.${l.id}.brief`,
     goals: l.goals,
+    ...(l.flows ? { flows: l.flows } : {}),
     guide: l.guide,
-    ...(l.followUps ? { followUps: { id: l.id, questions: l.followUps, setup: l.followUpSetup } } : {}),
+    ...(l.followUps ? { followUps: { id: l.id, questions: l.followUps, setup: l.followUpSetup, ...(l.flows ? { flows: l.flows } : {}) } } : {}),
     build: (engine) => {
       const nodes = lessonNodes(l);
       const links = lessonLinks(l);
@@ -66,6 +69,7 @@ export const lessonCatalogOf = (lessons: Lesson[], contracts: Contract[], drills
       titleKey: `contract.${c.id}.title`,
       briefKey: `contract.${c.id}.story`,
       goals: c.goals,
+      ...(c.flows ? { flows: c.flows } : {}),
       guide: [],
       // 経営の依頼と同じ最初の状態にする（アドレスの計画は補わない。補うと壊れ方が隠れることがあるため）
       build: () => ({

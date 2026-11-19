@@ -106,6 +106,10 @@ export interface PortConfig {
   lacp?: 'active' | 'passive' | 'on';
   // ポートセキュリティ（N153）: 登録した MAC アドレスの機器だけを通す。省略なら制限しない
   macs?: string[];
+  // QoS: 出口の口の並べ方（priority は、マーキングの優先度の高い順に通す。省略は none で、混んだら全部を同じ割合で削る）。
+  // trust: スイッチの口で、入ってきた通信のマーキング（DSCP）をそのまま信じる。信じない（省略）口から入った通信は、マーキングが BE に戻る
+  qos?: 'none' | 'priority';
+  trust?: boolean;
 }
 
 // BGP の設定（MVP は eBGP の隣接と、宛先の広告・AS パスで選ぶ経路。N147）
@@ -282,6 +286,8 @@ export const FAILURE_REASONS = [
   'vpn.nat_before_tunnel',
   // 通信が区間の MTU より大きく、DF（分割禁止）が付いている。札は、その区間の入口の機器
   'mtu.exceeded',
+  // 同時に流れる通信が混む区間で削られた。札は、削られた区間の入口の機器
+  'qos.dropped',
 ] as const;
 
 export type FailureReason = (typeof FAILURE_REASONS)[number];

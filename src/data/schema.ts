@@ -441,6 +441,8 @@ const portConfigSchema = z.object({
   channelGroup: nonNegativeInt.optional(),
   lacp: z.enum(['active', 'passive', 'on']).optional(),
   macs: z.array(z.string().min(1)).optional(),
+  qos: z.enum(['none', 'priority']).optional(),
+  trust: z.boolean().optional(),
 });
 const ifaceSetupSchema = z.object({
   port: nonNegativeInt,
@@ -493,6 +495,15 @@ const placedSetupSchema = z.object({
 });
 const contractPlacedSchema = placedSchema.extend({ setup: placedSetupSchema.optional() });
 
+// 同時に流れる通信（音声・映像・データ）。mbps は流れる量。区間ごとの合計がリンクの速さを超えると、口の qos の設定に従って削られる
+export const flowSchema = z.object({
+  from: z.string().min(1),
+  to: z.string().min(1),
+  kind: z.enum(['voice', 'video', 'data']),
+  mbps: z.number().positive(),
+});
+export type Flow = z.infer<typeof flowSchema>;
+
 // 案件の達成条件。ハンドラの種類はここで列挙し、新しい種類を追加するときは本体のハンドラと合わせて追加する。
 export const goalSchema = z.discriminatedUnion('type', [
   // size は通信の大きさ（バイト。省略は 100）、df は分割禁止（省略は付けない）
@@ -510,6 +521,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   }),
   // from から to へ Ping が届き、その通り道の速さ（配線ごと・まとまった論理リンクは合計）がすべて mbps 以上ある。無線の区間は数えない
   z.object({ type: z.literal('min_speed'), from: z.string().min(1), to: z.string().min(1), mbps: z.number().int().positive() }),
+  // flows の通信のうち、指定したもの（flow は flows の添字の一覧。省くと voice すべて）が、混む区間で削られずに届く
+  z.object({ type: z.literal('qos_voice'), flow: z.array(nonNegativeInt).min(1).optional() }),
   // 指定した種類の機器が一定数以上ある
   z.object({ type: z.literal('count'), category: z.string().min(1), min: z.number().int().positive() }),
   // 指定した型の機器が一定数以上ある（例: GPUサーバー。カテゴリでは区別できない機器に使う）
@@ -601,6 +614,8 @@ export const contractSchema = z.object({
   // 依頼で作った家具（机・棚・飾り。N76）
   furniture: z.array(placedFurnitureSchema).optional(),
   goals: z.array(goalSchema).min(1),
+  // 同時に流れる通信（任意。達成条件 qos_voice が使う）
+  flows: z.array(flowSchema).optional(),
   reward: z.object({
     money: nonNegativeInt,
     // 納品でインベントリに入る機材（自社案件の報酬。N34）
@@ -798,6 +813,8 @@ export const lessonSchema = z.object({
   // 置いてある家具（電子レンジなど干渉源の位置。無線の干渉の判定に使う）
   furniture: z.array(placedFurnitureSchema).optional(),
   goals: z.array(goalSchema).min(1),
+  // 同時に流れる通信（任意。達成条件 qos_voice が使う）
+  flows: z.array(flowSchema).optional(),
   guide: z
     .array(
       z.object({
@@ -871,7 +888,8 @@ export type Question = z.infer<typeof questionSchema>;
 export type InspectAsk = z.infer<typeof inspectAskSchema>;
 export type Drill = z.infer<typeof drillSchema>;
 // 順に解く問いの組。演習と、教材の発展の問いで同じ進行を使う
-export type QuestionSet = Pick<Drill, 'id' | 'questions' | 'setup'>;
+// flows は、教材の発展の問いが使う同時に流れる通信（達成条件 qos_voice を判定するため）
+export type QuestionSet = Pick<Drill, 'id' | 'questions' | 'setup'> & { flows?: Flow[] };
 export type GuideFile = z.infer<typeof guidesFileSchema>['guides'][number];
 
 // 会社のレベルの節目の報酬（N45）。解放は書かない（解放は品目の unlockLevel）

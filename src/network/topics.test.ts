@@ -49,7 +49,7 @@ const missingOf = (t: Topic): Record<TopicItem, string[]> => {
     if (!l) return [`教材 ${id}`];
     const solve = solutions[id];
     if (!solve) return [`正解の構成 ${id}`];
-    const ok = lessonGoalResults(l.goals, solve(lessonNodes(l)), lessonLinks(l), engine).every(Boolean);
+    const ok = lessonGoalResults(l.goals, solve(lessonNodes(l)), lessonLinks(l), engine, l.flows).every(Boolean);
     return ok ? [] : [`正解の構成で達成条件を満たさない ${id}`];
   });
   return { command, show, failures, warnings, glossary, lesson };

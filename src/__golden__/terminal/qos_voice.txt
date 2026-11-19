@@ -1,0 +1,22 @@
+# 場面: 教材 qos_voice の初期の構成（100 Mbps の区間に、音声とデータが同時に流れる本社と支社）
+# 節: QoS（priority-queue・mls qos trust dscp・no の形・show interfaces の QoS の行）
+@HQ_SW
+show interfaces
+priority-queue 0
+priority-queue 9
+mls qos 1 trust dscp
+show interfaces
+no priority-queue 0
+no mls qos 1 trust
+configure terminal
+interface g0/0
+priority-queue
+mls qos trust dscp
+end
+show interfaces
+configure terminal
+interface g0/0
+no priority-queue
+no mls qos trust
+end
+show interfaces

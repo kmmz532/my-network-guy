@@ -20,6 +20,7 @@ export const GLOSSARY_OF_FAILURE: Partial<Record<FailureReason, string>> = {
   'vpn.selector_mismatch': 'ipsec_vpn',
   'vpn.nat_before_tunnel': 'ipsec_vpn',
   'mtu.exceeded': 'mtu',
+  'qos.dropped': 'qos',
 };
 
 // 教材の案内の手順（文言のキー）ごとに、その手順で初めて出す用語。対応のない手順は説明を出さない
@@ -32,6 +33,7 @@ export const GLOSSARY_OF_STEP: Record<string, string> = {
   'lesson.lag_uplink.step.2': 'lacp',
   'lesson.mtu_vpn.step.2': 'mtu',
   'lesson.napt_office.step.4': 'napt',
+  'lesson.qos_voice.step.2': 'qos',
   'lesson.nat_firewall.step.5': 'firewall',
   'lesson.ospf_areas.step.1': 'abr',
   'lesson.ospf_dr.step.7': 'dr_bdr',
@@ -73,6 +75,7 @@ export const GLOSSARY_OF_GOAL: Partial<Record<Goal['type'], string>> = {
   http_by_name: 'dns_auth_cache',
   resolve_name: 'dns_auth_cache',
   min_speed: 'link_speed',
+  qos_voice: 'qos',
   load_balanced: 'load_balancer',
   public_http: 'napt',
   vpn_up: 'ipsec_vpn',

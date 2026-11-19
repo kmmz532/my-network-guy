@@ -2,7 +2,7 @@ import { dhcpOf } from './query/dhcp';
 import { getComponent } from './components';
 import { can } from './capabilities';
 // 案件の達成条件（goals）の判定ハンドラ。種類ごとにハンドラを登録し、案件データから呼び出す。
-import type { Contract, Goal } from '../data/schema';
+import type { Contract, Flow, Goal } from '../data/schema';
 import { http, ping, wirelessAssociations } from './engine';
 import { reach } from './engine/forward';
 import { healthyMembers } from './query/loadBalancer';
@@ -11,6 +11,7 @@ import { lagBundlesOf } from './query/lagBundles';
 import { channelOverlapsOf } from './query/channelOverlaps';
 import { interferedAccessPointsOf } from './query/wirelessQuality';
 import { hopSpeedsOf } from './query/pathSpeeds';
+import { qosOf } from './query/qos';
 import { ospfNeighborsOf } from './query/ospfNeighbors';
 import { analyze } from './engine/analyze';
 import type { NetworkState } from './engine/state';
@@ -38,7 +39,8 @@ export interface GoalResult {
   df?: boolean;
 }
 
-type Handler = (goal: Goal, state: NetworkState) => GoalResult[];
+// flows は、案件・教材の同時に流れる通信（qos_voice だけが読む）
+type Handler = (goal: Goal, state: NetworkState, flows?: readonly Flow[]) => GoalResult[];
 
 const uidsOf = (net: Network, _data: EngineData, category: string): string[] =>
   net.nodes.filter((n) => deviceCategory(n.device) === category).map((n) => n.uid);
@@ -125,6 +127,23 @@ const handlers: { [K in Goal['type']]: Handler } = {
       return { ...base, ok: true, result: r };
     });
     return [results.find((r) => r.ok) ?? results[0]];
+  },
+  // 指定した flow（省くと voice すべて）が、削られずに届けば合格。届かなければ Ping の失敗を、削られていれば qos.dropped を、削られた区間の入口の機器に出す
+  qos_voice: (goal, state, flows) => {
+    if (goal.type !== 'qos_voice') throw new Error('qos_voice ハンドラに別の種類が渡された');
+    if (flows === undefined) throw new Error('qos_voice: 通信（flows）がない');
+    const picked = goal.flow ?? flows.flatMap((f, i) => (f.kind === 'voice' ? [i] : []));
+    if (picked.length === 0) throw new Error('qos_voice: 対象の通信がない');
+    const bad = picked.find((i) => flows[i] === undefined);
+    if (bad !== undefined) throw new Error(`qos_voice: 通信 ${bad} がない`);
+    const outcomes = qosOf(state, flows);
+    return picked.map((i) => {
+      const o = outcomes[i];
+      const base = { goal, kind: 'ping' as const, src: o.flow.from, dst: o.flow.to };
+      if (!o.result.ok) return { ...base, ok: false, failure: o.result.failure, result: o.result };
+      if (o.droppedAt !== null) return { ...base, ok: false, failure: { reason: 'qos.dropped' as const, node: o.droppedAt }, result: { ...o.result, ok: false } };
+      return { ...base, ok: true, result: o.result };
+    });
   },
   ping_all: (goal, state) => {
     const { net, world: data } = state;
@@ -400,7 +419,7 @@ const handlers: { [K in Goal['type']]: Handler } = {
 };
 
 // 1つの達成条件を判定する。ping_all は全ペアの結果を返す
-export const evaluateGoal = (goal: Goal, state: NetworkState): GoalResult[] => handlers[goal.type](goal, state);
+export const evaluateGoal = (goal: Goal, state: NetworkState, flows?: readonly Flow[]): GoalResult[] => handlers[goal.type](goal, state, flows);
 
 export interface ContractResult {
   passed: boolean;
@@ -409,6 +428,6 @@ export interface ContractResult {
 
 // 案件のすべての達成条件を判定する。すべて成立したときに合格とする
 export const evaluateContract = (contract: Contract, state: NetworkState): ContractResult => {
-  const results = contract.goals.flatMap((goal) => evaluateGoal(goal, state));
+  const results = contract.goals.flatMap((goal) => evaluateGoal(goal, state, contract.flows));
   return { passed: results.every((r) => r.ok), results };
 };

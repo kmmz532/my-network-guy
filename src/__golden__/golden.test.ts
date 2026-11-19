@@ -23,7 +23,7 @@ describe('教材（初期の構成と正解の構成）', () => {
         const links = lessonLinks(lesson);
         const net: Network = { nodes, links, plans: {} };
         const site = engineWithSite(engine, undefined, lessonFurniture(lesson));
-        await expect(json({ goals: lessonGoalResults(lesson.goals, nodes, links, site), ...recordOf(net, site) })).toMatchFileSnapshot(snap(`lesson-${lesson.id}-${stage}`));
+        await expect(json({ goals: lessonGoalResults(lesson.goals, nodes, links, site, lesson.flows), ...recordOf(net, site) })).toMatchFileSnapshot(snap(`lesson-${lesson.id}-${stage}`));
       });
     }
   }
