@@ -3,11 +3,16 @@ import { t } from '../i18n/t';
 import { isL2Category, isSwitchedRouterCategory, ROUTER_SWITCH_WAN_PORT } from '../network/category';
 import { categoryCan } from '../network/capabilities';
 
-// ポートの名前。スイッチは 1 から、ルーターは G0/0 の形、スイッチ付きルーターは WAN と LAN1〜4、PC・サーバーは LAN（ポートの番号は 0 から数える）
+// WAN の口か。機器の定義が wan の能力を持つ内蔵スイッチ付きルーター（家庭用ルーター・スイッチ付きルーター）の口0
+export const isWanPort = (category: string | undefined, port: number): boolean =>
+  category !== undefined && categoryCan(category, 'wan') && isSwitchedRouterCategory(category) && port === ROUTER_SWITCH_WAN_PORT;
+
+// ポートの名前。命令の口の番号と同じ 0 から数える（L2スイッチは番号だけ、ルーターは G0/0 の形、スイッチ付きルーターは WAN と LAN1〜4、PC・サーバーは LAN）
 export const portLabel = (category: string | undefined, port: number): string => {
   if (category !== undefined && categoryCan(category, 'routedPort')) return t('ui.rear.routerPort', { port });
-  if (category !== undefined && isSwitchedRouterCategory(category)) return port === ROUTER_SWITCH_WAN_PORT ? t('ui.rear.wan') : t('ui.rear.switchLan', { port });
-  if (category !== undefined && isL2Category(category)) return String(port + 1);
+  if (isWanPort(category, port)) return t('ui.rear.wan');
+  if (category !== undefined && isSwitchedRouterCategory(category)) return t('ui.rear.switchLan', { port });
+  if (category !== undefined && isL2Category(category)) return String(port);
   return t('ui.rear.lan');
 };
 

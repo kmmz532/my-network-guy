@@ -480,12 +480,6 @@ const scenes = {
     await page.getByRole('button', { name: 'しまう' }).click();
     await page.waitForTimeout(500);
   },
-  // 案内を出してから「しまう」を押した状態（吹き出しと枠が消え、案件の欄の見出しの行に顔のボタンと「次: 〜」の札が残る）
-  guidehidden: async (page) => {
-    await scenes.guide(page);
-    await page.getByRole('button', { name: 'しまう' }).click();
-    await page.waitForTimeout(500);
-  },
   // ショップ
   shop: async (page) => {
     await scenes.career(page);
@@ -768,6 +762,30 @@ const scenes = {
   switch: async (page) => {
     await scenes.career(page);
     await openDevice(page, 'l2_switch_8p');
+  },
+  // 家庭用ルーターの機器の画面（背面）。WAN の口を LAN と分けて出す
+  homerouter: async (page) => {
+    await scenes.career(page);
+    await openDevice(page, 'home_router');
+    await page.waitForTimeout(800);
+  },
+  // 配線の道具で家庭用ルーターを押した口の一覧。WAN を先頭にし、口の番号は命令と同じ 0 から
+  portmenu: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      g.getState().buy('home_router');
+      let uid = null;
+      for (let y = 1; y < 12 && uid === null; y++) {
+        for (let x = 1; x < 12 && uid === null; x++) {
+          if (g.getState().place('home_router', x, y) === null) uid = g.getState().office.nodes.find((n) => n.device === 'home_router' && n.x === x && n.y === y).uid;
+        }
+      }
+      if (uid === null) throw new Error('機器を置けなかった');
+      g.getState().setTool('wire');
+      g.getState().openPortMenu(uid, 300, 200);
+    });
+    await page.waitForTimeout(500);
   },
   // 疎通テストの流れ（パケット）。2台をつないでテストを押し、流れの途中を撮る（時間は止めたまま）
   trace: async (page) => {

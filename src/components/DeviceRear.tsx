@@ -14,7 +14,7 @@ import { networkColors, portStatesOf } from '../network/public';
 import { stpOf } from '../network/public';
 import { loadSettings } from '../settings/settings';
 import { netOfDevice, useGameStore } from '../stores/useGameStore';
-import { portLabel } from './devicePorts';
+import { isWanPort, portLabel } from './devicePorts';
 import { sequenceRefOf } from './SequencePanel';
 import { Button } from './ui/Button';
 import { ListRow } from './ui/ListRow';
@@ -217,9 +217,10 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
                 : hover === p
                   ? 'lift'
                   : undefined;
+            // WAN の口は LAN の口と間を空けて分ける
             return (
+              <div key={p} style={{ marginRight: isWanPort(category, p) ? 10 : 0 }}>
               <PortButton
-                key={p}
                 buttonRef={(el) => {
                   portRefs.current[p] = el;
                 }}
@@ -262,6 +263,7 @@ ${rest}`);
                 </span>
                 <Text as="span" size="xs">{portLabel(category, p)}</Text>
               </PortButton>
+              </div>
             );
           })}
         </div>

@@ -5,7 +5,7 @@ import { t } from '../i18n/t';
 import { editNetOf, useGameStore } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
 import type { NetLink, NetNode } from '../network/types';
-import { portLabel } from './devicePorts';
+import { isWanPort, portLabel } from './devicePorts';
 import { Button } from './ui/Button';
 import { Popover } from './ui/Popover';
 import { loadSettings } from '../settings/settings';
@@ -25,11 +25,13 @@ interface PortRow {
   used: boolean;
   // つながっているケーブルの uid（空きの口は undefined）
   link: string | undefined;
+  // WAN の口（先頭にまとめる）
+  wan: boolean;
 }
 
 const rowsOf = (node: NetNode, nodes: readonly NetNode[], links: readonly NetLink[]): PortRow[] => {
   const category = deviceCategory(node.device);
-  return Array.from({ length: portCountOf(node.device) }, (_, port) => {
+  const rows = Array.from({ length: portCountOf(node.device) }, (_, port) => {
     const link = links.find(
       (l) => (l.a.node === node.uid && l.a.port === port) || (l.b.node === node.uid && l.b.port === port),
     );
@@ -40,8 +42,11 @@ const rowsOf = (node: NetNode, nodes: readonly NetNode[], links: readonly NetLin
       partner: partnerUid ? nodes.find((n) => n.uid === partnerUid) : undefined,
       used: link !== undefined,
       link: link?.uid,
+      wan: isWanPort(category, port),
     };
   });
+  // WAN の口を先頭にまとめ、残りは口の番号の順
+  return rows.sort((a, b) => Number(b.wan) - Number(a.wan) || a.port - b.port);
 };
 
 // 配線を外せるか（store の撤去と同じ判定）
