@@ -3,6 +3,7 @@
 import type { ReactNode, RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { t } from '../../i18n/t';
+import { listLeft, listMaxPx } from './comboOptions';
 import './tokens.css';
 import './ui.css';
 
@@ -46,13 +47,16 @@ interface Props {
 
 // 一覧の箱。listId は ul の id（aria-controls で指す）
 export function OptionList({ id, label, items, active, anchor, above, listRef, footer, onPick, onHover, rowMinHeight }: Props) {
+  // 開く側の空き（欄から画面の端まで）を超えない高さにし、画面の外へ出さない。右にはみ出すときは画面の内側に寄せる
+  const room = above ? anchor.top : window.innerHeight - anchor.bottom;
+  const width = Math.max(anchor.width, MIN_LIST_WIDTH);
   return createPortal(
     <div
       className="ui-option-list"
       style={{
         position: 'fixed',
-        left: anchor.left,
-        width: Math.max(anchor.width, MIN_LIST_WIDTH),
+        left: listLeft(anchor.left, width, window.innerWidth),
+        width,
         ...(above ? { bottom: window.innerHeight - anchor.top + 2 } : { top: anchor.bottom + 2 }),
         zIndex: 50,
       }}
@@ -62,7 +66,7 @@ export function OptionList({ id, label, items, active, anchor, above, listRef, f
         ref={listRef}
         role="listbox"
         aria-label={label}
-        style={{ maxHeight: LIST_MAX, overflowY: 'auto', margin: 0, padding: 0, listStyle: 'none' }}
+        style={{ maxHeight: listMaxPx(room, LIST_MAX), overflowY: 'auto', margin: 0, padding: 0, listStyle: 'none' }}
       >
         {items.map((o, i) => {
           const highlighted = i === active;

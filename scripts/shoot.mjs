@@ -1099,6 +1099,15 @@ const scenes = {
     await page.getByLabel('通信', { exact: true }).first().click();
     await page.waitForTimeout(500);
   },
+  // ファイアウォールの規則の追加の「通信」を開いた場面（一覧の下の方の選択肢が見えるかを撮る）
+  fwrule: async (page) => {
+    await scenes.sandbox(page);
+    await openDevice(page, 'firewall');
+    await page.getByText('設定', { exact: true }).click();
+    await page.getByText('許可する通信', { exact: true }).scrollIntoViewIfNeeded();
+    await page.getByLabel('通信', { exact: true }).last().click();
+    await page.waitForTimeout(500);
+  },
   // ロードバランサーの負荷分散の欄（仮想サーバーと、振り分け先の健全の印）
   // 負荷分散の欄の追加の入力（ラベル）。loadbalancer の場面の後に、追加のボタンまで送る
   loadbalanceradd: async (page) => {

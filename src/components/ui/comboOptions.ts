@@ -36,3 +36,9 @@ export const listHeight = (count: number, rowPx: number, maxPx: number): number 
 
 // 一覧を欄の上に開くか。下の空きが一覧の高さより小さく、かつ上の空きの方が大きいときだけ上に開く
 export const placeAbove = (spaceBelow: number, spaceAbove: number, listPx: number): boolean => spaceBelow < listPx && spaceAbove > spaceBelow;
+
+// 一覧の最大の高さ。開く側の空き（欄から画面の端まで）を超えないように、上限と空きの小さい方にする（枠と余白の分を引く）
+export const listMaxPx = (room: number, maxPx: number): number => Math.max(0, Math.min(maxPx, room - 4));
+
+// 一覧の左端。画面の右端からはみ出すときは、画面の内側に寄せる（0 より左には出さない）
+export const listLeft = (left: number, width: number, viewportWidth: number): number => Math.max(0, Math.min(left, viewportWidth - width));

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterOptions, listHeight, moveActive, pickOnCommit, placeAbove, type ComboOption } from './comboOptions';
+import { filterOptions, listHeight, listLeft, listMaxPx, moveActive, pickOnCommit, placeAbove, type ComboOption } from './comboOptions';
 
 const free = (value: string): ComboOption => ({ value, usedBy: null });
 const used = (value: string, name: string): ComboOption => ({ value, usedBy: name });
@@ -89,5 +89,29 @@ describe('placeAbove', () => {
 
   it('下も上も足りないときは、空きの広い方（下）に開く', () => {
     expect(placeAbove(100, 80, 200)).toBe(false);
+  });
+});
+
+describe('listMaxPx', () => {
+  it('空きが上限より広ければ上限のまま', () => {
+    expect(listMaxPx(500, 220)).toBe(220);
+  });
+
+  it('空きが狭いときは空きに合わせて縮める（画面の外へ出さない）', () => {
+    expect(listMaxPx(120, 220)).toBe(116);
+  });
+
+  it('空きが無いときは0', () => {
+    expect(listMaxPx(2, 220)).toBe(0);
+  });
+});
+
+describe('listLeft', () => {
+  it('画面の内に収まるときは欄の左端のまま', () => {
+    expect(listLeft(100, 180, 1280)).toBe(100);
+  });
+
+  it('右にはみ出すときは画面の右端に寄せる', () => {
+    expect(listLeft(1140, 180, 1280)).toBe(1100);
   });
 });
