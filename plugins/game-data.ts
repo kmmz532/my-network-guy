@@ -250,7 +250,8 @@ const goalRefs = (goal: Goal): string[] => {
     case 'public_http':
       return [goal.to];
     case 'vpn_up':
-      return [goal.a, goal.b];
+      // a・b を省く vpn_up（案件で、どの2台でもよい）は参照がない
+      return [goal.a, goal.b].filter((r): r is string => r !== undefined);
     case 'load_balanced':
       return [goal.from, goal.lb];
     case 'http_by_name':

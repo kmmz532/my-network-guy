@@ -1,5 +1,6 @@
 import { dhcpOf } from './query/dhcp';
 import { getComponent } from './components';
+import { can } from './capabilities';
 // 案件の達成条件（goals）の判定ハンドラ。種類ごとにハンドラを登録し、案件データから呼び出す。
 import type { Contract, Goal } from '../data/schema';
 import { http, ping, wirelessAssociations } from './engine';
@@ -82,6 +83,14 @@ const handlers: { [K in Goal['type']]: Handler } = {
   // a から b への IPsec のトンネルが張れていれば合格。張れなければ、その理由を a に出す（a にトンネルがない、b を指すトンネルがないときは vpn.peer_unreachable）
   vpn_up: (goal, state) => {
     if (goal.type !== 'vpn_up') throw new Error('vpn_up ハンドラに別の種類が渡された');
+    if (goal.a === undefined || goal.b === undefined) {
+      const up = state.vpn.tunnels.find((t) => t.ok);
+      const first = state.vpn.tunnels[0];
+      const owner = first?.router ?? state.net.nodes.find((n) => can(n.device, 'vpn'))?.uid ?? '';
+      const anyBase = { goal, kind: 'ping' as const, src: up?.router ?? owner, dst: up?.tunnel.peer ?? '', result: { ok: false, path: [] } };
+      if (up) return [{ ...anyBase, ok: true, result: { ok: true, path: [] } }];
+      return [{ ...anyBase, ok: false, failure: { reason: first && !first.ok ? first.reason : 'vpn.peer_unreachable', node: owner } }];
+    }
     for (const uid of [goal.a, goal.b]) if (!state.net.nodes.some((n) => n.uid === uid)) throw new Error(`vpn_up の機器がない: ${uid}`);
     const peerNode = state.net.nodes.find((n) => n.uid === goal.b)!;
     const toward = state.vpn.tunnels.filter((t) => t.router === goal.a && peerNode.interfaces.some((i) => i.ip === t.tunnel.peer));

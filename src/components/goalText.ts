@@ -28,7 +28,7 @@ export const goalText = (goal: Goal, nameOf: (id: string) => string = (id) => id
         : goal.type === 'public_http'
           ? { to: nameOf(goal.to), port: goal.port }
         : goal.type === 'vpn_up'
-          ? { a: nameOf(goal.a), b: nameOf(goal.b) }
+          ? (goal.a === undefined || goal.b === undefined ? {} : { a: nameOf(goal.a), b: nameOf(goal.b) })
         : goal.type === 'load_balanced'
           ? { from: nameOf(goal.from), lb: nameOf(goal.lb), minHealthy: goal.minHealthy }
         : goal.type === 'survive_device_failure'
@@ -56,5 +56,5 @@ export const goalText = (goal: Goal, nameOf: (id: string) => string = (id) => id
               : goal.type === 'min_speed'
                 ? { from: nameOf(goal.from), to: nameOf(goal.to), mbps: goal.mbps }
                 : { from: nameOf(goal.from), to: nameOf(goal.to) };
-  return tDyn(`goal.${goal.type}`, params);
+  return tDyn(goal.type === 'vpn_up' && goal.a === undefined ? 'goal.vpn_up_any' : `goal.${goal.type}`, params);
 };

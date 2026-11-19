@@ -512,7 +512,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   // from から、ロードバランサー lb（機器の uid）の port の仮想サーバーへ HTTP が届き、その仮想サーバーの健全な振り分け先が minHealthy 以上ある
   z.object({ type: z.literal('load_balanced'), from: z.string().min(1), lb: z.string().min(1), port: z.number().int().min(1).max(65535), minHealthy: z.number().int().positive() }),
   // 2台の VPN ルーター a・b（機器の uid）の間で、IPsec のトンネルが張れている
-  z.object({ type: z.literal('vpn_up'), a: z.string().min(1), b: z.string().min(1) }),
+  // a・b を省くと、VPN ルーターのどの2台でも張れていれば合格（案件では、プレイヤーが置く機器の uid が決まらないため）
+  z.object({ type: z.literal('vpn_up'), a: z.string().min(1).optional(), b: z.string().min(1).optional() }),
   // インターネット側から、to（サーバー、またはロードバランサー）の port へ HTTP が届く。外から届く道は、回線につながるルーターの静的 NAT だけ
   z.object({ type: z.literal('public_http'), to: z.string().min(1), port: z.number().int().min(1).max(65535) }),
   // 指定した機器が、物理のリンク min 本以上を1本の論理リンクにまとめている（リンクアグリゲーション）
