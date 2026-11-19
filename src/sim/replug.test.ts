@@ -20,7 +20,7 @@ import { initialStaff } from './staff';
 import { autoAssign } from './autoAssign';
 import { connect, focusedOf, stateOfProject, type Core, type Env } from './project';
 import { accept, advanceBuild, requestBuild, testDesign } from './progress';
-import { placeDevice, placeInOffice, replug } from './placement';
+import { placeDevice, placeInOffice, replug, swapPlugs } from './placement';
 import { setInterface, setService, setPlan } from './netEdit';
 
 const balance = balanceJson as unknown as Balance;
@@ -79,6 +79,7 @@ const ok = <T extends { ok: boolean }>(r: T): T & { ok: true } => {
 };
 const take = (core: Core, id: string) => accept(core, id, balance.office.projectSlots, core.staff.map((s) => s.uid));
 const cur = (core: Core) => focusedOf(core)!;
+const reasonOf = (r: { ok: boolean; reason?: string }) => (r.ok ? null : (r.reason ?? null));
 
 describe('ポートの挿し替え（replug）', () => {
   // 在庫のスイッチを床に置き、PC2台をスイッチへつないだ c001 の設計中の状態
@@ -126,6 +127,61 @@ describe('ポートの挿し替え（replug）', () => {
     const after = ok(replug(core, linkUid, 'b', 5, env)).core;
     expect(cur(after).cost).toBe(cur(core).cost);
     expect(after.clock.money).toBe(core.clock.money);
+  });
+});
+
+describe('口の入れ替え（swapPlugs）', () => {
+  // 在庫のスイッチを床に置き、PC2台をスイッチの口 0 と 1 へつないだ c001 の設計中の状態
+  const wiredToSwitch = (device = 'l2_switch_8p'): Core => {
+    let core: Core = { ...ok(take({ ...start(), owned: { [device]: 1 } }, 'c001_direct_link')).core };
+    core = ok(placeDevice(core, device, 6, 6, map, env)).core;
+    core = ok(connect(core, 'pc_a', 'u0', 'utp_cat5e', env)).core;
+    core = ok(connect(core, 'pc_b', 'u0', 'utp_cat5e', env)).core;
+    return core;
+  };
+  const portOf = (core: Core, pc: string) => {
+    const link = cur(core).links.find((l) => l.a.node === pc || l.b.node === pc)!;
+    return link.a.node === 'u0' ? link.a.port : link.b.port;
+  };
+
+  it('2つの口の配線の口を入れ替える（口 0 の配線は口 1 へ、口 1 の配線は口 0 へ）', () => {
+    const core = wiredToSwitch();
+    expect(portOf(core, 'pc_a')).toBe(0);
+    const after = ok(swapPlugs(core, 'u0', 0, 1, env)).core;
+    expect(portOf(after, 'pc_a')).toBe(1);
+    expect(portOf(after, 'pc_b')).toBe(0);
+  });
+
+  it('入れ替えても長さと費用は変わらない', () => {
+    const core = wiredToSwitch();
+    const after = ok(swapPlugs(core, 'u0', 0, 1, env)).core;
+    expect(cur(after).cost).toBe(cur(core).cost);
+    expect(after.clock.money).toBe(core.clock.money);
+  });
+
+  it('口の種類が合わなければ拒否する（cable.port_type）。RJ45 の配線と、光ファイバーの口（sfp）を入れ替えない', () => {
+    // l3_switch は口 0〜7 が rj45、口 8・9 が sfp。u0 の口 8 は、もう1台の l3_switch(u1) へ光ファイバーでつなぐ
+    let core: Core = { ...ok(take({ ...start(), owned: { l3_switch: 2 } }, 'c001_direct_link')).core };
+    core = ok(placeDevice(core, 'l3_switch', 6, 6, map, env)).core;
+    core = ok(placeDevice(core, 'l3_switch', 6, 1, map, env)).core;
+    const u0 = cur(core).nodes.find((n) => n.x === 6 && n.y === 6)!.uid;
+    const u1 = cur(core).nodes.find((n) => n.x === 6 && n.y === 1)!.uid;
+    core = ok(connect(core, 'pc_a', u0, 'utp_cat5e', env)).core;
+    core = ok(connect(core, u0, u1, 'fiber_sm', env, 'focus', { a: 8, b: 8 })).core;
+    expect(reasonOf(swapPlugs(core, u0, 0, 8, env))).toBe('cable.port_type');
+  });
+
+  it('同じ口・範囲外の口は拒否する', () => {
+    const core = wiredToSwitch();
+    expect(reasonOf(swapPlugs(core, 'u0', 0, 0, env))).toBe('portUsed');
+    expect(reasonOf(swapPlugs(core, 'u0', 0, 8, env))).toBe('port');
+  });
+
+  it('既設の配線は入れ替えない（locked）', () => {
+    const base = wiredToSwitch();
+    const pcA = cur(base).links.find((l) => l.a.node === 'pc_a' || l.b.node === 'pc_a')!;
+    const core: Core = { ...base, active: base.active.map((p) => ({ ...p, inheritedLinks: [pcA.uid] })) };
+    expect(reasonOf(swapPlugs(core, 'u0', 0, 1, env))).toBe('locked');
   });
 });
 

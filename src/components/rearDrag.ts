@@ -27,3 +27,9 @@ export const replugTargetAt = (x: number, y: number, boxes: readonly PortBox[], 
   const hover = portHoverAt(x, y, boxes, isUsed);
   return hover?.state === 'free' ? hover.port : null;
 };
+
+// 離した位置から入れ替え先を決める。差してある口の上でだけ入れ替え先になる（ドラッグの元の口は除く）
+export const swapTargetAt = (x: number, y: number, boxes: readonly PortBox[], isUsed: (port: number) => boolean, from: number): number | null => {
+  const hover = portHoverAt(x, y, boxes, isUsed);
+  return hover?.state === 'used' && hover.port !== from ? hover.port : null;
+};

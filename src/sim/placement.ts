@@ -10,7 +10,7 @@ import type { Iface, NetLink, NetNode, Service } from '../network/types';
 import { isPcCategory } from '../data/categories';
 import { cableLengthOf, checkCableLength } from './cableLength';
 import { levelOf } from './level';
-import { Core, End, Env, NetTarget, OFFICE_UPLINK_UID, Outcome, Project, cableCost, factoryConfigOf, fail, focusedOf, isDeskFurniture, isPcIn, netOf, officeLocked, officeUplinkOf, paidCable, requireDesign, withNet, withProject } from './project';
+import { Core, End, Env, NetTarget, OFFICE_UPLINK_UID, Outcome, Project, cableCost, factoryConfigOf, fail, focusedOf, isDeskFurniture, isPcIn, netOf, officeLocked, officeUplinkOf, paidCable, portTypeOf, requireDesign, withNet, withProject } from './project';
 import { tileAt, type TileSource } from '../company/tiles';
 import { portCountOf, deviceCategory, deviceDef, cableDef, hasDevice } from '../registry/query';
 
@@ -252,6 +252,41 @@ export const replug = (core: Core, linkUid: string, end: End, port: number, env:
   if (used) return fail('portUsed');
   const moved: NetLink = { ...link, [end]: { node: node.uid, port } };
   const links = net.links.map((l) => (l.uid === linkUid ? moved : l));
+  const plans = fillPlans(analyze({ nodes: net.nodes, links, plans: net.plans }, env.engine));
+  return { ok: true, core: withNet(core, target, { ...net, links, plans }) };
+};
+
+// 同じ機器の2つの口に差してある配線の端を入れ替える（from の配線は to へ、to の配線は from へ）。機器は動かないため、長さと費用は変わらない。
+// 配線が既設（locked）なら動かせない。配線の口の種類が入れ替え先の口と合わなければ cable.port_type（挿し替えと同じ判定の規則）
+export const swapPlugs = (core: Core, nodeUid: string, from: number, to: number, env: Env, target: NetTarget = 'focus'): Outcome => {
+  const net = netOf(core, target);
+  if (typeof net === 'string') return fail(net);
+  const node = net.nodes.find((n) => n.uid === nodeUid);
+  if (!node) return fail('none');
+  const count = portCountOf(node.device);
+  for (const p of [from, to]) if (!Number.isInteger(p) || p < 0 || p >= count) return fail('port');
+  if (from === to) return fail('portUsed');
+  const at = (p: number) =>
+    net.links.find((l) => (l.a.node === nodeUid && l.a.port === p) || (l.b.node === nodeUid && l.b.port === p));
+  const la = at(from);
+  const lb = at(to);
+  if (!la || !lb) return fail('none');
+  if (target === 'focus') {
+    const inherited = focusedOf(core)?.inheritedLinks ?? [];
+    if (inherited.includes(la.uid) || inherited.includes(lb.uid)) return fail('locked');
+  }
+  const cableA = cableDef(la.cable);
+  const cableB = cableDef(lb.cable);
+  if (!cableA || !cableB) return fail('cable');
+  if (portTypeOf(node.device, to) !== (cableA.port ?? 'rj45') || portTypeOf(node.device, from) !== (cableB.port ?? 'rj45')) {
+    return fail('cable.port_type');
+  }
+  const shift = (l: NetLink, p: number, q: number): NetLink => ({
+    ...l,
+    a: l.a.node === nodeUid && l.a.port === p ? { ...l.a, port: q } : l.a,
+    b: l.b.node === nodeUid && l.b.port === p ? { ...l.b, port: q } : l.b,
+  });
+  const links = net.links.map((l) => (l.uid === la.uid ? shift(la, from, to) : l.uid === lb.uid ? shift(lb, to, from) : l));
   const plans = fillPlans(analyze({ nodes: net.nodes, links, plans: net.plans }, env.engine));
   return { ok: true, core: withNet(core, target, { ...net, links, plans }) };
 };

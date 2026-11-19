@@ -64,6 +64,27 @@ const resetProject = () => {
 describe('自社オフィスの取り消し・やり直し', () => {
   beforeEach(resetOffice);
 
+  it('口の入れ替えは1つの操作として、元に戻すと両方の配線の口が戻る', () => {
+    expect(st().place('l2_switch_8p', 6, 6)).toBeNull();
+    expect(st().place('pc_basic', 3, 4)).toBeNull();
+    expect(st().place('pc_basic', 8, 4)).toBeNull();
+    const sw = st().office.nodes.find((n) => n.device === 'l2_switch_8p')!;
+    const [pc1, pc2] = st().office.nodes.filter((n) => n.device === 'pc_basic').sort((a, b) => a.x - b.x);
+    expect(st().connect(pc1.uid, sw.uid, 'utp_cat5e')).toBeNull();
+    expect(st().connect(pc2.uid, sw.uid, 'utp_cat5e')).toBeNull();
+    const portOn = (uid: string) => {
+      const l = st().office.links.find((x) => x.a.node === uid || x.b.node === uid)!;
+      return l.a.node === sw.uid ? l.a.port : l.b.port;
+    };
+    expect([portOn(pc1.uid), portOn(pc2.uid)]).toEqual([0, 1]);
+
+    expect(st().swapPlugs(sw.uid, 0, 1)).toBeNull();
+    expect([portOn(pc1.uid), portOn(pc2.uid)]).toEqual([1, 0]);
+
+    st().undo();
+    expect([portOn(pc1.uid), portOn(pc2.uid)]).toEqual([0, 1]);
+  });
+
   it('配置して元に戻すと機器が消え、資金と在庫も戻る', () => {
     const money = st().clock.money;
     expect(st().place('l2_switch_8p', 6, 6)).toBeNull();

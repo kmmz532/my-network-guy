@@ -24,7 +24,7 @@ import { PortButton } from './ui/PortButton';
 import { Swatch } from './ui/Swatch';
 import { Led } from './ui/Led';
 import { Text } from './ui/Text';
-import { portHoverAt, replugTargetAt, type PortBox, type PortHover } from './rearDrag';
+import { portHoverAt, replugTargetAt, swapTargetAt, type PortBox, type PortHover } from './rearDrag';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { portCountOf, deviceCategory } from '../registry/query';
 import { portSpeedOf } from '../network/query/portSpeedOf';
@@ -66,6 +66,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
   const state = useGameStore((s) => netOfDevice(s, node.uid));
   const removeLink = useGameStore((s) => s.removeLink);
   const replug = useGameStore((s) => s.replug);
+  const swapPlugs = useGameStore((s) => s.swapPlugs);
   const [selected, setSelected] = useState<number | null>(null);
   const [replugging, setReplugging] = useState<{ linkUid: string; end: End } | null>(null);
   // マウスを乗せているポート（明るく描く）
@@ -148,12 +149,21 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
       startY: e.clientY,
       onMove: (x, y) => setCarry({ port: p, slot, networks, fiber, x, y, over: portHoverAt(x, y, portBoxes(), isUsedPort) }),
       // 空いているポートの上で離したときだけ挿し替える。それ以外は何もせず元に戻す
+      // 差してある口の上で離したときは、2本の配線の口を入れ替える（同じ機器の中だけ）
       onDrop: (x, y) => {
-        const target = replugTargetAt(x, y, portBoxes(), isUsedPort);
-        if (target === null) return;
-        const reason = replug(link.uid, end, target);
+        const boxes = portBoxes();
+        const target = replugTargetAt(x, y, boxes, isUsedPort);
+        if (target !== null) {
+          const reason = replug(link.uid, end, target);
+          onError(reason);
+          if (reason === null) setSelected(target);
+          return;
+        }
+        const swap = swapTargetAt(x, y, boxes, isUsedPort, p);
+        if (swap === null) return;
+        const reason = swapPlugs(node.uid, p, swap);
         onError(reason);
-        if (reason === null) setSelected(target);
+        if (reason === null) setSelected(swap);
       },
       // 動かさずに離したのは「押した」なので、click に任せる。動かしたあとの click は無視する
       onEnd: ({ dragged }) => {
@@ -210,7 +220,9 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
               ? carry.over?.port === p
                 ? carry.over.state === 'free'
                   ? 'lift'
-                  : 'dim'
+                  : carry.over.port === carry.port
+                    ? 'dim'
+                    : 'glow'
                 : undefined
               : replugFree
                 ? 'glow'

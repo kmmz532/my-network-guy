@@ -15,6 +15,7 @@ import {
   removeNode,
   replug,
   replugTo,
+  swapPlugs,
 } from '../sim/placement';
 import { buyDevice, sellDevice } from '../sim/shop';
 import {
@@ -126,6 +127,8 @@ export const applyOperation = (core: Core, op: Operation, ctx: OpContext): Outco
       return replug(core, op.link, op.end, op.port, env, target);
     case 'replugTo':
       return replugTo(core, op.link, op.end, op.node, op.port, env, target);
+    case 'swapPlugs':
+      return swapPlugs(core, op.node, op.from, op.to, env, target);
     case 'placeFurniture':
       return placeFurniture(core, op.id, op.x, op.y, hq, sandbox);
     case 'moveFurniture':

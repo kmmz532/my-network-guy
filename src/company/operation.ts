@@ -32,6 +32,7 @@ export type Operation =
   | { kind: 'removeLink'; uid: string }
   | { kind: 'replug'; link: string; end: End; port: number }
   | { kind: 'replugTo'; link: string; end: End; node: string; port: number | null }
+  | { kind: 'swapPlugs'; node: string; from: number; to: number }
   | { kind: 'placeFurniture'; id: string; x: number; y: number }
   | { kind: 'moveFurniture'; uid: string; x: number; y: number }
   | { kind: 'rotateFurniture'; uid: string }

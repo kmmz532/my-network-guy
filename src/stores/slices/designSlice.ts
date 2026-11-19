@@ -71,6 +71,8 @@ export interface DesignSlice {
   moveNode: (uid: string, x: number, y: number) => string | null;
   // ケーブルの端を、別の機器の空いているポートへ挿す（port が null なら空いている最小の番号）
   replugTo: (linkUid: string, end: End, nodeUid: string, port: number | null) => string | null;
+  // 同じ機器の2つの口の配線を入れ替える（口の番号を交換する）
+  swapPlugs: (nodeUid: string, from: number, to: number) => string | null;
   // サービスを起動（on）・停止する
   setService: (uid: string, protocol: 'http' | 'radius', on: boolean) => string | null;
   setName: (uid: string, name: string) => string | null;
@@ -217,6 +219,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
     },
     replugTo: (linkUid, end, nodeUid, port) =>
       dispatch({ kind: 'replugTo', link: linkUid, end, node: nodeUid, port }, tileOf(nodeUid)),
+    swapPlugs: (nodeUid, from, to) => dispatch({ kind: 'swapPlugs', node: nodeUid, from, to }),
     setService: (uid, protocol, on) => dispatch({ kind: 'config', uid, change: { kind: 'service', protocol, on } }, tileOf(uid)),
     setHostname: (uid, hostname) => dispatch({ kind: 'config', uid, change: { kind: 'hostname', hostname } }, tileOf(uid)),
     setNameServer: (uid, ip) => dispatch({ kind: 'config', uid, change: { kind: 'nameServer', ip } }, tileOf(uid)),
