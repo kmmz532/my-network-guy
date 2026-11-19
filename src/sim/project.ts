@@ -157,6 +157,9 @@ export interface Report {
   cost?: number;
   budget?: number;
   rework?: number;
+  // 修理の依頼の変更の数と、★3の目安（★の決め方に使った値。修理の依頼のときだけ）
+  changes?: number;
+  minChanges?: number;
   // 設計の不備の件数（0件なら★の上限に影響しない）
   designIssues?: number;
   traces: Trace[];

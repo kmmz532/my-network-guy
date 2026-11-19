@@ -5,6 +5,8 @@
 // 実行のたびにビルドする（数十秒）。画像は shots/<場面>.png（--phone のときは shots/<場面>.phone.png）。画像は Read で開いて確かめる。
 // 初回だけ、ブラウザを入れる: npx playwright install chromium
 import { spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
@@ -896,6 +898,41 @@ const scenes = {
     await scenes.pctest(page);
     await page.evaluate(runBuild, true);
     // 結果の報告は、納品から少し遅れて出る（REPORT_DELAY_MS）
+    await page.waitForTimeout(4000);
+  },
+  // L2 スイッチを置き、機器の画面を開いた直後（設定の欄のない機器で、既定の背面の中身が最初から出るか）
+  l2open: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      g.buy('l2_switch_8p');
+      const reason = window.__game.getState().place('l2_switch_8p', 6, 6);
+      if (reason) throw new Error(`置けない: ${reason}`);
+      const s = window.__game.getState();
+      const node = s.office.nodes.find((n) => n.device === 'l2_switch_8p');
+      s.openWindow('device', node.uid);
+    });
+    await page.waitForTimeout(1000);
+  },
+  // 修理の依頼（r002）を受けて、ルーターの既定のゲートウェイを直し、納品した結果画面（変更の数の行）
+  repairresult: async (page) => {
+    await scenes.career(page);
+    const contract = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'src/assets/data/contracts/r002_wrong_gateway.json'), 'utf8'));
+    await page.evaluate((contract) => {
+      const g = window.__game;
+      const offer = { id: contract.id, kind: 'fixed', baseId: contract.id, params: {}, contract, arrivedMinute: g.getState().clock.minute };
+      g.setState({ offers: [...g.getState().offers, offer] });
+      const s = g.getState();
+      const reason = s.accept(offer.id, [s.staff[0].uid, s.staff[1].uid]);
+      if (reason) throw new Error(`受注できない: ${reason}`);
+      // 壊れた箇所（ルーターの 192.168.3.1）を、正しい 192.168.2.1 に直す
+      const r = g.getState().active[0].nodes.find((n) => n.uid === 'router');
+      const idx = r.interfaces.findIndex((i) => i.ip === '192.168.3.1');
+      g.getState().setIface('router', idx, '192.168.2.1', r.interfaces[idx].prefix);
+      g.getState().test();
+    }, contract);
+    await page.waitForTimeout(350);
+    await page.evaluate(runBuild, true);
     await page.waitForTimeout(4000);
   },
   // Lv8 に上がる結果画面（解放の多いレベル）。経験値を Lv7 の終わり近くにしてから納品する

@@ -315,10 +315,10 @@ const settleBlind = (core: Core, p: Project, plan: BlindPlan, env: Env): Outcome
 };
 
 // 修理の依頼の★。遅れと設計の不備は、新設の依頼と同じく★2を上限にする
-const repairRate = (p: Project, cost: number, late: boolean, issues: number, env: Env): Stars => {
+const repairRate = (p: Project, changes: number, cost: number, late: boolean, issues: number, env: Env): Stars => {
   const min = p.contract.minChanges;
   if (min === undefined) throw new Error(`修理の依頼 ${p.contract.id} に minChanges がない`);
-  const stars = repairStarsOf(changesOf(p.contract, p.nodes, p.links), min, cost, p.contract.budget, env.balance);
+  const stars = repairStarsOf(changes, min, cost, p.contract.budget, env.balance);
   return late || issues > 0 ? (Math.min(stars, 2) as Stars) : stars;
 };
 
@@ -333,7 +333,9 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
     const lateDays = lateDaysOf(p.due, core.clock.minute);
     const issues = Object.keys(designIssues(p, env)).length;
     const cost = projectCostOf(p);
-    const rawStars = p.contract.kind === 'repair' ? repairRate(p, cost.total, lateDays > 0, issues, env) : rate(cost.total, p.contract.budget, p.rework, lateDays > 0, issues, env.balance);
+    // 修理の依頼は★を変更の数で決めるため、その数を結果にも持たせる（結果の画面に出す）
+    const changes = p.contract.kind === 'repair' ? changesOf(p.contract, p.nodes, p.links) : undefined;
+    const rawStars = changes !== undefined ? repairRate(p, changes, cost.total, lateDays > 0, issues, env) : rate(cost.total, p.contract.budget, p.rework, lateDays > 0, issues, env.balance);
     // 任せた依頼は★の上限が2（N70）
     const stars = (p.delegated ? Math.min(DELEGATED_STAR_CAP, rawStars) : rawStars) as typeof rawStars;
     // 報酬は、期日の割合と★ごとの倍率を掛けた額
@@ -380,6 +382,8 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
         delegated: p.delegated,
         budget: p.contract.budget,
         rework: p.rework,
+        changes,
+        minChanges: p.contract.minChanges,
         designIssues: issues,
         expGain: companyExp - core.companyExp,
         failures: [],

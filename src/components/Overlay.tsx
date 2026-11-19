@@ -33,12 +33,20 @@ function EvaluationRows({ report }: { report: Report }) {
       })}）`,
       ok: star3?.maxCostRatio == null || costRatio <= star3.maxCostRatio,
     },
-    {
-      label: t('report.rework'),
-      target: t('report.reworkTarget', { count: star3?.maxRework ?? 0 }),
-      actual: t('report.reworkActual', { count: report.rework ?? 0 }),
-      ok: star3?.maxRework == null || (report.rework ?? 0) <= star3.maxRework,
-    },
+    // 修理の依頼は★を変更の数で決めるため、その行を出す。新設の依頼は失敗回数
+    report.changes !== undefined
+      ? {
+          label: t('report.changes'),
+          target: t('report.changesTarget', { count: report.minChanges ?? 0 }),
+          actual: t('report.changesActual', { count: report.changes }),
+          ok: report.changes <= (report.minChanges ?? 0),
+        }
+      : {
+          label: t('report.rework'),
+          target: t('report.reworkTarget', { count: star3?.maxRework ?? 0 }),
+          actual: t('report.reworkActual', { count: report.rework ?? 0 }),
+          ok: star3?.maxRework == null || (report.rework ?? 0) <= star3.maxRework,
+        },
     {
       label: t('report.late'),
       target: t('report.onTime'),
