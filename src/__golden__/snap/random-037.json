@@ -303,6 +303,11 @@
       "id": "wlan.transition",
       "a": "n6",
       "b": "n6"
+    },
+    {
+      "id": "wlan.channel_overlap",
+      "a": "n2",
+      "b": "n6"
     }
   ]
 }

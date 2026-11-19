@@ -230,6 +230,11 @@
       "id": "wlan.weak_cipher",
       "a": "n2",
       "b": "n2"
+    },
+    {
+      "id": "wlan.channel_overlap",
+      "a": "n1",
+      "b": "n2"
     }
   ]
 }

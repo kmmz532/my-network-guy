@@ -196,6 +196,21 @@
   "issues": [],
   "warnings": [
     {
+      "id": "wlan.channel_overlap",
+      "a": "AP1",
+      "b": "AP2"
+    },
+    {
+      "id": "wlan.channel_overlap",
+      "a": "AP1",
+      "b": "AP3"
+    },
+    {
+      "id": "wlan.channel_overlap",
+      "a": "AP2",
+      "b": "AP3"
+    },
+    {
       "id": "wlan.interference",
       "a": "AP3",
       "b": "AP3"

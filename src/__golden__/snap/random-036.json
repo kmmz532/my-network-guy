@@ -433,6 +433,11 @@
       "id": "wlan.weak_cipher",
       "a": "n4",
       "b": "n4"
+    },
+    {
+      "id": "wlan.channel_overlap",
+      "a": "n0",
+      "b": "n4"
     }
   ]
 }

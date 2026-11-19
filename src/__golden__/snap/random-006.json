@@ -388,6 +388,36 @@
       "id": "wlan.weak_cipher",
       "a": "n4",
       "b": "n4"
+    },
+    {
+      "id": "wlan.channel_overlap",
+      "a": "n1",
+      "b": "n2"
+    },
+    {
+      "id": "wlan.channel_overlap",
+      "a": "n1",
+      "b": "n3"
+    },
+    {
+      "id": "wlan.channel_overlap",
+      "a": "n1",
+      "b": "n4"
+    },
+    {
+      "id": "wlan.channel_overlap",
+      "a": "n2",
+      "b": "n3"
+    },
+    {
+      "id": "wlan.channel_overlap",
+      "a": "n2",
+      "b": "n4"
+    },
+    {
+      "id": "wlan.channel_overlap",
+      "a": "n3",
+      "b": "n4"
     }
   ]
 }

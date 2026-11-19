@@ -6,9 +6,10 @@ import { inSubnet } from '../ip';
 import { dhcpOf } from './dhcp';
 import { duplicateRouterIds } from '../ospf';
 import { interferedAccessPointsOf } from './wirelessQuality';
+import { channelOverlapsOf } from './channelOverlaps';
 
 // 通れば通るが直すべき設定（警告・NET.md §6）: 直結の両端の口の VLAN が違う access（vlan.mismatch）、両端の native が違う trunk（vlan.native_mismatch）
-export type VlanWarning = { id: 'wlan.open' | 'wlan.interference' | 'wlan.weak_cipher' | 'wlan.transition' | 'dhcp.multiple_servers' | 'lag.mismatch' | 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch'; a: string; b: string };
+export type VlanWarning = { id: 'wlan.open' | 'wlan.channel_overlap' | 'wlan.interference' | 'wlan.weak_cipher' | 'wlan.transition' | 'dhcp.multiple_servers' | 'lag.mismatch' | 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch'; a: string; b: string };
 
 export const warningsOf = (state: NetworkState): VlanWarning[] => {
   const net = state.input;
@@ -30,6 +31,8 @@ export const warningsOf = (state: NetworkState): VlanWarning[] => {
     const id = s === 'open' ? 'wlan.open' : s === 'wep' || s === 'wpa' ? 'wlan.weak_cipher' : s === 'wpa2wpa3' ? 'wlan.transition' : null;
     if (id) out.push({ id, a: ap.uid, b: ap.uid });
   }
+  // 無線: 届く範囲もチャネルも重なるアクセスポイント（組ごとに1件）
+  for (const o of channelOverlapsOf(state)) out.push({ id: 'wlan.channel_overlap', a: o.a, b: o.b });
   // 無線: 干渉源（電子レンジなど）の近くの 2.4GHz のアクセスポイント（アクセスポイントごとに1件）
   for (const uid of interferedAccessPointsOf(state)) out.push({ id: 'wlan.interference', a: uid, b: uid });
   // DHCP: 同じドメインに DHCP サーバーが2台以上ある（サーバーの組ごとに1件）

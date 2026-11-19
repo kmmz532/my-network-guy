@@ -65,3 +65,11 @@ describe('達成条件 wireless_clean', () => {
     expect(clean(net(), noOven)).toBe(false);
   });
 });
+
+describe('警告 wlan.channel_overlap', () => {
+  const overlap = (n: Network) => warningsOf(analyze(n, gameEnv.engine)).filter((w) => w.id === 'wlan.channel_overlap');
+  it('届く範囲の重なる 2.4GHz の2台がチャネル 1 と 3 なら警告を出し、1 と 6 なら出さない', () => {
+    expect(overlap(net(apOf('a', 0, '2.4', 'home', 1), apOf('b', 2, '2.4', 'home', 3)))).toHaveLength(1);
+    expect(overlap(net(apOf('a', 0, '2.4', 'home', 1), apOf('b', 2, '2.4', 'home', 6)))).toEqual([]);
+  });
+});

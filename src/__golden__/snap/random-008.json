@@ -307,6 +307,11 @@
       "id": "wlan.open",
       "a": "n7",
       "b": "n7"
+    },
+    {
+      "id": "wlan.channel_overlap",
+      "a": "n2",
+      "b": "n7"
     }
   ]
 }
