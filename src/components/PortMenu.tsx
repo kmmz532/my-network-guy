@@ -8,6 +8,7 @@ import type { NetLink, NetNode } from '../network/types';
 import { isWanPort, portLabel } from './devicePorts';
 import { Button } from './ui/Button';
 import { Popover } from './ui/Popover';
+import type { PickBox } from '../game/portPick';
 import { loadSettings } from '../settings/settings';
 import { deviceCategory, portCountOf } from '../registry/query';
 import { applyOperation } from '../company/apply';
@@ -65,26 +66,50 @@ export function PortMenu() {
   const k = loadSettings().uiScale;
   const left = Math.max(8, Math.min(menu.x, window.innerWidth - 280 * k)) / k;
   const top = Math.max(8, Math.min(menu.y, window.innerHeight - ((rows.length + 1) * ROW_PX + 24) * k)) / k;
+  // ケーブルの端を持っている間の一覧（drag）は、離した位置で決めるため、ポインタを通さない。行の枠は data-port-row から読む
+  const drag = menu.role === 'drag';
   return (
-    <Popover variant="port" layout={{ position: 'fixed', top, left, width: 260, zIndex: 6 }}>
-      <Button variant="secondary" size="port" layout={{ marginTop: 2 }} onClick={() => state.pickPort(null)}>
-        {t('ui.wire.auto')}
-      </Button>
-      {rows.map((row) => (
-        <Fragment key={row.port}>
-          <Button variant="secondary" size="port" layout={{ marginTop: 2 }} disabled={row.used} onClick={() => state.pickPort(row.port)}>
-            <span>{row.label}</span>
-            <span>
-              {row.partner ? labelOfUid(state, row.partner.uid, net.nodes) : t('ui.port.free')}
-            </span>
+    <div style={drag ? { pointerEvents: 'none' } : undefined}>
+      <Popover variant="port" layout={{ position: 'fixed', top, left, width: 260, zIndex: 6 }}>
+        <div data-port-row="auto">
+          <Button variant="secondary" size="port" layout={{ marginTop: 2 }} pressed={drag ? menu.hot === 'auto' : undefined} onClick={() => state.pickPort(null)}>
+            {t('ui.wire.auto')}
           </Button>
-          {row.link && canUnplug(state, row.link) && (
-            <Button variant="secondary" size="port" layout={{ marginTop: 2 }} onClick={() => state.removeLink(row.link as string)}>
-              {t('ui.cmenu.unplug')}
-            </Button>
-          )}
-        </Fragment>
-      ))}
-    </Popover>
+        </div>
+        {rows.map((row) => (
+          <Fragment key={row.port}>
+            <div data-port-row={row.port}>
+              <Button
+                variant="secondary"
+                size="port"
+                layout={{ marginTop: 2 }}
+                disabled={row.used || (drag && menu.blocked.includes(row.port))}
+                pressed={drag ? menu.hot === row.port : undefined}
+                onClick={() => state.pickPort(row.port)}
+              >
+                <span>{row.label}</span>
+                <span>
+                  {row.partner ? labelOfUid(state, row.partner.uid, net.nodes) : t('ui.port.free')}
+                </span>
+              </Button>
+            </div>
+            {!drag && row.link && canUnplug(state, row.link) && (
+              <Button variant="secondary" size="port" layout={{ marginTop: 2 }} onClick={() => state.removeLink(row.link as string)}>
+                {t('ui.cmenu.unplug')}
+              </Button>
+            )}
+          </Fragment>
+        ))}
+      </Popover>
+    </div>
   );
 }
+
+// 開いている一覧（drag）の各行の枠（画面の座標）。差せない口は blocked。一覧が開いていなければ空
+export const portPickBoxes = (blocked: readonly number[]): PickBox[] =>
+  Array.from(document.querySelectorAll<HTMLElement>('[data-port-row]'), (el) => {
+    const raw = el.dataset.portRow;
+    const port = raw === 'auto' ? 'auto' : Number(raw);
+    const r = el.getBoundingClientRect();
+    return { port, left: r.left, top: r.top, right: r.right, bottom: r.bottom, blocked: port !== 'auto' && blocked.includes(port) };
+  });

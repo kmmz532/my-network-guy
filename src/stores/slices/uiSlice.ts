@@ -24,7 +24,12 @@ export interface UiSlice {
   // 画面の対象を、自社オフィス（null）か進行中の案件に切り替える（N111）。配線の途中と置く予定は取り消す
   setFocus: (id: string | null) => void;
   // 配線の道具で機器を押したとき、ポートの一覧を開く（起点を選ぶか、相手を選ぶかは起点の有無で決まる）
-  openPortMenu: (uid: string, x: number, y: number) => void;
+  // blocked を渡すと、ケーブルの端を持ったまま機器の上に出す一覧（drag）になる（blocked は差せない口の番号）
+  openPortMenu: (uid: string, x: number, y: number, blocked?: readonly number[]) => void;
+  // drag の一覧で、指・カーソルの下の行を示す（口の番号、おまかせは auto、なければ null）
+  hotPort: (hot: number | 'auto' | null) => void;
+  // drag の一覧だけを閉じる（ほかの一覧と配線の途中は残す）
+  closeDragPortMenu: () => void;
   // ポートの一覧で選んだポート（null は「おまかせ」）。起点なら起点にし、相手なら配線する
   pickPort: (port: number | null) => void;
   // 配線の途中（起点と一覧）を取り消す
@@ -81,11 +86,22 @@ export const createUiSlice: StateCreator<GameState, [], [], UiSlice> = (set, get
       set({ tool, placing: null });
       useUiStore.setState({ wireStart: null, portMenu: null });
     },
-    openPortMenu: (uid, x, y) => {
+    openPortMenu: (uid, x, y, blocked) => {
+      if (blocked) {
+        useUiStore.setState({ portMenu: { uid, x, y, role: 'drag', blocked, hot: null } });
+        return;
+      }
       const wireStart = useUiStore.getState().wireStart;
       useUiStore.setState({
-        portMenu: { uid, x, y, role: wireStart && wireStart.uid !== uid ? 'to' : 'from' },
+        portMenu: { uid, x, y, role: wireStart && wireStart.uid !== uid ? 'to' : 'from', blocked: [], hot: null },
       });
+    },
+    hotPort: (hot) => {
+      const menu = useUiStore.getState().portMenu;
+      if (menu?.role === 'drag' && menu.hot !== hot) useUiStore.setState({ portMenu: { ...menu, hot } });
+    },
+    closeDragPortMenu: () => {
+      if (useUiStore.getState().portMenu?.role === 'drag') useUiStore.setState({ portMenu: null });
     },
     pickPort: (port) => {
       const menu = useUiStore.getState().portMenu;

@@ -16,18 +16,22 @@ import type { Point } from './animation';
 import type { MapCamera } from './MapCamera';
 import type { MapHit } from './MapHit';
 import type { MapTip } from './MapTip';
-import { deviceCategory, hasFurniture } from '../registry/query';
+import { deviceCategory, hasFurniture, portCountOf } from '../registry/query';
 import { balance } from 'virtual:game-data';
 import { can } from '../network/capabilities';
 import { isL2Category } from '../network/public';
 import { menuItemsOf, type MenuActions, type MenuTarget } from '../ui/contextMenuItems';
 import { gameEnv } from '../sim/env';
 import { hasEffectRange } from '../sim/furniture';
+import { nearBoxes, portPickAt, portToPlug } from './portPick';
+import { portPickBoxes } from '../components/PortMenu';
 
 // 機器を押した瞬間の反応を出す時間（ms）
 export const PRESS_MS = 220;
 // 指で機器・家具を押してから、持ち上げられるまでの長押しの時間（ms）
 const TOUCH_HOLD_MS = 400;
+// ケーブルの端を持ったまま、口の一覧の枠からこの距離（px）以内にいる間は、機器から外れても一覧を閉じない（機器から一覧へ動かす途中の隙間）
+const DRAG_MENU_MARGIN_PX = 32;
 // 指で長押しの前に、この距離（px）以上動いたら、機器をつかまずマップを移動する
 const TOUCH_PAN_PX = 8;
 
@@ -104,6 +108,7 @@ export class MapInput {
     this.wireFrom = null;
     this.hover = null;
     useGameStore.getState().cancelWire();
+    useGameStore.getState().closeDragPortMenu();
   }
 
   // 押した位置が背景か（機器・家具・ケーブル・社員のない場所。マップの外の余白を含む）
@@ -321,14 +326,14 @@ export class MapInput {
     this.hover = null;
   }
 
-  // 機器の横にポートの一覧を出す。位置は画面の座標（マップの拡大率と配置を反映する）
-  openMenuAt(node: NetNode): void {
+  // 機器の横にポートの一覧を出す。位置は画面の座標（マップの拡大率と配置を反映する）。blocked を渡すと、ケーブルの端を持ったまま出す一覧（差せない口の番号）
+  openMenuAt(node: NetNode, blocked?: readonly number[]): void {
     const ts = this.host.tileSize();
     const cam = this.host.cam.current;
     if (!cam) return;
     const at = { x: cam.x + (node.x * ts + ts) * cam.zoom, y: cam.y + (node.y * ts + ts / 2) * cam.zoom };
     const rect = this.host.app.canvas.getBoundingClientRect();
-    useGameStore.getState().openPortMenu(node.uid, rect.left + at.x + 6, rect.top + at.y - 12);
+    useGameStore.getState().openPortMenu(node.uid, rect.left + at.x + 6, rect.top + at.y - 12, blocked);
   }
 
   // 押したあとの操作を覚える。動かさずに離せば click、動かせばドラッグ
@@ -376,8 +381,56 @@ export class MapInput {
       this.host.tip.reset();
     }
     press.at = this.host.hit.toMapAt(press.last);
+    if (press.dragging && press.target.kind === 'end') {
+      const { linkUid, end } = press.target;
+      const under = this.host.hit.nodeNear(press.at, this.host.hit.editNodes() ?? []);
+      this.syncDragMenu(e.clientX, e.clientY, under, (uid, port) => this.canApply({ kind: 'replugTo', link: linkUid, end, node: uid, port }));
+    }
     this.host.redraw();
     return true;
+  }
+
+  // ケーブルの端を持ったまま機器の上に来たら、その機器の口の一覧を出す。一覧の上にいる間は、機器から外れても閉じない（指で一覧へ動かせる）。
+  // canPick は、その機器のその口へ差せるか（一覧の押せない口の判定）
+  private syncDragMenu(clientX: number, clientY: number, under: NetNode | undefined, canPick: (uid: string, port: number) => boolean): void {
+    const store = useGameStore.getState();
+    const menu = useUiStore.getState().portMenu;
+    if (menu?.role === 'drag') {
+      const boxes = portPickBoxes(menu.blocked);
+      const pick = portPickAt(clientX, clientY, boxes);
+      if (pick.kind !== 'outside') {
+        store.hotPort(pick.kind === 'auto' ? 'auto' : pick.kind === 'port' ? pick.port : null);
+        return;
+      }
+      // 機器の上、または機器から一覧へ動かす途中の隙間
+      if (under?.uid === menu.uid || nearBoxes(clientX, clientY, boxes, DRAG_MENU_MARGIN_PX)) {
+        store.hotPort(null);
+        return;
+      }
+    }
+    if (!under) {
+      store.closeDragPortMenu();
+      return;
+    }
+    const blocked = Array.from({ length: portCountOf(under.device) }, (_, port) => port).filter((port) => !canPick(under.uid, port));
+    this.openMenuAt(under, blocked);
+  }
+
+  // 離した位置で、一覧の口を決める。一覧が開いていなければ、離した位置の機器へおまかせで差す。
+  // 差す先がなければ（差せない口の上、機器でも一覧でもない）null。port が null なら空いた口に自動で差す
+  private takeDragPick(clientX: number, clientY: number, under: NetNode | undefined): { uid: string; port: number | null } | null {
+    const menu = useUiStore.getState().portMenu;
+    if (menu?.role === 'drag') {
+      const pick = portPickAt(clientX, clientY, portPickBoxes(menu.blocked));
+      useGameStore.getState().closeDragPortMenu();
+      if (pick.kind !== 'outside') {
+        const port = portToPlug(pick);
+        return port === undefined ? null : { uid: menu.uid, port };
+      }
+      if (under?.uid !== menu.uid) return under ? { uid: under.uid, port: null } : null;
+      return { uid: menu.uid, port: null };
+    }
+    return under ? { uid: under.uid, port: null } : null;
   }
 
   // 離したとき。動かさずに離したら押した扱い、動かしていたら離した位置で動かす・挿し替える（置けなければ何もしない）
@@ -385,8 +438,13 @@ export class MapInput {
     const press = this.press;
     this.clearPress();
     if (!press) return;
-    if (!press.dragging) press.click();
-    else if (press.at) this.dropPress(press.target, press.at);
+    if (!press.dragging) {
+      press.click();
+    } else if (press.target.kind === 'end') {
+      this.dropEnd(press.target, press.last, press.at);
+    } else if (press.at) {
+      this.dropPress(press.target, press.at);
+    }
     this.host.redraw();
   }
 
@@ -394,18 +452,25 @@ export class MapInput {
   onPressKey = (e: KeyboardEvent): boolean => {
     if (e.key !== 'Escape' || !this.press?.dragging) return false;
     this.clearPress();
+    useGameStore.getState().closeDragPortMenu();
     this.host.redraw();
     return true;
   };
 
-  // 離した位置で、機器・家具を移す、またはケーブルの端を別の機器へ挿す。判定は sim の純粋関数と同じ
-  dropPress(target: PressTarget, at: Point): void {
-    const store = useGameStore.getState();
-    if (target.kind === 'end') {
-      const node = this.host.hit.nodeNear(at, this.host.hit.editNodes() ?? []);
-      if (node && this.canReplug(target.linkUid, target.end, node.uid)) store.replugTo(target.linkUid, target.end, node.uid, null);
-      return;
+  // 離した位置で、持ち上げたケーブルの端を別の機器へ挿す。一覧の口の上ならその口、そうでなければ空いた口に自動で挿す（挿せなければ何もしない）。
+  // last は離した位置（画面の座標。pixi の global）。一覧は DOM の枠と比べるため、ビューポートの座標を使う
+  private dropEnd(target: Extract<PressTarget, { kind: 'end' }>, last: Point, at: Point | null): void {
+    const under = at ? this.host.hit.nodeNear(at, this.host.hit.editNodes() ?? []) : undefined;
+    const rect = this.host.app.canvas.getBoundingClientRect();
+    const picked = this.takeDragPick(rect.left + last.x, rect.top + last.y, under);
+    if (picked && this.canApply({ kind: 'replugTo', link: target.linkUid, end: target.end, node: picked.uid, port: picked.port })) {
+      useGameStore.getState().replugTo(target.linkUid, target.end, picked.uid, picked.port);
     }
+  }
+
+  // 離した位置で、機器・家具を移す。判定は sim の純粋関数と同じ
+  dropPress(target: Exclude<PressTarget, { kind: 'end' }>, at: Point): void {
+    const store = useGameStore.getState();
     const tile = this.host.hit.tileOf(at);
     if (!tile) return;
     if (target.kind === 'node') {
@@ -432,16 +497,16 @@ export class MapInput {
     return applyOperation(coreOf(s), op, { ...opContextOf(s), map: this.host.map(), ...ctx }).ok;
   }
 
+  canReplug(linkUid: string, end: End, nodeUid: string): boolean {
+    return this.canApply({ kind: 'replugTo', link: linkUid, end, node: nodeUid, port: null });
+  }
+
   canMoveNode(uid: string, tx: number, ty: number): boolean {
     return this.canApply({ kind: 'moveNode', uid, x: tx, y: ty });
   }
 
   canMoveFurniture(uid: string, tx: number, ty: number): boolean {
     return this.canApply({ kind: 'moveFurniture', uid, x: tx, y: ty });
-  }
-
-  canReplug(linkUid: string, end: End, nodeUid: string): boolean {
-    return this.canApply({ kind: 'replugTo', link: linkUid, end, node: nodeUid, port: null });
   }
 
   // 品目（機材・家具）を、マスに置けるか（インベントリの欄からのドラッグと、配置の表示で使う）
@@ -470,6 +535,13 @@ export class MapInput {
     }
     this.wireTo = p;
     this.aim();
+    if (this.wireFrom) {
+      const from = this.wireFrom;
+      const under = this.host.hit.nodeNear(p, this.host.hit.editNodes() ?? []);
+      this.syncDragMenu(e.clientX, e.clientY, under && under.uid !== from ? under : undefined, (uid, port) =>
+        checkConnect(coreOf(store), from, uid, store.wireCable, netTargetOf(store), { b: port }) === null,
+      );
+    }
     this.host.redraw();
   };
 
@@ -535,10 +607,11 @@ export class MapInput {
     const store = useGameStore.getState();
     const nodes = this.host.hit.editNodes();
     const target = nodes ? this.host.hit.nodeNear(this.host.hit.toMap(e), nodes) : undefined;
-    if (target && target.uid !== from) {
-      // ドラッグで機器から機器へ離した場合は、両端とも「おまかせ」で配線する
-      store.connect(from, target.uid, store.wireCable);
-    } else if (target) {
+    // ドラッグで機器から機器へ離した場合は、一覧の口の上ならその口、そうでなければ両端とも「おまかせ」で配線する
+    const picked = this.takeDragPick(e.clientX, e.clientY, target && target.uid !== from ? target : undefined);
+    if (picked) {
+      store.connect(from, picked.uid, store.wireCable, picked.port === null ? {} : { b: picked.port });
+    } else if (target && target.uid === from) {
       // 押して離した場合は、起点のポートの一覧を出す
       this.openMenuAt(target);
     }
@@ -551,6 +624,7 @@ export class MapInput {
     this.clearPress();
     this.wireFrom = null;
     this.hover = null;
+    useGameStore.getState().closeDragPortMenu();
     this.host.redraw();
   };
 

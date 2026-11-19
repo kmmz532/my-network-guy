@@ -793,6 +793,71 @@ const scenes = {
     });
     await page.waitForTimeout(500);
   },
+  // 配線の道具でケーブルの端を持ったまま、別の機器の上に来た状態（口の一覧が出ている）。先に1本、一覧の口（スイッチの口 3）の上で離して、その口に差さるのを確かめる
+  portpick: async (page) => {
+    await scenes.sandbox(page);
+    const place = (device) =>
+      page.evaluate((id) => {
+        const g = window.__game;
+        g.getState().buy(id);
+        const before = g.getState().office.nodes.length;
+        for (let y = 2; y < 8 && g.getState().office.nodes.length === before; y++) for (let x = 2; x < 10 && g.getState().office.nodes.length === before; x++) g.getState().place(id, x, y);
+        if (g.getState().office.nodes.length === before) throw new Error('機器を置けなかった');
+        return g.getState().office.nodes[g.getState().office.nodes.length - 1].uid;
+      }, device);
+    // 右クリックのメニューが出る位置を走査して、機器の画面上の位置を探す（skip の近くは除く）
+    const box = await page.locator('canvas').first().boundingBox();
+    const menu = page.locator('[data-context-menu]');
+    const find = async (skips) => {
+      for (let j = 0; j < 40; j++) {
+        for (let i = 0; i < 60; i++) {
+          const x = box.x + 20 + i * ((box.width - 40) / 60);
+          const y = box.y + 80 + j * ((box.height - 160) / 40);
+          if (skips.some((skip) => Math.hypot(x - skip.x, y - skip.y) < 70)) continue;
+          await page.mouse.click(x, y, { button: 'right' });
+          if ((await menu.count()) > 0) {
+            await page.keyboard.press('Escape');
+            await page.mouse.click(box.x + 5, box.y + box.height - 5);
+            return { x, y };
+          }
+        }
+      }
+      throw new Error('機器の位置が見つからない');
+    };
+    const pc = await place('pc_basic');
+    const posPc = await find([]);
+    const sw = await place('l2_switch_8p');
+    const posSw = await find([posPc]);
+    await page.evaluate(() => window.__game.getState().setTool('wire'));
+    const links = () => page.evaluate(() => window.__game.getState().office.links.map((l) => [l.a.node, l.a.port, l.b.node, l.b.port]));
+    const drag = async (release) => {
+      await page.mouse.move(posPc.x, posPc.y);
+      await page.mouse.down();
+      await page.mouse.move((posPc.x + posSw.x) / 2, (posPc.y + posSw.y) / 2, { steps: 4 });
+      await page.mouse.move(posSw.x, posSw.y, { steps: 4 });
+      await page.waitForSelector('[data-port-row]', { timeout: 3000 });
+      if (release) {
+        const row = await page.locator('[data-port-row="3"]').boundingBox();
+        await page.mouse.move(row.x + row.width / 2, row.y + row.height / 2, { steps: 4 });
+        await page.mouse.up();
+        await page.waitForTimeout(300);
+      }
+    };
+    await drag(true);
+    const made = await links();
+    if (made.length !== 1 || made[0][3] !== 3 || made[0][2] !== sw) throw new Error('一覧の口の上で離しても、その口に差さらなかった: ' + JSON.stringify(made));
+    // もう1台の PC から、口 3 が埋まったスイッチへ持っていき、一覧が出たまま撮る
+    const pc2 = await place('pc_basic');
+    const posPc2 = await find([posPc, posSw]);
+    await page.mouse.move(posPc2.x, posPc2.y);
+    await page.mouse.down();
+    await page.mouse.move((posPc2.x + posSw.x) / 2, (posPc2.y + posSw.y) / 2, { steps: 4 });
+    await page.mouse.move(posSw.x, posSw.y, { steps: 4 });
+    await page.waitForSelector('[data-port-row]', { timeout: 3000 });
+    const row = await page.locator('[data-port-row="5"]').boundingBox();
+    await page.mouse.move(row.x + row.width / 2, row.y + row.height / 2, { steps: 4 });
+    await page.waitForTimeout(300);
+  },
   // 疎通テストの流れ（パケット）。2台をつないでテストを押し、流れの途中を撮る（時間は止めたまま）
   trace: async (page) => {
     await scenes.connect(page);

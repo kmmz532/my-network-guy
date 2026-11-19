@@ -12,12 +12,15 @@ export interface WireStart {
   port: number | null;
 }
 
-// ポートの一覧の吹き出し。画面上の位置（ビューポートの座標）。role は起点を選ぶ（from）か、相手を選ぶ（to）
+// ポートの一覧の吹き出し。画面上の位置（ビューポートの座標）。role は起点を選ぶ（from）か、相手を選ぶ（to）か、持ったケーブルの端を差す口を選ぶ（drag）
 export interface PortMenuState {
   uid: string;
   x: number;
   y: number;
-  role: 'from' | 'to';
+  role: 'from' | 'to' | 'drag';
+  // drag（ケーブルの端を持ったまま機器の上に出した一覧）のとき、差せない口の番号と、指・カーソルの下の行（口の番号、おまかせは auto）
+  blocked: readonly number[];
+  hot: number | 'auto' | null;
 }
 
 // 右クリック（長押し）のメニュー。位置は画面の座標。項目は開いた時点の状態から作る（保存しない）
