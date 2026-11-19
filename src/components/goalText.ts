@@ -27,6 +27,10 @@ export const goalText = (goal: Goal, nameOf: (id: string) => string = (id) => id
           ? { node: nameOf(goal.node) }
         : goal.type === 'public_http'
           ? { to: nameOf(goal.to), port: goal.port }
+        : goal.type === 'mail'
+          ? { from: nameOf(goal.from), to: goal.to }
+        : goal.type === 'nas'
+          ? { from: goal.from.map(nameOf).join('・'), to: nameOf(goal.to) }
         : goal.type === 'outside_sees'
           ? { from: goal.from.map(nameOf).join('・'), by: goal.by === undefined ? '' : nameOf(goal.by) }
         : goal.type === 'vpn_up'

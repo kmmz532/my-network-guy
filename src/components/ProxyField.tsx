@@ -6,6 +6,7 @@ import { getComponent } from '../network/components';
 import type { NetNode } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
 import { isIpText } from './devicePorts';
+import { MailField } from './MailField';
 import { Section } from './ui/Section';
 import { Text } from './ui/Text';
 import { TextInput } from './ui/TextInput';
@@ -45,7 +46,9 @@ export function ProxyField({ node, disabled, onError }: { node: NetNode; disable
     if (list.join(',') === direct.join(',')) return;
     onError(setPac(node.uid, list));
   };
+  // 端末のアプリの設定の欄（ブラウザのプロキシ・メールソフトのメールサーバー）を続けて出す
   return (
+    <>
     <Section layout={{ marginBottom: 10 }}>
       <div>
         <b>{t('ui.proxy.title')}</b>
@@ -64,5 +67,7 @@ export function ProxyField({ node, disabled, onError }: { node: NetNode; disable
         </Labeled>
       </div>
     </Section>
+    <MailField node={node} disabled={disabled} onError={onError} />
+    </>
   );
 }

@@ -437,10 +437,10 @@ const ruleServiceText = (r: { service: string; port?: number }): string =>
   r.service === 'http' ? `${t('ui.fw.service.http')}${r.port !== undefined ? `:${r.port}` : ''}` : tDyn(`ui.fw.service.${r.service}`);
 
 // 規則を1つ追加する（送信元・宛先・通信の種類・ポート）
-function FirewallRuleAdd({ onAdd }: { onAdd: (rule: { src: string; dst: string; service: 'any' | 'ping' | 'http' | 'dns' | 'radius'; port?: number }) => void }) {
+function FirewallRuleAdd({ onAdd }: { onAdd: (rule: { src: string; dst: string; service: 'any' | 'ping' | 'http' | 'dns' | 'radius' | 'smtp' | 'imap' | 'smb'; port?: number }) => void }) {
   const [src, setSrc] = useState('any');
   const [dst, setDst] = useState('any');
-  const [service, setService] = useState<'any' | 'ping' | 'http' | 'dns' | 'radius'>('http');
+  const [service, setService] = useState<'any' | 'ping' | 'http' | 'dns' | 'radius' | 'smtp' | 'imap' | 'smb'>('http');
   const [port, setPort] = useState('80');
   const nets = [{ value: 'any', label: t('ui.fw.any') }, ...FIREWALL_NETWORKS.map((n) => ({ value: n, label: n }))];
   const add = () => {
@@ -462,8 +462,11 @@ function FirewallRuleAdd({ onAdd }: { onAdd: (rule: { src: string; dst: string; 
           { value: 'http', label: t('ui.fw.service.http') },
           { value: 'dns', label: t('ui.fw.service.dns') },
           { value: 'radius', label: t('ui.fw.service.radius') },
+          { value: 'smtp', label: t('ui.fw.service.smtp') },
+          { value: 'imap', label: t('ui.fw.service.imap') },
+          { value: 'smb', label: t('ui.fw.service.smb') },
         ]}
-        onChange={(v) => setService(v as 'any' | 'ping' | 'http' | 'dns' | 'radius')}
+        onChange={(v) => setService(v as 'any' | 'ping' | 'http' | 'dns' | 'radius' | 'smtp' | 'imap' | 'smb')}
       />
       {service === 'http' && (
         <TextInput label={t('ui.fw.port')} value={port} onChange={setPort} layout={{ width: 56 }} />

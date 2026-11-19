@@ -248,6 +248,9 @@ function ServiceTab({ node, nodes, state, readOnly, onError }: { node: NetNode; 
   const running = http !== undefined;
   const radius = node.services.some((x) => x.protocol === 'radius');
   const proxy = node.services.find((s) => s.protocol === 'proxy');
+  const mail = node.services.find((s): s is Extract<NetNode['services'][number], { protocol: 'mail' }> => s.protocol === 'mail');
+  const nas = node.services.some((s) => s.protocol === 'nas');
+  const setMailDomain = useGameStore((s) => s.setMailDomain);
   const locked = readOnly || node.configLocked;
   // DNS のサービス。同じ名前の機器があれば警告する（N68）
   const dns = node.services.find((s): s is DnsService => s.protocol === 'dns');
@@ -290,6 +293,23 @@ function ServiceTab({ node, nodes, state, readOnly, onError }: { node: NetNode; 
         <Text as="span" tone={proxy ? 'ok' : 'note'}>{proxy ? t('ui.service.running') : t('ui.service.stopped')}</Text>
         <Button variant="secondary" size="fit" disabled={locked} onClick={() => onError(setService(node.uid, 'proxy', proxy === undefined))}>
           {proxy ? t('ui.service.stop') : t('ui.service.start')}
+        </Button>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <b>{t('ui.service.mail')}</b>
+        <TextInput label={t('ui.service.mailDomain')} value={mail?.domain ?? ''} disabled={locked} layout={{ width: 140 }} onCommit={(text) => onError(setMailDomain(node.uid, text.trim() === '' ? null : text.trim()))} />
+        <Text as="span" tone={mail ? 'ok' : 'note'}>{mail ? t('ui.service.running') : t('ui.service.stopped')}</Text>
+        {mail && (
+          <Button variant="secondary" size="fit" disabled={locked} onClick={() => onError(setMailDomain(node.uid, null))}>
+            {t('ui.service.stop')}
+          </Button>
+        )}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <b>{t('ui.service.nas')}</b>
+        <Text as="span" tone={nas ? 'ok' : 'note'}>{nas ? t('ui.service.running') : t('ui.service.stopped')}</Text>
+        <Button variant="secondary" size="fit" disabled={locked} onClick={() => onError(setService(node.uid, 'nas', !nas))}>
+          {nas ? t('ui.service.stop') : t('ui.service.start')}
         </Button>
       </div>
       {running && <SeenSources node={node} nodes={nodes} state={state} />}
