@@ -20,7 +20,7 @@ import { initialStaff } from './staff';
 import { autoAssign } from './autoAssign';
 import { connect, focusedOf, stateOfProject, type Core, type Env } from './project';
 import { accept, advanceBuild, requestBuild, testDesign } from './progress';
-import { placeDevice, placeInOffice, replug, swapPlugs } from './placement';
+import { placeDevice, placeInOffice, replug, replugTo, swapPlugs } from './placement';
 import { setInterface, setService, setPlan } from './netEdit';
 
 const balance = balanceJson as unknown as Balance;
@@ -127,6 +127,39 @@ describe('ポートの挿し替え（replug）', () => {
     const after = ok(replug(core, linkUid, 'b', 5, env)).core;
     expect(cur(after).cost).toBe(cur(core).cost);
     expect(after.clock.money).toBe(core.clock.money);
+  });
+});
+
+describe('口の種類（replug・replugTo）', () => {
+  // l3_switch は口 0〜7 が rj45、口 8・9 が sfp。u0 と u1 を光ファイバー（口 8）でつなぎ、u0 の口 0 には pc_a を UTP でつなぐ
+  const mixed = () => {
+    let core: Core = { ...ok(take({ ...start(), owned: { l3_switch: 2 } }, 'c001_direct_link')).core };
+    core = ok(placeDevice(core, 'l3_switch', 6, 6, map, env)).core;
+    core = ok(placeDevice(core, 'l3_switch', 6, 1, map, env)).core;
+    const u0 = cur(core).nodes.find((n) => n.x === 6 && n.y === 6)!.uid;
+    const u1 = cur(core).nodes.find((n) => n.x === 6 && n.y === 1)!.uid;
+    core = ok(connect(core, 'pc_a', u0, 'utp_cat5e', env)).core;
+    core = ok(connect(core, u0, u1, 'fiber_sm', env, 'focus', { a: 8, b: 8 })).core;
+    const utp = cur(core).links.find((l) => l.cable === 'utp_cat5e')!.uid;
+    const fiber = cur(core).links.find((l) => l.cable === 'fiber_sm')!.uid;
+    return { core, u0, u1, utp, fiber };
+  };
+
+  it('UTP の配線を sfp の口へ、光ファイバーの配線を rj45 の口へ挿し替えられない（cable.port_type）', () => {
+    const { core, u0, utp, fiber } = mixed();
+    expect(reasonOf(replug(core, utp, 'b', 9, env))).toBe('cable.port_type');
+    expect(reasonOf(replug(core, fiber, 'a', 1, env))).toBe('cable.port_type');
+    expect(reasonOf(replugTo(core, utp, 'b', u0, 9, env))).toBe('cable.port_type');
+    expect(reasonOf(replugTo(core, fiber, 'a', u0, 1, env))).toBe('cable.port_type');
+  });
+
+  it('種類が合う口へは挿し替えられ、口を決めない挿し替えは種類の合う空きの口を選ぶ', () => {
+    const { core, u0, utp, fiber } = mixed();
+    expect(ok(replug(core, utp, 'b', 3, env)).core).toBeDefined();
+    expect(ok(replug(core, fiber, 'a', 9, env)).core).toBeDefined();
+    const after = ok(replugTo(core, fiber, 'a', u0, null, env)).core;
+    const moved = cur(after).links.find((l) => l.uid === fiber)!;
+    expect(moved.a.port).toBe(9);
   });
 });
 

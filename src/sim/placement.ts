@@ -250,6 +250,10 @@ export const replug = (core: Core, linkUid: string, end: End, port: number, env:
     (l) => l.uid !== linkUid && ((l.a.node === node.uid && l.a.port === port) || (l.b.node === node.uid && l.b.port === port)),
   );
   if (used) return fail('portUsed');
+  const cable = cableDef(link.cable);
+  if (!cable) return fail('cable');
+  // 配線の口の種類（光ファイバーは sfp、UTP は rj45）が、挿し替え先の口と合うか（配線の判定と同じ規則）
+  if (portTypeOf(node.device, port) !== (cable.port ?? 'rj45')) return fail('cable.port_type');
   const moved: NetLink = { ...link, [end]: { node: node.uid, port } };
   const links = net.links.map((l) => (l.uid === linkUid ? moved : l));
   const plans = fillPlans(analyze({ nodes: net.nodes, links, plans: net.plans }, env.engine));
@@ -409,24 +413,32 @@ export const replugTo = (
     net.links.some(
       (l) => l.uid !== linkUid && ((l.a.node === nodeUid && l.a.port === p) || (l.b.node === nodeUid && l.b.port === p)),
     );
+  const cable = cableDef(link.cable);
+  if (!cable) return fail('cable');
+  const cablePort = cable.port ?? 'rj45';
   let to: number;
   if (port === null) {
+    // 口を決めないときは、配線の口の種類と合う空きの最小番号。空きはあるが種類が合わなければ cable.port_type、空きがなければ port
     let free: number | undefined;
-    for (let p = 0; p < count && free === undefined; p++) if (!taken(p)) free = p;
-    if (free === undefined) return fail('port');
+    let anyFree = false;
+    for (let p = 0; p < count && free === undefined; p++) {
+      if (taken(p)) continue;
+      anyFree = true;
+      if (portTypeOf(node.device, p) === cablePort) free = p;
+    }
+    if (free === undefined) return fail(anyFree ? 'cable.port_type' : 'port');
     to = free;
   } else {
     if (!Number.isInteger(port) || port < 0 || port >= count) return fail('port');
     if (taken(port)) return fail('portUsed');
+    if (portTypeOf(node.device, port) !== cablePort) return fail('cable.port_type');
     to = port;
   }
 
   const before = new Map(net.nodes.map((n) => [n.uid, n] as const));
   const a = end === 'a' ? node : before.get(link.a.node)!;
   const b = end === 'b' ? node : before.get(link.b.node)!;
-  const cable = cableDef(link.cable);
   const length = cableLengthOf(a, b);
-  if (!cable) return fail('cable');
   const lengthCheck = checkCableLength(length, cable.maxLengthTiles);
   if (lengthCheck !== 'ok') return fail(lengthCheck);
   const oldA = before.get(link.a.node)!;
