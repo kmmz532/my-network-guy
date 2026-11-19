@@ -63,6 +63,7 @@ export const GLOSSARY_OF_GOAL: Partial<Record<Goal['type'], string>> = {
   blocked: 'firewall',
   blocked_all: 'firewall',
   reach_by_name: 'dns_auth_cache',
+  http_by_name: 'dns_auth_cache',
   resolve_name: 'dns_auth_cache',
   min_speed: 'link_speed',
   load_balanced: 'load_balancer',

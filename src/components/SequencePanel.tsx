@@ -8,6 +8,7 @@ import { controlSequence, http, ping, type ControlStep, type ControlTrigger, typ
 import type { Trace } from '../sim/project';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { nextPlayIndex } from '../ui/sequencePlay';
+import { parseRef, sequenceRef, sequenceRefOf } from '../ui/sequenceRef';
 import { sequenceLayout } from '../ui/sequenceLayout';
 import { framesOfTrace } from './FramesPanel';
 import { labelOfUid } from './nodeLabel';
@@ -15,38 +16,7 @@ import { Button } from './ui/Button';
 import { SequenceDiagram } from './ui/SequenceDiagram';
 import { Text } from './ui/Text';
 
-// 窓の ref（タブの文字列）に入れる、制御の指定。DHCP・OSPF・STP・VRRP の入口も、この形で開く
-export const sequenceRefOf = (trigger: ControlTrigger): string => {
-  switch (trigger.kind) {
-    case 'ping':
-      return `ping|${trigger.from}|${trigger.to}`;
-    case 'http':
-      return `http|${trigger.from}|${trigger.to}|${trigger.port}`;
-    case 'dhcp':
-      return `dhcp|${trigger.client}`;
-    case 'ospf':
-      return `ospf|${trigger.a}|${trigger.b}`;
-    case 'stp':
-      return 'stp';
-    case 'vrrp':
-      return `vrrp|${trigger.group}`;
-  }
-};
-
-// 窓の ref（タブの文字列）に入れる、通信の指定
-export const sequenceRef = (trace: { kind: 'ping' | 'http'; src: string; dst: string }): string =>
-  sequenceRefOf(trace.kind === 'http' ? { kind: 'http', from: trace.src, to: trace.dst, port: 80 } : { kind: 'ping', from: trace.src, to: trace.dst });
-
-const parseRef = (ref: string): ControlTrigger => {
-  const [kind, a, b, c] = ref.split('|');
-  if (kind === 'ping') return { kind, from: a, to: b };
-  if (kind === 'http') return { kind, from: a, to: b, port: Number(c) };
-  if (kind === 'dhcp') return { kind, client: a };
-  if (kind === 'ospf') return { kind, a, b };
-  if (kind === 'stp') return { kind };
-  if (kind === 'vrrp') return { kind, group: Number(a) };
-  throw new Error(`シーケンス図: 通信の指定が不正 ${ref}`);
-};
+export { sequenceRef, sequenceRefOf };
 
 // 行のパケットを流す経路（マップの上）。経路のない行は流さない
 const pathTraceOf = (step: ControlStep, kind: 'ping' | 'http'): Trace | null => {

@@ -251,6 +251,8 @@ const goalRefs = (goal: Goal): string[] => {
       return [goal.to];
     case 'load_balanced':
       return [goal.from, goal.lb];
+    case 'http_by_name':
+      return goal.from;
     case 'ping_all':
       return goal.nodes === '$all_pcs' ? [] : goal.nodes;
     case 'count':

@@ -1,0 +1,289 @@
+{
+  "id": "dns_cache_auth",
+  "topic": "service",
+  "order": 36,
+  "size": {
+    "w": 16,
+    "h": 10
+  },
+  "placed": [
+    {
+      "ref": "PC1",
+      "device": "pc_basic",
+      "x": 1,
+      "y": 4,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "PC1"
+    },
+    {
+      "ref": "SW1",
+      "device": "l2_switch_8p",
+      "x": 5,
+      "y": 4,
+      "locked": true,
+      "name": "社内のスイッチ"
+    },
+    {
+      "ref": "CACHE",
+      "device": "server_basic",
+      "x": 4,
+      "y": 1,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.53",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [
+          {
+            "protocol": "dns",
+            "role": "cache",
+            "zone": []
+          }
+        ],
+        "locked": false
+      },
+      "name": "キャッシュ DNS"
+    },
+    {
+      "ref": "R1",
+      "device": "router_basic",
+      "x": 8,
+      "y": 4,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.1",
+            "prefix": 24
+          },
+          {
+            "port": 1,
+            "ip": "10.0.2.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "ルーター"
+    },
+    {
+      "ref": "SW2",
+      "device": "l2_switch_8p",
+      "x": 11,
+      "y": 4,
+      "locked": true,
+      "name": "サーバーのスイッチ"
+    },
+    {
+      "ref": "AUTH",
+      "device": "server_basic",
+      "x": 13,
+      "y": 1,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.2.53",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.0.2.1",
+        "services": [
+          {
+            "protocol": "dns",
+            "role": "auth",
+            "zone": [
+              {
+                "type": "A",
+                "name": "web.office.internal",
+                "value": "10.0.2.80"
+              }
+            ]
+          }
+        ],
+        "locked": false
+      },
+      "name": "権威 DNS"
+    },
+    {
+      "ref": "WEB",
+      "device": "server_basic",
+      "x": 13,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.2.80",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.0.2.1",
+        "services": [
+          {
+            "protocol": "http",
+            "port": 80
+          }
+        ],
+        "locked": true
+      },
+      "name": "Web サーバー"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PC1",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "CACHE",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "SW1",
+        "port": 3
+      },
+      "b": {
+        "ref": "R1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "R1",
+        "port": 1
+      },
+      "b": {
+        "ref": "SW2",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "AUTH",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW2",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "WEB",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW2",
+        "port": 2
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "resolve_name",
+      "from": [
+        "PC1"
+      ],
+      "name": "web.office.internal",
+      "ip": "10.0.2.80"
+    },
+    {
+      "type": "http_by_name",
+      "from": [
+        "PC1"
+      ],
+      "name": "web.office.internal",
+      "port": 80
+    }
+  ],
+  "guide": [
+    {
+      "target": "CACHE",
+      "done": "open:CACHE"
+    },
+    {
+      "target": "PC1",
+      "done": "cmd:ip name-server"
+    },
+    {
+      "target": "test",
+      "done": "goal:1"
+    },
+    {
+      "target": "test",
+      "done": "goal:2"
+    },
+    {
+      "target": "test",
+      "done": "sequence:open"
+    }
+  ],
+  "followUps": [
+    {
+      "kind": "diagnose",
+      "id": "f1",
+      "from": "CACHE",
+      "to": "AUTH",
+      "traffic": {
+        "kind": "dns"
+      }
+    }
+  ],
+  "followUpSetup": [
+    {
+      "before": "f1",
+      "change": [
+        {
+          "kind": "config",
+          "uid": "AUTH",
+          "change": {
+            "kind": "power",
+            "on": false
+          }
+        }
+      ]
+    }
+  ]
+}

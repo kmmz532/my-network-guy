@@ -1,0 +1,430 @@
+{
+  "goals": [
+    true,
+    true
+  ],
+  "pings": [
+    {
+      "from": "AUTH",
+      "to": "CACHE",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "AUTH",
+        "R1",
+        "CACHE"
+      ]
+    },
+    {
+      "from": "AUTH",
+      "to": "PC1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "AUTH",
+        "R1",
+        "PC1"
+      ]
+    },
+    {
+      "from": "AUTH",
+      "to": "WEB",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "AUTH",
+        "WEB"
+      ]
+    },
+    {
+      "from": "CACHE",
+      "to": "AUTH",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "CACHE",
+        "R1",
+        "AUTH"
+      ]
+    },
+    {
+      "from": "CACHE",
+      "to": "PC1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "CACHE",
+        "PC1"
+      ]
+    },
+    {
+      "from": "CACHE",
+      "to": "WEB",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "CACHE",
+        "R1",
+        "WEB"
+      ]
+    },
+    {
+      "from": "PC1",
+      "to": "AUTH",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC1",
+        "R1",
+        "AUTH"
+      ]
+    },
+    {
+      "from": "PC1",
+      "to": "CACHE",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC1",
+        "CACHE"
+      ]
+    },
+    {
+      "from": "PC1",
+      "to": "WEB",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC1",
+        "R1",
+        "WEB"
+      ]
+    },
+    {
+      "from": "WEB",
+      "to": "AUTH",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "WEB",
+        "AUTH"
+      ]
+    },
+    {
+      "from": "WEB",
+      "to": "CACHE",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "WEB",
+        "R1",
+        "CACHE"
+      ]
+    },
+    {
+      "from": "WEB",
+      "to": "PC1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "WEB",
+        "R1",
+        "PC1"
+      ]
+    }
+  ],
+  "https": [
+    {
+      "from": "AUTH",
+      "to": "CACHE",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "AUTH",
+      "to": "WEB",
+      "ok": true,
+      "reason": null
+    },
+    {
+      "from": "CACHE",
+      "to": "AUTH",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "CACHE",
+      "to": "WEB",
+      "ok": true,
+      "reason": null
+    },
+    {
+      "from": "PC1",
+      "to": "AUTH",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "PC1",
+      "to": "CACHE",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "PC1",
+      "to": "WEB",
+      "ok": true,
+      "reason": null
+    },
+    {
+      "from": "WEB",
+      "to": "AUTH",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "WEB",
+      "to": "CACHE",
+      "ok": false,
+      "reason": "service.closed"
+    }
+  ],
+  "shows": [
+    {
+      "node": "AUTH",
+      "cmd": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    },
+    {
+      "node": "CACHE",
+      "cmd": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"192.168.1.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.2.0\",\"prefix\":24,\"port\":1}"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"SW1\",\"cost\":0}"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:20:00:00:03:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:20:00:00:03:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":3,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":3,\"mac\":\"02:20:00:00:03:00\"}"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "err:ui.terminal.stpOff"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:20:00:00:06:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:20:00:00:07:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:20:00:00:06:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:20:00:00:07:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:20:00:00:07:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:20:00:00:06:00\"}"
+      ]
+    },
+    {
+      "node": "WEB",
+      "cmd": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "lesson_link_1",
+      "color": 15909966
+    },
+    {
+      "link": "lesson_link_2",
+      "color": 15909966
+    },
+    {
+      "link": "lesson_link_3",
+      "color": 15909966
+    },
+    {
+      "link": "lesson_link_4",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_5",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_6",
+      "color": 6472959
+    }
+  ],
+  "ports": [
+    {
+      "node": "AUTH",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "CACHE",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "PC1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "R1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "SW1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 3,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "SW2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "WEB",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [],
+  "warnings": []
+}

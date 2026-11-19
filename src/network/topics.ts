@@ -45,5 +45,5 @@ export const TOPICS = [
   { id: 'stp', unlock: 70, command: 'spanning-tree priority 4096', show: 'show spanning-tree', failures: [], warnings: [], glossary: 'root_bridge', lessons: ['stp_triangle'] },
   { id: 'firewall', unlock: null, command: null, show: null, failures: ['firewall.denied'], warnings: [], glossary: 'firewall', lessons: ['nat_firewall'], known: ['command', 'show'] },
   { id: 'load_balancer', unlock: null, command: null, show: 'show load-balancer', failures: ['lb.member_down', 'lb.no_healthy_member', 'lb.asymmetric'], warnings: ['lb.single_member', 'lb.no_health_check'], glossary: 'load_balancer', lessons: ['lb_basics'], known: ['command'] },
-  { id: 'dns', unlock: 18, command: 'ip name-server 192.168.1.53', show: 'show hosts', failures: ['name.unresolved'], warnings: [], glossary: 'dns_auth_cache', lessons: ['dns_intranet_names'] },
+  { id: 'dns', unlock: 18, command: 'ip name-server 192.168.1.53', show: 'show hosts', failures: ['name.unresolved'], warnings: [], glossary: 'dns_auth_cache', lessons: ['dns_intranet_names', 'dns_cache_auth'] },
 ] as const satisfies readonly Topic[];

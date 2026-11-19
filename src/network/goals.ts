@@ -30,6 +30,8 @@ export interface GoalResult {
   src: string;
   dst: string;
   result: PathResult;
+  // 名前で引いた通信の名前（シーケンス図で DNS の問い合わせを出すため）
+  name?: string;
 }
 
 type Handler = (goal: Goal, state: NetworkState) => GoalResult[];
@@ -265,6 +267,20 @@ const handlers: { [K in Goal['type']]: Handler } = {
       }
       const result = ping(state, pc, dst.uid);
       return { goal, ok: result.ok, failure: result.failure, kind: 'ping' as const, src: pc, dst: dst.uid, result };
+    });
+  },
+  // 指定の機器が名前を引き、引けた IP アドレスの機器へ HTTP する。名前は結果に持ち、シーケンス図で DNS の問い合わせを出す
+  http_by_name: (goal, state) => {
+    const { net, world } = state;
+    if (goal.type !== 'http_by_name') throw new Error('http_by_name ハンドラに別の種類が渡された');
+    return goal.from.map((uid) => {
+      const from = net.nodes.find((n) => n.uid === uid);
+      if (!from) throw new Error(`機器が見つからない: ${uid}`);
+      const r = resolveName(from, goal.name, net, world);
+      const dst = r.ok ? net.nodes.find((n) => n.interfaces.some((i) => i.ip === r.ip)) : undefined;
+      if (!dst) return { goal, ok: false, failure: { reason: 'name.unresolved' as const, node: uid }, kind: 'http' as const, src: uid, dst: uid, result: { ok: false, path: [] }, name: goal.name };
+      const result = http(state, uid, dst.uid, goal.port);
+      return { goal, ok: result.ok, failure: result.failure, kind: 'http' as const, src: uid, dst: dst.uid, result, name: goal.name };
     });
   },
   // 指定した機器ごとに名前を引く。引けて、ip の指定があればその IP アドレスなら合格

@@ -215,7 +215,7 @@ const judge = (p: Project, env: Env, officeFurniture: Core['office']['furniture'
   const result = evaluateContract(p.contract, state);
   const traces: Trace[] = result.results.map((r) => {
     const goal = p.contract.goals.indexOf(r.goal);
-    return { kind: r.kind, src: r.src, dst: r.dst, result: r.result, ...(goal >= 0 ? { goal } : {}) };
+    return { kind: r.kind, src: r.src, dst: r.dst, result: r.result, ...(r.name !== undefined ? { name: r.name } : {}), ...(goal >= 0 ? { goal } : {}) };
   });
   const goals: GoalCheck[] = p.contract.goals.map((goal) => {
     const rs = result.results.filter((r) => r.goal === goal);

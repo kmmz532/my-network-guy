@@ -113,6 +113,8 @@ export interface Trace {
   src: string;
   dst: string;
   result: PathResult;
+  // 名前で引いた通信の名前（シーケンス図で DNS の問い合わせを出すため）
+  name?: string;
   // 判定した達成条件の番号（案件の goals の位置）。ターミナルの ping など達成条件でないものは持たない
   goal?: number;
 }

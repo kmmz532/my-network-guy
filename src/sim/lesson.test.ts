@@ -9,6 +9,7 @@ import type { Env } from './project';
 import type { EngineData } from '../network/types';
 import { lessonGoalResults, lessonLinks, lessonNodes, lessonPlans } from './lesson';
 import { planFor } from '../network/segments';
+import { controlSequence } from '../network/public';
 import { analyze } from '../network/engine/analyze';
 import { ospfNeighborsOf } from '../network/query/ospfNeighbors';
 import type { Network } from '../network/types';
@@ -125,6 +126,30 @@ describe('教材（学習モード）', () => {
     const set = { id: l.id, questions: l.followUps, setup: l.followUpSetup };
     const s = drillState(applySetup(set, 'f1', { nodes: solutions[l.id](base.nodes), links: base.links }, env), engine);
     expect(judgeDiagnose(s, q, { node: 'LB', reason: 'lb.member_down' })).toBe(true);
+  });
+
+  it('キャッシュ DNS と権威 DNS の教材: 置いた直後は名前で届かず、転送先とネームサーバーを設定すると2条件とも満たす', () => {
+    const l = lesson('dns_cache_auth');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false, false]);
+    expect(lessonGoalResults(l.goals, solutions[l.id](lessonNodes(l)), links, engine)).toEqual([true, true]);
+  });
+
+  it('キャッシュ DNS と権威 DNS の教材の発展の問い: 権威 DNS が止まると、キャッシュの問い合わせが届かない', () => {
+    const l = lessons.find((x) => x.id === 'dns_cache_auth');
+    if (!l?.followUps || !l.followUpSetup) throw new Error('発展の問いがない');
+    const q = l.followUps[0] as Extract<Question, { kind: 'diagnose' }>;
+    const base = drillConfig(l);
+    const set = { id: l.id, questions: l.followUps, setup: l.followUpSetup };
+    const s = drillState(applySetup(set, 'f1', { nodes: solutions[l.id](base.nodes), links: base.links }, env), engine);
+    expect(judgeDiagnose(s, q, { node: 'R1', reason: 'ip.unreachable' })).toBe(true);
+  });
+
+  it('名前で引く HTTP の図には DNS の問い合わせが出て、PC1 から キャッシュ、キャッシュから権威へ流れる', () => {
+    const l = lesson('dns_cache_auth');
+    const state = analyze({ nodes: solutions[l.id](lessonNodes(l)), links: lessonLinks(l), plans: {} }, engine);
+    const dns = controlSequence(state, { kind: 'http', from: 'PC1', to: 'WEB', port: 80, name: 'web.office.internal' }).filter((s) => s.proto === 'dns');
+    expect(dns.slice(0, 2).map((s) => [s.from, s.to])).toEqual([['PC1', 'CACHE'], ['CACHE', 'AUTH']]);
   });
 
   it('DNS の教材: 初めは外へ出られず、NAT を設定すると通る。ネームサーバーを向けると社内と外の名前が引ける', () => {

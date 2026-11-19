@@ -39,6 +39,8 @@ export const goalText = (goal: Goal, nameOf: (id: string) => string = (id) => id
           ? { node: nameOf(goal.node) }
         : goal.type === 'no_static_route'
           ? {}
+          : goal.type === 'http_by_name'
+            ? { from: goal.from.map(nameOf).join('・'), name: goal.name }
           : goal.type === 'reach_by_name'
             ? { name: goal.name }
           : goal.type === 'resolve_name'

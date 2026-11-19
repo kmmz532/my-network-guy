@@ -47,6 +47,14 @@ export const solutions: Record<string, Solve> = {
           : n,
     ),
   napt_office: on(['R1'], (n) => ({ ...ifaces(n, (i) => ({ ...i, nat: i.port === 0 ? ('outside' as const) : ('inside' as const) })), components: { ...n.components, nat: { napt: true } } })),
+  dns_cache_auth: (nodes) =>
+    nodes.map((n) =>
+      n.uid === 'PC1'
+        ? { ...n, components: { ...n.components, resolver: { nameServer: '192.168.1.53' } } }
+        : n.uid === 'CACHE'
+          ? { ...n, services: n.services.map((sv) => (sv.protocol === 'dns' ? { ...sv, forwarder: '10.0.2.53' } : sv)) }
+          : n,
+    ),
   dns_intranet_names: (nodes) =>
     nodes.map((n) =>
       n.uid === 'PC1'
