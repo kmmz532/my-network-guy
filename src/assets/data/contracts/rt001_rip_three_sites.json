@@ -1,0 +1,116 @@
+{
+  "id": "rt001_rip_three_sites",
+  "kind": "build",
+  "stage": 2,
+  "order": 266,
+  "requires": [
+    "w001_guest_ssid"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_sites",
+  "budget": 40000,
+  "deadlineDays": 5,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "HQ_R",
+      "device": "router_basic",
+      "x": 8,
+      "y": 5,
+      "locked": true,
+      "name": "本社のルーター",
+      "config": {
+        "interfaces": [
+          { "port": 0, "ip": "10.0.1.1", "prefix": 24 },
+          { "port": 1, "ip": "10.0.13.1", "prefix": 30 },
+          { "port": 2, "ip": "10.0.12.1", "prefix": 30 }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      }
+    },
+    {
+      "ref": "FAC_R",
+      "device": "router_basic",
+      "x": 17,
+      "y": 5,
+      "locked": true,
+      "name": "工場のルーター",
+      "config": {
+        "interfaces": [
+          { "port": 1, "ip": "10.0.12.2", "prefix": 30 },
+          { "port": 2, "ip": "10.0.23.1", "prefix": 30 }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      }
+    },
+    {
+      "ref": "DC_R",
+      "device": "router_basic",
+      "x": 27,
+      "y": 5,
+      "locked": true,
+      "name": "倉庫のルーター",
+      "config": {
+        "interfaces": [
+          { "port": 0, "ip": "10.0.2.1", "prefix": 24 },
+          { "port": 1, "ip": "10.0.13.2", "prefix": 30 },
+          { "port": 2, "ip": "10.0.23.2", "prefix": 30 }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      }
+    },
+    {
+      "ref": "HQ_PC",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "name": "本社のPC",
+      "config": {
+        "interfaces": [
+          { "port": 0, "ip": "10.0.1.10", "prefix": 24 }
+        ],
+        "gateway": "10.0.1.1",
+        "services": [],
+        "locked": true
+      }
+    },
+    {
+      "ref": "DC_PC",
+      "device": "pc_basic",
+      "x": 37,
+      "y": 3,
+      "locked": true,
+      "name": "倉庫のPC",
+      "config": {
+        "interfaces": [
+          { "port": 0, "ip": "10.0.2.10", "prefix": 24 }
+        ],
+        "gateway": "10.0.2.1",
+        "services": [],
+        "locked": true
+      }
+    }
+  ],
+  "links": [
+    { "cable": "utp_cat5e", "a": { "ref": "HQ_PC", "port": 0 }, "b": { "ref": "HQ_R", "port": 0 } },
+    { "cable": "utp_cat5e", "a": { "ref": "DC_PC", "port": 0 }, "b": { "ref": "DC_R", "port": 0 } },
+    { "cable": "utp_cat5", "a": { "ref": "HQ_R", "port": 1 }, "b": { "ref": "DC_R", "port": 1 } }
+  ],
+  "goals": [
+    { "type": "ping_all", "nodes": ["HQ_PC", "DC_PC"] },
+    { "type": "no_static_route" }
+  ],
+  "reward": {
+    "money": 500000
+  },
+  "unlockLevel": 56
+}
