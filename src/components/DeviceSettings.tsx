@@ -29,6 +29,7 @@ import { BgpField } from './BgpField';
 import { IspField } from './IspField';
 import { VlanPortField } from './VlanPortField';
 import { VrrpField } from './VrrpField';
+import { LoadBalancerField } from './LoadBalancerField';
 import { ChannelField } from './ChannelField';
 import { SviField } from './SviField';
 import { PoField } from './PoField';
@@ -399,6 +400,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
       {can(node.device, 'bgp') && <BgpField key={`bgp-${node.uid}`} node={node} readOnly={locked} onError={onError} />}
       {isRoutingCategory(category ?? '') && <NatField node={node} readOnly={locked} onError={onError} />}
       {can(node.device, 'firewallRules') && renderFirewallRules()}
+      {can(node.device, 'loadBalance') && <LoadBalancerField node={node} netState={netState} disabled={locked} onError={onError} />}
     </div>
   );
 }

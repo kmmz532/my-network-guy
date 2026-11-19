@@ -146,6 +146,12 @@
       "lines": [
         "out:ui.terminal.vrrpNone"
       ]
+    },
+    {
+      "line": "show load-balancer",
+      "lines": [
+        "out:ui.terminal.lbNone"
+      ]
     }
   ],
   "network": {

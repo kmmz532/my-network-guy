@@ -1,6 +1,7 @@
 // 機器・配線・設定の設計の操作。成功したものは履歴に積み、失敗したら理由を返す。
 import { playConnect, playFail } from '../../audio/sfx';
 import type { DnsRecord, FirewallRule, IspLine, Route } from '../../network/types';
+import type { Components } from '../../network/components';
 import { gameEnv } from '../../sim/env';
 import { isPcDevice } from '../../sim/env';
 import { pcDesksOf } from '../../sim/furniture';
@@ -61,6 +62,7 @@ export interface DesignSlice {
   setWireless: (uid: string, key: 'ssid' | 'password' | 'band' | 'channel' | 'vlan' | 'security' | 'radius', value: string | number | null) => string | null;
   // ファイアウォールの規則を置き換える（N38）
   setFirewallRules: (uid: string, rules: FirewallRule[]) => string | null;
+  setLoadBalancer: (uid: string, servers: NonNullable<Components['loadBalancer']>) => string | null;
   // セグメント（ポートが属するネットワーク）のアドレスを設定する
   setPlan: (uid: string, port: number, network: string, prefix: number) => string | null;
   // 配線の片方の端を、同じ機器の別のポートへ挿し替える
@@ -196,6 +198,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
     setNat: (uid, change) => dispatch({ kind: 'config', uid, change: { kind: 'nat', change } }, tileOf(uid)),
     setWireless: (uid, key, value) => dispatch({ kind: 'config', uid, change: { kind: 'wireless', key, value } }, tileOf(uid)),
     setFirewallRules: (uid, rules) => dispatch({ kind: 'config', uid, change: { kind: 'firewallRules', rules } }, tileOf(uid)),
+    setLoadBalancer: (uid, servers) => dispatch({ kind: 'config', uid, change: { kind: 'loadBalancer', servers } }, tileOf(uid)),
     // セグメントの設定の後は、IPアドレスの自動割り当てをかける
     setPlan: (uid, port, network, prefix) => dispatch({ kind: 'config', uid, change: { kind: 'plan', port, network, prefix } }, tileOf(uid), netTargetOf(get())),
     replug: (linkUid, end, port) =>

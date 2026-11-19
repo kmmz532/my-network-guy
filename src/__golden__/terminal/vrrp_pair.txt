@@ -27,3 +27,4 @@ vrrp 1 priority 90
 exit
 end
 show vrrp
+show load-balancer

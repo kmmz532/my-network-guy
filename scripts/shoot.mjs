@@ -938,6 +938,21 @@ const scenes = {
     await page.getByLabel('通信', { exact: true }).first().click();
     await page.waitForTimeout(500);
   },
+  // ロードバランサーの負荷分散の欄（仮想サーバーと、振り分け先の健全の印）
+  loadbalancer: async (page) => {
+    await scenes.sandbox(page);
+    await openDevice(page, 'load_balancer');
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      const n = g.office.nodes.find((x) => x.device === 'load_balancer');
+      g.setIface(n.uid, 0, '10.0.0.100', 24);
+      g.setLoadBalancer(n.uid, [{ vip: '10.0.0.100', port: 80, members: [{ ip: '10.0.1.11', port: 80 }, { ip: '10.0.1.12', port: 80 }], method: 'round_robin', healthCheck: 'http', snat: true }]);
+    });
+    await page.getByText('設定', { exact: true }).click();
+    // 振り分け先の追加の欄まで見せる（仮想サーバーの追加の欄は、画面の下の端）
+    await page.getByLabel('振り分け先のアドレス', { exact: true }).last().scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
+  },
   // 回線終端（uplink）の設定。回線の欄（ISP の名前・アドレス・AS 番号・DNS）を出す
   isp: async (page) => {
     await scenes.sandbox(page);
