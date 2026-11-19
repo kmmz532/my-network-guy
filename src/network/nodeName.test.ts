@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { deviceCategory } from '../registry/query';
-import { nodeName, renameNode, type NameContext } from './nodeName';
+import { nodeName, renameNode, serverRolesOf, type NameContext } from './nodeName';
 import type { NetNode } from './types';
 
 const node = (uid: string, device: string, x = 0, y = 0, name?: string): NetNode => ({ ports: [],
@@ -106,5 +106,15 @@ describe('サーバーの名前（動いているサービスで決める）', (
   it('手で付けた名前があれば、サービスより優先する', () => {
     const named = { ...served('a', [WEB]), name: '受付' };
     expect(nodeName(named, [named], ctx())).toBe('受付');
+  });
+});
+
+describe('サーバーの役割', () => {
+  it('DHCP の部品を持つサーバーは DHCP の役割を持ち、サーバー以外は役割を持たない', () => {
+    const dhcp: NetNode = { ...node('s', 'server_basic'), components: { dhcpServer: [{ network: '192.168.1.0', prefix: 24, start: '192.168.1.100', end: '192.168.1.200', gateway: '192.168.1.1' }] } } as NetNode;
+    expect(serverRolesOf(dhcp, deviceCategory)).toEqual(['dhcp']);
+    expect(nodeName(dhcp, [dhcp], ctx())).toBe('ui.node.role.dhcp-1');
+    const router: NetNode = { ...node('r', 'home_router'), services: [WEB] };
+    expect(serverRolesOf(router, deviceCategory)).toEqual([]);
   });
 });

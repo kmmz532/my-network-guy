@@ -3,15 +3,15 @@ import { Container, Graphics, Sprite } from 'pixi.js';
 import { spriteNameOf } from '../sim/facing';
 import type { Facing } from '../sim/facing';
 import type { Project } from '../sim/project';
-import type { NetNode, Service } from '../network/types';
+import type { NetNode } from '../network/types';
+import { serverRolesOf, type ServerRole } from '../network/nodeName';
 import { useGameStore } from '../stores/useGameStore';
 import { spriteOf, texture } from './sprites';
 import { DESK_TOP, DEVICE_FOOT_INSET } from './deviceRules';
 import { gameEnv } from '../sim/env';
 import { tileSourceOf } from '../stores/gameHelpers';
 import { needsDeskSprite, restsOnDesk } from '../company/tiles';
-import { portCountOf, maybeDevice } from '../registry/query';
-import { can } from '../network/capabilities';
+import { deviceCategory, portCountOf, maybeDevice } from '../registry/query';
 
 const OUTLINE = 0x3b2a33;
 const SELECT = 0xffd866;
@@ -19,15 +19,15 @@ const WARN = 0xffcc33;
 const REMOVE_TINT = 0xffb0b0;
 const FACING_DEVICE_SPRITES = new Set(['device/pc_basic']);
 // サーバーの役割の印（動いているサービスの種類ごと）。印のない種類（RADIUS・プロキシ）は出さない
-const ROLE_ICON: Partial<Record<Service['protocol'], string>> = { http: 'icon/svc_web', dns: 'icon/svc_dns' };
+const ROLE_ICON: Partial<Record<ServerRole, string>> = { http: 'icon/svc_web', dns: 'icon/svc_dns', dhcp: 'icon/svc_dhcp' };
 const MULTI_ROLE_ICON = 'icon/svc_multi';
 
 // サーバーの右上に重ねる印の絵。2つ以上のサービスは複合の印
+// 役割は名前と同じ serverRolesOf で求める（サーバーだけ。サービスを持つ家庭用ルーターには出さない）
 const roleIconOf = (node: NetNode): string | undefined => {
-  if (!can(node.device, 'services')) return undefined;
-  if (node.services.length >= 2) return MULTI_ROLE_ICON;
-  const only = node.services[0];
-  return only ? ROLE_ICON[only.protocol] : undefined;
+  const roles = serverRolesOf(node, deviceCategory);
+  if (roles.length >= 2) return MULTI_ROLE_ICON;
+  return roles.length === 1 ? ROLE_ICON[roles[0]] : undefined;
 };
 
 type DeviceRendererOptions = {

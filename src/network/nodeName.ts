@@ -4,6 +4,7 @@
 // ほかの機器は「スイッチ-1」「L3スイッチ-1」のように、種類ごとの番号で呼ぶ。番号は、同じ種類の機器の中での並び順
 import type { NetNode, Service } from './types';
 import { CATEGORY, isPcCategory } from '../data/categories';
+import { getComponent } from './components';
 
 export interface NameContext {
   // 機器の種類（pc・server・l2_switch・router・l3_switch・router_switch・firewall）。ノートPCは pc の種類
@@ -21,7 +22,9 @@ export interface NameContext {
 }
 
 // 動いているサービスの種類 → サーバーの役割の名前の文言キー。サービスの種類を足したら、ここにも足す
-const SERVICE_NAME_KEY: Record<Service['protocol'], string> = {
+export type ServerRole = Service['protocol'] | 'dhcp';
+const SERVICE_NAME_KEY: Record<ServerRole, string> = {
+  dhcp: 'ui.node.role.dhcp',
   http: 'ui.node.role.web',
   dns: 'ui.node.role.dns',
   radius: 'ui.node.role.radius',
@@ -29,11 +32,19 @@ const SERVICE_NAME_KEY: Record<Service['protocol'], string> = {
 };
 const MULTI_NAME_KEY = 'ui.node.role.multi';
 
-// サーバーの名前（番号なし）。サービスがなければ種類の名前、1つなら役割の名前、2つ以上なら複合サーバー
+// サーバーの役割: 動いているサービスと、DHCP サーバーの設定（サービスの一覧ではなく部品で持つ）。サーバー以外は空。名前と印の両方がこれを使う
+export const serverRolesOf = (node: NetNode, categoryOf: (device: string) => string): ServerRole[] => {
+  if (categoryOf(node.device) !== CATEGORY.server) return [];
+  const dhcp = (getComponent(node, 'dhcpServer') ?? []).length > 0 ? (['dhcp'] as const) : [];
+  return [...node.services.map((s) => s.protocol), ...dhcp];
+};
+
+// サーバーの名前（番号なし）。役割がなければ種類の名前、1つなら役割の名前、2つ以上なら複合サーバー
 const serverBaseName = (node: NetNode, ctx: NameContext): string => {
-  if (node.services.length === 0) return ctx.categoryLabel(CATEGORY.server);
-  if (node.services.length >= 2) return ctx.tr(MULTI_NAME_KEY);
-  return ctx.tr(SERVICE_NAME_KEY[node.services[0].protocol]);
+  const roles = serverRolesOf(node, ctx.categoryOf);
+  if (roles.length === 0) return ctx.categoryLabel(CATEGORY.server);
+  if (roles.length >= 2) return ctx.tr(MULTI_NAME_KEY);
+  return ctx.tr(SERVICE_NAME_KEY[roles[0]]);
 };
 
 export const nodeName = (node: NetNode, nodes: readonly NetNode[], ctx: NameContext): string => {
