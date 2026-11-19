@@ -33,7 +33,6 @@
   "達成条件:コードだけ:firewall",
   "達成条件:コードだけ:http",
   "達成条件:コードだけ:http_all",
-  "達成条件:コードだけ:http_by_name",
   "達成条件:コードだけ:http_from",
   "達成条件:コードだけ:lag_bundled",
   "達成条件:コードだけ:outside_reachable",
