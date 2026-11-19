@@ -3,7 +3,7 @@ import { Container, Graphics, Sprite } from 'pixi.js';
 import { spriteNameOf } from '../sim/facing';
 import type { Facing } from '../sim/facing';
 import type { Project } from '../sim/project';
-import type { NetNode } from '../network/types';
+import type { NetNode, Service } from '../network/types';
 import { useGameStore } from '../stores/useGameStore';
 import { spriteOf, texture } from './sprites';
 import { DESK_TOP, DEVICE_FOOT_INSET } from './deviceRules';
@@ -11,12 +11,24 @@ import { gameEnv } from '../sim/env';
 import { tileSourceOf } from '../stores/gameHelpers';
 import { needsDeskSprite, restsOnDesk } from '../company/tiles';
 import { portCountOf, maybeDevice } from '../registry/query';
+import { can } from '../network/capabilities';
 
 const OUTLINE = 0x3b2a33;
 const SELECT = 0xffd866;
 const WARN = 0xffcc33;
 const REMOVE_TINT = 0xffb0b0;
 const FACING_DEVICE_SPRITES = new Set(['device/pc_basic']);
+// サーバーの役割の印（動いているサービスの種類ごと）。印のない種類（RADIUS・プロキシ）は出さない
+const ROLE_ICON: Partial<Record<Service['protocol'], string>> = { http: 'icon/svc_web', dns: 'icon/svc_dns' };
+const MULTI_ROLE_ICON = 'icon/svc_multi';
+
+// サーバーの右上に重ねる印の絵。2つ以上のサービスは複合の印
+const roleIconOf = (node: NetNode): string | undefined => {
+  if (!can(node.device, 'services')) return undefined;
+  if (node.services.length >= 2) return MULTI_ROLE_ICON;
+  const only = node.services[0];
+  return only ? ROLE_ICON[only.protocol] : undefined;
+};
 
 type DeviceRendererOptions = {
   background: Graphics;
@@ -60,6 +72,15 @@ export class DeviceRenderer {
     sprite.tint = hot ? REMOVE_TINT : 0xffffff;
     sprite.zIndex = foot;
     this.options.sprites.addChild(sprite);
+    const roleIcon = roleIconOf(node);
+    const roleTex = roleIcon ? texture(spriteOf(roleIcon)) : undefined;
+    if (roleTex) {
+      const icon = new Sprite(roleTex);
+      icon.position.set(node.x * ts + (ts - 24) / 2 + 16, base - 40);
+      icon.alpha = alpha;
+      icon.zIndex = foot + 1;
+      this.options.sprites.addChild(icon);
+    }
     if (!onDesk) this.options.background.ellipse(node.x * ts + ts / 2, foot, 10, 3).fill({ color: 0x000000, alpha: 0.25 * alpha });
 
     const count = portCountOf(node.device);

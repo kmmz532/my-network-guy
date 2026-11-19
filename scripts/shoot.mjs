@@ -1282,6 +1282,23 @@ const scenes = {
     await page.getByText('ISP の DNS', { exact: true }).scrollIntoViewIfNeeded();
     await page.waitForTimeout(500);
   },
+  // サーバーを3台置き、動いているサービスで名前と役割の印が決まる（Web・DNS・Web+DNS の順。名前は Webサーバー-1、DNSサーバー-1、複合サーバー-1）
+  servernames: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      for (let i = 0; i < 3; i++) g.getState().buy('server_basic');
+      [[2, 3], [5, 3], [8, 3]].forEach(([x, y]) => {
+        if (g.getState().place('server_basic', x, y) !== null) throw new Error('機器を置けなかった');
+      });
+      const servers = g.getState().office.nodes.filter((n) => n.device === 'server_basic');
+      // サーバーは置いたときに Web（http）が起動する。DNS だけの機器は Web を止める
+      g.getState().setService(servers[1].uid, 'http', false);
+      g.getState().setDnsRole(servers[1].uid, true, 'auth');
+      g.getState().setDnsRole(servers[2].uid, true, 'auth');
+    });
+    await page.waitForTimeout(500);
+  },
   // サーバーのサービスの欄（DNS の役割・ゾーンの記録を種類つきで出し、追加の欄を出す）
   dns: async (page) => {
     await scenes.career(page);

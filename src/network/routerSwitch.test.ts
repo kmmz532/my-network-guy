@@ -180,6 +180,7 @@ describe('機器の名前（スイッチ付きルーターとL3スイッチ）',
     categoryOf: deviceCategory,
     categoryLabel: (category) => ({ router_switch: 'スイッチ付きルーター', l3_switch: 'L3スイッチ' })[category] ?? category,
     ownedPc: (owner) => `${owner}のPC`,
+    tr: (key) => key,
   };
 
   it('種類ごとに番号を振る', () => {

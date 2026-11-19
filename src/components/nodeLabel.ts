@@ -11,6 +11,7 @@ const contextFor = (state: GameState, office: boolean): NameContext => ({
   categoryLabel: (category) => tDyn(`category.${category}`),
   deviceLabel: (device) => tDyn(`device.${device}.name`),
   ownedPc: (owner) => t('ui.node.ownedPc', { name: owner }),
+  tr: (key) => tDyn(key),
   ownerAt: office
     ? (x, y) => {
         // 机の位置から、その机に座る社員を探す（机は社員ごとに決まっている）
@@ -43,5 +44,6 @@ export const offerNodeName = (offer: { contract: { placed: { ref: string; device
     categoryLabel: (category) => tDyn(`category.${category}`),
     deviceLabel: (device) => tDyn(`device.${device}.name`),
     ownedPc: (owner) => t('ui.node.ownedPc', { name: owner }),
+  tr: (key) => tDyn(key),
   });
 };
