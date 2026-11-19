@@ -1,4 +1,4 @@
-// しまった案内を戻す札。案件の欄の見出しの行に、社員の顔の小さなボタンと「次: <今の手順の1行>」を出す。押すと吹き出しに戻る
+// しまった案内を戻す札（ボタンは札の行の高さに合わせて 28 px にし、顔をボタンいっぱいに描く）。案件の欄の見出しの行に、社員の顔の小さなボタンと「次: <今の手順の1行>」を出す。押すと吹き出しに戻る
 import { t, tDyn } from '../i18n/t';
 import { staffSpriteName } from '../data/schema';
 import { useGameStore } from '../stores/useGameStore';
@@ -14,7 +14,7 @@ export function GuideRestore() {
   if (shelved === null) return null;
   return (
     <div style={{ display: 'flex', alignItems: 'center', minWidth: 0, paddingLeft: 6 }}>
-      <IconButton label={t('ui.guide.restore')} onClick={() => setGuideHidden(shelved.id, false)} layout={{ flexShrink: 0 }}>
+      <IconButton label={t('ui.guide.restore')} onClick={() => setGuideHidden(shelved.id, false)} layout={{ flexShrink: 0, width: 28, minHeight: 28, maxHeight: 28 }}>
         <Icon name={`staff/${staffLook}_0`} scale={1} />
       </IconButton>
       <div style={{ minWidth: 0, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }}>
