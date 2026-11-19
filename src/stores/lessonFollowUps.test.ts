@@ -57,4 +57,14 @@ describe('教材の発展の問い', () => {
     st().answerInspect('10.0.12.2');
     expect(st().lessonAnswers).toContain('f1');
   });
+
+  it('RIP と OSPF の教材: 基準の帯域を既定に戻すと、R1 から 10.0.2.0/24 への次のホップは近道の 10.0.13.2', () => {
+    st().openLesson('rip_vs_ospf');
+    solve('rip_vs_ospf');
+    st().test();
+    expect(st().sandboxDrill?.stage).toBe('answer');
+    expect(st().drillView?.choices).toContain('10.0.13.2');
+    st().answerInspect('10.0.13.2');
+    expect(st().lessonAnswers).toContain('f1');
+  });
 });

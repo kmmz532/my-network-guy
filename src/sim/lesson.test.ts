@@ -93,6 +93,18 @@ describe('教材（学習モード）', () => {
     expect(lessonGoalResults(l.goals, solutions[l.id](lessonNodes(l)), links, engine)).toEqual([true, true]);
   });
 
+  it('RIP と OSPF の教材: RIP では近道（1ホップ）を通り1G の条件を満たさない。OSPF でも基準の帯域が既定のままだと近道のままで、基準を 1000 にすると遠回りを選び両方満たす', () => {
+    const l = lesson('rip_vs_ospf');
+    const links = lessonLinks(l);
+    const on = (proto: 'rip' | 'ospf') => (nodes: typeof solved) =>
+      nodes.map((n) => (['R1', 'R2', 'R3'].includes(n.uid) ? { ...n, interfaces: n.interfaces.map((i) => (proto === 'rip' ? { ...i, rip: true } : { ...i, ospf: { area: 0 } })) } : n));
+    const solved = solutions[l.id](lessonNodes(l));
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false, false]);
+    expect(lessonGoalResults(l.goals, on('rip')(lessonNodes(l)), links, engine)).toEqual([true, false]);
+    expect(lessonGoalResults(l.goals, on('ospf')(lessonNodes(l)), links, engine)).toEqual([true, false]);
+    expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true, true]);
+  });
+
   it('DNS の教材: 初めは外へ出られず、NAT を設定すると通る。ネームサーバーを向けると社内と外の名前が引ける', () => {
     const l = lesson('dns_intranet_names');
     const links = lessonLinks(l);
