@@ -7,6 +7,7 @@ import { t, tDyn } from '../i18n/t';
 import type { DnsRecordType, DnsService, NetLink, NetNode } from '../network/types';
 import { isL2Category, seenSourcesOf, type NetworkState } from '../network/public';
 import { focusedProject, netOfDevice, useGameStore, type GameState } from '../stores/useGameStore';
+import { useUiStore } from '../stores/useUiStore';
 import { RearTab as DeviceRear } from './DeviceRear';
 import { DeviceSettings } from './DeviceSettings';
 import { TrimmedIcon } from './Icon';
@@ -101,6 +102,13 @@ function DeviceView({
     setTabState(next);
   };
   const [error, setError] = useState<string | null>(null);
+  // マップのメニューの「設定を開く」で、設定の欄から開く
+  const tabRequest = useUiStore((s) => s.deviceTabRequest);
+  useEffect(() => {
+    if (tabRequest?.uid !== node.uid) return;
+    setTab(tabRequest.tab);
+    useUiStore.getState().setDeviceTabRequest(null);
+  }, [tabRequest, node.uid]);
 
   const category = deviceCategory(node.device);
   const isServer = category === CATEGORY.server;

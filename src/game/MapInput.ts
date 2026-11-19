@@ -16,7 +16,11 @@ import type { Point } from './animation';
 import type { MapCamera } from './MapCamera';
 import type { MapHit } from './MapHit';
 import type { MapTip } from './MapTip';
-import { hasFurniture } from '../registry/query';
+import { deviceCategory, hasFurniture } from '../registry/query';
+import { balance } from 'virtual:game-data';
+import { can } from '../network/capabilities';
+import { isL2Category } from '../network/public';
+import { menuItemsOf, type MenuActions, type MenuTarget } from '../ui/contextMenuItems';
 
 // 機器を押した瞬間の反応を出す時間（ms）
 export const PRESS_MS = 220;
@@ -43,6 +47,13 @@ export interface Press {
   // 指で長押しするまで動かさない（機器・家具を指で押したとき）。timer は長押しの計時
   hold: boolean;
   timer: number | null;
+}
+
+// 指の長押しでメニューを出すまでの計時（押した位置は画面の座標）
+interface LongPress {
+  x0: number;
+  y0: number;
+  timer: number;
 }
 
 export interface MapInputHost {
@@ -78,11 +89,14 @@ export class MapInput {
   press: Press | null = null;
   // 機器を押した瞬間の反応（機器の uid と押した時刻）
   pressFx: { uid: string; at: number } | null = null;
+  // 指で押している間の、メニューを出すまでの長押しの計時
+  private longPress: LongPress | null = null;
 
   constructor(private host: MapInputHost) {}
 
   // 配線・押している途中の操作などを取り消す（ピンチが始まったとき）
   cancelOperations(): void {
+    this.clearLongPress();
     this.clearPress();
     this.host.tip.reset();
     this.wireFrom = null;
@@ -131,14 +145,15 @@ export class MapInput {
       store.toggleWindow('staff', staffUid);
       return;
     }
+    // 右クリックは、どの道具でもメニューを出す。指の長押しは、選択の道具で同じメニューを出す
+    if (e.button === 2) {
+      this.openContextMenu(p, tile, e.clientX, e.clientY);
+      return;
+    }
+    if (e.pointerType === 'touch' && e.button === 0 && !store.placing && store.tool === 'select') this.startLongPress(p, tile, e.clientX, e.clientY);
     // 機器を編集できないとき（納品の結果や施工中）は何もしない
     const nodes = this.host.hit.editNodes();
     if (!nodes) return;
-    // 右クリックは、どの道具でも撤去する
-    if (e.button === 2) {
-      this.removeAt(p, nodes);
-      return;
-    }
     const node = this.host.hit.nodeNear(p, nodes);
     // 機器を押した瞬間の反応（短い輪を出す）
     if (node && e.button === 0) this.pressFx = { uid: node.uid, at: Date.now() };
@@ -180,6 +195,74 @@ export class MapInput {
         return;
     }
   };
+
+  // 押した位置の機器・家具・配線（メニューの対象）。判定は hover・撤去と同じ。なければ null
+  private menuTargetAt(p: Point, tile: { tx: number; ty: number } | null): MenuTarget | null {
+    const store = useGameStore.getState();
+    const nodes = this.host.hit.editNodes() ?? this.host.project()?.nodes ?? [];
+    const node = this.host.hit.nodeNear(p, nodes);
+    if (node) return { kind: 'node', uid: node.uid };
+    const furniture = viewingOffice(store) && tile ? store.office.furniture.find((f) => f.x === tile.tx && f.y === tile.ty) : undefined;
+    if (furniture) return { kind: 'furniture', uid: furniture.uid };
+    const link = this.host.hit.linkUnder(p);
+    return link ? { kind: 'link', uid: link.uid } : null;
+  }
+
+  // 押した位置にメニューを出す（clientX・clientY は画面の座標）。対象がない、または出せる項目がなければ何もしない（開いていたメニューは閉じる）
+  openContextMenu(p: Point, tile: { tx: number; ty: number } | null, clientX: number, clientY: number): void {
+    const ui = useUiStore.getState();
+    const target = this.menuTargetAt(p, tile);
+    if (!target) {
+      ui.setContextMenu(null);
+      return;
+    }
+    const store = useGameStore.getState();
+    const editable = this.host.hit.editNodes() !== null;
+    const node = target.kind === 'node' ? (this.host.hit.editNodes() ?? this.host.project()?.nodes ?? []).find((n) => n.uid === target.uid) : undefined;
+    if (target.kind === 'node' && !node) throw new Error(`メニューの対象の機器がない: ${target.uid}`);
+    const hasConfig = node ? !isL2Category(deviceCategory(node.device)) : false;
+    const items = menuItemsOf(target, {
+      allows: (op) => editable && this.canApply(op),
+      node: node ? { hasConfig, hasPower: !can(node.device, 'uplink'), powered: node.powered !== false, name: node.name ?? '' } : undefined,
+    });
+    if (items.length === 0) {
+      ui.setContextMenu(null);
+      return;
+    }
+    const actions: MenuActions = {
+      openSettings: (uid) => {
+        if (hasConfig) useUiStore.getState().setDeviceTabRequest({ uid, tab: 'config' });
+        store.openWindow('device', uid);
+      },
+      setPower: (uid, on) => void store.setPower(uid, on),
+      duplicateNode: (uid) => void store.duplicateNode(uid),
+      removeNode: (uid) => void store.removeNode(uid),
+      removeLink: (uid) => void store.removeLink(uid),
+      rotateFurniture: (uid) => void store.rotateFurniture(uid),
+      removeFurniture: (uid) => void store.removeFurniture(uid),
+    };
+    this.host.tip.reset();
+    ui.setContextMenu({ x: clientX, y: clientY, items: items.map((item) => ({ ...item, run: () => item.run(actions) })) });
+  }
+
+  // 指で押したまま動かさずに長押しの時間が過ぎたら、メニューを出す。出したあとは、押している操作（持ち上げ・移動）をやめる
+  private startLongPress(p: Point, tile: { tx: number; ty: number } | null, x0: number, y0: number): void {
+    this.clearLongPress();
+    if (!this.menuTargetAt(p, tile)) return;
+    const timer = window.setTimeout(() => {
+      this.longPress = null;
+      this.clearPress();
+      this.host.cam.endPan();
+      this.openContextMenu(p, tile, x0, y0);
+      this.host.redraw();
+    }, balance.tooltip.longPressMs);
+    this.longPress = { x0, y0, timer };
+  }
+
+  private clearLongPress(): void {
+    if (this.longPress) window.clearTimeout(this.longPress.timer);
+    this.longPress = null;
+  }
 
   // 撤去する。押した位置の機器（とつながるケーブル）、家具、配線の順に、1つだけ撤去する
   removeAt(p: { x: number; y: number }, nodes: readonly NetNode[]): void {
@@ -355,6 +438,8 @@ export class MapInput {
 
   onMove = (e: FederatedPointerEvent): void => {
     if (this.host.cam.multiTouch) return;
+    // 指が動いてドラッグが始まったら、長押しのメニューは出さない
+    if (this.longPress && Math.hypot(e.clientX - this.longPress.x0, e.clientY - this.longPress.y0) >= TOUCH_PAN_PX) this.clearLongPress();
     if (this.host.cam.movePan({ x: e.global.x, y: e.global.y })) return;
     if (this.pressMove(e)) return;
     if (e.pointerType !== 'touch') this.host.tip.updateMouse(e);
@@ -420,6 +505,7 @@ export class MapInput {
   }
 
   onUp = (e: FederatedPointerEvent): void => {
+    this.clearLongPress();
     if (e.pointerType === 'touch') this.host.tip.endTouch();
     this.host.cam.endPan();
     if (this.press) {
@@ -444,6 +530,7 @@ export class MapInput {
   };
 
   dropWire = (): void => {
+    this.clearLongPress();
     this.host.cam.endPan();
     this.clearPress();
     this.wireFrom = null;

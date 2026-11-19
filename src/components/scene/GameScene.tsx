@@ -19,6 +19,7 @@ import { Heading } from '../ui/Heading';
 import { ReportModal } from '../Overlay';
 import { PausedBuildPrompt } from '../PausedBuildPrompt';
 import { PortMenu } from '../PortMenu';
+import { ContextMenuLayer } from '../ContextMenuLayer';
 import { TabConflict } from '../TabConflict';
 import { TaskPanel } from '../TaskPanel';
 import { Toolbar } from '../Toolbar';
@@ -103,6 +104,7 @@ const GameScene = () => {
       </div>
       <Windows />
       <PortMenu />
+      <ContextMenuLayer />
       <Toolbar />
       <Guide />
       {DEBUG_ENABLED && (

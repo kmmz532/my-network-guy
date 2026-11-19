@@ -20,6 +20,13 @@ export interface PortMenuState {
   role: 'from' | 'to';
 }
 
+// 右クリック（長押し）のメニュー。位置は画面の座標。項目は開いた時点の状態から作る（保存しない）
+export interface ContextMenuState {
+  x: number;
+  y: number;
+  items: readonly { id: string; label: string; run: () => void }[];
+}
+
 // インベントリの欄からドラッグ中の品目と、画面の位置（クライアントの座標）。保存しない
 export interface ItemDrag {
   id: string;
@@ -49,6 +56,12 @@ interface UiState {
   // 配線の途中の起点（ポートを選んだ機器）と、ポートの一覧の吹き出し（保存しない）
   wireStart: WireStart | null;
   portMenu: PortMenuState | null;
+  // マップの右クリック（長押し）のメニュー
+  contextMenu: ContextMenuState | null;
+  setContextMenu: (menu: ContextMenuState | null) => void;
+  // 機器の画面で開く欄の要求（メニューの「設定を開く」）。開いたあとに消す
+  deviceTabRequest: { uid: string; tab: 'config' } | null;
+  setDeviceTabRequest: (request: { uid: string; tab: 'config' } | null) => void;
   // インベントリの欄から品目をドラッグしている間の位置（保存しない）
   itemDrag: ItemDrag | null;
   // 失敗した操作の理由を、失敗した地点（マップのタイル）に出す（保存しない）
@@ -72,6 +85,10 @@ export const useUiStore = create<UiState>((set) => ({
   setFrameView: (view) => set({ frameView: view }),
   wireStart: null,
   portMenu: null,
+  contextMenu: null,
+  setContextMenu: (menu) => set({ contextMenu: menu }),
+  deviceTabRequest: null,
+  setDeviceTabRequest: (request) => set({ deviceTabRequest: request }),
   itemDrag: null,
   flash: null,
   linkPulse: null,

@@ -332,6 +332,32 @@ const scenes = {
     await page.getByRole('button', { name: '教材を開く' }).click();
     await page.waitForTimeout(800);
   },
+  // 機器を右クリックして、メニューを出す。機器の位置は決め打ちせず、画面を走査して、メニューが出た位置で止める
+  contextmenu: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      g.getState().buy('pc_basic');
+      let placed = false;
+      for (let y = 2; y < 8 && !placed; y++) for (let x = 2; x < 10 && !placed; x++) placed = g.getState().place('pc_basic', x, y) === null;
+      if (!placed) throw new Error('機器を置けなかった');
+    });
+    await page.waitForTimeout(500);
+    const box = await page.locator('canvas').first().boundingBox();
+    const menu = page.locator('[data-context-menu]');
+    for (let j = 0; j < 40; j++) {
+      for (let i = 0; i < 60; i++) {
+        const x = box.x + 20 + i * ((box.width - 40) / 60);
+        const y = box.y + 80 + j * ((box.height - 160) / 40);
+        await page.mouse.click(x, y, { button: 'right' });
+        if ((await menu.count()) > 0) {
+          await page.waitForTimeout(300);
+          return;
+        }
+      }
+    }
+    throw new Error('メニューが出なかった');
+  },
   // マップのポインタ操作（ホイール・中ボタンの移動・各道具での押す・ドラッグ・乗せる）を一通り行う。位置は決め打ちせず、画面全体を走査する。
   // 例外や console のエラーが出ないことを --check で確かめる
   pointer: async (page) => {
