@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { buyDevice, isUnlocked, sellDevice } from './shop';
 import { isCompany, migrate } from '../services/migrations';
+import shopData from '../assets/data/shop.json';
+import cablesData from '../assets/data/cables.json';
 
 describe('ショップ', () => {
   it('会社のレベルが解放のレベルに届かない品目は、店に並べない（解放は品目の unlockLevel）', () => {
@@ -16,6 +18,13 @@ describe('ショップ', () => {
     const uplink = { device: 'uplink', sandboxOnly: true } as never;
     expect(isUnlocked(uplink, 99, defs)).toBe(false);
     expect(isUnlocked(uplink, 99, defs, true)).toBe(true);
+  });
+
+  it('店に出さない古いケーブル（utp_cat5）は、店の一覧に並ばない（案件の既存の配線にだけ出す）', () => {
+    expect(cablesData.cables.some((c) => c.id === 'utp_cat5')).toBe(true);
+    const sold = shopData.items.flatMap((i) => (i.cable ? [i.cable] : []));
+    expect(sold).toContain('utp_cat5e');
+    expect(sold).not.toContain('utp_cat5');
   });
 
   it('資金が足りないと購入しない', () => {

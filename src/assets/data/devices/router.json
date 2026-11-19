@@ -92,7 +92,7 @@
         {
           "type": "sfp",
           "count": 2,
-          "speedMbps": 1000
+          "speedMbps": 10000
         }
       ],
       "features": [

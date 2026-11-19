@@ -12,7 +12,7 @@
     {
       "id": "fiber_sm",
       "port": "sfp",
-      "bandwidthMbps": 1000,
+      "bandwidthMbps": 10000,
       "maxLengthTiles": 400,
       "pricePerLink": 5000,
       "pricePerTile": 1500,
@@ -21,7 +21,7 @@
     {
       "id": "fiber_mm",
       "port": "sfp",
-      "bandwidthMbps": 1000,
+      "bandwidthMbps": 10000,
       "maxLengthTiles": 100,
       "pricePerLink": 3000,
       "pricePerTile": 800,
@@ -35,6 +35,15 @@
       "pricePerLink": 1500,
       "pricePerTile": 400,
       "unlockLevel": 10
+    },
+    {
+      "id": "utp_cat5",
+      "port": "rj45",
+      "bandwidthMbps": 100,
+      "maxLengthTiles": 20,
+      "pricePerLink": 1000,
+      "pricePerTile": 300,
+      "unlockLevel": 1
     }
   ]
 }

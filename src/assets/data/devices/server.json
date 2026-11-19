@@ -39,7 +39,7 @@
         {
           "type": "rj45",
           "count": 1,
-          "speedMbps": 1000
+          "speedMbps": 10000
         }
       ],
       "features": [

@@ -5,6 +5,8 @@
   "cable.fiber_mm.short": "光",
   "cable.fiber_sm.name": "光ファイバーケーブル（シングルモード）",
   "cable.fiber_sm.short": "光",
+  "cable.utp_cat5.name": "LANケーブル（Cat5）",
+  "cable.utp_cat5.short": "UTP",
   "cable.utp_cat5e.name": "LANケーブル（Cat5e）",
   "cable.utp_cat5e.short": "UTP",
   "category.access_point": "アクセスポイント",
