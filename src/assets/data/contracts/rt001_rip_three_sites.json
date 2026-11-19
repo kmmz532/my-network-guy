@@ -2,9 +2,9 @@
   "id": "rt001_rip_three_sites",
   "kind": "build",
   "stage": 2,
-  "order": 266,
+  "order": 235,
   "requires": [
-    "w001_guest_ssid"
+    "r005_vlan_trunk"
   ],
   "jobs": [
     "network"
