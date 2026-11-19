@@ -295,7 +295,7 @@ const serviceSchema = z.discriminatedUnion('protocol', [
 ]);
 
 // 機器の能力（NET.md §4）。コードは機器の種類ではなく、この能力だけを見る（N134）
-export const CAPABILITY_IDS = ['switchport', 'vlan', 'stp', 'svi', 'routedPort', 'subif', 'routing', 'rip', 'ospf', 'bgp', 'nat', 'services', 'dhcpRelay', 'firewall', 'wireless', 'wan', 'vrrp', 'lag', 'endpoint', 'uplink', 'firewallRules', 'accessPoint', 'loadBalance'] as const;
+export const CAPABILITY_IDS = ['switchport', 'vlan', 'stp', 'svi', 'routedPort', 'subif', 'routing', 'rip', 'ospf', 'bgp', 'nat', 'services', 'dhcpRelay', 'firewall', 'wireless', 'wan', 'vrrp', 'lag', 'endpoint', 'uplink', 'firewallRules', 'accessPoint', 'loadBalance', 'vpn'] as const;
 export type Capability = (typeof CAPABILITY_IDS)[number];
 
 // 無線の帯（2.4GHz・5GHz）
@@ -337,7 +337,7 @@ export const deviceSchema = z
     if (has('svi') && d.sviMax === undefined) fail('svi には sviMax が必要');
     if (!has('svi') && d.sviMax !== undefined) fail('sviMax は svi を持つ機器だけ');
     if (has('subif') && !has('routedPort')) fail('subif には routedPort が必要');
-    if ((has('ospf') || has('bgp') || has('nat') || has('loadBalance')) && !has('routing')) fail('ospf・bgp・nat・loadBalance には routing が必要');
+    if ((has('ospf') || has('bgp') || has('nat') || has('loadBalance') || has('vpn')) && !has('routing')) fail('ospf・bgp・nat・loadBalance・vpn には routing が必要');
     if (has('vlan') && !has('switchport')) fail('vlan には switchport が必要');
     if (has('wireless') && d.wlan === undefined) fail('wireless を持つ機器には wlan が必要');
     if (!has('wireless') && d.wlan !== undefined) fail('wlan は wireless を持つ機器だけ');
@@ -415,6 +415,8 @@ export const placedSchema = z.object({
 
 // 修理の依頼などで、最初から入っている機器の設定（口の VLAN・OSPF・VRRP・DHCP・BGP など。NetNode の同名の項目と同じ形）
 export const ipv4 = z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/);
+// ネットワークの書き方（a.b.c.d/nn）
+export const cidr = z.string().regex(/^\d{1,3}(\.\d{1,3}){3}\/(\d|[12]\d|3[0-2])$/);
 const portConfigSchema = z.object({
   port: nonNegativeInt,
   mode: z.enum(['access', 'trunk', 'routed']),
@@ -509,6 +511,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('survive_device_failure'), nodes: z.array(z.string().min(1)).min(1) }),
   // from から、ロードバランサー lb（機器の uid）の port の仮想サーバーへ HTTP が届き、その仮想サーバーの健全な振り分け先が minHealthy 以上ある
   z.object({ type: z.literal('load_balanced'), from: z.string().min(1), lb: z.string().min(1), port: z.number().int().min(1).max(65535), minHealthy: z.number().int().positive() }),
+  // 2台の VPN ルーター a・b（機器の uid）の間で、IPsec のトンネルが張れている
+  z.object({ type: z.literal('vpn_up'), a: z.string().min(1), b: z.string().min(1) }),
   // インターネット側から、to（サーバー、またはロードバランサー）の port へ HTTP が届く。外から届く道は、回線につながるルーターの静的 NAT だけ
   z.object({ type: z.literal('public_http'), to: z.string().min(1), port: z.number().int().min(1).max(65535) }),
   // 指定した機器が、物理のリンク min 本以上を1本の論理リンクにまとめている（リンクアグリゲーション）

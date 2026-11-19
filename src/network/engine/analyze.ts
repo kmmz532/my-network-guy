@@ -2,7 +2,10 @@
 import { can } from '../capabilities';
 import { getComponent } from '../components';
 import { isEapSecurity } from '../../registry/wireless';
-import { radiusQuery } from './forward';
+import { ikeSend, radiusQuery } from './forward';
+import { withInternet } from '../external';
+import { NO_VPN, tunnelsOf } from '../query/vpn';
+import { INTERNET_DEVICE } from '../../registry/query';
 import type { EngineData, Iface, NetLink, NetNode, Network } from '../types';
 import type { NetworkState } from './state';
 import { stageAddressing } from './stages/addressing';
@@ -16,7 +19,7 @@ const compute = (input: Network, world: EngineData, radiusDown: ReadonlySet<stri
   const l2 = stageL2(links.net, links);
   const addressing = stageAddressing(input, links, l2);
   const routing = stageRouting(addressing.net, l2, links);
-  return { input, world, net: addressing.net, links, l2, addressing, routing };
+  return { input, world, net: addressing.net, links, l2, addressing, routing, vpn: NO_VPN };
 };
 
 // 802.1X の SSID のアクセスポイントのうち、RADIUS サーバーへ届かないもの
@@ -34,7 +37,18 @@ const radiusDownOf = (state: NetworkState): Set<string> =>
 export const analyze = (input: Network, world: EngineData): NetworkState => {
   const first = compute(input, world, new Set());
   const down = radiusDownOf(first);
-  return down.size === 0 ? first : compute(input, world, down);
+  return withVpn(down.size === 0 ? first : compute(input, world, down));
+};
+
+// IPsec VPN のトンネルの状態を加える。UDP 500 が外（回線とインターネット）を通るかは、仮想のインターネットを加えた構成で確かめる。
+// その構成の計算にはトンネルの状態を入れない（入れると、その構成でも外を加えて、終わらなくなる）。VPN を持つ機器がなければ何もしない
+const withVpn = (state: NetworkState): NetworkState => {
+  if (!state.net.nodes.some((n) => can(n.device, 'vpn') && getComponent(n, 'vpn') !== undefined)) return state;
+  // すでに外を加えた構成（外部への通信の判定に使う）では、外をもう一度加えない。その構成の通信はトンネルを使わない
+  if (state.net.nodes.some((n) => n.device === INTERNET_DEVICE)) return state;
+  const withNet = withInternet(state.input, state.world);
+  const internet = withNet === null ? null : { view: compute(withNet, state.world, new Set()), uids: withNet.internetUids };
+  return { ...state, vpn: tunnelsOf(state.net.nodes, internet, ikeSend) };
 };
 
 // 受け取れた自動の口の ip・prefix を機器へ書き戻す（前回のアドレスとして保存する）。変わる機器がなければ同じ配列を返す

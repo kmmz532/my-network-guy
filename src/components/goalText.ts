@@ -27,6 +27,8 @@ export const goalText = (goal: Goal, nameOf: (id: string) => string = (id) => id
           ? { node: nameOf(goal.node) }
         : goal.type === 'public_http'
           ? { to: nameOf(goal.to), port: goal.port }
+        : goal.type === 'vpn_up'
+          ? { a: nameOf(goal.a), b: nameOf(goal.b) }
         : goal.type === 'load_balanced'
           ? { from: nameOf(goal.from), lb: nameOf(goal.lb), minHealthy: goal.minHealthy }
         : goal.type === 'survive_device_failure'

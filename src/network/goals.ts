@@ -79,6 +79,17 @@ const handlers: { [K in Goal['type']]: Handler } = {
     if (healthyMembers(state, lb, vs, reach).length >= goal.minHealthy) return [{ ...base, ok: true, result: r }];
     return [{ ...base, ok: false, failure: { reason: 'lb.few_healthy' as const, node: goal.lb }, result: { ...r, ok: false } }];
   },
+  // a から b への IPsec のトンネルが張れていれば合格。張れなければ、その理由を a に出す（a にトンネルがない、b を指すトンネルがないときは vpn.peer_unreachable）
+  vpn_up: (goal, state) => {
+    if (goal.type !== 'vpn_up') throw new Error('vpn_up ハンドラに別の種類が渡された');
+    for (const uid of [goal.a, goal.b]) if (!state.net.nodes.some((n) => n.uid === uid)) throw new Error(`vpn_up の機器がない: ${uid}`);
+    const peerNode = state.net.nodes.find((n) => n.uid === goal.b)!;
+    const toward = state.vpn.tunnels.filter((t) => t.router === goal.a && peerNode.interfaces.some((i) => i.ip === t.tunnel.peer));
+    const base = { goal, kind: 'ping' as const, src: goal.a, dst: goal.b, result: { ok: false, path: [] } };
+    if (toward.some((t) => t.ok)) return [{ ...base, ok: true, result: { ok: true, path: [] } }];
+    const first = toward[0];
+    return [{ ...base, ok: false, failure: { reason: first && !first.ok ? first.reason : 'vpn.peer_unreachable', node: goal.a } }];
+  },
   // インターネット側から、to の port へ HTTP が届けば合格。外から届く道は、回線につながるルーターの静的 NAT（外の port → 社内のアドレス）だけ。静的 NAT の先が to の IP アドレスでなければ届かない扱い
   public_http: (goal, state) => {
     const { net, world: data } = state;

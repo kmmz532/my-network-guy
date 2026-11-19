@@ -14,6 +14,11 @@ export const GLOSSARY_OF_FAILURE: Partial<Record<FailureReason, string>> = {
   'wlan.auth_mismatch': 'wpa3',
   'wlan.no_radius': 'radius',
   'lb.few_healthy': 'load_balancer',
+  'vpn.peer_unreachable': 'ipsec_vpn',
+  'vpn.psk_mismatch': 'ipsec_vpn',
+  'vpn.proposal_mismatch': 'ipsec_vpn',
+  'vpn.selector_mismatch': 'ipsec_vpn',
+  'vpn.nat_before_tunnel': 'ipsec_vpn',
 };
 
 // 教材の案内の手順（文言のキー）ごとに、その手順で初めて出す用語。対応のない手順は説明を出さない
@@ -68,6 +73,7 @@ export const GLOSSARY_OF_GOAL: Partial<Record<Goal['type'], string>> = {
   min_speed: 'link_speed',
   load_balanced: 'load_balancer',
   public_http: 'napt',
+  vpn_up: 'ipsec_vpn',
 };
 
 export const termOfStep = (key: string): string | null => GLOSSARY_OF_STEP[key] ?? null;

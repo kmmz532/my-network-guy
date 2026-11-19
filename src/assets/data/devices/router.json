@@ -100,6 +100,32 @@
       ],
       "sprite": "device/edge_router",
       "unlockLevel": 30
+    },
+    {
+      "id": "vpn_router",
+      "category": "router",
+      "capabilities": [
+        "routedPort",
+        "subif",
+        "routing",
+        "nat",
+        "wan",
+        "vpn"
+      ],
+      "price": 90000,
+      "ports": [
+        {
+          "type": "rj45",
+          "count": 4,
+          "speedMbps": 1000
+        }
+      ],
+      "features": [
+        "routing",
+        "vpn"
+      ],
+      "sprite": "device/vpn_router",
+      "unlockLevel": 90
     }
   ]
 }

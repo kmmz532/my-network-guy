@@ -15,9 +15,11 @@ import { deviceBands, isEapSecurity, securitySupported } from '../../registry/wi
 import { bandOf } from '../wirelessBand';
 import { egressIface, healthyMembers, memberUp, pickMember, serverOf } from '../query/loadBalancer';
 import type { Reach, VirtualServer } from '../query/loadBalancer';
+import { tunnelFor } from '../query/vpn';
+import type { Send } from '../query/vpn';
 
 // 転送が読む層。解析の結果（NetworkState）と、DHCP のリレーの到達を仮に確かめるときの仮の層が、同じ形で渡せる
-export type ForwardView = Pick<NetworkState, 'links' | 'l2' | 'addressing' | 'routing'>;
+export type ForwardView = Pick<NetworkState, 'links' | 'l2' | 'addressing' | 'routing' | 'vpn'>;
 
 const MAX_HOPS = 16;
 
@@ -42,7 +44,8 @@ const duplicateReason = (view: ForwardView, members: { node: string; port: numbe
 // 片道の判定（src → dst）。dstIp は宛先のIPアドレス
 // 通信の種類（ping は ICMP、http は指定のポートへの TCP、dns は 53 番への問い合わせ）。ファイアウォールの規則の判定に使う
 // radius は UDP 1812 への認証の問い合わせ（アクセスポイントから RADIUS サーバーへ）。ファイアウォールは、サービスを any にした規則だけが通す
-export type Traffic = { kind: 'ping' } | { kind: 'http'; port: number } | { kind: 'dns' } | { kind: 'radius' };
+// ike は IPsec の鍵交換（UDP 500）。radius と同じく、サービスを any にした規則だけが通す
+export type Traffic = { kind: 'ping' } | { kind: 'http'; port: number } | { kind: 'dns' } | { kind: 'radius' } | { kind: 'ike' };
 
 // 規則の送信元・宛先（'any' か「a.b.c.d/nn」）に、IPアドレスが入るか
 const matchNet = (spec: string, ip: string): boolean => {
@@ -178,13 +181,15 @@ export const deliver = (view: ForwardView, srcUid: string, dstUid: string, traff
   // 今の送信元のアドレス（NAPT で変わる）と、変換の記録
   let curSrcIp = srcIface.ip;
   let natHit: PathResult['nat'];
+  // トンネルを通ったときの記録
+  let tunnelHit: PathResult['tunnel'];
   for (let hop = 0; hop < MAX_HOPS; hop++) {
     const cur = view.addressing.nodeOf(current.node);
     if (!cur) return err(fail('route.none', current.node));
 
     if (cur.uid === dst.uid) {
       path.push(cur.uid);
-      return { ok: true, path, nat: natHit };
+      return { ok: true, path, nat: natHit, tunnel: tunnelHit };
     }
     if (!isRouter(view, cur.uid)) return err(fail('route.none', cur.uid));
     path.push(cur.uid);
@@ -197,6 +202,16 @@ export const deliver = (view: ForwardView, srcUid: string, dstUid: string, traff
     const arrivedFrom = cur.interfaces.find((i) => i.port === current.port);
     if (check && kindOf(view, cur.uid) === CATEGORY.homeRouter && arrivedFrom?.nat === 'outside') {
       return err(fail('firewall.denied', cur.uid));
+    }
+    // IPsec VPN: 送信元が自拠点のネットワーク、宛先が相手のネットワークの通信は、トンネルに入れて相手の VPN ルーターから先を引く。
+    // 同じ機器の NAPT はトンネルに入る通信から必ず外す（トンネルを先に判定する）。手前の機器が先に NAPT を掛けた通信は、送信元が変わっていて入れられない
+    const tunnel = tunnelFor(view, cur.uid, srcIface.ip, dstIface.ip);
+    if (tunnel) {
+      if (!tunnel.ok) return err(fail(tunnel.reason, cur.uid));
+      if (natHit !== undefined) return err(fail('vpn.nat_before_tunnel', cur.uid));
+      tunnelHit = { ingress: cur.uid, egress: tunnel.peer, ingressIp: tunnel.localIp, egressIp: tunnel.peerIp };
+      current = { node: tunnel.peer, port: tunnel.peerPort };
+      continue;
     }
     // 直結しているサブネットに宛先があるか
     const connected = cur.interfaces.find((i) => inSubnet(dstIface.ip, i.ip, i.prefix));
@@ -214,7 +229,7 @@ export const deliver = (view: ForwardView, srcUid: string, dstUid: string, traff
       if (domain.loop) return err(fail('link.loop', domain.loop.node));
       if (inDomain(domain, dstEp)) {
         path.push(dst.uid);
-        return { ok: true, path, nat: natHit };
+        return { ok: true, path, nat: natHit, tunnel: tunnelHit };
       }
       return err(fail('ip.unreachable', cur.uid));
     }
@@ -271,16 +286,22 @@ export const backOf = (view: ForwardView, dstUid: string, srcUid: string, traffi
 };
 
 
-// ロードバランサーの口からの片道。同じサブネットの宛先は直接、経路表に合う宛先は経路表で、どちらでもなければゲートウェイで届ける。復路は確かめない
-export const reach: Reach = (view, from, to, traffic, srcIp, dstIp) => {
+// ロードバランサー・VPN ルーターの口からの片道。同じサブネットの宛先は直接、経路表に合う宛先は経路表で、どちらでもなければゲートウェイで届ける。check が true のときは通り道のファイアウォールの規則を確かめる
+const relayDeliver = (view: ForwardView, from: string, to: string, traffic: Traffic, srcIp: string, dstIp: string, check: boolean): PathResult => {
   const node = view.addressing.nodeOf(from);
-  if (node && can(node.device, 'loadBalance') && view.routing.routesOf(from).some((r) => inSubnet(dstIp, r.dest, r.prefix))) {
+  if (node && (can(node.device, 'loadBalance') || can(node.device, 'vpn')) && view.routing.routesOf(from).some((r) => inSubnet(dstIp, r.dest, r.prefix))) {
     // ルーターを送信元にするため、ゲートウェイを自分の口のアドレスとした端末として扱い、自分から経路表を引かせる
     const relay: ForwardView = { ...view, addressing: { ...view.addressing, nodeOf: (uid) => (uid === from ? { ...node, gateway: srcIp } : view.addressing.nodeOf(uid)) } };
-    return deliver(relay, from, to, traffic, false, srcIp, dstIp);
+    return deliver(relay, from, to, traffic, check, srcIp, dstIp);
   }
-  return deliver(view, from, to, traffic, false, srcIp, dstIp);
+  return deliver(view, from, to, traffic, check, srcIp, dstIp);
 };
+
+// 復路は確かめない片道
+export const reach: Reach = (view, from, to, traffic, srcIp, dstIp) => relayDeliver(view, from, to, traffic, srcIp, dstIp, false);
+
+// IPsec の鍵交換（UDP 500）の片道。通り道のファイアウォールの規則を確かめる
+export const ikeSend: Send = (view, from, to, srcIp, dstIp) => relayDeliver(view, from, to, { kind: 'ike' }, srcIp, dstIp, true);
 
 // ロードバランサーの振り分け。利用者の通信がロードバランサーの仮想の IP アドレスへ届いた後（entry）、健全な振り分け先から1つ選び、サーバーへ届けて戻りを確かめる。
 // toUser は、戻りの通信の行き先（利用者、または静的 NAT の機器の社内の口）。SNAT があれば戻りはロードバランサーを経て toUser へ、なければサーバーから toUser へ直接で、ロードバランサーを通らなければ lb.asymmetric

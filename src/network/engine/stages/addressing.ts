@@ -4,6 +4,7 @@
 // その規則（isRelayPort）は機器の種類と口の番号だけで決まるため、L2 の層は保存の構成に同じ規則を当てて求め、この層の結果を読まない
 import { inSubnet, ipToInt } from '../../ip';
 import { deliver } from '../forward';
+import { NO_VPN } from '../../query/vpn';
 import { stageRouting } from './routing';
 import { assignDhcp, type DhcpResult } from '../../dhcp';
 import { electVrrpMaster, type VrrpMember } from '../../vrrp';
@@ -297,7 +298,7 @@ export const stageAddressing = (input: Network, links: LinkLayer, l2: L2Layer): 
 
   // DHCP の割り当ては、割り当て前の構成で求める。同じドメインは L2 の層から引く。
   // リレーの到達は、割り当て前の構成で経路を仮に求め、リレーのルーターからサーバーまでたどる（この層の中だけで使い、外へ出さない）
-  const routed = { links, l2, addressing: unassigned, routing: stageRouting(unassigned.net, l2, links) };
+  const routed = { links, l2, addressing: unassigned, routing: stageRouting(unassigned.net, l2, links), vpn: NO_VPN };
   const nodeOf = new Map(before.nodes.map((n) => [n.uid, n]));
   const dhcp = assignDhcp(before.nodes, {
     domainOf: (uid, port) => l2.domainOf({ node: uid, port }).members,

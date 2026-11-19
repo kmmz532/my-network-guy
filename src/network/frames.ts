@@ -14,6 +14,8 @@ export interface Frame {
   l4?: { srcPort: number; dstPort: number };
   // この区間の直前で変換されたとき、変換の前の値（変換したルーターを出た最初のフレームだけに付く）
   nat?: { before: { srcIp: string; srcPort?: number; dstIp: string; dstPort?: number } };
+  // IPsec のトンネルの区間で、外側の見出し（相手の WAN が宛先）。l3・l4 は中身の元の通信
+  tunnel?: { srcIp: string; dstIp: string };
 }
 
 export interface FrameContext {
@@ -116,7 +118,7 @@ const tagOn = (ctx: FrameContext, link: NetLink, vlan: number): number | null =>
 };
 
 // 1本の経路（往路または復路）のフレーム。変換があれば、変換した機器より前と後で値を切り替える
-const legFrames = (ctx: FrameContext, path: string[], traffic: Traffic, tr: Translation | undefined, reversed: boolean): Frame[] => {
+const legFrames = (ctx: FrameContext, path: string[], traffic: Traffic, tr: Translation | undefined, reversed: boolean, tunnel: PathResult['tunnel']): Frame[] => {
   const frames: Frame[] = [];
   const e2e = endToEndIps(ctx, path);
   const first = path[0];
@@ -146,6 +148,32 @@ const legFrames = (ctx: FrameContext, path: string[], traffic: Traffic, tr: Tran
     // 途中のルーターを越えるたびに 1 減る
     if (i > 0 && ctx.isRouter(from.uid)) ttl -= 1;
 
+    // トンネルの区間は、WAN の口どうしの1つのフレーム（間のインターネットは配線を持たない）。外側の見出しは、トンネルの入り口の WAN から出口の WAN へ（復路は逆）
+    if (tunnel && ((path[i] === tunnel.ingress && path[i + 1] === tunnel.egress) || (path[i] === tunnel.egress && path[i + 1] === tunnel.ingress))) {
+      const forwardWay = path[i] === tunnel.ingress;
+      const outer = forwardWay ? { srcIp: tunnel.ingressIp, dstIp: tunnel.egressIp } : { srcIp: tunnel.egressIp, dstIp: tunnel.ingressIp };
+      const wanOf = (node: NetNode, ip: string): number => {
+        const iface = node.interfaces.find((x) => x.ip === ip);
+        if (!iface) throw new Error(`フレームの計算: トンネルの WAN の口がない ${node.uid} ${ip}`);
+        return iface.port;
+      };
+      const fromPort = wanOf(from, outer.srcIp);
+      const toPort = wanOf(to, outer.dstIp);
+      const wanLink = ctx.links.find((x) => (x.a.node === from.uid && x.a.port === fromPort) || (x.b.node === from.uid && x.b.port === fromPort));
+      if (!wanLink) throw new Error(`フレームの計算: トンネルの WAN に配線がない ${from.uid}`);
+      const inner = addrAt(i);
+      const innerL4 = portsAt(i);
+      frames.push({
+        link: wanLink.uid,
+        from: from.uid,
+        to: to.uid,
+        l2: { srcMac: macOn(ctx, from, fromPort), dstMac: macOn(ctx, to, toPort), vlan: null },
+        l3: { srcIp: inner.srcIp, dstIp: inner.dstIp, ttl, proto },
+        ...(innerL4 ? { l4: innerL4 } : {}),
+        tunnel: outer,
+      });
+      continue;
+    }
     // 区間（L3 の1ホップ）の中の物理の経路。L2 スイッチを通るときは、スイッチの間のリンクごとにフレームを出す
     const nodes = l2LegOf(ctx, from.uid, to.uid);
     const firstLink = linkBetween(ctx, nodes[0], nodes[1]);
@@ -187,10 +215,10 @@ export const framesOf = (ctx: FrameContext, result: PathResult, traffic: Traffic
     : result.staticNat
       ? { router: result.staticNat.router, field: 'dst', before: result.staticNat.outsideIp, after: result.staticNat.insideIp }
       : undefined;
-  const frames = legFrames(ctx, result.path, traffic, forwardTr, false);
+  const frames = legFrames(ctx, result.path, traffic, forwardTr, false, result.tunnel);
   if (result.back && result.back.length >= 2) {
     const backTr: Translation | undefined = result.nat ? { router: result.nat.router, field: 'dst', before: result.nat.outsideIp, after: result.nat.insideIp } : undefined;
-    frames.push(...legFrames(ctx, result.back, traffic, backTr, true));
+    frames.push(...legFrames(ctx, result.back, traffic, backTr, true, result.tunnel));
   }
   return frames;
 };

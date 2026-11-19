@@ -597,6 +597,19 @@ export const setLoadBalancer = (core: Core, uid: string, servers: NonNullable<Co
     target,
   );
 
+// VPN のトンネルの一覧を置き換える
+export const setVpn = (core: Core, uid: string, tunnels: NonNullable<Components['vpn']>, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      const refusal = refusalFor(node.device, 'vpn');
+      if (refusal) return refusal;
+      return withComponent(node, 'vpn', tunnels);
+    },
+    target,
+  );
+
 // ルーターに静的ルートを追加する
 export const addRoute = (core: Core, uid: string, route: Route, target: NetTarget = 'focus'): Outcome =>
   editNode(

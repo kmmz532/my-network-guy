@@ -261,6 +261,16 @@ export const FAILURE_REASONS = [
   'lb.asymmetric',
   // 達成条件 load_balanced: 届くが、健全な振り分け先の数が指定に足りない（札はロードバランサー）
   'lb.few_healthy',
+  // IPsec VPN: 相手の WAN のアドレスに届かない（相手の機器がない・相手がこちらを peer にしていない・UDP 500 が途中で止まる）
+  'vpn.peer_unreachable',
+  // IPsec VPN: 事前共有鍵が両端で違う
+  'vpn.psk_mismatch',
+  // IPsec VPN: 暗号の方式が両端で違う
+  'vpn.proposal_mismatch',
+  // IPsec VPN: 守るネットワークの組（自拠点と相手）が左右対称でない
+  'vpn.selector_mismatch',
+  // IPsec VPN: トンネルへ入る前に、手前の NAPT が送信元を変えている
+  'vpn.nat_before_tunnel',
 ] as const;
 
 export type FailureReason = (typeof FAILURE_REASONS)[number];
@@ -283,4 +293,6 @@ export interface PathResult {
   staticNat?: { router: string; insideIp: string; outsideIp: string };
   // 復路の経路（機器の uid の列）。復路まで通ったときだけ持つ
   back?: string[];
+  // IPsec のトンネルを通った区間（path の中で隣り合う ingress と egress の間）。外側の宛先は egressIp（相手の WAN）、中身は元の通信
+  tunnel?: { ingress: string; egress: string; ingressIp: string; egressIp: string };
 }

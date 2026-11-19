@@ -3,6 +3,7 @@ import type { RoutingLayer } from './stages/routing';
 import type { AddressLayer } from './stages/addressing';
 import type { L2Layer } from './stages/l2';
 import type { LinkLayer } from './stages/links';
+import type { VpnLayer } from '../query/vpn';
 import type { EngineData, Network } from '../types';
 
 export interface NetworkState {
@@ -19,4 +20,6 @@ export interface NetworkState {
   readonly addressing: AddressLayer;
   // 経路の層: 機器ごとの経路表（静的・RIP・OSPF・BGP）・OSPF の隣接・BGP のセッション
   readonly routing: RoutingLayer;
+  // IPsec VPN のトンネルの状態（VPN を持つ機器がなければ空）。外（回線とインターネット）を加えた構成で UDP 500 の到達を確かめた結果
+  readonly vpn: VpnLayer;
 }

@@ -19,6 +19,7 @@ export const CAPABILITY_REFUSALS = {
   ospf: 'capability',
   wan: 'capability',
   loadBalance: 'capability',
+  vpn: 'capability',
 } as const satisfies Partial<Record<Capability, OpFailReason>>;
 
 export type GatedCapability = keyof typeof CAPABILITY_REFUSALS;

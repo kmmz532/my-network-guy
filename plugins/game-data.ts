@@ -249,6 +249,8 @@ const goalRefs = (goal: Goal): string[] => {
       return [goal.from, goal.to];
     case 'public_http':
       return [goal.to];
+    case 'vpn_up':
+      return [goal.a, goal.b];
     case 'load_balanced':
       return [goal.from, goal.lb];
     case 'http_by_name':

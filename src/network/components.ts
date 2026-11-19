@@ -2,7 +2,7 @@
 // 持てるコンポーネントは機器の定義（能力）が決め、持てない機器に付けようとすれば例外で止める。
 import { z } from 'zod';
 import type { Capability } from '../data/schema';
-import { ipv4, WIRELESS_BANDS } from '../data/schema';
+import { cidr, ipv4, WIRELESS_BANDS } from '../data/schema';
 import { can } from './capabilities';
 import type { NetNode } from './types';
 import { WIRELESS_SECURITIES } from './types';
@@ -59,6 +59,16 @@ export const COMPONENT_SCHEMAS = {
       snat: z.boolean(),
     }),
   ),
+  // IPsec VPN のトンネルの一覧（peer は相手の WAN のアドレス、psk は事前共有鍵、cipher は暗号の方式、local は自拠点の LAN、remote は相手の LAN で、どちらも a.b.c.d/nn）
+  vpn: z.array(
+    z.object({
+      peer: ipv4,
+      psk: z.string().min(1),
+      cipher: z.enum(['aes', '3des']),
+      local: cidr,
+      remote: cidr,
+    }),
+  ),
   // 名前の引き方（hosts は機器ごとの対応表で、ping・traceroute の宛先の名前を引く。Debian の /etc/hosts と同じ考え方。nameServer は ip name-server の DNS サーバーで、対応表で引けない名前を問い合わせる）
   resolver: z.object({
     hosts: z.array(z.object({ name: z.string(), ip: ipv4 })).optional(),
@@ -91,6 +101,7 @@ export const REQUIRES: Partial<Record<ComponentId, Capability>> = {
   nat: 'nat',
   firewall: 'firewall',
   loadBalancer: 'loadBalance',
+  vpn: 'vpn',
 };
 
 export const getComponent = <K extends ComponentId>(node: NetNode, id: K): Components[K] => node.components?.[id];

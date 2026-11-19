@@ -105,6 +105,9 @@
     },
     {
       "device": "load_balancer"
+    },
+    {
+      "device": "vpn_router"
     }
   ]
 }
