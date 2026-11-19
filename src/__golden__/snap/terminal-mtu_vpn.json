@@ -1,0 +1,498 @@
+{
+  "log": [
+    {
+      "node": "HQ_PC"
+    },
+    {
+      "line": "ping 10.2.0.10 size 1500 df-bit",
+      "lines": [
+        "err:ui.terminal.pingNg",
+        "err:error.mtu.exceeded"
+      ]
+    },
+    {
+      "line": "ping 10.2.0.10 size 1500",
+      "lines": [
+        "out:ui.terminal.pingOk {\"ip\":\"10.2.0.10\"}"
+      ]
+    },
+    {
+      "line": "ping 10.2.0.10 size 1400 df-bit",
+      "lines": [
+        "err:ui.terminal.pingNg",
+        "err:error.mtu.exceeded"
+      ]
+    },
+    {
+      "node": "HQ_VPN"
+    },
+    {
+      "line": "show interfaces",
+      "lines": [
+        "out:ui.terminal.ifLinkedIp {\"port\":0,\"ip\":\"198.51.100.2\",\"prefix\":24,\"peer\":\"HQ_LINE\"}",
+        "out:ui.terminal.mac {\"port\":0,\"mac\":\"02:40:00:00:03:00\"}",
+        "out:ui.terminal.ifSpeed {\"port\":0,\"speed\":\"1000Mb/s\"}",
+        "out:ui.terminal.ifMtu {\"port\":0,\"mtu\":1400}",
+        "out:ui.terminal.ifLinkedIp {\"port\":1,\"ip\":\"10.1.0.1\",\"prefix\":24,\"peer\":\"HQ_SW\"}",
+        "out:ui.terminal.mac {\"port\":1,\"mac\":\"02:40:00:00:03:01\"}",
+        "out:ui.terminal.ifSpeed {\"port\":1,\"speed\":\"1000Mb/s\"}",
+        "out:ui.terminal.ifMtu {\"port\":1,\"mtu\":1500}"
+      ]
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "ip mtu 0 575",
+      "result": "fail",
+      "reason": "mtu.range"
+    },
+    {
+      "line": "ip mtu 0 9001",
+      "result": "fail",
+      "reason": "mtu.range"
+    },
+    {
+      "line": "ip mtu 0 1500",
+      "result": "done"
+    },
+    {
+      "line": "ip tcp adjust-mss 0 1360",
+      "result": "done"
+    },
+    {
+      "line": "ip tcp adjust-mss 0 535",
+      "result": "fail",
+      "reason": "mtu.mss_range"
+    },
+    {
+      "line": "interface g0/0",
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "port",
+        "port": 0
+      }
+    },
+    {
+      "line": "mtu 1450",
+      "result": "done"
+    },
+    {
+      "line": "ip mtu 1500",
+      "result": "done"
+    },
+    {
+      "line": "ip tcp adjust-mss 1360",
+      "result": "done"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
+      "line": "show interfaces",
+      "lines": [
+        "out:ui.terminal.ifLinkedIp {\"port\":0,\"ip\":\"198.51.100.2\",\"prefix\":24,\"peer\":\"HQ_LINE\"}",
+        "out:ui.terminal.mac {\"port\":0,\"mac\":\"02:40:00:00:03:00\"}",
+        "out:ui.terminal.ifSpeed {\"port\":0,\"speed\":\"1000Mb/s\"}",
+        "out:ui.terminal.ifMtu {\"port\":0,\"mtu\":1500}",
+        "out:ui.terminal.ifLinkedIp {\"port\":1,\"ip\":\"10.1.0.1\",\"prefix\":24,\"peer\":\"HQ_SW\"}",
+        "out:ui.terminal.mac {\"port\":1,\"mac\":\"02:40:00:00:03:01\"}",
+        "out:ui.terminal.ifSpeed {\"port\":1,\"speed\":\"1000Mb/s\"}",
+        "out:ui.terminal.ifMtu {\"port\":1,\"mtu\":1500}"
+      ]
+    },
+    {
+      "node": "BR_VPN"
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "ip mtu 0 1500",
+      "result": "done"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
+      "node": "HQ_PC"
+    },
+    {
+      "line": "ping 10.2.0.10 size 1400 df-bit",
+      "lines": [
+        "out:ui.terminal.pingOk {\"ip\":\"10.2.0.10\"}"
+      ]
+    },
+    {
+      "line": "ping 10.2.0.10 size 1500 df-bit",
+      "lines": [
+        "err:ui.terminal.pingNg",
+        "err:error.mtu.exceeded"
+      ]
+    }
+  ],
+  "network": {
+    "nodes": [
+      {
+        "uid": "BR_LINE",
+        "device": "uplink",
+        "macSerial": 5,
+        "ports": [],
+        "name": "ISP-B",
+        "x": 9,
+        "y": 6,
+        "locked": true,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "components": {
+          "isp": {
+            "name": "ISP-B",
+            "network": "203.0.113.0",
+            "prefix": 24,
+            "ispIp": "203.0.113.1"
+          }
+        },
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "BR_PC",
+        "device": "pc_basic",
+        "macSerial": 8,
+        "ports": [],
+        "name": "BR-PC",
+        "x": 16,
+        "y": 6,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "10.2.0.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.2.0.1",
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "BR_SW",
+        "device": "l2_switch_8p",
+        "macSerial": 7,
+        "ports": [],
+        "name": "BR-SW",
+        "x": 14,
+        "y": 6,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "BR_VPN",
+        "device": "vpn_router",
+        "macSerial": 6,
+        "ports": [],
+        "name": "BR-VPN",
+        "x": 12,
+        "y": 6,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [
+          {
+            "id": "g0/0",
+            "kind": "port",
+            "port": 0,
+            "ip": "203.0.113.2",
+            "prefix": 24,
+            "mtu": 1500
+          },
+          {
+            "id": "g0/1",
+            "kind": "port",
+            "port": 1,
+            "ip": "10.2.0.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": "203.0.113.1",
+        "components": {
+          "vpn": [
+            {
+              "peer": "198.51.100.2",
+              "psk": "tunnel-key-42",
+              "cipher": "aes",
+              "local": "10.2.0.0/24",
+              "remote": "10.1.0.0/24",
+              "map": "VPN",
+              "seq": 10
+            }
+          ]
+        },
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "HQ_LINE",
+        "device": "uplink",
+        "macSerial": 4,
+        "ports": [],
+        "name": "ISP-A",
+        "x": 9,
+        "y": 2,
+        "locked": true,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "components": {
+          "isp": {
+            "name": "ISP-A",
+            "network": "198.51.100.0",
+            "prefix": 24,
+            "ispIp": "198.51.100.1"
+          }
+        },
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "HQ_PC",
+        "device": "pc_basic",
+        "macSerial": 1,
+        "ports": [],
+        "name": "HQ-PC",
+        "x": 1,
+        "y": 2,
+        "locked": true,
+        "configLocked": true,
+        "interfaces": [
+          {
+            "id": "eth0",
+            "kind": "port",
+            "port": 0,
+            "ip": "10.1.0.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.1.0.1",
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "HQ_SW",
+        "device": "l2_switch_8p",
+        "macSerial": 2,
+        "ports": [],
+        "name": "HQ-SW",
+        "x": 3,
+        "y": 2,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [],
+        "gateway": null,
+        "routes": [],
+        "services": []
+      },
+      {
+        "uid": "HQ_VPN",
+        "device": "vpn_router",
+        "macSerial": 3,
+        "ports": [],
+        "name": "HQ-VPN",
+        "x": 6,
+        "y": 2,
+        "locked": false,
+        "configLocked": false,
+        "interfaces": [
+          {
+            "id": "g0/0",
+            "kind": "port",
+            "port": 0,
+            "ip": "198.51.100.2",
+            "prefix": 24,
+            "mtu": 1500,
+            "adjustMss": 1360
+          },
+          {
+            "id": "g0/1",
+            "kind": "port",
+            "port": 1,
+            "ip": "10.1.0.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": "198.51.100.1",
+        "components": {
+          "vpn": [
+            {
+              "peer": "203.0.113.2",
+              "psk": "tunnel-key-42",
+              "cipher": "aes",
+              "local": "10.1.0.0/24",
+              "remote": "10.2.0.0/24",
+              "map": "VPN",
+              "seq": 10
+            }
+          ]
+        },
+        "routes": [],
+        "services": []
+      }
+    ],
+    "links": [
+      {
+        "uid": "lesson_link_1",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "HQ_PC",
+          "port": 0
+        },
+        "b": {
+          "node": "HQ_SW",
+          "port": 1
+        },
+        "path": [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            2
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_2",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "HQ_SW",
+          "port": 0
+        },
+        "b": {
+          "node": "HQ_VPN",
+          "port": 1
+        },
+        "path": [
+          [
+            3,
+            2
+          ],
+          [
+            6,
+            2
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_3",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "HQ_VPN",
+          "port": 0
+        },
+        "b": {
+          "node": "HQ_LINE",
+          "port": 0
+        },
+        "path": [
+          [
+            6,
+            2
+          ],
+          [
+            9,
+            2
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_4",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "BR_PC",
+          "port": 0
+        },
+        "b": {
+          "node": "BR_SW",
+          "port": 1
+        },
+        "path": [
+          [
+            16,
+            6
+          ],
+          [
+            14,
+            6
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_5",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "BR_SW",
+          "port": 0
+        },
+        "b": {
+          "node": "BR_VPN",
+          "port": 1
+        },
+        "path": [
+          [
+            14,
+            6
+          ],
+          [
+            12,
+            6
+          ]
+        ],
+        "paid": 0
+      },
+      {
+        "uid": "lesson_link_6",
+        "cable": "utp_cat5e",
+        "a": {
+          "node": "BR_VPN",
+          "port": 0
+        },
+        "b": {
+          "node": "BR_LINE",
+          "port": 0
+        },
+        "path": [
+          [
+            12,
+            6
+          ],
+          [
+            9,
+            6
+          ]
+        ],
+        "paid": 0
+      }
+    ]
+  }
+}

@@ -115,6 +115,9 @@ export interface Trace {
   result: PathResult;
   // 名前で引いた通信の名前（シーケンス図で DNS の問い合わせを出すため）
   name?: string;
+  // ping の大きさ（バイト）と分割禁止。指定した通信だけが持つ
+  size?: number;
+  df?: boolean;
   // 判定した達成条件の番号（案件の goals の位置）。ターミナルの ping など達成条件でないものは持たない
   goal?: number;
 }
@@ -343,6 +346,7 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
       ...(setup?.bgp ? { bgp: structuredClone(setup.bgp) } : {}),
       ...(setup?.napt !== undefined ? { nat: { napt: setup.napt } } : {}),
       ...(setup?.rules ? { firewall: structuredClone(setup.rules) } : {}),
+      ...(setup?.vpn ? { vpn: structuredClone(setup.vpn) } : {}),
       ...(p.config?.nameServer ? { resolver: { nameServer: p.config.nameServer } } : {}),
     };
     return {

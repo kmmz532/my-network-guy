@@ -31,6 +31,8 @@ export const OP_FAIL_REASONS = [
   'map',
   'max',
   'money',
+  'mtu.mss_range',
+  'mtu.range',
   'nat.static_invalid',
   'none',
   'occupied',

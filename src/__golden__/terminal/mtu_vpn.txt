@@ -1,0 +1,27 @@
+# 場面: 教材 mtu_vpn の初期の構成（WAN の口の MTU を 1400 に絞った、トンネル設定済みの本社と支社）
+# 節: MTU（ping の大きさと DF・ip mtu・mtu・ip tcp adjust-mss・show interfaces の MTU の行）
+@HQ_PC
+ping 10.2.0.10 size 1500 df-bit
+ping 10.2.0.10 size 1500
+ping 10.2.0.10 size 1400 df-bit
+@HQ_VPN
+show interfaces
+configure terminal
+ip mtu 0 575
+ip mtu 0 9001
+ip mtu 0 1500
+ip tcp adjust-mss 0 1360
+ip tcp adjust-mss 0 535
+interface g0/0
+mtu 1450
+ip mtu 1500
+ip tcp adjust-mss 1360
+end
+show interfaces
+@BR_VPN
+configure terminal
+ip mtu 0 1500
+end
+@HQ_PC
+ping 10.2.0.10 size 1400 df-bit
+ping 10.2.0.10 size 1500 df-bit

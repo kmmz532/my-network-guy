@@ -2,7 +2,7 @@
 // 持てるコンポーネントは機器の定義（能力）が決め、持てない機器に付けようとすれば例外で止める。
 import { z } from 'zod';
 import type { Capability } from '../data/schema';
-import { cidr, ipv4, WIRELESS_BANDS } from '../data/schema';
+import { ipv4, vpnTunnelSchema, WIRELESS_BANDS } from '../data/schema';
 import { can } from './capabilities';
 import type { NetNode } from './types';
 import { WIRELESS_SECURITIES } from './types';
@@ -60,18 +60,7 @@ export const COMPONENT_SCHEMAS = {
     }),
   ),
   // IPsec VPN のトンネルの一覧（peer は相手の WAN のアドレス、psk は事前共有鍵、cipher は暗号の方式、local は自拠点の LAN、remote は相手の LAN で、どちらも a.b.c.d/nn）
-  vpn: z.array(
-    z.object({
-      peer: ipv4,
-      psk: z.string(),
-      cipher: z.enum(['aes', '3des']),
-      local: cidr,
-      remote: cidr,
-      // 命令の crypto map の名前と番号（画面から作ったトンネルは持たない）
-      map: z.string().optional(),
-      seq: z.number().int().min(1).optional(),
-    }),
-  ),
+  vpn: z.array(vpnTunnelSchema),
   // 名前の引き方（hosts は機器ごとの対応表で、ping・traceroute の宛先の名前を引く。Debian の /etc/hosts と同じ考え方。nameServer は ip name-server の DNS サーバーで、対応表で引けない名前を問い合わせる）
   resolver: z.object({
     hosts: z.array(z.object({ name: z.string(), ip: ipv4 })).optional(),

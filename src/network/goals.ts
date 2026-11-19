@@ -33,6 +33,9 @@ export interface GoalResult {
   result: PathResult;
   // 名前で引いた通信の名前（シーケンス図で DNS の問い合わせを出すため）
   name?: string;
+  // ping の大きさ（バイト）と分割禁止。指定した達成条件だけが持つ
+  size?: number;
+  df?: boolean;
 }
 
 type Handler = (goal: Goal, state: NetworkState) => GoalResult[];
@@ -54,8 +57,8 @@ const none = (goal: Goal, kind: 'ping' | 'http'): GoalResult => ({
 const handlers: { [K in Goal['type']]: Handler } = {
   ping: (goal, state) => {
     if (goal.type !== 'ping') throw new Error('ping ハンドラに別の種類が渡された');
-    const r = ping(state, goal.from, goal.to);
-    return [{ goal, ok: r.ok, failure: r.failure, kind: 'ping', src: goal.from, dst: goal.to, result: r }];
+    const r = ping(state, goal.from, goal.to, { size: goal.size, df: goal.df });
+    return [{ goal, ok: r.ok, failure: r.failure, kind: 'ping', src: goal.from, dst: goal.to, result: r, ...(goal.size !== undefined ? { size: goal.size } : {}), ...(goal.df !== undefined ? { df: goal.df } : {}) }];
   },
   // 届き、通り道の区間の速さがすべて mbps 以上なら合格。遅い区間があれば、その区間の両端の機器ごとに speed.slow を返す。届かなければ Ping の失敗をそのまま返す
   min_speed: (goal, state) => {

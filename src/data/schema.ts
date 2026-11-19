@@ -4,7 +4,7 @@ import { parseCondition } from '../sim/guide';
 import type { Operation } from '../company/operation';
 import { CATEGORY_IDS } from './categories';
 import { VOID_CHAR } from './tileKind';
-import { WIRELESS_SECURITIES } from '../network/types';
+import { MTU_MAX, MTU_MIN, WIRELESS_SECURITIES } from '../network/types';
 
 const int = z.number().int();
 // 解放のレベル（会社のレベル。N45）。品目ごとに必ず書く
@@ -87,6 +87,8 @@ export const balanceSchema = z.object({
   startMoney: int,
   // 在庫を売るときの値段（購入時の値段に掛ける割合）
   sellRate: z.number().min(0).max(1),
+  // IPsec VPN。overheadBytes はトンネルの包み（ESP と外側の IP の見出し）が1パケットに足す大きさ（バイト）。トンネルの区間の MTU は、入口の口の MTU からこの値を引く
+  vpn: z.object({ overheadBytes: int.positive() }),
   // 地図の1マスの長さ（メートル）。ケーブルの上限と表示に使う（N49）
   metersPerTile: int.positive(),
   // シーケンス図の再生で、1行を流してから次の行に進むまでの時間（ミリ秒）
@@ -417,6 +419,17 @@ export const placedSchema = z.object({
 export const ipv4 = z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/);
 // ネットワークの書き方（a.b.c.d/nn）
 export const cidr = z.string().regex(/^\d{1,3}(\.\d{1,3}){3}\/(\d|[12]\d|3[0-2])$/);
+// IPsec VPN のトンネル（peer は相手の WAN のアドレス、psk は事前共有鍵、cipher は暗号の方式、local は自拠点の LAN、remote は相手の LAN で、どちらも a.b.c.d/nn）
+export const vpnTunnelSchema = z.object({
+  peer: ipv4,
+  psk: z.string(),
+  cipher: z.enum(['aes', '3des']),
+  local: cidr,
+  remote: cidr,
+  // 命令の crypto map の名前と番号（画面から作ったトンネルは持たない）
+  map: z.string().optional(),
+  seq: z.number().int().min(1).optional(),
+});
 const portConfigSchema = z.object({
   port: nonNegativeInt,
   mode: z.enum(['access', 'trunk', 'routed']),
@@ -434,6 +447,8 @@ const ifaceSetupSchema = z.object({
   nat: z.enum(['inside', 'outside']).optional(),
   rip: z.boolean().optional(),
   helper: ipv4.optional(),
+  mtu: int.min(MTU_MIN).max(MTU_MAX).optional(),
+  adjustMss: int.min(MTU_MIN - 40).max(MTU_MAX - 40).optional(),
   vrrp: z
     .array(
       z.object({
@@ -472,6 +487,7 @@ const placedSetupSchema = z.object({
     )
     .optional(),
   stpPriority: int.positive().optional(),
+  vpn: z.array(vpnTunnelSchema).optional(),
   napt: z.boolean().optional(),
   rules: z.array(z.object({ src: z.string().min(1), dst: z.string().min(1), service: z.enum(['any', 'ping', 'http', 'dns', 'radius']), port: int.min(1).max(65535).optional() })).optional(),
 });
@@ -479,7 +495,8 @@ const contractPlacedSchema = placedSchema.extend({ setup: placedSetupSchema.opti
 
 // 案件の達成条件。ハンドラの種類はここで列挙し、新しい種類を追加するときは本体のハンドラと合わせて追加する。
 export const goalSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('ping'), from: z.string().min(1), to: z.string().min(1) }),
+  // size は通信の大きさ（バイト。省略は 100）、df は分割禁止（省略は付けない）
+  z.object({ type: z.literal('ping'), from: z.string().min(1), to: z.string().min(1), size: int.min(1).max(65535).optional(), df: z.boolean().optional() }),
   z.object({
     type: z.literal('ping_all'),
     // ひな形では、要素に $role:<役割> を書くと、その役割の PC すべてに置き換わる
@@ -742,7 +759,7 @@ const changeSchema = z.custom<Change>(
   '機器の設定の変更の形が正しくない',
 );
 export const trafficSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('ping') }),
+  z.object({ kind: z.literal('ping'), size: int.min(1).max(65535).optional(), df: z.boolean().optional() }),
   z.object({ kind: z.literal('http'), port: z.number().int().min(1).max(65535) }),
   z.object({ kind: z.literal('dns') }),
 ]);
@@ -776,7 +793,7 @@ export const lessonSchema = z.object({
   topic: z.enum(LESSON_TOPICS),
   order: int,
   size: z.object({ w: int.positive(), h: int.positive() }),
-  placed: z.array(placedSchema).min(1),
+  placed: z.array(contractPlacedSchema).min(1),
   links: z.array(placedLinkSchema),
   // 置いてある家具（電子レンジなど干渉源の位置。無線の干渉の判定に使う）
   furniture: z.array(placedFurnitureSchema).optional(),
@@ -800,7 +817,7 @@ export const drillSchema = z.object({
   topic: z.enum(LESSON_TOPICS),
   order: int,
   size: z.object({ w: int.positive(), h: int.positive() }),
-  placed: z.array(placedSchema).min(1),
+  placed: z.array(contractPlacedSchema).min(1),
   links: z.array(placedLinkSchema),
   // 置いてある家具（電子レンジなど干渉源の位置。無線の干渉の判定に使う）
   furniture: z.array(placedFurnitureSchema).optional(),

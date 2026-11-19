@@ -169,6 +169,27 @@ describe('教材（学習モード）', () => {
     expect(judgeDiagnose(s, q, { node: 'HQ_VPN', reason: 'vpn.psk_mismatch' })).toBe(true);
   });
 
+  it('MTU の教材: 置いた直後は WAN の口の MTU が小さく DF 付きの ping が届かず、MTU を直すと届く。1500 の DF はシーケンス図で分割が必要の行になる', () => {
+    const l = lesson('mtu_vpn');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false]);
+    expect(lessonGoalResults(l.goals, solutions[l.id](lessonNodes(l)), links, engine)).toEqual([true]);
+    const state = analyze({ nodes: solutions[l.id](lessonNodes(l)), links, plans: {} }, engine);
+    const last = controlSequence(state, { kind: 'ping', from: 'HQ_PC', to: 'BR_PC', size: 1500, df: true }).at(-1);
+    expect(last?.label).toBe('seq.icmp.fragNeeded');
+    expect(last?.failure).toEqual({ reason: 'mtu.exceeded', node: 'HQ_VPN' });
+  });
+
+  it('MTU の発展の問い: HQ-VPN の WAN の口の MTU を 1400 にすると、HQ-VPN で MTU の超過になる', () => {
+    const l = lessons.find((x) => x.id === 'mtu_vpn');
+    if (!l?.followUps || !l.followUpSetup) throw new Error('発展の問いがない');
+    const q = l.followUps[0] as Extract<Question, { kind: 'diagnose' }>;
+    const base = drillConfig(l);
+    const set = { id: l.id, questions: l.followUps, setup: l.followUpSetup };
+    const s = drillState(applySetup(set, 'f1', { nodes: solutions[l.id](base.nodes), links: base.links }, env), engine);
+    expect(judgeDiagnose(s, q, { node: 'HQ_VPN', reason: 'mtu.exceeded' })).toBe(true);
+  });
+
   it('DNS の教材: 初めは外へ出られず、NAT を設定すると通る。ネームサーバーを向けると社内と外の名前が引ける', () => {
     const l = lesson('dns_intranet_names');
     const links = lessonLinks(l);

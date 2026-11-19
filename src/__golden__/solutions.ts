@@ -12,6 +12,7 @@ const AREA_OF: Record<string, Record<number, number>> = { R1: { 0: 1, 1: 0 }, R2
 export const solutions: Record<string, Solve> = {
   rip_three_sites: on(['R1', 'R2', 'R3'], (n) => ifaces(n, (i) => ({ ...i, rip: true }))),
   ipsec_vpn_two_sites: on(['HQ_VPN', 'BR_VPN'], (n) => ({ ...n, components: { vpn: [{ peer: n.uid === 'HQ_VPN' ? '203.0.113.2' : '198.51.100.2', psk: 'tunnel-key-42', cipher: 'aes', local: n.uid === 'HQ_VPN' ? '10.1.0.0/24' : '10.2.0.0/24', remote: n.uid === 'HQ_VPN' ? '10.2.0.0/24' : '10.1.0.0/24' }] } })),
+  mtu_vpn: on(['HQ_VPN', 'BR_VPN'], (n) => ifaces(n, (i) => (i.port === 0 ? { ...i, mtu: 1500 } : i))),
   lb_basics: on(['LB'], (n) => ({ ...n, components: { loadBalancer: [{ vip: '10.0.1.100', port: 80, members: [{ ip: '10.0.1.11', port: 80 }, { ip: '10.0.1.12', port: 80 }], method: 'round_robin', healthCheck: 'http', snat: true }] } })),
   rip_vs_ospf: on(['R1', 'R2', 'R3'], (n) => ({ ...ifaces(n, (i) => ({ ...i, ospf: { area: 0 } })), components: { ospf: { referenceBandwidth: 1000 } } })),
   ospf_three_sites: on(['R1', 'R2', 'R3'], (n) => ifaces(n, (i) => ({ ...i, ospf: { area: 0 } }))),

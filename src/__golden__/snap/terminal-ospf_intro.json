@@ -18,7 +18,7 @@
         "out:  hostname             ui.cmd.core.hostname",
         "out:  help                 ui.cmd.core.help",
         "out:  show                 ui.cmdWord.show",
-        "out:  ping                 ui.cmd.core.ping",
+        "out:  ping                 ui.cmdWord.ping",
         "out:  traceroute           ui.cmd.core.traceroute",
         "out:  switchport           ui.cmdWord.switchport",
         "out:  router               ui.cmdWord.router",
@@ -69,9 +69,11 @@
         "out:ui.terminal.ifLinkedIp {\"port\":0,\"ip\":\"10.0.1.1\",\"prefix\":24,\"peer\":\"PC1\"}",
         "out:ui.terminal.mac {\"port\":0,\"mac\":\"02:40:00:00:02:00\"}",
         "out:ui.terminal.ifSpeed {\"port\":0,\"speed\":\"1000Mb/s\"}",
+        "out:ui.terminal.ifMtu {\"port\":0,\"mtu\":1500}",
         "out:ui.terminal.ifLinkedIp {\"port\":1,\"ip\":\"10.0.12.1\",\"prefix\":30,\"peer\":\"R2\"}",
         "out:ui.terminal.mac {\"port\":1,\"mac\":\"02:40:00:00:02:01\"}",
-        "out:ui.terminal.ifSpeed {\"port\":1,\"speed\":\"1000Mb/s\"}"
+        "out:ui.terminal.ifSpeed {\"port\":1,\"speed\":\"1000Mb/s\"}",
+        "out:ui.terminal.ifMtu {\"port\":1,\"mtu\":1500}"
       ]
     },
     {

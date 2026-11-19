@@ -6,7 +6,7 @@ import { PREFIX_MAX, PREFIX_MIN, hostCapacity, networkAddress } from '../network
 import { fillPlans } from '../network/query/plans';
 import type { VrrpGroup } from '../network/vrrp';
 import type { DnsRecord, DnsService, FirewallRule, Iface, IspLine, NetNode, PortConfig, Route } from '../network/types';
-import { WIRELESS_SECURITIES } from '../network/types';
+import { MTU_MAX, MTU_MIN, WIRELESS_SECURITIES } from '../network/types';
 import { makeIface, makePo, makeSvi } from '../network/iface';
 import { refusalFor } from './capabilityGate';
 import { getComponent, withComponent } from '../network/components';
@@ -376,6 +376,23 @@ export const setVrrp = (core: Core, uid: string, change: VrrpOp, target: NetTarg
         );
       }
       return { ...node, interfaces: node.interfaces.map((i) => (i.id === change.id ? { ...i, vrrp: next.length > 0 ? next : undefined } : i)) };
+    },
+    target,
+  );
+
+// 口の MTU と adjust-mss。値が null なら設定を消す（MTU は既定の 1500 に戻る）。範囲の外は拒否する
+export const setIfaceTune = (core: Core, uid: string, port: number, key: 'mtu' | 'adjustMss', value: number | null, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      const iface = node.interfaces.find((i) => i.port === port && i.kind === 'port');
+      if (!iface) return 'iface.none';
+      if (value !== null) {
+        if (key === 'mtu' && (!Number.isInteger(value) || value < MTU_MIN || value > MTU_MAX)) return 'mtu.range';
+        if (key === 'adjustMss' && (!Number.isInteger(value) || value < MTU_MIN - 40 || value > MTU_MAX - 40)) return 'mtu.mss_range';
+      }
+      return { ...node, interfaces: node.interfaces.map((i) => (i === iface ? { ...i, [key]: value ?? undefined } : i)) };
     },
     target,
   );

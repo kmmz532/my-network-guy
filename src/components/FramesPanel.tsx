@@ -93,7 +93,7 @@ export function FramesBody({ goal, hop: initialHop }: { goal?: number; hop?: num
                     </Row>
                   )}
                 <Row selected={hop === i}>
-                  {cell(`${name(f.from)} → ${name(f.to)}`, false)}
+                  {cell(f.fragments === undefined ? `${name(f.from)} → ${name(f.to)}` : `${name(f.from)} → ${name(f.to)}（${t('ui.frames.fragments', { n: f.fragments })}）`, false)}
                   {cell(f.l2.dstMac, p !== null && p.l2.dstMac !== f.l2.dstMac)}
                   {cell(f.l2.srcMac, p !== null && p.l2.srcMac !== f.l2.srcMac)}
                   {cell(f.l2.vlan ?? '-', p !== null && p.l2.vlan !== f.l2.vlan)}

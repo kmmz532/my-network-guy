@@ -16,6 +16,8 @@ import { bandOf } from '../wirelessBand';
 import { egressIface, healthyMembers, memberUp, pickMember, serverOf } from '../query/loadBalancer';
 import type { Reach, VirtualServer } from '../query/loadBalancer';
 import { tunnelFor } from '../query/vpn';
+import { mtuAlong, pingProbe, HTTP_SIZE } from '../query/mtu';
+import type { Probe } from '../query/mtu';
 import type { Send } from '../query/vpn';
 
 // 転送が読む層。解析の結果（NetworkState）と、DHCP のリレーの到達を仮に確かめるときの仮の層が、同じ形で渡せる
@@ -387,19 +389,39 @@ const viaStatic = (view: ForwardView, srcUid: string, routerUid: string, traffic
   return { ok: true, path: [...toRouter.path, ...toServer.path.slice(1)], staticNat: { router: routerUid, insideIp: map.insideIp, outsideIp: outside.ip } };
 };
 
-// Ping（ICMP）の判定。往路と復路の両方が通る必要がある
-export const ping = (view: ForwardView, srcUid: string, dstUid: string): PathResult => {
+// Ping（ICMP）の判定。往路と復路の両方が通る必要がある。opts の size は通信の大きさ（バイト。既定 100）、df は分割禁止。
+// 区間の MTU を超えたとき、DF がなければ分割して届き（fragments）、DF があれば、その区間の入口の機器で止まる（mtu.exceeded）
+export const ping = (view: ForwardView, srcUid: string, dstUid: string, opts: { size?: number; df?: boolean } = {}): PathResult => {
+  const probe = pingProbe(opts);
   const forward = deliver(view, srcUid, dstUid, { kind: 'ping' });
   if (!forward.ok) return forward;
+  const out = mtuAlong(view, forward.path, forward.tunnel, probe, 'ping');
+  if (out.blockedAt !== undefined) return { ok: false, path: forward.path.slice(0, out.blockedAt + 1), failure: fail('mtu.exceeded', forward.path[out.blockedAt]) };
   const back = backOf(view, dstUid, srcUid, { kind: 'ping' }, forward);
   if (!back.ok) {
-    return { ok: false, path: forward.path, failure: { reason: 'return.failed', node: dstUid, cause: back.failure }, nat: forward.nat };
+    return { ok: false, path: forward.path, failure: { reason: 'return.failed', node: dstUid, cause: back.failure }, nat: forward.nat, tunnel: forward.tunnel };
   }
-  return { ...forward, back: back.path };
+  // 復路のトンネルは、往路のトンネルと同じもの（向きだけ逆）
+  const returned = mtuAlong(view, back.path, forward.tunnel, probe, 'ping');
+  if (returned.blockedAt !== undefined) {
+    return { ok: false, path: forward.path, failure: { reason: 'return.failed', node: dstUid, cause: fail('mtu.exceeded', back.path[returned.blockedAt]) }, nat: forward.nat, tunnel: forward.tunnel };
+  }
+  return { ...forward, back: back.path, ...(out.fragments ? { fragments: out.fragments } : {}), ...(returned.fragments ? { backFragments: returned.fragments } : {}) };
+};
+
+// HTTP は 1500 バイトで DF は付かない。通る口の adjust-mss で大きさが抑えられ、区間の MTU を超えれば分割される
+const withFragments = (view: ForwardView, r: PathResult): PathResult => {
+  if (!r.ok) return r;
+  const probe: Probe = { size: HTTP_SIZE, df: false };
+  const fwd = mtuAlong(view, r.path, r.tunnel, probe, 'http');
+  const back = r.back ? mtuAlong(view, r.back, r.tunnel, probe, 'http') : {};
+  return { ...r, ...(fwd.fragments ? { fragments: fwd.fragments } : {}), ...(back.fragments ? { backFragments: back.fragments } : {}) };
 };
 
 // HTTP の判定。往路で宛先に届き、宛先が指定ポートでサービスを待ち受けていて、復路も通ること
-export const http = (view: ForwardView, srcUid: string, dstUid: string, port: number): PathResult => {
+export const http = (view: ForwardView, srcUid: string, dstUid: string, port: number): PathResult => withFragments(view, httpPath(view, srcUid, dstUid, port));
+
+const httpPath = (view: ForwardView, srcUid: string, dstUid: string, port: number): PathResult => {
   // 外の口への通信が、静的 NAT で社内のサーバーへ届く場合（N145）
   const nat = viaStatic(view, srcUid, dstUid, { kind: 'http', port });
   if (nat !== null) return nat;

@@ -8,6 +8,11 @@ export type { DhcpPool } from './dhcp';
 // po のインターフェースが持つ口の番号（物理の口ではない印）
 export const PO_PORT = -1;
 
+// 口の MTU の範囲（バイト）と既定値
+export const MTU_MIN = 576;
+export const MTU_MAX = 9000;
+export const MTU_DEFAULT = 1500;
+
 export interface Iface {
   // 名前（eth0・g0/1 など。画面とターミナルで同じ名前を出す）
   id: string;
@@ -35,6 +40,10 @@ export interface Iface {
   // OSPF に参加しているエリアとコスト（N142・MVP はエリア 0 だけ）
   // priority は DR の選出の優先度（既定 1。0 は選ばれない）、hello・dead は秒（既定 10・40）
   ospf?: { area: number; cost?: number; priority?: number; hello?: number; dead?: number };
+  // 口の MTU（バイト。省略は 1500。設定できる範囲は 576〜9000）。区間の MTU は両端の口の小さい方
+  mtu?: number;
+  // ip tcp adjust-mss: この口を通る HTTP の大きさを、この値 + 40 に抑える（ping には効かない）
+  adjustMss?: number;
 }
 
 export interface Route {
@@ -271,6 +280,8 @@ export const FAILURE_REASONS = [
   'vpn.selector_mismatch',
   // IPsec VPN: トンネルへ入る前に、手前の NAPT が送信元を変えている
   'vpn.nat_before_tunnel',
+  // 通信が区間の MTU より大きく、DF（分割禁止）が付いている。札は、その区間の入口の機器
+  'mtu.exceeded',
 ] as const;
 
 export type FailureReason = (typeof FAILURE_REASONS)[number];
@@ -295,4 +306,8 @@ export interface PathResult {
   back?: string[];
   // IPsec のトンネルを通った区間（path の中で隣り合う ingress と egress の間）。外側の宛先は egressIp（相手の WAN）、中身は元の通信
   tunnel?: { ingress: string; egress: string; ingressIp: string; egressIp: string };
+  // 区間（path の隣り合う2台の間）ごとの分割の数（MTU を超えて分割された区間は 2 以上、そのまま通る区間は 1）。分割がなければ持たない
+  fragments?: number[];
+  // 復路の区間ごとの分割の数
+  backFragments?: number[];
 }

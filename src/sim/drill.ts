@@ -204,7 +204,7 @@ export const judgeInspect = (state: NetworkState, ask: InspectAsk, answer: strin
 
 // 原因を選ぶ問いの失敗（段5の失敗）。届くときは、直す対象がないため例外
 const diagnoseResult = (state: NetworkState, q: Extract<Question, { kind: 'diagnose' }>): PathResult =>
-  q.traffic.kind === 'ping' ? ping(state, q.from, q.to) : q.traffic.kind === 'http' ? http(state, q.from, q.to, q.traffic.port) : deliver(state, q.from, q.to, { kind: 'dns' });
+  q.traffic.kind === 'ping' ? ping(state, q.from, q.to, { size: q.traffic.size, df: q.traffic.df }) : q.traffic.kind === 'http' ? http(state, q.from, q.to, q.traffic.port) : deliver(state, q.from, q.to, { kind: 'dns' });
 
 // 原因を選ぶ問いの通信が、今の構成で届くか（直した後の合否）
 export const diagnoseReaches = (state: NetworkState, q: Extract<Question, { kind: 'diagnose' }>): boolean => diagnoseResult(state, q).ok;

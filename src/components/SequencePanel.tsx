@@ -65,7 +65,7 @@ export function SequenceBody({ trigger: ref }: { trigger: string }) {
     if (trigger.kind !== 'ping' && trigger.kind !== 'http') return false;
     const trace: Trace = trigger.kind === 'http'
       ? { kind: 'http', src: trigger.from, dst: trigger.to, result: http(netState, trigger.from, trigger.to, trigger.port) }
-      : { kind: 'ping', src: trigger.from, dst: trigger.to, result: ping(netState, trigger.from, trigger.to) };
+      : { kind: 'ping', src: trigger.from, dst: trigger.to, ...(trigger.size !== undefined ? { size: trigger.size } : {}), ...(trigger.df !== undefined ? { df: trigger.df } : {}), result: ping(netState, trigger.from, trigger.to, { size: trigger.size, df: trigger.df }) };
     // 区間は、通った配線と向きで同じものを探す（中身の値の並びには頼らない）
     const hop = framesOfTrace(netState, trace).findIndex((f) => f.link === frame.link && f.from === frame.from && f.to === frame.to);
     if (hop < 0) return false;

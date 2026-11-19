@@ -77,7 +77,7 @@ export const sandboxTest = (office: Office, env: Env, lessonGoals?: Goal[]): Tes
   return {
     passed: results.every((r) => r.ok),
     goals: checks,
-    traces: results.map((r) => ({ kind: r.kind, src: r.src, dst: r.dst, result: r.result })),
+    traces: results.map((r) => ({ kind: r.kind, src: r.src, dst: r.dst, result: r.result, ...(r.size !== undefined ? { size: r.size } : {}), ...(r.df !== undefined ? { df: r.df } : {}) })),
     warnings: warningsOf(state),
   };
 };

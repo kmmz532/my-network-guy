@@ -19,6 +19,7 @@ export const GLOSSARY_OF_FAILURE: Partial<Record<FailureReason, string>> = {
   'vpn.proposal_mismatch': 'ipsec_vpn',
   'vpn.selector_mismatch': 'ipsec_vpn',
   'vpn.nat_before_tunnel': 'ipsec_vpn',
+  'mtu.exceeded': 'mtu',
 };
 
 // 教材の案内の手順（文言のキー）ごとに、その手順で初めて出す用語。対応のない手順は説明を出さない
@@ -29,6 +30,7 @@ export const GLOSSARY_OF_STEP: Record<string, string> = {
   'lesson.dhcp_relay.step.3': 'dhcp_relay',
   'lesson.dns_intranet_names.step.2': 'dns_auth_cache',
   'lesson.lag_uplink.step.2': 'lacp',
+  'lesson.mtu_vpn.step.2': 'mtu',
   'lesson.napt_office.step.4': 'napt',
   'lesson.nat_firewall.step.5': 'firewall',
   'lesson.ospf_areas.step.1': 'abr',

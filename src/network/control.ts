@@ -20,7 +20,7 @@ import type { VpnFailure } from './query/vpn';
 import type { Failure, NetNode, PathResult } from './types';
 
 export type ControlTrigger =
-  | { kind: 'ping'; from: string; to: string }
+  | { kind: 'ping'; from: string; to: string; size?: number; df?: boolean }
   | { kind: 'http'; from: string; to: string; port: number; name?: string }
   | { kind: 'dhcp'; client: string }
   | { kind: 'ospf'; a: string; b: string }
@@ -66,8 +66,8 @@ const frameCtx = (state: NetworkState): FrameContext => {
 // 往路と復路のフレーム（framesOf は往路に復路を続けて返すため、往路だけの数で分ける）
 const framesFor = (ctx: FrameContext, result: PathResult, traffic: Traffic): { forward: Frame[]; back: Frame[] } => {
   if (result.path.length < 2) return { forward: [], back: [] };
-  const { nat, staticNat } = result;
-  const base = { ok: true, path: result.path, ...(nat ? { nat } : {}), ...(staticNat ? { staticNat } : {}) };
+  const { nat, staticNat, tunnel, fragments, backFragments } = result;
+  const base = { ok: true, path: result.path, ...(nat ? { nat } : {}), ...(staticNat ? { staticNat } : {}), ...(tunnel ? { tunnel } : {}), ...(fragments ? { fragments } : {}), ...(backFragments ? { backFragments } : {}) };
   const forward = framesOf(ctx, base, traffic);
   if (!result.back) return { forward, back: [] };
   return { forward, back: framesOf(ctx, { ...base, back: result.back }, traffic).slice(forward.length) };
@@ -147,7 +147,9 @@ const pushPing = (b: Builder, trigger: Extract<ControlTrigger, { kind: 'ping' }>
   }
   if (!result.ok) {
     const failure = failureOf(result);
-    if (failure.reason === 'return.failed') b.steps.push(unicast(trigger.to, trigger.from, 'icmp', 'seq.icmp.reply', [trigger.to], { failure }));
+    // 区間の MTU を超えて DF で止まる: その区間の入口の機器が、分割が必要だという ICMP を送信元へ返して止まる
+    if (failure.reason === 'mtu.exceeded') b.steps.push(unicast(failure.node, trigger.from, 'icmp', 'seq.icmp.fragNeeded', [...path].reverse(), { failure }));
+    else if (failure.reason === 'return.failed') b.steps.push(unicast(trigger.to, trigger.from, 'icmp', 'seq.icmp.reply', [trigger.to], { failure }));
     else b.steps.push({ from: path[path.length - 1], to: trigger.to, reached: [], proto: 'icmp', label: 'seq.icmp.request', path: [path[path.length - 1]], failure });
     return;
   }
@@ -412,7 +414,7 @@ export const controlSequence = (state: NetworkState, trigger: ControlTrigger): C
       pushVpn(b, trigger);
       break;
     case 'ping':
-      pushPing(b, trigger, ping(state, trigger.from, trigger.to));
+      pushPing(b, trigger, ping(state, trigger.from, trigger.to, { size: trigger.size, df: trigger.df }));
       break;
     case 'http':
       pushHttp(b, trigger, http(state, trigger.from, trigger.to, trigger.port));

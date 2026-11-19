@@ -48,7 +48,7 @@ describe('ターミナルのコマンド', () => {
   it('空の行は何も出さない。help は一覧を出す', () => {
     const ctx = { node: nodes[0], nodes, links, data };
     expect(run('   ', ctx, tr)).toEqual([]);
-    expect(run('help', ctx, tr).map((l) => l.text).some((text) => /^ {2}ping +ui.cmd.core.ping$/.test(text))).toBe(true);
+    expect(run('help', ctx, tr).map((l) => l.text).some((text) => /^ {2}ping +ui.cmdWord.ping$/.test(text))).toBe(true);
   });
 
   it('show ip は、ポートごとのIPアドレスと、ゲートウェイを出す', () => {
@@ -105,6 +105,7 @@ describe('確認のコマンド（段階2）', () => {
       'ui.terminal.ifLinkedIp {"port":0,"ip":"192.168.1.10","prefix":24,"peer":"s"}',
       'ui.terminal.mac {"port":0,"mac":"02:10:00:00:01:00"}',
       'ui.terminal.ifSpeed {"port":0,"speed":"1000Mb/s"}',
+      'ui.terminal.ifMtu {"port":0,"mtu":1500}',
     ]);
   });
 

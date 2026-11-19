@@ -16,6 +16,8 @@ export interface Frame {
   nat?: { before: { srcIp: string; srcPort?: number; dstIp: string; dstPort?: number } };
   // IPsec のトンネルの区間で、外側の見出し（相手の WAN が宛先）。l3・l4 は中身の元の通信
   tunnel?: { srcIp: string; dstIp: string };
+  // この区間の MTU を超えて分割されたとき、分割の数（2 以上。分割がなければ持たない）
+  fragments?: number;
 }
 
 export interface FrameContext {
@@ -118,7 +120,7 @@ const tagOn = (ctx: FrameContext, link: NetLink, vlan: number): number | null =>
 };
 
 // 1本の経路（往路または復路）のフレーム。変換があれば、変換した機器より前と後で値を切り替える
-const legFrames = (ctx: FrameContext, path: string[], traffic: Traffic, tr: Translation | undefined, reversed: boolean, tunnel: PathResult['tunnel']): Frame[] => {
+const legFrames = (ctx: FrameContext, path: string[], traffic: Traffic, tr: Translation | undefined, reversed: boolean, tunnel: PathResult['tunnel'], fragments: readonly number[] | undefined): Frame[] => {
   const frames: Frame[] = [];
   const e2e = endToEndIps(ctx, path);
   const first = path[0];
@@ -171,6 +173,7 @@ const legFrames = (ctx: FrameContext, path: string[], traffic: Traffic, tr: Tran
         l3: { srcIp: inner.srcIp, dstIp: inner.dstIp, ttl, proto },
         ...(innerL4 ? { l4: innerL4 } : {}),
         tunnel: outer,
+        ...(fragments && fragments[i] > 1 ? { fragments: fragments[i] } : {}),
       });
       continue;
     }
@@ -195,6 +198,7 @@ const legFrames = (ctx: FrameContext, path: string[], traffic: Traffic, tr: Tran
         l3: { srcIp: addr.srcIp, dstIp: addr.dstIp, ttl, proto },
       };
       if (l4) frame.l4 = l4;
+      if (fragments && fragments[i] > 1) frame.fragments = fragments[i];
       // 変換の機器を出た最初のフレームに、変換の前の値を付ける
       if (tr && i === natIdx && k === 0) {
         const before = addrAt(i - 1);
@@ -215,10 +219,10 @@ export const framesOf = (ctx: FrameContext, result: PathResult, traffic: Traffic
     : result.staticNat
       ? { router: result.staticNat.router, field: 'dst', before: result.staticNat.outsideIp, after: result.staticNat.insideIp }
       : undefined;
-  const frames = legFrames(ctx, result.path, traffic, forwardTr, false, result.tunnel);
+  const frames = legFrames(ctx, result.path, traffic, forwardTr, false, result.tunnel, result.fragments);
   if (result.back && result.back.length >= 2) {
     const backTr: Translation | undefined = result.nat ? { router: result.nat.router, field: 'dst', before: result.nat.outsideIp, after: result.nat.insideIp } : undefined;
-    frames.push(...legFrames(ctx, result.back, traffic, backTr, true, result.tunnel));
+    frames.push(...legFrames(ctx, result.back, traffic, backTr, true, result.tunnel, result.backFragments));
   }
   return frames;
 };

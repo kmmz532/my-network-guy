@@ -10,7 +10,7 @@ import { resolveName } from '../resolve';
 import { isIp, parseIfaceName, prefixOfMask } from './args';
 import { SUB_MODES, sessionPortOf } from './modes';
 import { questionLines, questionList } from './suggest';
-import type { NetNode } from '../types';
+import { MTU_DEFAULT, type NetNode } from '../types';
 import { getComponent } from '../components';
 import { deviceCategory } from '../../registry/query';
 import type { TerminalLine, Tr } from '../terminal';
@@ -75,7 +75,7 @@ const macOfPort = (ctx: CommandContext, port: number): string => {
 };
 
 // ping と traceroute の共通の処理。宛先は IPアドレスか、名前（対応表 → ネームサーバーの順に引く）。名前は1行目に「名前 [IPアドレス]」を出す
-const probe = (command: 'ping' | 'traceroute', given: string, ctx: CommandContext, tr: Tr): TerminalLine[] => {
+const probe = (command: 'ping' | 'traceroute', given: string, ctx: CommandContext, tr: Tr, opts: { size?: number; df?: boolean } = {}): TerminalLine[] => {
   const { node } = ctx;
   let ip = given;
   let header: TerminalLine[] = [];
@@ -87,8 +87,8 @@ const probe = (command: 'ping' | 'traceroute', given: string, ctx: CommandContex
   }
   const target = ctx.nodes.find((n) => n.interfaces.some((i) => i.ip === ip));
   if (!target) return [err(tr('ui.terminal.noHost', { ip: given }))];
-  const result = ping(ctx.state, node.uid, target.uid);
-  ctx.onTrace?.({ kind: 'ping', src: node.uid, dst: target.uid, result });
+  const result = ping(ctx.state, node.uid, target.uid, opts);
+  ctx.onTrace?.({ kind: 'ping', src: node.uid, dst: target.uid, result, ...(opts.size !== undefined ? { size: opts.size } : {}), ...(opts.df !== undefined ? { df: opts.df } : {}) });
   if (result.ok) ctx.onReach?.(target.uid);
   if (command === 'ping') {
     if (result.ok) return [...header, out(tr('ui.terminal.pingOk', { ip: given }))];
@@ -313,7 +313,8 @@ export const commands: readonly CommandSpec[] = [
               ? out(tr('ui.terminal.ifLinkedIp', { port, ip: iface.ip, prefix: iface.prefix, peer: nameOf(ctx, peer) }))
               : out(tr('ui.terminal.ifLinked', { port, peer: nameOf(ctx, peer) }));
           const speed = portSpeedOf(ctx.state, ctx.links, node.uid, node.device, port);
-          return [line, out(tr('ui.terminal.mac', { port, mac: macOfPort(ctx, port) })), out(tr('ui.terminal.ifSpeed', { port, speed: speedText(speed) }))];
+          const lines = [line, out(tr('ui.terminal.mac', { port, mac: macOfPort(ctx, port) })), out(tr('ui.terminal.ifSpeed', { port, speed: speedText(speed) }))];
+          return iface ? [...lines, out(tr('ui.terminal.ifMtu', { port, mtu: iface.mtu ?? MTU_DEFAULT }))] : lines;
         }),
       );
     },
@@ -392,6 +393,25 @@ export const commands: readonly CommandSpec[] = [
     writes: false,
     topic: null,
     run: (args, ctx, tr) => shown(probe('ping', args.target, ctx, tr)),
+  },
+  // ping <宛先> size <バイト>（既定は 100）・ping <宛先> size <バイト> df-bit（分割禁止）
+  {
+    id: 'core.pingSize',
+    modes: ['exec'],
+    tokens: [{ word: 'ping' }, { arg: 'hostOrIp', name: 'target' }, { word: 'size' }, { arg: 'number', name: 'size' }],
+    help: 'ui.cmd.core.pingSize',
+    writes: false,
+    topic: null,
+    run: (args, ctx, tr) => shown(probe('ping', args.target, ctx, tr, { size: Number(args.size) })),
+  },
+  {
+    id: 'core.pingSizeDf',
+    modes: ['exec'],
+    tokens: [{ word: 'ping' }, { arg: 'hostOrIp', name: 'target' }, { word: 'size' }, { arg: 'number', name: 'size' }, { word: 'df-bit' }],
+    help: 'ui.cmd.core.pingSizeDf',
+    writes: false,
+    topic: null,
+    run: (args, ctx, tr) => shown(probe('ping', args.target, ctx, tr, { size: Number(args.size), df: true })),
   },
   {
     id: 'core.traceroute',

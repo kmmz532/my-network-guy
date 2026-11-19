@@ -21,6 +21,9 @@
   },
   "startMoney": 1000000,
   "sellRate": 0.8,
+  "vpn": {
+    "overheadBytes": 73
+  },
   "metersPerTile": 5,
   "sequence": {
     "stepMs": 900
