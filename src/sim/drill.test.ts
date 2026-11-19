@@ -1,6 +1,6 @@
 // 演習の問いの判定: 正解が構成から求まり、候補に正解が含まれ、構成を変えると正解が変わる
 import { describe, expect, it } from 'vitest';
-import { lessons } from 'virtual:game-data';
+import { drills, lessons } from 'virtual:game-data';
 import balanceJson from '../assets/data/balance.json';
 import type { Balance, Change, Drill, InspectAsk, Question } from '../data/schema';
 import { solutions } from '../__golden__/solutions';
@@ -152,5 +152,17 @@ describe('演習: 原因を選ぶ問いと設定する問い', () => {
     const bad: Change = { kind: 'config', uid: 'R1', change: { kind: 'stp', change: { op: 'priority', value: 4096 } } };
     const withBad: Drill = { ...drill, questions: [q], setup: [{ before: 'd1', change: [bad] }] };
     expect(() => applySetup(withBad, 'd1', broken, env)).toThrow();
+  });
+});
+
+describe('ロードバランサーの演習', () => {
+  it('lb_member_down_drill: 正解の機器と理由で合格し、別の機器や理由では不合格', () => {
+    const d = drills.find((x) => x.id === 'lb_member_down_drill');
+    if (!d) throw new Error('演習がない');
+    const q = d.questions[0] as Extract<Question, { kind: 'diagnose' }>;
+    const s = drillState(applySetup(d, 'q1', drillConfig(d), env), engine);
+    expect(judgeDiagnose(s, q, { node: 'LB', reason: 'lb.member_down' })).toBe(true);
+    expect(judgeDiagnose(s, q, { node: 'WEB1', reason: 'lb.member_down' })).toBe(false);
+    expect(judgeDiagnose(s, q, { node: 'LB', reason: 'lb.no_healthy_member' })).toBe(false);
   });
 });
