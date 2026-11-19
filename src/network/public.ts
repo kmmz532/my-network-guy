@@ -16,6 +16,7 @@ export { channelOverlapsOf } from './query/channelOverlaps';
 export { wirelessQualityOf, type WirelessQuality } from './query/wirelessQuality';
 export { ping, http } from './engine/forward';
 export { networkColors } from './query/networkColors';
+export { plugColorsOf } from './query/plugColors';
 export { framesOf, type Frame, type FrameContext } from './frames';
 export { isL2Category, isRoutingCategory } from './category';
 export { warningsOf } from './query/warnings';

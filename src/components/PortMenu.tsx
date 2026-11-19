@@ -1,8 +1,9 @@
 import { Fragment } from 'react';
 // ポートの一覧の吹き出し。配線の道具で機器を押したときに、機器の横に出す。先頭は「おまかせ」、続けて各ポート（埋まったポートは選べない）
-import { labelOfUid } from './nodeLabel';
 import { t } from '../i18n/t';
-import { editNetOf, useGameStore } from '../stores/useGameStore';
+import { editNetOf, netOfDevice, useGameStore } from '../stores/useGameStore';
+import { plugColorsOf } from '../network/public';
+import { PlugStripe } from './ui/PlugStripe';
 import { useUiStore } from '../stores/useUiStore';
 import type { NetLink, NetNode } from '../network/types';
 import { isWanPort, plugSlot, portLabel } from './devicePorts';
@@ -24,7 +25,6 @@ const ROW_PX = 24;
 interface PortRow {
   port: number;
   label: string;
-  partner: NetNode | undefined;
   used: boolean;
   // つながっているケーブルの uid（空きの口は undefined）
   link: string | undefined;
@@ -35,17 +35,15 @@ interface PortRow {
   fiber: boolean;
 }
 
-const rowsOf = (node: NetNode, nodes: readonly NetNode[], links: readonly NetLink[]): PortRow[] => {
+const rowsOf = (node: NetNode, links: readonly NetLink[]): PortRow[] => {
   const category = deviceCategory(node.device);
   const rows = Array.from({ length: portCountOf(node.device) }, (_, port) => {
     const link = links.find(
       (l) => (l.a.node === node.uid && l.a.port === port) || (l.b.node === node.uid && l.b.port === port),
     );
-    const partnerUid = link ? (link.a.node === node.uid && link.a.port === port ? link.b.node : link.a.node) : undefined;
     return {
       port,
       label: portLabel(category, port),
-      partner: partnerUid ? nodes.find((n) => n.uid === partnerUid) : undefined,
       used: link !== undefined,
       link: link?.uid,
       wan: isWanPort(category, port),
@@ -68,7 +66,10 @@ export function PortMenu() {
   if (!menu || !net) return null;
   const node = net.nodes.find((n) => n.uid === menu.uid);
   if (!node) return null;
-  const rows = rowsOf(node, net.nodes, net.links);
+  const rows = rowsOf(node, net.links);
+  // 差してある口のプラグは、背面と同じくネットワークの色の帯で描く
+  const netState = netOfDevice(state, node.uid);
+  const stripeOf = (linkUid: string): number[] => plugColorsOf(netState, linkUid);
   // 画面からはみ出さないよう、右端と下端に寄せる。中身は UI の大きさの倍率で拡大されるため、位置は倍率で割って指定する
   const k = loadSettings().uiScale;
   const left = Math.max(8, Math.min(menu.x, window.innerWidth - 280 * k)) / k;
@@ -98,12 +99,10 @@ export function PortMenu() {
                   {/* 背面と同じ口の絵（2倍）。差してある口はプラグの影を重ねる */}
                   <span style={{ position: 'relative', width: (row.fiber ? 8 : 12) * 2, height: 20, display: 'inline-block', flexShrink: 0 }}>
                     <img src={spriteUrl(spriteOf(row.slot))} width={(row.fiber ? 8 : 12) * 2} height={20} alt="" draggable={false} style={{ imageRendering: 'pixelated', display: 'block' }} />
+                    {row.link && <PlugStripe colors={stripeOf(row.link)} mask={spriteUrl(spriteOf(row.fiber ? 'rear/sfp_mask' : 'rear/plug_mask'))} />}
                     {row.used && <img src={spriteUrl(spriteOf(row.fiber ? 'rear/sfp_shade' : 'rear/plug_shade'))} width={(row.fiber ? 8 : 12) * 2} height={20} alt="" draggable={false} style={{ position: 'absolute', inset: 0, imageRendering: 'pixelated', display: 'block' }} />}
                   </span>
                   <span>{row.label}</span>
-                </span>
-                <span>
-                  {row.partner ? labelOfUid(state, row.partner.uid, net.nodes) : t('ui.port.free')}
                 </span>
               </Button>
             </div>
