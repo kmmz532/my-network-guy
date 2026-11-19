@@ -112,7 +112,7 @@
     { "cable": "utp_cat5e", "a": { "ref": "WEB2", "port": 0 }, "b": { "ref": "SW1", "port": 3 } }
   ],
   "goals": [
-    { "type": "load_balanced", "from": "PC1", "lb": "LB", "port": 80, "minHealthy": 2 },
+    { "type": "public_http", "to": "LB", "port": 80 },
     { "type": "survive_device_failure", "nodes": ["WEB1", "WEB2"] }
   ],
   "reward": {
