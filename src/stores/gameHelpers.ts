@@ -210,10 +210,10 @@ export const refresh = (s: GameState): Partial<GameState> => {
   };
 };
 
-// ターミナルの予測と候補に出してよい論点（TOPICS の解放のレベルと会社のレベル。サンドボックスと、解放のレベルがない論点はすべて解放）
+// ターミナルの予測と候補に出してよい論点（TOPICS の解放のレベルと会社のレベル。遊び方が全論点を解放する場合と、解放のレベルがない論点はすべて解放）
 export const unlockedTopicsOf = (s: Pick<GameState, 'mode' | 'companyExp'>): ReadonlySet<string> => {
   const level = levelOf(s.companyExp, balance);
-  return new Set(TOPICS.filter((t) => s.mode === 'sandbox' || t.unlock === null || level >= t.unlock).map((t) => t.id));
+  return new Set(TOPICS.filter((t) => MODE_TRAITS[s.mode].allTopics || t.unlock === null || level >= t.unlock).map((t) => t.id));
 };
 
 // 検収の結果を画面の状態に反映する（パケット・納品後の表示・失敗の印）
