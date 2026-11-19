@@ -5,7 +5,9 @@ import { t } from '../i18n/t';
 import { editNetOf, useGameStore } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
 import type { NetLink, NetNode } from '../network/types';
-import { isWanPort, portLabel } from './devicePorts';
+import { isWanPort, plugSlot, portLabel } from './devicePorts';
+import { spriteOf, spriteUrl } from '../game/sprites';
+import { portTypeOf } from '../sim/project';
 import { Button } from './ui/Button';
 import { Popover } from './ui/Popover';
 import type { PickBox } from '../game/portPick';
@@ -28,6 +30,9 @@ interface PortRow {
   link: string | undefined;
   // WAN の口（先頭にまとめる）
   wan: boolean;
+  // 背面と同じ口の絵と、光ファイバーの口（絵の幅が狭い）
+  slot: string;
+  fiber: boolean;
 }
 
 const rowsOf = (node: NetNode, nodes: readonly NetNode[], links: readonly NetLink[]): PortRow[] => {
@@ -44,6 +49,8 @@ const rowsOf = (node: NetNode, nodes: readonly NetNode[], links: readonly NetLin
       used: link !== undefined,
       link: link?.uid,
       wan: isWanPort(category, port),
+      slot: plugSlot(link, portTypeOf(node.device, port) === 'sfp'),
+      fiber: link ? link.cable.startsWith('fiber') : portTypeOf(node.device, port) === 'sfp',
     };
   });
   // WAN の口を先頭にまとめ、残りは口の番号の順
@@ -70,7 +77,7 @@ export function PortMenu() {
   const drag = menu.role === 'drag';
   return (
     <div style={drag ? { pointerEvents: 'none' } : undefined}>
-      <Popover variant="port" layout={{ position: 'fixed', top, left, width: 260, zIndex: 6 }}>
+      <Popover variant="port" layout={{ position: 'fixed', top, left, width: 'max-content', zIndex: 6 }}>
         <div data-port-row="auto">
           <Button variant="secondary" size="port" layout={{ marginTop: 2 }} pressed={drag ? menu.hot === 'auto' : undefined} onClick={() => state.pickPort(null)}>
             {t('ui.wire.auto')}
@@ -87,7 +94,14 @@ export function PortMenu() {
                 pressed={drag ? menu.hot === row.port : undefined}
                 onClick={() => state.pickPort(row.port)}
               >
-                <span>{row.label}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  {/* 背面と同じ口の絵（2倍）。差してある口はプラグの影を重ねる */}
+                  <span style={{ position: 'relative', width: (row.fiber ? 8 : 12) * 2, height: 20, display: 'inline-block', flexShrink: 0 }}>
+                    <img src={spriteUrl(spriteOf(row.slot))} width={(row.fiber ? 8 : 12) * 2} height={20} alt="" draggable={false} style={{ imageRendering: 'pixelated', display: 'block' }} />
+                    {row.used && <img src={spriteUrl(spriteOf(row.fiber ? 'rear/sfp_shade' : 'rear/plug_shade'))} width={(row.fiber ? 8 : 12) * 2} height={20} alt="" draggable={false} style={{ position: 'absolute', inset: 0, imageRendering: 'pixelated', display: 'block' }} />}
+                  </span>
+                  <span>{row.label}</span>
+                </span>
                 <span>
                   {row.partner ? labelOfUid(state, row.partner.uid, net.nodes) : t('ui.port.free')}
                 </span>

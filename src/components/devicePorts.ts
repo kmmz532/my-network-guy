@@ -18,3 +18,6 @@ export const portLabel = (category: string | undefined, port: number): string =>
 
 // IPアドレスの形式（各区切りは 0〜255）。入力欄の確かめに使う
 export const isIpText = (s: string): boolean => /^\d{1,3}(\.\d{1,3}){3}$/.test(s) && s.split('.').every((n) => Number(n) <= 255);
+
+// 背面と口の一覧に描く口の絵（空いた口。差してある口はこの上にプラグの影を重ねる）
+export const plugSlot = (link: { cable: string } | undefined, sfp: boolean): string => (!link ? (sfp ? 'rear/port_sfp_empty' : 'rear/port_empty') : link.cable.startsWith('fiber') ? 'rear/port_sfp_empty' : 'rear/port_empty');

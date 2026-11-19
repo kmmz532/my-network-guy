@@ -14,7 +14,7 @@ import { networkColors, portStatesOf } from '../network/public';
 import { stpOf } from '../network/public';
 import { loadSettings } from '../settings/settings';
 import { netOfDevice, useGameStore } from '../stores/useGameStore';
-import { isWanPort, portLabel } from './devicePorts';
+import { isWanPort, plugSlot, portLabel } from './devicePorts';
 import { sequenceRefOf } from './SequencePanel';
 import { Button } from './ui/Button';
 import { ListRow } from './ui/ListRow';
@@ -39,7 +39,6 @@ const portsPerRowFor = (ports: number): number => (ports > 8 ? 6 : 8);
 
 // プラグの絵（つながっていれば UTP か光、空いていれば空の差し込み口）
 // 差し込み口の絵。SFP の口は、挿していなくても SFP の絵で描く（口の種類は定義どおり）
-const plugSlot = (link: NetLink | undefined, sfp: boolean): string => (!link ? (sfp ? 'rear/port_sfp_empty' : 'rear/port_empty') : link.cable.startsWith('fiber') ? 'rear/port_sfp_empty' : 'rear/port_empty');
 
 // 画面に出すドラッグの途中の状態（プラグの絵の位置・いま重なっているポート）
 interface Carry {

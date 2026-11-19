@@ -1612,7 +1612,7 @@
   "ui.update.ready": "新しいバージョンがあります",
   "ui.window.deviceProps": "機器のプロパティ",
   "ui.window.staffProps": "社員のプロパティ",
-  "ui.wire.auto": "おまかせ（空いている最初のポート）",
+  "ui.wire.auto": "おまかせ",
   "ui.wire.cost": "長さ {length} m / 上限 {limit} m ¥{cost}",
   "ui.wireless.band": "帯",
   "ui.wireless.band24": "2.4GHz",
