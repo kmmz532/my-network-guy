@@ -1,11 +1,19 @@
 // 静的経路の論点の命令。
-import { adOf } from '../../engine/stages/routing';
-import { learnedRoutesOf } from '../../query/learnedRoutes';
-import { networkAddress } from '../../segments';
+import { routeTableOf, type RouteRow } from '../../query/routeTable';
+import type { Tr } from '../../terminal';
 import { prefixOfMask } from '../../command/args';
 import type { TerminalLine } from '../../terminal';
 import { changed, err, out, readOnlyLine, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
+
+// 経路の1行の文言（show ip route の書式）
+const routeLine = (r: RouteRow, tr: Tr): string => {
+  if (r.source === 'connected') return tr('ui.terminal.routeConnected', { net: r.dest, prefix: r.prefix, port: r.port });
+  const params = { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop, ad: r.ad, metric: r.metric };
+  if (r.source === 'static') return tr(r.prefix === 0 ? 'ui.terminal.routeStaticDefault' : 'ui.terminal.routeStatic', params);
+  const key = { rip: 'ui.terminal.routeRip', ospf: 'ui.terminal.routeOspf', ospfIa: 'ui.terminal.routeOspfIa', bgp: 'ui.terminal.routeBgp' }[r.source];
+  return tr(key, params);
+};
 
 export const commands: readonly CommandSpec[] = [
   {
@@ -16,20 +24,8 @@ export const commands: readonly CommandSpec[] = [
     writes: false,
     topic: 'static_route',
     run: (_args, ctx, tr) => {
-      const { node } = ctx;
-      const lines: TerminalLine[] = node.interfaces.map((i) =>
-        out(tr('ui.terminal.routeConnected', { net: networkAddress(i.ip, i.prefix), prefix: i.prefix, port: i.port })),
-      );
-      // 静的経路は S（既定の経路は S*）。各行に [管理距離/メトリック] を出す
-      const ad = adOf({ dest: '', prefix: 0, nextHop: '', protocol: 'static' });
-      if (node.gateway) lines.push(out(tr('ui.terminal.routeStaticDefault', { dest: '0.0.0.0', prefix: 0, nextHop: node.gateway, ad, metric: 0 })));
-      for (const r of node.routes) lines.push(out(tr(r.prefix === 0 ? 'ui.terminal.routeStaticDefault' : 'ui.terminal.routeStatic', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop, ad, metric: 0 })));
-      for (const protocol of ['rip', 'ospf', 'bgp'] as const) {
-        for (const r of learnedRoutesOf(ctx.state, node.uid, protocol)) {
-          const key = protocol === 'ospf' && r.interArea ? 'ui.terminal.routeOspfIa' : `ui.terminal.route${protocol[0].toUpperCase()}${protocol.slice(1)}`;
-          lines.push(out(tr(key, { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop, ad: adOf(r), metric: r.metric ?? 0 })));
-        }
-      }
+      // 経路の行は機器の経路表（欄と同じ）から作る。表示の文言だけをここで選ぶ
+      const lines: TerminalLine[] = routeTableOf(ctx.state, ctx.node).map((r) => out(routeLine(r, tr)));
       return shown(lines.length > 0 ? lines : [out(tr('ui.terminal.noRoute'))]);
     },
   },

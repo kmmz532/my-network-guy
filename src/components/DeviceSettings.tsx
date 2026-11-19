@@ -20,6 +20,7 @@ import { colorOfNetwork, UNSET_COLOR } from '../network/netColor';
 import { networkOf, wildcardOf } from '../network/ip';
 import { networkAddress, planFor, PREFIX_MAX, PREFIX_MIN } from '../network/segments';
 import { gatewayCandidatesOn, neighborRouterAddresses, planOf } from '../network/query/plans';
+import { routeCodeOf, routeTableOf } from '../network/query/routeTable';
 import type { NetNode, NetworkPlan } from '../network/types';
 import { gameEnv } from '../sim/env';
 import { addressCandidates, PLANNED_NETWORK, PLANNED_PREFIX, plannedAddressCandidates, type AddressCandidate } from '../sim/project';
@@ -328,17 +329,23 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
       if (cfg) dests.set(`${cfg.network}/${cfg.prefix}`, { network: cfg.network, prefix: cfg.prefix });
     }
     const hops = neighborRouterAddresses(netState, node.uid);
+    const rows = routeTableOf(netState, node);
     return (
       <Section layout={{ marginBottom: 10 }}>
         <div>
-          <b>{t('ui.config.routes')}</b>
+          <b>{t('ui.config.routes')}</b> <Text as="span" tone="note">{t('ui.config.routeLegend')}</Text>
         </div>
-        {node.routes.length === 0 && <Text tone="note">{t('ui.config.noRoute')}</Text>}
-        {node.routes.map((r, i) => (
-          <div key={`${r.dest}-${r.prefix}-${r.nextHop}-${i}`} style={row}>
-            <span>{t('ui.config.routeItem', { dest: r.dest, prefix: r.prefix, next: r.nextHop })}</span>
-            {!locked && (
-              <Button variant="danger" onClick={() => onError(removeRoute(node.uid, i))}>
+        {rows.length === 0 && <Text tone="note">{t('ui.config.noRoute')}</Text>}
+        {rows.map((r, i) => (
+          <div key={`${r.source}-${r.dest}-${r.prefix}-${i}`} style={row}>
+            <Text as="span" mono bold>{routeCodeOf(r)}</Text>
+            <span>
+              {r.source === 'connected'
+                ? t('ui.config.routePort', { dest: r.dest, prefix: r.prefix, port: r.port })
+                : t('ui.config.routeItem', { dest: r.dest, prefix: r.prefix, next: r.nextHop })}
+            </span>
+            {r.source !== 'connected' && r.routeIndex !== null && !locked && (
+              <Button variant="danger" onClick={() => onError(removeRoute(node.uid, r.routeIndex as number))}>
                 {t('ui.config.remove')}
               </Button>
             )}

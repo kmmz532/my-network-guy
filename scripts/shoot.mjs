@@ -1129,6 +1129,31 @@ const scenes = {
     await page.getByText('負荷分散', { exact: true }).first().scrollIntoViewIfNeeded();
     await page.waitForTimeout(500);
   },
+  // 機器の経路の欄（OSPF の3拠点の正解の構成のルーター。直結の C、静的の S、OSPF で覚えた O の行を出す）
+  routetab: async (page) => {
+    await page.getByText('サンドボックス').click();
+    await page.getByRole('button', { name: '教材から始める' }).click();
+    await page.getByRole('button', { name: /OSPF の3拠点/ }).first().click();
+    await page.waitForTimeout(500);
+    const start = page.getByRole('button', { name: '始める' });
+    if ((await start.count()) > 0) await start.first().click();
+    await page.waitForTimeout(1500);
+    // 正解の構成（3台のルーターの全ポートで OSPF に参加）を入れ、R1 の画面を開く
+    await page.evaluate(() => {
+      const g = window.__game;
+      const s = g.getState();
+      const nodes = s.office.nodes.map((n) =>
+        n.device === 'router_basic' ? { ...n, interfaces: n.interfaces.map((i) => ({ ...i, ospf: { area: 0 } })) } : n,
+      );
+      g.setState({ office: { ...s.office, nodes } });
+      const r1 = nodes.find((n) => n.device === 'router_basic');
+      g.getState().openWindow('device', r1.uid);
+    });
+    await page.waitForTimeout(800);
+    await page.getByText('設定', { exact: true }).click();
+    await page.getByText('経路', { exact: true }).first().scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
+  },
   // IPsec VPN の欄（トンネルの一覧と、張れているかの印）
   vpn: async (page) => {
     await scenes.sandbox(page);
