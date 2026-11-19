@@ -284,7 +284,7 @@ function OfferCard({
                   </Button>
                 </Tooltip>
               )}
-              <Button variant="primary" layout={phone ? { minWidth: 96, minHeight: 44 } : undefined} disabled={!canAccept} onClick={() => onAccept(crew)}>
+              <Button variant="primary" guide="accept" layout={phone ? { minWidth: 96, minHeight: 44 } : undefined} disabled={!canAccept} onClick={() => onAccept(crew)}>
                 {t('ui.accept')}
               </Button>
             </>

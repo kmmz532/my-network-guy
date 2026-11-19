@@ -7,6 +7,12 @@ import type { Staff } from '../data/schema';
 // 遊び方。career は案件の経営ゲーム、sandbox は自由に設計する練習場（別の枠に保存する）
 export type GameMode = 'career' | 'sandbox';
 
+// 遊び方ごとの能力。offers は依頼が届き、受注して遊ぶか（サンドボックスは依頼がない）
+export const MODE_TRAITS: Record<GameMode, { offers: boolean }> = {
+  career: { offers: true },
+  sandbox: { offers: false },
+};
+
 export interface Company {
   // 遊び方（移行前のセーブデータは career）
   mode: GameMode;

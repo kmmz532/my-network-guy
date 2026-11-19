@@ -436,6 +436,8 @@
   "guide.i001_office_lan.2": "配線の道具で2台をつなごう",
   "guide.i001_office_lan.3": "PCを押し、IPアドレスを選ぼう",
   "guide.i001_office_lan.4": "テストを押して確かめよう",
+  "guide.start.1": "依頼が届いています。開いてみよう",
+  "guide.start.2": "『受注』を押そう",
   "issue.gateway.mismatch": "ゲートウェイがルーター {ip} と違う",
   "issue.gateway.unset": "同じネットワークにルーターがなく、ゲートウェイを設定できない。",
   "issue.ip.out_of_segment": "{ip} は、ネットワーク {segment} の範囲外。",

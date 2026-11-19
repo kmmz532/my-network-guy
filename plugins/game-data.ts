@@ -39,6 +39,7 @@ import {
   type TrainingCourse,
   type CertDef,
 } from '../src/data/schema';
+import { START_GUIDE } from '../src/sim/guide';
 
 const BASE_LANG = 'ja_jp';
 // 案内の1手順の文言の最大の文字数（CORE.md「4. 最初の20分の流れ」）
@@ -334,11 +335,11 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
     }
   };
 
-  // 案内は固定案件ごとに1つ。案件のIDは固定案件のものだけ
+  // 案内は固定案件ごとに1つ。案件のIDは固定案件のものだけ（案件に属さない案内 start を除く）
   unique(data.guides, (g) => g.contract, 'guides.json');
   for (const g of data.guides) {
     ensure(
-      data.contracts.some((c) => c.id === g.contract),
+      g.contract === START_GUIDE || data.contracts.some((c) => c.id === g.contract),
       `guides.json: 固定案件 ${g.contract} がない`,
     );
   }

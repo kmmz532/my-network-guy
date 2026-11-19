@@ -24,6 +24,8 @@ import { IconButton } from './ui/IconButton';
 import { Divider } from './ui/Divider';
 import { Button } from './ui/Button';
 import { HudBar } from './ui/HudBar';
+import { GuideRestore } from './GuideRestore';
+import { START_GUIDE } from '../sim/guide';
 import { ProgressBar } from './ui/ProgressBar';
 import { Text } from './ui/Text';
 import { Inventory, inventoryCatalog } from './Inventory';
@@ -206,6 +208,17 @@ export function Toolbar() {
     </HudBar>
   );
   const showCables = tool === 'wire' && cableIds.length > 0;
+  // 新しく始めた直後の案内を閉じているとき、依頼のボタンの上に戻す札を出す（案件の欄がないため）。PC はボタンの上に浮かせ、狭い画面は行の上に出す
+  const startShelved = useGameStore((s) => s.guideShelved?.id === START_GUIDE);
+  const startRestore = startShelved && (
+    <HudBar
+      as="div"
+      variant="tray"
+      arrange={{ position: phone ? 'static' : 'absolute', left: 0, bottom: phone ? undefined : '100%', marginBottom: 6, alignSelf: 'flex-start', display: 'flex', alignItems: 'center', paddingRight: 4, whiteSpace: 'nowrap' }}
+    >
+      <GuideRestore />
+    </HudBar>
+  );
 
   // スマホは場面ごとに中身を替え、1段に収める（横スクロールしない）。
   // IP の表示は設定画面で切り替える。戻す・やり直すは、地図の右下の拡大・縮小のボタンの上に置く（MapZoomButtons.tsx）。予算・やめる・施工の進み具合はバーの上の帯に出す
@@ -216,6 +229,7 @@ export function Toolbar() {
       <>
       <HudBar as="footer" variant="bottom" arrange={barPhone} marker="toolbar">
         {showCables && cablePopup}
+        {startRestore}
         {design && (
           <div style={strip}>
             <Icon name="icon/budget" /> <Text as="span" size="sm">{yen(projectCostOf(active).total)} / {yen(active.contract.budget)}</Text>
@@ -241,7 +255,7 @@ export function Toolbar() {
           ))}
           {gap}
           {!sandbox && !design && (
-            <IconButton label={t('ui.offer.title')} count={offers.length} layout={shrink0} onClick={() => { closeInventory(); onOffers(); }}>
+            <IconButton label={t('ui.offer.title')} guide="offers" count={offers.length} layout={shrink0} onClick={() => { closeInventory(); onOffers(); }}>
               <Icon name="icon/mail" />
             </IconButton>
           )}
@@ -297,9 +311,12 @@ export function Toolbar() {
       ))}
       <Divider layout={{ margin: '0 4px' }} />
       {!sandbox && (
-      <IconButton label={t('ui.offer.title')} tip={tipText('ui.offer.title', 'offers', !phone)} count={offers.length} onClick={() => { closeInventory(); onOffers(); }}>
-        <Icon name="icon/mail" />
-      </IconButton>
+      <span style={{ position: 'relative', display: 'inline-flex' }}>
+        <IconButton label={t('ui.offer.title')} tip={tipText('ui.offer.title', 'offers', !phone)} guide="offers" count={offers.length} onClick={() => { closeInventory(); onOffers(); }}>
+          <Icon name="icon/mail" />
+        </IconButton>
+        {!phone && startRestore}
+      </span>
       )}
       <IconButton label={t('ui.shop.title')} tip={tipText('ui.shop.title', 'shop', !phone)} guide="shop" onClick={() => { closeInventory(); onShop(); }}>
         <Icon name="icon/cart" />

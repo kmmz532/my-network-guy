@@ -476,6 +476,23 @@ const scenes = {
     await page.getByRole('button', { name: '受注' }).first().click();
     await page.waitForTimeout(800);
   },
+  // 新しくプレイした直後（時間は止まり、依頼のボタンが光って「依頼が届いています。開いてみよう」が出る）
+  startguide: async (page) => {
+    await scenes.career(page);
+    await page.waitForTimeout(500);
+  },
+  // 依頼の窓を開いた後（最初の依頼の「受注」が光って「『受注』を押そう」が出る）
+  startguide2: async (page) => {
+    await scenes.career(page);
+    await page.getByRole('button', { name: '依頼' }).first().click();
+    await page.waitForTimeout(800);
+  },
+  // 新しく始めた直後の案内を閉じた状態（依頼のボタンの上に、案内を戻す札が出る）
+  startguidehidden: async (page) => {
+    await scenes.startguide(page);
+    await page.getByRole('button', { name: '閉じる' }).click();
+    await page.waitForTimeout(500);
+  },
   // 案内を出してから「しまう」を押した状態（吹き出しと枠が消え、案件の欄の見出しの行に顔のボタンと「次: 〜」の札が残る）
   guidehidden: async (page) => {
     await scenes.guide(page);

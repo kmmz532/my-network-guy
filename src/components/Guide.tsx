@@ -8,7 +8,8 @@ import { lessonCatalog } from '../stores/lessonCatalog';
 import { deviceCategory } from '../registry/query';
 import { t, tDyn } from '../i18n/t';
 import { loadSettings } from '../settings/settings';
-import { guideProgress, type GuideState } from '../sim/guide';
+import { guideProgress, START_GUIDE, startGuideDue, type GuideState } from '../sim/guide';
+import { MODE_TRAITS } from '../company/company';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { staffSpriteName } from '../data/schema';
 import { Icon } from './Icon';
@@ -47,6 +48,9 @@ const GUIDE_Z = 6;
 
 export function Guide() {
   const project = useGameStore(focusedProject);
+  const mode = useGameStore((s) => s.mode);
+  const activeProjects = useGameStore((s) => s.active);
+  const completed = useGameStore((s) => s.completed);
   const officeNodes = useGameStore((s) => s.office.nodes);
   const officeLinks = useGameStore((s) => s.office.links);
   const tool = useGameStore((s) => s.tool);
@@ -104,14 +108,21 @@ export function Guide() {
   const lessonAnswers = useGameStore((s) => s.lessonAnswers);
   const finishLessonGuide = useGameStore((s) => s.finishLessonGuide);
   const lesson = project === null && sandboxLesson !== null && !sandboxLesson.done ? lessonEntryOf(lessonCatalog, sandboxLesson.id) : undefined;
-  const id = lesson ? `lesson:${lesson.id}` : project?.phase === 'design' ? project.baseId : null;
+  // 新しく始めた直後の案内（案件に属さない）。自社オフィスにいて、受注中の案件がないときに出す。受注して設計に入ったら案件の案内に替わるが、終えたかの判定は続ける
+  const settings = loadSettings();
+  const startDue = settings.guide && startGuideDue({ offers: MODE_TRAITS[mode].offers, guidesDone, deviceDone: settings.startGuideDone, completed });
+  const startSteps = startDue ? guides[START_GUIDE] : null;
+  const showStart = startDue && lesson === undefined && project === null && activeProjects.length === 0;
+  const id = lesson ? `lesson:${lesson.id}` : project?.phase === 'design' ? project.baseId : showStart ? START_GUIDE : null;
   const steps = lesson
     ? loadSettings().guide
       ? lesson.guide.map((s, i) => ({ key: `lesson.${lesson.id}.step.${i + 1}`, target: s.target, done: s.done }))
       : null
-    : id !== null && (!guidesDone.includes(id) || guidesReplay.includes(id)) && loadSettings().guide
-      ? (guides[id] ?? null)
-      : null;
+    : id === START_GUIDE
+      ? startSteps
+      : id !== null && (!guidesDone.includes(id) || guidesReplay.includes(id)) && loadSettings().guide
+        ? (guides[id] ?? null)
+        : null;
   const lessonGoals = lesson && check !== null && check.projectId === 'hq' ? check.goals.map((g) => g.ok) : [];
 
   const nodes = project ? project.nodes : officeNodes;
@@ -127,6 +138,8 @@ export function Guide() {
     commands: lessonCommands,
     framesOpened: windows.some((w) => w.kind === 'frames'),
     sequenceOpened: windows.some((w) => w.kind === 'sequence'),
+    windowKinds: windows.map((w) => w.kind),
+    acceptedIds: [...activeProjects.map((p) => p.baseId), ...completed],
     lessonGoals,
     answers: lessonAnswers,
   };
@@ -134,14 +147,16 @@ export function Guide() {
   // デバッグの指定の手順（N54）は、表示の計算に直接使う（効果で上書きすると、下の効果が古い値に戻すため）
   const debugStart = debugGuide !== null && debugGuide.id === id ? debugGuide.step - 1 : null;
   const seen = id === null ? [] : guideSeen.filter((k) => k.startsWith(`${id}:`)).map((k) => Number(k.slice(id.length + 1)));
-  const progress = steps ? guideProgress(steps, state, seen, debugStart ?? 0) : null;
+  const startSeen = guideSeen.filter((k) => k.startsWith(`${START_GUIDE}:`)).map((k) => Number(k.slice(START_GUIDE.length + 1)));
+  const startProgress = startSteps ? guideProgress(startSteps, state, startSeen) : null;
+  const progress = id === START_GUIDE ? startProgress : steps ? guideProgress(steps, state, seen, debugStart ?? 0) : null;
   const current = progress ? progress.current : null;
   const finished = steps !== null && current === null;
   const latchKeys = id !== null && progress ? progress.latch.map((i) => `${id}:${i}`) : [];
 
   // 構成に残らない条件を満たした手順を記録する。すべて終えたら案件の案内を終える
   useEffect(() => {
-    if (id === null || steps === null) return;
+    if (id === null || steps === null || id === START_GUIDE) return;
     if (latchKeys.length > 0) markGuideSeen(latchKeys);
     if (finished) {
       if (lesson) finishLessonGuide();
@@ -150,6 +165,15 @@ export function Guide() {
       if (debugGuide !== null && debugGuide.id === id) debugConsumeGuide();
     }
   }, [id, steps, finished, latchKeys.join(','), markGuideSeen, markGuideDone, lesson, finishLessonGuide, debugGuide, debugConsumeGuide]);
+
+  // 新しく始めた直後の案内は、受注して案件の案内に替わっても、手順の記録と終えたかの判定を続ける（終えたら、この端末にも覚える）
+  const startLatchKeys = startProgress ? startProgress.latch.map((i) => `${START_GUIDE}:${i}`) : [];
+  const startFinished = startProgress !== null && startProgress.current === null;
+  useEffect(() => {
+    if (startProgress === null) return;
+    if (startLatchKeys.length > 0) markGuideSeen(startLatchKeys);
+    if (startFinished) markGuideDone(START_GUIDE);
+  }, [startProgress === null, startFinished, startLatchKeys.join(','), markGuideSeen, markGuideDone]);
 
   const hidden = id !== null && guidesHidden.includes(id);
   // しまっている間は、吹き出し・光る枠・機器の強調を出さない（手順の進みは続く）
@@ -218,7 +242,10 @@ export function Guide() {
     window.addEventListener('resize', schedule);
     // 横にスクロールすると、枠の位置もずれるため、スクロールのたびに測り直す
     window.addEventListener('scroll', schedule, true);
+    // 窓の中のボタン（受注など）は、窓の位置や中身の高さが変わっても枠が追えるように、一定の間隔でも測り直す
+    const timer = window.setInterval(measureGlow, 200);
     return () => {
+      window.clearInterval(timer);
       cancelAnimationFrame(frame);
       observer?.disconnect();
       window.removeEventListener('resize', schedule);

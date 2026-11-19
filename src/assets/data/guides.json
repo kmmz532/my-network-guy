@@ -1,6 +1,13 @@
 {
   "guides": [
     {
+      "contract": "start",
+      "steps": [
+        { "target": "offers", "done": "window:offers" },
+        { "target": "accept", "done": "accepted:c001_direct_link" }
+      ]
+    },
+    {
       "contract": "c001_direct_link",
       "steps": [
         { "target": "tool.wire", "done": "tool:wire" },

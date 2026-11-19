@@ -1,5 +1,13 @@
 // 初めての概念の案内（P7）。手順の完了の条件を判定する純粋関数。画面の状態（道具・機器・配線・テスト）から判定する
 import type { NetLink, NetNode } from '../network/types';
+import { WINDOW_KINDS, type WindowKind } from '../ui/windows';
+
+// 案件に属さない、新しく始めた直後の案内の ID（guides.json の contract・文言 guide.start.<n>・guidesDone・guidesHidden に使う）
+export const START_GUIDE = 'start';
+
+// 新しく始めた直後の案内を出す会社か。依頼が届く遊び方で、まだ終えておらず（会社のセーブ・この端末のどちらも）、案件を1つも完了していないとき
+export const startGuideDue = (s: { offers: boolean; guidesDone: readonly string[]; deviceDone: boolean; completed: readonly string[] }): boolean =>
+  s.offers && !s.guidesDone.includes(START_GUIDE) && !s.deviceDone && s.completed.length === 0;
 
 // 案内の1手順。key は文言（guide.<案件>.<n>）、target は光らせる対象（ツールバーのボタンの data-guide 名、または機器の ref）、done は完了の条件
 export interface GuideStep {
@@ -24,6 +32,8 @@ export interface GuideStep {
 //   down:<ref>[:<口>]   機器の口をすべて、または指定の口を shutdown した
 //   frames:open         パケットの中身の欄を開いた
 //   sequence:open       シーケンス図の窓を開いた
+//   window:<種類>       その種類の窓（offers・shop など。ui/windows.ts の WindowKind）を開いている
+//   accepted:<案件の基の id>  その案件を受注した（受注中、または完了している）
 //   goal:<n>            教材の n 番目（1から）の達成条件を満たした
 //   answer:<問いの id>  発展の問いに正しく答えた
 export type Condition =
@@ -42,6 +52,8 @@ export type Condition =
   | { kind: 'down'; ref: string; port: number | null }
   | { kind: 'frames' }
   | { kind: 'sequence' }
+  | { kind: 'window'; window: WindowKind }
+  | { kind: 'accepted'; id: string }
   | { kind: 'goal'; n: number }
   | { kind: 'answer'; id: string };
 
@@ -87,6 +99,10 @@ export const parseCondition = (text: string): Condition | null => {
       return value === 'open' ? { kind: 'frames' } : null;
     case 'sequence':
       return value === 'open' ? { kind: 'sequence' } : null;
+    case 'window':
+      return (WINDOW_KINDS as readonly string[]).includes(value) ? { kind: 'window', window: value as WindowKind } : null;
+    case 'accepted':
+      return { kind: 'accepted', id: value };
     case 'goal': {
       const n = /^(\d+)$/.exec(value);
       return n && Number(n[1]) >= 1 ? { kind: 'goal', n: Number(n[1]) } : null;
@@ -119,6 +135,10 @@ export interface GuideState {
   framesOpened?: boolean;
   // シーケンス図の窓を開いたか
   sequenceOpened?: boolean;
+  // 開いている窓の種類
+  windowKinds?: readonly string[];
+  // 受注した案件の基の id（受注中と完了したもの）
+  acceptedIds?: readonly string[];
   // 教材の達成条件ごとの、最後のテストの結果（順は教材の goals）
   lessonGoals?: boolean[];
   // 正しく答えた発展の問いの id
@@ -183,6 +203,10 @@ const conditionDone = (c: Condition, s: GuideState): boolean => {
       return s.framesOpened === true;
     case 'sequence':
       return s.sequenceOpened === true;
+    case 'window':
+      return (s.windowKinds ?? []).includes(c.window);
+    case 'accepted':
+      return (s.acceptedIds ?? []).includes(c.id);
     case 'goal':
       return s.lessonGoals?.[c.n - 1] === true;
     case 'answer':
@@ -196,10 +220,10 @@ export const guideStepDone = (step: GuideStep, state: GuideState): boolean => {
   return c !== null && conditionDone(c, state);
 };
 
-// 構成に残らない条件（道具の選択・画面を開いたこと・パケットの欄を開いたこと・シーケンス図を開いたこと）。一度満たした手順を記録しておかないと、操作を終えた時点で条件が外れる
+// 構成に残らない条件（道具の選択・画面を開いたこと・パケットの欄を開いたこと・シーケンス図を開いたこと・窓を開いたこと）。一度満たした手順を記録しておかないと、操作を終えた時点で条件が外れる
 export const isTransient = (step: GuideStep): boolean => {
   const c = parseCondition(step.done);
-  return c !== null && (c.kind === 'tool' || c.kind === 'open' || c.kind === 'frames' || c.kind === 'sequence');
+  return c !== null && (c.kind === 'tool' || c.kind === 'open' || c.kind === 'frames' || c.kind === 'sequence' || c.kind === 'window');
 };
 
 // 案内の進み具合。手順の位置は、条件と今の構成から求める（満たしていない最初の手順がいまの手順）。

@@ -20,6 +20,9 @@ import { registries } from '../registry/game';
 import type { OpContext } from '../company/apply';
 import type { TileSource } from '../company/tiles';
 import { furnitureOf } from '../contracts/layout';
+import { MODE_TRAITS } from '../company/company';
+import { startGuideDue } from '../sim/guide';
+import { loadSettings } from '../settings/settings';
 
 export interface PlannedNet {
   network: string;
@@ -90,6 +93,12 @@ export const editNetOf = (s: GameState): { nodes: NetNode[]; links: NetLink[] } 
   if (viewingOffice(s)) return { nodes: s.office.nodes, links: s.office.links };
   const p = focusedProject(s);
   return p?.phase === 'design' ? { nodes: p.nodes, links: p.links } : null;
+};
+
+// 新しく始めた直後の案内を出す状態か（依頼が届く遊び方で、案内の設定がオンで、まだ受注していない）。この間は時間を止めておく
+export const startGuideHolds = (s: Pick<GameState, 'mode' | 'guidesDone' | 'completed' | 'active'>): boolean => {
+  const settings = loadSettings();
+  return settings.guide && s.active.length === 0 && startGuideDue({ offers: MODE_TRAITS[s.mode].offers, guidesDone: s.guidesDone, deviceDone: settings.startGuideDone, completed: s.completed });
 };
 
 // 新しいゲームの乱数と初期の社員

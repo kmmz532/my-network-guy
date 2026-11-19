@@ -22,6 +22,7 @@ import { isSpeedUnlocked } from '../../sim/speed';
 import { levelOf } from '../../sim/level';
 import { balance } from 'virtual:game-data';
 import { useSceneStore } from '../../stores/useSceneStore';
+import { startGuideHolds } from '../../stores/gameHelpers';
 
 // 会社を開いて遊ぶ・新しく始めるとき、ゲームの場面へ移る
 const TitleScene = ({ opening }: { opening?: 'newCareer' }) => {
@@ -87,7 +88,8 @@ const TitleScene = ({ opening }: { opening?: 'newCareer' }) => {
     // 解放されていない速さは、1倍にする（4倍は会社のレベル3で解放される・N99）
     const wanted = loadSettings().startSpeed;
     const game = useGameStore.getState();
-    game.setSpeed(isSpeedUnlocked(wanted, levelOf(game.companyExp, balance), balance) ? (wanted as Speed) : 1);
+    // 新しく始めた直後の案内を出す間は、時間を止めておく（依頼を開いて受注するまで）
+    game.setSpeed(startGuideHolds(game) ? 0 : isSpeedUnlocked(wanted, levelOf(game.companyExp, balance), balance) ? (wanted as Speed) : 1);
     useSceneStore.getState().setScene({ kind: 'game' });
   };
 

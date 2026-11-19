@@ -158,7 +158,7 @@ describe('guideProgress（c001）', () => {
 describe('実際の案内のデータ', () => {
   it('案件ごとに手順があり、文言は20文字以内で、キーが言語ファイルにある', () => {
     expect(Object.keys(guides).sort()).toEqual(
-      ['c001_direct_link', 'c002_small_office', 'c003_departments', 'c004_web_server', 'i001_office_lan'],
+      ['c001_direct_link', 'c002_small_office', 'c003_departments', 'c004_web_server', 'i001_office_lan', 'start'],
     );
     const dict = ja as Record<string, string>;
     for (const steps of Object.values(guides)) {
@@ -189,5 +189,34 @@ describe('学習の条件', () => {
     expect(guideStepDone(step('down:r1:1'), state)).toBe(true);
     expect(guideStepDone(step('down:r1:2'), state)).toBe(false);
     expect(guideStepDone(step('down:r1'), state)).toBe(true);
+  });
+});
+
+describe('始めの案内 start', () => {
+  const start = guides['start'] as GuideStep[];
+  const offersOpen = { ...base(), windowKinds: ['offers'] };
+  const accepted = { ...base(), acceptedIds: ['c001_direct_link'] };
+
+  it('window・accepted の条件を読み、状態で判定する', () => {
+    expect(parseCondition('window:offers')).toEqual({ kind: 'window', window: 'offers' });
+    expect(parseCondition('window:nothing')).toBeNull();
+    expect(parseCondition('accepted:c001_direct_link')).toEqual({ kind: 'accepted', id: 'c001_direct_link' });
+    const win: GuideStep = { key: 'k', target: 't', done: 'window:shop' };
+    expect(guideStepDone(win, offersOpen)).toBe(false);
+    expect(guideStepDone(win, { ...base(), windowKinds: ['shop'] })).toBe(true);
+    const acc: GuideStep = { key: 'k', target: 't', done: 'accepted:c002_small_office' };
+    expect(guideStepDone(acc, accepted)).toBe(false);
+    expect(guideStepDone(acc, { ...base(), acceptedIds: ['c002_small_office'] })).toBe(true);
+  });
+
+  it('依頼の窓を開く、受注する、の順に進み、窓を閉じても続きから出る', () => {
+    expect(guideProgress(start, base()).current?.index).toBe(0);
+    const opened = guideProgress(start, offersOpen);
+    expect(opened.current?.index).toBe(1);
+    expect(opened.latch).toEqual([0]);
+    // 窓を閉じても、記録があれば受注の手順から出る
+    expect(guideProgress(start, base(), [0]).current?.index).toBe(1);
+    // 受注したら終わる（案件の案内へつながる）
+    expect(guideProgress(start, accepted, [0]).current).toBeNull();
   });
 });

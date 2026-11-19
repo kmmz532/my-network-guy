@@ -5,6 +5,8 @@ import { applyMoney } from '../../sim/ledger';
 
 import { crewBlock } from '../../sim/crew';
 import { accept } from '../../sim/progress';
+import { START_GUIDE } from '../../sim/guide';
+import { saveSettings } from '../../settings/settings';
 
 import { coreOf, focusedProject, offerEnv, refresh, unlockItems } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
@@ -65,6 +67,8 @@ export const createDebugSlice: StateCreator<GameState, [], [], DebugSlice> = (se
       }
       if (get().guidesDone.includes(contractId)) return;
       set((s) => ({ guidesDone: [...s.guidesDone, contractId] }));
+      // 新しく始めた直後の案内は、この端末で終えたと覚える（2社目以降では出さない）
+      if (contractId === START_GUIDE) saveSettings({ startGuideDone: true });
       get().grantCompanyExp('guide');
     },
     setGuideHidden: (id, hidden) =>

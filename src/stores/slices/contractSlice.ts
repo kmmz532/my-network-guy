@@ -7,7 +7,7 @@ import { gameEnv } from '../../sim/env';
 import { OFFICE_HISTORY_KEY, projectHistoryKey } from '../../sim/history';
 import { abandon, accept, acceptDelegated as acceptDelegatedOp, delegateBlind as delegateBlindOp, applyBlueprint as applyBlueprintOp, requestBuild } from '../../sim/progress';
 
-import { coreOf, focusedProject } from '../gameHelpers';
+import { coreOf, focusedProject, startGuideHolds } from '../gameHelpers';
 import type { GameState } from '../useGameStore';
 import type { StateCreator } from 'zustand';
 import { createOps } from '../gameOps';
@@ -54,7 +54,10 @@ export const createContractSlice: StateCreator<GameState, [], [], ContractSlice>
     },
     accept: (offerId, crew) => {
       const inhouse = get().offers.find((o) => o.id === offerId)?.contract.inhouse === true;
+      // 新しく始めた直後は時間を止めてあるため、受注したら1倍で動かす
+      const held = startGuideHolds(get());
       const reason = apply(accept(coreOf(get()), offerId, balance.office.projectSlots, crew));
+      if (reason === null && held && get().speed === 0) get().setSpeed(1);
       // 自社案件は自社オフィスを引き継ぐ。取り消しで自社オフィスを戻すと引き継いだ内容が壊れるため、自社オフィスの履歴は消す
       if (reason === null && inhouse) dropHistory(OFFICE_HISTORY_KEY);
       // 設定がオンなら、受注して設計に入ったときに時間を止める（配線は時間に追われずに進める）

@@ -48,6 +48,8 @@ export interface Settings {
   offerSort: OfferSort;
   // 時刻による画面の色（夕方の暖色・夜の青み）を重ねるか（既定はオン。N75）
   dayTint: boolean;
+  // 新しく始めた直後の案内（start）を終えたか。会社ごとのセーブとは別に、この端末で覚える（2社目以降では出さない）
+  startGuideDone: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -66,6 +68,7 @@ export const DEFAULT_SETTINGS: Settings = {
   offerSort: 'new',
   dayTint: true,
   nightFast: true,
+  startGuideDone: false,
 };
 
 export const SETTINGS_KEY = 'network-ya.settings.v1';
@@ -105,6 +108,7 @@ export function parseSettings(raw: string | null): Settings {
     offerSort: (OFFER_SORTS as readonly unknown[]).includes(d.offerSort) ? (d.offerSort as OfferSort) : DEFAULT_SETTINGS.offerSort,
     dayTint: typeof d.dayTint === 'boolean' ? d.dayTint : DEFAULT_SETTINGS.dayTint,
     nightFast: typeof d.nightFast === 'boolean' ? d.nightFast : DEFAULT_SETTINGS.nightFast,
+    startGuideDone: typeof d.startGuideDone === 'boolean' ? d.startGuideDone : DEFAULT_SETTINGS.startGuideDone,
   };
 }
 
