@@ -1,6 +1,6 @@
 // 機器の画面の「負荷分散」の欄（能力 loadBalance を持つ機器だけ）。仮想サーバーの追加・削除と、振り分け先の追加・削除。
 // 振り分け先の健全の印は、振り分けの計算と同じ判定（healthyMembers）で出す。
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { t } from '../i18n/t';
 import { getComponent } from '../network/components';
 import { reach } from '../network/engine/forward';
@@ -17,6 +17,14 @@ import { Text } from './ui/Text';
 import { TextInput } from './ui/TextInput';
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
+
+// 入力欄の前に、何を入れる欄かを書く
+const Labeled = ({ text, children }: { text: string; children: ReactNode }) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+    <Text as="span" tone="note">{text}</Text>
+    {children}
+  </span>
+);
 
 const METHOD_KEY = { round_robin: 'ui.lb.method.round_robin', source_ip: 'ui.lb.method.source_ip' } as const;
 const CHECK_KEY = { none: 'ui.lb.check.none', ping: 'ui.lb.check.ping', http: 'ui.lb.check.http' } as const;
@@ -120,8 +128,8 @@ function LbMemberAdd({ onAdd, onError }: { onAdd: (m: Member) => void; onError: 
   };
   return (
     <div style={{ ...row, paddingLeft: 12 }}>
-      <TextInput label={t('ui.lb.memberIp')} value={ip} onChange={setIp} layout={{ width: 120 }} />
-      <TextInput label={t('ui.lb.port')} value={port} onChange={setPort} layout={{ width: 56 }} />
+      <TextInput label={t('ui.lb.memberIp')} placeholder={t('ui.lb.memberIp')} value={ip} onChange={setIp} layout={{ width: 140 }} />
+      <Labeled text={t('ui.lb.port')}><TextInput label={t('ui.lb.port')} value={port} onChange={setPort} layout={{ width: 56 }} /></Labeled>
       <Button variant="secondary" onClick={add}>
         {t('ui.lb.addMember')}
       </Button>
@@ -148,8 +156,9 @@ function LbServerAdd({ addresses, onAdd, onError }: { addresses: string[]; onAdd
   };
   return (
     <div style={{ ...row, flexWrap: 'wrap' }}>
-      <Select box="pixel" label={t('ui.lb.vip')} value={vip} options={addresses.map((a) => ({ value: a, label: a }))} onChange={setVip} />
-      <TextInput label={t('ui.lb.port')} value={port} onChange={setPort} layout={{ width: 56 }} />
+      <Labeled text={t('ui.lb.vip')}><Select box="pixel" label={t('ui.lb.vip')} value={vip} options={addresses.map((a) => ({ value: a, label: a }))} onChange={setVip} /></Labeled>
+      <Labeled text={t('ui.lb.port')}><TextInput label={t('ui.lb.port')} value={port} onChange={setPort} layout={{ width: 56 }} /></Labeled>
+      <Labeled text={t('ui.lb.method')}>
       <Select
         box="pixel"
         label={t('ui.lb.method')}
@@ -160,6 +169,8 @@ function LbServerAdd({ addresses, onAdd, onError }: { addresses: string[]; onAdd
         ]}
         onChange={(v) => setMethod(v as VirtualServer['method'])}
       />
+      </Labeled>
+      <Labeled text={t('ui.lb.check')}>
       <Select
         box="pixel"
         label={t('ui.lb.check')}
@@ -171,11 +182,12 @@ function LbServerAdd({ addresses, onAdd, onError }: { addresses: string[]; onAdd
         ]}
         onChange={(v) => setCheck(v as VirtualServer['healthCheck'])}
       />
+      </Labeled>
       <Checkbox size="s" label={t('ui.lb.snat')} checked={snat} onChange={setSnat}>
         {t('ui.lb.snat')}
       </Checkbox>
-      <TextInput label={t('ui.lb.memberIp')} value={memberIp} onChange={setMemberIp} layout={{ width: 120 }} />
-      <TextInput label={t('ui.lb.port')} value={memberPort} onChange={setMemberPort} layout={{ width: 56 }} />
+      <TextInput label={t('ui.lb.memberIp')} placeholder={t('ui.lb.memberIp')} value={memberIp} onChange={setMemberIp} layout={{ width: 140 }} />
+      <Labeled text={t('ui.lb.port')}><TextInput label={t('ui.lb.port')} value={memberPort} onChange={setMemberPort} layout={{ width: 56 }} /></Labeled>
       <Button variant="primary" onClick={add}>
         {t('ui.lb.addVs')}
       </Button>

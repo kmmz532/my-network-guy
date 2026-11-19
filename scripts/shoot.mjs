@@ -939,6 +939,12 @@ const scenes = {
     await page.waitForTimeout(500);
   },
   // ロードバランサーの負荷分散の欄（仮想サーバーと、振り分け先の健全の印）
+  // 負荷分散の欄の追加の入力（ラベル）。loadbalancer の場面の後に、追加のボタンまで送る
+  loadbalanceradd: async (page) => {
+    await scenes.loadbalancer(page);
+    await page.getByRole('button', { name: '仮想サーバーを追加' }).scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+  },
   loadbalancer: async (page) => {
     await scenes.sandbox(page);
     await openDevice(page, 'load_balancer');
@@ -950,7 +956,7 @@ const scenes = {
     });
     await page.getByText('設定', { exact: true }).click();
     // 振り分け先の追加の欄まで見せる（仮想サーバーの追加の欄は、画面の下の端）
-    await page.getByLabel('振り分け先のアドレス', { exact: true }).last().scrollIntoViewIfNeeded();
+    await page.getByText('負荷分散', { exact: true }).first().scrollIntoViewIfNeeded();
     await page.waitForTimeout(500);
   },
   // 回線終端（uplink）の設定。回線の欄（ISP の名前・アドレス・AS 番号・DNS）を出す
