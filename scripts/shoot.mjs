@@ -1145,6 +1145,27 @@ const scenes = {
     await page.getByText('RADIUS サーバーのアドレス', { exact: true }).first().scrollIntoViewIfNeeded();
     await page.waitForTimeout(300);
   },
+  // アクセスポイントの設定の欄の無線の部分（帯・チャネル・VLAN・方式）。VLAN は 10 にしてある
+  wifisettings: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      g.buy('access_point');
+      const reason = window.__game.getState().place('access_point', 4, 2);
+      if (reason !== null) throw new Error(`access_point を置けない: ${reason}`);
+      const ap = window.__game.getState().office.nodes.find((n) => n.device === 'access_point');
+      for (const [key, value] of [['ssid', 'home'], ['vlan', 10]]) {
+        const err = window.__game.getState().setWireless(ap.uid, key, value);
+        if (err) throw new Error(`${key}: ${err}`);
+      }
+      window.__game.getState().openWindow('device', ap.uid);
+    });
+    await page.waitForTimeout(800);
+    await page.getByText('設定', { exact: true }).click();
+    await page.waitForTimeout(500);
+    await page.getByLabel('VLAN', { exact: true }).first().scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+  },
   // スイッチ付きルーターに、WAN と LAN の IP を入れた場面（マップの IP の表示が重ならないかを確かめる）
   routerswitch: async (page) => {
     await scenes.career(page);

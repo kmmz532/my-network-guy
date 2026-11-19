@@ -574,6 +574,7 @@ export const setWireless = (core: Core, uid: string, key: 'ssid' | 'password' | 
         return withComponent(node, 'wireless', channel !== undefined && bandChannels(band).includes(channel) ? { ...rest, channel } : rest);
       }
       if (key === 'channel' && (!can(node.device, 'accessPoint') || typeof value !== 'number' || !bandChannels(bandOf(node)).includes(value))) return 'wireless.channel';
+      if (key === 'vlan' && (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 4094)) return 'vlan.range';
       return withComponent(node, 'wireless', { ...cur, [key]: value });
     },
     target,

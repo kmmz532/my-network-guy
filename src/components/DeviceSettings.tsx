@@ -656,6 +656,22 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
             {apChannel !== undefined && isDfsChannel(apChannel) && <Text size="s" tone="note">{t('ui.wireless.dfs')}</Text>}
           </div>
           <div style={{ marginBottom: 8 }}>
+            {labelOf(t('ui.wireless.vlan'))}
+            <TextInput
+              label={t('ui.wireless.vlan')}
+              type="number"
+              min={1}
+              max={4094}
+              value={String(wifi?.vlan ?? 1)}
+              disabled={readOnly}
+              layout={{ width: 80 }}
+              onCommit={(text) => {
+                const v = Number(text);
+                if (Number.isInteger(v) && v !== (wifi?.vlan ?? 1)) onError(setWireless(node.uid, 'vlan', v));
+              }}
+            />
+          </div>
+          <div style={{ marginBottom: 8 }}>
             {labelOf(t('ui.wireless.security'))}
             <Select
               label={t('ui.wireless.security')}

@@ -1742,6 +1742,7 @@
   "ui.wireless.sec.wpa3_eap": "WPA3-Enterprise（802.1X）",
   "ui.wireless.security": "暗号化と認証の方式",
   "ui.wireless.ssid": "SSID",
+  "ui.wireless.vlan": "VLAN",
   "warn.dhcp.multiple_servers": "同じネットワークに DHCP サーバーが2台以上ある。",
   "warn.lag.mismatch": "リンクアグリゲーションの両端の設定が合わず、リンクがまとまらない。",
   "warn.lb.no_health_check": "ヘルスチェックがなく、止まったサーバーにも通信を振り分ける。",
