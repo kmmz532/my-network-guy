@@ -1,5 +1,6 @@
 // L2 の層: VLAN で分かれるドメイン・スパニングツリーの止まる口・ループの検出
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { registries } from '../../../registry/game';
 import { gameEnv } from '../../../sim/env';
 import type { Iface, NetLink, NetNode, Network, PortConfig } from '../../types';
 import { stageL2 } from './l2';
@@ -51,6 +52,13 @@ describe('stageL2', () => {
       links: [link('a', 'ap1', 0, 'ap2', 0), link('b', 'ap2', 1, 'ap3', 0), link('c', 'ap3', 1, 'ap1', 1)],
       plans: {},
     };
-    expect(layers(net).domainOf({ node: 'ap1', port: 0 }).loop).toBeDefined();
+    // アクセスポイントの口は1つのため、輪を作れるよう2口にする
+    const get = registries.devices.get.bind(registries.devices);
+    const spy = vi.spyOn(registries.devices, 'get').mockImplementation((id) => (id === 'access_point' ? { ...get(id), portSpeeds: [1000, 1000] } : get(id)));
+    try {
+      expect(layers(net).domainOf({ node: 'ap1', port: 0 }).loop).toBeDefined();
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

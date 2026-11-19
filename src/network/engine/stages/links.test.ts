@@ -1,5 +1,7 @@
 // 配線の層: 無線の仮想の配線・論理リンク・停止した口・長さの超過
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { registries } from '../../../registry/game';
+import { warningsOf } from '../../query/warnings';
 import { gameEnv } from '../../../sim/env';
 import { cableMaxLength } from '../../../registry/query';
 import type { Iface, NetLink, NetNode, Network, PortConfig } from '../../types';
@@ -74,5 +76,47 @@ describe('stageLinks', () => {
     };
     const layer = stageLinks(net, world);
     expect([...layer.tooLong]).toEqual(['far']);
+  });
+});
+
+describe('リンクの速さ', () => {
+  const sw = (uid: string, serial: number, ports: PortConfig[] = []) => node(uid, 'l2_switch_8p', serial, { ports });
+  const speedsWith = (portSpeeds: number | undefined, cableMbps: number | undefined, fn: () => void) => {
+    const devices = registries.devices;
+    const cables = registries.cables;
+    const dGet = devices.get.bind(devices);
+    const cGet = cables.get.bind(cables);
+    const d = vi.spyOn(devices, 'get').mockImplementation((id) => (portSpeeds === undefined ? dGet(id) : { ...dGet(id), portSpeeds: dGet(id).portSpeeds.map(() => portSpeeds) }));
+    const c = vi.spyOn(cables, 'get').mockImplementation((id) => (cableMbps === undefined ? cGet(id) : { ...cGet(id), bandwidthMbps: cableMbps }));
+    try {
+      fn();
+    } finally {
+      d.mockRestore();
+      c.mockRestore();
+    }
+  };
+
+  it('配線の速さは、両端の口とケーブルのうち最も遅いもの', () => {
+    const net: Network = { nodes: [sw('a', 1), sw('b', 2)], links: [link('x', 'a', 0, 'b', 0)], plans: {} };
+    speedsWith(1000, 100, () => expect(stageLinks(net, world).speeds.get('x')).toBe(100));
+    speedsWith(100, 1000, () => expect(stageLinks(net, world).speeds.get('x')).toBe(100));
+  });
+
+  it('論理リンクの速さは、止まっていないメンバーの合計。1本止めると減る', () => {
+    const net = (shutdown: boolean): Network => ({
+      nodes: [sw('a', 1, [lag(0), { ...lag(1), shutdown }]), sw('b', 2, [lag(0), lag(1)])],
+      links: [link('x', 'a', 0, 'b', 0), link('y', 'a', 1, 'b', 1)],
+      plans: {},
+    });
+    speedsWith(1000, 1000, () => {
+      expect(stageLinks(net(false), world).lagSpeeds.get('x')).toBe(2000);
+      expect(stageLinks(net(true), world).lagSpeeds.get('x')).toBe(1000);
+    });
+  });
+
+  it('警告 link.cable_bottleneck は、ケーブルが両端の口より遅いときだけ出る', () => {
+    const net: Network = { nodes: [sw('a', 1), sw('b', 2)], links: [link('x', 'a', 0, 'b', 0)], plans: {} };
+    speedsWith(1000, 100, () => expect(warningsOf(analyze(net, world))).toContainEqual({ id: 'link.cable_bottleneck', a: 'a', b: 'b' }));
+    speedsWith(100, 1000, () => expect(warningsOf(analyze(net, world)).some((w) => w.id === 'link.cable_bottleneck')).toBe(false));
   });
 });

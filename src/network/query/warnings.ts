@@ -1,5 +1,6 @@
 import type { NetworkState } from '../engine/state';
 import type { PortConfig } from '../types';
+import { portSpeed } from '../../registry/query';
 import { accessPointsOf } from '../engine/stages/links';
 import { getComponent } from '../components';
 import { inSubnet } from '../ip';
@@ -9,7 +10,7 @@ import { interferedAccessPointsOf } from './wirelessQuality';
 import { channelOverlapsOf } from './channelOverlaps';
 
 // 通れば通るが直すべき設定（警告・NET.md §6）: 直結の両端の口の VLAN が違う access（vlan.mismatch）、両端の native が違う trunk（vlan.native_mismatch）
-export type VlanWarning = { id: 'wlan.open' | 'wlan.channel_overlap' | 'wlan.interference' | 'wlan.weak_cipher' | 'wlan.transition' | 'dhcp.multiple_servers' | 'lag.mismatch' | 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch'; a: string; b: string };
+export type VlanWarning = { id: 'wlan.open' | 'wlan.channel_overlap' | 'wlan.interference' | 'wlan.weak_cipher' | 'wlan.transition' | 'dhcp.multiple_servers' | 'lag.mismatch' | 'link.cable_bottleneck' | 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch'; a: string; b: string };
 
 export const warningsOf = (state: NetworkState): VlanWarning[] => {
   const net = state.input;
@@ -52,6 +53,13 @@ export const warningsOf = (state: NetworkState): VlanWarning[] => {
     if (lagPairs.has(pair)) continue;
     lagPairs.add(pair);
     out.push({ id: 'lag.mismatch', a: l.a.node, b: l.b.node });
+  }
+  // ケーブルが両端の口のどちらよりも遅い配線（配線ごとに1件）
+  for (const l of net.links) {
+    const speed = state.links.speeds.get(l.uid);
+    if (speed === undefined) continue;
+    const portMin = Math.min(...[l.a, l.b].map((e) => portSpeed(net.nodes.find((n) => n.uid === e.node)!.device, e.port)!));
+    if (speed < portMin) out.push({ id: 'link.cable_bottleneck', a: l.a.node, b: l.b.node });
   }
   // VRRP: 同じネットワーク・同じ VRID で仮想の IP アドレスが違う（組ごとに1件）と、端末のゲートウェイが仮想ではなく実の IP アドレス
   const groups = net.nodes.flatMap((n) => n.interfaces.flatMap((i) => (i.vrrp ?? []).map((g) => ({ uid: n.uid, iface: i, g }))));

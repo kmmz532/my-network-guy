@@ -1,5 +1,5 @@
 // 配線の層: 無線の結びつきと仮想の配線、論理リンク（LAG）、口の停止、配線の長さの超過
-import { cableMaxLength, deviceCategory, portSpeed } from '../../../registry/query';
+import { INTERNET_DEVICE, cableDef, cableMaxLength, deviceCategory, portSpeed } from '../../../registry/query';
 import { can } from '../../capabilities';
 import { getComponent } from '../../components';
 import { computeLags, type LagResult } from '../../lag';
@@ -34,6 +34,9 @@ export const wallsBetween = (wallAt: (x: number, y: number) => boolean, ax: numb
   }
   return count;
 };
+
+// 無線の仮想の配線の uid の頭
+export const WIFI_LINK_PREFIX = '__wifi_';
 
 // 無線の端末を、最も近いアクセスポイントへ仮想の配線でつなぐ（仮想の配線）。
 // 端末の口0 に配線がなく、無線の能力を持ち、範囲の中にアクセスポイントがあるとき。アクセスポイントの口は 100 番から、端末ごとに1つ使う
@@ -92,7 +95,7 @@ export const withWireless = (net: Network, data: EngineData, radiusDown: Readonl
     const port = 100 + (nextPort.get(ap.uid) ?? 0);
     nextPort.set(ap.uid, port - 100 + 1);
     apPorts.set(ap.uid, [...(apPorts.get(ap.uid) ?? []), { port, mode: 'access', vlan: getComponent(ap, 'wireless')?.vlan ?? 1 }]);
-    extra.push({ uid: `__wifi_${c.uid}`, cable: 'utp_cat5e', a: { node: ap.uid, port }, b: { node: c.uid, port: 0 }, path: [[ap.x, ap.y], [c.x, c.y]], paid: 0 });
+    extra.push({ uid: `${WIFI_LINK_PREFIX}${c.uid}`, cable: 'utp_cat5e', a: { node: ap.uid, port }, b: { node: c.uid, port: 0 }, path: [[ap.x, ap.y], [c.x, c.y]], paid: 0 });
   }
   // アクセスポイントの口（つないだ端末の口）に、無線の VLAN を付ける
   const nodes = net.nodes.map((n) => (apPorts.has(n.uid) ? { ...n, ports: [...n.ports, ...apPorts.get(n.uid)!] } : n));
@@ -114,7 +117,28 @@ export interface LinkLayer {
   isShut(uid: string, port: number): boolean;
   // 長さが上限を超えた配線の uid
   readonly tooLong: ReadonlySet<string>;
+  // 配線ごとの速さ（配線の uid → Mbps）。両端の口とケーブルのうち最も遅いもの。無線の仮想の配線と、インターネットの仮想の機器への配線は含まない
+  readonly speeds: ReadonlyMap<string, number>;
+  // まとまった論理リンクの速さ（代表の配線の uid → Mbps）。止まっていないメンバーの速さの合計
+  readonly lagSpeeds: ReadonlyMap<string, number>;
 }
+
+// 速さを求めない配線（無線の仮想の配線と、口を持たないインターネットの仮想の機器へつながる配線）
+const skipsSpeed = (l: NetLink, byUid: ReadonlyMap<string, NetNode>): boolean =>
+  l.uid.startsWith(WIFI_LINK_PREFIX) ||
+  byUid.get(l.a.node)?.device === INTERNET_DEVICE || byUid.get(l.b.node)?.device === INTERNET_DEVICE;
+
+// 配線の速さ。口・ケーブルが見つからなければ例外
+const speedOfLink = (l: NetLink, byUid: ReadonlyMap<string, NetNode>): number => {
+  const endSpeed = (end: { node: string; port: number }): number => {
+    const n = byUid.get(end.node);
+    if (n === undefined) throw new Error(`配線 ${l.uid} の機器がない: ${end.node}`);
+    const s = portSpeed(n.device, end.port);
+    if (s === undefined) throw new Error(`口の速さがない: ${n.device}:${end.port}`);
+    return s;
+  };
+  return Math.min(endSpeed(l.a), endSpeed(l.b), cableDef(l.cable).bandwidthMbps);
+};
 
 export const stageLinks = (input: Network, world: EngineData, radiusDown: ReadonlySet<string> = new Set()): LinkLayer => {
   const associations = wirelessAssociations(input, world, radiusDown);
@@ -135,6 +159,13 @@ export const stageLinks = (input: Network, world: EngineData, radiusDown: Readon
   const isShut = (uid: string, port: number): boolean => poweredOff.has(uid) || shut.has(`${uid}:${port}`);
   const { net, unbundled } = resolvePo(wired, lag, isShut);
   const tooLong = new Set(net.links.filter((l) => linkLength(l.path) > cableMaxLength(l.cable)).map((l) => l.uid));
+  const byUid = new Map(input.nodes.map((n) => [n.uid, n]));
+  const speeds = new Map(input.links.filter((l) => !skipsSpeed(l, byUid)).map((l) => [l.uid, speedOfLink(l, byUid)]));
+  const lagSpeeds = new Map<string, number>();
+  for (const b of lag.bundles) {
+    const active = b.links.filter((l) => !isShut(l.a.node, l.a.port) && !isShut(l.b.node, l.b.port));
+    lagSpeeds.set(b.links[0].uid, active.reduce((sum, l) => sum + speeds.get(l.uid)!, 0));
+  }
   return {
     associations,
     radiusDown,
@@ -143,5 +174,7 @@ export const stageLinks = (input: Network, world: EngineData, radiusDown: Readon
     lag,
     isShut,
     tooLong,
+    speeds,
+    lagSpeeds,
   };
 };

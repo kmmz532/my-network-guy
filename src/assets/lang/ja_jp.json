@@ -1552,6 +1552,7 @@
   "ui.wireless.ssid": "SSID",
   "warn.dhcp.multiple_servers": "同じネットワークに DHCP サーバーが2台以上ある。",
   "warn.lag.mismatch": "リンクアグリゲーションの両端の設定が合わず、リンクがまとまらない。",
+  "warn.link.cable_bottleneck": "ケーブルが両端の口より遅いため、通信がケーブルの速さに抑えられる。",
   "warn.ospf.duplicate_router_id": "OSPF のルーター ID が同じルーターがある",
   "warn.vlan.mismatch": "直結の両端の access のVLANが違い、2つのVLANが混ざっている",
   "warn.vlan.native_mismatch": "直結の両端の trunk の native のVLANが違う",

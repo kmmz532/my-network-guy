@@ -1,9 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { registries } from '../../registry/game';
 import { analyze } from './analyze';
 import { ping } from '../engine';
 import type { EngineData, NetLink, NetNode, Network } from '../types';
 
 const data: EngineData = { wallAt: () => false, interferers: [] };
+
+// 300台をつなぐため、スイッチの口を300口にする（実データの口数は8）
+const withWideSwitch = (fn: () => void): void => {
+  const get = registries.devices.get.bind(registries.devices);
+  const spy = vi.spyOn(registries.devices, 'get').mockImplementation((id) => (id === 'l2_switch_8p' ? { ...get(id), portSpeeds: Array.from({ length: 300 }, () => 1000) } : get(id)));
+  try {
+    fn();
+  } finally {
+    spy.mockRestore();
+  }
+};
 
 const pc = (uid: string, ip: string): NetNode => ({
   ports: [],
@@ -33,6 +45,7 @@ const link = (i: number): NetLink => ({
 
 describe('機器の多い構成の計算量', () => {
   it('PC 300台を1台のスイッチにつないだ構成で、analyze と ping が短い時間で終わる', () => {
+    withWideSwitch(() => {
     const pcs = Array.from({ length: 300 }, (_, i) => pc(`p${i}`, `192.168.${Math.floor(i / 254)}.${(i % 254) + 1}`));
     const sw: NetNode = { ...pc('s', ''), device: 'l2_switch_8p', interfaces: [] };
     const net: Network = { nodes: [...pcs, sw], links: pcs.map((_, i) => link(i)), plans: { 'p0:0': { network: '192.168.0.0', prefix: 23 } } };
@@ -41,5 +54,6 @@ describe('機器の多い構成の計算量', () => {
     const result = ping(state, 'p0', 'p299');
     expect(result.ok).toBe(true);
     expect(performance.now() - start).toBeLessThan(2000);
+    });
   });
 });

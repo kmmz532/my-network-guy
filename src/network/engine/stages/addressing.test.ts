@@ -1,9 +1,22 @@
 import { analyze } from '../analyze';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { registries } from '../../../registry/game';
+
 import { ping } from '../../engine';
 import type { EngineData, Iface, NetLink, NetNode, Network, Route, NetworkPlan } from '../../types';
 
 const data: EngineData = { wallAt: () => false, interferers: [] };
+
+// 300台をつなぐため、スイッチの口を300口にする（実データの口数は8）
+const withWideSwitch = (fn: () => void): void => {
+  const get = registries.devices.get.bind(registries.devices);
+  const spy = vi.spyOn(registries.devices, 'get').mockImplementation((id) => (id === 'l2_switch_8p' ? { ...get(id), portSpeeds: Array.from({ length: 300 }, () => 1000) } : get(id)));
+  try {
+    fn();
+  } finally {
+    spy.mockRestore();
+  }
+};
 
 // アドレスの層の補完した構成と不備
 const addressing = (net: Network) => {
@@ -63,6 +76,7 @@ describe('セグメントの設定から機器の設定を作る', () => {
   });
 
   it('プレフィックス /23 のセグメントには PC を300台まで置ける', () => {
+    withWideSwitch(() => {
     const ips = Array.from({ length: 300 }, (_, i) => `192.168.${Math.floor(i / 254)}.${(i % 254) + 1}`);
     const nodes = ips.map((ip, i) => pc(`p${i}`, ip));
     const links = nodes.map((_, i) => link(`l${i}`, `p${i}:0`, `s:${i}`));
@@ -74,6 +88,7 @@ describe('セグメントの設定から機器の設定を作る', () => {
     const { net: out, issues } = addressing(net);
     expect(issues).toEqual({});
     expect(ping(analyze(out, data), 'p0', 'p299').ok).toBe(true);
+    });
   });
 
   it('/31 の回線では、2台のルーターのアドレスをどちらも使って疎通する', () => {
