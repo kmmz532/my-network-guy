@@ -49,7 +49,8 @@ export class EffectRenderer {
     const furniture = store.office.furniture.find((f) => f.uid === uid);
     if (!furniture) return;
     for (const { x, y } of effectRangeTiles(furniture, gameEnv.furniture?.[furniture.id]?.effect?.range, map)) {
-      this.options.graphics.rect(x * ts, y * ts, ts, ts).fill({ color: SELECT, alpha: 0.12 });
+      // 無線の範囲（0.12）より濃くする。選択の色は黄色寄りで、木の床の上では 0.12 だと見えないため
+      this.options.graphics.rect(x * ts, y * ts, ts, ts).fill({ color: SELECT, alpha: 0.25 });
     }
   }
 
