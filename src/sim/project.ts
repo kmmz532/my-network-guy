@@ -115,6 +115,8 @@ export interface Trace {
   result: PathResult;
   // 名前で引いた通信の名前（シーケンス図で DNS の問い合わせを出すため）
   name?: string;
+  // メールの宛先（達成条件 mail の通信。シーケンス図でメールの流れを出すため）
+  address?: string;
   // ping の大きさ（バイト）と分割禁止。指定した通信だけが持つ
   size?: number;
   df?: boolean;
@@ -353,6 +355,7 @@ export const fixedNodes = (contract: Contract): NetNode[] =>
       ...(setup?.rules ? { firewall: structuredClone(setup.rules) } : {}),
       ...(setup?.vpn ? { vpn: structuredClone(setup.vpn) } : {}),
       ...(p.config?.nameServer ? { resolver: { nameServer: p.config.nameServer } } : {}),
+      ...(p.config?.mailServer ? { mailClient: { server: p.config.mailServer } } : {}),
       ...(p.config?.proxy || p.config?.pac ? { proxyClient: { ...(p.config.proxy ? { proxy: { ...p.config.proxy } } : {}), ...(p.config.pac ? { pac: { direct: [...p.config.pac.direct] } } : {}) } } : {}),
     };
     return {

@@ -44,6 +44,36 @@ export const setHostname = (core: Core, uid: string, hostname: string | null, ta
 export const setNameServer = (core: Core, uid: string, ip: string | null, target: NetTarget = 'focus'): Outcome =>
   editNode(core, uid, (node) => withComponent(node, 'resolver', { ...getComponent(node, 'resolver'), nameServer: ip ?? undefined }), target);
 
+// 端末のメールサーバーのアドレス（メールソフトの設定）。null で外す。外すと、mailClient ごと外す
+export const setMailServer = (core: Core, uid: string, ip: string | null, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      if (ip === null) {
+        const { mailClient: _removed, ...rest } = node.components ?? {};
+        return { ...node, components: Object.keys(rest).length > 0 ? rest : undefined };
+      }
+      if (!isIp(ip)) return 'ip';
+      return withComponent(node, 'mailClient', { server: ip });
+    },
+    target,
+  );
+
+// メールサーバーのサービスを動かし、受け持つメールのドメインを設定する。null で止める（サービスごと外す）
+export const setMailDomain = (core: Core, uid: string, domain: string | null, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      const others = node.services.filter((s) => s.protocol !== 'mail');
+      if (domain === null) return { ...node, services: others };
+      if (!/^[^@\s]+$/.test(domain)) return 'mail.domain';
+      return { ...node, services: [...others, { protocol: 'mail', domain }] };
+    },
+    target,
+  );
+
 // 端末のプロキシの設定（ブラウザの設定）。null で外す。proxyClient が空になれば、コンポーネントごと外す
 const setProxyClient = (core: Core, uid: string, edit: (cur: NonNullable<Components['proxyClient']>) => NonNullable<Components['proxyClient']> | OpFailReason, target: NetTarget): Outcome =>
   editNode(
@@ -713,7 +743,7 @@ const PROXY_PORT = 8080;
 export const setService = (
   core: Core,
   uid: string,
-  protocol: 'http' | 'radius' | 'proxy',
+  protocol: 'http' | 'radius' | 'proxy' | 'nas',
   on: boolean,
   target: NetTarget = 'focus',
 ): Outcome =>

@@ -28,6 +28,7 @@ export const OP_FAIL_REASONS = [
   'level',
   'linked',
   'locked',
+  'mail.domain',
   'map',
   'max',
   'money',

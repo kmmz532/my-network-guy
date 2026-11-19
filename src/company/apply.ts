@@ -20,7 +20,7 @@ import {
 import { buyDevice, sellDevice } from '../sim/shop';
 import {
   addRoute, autoRegisterZone, removeHost, removeRoute, setBgp, setChannel, setDhcp, setDnsForwarder, setDnsRecord, setDnsRole, removeDnsRecord, setFirewallRules, setGateway, setHost, setLoadBalancer, setVpn,
-  setHostname, setInterface, setIsp, setName, setNameServer, setNat, setPac, setProxy, setOspf, setPlan, setPortMode, setPower, setRouting, setService,
+  setHostname, setInterface, setIsp, setName, setNameServer, setNat, setPac, setProxy, setMailDomain, setMailServer, setOspf, setPlan, setPortMode, setPower, setRouting, setService,
   setIfaceTune, setPo, setPortQos, setStp, setSvi, setVrrp, setWireless,
 } from '../sim/netEdit';
 import type { ConfigChange, Operation } from './operation';
@@ -65,6 +65,8 @@ export const applyConfig = (core: Core, uid: string, change: ConfigChange, ctx: 
     case 'service': return setService(core, uid, change.protocol, change.on, target);
     case 'name': return setName(core, uid, change.name, target);
     case 'hostname': return setHostname(core, uid, change.hostname, target);
+    case 'mailServer': return setMailServer(core, uid, change.ip, target);
+    case 'mailDomain': return setMailDomain(core, uid, change.domain, target);
     case 'proxy': return setProxy(core, uid, change.proxy, target);
     case 'pac': return setPac(core, uid, change.direct, target);
     case 'nameServer': return setNameServer(core, uid, change.ip, target);

@@ -20,6 +20,8 @@ import { bgpTableOf } from './query/bgpTable';
 import { stpOf } from './query/stp';
 import { UPLINK_ROUTER_PORT, outsideCheck, withInternet } from './external';
 import { resolveName } from './resolve';
+import { tcpQuery } from './engine/forward';
+import { mailDelivery } from './query/mail';
 import { isPcCategory } from '../data/categories';
 import type { EngineData, Failure, Network, PathResult } from './types';
 import { deviceCategory } from '../registry/query';
@@ -35,6 +37,8 @@ export interface GoalResult {
   result: PathResult;
   // 名前で引いた通信の名前（シーケンス図で DNS の問い合わせを出すため）
   name?: string;
+  // メールの宛先（達成条件 mail だけが持つ。シーケンス図でメールの流れを出すため）
+  address?: string;
   // ping の大きさ（バイト）と分割禁止。指定した達成条件だけが持つ
   size?: number;
   df?: boolean;
@@ -329,6 +333,23 @@ const handlers: { [K in Goal['type']]: Handler } = {
       }
       const result = ping(state, pc, dst.uid);
       return { goal, ok: result.ok, failure: result.failure, kind: 'ping' as const, src: pc, dst: dst.uid, result };
+    });
+  },
+  // 指定の PC から、メールアドレス宛にメールが届けば合格。届かなければ、メールの失敗（mail.*）を返す。経路は、最後に確かめた区間（MX のサーバーへ届いたなら社内のメールサーバーからの区間）
+  mail: (goal, state) => {
+    if (goal.type !== 'mail') throw new Error('mail ハンドラに別の種類が渡された');
+    const r = mailDelivery(state, goal.from, goal.to);
+    const leg = r.trace.relay ?? r.trace.client;
+    return [{ goal, ok: r.ok, ...(r.ok ? {} : { failure: r.failure }), kind: 'ping', src: goal.from, dst: leg?.server ?? '', result: leg?.leg ?? { ok: false, path: [] }, address: goal.to }];
+  },
+  // 指定した端末すべてから、NAS のサーバーへ SMB（445）で届けば合格
+  nas: (goal, state) => {
+    if (goal.type !== 'nas') throw new Error('nas ハンドラに別の種類が渡された');
+    if (!state.net.nodes.some((n) => n.uid === goal.to)) throw new Error(`機器が見つからない: ${goal.to}`);
+    return goal.from.map((uid): GoalResult => {
+      if (!state.net.nodes.some((n) => n.uid === uid)) throw new Error(`機器が見つからない: ${uid}`);
+      const result = tcpQuery(state, uid, goal.to, 'smb');
+      return { goal, ok: result.ok, ...(result.failure ? { failure: result.failure } : {}), kind: 'ping', src: uid, dst: goal.to, result };
     });
   },
   // 指定の機器が名前を引き、引けた IPアドレスの機器へ HTTP する。名前は結果に持ち、シーケンス図で DNS の問い合わせを出す

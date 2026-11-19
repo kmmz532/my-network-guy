@@ -127,7 +127,7 @@ const legFrames = (ctx: FrameContext, path: string[], traffic: Traffic, tr: Tran
   const last = path[path.length - 1];
   const natIdx = tr ? path.indexOf(tr.router) : -1;
   if (tr && natIdx < 0) throw new Error(`フレームの計算: 変換の機器が経路にない ${tr.router}`);
-  const proto = traffic.kind === 'http' ? 'tcp' : 'icmp';
+  const proto = traffic.kind === 'http' || traffic.kind === 'tcp' ? 'tcp' : 'icmp';
   // 区間 i の送信元・宛先のアドレス。変換の機器より前の区間は before、変換の機器を出る区間から後は after
   const addrAt = (i: number): { srcIp: string; dstIp: string } => {
     const pick = (field: 'src' | 'dst'): string => (tr && tr.field === field ? (i < natIdx ? tr.before : tr.after) : field === 'src' ? e2e.srcIp : e2e.dstIp);
@@ -135,7 +135,7 @@ const legFrames = (ctx: FrameContext, path: string[], traffic: Traffic, tr: Tran
   };
   // 区間 i の、HTTP のときのポート。往路の送信元の一時ポートは、NAPT の変換の後で変わる
   const portsAt = (i: number): { srcPort: number; dstPort: number } | undefined => {
-    if (traffic.kind !== 'http') return undefined;
+    if (traffic.kind !== 'http' && traffic.kind !== 'tcp') return undefined;
     if (reversed) return { srcPort: traffic.port, dstPort: ephemeralPort(`${last}|${first}`) };
     const translated = tr?.field === 'src' && i >= natIdx;
     return { srcPort: ephemeralPort(translated ? `${tr!.router}|${last}` : `${first}|${last}`), dstPort: traffic.port };

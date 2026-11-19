@@ -27,8 +27,8 @@ export const lessonNodes = (lesson: Pick<Lesson, 'placed'>): NetNode[] =>
       return { ...makeIface(p.device, i.port, i.ip, i.prefix), ...(i.dhcp ? { dhcp: true as const } : {}), ...structuredClone(extra) };
     }),
     gateway: p.config?.gateway ?? null,
-    ...(p.isp || p.wireless || p.config?.nameServer || p.config?.proxy || p.config?.pac || p.setup?.vpn || p.setup?.rules
-      ? { components: { ...(p.isp ? { isp: p.isp } : {}), ...(p.wireless ? { wireless: { ...p.wireless } } : {}), ...(p.config?.nameServer ? { resolver: { nameServer: p.config.nameServer } } : {}), ...(p.config?.proxy || p.config?.pac ? { proxyClient: { ...(p.config.proxy ? { proxy: { ...p.config.proxy } } : {}), ...(p.config.pac ? { pac: { direct: [...p.config.pac.direct] } } : {}) } } : {}), ...(p.setup?.vpn ? { vpn: structuredClone(p.setup.vpn) } : {}), ...(p.setup?.rules ? { firewall: structuredClone(p.setup.rules) } : {}) } }
+    ...(p.isp || p.wireless || p.config?.nameServer || p.config?.proxy || p.config?.pac || p.config?.mailServer || p.setup?.vpn || p.setup?.rules
+      ? { components: { ...(p.isp ? { isp: p.isp } : {}), ...(p.wireless ? { wireless: { ...p.wireless } } : {}), ...(p.config?.nameServer ? { resolver: { nameServer: p.config.nameServer } } : {}), ...(p.config?.proxy || p.config?.pac ? { proxyClient: { ...(p.config.proxy ? { proxy: { ...p.config.proxy } } : {}), ...(p.config.pac ? { pac: { direct: [...p.config.pac.direct] } } : {}) } } : {}), ...(p.config?.mailServer ? { mailClient: { server: p.config.mailServer } } : {}), ...(p.setup?.vpn ? { vpn: structuredClone(p.setup.vpn) } : {}), ...(p.setup?.rules ? { firewall: structuredClone(p.setup.rules) } : {}) } }
       : {}),
     routes: [],
     services: (p.config?.services ?? []).map((s) => ({ ...s })),

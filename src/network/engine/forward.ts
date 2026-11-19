@@ -4,7 +4,7 @@ import { can } from '../capabilities';
 import { isRoutingCategory, isSviPort } from '../category';
 import { inSubnet, isPrivateIp } from '../ip';
 import { macOf } from '../mac';
-import { DNS_PORT } from '../types';
+import { DNS_PORT, IMAP_PORT, SMB_PORT, SMTP_PORT } from '../types';
 import type { Endpoint, Failure, FailureReason, FirewallRule, Iface, NetNode, PathResult, PortConfig } from '../types';
 import { deviceCategory } from '../../registry/query';
 import type { NetworkState } from './state';
@@ -47,7 +47,11 @@ const duplicateReason = (view: ForwardView, members: { node: string; port: numbe
 // 通信の種類（ping は ICMP、http は指定のポートへの TCP、dns は 53 番への問い合わせ）。ファイアウォールの規則の判定に使う
 // radius は UDP 1812 への認証の問い合わせ（アクセスポイントから RADIUS サーバーへ）。ファイアウォールは、サービスを any にした規則だけが通す
 // ike は IPsec の鍵交換（UDP 500）。radius と同じく、サービスを any にした規則だけが通す
-export type Traffic = { kind: 'ping' } | { kind: 'http'; port: number } | { kind: 'dns' } | { kind: 'radius' } | { kind: 'ike' };
+// tcp は、メール（smtp 25・imap 143）とファイル共有（smb 445）の TCP。規則は、同じ名前のサービスを許した規則と、any だけが通す
+export type Traffic = { kind: 'ping' } | { kind: 'http'; port: number } | { kind: 'dns' } | { kind: 'radius' } | { kind: 'ike' } | { kind: 'tcp'; service: TcpService; port: number };
+export type TcpService = 'smtp' | 'imap' | 'smb';
+const TCP_PORT: Record<TcpService, number> = { smtp: SMTP_PORT, imap: IMAP_PORT, smb: SMB_PORT };
+export const tcpTraffic = (service: TcpService): Traffic => ({ kind: 'tcp', service, port: TCP_PORT[service] });
 
 // 規則の送信元・宛先（'any' か「a.b.c.d/nn」）に、IPアドレスが入るか
 const matchNet = (spec: string, ip: string): boolean => {
@@ -66,7 +70,8 @@ const allows = (rules: readonly FirewallRule[] | undefined, srcIp: string, dstIp
         (r.service === 'ping' && traffic.kind === 'ping') ||
         (r.service === 'http' && traffic.kind === 'http' && (r.port === undefined || r.port === traffic.port)) ||
         (r.service === 'dns' && traffic.kind === 'dns') ||
-        (r.service === 'radius' && traffic.kind === 'radius')),
+        (r.service === 'radius' && traffic.kind === 'radius') ||
+        (traffic.kind === 'tcp' && r.service === traffic.service)),
   );
 
 // 通信を1方向に届ける。check が true のときは、通り道のファイアウォールの規則を確かめる（戻りの通信は、往路で許した通信の戻りとして確かめない）
@@ -355,7 +360,7 @@ const viaBalancer = (view: ForwardView, srcUid: string, lbUid: string, port: num
 // 静的 NAT（ポートの転送）: 外からルーターの外の口へのポートの通信を、社内のサーバーへ届ける。往路は外→外の口→社内の口→サーバー、復路は逆に戻す（N145）
 const viaStatic = (view: ForwardView, srcUid: string, routerUid: string, traffic: Traffic): PathResult | null => {
   const r = view.addressing.nodeOf(routerUid);
-  if (!r || traffic.kind === 'ping') return null;
+  if (!r || (traffic.kind !== 'http' && traffic.kind !== 'dns')) return null;
   const outerPort = traffic.kind === 'http' ? traffic.port : DNS_PORT;
   const map = getComponent(r, 'nat')?.statics?.find((s) => s.port === outerPort);
   if (!map) return null;
@@ -502,6 +507,20 @@ export const dnsQuery = (view: ForwardView, srcUid: string, dstUid: string, dstI
   if (!back.ok) {
     return { ok: false, path: forward.path, failure: { reason: 'return.failed', node: dstUid, cause: back.failure }, nat: forward.nat };
   }
+  return { ...forward, back: back.path };
+};
+
+// メール・ファイル共有の TCP（smtp 25・imap 143・smb 445）の判定。往路で宛先に届き（ファイアウォールが止めない）、宛先がそのサービスを動かしていて、復路も通ること。
+// 宛先のサービスは、smtp・imap が mail、smb が nas。動いていなければ service.closed
+export const tcpQuery = (view: ForwardView, srcUid: string, dstUid: string, service: TcpService, dstIp?: string): PathResult => {
+  const traffic = tcpTraffic(service);
+  const forward = deliver(view, srcUid, dstUid, traffic, true, undefined, dstIp);
+  if (!forward.ok) return forward;
+  const dst = view.addressing.nodeOf(dstUid);
+  const wanted = service === 'smb' ? 'nas' : 'mail';
+  if (!dst || !dst.services.some((s) => s.protocol === wanted)) return { ok: false, path: forward.path, failure: fail('service.closed', dstUid) };
+  const back = backOf(view, dstUid, srcUid, traffic, forward);
+  if (!back.ok) return { ok: false, path: forward.path, failure: { reason: 'return.failed', node: dstUid, cause: back.failure }, nat: forward.nat };
   return { ...forward, back: back.path };
 };
 

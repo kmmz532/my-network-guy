@@ -7,17 +7,18 @@ import { isL2Category, isRoutingCategory } from './category';
 import { getComponent } from './components';
 import { lookupName, type DnsStep } from './dns';
 import { analyze } from './engine/analyze';
-import { deliver, dnsQuery, http, ping } from './engine/forward';
+import { deliver, dnsQuery, http, ping, tcpTraffic } from './engine/forward';
 import type { Traffic } from './engine/forward';
 import type { NetworkState } from './engine/state';
 import { stateForPath, withInternet } from './external';
 import { framesOf, type Frame, type FrameContext } from './frames';
 import { inSubnet } from './engine';
 import { l2Path } from './mac';
+import { mailDelivery, type MailResult } from './query/mail';
 import { ospfNeighborsOf } from './query/ospfNeighbors';
 import { effectivePriority, electVrrpMaster } from './vrrp';
 import type { VpnFailure } from './query/vpn';
-import type { Failure, NetNode, PathResult } from './types';
+import { SMTP_PORT, type DnsRecordType, type Failure, type NetNode, type PathResult } from './types';
 
 export type ControlTrigger =
   | { kind: 'ping'; from: string; to: string; size?: number; df?: boolean }
@@ -26,7 +27,9 @@ export type ControlTrigger =
   | { kind: 'ospf'; a: string; b: string }
   | { kind: 'stp' }
   | { kind: 'vrrp'; group: number }
-  | { kind: 'vpn'; a: string; b: string };
+  | { kind: 'vpn'; a: string; b: string }
+  // メール。address は「user@domain」。社内のメールサーバーを経て、MX のサーバーへ届くまで
+  | { kind: 'mail'; from: string; address: string };
 
 export interface ControlStep {
   from: string;
@@ -165,12 +168,14 @@ const pushPing = (b: Builder, trigger: Extract<ControlTrigger, { kind: 'ping' }>
   }
 };
 
-// 名前の問い合わせと応答（再帰の入れ子の順: 問い合わせは呼んだ順、応答は逆順）。引けたかを返す
-const pushDns = (b: Builder, from: string, name: string): boolean => {
+// 名前の問い合わせと応答（再帰の入れ子の順: 問い合わせは呼んだ順、応答は逆順）。引けたかを返す。
+// type は引く記録の種類（既定は A。MX のときは文言も MX の問い合わせにする）。unresolved は、引けなかったときに最後の行へ出す失敗（既定は name.unresolved）
+const pushDns = (b: Builder, from: string, name: string, type: DnsRecordType = 'A', unresolved?: Failure): boolean => {
   const node = nodeOf(b.state, from);
   // 機器自身の対応表にあれば、パケットは出ない
-  if ((getComponent(node, 'resolver')?.hosts ?? []).some((h) => h.name === name)) return true;
-  const lookup = lookupName(node, name, 'A', b.state.net, b.state.world);
+  if (type === 'A' && (getComponent(node, 'resolver')?.hosts ?? []).some((h) => h.name === name)) return true;
+  const suffix = type === 'MX' ? '_mx' : '';
+  const lookup = lookupName(node, name, type, b.state.net, b.state.world);
   // 問い合わせの経路は、仮想のインターネットを加えた層から求める（dns.ts が問い合わせた層と同じ）
   const world = analyze(withInternet(b.state.net, b.state.world) ?? b.state.net, b.state.world);
   const inWorld = (uid: string) => world.net.nodes.some((n) => n.uid === uid);
@@ -182,19 +187,19 @@ const pushDns = (b: Builder, from: string, name: string): boolean => {
     return r.path;
   };
   const unreachable = !lookup.ok && lookup.reason === 'dns.unreachable';
-  const failure: Failure | undefined = lookup.ok ? undefined : { reason: 'name.unresolved', node: lookup.server ?? from };
+  const failure: Failure | undefined = lookup.ok ? undefined : (unresolved ?? { reason: 'name.unresolved', node: lookup.server ?? from });
   const params = { name };
   lookup.steps.forEach((s, i) => {
     const path = pathOf(s);
     // 仮想のインターネットの機器を含む経路には、ARP を置かない
     if (path.length >= 2 && path.every((u) => b.state.net.nodes.some((n) => n.uid === u))) pushArp(b, path, framesFor(b.ctx, { ok: true, path }, { kind: 'dns' }).forward);
     const last = i === lookup.steps.length - 1;
-    b.steps.push(unicast(s.from, s.to, 'dns', 'seq.dns.query', path, { params, ...(last && unreachable && failure ? { failure } : {}) }));
+    b.steps.push(unicast(s.from, s.to, 'dns', `seq.dns.query${suffix}`, path, { params, ...(last && unreachable && failure ? { failure } : {}) }));
   });
   if (unreachable) return false;
   [...lookup.steps].reverse().forEach((s, i) => {
     const last = i === lookup.steps.length - 1;
-    b.steps.push(unicast(s.to, s.from, 'dns', 'seq.dns.response', [...pathOf(s)].reverse(), { params, ...(last && failure ? { failure } : {}) }));
+    b.steps.push(unicast(s.to, s.from, 'dns', `seq.dns.response${suffix}`, [...pathOf(s)].reverse(), { params, ...(last && failure ? { failure } : {}) }));
   });
   return lookup.ok;
 };
@@ -251,6 +256,54 @@ const pushProxyHttp = (b: Builder, trigger: Extract<ControlTrigger, { kind: 'htt
     toClient('tcp', 'seq.tcp.fin'),
     toProxy('tcp', 'seq.tcp.ack'),
   );
+};
+
+// SMTP（25）の1区間。接続・送信・終了の3行（TCP の細かな手順と SMTP の命令は1行にまとめる）。届かないときは接続の行で止め、failure があればその失敗（なければ区間の失敗）を持つ。
+// rejected は、サーバーに届いたが宛先を受け付けない（mail.unknown_domain）ときの失敗。送信の行で止める
+const pushSmtp = (b: Builder, from: string, to: string, leg: PathResult, opts: { failure?: Failure; rejected?: Failure } = {}): void => {
+  const { forward } = framesFor(b.ctx, leg, tcpTraffic('smtp'));
+  const path = leg.path.length > 0 ? leg.path : [from];
+  if (path.length >= 2) pushArp(b, path, forward);
+  const frame = endToEndFrame(forward);
+  const params = { port: SMTP_PORT };
+  const row = (label: string, extra: Partial<ControlStep> = {}): ControlStep => unicast(from, to, 'tcp', label, path, { frame, params, ...extra });
+  if (!leg.ok) {
+    b.steps.push(row('seq.smtp.connect', { failure: opts.failure ?? failureOf(leg), reached: path[path.length - 1] === to ? [to] : [] }));
+    return;
+  }
+  b.steps.push(row('seq.smtp.connect'));
+  if (opts.rejected) {
+    b.steps.push(row('seq.smtp.send', { failure: opts.rejected }));
+    return;
+  }
+  b.steps.push(row('seq.smtp.send'), row('seq.smtp.quit'));
+};
+
+// メール。端末から社内のメールサーバーへ（SMTP）→ 社内のメールサーバーが MX を引き、MX の名前の A を引く（DNS）→ MX のサーバーへ（SMTP）の順
+const pushMail = (b: Builder, trigger: Extract<ControlTrigger, { kind: 'mail' }>, result: MailResult): void => {
+  const { from } = trigger;
+  const { trace } = result;
+  const failure = result.ok ? undefined : result.failure;
+  if (!trace.client) {
+    if (!failure) throw new Error('制御の列: メールの経路がないのに、失敗の理由がない');
+    // 端末にサーバーの設定がない・そのサーバーに mail がない: 端末からサーバー（なければ端末自身）への接続で止める
+    b.steps.push(unicast(from, failure.node, 'tcp', 'seq.smtp.connect', [from], { params: { port: SMTP_PORT }, failure, reached: [] }));
+    return;
+  }
+  const { server, leg } = trace.client;
+  pushSmtp(b, from, server, leg);
+  if (!leg.ok || !trace.mx) return;
+  const host = trace.mx.host;
+  if (!pushDns(b, server, trace.mx.name, 'MX', failure)) return;
+  if (host === undefined) throw new Error('制御の列: MX が引けたのにメールサーバーの名前がない');
+  if (!pushDns(b, server, host, 'A', failure)) return;
+  if (!trace.relay) {
+    if (!failure) throw new Error('制御の列: MX のサーバーへの区間がないのに、失敗の理由がない');
+    b.steps.push(unicast(server, server, 'tcp', 'seq.smtp.connect', [server], { params: { port: SMTP_PORT }, failure, reached: [] }));
+    return;
+  }
+  const rejected = failure?.reason === 'mail.unknown_domain' ? failure : undefined;
+  pushSmtp(b, server, trace.relay.server, trace.relay.leg, { ...(failure?.reason === 'mail.relay_failed' ? { failure } : {}), ...(rejected ? { rejected } : {}) });
 };
 
 const pushHttp = (b: Builder, trigger: Extract<ControlTrigger, { kind: 'http' }>, result: PathResult): void => {
@@ -488,6 +541,9 @@ export const controlSequence = (given: NetworkState, trigger: ControlTrigger): C
       break;
     case 'http':
       pushHttp(b, trigger, http(state, trigger.from, trigger.to, trigger.port, trigger.name));
+      break;
+    case 'mail':
+      pushMail(b, trigger, mailDelivery(state, trigger.from, trigger.address));
       break;
     case 'dhcp':
       pushDhcp(b, trigger);

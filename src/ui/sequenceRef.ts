@@ -1,5 +1,5 @@
 // シーケンス図の窓の ref（タブの文字列）の組み立てと解釈。画面に依存しない純粋な関数（試験で確かめる）
-// 書式: ping|from|to（大きさを指定した ping は |size|df を続ける。df は 1 か空） ・ http|from|to|port（名前で引いた通信は |name を続ける）・dhcp|client ・ ospf|a|b ・ stp ・ vrrp|group ・ vpn|a|b
+// 書式: ping|from|to（大きさを指定した ping は |size|df を続ける。df は 1 か空） ・ http|from|to|port（名前で引いた通信は |name を続ける）・dhcp|client ・ ospf|a|b ・ stp ・ vrrp|group ・ vpn|a|b ・ mail|from|address
 import type { ControlTrigger } from '../network/public';
 
 // 窓の ref に入れる、制御の指定
@@ -21,13 +21,17 @@ export const sequenceRefOf = (trigger: ControlTrigger): string => {
       return `vrrp|${trigger.group}`;
     case 'vpn':
       return `vpn|${trigger.a}|${trigger.b}`;
+    case 'mail':
+      return `mail|${trigger.from}|${trigger.address}`;
   }
 };
 
 // 窓の ref に入れる、通信の指定（名前で引いた通信は名前も入れる）
-export const sequenceRef = (trace: { kind: 'ping' | 'http'; src: string; dst: string; name?: string; size?: number; df?: boolean }): string =>
+export const sequenceRef = (trace: { kind: 'ping' | 'http'; src: string; dst: string; name?: string; address?: string; size?: number; df?: boolean }): string =>
   sequenceRefOf(
-    trace.kind === 'http'
+    trace.address !== undefined
+      ? { kind: 'mail', from: trace.src, address: trace.address }
+      : trace.kind === 'http'
       ? { kind: 'http', from: trace.src, to: trace.dst, port: 80, ...(trace.name !== undefined ? { name: trace.name } : {}) }
       : { kind: 'ping', from: trace.src, to: trace.dst, ...(trace.size !== undefined ? { size: trace.size } : {}), ...(trace.df !== undefined ? { df: trace.df } : {}) },
   );
@@ -42,5 +46,6 @@ export const parseRef = (ref: string): ControlTrigger => {
   if (kind === 'stp') return { kind };
   if (kind === 'vrrp') return { kind, group: Number(a) };
   if (kind === 'vpn') return { kind, a, b };
+  if (kind === 'mail') return { kind, from: a, address: b };
   throw new Error(`シーケンス図: 通信の指定が不正 ${ref}`);
 };

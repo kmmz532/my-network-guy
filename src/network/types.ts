@@ -76,9 +76,16 @@ export type Service =
   | { protocol: 'radius' }
   // プロキシ。port で待ち受け（既定 8080）、受けた HTTP を宛先へ出し直す
   | { protocol: 'proxy'; port: number }
+  // メールサーバー。SMTP 25 と IMAP 143 を受ける。domain は、このサーバーが受け持つメールのドメイン
+  | { protocol: 'mail'; domain: string }
+  // NAS（ファイルサーバー）。SMB 445 を受ける
+  | { protocol: 'nas' }
   | { protocol: 'dns'; role: 'auth' | 'cache'; zone: DnsRecord[]; forwarder?: string };
 export type DnsService = Extract<Service, { protocol: 'dns' }>;
 export const DNS_PORT = 53;
+export const SMTP_PORT = 25;
+export const IMAP_PORT = 143;
+export const SMB_PORT = 445;
 
 // 機器ごとの対応表の1行（名前 → IPアドレス）。Debian の /etc/hosts と同じ考え方で、ping・traceroute の宛先の名前を引くのに使う
 export interface HostEntry {
@@ -90,7 +97,7 @@ export interface HostEntry {
 export interface FirewallRule {
   src: string;
   dst: string;
-  service: 'any' | 'ping' | 'http' | 'dns' | 'radius';
+  service: 'any' | 'ping' | 'http' | 'dns' | 'radius' | 'smtp' | 'imap' | 'smb';
   port?: number;
 }
 
@@ -292,6 +299,14 @@ export const FAILURE_REASONS = [
   'qos.dropped',
   // プロキシを設定した端末から、プロキシへ届かない（アドレスの誤り・サービスが動いていない・途中で止まる）。札は、プロキシの機器（機器がなければ端末）
   'proxy.unreachable',
+  // メール: 端末にメールサーバーの設定がない、またはそのサーバーが mail のサービスを動かしていない。札は、サーバー（機器がなければ端末）
+  'mail.no_server',
+  // メール: 宛先のドメインの MX の記録がない（引けない）。札は、MX を引いたメールサーバー
+  'mail.no_mx',
+  // メール: 社内のメールサーバーから、MX のサーバーへ SMTP（25）で届かない。札は社内のメールサーバーで、届かなかった理由は cause に持つ
+  'mail.relay_failed',
+  // メール: MX のサーバーへ届いたが、そのサーバーが宛先のドメインを受け持っていない。札は、届いたサーバー
+  'mail.unknown_domain',
 ] as const;
 
 export type FailureReason = (typeof FAILURE_REASONS)[number];

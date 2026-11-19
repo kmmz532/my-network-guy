@@ -18,7 +18,7 @@ const node = (uid: string, device: string, x = 0, y = 0, name?: string): NetNode
 });
 
 const LABEL: Record<string, string> = { pc: 'PC', server: 'サーバー', l2_switch: 'スイッチ' };
-const ROLE: Record<string, string> = { 'ui.node.role.web': 'Webサーバー', 'ui.node.role.dns': 'DNSサーバー', 'ui.node.role.radius': 'RADIUSサーバー', 'ui.node.role.proxy': 'プロキシサーバー', 'ui.node.role.multi': '複合サーバー' };
+const ROLE: Record<string, string> = { 'ui.node.role.web': 'Webサーバー', 'ui.node.role.dns': 'DNSサーバー', 'ui.node.role.radius': 'RADIUSサーバー', 'ui.node.role.proxy': 'プロキシサーバー', 'ui.node.role.mail': 'メールサーバー', 'ui.node.role.nas': 'NAS', 'ui.node.role.multi': '複合サーバー' };
 
 const WEB = { protocol: 'http' as const, port: 80 };
 const DNS = { protocol: 'dns' as const, role: 'auth' as const, zone: [] };
@@ -85,6 +85,10 @@ describe('サーバーの名前（動いているサービスで決める）', (
     expect(nodeName(dns, [dns], ctx())).toBe('DNSサーバー-1');
     const radius = served('d', [{ protocol: 'radius' }]);
     expect(nodeName(radius, [radius], ctx())).toBe('RADIUSサーバー-1');
+    const mail = served('f', [{ protocol: 'mail', domain: 'corp.example' }]);
+    expect(nodeName(mail, [mail], ctx())).toBe('メールサーバー-1');
+    const nas = served('g', [{ protocol: 'nas' }]);
+    expect(nodeName(nas, [nas], ctx())).toBe('NAS-1');
     const both = served('e', [WEB, DNS]);
     expect(nodeName(both, [both], ctx())).toBe('複合サーバー-1');
   });

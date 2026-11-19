@@ -47,7 +47,7 @@ export const COMPONENT_SCHEMAS = {
     statics: z.array(z.object({ port: z.number().int(), insideIp: ipv4, insidePort: z.number().int() })).optional(),
   }),
   // ファイアウォールの規則（許可する通信。一覧にない通信は通さない。送信元・宛先は 'any' か「a.b.c.d/nn」。http は port で絞れる。dns は 53 番）
-  firewall: z.array(z.object({ src: z.string(), dst: z.string(), service: z.enum(['any', 'ping', 'http', 'dns', 'radius']), port: z.number().int().optional() })),
+  firewall: z.array(z.object({ src: z.string(), dst: z.string(), service: z.enum(['any', 'ping', 'http', 'dns', 'radius', 'smtp', 'imap', 'smb']), port: z.number().int().optional() })),
   // ロードバランサーの仮想サーバーの一覧（vip はロードバランサーの口のアドレス、port は HTTP のサービスのポート。members は振り分け先、method は選び方、healthCheck は振り分け先の健全の確かめ方、snat は振り分け先へ届く通信の送信元をロードバランサーのアドレスにするか）
   loadBalancer: z.array(
     z.object({
@@ -71,6 +71,8 @@ export const COMPONENT_SCHEMAS = {
     proxy: z.object({ ip: ipv4, port: z.number().int().min(1).max(65535) }).optional(),
     pac: z.object({ direct: z.array(z.string().min(1)) }).optional(),
   }),
+  // メールの利用側（メールソフトの設定）。server は、送信を預けるメールサーバーのアドレス
+  mailClient: z.object({ server: ipv4 }),
   // DHCP のプール（サーバーが配る範囲。口のアドレスがプールのネットワークの中にある口で配る）
   dhcpServer: z.array(
     z.object({

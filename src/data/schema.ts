@@ -298,6 +298,10 @@ const serviceSchema = z.discriminatedUnion('protocol', [
   z.object({ protocol: z.literal('radius') }),
   // プロキシは port（既定 8080）で待ち受け、受けた HTTP を宛先へ出し直す
   z.object({ protocol: z.literal('proxy'), port: z.number().int().min(1).max(65535) }),
+  // メールサーバーは SMTP 25・IMAP 143 に固定。domain は受け持つメールのドメイン
+  z.object({ protocol: z.literal('mail'), domain: z.string().min(1) }),
+  // NAS は SMB 445 に固定
+  z.object({ protocol: z.literal('nas') }),
   // DNS は 53 番。auth は自分のゾーンだけを答え、cache はゾーンにない名前を forwarder（転送先の DNS の IP）へ聞く
   z.object({ protocol: z.literal('dns'), role: z.enum(['auth', 'cache']), zone: z.array(dnsRecordSchema), forwarder: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/).optional() }),
 ]);
@@ -405,6 +409,8 @@ const placedConfigSchema = z.object({
   // プロキシ（ブラウザの設定）。HTTP はまずこのプロキシへ届ける。pac の direct は、プロキシを通さず直接つなぐ名前の接尾辞
   proxy: z.object({ ip: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/), port: z.number().int().min(1).max(65535) }).optional(),
   pac: z.object({ direct: z.array(z.string().min(1)) }).optional(),
+  // メールサーバーのアドレス（メールソフトの設定）。メールは、まずこのサーバーへ SMTP で預ける
+  mailServer: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/).optional(),
   services: z.array(serviceSchema),
   locked: z.boolean(),
 });
@@ -500,7 +506,7 @@ const placedSetupSchema = z.object({
   stpPriority: int.positive().optional(),
   vpn: z.array(vpnTunnelSchema).optional(),
   napt: z.boolean().optional(),
-  rules: z.array(z.object({ src: z.string().min(1), dst: z.string().min(1), service: z.enum(['any', 'ping', 'http', 'dns', 'radius']), port: int.min(1).max(65535).optional() })).optional(),
+  rules: z.array(z.object({ src: z.string().min(1), dst: z.string().min(1), service: z.enum(['any', 'ping', 'http', 'dns', 'radius', 'smtp', 'imap', 'smb']), port: int.min(1).max(65535).optional() })).optional(),
 });
 const contractPlacedSchema = placedSchema.extend({ setup: placedSetupSchema.optional() });
 
@@ -573,6 +579,10 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('reach_by_name'), name: z.string().min(1) }),
   // 指定の端末が、インターネットへ HTTP で届けば合格。by を持つときは、インターネットから見た送信元が機器 by のアドレスであること
   z.object({ type: z.literal('outside_sees'), from: z.array(z.string().min(1)).min(1), port: z.number().int().min(1).max(65535), by: z.string().min(1).optional() }),
+  // 指定の PC から、メールアドレス（user@domain）宛にメールが届けば合格（PC のメールサーバーの設定から、MX を引いて宛先のサーバーへ SMTP で届くまで）
+  z.object({ type: z.literal('mail'), from: z.string().min(1), to: z.string().regex(/^[^@\s]+@[^@\s]+$/) }),
+  // 指定した端末すべてから、NAS のサーバーへ SMB（445）で届けば合格
+  z.object({ type: z.literal('nas'), from: z.array(z.string().min(1)).min(1), to: z.string().min(1) }),
   z.object({ type: z.literal('http_by_name'), from: z.array(z.string().min(1)).min(1), name: z.string().min(1), port: z.number().int().min(1).max(65535) }),
   // 指定した機器がすべて、名前を引ける（ネームサーバーへ問い合わせて A の記録が返る）。ip を書けば、その IPアドレスであること
   z.object({ type: z.literal('resolve_name'), from: z.array(z.string().min(1)).min(1), name: z.string().min(1), ip: z.string().regex(/^\d{1,3}(\.\d{1,3}){3}$/).optional() }),

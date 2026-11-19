@@ -80,6 +80,7 @@ export const GLOSSARY_OF_GOAL: Partial<Record<Goal['type'], string>> = {
   load_balanced: 'load_balancer',
   public_http: 'napt',
   outside_sees: 'proxy',
+  mail: 'mail_mx',
   vpn_up: 'ipsec_vpn',
 };
 

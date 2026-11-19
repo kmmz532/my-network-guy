@@ -29,6 +29,8 @@ const SERVICE_NAME_KEY: Record<ServerRole, string> = {
   dns: 'ui.node.role.dns',
   radius: 'ui.node.role.radius',
   proxy: 'ui.node.role.proxy',
+  mail: 'ui.node.role.mail',
+  nas: 'ui.node.role.nas',
 };
 const MULTI_NAME_KEY = 'ui.node.role.multi';
 
