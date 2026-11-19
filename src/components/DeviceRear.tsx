@@ -26,6 +26,9 @@ import { Text } from './ui/Text';
 import { portHoverAt, replugTargetAt, type PortBox, type PortHover } from './rearDrag';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { portCountOf, deviceCategory } from '../registry/query';
+import { portSpeedOf } from '../network/query/portSpeedOf';
+import { hideTip, showTipLater } from './Tooltip';
+import { isPhoneNow } from '../ui/usePhone';
 
 // 背面の部品のスプライトを拡大する倍率（ドット絵を整数倍で描く）
 // 背面の部品の拡大率。ポートが多い機器は、板の幅に収まるよう2倍にする
@@ -194,8 +197,8 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
             const fiber = link?.cable.startsWith('fiber') ?? false;
             const lit = !lifted && link !== undefined;
             // LED: 緑＝つながっている・橙＝スパニングツリーで止めている・灰＝停止・消灯＝配線なし（NET.md §5.1）
-            const state = states.get(p);
-            const led = !lit ? '#2a2f36' : state?.shutdown ? '#8a8f98' : state?.stp === 'blocking' ? '#f0a030' : '#62d26f';
+            const portState = states.get(p);
+            const led = !lit ? '#2a2f36' : portState?.shutdown ? '#8a8f98' : portState?.stp === 'blocking' ? '#f0a030' : '#62d26f';
             // 挿し替え中は、空いているポートを光らせて挿し替え先を示す
             const replugFree = active !== null && link === undefined;
             // ドラッグ中は、重なっているポートを明るく（空き）・暗く（埋まり）示す。それ以外は押しているポートを明るくする
@@ -226,8 +229,24 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
                 }}
                 onPointerDown={onPlugDown(p)}
                 onDragStart={(e) => e.preventDefault()}
-                onMouseEnter={() => setHover(p)}
-                onMouseLeave={() => setHover(null)}
+                onMouseEnter={() => {
+                  setHover(p);
+                  // 口の速さは、つながっていれば配線の速さ、なければ口の定義の速さ
+                  const speed = portSpeedOf(state, links, node.uid, node.device, p);
+                  if (!isPhoneNow()) {
+                    const rest = speed === undefined ? undefined : t('ui.rear.portSpeed', { speed: `${speed}Mb/s` });
+                    const anchor = () => {
+                      const r = portRefs.current[p]?.getBoundingClientRect();
+                      return r ? { x: r.left, y: r.top, w: r.width, h: r.height } : null;
+                    };
+                    showTipLater(anchor, rest === undefined ? portLabel(category, p) : `${portLabel(category, p)}
+${rest}`);
+                  }
+                }}
+                onMouseLeave={() => {
+                  setHover(null);
+                  hideTip();
+                }}
               >
                 {/* LED（緑・橙・灰・消灯）。2×2 の点を3倍にする */}
                 <Led color={led} size={2 * SCALE} />

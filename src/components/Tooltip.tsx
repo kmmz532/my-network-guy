@@ -24,7 +24,25 @@ const setTip = (tip: Tip | null) => {
 
 // 要素・地図の上に出す。anchor は画面の座標（左上と大きさ）
 export const showTipAt = (anchor: Anchor, text: string): void => setTip({ ...anchor, text });
-export const hideTip = (): void => setTip(null);
+export const hideTip = (): void => {
+  cancelPendingTip();
+  setTip(null);
+};
+
+// マウスを乗せてから、Tooltip の部品と同じ遅れで出す（部品で包めない要素に使う）
+let pending: number | null = null;
+const cancelPendingTip = () => {
+  if (pending !== null) window.clearTimeout(pending);
+  pending = null;
+};
+export const showTipLater = (anchor: () => Anchor | null, text: string): void => {
+  cancelPendingTip();
+  pending = window.setTimeout(() => {
+    pending = null;
+    const a = anchor();
+    if (a) showTipAt(a, text);
+  }, balance.tooltip.hoverMs);
+};
 
 // 画面に1つだけ置く。App の最上位で描く
 export function TooltipHost() {

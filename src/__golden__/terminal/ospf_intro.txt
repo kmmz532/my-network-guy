@@ -10,6 +10,7 @@ show ip interface brief
 sh ip r
 show ip route
 show interfaces
+show interfaces status
 show running-config
 show arp
 show hosts

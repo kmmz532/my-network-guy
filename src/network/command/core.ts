@@ -5,6 +5,7 @@ import { isL2Category, isRoutingCategory } from '../category';
 import { framesOf } from '../frames';
 import { macOf } from '../mac';
 import { lagBundlesOf } from '../query/lagBundles';
+import { portSpeedOf } from '../query/portSpeedOf';
 import { resolveName } from '../resolve';
 import { isIp, parseIfaceName, prefixOfMask } from './args';
 import { SUB_MODES, sessionPortOf } from './modes';
@@ -25,6 +26,13 @@ const peersOf = (ctx: CommandContext): Map<number, NetNode | undefined> => {
   }
   return peers;
 };
+
+// 機器の口の番号（配線のある口と、機器のインターフェースの口。昇順）
+const portsOf = (ctx: CommandContext, peers: Map<number, NetNode | undefined>): number[] =>
+  [...new Set([...ctx.node.interfaces.map((i) => i.port), ...peers.keys()])].sort((a, b) => a - b);
+
+// 速さの表記（Mbps の形。速さの定義がなければ auto）
+const speedText = (mbps: number | undefined): string => (mbps === undefined ? 'auto' : `${mbps}Mb/s`);
 
 // 束ねた口（Po）のうち、まとまっている物理の口の番号（show etherchannel summary と同じ読み方）
 const bundledPortsOf = (ctx: CommandContext): Set<number> =>
@@ -293,7 +301,7 @@ export const commands: readonly CommandSpec[] = [
     run: (_args, ctx, tr) => {
       const { node } = ctx;
       const peers = peersOf(ctx);
-      const ports = [...new Set([...node.interfaces.map((i) => i.port), ...peers.keys()])].sort((a, b) => a - b);
+      const ports = portsOf(ctx, peers);
       if (ports.length === 0) return shown([out(tr('ui.terminal.noPort'))]);
       return shown(
         ports.flatMap((port) => {
@@ -304,9 +312,35 @@ export const commands: readonly CommandSpec[] = [
             : iface
               ? out(tr('ui.terminal.ifLinkedIp', { port, ip: iface.ip, prefix: iface.prefix, peer: nameOf(ctx, peer) }))
               : out(tr('ui.terminal.ifLinked', { port, peer: nameOf(ctx, peer) }));
-          return [line, out(tr('ui.terminal.mac', { port, mac: macOfPort(ctx, port) }))];
+          const speed = portSpeedOf(ctx.state, ctx.links, node.uid, node.device, port);
+          return [line, out(tr('ui.terminal.mac', { port, mac: macOfPort(ctx, port) })), out(tr('ui.terminal.ifSpeed', { port, speed: speedText(speed) }))];
         }),
       );
+    },
+  },
+  {
+    id: 'core.showInterfacesStatus',
+    modes: ['exec'],
+    tokens: [{ word: 'show' }, { word: 'interfaces' }, { word: 'status' }],
+    help: 'ui.cmd.core.showInterfacesStatus',
+    writes: false,
+    topic: null,
+    run: (_args, ctx, tr) => {
+      const { node } = ctx;
+      const peers = peersOf(ctx);
+      const ports = portsOf(ctx, peers);
+      if (ports.length === 0) return shown([out(tr('ui.terminal.noPort'))]);
+      // 速さは、つながった口は a-<速さ>（自動の交渉の結果）、つながっていない口は auto
+      const table: string[][] = [
+        [tr('ui.terminal.statusPort'), tr('ui.terminal.statusState'), tr('ui.terminal.statusSpeed')],
+        ...ports.map((port) => {
+          const linked = peers.has(port);
+          const speed = linked ? portSpeedOf(ctx.state, ctx.links, node.uid, node.device, port) : undefined;
+          return [String(port), tr(linked ? 'ui.terminal.statusConnected' : 'ui.terminal.statusNotconnect'), speed === undefined ? 'auto' : `a-${speed}`];
+        }),
+      ];
+      const widths = table[0].map((_, c) => Math.max(...table.map((r) => r[c].length)));
+      return shown(table.map((r) => out(r.map((cell, c) => cell.padEnd(widths[c])).join('  ').trimEnd())));
     },
   },
   {

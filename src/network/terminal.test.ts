@@ -104,6 +104,7 @@ describe('確認のコマンド（段階2）', () => {
     expect(lines.map((l) => l.text)).toEqual([
       'ui.terminal.ifLinkedIp {"port":0,"ip":"192.168.1.10","prefix":24,"peer":"s"}',
       'ui.terminal.mac {"port":0,"mac":"02:10:00:00:01:00"}',
+      'ui.terminal.ifSpeed {"port":0,"speed":"1000Mb/s"}',
     ]);
   });
 

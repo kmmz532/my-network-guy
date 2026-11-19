@@ -67,8 +67,18 @@
       "lines": [
         "out:ui.terminal.ifLinkedIp {\"port\":0,\"ip\":\"10.0.1.1\",\"prefix\":24,\"peer\":\"PC1\"}",
         "out:ui.terminal.mac {\"port\":0,\"mac\":\"02:40:00:00:02:00\"}",
+        "out:ui.terminal.ifSpeed {\"port\":0,\"speed\":\"1000Mb/s\"}",
         "out:ui.terminal.ifLinkedIp {\"port\":1,\"ip\":\"10.0.12.1\",\"prefix\":30,\"peer\":\"R2\"}",
-        "out:ui.terminal.mac {\"port\":1,\"mac\":\"02:40:00:00:02:01\"}"
+        "out:ui.terminal.mac {\"port\":1,\"mac\":\"02:40:00:00:02:01\"}",
+        "out:ui.terminal.ifSpeed {\"port\":1,\"speed\":\"1000Mb/s\"}"
+      ]
+    },
+    {
+      "line": "show interfaces status",
+      "lines": [
+        "out:ui.terminal.statusPort  ui.terminal.statusState      ui.terminal.statusSpeed",
+        "out:0                       ui.terminal.statusConnected  a-1000",
+        "out:1                       ui.terminal.statusConnected  a-1000"
       ]
     },
     {
