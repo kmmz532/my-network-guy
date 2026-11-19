@@ -1,0 +1,305 @@
+{
+  "id": "mail_mx",
+  "topic": "service",
+  "order": 38,
+  "size": {
+    "w": 16,
+    "h": 10
+  },
+  "placed": [
+    {
+      "ref": "PC1",
+      "device": "pc_basic",
+      "x": 1,
+      "y": 4,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.10",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "mailServer": "192.168.1.25",
+        "services": [],
+        "locked": true
+      },
+      "name": "PC1"
+    },
+    {
+      "ref": "SW1",
+      "device": "l2_switch_8p",
+      "x": 5,
+      "y": 4,
+      "locked": true,
+      "name": "社内のスイッチ"
+    },
+    {
+      "ref": "MAIL",
+      "device": "server_basic",
+      "x": 4,
+      "y": 1,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.25",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "nameServer": "192.168.1.53",
+        "services": [
+          {
+            "protocol": "mail",
+            "domain": "corp.example"
+          }
+        ],
+        "locked": true
+      },
+      "name": "社内のメールサーバー"
+    },
+    {
+      "ref": "DNS",
+      "device": "server_basic",
+      "x": 4,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.53",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [
+          {
+            "protocol": "dns",
+            "role": "cache",
+            "zone": [],
+            "forwarder": "10.0.2.53"
+          }
+        ],
+        "locked": true
+      },
+      "name": "社内の DNS"
+    },
+    {
+      "ref": "R1",
+      "device": "router_basic",
+      "x": 8,
+      "y": 4,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.1",
+            "prefix": 24
+          },
+          {
+            "port": 1,
+            "ip": "10.0.2.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "ルーター"
+    },
+    {
+      "ref": "SW2",
+      "device": "l2_switch_8p",
+      "x": 11,
+      "y": 4,
+      "locked": true,
+      "name": "取引先のスイッチ"
+    },
+    {
+      "ref": "PDNS",
+      "device": "server_basic",
+      "x": 13,
+      "y": 1,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.2.53",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.0.2.1",
+        "services": [
+          {
+            "protocol": "dns",
+            "role": "auth",
+            "zone": []
+          }
+        ],
+        "locked": false
+      },
+      "name": "取引先の DNS"
+    },
+    {
+      "ref": "PMAIL",
+      "device": "server_basic",
+      "x": 13,
+      "y": 7,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.2.25",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.0.2.1",
+        "services": [
+          {
+            "protocol": "mail",
+            "domain": "partner.example"
+          }
+        ],
+        "locked": false
+      },
+      "name": "取引先のメールサーバー"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PC1",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "MAIL",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "DNS",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW1",
+        "port": 2
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "SW1",
+        "port": 3
+      },
+      "b": {
+        "ref": "R1",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "R1",
+        "port": 1
+      },
+      "b": {
+        "ref": "SW2",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PDNS",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW2",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "PMAIL",
+        "port": 0
+      },
+      "b": {
+        "ref": "SW2",
+        "port": 2
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "mail",
+      "from": "PC1",
+      "to": "sales@partner.example"
+    }
+  ],
+  "guide": [
+    {
+      "target": "PDNS",
+      "done": "open:PDNS"
+    },
+    {
+      "target": "test",
+      "done": "goal:1"
+    },
+    {
+      "target": "test",
+      "done": "sequence:open"
+    }
+  ],
+  "followUps": [
+    {
+      "kind": "build",
+      "id": "f1",
+      "goals": [
+        {
+          "type": "mail",
+          "from": "PC1",
+          "to": "sales@partner.example"
+        }
+      ]
+    }
+  ],
+  "followUpSetup": [
+    {
+      "before": "f1",
+      "change": [
+        {
+          "kind": "config",
+          "uid": "PMAIL",
+          "change": {
+            "kind": "mailDomain",
+            "domain": null
+          }
+        }
+      ]
+    }
+  ]
+}

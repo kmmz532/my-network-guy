@@ -1,0 +1,585 @@
+{
+  "goals": [
+    true
+  ],
+  "pings": [
+    {
+      "from": "DNS",
+      "to": "MAIL",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "DNS",
+        "MAIL"
+      ]
+    },
+    {
+      "from": "DNS",
+      "to": "PC1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "DNS",
+        "PC1"
+      ]
+    },
+    {
+      "from": "DNS",
+      "to": "PDNS",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "DNS",
+        "R1",
+        "PDNS"
+      ]
+    },
+    {
+      "from": "DNS",
+      "to": "PMAIL",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "DNS",
+        "R1",
+        "PMAIL"
+      ]
+    },
+    {
+      "from": "MAIL",
+      "to": "DNS",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "MAIL",
+        "DNS"
+      ]
+    },
+    {
+      "from": "MAIL",
+      "to": "PC1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "MAIL",
+        "PC1"
+      ]
+    },
+    {
+      "from": "MAIL",
+      "to": "PDNS",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "MAIL",
+        "R1",
+        "PDNS"
+      ]
+    },
+    {
+      "from": "MAIL",
+      "to": "PMAIL",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "MAIL",
+        "R1",
+        "PMAIL"
+      ]
+    },
+    {
+      "from": "PC1",
+      "to": "DNS",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC1",
+        "DNS"
+      ]
+    },
+    {
+      "from": "PC1",
+      "to": "MAIL",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC1",
+        "MAIL"
+      ]
+    },
+    {
+      "from": "PC1",
+      "to": "PDNS",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC1",
+        "R1",
+        "PDNS"
+      ]
+    },
+    {
+      "from": "PC1",
+      "to": "PMAIL",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PC1",
+        "R1",
+        "PMAIL"
+      ]
+    },
+    {
+      "from": "PDNS",
+      "to": "DNS",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PDNS",
+        "R1",
+        "DNS"
+      ]
+    },
+    {
+      "from": "PDNS",
+      "to": "MAIL",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PDNS",
+        "R1",
+        "MAIL"
+      ]
+    },
+    {
+      "from": "PDNS",
+      "to": "PC1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PDNS",
+        "R1",
+        "PC1"
+      ]
+    },
+    {
+      "from": "PDNS",
+      "to": "PMAIL",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PDNS",
+        "PMAIL"
+      ]
+    },
+    {
+      "from": "PMAIL",
+      "to": "DNS",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PMAIL",
+        "R1",
+        "DNS"
+      ]
+    },
+    {
+      "from": "PMAIL",
+      "to": "MAIL",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PMAIL",
+        "R1",
+        "MAIL"
+      ]
+    },
+    {
+      "from": "PMAIL",
+      "to": "PC1",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PMAIL",
+        "R1",
+        "PC1"
+      ]
+    },
+    {
+      "from": "PMAIL",
+      "to": "PDNS",
+      "ok": true,
+      "reason": null,
+      "path": [
+        "PMAIL",
+        "PDNS"
+      ]
+    }
+  ],
+  "https": [
+    {
+      "from": "DNS",
+      "to": "MAIL",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "DNS",
+      "to": "PDNS",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "DNS",
+      "to": "PMAIL",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "MAIL",
+      "to": "DNS",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "MAIL",
+      "to": "PDNS",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "MAIL",
+      "to": "PMAIL",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "PC1",
+      "to": "DNS",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "PC1",
+      "to": "MAIL",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "PC1",
+      "to": "PDNS",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "PC1",
+      "to": "PMAIL",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "PDNS",
+      "to": "DNS",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "PDNS",
+      "to": "MAIL",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "PDNS",
+      "to": "PMAIL",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "PMAIL",
+      "to": "DNS",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "PMAIL",
+      "to": "MAIL",
+      "ok": false,
+      "reason": "service.closed"
+    },
+    {
+      "from": "PMAIL",
+      "to": "PDNS",
+      "ok": false,
+      "reason": "service.closed"
+    }
+  ],
+  "shows": [
+    {
+      "node": "DNS",
+      "cmd": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    },
+    {
+      "node": "MAIL",
+      "cmd": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    },
+    {
+      "node": "PDNS",
+      "cmd": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    },
+    {
+      "node": "PMAIL",
+      "cmd": "show ip dhcp binding",
+      "lines": [
+        "out:ui.terminal.dhcpNone"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show ip route",
+      "lines": [
+        "out:ui.terminal.routeConnected {\"net\":\"192.168.1.0\",\"prefix\":24,\"port\":0}",
+        "out:ui.terminal.routeConnected {\"net\":\"10.0.2.0\",\"prefix\":24,\"port\":1}"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show ip ospf neighbor",
+      "lines": [
+        "out:ui.terminal.ospfNone"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show vrrp",
+      "lines": [
+        "out:ui.terminal.vrrpNone"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "R1",
+      "cmd": "show ip nat translations",
+      "lines": [
+        "out:ui.terminal.natNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "out:ui.terminal.stpIsRoot {\"root\":\"SW1\",\"cost\":0}"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "SW1",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:20:00:00:03:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:20:00:00:04:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:20:00:00:03:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:20:00:00:04:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:20:00:00:04:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:20:00:00:03:00\"}",
+        "out:ui.terminal.macEntry {\"port\":3,\"mac\":\"02:10:00:00:01:00\"}",
+        "out:ui.terminal.macEntry {\"port\":3,\"mac\":\"02:20:00:00:03:00\"}",
+        "out:ui.terminal.macEntry {\"port\":3,\"mac\":\"02:20:00:00:04:00\"}"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanNone"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show spanning-tree",
+      "lines": [
+        "err:ui.terminal.stpOff"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show etherchannel summary",
+      "lines": [
+        "out:ui.terminal.channelNone"
+      ]
+    },
+    {
+      "node": "SW2",
+      "cmd": "show mac address-table",
+      "lines": [
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:20:00:00:07:00\"}",
+        "out:ui.terminal.macEntry {\"port\":0,\"mac\":\"02:20:00:00:08:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:20:00:00:07:00\"}",
+        "out:ui.terminal.macEntry {\"port\":1,\"mac\":\"02:20:00:00:08:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:20:00:00:08:00\"}",
+        "out:ui.terminal.macEntry {\"port\":2,\"mac\":\"02:20:00:00:07:00\"}"
+      ]
+    }
+  ],
+  "colors": [
+    {
+      "link": "lesson_link_1",
+      "color": 15909966
+    },
+    {
+      "link": "lesson_link_2",
+      "color": 15909966
+    },
+    {
+      "link": "lesson_link_3",
+      "color": 15909966
+    },
+    {
+      "link": "lesson_link_4",
+      "color": 15909966
+    },
+    {
+      "link": "lesson_link_5",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_6",
+      "color": 6472959
+    },
+    {
+      "link": "lesson_link_7",
+      "color": 6472959
+    }
+  ],
+  "ports": [
+    {
+      "node": "DNS",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "MAIL",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "PC1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "PDNS",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "PMAIL",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "R1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "SW1",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        },
+        {
+          "port": 3,
+          "shutdown": false
+        }
+      ]
+    },
+    {
+      "node": "SW2",
+      "ports": [
+        {
+          "port": 0,
+          "shutdown": false
+        },
+        {
+          "port": 1,
+          "shutdown": false
+        },
+        {
+          "port": 2,
+          "shutdown": false
+        }
+      ]
+    }
+  ],
+  "issues": [],
+  "warnings": []
+}

@@ -230,6 +230,21 @@ describe('教材（学習モード）', () => {
     expect(judgeDiagnose(s, q, { node: 'PROXY', reason: 'proxy.unreachable' })).toBe(true);
   });
 
+  it('メールの教材: 置いた直後は MX がなく届かず、取引先の DNS に MX と A を足すと届く。発展の問いは取引先のメールサービスが止まった構成から始まり、戻すと合格', () => {
+    const l = lesson('mail_mx');
+    const links = lessonLinks(l);
+    expect(lessonGoalResults(l.goals, lessonNodes(l), links, engine)).toEqual([false]);
+    const solved = solutions[l.id](lessonNodes(l));
+    expect(lessonGoalResults(l.goals, solved, links, engine)).toEqual([true]);
+    if (!l.followUps || !l.followUpSetup) throw new Error('発展の問いがない');
+    const q = l.followUps[0];
+    if (q.kind !== 'build') throw new Error('発展の問いが設定する問いでない');
+    const set = { id: l.id, questions: l.followUps, setup: l.followUpSetup };
+    const broken = applySetup(set, 'f1', { nodes: solved, links }, env);
+    expect(judgeBuild(q, broken, engine)).toBe(false);
+    expect(judgeBuild(q, { nodes: solved, links }, engine)).toBe(true);
+  });
+
   it('プロキシを通る HTTP の図は、PC からプロキシ、プロキシから外へ分かれて流れる', () => {
     const l = lesson('proxy_firewall');
     const state = analyze({ nodes: solutions[l.id](lessonNodes(l)), links: lessonLinks(l), plans: {} }, engine);

@@ -49,5 +49,6 @@ export const TOPICS = [
   { id: 'mtu', unlock: null, command: 'ip mtu 0 1400', show: 'show interfaces', failures: ['mtu.exceeded'], warnings: [], glossary: 'mtu', lessons: ['mtu_vpn'] },
   { id: 'qos', unlock: null, command: 'priority-queue 0', show: 'show interfaces', failures: ['qos.dropped'], warnings: [], glossary: 'qos', lessons: ['qos_voice'] },
   { id: 'proxy', unlock: null, command: null, show: null, failures: ['proxy.unreachable'], warnings: [], glossary: 'proxy', lessons: ['proxy_firewall'], known: ['command', 'show'] },
+  { id: 'mail', unlock: null, command: null, show: null, failures: ['mail.no_server', 'mail.no_mx', 'mail.relay_failed', 'mail.unknown_domain'], warnings: [], glossary: 'mail_mx', lessons: ['mail_mx'], known: ['command', 'show'] },
   { id: 'dns', unlock: 18, command: 'ip name-server 192.168.1.53', show: 'show hosts', failures: ['name.unresolved'], warnings: [], glossary: 'dns_auth_cache', lessons: ['dns_intranet_names', 'dns_cache_auth'] },
 ] as const satisfies readonly Topic[];
