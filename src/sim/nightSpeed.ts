@@ -1,4 +1,4 @@
-// 勤務時間外に施工中の案件があるとき、時間の速さを自動で最速にする判定。純粋関数で書く。
+// 勤務時間外に、施工中の案件があるとき（設定で常にするなら施工中でなくても）時間の速さを自動で最速にする判定。純粋関数で書く。
 // 元の速さは saved に覚え、勤務時間になるか施工が終わったら戻す（プレイヤーが速さを変えたら、呼び出し側が saved を消す）。
 
 export interface NightSpeedInput {
@@ -6,6 +6,8 @@ export interface NightSpeedInput {
   working: boolean;
   // 施工中の案件があるか
   building: boolean;
+  // 設定で「夜は自動で速く進める」を選んでいるか（オンなら、施工中でなくても勤務時間外は最速）
+  always: boolean;
   // 現在の速さ（0 は停止）
   speed: number;
   // 自動で変える前の速さ（自動で変えていなければ null）
@@ -20,8 +22,8 @@ export interface NightSpeedState {
 }
 
 export const nightSpeedStep = (input: NightSpeedInput): NightSpeedState => {
-  const { working, building, speed, saved, fastest } = input;
-  const fast = !working && building;
+  const { working, building, always, speed, saved, fastest } = input;
+  const fast = !working && (building || always);
   if (fast && saved === null && speed !== 0 && speed !== fastest) return { speed: fastest, saved: speed };
   if (!fast && saved !== null) return { speed: saved, saved: null };
   return { speed, saved };

@@ -1,8 +1,9 @@
 // 給与を払えない月の対策: 給与の直前に一度だけ時間を止め、再開したら止めずに払う
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import balanceJson from '../assets/data/balance.json';
 import type { Balance } from '../data/schema';
 import { minutesPerMonth } from '../sim/clock';
+import { saveSettings } from '../settings/settings';
 import { useGameStore } from './useGameStore';
 
 const balance = balanceJson as unknown as Balance;
@@ -20,6 +21,10 @@ const nearPayday = () => {
 
 describe('給与を払えない月の対策', () => {
   beforeEach(() => {
+    // 給与の日は夜のことが多い。夜の自動の早送りで速さが変わらないよう、この試験では切っておく（端末の設定は記憶の上に置く）
+    const mem = new Map<string, string>();
+    vi.stubGlobal('window', { localStorage: { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v) } });
+    saveSettings({ nightFast: false });
     nearPayday();
   });
 

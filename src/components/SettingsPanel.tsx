@@ -147,6 +147,16 @@ export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; on
           onChange={(v) => update({ dayTint: v })}
         />
       </Row>
+      <Row label={t('ui.settings.nightFast')}>
+        <Choice
+          options={[
+            { value: true, label: t('ui.settings.nightFast.on') },
+            { value: false, label: t('ui.settings.nightFast.off') },
+          ]}
+          value={settings.nightFast}
+          onChange={(v) => update({ nightFast: v })}
+        />
+      </Row>
       <Row label={t('ui.settings.payPause')}>
         <Choice
           options={[

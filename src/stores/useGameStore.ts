@@ -257,7 +257,7 @@ export const useGameStore = create<GameState>((set, get, api) => {
     terminalSession: {},
     taskOpen: true,
     payWarned: null,
-    tick: () => set((s) => runTick(s, { now: Date.now(), payPause: loadSettings().payPause })),
+    tick: () => set((s) => runTick(s, { now: Date.now(), payPause: loadSettings().payPause, nightFast: loadSettings().nightFast })),
     cacheMap: (map) =>
       set((s) => {
         const maps = { ...s.maps, [map.id]: map };

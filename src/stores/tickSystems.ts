@@ -28,6 +28,8 @@ import type { GameState, Speed } from './useGameStore';
 export interface TickEnv {
   now: number;
   payPause: boolean;
+  // 夜は施工がなくても自動で速く進めるか（設定の nightFast）
+  nightFast: boolean;
 }
 
 type Patch = Partial<GameState>;
@@ -164,13 +166,14 @@ export const buildSystem = (s: GameState, next: Patch, clock: ClockState, hrP: n
 
 // 系7: 勤務時間外に施工中なら最速にし、勤務時間になるか施工が終わったら元の速さへ戻す
 // 勤務中の社員が1人もいなければ早送りする（夜勤の社員がいるときは、夜も速さを変えない・N48）
-export const nightSpeedSystem = (s: GameState, next: Patch, clock: ClockState): Patch => {
+export const nightSpeedSystem = (s: GameState, next: Patch, clock: ClockState, env: TickEnv): Patch => {
   const activeNow = next.active ?? s.active;
   const minuteOfDay = clock.minute % minutesPerDay;
   const staffNow = next.staff ?? s.staff;
   const night = nightSpeedStep({
     working: staffNow.some((m) => isOnShift(minuteOfDay, m.shift, balance)),
     building: activeNow.some((p) => p.phase === 'build'),
+    always: env.nightFast,
     speed: s.speed,
     saved: s.nightSpeed,
     fastest: Math.max(...unlockedSpeedsOf(levelOf(s.companyExp, balance), balance)),
@@ -220,6 +223,6 @@ export const runTick = (s: GameState, env: TickEnv): Patch => {
   next = monthEndSystem(s, next, step.clock, hrP, env);
   next = trainingSystem(s, next, hrP, env);
   next = buildSystem(s, next, step.clock, hrP);
-  next = nightSpeedSystem(s, next, step.clock);
+  next = nightSpeedSystem(s, next, step.clock, env);
   return offersSystem(s, next, step.days, env);
 };

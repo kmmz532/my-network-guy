@@ -22,12 +22,12 @@ describe('毎ティックの系', () => {
   beforeEach(nearPayday);
 
   it('給与の一時停止は、引数の設定がオフなら働かない', () => {
-    expect(payPauseSystem(st(), { now: 1, payPause: false })).toBeNull();
-    expect(payPauseSystem(st(), { now: 1, payPause: true })?.speed).toBe(0);
+    expect(payPauseSystem(st(), { now: 1, payPause: false, nightFast: false })).toBeNull();
+    expect(payPauseSystem(st(), { now: 1, payPause: true, nightFast: false })?.speed).toBe(0);
   });
 
   it('通知の時刻は引数の now で決まり、同じ入力は同じ結果になる', () => {
-    const env = { now: 123456, payPause: true };
+    const env = { now: 123456, payPause: true, nightFast: false };
     const a = runTick(st(), env);
     const b = runTick(st(), env);
     expect(a).toEqual(b);
@@ -37,12 +37,12 @@ describe('毎ティックの系', () => {
   it('状態を書き換えない', () => {
     const before = st();
     const snapshot = JSON.stringify({ clock: before.clock, speed: before.speed, notices: before.notices });
-    runTick(before, { now: 1, payPause: false });
+    runTick(before, { now: 1, payPause: false, nightFast: false });
     expect(JSON.stringify({ clock: st().clock, speed: st().speed, notices: st().notices })).toBe(snapshot);
   });
 
   it('納品の結果を開いている間は何も変えない', () => {
     useGameStore.setState({ showcase: { nodes: [], links: [], plans: {}, contract: { map: 'hq' } } as never });
-    expect(runTick(st(), { now: 1, payPause: false })).toEqual({});
+    expect(runTick(st(), { now: 1, payPause: false, nightFast: false })).toEqual({});
   });
 });

@@ -36,6 +36,8 @@ export interface Settings {
   autoIp: boolean;
   // 案件を受注して設計に入ったとき、時間を止めるか（既定はオン。配線の作業を時間に追われずに進められる）
   designPause: boolean;
+  // 夜は自動で速く進めるか（既定はオン。オフなら、施工中の夜だけ速くする）
+  nightFast: boolean;
   // 依頼を断るとき、確認する
   confirmDecline: boolean;
   // 効果音を鳴らすか（既定はオン）
@@ -63,6 +65,7 @@ export const DEFAULT_SETTINGS: Settings = {
   payPause: true,
   offerSort: 'new',
   dayTint: true,
+  nightFast: true,
 };
 
 export const SETTINGS_KEY = 'network-ya.settings.v1';
@@ -101,6 +104,7 @@ export function parseSettings(raw: string | null): Settings {
     payPause: typeof d.payPause === 'boolean' ? d.payPause : DEFAULT_SETTINGS.payPause,
     offerSort: (OFFER_SORTS as readonly unknown[]).includes(d.offerSort) ? (d.offerSort as OfferSort) : DEFAULT_SETTINGS.offerSort,
     dayTint: typeof d.dayTint === 'boolean' ? d.dayTint : DEFAULT_SETTINGS.dayTint,
+    nightFast: typeof d.nightFast === 'boolean' ? d.nightFast : DEFAULT_SETTINGS.nightFast,
   };
 }
 
