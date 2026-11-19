@@ -1,7 +1,7 @@
 // 失敗の理由・案内の手順・設定の部品・達成条件と用語集の対応: 対応先の用語が言語ファイルにあること、引く関数の結果
 import { describe, expect, it } from 'vitest';
 import langJson from '../assets/lang/ja_jp.json';
-import { GLOSSARY_OF_FAILURE, GLOSSARY_OF_GOAL, GLOSSARY_OF_SETTING, GLOSSARY_OF_STEP, termOfGoal, termOfSettings, termOfStep } from './glossaryOf';
+import { GLOSSARY_OF_FAILURE, GLOSSARY_OF_GOAL, GLOSSARY_OF_SETTING, GLOSSARY_OF_STEP, termOfGoal, termOfSettings, termOfStep, termsOfLesson } from './glossaryOf';
 
 const dict = langJson as Record<string, string>;
 
@@ -44,5 +44,12 @@ describe('手順・設定の部品・達成条件と用語集', () => {
     expect(termOfSettings(has, ['vrrp'])).toBe('as_number');
     expect(termOfSettings(has, ['vrrp', 'as_number'])).toBeNull();
     expect(termOfSettings(() => false, [])).toBeNull();
+  });
+
+  it('教材を開いている間は、その論点の用語だけを設定の欄で返す', () => {
+    const has = (c: string) => c === 'vrrp' || c === 'bgp';
+    expect(termOfSettings(has, [], termsOfLesson('ospf_intro'))).toBeNull();
+    expect(termOfSettings(has, [], termsOfLesson('vrrp_pair'))).toBe('vrrp');
+    expect(termOfSettings(has, [], undefined)).toBe('vrrp');
   });
 });

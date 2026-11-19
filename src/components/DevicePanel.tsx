@@ -21,7 +21,7 @@ import { Text } from './ui/Text';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { deviceCategory, deviceDef } from '../registry/query';
 import { can } from '../network/capabilities';
-import { termOfSettings } from '../network/glossaryOf';
+import { termOfSettings, termsOfLesson } from '../network/glossaryOf';
 
 type Tab = 'rear' | 'config' | 'service' | 'terminal';
 // 機器ごとの、最後に開いた欄。窓を開き直したり機器を押し直したりしても、その欄から開く（初めての機器は背面）
@@ -117,11 +117,14 @@ function DeviceView({
   const issue = netState.addressing.issues[node.uid];
   // 設定の欄を初めて開いたとき、その機器の設定の部品に対応する用語を、社員の吹き出しで1つ出す
   const introduceTerm = useGameStore((s) => s.introduceTerm);
+  // 教材を開いている間は、その教材の論点の用語に限る
+  const lessonId = useGameStore((s) => s.sandboxLesson?.id ?? null);
   useEffect(() => {
     if (tab !== 'config' || !hasConfig) return;
-    const term = termOfSettings((capability) => can(node.device, capability), useGameStore.getState().termsShown);
+    const allowed = lessonId === null ? undefined : termsOfLesson(lessonId);
+    const term = termOfSettings((capability) => can(node.device, capability), useGameStore.getState().termsShown, allowed);
     if (term !== null) introduceTerm(term);
-  }, [tab, hasConfig, node.device, introduceTerm]);
+  }, [tab, hasConfig, node.device, introduceTerm, lessonId]);
 
   return (
     <div>

@@ -1,6 +1,7 @@
 // 失敗の理由ごとに、案件の欄で説明する用語（用語集の ID。言語ファイルの glossary.<ID>）。対応のない理由は説明を出さない
 import type { Capability, Goal } from '../data/schema';
 import type { FailureReason } from './types';
+import { TOPICS, type Topic } from './topics';
 
 export const GLOSSARY_OF_FAILURE: Partial<Record<FailureReason, string>> = {
   'vrrp.no_master': 'vrrp',
@@ -86,6 +87,14 @@ export const termOfStep = (key: string): string | null => GLOSSARY_OF_STEP[key] 
 
 export const termOfGoal = (type: Goal['type']): string | null => GLOSSARY_OF_GOAL[type] ?? null;
 
-// 設定の欄を開いたときに出す用語: 機器が持つ設定の部品のうち、まだ出していない最初のもの。なければ null
-export const termOfSettings = (has: (capability: Capability) => boolean, shown: readonly string[]): string | null =>
-  GLOSSARY_OF_SETTING.find(([capability, term]) => has(capability) && !shown.includes(term))?.[1] ?? null;
+// 教材を開いている間に設定の欄で出してよい用語: その教材を lessons に持つ論点の glossary
+export const termsOfLesson = (lessonId: string): readonly string[] =>
+  (TOPICS as readonly Topic[]).filter((topic) => topic.lessons.includes(lessonId)).flatMap((topic) => (topic.glossary ? [topic.glossary] : []));
+
+// 設定の欄を開いたときに出す用語: 機器が持つ設定の部品のうち、まだ出していない最初のもの。allowed を渡したときは、その一覧にある用語だけ。なければ null
+export const termOfSettings = (
+  has: (capability: Capability) => boolean,
+  shown: readonly string[],
+  allowed?: readonly string[],
+): string | null =>
+  GLOSSARY_OF_SETTING.find(([capability, term]) => has(capability) && !shown.includes(term) && (allowed === undefined || allowed.includes(term)))?.[1] ?? null;
