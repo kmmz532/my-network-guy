@@ -104,6 +104,8 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   guidesHidden: string[];
   // しまっている案内の、今の手順の文のキー（案件の欄の「戻す」札に出す。Guide が置く。保存しない）
   guideShelved: { id: string; key: string } | null;
+  // 「最初から見る」で出し直している案件（セーブしない）。終えた記録（guidesDone）は残し、最後まで進んでも経験値を二度入れない
+  guidesReplay: string[];
   // 初めて出した用語（用語集の ID。セーブデータに入る）
   termsShown: string[];
   // 案内が光らせている機器の uid（マップの描画は別の担当。保存しない）
@@ -221,6 +223,7 @@ export const useGameStore = create<GameState>((set, get, api) => {
     guidesDone: [],
     guidesHidden: [],
     guideShelved: null,
+    guidesReplay: [],
     termsShown: [],
     guideTarget: null,
     speed: 0,

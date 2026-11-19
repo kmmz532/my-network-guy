@@ -54,6 +54,7 @@ export function Guide() {
   const check = useGameStore((s) => s.check);
   const windows = useGameStore((s) => s.windows);
   const guidesDone = useGameStore((s) => s.guidesDone);
+  const guidesReplay = useGameStore((s) => s.guidesReplay);
   // 吹き出しの顔の絵の名前。社員の見た目は絵の名前に変換して使う。社員のいないサンドボックスでは既定の見た目で出す
   const staffLook = useGameStore((s) => staffSpriteName(s.staff[0]?.look ?? 'blue'));
   const setGuideTarget = useGameStore((s) => s.setGuideTarget);
@@ -108,7 +109,7 @@ export function Guide() {
     ? loadSettings().guide
       ? lesson.guide.map((s, i) => ({ key: `lesson.${lesson.id}.step.${i + 1}`, target: s.target, done: s.done }))
       : null
-    : id !== null && !guidesDone.includes(id) && loadSettings().guide
+    : id !== null && (!guidesDone.includes(id) || guidesReplay.includes(id)) && loadSettings().guide
       ? (guides[id] ?? null)
       : null;
   const lessonGoals = lesson && check !== null && check.projectId === 'hq' ? check.goals.map((g) => g.ok) : [];

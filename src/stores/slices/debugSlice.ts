@@ -58,6 +58,11 @@ export const createDebugSlice: StateCreator<GameState, [], [], DebugSlice> = (se
     debugAddOwned: (device, count) => set((s) => ({ owned: { ...s.owned, [device]: (s.owned[device] ?? 0) + count } })),
     debugSetMinute: (minute) => set((s) => ({ clock: { ...s.clock, minute } })),
     markGuideDone: (contractId) => {
+      // 出し直した案内を最後まで進めたときは、出し直しを終えるだけにする（経験値は最初の1回だけ）
+      if (get().guidesReplay.includes(contractId)) {
+        set((s) => ({ guidesReplay: s.guidesReplay.filter((g) => g !== contractId) }));
+        return;
+      }
       if (get().guidesDone.includes(contractId)) return;
       set((s) => ({ guidesDone: [...s.guidesDone, contractId] }));
       get().grantCompanyExp('guide');
@@ -69,12 +74,12 @@ export const createDebugSlice: StateCreator<GameState, [], [], DebugSlice> = (se
       }),
     restartGuide: (id) =>
       set((s) => ({
-        guidesDone: s.guidesDone.filter((g) => g !== id),
+        guidesReplay: s.guidesReplay.includes(id) || !s.guidesDone.includes(id) ? s.guidesReplay : [...s.guidesReplay, id],
         guidesHidden: s.guidesHidden.filter((g) => g !== id),
         guideSeen: s.guideSeen.filter((k) => !k.startsWith(`${id}:`)),
       })),
     setGuideShelved: (shelved) => set({ guideShelved: shelved }),
-    debugResetGuides: () => set({ guidesDone: [], guidesHidden: [] }),
+    debugResetGuides: () => set({ guidesDone: [], guidesHidden: [], guidesReplay: [] }),
     debugRefreshOffers: () => set((s) => refresh({ ...s, nextOfferMinute: s.clock.minute })),
     debugFinishBuild: () => {
       // 施工の進みは時間で決まるため、既存の tick を速い速さで回す（速さは終わったら戻す）

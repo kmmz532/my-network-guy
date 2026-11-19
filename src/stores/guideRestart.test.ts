@@ -15,8 +15,19 @@ describe('案内を最初から見る', () => {
     st().setGuideHidden(C, true);
     st().markGuideSeen([`${C}:0`, `${D}:0`]);
     st().restartGuide(C);
-    expect(st().guidesDone).toEqual([D]);
+    expect(st().guidesDone).toEqual([C, D]);
+    expect(st().guidesReplay).toEqual([C]);
     expect(st().guidesHidden).toEqual([]);
     expect(st().guideSeen).toEqual([`${D}:0`]);
+  });
+
+  it('出し直した案内を最後まで進めても、経験値は二度入らない', () => {
+    st().markGuideDone(C);
+    const exp = st().companyExp;
+    st().restartGuide(C);
+    st().markGuideDone(C);
+    expect(st().companyExp).toBe(exp);
+    expect(st().guidesReplay).toEqual([]);
+    expect(st().guidesDone).toEqual([C]);
   });
 });

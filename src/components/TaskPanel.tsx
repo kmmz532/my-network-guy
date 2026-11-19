@@ -46,6 +46,7 @@ export function TaskPanel() {
   const activeId = active?.id ?? null;
   // 案内の一覧（手順の進みは Guide と同じ判定で求める）
   const guidesDone = useGameStore((s) => s.guidesDone);
+  const guidesReplay = useGameStore((s) => s.guidesReplay);
   const guideSeen = useGameStore((s) => s.guideSeen);
   const restartGuide = useGameStore((s) => s.restartGuide);
   const tool = useGameStore((s) => s.tool);
@@ -92,7 +93,7 @@ export function TaskPanel() {
   const guideSteps = active ? (guides[active.baseId] ?? null) : null;
   const guideCurrent = ((): number | null => {
     if (!active || !guideSteps) return null;
-    if (guidesDone.includes(active.baseId)) return guideSteps.length;
+    if (guidesDone.includes(active.baseId) && !guidesReplay.includes(active.baseId)) return guideSteps.length;
     const seen = guideSeen.filter((k) => k.startsWith(`${active.baseId}:`)).map((k) => Number(k.slice(active.baseId.length + 1)));
     const from = debugGuide !== null && debugGuide.id === active.baseId ? debugGuide.step - 1 : 0;
     const state: GuideState = {
