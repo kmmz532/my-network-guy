@@ -496,6 +496,28 @@ def firewall_dmz():
     return img
 
 
+def load_balancer():
+    # ロードバランサー: 水色の箱。前面に、左の1本の線が右で3本に分かれる振り分けの印と、行き先の3つの点。下段に LED と2つのポート
+    img, d = new(24, 40)
+    box3q(d, 1, 17, 22, 5, 11, 'aq', 'AQ', edge='e')
+    # 振り分けの印（白）: 入口の1本 → 分かれ目 → 3本
+    d.line([(3, 25), (8, 25)], fill=C['e'] + (255,))
+    d.line([(9, 24), (9, 26)], fill=C['e'] + (255,))
+    d.line([(10, 23), (14, 23)], fill=C['e'] + (255,))
+    d.line([(10, 25), (14, 25)], fill=C['e'] + (255,))
+    d.line([(10, 27), (14, 27)], fill=C['e'] + (255,))
+    # 行き先（サーバー）の3つの点
+    for y in (23, 25, 27):
+        rect(d, 16, y, 2, 1, 'w')
+    # 前面の下段: LED と2つのポート
+    px(d, 4, 30, 'l')
+    px(d, 6, 30, 'l')
+    for x in (15, 19):
+        rect(d, x, 29, 3, 2, 'o')
+    base(d)
+    return img
+
+
 def access_point():
     # 置き型のアクセスポイント: 角の丸い白い平たい箱を斜め上から見た形。天面の中央に青い光の輪、
     # 前面に状態のLED。上に小さな電波の印を2本
@@ -1866,6 +1888,7 @@ if __name__ == '__main__':
     save(firewall(), 'device/firewall.png')
     save(firewall_dmz(), 'device/firewall_dmz.png')
     save(access_point(), 'device/access_point.png')
+    save(load_balancer(), 'device/load_balancer.png')
     save(uplink(), 'device/uplink.png')
     for kind in SERVICE_GLYPHS:
         save(service_badge(kind), f'icon/svc_{kind}.png')

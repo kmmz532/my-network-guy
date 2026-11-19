@@ -19,7 +19,7 @@
       "features": [
         "routing"
       ],
-      "sprite": "device/router_basic",
+      "sprite": "device/load_balancer",
       "unlockLevel": 86
     }
   ]
