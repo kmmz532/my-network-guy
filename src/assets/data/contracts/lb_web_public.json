@@ -1,0 +1,122 @@
+{
+  "id": "lb_web_public",
+  "kind": "build",
+  "stage": 2,
+  "order": 310,
+  "requires": [
+    "r012_name_server"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_rooms",
+  "budget": 300000,
+  "deadlineDays": 7,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "LINE",
+      "device": "uplink",
+      "x": 18,
+      "y": 5,
+      "locked": true,
+      "isp": {
+        "name": "ISP-A",
+        "network": "198.51.100.0",
+        "prefix": 24,
+        "ispIp": "198.51.100.1"
+      },
+      "name": "回線終端"
+    },
+    {
+      "ref": "PC1",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          { "port": 0, "ip": "192.168.1.21", "prefix": 24 }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "社内のPC"
+    },
+    {
+      "ref": "SW1",
+      "device": "l2_switch_8p",
+      "x": 5,
+      "y": 5,
+      "locked": true,
+      "name": "社内のスイッチ"
+    },
+    {
+      "ref": "LB",
+      "device": "load_balancer",
+      "x": 8,
+      "y": 5,
+      "locked": false,
+      "config": {
+        "interfaces": [
+          { "port": 0, "ip": "192.168.1.80", "prefix": 24 }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "負荷分散の機器"
+    },
+    {
+      "ref": "WEB1",
+      "device": "server_basic",
+      "x": 14,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          { "port": 0, "ip": "192.168.1.81", "prefix": 24 }
+        ],
+        "gateway": null,
+        "services": [
+          { "protocol": "http", "port": 80 }
+        ],
+        "locked": true
+      },
+      "name": "通販サーバー1"
+    },
+    {
+      "ref": "WEB2",
+      "device": "server_basic",
+      "x": 14,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          { "port": 0, "ip": "192.168.1.82", "prefix": 24 }
+        ],
+        "gateway": null,
+        "services": [
+          { "protocol": "http", "port": 80 }
+        ],
+        "locked": true
+      },
+      "name": "通販サーバー2"
+    }
+  ],
+  "links": [
+    { "cable": "utp_cat5e", "a": { "ref": "PC1", "port": 0 }, "b": { "ref": "SW1", "port": 1 } },
+    { "cable": "utp_cat5e", "a": { "ref": "LB", "port": 0 }, "b": { "ref": "SW1", "port": 0 } },
+    { "cable": "utp_cat5e", "a": { "ref": "WEB1", "port": 0 }, "b": { "ref": "SW1", "port": 2 } },
+    { "cable": "utp_cat5e", "a": { "ref": "WEB2", "port": 0 }, "b": { "ref": "SW1", "port": 3 } }
+  ],
+  "goals": [
+    { "type": "load_balanced", "from": "PC1", "lb": "LB", "port": 80, "minHealthy": 2 },
+    { "type": "survive_device_failure", "nodes": ["WEB1", "WEB2"] }
+  ],
+  "reward": {
+    "money": 800000
+  },
+  "unlockLevel": 86
+}
