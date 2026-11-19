@@ -7,7 +7,7 @@ import officeJson from '../assets/data/maps/office_small.json';
 import type { Balance, Contract, ContractTemplate, GameMap } from '../data/schema';
 import { minutesPerDay } from '../sim/clock';
 import { expAtLevel } from '../sim/level';
-import { declineOffer, MAX_OFFERS, offerHint, refreshOffers, sortOffers, type OfferEnv, type OfferState } from './offers';
+import { declineOffer, earlyOfferDue, MAX_OFFERS, offerHint, refreshOffers, sortOffers, type OfferEnv, type OfferState } from './offers';
 import { instantiateTemplate, pcCountRangeOf, spawnGroupsOf, starHubOf } from './template';
 
 const area = spawnGroupsOf(templateJson as unknown as ContractTemplate)[0];
@@ -197,5 +197,25 @@ describe('依頼の届いた日・期限・並べ替え・断る（N39）', () =
     ] as OfferState['offers'];
     expect(declineOffer(list, 'tp').map((o) => o.id)).toEqual(['fx']);
     expect(declineOffer(list, 'fx').map((o) => o.id)).toEqual(['fx', 'tp']);
+  });
+});
+
+describe('序盤の納品で次の依頼を早める', () => {
+  const streak = balance.offers.earlyStreak;
+
+  it('序盤の納品で依頼が1件もなければ早める。earlyStreak を超えたら早めない', () => {
+    expect(earlyOfferDue(1, 0, balance)).toBe(true);
+    expect(earlyOfferDue(streak, 0, balance)).toBe(true);
+    expect(earlyOfferDue(streak + 1, 0, balance)).toBe(false);
+  });
+
+  it('受けられる依頼が残っているときは早めない', () => {
+    expect(earlyOfferDue(1, 1, balance)).toBe(false);
+  });
+
+  it('早めた時刻の次の時間の進みで、依頼が1件届く', () => {
+    const now = 3 * minutesPerDay;
+    const early = refreshOffers({ ...start, minute: now, nextOfferMinute: now }, env);
+    expect(early.offers).toHaveLength(1);
   });
 });

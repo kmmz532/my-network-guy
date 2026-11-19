@@ -275,6 +275,8 @@ export const reportState = (report: Report | undefined): Partial<GameState> => {
     showcase: report.passed ? (report.delivered ?? null) : null,
     check: report.passed ? null : (report.check ?? null),
     helpUid: null,
+    // 序盤の納品は、次の依頼を今の時刻に届ける（refresh が次の時間の進みで1件届ける）
+    ...(report.offerAt !== undefined ? { nextOfferMinute: report.offerAt } : {}),
   };
 };
 

@@ -145,6 +145,8 @@ export interface Report {
   passed: boolean;
   // 納品した案件（納品後の表示に使う）
   delivered?: Project;
+  // 次の依頼を届ける時刻（序盤の納品で早める。納品のときだけ設定する）
+  offerAt?: number;
   // 任せた依頼の納品。レベルアップがなければ、結果画面は出さずに通知で伝える（ストアで判断する）
   delegated?: boolean;
   // 納品が遅れた日数（期日内なら0）

@@ -118,6 +118,9 @@
     "chance": 0.2,
     "count": 3
   },
+  "offers": {
+    "earlyStreak": 5
+  },
   "staff": {
     "initialCount": 2,
     "levelCapStep": 10,

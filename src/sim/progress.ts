@@ -2,6 +2,7 @@ import { applyMoney } from './ledger';
 import type { Staff } from '../data/schema';
 import { engineWithSite, siteFurnitureOf } from './walls';
 import type { Offer } from '../contracts/template';
+import { earlyOfferDue } from '../contracts/offers';
 import { evaluateContract } from '../network/goals';
 import { linkLength } from '../network/engine';
 import { isOnShift } from './shift';
@@ -298,6 +299,7 @@ const settleBlind = (core: Core, p: Project, plan: BlindPlan, env: Env): Outcome
     },
     report: {
       passed: true,
+      offerAt: earlyOfferDue(core.deliveries + 1, core.offers.length, env.balance) ? core.clock.minute : undefined,
       traces: [],
       failures: [],
       stars,
@@ -372,6 +374,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
       report: {
         passed: true,
         delivered: p,
+        offerAt: earlyOfferDue(core.deliveries + 1, core.offers.length, env.balance) ? core.clock.minute : undefined,
         traces,
         stars,
         money,

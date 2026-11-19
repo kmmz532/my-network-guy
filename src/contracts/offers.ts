@@ -154,6 +154,10 @@ export const refreshOffers = (state0: OfferState, env: OfferEnv, effects: OfferE
   return next;
 };
 
+// 序盤の納品で次の依頼を早めるか。納品した案件の数（納品の後の数）が earlyStreak 以下で、受けられる依頼が1件もないとき
+export const earlyOfferDue = (delivered: number, offersLeft: number, balance: Balance): boolean =>
+  delivered <= balance.offers.earlyStreak && offersLeft === 0;
+
 // 次の依頼が届かない理由。届く見込みがあるなら null（reason は null のまま）
 export type OfferBlock =
   | { kind: 'level'; need: number }

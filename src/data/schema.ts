@@ -151,6 +151,8 @@ export const balanceSchema = z.object({
   offerIntervalDays: int.positive(),
   // 依頼がまとめて届く確率（間隔ごと）と、まとめて届くときの件数の上限（2件以上）。省略すると、毎回1件ずつ届く
   offerBurst: z.object({ chance: z.number().min(0).max(1), count: int.min(2) }).optional(),
+  // 序盤の納品（納品した案件の数が earlyStreak 以下）は、受けられる依頼がなければ次の依頼を今すぐ届ける
+  offers: z.object({ earlyStreak: nonNegativeInt }),
   // 新しく解放した種類（announce）を、解放から arrivals 件届くまで weightFactor 倍の重みで出す（N51b）
   freshOffer: z.object({ arrivals: int.positive(), weightFactor: int.positive() }),
   staff: z.object({
