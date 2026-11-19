@@ -112,3 +112,120 @@ describe('HTTP の列', () => {
     expect(syn?.frame?.nat?.before.srcIp).toBe('10.0.0.10');
   });
 });
+
+describe('DHCP の列', () => {
+  const pool = { network: '10.0.0.0', prefix: 24, start: '10.0.0.100', end: '10.0.0.110' };
+  const pc = (uid: string) => n(uid, 'pc_basic', [{ id: 'eth0', kind: 'port', port: 0, ip: '', prefix: 24, dhcp: true }]);
+
+  it('サーバーが同じドメインにあれば、Discover・Request はブロードキャスト、Offer・Ack はサーバーから', () => {
+    const net: Network = {
+      nodes: [pc('pc'), n('srv', 'server_basic', [f(0, '10.0.0.2')], { components: { dhcpServer: [pool] } }), n('sw', 'l2_switch_8p', [])],
+      links: [l('a', 'pc', 0, 'sw', 0), l('b', 'srv', 0, 'sw', 1)],
+      plans: {},
+    };
+    const steps = controlSequence(state(net), { kind: 'dhcp', client: 'pc' });
+    expect(steps.map((s) => [s.label, s.from, s.to])).toEqual([
+      ['seq.dhcp.discover', 'pc', '*'],
+      ['seq.dhcp.offer', 'srv', 'pc'],
+      ['seq.dhcp.request', 'pc', '*'],
+      ['seq.dhcp.ack', 'srv', 'pc'],
+    ]);
+    expect(steps[1].params).toEqual({ ip: '10.0.0.100' });
+    expect(steps[0].reached).toEqual(['srv']);
+  });
+
+  it('リレーを通ると、クライアントとルーターの間はブロードキャスト、ルーターとサーバーの間はユニキャスト', () => {
+    const net: Network = {
+      nodes: [
+        pc('pc'),
+        n('r', 'router_basic', [f(0, '10.0.0.1', { helper: '10.0.1.2' }), f(1, '10.0.1.1')]),
+        n('srv', 'server_basic', [f(0, '10.0.1.2')], { gateway: '10.0.1.1', components: { dhcpServer: [pool] } }),
+      ],
+      links: [l('a', 'pc', 0, 'r', 0), l('b', 'r', 1, 'srv', 0)],
+      plans: {},
+    };
+    const steps = controlSequence(state(net), { kind: 'dhcp', client: 'pc' });
+    expect(steps.map((s) => [s.label, s.from, s.to])).toEqual([
+      ['seq.dhcp.discover', 'pc', '*'],
+      ['seq.dhcp.discover', 'r', 'srv'],
+      ['seq.dhcp.offer', 'srv', 'r'],
+      ['seq.dhcp.offer', 'r', '*'],
+      ['seq.dhcp.request', 'pc', '*'],
+      ['seq.dhcp.request', 'r', 'srv'],
+      ['seq.dhcp.ack', 'srv', 'r'],
+      ['seq.dhcp.ack', 'r', '*'],
+    ]);
+  });
+
+  it('サーバーがなければ、Discover だけで失敗する', () => {
+    const net: Network = { nodes: [pc('pc')], links: [], plans: {} };
+    const steps = controlSequence(state(net), { kind: 'dhcp', client: 'pc' });
+    expect(steps).toHaveLength(1);
+    expect(steps[0].failure?.reason).toBe('dhcp.no_offer');
+  });
+});
+
+describe('OSPF の列', () => {
+  const pair = (areaB: number): Network => ({
+    nodes: [
+      n('r1', 'router_basic', [f(0, '10.0.0.1', { ospf: { area: 0 } })]),
+      n('r2', 'router_basic', [f(0, '10.0.0.2', { ospf: { area: areaB } })]),
+    ],
+    links: [l('a', 'r1', 0, 'r2', 0)],
+    plans: {},
+  });
+
+  it('隣接になると、Hello（両方向）→ DBD → LSR → LSU → LSAck の順に並ぶ', () => {
+    const steps = controlSequence(state(pair(0)), { kind: 'ospf', a: 'r1', b: 'r2' });
+    expect(steps.map((s) => [s.label.replace('seq.ospf.', ''), s.from])).toEqual([['hello', 'r1'], ['hello', 'r2'], ['dbd', 'r1'], ['dbd', 'r2'], ['lsr', 'r1'], ['lsu', 'r2'], ['lsack', 'r1']]);
+    expect(steps.every((s) => s.failure === undefined)).toBe(true);
+  });
+
+  it('エリアが違えば、Hello だけで、最後の行が理由を持つ', () => {
+    const steps = controlSequence(state(pair(1)), { kind: 'ospf', a: 'r1', b: 'r2' });
+    expect(steps.map((s) => s.label)).toEqual(['seq.ospf.hello', 'seq.ospf.hello', 'seq.ospf.mismatch.area']);
+    expect(steps[2].failure?.reason).toBe('ospf.no_neighbor');
+  });
+});
+
+describe('STP の列', () => {
+  // sw1 がルート。sw1-sw2・sw1-sw3・sw2-sw3 の輪で、sw3 の sw2 側の口が止まる
+  const ring = (): Network => ({
+    nodes: [n('sw1', 'l2_switch_8p', []), n('sw2', 'l2_switch_8p', []), n('sw3', 'l2_switch_8p', [])],
+    links: [l('a', 'sw1', 0, 'sw2', 0), l('b', 'sw1', 1, 'sw3', 0), l('c', 'sw2', 1, 'sw3', 1)],
+    plans: {},
+  });
+
+  it('ルートから近い順に BPDU が並び、止まった口に届く行は止まっている文言になる', () => {
+    const steps = controlSequence(state(ring()), { kind: 'stp' });
+    expect(steps.map((s) => [s.from, s.to, s.label])).toEqual([
+      ['sw1', 'sw2', 'seq.stp.bpdu'],
+      ['sw1', 'sw3', 'seq.stp.bpdu'],
+      ['sw2', 'sw3', 'seq.stp.bpdu_blocked'],
+    ]);
+    expect(steps[2].params).toEqual({ cost: 4, port: 1 });
+  });
+});
+
+describe('VRRP の列', () => {
+  const pairNet = (): Network => {
+    const g = (priority: number) => [{ vrid: 1, ip: '10.0.0.254', priority, preempt: true }];
+    return {
+      nodes: [
+        n('r1', 'router_basic', [f(0, '10.0.0.1', { vrrp: g(120) })]),
+        n('r2', 'router_basic', [f(0, '10.0.0.2', { vrrp: g(100) })]),
+        n('sw', 'l2_switch_8p', []),
+      ],
+      links: [l('a', 'r1', 0, 'sw', 0), l('b', 'r2', 0, 'sw', 1)],
+      plans: {},
+    };
+  };
+
+  it('マスターの Advertisement に続けて、マスターを止めた場合のバックアップの Advertisement が並ぶ', () => {
+    const steps = controlSequence(state(pairNet()), { kind: 'vrrp', group: 1 });
+    expect(steps.map((s) => [s.label, s.from, s.reached, s.params])).toEqual([
+      ['seq.vrrp.advertisement', 'r1', ['r2'], { vrid: 1, priority: 120 }],
+      ['seq.vrrp.takeover', 'r2', [], { vrid: 1, priority: 100 }],
+    ]);
+  });
+});

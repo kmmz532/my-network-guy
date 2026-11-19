@@ -1,4 +1,5 @@
-// 制御のパケットの列（シーケンス図の元）。ping・http の結果（経路）と framesOf（frames.ts）、DNS の名前の解決（dns.ts）の結果を並べるだけで、通信は計算し直さない。
+// 制御のパケットの列（シーケンス図の元）。ping・http の結果（経路）と framesOf（frames.ts）、DNS の名前の解決（dns.ts）、DHCP・OSPF・STP・VRRP の既存の結果を並べるだけで、通信は計算し直さない。
+// STP の BPDU だけは、スイッチ間の制御のため、スイッチが from・to になる。
 // ARP の表は持たず、区間ごとに最初の通信の前に「初回」として出す。乱数は使わない。
 import { deviceCategory } from '../registry/query';
 import { can } from './capabilities';
@@ -6,15 +7,24 @@ import { isL2Category, isRoutingCategory } from './category';
 import { getComponent } from './components';
 import { lookupName, type DnsStep } from './dns';
 import { analyze } from './engine/analyze';
-import { dnsQuery, http, ping } from './engine/forward';
+import { deliver, dnsQuery, http, ping } from './engine/forward';
 import type { Traffic } from './engine/forward';
 import type { NetworkState } from './engine/state';
 import { withInternet } from './external';
 import { framesOf, type Frame, type FrameContext } from './frames';
+import { inSubnet } from './engine';
 import { l2Path } from './mac';
+import { ospfNeighborsOf } from './query/ospfNeighbors';
+import { effectivePriority, electVrrpMaster } from './vrrp';
 import type { Failure, NetNode, PathResult } from './types';
 
-export type ControlTrigger = { kind: 'ping'; from: string; to: string } | { kind: 'http'; from: string; to: string; port: number; name?: string };
+export type ControlTrigger =
+  | { kind: 'ping'; from: string; to: string }
+  | { kind: 'http'; from: string; to: string; port: number; name?: string }
+  | { kind: 'dhcp'; client: string }
+  | { kind: 'ospf'; a: string; b: string }
+  | { kind: 'stp' }
+  | { kind: 'vrrp'; group: number };
 
 export interface ControlStep {
   from: string;
@@ -22,7 +32,7 @@ export interface ControlStep {
   to: string;
   // 届いた L3 の機器の uid（ユニキャストなら [to]）
   reached: string[];
-  proto: 'arp' | 'icmp' | 'udp' | 'tcp' | 'dns' | 'http';
+  proto: 'arp' | 'icmp' | 'udp' | 'tcp' | 'dns' | 'http' | 'dhcp' | 'ospf' | 'stp' | 'vrrp';
   // 文言のキー（seq.*）と、その置換の値
   label: string;
   params?: Record<string, string | number>;
@@ -217,6 +227,147 @@ const pushHttp = (b: Builder, trigger: Extract<ControlTrigger, { kind: 'http' }>
   );
 };
 
+// 口と同じブロードキャストドメインの、L3 の機器（自分を除く）
+const domainL3 = (b: Builder, uid: string, port: number): string[] => [...new Set(b.state.l2.domainOf({ node: uid, port }).members.map((m) => m.node))].filter((u) => u !== uid && !b.ctx.isSwitch(u));
+
+// 自動の口ごとの Discover・Offer・Request・Ack。サーバーが同じドメインにあれば直接、なければリレー（helper）を持つルーターを通す
+const pushDhcp = (b: Builder, trigger: Extract<ControlTrigger, { kind: 'dhcp' }>): void => {
+  const client = nodeOf(b.state, trigger.client);
+  const ifaces = client.interfaces.filter((i) => i.dhcp === true);
+  if (ifaces.length === 0) throw new Error(`制御の列: 自動（DHCP）の口がない ${client.uid}`);
+  const { leases, failed } = b.state.addressing.dhcp;
+  for (const iface of ifaces) {
+    const lease = leases.find((l) => l.uid === client.uid && l.port === iface.port);
+    const fail = failed.find((f) => f.uid === client.uid && f.port === iface.port);
+    if (lease === undefined && fail === undefined) throw new Error(`制御の列: DHCP の結果がない ${client.uid} の口${iface.port}`);
+    const members = b.state.l2.domainOf({ node: client.uid, port: iface.port }).members;
+    const broadcast = (label: string, path: string[], reached: string[], extra: Partial<ControlStep> = {}): ControlStep => ({ from: path[0], to: '*', reached, proto: 'dhcp', label, path, ...extra });
+    if (lease === undefined) {
+      if (fail === undefined) throw new Error('制御の列: DHCP の失敗の理由がない');
+      b.steps.push(broadcast('seq.dhcp.discover', [client.uid], domainL3(b, client.uid, iface.port), { failure: { reason: fail.reason, node: client.uid } }));
+      continue;
+    }
+    const params = { ip: lease.ip };
+    const server = lease.server;
+    if (members.some((m) => m.node === server)) {
+      const path = [client.uid, server];
+      const reached = domainL3(b, client.uid, iface.port);
+      b.steps.push(
+        broadcast('seq.dhcp.discover', path, reached),
+        unicast(server, client.uid, 'dhcp', 'seq.dhcp.offer', [server, client.uid], { params }),
+        broadcast('seq.dhcp.request', path, reached, { params }),
+        unicast(server, client.uid, 'dhcp', 'seq.dhcp.ack', [server, client.uid], { params }),
+      );
+      continue;
+    }
+    // リレー: クライアントのドメインにいて、リレー先がサーバーのアドレスの口を持つルーター
+    const serverIps = nodeOf(b.state, server).interfaces.map((i) => i.ip);
+    const found = members
+      .map((m) => ({ node: nodeOf(b.state, m.node), helper: nodeOf(b.state, m.node).interfaces.find((i) => i.port === m.port)?.helper }))
+      .find((x) => x.helper !== undefined && serverIps.includes(x.helper));
+    if (!found || found.helper === undefined) throw new Error(`制御の列: DHCP のリレーのルーターがない ${client.uid}`);
+    const relay = found.node;
+    // リレーのルーターから、サーバーのアドレスと同じサブネットの口（dhcp.ts の reaches と同じ）を送信元にして、サーバーまでの経路を引く
+    const serverIface = { ip: found.helper };
+    const toward = relay.interfaces.find((i) => i.ip !== '' && inSubnet(serverIface.ip, i.ip, i.prefix));
+    const leg = deliver(b.state, relay.uid, server, { kind: 'ping' }, false, toward?.ip, serverIface.ip);
+    if (!leg.ok) throw new Error(`制御の列: リレーからサーバーへ届かない ${relay.uid}→${server}`);
+    const toServer = leg.path;
+    const toRelay = [...leg.path].reverse();
+    const up = (label: string, extra: Partial<ControlStep> = {}): ControlStep => broadcast(label, [client.uid, relay.uid], [relay.uid], extra);
+    const down = (label: string): ControlStep => broadcast(label, [relay.uid, client.uid], [client.uid], { params });
+    b.steps.push(
+      up('seq.dhcp.discover'),
+      unicast(relay.uid, server, 'dhcp', 'seq.dhcp.discover', toServer),
+      unicast(server, relay.uid, 'dhcp', 'seq.dhcp.offer', toRelay, { params }),
+      down('seq.dhcp.offer'),
+      up('seq.dhcp.request', { params }),
+      unicast(relay.uid, server, 'dhcp', 'seq.dhcp.request', toServer, { params }),
+      unicast(server, relay.uid, 'dhcp', 'seq.dhcp.ack', toRelay, { params }),
+      down('seq.dhcp.ack'),
+    );
+  }
+};
+
+// OSPF の隣接の確立: Hello（両方向）→ DBD → LSR → LSU → LSAck。隣接にならなければ Hello だけを並べ、最後の行に理由を持つ
+const pushOspf = (b: Builder, trigger: Extract<ControlTrigger, { kind: 'ospf' }>): void => {
+  const { a, b: peer } = trigger;
+  const candidate = b.state.routing.ospfPeersOf(a).find((p) => p.uid === peer);
+  if (!candidate) throw new Error(`制御の列: OSPF の隣接の候補でない ${a}→${peer}`);
+  const fwd = [a, peer];
+  const back = [peer, a];
+  const hellos = [unicast(a, peer, 'ospf', 'seq.ospf.hello', fwd), unicast(peer, a, 'ospf', 'seq.ospf.hello', back)];
+  if (candidate.mismatch !== null) {
+    b.steps.push(...hellos, unicast(peer, a, 'ospf', `seq.ospf.mismatch.${candidate.mismatch}`, back, { failure: { reason: 'ospf.no_neighbor', node: a } }));
+    return;
+  }
+  if (!ospfNeighborsOf(b.state, a).some((n) => n.uid === peer)) throw new Error(`制御の列: 隣接になるはずが隣接にない ${a}→${peer}`);
+  b.steps.push(
+    ...hellos,
+    unicast(a, peer, 'ospf', 'seq.ospf.dbd', fwd),
+    unicast(peer, a, 'ospf', 'seq.ospf.dbd', back),
+    unicast(a, peer, 'ospf', 'seq.ospf.lsr', fwd),
+    unicast(peer, a, 'ospf', 'seq.ospf.lsu', back),
+    unicast(a, peer, 'ospf', 'seq.ospf.lsack', fwd),
+  );
+};
+
+// STP の BPDU: 各リンクの指定ポートの側から相手へ。ルートからの距離の順。相手の口が止まっていれば、その行は止まっている印の文言にする
+const pushStp = (b: Builder): void => {
+  const { roles, rootCost } = b.state.l2.stp();
+  const rows: { from: string; to: string; toPort: number; blocked: boolean; cost: number }[] = [];
+  for (const l of b.state.net.links) {
+    const ra = roles.get(`${l.a.node}:${l.a.port}`);
+    const rb = roles.get(`${l.b.node}:${l.b.port}`);
+    if (ra === undefined || rb === undefined) continue;
+    const [from, to] = ra === 'designated' ? [l.a, l.b] : [l.b, l.a];
+    const cost = rootCost.get(from.node);
+    if (cost === undefined) throw new Error(`制御の列: ルートまでのコストがない ${from.node}`);
+    rows.push({ from: from.node, to: to.node, toPort: to.port, blocked: roles.get(`${to.node}:${to.port}`) === 'blocking', cost });
+  }
+  rows.sort((x, y) => x.cost - y.cost || (rootCost.get(x.to) ?? 0) - (rootCost.get(y.to) ?? 0));
+  for (const r of rows) {
+    b.steps.push(unicast(r.from, r.to, 'stp', r.blocked ? 'seq.stp.bpdu_blocked' : 'seq.stp.bpdu', [r.from, r.to], { params: r.blocked ? { cost: r.cost, port: r.toPort } : { cost: r.cost } }));
+  }
+};
+
+// VRRP: マスターからバックアップへの Advertisement。続けて、マスターの電源を切った構成の結果から、新しいマスターの Advertisement
+const pushVrrp = (b: Builder, trigger: Extract<ControlTrigger, { kind: 'vrrp' }>): void => {
+  const { group } = trigger;
+  const portOf = (state: NetworkState, uid: string): number => {
+    const port = nodeOf(state, uid).interfaces.find((i) => i.vrrp?.some((g) => g.vrid === group))?.port;
+    if (port === undefined) throw new Error(`制御の列: VRRP のグループがない ${uid} ${group}`);
+    return port;
+  };
+  const holder = b.state.net.nodes.find((n) => n.interfaces.some((i) => i.vrrp?.some((g) => g.vrid === group)));
+  if (!holder) throw new Error(`制御の列: VRRP のグループがない ${group}`);
+  const noMaster = (uid: string): ControlStep => ({ from: uid, to: '*', reached: [], proto: 'vrrp', label: 'seq.vrrp.no_master', params: { vrid: group }, path: [uid], failure: { reason: 'vrrp.no_master', node: uid } });
+  // マスターの Advertisement を出す。マスターがいなければ null
+  const advert = (state: NetworkState, uid: string, label: string): { master: string; members: string[] } | null => {
+    const members = state.addressing.vrrpMembers(uid, portOf(state, uid), group);
+    const master = electVrrpMaster(members);
+    if (master === null) return null;
+    const me = members.find((m) => m.uid === master);
+    if (!me) throw new Error(`制御の列: マスターが構成員にない ${master}`);
+    const others = members.filter((m) => m.up && m.uid !== master).map((m) => m.uid);
+    b.steps.push({ from: master, to: '*', reached: others, proto: 'vrrp', label, params: { vrid: group, priority: effectivePriority(me) }, path: [master] });
+    return { master, members: members.map((m) => m.uid) };
+  };
+  const first = advert(b.state, holder.uid, 'seq.vrrp.advertisement');
+  if (!first) {
+    b.steps.push(noMaster(holder.uid));
+    return;
+  }
+  const survivor = first.members.find((u) => u !== first.master);
+  if (survivor === undefined) {
+    b.steps.push(noMaster(first.master));
+    return;
+  }
+  // マスターの電源を切った構成で、もう一度求める
+  const stopped = analyze({ ...b.state.input, nodes: b.state.input.nodes.map((n) => (n.uid === first.master ? { ...n, powered: false } : n)) }, b.state.world);
+  if (!advert(stopped, survivor, 'seq.vrrp.takeover')) b.steps.push(noMaster(survivor));
+};
+
 export const controlSequence = (state: NetworkState, trigger: ControlTrigger): ControlStep[] => {
   const b: Builder = { state, ctx: frameCtx(state), steps: [], arpDone: new Set() };
   switch (trigger.kind) {
@@ -225,6 +376,18 @@ export const controlSequence = (state: NetworkState, trigger: ControlTrigger): C
       break;
     case 'http':
       pushHttp(b, trigger, http(state, trigger.from, trigger.to, trigger.port));
+      break;
+    case 'dhcp':
+      pushDhcp(b, trigger);
+      break;
+    case 'ospf':
+      pushOspf(b, trigger);
+      break;
+    case 'stp':
+      pushStp(b);
+      break;
+    case 'vrrp':
+      pushVrrp(b, trigger);
       break;
   }
   return b.steps;
