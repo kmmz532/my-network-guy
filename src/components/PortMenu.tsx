@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 // ポートの一覧の吹き出し。配線の道具で機器を押したときに、機器の横に出す。先頭は「おまかせ」、続けて各ポート（埋まったポートは選べない）
 import { labelOfUid } from './nodeLabel';
 import { t } from '../i18n/t';
@@ -9,6 +10,9 @@ import { Button } from './ui/Button';
 import { Popover } from './ui/Popover';
 import { loadSettings } from '../settings/settings';
 import { deviceCategory, portCountOf } from '../registry/query';
+import { applyOperation } from '../company/apply';
+import { coreOf } from '../stores/useGameStore';
+import { opContextOf } from '../stores/gameHelpers';
 
 // 吹き出しの高さの見積もり（行の数で画面からはみ出さないように置く）
 const ROW_PX = 24;
@@ -19,6 +23,8 @@ interface PortRow {
   label: string;
   partner: NetNode | undefined;
   used: boolean;
+  // つながっているケーブルの uid（空きの口は undefined）
+  link: string | undefined;
 }
 
 const rowsOf = (node: NetNode, nodes: readonly NetNode[], links: readonly NetLink[]): PortRow[] => {
@@ -33,9 +39,14 @@ const rowsOf = (node: NetNode, nodes: readonly NetNode[], links: readonly NetLin
       label: portLabel(category, port),
       partner: partnerUid ? nodes.find((n) => n.uid === partnerUid) : undefined,
       used: link !== undefined,
+      link: link?.uid,
     };
   });
 };
+
+// 配線を外せるか（store の撤去と同じ判定）
+const canUnplug = (state: ReturnType<typeof useGameStore.getState>, uid: string): boolean =>
+  applyOperation(coreOf(state), { kind: 'removeLink', uid }, opContextOf(state)).ok;
 
 export function PortMenu() {
   const state = useGameStore();
@@ -55,12 +66,19 @@ export function PortMenu() {
         {t('ui.wire.auto')}
       </Button>
       {rows.map((row) => (
-        <Button key={row.port} variant="secondary" size="port" layout={{ marginTop: 2 }} disabled={row.used} onClick={() => state.pickPort(row.port)}>
-          <span>{row.label}</span>
-          <span>
-            {row.partner ? labelOfUid(state, row.partner.uid, net.nodes) : t('ui.port.free')}
-          </span>
-        </Button>
+        <Fragment key={row.port}>
+          <Button variant="secondary" size="port" layout={{ marginTop: 2 }} disabled={row.used} onClick={() => state.pickPort(row.port)}>
+            <span>{row.label}</span>
+            <span>
+              {row.partner ? labelOfUid(state, row.partner.uid, net.nodes) : t('ui.port.free')}
+            </span>
+          </Button>
+          {row.link && canUnplug(state, row.link) && (
+            <Button variant="secondary" size="port" layout={{ marginTop: 2 }} onClick={() => state.removeLink(row.link as string)}>
+              {t('ui.cmenu.unplug')}
+            </Button>
+          )}
+        </Fragment>
       ))}
     </Popover>
   );

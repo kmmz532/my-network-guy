@@ -203,6 +203,8 @@ export class MapInput {
   // 押した位置の機器・家具・配線（メニューの対象）。判定は hover・撤去と同じ。なければ null
   private menuTargetAt(p: Point, tile: { tx: number; ty: number } | null): MenuTarget | null {
     const store = useGameStore.getState();
+    const staffUid = staffAt(this.host.staffHits(), p);
+    if (staffUid) return { kind: 'staff', uid: staffUid };
     const nodes = this.host.hit.editNodes() ?? this.host.project()?.nodes ?? [];
     const node = this.host.hit.nodeNear(p, nodes);
     if (node) return { kind: 'node', uid: node.uid };
@@ -228,7 +230,7 @@ export class MapInput {
     const furniture = target.kind === 'furniture' ? store.office.furniture.find((f) => f.uid === target.uid) : undefined;
     const items = menuItemsOf(target, {
       allows: (op) => editable && this.canApply(op),
-      node: node ? { hasConfig, hasPower: !can(node.device, 'uplink'), powered: node.powered !== false, name: node.name ?? '' } : undefined,
+      node: node ? { hasConfig, hasPower: !can(node.device, 'uplink'), powered: node.powered !== false, name: node.name ?? '', canWire: editable } : undefined,
       furniture: furniture ? { hasEffectRange: hasEffectRange(gameEnv.furniture?.[furniture.id]) } : undefined,
     });
     if (items.length === 0) {
@@ -247,6 +249,13 @@ export class MapInput {
       rotateFurniture: (uid) => void store.rotateFurniture(uid),
       removeFurniture: (uid) => void store.removeFurniture(uid),
       showEffectRange: (uid) => useUiStore.getState().setFurnitureRange(uid),
+      openStaff: (uid) => store.openWindow('staff', uid),
+      // 口の一覧は配線の道具の一覧なので、道具も配線に変えてから開く
+      openPorts: () => {
+        if (!node) throw new Error('口の一覧の対象の機器がない');
+        store.setTool('wire');
+        this.openMenuAt(node);
+      },
     };
     this.host.tip.reset();
     ui.setContextMenu({ x: clientX, y: clientY, items: items.map((item) => ({ ...item, run: () => item.run(actions) })) });

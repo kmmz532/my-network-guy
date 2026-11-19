@@ -358,6 +358,27 @@ const scenes = {
     }
     throw new Error('メニューが出なかった');
   },
+  // 社員を右クリックして、「社員の情報を見る」の出たメニューを撮る。社員の位置は決め打ちせず、画面を走査して、そのメニューが出た位置で止める
+  contextmenustaff: async (page) => {
+    await scenes.day(page);
+    const staffCount = await page.evaluate(() => window.__game.getState().staff.length);
+    if (staffCount === 0) throw new Error('社員がいない');
+    await page.waitForTimeout(500);
+    const box = await page.locator('canvas').first().boundingBox();
+    const menu = page.locator('[data-context-menu]');
+    for (let j = 0; j < 40; j++) {
+      for (let i = 0; i < 60; i++) {
+        const x = box.x + 20 + i * ((box.width - 40) / 60);
+        const y = box.y + 80 + j * ((box.height - 160) / 40);
+        await page.mouse.click(x, y, { button: 'right' });
+        if ((await menu.count()) > 0 && (await menu.innerText()).includes('社員の情報を見る')) {
+          await page.waitForTimeout(300);
+          return;
+        }
+      }
+    }
+    throw new Error('社員のメニューが出なかった');
+  },
   // マップのポインタ操作（ホイール・中ボタンの移動・各道具での押す・ドラッグ・乗せる）を一通り行う。位置は決め打ちせず、画面全体を走査する。
   // 例外や console のエラーが出ないことを --check で確かめる
   pointer: async (page) => {
@@ -452,6 +473,12 @@ const scenes = {
     await page.waitForTimeout(500);
     await page.getByRole('button', { name: '受注' }).first().click();
     await page.waitForTimeout(800);
+  },
+  // 案内を出してから「しまう」を押した状態（吹き出しと枠が消え、案件の欄の見出しの行に顔のボタンと「次: 〜」の札が残る）
+  guidehidden: async (page) => {
+    await scenes.guide(page);
+    await page.getByRole('button', { name: 'しまう' }).click();
+    await page.waitForTimeout(500);
   },
   // ショップ
   shop: async (page) => {

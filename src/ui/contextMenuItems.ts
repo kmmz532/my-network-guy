@@ -3,7 +3,7 @@
 // 操作が通るかは allows（store の操作と同じ判定）で見るため、規則をここで重ねて持たない。
 import type { Operation } from '../company/operation';
 
-export type MenuTarget = { kind: 'node'; uid: string } | { kind: 'link'; uid: string } | { kind: 'furniture'; uid: string };
+export type MenuTarget = { kind: 'node'; uid: string } | { kind: 'link'; uid: string } | { kind: 'furniture'; uid: string } | { kind: 'staff'; uid: string };
 
 // 機器の状態のうち、操作の判定だけでは決まらないもの
 export interface NodeFacts {
@@ -14,6 +14,8 @@ export interface NodeFacts {
   powered: boolean;
   // いまの名前（未設定は空）
   name: string;
+  // 口の一覧を開けるか（機器を編集できる場面）
+  canWire: boolean;
 }
 
 export interface MenuFacts {
@@ -33,10 +35,12 @@ export interface MenuActions {
   rotateFurniture: (uid: string) => void;
   removeFurniture: (uid: string) => void;
   showEffectRange: (uid: string) => void;
+  openStaff: (uid: string) => void;
+  openPorts: (uid: string) => void;
 }
 
 export interface MenuItem {
-  id: 'settings' | 'rename' | 'power' | 'duplicate' | 'remove' | 'unplug' | 'rotate' | 'effectRange';
+  id: 'settings' | 'rename' | 'power' | 'ports' | 'duplicate' | 'remove' | 'unplug' | 'rotate' | 'effectRange' | 'staffInfo';
   // 言語ファイルのキー
   label: string;
   run: (actions: MenuActions) => void;
@@ -45,6 +49,10 @@ export interface MenuItem {
 export function menuItemsOf(target: MenuTarget, facts: MenuFacts): MenuItem[] {
   const { uid } = target;
   const items: MenuItem[] = [];
+  if (target.kind === 'staff') {
+    items.push({ id: 'staffInfo', label: 'ui.cmenu.staffInfo', run: (a) => a.openStaff(uid) });
+    return items;
+  }
   if (target.kind === 'node') {
     const node = facts.node;
     if (!node) throw new Error('機器の状態が渡されていない');
@@ -55,6 +63,7 @@ export function menuItemsOf(target: MenuTarget, facts: MenuFacts): MenuItem[] {
     if (node.hasConfig && node.hasPower && facts.allows({ kind: 'config', uid, change: { kind: 'power', on: !node.powered } })) {
       items.push({ id: 'power', label: node.powered ? 'ui.cmenu.powerOff' : 'ui.cmenu.powerOn', run: (a) => a.setPower(uid, !node.powered) });
     }
+    if (node.canWire) items.push({ id: 'ports', label: 'ui.cmenu.ports', run: (a) => a.openPorts(uid) });
     if (facts.allows({ kind: 'duplicateNode', uid })) items.push({ id: 'duplicate', label: 'ui.cmenu.duplicate', run: (a) => a.duplicateNode(uid) });
     if (facts.allows({ kind: 'removeNode', uid })) items.push({ id: 'remove', label: 'ui.cmenu.remove', run: (a) => a.removeNode(uid) });
     return items;
