@@ -19,7 +19,7 @@ import {
 } from '../sim/placement';
 import { buyDevice, sellDevice } from '../sim/shop';
 import {
-  addRoute, autoRegisterZone, removeHost, removeRoute, setBgp, setChannel, setDhcp, setDnsForwarder, setDnsRecord, setDnsRole, removeDnsRecord, setFirewallRules, setGateway, setHost, setLoadBalancer,
+  addRoute, autoRegisterZone, removeHost, removeRoute, setBgp, setChannel, setDhcp, setDnsForwarder, setDnsRecord, setDnsRole, removeDnsRecord, setFirewallRules, setGateway, setHost, setLoadBalancer, setVpn,
   setHostname, setInterface, setIsp, setName, setNameServer, setNat, setOspf, setPlan, setPortMode, setPower, setRouting, setService,
   setPo, setStp, setSvi, setVrrp, setWireless,
 } from '../sim/netEdit';
@@ -58,6 +58,7 @@ export const applyConfig = (core: Core, uid: string, change: ConfigChange, ctx: 
     case 'wireless': return setWireless(core, uid, change.key, change.value, target);
     case 'firewallRules': return setFirewallRules(core, uid, change.rules, target);
     case 'loadBalancer': return setLoadBalancer(core, uid, change.servers, target);
+    case 'vpn': return setVpn(core, uid, change.tunnels, target);
     case 'plan': return setPlan(core, uid, change.port, change.network, change.prefix, env, target);
     case 'service': return setService(core, uid, change.protocol, change.on, target);
     case 'name': return setName(core, uid, change.name, target);

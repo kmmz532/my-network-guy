@@ -1,5 +1,6 @@
 // IPsec VPN: 拠点間のトンネルが張れる条件と、トンネルを通る通信
 import { describe, expect, it } from 'vitest';
+import { controlSequence } from './control';
 import { ping } from './engine';
 import { analyze } from './engine/analyze';
 import { withInternet } from './external';
@@ -77,6 +78,43 @@ const build = ({ a, b, firewall, natA = false, natBefore = false }: Options = {}
 const state = (net: Network) => analyze(net, gameEnv.engine);
 const goal: Goal = { type: 'vpn_up', a: 'ra', b: 'rb' };
 const up = (net: Network) => evaluateGoal(goal, state(net))[0];
+
+// シーケンス図の IKE の行: フェーズ1（6行）とフェーズ2（3行）。張れないときは、理由の行で止まる
+const ike = (net: Network, a = 'ra', b = 'rb') => controlSequence(state(net), { kind: 'vpn', a, b });
+describe('IPsec VPN のシーケンス図の行', () => {
+  const ALL = ['seq.vpn.p1.1', 'seq.vpn.p1.2', 'seq.vpn.p1.3', 'seq.vpn.p1.4', 'seq.vpn.p1.5', 'seq.vpn.p1.6', 'seq.vpn.p2.1', 'seq.vpn.p2.2', 'seq.vpn.p2.3'];
+
+  it('張れるトンネルは、フェーズ1の3往復とフェーズ2の3行を、この順に並べ、どれも失敗しない', () => {
+    const steps = ike(build());
+    expect(steps.map((s) => s.label)).toEqual(ALL);
+    expect(steps.map((s) => s.from)).toEqual(['ra', 'rb', 'ra', 'rb', 'ra', 'rb', 'ra', 'rb', 'ra']);
+    expect(steps.every((s) => s.failure === undefined)).toBe(true);
+  });
+
+  it('相手に届かなければ、1行目で止まる', () => {
+    const steps = ike(build({ a: { peer: '198.51.100.99' } }));
+    expect(steps.map((s) => s.label)).toEqual(['seq.vpn.p1.1']);
+    expect(steps[0].failure?.reason).toBe('vpn.peer_unreachable');
+  });
+
+  it('暗号の方式が違えば、フェーズ1の2行目で止まる', () => {
+    const steps = ike(build({ a: { cipher: '3des' } }));
+    expect(steps.map((s) => s.label)).toEqual(['seq.vpn.p1.1', 'seq.vpn.p1.2']);
+    expect(steps[1].failure?.reason).toBe('vpn.proposal_mismatch');
+  });
+
+  it('事前共有鍵が違えば、フェーズ1の認証の応答（6行目）で止まる', () => {
+    const steps = ike(build({ a: { psk: 'other' } }));
+    expect(steps.map((s) => s.label)).toEqual(ALL.slice(0, 6));
+    expect(steps[5].failure?.reason).toBe('vpn.psk_mismatch');
+  });
+
+  it('守るネットワークの組が合わなければ、フェーズ2の2行目で止まる', () => {
+    const steps = ike(build({ a: { remote: '10.3.0.0/24' } }));
+    expect(steps.map((s) => s.label)).toEqual(ALL.slice(0, 8));
+    expect(steps[7].failure?.reason).toBe('vpn.selector_mismatch');
+  });
+});
 
 describe('IPsec VPN のトンネル', () => {
   it('両端がそろえば張れて、トンネルを通って別の拠点の PC へ ping が届く', () => {

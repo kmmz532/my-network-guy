@@ -63,6 +63,8 @@ export interface DesignSlice {
   // ファイアウォールの規則を置き換える（N38）
   setFirewallRules: (uid: string, rules: FirewallRule[]) => string | null;
   setLoadBalancer: (uid: string, servers: NonNullable<Components['loadBalancer']>) => string | null;
+  // IPsec VPN のトンネルの一覧を置き換える
+  setVpn: (uid: string, tunnels: NonNullable<Components['vpn']>) => string | null;
   // セグメント（ポートが属するネットワーク）のアドレスを設定する
   setPlan: (uid: string, port: number, network: string, prefix: number) => string | null;
   // 配線の片方の端を、同じ機器の別のポートへ挿し替える
@@ -201,6 +203,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
     setWireless: (uid, key, value) => dispatch({ kind: 'config', uid, change: { kind: 'wireless', key, value } }, tileOf(uid)),
     setFirewallRules: (uid, rules) => dispatch({ kind: 'config', uid, change: { kind: 'firewallRules', rules } }, tileOf(uid)),
     setLoadBalancer: (uid, servers) => dispatch({ kind: 'config', uid, change: { kind: 'loadBalancer', servers } }, tileOf(uid)),
+    setVpn: (uid, tunnels) => dispatch({ kind: 'config', uid, change: { kind: 'vpn', tunnels } }, tileOf(uid)),
     // セグメントの設定の後は、IPアドレスの自動割り当てをかける
     setPlan: (uid, port, network, prefix) => dispatch({ kind: 'config', uid, change: { kind: 'plan', port, network, prefix } }, tileOf(uid), netTargetOf(get())),
     replug: (linkUid, end, port) =>

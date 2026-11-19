@@ -1,6 +1,6 @@
 // パケットの中身の欄。通信（テストの結果・ターミナルの ping）を、区間ごとのフレーム（MAC・VLAN・IP・TTL・ポート）の表で出す。
 // 前の区間から変わった欄は色を変える（MAC の付け替え・NAT の変換・TTL の減少）。失敗した通信は、止まった機器と理由を最後の行に出す
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { t, tDyn } from '../i18n/t';
 import { framesOf, isL2Category, isRoutingCategory, type Frame, type FrameContext, type NetworkState } from '../network/public';
 import type { Trace } from '../sim/project';
@@ -78,7 +78,21 @@ export function FramesBody({ goal, hop: initialHop }: { goal?: number; hop?: num
             {frames.slice(0, shown).map((f, i) => {
               const p = i > 0 ? frames[i - 1] : null;
               return (
-                <Row key={i} selected={hop === i}>
+                <Fragment key={i}>
+                  {f.tunnel && (
+                    // トンネルの区間は、元の見出しの上に外側の見出し（WAN のアドレス）を1行足す
+                    <Row selected={hop === i}>
+                      {cell(`${name(f.from)} → ${name(f.to)}`, false)}
+                      {cell('-', false)}
+                      {cell('-', false)}
+                      {cell('-', false)}
+                      {cell(f.tunnel.srcIp, true)}
+                      {cell(f.tunnel.dstIp, true)}
+                      {cell('-', false)}
+                      {cell(t('ui.frames.tunnelOuter'), false)}
+                    </Row>
+                  )}
+                <Row selected={hop === i}>
                   {cell(`${name(f.from)} → ${name(f.to)}`, false)}
                   {cell(f.l2.dstMac, p !== null && p.l2.dstMac !== f.l2.dstMac)}
                   {cell(f.l2.srcMac, p !== null && p.l2.srcMac !== f.l2.srcMac)}
@@ -88,6 +102,7 @@ export function FramesBody({ goal, hop: initialHop }: { goal?: number; hop?: num
                   {cell(f.l3.ttl, p !== null && p.l3.ttl !== f.l3.ttl)}
                   {cell(portText(f), f.nat !== undefined)}
                 </Row>
+                </Fragment>
               );
             })}
             {failure && shown === frames.length && (

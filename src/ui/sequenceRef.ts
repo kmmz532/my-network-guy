@@ -1,5 +1,5 @@
 // シーケンス図の窓の ref（タブの文字列）の組み立てと解釈。画面に依存しない純粋な関数（試験で確かめる）
-// 書式: ping|from|to ・ http|from|to|port（名前で引いた通信は |name を続ける）・dhcp|client ・ ospf|a|b ・ stp ・ vrrp|group
+// 書式: ping|from|to ・ http|from|to|port（名前で引いた通信は |name を続ける）・dhcp|client ・ ospf|a|b ・ stp ・ vrrp|group ・ vpn|a|b
 import type { ControlTrigger } from '../network/public';
 
 // 窓の ref に入れる、制御の指定
@@ -19,6 +19,8 @@ export const sequenceRefOf = (trigger: ControlTrigger): string => {
       return 'stp';
     case 'vrrp':
       return `vrrp|${trigger.group}`;
+    case 'vpn':
+      return `vpn|${trigger.a}|${trigger.b}`;
   }
 };
 
@@ -39,5 +41,6 @@ export const parseRef = (ref: string): ControlTrigger => {
   if (kind === 'ospf') return { kind, a, b };
   if (kind === 'stp') return { kind };
   if (kind === 'vrrp') return { kind, group: Number(a) };
+  if (kind === 'vpn') return { kind, a, b };
   throw new Error(`シーケンス図: 通信の指定が不正 ${ref}`);
 };

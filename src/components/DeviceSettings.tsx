@@ -31,6 +31,7 @@ import { IspField } from './IspField';
 import { VlanPortField } from './VlanPortField';
 import { VrrpField } from './VrrpField';
 import { LoadBalancerField } from './LoadBalancerField';
+import { VpnField } from './VpnField';
 import { ChannelField } from './ChannelField';
 import { SviField } from './SviField';
 import { PoField } from './PoField';
@@ -412,6 +413,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
       {isRoutingCategory(category ?? '') && <NatField node={node} readOnly={locked} onError={onError} />}
       {can(node.device, 'firewallRules') && renderFirewallRules()}
       {can(node.device, 'loadBalance') && <LoadBalancerField node={node} netState={netState} disabled={locked} onError={onError} />}
+      {can(node.device, 'vpn') && <VpnField node={node} netState={netState} disabled={locked} onError={onError} />}
     </div>
   );
 }

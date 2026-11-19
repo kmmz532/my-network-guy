@@ -16,6 +16,7 @@ import { inSubnet } from './engine';
 import { l2Path } from './mac';
 import { ospfNeighborsOf } from './query/ospfNeighbors';
 import { effectivePriority, electVrrpMaster } from './vrrp';
+import type { VpnFailure } from './query/vpn';
 import type { Failure, NetNode, PathResult } from './types';
 
 export type ControlTrigger =
@@ -24,7 +25,8 @@ export type ControlTrigger =
   | { kind: 'dhcp'; client: string }
   | { kind: 'ospf'; a: string; b: string }
   | { kind: 'stp' }
-  | { kind: 'vrrp'; group: number };
+  | { kind: 'vrrp'; group: number }
+  | { kind: 'vpn'; a: string; b: string };
 
 export interface ControlStep {
   from: string;
@@ -32,7 +34,7 @@ export interface ControlStep {
   to: string;
   // 届いた L3 の機器の uid（ユニキャストなら [to]）
   reached: string[];
-  proto: 'arp' | 'icmp' | 'udp' | 'tcp' | 'dns' | 'http' | 'dhcp' | 'ospf' | 'stp' | 'vrrp';
+  proto: 'arp' | 'icmp' | 'udp' | 'tcp' | 'dns' | 'http' | 'dhcp' | 'ospf' | 'stp' | 'vrrp' | 'ike';
   // 文言のキー（seq.*）と、その置換の値
   label: string;
   params?: Record<string, string | number>;
@@ -368,9 +370,47 @@ const pushVrrp = (b: Builder, trigger: Extract<ControlTrigger, { kind: 'vrrp' }>
   if (!advert(stopped, survivor, 'seq.vrrp.takeover')) b.steps.push(noMaster(survivor));
 };
 
+// IPsec VPN のトンネルを張る IKE: フェーズ1（3往復の6行）とフェーズ2（3行）。張れないときは、その理由の行で止める（その行に失敗を持つ）。
+// 行の並びは、フェーズ1の1行目から順に。理由ごとの止まる行は、failAt の番号（0 から数える）
+const IKE_STEPS: readonly { label: string; from: 'a' | 'b' }[] = [
+  { label: 'seq.vpn.p1.1', from: 'a' },
+  { label: 'seq.vpn.p1.2', from: 'b' },
+  { label: 'seq.vpn.p1.3', from: 'a' },
+  { label: 'seq.vpn.p1.4', from: 'b' },
+  { label: 'seq.vpn.p1.5', from: 'a' },
+  { label: 'seq.vpn.p1.6', from: 'b' },
+  { label: 'seq.vpn.p2.1', from: 'a' },
+  { label: 'seq.vpn.p2.2', from: 'b' },
+  { label: 'seq.vpn.p2.3', from: 'a' },
+];
+const IKE_FAIL_AT: Record<VpnFailure, number> = {
+  'vpn.peer_unreachable': 0,
+  'vpn.proposal_mismatch': 1,
+  'vpn.psk_mismatch': 5,
+  'vpn.selector_mismatch': 7,
+};
+
+const pushVpn = (b: Builder, trigger: Extract<ControlTrigger, { kind: 'vpn' }>): void => {
+  const { a, b: peer } = trigger;
+  const peerIps = nodeOf(b.state, peer).interfaces.map((i) => i.ip);
+  // a から peer へのトンネル。張れていれば相手が peer、張れていなければ相手の WAN が peer のアドレスのもの
+  const status = b.state.vpn.tunnels.find((s) => s.router === a && (s.ok ? s.peer === peer : peerIps.includes(s.tunnel.peer)));
+  const reason: VpnFailure | null = status === undefined ? 'vpn.peer_unreachable' : status.ok ? null : status.reason;
+  const failAt = reason === null ? null : IKE_FAIL_AT[reason];
+  IKE_STEPS.forEach((step, i) => {
+    if (failAt !== null && i > failAt) return;
+    const [from, to] = step.from === 'a' ? [a, peer] : [peer, a];
+    const failure = reason !== null && i === failAt ? { reason, node: a } : undefined;
+    b.steps.push(unicast(from, to, 'ike', step.label, [from, to], failure ? { failure } : {}));
+  });
+};
+
 export const controlSequence = (state: NetworkState, trigger: ControlTrigger): ControlStep[] => {
   const b: Builder = { state, ctx: frameCtx(state), steps: [], arpDone: new Set() };
   switch (trigger.kind) {
+    case 'vpn':
+      pushVpn(b, trigger);
+      break;
     case 'ping':
       pushPing(b, trigger, ping(state, trigger.from, trigger.to));
       break;

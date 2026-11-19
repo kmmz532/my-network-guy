@@ -6,14 +6,15 @@ import type { Tr, TerminalLine } from '../terminal';
 import type { EngineData, NetLink, NetNode } from '../types';
 import type { Trace } from '../../sim/project';
 
-export type Mode = 'exec' | 'config' | 'interface' | 'router-rip' | 'router-ospf' | 'router-bgp';
+export type Mode = 'exec' | 'config' | 'interface' | 'router-rip' | 'router-ospf' | 'router-bgp' | 'crypto-map';
 export type ArgKind = 'iface' | 'ip' | 'mask' | 'wildcard' | 'prefix' | 'vlan' | 'vlanList' | 'area' | 'asn' | 'vrid' | 'channel' | 'ssid' | 'psk' | 'cost' | 'number' | 'word' | 'hostname' | 'hostOrIp';
 export type Token = { word: string } | { arg: ArgKind; name: string };
 
 export interface TerminalSession {
   mode: Mode;
   iface: { kind: 'port'; port: number } | { kind: 'svi'; vlan: number } | { kind: 'po'; channel: number } | null; // interface モードの対象
-  process: number | null; // router ospf の番号・router bgp の AS 番号
+  process: number | null; // router ospf の番号・router bgp の AS 番号・crypto map の番号
+  map?: string; // crypto-map モードの対象の名前
 }
 
 export interface TerminalContext {

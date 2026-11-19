@@ -63,10 +63,13 @@ export const COMPONENT_SCHEMAS = {
   vpn: z.array(
     z.object({
       peer: ipv4,
-      psk: z.string().min(1),
+      psk: z.string(),
       cipher: z.enum(['aes', '3des']),
       local: cidr,
       remote: cidr,
+      // 命令の crypto map の名前と番号（画面から作ったトンネルは持たない）
+      map: z.string().optional(),
+      seq: z.number().int().min(1).optional(),
     }),
   ),
   // 名前の引き方（hosts は機器ごとの対応表で、ping・traceroute の宛先の名前を引く。Debian の /etc/hosts と同じ考え方。nameServer は ip name-server の DNS サーバーで、対応表で引けない名前を問い合わせる）

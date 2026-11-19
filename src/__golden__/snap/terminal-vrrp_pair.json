@@ -152,6 +152,77 @@
       "lines": [
         "out:ui.terminal.lbNone"
       ]
+    },
+    {
+      "node": "R1"
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "crypto isakmp key secret123 address 198.51.100.2",
+      "result": "error",
+      "text": "ui.terminal.vpnNoPeer"
+    },
+    {
+      "line": "crypto map VPN 10 ipsec-isakmp",
+      "result": "fail",
+      "reason": "capability"
+    },
+    {
+      "line": "set peer 198.51.100.2",
+      "result": "error",
+      "text": "ui.terminal.vpnNoMap"
+    },
+    {
+      "line": "set transform-set des",
+      "result": "error",
+      "text": "ui.terminal.vpnCipher"
+    },
+    {
+      "line": "set transform-set 3des",
+      "result": "error",
+      "text": "ui.terminal.vpnNoMap"
+    },
+    {
+      "line": "match address 10.1.0.0 255.255.255.0 10.2.0.0 255.255.255.0",
+      "result": "error",
+      "text": "ui.terminal.vpnNoMap"
+    },
+    {
+      "line": "exit",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
+      "line": "crypto isakmp key secret123 address 198.51.100.2",
+      "result": "error",
+      "text": "ui.terminal.vpnNoPeer"
+    },
+    {
+      "line": "no crypto isakmp key address 198.51.100.2",
+      "result": "error",
+      "text": "ui.terminal.vpnNoPeer"
+    },
+    {
+      "line": "no crypto map VPN 10",
+      "result": "error",
+      "text": "ui.terminal.vpnNoMap"
+    },
+    {
+      "line": "show crypto session",
+      "lines": [
+        "out:ui.terminal.vpnNone"
+      ]
+    },
+    {
+      "line": "end",
+      "lines": [
+        "err:  ^",
+        "err:ui.terminal.invalidAt"
+      ]
     }
   ],
   "network": {

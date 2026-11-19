@@ -29,6 +29,7 @@
         "out:  neighbor             ui.cmdWord.neighbor",
         "out:  vrrp                 ui.cmdWord.vrrp",
         "out:  channel-group        ui.cmdWord.channel-group",
+        "out:  crypto               ui.cmdWord.crypto",
         "out:  spanning-tree        ui.cmdWord.spanning-tree",
         "out:  nslookup             ui.cmdWord.nslookup",
         "out:  wireless             ui.cmdWord.wireless"

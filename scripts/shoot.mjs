@@ -1120,6 +1120,20 @@ const scenes = {
     await page.getByText('負荷分散', { exact: true }).first().scrollIntoViewIfNeeded();
     await page.waitForTimeout(500);
   },
+  // IPsec VPN の欄（トンネルの一覧と、張れているかの印）
+  vpn: async (page) => {
+    await scenes.sandbox(page);
+    await openDevice(page, 'vpn_router');
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      const n = g.office.nodes.find((x) => x.device === 'vpn_router');
+      g.setIface(n.uid, 0, '203.0.113.2', 24);
+      g.setVpn(n.uid, [{ peer: '198.51.100.2', psk: 'secret', cipher: 'aes', local: '10.1.0.0/24', remote: '10.2.0.0/24' }]);
+    });
+    await page.getByText('設定', { exact: true }).click();
+    await page.getByText('VPN（IPsec）', { exact: true }).scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
+  },
   // 回線終端（uplink）の設定。回線の欄（ISP の名前・アドレス・AS 番号・DNS）を出す
   isp: async (page) => {
     await scenes.sandbox(page);
