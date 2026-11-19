@@ -193,6 +193,16 @@ const scenes = {
     if ((await start.count()) > 0) await start.first().click();
     await page.waitForTimeout(1500);
   },
+  // 配線の太さ（100M の古いケーブルと 1G の比較）
+  cablespeed: async (page) => {
+    await page.getByText('サンドボックス').click();
+    await page.getByRole('button', { name: '教材から始める' }).click();
+    await page.getByRole('button', { name: /近道と遠回り/ }).first().click();
+    await page.waitForTimeout(500);
+    const start = page.getByRole('button', { name: '始める' });
+    if ((await start.count()) > 0) await start.first().click();
+    await page.waitForTimeout(1500);
+  },
   // サンドボックス
   sandbox: async (page) => {
     await page.getByText('サンドボックス').click();

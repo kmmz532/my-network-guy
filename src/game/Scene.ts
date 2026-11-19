@@ -1,5 +1,6 @@
 // キャンバスの描画と操作。マップ・機器・配線・社員・パケットを描き、クリックで配置・選択、ドラッグで配線する。
 // 描画の状態は store から読むだけで、変更は store の操作を通して行う。
+import { cablesById, portSpeed } from '../registry/query';
 import { Application, Container, Graphics, Text, type Ticker } from 'pixi.js';
 import { type GameMap } from '../data/schema';
 import { focusedProject, viewingOffice, frontDeviceUid, useGameStore, type Trace } from '../stores/useGameStore';
@@ -584,7 +585,7 @@ export class Scene {
       const hotColor = s.tool === 'remove' ? mixColor(color, HOT_RED, 0.5) : brighten(color);
       g.moveTo(pts[0][0], pts[0][1]);
       for (const [x, y] of pts.slice(1)) g.lineTo(x, y);
-      g.stroke({ width: hot ? 6 : 3, color: hot ? hotColor : color, alpha: hot ? 1 : alpha });
+      g.stroke({ width: hot ? 6 : cableWidthOf(project.nodes, link), color: hot ? hotColor : color, alpha: hot ? 1 : alpha });
     }
 
     // つながった瞬間の光（配線の上に描く）
@@ -734,3 +735,15 @@ const mixColor = (color: number, target: number, amount: number): number => {
 const brighten = (color: number): number => mixColor(color, 0xffffff, 0.5);
 
 // 2点の距離（ピンチ）と中点（canvas の座標）
+
+// 配線の太さ: 速さ（両端の口とケーブルの最も遅いもの）で 100M 以下は 1 px、1G は 3 px、10G 以上は 6 px で描く
+const cableWidthOf = (nodes: readonly { uid: string; device: string }[], link: { cable: string; a: { node: string; port: number }; b: { node: string; port: number } }): number => {
+  const speedAt = (end: { node: string; port: number }) => {
+    const node = nodes.find((n) => n.uid === end.node);
+    const speed = node ? portSpeed(node.device, end.port) : undefined;
+    if (speed === undefined) throw new Error(`配線の端の口が見つからない: ${end.node}#${end.port}`);
+    return speed;
+  };
+  const speed = Math.min(cablesById[link.cable].bandwidthMbps, speedAt(link.a), speedAt(link.b));
+  return speed <= 100 ? 1 : speed >= 10000 ? 6 : 3;
+};
