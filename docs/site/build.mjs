@@ -16,23 +16,19 @@ const t = (key) => {
   return lang[key];
 };
 
-// サイトに載せない文書。リンクは GitHub 上の Markdown へ向ける
-const excluded = new Set(['deploy.md']);
-const repoDocs = 'https://github.com/kmmz532/my-network-guy/blob/main/docs/';
-
 const htmlName = (md) => (md === 'README.md' ? 'index.html' : md.replace(/\.md$/, '.html'));
 
 // docs 内の .md へのリンクを .html へ向け直す
 marked.use({
   walkTokens(token) {
     if (token.type === 'link' && /^[\w-]+\.md(#.*)?$/.test(token.href)) {
-      token.href = token.href.replace(/^([\w-]+\.md)/, (name) => (excluded.has(name) ? repoDocs + name : htmlName(name)));
+      token.href = token.href.replace(/^([\w-]+\.md)/, (name) => htmlName(name));
     }
   },
 });
 
 const docs = readdirSync(docsDir)
-  .filter((f) => f.endsWith('.md') && !excluded.has(f))
+  .filter((f) => f.endsWith('.md'))
   .map((file) => {
     const source = readFileSync(join(docsDir, file), 'utf8');
     const title = source.match(/^# (.+)$/m)?.[1];
