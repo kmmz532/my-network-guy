@@ -71,37 +71,3 @@ export const l2Path = (
   }
   return null;
 };
-
-// 通信の経路で、スイッチが覚える MAC（端末につながるポートだけ）。スイッチごとに、経路の両側の端末を覚える
-export const learnedOnPath = (
-  path: readonly string[],
-  nodes: readonly NetNode[],
-  links: readonly { a: { node: string; port: number }; b: { node: string; port: number } }[],
-  categoryOf: (device: string) => string,
-  isSwitch: (node: NetNode) => boolean,
-): { switchUid: string; entry: MacEntry }[] => {
-  const byUid = new Map(nodes.map((n) => [n.uid, n]));
-  // 2つの機器をつなぐケーブルの、それぞれのポート（なければ null）
-  const portsBetween = (x: string, y: string): { xPort: number; yPort: number } | null => {
-    for (const l of links) {
-      if (l.a.node === x && l.b.node === y) return { xPort: l.a.port, yPort: l.b.port };
-      if (l.b.node === x && l.a.node === y) return { xPort: l.b.port, yPort: l.a.port };
-    }
-    return null;
-  };
-  const out: { switchUid: string; entry: MacEntry }[] = [];
-  path.forEach((uid, i) => {
-    const sw = byUid.get(uid);
-    if (!sw || !isSwitch(sw)) return;
-    for (const other of [path[i - 1], path[i + 1]]) {
-      if (other === undefined) continue;
-      const end = byUid.get(other);
-      if (!end || isSwitch(end)) continue;
-      const ports = portsBetween(uid, other);
-      if (!ports) continue;
-      if (end.macSerial === undefined) throw new Error(`MAC アドレスの連番がない機器: ${end.uid}`);
-      out.push({ switchUid: uid, entry: { mac: macOf(categoryOf(end.device), end.macSerial, ports.yPort), port: ports.xPort } });
-    }
-  });
-  return out;
-};

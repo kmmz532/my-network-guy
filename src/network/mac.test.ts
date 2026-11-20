@@ -1,6 +1,6 @@
 // MAC アドレスの形と連番（N69）
 import { describe, expect, it } from 'vitest';
-import { l2Path, learnedOnPath, macOf, nextMacSerial } from './mac';
+import { l2Path, macOf, nextMacSerial } from './mac';
 import type { NetNode } from './types';
 
 const node = (macSerial?: number): NetNode => ({ ports: [],
@@ -46,8 +46,6 @@ describe('スイッチが覚える MAC', () => {
   const sw = (uid: string): NetNode => ({ ...node(undefined), uid, device: 'l2_switch' });
   const pc2 = (uid: string, serial: number): NetNode => ({ ...node(serial), uid, device: 'pc_basic' });
   const link = (uid: string, a: string, ap: number, b: string, bp: number) => ({ uid, a: { node: a, port: ap }, b: { node: b, port: bp } });
-  const categoryOf = (device: string) => (device === 'l2_switch' ? 'l2_switch' : 'pc');
-  const isSwitch = (n: NetNode) => n.device === 'l2_switch';
 
   it('経路は L2 スイッチだけを通って宛先に届く', () => {
     const nodes = [pc2('a', 1), sw('s1'), sw('s2'), pc2('b', 2)];
@@ -61,13 +59,4 @@ describe('スイッチが覚える MAC', () => {
     expect(l2Path('a', 'b', nodes, links, (u) => u === 's1')).toBeNull();
   });
 
-  it('経路の両側の端末を、スイッチの自分のポートに覚える', () => {
-    const nodes = [pc2('a', 1), sw('s1'), pc2('b', 2)];
-    const links = [link('l1', 'a', 0, 's1', 0), link('l2', 's1', 3, 'b', 0)];
-    const learned = learnedOnPath(['a', 's1', 'b'], nodes, links, categoryOf, isSwitch);
-    expect(learned).toEqual([
-      { switchUid: 's1', entry: { mac: macOf('pc', 1, 0), port: 0 } },
-      { switchUid: 's1', entry: { mac: macOf('pc', 2, 0), port: 3 } },
-    ]);
-  });
 });

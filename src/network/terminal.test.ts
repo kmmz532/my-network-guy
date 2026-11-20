@@ -116,7 +116,7 @@ describe('確認のコマンド（段階2）', () => {
   });
 
   it('show mac address-table は、スイッチの表を出す（端末では使えない）', () => {
-    const table = { ...ctx(nodes[2]), macTable: [{ mac: '02:10:00:00:01:00', port: 0 }] };
+    const table = ctx(nodes[2]);
     // 表は段2の計算から出す（学習の表は使わない・N153）。線のないスイッチは、表に出るものがない
     const lines = run('show mac address-table', table, tr);
     expect(lines.length).toBeGreaterThan(0);

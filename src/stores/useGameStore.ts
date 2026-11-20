@@ -15,7 +15,6 @@ import type { GameMode, SandboxLesson } from '../company/company';
 
 import { type NoticeItem } from '../ui/notices';
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
-import type { MacEntry } from '../network/mac';
 import { mapOfOffice } from '../sim/office';
 import { type DesignEntry, type History } from '../sim/history';
 import { createWindowsSlice, type WindowsSlice } from './slices/windowsSlice';
@@ -72,9 +71,8 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   deliveries: number;
   // なじみの依頼の回数と型紙（N70）
   familiarity: Familiarity;
-  // 通信で覚えた ARP の表と、スイッチの MAC の表（画面の状態。保存しない。N69）。キーは「案件の ID または office」と機器の uid
+  // 通信で覚えた ARP の表（画面の状態。保存しない。N69）。キーは「案件の ID または office」と機器の uid
   arpTable: Record<string, { ip: string; mac: string }[]>;
-  macTable: Record<string, MacEntry[]>;
   offers: Offer[];
   nextOfferMinute: number;
   offerSeq: number;
@@ -209,7 +207,6 @@ export const useGameStore = create<GameState>((set, get, api) => {
     deliveries: 0,
     familiarity: EMPTY_FAMILIARITY,
     arpTable: {},
-    macTable: {},
     offers: [],
     nextOfferMinute: 0,
     offerSeq: 0,

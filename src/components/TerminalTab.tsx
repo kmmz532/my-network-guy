@@ -35,7 +35,6 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
   const showTrace = useGameStore((s) => s.showTrace);
   const netKey = useGameStore((s) => s.focus ?? 'office');
   const arp = useGameStore((s) => s.arpTable[`${netKey}:${node.uid}`]);
-  const macTable = useGameStore((s) => s.macTable[`${netKey}:${node.uid}`]);
   const [input, setInput] = useState('');
   // 出力と命令の履歴は機器ごとにストアに持つ（画面を閉じても残る）。↑↓で今指している位置は画面の中だけで持つ（null は新しい入力）
   const history = useGameStore((s) => s.terminalLog[node.uid] ?? NO_LINES);
@@ -64,7 +63,6 @@ export function TerminalTab({ node, nodes, links, state: netState, readOnly }: {
     state: netState,
     nameOf: (n) => nodeLabel(state, n, nodes),
     arp,
-    macTable,
     onReach: (dst) => learnPing(node.uid, dst),
     onTrace: showTrace,
   }, readOnly, session, { unlocked: (topic) => unlockedTopicsOf(state).has(topic), hideValues });

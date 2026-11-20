@@ -1,7 +1,6 @@
 // 命令の木の型。命令は CommandSpec 1つで表し、解釈（parse.ts）と実行（run.ts）はこの表だけを読む。
 import type { ConfigChange } from '../../company/operation';
 import type { NetworkState } from '../engine/state';
-import type { MacEntry } from '../mac';
 import type { Tr, TerminalLine } from '../terminal';
 import type { EngineData, NetLink, NetNode } from '../types';
 import type { Trace } from '../../sim/project';
@@ -28,9 +27,7 @@ export interface TerminalContext {
   nameOf?: (node: NetNode) => string;
   // ARP の表（ping で覚えたもの。保存しない）（N69）
   arp?: { ip: string; mac: string }[];
-  // L2スイッチの MAC の表（通信で覚えたもの。保存しない）（N69）
-  macTable?: MacEntry[];
-  // 通信が届いたときに呼ぶ（宛先の機器の uid）。画面が ARP と MAC の表を覚えるために使う（N69）
+  // 通信が届いたときに呼ぶ（宛先の機器の uid）。画面が ARP の表を覚えるために使う（N69）
   onReach?: (dstUid: string) => void;
   // ping・traceroute の経路を画面上でパケットとして流す
   onTrace?: (trace: Trace) => void;

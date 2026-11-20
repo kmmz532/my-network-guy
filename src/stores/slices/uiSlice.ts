@@ -187,16 +187,11 @@ export const createUiSlice: StateCreator<GameState, [], [], UiSlice> = (set, get
       const net = editNetOf(s);
       if (!net) return;
       const r = learnFromPing(net.nodes, net.links, gameEnv.engine, srcUid, dstUid);
-      if (r.arp === null && r.macs.length === 0) return;
+      if (r.arp === null) return;
       const netKey = s.focus ?? 'office';
       const arpKey = `${netKey}:${srcUid}`;
-      const arp = r.arp === null ? (s.arpTable[arpKey] ?? []) : [...(s.arpTable[arpKey] ?? []).filter((x) => x.ip !== r.arp?.ip), r.arp];
-      const macTable = { ...s.macTable };
-      for (const { switchUid, entry } of r.macs) {
-        const k = `${netKey}:${switchUid}`;
-        macTable[k] = [...(macTable[k] ?? []).filter((x) => x.port !== entry.port), entry];
-      }
-      set({ arpTable: { ...s.arpTable, [arpKey]: arp }, macTable });
+      const arp = [...(s.arpTable[arpKey] ?? []).filter((x) => x.ip !== r.arp?.ip), r.arp];
+      set({ arpTable: { ...s.arpTable, [arpKey]: arp } });
     },
   };
 };

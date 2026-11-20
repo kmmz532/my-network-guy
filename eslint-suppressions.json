@@ -160,16 +160,6 @@
       "count": 1
     }
   },
-  "src/network/mac.test.ts": {
-    "local/no-category": {
-      "count": 1
-    }
-  },
-  "src/network/mac.ts": {
-    "local/no-category": {
-      "count": 1
-    }
-  },
   "src/services/companies.test.ts": {
     "local/no-mode-branch": {
       "count": 7

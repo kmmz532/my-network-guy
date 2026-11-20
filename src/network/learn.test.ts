@@ -38,16 +38,12 @@ describe('通信で覚えること（N69）', () => {
     const links = [link('l1', 'a', 0, 's', 0), link('l2', 'b', 0, 's', 1)];
     const r = learnFromPing(nodes, links, data, 'a', 'b');
     expect(r.arp).toEqual({ ip: '192.168.1.11', mac: macOf('pc', 2, 0) });
-    expect(r.macs).toEqual([
-      { switchUid: 's', entry: { mac: macOf('pc', 1, 0), port: 0 } },
-      { switchUid: 's', entry: { mac: macOf('pc', 2, 0), port: 1 } },
-    ]);
   });
 
   it('届かない通信は、何も覚えない', () => {
     const nodes = [host('a', '192.168.1.10', 1), host('b', '192.168.1.11', 2), sw];
     const links = [link('l1', 'a', 0, 's', 0)];
-    expect(learnFromPing(nodes, links, data, 'a', 'b')).toEqual({ arp: null, macs: [] });
+    expect(learnFromPing(nodes, links, data, 'a', 'b')).toEqual({ arp: null });
   });
 
   it('別のネットワークの相手は、既定のゲートウェイを ARP に加える', () => {
