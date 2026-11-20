@@ -22,7 +22,8 @@
     "check:lang": "node scripts/lang.mjs status",
     "check:spec": "node scripts/check-spec.mjs",
     "verify": "tsc --noEmit && eslint src && vitest run && npm run check:json && npm run check:lang && npm run check:spec",
-    "prepare": "node scripts/install-hooks.mjs"
+    "prepare": "node scripts/install-hooks.mjs",
+    "site": "node docs/site/build.mjs"
   },
   "dependencies": {
     "dexie": "^3.2.7",
@@ -40,6 +41,7 @@
     "@vitejs/plugin-react": "^4.7.0",
     "eslint": "^10.13.0",
     "fast-check": "^4.10.2",
+    "marked": "^15.0.12",
     "playwright": "^1.64.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.72.0",

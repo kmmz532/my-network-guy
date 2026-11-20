@@ -28,6 +28,12 @@ jobs:
         run: npm run build
       - name: 単体テスト
         run: npx vitest run
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - name: ドキュメントのサイト（dist/docs）
+        run: npm run site
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
