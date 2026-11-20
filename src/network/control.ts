@@ -18,7 +18,8 @@ import { mailDelivery, type MailResult } from './query/mail';
 import { ospfNeighborsOf } from './query/ospfNeighbors';
 import { effectivePriority, electVrrpMaster } from './vrrp';
 import type { VpnFailure } from './query/vpn';
-import { SMTP_PORT, type DnsRecordType, type Failure, type NetNode, type PathResult } from './types';
+import { servicePort } from '../registry/services';
+import { type DnsRecordType, type Failure, type NetNode, type PathResult } from './types';
 
 export type ControlTrigger =
   | { kind: 'ping'; from: string; to: string; size?: number; df?: boolean }
@@ -265,7 +266,7 @@ const pushSmtp = (b: Builder, from: string, to: string, leg: PathResult, opts: {
   const path = leg.path.length > 0 ? leg.path : [from];
   if (path.length >= 2) pushArp(b, path, forward);
   const frame = endToEndFrame(forward);
-  const params = { port: SMTP_PORT };
+  const params = { port: servicePort('smtp') };
   const row = (label: string, extra: Partial<ControlStep> = {}): ControlStep => unicast(from, to, 'tcp', label, path, { frame, params, ...extra });
   if (!leg.ok) {
     b.steps.push(row('seq.smtp.connect', { failure: opts.failure ?? failureOf(leg), reached: path[path.length - 1] === to ? [to] : [] }));
@@ -287,7 +288,7 @@ const pushMail = (b: Builder, trigger: Extract<ControlTrigger, { kind: 'mail' }>
   if (!trace.client) {
     if (!failure) throw new Error('制御の列: メールの経路がないのに、失敗の理由がない');
     // 端末にサーバーの設定がない・そのサーバーに mail がない: 端末からサーバー（なければ端末自身）への接続で止める
-    b.steps.push(unicast(from, failure.node, 'tcp', 'seq.smtp.connect', [from], { params: { port: SMTP_PORT }, failure, reached: [] }));
+    b.steps.push(unicast(from, failure.node, 'tcp', 'seq.smtp.connect', [from], { params: { port: servicePort('smtp') }, failure, reached: [] }));
     return;
   }
   const { server, leg } = trace.client;
@@ -299,7 +300,7 @@ const pushMail = (b: Builder, trigger: Extract<ControlTrigger, { kind: 'mail' }>
   if (!pushDns(b, server, host, 'A', failure)) return;
   if (!trace.relay) {
     if (!failure) throw new Error('制御の列: MX のサーバーへの区間がないのに、失敗の理由がない');
-    b.steps.push(unicast(server, server, 'tcp', 'seq.smtp.connect', [server], { params: { port: SMTP_PORT }, failure, reached: [] }));
+    b.steps.push(unicast(server, server, 'tcp', 'seq.smtp.connect', [server], { params: { port: servicePort('smtp') }, failure, reached: [] }));
     return;
   }
   const rejected = failure?.reason === 'mail.unknown_domain' ? failure : undefined;

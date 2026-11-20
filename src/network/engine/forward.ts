@@ -4,7 +4,8 @@ import { can } from '../capabilities';
 import { isRoutingCategory, isSviPort } from '../category';
 import { inSubnet, isPrivateIp } from '../ip';
 import { macOf } from '../mac';
-import { DNS_PORT, IMAP_PORT, SMB_PORT, SMTP_PORT } from '../types';
+import { DNS_PORT } from '../types';
+import { serviceOfPort, servicePort, type TcpService } from '../../registry/services';
 import type { Endpoint, Failure, FailureReason, FirewallRule, Iface, NetNode, PathResult, PortConfig } from '../types';
 import { deviceCategory } from '../../registry/query';
 import type { NetworkState } from './state';
@@ -49,9 +50,8 @@ const duplicateReason = (view: ForwardView, members: { node: string; port: numbe
 // ike は IPsec の鍵交換（UDP 500）。radius と同じく、サービスを any にした規則だけが通す
 // tcp は、メール（smtp 25・imap 143）とファイル共有（smb 445）の TCP。規則は、同じ名前のサービスを許した規則と、any だけが通す
 export type Traffic = { kind: 'ping' } | { kind: 'http'; port: number } | { kind: 'dns' } | { kind: 'radius' } | { kind: 'ike' } | { kind: 'tcp'; service: TcpService; port: number };
-export type TcpService = 'smtp' | 'imap' | 'smb';
-const TCP_PORT: Record<TcpService, number> = { smtp: SMTP_PORT, imap: IMAP_PORT, smb: SMB_PORT };
-export const tcpTraffic = (service: TcpService): Traffic => ({ kind: 'tcp', service, port: TCP_PORT[service] });
+export type { TcpService };
+export const tcpTraffic = (service: TcpService): Traffic => ({ kind: 'tcp', service, port: servicePort(service) });
 
 // 規則の送信元・宛先（'any' か「a.b.c.d/nn」）に、IPアドレスが入るか
 const matchNet = (spec: string, ip: string): boolean => {
@@ -511,13 +511,13 @@ export const dnsQuery = (view: ForwardView, srcUid: string, dstUid: string, dstI
 };
 
 // メール・ファイル共有の TCP（smtp 25・imap 143・smb 445）の判定。往路で宛先に届き（ファイアウォールが止めない）、宛先がそのサービスを動かしていて、復路も通ること。
-// 宛先のサービスは、smtp・imap が mail、smb が nas。動いていなければ service.closed
+// 宛先のサービスは、口を受け持つサービス（登録表）。動いていなければ service.closed
 export const tcpQuery = (view: ForwardView, srcUid: string, dstUid: string, service: TcpService, dstIp?: string): PathResult => {
   const traffic = tcpTraffic(service);
   const forward = deliver(view, srcUid, dstUid, traffic, true, undefined, dstIp);
   if (!forward.ok) return forward;
   const dst = view.addressing.nodeOf(dstUid);
-  const wanted = service === 'smb' ? 'nas' : 'mail';
+  const wanted = serviceOfPort(service).id;
   if (!dst || !dst.services.some((s) => s.protocol === wanted)) return { ok: false, path: forward.path, failure: fail('service.closed', dstUid) };
   const back = backOf(view, dstUid, srcUid, traffic, forward);
   if (!back.ok) return { ok: false, path: forward.path, failure: { reason: 'return.failed', node: dstUid, cause: back.failure }, nat: forward.nat };

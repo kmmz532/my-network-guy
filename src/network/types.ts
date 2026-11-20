@@ -83,9 +83,6 @@ export type Service =
   | { protocol: 'dns'; role: 'auth' | 'cache'; zone: DnsRecord[]; forwarder?: string };
 export type DnsService = Extract<Service, { protocol: 'dns' }>;
 export const DNS_PORT = 53;
-export const SMTP_PORT = 25;
-export const IMAP_PORT = 143;
-export const SMB_PORT = 445;
 
 // 機器ごとの対応表の1行（名前 → IPアドレス）。Debian の /etc/hosts と同じ考え方で、ping・traceroute の宛先の名前を引くのに使う
 export interface HostEntry {
