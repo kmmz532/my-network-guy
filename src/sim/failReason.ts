@@ -38,6 +38,7 @@ export const OP_FAIL_REASONS = [
   'none',
   'occupied',
   'ospf.not_joined',
+  'mac.format',
   'owned',
   'phase',
   'port',

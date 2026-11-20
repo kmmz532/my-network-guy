@@ -642,6 +642,8 @@ export type VrrpOp =
   | { op: 'remove'; id: string; vrid: number };
 
 // スパニングツリーの設定（ブリッジ優先度・口のコスト）。stp を持つスイッチだけ
+// ポートセキュリティの操作（N153）
+export type PortSecurityOp = { op: 'on' } | { op: 'off' } | { op: 'add'; mac: string } | { op: 'remove'; mac: string };
 export type StpOp = { op: 'priority'; value: number } | { op: 'cost'; port: number; value: number };
 
 // DHCP の設定（NET.md §5.7）: 口を自動にする（client）・リレー先（helper）・プール（pool・noPool）

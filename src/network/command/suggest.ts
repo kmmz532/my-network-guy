@@ -36,6 +36,7 @@ const FORM_OF: Record<ArgKind, string> = {
   word: '<WORD>',
   hostname: '<WORD>',
   hostOrIp: '<WORD>',
+  mac: '<xx:xx:xx:xx:xx:xx>',
 };
 
 // 入力を、読み終えた語と、いま打っている語（空白で終わる行は空）に分ける

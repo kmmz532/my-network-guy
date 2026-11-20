@@ -5,6 +5,7 @@ import { changed, err, out, shown } from '../../command/lines';
 import type { CommandContext, CommandResult, CommandSpec } from '../../command/types';
 import type { Tr } from '../../terminal';
 import { interfaceOf, sessionPortOf } from '../../command/modes';
+import type { PortSecurityOp } from '../../../sim/project';
 
 // スイッチの MAC の表は、同じ L2 のドメインの端末から求める。端末では使えない
 const showMacAddressTable = (_args: unknown, ctx: CommandContext, tr: Tr): CommandResult => {
@@ -61,6 +62,29 @@ const switchportModeAccess: CommandSpec = {
   },
 };
 
+// ポートセキュリティ（N153）: 口に登録した MAC アドレスの機器だけを通す
+const MAC = { arg: 'mac', name: 'mac' } as const;
+const portSecurity = (id: string, tokens: CommandSpec['tokens'], change: (args: Record<string, string>) => PortSecurityOp): CommandSpec => ({
+  id: `vlan.${id}`,
+  modes: ['exec', 'config'],
+  tokens,
+  help: `ui.cmd.vlan.${id}`,
+  writes: true,
+  topic: 'vlan',
+  run: (args, ctx, tr) => changed(ctx, tr, { kind: 'portSecurity', port: Number(args.port), change: change(args) }),
+});
+const portSecurityOn = portSecurity('portSecurity', [{ word: 'switchport' }, PORT, { word: 'port-security' }], () => ({ op: 'on' }));
+const portSecurityOff = portSecurity('noPortSecurity', [{ word: 'no' }, { word: 'switchport' }, PORT, { word: 'port-security' }], () => ({ op: 'off' }));
+const portSecurityMac = portSecurity('portSecurityMac', [{ word: 'switchport' }, PORT, { word: 'port-security' }, { word: 'mac-address' }, MAC], (a) => ({ op: 'add', mac: a.mac }));
+const noPortSecurityMac = portSecurity('noPortSecurityMac', [{ word: 'no' }, { word: 'switchport' }, PORT, { word: 'port-security' }, { word: 'mac-address' }, MAC], (a) => ({ op: 'remove', mac: a.mac }));
+
+// 口ごとの登録（制限のない口は出さない）
+const showPortSecurity = (_args: unknown, { node }: CommandContext, tr: Tr): CommandResult => {
+  const cfgs = node.ports.filter((c) => c.macs !== undefined).sort((a, b) => a.port - b.port);
+  if (cfgs.length === 0) return shown([out(tr('ui.terminal.portSecurityNone'))]);
+  return shown(cfgs.map((c) => out(tr('ui.terminal.portSecurityLine', { port: c.port, macs: c.macs?.length ? c.macs.join(', ') : tr('ui.terminal.portSecurityEmpty') }))));
+};
+
 export const commands: readonly CommandSpec[] = [
   {
     id: 'vlan.showMacAddressTable',
@@ -100,5 +124,15 @@ export const commands: readonly CommandSpec[] = [
     writes: true,
     topic: 'vlan',
     run: (args, ctx, tr) => changed(ctx, tr, { kind: 'portMode', port: Number(args.port), mode: { kind: 'routed' } }),
+  },
+  ...[portSecurityOn, portSecurityOff, portSecurityMac, noPortSecurityMac].flatMap((c) => [c, interfaceOf(c)]),
+  {
+    id: 'vlan.showPortSecurity',
+    modes: ['exec'],
+    tokens: [{ word: 'show' }, { word: 'port-security' }],
+    help: 'ui.cmd.vlan.showPortSecurity',
+    writes: false,
+    topic: 'vlan',
+    run: showPortSecurity,
   },
 ];

@@ -29,6 +29,9 @@ export const macOf = (category: string, serial: number, port: number): string =>
   return `${vendor}:${hex2(serial >> 8)}:${hex2(serial & 0xff)}:${hex2(port)}`;
 };
 
+// MAC アドレスの形（xx:xx:xx:xx:xx:xx。小文字の16進）
+export const isMac = (text: string): boolean => /^[0-9a-f]{2}(:[0-9a-f]{2}){5}$/.test(text);
+
 // 新しい機器の連番。同じネットワークの最大の連番に1を足す（重ならない）
 export const nextMacSerial = (nodes: readonly NetNode[]): number =>
   nodes.reduce((max, n) => Math.max(max, n.macSerial ?? 0), 0) + 1;

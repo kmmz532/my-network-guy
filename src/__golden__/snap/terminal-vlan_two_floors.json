@@ -253,6 +253,120 @@
         "err:ui.terminal.pingNg",
         "err:error.ip.unset"
       ]
+    },
+    {
+      "node": "SW1"
+    },
+    {
+      "line": "show port-security",
+      "lines": [
+        "out:ui.terminal.portSecurityNone"
+      ]
+    },
+    {
+      "line": "switchport 2 port-security",
+      "result": "done"
+    },
+    {
+      "line": "show port-security",
+      "lines": [
+        "out:ui.terminal.portSecurityLine {\"port\":2,\"macs\":\"ui.terminal.portSecurityEmpty\"}"
+      ]
+    },
+    {
+      "line": "switchport 2 port-security mac-address 02:10:00:00:01:00",
+      "result": "done"
+    },
+    {
+      "line": "switchport 2 port-security mac-address 02-10-00-00-01-00",
+      "lines": [
+        "err:                                         ^",
+        "err:ui.terminal.invalidAt"
+      ]
+    },
+    {
+      "line": "show port-security",
+      "lines": [
+        "out:ui.terminal.portSecurityLine {\"port\":2,\"macs\":\"02:10:00:00:01:00\"}"
+      ]
+    },
+    {
+      "line": "no switchport 2 port-security mac-address 02:10:00:00:01:00",
+      "result": "done"
+    },
+    {
+      "line": "no switchport 2 port-security",
+      "result": "done"
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "interface g0/3",
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "port",
+        "port": 3
+      }
+    },
+    {
+      "line": "switchport port-security",
+      "result": "done"
+    },
+    {
+      "line": "switchport port-security mac-address 02:10:00:00:02:00",
+      "result": "done"
+    },
+    {
+      "line": "switchport port-security mac-address 02:10:00:00:03:00",
+      "result": "done"
+    },
+    {
+      "line": "no switchport port-security mac-address 02:10:00:00:03:00",
+      "result": "done"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
+      "line": "show port-security",
+      "lines": [
+        "out:ui.terminal.portSecurityLine {\"port\":3,\"macs\":\"02:10:00:00:02:00\"}"
+      ]
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "interface g0/3",
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "port",
+        "port": 3
+      }
+    },
+    {
+      "line": "no switchport port-security",
+      "result": "done"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
+      "line": "show port-security",
+      "lines": [
+        "out:ui.terminal.portSecurityNone"
+      ]
     }
   ],
   "network": {
@@ -364,6 +478,11 @@
             "native": 1
           },
           {
+            "port": 0,
+            "mode": "access",
+            "vlan": 10
+          },
+          {
             "port": 2,
             "mode": "trunk",
             "native": 10
@@ -372,11 +491,6 @@
             "port": 3,
             "mode": "trunk",
             "native": 10
-          },
-          {
-            "port": 0,
-            "mode": "access",
-            "vlan": 10
           }
         ],
         "name": "SW1",

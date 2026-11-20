@@ -1,5 +1,6 @@
 // 命令の引数の読み取りに使う共通の関数。
 import { isValidHostname } from '../hostname';
+import { isMac } from '../mac';
 import { ifacePrefixOf } from '../iface';
 import { portCountOf } from '../../registry/query';
 import { bandChannels } from '../../registry/wireless';
@@ -100,6 +101,7 @@ export const isArg = (kind: ArgKind, text: string): boolean => {
     case 'number': return /^\d{1,10}$/.test(text);
     case 'word': return text !== '';
     case 'hostname': return isHostName(text);
+    case 'mac': return isMac(text.toLowerCase());
     case 'hostOrIp': return isIp(text) || (!/^[\d.]+$/.test(text) && isHostName(text));
   }
 };

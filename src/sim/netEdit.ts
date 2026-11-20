@@ -1,4 +1,5 @@
 import { renameNode } from '../network/nodeName';
+import { isMac } from '../network/mac';
 import type { OpFailReason } from './failReason';
 import { inSubnet, ipToInt } from '../network/engine';
 import { inWildcard } from '../network/ip';
@@ -16,7 +17,7 @@ import { bandChannels, deviceBands } from '../registry/wireless';
 import { bandOf } from '../network/wirelessBand';
 import type { WirelessBand } from '../data/schema';
 import { registries } from '../registry/game';
-import { BgpOp, Project, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, StpOp, VrrpOp, fail, netOf, planDomainAt, withNet, zoneFromNodes } from './project';
+import { BgpOp, Project, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, PortSecurityOp, StpOp, VrrpOp, fail, netOf, planDomainAt, withNet, zoneFromNodes } from './project';
 import { deviceDef, portCountOf } from '../registry/query';
 import { analyze } from '../network/engine/analyze';
 import type { NetworkState } from '../network/engine/state';
@@ -483,6 +484,34 @@ export const setPortQos = (core: Core, uid: string, port: number, change: { qos:
       const prev = node.ports.find((p) => p.port === port);
       const base: PortConfig = prev ?? { port, mode: refusalFor(node.device, 'switchport') === null ? 'access' : 'routed' };
       const next: PortConfig = 'qos' in change ? { ...base, qos: change.qos === 'priority' ? 'priority' : undefined } : { ...base, trust: change.trust ? true : undefined };
+      return { ...node, ports: [...node.ports.filter((p) => p.port !== port), next] };
+    },
+    target,
+  );
+
+// ポートセキュリティ（N153）。on は登録の一覧を空で始める（どの機器も通さない）、off は制限を外す。
+// add・remove は MAC アドレスを1つ登録・解除する。add は制限のない口なら制限を始める。L2 の口を持たない機器は拒む
+export const setPortSecurity = (core: Core, uid: string, port: number, change: PortSecurityOp, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      const refusal = refusalFor(node.device, 'switchport');
+      if (refusal) return refusal;
+      if (!Number.isInteger(port) || port < 0 || port >= portCountOf(node.device)) return 'port.none';
+      const prev = node.ports.find((p) => p.port === port);
+      const base: PortConfig = prev ?? { port, mode: 'access' };
+      let macs: string[] | undefined;
+      if (change.op === 'on') macs = base.macs ?? [];
+      else if (change.op === 'off') macs = undefined;
+      else {
+        const mac = change.mac.toLowerCase();
+        if (!isMac(mac)) return 'mac.format';
+        const current = base.macs ?? [];
+        macs = change.op === 'add' ? (current.includes(mac) ? current : [...current, mac]) : current.filter((m) => m !== mac);
+      }
+      const next: PortConfig = { ...base, macs };
+      if (macs === undefined) delete next.macs;
       return { ...node, ports: [...node.ports.filter((p) => p.port !== port), next] };
     },
     target,

@@ -45,3 +45,26 @@ show vlan brief
 show vlan brief
 show mac address-table
 ping 192.168.1.11
+# 節: ポートセキュリティ（有効・登録・形の誤り・解除・無効・interface モードの形・show port-security）
+@SW1
+show port-security
+switchport 2 port-security
+show port-security
+switchport 2 port-security mac-address 02:10:00:00:01:00
+switchport 2 port-security mac-address 02-10-00-00-01-00
+show port-security
+no switchport 2 port-security mac-address 02:10:00:00:01:00
+no switchport 2 port-security
+configure terminal
+interface g0/3
+switchport port-security
+switchport port-security mac-address 02:10:00:00:02:00
+switchport port-security mac-address 02:10:00:00:03:00
+no switchport port-security mac-address 02:10:00:00:03:00
+end
+show port-security
+configure terminal
+interface g0/3
+no switchport port-security
+end
+show port-security

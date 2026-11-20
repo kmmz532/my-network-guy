@@ -21,7 +21,7 @@ import { buyDevice, sellDevice } from '../sim/shop';
 import {
   addRoute, autoRegisterZone, removeHost, removeRoute, setBgp, setChannel, setDhcp, setDnsForwarder, setDnsRecord, setDnsRole, removeDnsRecord, setFirewallRules, setGateway, setHost, setLoadBalancer, setVpn,
   setHostname, setInterface, setIsp, setName, setNameServer, setNat, setPac, setProxy, setMailDomain, setMailServer, setOspf, setPlan, setPortMode, setPower, setRouting, setService,
-  setIfaceTune, setPo, setPortQos, setStp, setSvi, setVrrp, setWireless,
+  setIfaceTune, setPo, setPortQos, setPortSecurity, setStp, setSvi, setVrrp, setWireless,
 } from '../sim/netEdit';
 import type { ConfigChange, Operation } from './operation';
 import type { GameMode } from './company';
@@ -48,6 +48,7 @@ export const applyConfig = (core: Core, uid: string, change: ConfigChange, ctx: 
     case 'routing': return setRouting(core, uid, change.change, target);
     case 'ospf': return setOspf(core, uid, change.change, target);
     case 'portQos': return setPortQos(core, uid, change.port, change.change, target);
+    case 'portSecurity': return setPortSecurity(core, uid, change.port, change.change, target);
     case 'ifaceTune': return setIfaceTune(core, uid, change.port, change.key, change.value, target);
     case 'isp': return setIsp(core, uid, change.line, target);
     case 'stp': return setStp(core, uid, change.change, target);

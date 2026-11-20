@@ -8,7 +8,7 @@ import { initialOffice } from './furniture';
 import { placeInOffice } from './placement';
 import { getComponent } from '../network/components';
 import type { NetNode } from '../network/types';
-import { analyzeCore, removeHost, setBgp, setFirewallRules, setHost, setNameServer, setNat, setWireless } from './netEdit';
+import { analyzeCore, removeHost, setBgp, setFirewallRules, setHost, setNameServer, setNat, setPortSecurity, setWireless } from './netEdit';
 import type { Core, Env } from './project';
 
 const balance = balanceJson as unknown as Balance;
@@ -138,6 +138,34 @@ describe('setNat', () => {
     const next = r.core.office.nodes[0];
     expect(getComponent(next, 'nat')).toEqual({ napt: true });
     expect('napt' in next).toBe(false);
+  });
+});
+
+describe('setPortSecurity', () => {
+  const node = (uid: string, device: string): NetNode =>
+    ({ uid, device, x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [] }) as NetNode;
+  const coreOf = (...nodes: NetNode[]): Core =>
+    ({ office: { ...initialOffice(balance), nodes }, active: [], focus: null, owned: {} }) as unknown as Core;
+  const macsOf = (core: Core) => core.office.nodes[0].ports.find((p) => p.port === 1)?.macs;
+  const step = (core: Core, op: Parameters<typeof setPortSecurity>[3]): Core => {
+    const r = setPortSecurity(core, 'sw', 1, op, 'office');
+    if (!r.ok) throw new Error(`設定できない: ${r.reason}`);
+    return r.core;
+  };
+
+  it('登録は大文字を小文字にそろえ、同じ MAC を2回登録しても1つ。解除で消え、無効にすると制限が外れる', () => {
+    let core = step(coreOf(node('sw', 'l2_switch_8p')), { op: 'add', mac: '02:10:00:00:01:00' });
+    core = step(core, { op: 'add', mac: '02:10:00:00:01:00'.toUpperCase() });
+    expect(macsOf(core)).toEqual(['02:10:00:00:01:00']);
+    core = step(core, { op: 'remove', mac: '02:10:00:00:01:00' });
+    expect(macsOf(core)).toEqual([]);
+    core = step(core, { op: 'off' });
+    expect(macsOf(core)).toBeUndefined();
+  });
+
+  it('形の違う MAC と、L2 のポートを持たない機器は拒否する', () => {
+    expect(setPortSecurity(coreOf(node('sw', 'l2_switch_8p')), 'sw', 1, { op: 'add', mac: '02-10-00-00-01-00' }, 'office')).toMatchObject({ ok: false, reason: 'mac.format' });
+    expect(setPortSecurity(coreOf(node('sw', 'pc_basic')), 'sw', 0, { op: 'on' }, 'office').ok).toBe(false);
   });
 });
 
