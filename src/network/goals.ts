@@ -26,6 +26,7 @@ import { isPcCategory } from '../data/categories';
 import type { EngineData, Failure, Network, PathResult } from './types';
 import { deviceCategory } from '../registry/query';
 import { Registry } from '../registry/registry';
+import type { ErrorId } from './topics';
 
 export interface GoalResult {
   goal: Goal;
@@ -60,9 +61,10 @@ export interface GoalTextContext {
 type GoalTextSpec = { key?: string; params: Record<string, string | number> };
 type Text<K extends Goal['type']> = (goal: GoalOf<K>, ctx: GoalTextContext) => GoalTextSpec;
 
-// 達成条件の定義。判定と文言を1つに持つ
+// 達成条件の定義。判定と文言と、判定が自分で出す失敗（経路の計算の失敗をそのまま返すものは除く）を1つに持つ
 export interface GoalDef {
   id: Goal['type'];
+  failures: readonly ErrorId[];
   evaluate: Evaluate<Goal['type']>;
   text: Text<Goal['type']>;
 }
@@ -486,10 +488,20 @@ const texts: { [K in Goal['type']]: Text<K> } = {
   blocked_all: (g, c) => ({ params: { from: names(g.from, c), to: names(g.to, c) } }),
 };
 
+// 判定が自分で出す失敗。check:spec がこの表を読む
+const GOAL_FAILURES: Partial<Record<Goal['type'], readonly ErrorId[]>> = {
+  min_speed: ['speed.slow'],
+  load_balanced: ['lb.few_healthy'],
+  qos_voice: ['qos.dropped'],
+  reach_by_name: ['name.unresolved'],
+  resolve_name: ['name.unresolved'],
+  http_by_name: ['name.unresolved'],
+};
+
 // 達成条件の登録表。判定と文言を種類ごとに1つの定義にまとめる
 export const goals = new Registry<GoalDef>('達成条件');
 for (const id of Object.keys(handlers) as Goal['type'][]) {
-  goals.register({ id, evaluate: handlers[id] as Evaluate<Goal['type']>, text: texts[id] as Text<Goal['type']> });
+  goals.register({ id, failures: GOAL_FAILURES[id] ?? [], evaluate: handlers[id] as Evaluate<Goal['type']>, text: texts[id] as Text<Goal['type']> });
 }
 goals.freeze();
 

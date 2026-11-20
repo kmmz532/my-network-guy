@@ -5,6 +5,8 @@
 //      コードの失敗と警告は、言語ファイルの error.<ID>・error.<ID>.fix・warn.<ID> もそろっていること
 //   2. §4.1 の能力の表 ↔ CAPABILITY_IDS（src/data/schema.ts）
 //   3. §7 の達成条件の表 ↔ 達成条件の種類（src/data/schema.ts の goalSchema）
+//   4. 定義（サービスの登録表・論点の表・達成条件）が宣言する失敗。宣言のある失敗は、§6 になくても食い違いにしない。
+//      宣言した ID がコードの失敗にないときは誤り
 // 今ある食い違いは scripts/spec-baseline.json に記録する。記録にない食い違いだけを誤りにする（記録は減る一方にする）。
 // 使い方: node scripts/check-spec.mjs [--update]   --update は、今の食い違いで記録を書き直す（食い違いを減らしたコミットでだけ使う）
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -60,6 +62,14 @@ const capsCode = new Set([...read('src/data/schema.ts').match(/CAPABILITY_IDS = 
 const goalBlock = read('src/data/schema.ts').match(/export const goalSchema = z\.discriminatedUnion\('type', \[([\s\S]*?)\n\]\);/)[1];
 const goalsCode = new Set([...goalBlock.matchAll(/type: z\.literal\('([^']+)'\)/g)].map((m) => m[1]));
 
+// 定義が宣言する失敗（failures: [...] の配列と、達成条件の GOAL_FAILURES の表）
+const declared = new Set();
+for (const file of ['src/registry/services.ts', 'src/network/topics.ts']) {
+  for (const m of read(file).matchAll(/failures: \[([^\]]*)\]/g)) for (const id of m[1].matchAll(/'([^']+)'/g)) declared.add(id[1]);
+}
+const goalFailures = read('src/network/goals.ts').match(/GOAL_FAILURES[^=]*= \{([\s\S]*?)\n\};/)[1];
+for (const id of goalFailures.matchAll(/'([^']+)'/g)) declared.add(id[1]);
+
 const lang = JSON.parse(read('resources/lang/ja_jp.json'));
 
 // 食い違い（"分類:ID" の形）
@@ -68,7 +78,8 @@ const diff = (name, a, b, aName, bName) => {
   for (const id of a) if (!b.has(id)) found.push(`${name}:${aName}だけ:${id}`);
   for (const id of b) if (!a.has(id)) found.push(`${name}:${bName}だけ:${id}`);
 };
-diff('失敗', failuresSpec, failuresCode, '仕様', 'コード');
+diff('失敗', failuresSpec, new Set([...failuresCode].filter((id) => failuresSpec.has(id) || !declared.has(id))), '仕様', 'コード');
+for (const id of declared) if (!failuresCode.has(id)) found.push(`定義:コードにない失敗:${id}`);
 diff('警告', warningsSpec, warningsCode, '仕様', 'コード');
 diff('能力', capsSpec, capsCode, '仕様', 'コード');
 diff('達成条件', goalsSpec, goalsCode, '仕様', 'コード');
