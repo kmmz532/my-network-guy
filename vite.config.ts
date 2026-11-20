@@ -5,6 +5,10 @@ import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from '
 import { join, relative, resolve, sep } from 'node:path';
 import { execSync } from 'node:child_process';
 
+// Windows で作業ディレクトリのドライブ文字が小文字（f:）だと、vite の html-proxy が index.html の分割を見つけられず失敗する。
+// 大文字に直してから進める（vite は設定を読んだ後に作業ディレクトリから root を決める）
+if (/^[a-z]:/.test(process.cwd())) process.chdir(process.cwd()[0].toUpperCase() + process.cwd().slice(1));
+
 // ビルド番号。コミットの短いハッシュ。タイトルとサービスワーカーで共有する（git がなければビルドを止める）
 const buildId = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
 
