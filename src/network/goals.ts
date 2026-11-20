@@ -25,6 +25,7 @@ import { mailDelivery } from './query/mail';
 import { isPcCategory } from '../data/categories';
 import type { EngineData, Failure, Network, PathResult } from './types';
 import { deviceCategory } from '../registry/query';
+import { Registry } from '../registry/registry';
 
 export interface GoalResult {
   goal: Goal;
@@ -44,8 +45,27 @@ export interface GoalResult {
   df?: boolean;
 }
 
-// flows は、案件・教材の同時に流れる通信（qos_voice だけが読む）
-type Handler = (goal: Goal, state: NetworkState, flows?: readonly Flow[]) => GoalResult[];
+type GoalOf<K extends Goal['type']> = Extract<Goal, { type: K }>;
+
+// 判定。flows は、案件・教材の同時に流れる通信（qos_voice だけが読む）
+type Evaluate<K extends Goal['type']> = (goal: GoalOf<K>, state: NetworkState, flows?: readonly Flow[]) => GoalResult[];
+
+// 文言の組み立てに渡すもの。nameOf は機器の ID を表示名に、tr は文言キーを文言にする
+export interface GoalTextContext {
+  nameOf: (id: string) => string;
+  tr: (key: string) => string;
+}
+
+// 文言。key を持たなければ goal.<種類> の文言を使う
+type GoalTextSpec = { key?: string; params: Record<string, string | number> };
+type Text<K extends Goal['type']> = (goal: GoalOf<K>, ctx: GoalTextContext) => GoalTextSpec;
+
+// 達成条件の定義。判定と文言を1つに持つ
+export interface GoalDef {
+  id: Goal['type'];
+  evaluate: Evaluate<Goal['type']>;
+  text: Text<Goal['type']>;
+}
 
 const uidsOf = (net: Network, _data: EngineData, category: string): string[] =>
   net.nodes.filter((n) => deviceCategory(n.device) === category).map((n) => n.uid);
@@ -61,15 +81,13 @@ const none = (goal: Goal, kind: 'ping' | 'http'): GoalResult => ({
 });
 
 // 案件の placed[].ref は配置した機器のuidとして扱う
-const handlers: { [K in Goal['type']]: Handler } = {
+const handlers: { [K in Goal['type']]: Evaluate<K> } = {
   ping: (goal, state) => {
-    if (goal.type !== 'ping') throw new Error('ping ハンドラに別の種類が渡された');
     const r = ping(state, goal.from, goal.to, { size: goal.size, df: goal.df });
     return [{ goal, ok: r.ok, failure: r.failure, kind: 'ping', src: goal.from, dst: goal.to, result: r, ...(goal.size !== undefined ? { size: goal.size } : {}), ...(goal.df !== undefined ? { df: goal.df } : {}) }];
   },
   // 届き、通り道の区間の速さがすべて mbps 以上なら合格。遅い区間があれば、その区間の両端の機器ごとに speed.slow を返す。届かなければ Ping の失敗をそのまま返す
   min_speed: (goal, state) => {
-    if (goal.type !== 'min_speed') throw new Error('min_speed ハンドラに別の種類が渡された');
     const r = ping(state, goal.from, goal.to);
     const base = { goal, kind: 'ping' as const, src: goal.from, dst: goal.to };
     if (!r.ok) return [{ ...base, ok: false, failure: r.failure, result: r }];
@@ -80,7 +98,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
   },
   // from から、ロードバランサーのその port の仮想サーバーへ HTTP が届き、健全な振り分け先が minHealthy 以上なら合格。届かなければ HTTP の失敗をそのまま、足りなければ lb.few_healthy（ロードバランサーに出す）
   load_balanced: (goal, state) => {
-    if (goal.type !== 'load_balanced') throw new Error('load_balanced ハンドラに別の種類が渡された');
     const r = http(state, goal.from, goal.lb, goal.port);
     const base = { goal, kind: 'http' as const, src: goal.from, dst: goal.lb };
     if (!r.ok) return [{ ...base, ok: false, failure: r.failure, result: r }];
@@ -92,7 +109,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
   },
   // a から b への IPsec のトンネルが張れていれば合格。張れなければ、その理由を a に出す（a にトンネルがない、b を指すトンネルがないときは vpn.peer_unreachable）
   vpn_up: (goal, state) => {
-    if (goal.type !== 'vpn_up') throw new Error('vpn_up ハンドラに別の種類が渡された');
     if (goal.a === undefined || goal.b === undefined) {
       const up = state.vpn.tunnels.find((t) => t.ok);
       const first = state.vpn.tunnels[0];
@@ -112,7 +128,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
   // インターネット側から、to の port へ HTTP が届けば合格。外から届く道は、回線につながるルーターの静的 NAT（外の port → 社内のアドレス）だけ。静的 NAT の先が to の IPアドレスでなければ届かない扱い
   public_http: (goal, state) => {
     const { net, world: data } = state;
-    if (goal.type !== 'public_http') throw new Error('public_http ハンドラに別の種類が渡された');
     const target = net.nodes.find((n) => n.uid === goal.to);
     if (!target) throw new Error(`public_http の宛先がない: ${goal.to}`);
     const unreachable = (src: string): GoalResult => ({ goal, ok: false, kind: 'http', src, dst: goal.to, failure: { reason: 'route.none', node: goal.to }, result: { ok: false, path: [] } });
@@ -135,7 +150,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
   },
   // 指定した端末ごとに、インターネットへ HTTP で届けば合格。by があれば、インターネットから見た送信元が機器 by のアドレスであること（プロキシを通る通信の送信元は、プロキシのアドレス）。届かなければその失敗を返す
   outside_sees: (goal, state) => {
-    if (goal.type !== 'outside_sees') throw new Error('outside_sees ハンドラに別の種類が渡された');
     const { net, world } = state;
     const withNet = withInternet(net, world);
     const by = goal.by === undefined ? undefined : net.nodes.find((n) => n.uid === goal.by);
@@ -154,7 +168,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
   },
   // 指定した flow（省くと voice すべて）が、削られずに届けば合格。届かなければ Ping の失敗を、削られていれば qos.dropped を、削られた区間の入口の機器に出す
   qos_voice: (goal, state, flows) => {
-    if (goal.type !== 'qos_voice') throw new Error('qos_voice ハンドラに別の種類が渡された');
     if (flows === undefined) throw new Error('qos_voice: 通信（flows）がない');
     const picked = goal.flow ?? flows.flatMap((f, i) => (f.kind === 'voice' ? [i] : []));
     if (picked.length === 0) throw new Error('qos_voice: 対象の通信がない');
@@ -171,7 +184,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
   },
   ping_all: (goal, state) => {
     const { net, world: data } = state;
-    if (goal.type !== 'ping_all') throw new Error('ping_all ハンドラに別の種類が渡された');
     // $all_pcs は、判定の時点でネットワークにあるPCすべてとする（自社案件）
     const nodes = goal.nodes === '$all_pcs' ? uidsOf(net, data, 'pc') : goal.nodes;
     // 疎通は往復で判定するため、組み合わせは順不同の全ペアで足りる
@@ -186,27 +198,23 @@ const handlers: { [K in Goal['type']]: Handler } = {
     return results;
   },
   http: (goal, state) => {
-    if (goal.type !== 'http') throw new Error('http ハンドラに別の種類が渡された');
     const r = http(state, goal.from, goal.to, goal.port);
     return [{ goal, ok: r.ok, failure: r.failure, kind: 'http', src: goal.from, dst: goal.to, result: r }];
   },
   count: (goal, state) => {
     const { net, world: data } = state;
-    if (goal.type !== 'count') throw new Error('count ハンドラに別の種類が渡された');
     const ok = uidsOf(net, data, goal.category).length >= goal.min;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // 無線の端末が、アクセスポイントに一定数以上つながる（電波の範囲・SSID・パスワードで決まる。N152）
   wireless_clients: (goal, state) => {
     const { world: data } = state;
-    if (goal.type !== 'wireless_clients') throw new Error('wireless_clients ハンドラに別の種類が渡された');
     const ok = wirelessAssociations(state.input, data).length >= goal.min;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // すべての PC どうしが届き、機器に設定した経路（static）がない（N143）
   no_static_route: (goal, state) => {
     const { net, world: data } = state;
-    if (goal.type !== 'no_static_route') throw new Error('no_static_route ハンドラに別の種類が渡された');
     const pcs = uidsOf(net, data, 'pc');
     const staticFree = net.nodes.every((n) => n.routes.every((r) => r.protocol !== undefined && r.protocol !== 'static'));
     let reach = pcs.length >= 2;
@@ -217,7 +225,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
   // 指定したルーターの BGP の隣接が min 本以上確立している（回線の先の ISP も含めて数える）
   bgp_established: (goal, state) => {
     const { net, world: data } = state;
-    if (goal.type !== 'bgp_established') throw new Error('bgp_established ハンドラに別の種類が渡された');
     const withNet = withInternet(net, data) ?? net;
     const sessions = bgpTableOf(analyze(withNet, data), goal.node)?.sessions ?? [];
     const ok = sessions.filter((s) => s.status.state === 'established').length >= goal.min;
@@ -225,14 +232,12 @@ const handlers: { [K in Goal['type']]: Handler } = {
   },
   // 指定した機器が、物理のリンク min 本以上を1本の論理リンクにまとめている
   lag_bundled: (goal, state) => {
-    if (goal.type !== 'lag_bundled') throw new Error('lag_bundled ハンドラに別の種類が渡された');
     const ok = lagBundlesOf(state, goal.node).some((b) => b.links.length >= goal.min);
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // 社内のすべての PC が、回線の先（インターネット）へ届く
   outside_reachable: (goal, state) => {
     const { net, world: data } = state;
-    if (goal.type !== 'outside_reachable') throw new Error('outside_reachable ハンドラに別の種類が渡された');
     // 回線終端につながるルーターは、NAPT（外側の口と内側の口・ip nat napt）を設定している
     const lineRouters = net.nodes.filter((n) => net.links.some((l) => (l.a.node === n.uid && net.nodes.some((u) => u.uid === l.b.node && deviceCategory(u.device) === 'uplink')) || (l.b.node === n.uid && net.nodes.some((u) => u.uid === l.a.node && deviceCategory(u.device) === 'uplink'))));
     const nat = lineRouters.length > 0 && lineRouters.every((r) => getComponent(r, 'nat')?.napt === true && r.interfaces.some((i) => i.nat === 'outside') && r.interfaces.some((i) => i.nat === 'inside'));
@@ -242,28 +247,24 @@ const handlers: { [K in Goal['type']]: Handler } = {
   // 指定した SSID のアクセスポイントがすべて WPA2 以上で、無線の警告（暗号化なし・弱い暗号・移行モード）がない
   wireless_secure: (goal, state) => {
     const { net, world: data } = state;
-    if (goal.type !== 'wireless_secure') throw new Error('wireless_secure ハンドラに別の種類が渡された');
     const aps = accessPointsOf(net, data).filter((n) => getComponent(n, 'wireless')?.ssid === goal.ssid);
     const ok = aps.length > 0 && aps.every((n) => ['wpa2', 'wpa3', 'wpa2_eap', 'wpa3_eap'].includes(getComponent(n, 'wireless')?.security ?? 'wpa2'));
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // アクセスポイントがあり、どれもチャネルの重なりと干渉源の干渉がない
   wireless_clean: (goal, state) => {
-    if (goal.type !== 'wireless_clean') throw new Error('wireless_clean ハンドラに別の種類が渡された');
     const overlapped = channelOverlapsOf(state).length > 0;
     const ok = accessPointsOf(state.input, state.world).length > 0 && !overlapped && interferedAccessPointsOf(state).size === 0;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // 指定したスイッチがルートブリッジになっている
   stp_root: (goal, state) => {
-    if (goal.type !== 'stp_root') throw new Error('stp_root ハンドラに別の種類が渡された');
     const ok = stpOf(state).root === goal.node;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // 指定した機器のどれか1台の電源を切っても、残りの PC・サーバーがすべて互いに届く
   survive_device_failure: (goal, state) => {
     const { net, world: data } = state;
-    if (goal.type !== 'survive_device_failure') throw new Error('survive_device_failure ハンドラに別の種類が渡された');
     const ok = goal.nodes.every((uid) => {
       const off: Network = { ...net, nodes: net.nodes.map((n) => (n.uid === uid ? { ...n, powered: false } : n)) };
       const ends = off.nodes.filter((n) => n.uid !== uid && (isPcCategory(deviceCategory(n.device)) || deviceCategory(n.device) === 'server')).map((n) => n.uid);
@@ -284,7 +285,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
   // 回線終端が2つ以上あり、どれか1つ（とその配線）を除いても、すべての PC が外部へ届く
   survive_uplink_failure: (goal, state) => {
     const { net, world: data } = state;
-    if (goal.type !== 'survive_uplink_failure') throw new Error('survive_uplink_failure ハンドラに別の種類が渡された');
     const uplinks = net.nodes.filter((n) => deviceCategory(n.device) === 'uplink');
     const without = (uid: string): Network => ({ ...net, nodes: net.nodes.filter((n) => n.uid !== uid), links: net.links.filter((l) => l.a.node !== uid && l.b.node !== uid) });
     const ok = uplinks.length >= 2 && uplinks.every((u) => outsideCheck(without(u.uid), data).pcsReachOutside);
@@ -292,21 +292,18 @@ const handlers: { [K in Goal['type']]: Handler } = {
   },
   // 指定した機器が DR になっている（同じネットワークの隣接の相手から見て、その機器が FULL/DR）
   ospf_dr: (goal, state) => {
-    if (goal.type !== 'ospf_dr') throw new Error('ospf_dr ハンドラに別の種類が渡された');
     const peers = ospfNeighborsOf(state, goal.node);
     const ok = peers.some((p) => ospfNeighborsOf(state, p.uid).some((q) => q.uid === goal.node && q.state === 'FULL/DR'));
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   count_device: (goal, state) => {
     const { net } = state;
-    if (goal.type !== 'count_device') throw new Error('count_device ハンドラに別の種類が渡された');
     const ok = net.nodes.filter((n) => n.device === goal.device).length >= goal.min;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // すべての PC が、そのカテゴリの機器のどれか1台へ届く（PC ごとに、届く機器のうち最初のものの結果）
   reach_category: (goal, state) => {
     const { net, world: data } = state;
-    if (goal.type !== 'reach_category') throw new Error('reach_category ハンドラに別の種類が渡された');
     const pcs = uidsOf(net, data, 'pc');
     const targets = uidsOf(net, data, goal.category);
     if (!pcs.length || !targets.length) return [none(goal, 'ping')];
@@ -319,7 +316,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
   // すべての PC が、名前で指定の機器へ届く。PC ごとに名前を引き（対応表 → ネームサーバー）、引けた IPアドレスの機器へ Ping する（N68）
   reach_by_name: (goal, state) => {
     const { net, world: data } = state;
-    if (goal.type !== 'reach_by_name') throw new Error('reach_by_name ハンドラに別の種類が渡された');
     const pcs = uidsOf(net, data, 'pc');
     const target = net.nodes.find((n) => n.hostname === goal.name);
     if (!pcs.length || !target) return [none(goal, 'ping')];
@@ -337,14 +333,12 @@ const handlers: { [K in Goal['type']]: Handler } = {
   },
   // 指定の PC から、メールアドレス宛にメールが届けば合格。届かなければ、メールの失敗（mail.*）を返す。経路は、最後に確かめた区間（MX のサーバーへ届いたなら社内のメールサーバーからの区間）
   mail: (goal, state) => {
-    if (goal.type !== 'mail') throw new Error('mail ハンドラに別の種類が渡された');
     const r = mailDelivery(state, goal.from, goal.to);
     const leg = r.trace.relay ?? r.trace.client;
     return [{ goal, ok: r.ok, ...(r.ok ? {} : { failure: r.failure }), kind: 'ping', src: goal.from, dst: leg?.server ?? '', result: leg?.leg ?? { ok: false, path: [] }, address: goal.to }];
   },
   // 指定した端末すべてから、NAS のサーバーへ SMB（445）で届けば合格
   nas: (goal, state) => {
-    if (goal.type !== 'nas') throw new Error('nas ハンドラに別の種類が渡された');
     if (!state.net.nodes.some((n) => n.uid === goal.to)) throw new Error(`機器が見つからない: ${goal.to}`);
     return goal.from.map((uid): GoalResult => {
       if (!state.net.nodes.some((n) => n.uid === uid)) throw new Error(`機器が見つからない: ${uid}`);
@@ -355,7 +349,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
   // 指定の機器が名前を引き、引けた IPアドレスの機器へ HTTP する。名前は結果に持ち、シーケンス図で DNS の問い合わせを出す
   http_by_name: (goal, state) => {
     const { net, world } = state;
-    if (goal.type !== 'http_by_name') throw new Error('http_by_name ハンドラに別の種類が渡された');
     return goal.from.map((uid) => {
       const from = net.nodes.find((n) => n.uid === uid);
       if (!from) throw new Error(`機器が見つからない: ${uid}`);
@@ -369,7 +362,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
   // 指定した機器ごとに名前を引く。引けて、ip の指定があればその IPアドレスなら合格
   resolve_name: (goal, state) => {
     const { net, world: data } = state;
-    if (goal.type !== 'resolve_name') throw new Error('resolve_name ハンドラに別の種類が渡された');
     return goal.from.map((uid) => {
       const from = net.nodes.find((n) => n.uid === uid);
       if (!from) throw new Error(`機器が見つからない: ${uid}`);
@@ -381,7 +373,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
   },
   http_all: (goal, state) => {
     const { net, world: data } = state;
-    if (goal.type !== 'http_all') throw new Error('http_all ハンドラに別の種類が渡された');
     const pcs = uidsOf(net, data, 'pc');
     const servers = uidsOf(net, data, 'server');
     if (!pcs.length || !servers.length) return [none(goal, 'http')];
@@ -394,7 +385,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
   },
   // 通ってはいけない通信: 往路がファイアウォールの規則で止められていること（ほかの理由で届かないだけでは合格にしない）
   blocked: (goal, state) => {
-    if (goal.type !== 'blocked') throw new Error('blocked ハンドラに別の種類が渡された');
     const r = ping(state, goal.from, goal.to);
     const ok = !r.ok && r.failure?.reason === 'firewall.denied';
     return [{ goal, ok, failure: r.failure, kind: 'ping', src: goal.from, dst: goal.to, result: { ...r, ok } }];
@@ -402,7 +392,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
   // 指定した端末がすべて自動（DHCP）で、アドレスを受け取っている
   dhcp_all: (goal, state) => {
     const { net } = state;
-    if (goal.type !== 'dhcp_all') throw new Error('dhcp_all ハンドラに別の種類が渡された');
     const r = dhcpOf(state);
     const ok = goal.nodes.every((uid) => {
       const n = net.nodes.find((x) => x.uid === uid);
@@ -411,7 +400,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   isolated: (goal, state) => {
-    if (goal.type !== 'isolated') throw new Error('isolated ハンドラに別の種類が渡された');
     return goal.from.flatMap((src) =>
       goal.to.map((dst) => {
         const r = ping(state, src, dst);
@@ -421,7 +409,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
   },
   http_from: (goal, state) => {
     const { net, world: data } = state;
-    if (goal.type !== 'http_from') throw new Error('http_from ハンドラに別の種類が渡された');
     const servers = uidsOf(net, data, 'server');
     if (!servers.length) return [none(goal, 'http')];
     return goal.nodes.map((src) => {
@@ -431,7 +418,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
     });
   },
   blocked_all: (goal, state) => {
-    if (goal.type !== 'blocked_all') throw new Error('blocked_all ハンドラに別の種類が渡された');
     return goal.from.flatMap((src) =>
       goal.to.map((dst) => {
         const r = ping(state, src, dst);
@@ -442,7 +428,6 @@ const handlers: { [K in Goal['type']]: Handler } = {
   },
   firewall: (goal, state) => {
     const { net, world: data } = state;
-    if (goal.type !== 'firewall') throw new Error('firewall ハンドラに別の種類が渡された');
     const pcs = uidsOf(net, data, 'pc');
     const servers = uidsOf(net, data, 'server');
     if (!pcs.length || !servers.length) return [none(goal, 'ping')];
@@ -459,8 +444,63 @@ const handlers: { [K in Goal['type']]: Handler } = {
   },
 };
 
+const names = (ids: readonly string[], ctx: GoalTextContext): string => ids.map(ctx.nameOf).join('・');
+const fromTo = (goal: { from: string; to: string }, ctx: GoalTextContext): GoalTextSpec => ({ params: { from: ctx.nameOf(goal.from), to: ctx.nameOf(goal.to) } });
+const noParams = (): GoalTextSpec => ({ params: {} });
+
+const texts: { [K in Goal['type']]: Text<K> } = {
+  ping: fromTo,
+  http: fromTo,
+  blocked: fromTo,
+  min_speed: (g, c) => ({ params: { from: c.nameOf(g.from), to: c.nameOf(g.to), mbps: g.mbps } }),
+  ping_all: (g, c) => ({ params: { nodes: Array.isArray(g.nodes) ? names(g.nodes, c) : c.tr('ui.task.allPcs') } }),
+  count: (g, c) => ({ params: { name: c.tr(`category.${g.category}`), min: g.min } }),
+  count_device: (g, c) => ({ params: { name: c.tr(`device.${g.device}.name`), min: g.min } }),
+  reach_category: (g, c) => ({ params: { name: c.tr(`category.${g.category}`) } }),
+  wireless_clients: (g) => ({ params: { min: g.min } }),
+  outside_reachable: noParams,
+  wireless_clean: noParams,
+  qos_voice: noParams,
+  survive_uplink_failure: noParams,
+  no_static_route: noParams,
+  http_all: noParams,
+  firewall: noParams,
+  wireless_secure: (g) => ({ params: { ssid: g.ssid } }),
+  dhcp_all: (g, c) => ({ params: { nodes: names(g.nodes, c) } }),
+  lag_bundled: (g, c) => ({ params: { node: c.nameOf(g.node), min: g.min } }),
+  stp_root: (g, c) => ({ params: { node: c.nameOf(g.node) } }),
+  public_http: (g, c) => ({ params: { to: c.nameOf(g.to), port: g.port } }),
+  mail: (g, c) => ({ params: { from: c.nameOf(g.from), to: g.to } }),
+  nas: (g, c) => ({ params: { from: names(g.from, c), to: c.nameOf(g.to) } }),
+  outside_sees: (g, c) => (g.by === undefined ? { key: 'goal.outside_sees_any', params: { from: names(g.from, c), by: '' } } : { params: { from: names(g.from, c), by: c.nameOf(g.by) } }),
+  vpn_up: (g, c): GoalTextSpec => (g.a === undefined ? { key: 'goal.vpn_up_any', params: {} } : g.b === undefined ? { params: {} } : { params: { a: c.nameOf(g.a), b: c.nameOf(g.b) } }),
+  load_balanced: (g, c) => ({ params: { from: c.nameOf(g.from), lb: c.nameOf(g.lb), minHealthy: g.minHealthy } }),
+  survive_device_failure: (g, c) => ({ params: { nodes: names(g.nodes, c) } }),
+  bgp_established: (g, c) => ({ params: { node: c.nameOf(g.node), min: g.min } }),
+  ospf_dr: (g, c) => ({ params: { node: c.nameOf(g.node) } }),
+  http_by_name: (g, c) => ({ params: { from: names(g.from, c), name: g.name } }),
+  reach_by_name: (g) => ({ params: { name: g.name } }),
+  resolve_name: (g, c) => ({ params: { from: names(g.from, c), name: g.name } }),
+  http_from: (g, c) => ({ params: { nodes: names(g.nodes, c) } }),
+  isolated: (g, c) => ({ params: { from: names(g.from, c), to: names(g.to, c) } }),
+  blocked_all: (g, c) => ({ params: { from: names(g.from, c), to: names(g.to, c) } }),
+};
+
+// 達成条件の登録表。判定と文言を種類ごとに1つの定義にまとめる
+export const goals = new Registry<GoalDef>('達成条件');
+for (const id of Object.keys(handlers) as Goal['type'][]) {
+  goals.register({ id, evaluate: handlers[id] as Evaluate<Goal['type']>, text: texts[id] as Text<Goal['type']> });
+}
+goals.freeze();
+
 // 1つの達成条件を判定する。ping_all は全ペアの結果を返す
-export const evaluateGoal = (goal: Goal, state: NetworkState, flows?: readonly Flow[]): GoalResult[] => handlers[goal.type](goal, state, flows);
+export const evaluateGoal = (goal: Goal, state: NetworkState, flows?: readonly Flow[]): GoalResult[] => goals.get(goal.type).evaluate(goal, state, flows);
+
+// 達成条件の文言のキーと置換
+export const goalTextSpec = (goal: Goal, ctx: GoalTextContext): { key: string; params: Record<string, string | number> } => {
+  const spec = goals.get(goal.type).text(goal, ctx);
+  return { key: spec.key ?? `goal.${goal.type}`, params: spec.params };
+};
 
 export interface ContractResult {
   passed: boolean;

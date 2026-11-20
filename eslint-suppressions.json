@@ -72,11 +72,6 @@
       "count": 2
     }
   },
-  "src/components/goalText.ts": {
-    "local/no-category": {
-      "count": 2
-    }
-  },
   "src/components/scene/GamePopups.tsx": {
     "local/no-mode-branch": {
       "count": 2
@@ -152,7 +147,7 @@
   },
   "src/network/goals.ts": {
     "local/no-category": {
-      "count": 2
+      "count": 4
     }
   },
   "src/network/learn.ts": {
