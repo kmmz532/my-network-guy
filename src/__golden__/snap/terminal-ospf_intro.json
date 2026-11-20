@@ -40,8 +40,8 @@
     {
       "line": "show ip",
       "lines": [
-        "out:ui.terminal.ifLine {\"port\":0,\"ip\":\"10.0.1.1\",\"prefix\":24}",
-        "out:ui.terminal.ifLine {\"port\":1,\"ip\":\"10.0.12.1\",\"prefix\":30}"
+        "out:ui.terminal.ifLine {\"name\":\"ui.terminal.ifName.port {\\\"port\\\":0}\",\"ip\":\"10.0.1.1\",\"prefix\":24}",
+        "out:ui.terminal.ifLine {\"name\":\"ui.terminal.ifName.port {\\\"port\\\":1}\",\"ip\":\"10.0.12.1\",\"prefix\":30}"
       ]
     },
     {
@@ -321,7 +321,7 @@
     {
       "line": "show ip ospf interface",
       "lines": [
-        "out:ui.terminal.ospfInterface {\"port\":1,\"ip\":\"10.0.12.1\",\"prefix\":30,\"area\":0,\"cost\":1}"
+        "out:ui.terminal.ospfInterface {\"name\":\"ui.terminal.ifName.port {\\\"port\\\":1}\",\"ip\":\"10.0.12.1\",\"prefix\":30,\"area\":0,\"cost\":1}"
       ]
     },
     {
@@ -707,9 +707,9 @@
     {
       "line": "show ip",
       "lines": [
-        "out:ui.terminal.ifLine {\"port\":1,\"ip\":\"10.0.12.1\",\"prefix\":30}",
-        "out:ui.terminal.ifLine {\"port\":9,\"ip\":\"10.0.5.1\",\"prefix\":24}",
-        "out:ui.terminal.ifLine {\"port\":0,\"ip\":\"0.0.0.0\",\"prefix\":24}"
+        "out:ui.terminal.ifLine {\"name\":\"ui.terminal.ifName.port {\\\"port\\\":1}\",\"ip\":\"10.0.12.1\",\"prefix\":30}",
+        "out:ui.terminal.ifLine {\"name\":\"ui.terminal.ifName.port {\\\"port\\\":9}\",\"ip\":\"10.0.5.1\",\"prefix\":24}",
+        "out:ui.terminal.ifLine {\"name\":\"ui.terminal.ifName.port {\\\"port\\\":0}\",\"ip\":\"0.0.0.0\",\"prefix\":24}"
       ]
     },
     {
@@ -773,7 +773,7 @@
     {
       "line": "show ip",
       "lines": [
-        "out:ui.terminal.ifLine {\"port\":0,\"ip\":\"10.0.1.10\",\"prefix\":24}",
+        "out:ui.terminal.ifLine {\"name\":\"ui.terminal.ifName.port {\\\"port\\\":0}\",\"ip\":\"10.0.1.10\",\"prefix\":24}",
         "out:ui.terminal.gateway {\"gateway\":\"10.0.1.1\"}"
       ]
     },

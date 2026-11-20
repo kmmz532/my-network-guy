@@ -55,7 +55,7 @@ describe('ターミナルのコマンド', () => {
     const ctx = { node: nodes[0], nodes, links, data };
     const lines = run('show ip', ctx, tr);
     expect(lines.map((l) => l.text)).toEqual([
-      'ui.terminal.ifLine {"port":0,"ip":"192.168.1.10","prefix":24}',
+      'ui.terminal.ifLine {"name":"ui.terminal.ifName.port {\\"port\\":0}","ip":"192.168.1.10","prefix":24}',
       'ui.terminal.gateway {"gateway":"192.168.1.1"}',
     ]);
   });

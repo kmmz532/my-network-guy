@@ -7,7 +7,7 @@ import { macOf } from '../mac';
 import { lagBundlesOf } from '../query/lagBundles';
 import { portSpeedOf } from '../query/portSpeedOf';
 import { resolveName } from '../resolve';
-import { isIp, parseIfaceName, prefixOfMask } from './args';
+import { ifaceLabel, isIp, parseIfaceName, prefixOfMask } from './args';
 import { SUB_MODES, sessionPortOf } from './modes';
 import { questionLines, questionList } from './suggest';
 import { MTU_DEFAULT, type NetNode } from '../types';
@@ -27,9 +27,9 @@ const peersOf = (ctx: CommandContext): Map<number, NetNode | undefined> => {
   return peers;
 };
 
-// 機器の口の番号（配線のある口と、機器のインターフェースの口。昇順）
+// 機器の口の番号（配線のある口と、口のインターフェース。SVI・束ねた口の仮想の番号は含めない。昇順）
 const portsOf = (ctx: CommandContext, peers: Map<number, NetNode | undefined>): number[] =>
-  [...new Set([...ctx.node.interfaces.map((i) => i.port), ...peers.keys()])].sort((a, b) => a - b);
+  [...new Set([...ctx.node.interfaces.filter((i) => i.kind === 'port').map((i) => i.port), ...peers.keys()])].sort((a, b) => a - b);
 
 // 速さの表記（Mbps の形。速さの定義がなければ auto）
 const speedText = (mbps: number | undefined): string => (mbps === undefined ? 'auto' : `${mbps}Mb/s`);
@@ -272,9 +272,7 @@ export const commands: readonly CommandSpec[] = [
     topic: null,
     run: (_args, { node }, tr) => {
       if (node.interfaces.length === 0) return shown([out(tr('ui.terminal.noIp'))]);
-      const lines = node.interfaces.map((i) => out(i.kind === 'po'
-        ? tr('ui.terminal.poLine', { channel: i.channel ?? 0, ip: i.ip, prefix: i.prefix })
-        : tr('ui.terminal.ifLine', { port: i.port, ip: i.ip, prefix: i.prefix })));
+      const lines = node.interfaces.map((i) => out(tr('ui.terminal.ifLine', { name: ifaceLabel(i, tr), ip: i.ip, prefix: i.prefix })));
       if (node.gateway) lines.push(out(tr('ui.terminal.gateway', { gateway: node.gateway })));
       return shown(lines);
     },

@@ -4,11 +4,16 @@ import { isMac } from '../mac';
 import { ifacePrefixOf } from '../iface';
 import { portCountOf } from '../../registry/query';
 import { bandChannels } from '../../registry/wireless';
-import type { NetNode } from '../types';
+import type { Iface, NetNode } from '../types';
+import type { Tr } from '../terminal';
 import type { ArgKind, TerminalSession } from './types';
 
 // 口の番号から、機器のインターフェースの id を引く。その番号の口がなければ null
 export const ifaceIdOf = (node: NetNode, port: number): string | null => node.interfaces.find((i) => i.port === port)?.id ?? null;
+
+// インターフェースの表示の名前。口は「ポート n」、SVI は「Vlan n」、束ねた口は「Po n」（SVI・束ねた口の port は判定の中だけの仮想の番号のため出さない）
+export const ifaceLabel = (i: Iface, tr: Tr): string =>
+  i.kind === 'svi' ? tr('ui.terminal.ifName.svi', { vlan: i.vlan ?? 0 }) : i.kind === 'po' ? tr('ui.terminal.ifName.po', { channel: i.channel ?? 0 }) : tr('ui.terminal.ifName.port', { port: i.port });
 
 const IP_RE = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
 

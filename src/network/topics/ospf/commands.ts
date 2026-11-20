@@ -4,7 +4,7 @@ import { ospfNeighborsOf } from '../../query/ospfNeighbors';
 import { changed, err, nameOf, out, portMissing, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
 import { getComponent } from '../../components';
-import { areaOf, ifaceIdOf } from '../../command/args';
+import { areaOf, ifaceIdOf, ifaceLabel } from '../../command/args';
 import { enterRouter, interfaceOf } from '../../command/modes';
 
 const PORT = { arg: 'number', name: 'port' } as const;
@@ -63,7 +63,7 @@ export const commands: readonly CommandSpec[] = [
       const joined = ctx.node.interfaces.filter((i) => i.ospf !== undefined);
       if (joined.length === 0) return shown([out(tr('ui.terminal.ospfInterfaceNone'))]);
       // コストは、経路の計算と同じ値（口の設定、なければ速さから）
-      return shown(joined.map((i) => out(tr('ui.terminal.ospfInterface', { port: i.port, ip: i.ip, prefix: i.prefix, area: i.ospf!.area, cost: ctx.state.routing.ospfCostOf(ctx.node.uid, i.port) }))));
+      return shown(joined.map((i) => out(tr('ui.terminal.ospfInterface', { name: ifaceLabel(i, tr), ip: i.ip, prefix: i.prefix, area: i.ospf!.area, cost: ctx.state.routing.ospfCostOf(ctx.node.uid, i.port) }))));
     },
   },
   {
