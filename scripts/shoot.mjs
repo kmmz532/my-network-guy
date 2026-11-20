@@ -1166,6 +1166,35 @@ const scenes = {
     await page.getByLabel('VLAN', { exact: true }).first().scrollIntoViewIfNeeded();
     await page.waitForTimeout(300);
   },
+  // スイッチの口にポートセキュリティを有効にし、MAC を1つ登録した場面（つながっている PC を登録するボタンが出ること）
+  portsecurity: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      for (const id of ['l2_switch_8p', 'pc_basic']) {
+        g.getState().buy(id);
+        let placed = false;
+        for (let y = 2; y < 8 && !placed; y++) for (let x = 2; x < 10 && !placed; x++) placed = g.getState().place(id, x, y) === null;
+        if (!placed) throw new Error(`${id} を置けない`);
+      }
+      const nodes = g.getState().office.nodes;
+      const sw = nodes.find((n) => n.device === 'l2_switch_8p');
+      const pc = nodes.find((n) => n.device === 'pc_basic');
+      const err = g.getState().connect(sw.uid, pc.uid, 'utp_cat5e');
+      if (err) throw new Error(`connect: ${err}`);
+      const port = g.getState().office.links[0].a.node === sw.uid ? g.getState().office.links[0].a.port : g.getState().office.links[0].b.port;
+      for (const op of [{ op: 'on' }, { op: 'add', mac: '02:10:00:00:99:00' }]) {
+        const e = g.getState().setPortSecurity(sw.uid, port, op);
+        if (e) throw new Error(`setPortSecurity: ${e}`);
+      }
+      g.getState().openWindow('device', sw.uid);
+    });
+    await page.waitForTimeout(800);
+    await page.getByText('PC-1 LAN').first().click();
+    await page.waitForTimeout(500);
+    await page.getByText('ポートセキュリティ（登録した機器だけを通す）').first().scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+  },
   // スイッチ付きルーターに、WAN と LAN の IP を入れた場面（マップの IP の表示が重ならないかを確かめる）
   routerswitch: async (page) => {
     await scenes.career(page);

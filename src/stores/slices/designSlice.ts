@@ -13,7 +13,7 @@ import { lessonCatalog } from '../lessonCatalog';
 import { mapOfOffice } from '../../sim/office';
 
 import { closeRef } from '../../ui/windows';
-import { type PortChoice, type PortModeChange, type StpOp, type ChannelOp, type DhcpOp, type VrrpOp, type OspfOp, type NatOp, type BgpOp, emptyOffice, type End } from '../../sim/project';
+import { type PortChoice, type PortModeChange, type PortSecurityOp, type StpOp, type ChannelOp, type DhcpOp, type VrrpOp, type OspfOp, type NatOp, type BgpOp, emptyOffice, type End } from '../../sim/project';
 import { testDesign } from '../../sim/progress';
 
 import { coreOf, focusedProject, netTargetOf } from '../gameHelpers';
@@ -47,6 +47,7 @@ export interface DesignSlice {
   setSvi: (uid: string, vlan: number, ip: string, prefix?: number) => string | null;
   setPo: (uid: string, channel: number, ip: string, prefix?: number) => string | null;
   setPortMode: (uid: string, port: number, mode: PortModeChange) => string | null;
+  setPortSecurity: (uid: string, port: number, change: PortSecurityOp) => string | null;
   setGateway: (uid: string, gateway: string | null) => string | null;
   setRouting: (uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; wildcard?: string; area?: number; process?: number | null }) => string | null;
   setOspf: (uid: string, change: OspfOp) => string | null;
@@ -199,6 +200,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
     setSvi: (uid, vlan, ip, prefix = 24) => dispatch({ kind: 'config', uid, change: { kind: 'svi', vlan, ip, prefix } }, tileOf(uid)),
     setPo: (uid, channel, ip, prefix = 24) => dispatch({ kind: 'config', uid, change: { kind: 'po', channel, ip, prefix } }, tileOf(uid)),
     setPortMode: (uid, port, mode) => dispatch({ kind: 'config', uid, change: { kind: 'portMode', port, mode } }, tileOf(uid)),
+    setPortSecurity: (uid, port, change) => dispatch({ kind: 'config', uid, change: { kind: 'portSecurity', port, change } }, tileOf(uid)),
     setGateway: (uid, gateway) => dispatch({ kind: 'config', uid, change: { kind: 'gateway', gateway } }, tileOf(uid)),
     setVrrp: (uid, change) => dispatch({ kind: 'config', uid, change: { kind: 'vrrp', change } }, tileOf(uid)),
     setPower: (uid, on) => dispatch({ kind: 'config', uid, change: { kind: 'power', on } }, tileOf(uid)),

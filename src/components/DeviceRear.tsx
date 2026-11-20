@@ -24,6 +24,9 @@ import { PortButton } from './ui/PortButton';
 import { Swatch } from './ui/Swatch';
 import { Led } from './ui/Led';
 import { Text } from './ui/Text';
+import { PortSecurityField } from './PortSecurityField';
+import { can } from '../network/capabilities';
+import { macOf } from '../network/mac';
 import { portHoverAt, replugTargetAt, swapTargetAt, type PortBox, type PortHover } from './rearDrag';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { portCountOf, deviceCategory } from '../registry/query';
@@ -180,6 +183,9 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
     const peer = byUid.get(end.node);
     return { end, peer };
   };
+  // 選んだ口の先の機器の口の MAC アドレス（ポートセキュリティの登録に使う。連番のない機器は null）
+  const selectedPeer = selectedLink ? peerOf(selectedLink) : undefined;
+  const selectedPeerMac = selectedPeer?.peer?.macSerial === undefined ? null : macOf(deviceCategory(selectedPeer.peer.device) as string, selectedPeer.peer.macSerial, selectedPeer.end.port);
 
   // 背面の板: 左から電源・ポート群・ファン（PC とサーバーだけ）。スプライトは3倍に拡大して、ドット絵のまま描く
   const fan = isPcCategory(category) || category === CATEGORY.server;
@@ -353,6 +359,11 @@ ${rest}`);
           >
             {t('ui.rear.replug')}
           </Button>
+        </div>
+      )}
+      {!active && selected !== null && can(node.device, 'switchport') && (
+        <div style={{ marginTop: 6 }}>
+          <PortSecurityField node={node} port={selected} peerMac={selectedPeerMac} readOnly={readOnly || node.configLocked} onError={onError} />
         </div>
       )}
     </div>
