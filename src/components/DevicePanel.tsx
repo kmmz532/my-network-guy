@@ -20,6 +20,7 @@ import { Button } from './ui/Button';
 import { Text } from './ui/Text';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { deviceCategory, deviceDef } from '../registry/query';
+import { services, type ToggleServiceId } from '../registry/services';
 import { can } from '../network/capabilities';
 import { termOfSettings, termsOfLesson } from '../network/glossaryOf';
 
@@ -248,8 +249,6 @@ function ServiceTab({ node, nodes, state, readOnly, onError }: { node: NetNode; 
   const running = http !== undefined;
   const radius = node.services.some((x) => x.protocol === 'radius');
   const proxy = node.services.find((s) => s.protocol === 'proxy');
-  const mail = node.services.find((s): s is Extract<NetNode['services'][number], { protocol: 'mail' }> => s.protocol === 'mail');
-  const nas = node.services.some((s) => s.protocol === 'nas');
   const setMailDomain = useGameStore((s) => s.setMailDomain);
   const locked = readOnly || node.configLocked;
   // DNS のサービス。同じ名前の機器があれば警告する（N68）
@@ -295,23 +294,31 @@ function ServiceTab({ node, nodes, state, readOnly, onError }: { node: NetNode; 
           {proxy ? t('ui.service.stop') : t('ui.service.start')}
         </Button>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <b>{t('ui.service.mail')}</b>
-        <TextInput label={t('ui.service.mailDomain')} value={mail?.domain ?? ''} disabled={locked} layout={{ width: 140 }} onCommit={(text) => onError(setMailDomain(node.uid, text.trim() === '' ? null : text.trim()))} />
-        <Text as="span" tone={mail ? 'ok' : 'note'}>{mail ? t('ui.service.running') : t('ui.service.stopped')}</Text>
-        {mail && (
-          <Button variant="secondary" size="fit" disabled={locked} onClick={() => onError(setMailDomain(node.uid, null))}>
-            {t('ui.service.stop')}
-          </Button>
-        )}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <b>{t('ui.service.nas')}</b>
-        <Text as="span" tone={nas ? 'ok' : 'note'}>{nas ? t('ui.service.running') : t('ui.service.stopped')}</Text>
-        <Button variant="secondary" size="fit" disabled={locked} onClick={() => onError(setService(node.uid, 'nas', !nas))}>
-          {nas ? t('ui.service.stop') : t('ui.service.start')}
-        </Button>
-      </div>
+      {services.all().map((def) => {
+        const svc = node.services.find((s) => s.protocol === def.id);
+        const on = svc !== undefined;
+        const domain = svc !== undefined && 'domain' in svc ? svc.domain : '';
+        return (
+          <div key={def.id} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <b>{t(def.label)}</b>
+            {def.fields.map((f) => (
+              <TextInput key={f.key} label={t(f.label)} value={domain} disabled={locked} layout={{ width: 140 }} onCommit={(text) => onError(setMailDomain(node.uid, text.trim() === '' ? null : text.trim()))} />
+            ))}
+            <Text as="span" tone={on ? 'ok' : 'note'}>{on ? t('ui.service.running') : t('ui.service.stopped')}</Text>
+            {def.fields.length > 0 ? (
+              on && (
+                <Button variant="secondary" size="fit" disabled={locked} onClick={() => onError(setMailDomain(node.uid, null))}>
+                  {t('ui.service.stop')}
+                </Button>
+              )
+            ) : (
+              <Button variant="secondary" size="fit" disabled={locked} onClick={() => onError(setService(node.uid, def.id as ToggleServiceId, !on))}>
+                {on ? t('ui.service.stop') : t('ui.service.start')}
+              </Button>
+            )}
+          </div>
+        );
+      })}
       {running && <SeenSources node={node} nodes={nodes} state={state} />}
       {node.configLocked && <div style={{ marginTop: 6 }}>{t('ui.service.locked')}</div>}
     </div>
