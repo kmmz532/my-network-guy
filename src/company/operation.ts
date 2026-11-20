@@ -1,6 +1,6 @@
 // 世界への操作の型。画面・端末・自動化はどれもこの型の値を作り、dispatch（stores/gameOps.ts）へ渡す。
 import type { Components } from '../network/components';
-import type { DnsRecord, FirewallRule, IspLine, Route } from '../network/types';
+import type { DnsRecord, FirewallRule, IspLine, Route, Service } from '../network/types';
 import type { BgpOp, ChannelOp, DhcpOp, End, NatOp, OspfOp, PortChoice, PortModeChange, MacListOp, StpOp, VrrpOp } from '../sim/project';
 
 // 機器の設定の変更。どの機器かは Operation の uid で決める
@@ -20,7 +20,7 @@ export type ConfigChange =
   | { kind: 'vrrp'; change: VrrpOp } | { kind: 'bgp'; change: BgpOp } | { kind: 'nat'; change: NatOp }
   | { kind: 'wireless'; key: 'ssid' | 'password' | 'band' | 'channel' | 'vlan' | 'security' | 'radius'; value: string | number | null }
   | { kind: 'firewallRules'; rules: FirewallRule[] } | { kind: 'loadBalancer'; servers: NonNullable<Components['loadBalancer']> } | { kind: 'vpn'; tunnels: NonNullable<Components['vpn']> } | { kind: 'plan'; port: number; network: string; prefix: number }
-  | { kind: 'service'; protocol: 'http' | 'radius' | 'proxy' | 'nas'; on: boolean } | { kind: 'name'; name: string } | { kind: 'hostname'; hostname: string | null }
+  | { kind: 'service'; protocol: Service['protocol']; on: boolean } | { kind: 'name'; name: string } | { kind: 'hostname'; hostname: string | null }
   | { kind: 'mailServer'; ip: string | null } | { kind: 'mailDomain'; domain: string | null }
   | { kind: 'proxy'; proxy: { ip: string; port: number } | null } | { kind: 'pac'; direct: string[] | null }
   | { kind: 'nameServer'; ip: string | null } | { kind: 'dnsRole'; on: boolean; role?: 'auth' | 'cache' } | { kind: 'autoRegisterZone' }

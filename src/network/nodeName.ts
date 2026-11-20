@@ -5,6 +5,7 @@
 import type { NetNode, Service } from './types';
 import { CATEGORY, isPcCategory } from '../data/categories';
 import { getComponent } from './components';
+import { serviceDef } from '../registry/services';
 
 export interface NameContext {
   // 機器の種類（pc・server・l2_switch・router・l3_switch・router_switch・firewall）。ノートPCは pc の種類
@@ -21,17 +22,10 @@ export interface NameContext {
   tr: (key: string) => string;
 }
 
-// 動いているサービスの種類 → サーバーの役割の名前の文言キー。サービスの種類を足したら、ここにも足す
+// サーバーの役割。動いているサービス（登録表の ID）と DHCP
 export type ServerRole = Service['protocol'] | 'dhcp';
-const SERVICE_NAME_KEY: Record<ServerRole, string> = {
-  dhcp: 'ui.node.role.dhcp',
-  http: 'ui.node.role.web',
-  dns: 'ui.node.role.dns',
-  radius: 'ui.node.role.radius',
-  proxy: 'ui.node.role.proxy',
-  mail: 'ui.node.role.mail',
-  nas: 'ui.node.role.nas',
-};
+// 役割の名前の文言キー。サービスは登録表の roleName
+const roleNameKey = (role: ServerRole): string => (role === 'dhcp' ? 'ui.node.role.dhcp' : serviceDef(role).roleName);
 const MULTI_NAME_KEY = 'ui.node.role.multi';
 
 // サーバーの役割: 動いているサービスと、DHCP サーバーの設定（サービスの一覧ではなく部品で持つ）。サーバー以外は空。名前と印の両方がこれを使う
@@ -46,7 +40,7 @@ const serverBaseName = (node: NetNode, ctx: NameContext): string => {
   const roles = serverRolesOf(node, ctx.categoryOf);
   if (roles.length === 0) return ctx.categoryLabel(CATEGORY.server);
   if (roles.length >= 2) return ctx.tr(MULTI_NAME_KEY);
-  return ctx.tr(SERVICE_NAME_KEY[roles[0]]);
+  return ctx.tr(roleNameKey(roles[0]));
 };
 
 export const nodeName = (node: NetNode, nodes: readonly NetNode[], ctx: NameContext): string => {

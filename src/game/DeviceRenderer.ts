@@ -20,7 +20,7 @@ const WARN = 0xffcc33;
 const REMOVE_TINT = 0xffb0b0;
 const FACING_DEVICE_SPRITES = new Set(['device/pc_basic']);
 // サーバーの役割の印（動いているサービスの種類ごと）。印のない種類（RADIUS・プロキシ）は出さない
-const ROLE_ICON: Partial<Record<ServerRole, string>> = { http: 'icon/svc_web', dns: 'icon/svc_dns', dhcp: 'icon/svc_dhcp', ...Object.fromEntries(services.all().map((s) => [s.id, s.icon])) };
+const ROLE_ICON: Partial<Record<ServerRole, string>> = { dhcp: 'icon/svc_dhcp', ...Object.fromEntries(services.all().flatMap((s) => (s.icon === null ? [] : [[s.id, s.icon]]))) };
 const MULTI_ROLE_ICON = 'icon/svc_multi';
 
 // サーバーの右上に重ねる印の絵。2つ以上のサービスは複合の印

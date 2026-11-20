@@ -6,7 +6,8 @@ import { inWildcard } from '../network/ip';
 import { PREFIX_MAX, PREFIX_MIN, hostCapacity, networkAddress } from '../network/segments';
 import { fillPlans } from '../network/query/plans';
 import type { VrrpGroup } from '../network/vrrp';
-import type { DnsRecord, DnsService, FirewallRule, Iface, IspLine, NetNode, PortConfig, Route } from '../network/types';
+import type { DnsRecord, DnsService, FirewallRule, Iface, IspLine, NetNode, PortConfig, Route, Service } from '../network/types';
+import { initialService } from '../registry/services';
 import { MTU_MAX, MTU_MIN, WIRELESS_SECURITIES } from '../network/types';
 import { makeIface, makePo, makeSvi } from '../network/iface';
 import { refusalFor } from './capabilityGate';
@@ -803,15 +804,11 @@ export const addRoute = (core: Core, uid: string, route: Route, target: NetTarge
 export const removeRoute = (core: Core, uid: string, index: number, target: NetTarget = 'focus'): Outcome =>
   editNode(core, uid, (node) => ({ ...node, routes: node.routes.filter((_, i) => i !== index) }), target);
 
-// サービスの既定の待ち受けポート（プロトコルごと）。起動するときに使う
-const HTTP_PORT = 80;
-const PROXY_PORT = 8080;
-
-// サービスを起動する（on）または停止する（off）。配線の設定が固定された機器は変えられない
+// サービスを起動する（on）または停止する（off）。起動の形は登録表の初期の形（持たないサービスは例外）。配線の設定が固定された機器は変えられない
 export const setService = (
   core: Core,
   uid: string,
-  protocol: 'http' | 'radius' | 'proxy' | 'nas',
+  protocol: Service['protocol'],
   on: boolean,
   target: NetTarget = 'focus',
 ): Outcome =>
@@ -822,7 +819,7 @@ export const setService = (
       const others = node.services.filter((s) => s.protocol !== protocol);
       if (!on) return { ...node, services: others };
       const current = node.services.find((s) => s.protocol === protocol);
-      return { ...node, services: [...others, current ?? (protocol === 'http' ? { protocol, port: HTTP_PORT } : protocol === 'proxy' ? { protocol, port: PROXY_PORT } : { protocol })] };
+      return { ...node, services: [...others, current ?? initialService(protocol)] };
     },
     target,
   );

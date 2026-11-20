@@ -1,6 +1,6 @@
 // 機器・配線・設定の設計の操作。成功したものは履歴に積み、失敗したら理由を返す。
 import { playConnect, playFail } from '../../audio/sfx';
-import type { DnsRecord, FirewallRule, IspLine, Route } from '../../network/types';
+import type { DnsRecord, FirewallRule, IspLine, Route, Service } from '../../network/types';
 import type { Components } from '../../network/components';
 import { gameEnv } from '../../sim/env';
 import { isPcDevice } from '../../sim/env';
@@ -78,7 +78,7 @@ export interface DesignSlice {
   // 同じ機器の2つの口の配線を入れ替える（口の番号を交換する）
   swapPlugs: (nodeUid: string, from: number, to: number) => string | null;
   // サービスを起動（on）・停止する
-  setService: (uid: string, protocol: 'http' | 'radius' | 'proxy' | 'nas', on: boolean) => string | null;
+  setService: (uid: string, protocol: Service['protocol'], on: boolean) => string | null;
   // 端末のメールサーバーのアドレス（null で外す）と、メールサーバーが受け持つドメイン（null で止める）
   setMailServer: (uid: string, ip: string | null) => string | null;
   setMailDomain: (uid: string, domain: string | null) => string | null;

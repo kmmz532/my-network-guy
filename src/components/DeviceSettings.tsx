@@ -42,9 +42,9 @@ import { SviField } from './SviField';
 import { PoField } from './PoField';
 import { DhcpPoolField, DhcpPortField } from './DhcpField';
 import { portCountOf, deviceCategory } from '../registry/query';
-import { tcpPorts, type TcpService } from '../registry/services';
+import { firewallPorts, type PortName } from '../registry/services';
 
-type FirewallService = 'any' | 'ping' | 'http' | 'dns' | 'radius' | TcpService;
+type FirewallService = 'any' | 'ping' | PortName;
 import { Button } from './ui/Button';
 import { Checkbox } from './ui/Checkbox';
 import { Swatch } from './ui/Swatch';
@@ -464,10 +464,7 @@ function FirewallRuleAdd({ onAdd }: { onAdd: (rule: { src: string; dst: string; 
         options={[
           { value: 'any', label: t('ui.fw.service.any') },
           { value: 'ping', label: t('ui.fw.service.ping') },
-          { value: 'http', label: t('ui.fw.service.http') },
-          { value: 'dns', label: t('ui.fw.service.dns') },
-          { value: 'radius', label: t('ui.fw.service.radius') },
-          ...tcpPorts().map((p) => ({ value: p.name, label: t(p.label) })),
+          ...firewallPorts().map((p) => ({ value: p.name, label: t(p.label) })),
         ]}
         onChange={(v) => setService(v as FirewallService)}
       />
