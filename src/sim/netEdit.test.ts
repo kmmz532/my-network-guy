@@ -8,7 +8,7 @@ import { initialOffice } from './furniture';
 import { placeInOffice } from './placement';
 import { getComponent } from '../network/components';
 import type { NetNode } from '../network/types';
-import { analyzeCore, removeHost, setBgp, setFirewallRules, setHost, setNameServer, setNat, setPortSecurity, setWireless } from './netEdit';
+import { analyzeCore, removeHost, setBgp, setFirewallRules, setHost, setNameServer, setNat, setPortSecurity, setWireless, setWirelessMacs } from './netEdit';
 import type { Core, Env } from './project';
 
 const balance = balanceJson as unknown as Balance;
@@ -166,6 +166,34 @@ describe('setPortSecurity', () => {
   it('形の違う MAC と、L2 のポートを持たない機器は拒否する', () => {
     expect(setPortSecurity(coreOf(node('sw', 'l2_switch_8p')), 'sw', 1, { op: 'add', mac: '02-10-00-00-01-00' }, 'office')).toMatchObject({ ok: false, reason: 'mac.format' });
     expect(setPortSecurity(coreOf(node('sw', 'pc_basic')), 'sw', 0, { op: 'on' }, 'office').ok).toBe(false);
+  });
+});
+
+describe('setWirelessMacs', () => {
+  const node = (uid: string, device: string): NetNode =>
+    ({ uid, device, x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [] }) as NetNode;
+  const coreOf = (...nodes: NetNode[]): Core =>
+    ({ office: { ...initialOffice(balance), nodes }, active: [], focus: null, owned: {} }) as unknown as Core;
+
+  it('アクセスポイントの無線の設定に登録が入り、無効にすると macs だけが消えて SSID は残る', () => {
+    let core = coreOf(node('ap', 'access_point'));
+    for (const op of [{ op: 'add', mac: '02:10:00:00:01:00' }, { op: 'off' }] as const) {
+      const before = core;
+      const r = setWirelessMacs(before, 'ap', op, 'office');
+      if (!r.ok) throw new Error(`設定できない: ${r.reason}`);
+      core = r.core;
+      if (op.op === 'add') {
+        expect(getComponent(core.office.nodes[0], 'wireless')?.macs).toEqual(['02:10:00:00:01:00']);
+        const named = setWireless(core, 'ap', 'ssid', 'home', 'office');
+        if (!named.ok) throw new Error(named.reason);
+        core = named.core;
+      }
+    }
+    expect(getComponent(core.office.nodes[0], 'wireless')).toEqual({ ssid: 'home' });
+  });
+
+  it('無線の端末では拒否する', () => {
+    expect(setWirelessMacs(coreOf(node('n', 'laptop')), 'n', { op: 'on' }, 'office').ok).toBe(false);
   });
 });
 

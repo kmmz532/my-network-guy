@@ -6,7 +6,7 @@ import type { NetNode } from '../network/types';
 import { CAPABILITY_REFUSALS, type GatedCapability } from './capabilityGate';
 import { initialOffice } from './furniture';
 import { REQUIRES } from '../network/components';
-import { setBgp, setChannel, setDhcp, setFirewallRules, setIsp, setLoadBalancer, setNat, setOspf, setPortMode, setRouting, setStp, setSvi, setVpn, setVrrp, setWireless } from './netEdit';
+import { setBgp, setChannel, setDhcp, setFirewallRules, setIsp, setLoadBalancer, setNat, setOspf, setPortMode, setRouting, setStp, setSvi, setVpn, setVrrp, setWireless, setWirelessMacs } from './netEdit';
 import type { Core, Env, Outcome } from './project';
 
 const balance = balanceJson as unknown as Balance;
@@ -28,6 +28,7 @@ const ATTEMPTS: Record<GatedCapability, { device: string; run: (core: Core) => O
   services: { device: 'pc_basic', run: (c) => setDhcp(c, 'n', { op: 'noPool', network: '10.0.0.0' }, 'office') },
   lag: { device: 'pc_basic', run: (c) => setChannel(c, 'n', { port: 0, group: 1 }, 'office') },
   wireless: { device: 'pc_basic', run: (c) => setWireless(c, 'n', 'ssid', 'x', 'office') },
+  accessPoint: { device: 'laptop', run: (c) => setWirelessMacs(c, 'n', { op: 'on' }, 'office') },
   nat: { device: 'pc_basic', run: (c) => setNat(c, 'n', { op: 'napt', on: true }, 'office') },
   bgp: { device: 'pc_basic', run: (c) => setBgp(c, 'n', { op: 'asn', asn: 65001 }, 'office') },
   firewall: { device: 'pc_basic', run: (c) => setFirewallRules(c, 'n', [], 'office') },

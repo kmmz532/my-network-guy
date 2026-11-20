@@ -8,6 +8,7 @@ import type { Tr, TerminalLine } from '../../terminal';
 import { wirelessQualityOf } from '../../query/wirelessQuality';
 import { channelOf } from '../../wirelessBand';
 import { isDfsChannel } from '../../../registry/wireless';
+import type { MacListOp } from '../../../sim/project';
 
 const WIRELESS = { word: 'wireless' } as const;
 
@@ -40,6 +41,7 @@ const showWireless = (ctx: CommandContext, tr: Tr): CommandResult => {
     if (isDfsChannel(channel)) lines.push(out(tr('ui.wireless.dfs')));
     lines.push(out(tr('ui.terminal.wlSecurity', { security: tr(`ui.wireless.sec.${wifi.security ?? 'wpa2'}`) })));
     if (wifi.radius !== undefined) lines.push(out(tr('ui.terminal.wlRadius', { ip: wifi.radius })));
+    if (wifi.macs !== undefined) lines.push(out(tr('ui.terminal.wlMacFilter', { macs: wifi.macs.length > 0 ? wifi.macs.join(', ') : tr('ui.terminal.portSecurityEmpty') })));
   }
   if (!can(node.device, 'accessPoint')) {
     const pair = wirelessAssociations(state.input, state.world).find((p) => p.client.uid === node.uid);
@@ -52,7 +54,23 @@ const showWireless = (ctx: CommandContext, tr: Tr): CommandResult => {
   return shown(lines.length > 0 ? lines : [out(tr('ui.terminal.wlNone'))]);
 };
 
+// 無線の MAC フィルター（N153）: wireless mac-filter（有効）・wireless mac-filter <MAC>（登録）と、no の形
+const MAC = { arg: 'mac', name: 'mac' } as const;
+const macFilter = (id: string, tokens: CommandSpec['tokens'], change: (args: Record<string, string>) => MacListOp): CommandSpec => ({
+  id: `wireless.${id}`,
+  modes: ['exec', 'config'],
+  tokens,
+  help: `ui.cmd.wireless.${id}`,
+  writes: true,
+  topic: 'wireless',
+  run: (args, ctx, tr) => changed(ctx, tr, { kind: 'wirelessMacs', change: change(args) }),
+});
+
 export const commands: readonly CommandSpec[] = [
+  macFilter('wirelessMacFilter', [WIRELESS, { word: 'mac-filter' }], () => ({ op: 'on' })),
+  macFilter('noWirelessMacFilter', [{ word: 'no' }, WIRELESS, { word: 'mac-filter' }], () => ({ op: 'off' })),
+  macFilter('wirelessMacFilterAdd', [WIRELESS, { word: 'mac-filter' }, MAC], (a) => ({ op: 'add', mac: a.mac })),
+  macFilter('noWirelessMacFilterAdd', [{ word: 'no' }, WIRELESS, { word: 'mac-filter' }, MAC], (a) => ({ op: 'remove', mac: a.mac })),
   {
     id: 'wireless.wirelessSsid',
     modes: ['exec', 'config'],

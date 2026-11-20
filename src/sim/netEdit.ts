@@ -17,7 +17,7 @@ import { bandChannels, deviceBands } from '../registry/wireless';
 import { bandOf } from '../network/wirelessBand';
 import type { WirelessBand } from '../data/schema';
 import { registries } from '../registry/game';
-import { BgpOp, Project, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, PortSecurityOp, StpOp, VrrpOp, fail, netOf, planDomainAt, withNet, zoneFromNodes } from './project';
+import { BgpOp, Project, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, MacListOp, StpOp, VrrpOp, fail, netOf, planDomainAt, withNet, zoneFromNodes } from './project';
 import { deviceDef, portCountOf } from '../registry/query';
 import { analyze } from '../network/engine/analyze';
 import type { NetworkState } from '../network/engine/state';
@@ -489,9 +489,37 @@ export const setPortQos = (core: Core, uid: string, port: number, change: { qos:
     target,
   );
 
+// MAC アドレスの登録の一覧を操作する。on は空の一覧で始め（どの機器も通さない）、off は一覧を消す（制限しない）。
+// add・remove は1つを登録・解除する（大文字は小文字にそろえ、同じものは重ねない）。add は一覧がなければ始める
+const nextMacs = (current: string[] | undefined, change: MacListOp): string[] | undefined | 'mac.format' => {
+  if (change.op === 'on') return current ?? [];
+  if (change.op === 'off') return undefined;
+  const mac = change.mac.toLowerCase();
+  if (!isMac(mac)) return 'mac.format';
+  const list = current ?? [];
+  return change.op === 'add' ? (list.includes(mac) ? list : [...list, mac]) : list.filter((m) => m !== mac);
+};
+
+// 無線の MAC フィルター（アクセスポイントだけ。N153）。一覧の操作はポートセキュリティと同じ
+export const setWirelessMacs = (core: Core, uid: string, change: MacListOp, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      const refusal = refusalFor(node.device, 'accessPoint');
+      if (refusal) return refusal;
+      const cur = getComponent(node, 'wireless') ?? {};
+      const macs = nextMacs(cur.macs, change);
+      if (macs === 'mac.format') return macs;
+      const { macs: _old, ...rest } = cur;
+      return withComponent(node, 'wireless', macs === undefined ? rest : { ...rest, macs });
+    },
+    target,
+  );
+
 // ポートセキュリティ（N153）。on は登録の一覧を空で始める（どの機器も通さない）、off は制限を外す。
 // add・remove は MAC アドレスを1つ登録・解除する。add は制限のない口なら制限を始める。L2 の口を持たない機器は拒む
-export const setPortSecurity = (core: Core, uid: string, port: number, change: PortSecurityOp, target: NetTarget = 'focus'): Outcome =>
+export const setPortSecurity = (core: Core, uid: string, port: number, change: MacListOp, target: NetTarget = 'focus'): Outcome =>
   editNode(
     core,
     uid,
@@ -501,15 +529,8 @@ export const setPortSecurity = (core: Core, uid: string, port: number, change: P
       if (!Number.isInteger(port) || port < 0 || port >= portCountOf(node.device)) return 'port.none';
       const prev = node.ports.find((p) => p.port === port);
       const base: PortConfig = prev ?? { port, mode: 'access' };
-      let macs: string[] | undefined;
-      if (change.op === 'on') macs = base.macs ?? [];
-      else if (change.op === 'off') macs = undefined;
-      else {
-        const mac = change.mac.toLowerCase();
-        if (!isMac(mac)) return 'mac.format';
-        const current = base.macs ?? [];
-        macs = change.op === 'add' ? (current.includes(mac) ? current : [...current, mac]) : current.filter((m) => m !== mac);
-      }
+      const macs = nextMacs(base.macs, change);
+      if (macs === 'mac.format') return macs;
       const next: PortConfig = { ...base, macs };
       if (macs === undefined) delete next.macs;
       return { ...node, ports: [...node.ports.filter((p) => p.port !== port), next] };

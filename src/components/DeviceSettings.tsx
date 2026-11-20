@@ -30,6 +30,8 @@ import { Section } from './ui/Section';
 import { BgpField } from './BgpField';
 import { IspField } from './IspField';
 import { VlanPortField } from './VlanPortField';
+import { MacListField } from './MacListField';
+import { macOf } from '../network/mac';
 import { VrrpField } from './VrrpField';
 import { LoadBalancerField } from './LoadBalancerField';
 import { VpnField } from './VpnField';
@@ -593,6 +595,7 @@ function NatField({ node, readOnly, onError }: { node: NetNode; readOnly: boolea
 const BAND_LABEL = { '2.4': 'ui.wireless.band24', '5': 'ui.wireless.band5' } as const;
 function WirelessField({ node, state, readOnly, onError }: { node: NetNode; state: NetworkState; readOnly: boolean; onError: (reason: string | null) => void }) {
   const setWireless = useGameStore((s) => s.setWireless);
+  const setWirelessMacs = useGameStore((s) => s.setWirelessMacs);
   const store = useGameStore.getState();
   const net = state.input;
   // 画面の表示と同じ電波の計算（壁の減衰を含む）で、つながりを出す
@@ -630,6 +633,11 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
   const labelOf = (text: string) => (
     <label style={{ display: 'block', marginBottom: 2 }}><Text as="span" bold>{text}</Text></label>
   );
+  // MAC フィルターの登録の候補: 無線の端末（アクセスポイントでも、口0を配線した機器でもないもの）。無線の MAC は口0のもの
+  const wired = new Set(net.links.flatMap((l) => [`${l.a.node}:${l.a.port}`, `${l.b.node}:${l.b.port}`]));
+  const macCandidates = net.nodes
+    .filter((n) => can(n.device, 'wireless') && !can(n.device, 'accessPoint') && !wired.has(`${n.uid}:0`) && n.macSerial !== undefined)
+    .map((n) => ({ name: nodeLabel(store, n, net.nodes), mac: macOf(deviceCategory(n.device) as string, n.macSerial as number, 0) }));
   // アクセスポイントの帯・チャネル・方式。チャネルは帯で選べる番号だけを出し、DFS の対象のチャネルには説明を出す
   const apChannel = isClient ? undefined : channelOf(node);
   return (
@@ -693,6 +701,11 @@ function WirelessField({ node, state, readOnly, onError }: { node: NetNode; stat
         </div>
       ) : (
         field(t('ui.wireless.password'), wifi?.password ?? '', 'password', 'password')
+      )}
+      {!isClient && (
+        <div style={{ marginBottom: 8 }}>
+          <MacListField label={t('ui.config.macFilter')} macs={wifi?.macs} candidates={macCandidates} readOnly={readOnly} apply={(op) => setWirelessMacs(node.uid, op)} onError={onError} />
+        </div>
       )}
       <Text size="s">{statusText}</Text>
       {quality !== null && <Text size="s" tone={quality === 'good' ? undefined : 'warn'}>{t('ui.wireless.quality', { q: t(`ui.wireless.quality.${quality}`) })}</Text>}

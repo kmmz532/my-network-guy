@@ -200,6 +200,75 @@
       "lines": [
         "out:ui.terminal.wlNone"
       ]
+    },
+    {
+      "node": "AP1"
+    },
+    {
+      "line": "wireless mac-filter",
+      "result": "done"
+    },
+    {
+      "line": "show wireless",
+      "lines": [
+        "out:ui.terminal.wlSsid {\"ssid\":\"OFFICE-NET\"}",
+        "out:ui.terminal.wlBand {\"band\":\"ui.wireless.band24\"}",
+        "out:ui.terminal.wlChannel {\"channel\":1}",
+        "out:ui.terminal.wlSecurity {\"security\":\"ui.wireless.sec.wpa2wpa3\"}",
+        "out:ui.terminal.wlMacFilter {\"macs\":\"ui.terminal.portSecurityEmpty\"}"
+      ]
+    },
+    {
+      "line": "wireless mac-filter 02:10:00:00:01:00",
+      "result": "done"
+    },
+    {
+      "line": "wireless mac-filter 02:10:00:00:02:00",
+      "result": "done"
+    },
+    {
+      "line": "wireless mac-filter 0210.0000.0100",
+      "lines": [
+        "err:                      ^",
+        "err:ui.terminal.invalidAt"
+      ]
+    },
+    {
+      "line": "show wireless",
+      "lines": [
+        "out:ui.terminal.wlSsid {\"ssid\":\"OFFICE-NET\"}",
+        "out:ui.terminal.wlBand {\"band\":\"ui.wireless.band24\"}",
+        "out:ui.terminal.wlChannel {\"channel\":1}",
+        "out:ui.terminal.wlSecurity {\"security\":\"ui.wireless.sec.wpa2wpa3\"}",
+        "out:ui.terminal.wlMacFilter {\"macs\":\"02:10:00:00:01:00, 02:10:00:00:02:00\"}"
+      ]
+    },
+    {
+      "line": "no wireless mac-filter 02:10:00:00:01:00",
+      "result": "done"
+    },
+    {
+      "line": "show wireless",
+      "lines": [
+        "out:ui.terminal.wlSsid {\"ssid\":\"OFFICE-NET\"}",
+        "out:ui.terminal.wlBand {\"band\":\"ui.wireless.band24\"}",
+        "out:ui.terminal.wlChannel {\"channel\":1}",
+        "out:ui.terminal.wlSecurity {\"security\":\"ui.wireless.sec.wpa2wpa3\"}",
+        "out:ui.terminal.wlMacFilter {\"macs\":\"02:10:00:00:02:00\"}"
+      ]
+    },
+    {
+      "line": "no wireless mac-filter",
+      "result": "done"
+    },
+    {
+      "line": "show wireless",
+      "lines": [
+        "out:ui.terminal.wlSsid {\"ssid\":\"OFFICE-NET\"}",
+        "out:ui.terminal.wlBand {\"band\":\"ui.wireless.band24\"}",
+        "out:ui.terminal.wlChannel {\"channel\":1}",
+        "out:ui.terminal.wlSecurity {\"security\":\"ui.wireless.sec.wpa2wpa3\"}"
+      ]
     }
   ],
   "network": {

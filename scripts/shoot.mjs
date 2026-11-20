@@ -1166,6 +1166,29 @@ const scenes = {
     await page.getByLabel('VLAN', { exact: true }).first().scrollIntoViewIfNeeded();
     await page.waitForTimeout(300);
   },
+  // アクセスポイントの MAC フィルターを有効にし、1つ登録した場面（無線の端末を登録するボタンが出ること）
+  macfilter: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      for (const [id, x, y] of [['access_point', 4, 2], ['laptop', 6, 3]]) {
+        g.getState().buy(id);
+        const reason = g.getState().place(id, x, y);
+        if (reason !== null) throw new Error(`${id} を置けない: ${reason}`);
+      }
+      const ap = g.getState().office.nodes.find((n) => n.device === 'access_point');
+      for (const op of [{ op: 'on' }, { op: 'add', mac: '02:10:00:00:99:00' }]) {
+        const e = g.getState().setWirelessMacs(ap.uid, op);
+        if (e) throw new Error(`setWirelessMacs: ${e}`);
+      }
+      g.getState().openWindow('device', ap.uid);
+    });
+    await page.waitForTimeout(800);
+    await page.getByText('設定', { exact: true }).click();
+    await page.waitForTimeout(500);
+    await page.getByText('MAC フィルター（登録した端末だけをつなぐ）').first().scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+  },
   // スイッチの口にポートセキュリティを有効にし、MAC を1つ登録した場面（つながっている PC を登録するボタンが出ること）
   portsecurity: async (page) => {
     await scenes.sandbox(page);

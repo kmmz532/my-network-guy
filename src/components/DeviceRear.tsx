@@ -24,7 +24,7 @@ import { PortButton } from './ui/PortButton';
 import { Swatch } from './ui/Swatch';
 import { Led } from './ui/Led';
 import { Text } from './ui/Text';
-import { PortSecurityField } from './PortSecurityField';
+import { MacListField } from './MacListField';
 import { can } from '../network/capabilities';
 import { macOf } from '../network/mac';
 import { portHoverAt, replugTargetAt, swapTargetAt, type PortBox, type PortHover } from './rearDrag';
@@ -186,6 +186,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
   // 選んだ口の先の機器の口の MAC アドレス（ポートセキュリティの登録に使う。連番のない機器は null）
   const selectedPeer = selectedLink ? peerOf(selectedLink) : undefined;
   const selectedPeerMac = selectedPeer?.peer?.macSerial === undefined ? null : macOf(deviceCategory(selectedPeer.peer.device) as string, selectedPeer.peer.macSerial, selectedPeer.end.port);
+  const setPortSecurity = useGameStore((s) => s.setPortSecurity);
 
   // 背面の板: 左から電源・ポート群・ファン（PC とサーバーだけ）。スプライトは3倍に拡大して、ドット絵のまま描く
   const fan = isPcCategory(category) || category === CATEGORY.server;
@@ -363,7 +364,14 @@ ${rest}`);
       )}
       {!active && selected !== null && can(node.device, 'switchport') && (
         <div style={{ marginTop: 6 }}>
-          <PortSecurityField node={node} port={selected} peerMac={selectedPeerMac} readOnly={readOnly || node.configLocked} onError={onError} />
+          <MacListField
+            label={t('ui.config.portSecurity')}
+            macs={node.ports.find((c) => c.port === selected)?.macs}
+            candidates={selectedPeer?.peer && selectedPeerMac !== null ? [{ name: nodeLabel(useGameStore.getState(), selectedPeer.peer, nodes), mac: selectedPeerMac }] : []}
+            readOnly={readOnly || node.configLocked}
+            apply={(op) => setPortSecurity(node.uid, selected, op)}
+            onError={onError}
+          />
         </div>
       )}
     </div>

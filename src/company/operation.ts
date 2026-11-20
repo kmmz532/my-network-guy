@@ -1,7 +1,7 @@
 // 世界への操作の型。画面・端末・自動化はどれもこの型の値を作り、dispatch（stores/gameOps.ts）へ渡す。
 import type { Components } from '../network/components';
 import type { DnsRecord, FirewallRule, IspLine, Route } from '../network/types';
-import type { BgpOp, ChannelOp, DhcpOp, End, NatOp, OspfOp, PortChoice, PortModeChange, PortSecurityOp, StpOp, VrrpOp } from '../sim/project';
+import type { BgpOp, ChannelOp, DhcpOp, End, NatOp, OspfOp, PortChoice, PortModeChange, MacListOp, StpOp, VrrpOp } from '../sim/project';
 
 // 機器の設定の変更。どの機器かは Operation の uid で決める
 export type ConfigChange =
@@ -13,7 +13,8 @@ export type ConfigChange =
   | { kind: 'routing'; change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; wildcard?: string; area?: number; process?: number | null } }
   | { kind: 'ifaceTune'; port: number; key: 'mtu' | 'adjustMss'; value: number | null }
   | { kind: 'portQos'; port: number; change: { qos: 'none' | 'priority' } | { trust: boolean } }
-  | { kind: 'portSecurity'; port: number; change: PortSecurityOp }
+  | { kind: 'portSecurity'; port: number; change: MacListOp }
+  | { kind: 'wirelessMacs'; change: MacListOp }
   | { kind: 'ospf'; change: OspfOp } | { kind: 'isp'; line: IspLine } | { kind: 'stp'; change: StpOp }
   | { kind: 'channel'; change: ChannelOp } | { kind: 'dhcp'; change: DhcpOp } | { kind: 'power'; on: boolean }
   | { kind: 'vrrp'; change: VrrpOp } | { kind: 'bgp'; change: BgpOp } | { kind: 'nat'; change: NatOp }

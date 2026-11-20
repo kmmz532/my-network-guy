@@ -13,6 +13,7 @@ export const CAPABILITY_REFUSALS = {
   services: 'dhcp.unsupported',
   lag: 'lag.unsupported',
   wireless: 'capability',
+  accessPoint: 'capability',
   nat: 'capability',
   bgp: 'capability',
   firewall: 'capability',

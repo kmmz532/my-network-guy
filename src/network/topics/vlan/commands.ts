@@ -5,7 +5,7 @@ import { changed, err, out, shown } from '../../command/lines';
 import type { CommandContext, CommandResult, CommandSpec } from '../../command/types';
 import type { Tr } from '../../terminal';
 import { interfaceOf, sessionPortOf } from '../../command/modes';
-import type { PortSecurityOp } from '../../../sim/project';
+import type { MacListOp } from '../../../sim/project';
 
 // スイッチの MAC の表は、同じ L2 のドメインの端末から求める。端末では使えない
 const showMacAddressTable = (_args: unknown, ctx: CommandContext, tr: Tr): CommandResult => {
@@ -64,7 +64,7 @@ const switchportModeAccess: CommandSpec = {
 
 // ポートセキュリティ（N153）: 口に登録した MAC アドレスの機器だけを通す
 const MAC = { arg: 'mac', name: 'mac' } as const;
-const portSecurity = (id: string, tokens: CommandSpec['tokens'], change: (args: Record<string, string>) => PortSecurityOp): CommandSpec => ({
+const portSecurity = (id: string, tokens: CommandSpec['tokens'], change: (args: Record<string, string>) => MacListOp): CommandSpec => ({
   id: `vlan.${id}`,
   modes: ['exec', 'config'],
   tokens,

@@ -37,3 +37,15 @@ show wireless
 show running-config
 ping 192.168.1.22
 show wireless
+# 節: 無線の MAC フィルター（有効・登録・形の誤り・解除・無効・show wireless の行）
+@AP1
+wireless mac-filter
+show wireless
+wireless mac-filter 02:10:00:00:01:00
+wireless mac-filter 02:10:00:00:02:00
+wireless mac-filter 0210.0000.0100
+show wireless
+no wireless mac-filter 02:10:00:00:01:00
+show wireless
+no wireless mac-filter
+show wireless
