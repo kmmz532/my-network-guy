@@ -8,7 +8,7 @@ import { instantiateTemplate, pcCountRangeOf, spawnGroupsOf } from './template';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const mapsDir = join(__dirname, '..', 'assets', 'data', 'maps');
+const mapsDir = join(__dirname, '..', '..', 'resources', 'data', 'maps');
 const loadMap = (id: string): GameMap => JSON.parse(readFileSync(join(mapsDir, `${id}.json`), 'utf8')) as GameMap;
 const officeSmall = loadMap('office_small');
 

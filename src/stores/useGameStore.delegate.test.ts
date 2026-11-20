@@ -1,6 +1,6 @@
 // 社員に任せる（N70）。任せられない理由と、任せて受注できない場合に状態が変わらないこと
 import { beforeEach, describe, expect, it } from 'vitest';
-import c001 from '../assets/data/contracts/c001_direct_link.json';
+import c001 from '../../resources/data/contracts/c001_direct_link.json';
 import type { Contract } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { delegationReason } from '../sim/project';

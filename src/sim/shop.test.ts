@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { buyDevice, isUnlocked, sellDevice } from './shop';
 import { isCompany, migrate } from '../services/migrations';
-import shopData from '../assets/data/shop.json';
-import cablesData from '../assets/data/cables.json';
+import shopData from '../../resources/data/shop.json';
+import cablesData from '../../resources/data/cables.json';
 
 describe('ショップ', () => {
   it('会社のレベルが解放のレベルに届かない品目は、店に並べない（解放は品目の unlockLevel）', () => {

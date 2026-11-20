@@ -610,7 +610,7 @@ const fillLanguages = (data: GameData): void => {
 
 const toTypeUnion = (values: string[]): string => (values.length ? values.map((v) => JSON.stringify(v)).join(' | ') : 'never');
 
-// スプライト（src/assets/sprites/ の PNG）の名前。拡張子を除いた相対パス（例: device/pc_basic）
+// スプライト（resources/sprites/ の PNG）の名前。拡張子を除いた相対パス（例: device/pc_basic）
 const spriteNamesIn = (spriteDir: string): string[] => {
   const names: string[] = [];
   const walk = (dir: string, prefix: string): void => {
@@ -715,10 +715,10 @@ export default function gameData(): Plugin {
 
     configResolved(resolved) {
       config = resolved;
-      dataDir = resolve(resolved.root, 'src/assets/data');
-      langDir = resolve(resolved.root, 'src/assets/lang');
+      dataDir = resolve(resolved.root, 'resources/data');
+      langDir = resolve(resolved.root, 'resources/lang');
       generatedDir = resolve(resolved.root, 'src/generated');
-      spriteDir = resolve(resolved.root, 'src/assets/sprites');
+      spriteDir = resolve(resolved.root, 'resources/sprites');
       generate();
     },
 

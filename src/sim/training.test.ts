@@ -1,8 +1,8 @@
 import { EMPTY_FAMILIARITY } from './familiar';
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
-import certsJson from '../assets/data/certs.json';
-import trainingJson from '../assets/data/training.json';
+import balanceJson from '../../resources/data/balance.json';
+import certsJson from '../../resources/data/certs.json';
+import trainingJson from '../../resources/data/training.json';
 import type { Balance, CertDef, Contract } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { minutesPerDay } from './clock';

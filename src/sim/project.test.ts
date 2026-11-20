@@ -1,15 +1,15 @@
 import { EMPTY_FAMILIARITY } from './familiar';
 import { keepFocus, type Outcome } from './project';
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 
 
-import furnitureJson from '../assets/data/furniture.json';
+import furnitureJson from '../../resources/data/furniture.json';
 
 
 
-import c001 from '../assets/data/contracts/c001_direct_link.json';
-import officeJson from '../assets/data/maps/office_small.json';
+import c001 from '../../resources/data/contracts/c001_direct_link.json';
+import officeJson from '../../resources/data/maps/office_small.json';
 import type { Balance, Contract, Furniture, GameMap, JobId } from '../data/schema';
 import type { NetNode } from '../network/types';
 import type { Offer } from '../contracts/template';

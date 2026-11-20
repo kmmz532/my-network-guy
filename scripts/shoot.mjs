@@ -986,7 +986,7 @@ const scenes = {
   // 修理の依頼（r002）を受けて、ルーターの既定のゲートウェイを直し、納品した結果画面（変更の数の行）
   repairresult: async (page) => {
     await scenes.career(page);
-    const contract = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'src/assets/data/contracts/r002_wrong_gateway.json'), 'utf8'));
+    const contract = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'resources/data/contracts/r002_wrong_gateway.json'), 'utf8'));
     await page.evaluate((contract) => {
       const g = window.__game;
       const offer = { id: contract.id, kind: 'fixed', baseId: contract.id, params: {}, contract, arrivedMinute: g.getState().clock.minute };

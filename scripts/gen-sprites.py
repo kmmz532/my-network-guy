@@ -1,10 +1,10 @@
 # ドット絵のスプライトを生成する。色は memo/ART.md のパレットに従う。
 # 使い方: python scripts/gen-sprites.py
-# 出力先: src/assets/sprites/（device/・staff/・icon/・tile/・furniture/）
+# 出力先: resources/sprites/（device/・staff/・icon/・tile/・furniture/）
 import os
 from PIL import Image, ImageDraw
 
-ROOT = os.path.join(os.path.dirname(__file__), '..', 'src', 'assets', 'sprites')
+ROOT = os.path.join(os.path.dirname(__file__), '..', 'resources', 'sprites')
 
 C = {
     'o': (59, 42, 51),      # 輪郭線

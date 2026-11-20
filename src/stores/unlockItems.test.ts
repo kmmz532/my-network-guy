@@ -1,6 +1,6 @@
 // 解放の一覧（レベルアップの報告と、自社の情報の「次に解放される物」の材料）の規則（N127）
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { unlockItems } from './useGameStore';
 

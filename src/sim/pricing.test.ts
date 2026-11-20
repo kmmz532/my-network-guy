@@ -1,6 +1,6 @@
 // 機材の価格の式（N35）。定価が式の値と一致すること、式にない分類・機能は例外にすること
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { priceOf } from './pricing';
 import { registries } from '../registry/game';

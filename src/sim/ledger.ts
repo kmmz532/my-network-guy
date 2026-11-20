@@ -1,7 +1,7 @@
 // 帳簿（資金の画面の土台）。お金の増減は、すべて applyMoney を通す。分類のない増減は書けない。
 // 記録は取引ごとではなく、月ごと・分類ごとの合計で持つ（直近 LEDGER_MONTHS か月だけ残す）。
 // サンドボックスは記録しない（時計の ledger が null）。
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { ClockState } from './clock';
 
 export const LEDGER_CATEGORIES = [

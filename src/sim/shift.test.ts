@@ -1,6 +1,6 @@
 // 勤務の区分（N48）。夜勤は 21時〜翌6時、日をまたぐ。出社は 20時30分
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { isOnShift, isPresentOnShift } from './shift';
 

@@ -1,8 +1,8 @@
 import type { Core } from './project';
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
-import furnitureJson from '../assets/data/furniture.json';
+import furnitureJson from '../../resources/data/furniture.json';
 import type { Furniture, Staff } from '../data/schema';
 import { emptyOffice } from './project';
 import type { BonusEnv } from './furniture';
@@ -202,7 +202,7 @@ describe('社員の名前が重ならない', () => {
   });
 
   it('名前の候補は言語ファイルに NAME_COUNT 個ある', () => {
-    const lang = JSON.parse(readFileSync(new URL('../assets/lang/ja_jp.json', import.meta.url), 'utf8')) as Record<string, string>;
+    const lang = JSON.parse(readFileSync(new URL('../../resources/lang/ja_jp.json', import.meta.url), 'utf8')) as Record<string, string>;
     for (let i = 0; i < NAME_COUNT; i++) expect(lang[`staff.name.${i}`]).toBeTruthy();
     expect(lang[`staff.name.${NAME_COUNT}`]).toBeUndefined();
     expect(new Set(Array.from({ length: NAME_COUNT }, (_, i) => lang[`staff.name.${i}`])).size).toBe(NAME_COUNT);

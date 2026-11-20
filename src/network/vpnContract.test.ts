@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { analyze } from './engine/analyze';
 import { makeIface } from './iface';
-import contractJson from '../assets/data/contracts/v001_vpn_two_sites.json';
+import contractJson from '../../resources/data/contracts/v001_vpn_two_sites.json';
 import { gameEnv } from '../sim/env';
 import { contractLinks, fixedNodes } from '../sim/project';
 import type { Contract } from '../data/schema';

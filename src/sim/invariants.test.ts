@@ -1,14 +1,14 @@
 // 操作の列を無作為に作り、操作のたびに不変条件を確かめる（N120）。失敗したときは、fast-check が操作の列を縮めて示す。
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 
 
-import furnitureJson from '../assets/data/furniture.json';
+import furnitureJson from '../../resources/data/furniture.json';
 
 
 
-import officeJson from '../assets/data/maps/office_small.json';
+import officeJson from '../../resources/data/maps/office_small.json';
 import type { Balance, Furniture, GameMap } from '../data/schema';
 import { EMPTY_FAMILIARITY } from './familiar';
 import { initialStaff } from './staff';

@@ -1,13 +1,13 @@
-// スプライト（src/assets/sprites/**/*.png）の URL とテクスチャ。名前は拡張子を除いた相対パス（例: device/pc_basic）。
+// スプライト（resources/sprites/**/*.png）の URL とテクスチャ。名前は拡張子を除いた相対パス（例: device/pc_basic）。
 // 名前の型（SpriteId）はビルド時に生成する。文字列の組み立ては spriteOf で検査する。
 import { Assets, type Texture } from 'pixi.js';
 import type { SpriteId } from '../generated/ids';
 
 const urls = new Map<string, string>();
 for (const [path, url] of Object.entries(
-  import.meta.glob('../assets/sprites/**/*.png', { eager: true, query: '?url', import: 'default' }),
+  import.meta.glob('../../resources/sprites/**/*.png', { eager: true, query: '?url', import: 'default' }),
 )) {
-  urls.set(path.replace('../assets/sprites/', '').replace(/\.png$/, ''), url as string);
+  urls.set(path.replace('../../resources/sprites/', '').replace(/\.png$/, ''), url as string);
 }
 
 export const isSpriteName = (name: string): name is SpriteId => urls.has(name);

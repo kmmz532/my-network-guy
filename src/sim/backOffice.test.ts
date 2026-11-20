@@ -1,9 +1,9 @@
 // 内勤の効果（職種・割引率・営業の依頼の数）
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { printerArrivalBonusOf, accountingRate, backOfficeP, devDailyIncome, devRate, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, jobEffect, salesArrivalChance } from './backOffice';
-import furnitureJson from '../assets/data/furniture.json';
+import furnitureJson from '../../resources/data/furniture.json';
 import type { BonusEnv } from './furniture';
 import type { Furniture } from '../data/schema';
 import type { Office } from './project';

@@ -1,6 +1,6 @@
 // 束ねた口（Po）に IP を付ける。Po は、まとまった配線の代表の口として計算される
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { initialOffice } from '../sim/furniture';
 import { setChannel, setInterface, setPo } from '../sim/netEdit';

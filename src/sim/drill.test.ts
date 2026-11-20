@@ -1,7 +1,7 @@
 // 演習の問いの判定: 正解が構成から求まり、候補に正解が含まれ、構成を変えると正解が変わる
 import { describe, expect, it } from 'vitest';
 import { drills, lessons } from 'virtual:game-data';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance, Change, Drill, InspectAsk, Question } from '../data/schema';
 import { solutions } from '../__golden__/solutions';
 import type { EngineData } from '../network/types';

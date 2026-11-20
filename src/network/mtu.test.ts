@@ -1,7 +1,7 @@
 // MTU: 区間の MTU（両端の口の小さい方・トンネルの包みの分）と、分割・DF での停止・adjust-mss
 import { describe, expect, it } from 'vitest';
 import { lessons } from 'virtual:game-data';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { solutions } from '../__golden__/solutions';
 import { initialOffice } from '../sim/furniture';

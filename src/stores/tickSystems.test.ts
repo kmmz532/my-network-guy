@@ -1,6 +1,6 @@
 // 毎ティックの系: 状態と TickEnv だけから結果が決まること（時刻と設定を内部で読まないこと）
 import { beforeEach, describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { minutesPerMonth } from '../sim/clock';
 import { nightSpeedSystem, payPauseSystem, runTick } from './tickSystems';

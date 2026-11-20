@@ -1,7 +1,7 @@
 // 案件 rt001（3つの拠点を RIP でつなぐ）: 工場のルーターを本社と倉庫のルーターにつなぎ、3台すべてで RIP を動かすと合格する。静的経路は使わない
 import { describe, expect, it } from 'vitest';
 import { analyze } from './engine/analyze';
-import contractJson from '../assets/data/contracts/rt001_rip_three_sites.json';
+import contractJson from '../../resources/data/contracts/rt001_rip_three_sites.json';
 import { gameEnv } from '../sim/env';
 import { contractLinks, fixedNodes } from '../sim/project';
 import type { Contract } from '../data/schema';

@@ -3,7 +3,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-const DATA = new URL('../src/assets/data/', import.meta.url).pathname.replace(/^\/(\w:)/, '$1');
+const DATA = new URL('../resources/data/', import.meta.url).pathname.replace(/^\/(\w:)/, '$1');
 const read = (p) => JSON.parse(readFileSync(join(DATA, p), 'utf-8'));
 
 const balance = read('balance.json');

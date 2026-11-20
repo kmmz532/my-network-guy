@@ -1,6 +1,6 @@
 // 自社オフィスの回線終端: 新しい会社には置かない。解放のレベルに届くと置き場所を選んで置け、有料で位置を変更できる
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance, GameMap } from '../data/schema';
 import { EMPTY_FAMILIARITY } from './familiar';
 import { initialOffice } from './furniture';
@@ -10,7 +10,7 @@ import { emptyOffice, noEffects, officeUplinkOf, type Core, type Outcome } from 
 import { moveOfficeUplink, placeOfficeUplink } from './placement';
 import { fixedNodes } from './project';
 import { getComponent } from '../network/components';
-import b001 from '../assets/data/contracts/b001_two_isps.json';
+import b001 from '../../resources/data/contracts/b001_two_isps.json';
 import type { Contract } from '../data/schema';
 
 const balance = balanceJson as unknown as Balance;

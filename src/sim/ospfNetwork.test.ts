@@ -1,6 +1,6 @@
 // OSPF の network 文: 口のアドレスを、prefix とワイルドカードの照合で参加させる
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { analyze } from '../network/engine/analyze';
 import { ospfNeighborsOf } from '../network/query/ospfNeighbors';

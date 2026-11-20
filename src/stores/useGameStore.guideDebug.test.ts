@@ -1,6 +1,6 @@
 // デバッグの案内の操作（N54）。手順から始める（受注して設計に入り、指定の手順を出す）・受注できないときは何も変えない・済みにするは経験値を増やさない
 import { beforeEach, describe, expect, it } from 'vitest';
-import officeJson from '../assets/data/maps/office_small.json';
+import officeJson from '../../resources/data/maps/office_small.json';
 import type { GameMap } from '../data/schema';
 import { useGameStore } from './useGameStore';
 

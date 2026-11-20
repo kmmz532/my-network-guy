@@ -1,6 +1,6 @@
 // 通れず置けないマスの判定（N51b）。壁・壁に掛ける物・柱は同じ判定にする
 import { describe, expect, it } from 'vitest';
-import factoryJson from '../assets/data/maps/factory.json';
+import factoryJson from '../../resources/data/maps/factory.json';
 import { isBlocked, tileKind } from './tileKind';
 import type { GameMap } from './schema';
 

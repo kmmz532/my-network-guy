@@ -4,7 +4,7 @@ import tseslint from 'typescript-eslint';
 import local from './eslint/local-rules/index.mjs';
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'dist-shoot/**', 'node_modules/**', 'scripts/**', 'public/**', 'eslint/**'] },
+  { ignores: ['dist/**', 'dist-shoot/**', 'node_modules/**', 'scripts/**', 'resources/**', 'eslint/**'] },
   {
     files: ['src/**/*.{ts,tsx}'],
     languageOptions: { parser: tseslint.parser },

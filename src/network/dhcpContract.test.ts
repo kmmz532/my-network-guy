@@ -1,7 +1,7 @@
 // 案件 d001（DHCP・20台）: 部屋ごとのネットワークにルーターのリレーを設定し、サーバーのプールから配ると合格する。リレーがなければ不合格
 import { describe, expect, it } from 'vitest';
 import { analyze } from './engine/analyze';
-import contractJson from '../assets/data/contracts/d001_dhcp_office.json';
+import contractJson from '../../resources/data/contracts/d001_dhcp_office.json';
 import { gameEnv } from '../sim/env';
 import type { Contract } from '../data/schema';
 import { evaluateGoal } from './goals';

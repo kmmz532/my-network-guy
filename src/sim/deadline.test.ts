@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { minutesPerDay } from './clock';
 import { dueDayOf, lateDaysOf, lateFactor } from './deadline';

@@ -1,6 +1,6 @@
 // 束ねた口（Po）の命令。interface port-channel で入り、ip address で付けた IP は、経路の計算（ping の到達）で使われる
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../../assets/data/balance.json';
+import balanceJson from '../../../resources/data/balance.json';
 import type { Balance } from '../../data/schema';
 import { applyConfig } from '../../company/apply';
 import type { ConfigChange } from '../../company/operation';

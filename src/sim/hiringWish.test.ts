@@ -1,6 +1,6 @@
 // 募集の職種の指定（人事）: 候補の半分以上（切り上げ）が指定した職種になる
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { rollCandidates } from './staff';
 

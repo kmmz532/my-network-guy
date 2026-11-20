@@ -24,7 +24,7 @@ export interface Topic {
   failures: readonly ErrorId[];
   warnings: readonly WarnId[];
   glossary: GlossaryId | null;
-  // 教材の ID（src/assets/data/lessons の id）
+  // 教材の ID（resources/data/lessons の id）
   lessons: readonly string[];
   known?: readonly TopicItem[];
 }

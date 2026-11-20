@@ -1,8 +1,8 @@
 // 核の状態からネットワークの計算の結果を求める（analyzeCore）の確認。機器を置いた後も、その機器が計算の結果に入ること
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
-import furnitureJson from '../assets/data/furniture.json';
-import officeSmall from '../assets/data/maps/office_small.json';
+import balanceJson from '../../resources/data/balance.json';
+import furnitureJson from '../../resources/data/furniture.json';
+import officeSmall from '../../resources/data/maps/office_small.json';
 import type { Balance, Furniture, GameMap } from '../data/schema';
 import { initialOffice } from './furniture';
 import { placeInOffice } from './placement';

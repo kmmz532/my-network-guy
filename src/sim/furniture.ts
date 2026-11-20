@@ -3,7 +3,7 @@ import type { Balance, Furniture, GameMap, Staff } from '../data/schema';
 import { DESK_ID, emptyOffice, fail, isPcIn, officeLocked, type Core, type Env, type Office, type Outcome } from './project';
 import { tileKind } from '../data/tileKind';
 import type { NetLink, NetNode } from '../network/types';
-import cablesData from '../assets/data/cables.json';
+import cablesData from '../../resources/data/cables.json';
 import { rotateFacing } from './facing';
 
 

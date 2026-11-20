@@ -1,13 +1,13 @@
 import { EMPTY_FAMILIARITY } from './familiar';
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 
 
 
 
 
 
-import shopJson from '../assets/data/shop.json';
+import shopJson from '../../resources/data/shop.json';
 import type { Balance, GameMap, ShopItem } from '../data/schema';
 import { isUnlocked } from './shop';
 import { inventoryItems } from './inventory';

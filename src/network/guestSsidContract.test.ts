@@ -1,7 +1,7 @@
 // 案件 w001（来客用の無線）: 来客用の親機を、ファイアウォールの来客用の口につなぐと合格する。社内のスイッチにつなぐと、来客の PC は社内へ届いて不合格
 import { describe, expect, it } from 'vitest';
 import { analyze } from './engine/analyze';
-import contractJson from '../assets/data/contracts/w001_guest_ssid.json';
+import contractJson from '../../resources/data/contracts/w001_guest_ssid.json';
 import { gameEnv } from '../sim/env';
 import { contractLinks, fixedNodes } from '../sim/project';
 import type { Contract } from '../data/schema';

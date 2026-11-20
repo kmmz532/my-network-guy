@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { lessons } from 'virtual:game-data';
-import ja from '../assets/lang/ja_jp.json';
+import ja from '../../resources/lang/ja_jp.json';
 import { analyze } from './engine/analyze';
 import { lessonGoalResults, lessonLinks, lessonNodes } from '../sim/lesson';
 import type { Tr } from './terminal';

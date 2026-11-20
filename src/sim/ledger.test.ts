@@ -1,6 +1,6 @@
 // 帳簿（お金の増減を月ごと・分類ごとに記録する）
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { advanceTick, initialClock, minutesPerMonth, type ClockState } from './clock';
 import { applyMoney, LEDGER_MONTHS, recordSaving } from './ledger';

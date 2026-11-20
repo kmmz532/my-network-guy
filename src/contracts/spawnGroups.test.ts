@@ -1,7 +1,7 @@
 // 複数の置く範囲（spawnGroups）と変化形（variantOf）の確かめ（N51a の 2 章）
 import { describe, expect, it } from 'vitest';
 import { contractTemplates } from 'virtual:game-data';
-import longHallJson from '../assets/data/maps/long_hall.json';
+import longHallJson from '../../resources/data/maps/long_hall.json';
 import type { ContractTemplate, GameMap } from '../data/schema';
 import { templateSchema } from '../data/schema';
 import { instantiateTemplate, pcCountRangeOf } from './template';

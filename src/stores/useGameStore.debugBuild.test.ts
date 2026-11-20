@@ -1,7 +1,7 @@
 // デバッグの「施工を今すぐ終える」（N54）。受注した c001 を設計し、テストを通して施工を頼み、最後まで進めると検収の結果が出る
 import { beforeEach, describe, expect, it } from 'vitest';
-import officeJson from '../assets/data/maps/office_small.json';
-import c001 from '../assets/data/contracts/c001_direct_link.json';
+import officeJson from '../../resources/data/maps/office_small.json';
+import c001 from '../../resources/data/contracts/c001_direct_link.json';
 import type { Contract, GameMap } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { useGameStore } from './useGameStore';

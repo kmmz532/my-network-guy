@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
-import c001 from '../assets/data/contracts/c001_direct_link.json';
-import c002 from '../assets/data/contracts/c002_small_office.json';
-import templateJson from '../assets/data/contracts/templates/t_small_lan.json';
-import officeJson from '../assets/data/maps/office_small.json';
+import balanceJson from '../../resources/data/balance.json';
+import c001 from '../../resources/data/contracts/c001_direct_link.json';
+import c002 from '../../resources/data/contracts/c002_small_office.json';
+import templateJson from '../../resources/data/contracts/templates/t_small_lan.json';
+import officeJson from '../../resources/data/maps/office_small.json';
 import type { Balance, Contract, ContractTemplate, GameMap } from '../data/schema';
 import { minutesPerDay } from '../sim/clock';
 import { expAtLevel } from '../sim/level';

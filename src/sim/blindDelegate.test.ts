@@ -1,6 +1,6 @@
 // 型紙なしで任せる（結果を乱数で決める）。能力の傾向と、★の上限
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { blindDelegation, costRatioOf, qualityOf, reworkOf, starRangeOf, starsFor } from './blindDelegate';
 

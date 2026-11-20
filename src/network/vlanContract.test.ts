@@ -1,8 +1,8 @@
 // 案件 v001・v003（VLAN）: 設定で VLAN を分けると合格し、置いただけ・分けないままでは不合格
 import { describe, expect, it } from 'vitest';
 import { analyze } from './engine/analyze';
-import v1Json from '../assets/data/contracts/v001_one_switch_two_depts.json';
-import v3Json from '../assets/data/contracts/v003_five_depts.json';
+import v1Json from '../../resources/data/contracts/v001_one_switch_two_depts.json';
+import v3Json from '../../resources/data/contracts/v003_five_depts.json';
 import { gameEnv } from '../sim/env';
 import type { Contract } from '../data/schema';
 import { evaluateGoal } from './goals';

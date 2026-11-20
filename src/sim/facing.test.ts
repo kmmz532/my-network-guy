@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { FACINGS, rotateFacing, spriteNameOf } from './facing';
 
-const SPRITES = join(process.cwd(), 'src', 'assets', 'sprites');
+const SPRITES = join(process.cwd(), 'resources', 'sprites');
 
 describe('向き（N95）', () => {
   it('up は今の絵の名前のまま、ほかは _front・_left・_right を付ける', () => {

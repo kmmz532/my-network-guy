@@ -1,6 +1,6 @@
 // 会社のレベルによる採用（N45・LEVEL.md 3.3）。解放された職種だけが候補に出る。人数の上限に達すると採用できない
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { hire } from './furniture';
 import { rollCandidates, staffCapOf, unlockedJobsOf } from './staff';

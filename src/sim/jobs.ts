@@ -1,5 +1,5 @@
-// 職種の定義（N104）。src/assets/data/jobs.json を読み込み時に検証する。今はコードの分岐はまだ置き換えていない（値の一致だけを確かめる）
-import jobsJson from '../assets/data/jobs.json';
+// 職種の定義（N104）。resources/data/jobs.json を読み込み時に検証する。今はコードの分岐はまだ置き換えていない（値の一致だけを確かめる）
+import jobsJson from '../../resources/data/jobs.json';
 import { jobsFileSchema, type JobDef } from '../data/schema';
 import type { JobId } from '../data/schema';
 

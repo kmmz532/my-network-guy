@@ -5,7 +5,7 @@ import sys
 from PIL import Image, ImageDraw
 
 import os
-out = os.path.join(os.path.dirname(__file__), '..', 'public')
+out = os.path.join(os.path.dirname(__file__), '..', 'resources', 'static')
 O = (36, 26, 32, 255)
 Y = (255, 206, 72, 255)
 B = (60, 112, 210, 255)

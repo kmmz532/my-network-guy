@@ -3,27 +3,27 @@ import { EMPTY_FAMILIARITY } from './familiar';
 // 費用は、案件に置いた機器の定価の合計と配線（connect）の費用（projectCostOf）を使う。
 // 費用が予算の 60〜75% に入ることを確かめる（予算が高すぎると★の意味がなく、低すぎると★3 が取れないため）。
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 
-import furnitureJson from '../assets/data/furniture.json';
-
-
+import furnitureJson from '../../resources/data/furniture.json';
 
 
 
 
-import c001 from '../assets/data/contracts/c001_direct_link.json';
-import c002 from '../assets/data/contracts/c002_small_office.json';
-import c003 from '../assets/data/contracts/c003_departments.json';
-import c004 from '../assets/data/contracts/c004_web_server.json';
-import c005 from '../assets/data/contracts/c005_two_sites.json';
-import c006 from '../assets/data/contracts/c006_office_external.json';
-import i001 from '../assets/data/contracts/i001_office_lan.json';
-import i002 from '../assets/data/contracts/i002_office_server.json';
-import templateJson from '../assets/data/contracts/templates/t_small_lan.json';
-import officeSmall from '../assets/data/maps/office_small.json';
-import officeTwoRooms from '../assets/data/maps/office_two_rooms.json';
-import officeTwoSites from '../assets/data/maps/office_two_sites.json';
+
+
+import c001 from '../../resources/data/contracts/c001_direct_link.json';
+import c002 from '../../resources/data/contracts/c002_small_office.json';
+import c003 from '../../resources/data/contracts/c003_departments.json';
+import c004 from '../../resources/data/contracts/c004_web_server.json';
+import c005 from '../../resources/data/contracts/c005_two_sites.json';
+import c006 from '../../resources/data/contracts/c006_office_external.json';
+import i001 from '../../resources/data/contracts/i001_office_lan.json';
+import i002 from '../../resources/data/contracts/i002_office_server.json';
+import templateJson from '../../resources/data/contracts/templates/t_small_lan.json';
+import officeSmall from '../../resources/data/maps/office_small.json';
+import officeTwoRooms from '../../resources/data/maps/office_two_rooms.json';
+import officeTwoSites from '../../resources/data/maps/office_two_sites.json';
 import type { Balance, Contract, ContractTemplate, Furniture, GameMap } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { instantiateTemplate, starHubOf } from '../contracts/template';

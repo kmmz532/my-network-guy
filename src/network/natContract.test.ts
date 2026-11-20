@@ -1,7 +1,7 @@
 // 案件 n001（NAPT）: ルーターで NAPT を設定すると、社内の PC が回線の先へ届く。NAPT がなければ届かない
 import { describe, expect, it } from 'vitest';
 import { analyze } from './engine/analyze';
-import contractJson from '../assets/data/contracts/n001_napt_office.json';
+import contractJson from '../../resources/data/contracts/n001_napt_office.json';
 import { gameEnv } from '../sim/env';
 import type { Contract } from '../data/schema';
 import { evaluateGoal } from './goals';

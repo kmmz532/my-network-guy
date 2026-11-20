@@ -53,7 +53,7 @@ DHCP のリレーだけは例外とする。アドレスの層の中で、自動
 
 ## 依頼と教材
 
-依頼は `src/assets/data/contracts/` に、教材は `lessons/` に JSON で定義する。依頼の種類は、新しく作る `build` と、修理する `repair` の2つとする。修理の依頼は、最初の配線を `links` に、最初の設定を `setup` に持つ。達成条件は、種類ごとの判定を `src/network/goals.ts` に登録し、`NetworkState` で評価する。
+依頼は `resources/data/contracts/` に、教材は `lessons/` に JSON で定義する。依頼の種類は、新しく作る `build` と、修理する `repair` の2つとする。修理の依頼は、最初の配線を `links` に、最初の設定を `setup` に持つ。達成条件は、種類ごとの判定を `src/network/goals.ts` に登録し、`NetworkState` で評価する。
 
 ## ストア
 

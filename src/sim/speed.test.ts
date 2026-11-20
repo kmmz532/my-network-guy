@@ -1,6 +1,6 @@
 // 時間の速さ（N99）。解放の判定と、早送りの切り替え
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { assertKnownSpeed, isSpeedUnlocked, nextFastSpeed, unlockedSpeedsOf } from './speed';
 

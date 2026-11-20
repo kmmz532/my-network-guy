@@ -1,20 +1,20 @@
 // 検索用のひらがな名。すべての機器と家具に読みがあること
 import { describe, expect, it } from 'vitest';
-import lang from '../assets/lang/ja_jp.json';
-import furnitureJson from '../assets/data/furniture.json';
-import pcJson from '../assets/data/devices/pc.json';
-import serverJson from '../assets/data/devices/server.json';
-import routerJson from '../assets/data/devices/router.json';
-import switchJson from '../assets/data/devices/l2_switch.json';
-import l3Json from '../assets/data/devices/l3_switch.json';
-import routerSwitchJson from '../assets/data/devices/router_switch.json';
-import firewallJson from '../assets/data/devices/firewall.json';
-import firewallDmzJson from '../assets/data/devices/firewall_dmz.json';
-import printerJson from '../assets/data/devices/printer.json';
-import accessPointJson from '../assets/data/devices/access_point.json';
-import uplinkJson from '../assets/data/devices/uplink.json';
-import homeRouterJson from '../assets/data/devices/home_router.json';
-import loadBalancerJson from '../assets/data/devices/load_balancer.json';
+import lang from '../../resources/lang/ja_jp.json';
+import furnitureJson from '../../resources/data/furniture.json';
+import pcJson from '../../resources/data/devices/pc.json';
+import serverJson from '../../resources/data/devices/server.json';
+import routerJson from '../../resources/data/devices/router.json';
+import switchJson from '../../resources/data/devices/l2_switch.json';
+import l3Json from '../../resources/data/devices/l3_switch.json';
+import routerSwitchJson from '../../resources/data/devices/router_switch.json';
+import firewallJson from '../../resources/data/devices/firewall.json';
+import firewallDmzJson from '../../resources/data/devices/firewall_dmz.json';
+import printerJson from '../../resources/data/devices/printer.json';
+import accessPointJson from '../../resources/data/devices/access_point.json';
+import uplinkJson from '../../resources/data/devices/uplink.json';
+import homeRouterJson from '../../resources/data/devices/home_router.json';
+import loadBalancerJson from '../../resources/data/devices/load_balancer.json';
 import { matchesQuery } from '../ui/search';
 
 const dict = lang as Record<string, string>;

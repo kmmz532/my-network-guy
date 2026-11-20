@@ -1,7 +1,7 @@
 // 案件 b001（2社の ISP）: 境界ルーターを2つの回線終端へつなぎ、BGP で2本の隣接を作ると合格する。片方の隣接がなければ不合格
 import { describe, expect, it } from 'vitest';
 import { analyze } from './engine/analyze';
-import contractJson from '../assets/data/contracts/b001_two_isps.json';
+import contractJson from '../../resources/data/contracts/b001_two_isps.json';
 import { gameEnv } from '../sim/env';
 import type { Contract } from '../data/schema';
 import { evaluateGoal } from './goals';

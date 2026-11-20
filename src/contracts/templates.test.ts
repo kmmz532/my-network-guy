@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import l3TwoRoomsJson from '../assets/data/contracts/templates/t_l3_two_rooms.json';
-import rareExpoJson from '../assets/data/contracts/templates/t_rare_expo_lan.json';
-import twoRoomsJson from '../assets/data/contracts/templates/t_two_rooms_lan.json';
-import twoSitesJson from '../assets/data/contracts/templates/t_two_sites_lan.json';
-import officeTwoRoomsJson from '../assets/data/maps/office_two_rooms.json';
-import officeTwoSitesJson from '../assets/data/maps/office_two_sites.json';
+import l3TwoRoomsJson from '../../resources/data/contracts/templates/t_l3_two_rooms.json';
+import rareExpoJson from '../../resources/data/contracts/templates/t_rare_expo_lan.json';
+import twoRoomsJson from '../../resources/data/contracts/templates/t_two_rooms_lan.json';
+import twoSitesJson from '../../resources/data/contracts/templates/t_two_sites_lan.json';
+import officeTwoRoomsJson from '../../resources/data/maps/office_two_rooms.json';
+import officeTwoSitesJson from '../../resources/data/maps/office_two_sites.json';
 import type { ContractTemplate, GameMap } from '../data/schema';
 import { instantiateTemplate, pcCountRangeOf } from './template';
 

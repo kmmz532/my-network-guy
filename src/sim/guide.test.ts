@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { guides } from 'virtual:game-data';
-import ja from '../assets/lang/ja_jp.json';
+import ja from '../../resources/lang/ja_jp.json';
 import type { NetLink, NetNode } from '../network/types';
 import { deviceCategory } from '../registry/query';
 import { guideProgress, guideStepDone, parseCondition, type GuideState, type GuideStep } from './guide';

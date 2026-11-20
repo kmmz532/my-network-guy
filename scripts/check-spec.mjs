@@ -60,7 +60,7 @@ const capsCode = new Set([...read('src/data/schema.ts').match(/CAPABILITY_IDS = 
 const goalBlock = read('src/data/schema.ts').match(/export const goalSchema = z\.discriminatedUnion\('type', \[([\s\S]*?)\n\]\);/)[1];
 const goalsCode = new Set([...goalBlock.matchAll(/type: z\.literal\('([^']+)'\)/g)].map((m) => m[1]));
 
-const lang = JSON.parse(read('src/assets/lang/ja_jp.json'));
+const lang = JSON.parse(read('resources/lang/ja_jp.json'));
 
 // 食い違い（"分類:ID" の形）
 const found = [];

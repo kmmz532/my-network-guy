@@ -39,6 +39,8 @@ const swVersion = (): Plugin => {
 export default defineConfig(({ command }) => ({
   define: { __BUILD_ID__: JSON.stringify(command === 'build' ? buildId : 'dev') },
   base: '/my-network-guy/',
+  // 固定の URL でそのまま配るもの（sw.js・manifest・アイコン・書体）
+  publicDir: 'resources/static',
   server: {
     headers: {
       'Cache-Control': 'no-store',

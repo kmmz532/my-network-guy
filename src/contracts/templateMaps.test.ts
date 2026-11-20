@@ -4,7 +4,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const dataDir = join(__dirname, '..', 'assets', 'data');
+const dataDir = join(__dirname, '..', '..', 'resources', 'data');
 const mapsDir = join(dataDir, 'maps');
 const templatesDir = join(dataDir, 'contracts', 'templates');
 

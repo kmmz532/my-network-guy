@@ -4,7 +4,7 @@
 // この道具は、読み込むときに重複を検出して止め、書き込むときは既存のキーを置き換える。
 //
 // 使い方: node scripts/json.mjs <命令> <ファイル> [引数]
-//   ファイルの略記: lang = src/assets/lang/ja_jp.json、data/<名前> = src/assets/data/<名前>.json
+//   ファイルの略記: lang = resources/lang/ja_jp.json、data/<名前> = resources/data/<名前>.json
 //   キーの書き方: 言語ファイルのような平たいファイルは、キーをそのまま書く（goal.wireless_clients）。
 //                 入れ子のファイルは / で区切る（models/0/id）。最上位にそのままのキーがあればそれを優先する。
 //
@@ -15,7 +15,7 @@
 //   del    <file> <key>                  キーを消す。ないときは失敗
 //   rename <file> <old> <new>            キーの名前を変える（位置は保つ）。new が既にあれば失敗
 //   keys   <file> [prefix]               キーの一覧（prefix で始まるものだけ）
-//   check  [file...]                     重複キーと書式の崩れを調べる。省略時は lang と src/assets/data 以下の全部
+//   check  [file...]                     重複キーと書式の崩れを調べる。省略時は lang と resources/data 以下の全部
 //   dedupe <file>                        重複キーを1つにまとめる。値が違う重複があれば何もせず失敗する
 //
 // 書き込みは JSON.stringify(…, null, 2) の書式で行う。元のファイルがこの書式でなければ（独自の改行のあるファイル）、
@@ -31,8 +31,8 @@ const fail = (msg) => {
 };
 
 const pathOf = (name) => {
-  if (name === 'lang') return join(ROOT, 'src/assets/lang/ja_jp.json');
-  if (name.startsWith('data/') && !name.endsWith('.json')) return join(ROOT, 'src/assets', `${name}.json`);
+  if (name === 'lang') return join(ROOT, 'resources/lang/ja_jp.json');
+  if (name.startsWith('data/') && !name.endsWith('.json')) return join(ROOT, 'resources', `${name}.json`);
   return resolve(process.cwd(), name);
 };
 
@@ -214,7 +214,7 @@ const allFiles = () => {
       else if (f.endsWith('.json')) out.push(p);
     }
   };
-  walk(join(ROOT, 'src/assets/data'));
+  walk(join(ROOT, 'resources/data'));
   return out;
 };
 

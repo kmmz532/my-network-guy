@@ -1,8 +1,8 @@
 // 操作の適用の試験: config の操作が、netEdit の関数を直接呼んだ結果と同じ core を返すこと
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
-import furnitureJson from '../assets/data/furniture.json';
-import officeJson from '../assets/data/maps/office_small.json';
+import balanceJson from '../../resources/data/balance.json';
+import furnitureJson from '../../resources/data/furniture.json';
+import officeJson from '../../resources/data/maps/office_small.json';
 import type { Balance, Furniture, GameMap } from '../data/schema';
 import { EMPTY_FAMILIARITY } from '../sim/familiar';
 import { setInterface } from '../sim/netEdit';

@@ -1,6 +1,6 @@
 // 机と椅子（N44）。机だけの品目も席として数える。初期の在庫に机が2台ある
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { freeDesks } from './furniture';
 import { isDeskFurniture, type Env } from './project';

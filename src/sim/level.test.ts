@@ -1,6 +1,6 @@
 // 会社のレベル（N45）の式と解放。LEVEL.md §8 のテスト
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { expAtLevel, isUnlocked, levelOf, levelProgressOf, levelUpsBetween, moneyOf, nextLevel, needOf, titleKeyOf } from './level';
 

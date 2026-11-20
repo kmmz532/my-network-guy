@@ -1,7 +1,7 @@
 // 案件 lb_web_public（通販サイトの Web を2台に分ける）: ルーターの静的 NAT で外のポート80をロードバランサーの仮想の IPアドレスへ向け、2台の Web を振り分ける。ヘルスチェックなしは、1台止まったときに不合格
 import { describe, expect, it } from 'vitest';
 import { analyze } from './engine/analyze';
-import contractJson from '../assets/data/contracts/lb_web_public.json';
+import contractJson from '../../resources/data/contracts/lb_web_public.json';
 import { gameEnv } from '../sim/env';
 import { contractLinks, fixedNodes } from '../sim/project';
 import type { Contract } from '../data/schema';

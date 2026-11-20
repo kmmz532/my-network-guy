@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 言語ファイル（src/assets/lang/*.json）の道具。基準の言語（ja_jp）と比べて、ほかの言語の足りないキー・余分なキー・
+// 言語ファイル（resources/lang/*.json）の道具。基準の言語（ja_jp）と比べて、ほかの言語の足りないキー・余分なキー・
 // 置換の名前（{min} など）の食い違いを調べ、全言語のキーをまとめて追加・改名・削除する。
 // キーの読み書きは scripts/json.mjs を通す（重複キーの検出と、書式の保持をそちらに任せる）。
 //
@@ -22,7 +22,7 @@ import { execFileSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '..');
-const LANG_DIR = join(ROOT, 'src/assets/lang');
+const LANG_DIR = join(ROOT, 'resources/lang');
 const BASE = 'ja_jp';
 const JSON_TOOL = join(ROOT, 'scripts/json.mjs');
 

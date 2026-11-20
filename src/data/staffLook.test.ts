@@ -10,7 +10,7 @@ describe('社員の見た目', () => {
   });
 
   it('すべての見た目に 2 コマのスプライトがある', () => {
-    const dir = join(__dirname, '..', 'assets', 'sprites', 'staff');
+    const dir = join(__dirname, '..', '..', 'resources', 'sprites', 'staff');
     for (const look of STAFF_LOOKS) {
       for (const frame of [0, 1]) {
         expect(existsSync(join(dir, `${staffSpriteName(look)}_${frame}.png`))).toBe(true);

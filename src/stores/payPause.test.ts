@@ -1,6 +1,6 @@
 // 給与を払えない月の対策: 給与の直前に一度だけ時間を止め、再開したら止めずに払う
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { minutesPerMonth } from '../sim/clock';
 import { saveSettings } from '../settings/settings';

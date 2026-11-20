@@ -1,6 +1,6 @@
 // 能力を要する編集が、能力のない機器では、表の理由で拒否され、機器が変わらないことの確認
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import type { NetNode } from '../network/types';
 import { CAPABILITY_REFUSALS, type GatedCapability } from './capabilityGate';

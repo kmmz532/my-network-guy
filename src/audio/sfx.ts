@@ -1,4 +1,4 @@
-// 効果音。音源は scripts/gen-sfx.mjs で合成した WAV（public/sfx/）を使う。
+// 効果音。音源は scripts/gen-sfx.mjs で合成した WAV（resources/sfx/）を使う。
 // 同じ出来事に複数の音源があり、鳴らすたびに 1 つを選ぶ。設定の「効果音」がオフのときは鳴らさない。
 // 音源は最初に鳴らすときに読み込んで復号し、以後は使い回す。読み込みや再生に失敗したときは何もしない。
 // 音は、ユーザーの操作（クリックなど）の後に鳴るので、ブラウザの自動再生の制限には当たらない。
@@ -8,6 +8,13 @@ type Sfx = 'connect' | 'fail' | 'deliver';
 
 // イベントごとのバリエーション数（scripts/gen-sfx.mjs の EVENTS と合わせる）
 const VARIANTS: Record<Sfx, number> = { connect: 3, fail: 2, deliver: 3 };
+
+// 音源の URL。名前は拡張子を除いたファイル名（例: connect-0）
+const urls = new Map<string, string>(
+  Object.entries(import.meta.glob('../../resources/sfx/*.wav', { eager: true, query: '?url', import: 'default' })).map(
+    ([path, url]) => [path.replace('../../resources/sfx/', '').replace(/\.wav$/, ''), url as string],
+  ),
+);
 
 let ctx: AudioContext | null = null;
 const cache = new Map<string, Promise<AudioBuffer | null>>();
@@ -49,7 +56,8 @@ const play = (name: Sfx): void => {
     const c = context();
     if (!c) return;
     const n = Math.floor(Math.random() * VARIANTS[name]);
-    const url = `${import.meta.env.BASE_URL}sfx/${name}-${n}.wav`;
+    const url = urls.get(`${name}-${n}`);
+    if (url === undefined) throw new Error(`効果音の音源がない: ${name}-${n}`);
     void load(c, url).then((buffer) => {
       if (!buffer) return;
       const src = c.createBufferSource();

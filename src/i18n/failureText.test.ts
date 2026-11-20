@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import langJson from '../assets/lang/ja_jp.json';
+import langJson from '../../resources/lang/ja_jp.json';
 import { FAILURE_REASONS } from '../network/types';
 import { OP_FAIL_REASONS } from '../sim/failReason';
 

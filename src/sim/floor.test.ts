@@ -1,6 +1,6 @@
 // 自社オフィスの床の張り替え（N92）。部屋の判定・費用・解禁・マップへの反映
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { expAtLevel } from './level';
 import { changeOfficeFloor, floorOfRoom, mapOfOffice, roomOf, roomTileCount } from './office';

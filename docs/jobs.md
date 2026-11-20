@@ -1,6 +1,6 @@
 # 職種の定義
 
-職種は [jobs.json](../src/assets/data/jobs.json) に定義する。職種 ID はセーブデータと互換性を保つため変更しない。
+職種は [jobs.json](../resources/data/jobs.json) に定義する。職種 ID はセーブデータと互換性を保つため変更しない。
 
 ## 項目
 

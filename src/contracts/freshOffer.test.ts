@@ -1,10 +1,10 @@
 // 新しく解放した種類の重み（LEVEL.md 10.4。N51b）: 解放から arrivals 件届くまで weightFactor 倍で出る
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
-import mapJson from '../assets/data/maps/office_small.json';
+import balanceJson from '../../resources/data/balance.json';
+import mapJson from '../../resources/data/maps/office_small.json';
 import type { Balance, ContractTemplate, GameMap } from '../data/schema';
 import { refreshOffers, type OfferEnv, type OfferState } from './offers';
-import templateJson from '../assets/data/contracts/templates/t_small_lan.json';
+import templateJson from '../../resources/data/contracts/templates/t_small_lan.json';
 
 const map = mapJson as unknown as GameMap;
 const base = templateJson as unknown as ContractTemplate;

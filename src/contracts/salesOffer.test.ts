@@ -1,8 +1,8 @@
 // 営業の効果（依頼の到着の追加。報酬の高い依頼の重み）
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
-import mapJson from '../assets/data/maps/office_small.json';
-import templateJson from '../assets/data/contracts/templates/t_small_lan.json';
+import balanceJson from '../../resources/data/balance.json';
+import mapJson from '../../resources/data/maps/office_small.json';
+import templateJson from '../../resources/data/contracts/templates/t_small_lan.json';
 import type { Balance, ContractTemplate, GameMap } from '../data/schema';
 import { NO_OFFER_EFFECTS, refreshOffers, salesArrival, type OfferEnv, type OfferState } from './offers';
 

@@ -1,16 +1,16 @@
 import { EMPTY_FAMILIARITY } from './familiar';
 // IPアドレスの自動割り当ての確認。配線の後に autoAssign を呼ぶ（ストアと同じ順）。固定案件 c001・c002 を使う
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 
-import furnitureJson from '../assets/data/furniture.json';
-
-
+import furnitureJson from '../../resources/data/furniture.json';
 
 
-import c001 from '../assets/data/contracts/c001_direct_link.json';
-import c002 from '../assets/data/contracts/c002_small_office.json';
-import officeSmall from '../assets/data/maps/office_small.json';
+
+
+import c001 from '../../resources/data/contracts/c001_direct_link.json';
+import c002 from '../../resources/data/contracts/c002_small_office.json';
+import officeSmall from '../../resources/data/maps/office_small.json';
 import type { Balance, Contract, Furniture, GameMap } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { initialStaff } from './staff';

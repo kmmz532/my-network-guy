@@ -6,7 +6,7 @@ import { pushPopup } from './popupStack';
 import { useUiStore } from '../stores/useUiStore';
 import { ESCAPE_STEPS, KEYMAP, handleKey, keyName, keyOfAction, tipText, type KeyInput } from './keymap';
 
-const LANG = JSON.parse(readFileSync(`${process.cwd()}/src/assets/lang/ja_jp.json`, 'utf-8')) as Record<string, string>;
+const LANG = JSON.parse(readFileSync(`${process.cwd()}/resources/lang/ja_jp.json`, 'utf-8')) as Record<string, string>;
 
 const input = (key: string, mods: Partial<KeyInput> = {}): KeyInput => ({
   key,

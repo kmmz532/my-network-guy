@@ -1,6 +1,6 @@
 // 社員の休憩の予定（N42）。1回30分以上・1日3回まで・合計2時間まで・勤務時間の中・同じ日は同じ予定
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
 import { breakAt, breakPlanOf } from './breaks';
 

@@ -9,7 +9,7 @@ import { contractTemplates } from 'virtual:game-data';
 import type { ContractTemplate, GameMap } from '../data/schema';
 import { instantiateTemplate } from './template';
 
-const mapsDir = join(__dirname, '..', 'assets', 'data', 'maps');
+const mapsDir = join(__dirname, '..', '..', 'resources', 'data', 'maps');
 const maps: Record<string, GameMap> = Object.fromEntries(
   readdirSync(mapsDir)
     .filter((f) => f.endsWith('.json'))

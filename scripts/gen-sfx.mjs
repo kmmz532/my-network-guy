@@ -1,6 +1,6 @@
 // 効果音（WAV）を合成して生成する。外部の音源や素材は使わない。
 // 使い方: node scripts/gen-sfx.mjs [シード]
-// 出力先: public/sfx/（connect-N.wav, fail-N.wav, deliver-N.wav）
+// 出力先: resources/sfx/（connect-N.wav, fail-N.wav, deliver-N.wav）
 // シードを変えると、同じ設計のまま別の揺らぎの音源になる。省略時は固定のシード（再生成しても同じ音になる）。
 //
 // 設計の方針:
@@ -14,7 +14,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SR = 44100;
-const OUT = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'sfx');
+const OUT = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'resources', 'sfx');
 const seedArg = process.argv[2] ?? 'network-ya';
 
 // シードから乱数（0 以上 1 未満）を作る（mulberry32）。文字列のシードは数値に変換する。

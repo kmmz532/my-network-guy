@@ -17,7 +17,7 @@ import { deviceDef } from '../registry/query';
 import type { ClockState } from '../sim/clock';
 import type { GameMap } from '../data/schema';
 import type { NetLink, NetNode } from '../network/types';
-import officeSmall from '../assets/data/maps/office_small.json';
+import officeSmall from '../../resources/data/maps/office_small.json';
 
 const snapDir = join(import.meta.dirname, 'snap');
 const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;

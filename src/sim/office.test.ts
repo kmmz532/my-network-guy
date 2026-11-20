@@ -1,7 +1,7 @@
 import { EMPTY_FAMILIARITY } from './familiar';
 import { describe, expect, it } from 'vitest';
 import type { Balance, GameMap } from '../data/schema';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { NetLink, NetNode } from '../network/types';
 import {
   canExpand,

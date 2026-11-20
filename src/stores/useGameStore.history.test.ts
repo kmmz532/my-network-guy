@@ -1,7 +1,7 @@
 // 設計の取り消し・やり直し（ストアと、キーの処理）。案件と自社オフィスの両方を確かめる
 import { beforeEach, describe, expect, it } from 'vitest';
-import officeJson from '../assets/data/maps/office_small.json';
-import c001 from '../assets/data/contracts/c001_direct_link.json';
+import officeJson from '../../resources/data/maps/office_small.json';
+import c001 from '../../resources/data/contracts/c001_direct_link.json';
 import type { Contract, GameMap } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { handleKey } from '../input/keymap';

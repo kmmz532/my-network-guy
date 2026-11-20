@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Balance } from '../data/schema';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import { dayOf, grantDailyExp } from './companyExp';
 import { dailyExpCapOf, deliveryExpOf, expAmountOf, needOf } from './level';
 import { minutesPerDay } from './clock';

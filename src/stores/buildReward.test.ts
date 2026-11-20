@@ -1,7 +1,7 @@
 // 施工が終わった納品の結果を、毎ティックの系がストアへ写すとき、報酬の機器が持ち物に残ること
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
-import c001 from '../assets/data/contracts/c001_direct_link.json';
+import balanceJson from '../../resources/data/balance.json';
+import c001 from '../../resources/data/contracts/c001_direct_link.json';
 import type { Balance, Contract } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { minutesPerDay } from '../sim/clock';

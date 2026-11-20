@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { lessons } from 'virtual:game-data';
 import { deviceCategory } from '../registry/query';
-import ja from '../assets/lang/ja_jp.json';
+import ja from '../../resources/lang/ja_jp.json';
 import type { Balance, Lesson, Question } from '../data/schema';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import { applySetup, drillConfig, drillState, judgeBuild, judgeDiagnose } from './drill';
 import type { Env } from './project';
 import type { EngineData } from '../network/types';

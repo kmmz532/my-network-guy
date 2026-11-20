@@ -1,6 +1,6 @@
 // 失敗の理由・案内の手順・設定の部品・達成条件と用語集の対応: 対応先の用語が言語ファイルにあること、引く関数の結果
 import { describe, expect, it } from 'vitest';
-import langJson from '../assets/lang/ja_jp.json';
+import langJson from '../../resources/lang/ja_jp.json';
 import { GLOSSARY_OF_FAILURE, GLOSSARY_OF_GOAL, GLOSSARY_OF_SETTING, GLOSSARY_OF_STEP, termOfGoal, termOfSettings, termOfStep, termsOfLesson } from './glossaryOf';
 
 const dict = langJson as Record<string, string>;

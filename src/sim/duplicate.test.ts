@@ -1,10 +1,10 @@
 import { EMPTY_FAMILIARITY } from './familiar';
 import { describe, expect, it } from 'vitest';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 
-import furnitureJson from '../assets/data/furniture.json';
+import furnitureJson from '../../resources/data/furniture.json';
 
-import officeJson from '../assets/data/maps/office_small.json';
+import officeJson from '../../resources/data/maps/office_small.json';
 import type { Balance, Furniture, GameMap } from '../data/schema';
 import { initialStaff } from './staff';
 import { connect, type Core, type Env, type Outcome } from './project';

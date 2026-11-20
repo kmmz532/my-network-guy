@@ -1,7 +1,7 @@
 // 演習の進行: 誤答2回で正解が出る、正解で次へ進む、最後で完了。同梱の演習が、構成から正解を求められ、直すと合格になる
 import { describe, expect, it } from 'vitest';
 import { drills } from 'virtual:game-data';
-import balanceJson from '../assets/data/balance.json';
+import balanceJson from '../../resources/data/balance.json';
 import type { Balance, Change, Drill } from '../data/schema';
 import type { EngineData } from '../network/types';
 import { applySetup, diagnoseChoices, diagnoseReasonChoices, drillConfig, drillState, inspectAnswer, inspectChoices, judgeBuild } from './drill';

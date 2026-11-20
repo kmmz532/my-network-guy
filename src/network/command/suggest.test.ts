@@ -91,7 +91,7 @@ describe('suggest', () => {
 
 // 命令の木のすべての位置で、候補の説明の鍵が言語ファイルにある
 describe('候補の説明', () => {
-  const lang = JSON.parse(readFileSync(new URL('../../assets/lang/ja_jp.json', import.meta.url), 'utf8')) as Record<string, string>;
+  const lang = JSON.parse(readFileSync(new URL('../../../resources/lang/ja_jp.json', import.meta.url), 'utf8')) as Record<string, string>;
   const SAMPLE: Record<ArgKind, string> = {
     iface: 'g0/1', ip: '10.0.0.1', mask: '255.255.255.0', wildcard: '0.0.0.255', prefix: '24', vlan: '10', vlanList: '10,20', area: '0', asn: '65000',
     vrid: '1', channel: '1', ssid: 'abc', psk: 'password1', cost: '10', number: '1', word: 'x', hostname: 'host', hostOrIp: '10.0.0.1', mac: '02:10:00:00:01:00',
