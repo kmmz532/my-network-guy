@@ -16,6 +16,9 @@ export interface DhcpPool {
   dns?: string;
   // 配らない範囲（両端を含む）。ルーター・サーバーの固定のアドレスを避けるために使う
   excluded?: { start: string; end: string }[];
+  // 予約（N153）: その MAC アドレスの機器の口に、決まったアドレスを配る。予約したアドレスはほかの機器に配らない。
+  // 予約のアドレスは、配る範囲の外でも、プールのネットワークの中ならよい
+  reservations?: { mac: string; ip: string }[];
 }
 
 export interface DhcpLease {
@@ -43,6 +46,8 @@ export interface DhcpEnv {
   domainOf: (uid: string, port: number) => Endpoint[];
   // ルーターの口（routerIp）から、リレー先のサーバーのアドレス（serverIp）へ届くか
   reaches: (routerUid: string, routerIp: string, serverUid: string, serverIp: string) => boolean;
+  // 機器の口の MAC アドレス（予約の照合に使う。連番のない機器は null）
+  macOf: (uid: string, port: number) => string | null;
 }
 
 // サーバー・ルーターの、アドレスのある口（自動の口は含めない）
@@ -99,9 +104,16 @@ export const assignDhcp = (nodes: readonly NetNode[], env: DhcpEnv): DhcpResult 
       const { server, pool } = found[0];
       const key = `${server.uid}|${pool.network}/${pool.prefix}`;
       const taken = used.get(key) ?? used.set(key, new Set()).get(key)!;
-      const addresses = addressesOf(pool);
+      // 予約があればそのアドレス。なければ、予約したアドレスを除いた範囲から配る
+      const reservations = pool.reservations ?? [];
+      const mac = env.macOf(client.uid, iface.port);
+      const reserved = mac === null ? undefined : reservations.find((r) => r.mac === mac);
+      const reservedIps = new Set(reservations.map((r) => r.ip));
+      const addresses = addressesOf(pool).filter((a) => !reservedIps.has(a));
       const previous = iface.ip;
-      const ip = addresses.includes(previous) && !taken.has(previous) ? previous : addresses.find((a) => !taken.has(a));
+      const ip = reserved !== undefined && !taken.has(reserved.ip)
+        ? reserved.ip
+        : addresses.includes(previous) && !taken.has(previous) ? previous : addresses.find((a) => !taken.has(a));
       if (ip === undefined) {
         result.failed.push({ uid: client.uid, port: iface.port, reason: 'dhcp.exhausted' });
         continue;

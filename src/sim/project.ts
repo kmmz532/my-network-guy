@@ -651,7 +651,10 @@ export type DhcpOp =
   | { op: 'client'; port: number }
   | { op: 'helper'; port: number; ip: string | null }
   | { op: 'pool'; pool: DhcpPool }
-  | { op: 'noPool'; network: string };
+  | { op: 'noPool'; network: string }
+  // 予約（N153）。アドレスを含むプールに足す・外す。同じアドレスか同じ MAC の予約は置き換える
+  | { op: 'reserve'; ip: string; mac: string }
+  | { op: 'unreserve'; ip: string };
 
 // リンクアグリゲーションの設定（口のチャネルの番号と、まとめるモード）。lag を持つ機器だけ。group が null なら解除
 export type ChannelOp = { port: number; group: number | null; lacp?: 'active' | 'passive' | 'on' };

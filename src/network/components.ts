@@ -83,6 +83,7 @@ export const COMPONENT_SCHEMAS = {
       gateway: ipv4.optional(),
       dns: ipv4.optional(),
       excluded: z.array(z.object({ start: ipv4, end: ipv4 })).optional(),
+      reservations: z.array(z.object({ mac: z.string(), ip: ipv4 })).optional(),
     }),
   ),
 };

@@ -7,6 +7,7 @@ import { deliver } from '../forward';
 import { NO_VPN } from '../../query/vpn';
 import { stageRouting } from './routing';
 import { assignDhcp, type DhcpResult } from '../../dhcp';
+import { macOf } from '../../mac';
 import { electVrrpMaster, type VrrpMember } from '../../vrrp';
 import { isL2Category, isRelayPort, isRoutingCategory } from '../../category';
 import { epKey, hostCapacity, planFor } from '../../segments';
@@ -306,6 +307,10 @@ export const stageAddressing = (input: Network, links: LinkLayer, l2: L2Layer): 
     reaches: (routerUid, routerIp, serverUid, serverIp) => {
       const toward = nodeOf.get(routerUid)?.interfaces.find((i) => i.ip !== '' && inSubnet(serverIp, i.ip, i.prefix));
       return deliver(routed, routerUid, serverUid, { kind: 'ping' }, false, toward?.ip ?? routerIp, serverIp).ok;
+    },
+    macOf: (uid, port) => {
+      const n = nodeOf.get(uid);
+      return n?.macSerial === undefined ? null : macOf(deviceCategory(n.device), n.macSerial, port);
     },
   });
   const net = withLeases(before, dhcp);

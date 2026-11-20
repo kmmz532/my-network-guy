@@ -314,6 +314,7 @@ ${rest}`);
               <Text as="span" bold layout={{ marginRight: 6 }}>{portLabel(category, p)}</Text>
               <Text as="span" tone={link ? 'ok' : 'note'}>{link ? peerName : t('ui.rear.free')}</Text>
             </div>
+            {node.macSerial !== undefined && <Text tone="note" size="xs">MAC {macOf(category, node.macSerial, p)}</Text>}
             {link && states.get(p)?.shutdown && <Text tone="note" size="xs">{t('ui.rear.shutdown')}</Text>}
             {link && states.get(p)?.stp && <Text tone={states.get(p)?.stp === 'blocking' ? 'halt' : 'note'} size="xs">{t(states.get(p)?.stp === 'blocking' ? 'ui.rear.stpBlocking' : states.get(p)?.stp === 'root' ? 'ui.rear.stpRootPort' : 'ui.rear.stpDesignated')}</Text>}
             {link && states.get(p)?.channel && <Text tone={states.get(p)?.channel?.bundled ? 'ok' : 'halt'} size="xs">{t(states.get(p)?.channel?.bundled ? 'ui.rear.channelBundled' : 'ui.rear.channelSplit', { group: states.get(p)?.channel?.group ?? 0 })}</Text>}

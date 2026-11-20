@@ -1,0 +1,14 @@
+# 場面: 教材 dns_intranet_names の初期の構成（キャッシュ DNS のサーバー CACHE は設定できる）
+# 節: DHCP の予約（プールに予約を足す・置き換える・消す。プールの外のアドレスと形の誤りは拒否）
+@CACHE
+ip dhcp reservation 192.168.1.150 02:10:00:00:01:00
+ip dhcp pool 192.168.1.0 255.255.255.0 192.168.1.100 192.168.1.199
+ip dhcp reservation 192.168.1.150 02:10:00:00:01:00
+ip dhcp reservation 192.168.1.151 02:10:00:00:01:00
+ip dhcp reservation 172.16.0.5 02:10:00:00:02:00
+ip dhcp reservation 192.168.1.152 02-10-00-00-02-00
+show ip dhcp binding
+ip dhcp pool 192.168.1.0 255.255.255.0 192.168.1.100 192.168.1.120
+show ip dhcp binding
+no ip dhcp reservation 192.168.1.151
+show ip dhcp binding

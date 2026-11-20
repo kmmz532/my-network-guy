@@ -583,7 +583,25 @@ export const setDhcp = (core: Core, uid: string, change: DhcpOp, target: NetTarg
         const next = (getComponent(node, 'dhcpServer') ?? []).filter((p) => p.network !== change.network);
         return { ...node, components: { ...node.components, dhcpServer: next.length > 0 ? next : undefined } };
       }
-      const p = change.pool;
+      const pools = getComponent(node, 'dhcpServer') ?? [];
+      if (change.op === 'reserve' || change.op === 'unreserve') {
+        if (!isIp(change.ip)) return 'ip';
+        const pool = pools.find((x) => inSubnet(change.ip, x.network, x.prefix));
+        if (!pool) return 'dhcp.pool';
+        const others = (pool.reservations ?? []).filter((r) => r.ip !== change.ip && (change.op === 'unreserve' || r.mac !== change.mac.toLowerCase()));
+        let reservations = others;
+        if (change.op === 'reserve') {
+          const mac = change.mac.toLowerCase();
+          if (!isMac(mac)) return 'mac.format';
+          reservations = [...others, { mac, ip: change.ip }];
+        }
+        const { reservations: _old, ...rest } = pool;
+        const next = reservations.length > 0 ? { ...rest, reservations } : rest;
+        return withComponent(node, 'dhcpServer', pools.map((x) => (x === pool ? next : x)));
+      }
+      // プールを置き換えるとき、予約を渡さなければ前の予約を引き継ぐ（画面とターミナルのプールの操作は予約を持たないため）
+      const prevReservations = pools.find((x) => x.network === change.pool.network)?.reservations;
+      const p = change.pool.reservations === undefined && prevReservations !== undefined ? { ...change.pool, reservations: prevReservations } : change.pool;
       if (![p.network, p.start, p.end].every(isIp) || ipToInt(p.start) > ipToInt(p.end) || !inSubnet(p.start, p.network, p.prefix) || !inSubnet(p.end, p.network, p.prefix)) return 'dhcp.pool';
       if ((p.gateway !== undefined && !isIp(p.gateway)) || (p.dns !== undefined && !isIp(p.dns))) return 'dhcp.pool';
       if ((p.excluded ?? []).some((r) => ![r.start, r.end].every(isIp) || ipToInt(r.start) > ipToInt(r.end))) return 'dhcp.pool';

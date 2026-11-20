@@ -12,6 +12,12 @@ import { Button } from './ui/Button';
 import { Checkbox } from './ui/Checkbox';
 import { Text } from './ui/Text';
 import { TextInput } from './ui/TextInput';
+import { Select } from './ui/Select';
+import { macOf } from '../network/mac';
+import { deviceCategory } from '../registry/query';
+import { isL2Category } from '../network/category';
+import { netOfDevice } from '../stores/useGameStore';
+import { nodeLabel } from './nodeLabel';
 
 const row = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '4px 0' } as const;
 
@@ -75,8 +81,17 @@ export function DhcpPoolField({ node, disabled, onError }: { node: NetNode; disa
           <Button variant="secondary" size="fit" disabled={disabled} onClick={() => onError(setDhcp(node.uid, { op: 'noPool', network: p.network }))}>
             {t('ui.config.vrrpRemove')}
           </Button>
+          {(p.reservations ?? []).map((r) => (
+            <div key={r.ip} style={{ ...row, width: '100%', paddingLeft: 12 }}>
+              <Text as="span" size="s">{t('ui.config.dhcpReservationLine', { ip: r.ip, mac: r.mac })}</Text>
+              <Button variant="secondary" size="fit" disabled={disabled} onClick={() => onError(setDhcp(node.uid, { op: 'unreserve', ip: r.ip }))}>
+                {t('ui.config.vrrpRemove')}
+              </Button>
+            </div>
+          ))}
         </div>
       ))}
+      {(getComponent(node, 'dhcpServer') ?? []).length > 0 && <DhcpReservationRow node={node} disabled={disabled} onError={onError} />}
       <div style={row}>
         {field('network', 'ui.config.dhcpNetwork', 110)}
         {field('prefix', 'ui.config.prefix', 40)}
@@ -97,6 +112,41 @@ export function DhcpPoolField({ node, disabled, onError }: { node: NetNode; disa
           {t('ui.config.dhcpPoolAdd')}
         </Button>
       </div>
+    </div>
+  );
+}
+
+// 予約の追加の行（N153）。機器を選ぶと MAC アドレスが入る。ほかの MAC アドレスは入力する
+function DhcpReservationRow({ node, disabled, onError }: { node: NetNode; disabled: boolean; onError: (reason: string | null) => void }) {
+  const setDhcp = useGameStore((s) => s.setDhcp);
+  const nodes = useGameStore((s) => netOfDevice(s, node.uid).input.nodes);
+  const [mac, setMac] = useState('');
+  const [ip, setIp] = useState('');
+  // 候補: スイッチを除く、ほかの機器の口0の MAC アドレス
+  const candidates = nodes
+    .filter((n) => n.uid !== node.uid && n.macSerial !== undefined && !isL2Category(deviceCategory(n.device)))
+    .map((n) => ({ value: macOf(deviceCategory(n.device), n.macSerial as number, 0), label: nodeLabel(useGameStore.getState(), n, nodes) }));
+  return (
+    <div style={row}>
+      <Text as="span" size="s">{t('ui.config.dhcpReservation')}</Text>
+      <Select label={t('ui.config.dhcpReservationDevice')} value={candidates.some((c) => c.value === mac) ? mac : ''} disabled={disabled} options={[{ value: '', label: '-' }, ...candidates]} onChange={setMac} />
+      <TextInput label="MAC" placeholder="xx:xx:xx:xx:xx:xx" value={mac} disabled={disabled} onChange={setMac} layout={{ width: 140 }} />
+      <TextInput label={t('ui.config.ip')} placeholder={t('ui.config.ip')} value={ip} disabled={disabled} onChange={setIp} layout={{ width: 110 }} />
+      <Button
+        variant="secondary"
+        size="fit"
+        disabled={disabled || mac === '' || !isIpText(ip)}
+        onClick={() => {
+          const reason = setDhcp(node.uid, { op: 'reserve', ip, mac });
+          onError(reason);
+          if (reason === null) {
+            setMac('');
+            setIp('');
+          }
+        }}
+      >
+        {t('ui.config.dhcpReservationAdd')}
+      </Button>
     </div>
   );
 }

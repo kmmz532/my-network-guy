@@ -10,6 +10,8 @@ import type { EngineData } from './types';
 import type { NetworkState } from './engine/state';
 import type { Tr } from './terminal';
 import { commandContextOf, runLine } from './command/run';
+import { macOf } from './mac';
+import type { DhcpPool } from './dhcp';
 
 // 木の命令の結果を、解釈の形（action は設定の操作、error は誤りの鍵）に合わせて見る
 const treeCtx = commandContextOf({ node: {} as NetNode, nodes: [], links: [], data: {} as EngineData, state: {} as NetworkState }, false);
@@ -27,7 +29,7 @@ const pool = { network: '192.168.1.0', prefix: 24, start: '192.168.1.100', end: 
 const client = (uid: string, serial: number) => node(uid, 'pc_basic', serial, { interfaces: [st('', 24, { dhcp: true })] });
 
 // SW に DHCP サーバー SRV（192.168.1.2）と PC を並べる
-const office = (clients: string[], srvPool = pool): Network => ({
+const office = (clients: string[], srvPool: DhcpPool = pool): Network => ({
   nodes: [
     node('sw', 'l2_switch_8p', 1),
     node('srv', 'server_basic', 2, { interfaces: [st('192.168.1.2')], components: { dhcpServer: [srvPool] } }),
@@ -108,6 +110,23 @@ describe('DHCP のターミナル', () => {
     const net = office(['p1']);
     const lines = runShow('show ip dhcp binding', { node: net.nodes[1], nodes: net.nodes, links: net.links, data, state: analyze({ nodes: net.nodes, links: net.links }, data) }, tr);
     expect(lines[0].text).toContain('192.168.1.100');
+  });
+});
+
+describe('DHCP の予約', () => {
+  const macP2 = macOf('pc', 11, 0);
+  it('予約した MAC の機器には予約のアドレスを配り、ほかの機器には予約のアドレスを配らない。前回のアドレスより予約が勝つ', () => {
+    const net = office(['p1', 'p2'], { ...pool, reservations: [{ mac: macP2, ip: '192.168.1.100' }] });
+    expect(dhcpOf(analyze(net, data)).leases.map((l) => [l.uid, l.ip])).toEqual([['p1', '192.168.1.101'], ['p2', '192.168.1.100']]);
+    // 予約の前に .100 を受け取っていた p1 も、予約の後は取り直す
+    const before = office(['p1', 'p2']);
+    const written = dhcpWriteBack(before.nodes, before.links, before.plans, data);
+    const reserved: Network = { ...before, nodes: written.map((n) => (n.uid === 'srv' ? { ...n, components: { dhcpServer: [{ ...pool, reservations: [{ mac: macP2, ip: '192.168.1.100' }] }] } } : n)) };
+    expect(dhcpOf(analyze(reserved, data)).leases.find((l) => l.uid === 'p1')?.ip).toBe('192.168.1.101');
+  });
+  it('予約のアドレスは、配る範囲の外でもプールのネットワークの中なら配る', () => {
+    const net = office(['p1', 'p2'], { ...pool, reservations: [{ mac: macP2, ip: '192.168.1.200' }] });
+    expect(dhcpOf(analyze(net, data)).leases.find((l) => l.uid === 'p2')?.ip).toBe('192.168.1.200');
   });
 });
 

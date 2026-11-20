@@ -1166,6 +1166,32 @@ const scenes = {
     await page.getByLabel('VLAN', { exact: true }).first().scrollIntoViewIfNeeded();
     await page.waitForTimeout(300);
   },
+  // DHCP サーバーのプールに予約を1つ足した場面（予約の行と、追加の行が出ること）
+  dhcpreserve: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      for (const [id, x, y] of [['server_basic', 4, 2], ['pc_basic', 7, 2]]) {
+        g.getState().buy(id);
+        const reason = g.getState().place(id, x, y);
+        if (reason !== null) throw new Error(`${id} を置けない: ${reason}`);
+      }
+      const srv = g.getState().office.nodes.find((n) => n.device === 'server_basic');
+      for (const op of [
+        { op: 'pool', pool: { network: '192.168.1.0', prefix: 24, start: '192.168.1.100', end: '192.168.1.199' } },
+        { op: 'reserve', ip: '192.168.1.50', mac: '02:10:00:00:99:00' },
+      ]) {
+        const e = g.getState().setDhcp(srv.uid, op);
+        if (e) throw new Error(`setDhcp: ${e}`);
+      }
+      g.getState().openWindow('device', srv.uid);
+    });
+    await page.waitForTimeout(800);
+    await page.getByText('設定', { exact: true }).click();
+    await page.waitForTimeout(500);
+    await page.getByText('予約する').first().scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+  },
   // アクセスポイントの MAC フィルターを有効にし、1つ登録した場面（無線の端末を登録するボタンが出ること）
   macfilter: async (page) => {
     await scenes.sandbox(page);
