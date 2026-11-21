@@ -30,6 +30,12 @@ html, body {
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
+/* ブラウザは button・input などに親の書体を継がせないため、ここでまとめて継がせる */
+button, input, select, textarea {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
 /* 入力欄では文字の選択を許す */
 input, textarea {
   -webkit-user-select: text;
