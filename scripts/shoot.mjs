@@ -185,6 +185,11 @@ const scenes = {
     if ((await start.count()) > 0) await start.first().click();
     await page.waitForTimeout(1500);
   },
+  // 新しくプレイの社名の入力（始める前）
+  namefield: async (page) => {
+    await page.getByText('新しくプレイ').click();
+    await page.waitForTimeout(800);
+  },
   // 昼（10時）の自社オフィス。社員は机に座っている
   day: async (page) => {
     await scenes.career(page);
