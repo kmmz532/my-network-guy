@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build && tsc --noEmit",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "node scripts/vitest.mjs run",
     "lint": "eslint src",
     "shoot": "node scripts/shoot.mjs",
     "smoke": "node scripts/shoot.mjs all --check --out dist-shoot",
@@ -21,7 +21,7 @@
     "lang": "node scripts/lang.mjs",
     "check:lang": "node scripts/lang.mjs status",
     "check:spec": "node scripts/check-spec.mjs",
-    "verify": "tsc --noEmit && eslint src && vitest run && npm run check:json && npm run check:lang && npm run check:spec",
+    "verify": "tsc --noEmit && eslint src && node scripts/vitest.mjs run && npm run check:json && npm run check:lang && npm run check:spec",
     "prepare": "node scripts/install-hooks.mjs",
     "site": "node docs/site/build.mjs"
   },
