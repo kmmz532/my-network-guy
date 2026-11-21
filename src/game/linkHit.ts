@@ -1,6 +1,7 @@
 // 配線の上の点の判定（右クリックで配線を撤去する・マウスを乗せて強調する・ケーブルの端をつかんで挿し替える）。
 // 座標はマップの座標（px）で、path は配線の折れ線（マス単位の点列）。
 // 配線は機器の中心（マスの中央）を通るため、判定でも中央に合わせる。
+import { drawnPath } from './drawnPath';
 import type { NetLink } from '../network/types';
 import { cumulativeLengths, pointAt, type Point } from './animation';
 
@@ -44,7 +45,7 @@ export const linkAt = (
   let found: NetLink | undefined;
   let best = Infinity;
   for (const link of links) {
-    const d = distanceToPath(px, py, centerPath(link.path, tileSize));
+    const d = distanceToPath(px, py, centerPath(drawnPath(link), tileSize));
     if (d <= limit && d < best) {
       best = d;
       found = link;
@@ -58,7 +59,7 @@ export const CABLE_END_SCREEN_PX = 12;
 
 // ケーブルの端の位置（マップの座標）。機器の中心から1マス先の点で、ポートの名前を出す位置と同じ
 export const plugPoints = (link: NetLink, tileSize: number): { a: Point; b: Point } => {
-  const pts: Point[] = centerPath(link.path, tileSize).map(([x, y]) => ({ x, y }));
+  const pts: Point[] = centerPath(drawnPath(link), tileSize).map(([x, y]) => ({ x, y }));
   const reversed = [...pts].reverse();
   return {
     a: pointAt(pts, cumulativeLengths(pts), tileSize),

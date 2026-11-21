@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { NetLink } from '../network/types';
 import { centerPath, distanceToPath, linkAt } from './linkHit';
+import { useGameStore } from '../stores/useGameStore';
 
 const link = (uid: string, path: [number, number][]): NetLink =>
   ({ uid, cable: 'utp_cat5e', a: { node: 'a', port: 0 }, b: { node: 'b', port: 0 }, path }) as NetLink;
@@ -40,5 +41,26 @@ describe('配線の上の判定', () => {
     const links = [link('l0', [[0, 0], [2, 0]]), link('l1', [[0, 1], [2, 1]])];
     expect(linkAt(links, 40, 16 + 3, TS, 1)?.uid).toBe('l0');
     expect(linkAt(links, 40, 48 - 3, TS, 1)?.uid).toBe('l1');
+  });
+});
+
+describe('ケーブルを直線で描く設定', () => {
+  const l = link('l', [
+    [0, 0],
+    [4, 0],
+    [4, 4],
+  ]);
+  const mid = (TS * 4) / 2 + TS / 2;
+  it('直線のときは対角線の上で当たり、L字の角では当たらない', () => {
+    useGameStore.setState({ straightCables: true });
+    try {
+      expect(linkAt([l], mid, mid, TS, 1)?.uid).toBe('l');
+      expect(linkAt([l], TS * 4 + TS / 2, TS / 2, TS, 1)).toBeUndefined();
+    } finally {
+      useGameStore.setState({ straightCables: false });
+    }
+  });
+  it('L字のときは対角線の上で当たらない', () => {
+    expect(linkAt([l], mid, mid, TS, 1)).toBeUndefined();
   });
 });

@@ -27,6 +27,8 @@ export interface Settings {
   showIp: boolean;
   // 機器の名前をマップに出すか（IP の表示とは別。既定は出す）
   showNames: boolean;
+  // ケーブルを両端を結ぶ斜めの直線で描くか（既定は L字。描き方だけで、長さと費用は L字のまま数える）
+  straightCables: boolean;
   // 時間を進める初期の速さ（案件を始めたとき・新しいゲームを始めたとき）
   startSpeed: StartSpeed;
   // 時間が止まっているときの施工の扱い（「今後この確認を出さない」で変える）
@@ -61,6 +63,7 @@ export const DEFAULT_SETTINGS: Settings = {
   guide: true,
   showIp: true,
   showNames: true,
+  straightCables: false,
   startSpeed: 1,
   pausedBuild: 'ask',
   autoSave: 'daily',
@@ -97,6 +100,7 @@ export function parseSettings(raw: string | null): Settings {
     guide: typeof d.guide === 'boolean' ? d.guide : DEFAULT_SETTINGS.guide,
     showIp: typeof d.showIp === 'boolean' ? d.showIp : DEFAULT_SETTINGS.showIp,
     showNames: typeof d.showNames === 'boolean' ? d.showNames : DEFAULT_SETTINGS.showNames,
+    straightCables: typeof d.straightCables === 'boolean' ? d.straightCables : DEFAULT_SETTINGS.straightCables,
     startSpeed: (START_SPEEDS as readonly unknown[]).includes(d.startSpeed)
       ? (d.startSpeed as StartSpeed)
       : DEFAULT_SETTINGS.startSpeed,

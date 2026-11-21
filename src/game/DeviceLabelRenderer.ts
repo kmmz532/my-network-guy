@@ -1,4 +1,5 @@
 // 機器に重ねる情報を描く。IPアドレス・ポート名・不備の印を受け持つ。
+import { drawnPath } from './drawnPath';
 import { Container, Text } from 'pixi.js';
 import { portLabel } from '../components/devicePorts';
 import { t } from '../i18n/t';
@@ -124,7 +125,7 @@ export class DeviceLabelRenderer {
         || link.a.node === this.options.hoverNode()
         || link.b.node === this.options.hoverNode();
       if (!relevant) continue;
-      const pts: Point[] = link.path.map(([x, y]) => ({ x: x * ts + ts / 2, y: y * ts + ts / 2 }));
+      const pts: Point[] = drawnPath(link).map(([x, y]) => ({ x: x * ts + ts / 2, y: y * ts + ts / 2 }));
       this.portName(nodes.get(link.a.node), link.a.port, pts, ts);
       this.portName(nodes.get(link.b.node), link.b.port, [...pts].reverse(), ts);
     }

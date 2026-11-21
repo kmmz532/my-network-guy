@@ -159,6 +159,8 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   showIp: boolean;
   // 機器の名前をマップに出すか（端末ごとの設定に保存する）
   showNames: boolean;
+  // ケーブルを斜めの直線で描くか（端末ごとの設定に保存する）
+  straightCables: boolean;
   // 機器ごとの端末の出力と、打った命令（保存しない。機器を撤去すると消す）
   terminalLog: Record<string, TerminalLine[]>;
   terminalCommands: Record<string, string[]>;
@@ -255,6 +257,7 @@ export const useGameStore = create<GameState>((set, get, api) => {
     // 名前とIPアドレスの表示は端末ごとの設定に保存する（設定の画面と同じ値）
     showIp: loadSettings().showIp,
     showNames: loadSettings().showNames,
+    straightCables: loadSettings().straightCables,
     terminalLog: {},
     terminalCommands: {},
     terminalSession: {},

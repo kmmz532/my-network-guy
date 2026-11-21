@@ -1029,6 +1029,24 @@ const scenes = {
     await page.evaluate(runBuild, true);
     await page.waitForTimeout(4000);
   },
+  // ケーブルを直線で描く設定。斜めの位置の2台のスイッチをつなぎ、直線で描いた状態
+  straightcables: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      g.getState().buy('l2_switch_8p');
+      g.getState().buy('l2_switch_8p');
+      // 左上から1台、右下から1台を、空いている場所に置く
+      const tryPlace = (xs, ys) => ys.some((y) => xs.some((x) => g.getState().place('l2_switch_8p', x, y) === null));
+      const up = [...Array(12).keys()];
+      const down = [...up].reverse();
+      if (!tryPlace(up, up) || !tryPlace(down, down)) throw new Error('機器を置けなかった');
+      const nodes = g.getState().office.nodes.filter((n) => n.device === 'l2_switch_8p');
+      g.getState().connect(nodes[0].uid, nodes[1].uid, 'utp_cat5e');
+      g.getState().setStraightCables(true);
+    });
+    await page.waitForTimeout(800);
+  },
   // 2台のPCをつないだ直後（つながった瞬間の光は 450ms なので、操作の直後に撮る）
   connect: async (page) => {
     await scenes.career(page);

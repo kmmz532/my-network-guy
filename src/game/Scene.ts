@@ -1,5 +1,6 @@
 // キャンバスの描画と操作。マップ・機器・配線・社員・パケットを描き、クリックで配置・選択、ドラッグで配線する。
 // 描画の状態は store から読むだけで、変更は store の操作を通して行う。
+import { drawnPath } from './drawnPath';
 import { cablesById, portSpeed } from '../registry/query';
 import { Application, Container, Graphics, Text, type Ticker } from 'pixi.js';
 import { type GameMap } from '../data/schema';
@@ -534,7 +535,7 @@ export class Scene {
           (l) => (l.a.node === prev && l.b.node === uid) || (l.b.node === prev && l.a.node === uid),
         );
         if (link) {
-          const seg = link.path.map(([x, y]) => center(x, y));
+          const seg = drawnPath(link).map(([x, y]) => center(x, y));
           const oriented = link.a.node === prev ? seg : [...seg].reverse();
           pts.push(...oriented.slice(1));
         } else {
@@ -578,7 +579,7 @@ export class Scene {
       // ケーブルはネットワークアドレスの色で描く（未設定・食い違いは灰色）
       const color = this.netColors ? colorOfLink(this.netColors, link.uid) : 0x9a9a9a;
       const alpha = building && !isBuilt(link.uid, 'links') ? 0.5 : 1;
-      const pts = link.path.map(([x, y]) => [x * ts + ts / 2, y * ts + ts / 2]);
+      const pts = drawnPath(link).map(([x, y]) => [x * ts + ts / 2, y * ts + ts / 2]);
       // マウスを乗せた配線は太く明るく描く
       const hot = link.uid === this.input.hoverLinkUid;
       // 撤去の道具では赤みがかった明るさにする
@@ -609,7 +610,7 @@ export class Scene {
       const target = press.target;
       const link = (this.hit.editLinks() ?? []).find((l) => l.uid === target.linkUid);
       if (link) {
-        const pts = centerPath(link.path, ts);
+        const pts = centerPath(drawnPath(link), ts);
         this.g.moveTo(pts[0][0], pts[0][1]);
         for (const [x, y] of pts.slice(1)) this.g.lineTo(x, y);
         this.g.stroke({ width: 4, color: 0xffd866, alpha: 0.9 });

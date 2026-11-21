@@ -33,6 +33,8 @@ export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; on
   const showIp = useGameStore((s) => s.showIp);
   const showNames = useGameStore((s) => s.showNames);
   const setShowNames = useGameStore((s) => s.setShowNames);
+  const straightCables = useGameStore((s) => s.straightCables);
+  const setStraightCables = useGameStore((s) => s.setStraightCables);
   const setShowIp = useGameStore((s) => s.setShowIp);
 
   const update = (patch: Partial<Settings>) => {
@@ -81,6 +83,16 @@ export function SettingsPanel({ onClose, onOpenKeys }: { onClose: () => void; on
           ]}
           value={showNames}
           onChange={setShowNames}
+        />
+      </Row>
+      <Row label={t('ui.settings.straightCables')}>
+        <Choice
+          options={[
+            { value: false, label: t('ui.settings.straightCables.off') },
+            { value: true, label: t('ui.settings.straightCables.on') },
+          ]}
+          value={straightCables}
+          onChange={setStraightCables}
         />
       </Row>
       <Row label={t('ui.settings.speed')}>

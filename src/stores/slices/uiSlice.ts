@@ -44,6 +44,7 @@ export interface UiSlice {
   setHelpUid: (uid: string | null) => void;
   setShowIp: (on: boolean) => void;
   setShowNames: (on: boolean) => void;
+  setStraightCables: (on: boolean) => void;
   // 端末の記録（機器ごと）。出力の追加・命令の履歴・出力だけの消去・機器の撤去
   appendTerminal: (uid: string, lines: TerminalLine[]) => void;
   recordTerminalCommand: (uid: string, line: string) => void;
@@ -154,6 +155,10 @@ export const createUiSlice: StateCreator<GameState, [], [], UiSlice> = (set, get
     setShowNames: (on) => {
       set({ showNames: on });
       saveSettings({ showNames: on });
+    },
+    setStraightCables: (on) => {
+      set({ straightCables: on });
+      saveSettings({ straightCables: on });
     },
     appendTerminal: (uid, lines) => set((s) => ({ terminalLog: { ...s.terminalLog, [uid]: appendLog(s.terminalLog[uid] ?? [], lines) } })),
     recordTerminalCommand: (uid, line) => set((s) => ({ terminalCommands: { ...s.terminalCommands, [uid]: pushCommand(s.terminalCommands[uid] ?? [], line) } })),

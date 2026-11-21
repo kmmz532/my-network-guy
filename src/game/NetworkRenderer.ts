@@ -1,4 +1,5 @@
 // 配線に関する表示を描く。接続時の光・無線範囲・無線の点線・検収パケットを受け持つ。
+import { drawnPath } from './drawnPath';
 import { Graphics } from 'pixi.js';
 import type { Trace } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
@@ -40,7 +41,7 @@ export class NetworkRenderer {
     if (!pulse || !this.pulseActive()) return;
     const link = project.links.find((l) => (l.a.node === pulse.a && l.b.node === pulse.b) || (l.a.node === pulse.b && l.b.node === pulse.a));
     if (!link || link.path.length < 2) return;
-    const pts = link.path.map(([x, y]) => ({ x: x * ts + ts / 2, y: y * ts + ts / 2 }));
+    const pts = drawnPath(link).map(([x, y]) => ({ x: x * ts + ts / 2, y: y * ts + ts / 2 }));
     const lengths = cumulativeLengths(pts);
     const total = lengths[lengths.length - 1];
     const k = Math.min(1, (Date.now() - pulse.at) / PULSE_MS);
