@@ -109,7 +109,9 @@ function CrewPicker({ selected, onChange }: { selected: string[]; onChange: (cre
   const bonusEnv = bonusEnvOf({ staff: staff, office: office }, gameEnv);
   return (
     <Text size="sm" layout={{ marginTop: 6 }}>
-      <div style={{ marginBottom: 2 }}>{t('ui.offer.crew')}</div>
+      <Tooltip text={t('ui.offer.crew.tip')}>
+        <div style={{ marginBottom: 2, width: 'fit-content' }}>{t('ui.offer.crew')}</div>
+      </Tooltip>
       {/* 内勤（営業・人事・経理）は担当に出さない */}
       {staff.filter((s) => !isBackOffice(s.job)).map((s) => {
         const unavailable = crewBlock({ active }, s) !== null;
@@ -233,7 +235,7 @@ function OfferCard({
         <span>
           <Icon name="icon/budget" /> {yen(offer.contract.budget)}
         </span>
-        {offer.contract.deadlineDays !== undefined && <span style={{ whiteSpace: 'nowrap' }}>{t('ui.offer.deadline', { days: offer.contract.deadlineDays })}</span>}
+        {offer.contract.deadlineDays !== undefined && <Tooltip text={t('ui.offer.deadline.tip')}><span style={{ whiteSpace: 'nowrap' }}>{t('ui.offer.deadline', { days: offer.contract.deadlineDays })}</span></Tooltip>}
         {offer.expiresMinute !== undefined && (
           <Text as="span" tone="warn">{t('ui.offer.expires', { days: Math.max(0, Math.ceil((offer.expiresMinute - now) / minutesPerDay)) })}</Text>
         )}
