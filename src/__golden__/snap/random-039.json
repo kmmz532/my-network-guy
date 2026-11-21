@@ -413,6 +413,11 @@
       "id": "lag.mismatch",
       "a": "n6",
       "b": "n2"
+    },
+    {
+      "id": "stp.blocked_path",
+      "a": "n1",
+      "b": "n5"
     }
   ]
 }

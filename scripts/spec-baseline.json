@@ -19,7 +19,6 @@
   "能力:コードだけ:lag",
   "能力:コードだけ:uplink",
   "能力:コードだけ:vrrp",
-  "警告:仕様だけ:stp.blocked_path",
   "達成条件:コードだけ:bgp_established",
   "達成条件:コードだけ:blocked",
   "達成条件:コードだけ:blocked_all",
@@ -34,6 +33,5 @@
   "達成条件:コードだけ:ping",
   "達成条件:コードだけ:ping_all",
   "達成条件:コードだけ:reach_by_name",
-  "達成条件:コードだけ:reach_category",
-  "達成条件:仕様だけ:survive_link_failure"
+  "達成条件:コードだけ:reach_category"
 ]

@@ -476,6 +476,11 @@
       "id": "vlan.mismatch",
       "a": "n3",
       "b": "n7"
+    },
+    {
+      "id": "stp.blocked_path",
+      "a": "n6",
+      "b": "n0"
     }
   ]
 }

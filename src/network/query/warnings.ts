@@ -8,9 +8,10 @@ import { dhcpOf } from './dhcp';
 import { duplicateRouterIds } from '../ospf';
 import { interferedAccessPointsOf } from './wirelessQuality';
 import { channelOverlapsOf } from './channelOverlaps';
+import { stpOf } from './stp';
 
 // 通れば通るが直すべき設定（警告・NET.md §6）: 直結の両端の口の VLAN が違う access（vlan.mismatch）、両端の native が違う trunk（vlan.native_mismatch）
-export type VlanWarning = { id: 'wlan.open' | 'wlan.channel_overlap' | 'wlan.interference' | 'wlan.weak_cipher' | 'wlan.transition' | 'dhcp.multiple_servers' | 'lag.mismatch' | 'link.cable_bottleneck' | 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch' | 'lb.single_member' | 'lb.no_health_check' | 'vpn.weak_cipher'; a: string; b: string };
+export type VlanWarning = { id: 'wlan.open' | 'wlan.channel_overlap' | 'wlan.interference' | 'wlan.weak_cipher' | 'wlan.transition' | 'dhcp.multiple_servers' | 'lag.mismatch' | 'link.cable_bottleneck' | 'vlan.mismatch' | 'vlan.native_mismatch' | 'ospf.duplicate_router_id' | 'vrrp.gateway_real_ip' | 'vrrp.vip_mismatch' | 'lb.single_member' | 'lb.no_health_check' | 'vpn.weak_cipher' | 'stp.blocked_path'; a: string; b: string };
 
 export const warningsOf = (state: NetworkState): VlanWarning[] => {
   const net = state.input;
@@ -88,5 +89,34 @@ export const warningsOf = (state: NetworkState): VlanWarning[] => {
   }
   // 同じルーター ID の OSPF のルーター（組ごとに1件）
   for (const uids of duplicateRouterIds(net.nodes)) out.push({ id: 'ospf.duplicate_router_id', a: uids[0], b: uids[1] });
+  const detour = stpDetourOf(state);
+  if (detour) out.push({ id: 'stp.blocked_path', a: detour[0], b: detour[1] });
   return out;
+};
+
+// ルートブリッジが中心のスイッチより端にあるとき、ルートと中心のスイッチの組（ルートの位置で遠回りしている）。
+// 中心は、スパニングツリーのスイッチの中で、ほかのスイッチまでのケーブルの段数の最大が最も小さいもの
+const stpDetourOf = (state: NetworkState): [string, string] | null => {
+  const net = state.input;
+  const root = stpOf(state).root;
+  if (root === null) return null;
+  const bridges = new Set(stpOf(state).rootCost.keys());
+  const links = net.links.filter((l) => bridges.has(l.a.node) && bridges.has(l.b.node));
+  const farthest = (from: string): number => {
+    const dist = new Map([[from, 0]]);
+    const queue = [from];
+    while (queue.length > 0) {
+      const cur = queue.shift()!;
+      for (const l of links) {
+        const next = l.a.node === cur ? l.b.node : l.b.node === cur ? l.a.node : null;
+        if (next === null || dist.has(next)) continue;
+        dist.set(next, dist.get(cur)! + 1);
+        queue.push(next);
+      }
+    }
+    return Math.max(...dist.values());
+  };
+  const rootFar = farthest(root);
+  const center = [...bridges].find((b) => farthest(b) < rootFar);
+  return center === undefined ? null : [root, center];
 };

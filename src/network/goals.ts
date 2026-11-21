@@ -284,6 +284,21 @@ const handlers: { [K in Goal['type']]: Evaluate<K> } = {
     });
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
+  // 指定した2台の間のケーブルを1組ずつ外しても、PC・サーバーがすべて互いに届く。指定した組の間にケーブルがなければ不合格
+  survive_link_failure: (goal, state) => {
+    const { net, world: data } = state;
+    const between = (l: Network['links'][number], [a, b]: readonly [string, string]) => (l.a.node === a && l.b.node === b) || (l.a.node === b && l.b.node === a);
+    const ends = net.nodes.filter((n) => isPcCategory(deviceCategory(n.device)) || deviceCategory(n.device) === 'server').map((n) => n.uid);
+    const ok =
+      ends.length >= 2 &&
+      goal.links.every((pair) => {
+        if (!net.links.some((l) => between(l, pair))) return false;
+        const after = analyze({ ...net, links: net.links.filter((l) => !between(l, pair)) }, data);
+        for (let i = 0; i < ends.length; i++) for (let j = i + 1; j < ends.length; j++) if (!ping(after, ends[i], ends[j]).ok) return false;
+        return true;
+      });
+    return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
+  },
   // 回線終端が2つ以上あり、どれか1つ（とその配線）を除いても、すべての PC が外部へ届く
   survive_uplink_failure: (goal, state) => {
     const { net, world: data } = state;
@@ -478,6 +493,7 @@ const texts: { [K in Goal['type']]: Text<K> } = {
   vpn_up: (g, c): GoalTextSpec => (g.a === undefined ? { key: 'goal.vpn_up_any', params: {} } : g.b === undefined ? { params: {} } : { params: { a: c.nameOf(g.a), b: c.nameOf(g.b) } }),
   load_balanced: (g, c) => ({ params: { from: c.nameOf(g.from), lb: c.nameOf(g.lb), minHealthy: g.minHealthy } }),
   survive_device_failure: (g, c) => ({ params: { nodes: names(g.nodes, c) } }),
+  survive_link_failure: (g, c) => ({ params: { links: g.links.map(([a, b]) => `${c.nameOf(a)}〜${c.nameOf(b)}`).join('・') } }),
   bgp_established: (g, c) => ({ params: { node: c.nameOf(g.node), min: g.min } }),
   ospf_dr: (g, c) => ({ params: { node: c.nameOf(g.node) } }),
   http_by_name: (g, c) => ({ params: { from: names(g.from, c), name: g.name } }),

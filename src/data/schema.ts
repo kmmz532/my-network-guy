@@ -554,6 +554,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('bgp_established'), node: z.string().min(1), min: z.number().int().positive() }),
   // 指定した機器のどれか1台の電源を切っても、残りの PC・サーバーがすべて互いに届く
   z.object({ type: z.literal('survive_device_failure'), nodes: z.array(z.string().min(1)).min(1) }),
+  // 指定した2台の間のケーブル（組ごと）のどれか1組を外しても、PC・サーバーがすべて互いに届く
+  z.object({ type: z.literal('survive_link_failure'), links: z.array(z.tuple([z.string().min(1), z.string().min(1)])).min(1) }),
   // from から、ロードバランサー lb（機器の uid）の port の仮想サーバーへ HTTP が届き、その仮想サーバーの健全な振り分け先が minHealthy 以上ある
   z.object({ type: z.literal('load_balanced'), from: z.string().min(1), lb: z.string().min(1), port: z.number().int().min(1).max(65535), minHealthy: z.number().int().positive() }),
   // 2台の VPN ルーター a・b（機器の uid）の間で、IPsec のトンネルが張れている

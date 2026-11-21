@@ -1,0 +1,138 @@
+{
+  "id": "st001_switch_ring",
+  "kind": "build",
+  "stage": 2,
+  "order": 300,
+  "requires": [
+    "r011_vrrp_gateway"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_small",
+  "budget": 40000,
+  "deadlineDays": 5,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "sw_a",
+      "device": "l2_switch_8p",
+      "x": 4,
+      "y": 6,
+      "locked": true,
+      "name": "1階のスイッチ"
+    },
+    {
+      "ref": "sw_b",
+      "device": "l2_switch_8p",
+      "x": 10,
+      "y": 6,
+      "locked": true,
+      "name": "2階のスイッチ"
+    },
+    {
+      "ref": "core",
+      "device": "l2_switch_8p",
+      "x": 7,
+      "y": 2,
+      "locked": true,
+      "name": "中心のスイッチ"
+    },
+    {
+      "ref": "pc_a",
+      "device": "pc_basic",
+      "x": 3,
+      "y": 8,
+      "locked": true,
+      "name": "1階のPC",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      }
+    },
+    {
+      "ref": "pc_b",
+      "device": "pc_basic",
+      "x": 11,
+      "y": 8,
+      "locked": true,
+      "name": "2階のPC",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      }
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "pc_a",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw_a",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "pc_b",
+        "port": 0
+      },
+      "b": {
+        "ref": "sw_b",
+        "port": 0
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping",
+      "from": "pc_a",
+      "to": "pc_b"
+    },
+    {
+      "type": "survive_link_failure",
+      "links": [
+        [
+          "core",
+          "sw_a"
+        ],
+        [
+          "core",
+          "sw_b"
+        ],
+        [
+          "sw_a",
+          "sw_b"
+        ]
+      ]
+    },
+    {
+      "type": "stp_root",
+      "node": "core"
+    }
+  ],
+  "reward": {
+    "money": 600000
+  },
+  "unlockLevel": 70
+}
