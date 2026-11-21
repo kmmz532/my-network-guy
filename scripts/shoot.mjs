@@ -586,11 +586,15 @@ const scenes = {
     await page.waitForTimeout(1000);
     await page.getByRole('button', { name: 'DEBUG' }).click();
     await page.waitForTimeout(300);
+    // 案件の先頭は新しく始めた直後の案内（手順が2つ）のため、最初の案件の案内を選ぶ
+    await page.getByRole('combobox', { name: '案件' }).click();
+    await page.getByRole('option', { name: 'PC2台の直結' }).click();
     await page.getByRole('combobox', { name: '手順' }).click();
     await page.getByRole('option', { name: '3', exact: true }).click();
     await page.getByRole('button', { name: 'この手順から始める' }).click();
     await page.waitForTimeout(300);
-    await page.getByRole('button', { name: '閉じる' }).click();
+    // 案内の吹き出しにも「閉じる」があるため、デバッグのパネルの × を押す
+    await page.locator('.ui-window__close').click();
     await page.waitForTimeout(800);
   },
   // 雇用の画面（N63）: 会社のレベル10で夜勤が選べる。候補を1人つけて、雇用の画面を開いた状態
@@ -1292,7 +1296,7 @@ const scenes = {
       g.setPo(n.uid, 1, '10.0.12.1', 30);
     });
     await page.getByText('設定', { exact: true }).click();
-    await page.getByText('束ねた口のインターフェース（Po）', { exact: true }).scrollIntoViewIfNeeded();
+    await page.getByText('束ねたポートのインターフェース（Po）', { exact: true }).scrollIntoViewIfNeeded();
     await page.waitForTimeout(500);
   },
   // ファイアウォールの許可する通信の欄（通信の選択に DNS を出す）
@@ -1580,6 +1584,19 @@ try {
     await page.waitForFunction(() => window.__game !== undefined, null, { timeout: 30000 });
     await page.waitForTimeout(1500);
     await scenes[name](page);
+    // 表示中のボタン・入力欄の書体がゲームの書体でなければ誤りにする（親の書体を継がない部品を見つけるため）。
+    // ターミナルの入力欄は実機に合わせて等幅の書体にしているため除く
+    if (check) {
+      const wrong = await page.evaluate(() =>
+        [...document.querySelectorAll('button, input:not(.ui-terminal-input__field), select, textarea')]
+          .filter((el) => el.getClientRects().length > 0 && !getComputedStyle(el).fontFamily.includes('DotGothic16'))
+          .map((el) => `${el.tagName.toLowerCase()}「${(el.getAttribute('aria-label') ?? el.textContent ?? '').trim().slice(0, 20)}」(${getComputedStyle(el).fontFamily})`),
+      );
+      for (const w of wrong) {
+        problems++;
+        console.error(`[${name}] ゲームの書体でない部品: ${w}`);
+      }
+    }
     const file = `${outDir}/${name}${landscape ? '.phone-landscape' : phone ? '.phone' : ''}.png`;
     await page.screenshot({ path: file });
     console.log(`保存: ${file}`);
