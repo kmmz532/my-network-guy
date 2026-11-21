@@ -78,15 +78,23 @@ export function RewardPictures({ items }: { items: { kind: 'device'; id: string;
   );
 }
 
-// 機器・家具で解放のレベルが分かるものは、絵だけを並べ、名前と解放のレベルは札（ツールチップ）で出す
+// 絵で出せる種類（機器・家具・ケーブル・床）の絵の名前。床は木（wood）だけ名前の形が違う
+const pictureOf = (x: { kind: UnlockCardKind; id: string }): string | null => {
+  if (x.kind === 'device' || x.kind === 'furniture') return itemSpriteOf(x.kind, x.id);
+  if (x.kind === 'cable') return `icon/cable_${x.id}`;
+  if (x.kind === 'floor') return x.id === 'wood' ? 'tile/floor_0' : `tile/floor_${x.id}_0`;
+  return null;
+};
+
+// 絵で出せる種類で解放のレベルが分かるものは、絵だけを並べ、名前は札（ツールチップ）で出す
 export function UnlockCards({ items }: { items: { kind: UnlockCardKind; id: string; count?: number; level?: number }[] }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
       {items.map((x, i) =>
-        (x.kind === 'device' || x.kind === 'furniture') && x.level !== undefined ? (
+        pictureOf(x) !== null && x.level !== undefined ? (
           <Tooltip key={`${x.kind}_${x.id}_${i}`} text={`${cardNameOf(x)}`}>
             <Tile size="unlock">
-              <ItemIcon name={itemSpriteOf(x.kind, x.id)} box={{ width: 36, height: 36 }} maxScale={2} />
+              <ItemIcon name={pictureOf(x) ?? ''} box={{ width: 36, height: 36 }} maxScale={2} />
             </Tile>
           </Tooltip>
         ) : (

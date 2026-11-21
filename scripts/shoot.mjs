@@ -788,6 +788,26 @@ const scenes = {
     });
     await page.waitForTimeout(500);
   },
+  // 自社の情報の「次のレベル」の欄（Lv7。次の Lv8 で床のカーペットが解放され、絵の札で出る）
+  unlocknext: async (page) => {
+    await scenes.career(page);
+    // 画面の「Lv n」を見て、Lv7 になる最小の経験値を二分探索で決める
+    const levelAt = async (exp) => {
+      await page.evaluate((e) => window.__game.setState({ companyExp: e }), exp);
+      await page.waitForTimeout(50);
+      return Number((await page.getByText(/^Lv \d+$/).first().textContent()).slice(3));
+    };
+    let lo = 0;
+    let hi = 1e6;
+    while (hi - lo > 1) {
+      const mid = Math.floor((lo + hi) / 2);
+      if ((await levelAt(mid)) >= 7) hi = mid;
+      else lo = mid;
+    }
+    await levelAt(hi);
+    await page.evaluate(() => window.__game.getState().openWindow('company', ''));
+    await page.waitForTimeout(500);
+  },
   // 別室のドア。上限まで広げてから、右・左・下に別室を足す（仕切りの壁の縦と横のドアを見る）
   doors: async (page) => {
     await scenes.career(page);

@@ -80,8 +80,10 @@ export function CompanyBody() {
   const need = needOf(level, balance);
   const titleKey = titleKeyOf(level);
   const unlocks = next ? unlockItems.filter((x) => x.unlockLevel === next.level) : [];
-  const devices = unlocks.filter((x) => x.kind === 'device' || x.kind === 'furniture').map((x) => ({ kind: x.kind as 'device' | 'furniture', id: x.id }));
-  const others = unlocks.filter((x) => x.kind !== 'device' && x.kind !== 'furniture');
+  // 絵で出す種類（機器・家具・ケーブル・床）と、名前で出す種類に分ける
+  const pictured = new Set(['device', 'furniture', 'cable', 'floor']);
+  const devices = unlocks.filter((x) => pictured.has(x.kind)).map((x) => ({ kind: x.kind, id: x.id }));
+  const others = unlocks.filter((x) => !pictured.has(x.kind));
   // 次のレベルで解放される職種（採用の候補に出る）
   const jobsUnlockedAt = next ? JOB_DEFS.filter((job) => job.unlockLevel === next.level).map((job) => job.id) : [];
   const row = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 } as const;
