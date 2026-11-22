@@ -1,11 +1,9 @@
 {
   "id": "t_two_rooms_lan",
-  "stage": 1,
+  "variantOf": "t_small_lan",
+  "unlockLevel": 6,
   "requires": [
     "c003_departments"
-  ],
-  "jobs": [
-    "infra"
   ],
   "weight": 16,
   "map": "office_two_rooms",
@@ -22,10 +20,6 @@
     "height": 8
   },
   "deadlineDays": 10,
-  "offerExpireDays": {
-    "min": 30,
-    "max": 90
-  },
   "budget": {
     "base": 1750,
     "perPc": 3250,
@@ -34,13 +28,5 @@
   "reward": {
     "base": 60000,
     "perPc": 15000
-  },
-  "goals": [
-    {
-      "type": "ping_all",
-      "nodes": "$all_pcs"
-    }
-  ],
-  "announce": true,
-  "unlockLevel": 6
+  }
 }

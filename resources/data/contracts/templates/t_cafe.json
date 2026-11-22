@@ -1,15 +1,18 @@
 {
   "id": "t_cafe",
-  "stage": 1,
+  "variantOf": "t_small_lan",
   "unlockLevel": 2,
-  "requires": [
-    "c002_small_office"
-  ],
-  "jobs": [
-    "infra"
-  ],
   "weight": 12,
   "map": "cafe",
+  "layout": [
+    "island",
+    "wall"
+  ],
+  "decor": [
+    "plant",
+    "sofa",
+    "trash"
+  ],
   "spawnGroups": [
     {
       "x": 1,
@@ -28,11 +31,6 @@
       "max": 4
     }
   ],
-  "deadlineDays": 7,
-  "offerExpireDays": {
-    "min": 30,
-    "max": 90
-  },
   "budget": {
     "base": 8150,
     "perPc": 4750,
@@ -41,21 +39,5 @@
   "reward": {
     "base": 50000,
     "perPc": 12000
-  },
-  "goals": [
-    {
-      "type": "ping_all",
-      "nodes": "$all_pcs"
-    }
-  ],
-  "announce": true,
-  "layout": [
-    "island",
-    "wall"
-  ],
-  "decor": [
-    "plant",
-    "sofa",
-    "trash"
-  ]
+  }
 }

@@ -732,15 +732,21 @@ export const templateSchema = z
     }
   });
 
-// 変化形（N51a）。元のひな形から引き継ぐため、書けるのは台数・予算・報酬・期限・重み・解放のレベルなどに限る
+// 変化形（N51a）。元のひな形から引き継ぐため、書けるのは台数・予算・報酬・期限・重み・解放のレベル・地図と配置などに限る。
+// 目標・職種・段階は元のひな形のものを使う（目標が違うものは、新しい種類として別に書く）
 export const variantSchema = z
   .object({
     id: z.string().min(1),
     variantOf: z.string().min(1),
     unlockLevel: unlockLevelSchema.optional(),
+    requires: z.array(z.string().min(1)).optional(),
     weight: nonNegativeInt.optional(),
+    map: z.string().min(1).optional(),
     params: z.object({ pcCount: z.object({ min: int.positive(), max: int.positive() }) }).optional(),
+    spawnArea: z.object({ x: nonNegativeInt, y: nonNegativeInt, width: int.positive(), height: int.positive() }).optional(),
     spawnGroups: z.array(spawnGroupSchema).min(1).optional(),
+    layout: z.array(z.enum(['island', 'wall', 'reception'])).min(1).optional(),
+    decor: z.array(z.string().min(1)).min(1).optional(),
     deadlineDays: int.positive().optional(),
     offerExpireDays: z.object({ min: int.positive(), max: int.positive() }).optional(),
     budget: z.object({ base: nonNegativeInt, perPc: nonNegativeInt, perTile: nonNegativeInt }).optional(),

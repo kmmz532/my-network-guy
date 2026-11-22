@@ -1,8 +1,18 @@
 {
   "id": "t_cafe_large",
-  "variantOf": "t_cafe",
+  "variantOf": "t_small_lan",
   "unlockLevel": 5,
   "weight": 8,
+  "map": "cafe",
+  "layout": [
+    "island",
+    "wall"
+  ],
+  "decor": [
+    "plant",
+    "sofa",
+    "trash"
+  ],
   "spawnGroups": [
     {
       "x": 1,
@@ -25,5 +35,9 @@
     "base": 25850,
     "perPc": 1150,
     "perTile": 500
+  },
+  "reward": {
+    "base": 50000,
+    "perPc": 12000
   }
 }

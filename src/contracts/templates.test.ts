@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { contractTemplates } from 'virtual:game-data';
 import l3TwoRoomsJson from '../../resources/data/contracts/templates/t_l3_two_rooms.json';
 import rareExpoJson from '../../resources/data/contracts/templates/t_rare_expo_lan.json';
-import twoRoomsJson from '../../resources/data/contracts/templates/t_two_rooms_lan.json';
 import twoSitesJson from '../../resources/data/contracts/templates/t_two_sites_lan.json';
 import officeTwoRoomsJson from '../../resources/data/maps/office_two_rooms.json';
 import officeTwoSitesJson from '../../resources/data/maps/office_two_sites.json';
@@ -10,7 +10,7 @@ import { instantiateTemplate, pcCountRangeOf } from './template';
 
 // 定型案件（2 部屋・2 拠点）が、どの乱数でも案件になることを確かめる
 const cases: { template: ContractTemplate; map: GameMap }[] = [
-  { template: twoRoomsJson as unknown as ContractTemplate, map: officeTwoRoomsJson as unknown as GameMap },
+  { template: contractTemplates.find((t) => t.id === 't_two_rooms_lan') as ContractTemplate, map: officeTwoRoomsJson as unknown as GameMap },
   { template: twoSitesJson as unknown as ContractTemplate, map: officeTwoSitesJson as unknown as GameMap },
   { template: l3TwoRoomsJson as unknown as ContractTemplate, map: officeTwoRoomsJson as unknown as GameMap },
   { template: rareExpoJson as unknown as ContractTemplate, map: officeTwoRoomsJson as unknown as GameMap },

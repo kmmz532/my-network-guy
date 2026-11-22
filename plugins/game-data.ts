@@ -139,7 +139,15 @@ const resolveTemplates = (files: string[]): ContractTemplate[] => {
     }
     const { variantOf: _variantOf, ...own } = variant;
     const defined = Object.fromEntries(Object.entries(own).filter(([, v]) => v !== undefined));
-    const merged = parseWith(templateSchema, { ...root, ...defined, announce: false, textId: root.id }, file);
+    // 置く範囲は、変化形が書いた形に合わせる（グループなら範囲と台数を、範囲ならグループを元から外す）
+    const base: Record<string, unknown> = { ...root, ...defined, announce: false, textId: root.id };
+    if (defined.spawnGroups !== undefined) {
+      delete base.spawnArea;
+      delete base.params;
+    } else if (defined.spawnArea !== undefined) {
+      delete base.spawnGroups;
+    }
+    const merged = parseWith(templateSchema, base, file);
     resolved.push(merged);
   }
   return resolved;
