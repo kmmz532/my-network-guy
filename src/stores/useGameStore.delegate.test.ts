@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import c001 from '../../resources/data/contracts/c001_direct_link.json';
 import type { Contract } from '../data/schema';
 import type { Offer } from '../contracts/template';
-import { delegationReason } from '../sim/project';
+import { delegateModeOf, delegationReason } from '../sim/project';
 
 import { minutesPerDay } from '../sim/clock';
 import { EMPTY_FAMILIARITY, familiarKeyOf, type Familiarity } from '../sim/familiar';
@@ -56,6 +56,14 @@ describe('社員に任せる（N70）の理由', () => {
   it('型紙が写せれば、理由はない', () => {
     withFamiliarity({ counts: { [key]: 3 }, blueprints: { [key]: { stars: 3, design: bareBlueprint } } });
     expect(delegationReason(st().familiarity, offer)).toBeNull();
+  });
+
+  it('「任せる」ボタンの出し方は、型紙で・型紙なし・任せられない（null）に分かれる', () => {
+    expect(delegateModeOf(EMPTY_FAMILIARITY, offer)).toBeNull();
+    withFamiliarity({ counts: { [key]: 3 }, blueprints: {} });
+    expect(delegateModeOf(st().familiarity, offer)).toBe('blind');
+    withFamiliarity({ counts: { [key]: 3 }, blueprints: { [key]: { stars: 3, design: bareBlueprint } } });
+    expect(delegateModeOf(st().familiarity, offer)).toBe('blueprint');
   });
 });
 

@@ -337,6 +337,15 @@ export const delegationReason = (familiarity: Familiarity, offer: Offer): OpFail
   return reachable ? null : 'delegate.fit';
 };
 
+// 依頼の「任せる」ボタンの出し方（N70・N94）。型紙で任せられれば 'blueprint'、型紙が合わない・型紙がなければ 'blind'（型紙なしで任せる）、それ以外は任せられない（null）
+export type DelegateMode = 'blueprint' | 'blind';
+export const delegateModeOf = (familiarity: Familiarity, offer: Offer): DelegateMode | null => {
+  const reason = delegationReason(familiarity, offer);
+  if (reason === null) return 'blueprint';
+  if (reason === 'delegate.fit' || reason === 'delegate.blueprint') return 'blind';
+  return null;
+};
+
 // 社員に任せて受注する（N70）。型紙を写し、テストを通してから施工に入る。★と経験値の上限は検収で掛ける
 // 任せて受注したあとも、画面の対象（focus）は受注の前のまま残す（現場に移さない・N111）
 export const keepFocus = (before: Core, outcome: Outcome): Outcome => (outcome.ok ? { ...outcome, core: { ...outcome.core, focus: before.focus } } : outcome);

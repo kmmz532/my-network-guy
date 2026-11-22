@@ -7,8 +7,9 @@ import { mapLoaders } from 'virtual:loaders';
 import { minutesPerDay } from '../src/sim/clock';
 import { refreshOffers, type OfferEnv, type OfferState } from '../src/contracts/offers';
 import { dailyExpCapOf, deliveryExpOf, expAtLevel, levelOf, needOf } from '../src/sim/level';
-import { DELEGATE_MIN_COUNT, DELEGATED_EXP_DIVISOR } from '../src/sim/familiar';
+import { DELEGATED_EXP_DIVISOR, EMPTY_FAMILIARITY, familiarKeyOf, recordDelivery, type Familiarity } from '../src/sim/familiar';
 import { blindDelegation } from '../src/sim/blindDelegate';
+import { delegateModeOf, fixedNodes } from '../src/sim/project';
 import { devices as deviceData } from 'virtual:game-data';
 import type { GameMap } from '../src/data/schema';
 
@@ -48,11 +49,11 @@ let arrivals = 0;
 let deliveryTotal = 0;
 let auxTotal = 0;
 let delivered = 0;
-// 組ごとの納品の回数（なじみの依頼）と、社員に任せた件数（★2以上の納品を仮定する）
-const familiarCounts = new Map<string, number>();
-let delegatedTotal = 0;
+// なじみの依頼（組ごとの納品の回数と型紙）。ゲームと同じく、設計のある納品（★2以上）で更新する。型紙なしの納品では更新しない
+let familiarity: Familiarity = EMPTY_FAMILIARITY;
 let blueprintDelegated = 0;
 let blindDelegated = 0;
+let selfDesigned = 0;
 let blindRng = 777;
 const starCounts = new Map<number, number>();
 const milestones = [10, 30, 60, 99];
@@ -83,30 +84,31 @@ for (let day = 0; day < days; day++) {
   for (const o of takeList) {
     const tid = templateOf(o.contract.id);
     counts.set(tid, (counts.get(tid) ?? 0) + 1);
-    // なじみの依頼: 同じ組を3回納品したら、4回目以降は社員に任せる（経験値は半分）
-    const key = o.kind === 'template' ? `${o.baseId}|${o.contract.map}` : `fixed:${o.baseId}`;
-    // 任せる判定: 3回納品した組。固定の案件は型紙で任せる（配置が合う）。テンプレートは配置が毎回変わるため、型紙なしで任せる（結果は乱数）
-    const familiar = (familiarCounts.get(key) ?? 0) >= DELEGATE_MIN_COUNT && !o.contract.inhouse;
+    // 任せる判定は、ゲームの「任せる」ボタンと同じ関数（delegateModeOf）で行う。型紙の機器の位置は、届いた依頼の配置と比べる
+    const mode = delegateModeOf(familiarity, o);
+    const key = familiarKeyOf(o.kind, o.baseId, o.contract.map);
     let exp = deliveryExpOf(o.contract.unlockLevel, levelOf(state.companyExp, typedBalance), 1.1, typedBalance);
     let stars = 2;
-    if (familiar) {
+    if (mode === 'blueprint') {
       exp = Math.max(1, Math.floor(exp / DELEGATED_EXP_DIVISOR));
-      delegatedTotal++;
-      if (o.kind === 'fixed') {
-        blueprintDelegated++;
-      } else {
-        // 能力: 担当は社員2人で、その施工力は会社のレベルより緩やかに育つと見る（2人の level = 2 + 会社のレベル ÷ 10）。PC の台数は依頼の配置から数える
-        const pcCount = o.contract.placed.filter((p) => (deviceData as Record<string, { category: string }>)[p.device]?.category === 'pc').length;
-        const staffLevel = 2 + Math.floor(level / 10);
-        const result = blindDelegation(2 * staffLevel, pcCount, 1, typedBalance, blindRng);
-        blindRng = result.rng;
-        stars = result.stars;
-        starCounts.set(stars, (starCounts.get(stars) ?? 0) + 1);
-        blindDelegated++;
-      }
+      blueprintDelegated++;
+    } else if (mode === 'blind') {
+      exp = Math.max(1, Math.floor(exp / DELEGATED_EXP_DIVISOR));
+      // 能力: 担当は社員2人で、その施工力は会社のレベルより緩やかに育つと見る（2人の level = 2 + 会社のレベル ÷ 10）。PC の台数は依頼の配置から数える
+      const pcCount = o.contract.placed.filter((p) => (deviceData as Record<string, { category: string }>)[p.device]?.category === 'pc').length;
+      const staffLevel = 2 + Math.floor(level / 10);
+      const result = blindDelegation(2 * staffLevel, pcCount, 1, typedBalance, blindRng);
+      blindRng = result.rng;
+      stars = result.stars;
+      starCounts.set(stars, (starCounts.get(stars) ?? 0) + 1);
+      blindDelegated++;
+    } else {
+      selfDesigned++;
     }
-    // ★2以上の納品だけを数える（型紙なしの結果が★1なら数えない）
-    if (stars >= 2) familiarCounts.set(key, (familiarCounts.get(key) ?? 0) + 1);
+    // 設計のある納品（自分で設計・型紙で）だけ、なじみを更新する（★2の納品。型紙なしは残さない）。設計は依頼の固定の機器で近似する
+    if (mode !== 'blind' && !o.contract.inhouse) {
+      familiarity = recordDelivery(familiarity, key, 2, { nodes: fixedNodes(o.contract), links: [], plans: {} });
+    }
     deliveryTotal += exp;
     delivered++;
     state = { ...state, companyExp: state.companyExp + exp };
@@ -126,8 +128,9 @@ for (let day = 0; day < days; day++) {
 
 const total = [...counts.values()].reduce((s, n) => s + n, 0);
 console.log(`日数 ${days}・評判 ${reputation}・完了した固定案件 ${fixedDone} 件・1日の受注 ${perDay} 件・補助の使用 ${auxUse}`);
+const pct = (n: number): string => (delivered ? ((n / delivered) * 100).toFixed(1) : '0.0');
+console.log(`納品 ${delivered} 件の内訳: 型紙で任せた ${pct(blueprintDelegated)}%（${blueprintDelegated} 件）・型紙なしで任せた ${pct(blindDelegated)}%（${blindDelegated} 件）・自分で設計 ${pct(selfDesigned)}%（${selfDesigned} 件）`);
 console.log(`届いた判定 ${arrivals} 回（まとめて届いた ${bursts} 回）・届いた依頼 ${total} 件（納品 ${delivered} 件）`);
-console.log(`任せた依頼 ${delegatedTotal} 件（納品の ${delivered ? ((delegatedTotal / delivered) * 100).toFixed(1) : '0.0'}%）: 型紙で ${blueprintDelegated} 件・型紙なしで ${blindDelegated} 件`);
 console.log(`型紙なしの結果の★: ★1 ${starCounts.get(1) ?? 0} 件・★2 ${starCounts.get(2) ?? 0} 件`);
 console.log(`最後のレベル Lv${lastLevel}（経験値 ${state.companyExp}）・納品の経験値の割合 ${((deliveryTotal / (deliveryTotal + auxTotal || 1)) * 100).toFixed(1)}%`);
 console.log('レベルの推移（節目）:');

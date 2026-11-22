@@ -9,7 +9,7 @@ import { gameEnv, isPcDevice } from '../sim/env';
 import { offerHintOf, useGameStore } from '../stores/useGameStore';
 import type { Offer } from '../contracts/template';
 import { usePrimary } from './Modal';
-import { delegationReason } from '../sim/project';
+import { delegateModeOf } from '../sim/project';
 import { staffPower } from '../sim/staff';
 import { starRangeOf } from '../sim/blindDelegate';
 import { Tooltip } from './Tooltip';
@@ -165,8 +165,8 @@ function OfferCard({
   const office = useGameStore((s) => s.office);
   const active = useGameStore((s) => s.active);
   const familiarity = useGameStore((s) => s.familiarity);
-  // 社員に任せられない理由（任せられるなら null）（N70）
-  const delegateReason = delegationReason(familiarity, offer);
+  // 任せる依頼の出し方（型紙で・型紙なし・任せられない）（N70・N94）
+  const delegateMode = delegateModeOf(familiarity, offer);
   // 断る前の確認（設定で切り替える）
   const [asking, setAsking] = useState(false);
   // 受注の画面を開いたときの担当（空いている社員全員）
@@ -273,13 +273,13 @@ function OfferCard({
                   {t('ui.offer.decline')}
                 </Button>
               )}
-              {delegateReason === null && (
+              {delegateMode === 'blueprint' && (
                 <Button variant="secondary" disabled={!canAccept} onClick={() => onDelegate(crew)}>
                   {t('ui.delegate.button')}
                 </Button>
               )}
               {/* 型紙が合わない依頼は、結果を乱数で決めて任せる（N94）。予想の★を、押す前に出す */}
-              {(delegateReason === 'delegate.fit' || delegateReason === 'delegate.blueprint') && (
+              {delegateMode === 'blind' && (
                 <Tooltip text={t('ui.delegate.stars', { range: blindRange })}>
                   <Button variant="secondary" disabled={!canAccept} onClick={() => onDelegateBlind(crew)}>
                     {t('ui.delegate.blind')}
