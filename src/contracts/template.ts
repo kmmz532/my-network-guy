@@ -22,6 +22,9 @@ export interface Offer {
   arrivedMinute?: number;
   // 受注できる期限（分）。定型案件だけ持つ。固定案件と期限のない定型案件は持たない（N39）
   expiresMinute?: number;
+  // 自社の実績を見た依頼主からの提案の依頼（報酬が高い。topic はその実績の論点）
+  proposal?: true;
+  topic?: string;
 }
 
 export interface InstantiateResult {

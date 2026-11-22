@@ -61,6 +61,8 @@ describe('セーブのバージョン移行', () => {
       deliveries: 0,
       // 初めての納品の記録は移行前は空（xp.firstGoal）
       firstGoals: [],
+      // 自社の実績は移行前は空（v66）
+      achievements: [],
       // なじみの依頼は移行前は空（N70）
       familiarity: { counts: {}, blueprints: {} },
       guidesDone: [],

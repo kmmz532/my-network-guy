@@ -26,7 +26,7 @@ import printerJson from '../../resources/data/devices/printer.json';
 import furnitureDefsJson from '../../resources/data/furniture.json';
 import cablesJson from '../../resources/data/cables.json';
 
-export const SAVE_VERSION = 65;
+export const SAVE_VERSION = 66;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -76,6 +76,8 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v65 → v66: 自社の実績の一覧（achievements）を足す。移行前のセーブは、実績がないものとして空から始める（次の月末に判定する）
+  65: (data) => ({ ...(data as object), achievements: [] }),
   // v64 → v65: 無線なしの家庭用ルーター（home_router）は電波を出さない（能力 accessPoint を外した）。home_router に残っている無線の設定（SSID）を外し、そのSSIDにつながっていた無線の端末のつながりを切る。
   // 有線の口0 のない端末で SSID が合うものを、つながっていた端末とみなす。つながっていた端末があれば、読み込みで1回だけ知らせる（homeRouterWirelessOff）
   64: (data) => {
@@ -735,6 +737,8 @@ export const isCompany = (value: unknown): value is Company => {
     Number.isInteger(v.deliveries) &&
     Array.isArray(v.firstGoals) &&
     v.firstGoals.every((id) => typeof id === 'string') &&
+    Array.isArray(v.achievements) &&
+    v.achievements.every((id) => typeof id === 'string') &&
     typeof v.familiarity === 'object' &&
     v.familiarity !== null &&
     v.completed.every((id) => typeof id === 'string') &&

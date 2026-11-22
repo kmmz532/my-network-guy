@@ -66,6 +66,7 @@ export function CompanyBody() {
   const staff = useGameStore((s) => s.staff);
   const office = useGameStore((s) => s.office);
   const money = useGameStore((s) => s.clock.money);
+  const achievements = useGameStore((s) => s.achievements);
   // 机に PC がなく働けない社内の職種の人数（N102）
   const noPcCount = useGameStore((s) => {
     const pcDesks = pcDesksOf(s.office, isPcDevice);
@@ -158,6 +159,12 @@ export function CompanyBody() {
           <div style={row}>
             <span>{t('ui.company.delivered')}</span>
             <span>{t('ui.company.count', { count: deliveries })}</span>
+          </div>
+        </Section>
+        <Section>
+          <div style={row}>
+            <span>{t('ui.company.achievements')}</span>
+            <span>{achievements.length > 0 ? achievements.map((id) => tDyn(`achievement.${id}`)).join('・') : t('ui.company.achievements.none')}</span>
           </div>
         </Section>
         <div style={{ paddingTop: 8 }}>

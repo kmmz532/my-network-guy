@@ -22,7 +22,9 @@ import { settleRetirements } from '../sim/retire';
 import { backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice } from '../sim/backOffice';
 import { bonusEnvOf, pcDesksOf } from '../sim/furniture';
 import { advanceBuild } from '../sim/progress';
-import { coreOf, refresh, reportState, salesArrivalPatch, stateOfCore, trainingEnv, unlockItems, withLevelUps } from './gameHelpers';
+import { proposalArrivals, type OfferState } from '../contracts/offers';
+import { achievedOf, settleAchievements } from '../sim/achievements';
+import { offerEnv, coreOf, refresh, reportState, salesArrivalPatch, stateOfCore, trainingEnv, unlockItems, withLevelUps } from './gameHelpers';
 import type { GameState, Speed } from './useGameStore';
 
 // ティックの外から渡す値（現在の時刻と設定）。系の中で Date.now() や loadSettings() を読まない
@@ -143,12 +145,45 @@ export const monthEndSystem = (s: GameState, next: Patch, clock: ClockState, hrP
     ...hrCandidateBonus(hrP, balance),
     ...(hrP > 0 && s.hiringWish !== null ? { wish: s.hiringWish } : {}),
   });
-  return {
+  next = {
     ...next,
     notices: pushNotice(pushNotice(next.notices ?? s.notices, 'salary', { amount }, env.now), 'candidatesRefreshed', {}, env.now),
     candidates: rolled.candidates,
     hiringWish: null,
     rng: rolled.rng,
+  };
+  return clock.bankrupt || !MODE_TRAITS[s.mode].offers ? next : achievementsSystem(s, next, env);
+};
+
+// 月末の実績の判定と、提案の依頼の到着。自社オフィスの構成で実績を付け直し、付いた・外れた実績を知らせる。
+// 実績のある論点を学ぶ定型案件を、提案の依頼として届ける（月に1件まで。営業の社員がいれば2件まで）
+export const achievementsSystem = (s: GameState, next: Patch, env: TickEnv): Patch => {
+  const settled = settleAchievements(s.achievements, achievedOf(s.office, gameEnv));
+  let notices = next.notices ?? s.notices;
+  const nameOf = (ids: string[]) => ids.map((id) => tDyn(`achievement.${id}`)).join('・');
+  if (settled.gained.length > 0) notices = pushNotice(notices, 'achievementGained', { name: nameOf(settled.gained) }, env.now);
+  if (settled.lost.length > 0) notices = pushNotice(notices, 'achievementLost', { name: nameOf(settled.lost) }, env.now);
+  const hasSales = backOfficeP(s.staff, 'sales', s.office, bonusEnvOf({ staff: s.staff, office: s.office }, gameEnv)) > 0;
+  const count = hasSales ? balance.proposal.perMonthWithSales : balance.proposal.perMonth;
+  const before: OfferState = {
+    minute: (next.clock ?? s.clock).minute,
+    companyExp: next.companyExp ?? s.companyExp,
+    completed: s.completed,
+    offers: s.offers,
+    excluded: s.active.map((p) => p.baseId),
+    nextOfferMinute: s.nextOfferMinute,
+    offerSeq: s.offerSeq,
+    newArrivals: s.newArrivals,
+    rng: next.rng ?? s.rng,
+  };
+  const after = proposalArrivals(before, offerEnv(s.maps), settled.list, count);
+  const arrived = after.offers.filter((o) => o.proposal === true && !s.offers.includes(o)).length;
+  if (arrived > 0) notices = pushNotice(notices, 'proposalArrival', { count: arrived }, env.now);
+  return {
+    ...next,
+    achievements: settled.list,
+    notices,
+    ...(after === before ? {} : { offers: [...after.offers], offerSeq: after.offerSeq, newArrivals: after.newArrivals, rng: after.rng }),
   };
 };
 

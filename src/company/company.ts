@@ -33,6 +33,8 @@ export interface Company {
   deliveries: number;
   // 合格させたことのある達成条件の型（型ごとに初めての納品で経験値を得る）
   firstGoals: string[];
+  // 自社の実績（月末に、自社オフィスの構成が満たしている論点）
+  achievements: string[];
   // なじみの依頼の回数と型紙（N70）
   familiarity: Familiarity;
   // 依頼一覧（案件の内容を含む）
@@ -75,7 +77,7 @@ export interface SandboxLesson {
 
 // 保存する項目（Company のすべてのキー。Company の宣言の順）
 export const COMPANY_KEYS = [
-  'mode', 'name', 'clock', 'companyExp', 'reputation', 'expDay', 'expToday', 'owned', 'completed', 'deliveries', 'firstGoals',
+  'mode', 'name', 'clock', 'companyExp', 'reputation', 'expDay', 'expToday', 'owned', 'completed', 'deliveries', 'firstGoals', 'achievements',
   'familiarity', 'offers', 'nextOfferMinute', 'offerSeq', 'newArrivals', 'rng', 'active', 'focus', 'office', 'effects',
   'staff', 'staffSeq', 'candidates', 'guidesDone', 'guidesHidden', 'sandboxLesson', 'termsShown',
 ] as const satisfies readonly (keyof Company)[];

@@ -24,6 +24,10 @@ export const NOTICE_KINDS = {
   capReached: { key: 'ui.notice.capReached', open: 'hiring', sticky: false },
   trained: { key: 'ui.notice.trained', open: 'staff', sticky: false },
   retired: { key: 'ui.notice.retired', open: 'staffList', sticky: false },
+  // 自社の実績の登録・取り消し（月末）と、実績を見た依頼主からの提案の依頼
+  achievementGained: { key: 'ui.notice.achievementGained', open: null, sticky: false },
+  achievementLost: { key: 'ui.notice.achievementLost', open: null, sticky: false },
+  proposalArrival: { key: 'ui.notice.proposalArrival', open: 'offers', sticky: false },
   // 上限に達して、昇給を待っている社員（N101）
   raiseWaiting: { key: 'ui.notice.raiseWaiting', open: 'staff', sticky: false },
   pcMissing: { key: 'ui.notice.pcMissing', open: 'staffList', sticky: false },

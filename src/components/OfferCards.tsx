@@ -201,12 +201,17 @@ function OfferCard({
             {t('ui.offer.inhouse')}
           </Badge>
         )}
+        {offer.proposal === true && (
+          <Badge color="var(--fg)" fill="var(--bg-confirm)" border="var(--bg-confirm)" layout={{ marginRight: 6 }}>
+            {t('ui.offer.proposal')}
+          </Badge>
+        )}
         {tDyn(`contract.${offer.baseId}.title`, offer.params)}
         {/* 営業が持ってきた依頼の印（N81） */}
         {(offer as Offer & { fromSales?: true }).fromSales && <Text as="span" tone="warn" size="s" layout={{ marginLeft: 6 }}>{t('ui.offer.fromSales')}</Text>}
       </Text>
       <Text tone="soft" size="sm" layout={{ marginBottom: 6 }}>
-        {tDyn(`contract.${offer.baseId}.story`, offer.params)}
+        {offer.proposal === true && offer.topic !== undefined ? t('ui.offer.proposalStory', { name: tDyn(`achievement.${offer.topic}`) }) : tDyn(`contract.${offer.baseId}.story`, offer.params)}
       </Text>
       {offer.arrivedMinute !== undefined && (
         <Text tone="sub" size="s" layout={{ marginBottom: 4 }}>

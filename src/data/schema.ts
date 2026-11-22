@@ -159,6 +159,8 @@ export const balanceSchema = z.object({
   offers: z.object({ earlyStreak: nonNegativeInt }),
   // 新しく解放した種類（announce）を、解放から arrivals 件届くまで weightFactor 倍の重みで出す（N51b）
   freshOffer: z.object({ arrivals: int.positive(), weightFactor: int.positive() }),
+  // 提案の依頼（自社の実績の論点を学ぶ依頼）。報酬の倍率と、月末に届く件数の上限（営業の社員がいないとき・いるとき）
+  proposal: z.object({ rewardMul: z.number().positive(), perMonth: nonNegativeInt, perMonthWithSales: nonNegativeInt }),
   staff: z.object({
     initialCount: int.positive(),
     // 社員の level の上限の段階（10 の倍数。昇給で1段階ずつ上がる・N101）

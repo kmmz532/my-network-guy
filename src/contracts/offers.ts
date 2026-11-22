@@ -7,6 +7,7 @@ import { instantiateTemplate, pickByWeight, type Offer } from './template';
 import { randInt } from '../sim/rng';
 import { levelOf } from '../sim/level';
 import type { OfferSort } from '../settings/settings';
+import { proposalTopicOf } from '../sim/achievements';
 
 export const MAX_OFFERS = 30;
 
@@ -58,12 +59,13 @@ export interface OfferEffects {
 }
 export const NO_OFFER_EFFECTS: OfferEffects = { rewardWeight: 0, arrivalChance: 0 };
 
-const addOffer = (state: OfferState, env: OfferEnv, rewardWeight = 0, fromSales = false): OfferState => {
+// achieved を渡すと提案の依頼を1件追加する（固定案件は出さず、実績のある論点を学ぶ定型案件だけから選ぶ）
+const addOffer = (state: OfferState, env: OfferEnv, rewardWeight = 0, fromSales = false, achieved?: readonly string[]): OfferState => {
   const taken = (baseId: string) => isTaken(state, baseId);
   const ready = (requires: readonly string[]) => isReady(state, requires);
 
   // 固定案件を優先する（並び順は読み込み時に確定している）
-  const fixed = env.fixed.find((c) => !taken(c.id) && ready(c.requires) && levelOfState(state, env) >= c.unlockLevel);
+  const fixed = achieved !== undefined ? undefined : env.fixed.find((c) => !taken(c.id) && ready(c.requires) && levelOfState(state, env) >= c.unlockLevel);
   if (fixed) {
     return {
       ...state,
@@ -73,7 +75,11 @@ const addOffer = (state: OfferState, env: OfferEnv, rewardWeight = 0, fromSales 
 
   // 定型案件: 前提と評判を満たし、地図が読み込まれているひな形から重みで選ぶ
   const eligible = env.templates.filter(
-    (t) => ready(t.requires) && levelOfState(state, env) >= t.unlockLevel && env.mapOf(t.map) !== undefined,
+    (t) =>
+      ready(t.requires) &&
+      levelOfState(state, env) >= t.unlockLevel &&
+      env.mapOf(t.map) !== undefined &&
+      (achieved === undefined || (proposalTopicOf(t.goals, achieved) !== null && !state.offers.some((o) => o.proposal === true && o.baseId === (t.textId ?? t.id)))),
   );
   // 地図が読み込まれていないひな形は、依頼から外れる（黙って外さない。開発中は警告する）
   warnMissingMaps(state, env);
@@ -92,6 +98,7 @@ const addOffer = (state: OfferState, env: OfferEnv, rewardWeight = 0, fromSales 
   const map = env.mapOf(picked.item.map);
   if (!map) return state;
   const made = instantiateTemplate(picked.item, map, state.offerSeq, picked.rng);
+  const topic = achieved === undefined ? null : proposalTopicOf(picked.item.goals, achieved);
   const newArrivals = picked.item.announce
     ? { ...state.newArrivals, [picked.item.id]: (state.newArrivals[picked.item.id] ?? 0) + 1 }
     : state.newArrivals;
@@ -100,6 +107,9 @@ const addOffer = (state: OfferState, env: OfferEnv, rewardWeight = 0, fromSales 
   let offer: Offer = { ...made.offer, arrivedMinute: state.minute };
   // 営業が持ってきた依頼には印を付ける（一覧で区別する）
   if (fromSales) (offer as Offer & { fromSales?: true }).fromSales = true;
+  if (topic !== null) {
+    offer = { ...offer, proposal: true, topic, contract: { ...offer.contract, reward: { ...offer.contract.reward, money: Math.round(offer.contract.reward.money * env.balance.proposal.rewardMul) } } };
+  }
   const span = picked.item.offerExpireDays;
   if (span) {
     const days = randInt(rng, span.min, span.max);
@@ -120,6 +130,17 @@ export const salesArrival = (state: OfferState, env: OfferEnv, rewardWeight: num
   const added = addOffer(state, env, rewardWeight, true);
   if (added === state) return state;
   return added.offers.length > MAX_OFFERS ? { ...added, offers: added.offers.slice(added.offers.length - MAX_OFFERS) } : added;
+};
+
+// 提案の依頼を最大 count 件届ける（月末に呼ぶ）。実績のある論点を学ぶ定型案件がなければ届かない。上限を超えたら古いものから消す
+export const proposalArrivals = (state: OfferState, env: OfferEnv, achieved: readonly string[], count: number): OfferState => {
+  let next = state;
+  for (let i = 0; i < count; i++) {
+    const added = addOffer(next, env, 0, false, achieved);
+    if (added === next) break;
+    next = added;
+  }
+  return next.offers.length > MAX_OFFERS ? { ...next, offers: next.offers.slice(next.offers.length - MAX_OFFERS) } : next;
 };
 
 export const refreshOffers = (state0: OfferState, env: OfferEnv, effects: OfferEffects = NO_OFFER_EFFECTS): OfferState => {

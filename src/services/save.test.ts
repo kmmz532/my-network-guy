@@ -38,6 +38,7 @@ const sample: Company = {
   completed: ['c001_direct_link'],
   deliveries: 0,
   firstGoals: [],
+  achievements: [],
   familiarity: EMPTY_FAMILIARITY,
   offers: [],
   nextOfferMinute: 0,
@@ -256,6 +257,19 @@ describe('v12 → v13', () => {
   it('色を持たない案件は、そのまま残す', () => {
     const v12 = { ...legacySample, active: [{ id: 'x', nodes: [], links: [], contract: { inhouse: false } }] };
     expect(migrate(12, v12).active[0]).toMatchObject({ id: 'x', nodes: [], links: [], testedOk: false });
+  });
+});
+
+describe('v65 → v66', () => {
+  const { achievements: _achievements, ...v65 } = sample;
+
+  it('自社の実績は、移行前は空のまま（次の月末に判定する）', () => {
+    expect(migrate(65, v65).achievements).toEqual([]);
+  });
+
+  it('achievements が文字列の配列でなければ拒否する', () => {
+    expect(() => migrate(66, { ...sample, achievements: [1] })).toThrow();
+    expect(() => migrate(66, v65)).toThrow();
   });
 });
 

@@ -343,5 +343,10 @@
   "freshOffer": {
     "arrivals": 2,
     "weightFactor": 3
+  },
+  "proposal": {
+    "rewardMul": 1.2,
+    "perMonth": 1,
+    "perMonthWithSales": 2
   }
 }
