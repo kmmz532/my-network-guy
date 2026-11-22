@@ -353,13 +353,31 @@ describe('ケーブルだけが通れるマス（shaft・hatch）', () => {
 describe('家具を回す（N95）', () => {
   it('家具の向きが90度ずつ変わる（上 → 右 → 手前 → 左）', () => {
     const c0 = { ...core(), office: { ...core().office, furniture: [{ uid: 'd0', id: 'desk', x: 1, y: 1 }], furnitureSeq: 1 } } as Core;
-    const once = rotateFurniture(c0, 'd0');
+    const once = rotateFurniture(c0, 'd0', map);
     expect(once.ok && once.core.office.furniture[0].facing).toBe('right');
-    const twice = once.ok ? rotateFurniture(once.core, 'd0') : null;
+    const twice = once.ok ? rotateFurniture(once.core, 'd0', map) : null;
     expect(twice?.ok && twice.core.office.furniture[0].facing).toBe('down');
   });
 
+  it('椅子の側（回した後の背中側）が壁なら回せず、向きは変わらない（chairBlocked）', () => {
+    // (2,1) の机を上（椅子は (2,2)）から右へ回すと、椅子は (1,1) の壁になる
+    const c0 = { ...core(), office: { ...core().office, furniture: [{ uid: 'd0', id: 'desk', x: 2, y: 1 }], furnitureSeq: 1 } } as Core;
+    expect(reasonOf(rotateFurniture(c0, 'd0', map))).toBe('chairBlocked');
+  });
+
+  it('椅子の側が家具・機器でふさがるとき、盤の外のときも回せない', () => {
+    const desk = (uid: string, x: number, y: number) => ({ uid, id: 'desk', x, y });
+    // (2,2) の机を右へ回すと、椅子は (1,2)。そこに家具があるか、機器があるかで回せない
+    const withFurniture = { ...core(), office: { ...core().office, furniture: [desk('d0', 2, 2), desk('d1', 1, 2)], furnitureSeq: 2 } } as Core;
+    expect(reasonOf(rotateFurniture(withFurniture, 'd0', map))).toBe('chairBlocked');
+    const withNode = { ...core(), office: { ...core().office, furniture: [desk('d0', 2, 2)], nodes: [node('n1', 'pc_basic', 1, 2)], furnitureSeq: 1 } } as Core;
+    expect(reasonOf(rotateFurniture(withNode, 'd0', map))).toBe('chairBlocked');
+    // (0,0) の机を右へ回すと、椅子は (-1,0)（盤の外）
+    const edge = { ...core(), office: { ...core().office, furniture: [desk('d0', 0, 0)], furnitureSeq: 1 } } as Core;
+    expect(reasonOf(rotateFurniture(edge, 'd0', map))).toBe('chairBlocked');
+  });
+
   it('ない家具は回せない（none）', () => {
-    expect(reasonOf(rotateFurniture(core(), 'nope'))).toBe('none');
+    expect(reasonOf(rotateFurniture(core(), 'nope', map))).toBe('none');
   });
 });

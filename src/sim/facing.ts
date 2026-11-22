@@ -17,3 +17,11 @@ export const rotateFacing = (facing: Facing): Facing => {
   const order: Facing[] = ['up', 'right', 'down', 'left'];
   return order[(order.indexOf(facing) + 1) % order.length];
 };
+
+// 座った社員の座る位置（椅子のマス）。机のマスの背中側: up は手前（y+1）、down は奥（y-1）、left は右（x+1）、right は左（x-1）
+export const chairTileOf = (x: number, y: number, facing: Facing): { x: number; y: number } => {
+  if (facing === 'up') return { x, y: y + 1 };
+  if (facing === 'down') return { x, y: y - 1 };
+  if (facing === 'left') return { x: x + 1, y };
+  return { x: x - 1, y };
+};

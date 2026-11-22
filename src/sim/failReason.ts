@@ -9,6 +9,7 @@ export const OP_FAIL_REASONS = [
   'cableTooLong',
   'cap',
   'capability',
+  'chairBlocked',
   'crew',
   'delegate.blueprint',
   'delegate.blueprint_fits',

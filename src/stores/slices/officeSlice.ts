@@ -25,7 +25,7 @@ export interface OfficeSlice {
   // 自社オフィスの部屋の辺を買って2マス広げる（確認なし。取り消しの対象外）。失敗したら理由を返す
   expandOffice: (side: ExpandSide) => string | null;
   removeFurniture: (uid: string) => string | null;
-  // 家具を90度回す（N95）
+  // 家具を90度回す（N95）。取り消しの対象（移動と同じく履歴に積む）
   rotateFurniture: (uid: string) => string | null;
   // 自社の床を張り替える（N92）
   changeFloor: (room: RoomId, floor: FloorId) => string | null;
@@ -33,7 +33,7 @@ export interface OfficeSlice {
 }
 
 export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (set, get) => {
-  const { apply, applyUnrecorded, dispatch, dropHistory, recorded } = createOps(set, get);
+  const { apply, dispatch, dropHistory, recorded } = createOps(set, get);
   // 解放（レベル）も費用も問わない遊び方か。遊び方の名前を見るのはここだけにする
   const freePlay = (): boolean => get().mode === 'sandbox';
   // 置いて在庫が0になったら、選んでいる品目を外す
@@ -105,7 +105,10 @@ export const createOfficeSlice: StateCreator<GameState, [], [], OfficeSlice> = (
       const f = get().office.furniture.find((x) => x.uid === uid);
       return dispatch({ kind: 'removeFurniture', uid }, f ? { tx: f.x, ty: f.y } : undefined);
     },
-    rotateFurniture: (uid) => applyUnrecorded({ kind: 'rotateFurniture', uid }),
+    rotateFurniture: (uid) => {
+      const f = get().office.furniture.find((x) => x.uid === uid);
+      return dispatch({ kind: 'rotateFurniture', uid }, f ? { tx: f.x, ty: f.y } : undefined);
+    },
     changeFloor: (room, floor) => {
       // サンドボックスは、解放（レベル）も費用も問わず張り替える。資金は apply が元のまま残す
       const base = coreOf(get());

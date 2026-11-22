@@ -1149,6 +1149,7 @@
   "ui.error.cableTooLong": "ケーブルが長すぎるため、途中にスイッチを設置するか、光ファイバーを使ってください",
   "ui.error.cap": "社員の人数が、会社レベルの上限に達しています",
   "ui.error.capability": "この機器では、この設定はできません",
+  "ui.error.chairBlocked": "椅子の側がふさがっているため、回せません",
   "ui.error.crew": "担当の社員を選ぶことができません",
   "ui.error.delegate.blueprint": "納品した設計（型紙）がありません",
   "ui.error.delegate.blueprint_fits": "納品した設計（型紙）を使えるため、型紙で任せてください",

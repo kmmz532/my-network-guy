@@ -4,7 +4,7 @@ import { DESK_ID, emptyOffice, fail, isPcIn, officeLocked, type Core, type Env, 
 import { isCablePassable, tileKind } from '../data/tileKind';
 import type { NetLink, NetNode } from '../network/types';
 import cablesData from '../../resources/data/cables.json';
-import { rotateFacing } from './facing';
+import { chairTileOf, rotateFacing } from './facing';
 
 
 // 自社オフィスの初期状態。バランス値の初期の大きさの部屋に、バランス値の初期の机の位置に机を置く
@@ -123,16 +123,25 @@ const routeFloor = (map: GameMap, from: { x: number; y: number }, to: { x: numbe
 // ケーブルの種類の最大の長さ（マス）。種類がなければ undefined
 const cablesMaxTiles = (cable: string): number | undefined => (cablesData.cables as { id: string; maxLengthTiles: number }[]).find((c) => c.id === cable)?.maxLengthTiles;
 
-// 家具を90度回す（N95）。机の上の機器は机の向きに合わせて絵を変える（機器は向きを持たず、机と同じ向きで描く）
-export const rotateFurniture = (core: Core, uid: string): Outcome => {
+// 家具を90度回す（N95）。机の上の機器は机の向きに合わせて絵を変える（機器は向きを持たず、机と同じ向きで描く）。
+// 回した後の椅子の側（社員が座るマス）が、床でないか、家具・機器でふさがるなら回せない（chairBlocked）
+export const rotateFurniture = (core: Core, uid: string, map: GameMap): Outcome => {
   if (officeLocked(core)) return fail('inhouse');
-  const target = core.office.furniture.find((f) => f.uid === uid);
+  const office = core.office;
+  const target = office.furniture.find((f) => f.uid === uid);
   if (!target) return fail('none');
+  const facing = rotateFacing(target.facing ?? 'up');
+  const chair = chairTileOf(target.x, target.y, facing);
+  const blocked =
+    tileKind(map, chair.x, chair.y) !== 'floor' ||
+    office.furniture.some((f) => f.x === chair.x && f.y === chair.y) ||
+    office.nodes.some((n) => n.x === chair.x && n.y === chair.y);
+  if (blocked) return fail('chairBlocked');
   return {
     ok: true,
     core: {
       ...core,
-      office: { ...core.office, furniture: core.office.furniture.map((f) => (f.uid === uid ? { ...f, facing: rotateFacing(f.facing ?? 'up') } : f)) },
+      office: { ...office, furniture: office.furniture.map((f) => (f.uid === uid ? { ...f, facing } : f)) },
     },
   };
 };

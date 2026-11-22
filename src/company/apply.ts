@@ -144,7 +144,7 @@ export const applyOperation = (core: Core, op: Operation, ctx: OpContext): Outco
     case 'moveFurniture':
       return moveFurniture(core, op.uid, op.x, op.y, hq);
     case 'rotateFurniture':
-      return rotateFurniture(core, op.uid);
+      return rotateFurniture(core, op.uid, hq);
     case 'removeFurniture':
       return removeFurniture(core, op.uid, sandbox);
     case 'buy': {

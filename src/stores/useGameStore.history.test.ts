@@ -97,6 +97,16 @@ describe('自社オフィスの取り消し・やり直し', () => {
     expect(st().clock.money).toBe(money);
   });
 
+  it('家具を回すと、元に戻せば向きが戻り、やり直せば回った向きに戻る', () => {
+    const facingOf = () => st().office.furniture.find((f) => f.uid === 'f3_4')?.facing ?? 'up';
+    expect(st().rotateFurniture('f3_4')).toBeNull();
+    expect(facingOf()).toBe('right');
+    st().undo();
+    expect(facingOf()).toBe('up');
+    st().redo();
+    expect(facingOf()).toBe('right');
+  });
+
   it('元に戻したあと、やり直すと機器が戻る', () => {
     st().place('l2_switch_8p', 6, 6);
     st().undo();
