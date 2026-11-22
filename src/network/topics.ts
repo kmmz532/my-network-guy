@@ -30,7 +30,7 @@ export interface Topic {
 }
 
 export const TOPICS = [
-  { id: 'vlan', unlock: 12, command: 'switchport 1 access vlan 10', show: 'show vlan brief', failures: ['vlan.not_allowed'], warnings: ['vlan.mismatch', 'vlan.native_mismatch'], glossary: 'dot1q', lessons: ['vlan_two_floors'] },
+  { id: 'vlan', unlock: 12, command: 'switchport 1 access vlan 10', show: 'show vlan brief', failures: ['vlan.not_allowed', 'vlan.same'], warnings: ['vlan.mismatch', 'vlan.native_mismatch'], glossary: 'dot1q', lessons: ['vlan_two_floors'] },
   { id: 'trunk', unlock: 16, command: 'switchport 7 trunk allowed 10,20', show: 'show vlan brief', failures: ['vlan.not_allowed'], warnings: ['vlan.native_mismatch'], glossary: 'native_vlan', lessons: ['vlan_two_floors'] },
   { id: 'svi', unlock: 20, command: 'ip address vlan 10 192.168.10.1 255.255.255.0', show: 'show interfaces', failures: [], warnings: [], glossary: 'svi', lessons: [], known: ['lesson'] },
   { id: 'subif', unlock: 20, command: null, show: 'show ip interface brief', failures: [], warnings: [], glossary: null, lessons: [], known: ['command', 'glossary', 'lesson'] },

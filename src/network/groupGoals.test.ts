@@ -65,6 +65,11 @@ describe('isolated', () => {
   it('1か所でも通信できれば不合格', () => {
     expect(evaluateGoal(goal, analyze(twoNets(true), data)).some((r) => !r.ok)).toBe(true);
   });
+  it('ルーターを通らずに届いたときは、同じ VLAN にいることを札にする', () => {
+    const failed = evaluateGoal(goal, analyze(twoNets(true), data)).filter((r) => !r.ok);
+    expect(failed.length).toBeGreaterThan(0);
+    expect(failed.every((r) => r.failure?.reason === 'vlan.same')).toBe(true);
+  });
 });
 
 describe('http_from', () => {

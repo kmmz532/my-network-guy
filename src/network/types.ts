@@ -246,6 +246,8 @@ export const FAILURE_REASONS = [
   'port.shutdown',
   // 口の VLAN が通らない（access と trunk の許可の不一致・N137）
   'vlan.not_allowed',
+  // 達成条件 isolated: 分けるべき端末どうしが同じ VLAN（同じブロードキャストドメイン）にいて、ルーターを通らずに届いてしまう。札は宛先の端末
+  'vlan.same',
   // そのサブネットのインターフェースがない（RIP・OSPF の network 文・N143）
   'iface.none',
   // 回線終端を、回線の能力のない機器につないだ（N144）

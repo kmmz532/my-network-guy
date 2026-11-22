@@ -11,6 +11,7 @@ export const GLOSSARY_OF_FAILURE: Partial<Record<FailureReason, string>> = {
   'nat.private_source': 'napt',
   'nat.no_forward': 'napt',
   'vlan.not_allowed': 'dot1q',
+  'vlan.same': 'dot1q',
   'wlan.psk_mismatch': 'wpa2',
   'wlan.auth_mismatch': 'wpa3',
   'wlan.no_radius': 'radius',

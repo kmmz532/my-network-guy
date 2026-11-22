@@ -420,7 +420,9 @@ const handlers: { [K in Goal['type']]: Evaluate<K> } = {
     return goal.from.flatMap((src) =>
       goal.to.map((dst) => {
         const r = ping(state, src, dst);
-        return { goal, ok: !r.ok, failure: r.failure, kind: 'ping' as const, src, dst, result: { ...r, ok: !r.ok } };
+        // 届いてしまい、途中にルーターがない（経路が送信元と宛先だけ）なら、同じ VLAN にいることを札にする
+        const failure = r.ok && r.path.length === 2 ? { reason: 'vlan.same' as const, node: dst } : r.failure;
+        return { goal, ok: !r.ok, failure, kind: 'ping' as const, src, dst, result: { ...r, ok: !r.ok } };
       }),
     );
   },
@@ -509,6 +511,7 @@ const GOAL_FAILURES: Partial<Record<Goal['type'], readonly ErrorId[]>> = {
   min_speed: ['speed.slow'],
   load_balanced: ['lb.few_healthy'],
   qos_voice: ['qos.dropped'],
+  isolated: ['vlan.same'],
   reach_by_name: ['name.unresolved'],
   resolve_name: ['name.unresolved'],
   http_by_name: ['name.unresolved'],
