@@ -445,3 +445,35 @@ describe('expansionLocked（次の拡張が会社のレベルで解放されて�
     expect(expansionLocked(many, config, 0)).toBe(false);
   });
 });
+
+describe('回線終端の位置（広げたあと）', () => {
+  // 回線終端を床の各マスに置き、辺の広げ方の順（3通り）ごとに、広げる・別室を足すを繰り返す。どの段階でも、回線終端のマスは床のまま（仕切りの壁に埋もれない）
+  const orders: ExpandSide[][] = [
+    ['right', 'bottom', 'left'],
+    ['right', 'left', 'bottom'],
+    ['bottom', 'right', 'left'],
+    ['bottom', 'left', 'right'],
+    ['left', 'right', 'bottom'],
+    ['left', 'bottom', 'right'],
+  ];
+  it('どの床のマスに置いても、どの辺を広げ・別室を足したあとも、回線終端のマスは床にある', () => {
+    for (const order of orders) {
+      for (let y = 1; y <= SMALL.h; y++) {
+        for (let x = 1; x <= SMALL.w; x++) {
+          const uplink = { ...node('uplink', x, y), device: 'uplink' };
+          let c = core(1_000_000_000, { nodes: [uplink], links: [], furniture: [] });
+          // 1辺につき6回試す（広げた5回と、上限のあとの別室の1回）。できない操作は飛ばす
+          for (const side of order.flatMap((s) => Array<ExpandSide>(6).fill(s))) {
+            const r = expandOffice(c, side, config, 999);
+            if (!r.ok) continue;
+            c = r.core;
+            const u = c.office.nodes.find((n) => n.uid === 'uplink')!;
+            const map = mapOfOffice(c.office);
+            expect(map.legend[map.tiles[u.y][u.x]], `${order.join('→')}・${x},${y}から${side}`).toBe('floor');
+          }
+          expect(c.office.annexes).toHaveLength(3);
+        }
+      }
+    }
+  });
+});
