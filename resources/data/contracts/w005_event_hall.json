@@ -1,0 +1,148 @@
+{
+  "id": "w005_event_hall",
+  "stage": 2,
+  "order": 269,
+  "requires": [
+    "w004_warehouse"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "factory",
+  "budget": 90000,
+  "deadlineDays": 7,
+  "placed": [
+    {
+      "ref": "S1",
+      "device": "laptop",
+      "x": 3,
+      "y": 2,
+      "locked": true,
+      "name": "運営のノートPC A",
+      "wireless": {
+        "ssid": "event-staff",
+        "password": "staff-pass-2026"
+      }
+    },
+    {
+      "ref": "S2",
+      "device": "laptop",
+      "x": 10,
+      "y": 2,
+      "locked": true,
+      "name": "運営のノートPC B",
+      "wireless": {
+        "ssid": "event-staff",
+        "password": "staff-pass-2026"
+      }
+    },
+    {
+      "ref": "S3",
+      "device": "laptop",
+      "x": 3,
+      "y": 8,
+      "locked": true,
+      "name": "運営のノートPC C",
+      "wireless": {
+        "ssid": "event-staff",
+        "password": "staff-pass-2026"
+      }
+    },
+    {
+      "ref": "S4",
+      "device": "laptop",
+      "x": 10,
+      "y": 8,
+      "locked": true,
+      "name": "運営のノートPC D",
+      "wireless": {
+        "ssid": "event-staff",
+        "password": "staff-pass-2026"
+      }
+    },
+    {
+      "ref": "G1",
+      "device": "pc_wifi",
+      "x": 18,
+      "y": 2,
+      "locked": true,
+      "name": "来客のPC A",
+      "wireless": {
+        "ssid": "event-guest",
+        "password": "guest-pass-2026"
+      }
+    },
+    {
+      "ref": "G2",
+      "device": "pc_wifi",
+      "x": 26,
+      "y": 2,
+      "locked": true,
+      "name": "来客のPC B",
+      "wireless": {
+        "ssid": "event-guest",
+        "password": "guest-pass-2026"
+      }
+    },
+    {
+      "ref": "G3",
+      "device": "pc_wifi",
+      "x": 18,
+      "y": 8,
+      "locked": true,
+      "name": "来客のPC C",
+      "wireless": {
+        "ssid": "event-guest",
+        "password": "guest-pass-2026"
+      }
+    },
+    {
+      "ref": "G4",
+      "device": "pc_wifi",
+      "x": 26,
+      "y": 8,
+      "locked": true,
+      "name": "来客のPC D",
+      "wireless": {
+        "ssid": "event-guest",
+        "password": "guest-pass-2026"
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "wireless_secure",
+      "ssid": "event-staff"
+    },
+    {
+      "type": "wireless_secure",
+      "ssid": "event-guest"
+    },
+    {
+      "type": "wireless_clean"
+    },
+    {
+      "type": "wireless_clients",
+      "min": 8
+    },
+    {
+      "type": "isolated",
+      "from": [
+        "S1",
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "to": [
+        "G1",
+        "G2",
+        "G3",
+        "G4"
+      ]
+    }
+  ],
+  "reward": {
+    "money": 725000
+  },
+  "unlockLevel": 53
+}
