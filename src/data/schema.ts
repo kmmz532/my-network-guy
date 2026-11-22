@@ -117,8 +117,8 @@ export const balanceSchema = z.object({
     noiseWidth: z.number().nonnegative(),
     worstRework: z.number().nonnegative(),
     reworkNoise: z.number().nonnegative(),
-    // 型紙なしで任せた依頼の施工にかける時間（配置する機器1台あたり・分）。施工の進みは担当の社員の施工力で決まる
-    blindMinutesPerDevice: z.number().positive(),
+    // 任せた依頼（型紙の有無を問わない）の施工の時間は、依頼の期日の日数のこの割合の日数分（勤務時間）。施工の進みは担当の社員の施工力で決まる
+    durationRatio: z.number().positive(),
     // 任せた依頼の経験値の割り算（納品の経験値をこの数で割る。1以上）
     expDivisor: z.number().min(1),
   }),

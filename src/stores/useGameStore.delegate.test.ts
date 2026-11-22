@@ -6,6 +6,8 @@ import type { Offer } from '../contracts/template';
 import { delegateModeOf, delegationReason } from '../sim/project';
 
 import { minutesPerDay } from '../sim/clock';
+import { expAtLevel, needOf } from '../sim/level';
+import { balance } from 'virtual:game-data';
 import { EMPTY_FAMILIARITY, familiarKeyOf, type Familiarity } from '../sim/familiar';
 import { useGameStore } from './useGameStore';
 
@@ -135,6 +137,8 @@ describe('型紙なしで任せる', () => {
     withFamiliarity({ counts: { [key]: 3 }, blueprints: { [key]: { stars: 3, design: moved } } });
     const crew = st().staff.map((m) => m.uid);
     const money = st().clock.money;
+    // 日ごとの経験値でレベルが上がらないよう、レベルの真ん中から始める
+    useGameStore.setState({ companyExp: expAtLevel(5, balance) + Math.floor(needOf(5, balance) / 2) });
     expect(st().delegateBlind(offer.id, crew)).toBeNull();
     // 勤務時間の10時から、施工が終わるまで進める
     const day = Math.floor(st().clock.minute / minutesPerDay) * minutesPerDay;

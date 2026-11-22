@@ -22,7 +22,7 @@ import { isFieldEngineerJob, requiresPc } from '../src/sim/jobs';
 import { isOnShift } from '../src/sim/shift';
 import { rate } from '../src/sim/rating';
 import { blindCostOf, settlementOf } from '../src/sim/settlement';
-import { blindDelegation } from '../src/sim/blindDelegate';
+import { blindDelegation, delegateBuildMinutesOf } from '../src/sim/blindDelegate';
 import { EMPTY_FAMILIARITY, familiarKeyOf, recordDelivery, type Familiarity } from '../src/sim/familiar';
 import { dayOf, dueDayOf, lateDaysOf } from '../src/sim/deadline';
 import { rand } from '../src/sim/rng';
@@ -249,7 +249,7 @@ const run = (scn: Scenario, seed: number): RunResult => {
       const r = blindDelegation(power, pcCount, match, balance, offers.rng);
       offers = { ...offers, rng: r.rng };
       a.blind = { stars: r.stars, costRatio: r.costRatio };
-      a.total = Math.max(1, offer.contract.placed.length) * balance.delegate.blindMinutesPerDevice;
+      a.total = delegateBuildMinutesOf(offer.contract.deadlineDays, power, balance);
     }
     active = a;
   };

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
-import { blindDelegation, costRatioOf, qualityOf, reworkOf, starRangeOf, starsFor } from './blindDelegate';
+import { blindDelegation, costRatioOf, delegateBuildMinutesOf, qualityOf, reworkOf, starRangeOf, starsFor } from './blindDelegate';
 
 const balance = balanceJson as unknown as Balance;
 
@@ -32,5 +32,19 @@ describe('型紙なしで任せる', () => {
     const [min, max] = starRangeOf(0, 4, 0, balance);
     expect(min).toBe(1);
     expect(max).toBeLessThanOrEqual(2);
+  });
+});
+
+describe('任せた依頼の施工の時間', () => {
+  const workMinutes = (balance.build.workEndHour - balance.build.workStartHour) * 60;
+
+  it('期日に比例する（担当の施工力で割ると、期日の balance.delegate.durationRatio 倍の日数の勤務時間になる）', () => {
+    const power = 6;
+    expect(delegateBuildMinutesOf(10, power, balance) / power).toBeCloseTo(10 * balance.delegate.durationRatio * workMinutes);
+    expect(delegateBuildMinutesOf(20, power, balance)).toBeCloseTo(2 * delegateBuildMinutesOf(10, power, balance));
+  });
+
+  it('期日のない依頼は例外で止める', () => {
+    expect(() => delegateBuildMinutesOf(undefined, 1, balance)).toThrow();
   });
 });

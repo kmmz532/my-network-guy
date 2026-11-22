@@ -55,3 +55,10 @@ export const blindDelegation = (power: number, pcCount: number, match: number, b
   const rework = reworkOf(q, b.value * 2 - 1, balance);
   return { stars: starsFor(costRatio, rework, balance), costRatio, rework, rng: b.state };
 };
+
+// 任せた依頼の施工の時間（施工力の分）。依頼の期日の日数の balance.delegate.durationRatio 倍の日数だけ、勤務時間に担当の施工力の合計で進めると終わる量。
+// 施工の進みは担当の施工力に比例するため、施工力を掛けておくと、担当が誰でも施工の日数は変わらない
+export const delegateBuildMinutesOf = (deadlineDays: number | undefined, power: number, balance: Balance): number => {
+  if (deadlineDays === undefined) throw new Error('任せる依頼には期日がある');
+  return deadlineDays * balance.delegate.durationRatio * (balance.build.workEndHour - balance.build.workStartHour) * 60 * power;
+};

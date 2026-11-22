@@ -11,7 +11,7 @@ import { DELEGATE_MIN_COUNT, DELEGATED_STAR_CAP, familiarKeyOf, missingFixed, po
 import { dueDayOf, lateDaysOf } from './deadline';
 import { bonusEnvOf, furnitureBonus, type BonusEnv } from './furniture';
 import { gainExp, staffPower } from './staff';
-import { blindDelegation } from './blindDelegate';
+import { blindDelegation, delegateBuildMinutesOf } from './blindDelegate';
 import { busyStaff, crewBlock } from './crew';
 import { warningsOf } from '../network/query/warnings';
 import { firstGoalGainOf } from './companyExp';
@@ -76,7 +76,16 @@ export const acceptDelegated = (core: Core, offerId: string, slots: number, crew
   if (!copied) return fail('none');
   // 写した設計がテストを通らなければ、受注しない（この場合は状態を変えない）
   if (!judge(copied, env, copiedOut.core.office.furniture).passed) return fail('delegate.test');
-  return keepFocus(core, requestBuild(withProject(copiedOut.core, { ...copied, testedOk: true }), env));
+  const built = requestBuild(withProject(copiedOut.core, { ...copied, testedOk: true }), env);
+  if (!built.ok) return keepFocus(core, built);
+  // 施工の時間は、機器の数ではなく依頼の期日で決める（型紙なしで任せた依頼と同じ）
+  const crewMembers = crew.map((uid) => accepted.core.staff.find((s) => s.uid === uid)) as Staff[];
+  const bonusEnv: BonusEnv = bonusEnvOf({ staff: accepted.core.staff, office: accepted.core.office }, env);
+  const power = crewMembers.reduce((sum, m) => sum + staffPower(m, offer.contract.jobs ?? [], accepted.core.office, bonusEnv), 0);
+  const total = delegateBuildMinutesOf(offer.contract.deadlineDays, power, env.balance);
+  const started = built.core.active.find((x) => x.id === offerId);
+  if (!started) return fail('none');
+  return keepFocus(core, { ok: true, core: withProject(built.core, { ...started, total }) });
 };
 
 // 案件を外す（納品・取り消し）。外した案件が対象だったら、自社オフィスに戻す（別の案件へ勝手に移らない・N111）
@@ -265,8 +274,8 @@ export const delegateBlind = (core: Core, offerId: string, crew: string[], env: 
   const match = jobs.length === 0 ? 1 : crewMembers.filter((m) => jobs.includes(m.job)).length / crewMembers.length;
   const result = blindDelegation(power, pcCount, match, env.balance, rng);
   const plan: BlindPlan = { stars: result.stars, costRatio: result.costRatio, rework: result.rework };
-  // 施工の時間は、配置する機器の数で決める。進みは担当の社員の施工力に比例する（advanceBuild）
-  const total = Math.max(1, contract.placed.length) * env.balance.delegate.blindMinutesPerDevice;
+  // 施工の時間は、依頼の期日で決める。進みは担当の社員の施工力に比例する（advanceBuild）
+  const total = delegateBuildMinutesOf(contract.deadlineDays, power, env.balance);
   const project = accepted.core.active.find((x) => x.id === offerId);
   if (!project) return { ok: false, reason: 'none' };
   const started: Project = { ...project, delegated: true, blind: plan, phase: 'build', progress: 0, total, testedOk: true };
