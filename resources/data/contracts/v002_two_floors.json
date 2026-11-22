@@ -1,0 +1,149 @@
+{
+  "id": "v002_two_floors",
+  "stage": 2,
+  "order": 120,
+  "requires": [
+    "v001_one_switch_two_depts"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "two_floors",
+  "budget": 78000,
+  "deadlineDays": 10,
+  "placed": [
+    {
+      "ref": "sales_a",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "営業PC1"
+    },
+    {
+      "ref": "sales_b",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "営業PC2"
+    },
+    {
+      "ref": "sales_c",
+      "device": "pc_basic",
+      "x": 14,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.13",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "営業PC3"
+    },
+    {
+      "ref": "acc_a",
+      "device": "pc_basic",
+      "x": 10,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "経理PC1"
+    },
+    {
+      "ref": "acc_b",
+      "device": "pc_basic",
+      "x": 14,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "経理PC2"
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": [
+        "sales_a",
+        "sales_b",
+        "sales_c"
+      ]
+    },
+    {
+      "type": "ping_all",
+      "nodes": [
+        "acc_a",
+        "acc_b"
+      ]
+    },
+    {
+      "type": "isolated",
+      "from": [
+        "sales_a",
+        "sales_b",
+        "sales_c"
+      ],
+      "to": [
+        "acc_a",
+        "acc_b"
+      ]
+    }
+  ],
+  "reward": {
+    "money": 195000
+  },
+  "unlockLevel": 16
+}

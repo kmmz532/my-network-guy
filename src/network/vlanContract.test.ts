@@ -1,7 +1,8 @@
-// 案件 v001・v003（VLAN）: 設定で VLAN を分けると合格し、置いただけ・分けないままでは不合格
+// 案件 v001・v002・v003（VLAN）: 設定で VLAN を分けると合格し、置いただけ・分けないままでは不合格
 import { describe, expect, it } from 'vitest';
 import { analyze } from './engine/analyze';
 import v1Json from '../../resources/data/contracts/v001_one_switch_two_depts.json';
+import v2Json from '../../resources/data/contracts/v002_two_floors.json';
 import v3Json from '../../resources/data/contracts/v003_five_depts.json';
 import { gameEnv } from '../sim/env';
 import type { Contract } from '../data/schema';
@@ -42,6 +43,38 @@ describe('案件 v001: 営業と経理を分ける', () => {
   });
   it('営業と経理を別の VLAN にすると、3つの条件を満たす', () => {
     expect(passes(c, net([10, 10, 20, 20]))).toEqual([true, true, true]);
+  });
+});
+
+describe('案件 v002: 2階の間を trunk でつなぎ、営業と経理を分ける', () => {
+  const c = v2Json as unknown as Contract;
+  const net: Network = {
+    nodes: [
+      ...nodesOf(c),
+      sw('sw_l', 'l2_switch_8p', [
+        { port: 0, mode: 'access', vlan: 10 },
+        { port: 1, mode: 'access', vlan: 10 },
+        { port: 7, mode: 'trunk', allowed: [10, 20] },
+      ]),
+      sw('sw_r', 'l2_switch_8p', [
+        { port: 0, mode: 'access', vlan: 10 },
+        { port: 1, mode: 'access', vlan: 20 },
+        { port: 2, mode: 'access', vlan: 20 },
+        { port: 7, mode: 'trunk', allowed: [10, 20] },
+      ]),
+    ],
+    links: [
+      link('l0', 'sales_a', 0, 'sw_l', 0),
+      link('l1', 'sales_b', 0, 'sw_l', 1),
+      link('l2', 'sales_c', 0, 'sw_r', 0),
+      link('l3', 'acc_a', 0, 'sw_r', 1),
+      link('l4', 'acc_b', 0, 'sw_r', 2),
+      link('l5', 'sw_l', 7, 'sw_r', 7),
+    ],
+    plans: {},
+  };
+  it('階の間を VLAN 10・20 の trunk でつなぐと、3つの条件を満たす', () => {
+    expect(passes(c, net)).toEqual([true, true, true]);
   });
 });
 
