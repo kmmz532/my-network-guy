@@ -64,6 +64,7 @@ export const GLOSSARY_OF_SETTING: readonly (readonly [Capability, string])[] = [
 // 達成条件の種類ごとの用語（失敗の理由に対応がないときに使う）
 export const GLOSSARY_OF_GOAL: Partial<Record<Goal['type'], string>> = {
   bgp_established: 'as_number',
+  bgp_exit: 'local_pref',
   lag_bundled: 'lacp',
   stp_root: 'root_bridge',
   ospf_dr: 'dr_bdr',

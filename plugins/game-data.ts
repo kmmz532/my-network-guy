@@ -294,6 +294,8 @@ const goalRefs = (goal: Goal): string[] => {
       return goal.links.flat();
     case 'bgp_established':
       return [goal.node];
+    case 'bgp_exit':
+      return [goal.node, goal.via];
     case 'ospf_dr':
       return [goal.node];
     case 'blocked':

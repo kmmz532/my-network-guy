@@ -18,7 +18,7 @@ import { analyze } from './engine/analyze';
 import type { NetworkState } from './engine/state';
 import { bgpTableOf } from './query/bgpTable';
 import { stpOf } from './query/stp';
-import { UPLINK_ROUTER_PORT, outsideCheck, withInternet } from './external';
+import { INTERNET_NETWORK, INTERNET_NETWORK_PREFIX, UPLINK_ROUTER_PORT, outsideCheck, withInternet } from './external';
 import { resolveName } from './resolve';
 import { tcpQuery } from './engine/forward';
 import { mailDelivery } from './query/mail';
@@ -222,6 +222,18 @@ const handlers: { [K in Goal['type']]: Evaluate<K> } = {
     let reach = pcs.length >= 2;
     for (let i = 0; i < pcs.length && reach; i++) for (let j = i + 1; j < pcs.length && reach; j++) reach = ping(state, pcs[i], pcs[j]).ok;
     const ok = staticFree && reach;
+    return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
+  },
+  // 指定したルーターの、インターネットの経路の最適経路が、回線終端 via の ISP から学んだものである（出口の ISP）
+  bgp_exit: (goal, state) => {
+    const { net, world: data } = state;
+    const uplink = net.nodes.find((n) => n.uid === goal.via);
+    if (!uplink) throw new Error(`bgp_exit の回線終端がない: ${goal.via}`);
+    const line = getComponent(uplink, 'isp');
+    if (!line) throw new Error(`bgp_exit の機器が回線ではない: ${goal.via}`);
+    const withNet = withInternet(net, data) ?? net;
+    const best = bgpTableOf(analyze(withNet, data), goal.node)?.candidates.find((c) => c.best && c.dest === INTERNET_NETWORK && c.prefix === INTERNET_NETWORK_PREFIX);
+    const ok = best?.from === line.ispIp;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
   // 指定したルーターの BGP の隣接が min 本以上確立している（回線の先の ISP も含めて数える）
@@ -497,6 +509,7 @@ const texts: { [K in Goal['type']]: Text<K> } = {
   survive_device_failure: (g, c) => ({ params: { nodes: names(g.nodes, c) } }),
   survive_link_failure: (g, c) => ({ params: { links: g.links.map(([a, b]) => `${c.nameOf(a)}〜${c.nameOf(b)}`).join('・') } }),
   bgp_established: (g, c) => ({ params: { node: c.nameOf(g.node), min: g.min } }),
+  bgp_exit: (g, c) => ({ params: { node: c.nameOf(g.node), isp: c.nameOf(g.via) } }),
   ospf_dr: (g, c) => ({ params: { node: c.nameOf(g.node) } }),
   http_by_name: (g, c) => ({ params: { from: names(g.from, c), name: g.name } }),
   reach_by_name: (g) => ({ params: { name: g.name } }),

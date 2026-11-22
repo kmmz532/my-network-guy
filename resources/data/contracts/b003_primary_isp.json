@@ -1,0 +1,123 @@
+{
+  "id": "b003_primary_isp",
+  "stage": 2,
+  "order": 292,
+  "requires": [
+    "b002_own_as_two_isps"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_rooms",
+  "budget": 800000,
+  "deadlineDays": 14,
+  "placed": [
+    {
+      "ref": "staff_a",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "社員のPC1"
+    },
+    {
+      "ref": "staff_b",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "社員のPC2"
+    },
+    {
+      "ref": "edge",
+      "device": "edge_router",
+      "x": 9,
+      "y": 5,
+      "locked": false,
+      "config": {
+        "interfaces": [],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "境界ルーター"
+    },
+    {
+      "ref": "isp_a",
+      "device": "uplink",
+      "x": 17,
+      "y": 2,
+      "locked": true,
+      "isp": {
+        "name": "ISP-A",
+        "network": "203.0.113.0",
+        "prefix": 24,
+        "ispIp": "203.0.113.1",
+        "asn": 65001
+      },
+      "name": "ISP-A"
+    },
+    {
+      "ref": "isp_b",
+      "device": "uplink",
+      "x": 17,
+      "y": 8,
+      "locked": true,
+      "isp": {
+        "name": "ISP-B",
+        "network": "198.51.100.0",
+        "prefix": 24,
+        "ispIp": "198.51.100.1",
+        "asn": 65002
+      },
+      "name": "ISP-B"
+    }
+  ],
+  "goals": [
+    {
+      "type": "bgp_established",
+      "node": "edge",
+      "min": 2
+    },
+    {
+      "type": "bgp_exit",
+      "node": "edge",
+      "via": "isp_a"
+    },
+    {
+      "type": "outside_reachable"
+    },
+    {
+      "type": "survive_uplink_failure"
+    }
+  ],
+  "reward": {
+    "money": 1800000
+  },
+  "unlockLevel": 92,
+  "manualIp": true
+}
