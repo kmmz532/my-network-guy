@@ -4,7 +4,7 @@ import { STAFF_LOOKS } from '../data/schema';
 import type { Core, Office, Outcome, Project } from './project';
 import { minutesPerDay } from './clock';
 import { furnitureBonus, seatOf, type BonusEnv } from './furniture';
-import { hasPcAt, isBackOffice } from './backOffice';
+import { backOfficeP, hasPcAt, hrSalaryRate, isBackOffice } from './backOffice';
 import { randInt } from './rng';
 import { JOB_DEFS, isFieldEngineerJob, pcBonusOf } from './jobs';
 
@@ -124,6 +124,10 @@ export const raiseAmountOf = (member: Staff, balance: Balance): number =>
 // 夜勤の給与は、日勤の給与に nightPayRate を掛けた額（N48）
 export const totalSalary = (staff: readonly Staff[], nightPayRate: number): number =>
   staff.reduce((sum, s) => sum + (s.shift === 'night' ? s.salary * nightPayRate : s.salary), 0);
+
+// 実際に払う月給の合計（人事の給与の交渉のあと。円未満は四捨五入）
+export const payrollOf = (staff: readonly Staff[], office: Office, env: BonusEnv, balance: Balance): number =>
+  Math.round(totalSalary(staff, balance.nightPayRate) * hrSalaryRate(backOfficeP(staff, 'hr', office, env), balance));
 
 // 採用の候補を毎月作り直す（0人〜maxCandidates人）。level は評判と乱数で決まり、月給は level で決まる
 // 候補の uid は "c" + 月 + "_" + 順番。採用するときに社員の uid へ付け替える。

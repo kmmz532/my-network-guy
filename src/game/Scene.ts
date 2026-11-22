@@ -4,7 +4,7 @@ import { drawnPath } from './drawnPath';
 import { cablesById, portSpeed } from '../registry/query';
 import { Application, Container, Graphics, Text, type Ticker } from 'pixi.js';
 import { type GameMap } from '../data/schema';
-import { focusedProject, viewingOffice, frontDeviceUid, useGameStore, type Trace } from '../stores/useGameStore';
+import { focusedProject, purchaseDiscountOf, viewingOffice, frontDeviceUid, useGameStore, type Trace } from '../stores/useGameStore';
 import { tileSourceOf } from '../stores/gameHelpers';
 import { useUiStore } from '../stores/useUiStore';
 import { nodeLabel } from '../components/nodeLabel';
@@ -393,7 +393,7 @@ export class Scene {
       const office = useGameStore.getState().office;
       const action = expandActionOf(office, side, balance.office);
       const name = tDyn(`ui.office.${action === 'annex' ? 'annex' : 'expand'}.${side}`);
-      const cost = t('ui.office.cost', { cost: officeExpandCostOf(office, balance.office).toLocaleString('ja-JP') });
+      const cost = t('ui.office.cost', { cost: Math.round(officeExpandCostOf(office, balance.office) * (1 - purchaseDiscountOf(useGameStore.getState()))).toLocaleString('ja-JP') });
       this.tip.showAfterHover(`${name}\n${cost}`, e.clientX, e.clientY);
     });
     box.on('pointerout', () => {

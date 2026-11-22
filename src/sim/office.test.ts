@@ -66,6 +66,7 @@ const core = (money: number, over: Partial<Office> = {}, active: Project[] = [])
   firstGoals: [],
   familiarity: EMPTY_FAMILIARITY,
   purchaseDiscount: 0,
+  rewardMul: 1,
   offers: [],
   active,
   focus: null,
@@ -154,6 +155,12 @@ describe('広げる', () => {
     if (!r.ok) return;
     expect(r.core.clock.money).toBe(0);
     expect(r.core.office.size).toEqual({ w: 7, h: 5 });
+  });
+
+  it('経理の割引が、広げる費用に効く', () => {
+    const cost = officeExpandCostOf(office(), config);
+    const r = expandOffice({ ...core(1_000_000), purchaseDiscount: 0.25 }, 'right', config, 999);
+    expect(r.ok && r.core.clock.money).toBe(1_000_000 - Math.round(cost * 0.75));
   });
 
   it('右に広げても、置いてあるものの座標は変わらない', () => {

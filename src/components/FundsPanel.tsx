@@ -4,10 +4,9 @@ import { t, tDyn } from '../i18n/t';
 import { levelOf } from '../sim/level';
 import { LEDGER_CATEGORIES, type LedgerCategory } from '../sim/ledger';
 import { minutesPerDay, minutesPerMonth } from '../sim/clock';
-import { totalSalary } from '../sim/staff';
 import { rentalOf } from '../network/external';
 import { gameEnv } from '../sim/env';
-import { useGameStore } from '../stores/useGameStore';
+import { payrollOfState, useGameStore } from '../stores/useGameStore';
 import { Section } from './ui/Section';
 import { Text } from './ui/Text';
 import { ProgressBar } from './ui/ProgressBar';
@@ -26,7 +25,7 @@ export function FundsBody() {
   // 見通し: 今の残高 ＋ 今月の残りの日の貸し出しの見込み − 給与（次の月の区切りで払う）
   const daysLeft = Math.max(0, balance.time.daysPerMonth - Math.floor((clock.minute % monthLength) / minutesPerDay) - 1);
   const rent = rentalOf(office, gameEnv.engine, balance.rental, levelOf(companyExp, balance), balance.time.daysPerMonth);
-  const salary = totalSalary(staff, balance.nightPayRate);
+  const salary = payrollOfState({ staff, office });
   const outlook = clock.money + rent.daily * daysLeft - salary;
   // 直近の月の収支（分類の合計）。古いものから並べる
   const history = [...ledger].sort((a, b) => a.month - b.month);

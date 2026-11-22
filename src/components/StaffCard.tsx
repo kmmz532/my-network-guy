@@ -3,12 +3,12 @@ import { bonusEnvOf, pcDesksOf } from '../sim/furniture';
 // 状態（待機中・担当中・研修中）は sim/staff.ts の staffStatus で決める。
 import { balance } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
-import { raiseAmountOf, staffPower, staffStatus, totalSalary, type StaffStatus } from '../sim/staff';
+import { raiseAmountOf, staffPower, staffStatus, type StaffStatus } from '../sim/staff';
 import { backOfficeContributionOf, backOfficeP, hasPcAt, isBackOffice, jobEffect } from '../sim/backOffice';
 import { gameEnv, isPcDevice } from '../sim/env';
 import { jobEffectText } from './jobEffectText';
 import { staffSpriteName } from '../data/schema';
-import { useGameStore } from '../stores/useGameStore';
+import { payrollOfState, useGameStore } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
 import { Icon } from './Icon';
 import { useState } from 'react';
@@ -231,7 +231,7 @@ export function StaffListBody() {
         );
       })}
       <div style={{ textAlign: 'right', marginTop: 6 }}>
-        <Text bold>{t('ui.staff.list.total', { salary: yen(totalSalary(state.staff, balance.nightPayRate)) })}</Text>
+        <Text bold>{t('ui.staff.list.total', { salary: yen(payrollOfState(state)) })}</Text>
       </div>
     </div>
   );

@@ -13,10 +13,10 @@ import { applyMoney } from '../src/sim/ledger';
 import { refreshOffers, salesArrival, earlyOfferDue, type OfferEnv, type OfferState } from '../src/contracts/offers';
 import { levelOf, levelUpsBetween } from '../src/sim/level';
 import { dailyOpsGainOf, firstGoalGainOf, grantDailyExp, type DailyExpState } from '../src/sim/companyExp';
-import { accountingRate, backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, salesArrivalChance } from '../src/sim/backOffice';
+import { accountingRate, backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, salesArrivalChance, salesRewardMul } from '../src/sim/backOffice';
 import { assignDesks, bonusEnvOf, initialOffice, pcDesksOf } from '../src/sim/furniture';
-import { DESK_ID, delegateModeOf, fixedNodes, isDeskFurniture, type Office } from '../src/sim/project';
-import { gainExp, initialStaff, rollCandidates, staffCapOf, staffPower, totalSalary } from '../src/sim/staff';
+import { DESK_ID, delegateModeOf, fixedNodes, isDeskFurniture, rewardWithMul, type Office } from '../src/sim/project';
+import { gainExp, initialStaff, payrollOf, rollCandidates, staffCapOf, staffPower } from '../src/sim/staff';
 import { dailyExpOfStaff, devIdleStaffOf } from '../src/sim/staffDaily';
 import { isFieldEngineerJob, requiresPc } from '../src/sim/jobs';
 import { isOnShift } from '../src/sim/shift';
@@ -137,6 +137,7 @@ const run = (scn: Scenario, seed: number): RunResult => {
 
   const bonusEnv = () => bonusEnvOf({ staff, office }, gameEnv);
   const pOf = (job: JobId): number => backOfficeP(staff, job, office, bonusEnv());
+  const payroll = (): number => payrollOf(staff, office, bonusEnv(), balance);
   const level = (): number => levelOf(companyExp, balance);
   const addExp = (amount: number): void => {
     if (amount <= 0) return;
@@ -150,9 +151,11 @@ const run = (scn: Scenario, seed: number): RunResult => {
   const fieldStaff = (): Staff[] => staff.filter((m) => isFieldEngineerJob(m.job) && m.training === null);
 
   const costOf = (o: Offer): number => Math.round(o.contract.budget * ASSUMED_COST_RATIO);
+  // 営業の効果。受注する依頼の報酬は、ゲームと同じく倍率を掛けた額
+  const withSalesMul = (o: Offer): Offer => ({ ...o, contract: { ...o.contract, reward: { ...o.contract.reward, money: rewardWithMul(o.contract.reward.money, salesRewardMul(pOf('sales'), balance)) } } });
   const expectedNet = (o: Offer): number => {
     const days = (o.contract.deadlineDays ?? Infinity) + 1;
-    const star3 = settlementOf({ reward: o.contract.reward.money, unlockLevel: o.contract.unlockLevel, stars: 3, lateDays: 0, delegated: false, companyExp }, balance);
+    const star3 = settlementOf({ reward: withSalesMul(o).contract.reward.money, unlockLevel: o.contract.unlockLevel, stars: 3, lateDays: 0, delegated: false, companyExp }, balance);
     return (star3.money - costOf(o)) / days;
   };
 
@@ -231,7 +234,7 @@ const run = (scn: Scenario, seed: number): RunResult => {
     const price = (o: Offer): number => Math.round(costOf(o) * (1 - discount));
     const eligible = offers.offers.filter((o) => !o.contract.inhouse && o.contract.deadlineDays !== undefined && price(o) <= clock.money);
     if (eligible.length === 0) return;
-    const offer = eligible.reduce((best, o) => (expectedNet(o) > expectedNet(best) ? o : best));
+    const offer = withSalesMul(eligible.reduce((best, o) => (expectedNet(o) > expectedNet(best) ? o : best)));
     offers = { ...offers, offers: offers.offers.filter((o) => o.id !== offer.id), excluded: [...offers.excluded, offer.baseId] };
     const mode = scn.delegate && delegateModeOf(familiarity, offer) !== null ? 'blind' : 'self';
     const a: Active = { offer, due: dueDayOf(clock.minute, offer.contract.deadlineDays), mode, crew: crew.map((m) => m.uid), progress: 0, total: 0 };
@@ -253,7 +256,7 @@ const run = (scn: Scenario, seed: number): RunResult => {
 
   const monthEnd = (): void => {
     const month = clock.paidMonths;
-    rows.push({ money: clock.money, level: level(), salary: totalSalary(staff, balance.nightPayRate) });
+    rows.push({ money: clock.money, level: level(), salary: payroll() });
     const hrP = pOf('hr');
     const wish = pending[0];
     const rolled = rollCandidates(level(), month, staffRng, balance, staff.map((m) => m.name), {
@@ -262,14 +265,14 @@ const run = (scn: Scenario, seed: number): RunResult => {
     });
     candidates = rolled.candidates;
     staffRng = rolled.rng;
-    if (pending.length > 0 && clock.money > 3 * totalSalary(staff, balance.nightPayRate) && tryHire(pending[0])) pending.shift();
+    if (pending.length > 0 && clock.money > 3 * payroll() && tryHire(pending[0])) pending.shift();
   };
 
   const totalTicks = months * (minutesPerMonth(balance) / balance.time.gameMinutesPerTick);
   const tickMinutes = balance.time.gameMinutesPerTick;
   for (let t = 0; t < totalTicks && !clock.bankrupt; t++) {
     const before = clock;
-    clock = advanceTick(clock, balance, totalSalary(staff, balance.nightPayRate));
+    clock = advanceTick(clock, balance, payroll());
     minMoney = Math.min(minMoney, clock.money);
     const onShift = isOnShift(clock.minute % minutesPerDay, 'day', balance);
     // 勤務中の施工: 担当の経験値と、型紙なしの進み
@@ -356,7 +359,7 @@ const minMoney = Math.min(...all.map((r) => r.minMoney));
 const bankrupt = all.filter((r) => r.bankrupt).length;
 console.log(`1. 資金が0を下回らない: 最小の資金 ${yen(minMoney)}・倒産 ${bankrupt}/${all.length} 回 → ${minMoney >= 0 && bankrupt === 0 ? '合格' : '不合格'}`);
 
-console.log('2. 内勤を1人雇うと、雇った月の3か月後までに、単独で雇わなかった場合より資金が減らない（給与・机・PC を含めた差）');
+console.log('2. 内勤を1人雇うと、雇った月の3か月後の資金が、雇わなかった場合を下回らず、給与3か月分の 1.5 倍も超えない（給与・机・PC を含めた差）');
 const base = runs.get('a')!;
 let effectPass = true;
 for (const job of ['sales', 'hr', 'accounting', 'dev'] as JobId[]) {
@@ -378,7 +381,8 @@ for (const job of ['sales', 'hr', 'accounting', 'dev'] as JobId[]) {
   });
   const hireMonths = rs.map((r) => r.hiredMonth[job]).filter((x): x is number => x !== undefined);
   const d = mean(deltas);
-  const ok = deltas.length > 0 && d >= 0;
+  // 下限は雇わない場合を下回らないこと、上限は給与3か月分の 1.5 倍（内勤が得すぎない）
+  const ok = deltas.length > 0 && d >= 0 && d <= 1.5 * 3 * mean(salaries);
   if (!ok) effectPass = false;
   console.log(
     `   ${job.padEnd(10)} 雇った ${hired}/${trials} 回（平均 ${mean(hireMonths).toFixed(1)} か月目・月給 ${yen(mean(salaries))}）  3か月後の差 ${yen(d)}（給与3か月分 ${yen(3 * mean(salaries))}）  最後の月の差 ${yen(mean(deltasEnd))}  → ${ok ? '合格' : '不合格'}`,
@@ -388,5 +392,5 @@ console.log(`   → ${effectPass ? '合格' : '不合格'}`);
 
 const levelAt = (id: string, m: number): number => mean(runs.get(id)!.map((r) => r.rows[m - 1]?.level ?? NaN));
 const m12 = Math.min(12, months);
-const slower = levelAt('e', months) < levelAt('a', months);
+const slower = levelAt('e', months) < levelAt('a', months) && levelAt('e', m12) < levelAt('a', m12);
 console.log(`3. 任せる依頼だけの進め方は、自分で設計する進め方よりレベルが遅い: ${m12} か月目 (e) ${levelAt('e', m12).toFixed(1)} / (a) ${levelAt('a', m12).toFixed(1)}・${months} か月目 (e) ${levelAt('e', months).toFixed(1)} / (a) ${levelAt('a', months).toFixed(1)} → ${slower ? '合格' : '不合格'}`);

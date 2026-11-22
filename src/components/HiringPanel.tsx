@@ -8,10 +8,10 @@ import { busyStaff } from '../sim/crew';
 import { backOfficeP, isBackOffice, jobEffect } from '../sim/backOffice';
 import { jobEffectText } from './jobEffectText';
 import { gameEnv, isPcDevice } from '../sim/env';
-import { totalSalary, unlockedJobsOf } from '../sim/staff';
+import { unlockedJobsOf } from '../sim/staff';
 import { levelOf } from '../sim/level';
 import { examPassRate } from '../sim/training';
-import { useGameStore } from '../stores/useGameStore';
+import { payrollOfState, useGameStore } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
 import { Icon } from './Icon';
 import { Tooltip } from './Tooltip';
@@ -120,7 +120,7 @@ function Candidates({ onMessage }: { onMessage: (m: string) => void }) {
               <Text size="s">
                 {t('ui.hiring.salary', { salary: yen(c.salary) })}
                 {/* 雇ったあとの、月給の合計（今の月給の合計に足した額）。雇う前に負担が分かるように（N156） */}
-                <Text as="span" tone="soft" size="s"> {t('ui.hiring.salaryTotal', { total: yen(totalSalary(allStaff, balance.nightPayRate) + c.salary) })}</Text>
+                <Text as="span" tone="soft" size="s"> {t('ui.hiring.salaryTotal', { total: yen(payrollOfState({ staff: [...allStaff, c], office })) })}</Text>
               </Text>
               {/* PC が要る職種は、次に座る机に PC がないと働けない（採用はできる）（N102） */}
               {requiresPc(c.job) && !nextDeskHasPc && !full && (

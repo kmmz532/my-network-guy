@@ -50,6 +50,7 @@ const start = (owned: Record<string, number> = {}): Core => ({
   firstGoals: [],
   familiarity: EMPTY_FAMILIARITY,
   purchaseDiscount: 0,
+  rewardMul: 1,
   offers: [offerOf(c001, 'c001_direct_link')],
   active: [],
   focus: null,

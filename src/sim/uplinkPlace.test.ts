@@ -35,6 +35,7 @@ const core = (level: number, money = 1000000): Core => ({
   deliveries: 0,
   familiarity: EMPTY_FAMILIARITY,
   purchaseDiscount: 0,
+  rewardMul: 1,
   offers: [],
   active: [],
   focus: null,

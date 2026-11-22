@@ -52,6 +52,7 @@ const startCore = (offers: Offer[]): Core => ({
   firstGoals: [],
   familiarity: EMPTY_FAMILIARITY,
   purchaseDiscount: 0,
+  rewardMul: 1,
   offers,
   active: [],
   focus: null,

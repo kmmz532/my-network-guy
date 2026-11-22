@@ -3,7 +3,7 @@ import { balance, certs as certRecord, contracts, contractTemplates, levelMilest
 import { offerHint, refreshOffers, salesArrival, type OfferEffects, type OfferEnv, type OfferHint, type OfferState } from '../contracts/offers';
 import { rand } from '../sim/rng';
 import type { GameMap, Staff } from '../data/schema';
-import { initialStaff, staffCapOf } from '../sim/staff';
+import { initialStaff, payrollOf, staffCapOf } from '../sim/staff';
 import { levelOf, levelUpsBetween, type UnlockItem } from '../sim/level';
 import { TOPICS } from '../network/topics';
 import { type TrainingEnv } from '../sim/training';
@@ -11,7 +11,7 @@ import type { NetLink, NetNode } from '../network/types';
 import { gameEnv } from '../sim/env';
 import { applyMoney } from '../sim/ledger';
 import { pushNotice } from '../ui/notices';
-import { accountingRate, backOfficeP, printerArrivalBonusOf, salesArrivalChance } from '../sim/backOffice';
+import { accountingRate, backOfficeP, printerArrivalBonusOf, salesArrivalChance, salesRewardMul } from '../sim/backOffice';
 import { assignDesks, initialOffice, bonusEnvOf } from '../sim/furniture';
 import { type NetTarget, type Core, type Project, type Office, type Report } from '../sim/project';
 import type { GameState } from './useGameStore';
@@ -86,6 +86,14 @@ export const salesArrivalPatch = (s: GameState, days: number): Partial<GameState
 export const purchaseDiscountOf = (s: { staff: Staff[]; office: Office }): number =>
   accountingRate(backOfficeP(s.staff, 'accounting', s.office, bonusEnvOf({ staff: s.staff, office: s.office }, gameEnv)), balance);
 
+// 受注する依頼の報酬の倍率（営業の効果）。一覧に出す報酬と、受注する報酬で共通
+export const rewardMulOf = (s: { staff: Staff[]; office: Office }): number =>
+  salesRewardMul(backOfficeP(s.staff, 'sales', s.office, bonusEnvOf({ staff: s.staff, office: s.office }, gameEnv)), balance);
+
+// 実際に払う月給の合計（人事の給与の交渉のあと）
+export const payrollOfState = (s: { staff: Staff[]; office: Office }): number =>
+  payrollOf(s.staff, s.office, bonusEnvOf({ staff: s.staff, office: s.office }, gameEnv), balance);
+
 // 画面が自社オフィスを見ているか（N112）。判定はここだけで行う（案件の数では決めない）
 export const viewingOffice = (s: { focus: string | null; showcase: unknown }): boolean => s.focus === null && !s.showcase;
 
@@ -119,6 +127,7 @@ export const coreOf = (s: GameState): Core => ({
   firstGoals: s.firstGoals,
   familiarity: s.familiarity,
   purchaseDiscount: purchaseDiscountOf(s),
+  rewardMul: rewardMulOf(s),
   offers: s.offers,
   active: s.active,
   office: s.office,
@@ -133,9 +142,9 @@ export const coreOf = (s: GameState): Core => ({
 });
 
 // 計算の結果の構成（Core）を、ストアの状態へ写す。Core のすべての項目を写し、項目を手で並べて写し漏らすことを防ぐ。
-// 購入の割引（purchaseDiscount）は状態から導く値のため写さない
+// 購入の割引（purchaseDiscount）と報酬の倍率（rewardMul）は状態から導く値のため写さない
 export const stateOfCore = (core: Core): Partial<GameState> => {
-  const { purchaseDiscount: _derived, ...rest } = core;
+  const { purchaseDiscount: _discount, rewardMul: _mul, ...rest } = core;
   return rest;
 };
 

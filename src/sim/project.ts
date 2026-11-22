@@ -266,6 +266,8 @@ export interface Core {
   familiarity: Familiarity;
   // 経理の割引（配線の費用に掛ける割合。店の割引と同じ値）
   purchaseDiscount: number;
+  // 受注する依頼の報酬の倍率（営業の効果。状態から導く値）
+  rewardMul: number;
   offers: Offer[];
   // 受注中の案件（複数）
   active: Project[];
@@ -304,6 +306,9 @@ export const fail = (reason: OpFailReason): Outcome => ({ ok: false, reason });
 
 // 配線の定価から、払う額（経理の割引のあと）。割引がなければ定価のまま
 export const paidCable = (core: Core, list: number): number => Math.round(list * (1 - core.purchaseDiscount));
+
+// 受注した依頼の報酬（営業の倍率を掛けた額）
+export const rewardWithMul = (money: number, rewardMul: number): number => Math.round(money * rewardMul);
 
 // 型紙をつなぐ先（N70）: 近くのスイッチかルーターのうち、空きのポートがあるもの。足りない機器は、ここにつなぐ
 const isHubCategory = (category: string): boolean =>

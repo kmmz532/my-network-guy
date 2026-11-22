@@ -82,6 +82,7 @@ const lessonCore = (): Core => {
     owned: {},
     staff: [],
     purchaseDiscount: 0,
+    rewardMul: 1,
     clock: { money: 1_000_000, ledger: null } as unknown as ClockState,
   } as unknown as Core;
 };
@@ -105,6 +106,7 @@ const modes: Mode[] = [
       owned: {},
       staff: [],
       purchaseDiscount: 0,
+      rewardMul: 1,
       clock: sandboxClock({ minute: 0, money: 0, paidMonths: 0, ledger: null } as unknown as ClockState),
     } as unknown as Core,
     ctx: { env, target: 'office', map: null, hq: map, mode: 'sandbox' },

@@ -7,7 +7,7 @@ import type { Furniture, Staff } from '../data/schema';
 import { emptyOffice } from './project';
 import type { BonusEnv } from './furniture';
 import { readFileSync } from 'node:fs';
-import { NAME_COUNT, QUIRK_IDS, candidateSalaryOf, createStaff, gainExp, hintTier, initialStaff, levelCapOf, pickName, raiseAmountOf, raiseStaff, rollCandidates, specAt, staffPower, staffStatus, totalSalary } from './staff';
+import { NAME_COUNT, QUIRK_IDS, candidateSalaryOf, createStaff, gainExp, hintTier, initialStaff, levelCapOf, pickName, raiseAmountOf, raiseStaff, rollCandidates, specAt, staffPower, staffStatus, totalSalary, payrollOf } from './staff';
 import type { Project } from './project';
 
 const balance = balanceJson as unknown as Balance;
@@ -100,6 +100,18 @@ describe('給与と経験値', () => {
   it('給与は全社員の月給の合計', () => {
     const init = initialStaff(balance, 5).staff;
     expect(totalSalary(init, 1.5)).toBe(init.reduce((sum, s) => sum + s.salary, 0));
+  });
+
+  it('人事がいると、全社員の月給の合計が人事の P に応じて下がる', () => {
+    const base = initialStaff(balance, 5).staff[0];
+    const hr = { ...base, uid: 's0', job: 'hr' as const, level: 5, salary: 100000, desk: 'd', shift: 'day' as const, training: null };
+    const other = { ...base, uid: 's1', job: 'network' as const, salary: 100000, desk: null, shift: 'day' as const };
+    const defs = Object.fromEntries(furnitureJson.furniture.map((f) => [f.id, f as unknown as Furniture]));
+    const office = { ...emptyOffice({ w: 5, h: 5 }), furniture: [{ uid: 'd', id: 'desk', x: 5, y: 5 }], furnitureSeq: 1 };
+    const env: BonusEnv = { defs, balance, staff: [{ uid: 's0', desk: 'd' }], pcDesks: ['d'] };
+    expect(payrollOf([hr, other], office, env, balance)).toBe(Math.round(200000 * (1 - 5 * balance.backOffice.hr.salaryCutPerP)));
+    // 人事に PC がなければ効果は出ない
+    expect(payrollOf([hr, other], office, { ...env, pcDesks: [] }, balance)).toBe(200000);
   });
 
   it('経験値が expPerLevel × level に達するとレベルが上がり、余りは繰り越す', () => {

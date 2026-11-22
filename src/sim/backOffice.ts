@@ -46,6 +46,13 @@ export const accountingRate = (P: number, balance: Balance): number =>
 export const salesArrivalChance = (P: number, balance: Balance): number =>
   Math.min(balance.backOffice.sales.maxChance, P * balance.backOffice.sales.chancePerLevel);
 
+// 営業の効果の1つ。受注する依頼の報酬の倍率（1 + P × rewardMulPerP）
+export const salesRewardMul = (P: number, balance: Balance): number => 1 + P * balance.backOffice.sales.rewardMulPerP;
+
+// 人事の給与の交渉。全社員の月給に掛ける倍率（1 - P × salaryCutPerP。削減は maxSalaryCut まで）
+export const hrSalaryRate = (P: number, balance: Balance): number =>
+  1 - Math.min(balance.backOffice.hr.maxSalaryCut, P * balance.backOffice.hr.salaryCutPerP);
+
 // 人事の効果（候補の数を増やす・候補の能力を上げる・研修の経験値の倍率・新人の施工の経験値の倍率）
 export const hrCandidateBonus = (P: number, balance: Balance): { extraCount: number; levelBonus: number } => ({
   extraCount: Math.min(balance.backOffice.hr.maxExtraCandidates, Math.floor(P * balance.backOffice.hr.candidatesPerLevel)),
@@ -67,8 +74,8 @@ export const devDailyIncome = (member: Staff, balance: Balance): number =>
 
 // 職種ごとの効果（内勤・システムエンジニア）。加わる社員の寄与 contribution（実効 level）と、加わる前の合計 P から、増える分を出す
 export type JobEffect =
-  | { kind: 'sales'; chance: number } // 依頼の出やすさの増分（0〜1）
-  | { kind: 'hr'; candidates: number; trainingRate: number } // 候補の増分（人）・研修の経験値の倍率の増分
+  | { kind: 'sales'; chance: number; rewardMul: number } // 依頼の出やすさの増分（0〜1）・報酬の倍率の増分
+  | { kind: 'hr'; candidates: number; trainingRate: number; salaryCut: number } // 候補の増分（人）・研修の経験値の倍率の増分・月給の削減の増分（0〜1）
   | { kind: 'accounting'; rate: number } // 割引の割合の増分（0〜1）
   | { kind: 'dev'; monthlyIncome: number }; // 開発の収入（担当でない日の合計・月）
 
@@ -82,12 +89,13 @@ export const jobEffect = (
   const after = P + contribution;
   switch (job) {
     case 'sales':
-      return { kind: 'sales', chance: salesArrivalChance(after, balance) - salesArrivalChance(P, balance) };
+      return { kind: 'sales', chance: salesArrivalChance(after, balance) - salesArrivalChance(P, balance), rewardMul: salesRewardMul(after, balance) - salesRewardMul(P, balance) };
     case 'hr':
       return {
         kind: 'hr',
         candidates: hrCandidateBonus(after, balance).extraCount - hrCandidateBonus(P, balance).extraCount,
         trainingRate: hrTrainingRate(after, balance) - hrTrainingRate(P, balance),
+        salaryCut: hrSalaryRate(P, balance) - hrSalaryRate(after, balance),
       };
     case 'accounting':
       return { kind: 'accounting', rate: accountingRate(after, balance) - accountingRate(P, balance) };

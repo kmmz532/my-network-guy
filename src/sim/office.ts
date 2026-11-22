@@ -1,8 +1,8 @@
 // 自社オフィスの部屋の大きさと広げ方（純粋関数）。大きさからマップを作り、右・下・左の辺を買って広げる。
 // 辺が上限に達したら、その辺の外に別室を足す（1辺に1つまで。別室は広げられない）。
-import { applyMoney } from './ledger';
+import { applyMoney, recordSaving } from './ledger';
 import type { Balance, FloorId, GameMap } from '../data/schema';
-import { fail, officeLocked, type Core, type Office, type OfficeCell, type OfficeSide, type OfficeSize, type Outcome, type RoomId } from './project';
+import { fail, officeLocked, paidCable, type Core, type Office, type OfficeCell, type OfficeSide, type OfficeSize, type Outcome, type RoomId } from './project';
 import { levelOf } from './level';
 
 export type ExpandSide = OfficeSide;
@@ -98,13 +98,15 @@ export const changeOfficeFloor = (core: Core, room: RoomId, floor: FloorId, bala
   if (floorOfRoom(core.office, room) === floor) return { ok: true, core };
   // 床の種類は買い切り。一度買った種類は、どの部屋にも何度でも無料で敷ける（N125）
   const bought = core.office.bought.includes(floor);
-  const cost = bought ? 0 : spec.costPerTile * roomTileCount(core.office, room);
+  // 経理の割引が効く（浮いた額は節約として記録する）
+  const list = bought ? 0 : spec.costPerTile * roomTileCount(core.office, room);
+  const cost = paidCable(core, list);
   if (core.clock.money < cost) return fail('money');
   return {
     ok: true,
     core: {
       ...core,
-      clock: cost > 0 ? applyMoney(core.clock, -cost, 'interior') : core.clock,
+      clock: cost > 0 ? recordSaving(applyMoney(core.clock, -cost, 'interior'), list - cost) : core.clock,
       office: { ...core.office, floors: { ...core.office.floors, [room]: floor }, bought: bought ? core.office.bought : [...core.office.bought, floor] },
     },
   };
@@ -215,8 +217,10 @@ export const expandOffice = (core: Core, side: ExpandSide, config: OfficeConfig,
   const action = expandActionOf(office, side, config);
   if (action === null) return fail('max');
   if (expansionLocked(office, config, companyLevel)) return fail('level');
-  const cost = officeExpandCostOf(office, config);
+  // 経理の割引が効く（浮いた額は節約として記録する）
+  const list = officeExpandCostOf(office, config);
+  const cost = paidCable(core, list);
   if (core.clock.money < cost) return fail('money');
   const next = action === 'annex' ? annexOffice(office, side) : growOffice(office, side, config.expand.step);
-  return { ok: true, core: { ...core, clock: applyMoney(core.clock, -cost, 'expansion'), office: next } };
+  return { ok: true, core: { ...core, clock: recordSaving(applyMoney(core.clock, -cost, 'expansion'), list - cost), office: next } };
 };

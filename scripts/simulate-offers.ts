@@ -7,7 +7,7 @@ import { mapLoaders } from 'virtual:loaders';
 import { minutesPerDay } from '../src/sim/clock';
 import { refreshOffers, type OfferEnv, type OfferState } from '../src/contracts/offers';
 import { dailyExpCapOf, deliveryExpOf, expAtLevel, levelOf, needOf } from '../src/sim/level';
-import { DELEGATED_EXP_DIVISOR, EMPTY_FAMILIARITY, familiarKeyOf, recordDelivery, type Familiarity } from '../src/sim/familiar';
+import { EMPTY_FAMILIARITY, familiarKeyOf, recordDelivery, type Familiarity } from '../src/sim/familiar';
 import { blindDelegation } from '../src/sim/blindDelegate';
 import { delegateModeOf, fixedNodes } from '../src/sim/project';
 import { devices as deviceData } from 'virtual:game-data';
@@ -90,10 +90,10 @@ for (let day = 0; day < days; day++) {
     let exp = deliveryExpOf(o.contract.unlockLevel, levelOf(state.companyExp, typedBalance), 1.1, typedBalance);
     let stars = 2;
     if (mode === 'blueprint') {
-      exp = Math.max(1, Math.floor(exp / DELEGATED_EXP_DIVISOR));
+      exp = Math.max(1, Math.floor(exp / typedBalance.delegate.expDivisor));
       blueprintDelegated++;
     } else if (mode === 'blind') {
-      exp = Math.max(1, Math.floor(exp / DELEGATED_EXP_DIVISOR));
+      exp = Math.max(1, Math.floor(exp / typedBalance.delegate.expDivisor));
       // 能力: 担当は社員2人で、その施工力は会社のレベルより緩やかに育つと見る（2人の level = 2 + 会社のレベル ÷ 10）。PC の台数は依頼の配置から数える
       const pcCount = o.contract.placed.filter((p) => (deviceData as Record<string, { category: string }>)[p.device]?.category === 'pc').length;
       const staffLevel = 2 + Math.floor(level / 10);

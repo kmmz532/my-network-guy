@@ -4,9 +4,8 @@ import type { NetLink, NetNode, NetworkPlan } from '../network/types';
 
 // 任せられるようになる納品の回数（★2以上）
 export const DELEGATE_MIN_COUNT = 3;
-// 任せた依頼の★の上限と、経験値の割合
+// 任せた依頼の★の上限（経験値の割り算は balance.delegate.expDivisor）
 export const DELEGATED_STAR_CAP = 2;
-export const DELEGATED_EXP_DIVISOR = 2;
 
 export interface Blueprint {
   nodes: NetNode[];

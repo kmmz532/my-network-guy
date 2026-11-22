@@ -170,7 +170,8 @@
     "noiseWidth": 0.1,
     "worstRework": 3,
     "reworkNoise": 0.5,
-    "blindMinutesPerDevice": 240
+    "blindMinutesPerDevice": 240,
+    "expDivisor": 6
   },
   "backOffice": {
     "dailyExp": 20,
@@ -178,11 +179,12 @@
       "chancePerLevel": 0.1,
       "maxChance": 0.5,
       "printerArrivalBonus": 0.05,
-      "rewardWeightPerLevel": 0.05
+      "rewardWeightPerLevel": 0.05,
+      "rewardMulPerP": 0.05
     },
     "accounting": {
-      "ratePerLevel": 0.01,
-      "maxRate": 0.15
+      "ratePerLevel": 0.05,
+      "maxRate": 0.5
     },
     "dev": {
       "baseRate": 1.0,
@@ -195,7 +197,9 @@
       "trainingRatePerLevel": 0.05,
       "maxTrainingRate": 2,
       "juniorMaxLevel": 3,
-      "juniorExpRatePerLevel": 0.05
+      "juniorExpRatePerLevel": 0.05,
+      "salaryCutPerP": 0.08,
+      "maxSalaryCut": 0.5
     }
   },
   "retire": {

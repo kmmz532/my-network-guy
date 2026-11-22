@@ -37,7 +37,7 @@ import { type Project, type Office, type Effects, noEffects, type GoalCheck, typ
 import { runTick } from './tickSystems';
 import { focusedProject, newStart, refresh } from './gameHelpers';
 import type { VlanWarning } from '../network/query/warnings';
-export { coreOf, editNetOf, focusedProject, netTargetOf, offerHintOf, purchaseDiscountOf, unlockItems, viewingOffice } from './gameHelpers';
+export { coreOf, editNetOf, focusedProject, netTargetOf, offerHintOf, payrollOfState, purchaseDiscountOf, rewardMulOf, unlockItems, viewingOffice } from './gameHelpers';
 export type { Trace };
 // 道具: 選択（機器の画面を開く）・配線・撤去
 export type Tool = 'select' | 'wire' | 'remove';

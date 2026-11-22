@@ -16,7 +16,7 @@ import { busyStaff, crewBlock } from './crew';
 import { warningsOf } from '../network/query/warnings';
 import { firstGoalGainOf } from './companyExp';
 import { blindCostOf, settlementOf } from './settlement';
-import { BlindOutcome, BlindPlan, Core, Env, GoalCheck, Office, Outcome, Project, ReportFailure, TestOutcome, TestResult, Trace, connect, changesOf, contractLinks, delegationReason, designIssues, stateOfProject, fail, fixedNodes, focusedOf, hubFor, isPcIn, keepFocus, projectCostOf, requireDesign, withProject } from './project';
+import { BlindOutcome, BlindPlan, Core, Env, GoalCheck, Office, Outcome, Project, ReportFailure, TestOutcome, TestResult, Trace, connect, changesOf, contractLinks, delegationReason, designIssues, stateOfProject, fail, fixedNodes, focusedOf, hubFor, isPcIn, keepFocus, projectCostOf, requireDesign, rewardWithMul, withProject } from './project';
 
 // 増えた機器を型紙につなぐときのケーブル（一番安いもの）
 const WIRE_CABLE = 'utp_cat5e';
@@ -111,7 +111,7 @@ export const accept = (core: Core, offerId: string, slots: number, crew: string[
     kind: offer.kind,
     baseId: offer.baseId,
     params: offer.params,
-    contract: offer.contract,
+    contract: { ...offer.contract, reward: { ...offer.contract.reward, money: rewardWithMul(offer.contract.reward.money, core.rewardMul) } },
     nodes,
     links,
     seq: inhouse ? office.seq : links.length,

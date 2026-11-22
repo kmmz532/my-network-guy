@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
-import { printerArrivalBonusOf, accountingRate, backOfficeP, devDailyIncome, devRate, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, jobEffect, salesArrivalChance } from './backOffice';
+import { printerArrivalBonusOf, accountingRate, backOfficeP, devDailyIncome, devRate, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, hrSalaryRate, jobEffect, salesArrivalChance, salesRewardMul } from './backOffice';
 import furnitureJson from '../../resources/data/furniture.json';
 import type { BonusEnv } from './furniture';
 import type { Furniture } from '../data/schema';
@@ -22,7 +22,7 @@ describe('内勤の効果', () => {
 
   it('経理の割引は、P に比例して増え、上限で止まる', () => {
     expect(accountingRate(0, balance)).toBe(0);
-    expect(accountingRate(5, balance)).toBeCloseTo(0.05, 9);
+    expect(accountingRate(2, balance)).toBeCloseTo(2 * balance.backOffice.accounting.ratePerLevel, 9);
     expect(accountingRate(1000, balance)).toBe(balance.backOffice.accounting.maxRate);
   });
 
@@ -63,7 +63,7 @@ describe('職種ごとの効果（札と社員の詳細に出す増分）', () =
 
   it('営業は、加わった分だけ依頼の出やすさが増える（上限まで）', () => {
     const e = jobEffect('sales', who, 3, 0, balance);
-    expect(e).toEqual({ kind: 'sales', chance: salesArrivalChance(3, balance) });
+    expect(e).toEqual({ kind: 'sales', chance: salesArrivalChance(3, balance), rewardMul: salesRewardMul(3, balance) - 1 });
   });
 
   it('経理は、加わった分だけ割引の割合が増える', () => {
@@ -77,7 +77,19 @@ describe('職種ごとの効果（札と社員の詳細に出す増分）', () =
       kind: 'hr',
       candidates: hrCandidateBonus(5, balance).extraCount,
       trainingRate: hrTrainingRate(5, balance) - hrTrainingRate(0, balance),
+      salaryCut: 1 - hrSalaryRate(5, balance),
     });
+  });
+
+  it('営業の報酬の倍率は、1 + P × rewardMulPerP', () => {
+    expect(salesRewardMul(0, balance)).toBe(1);
+    expect(salesRewardMul(4, balance)).toBeCloseTo(1 + 4 * balance.backOffice.sales.rewardMulPerP, 9);
+  });
+
+  it('人事の給与の交渉は、P に応じて月給の倍率が下がり、上限で止まる', () => {
+    expect(hrSalaryRate(0, balance)).toBe(1);
+    expect(hrSalaryRate(2, balance)).toBeCloseTo(1 - 2 * balance.backOffice.hr.salaryCutPerP, 9);
+    expect(hrSalaryRate(1000, balance)).toBeCloseTo(1 - balance.backOffice.hr.maxSalaryCut, 9);
   });
 
   it('システムエンジニアは、開発の収入を月ぶんで出す（担当でない日の合計）', () => {

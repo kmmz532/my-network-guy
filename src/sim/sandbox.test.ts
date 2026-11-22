@@ -36,6 +36,7 @@ const core = (office: Office = sandboxOffice(), owned: Record<string, number> = 
   firstGoals: [],
   familiarity: EMPTY_FAMILIARITY,
   purchaseDiscount: 0,
+  rewardMul: 1,
   offers: [],
   active: [],
   focus: null,

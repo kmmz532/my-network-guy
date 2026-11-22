@@ -119,12 +119,14 @@ export const balanceSchema = z.object({
     reworkNoise: z.number().nonnegative(),
     // 型紙なしで任せた依頼の施工にかける時間（配置する機器1台あたり・分）。施工の進みは担当の社員の施工力で決まる
     blindMinutesPerDevice: z.number().positive(),
+    // 任せた依頼の経験値の割り算（納品の経験値をこの数で割る。1以上）
+    expDivisor: z.number().min(1),
   }),
   // 内勤（社内の仕事で会社に効果を与える。担当には出さない）。効果の強さは、その職種の内勤の実効 level の合計
   backOffice: z.object({
     dailyExp: nonNegativeInt,
     // printerArrivalBonus: つないでいるプリンターが1台あると、営業の依頼が届く確率に足す（N98）
-    sales: z.object({ chancePerLevel: z.number().nonnegative(), maxChance: z.number().min(0).max(1), printerArrivalBonus: z.number().min(0).max(1), rewardWeightPerLevel: z.number().nonnegative() }),
+    sales: z.object({ chancePerLevel: z.number().nonnegative(), maxChance: z.number().min(0).max(1), printerArrivalBonus: z.number().min(0).max(1), rewardWeightPerLevel: z.number().nonnegative(), rewardMulPerP: z.number().nonnegative() }),
     accounting: z.object({ ratePerLevel: z.number().nonnegative(), maxRate: z.number().nonnegative() }),
     // システムエンジニア（エンジニア枠）。担当でない日の開発の収入の率（月給に掛ける）。level が上がるほど率が上がる
     dev: z.object({ baseRate: z.number().nonnegative(), ratePerLevel: z.number().nonnegative() }),
@@ -136,6 +138,9 @@ export const balanceSchema = z.object({
       maxTrainingRate: z.number().nonnegative(),
       juniorMaxLevel: nonNegativeInt,
       juniorExpRatePerLevel: z.number().nonnegative(),
+      // 給与の交渉。全社員の月給に (1 - P × salaryCutPerP) を掛ける（削減の上限は maxSalaryCut）
+      salaryCutPerP: z.number().nonnegative(),
+      maxSalaryCut: z.number().min(0).max(1),
     }),
   }),
   // 退職（N90）。退職金は月給の payMonths か月分。採用から minMonths か月たつまで伝えられない

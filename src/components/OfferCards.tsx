@@ -6,7 +6,8 @@ import { balance } from 'virtual:game-data';
 import { hasKey, t, tDyn } from '../i18n/t';
 import { goalText } from './goalText';
 import { gameEnv, isPcDevice } from '../sim/env';
-import { offerHintOf, useGameStore } from '../stores/useGameStore';
+import { rewardWithMul } from '../sim/project';
+import { offerHintOf, rewardMulOf, useGameStore } from '../stores/useGameStore';
 import type { Offer } from '../contracts/template';
 import { usePrimary } from './Modal';
 import { delegateModeOf } from '../sim/project';
@@ -165,6 +166,7 @@ function OfferCard({
   const office = useGameStore((s) => s.office);
   const active = useGameStore((s) => s.active);
   const familiarity = useGameStore((s) => s.familiarity);
+  const rewardMul = useGameStore((s) => rewardMulOf(s));
   // 任せる依頼の出し方（型紙で・型紙なし・任せられない）（N70・N94）
   const delegateMode = delegateModeOf(familiarity, offer);
   // 断る前の確認（設定で切り替える）
@@ -245,7 +247,7 @@ function OfferCard({
           <Text as="span" tone="warn">{t('ui.offer.expires', { days: Math.max(0, Math.ceil((offer.expiresMinute - now) / minutesPerDay)) })}</Text>
         )}
         <Text as="span" tone="warn">
-          <Icon name="icon/money" /> {yen(offer.contract.reward.money)}
+          <Icon name="icon/money" /> {yen(rewardWithMul(offer.contract.reward.money, rewardMul))}
         </Text>
         {/* 断る・任せる・受注を1つのまとまりにして右寄せにする。折り返さない（スマホで受注が次の行に落ちないように・N109b） */}
         <div style={phone ? { display: 'flex', flexWrap: 'nowrap', gap: 6, width: '100%', alignItems: 'center', justifyContent: 'flex-end' } : { display: 'flex', gap: 6, marginLeft: 'auto', flexShrink: 0, alignItems: 'center' }}>

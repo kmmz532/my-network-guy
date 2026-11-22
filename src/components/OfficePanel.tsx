@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { balance } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import { levelOf } from '../sim/level';
-import { useGameStore } from '../stores/useGameStore';
+import { purchaseDiscountOf, useGameStore } from '../stores/useGameStore';
 import { outsideCheck, rentalOf } from '../network/external';
 import { gameEnv } from '../sim/env';
 import { printerArrivalBonusOf } from '../sim/backOffice';
@@ -76,6 +76,7 @@ function FloorRows() {
   const office = useGameStore((s) => s.office);
   const level = useGameStore((s) => levelOf(s.companyExp, balance));
   const changeFloor = useGameStore((s) => s.changeFloor);
+  const discount = useGameStore((s) => purchaseDiscountOf(s));
   const [message, setMessage] = useState<string | null>(null);
   const yen = (n: number) => n.toLocaleString('ja-JP');
   const rooms: RoomId[] = ['main', ...office.annexes];
@@ -88,7 +89,7 @@ function FloorRows() {
         const options = balance.floors.map((f) => {
           const name = t(`ui.floor.${f.id}` as const);
           if (level < f.unlockLevel) return { value: f.id, label: `${name}（${t('ui.floor.locked', { level: f.unlockLevel })}）` };
-          const cost = f.id === current ? '' : office.bought.includes(f.id) ? `（${t('ui.floor.bought')}）` : `（${yen(f.costPerTile * tiles)}円）`;
+          const cost = f.id === current ? '' : office.bought.includes(f.id) ? `（${t('ui.floor.bought')}）` : `（${yen(Math.round(f.costPerTile * tiles * (1 - discount)))}円）`;
           return { value: f.id, label: `${name}${cost}` };
         });
         return (

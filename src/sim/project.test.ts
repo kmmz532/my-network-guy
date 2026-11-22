@@ -47,6 +47,7 @@ const start = (): Core => ({
   firstGoals: [],
   familiarity: EMPTY_FAMILIARITY,
   purchaseDiscount: 0,
+  rewardMul: 1,
   offers: [offer],
   active: [],
   focus: null,
@@ -163,6 +164,12 @@ describe('案件の流れ: c001 PC2台の直結', () => {
     const r = ok(advanceBuild(core, env, 3));
     expect(cur(r.core)?.progress).toBe(0);
     expect(r.report).toBeUndefined();
+  });
+
+  it('受注した依頼の報酬は、営業の倍率（rewardMul）を掛けた額になる', () => {
+    const accepted = ok(accept({ ...start(), rewardMul: 1.25 }, 'c001_direct_link', balance.office.projectSlots, start().staff.map((s) => s.uid)));
+    const reward = (c001 as unknown as Contract).reward.money;
+    expect(accepted.core.active[0].contract.reward.money).toBe(Math.round(reward * 1.25));
   });
 
   it('受注は案件の枠の数まで', () => {

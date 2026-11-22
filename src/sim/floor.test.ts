@@ -28,6 +28,7 @@ const core = (office: Office, level: number, money = 1000000): Core =>
     office,
     companyExp: expAtLevel(level, balance),
     clock: { minute: 0, money, paidMonths: 0, bankrupt: false, ledger: [] },
+    purchaseDiscount: 0,
   }) as unknown as Core;
 
 describe('部屋の判定（N92）', () => {
@@ -81,6 +82,12 @@ describe('床の張り替え（N92）', () => {
     expect(out.core.clock.money).toBe(1000000 - tile.costPerTile * 36);
     expect(out.core.office.floors?.main).toBe('tile');
     expect(out.core.clock.ledger?.[0]?.totals.interior).toBe(-tile.costPerTile * 36);
+  });
+
+  it('経理の割引が、張り替えの費用に効く', () => {
+    const tile = balance.floors.find((f) => f.id === 'tile')!;
+    const out = changeOfficeFloor({ ...core(base, 5), purchaseDiscount: 0.5 }, 'main', 'tile', balance);
+    expect(out.ok && out.core.clock.money).toBe(1000000 - Math.round(tile.costPerTile * 36 * 0.5));
   });
 
   it('お金が足りなければ、張り替えられない（money）', () => {

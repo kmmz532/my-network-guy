@@ -6,7 +6,7 @@ import { minutesPerMonth } from '../sim/clock';
 import { isOnShift } from '../sim/shift';
 import { nightSpeedStep } from '../sim/nightSpeed';
 import type { Staff } from '../data/schema';
-import { gainExp, rollCandidates, totalSalary } from '../sim/staff';
+import { gainExp, rollCandidates } from '../sim/staff';
 import { levelOf, levelUpsBetween } from '../sim/level';
 import { dailyOpsGainOf } from '../sim/companyExp';
 import { MODE_TRAITS } from '../company/company';
@@ -24,7 +24,7 @@ import { bonusEnvOf, pcDesksOf } from '../sim/furniture';
 import { advanceBuild } from '../sim/progress';
 import { proposalArrivals, type OfferState } from '../contracts/offers';
 import { achievedOf, settleAchievements } from '../sim/achievements';
-import { offerEnv, coreOf, refresh, reportState, salesArrivalPatch, stateOfCore, trainingEnv, unlockItems, withLevelUps } from './gameHelpers';
+import { offerEnv, payrollOfState, coreOf, refresh, reportState, salesArrivalPatch, stateOfCore, trainingEnv, unlockItems, withLevelUps } from './gameHelpers';
 import type { GameState, Speed } from './useGameStore';
 
 // ティックの外から渡す値（現在の時刻と設定）。系の中で Date.now() や loadSettings() を読まない
@@ -46,7 +46,7 @@ export const payPauseSystem = (s: GameState, env: TickEnv): Patch | null => {
     env.payPause &&
     s.payWarned !== s.clock.paidMonths &&
     s.clock.minute + balance.time.gameMinutesPerTick >= payday &&
-    s.clock.money < totalSalary(s.staff, balance.nightPayRate)
+    s.clock.money < payrollOfState(s)
   ) {
     return { speed: 0, payWarned: s.clock.paidMonths, notices: pushNotice(s.notices, 'payPause', {}, env.now) };
   }
@@ -68,7 +68,7 @@ export interface ClockStep {
 
 // 系2: 時計を進め、貸し出しの収入と開発の収入を受け取る
 export const clockSystem = (s: GameState): ClockStep => {
-  const ticked = advanceTick(s.clock, balance, totalSalary(s.staff, balance.nightPayRate));
+  const ticked = advanceTick(s.clock, balance, payrollOfState(s));
   // 貸し出しの収入（日が替わるたびに、その日の分を受け取る。障害の日は入らない）。月末に漏れがあれば評判が1下がる
   const days = Math.floor(ticked.minute / minutesPerDay) - Math.floor(s.clock.minute / minutesPerDay);
   const months = ticked.paidMonths - s.clock.paidMonths;
@@ -123,7 +123,7 @@ export const hrPowerOf = (s: GameState): number => backOfficeP(s.staff, 'hr', s.
 // 系4: 月末に給与を払ったら、退職の処理・知らせ・採用の候補の作り直しを行う
 export const monthEndSystem = (s: GameState, next: Patch, clock: ClockState, hrP: number, env: TickEnv): Patch => {
   if (!(clock.paidMonths > s.clock.paidMonths)) return next;
-  const amount = totalSalary(s.staff, balance.nightPayRate);
+  const amount = payrollOfState(s);
   // 退職の予定の社員は、今月末で退職する（退職金を払い、一覧から外す。今月の給与は上で払い済み・N90）
   const settled = settleRetirements({ clock: next.clock ?? clock, staff: next.staff ?? s.staff, active: s.active }, balance);
   next = { ...next, clock: settled.clock, staff: settled.staff, active: settled.active };
