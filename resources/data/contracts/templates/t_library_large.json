@@ -8,10 +8,5 @@
       "min": 6,
       "max": 8
     }
-  },
-  "budget": {
-    "base": 7000,
-    "perPc": 9500,
-    "perTile": 500
   }
 }

@@ -138,13 +138,13 @@ const finish = (core: Core, allowIssues = false): { core: Core; report: Report }
   throw new Error('施工が終わらない');
 };
 
-// 模範解答の判定。合格し、費用が予算の 60〜75% に入り、期日内の★3であること
-const expectReference = (report: Report) => {
+// 模範解答の判定。合格し、費用が予算の 60%〜上限（既定は 75%）に入り、期日内の★3であること。定型案件は最安の設計の費用が予算の 80% になる
+const expectReference = (report: Report, maxRatio = 0.75) => {
   expect(report.passed).toBe(true);
   expect(report.cost).toBeDefined();
   const ratio = (report.cost ?? 0) / (report.budget ?? 1);
   expect(ratio).toBeGreaterThanOrEqual(0.6);
-  expect(ratio).toBeLessThanOrEqual(0.75);
+  expect(ratio).toBeLessThanOrEqual(maxRatio);
   expect(report.stars).toBe(3);
   expect(report.lateDays).toBe(0);
 };
@@ -352,7 +352,7 @@ function buildI001(start: Core): { core: Core; report: Report } {
 }
 
 describe('模範解答: 定型案件（t_small_lan）', () => {
-  // 乱数の種を変えて、台数と配置の違う案件で確かめる（最悪の場合も、費用が予算の 75% 以下）
+  // 乱数の種を変えて、台数と配置の違う案件で確かめる（最悪の場合も、費用が予算の 80% 以下）
   for (const seed of [1, 2, 3, 4, 5]) {
     it(`種 ${seed}: スイッチを1台、配置の中央に置いて全機を配線する`, () => {
       const template = templateJson as unknown as ContractTemplate;
@@ -366,7 +366,7 @@ describe('模範解答: 定型案件（t_small_lan）', () => {
         core = wire(core, p.ref, sw.uid);
         core = addr(core, p.ref, `192.168.1.${10 + i}`);
       });
-      expectReference(finish(core).report);
+      expectReference(finish(core).report, 0.8);
     });
   }
 });

@@ -97,7 +97,7 @@ describe('ひな形の役割', () => {
       { x: 0, y: 0, width: 6, height: 2, min: 2, max: 2, role: 'staff', name: '店員のPC' },
       { x: 0, y: 2, width: 6, height: 2, min: 2, max: 2, role: 'guest', name: 'お客さんのPC' },
     ],
-    budget: { base: 0, perPc: 0, perTile: 0 },
+    budget: { auto: true, margin: 1.25 },
     reward: { base: 0, perPc: 0 },
     goals: [
       { type: 'ping_all', nodes: ['$role:staff'] },

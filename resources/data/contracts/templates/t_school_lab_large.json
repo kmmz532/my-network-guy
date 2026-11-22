@@ -24,10 +24,5 @@
       "role": "teacher",
       "name": "先生のPC"
     }
-  ],
-  "budget": {
-    "base": 127800,
-    "perPc": 2700,
-    "perTile": 0
-  }
+  ]
 }

@@ -92,9 +92,9 @@
       "count": 1
     }
   },
-  "src/contracts/templateBudget.test.ts": {
+  "src/contracts/budget.ts": {
     "local/no-category": {
-      "count": 3
+      "count": 1
     }
   },
   "src/game/FailureRenderer.ts": {

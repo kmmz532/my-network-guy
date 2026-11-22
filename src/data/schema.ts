@@ -685,6 +685,9 @@ const spawnGroupSchema = z.object({
   subnet: int.min(1).max(254).optional(),
 }).refine((g) => (g.role === undefined) === (g.name === undefined), { message: 'role と name は、どちらも書くか、どちらも書かない' });
 
+// 定型案件の予算。最安の設計の費用に margin を掛けた額（費用は予算の 1 / margin）にする
+const templateBudgetSchema = z.object({ auto: z.literal(true), margin: z.number().min(1.05) }).strict();
+
 // 定型案件（ひな形）。変化形（variantOf）は読み込み時に元のひな形と合わせて完全な形にする（N51a）
 export const templateSchema = z
   .object({
@@ -716,7 +719,7 @@ export const templateSchema = z
       .optional(),
     // 置く範囲（複数）。複数の部屋に PC を分けて置くときに使う（N51a）
     spawnGroups: z.array(spawnGroupSchema).min(1).optional(),
-    budget: z.object({ base: nonNegativeInt, perPc: nonNegativeInt, perTile: nonNegativeInt }),
+    budget: templateBudgetSchema,
     reward: z.object({
       base: nonNegativeInt,
       perPc: nonNegativeInt,
@@ -762,7 +765,7 @@ export const variantSchema = z
     decor: z.array(z.string().min(1)).min(1).optional(),
     deadlineDays: int.positive().optional(),
     offerExpireDays: z.object({ min: int.positive(), max: int.positive() }).optional(),
-    budget: z.object({ base: nonNegativeInt, perPc: nonNegativeInt, perTile: nonNegativeInt }).optional(),
+    budget: templateBudgetSchema.optional(),
     reward: z.object({ base: nonNegativeInt, perPc: nonNegativeInt }).optional(),
   })
   .strict();

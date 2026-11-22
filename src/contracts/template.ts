@@ -1,7 +1,8 @@
 // 定型案件（ひな形）から案件を生成する。PCの台数と配置は乱数で決め、同じ乱数の状態からは同じ案件になる。
 import type { Contract, ContractTemplate, Goal, GameMap } from '../data/schema';
 import { randInt, rand } from '../sim/rng';
-import { tileKind } from '../data/tileKind';
+import { spawnGroupsOf } from './spawn';
+import { budgetOf } from './budget';
 import { DEFAULT_DECOR, DEFAULT_LAYOUT, layoutDesks, placeDecor, type DeskCell, type FurnitureCell } from './layout';
 
 // 依頼先の机（PC の下に敷く家具）と棚（窓口型）の家具 ID
@@ -32,38 +33,7 @@ export interface InstantiateResult {
   rng: number;
 }
 
-// スイッチを1台置いて、全機器と配線するときの配線の長さ（タイル数の合計）が最も短い置き場所。床のマスで、機器のないマスから選ぶ
-export const starHubOf = (points: readonly { x: number; y: number }[], map: GameMap): { x: number; y: number; tiles: number } => {
-  let best: { x: number; y: number; tiles: number } | null = null;
-  for (let y = 0; y < map.height; y++) {
-    for (let x = 0; x < map.width; x++) {
-      if (tileKind(map, x, y) !== 'floor') continue;
-      if (points.some((p) => p.x === x && p.y === y)) continue;
-      const tiles = points.reduce((sum, p) => sum + Math.abs(p.x - x) + Math.abs(p.y - y), 0);
-      if (best === null || tiles < best.tiles) best = { x, y, tiles };
-    }
-  }
-  if (best === null) throw new Error('床のマスがない');
-  return best;
-};
-
-// 置く範囲の組（spawnGroups。spawnArea のときは1つのグループ）
-export interface SpawnGroup { x: number; y: number; width: number; height: number; min: number; max: number; role?: string; name?: string; subnet?: number }
-
-export const spawnGroupsOf = (template: ContractTemplate): SpawnGroup[] => {
-  if (template.spawnGroups !== undefined) return template.spawnGroups;
-  if (template.spawnArea === undefined || template.params === undefined) {
-    throw new Error(`${template.id}: spawnArea と params.pcCount が必要`);
-  }
-  const { x, y, width, height } = template.spawnArea;
-  return [{ x, y, width, height, min: template.params.pcCount.min, max: template.params.pcCount.max }];
-};
-
-// 台数の範囲（全グループの合計）
-export const pcCountRangeOf = (template: ContractTemplate): { min: number; max: number } => {
-  const groups = spawnGroupsOf(template);
-  return { min: groups.reduce((s, g) => s + g.min, 0), max: groups.reduce((s, g) => s + g.max, 0) };
-};
+export { starHubOf, spawnGroupsOf, pcCountRangeOf, type SpawnGroup } from './spawn';
 
 // 机と飾りの配置を1回作る。途中で机が並べられなければ null（rng は進んだ状態を返す）
 type PlacedConfig = NonNullable<Contract['placed'][number]['config']>;
@@ -189,8 +159,8 @@ export const instantiateTemplate = (
     requires: template.requires,
     jobs: template.jobs,
     map: template.map,
-    // 予算は、台数と、スイッチを中心に配線したときの配線の長さで決まる（模範の費用の約7割）
-    budget: template.budget.base + template.budget.perPc * total + template.budget.perTile * starHubOf(placed, map).tiles,
+    // 予算は、最安の設計の費用に余裕の倍率を掛けた額（budget.ts）
+    budget: budgetOf(template, map, placed, furniture),
     placed,
     // 机・棚・飾りの家具（N76）。予算には含めない
     furniture,

@@ -24,10 +24,5 @@
       "role": "work",
       "name": "作業場のPC"
     }
-  ],
-  "budget": {
-    "base": 660100,
-    "perPc": 0,
-    "perTile": 850
-  }
+  ]
 }

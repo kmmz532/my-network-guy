@@ -34,10 +34,5 @@
       "role": "tenantc",
       "name": "入居者CのPC"
     }
-  ],
-  "budget": {
-    "base": 51200,
-    "perPc": 2500,
-    "perTile": 0
-  }
+  ]
 }

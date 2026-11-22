@@ -20,11 +20,6 @@
     "height": 8
   },
   "deadlineDays": 10,
-  "budget": {
-    "base": 1750,
-    "perPc": 3250,
-    "perTile": 500
-  },
   "reward": {
     "base": 60000,
     "perPc": 15000

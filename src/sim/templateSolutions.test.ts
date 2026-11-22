@@ -15,6 +15,7 @@ import schoolLabMap from '../../resources/data/maps/school_lab.json';
 import hotelFloorMap from '../../resources/data/maps/hotel_floor.json';
 import type { Balance, ContractTemplate, Furniture, GameMap } from '../data/schema';
 import type { Offer } from '../contracts/template';
+import { cheapestSwitchId } from '../contracts/budget';
 import { instantiateTemplate, starHubOf } from '../contracts/template';
 import { tileKind } from '../data/tileKind';
 import { cableMaxLength } from '../registry/query';
@@ -35,7 +36,6 @@ const env: Env = {
   engine: { wallAt: () => false, interferers: [] },
 };
 const UTP = 'utp_cat5e';
-const SWITCH = 'l2_switch_8p';
 const ROUTER = 'router_basic';
 
 const templateOf = (id: string): ContractTemplate => {
@@ -118,50 +118,37 @@ const finish = (core: Core): Report => {
   throw new Error('施工が終わらない');
 };
 
-// 台数が収まる最も小さいスイッチ
-const switchFor = (ports: number): string => (ports <= 4 ? 'l2_switch_4p' : ports <= 8 ? 'l2_switch_8p' : 'l2_switch_16p');
+const switchFor = cheapestSwitchId;
 
 const SEEDS = [1, 2, 3, 4, 5, 6];
 const offerOf = (id: string, map: GameMap, seed: number): Offer => instantiateTemplate(templateOf(id), map, 0, seed).offer;
-const centerOf = (points: { x: number; y: number }[], map: GameMap) => starHubOf(points, map);
-// 最も遠い機器までが最も近い床のマス（広い範囲で、1台のスイッチから外れた PC がUTPの上限を超えないようにする）
-const reachCenterOf = (points: { x: number; y: number }[], map: GameMap): { x: number; y: number } => {
-  let best: { x: number; y: number; far: number; sum: number } | null = null;
-  for (let y = 0; y < map.height; y++) {
-    for (let x = 0; x < map.width; x++) {
-      if (tileKind(map, x, y) !== 'floor') continue;
-      const ds = points.map((p) => Math.abs(p.x - x) + Math.abs(p.y - y));
-      const far = Math.max(...ds);
-      const sum = ds.reduce((a, b) => a + b, 0);
-      if (best === null || far < best.far || (far === best.far && sum < best.sum)) best = { x, y, far, sum };
-    }
-  }
-  if (best === null) throw new Error('床のマスがない');
-  return best;
-};
-
+const centerOf = (points: { x: number; y: number }[], map: GameMap, blocked: { x: number; y: number }[] = []) => starHubOf(points, map, undefined, blocked);
+// UTP が届く範囲に収まる配線の中心（最安の設計の費用の計算と同じ置き場所）
+const reachCenterOf = (points: { x: number; y: number }[], map: GameMap, blocked: { x: number; y: number }[] = []) => starHubOf(points, map, cableMaxLength(UTP), blocked);
 describe('t_clinic: 受付と診察室は別のネットワーク', () => {
   const map = clinicMap as unknown as GameMap;
-  // 受付（group 1）と診察室（group 2・3）のスイッチを、それぞれの PC の中心に置き、ルーターの2つの口につなぐ
+  // ネットワーク（受付・診察室）ごとに、PC の配線の中心にスイッチを置き、ルーターの2つの口につなぐ
   const solve = (offer: Offer, withRouter: boolean): Core => {
     let core = take(startCore(offer), offer.id);
-    const pcs = offer.contract.placed;
-    const inNet = (n: number) => pcs.filter((p) => p.config?.interfaces[0].ip.startsWith(`192.168.${n}.`));
-    const swA = place(core, SWITCH, centerOf(inNet(1), map).x, centerOf(inNet(1), map).y, map);
-    core = swA.core;
-    const swB = place(core, SWITCH, centerOf(inNet(2), map).x, centerOf(inNet(2), map).y, map);
-    core = swB.core;
-    for (const p of inNet(1)) core = wire(core, p.ref, swA.uid);
-    for (const p of inNet(2)) core = wire(core, p.ref, swB.uid);
+    const inNet = (n: number) => offer.contract.placed.filter((p) => p.config?.interfaces[0].ip.startsWith(`192.168.${n}.`));
+    const blocked = offer.contract.furniture;
+    const hubs = [1, 2].map((n) => reachCenterOf(inNet(n), map, blocked));
+    const sw = [1, 2].map((n, i) => {
+      const r = place(core, switchFor(inNet(n).length + 1), hubs[i].x, hubs[i].y, map);
+      core = r.core;
+      for (const p of inNet(n)) core = wire(core, p.ref, r.uid);
+      return r.uid;
+    });
     if (withRouter) {
-      const router = place(core, ROUTER, 10, 4, map);
+      const center = centerOf(hubs, map, blocked);
+      const router = place(core, ROUTER, center.x, center.y, map);
       core = router.core;
-      core = wire(core, swA.uid, router.uid, UTP, { b: 0 });
-      core = wire(core, swB.uid, router.uid, UTP, { b: 1 });
+      core = wire(core, sw[0], router.uid, UTP, { b: 0 });
+      core = wire(core, sw[1], router.uid, UTP, { b: 1 });
       core = addr(core, router.uid, '192.168.1.1');
       core = addr(core, router.uid, '192.168.2.1', 1);
     } else {
-      core = wire(core, swA.uid, swB.uid);
+      core = wire(core, sw[0], sw[1]);
     }
     return core;
   };
@@ -236,7 +223,7 @@ describe('t_school_lab: 生徒と先生のネットワークを分け、それ�
     for (const roles of groups) {
       const pcs = offer.contract.placed.filter((p) => roles.some((r) => p.ref.startsWith(`${r}_`)));
       const hub = centerOf(pcs, map);
-      const sw = place(core, separate ? 'l2_switch_16p' : 'l2_switch_24p', hub.x, hub.y, map);
+      const sw = place(core, separate ? switchFor(pcs.length + 1) : 'l2_switch_24p', hub.x, hub.y, map);
       core = sw.core;
       for (const p of pcs) {
         core = wire(core, p.ref, sw.uid);
@@ -405,10 +392,10 @@ describe('t_factory: 事務所と作業場の間にファイアウォールを�
     let core = take(startCore(offer), offer.id);
     const pcsOf = (role: string) => offer.contract.placed.filter((p) => p.ref.startsWith(`${role}_`));
     const officeHub = reachCenterOf(pcsOf('office'), map);
-    const officeSw = place(core, SWITCH, officeHub.x, officeHub.y, map);
+    const officeSw = place(core, switchFor(pcsOf('office').length + 2), officeHub.x, officeHub.y, map);
     core = officeSw.core;
     const workHub = reachCenterOf(pcsOf('work'), map);
-    const workSw = place(core, pcsOf('work').length + 1 <= 16 ? 'l2_switch_16p' : 'l2_switch_24p', workHub.x, workHub.y, map);
+    const workSw = place(core, switchFor(pcsOf('work').length + 1), workHub.x, workHub.y, map);
     core = workSw.core;
     pcsOf('office').forEach((p, i) => {
       core = wire(core, p.ref, officeSw.uid);

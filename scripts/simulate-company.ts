@@ -1,6 +1,6 @@
 // 会社の釣り合いを、ゲームの純粋関数で2年ぶん進めて確かめる。内勤（営業・人事・経理）・システムエンジニア・任せる依頼を含む。
 // 式は書かない。給与・依頼の届き方・内勤の効果・精算・経験値・任せる依頼の結果は、すべて src の関数を呼ぶ。
-// 仮定: 自分で設計する依頼は、想定の費用（予算の 0.75 倍）で★3、期日の日に納品する。案件の枠は balance.office.projectSlots。
+// 仮定: 自分で設計する依頼は、定型案件なら最安の設計の費用（optimalCostOf）、固定案件なら予算の 0.75 倍の費用で、期日の日に納品する。案件の枠は balance.office.projectSlots。
 //       内勤・システムエンジニアは、会社のレベルで解放され、資金が給与の3か月分を超えた最初の月（候補がいる月）に雇う。
 //       机と PC は雇うときに買う（経理の割引が効く）。実績（提案の依頼）・研修・昇給・退職・夜勤は扱わない。
 // 使い方: npx vite-node scripts/simulate-company.ts [試行の数] [月数]
@@ -8,6 +8,7 @@ import { balance, contracts, contractTemplates } from 'virtual:game-data';
 import { mapLoaders } from 'virtual:loaders';
 import type { GameMap, Staff, JobId } from '../src/data/schema';
 import type { Offer } from '../src/contracts/template';
+import { optimalCostOf } from '../src/contracts/budget';
 import { advanceTick, initialClock, minutesPerDay, minutesPerMonth, type ClockState } from '../src/sim/clock';
 import { applyMoney } from '../src/sim/ledger';
 import { refreshOffers, salesArrival, earlyOfferDue, type OfferEnv, type OfferState } from '../src/contracts/offers';
@@ -33,8 +34,8 @@ import type { NetNode } from '../src/network/types';
 const trials = Number(process.argv[2] ?? 10);
 const months = Number(process.argv[3] ?? 24);
 
-// 想定の解答の費用。依頼の想定の費用を求める既存の関数はないため、予算の 0.75 倍（★3の費用の割合 0.8 以下）とする
-const ASSUMED_COST_RATIO = 0.75;
+// 固定案件の想定の解答の費用。固定案件は予算を手で決めており、最安の設計の費用を求められないため、予算の 0.75 倍（★3の費用の割合 0.8 以下）とする
+const FIXED_COST_RATIO = 0.75;
 const PC_ID = 'pc_basic';
 
 const maps: Record<string, GameMap> = {};
@@ -150,7 +151,14 @@ const run = (scn: Scenario, seed: number): RunResult => {
   const hasPc = (m: Staff): boolean => m.desk !== null && pcDesksOf(office, isPcDevice).includes(m.desk);
   const fieldStaff = (): Staff[] => staff.filter((m) => isFieldEngineerJob(m.job) && m.training === null);
 
-  const costOf = (o: Offer): number => Math.round(o.contract.budget * ASSUMED_COST_RATIO);
+  // 定型案件の費用は最安の設計の費用。案件の ID は <ひな形の ID> に連番が付いた形
+  const costOf = (o: Offer): number => {
+    if (o.kind === 'fixed') return Math.round(o.contract.budget * FIXED_COST_RATIO);
+    const templateId = o.contract.id.replace(/(_\d+)+$/, '');
+    const template = contractTemplates.find((t) => t.id === templateId);
+    if (!template) throw new Error(`ひな形 ${templateId} がない`);
+    return optimalCostOf(template, maps[o.contract.map], o.contract.placed, o.contract.furniture ?? []);
+  };
   // 営業の効果。受注する依頼の報酬は、ゲームと同じく倍率を掛けた額
   const withSalesMul = (o: Offer): Offer => ({ ...o, contract: { ...o.contract, reward: { ...o.contract.reward, money: rewardWithMul(o.contract.reward.money, salesRewardMul(pOf('sales'), balance)) } } });
   const expectedNet = (o: Offer): number => {
@@ -324,7 +332,7 @@ const runs = new Map<string, RunResult[]>();
 const SOLO: Scenario[] = (['sales', 'hr', 'accounting', 'dev'] as JobId[]).map((job) => ({ id: `solo-${job}`, label: `${job} だけ`, hires: [job], delegate: false }));
 for (const scn of [...SCENARIOS, ...SOLO]) runs.set(scn.id, seeds.map((s) => run(scn, s)));
 
-console.log(`試行 ${trials} 回の平均（資金は千円・月給の合計は千円）。月数 ${months}・案件の枠 ${balance.office.projectSlots}・想定の費用は予算の ${ASSUMED_COST_RATIO} 倍`);
+console.log(`試行 ${trials} 回の平均（資金は千円・月給の合計は千円）。月数 ${months}・案件の枠 ${balance.office.projectSlots}・想定の費用は、定型案件が最安の設計の費用・固定案件が予算の ${FIXED_COST_RATIO} 倍`);
 for (const scn of SCENARIOS) {
   const rs = runs.get(scn.id)!;
   console.log(`\n${scn.label}`);
