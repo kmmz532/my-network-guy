@@ -21,8 +21,8 @@ export interface NodeFacts {
 export interface MenuFacts {
   allows: (op: Operation) => boolean;
   node?: NodeFacts;
-  // 家具が効果の範囲を持つか（植物・本棚など）。持つときだけ「効果の範囲」を出す
-  furniture?: { hasEffectRange: boolean };
+  // 家具が効果の範囲を持つか（植物・本棚など）。持つときだけ「効果の範囲」を出す。回せるか（編集できる場面か）。回せない理由（椅子の側がふさがる）は回す操作が知らせる
+  furniture?: { hasEffectRange: boolean; rotatable: boolean };
 }
 
 // 項目が呼ぶ既存の操作
@@ -73,7 +73,7 @@ export function menuItemsOf(target: MenuTarget, facts: MenuFacts): MenuItem[] {
     return items;
   }
   if (facts.furniture?.hasEffectRange) items.push({ id: 'effectRange', label: 'ui.cmenu.effectRange', run: (a) => a.showEffectRange(uid) });
-  if (facts.allows({ kind: 'rotateFurniture', uid })) items.push({ id: 'rotate', label: 'ui.cmenu.rotate', run: (a) => a.rotateFurniture(uid) });
+  if (facts.furniture?.rotatable) items.push({ id: 'rotate', label: 'ui.cmenu.rotate', run: (a) => a.rotateFurniture(uid) });
   if (facts.allows({ kind: 'removeFurniture', uid })) items.push({ id: 'remove', label: 'ui.cmenu.remove', run: (a) => a.removeFurniture(uid) });
   return items;
 }

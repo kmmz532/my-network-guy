@@ -88,6 +88,8 @@ export class MapInput {
   hoverLinkUid: string | null = null;
   hoverNodeUid: string | null = null;
   hoverFurnUid: string | null = null;
+  // R で回す家具の候補（道具によらず、マウスを乗せた自社オフィスの家具。配置中は持たない）
+  hoverRotateUid: string | null = null;
   // 任意の道具で、マウスを乗せている機器と配線（ポートの名前を出すときに使う）
   hoverAnyNode: string | null = null;
   hoverAnyLink: string | null = null;
@@ -205,6 +207,12 @@ export class MapInput {
     }
   };
 
+  // R で回す家具。押している間は、押している家具（つかんでいる家具）だけを回す。押していなければ、マウスを乗せた家具
+  rotateTargetUid(): string | null {
+    if (this.press) return this.press.target.kind === 'furniture' ? this.press.target.uid : null;
+    return this.hoverRotateUid;
+  }
+
   // 押した位置の機器・家具・配線（メニューの対象）。判定は hover・撤去と同じ。なければ null
   private menuTargetAt(p: Point, tile: { tx: number; ty: number } | null): MenuTarget | null {
     const store = useGameStore.getState();
@@ -236,7 +244,7 @@ export class MapInput {
     const items = menuItemsOf(target, {
       allows: (op) => editable && this.canApply(op),
       node: node ? { hasConfig, hasPower: !can(node.device, 'uplink'), powered: node.powered !== false, name: node.name ?? '', canWire: editable } : undefined,
-      furniture: furniture ? { hasEffectRange: hasEffectRange(gameEnv.furniture?.[furniture.id]) } : undefined,
+      furniture: furniture ? { hasEffectRange: hasEffectRange(gameEnv.furniture?.[furniture.id]), rotatable: editable } : undefined,
     });
     if (items.length === 0) {
       ui.setContextMenu(null);
@@ -581,8 +589,9 @@ export class MapInput {
     const nodes = removing ? this.host.hit.editNodes() : null;
     const node = nodes ? this.host.hit.nodeNear(p, nodes) : undefined;
     const inOffice = viewingOffice(store);
-    const furniture =
-      removing && inOffice && tile ? store.office.furniture.find((f) => f.x === tile.tx && f.y === tile.ty) : undefined;
+    const under = inOffice && tile && !store.placing ? store.office.furniture.find((f) => f.x === tile.tx && f.y === tile.ty) : undefined;
+    const furniture = removing ? under : undefined;
+    this.hoverRotateUid = under?.uid ?? null;
     const link = store.placing ? undefined : this.host.hit.linkUnder(p);
     const next = { node: node?.uid ?? null, furniture: furniture?.uid ?? null, link: link?.uid ?? null };
     if (next.node === this.hoverNodeUid && next.furniture === this.hoverFurnUid && next.link === this.hoverLinkUid) {
@@ -647,6 +656,7 @@ export class MapInput {
     this.hoverLinkUid = null;
     this.hoverNodeUid = null;
     this.hoverFurnUid = null;
+    this.hoverRotateUid = null;
     this.hoverAnyNode = null;
     this.hoverAnyLink = null;
     if (hovering) this.host.redraw();

@@ -252,13 +252,14 @@ export class Scene {
     this.refresh();
   }
 
-  // R キーで、マウスを乗せた家具を回す（自社オフィスのみ）
+  // R キーで、マウスを乗せた家具（つかんでいる家具）を回す（自社オフィスのみ）
   private onRotateKey = (e: KeyboardEvent): boolean => {
     if ((e.key !== 'r' && e.key !== 'R') || e.ctrlKey || e.metaKey || e.altKey) return false;
-    if (this.input.hoverFurnUid === null || this.map?.id !== 'hq') return false;
+    const uid = this.input.rotateTargetUid();
+    if (uid === null || this.map?.id !== 'hq') return false;
     const target = e.target instanceof HTMLElement ? e.target : null;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return false;
-    useGameStore.getState().rotateFurniture(this.input.hoverFurnUid);
+    useGameStore.getState().rotateFurniture(uid);
     return true;
   };
 

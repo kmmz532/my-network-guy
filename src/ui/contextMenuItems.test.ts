@@ -69,18 +69,20 @@ describe('右クリックのメニューの項目', () => {
     expect(ids({ kind: 'link', uid: 'l1' }, ['removeLink'])).toEqual(['unplug']);
   });
 
-  it('家具は、回す・撤去を操作が通るものだけ並べる', () => {
+  it('家具は、編集できるときに回すを並べ、撤去は操作が通るときだけ並べる（回せない理由は回す操作が知らせる）', () => {
     const furniture = { kind: 'furniture', uid: 'f1' } as const;
-    expect(ids(furniture, ['rotateFurniture', 'removeFurniture'])).toEqual(['rotate', 'remove']);
-    expect(ids(furniture, ['rotateFurniture'])).toEqual(['rotate']);
-    expect(ids(furniture, [])).toEqual([]);
+    const menu = (rotatable: boolean, allowed: Operation['kind'][]) =>
+      menuItemsOf(furniture, { allows: (op) => allowed.includes(op.kind), furniture: { hasEffectRange: false, rotatable } }).map((i) => i.id);
+    expect(menu(true, ['removeFurniture'])).toEqual(['rotate', 'remove']);
+    expect(menu(true, [])).toEqual(['rotate']);
+    expect(menu(false, ['removeFurniture'])).toEqual(['remove']);
   });
 
   it('効果の範囲は、範囲を持つ家具だけに出し、回すより前に並ぶ', () => {
     const furniture = { kind: 'furniture', uid: 'f1' } as const;
-    const all = { allows: () => true, furniture: { hasEffectRange: true } };
+    const all = { allows: () => true, furniture: { hasEffectRange: true, rotatable: true } };
     expect(menuItemsOf(furniture, all).map((i) => i.id)).toEqual(['effectRange', 'rotate', 'remove']);
-    expect(menuItemsOf(furniture, { allows: () => true, furniture: { hasEffectRange: false } }).map((i) => i.id)).toEqual(['rotate', 'remove']);
+    expect(menuItemsOf(furniture, { allows: () => true, furniture: { hasEffectRange: false, rotatable: true } }).map((i) => i.id)).toEqual(['rotate', 'remove']);
   });
 
   it('項目は対象の uid で既存の操作を呼ぶ', () => {
