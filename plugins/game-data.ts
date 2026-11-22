@@ -153,7 +153,7 @@ const jsonFiles = (dir: string): string[] => {
     .map((f) => join(dir, f));
 };
 
-const loadData = (dataDir: string, langDir: string, spriteDir: string): GameData => {
+export const loadData = (dataDir: string, langDir: string, spriteDir: string): GameData => {
   const balance = parseWith(balanceSchema, readJson(join(dataDir, 'balance.json')), 'balance.json');
   const cables = parseWith(cablesFileSchema, readJson(join(dataDir, 'cables.json')), 'cables.json').cables;
   const devices = jsonFiles(join(dataDir, 'devices')).flatMap((file) =>
@@ -242,6 +242,9 @@ const unique = <T>(items: T[], key: (item: T) => string, label: string): Set<str
   if (errors.length) throw new GameDataError(errors);
   return ids;
 };
+
+// 外（インターネット）へ届くかを見る達成条件。これを1つでも持つ案件は、回線終端（uplink）を置く
+const EXTERNAL_GOAL_TYPES: readonly Goal['type'][] = ['outside_reachable', 'survive_uplink_failure', 'public_http', 'outside_sees'];
 
 const goalRefs = (goal: Goal): string[] => {
   switch (goal.type) {
@@ -466,6 +469,9 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
     const refs = checkPlacement(owner, contract.placed, map);
     checkGoals(owner, contract.goals, refs);
     checkFlows(owner, contract.goals, contract.flows, refs);
+    if (contract.goals.some((g) => EXTERNAL_GOAL_TYPES.includes(g.type)) && !contract.placed.some((p) => p.device === 'uplink')) {
+      errors.push(`${owner}: 外部へ届くかを見る達成条件があるのに、回線終端（uplink）が placed にない`);
+    }
     for (const p of contract.placed) {
       if (!p.setup) continue;
       const device = data.devices.find((d) => d.id === p.device);
