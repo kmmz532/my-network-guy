@@ -208,6 +208,12 @@ const handlers: { [K in Goal['type']]: Evaluate<K> } = {
     const ok = uidsOf(net, data, goal.category).length >= goal.min;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
+  // 指定した種類の機器が、ネットワークの中に max 台以下しかない（固定で置かれたものも含む）
+  max_devices: (goal, state) => {
+    const { net, world: data } = state;
+    const ok = uidsOf(net, data, goal.category).length <= goal.max;
+    return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
+  },
   // 無線の端末が、アクセスポイントに一定数以上つながる（電波の範囲・SSID・パスワードで決まる。N152）
   wireless_clients: (goal, state) => {
     const { world: data } = state;
@@ -497,6 +503,7 @@ const texts: { [K in Goal['type']]: Text<K> } = {
   ping_all: (g, c) => ({ params: { nodes: Array.isArray(g.nodes) ? names(g.nodes, c) : c.tr('ui.task.allPcs') } }),
   count: (g, c) => ({ params: { name: c.tr(`category.${g.category}`), min: g.min } }),
   count_device: (g, c) => ({ params: { name: c.tr(`device.${g.device}.name`), min: g.min } }),
+  max_devices: (g, c) => ({ params: { name: c.tr(`category.${g.category}`), max: g.max } }),
   reach_category: (g, c) => ({ params: { name: c.tr(`category.${g.category}`) } }),
   wireless_clients: (g) => ({ params: { min: g.min } }),
   outside_reachable: noParams,

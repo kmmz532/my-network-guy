@@ -446,6 +446,7 @@
   "goal.lag_bundled": "{node} が、{min} 本以上のリンクを1本の論理リンクにまとめている",
   "goal.load_balanced": "{from} から {lb} の仮想サーバーへ HTTP が届き、健全な振り分け先が {minHealthy} 台以上ある",
   "goal.mail": "{from} から {to} 宛にメールを送信できる",
+  "goal.max_devices": "{name}は{max}台までにする",
   "goal.min_speed": "{from} から {to} へ Ping が通り、通り道の速さがすべて {mbps} Mbps 以上ある",
   "goal.nas": "{from} から NAS（{to}）のファイル共有（SMB）へ届く",
   "goal.no_static_route": "すべてのPCがつながり、機器に設定した経路（static）を使わない",

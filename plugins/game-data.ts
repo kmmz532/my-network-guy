@@ -273,6 +273,7 @@ const goalRefs = (goal: Goal): string[] => {
       return goal.nodes === '$all_pcs' ? [] : goal.nodes;
     case 'count':
     case 'count_device':
+    case 'max_devices':
     case 'http_all':
     case 'firewall':
     case 'reach_category':
