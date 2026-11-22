@@ -1,0 +1,140 @@
+{
+  "id": "w003_many_walls",
+  "stage": 2,
+  "order": 267,
+  "requires": [
+    "w002_wireless_office"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "hospital_ward",
+  "budget": 100000,
+  "deadlineDays": 6,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "SW",
+      "device": "l2_switch_8p",
+      "x": 16,
+      "y": 6,
+      "locked": true,
+      "name": "廊下のスイッチ"
+    },
+    {
+      "ref": "NB1",
+      "device": "laptop",
+      "x": 4,
+      "y": 3,
+      "locked": true,
+      "name": "病室のノートPC A",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.30.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "wireless": {
+        "ssid": "ward-wifi",
+        "password": "ward-pass-2026"
+      }
+    },
+    {
+      "ref": "NB2",
+      "device": "laptop",
+      "x": 12,
+      "y": 3,
+      "locked": true,
+      "name": "病室のノートPC B",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.30.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "wireless": {
+        "ssid": "ward-wifi",
+        "password": "ward-pass-2026"
+      }
+    },
+    {
+      "ref": "NB3",
+      "device": "laptop",
+      "x": 20,
+      "y": 3,
+      "locked": true,
+      "name": "病室のノートPC C",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.30.13",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "wireless": {
+        "ssid": "ward-wifi",
+        "password": "ward-pass-2026"
+      }
+    },
+    {
+      "ref": "NB4",
+      "device": "laptop",
+      "x": 28,
+      "y": 3,
+      "locked": true,
+      "name": "病室のノートPC D",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.30.14",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "wireless": {
+        "ssid": "ward-wifi",
+        "password": "ward-pass-2026"
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "wireless_clients",
+      "min": 4
+    },
+    {
+      "type": "ping_all",
+      "nodes": [
+        "NB1",
+        "NB2",
+        "NB3",
+        "NB4"
+      ]
+    }
+  ],
+  "reward": {
+    "money": 525000
+  },
+  "unlockLevel": 45
+}
