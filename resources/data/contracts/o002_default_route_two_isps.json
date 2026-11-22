@@ -1,0 +1,132 @@
+{
+  "id": "o002_default_route_two_isps",
+  "kind": "build",
+  "stage": 2,
+  "order": 270,
+  "requires": [
+    "o001_hq_three_branches"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_rooms",
+  "budget": 420000,
+  "deadlineDays": 10,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "br_sw",
+      "device": "l2_switch_4p",
+      "x": 4,
+      "y": 3,
+      "locked": true,
+      "name": "支店のスイッチ"
+    },
+    {
+      "ref": "br_pc1",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.1.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.0.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "支店のPC1"
+    },
+    {
+      "ref": "br_pc2",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 4,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.1.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": "10.0.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "支店のPC2"
+    },
+    {
+      "ref": "isp_a",
+      "device": "uplink",
+      "x": 17,
+      "y": 2,
+      "locked": true,
+      "isp": {
+        "name": "ISP-A",
+        "network": "198.51.100.0",
+        "prefix": 24,
+        "ispIp": "198.51.100.1",
+        "asn": 65001
+      },
+      "name": "ISP-A"
+    },
+    {
+      "ref": "isp_b",
+      "device": "uplink",
+      "x": 17,
+      "y": 8,
+      "locked": true,
+      "isp": {
+        "name": "ISP-B",
+        "network": "203.0.113.0",
+        "prefix": 24,
+        "ispIp": "203.0.113.1",
+        "asn": 65002
+      },
+      "name": "ISP-B"
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "br_pc1",
+        "port": 0
+      },
+      "b": {
+        "ref": "br_sw",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "br_pc2",
+        "port": 0
+      },
+      "b": {
+        "ref": "br_sw",
+        "port": 1
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "outside_reachable"
+    },
+    {
+      "type": "survive_uplink_failure"
+    }
+  ],
+  "reward": {
+    "money": 1200000
+  },
+  "unlockLevel": 74
+}

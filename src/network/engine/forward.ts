@@ -290,10 +290,18 @@ export const backOf = (view: ForwardView, dstUid: string, srcUid: string, traffi
   const { router, insideIp, outsideIp } = forward.nat;
   const toRouter = deliver(view, dstUid, router, traffic, false, undefined, outsideIp);
   if (!toRouter.ok) return toRouter;
-  const insideIface = view.addressing.nodeOf(router)?.interfaces.find((i) => inSubnet(insideIp, i.ip, i.prefix));
+  // 元の送信元が NAPT の機器の直結のサブネットにいなければ（別のルーターの先にいる）、inside の口から戻す
+  const natIfaces = view.addressing.nodeOf(router)?.interfaces ?? [];
+  const insideIface = natIfaces.find((i) => inSubnet(insideIp, i.ip, i.prefix)) ?? natIfaces.find((i) => i.nat === 'inside');
   if (!insideIface || !src || !dst) return { ok: false, path: toRouter.path, failure: fail('route.none', router) };
-  const rest = deliver(view, router, srcUid, traffic, false, insideIface.ip, undefined);
-  return rest.ok ? { ...rest, path: [...toRouter.path, ...rest.path.slice(1)] } : rest;
+  // 別のルーターの先なら、NAPT の機器を、inside の口のアドレスをゲートウェイとする端末として扱い、自分の経路表を引かせる（relayDeliver と同じ）
+  const natNode = view.addressing.nodeOf(router)!;
+  const from: ForwardView = natIfaces.some((i) => inSubnet(insideIp, i.ip, i.prefix))
+    ? view
+    : { ...view, addressing: { ...view.addressing, nodeOf: (uid) => (uid === router ? { ...natNode, gateway: insideIface.ip } : view.addressing.nodeOf(uid)) } };
+  const rest = deliver(from, router, srcUid, traffic, false, insideIface.ip, undefined);
+  const tail = rest.path.slice(1);
+  return rest.ok ? { ...rest, path: [...toRouter.path, ...(tail[0] === router ? tail.slice(1) : tail)] } : rest;
 };
 
 

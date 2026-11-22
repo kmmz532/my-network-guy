@@ -86,19 +86,24 @@ describe('OSPF の隣接', () => {
 });
 
 describe('既定の経路の配布', () => {
+  // R1 — R2（外への口 192.0.2.2 から ISP 192.0.2.1 へ静的な既定の経路を持つ）。wan は外への線がつながっているか
+  const o = { area: 0 };
+  const mk = (originate: boolean, wan = true): Network => ({
+    nodes: [
+      node('r1', 'router_basic', [f(0, '10.0.12.1', o)]),
+      node('r2', 'router_basic', [f(0, '10.0.12.2', o), f(1, '192.0.2.2')], originate ? { components: { ospf: { defaultOriginate: true } }, routes: [{ dest: '0.0.0.0', prefix: 0, nextHop: '192.0.2.1' }] } : {}),
+      node('isp', 'router_basic', [f(0, '192.0.2.1')]),
+    ],
+    links: [link('l', 'r1', 0, 'r2', 0), ...(wan ? [link('w', 'r2', 1, 'isp', 0)] : [])],
+    plans: {},
+  });
+  const routes = (net: Network) => learnedRoutesOf(analyze(net, data), 'r1', 'ospf');
   it('default-information originate を設定した機器へ向かう 0.0.0.0/0 を、ほかのルーターが OSPF で覚える', () => {
-    const o = { area: 0 };
-    const mk = (originate: boolean): Network => ({
-      nodes: [
-        node('r1', 'router_basic', [f(0, '10.0.12.1', o)]),
-        node('r2', 'router_basic', [f(0, '10.0.12.2', o)], originate ? { components: { ospf: { defaultOriginate: true } } } : {}),
-      ],
-      links: [link('l', 'r1', 0, 'r2', 0)],
-      plans: {},
-    });
-    const routes = (net: Network) => learnedRoutesOf(analyze(net, data), 'r1', 'ospf');
     expect(routes(mk(true))).toContainEqual(expect.objectContaining({ dest: '0.0.0.0', prefix: 0, nextHop: '10.0.12.2', protocol: 'ospf' }));
     expect(routes(mk(false)).some((r) => r.prefix === 0)).toBe(false);
+  });
+  it('配る機器の外への線が切れていると、既定の経路は配らない', () => {
+    expect(routes(mk(true, false)).some((r) => r.prefix === 0)).toBe(false);
   });
 });
 

@@ -59,6 +59,14 @@ export const stageRouting = (net: Network, l2: L2Layer, links: LinkLayer): Routi
   const ospfCostOfIface = (n: NetNode, i: Iface): number =>
     i.ospf?.cost ?? ospfCostOfSpeed(getComponent(n, 'ospf')?.referenceBandwidth ?? OSPF_DEFAULT_REFERENCE_MBPS, speedOfIface(n, i));
 
+  // 機器が、つながっている口の先を指す静的な既定の経路（0.0.0.0/0）を持つか。SVI・サブインターフェースの口は配線を持たないため、つながっているものとして扱う
+  const hasDefaultRoute = (n: NetNode): boolean =>
+    n.routes.some(
+      (r) =>
+        r.prefix === 0 &&
+        n.interfaces.some((i) => inSubnet(r.nextHop, i.ip, i.prefix) && (isSviPort(i.port) || isSubPort(i.port) || l2.linkAt({ node: n.uid, port: i.port }) !== undefined)),
+    );
+
   // 動的経路（RIP・OSPF の MVP）。RIP・OSPF に参加したインターフェースどうしが、同じ L2 ドメインでつながる隣接をたどり、
   // 宛先のサブネットへの経路を作る。RIP は跳ね数（16 以上は届かない）、OSPF はコストの合計の最短経路（エリア 0 だけ）。
   // 参加していない機器・インターフェースは、経路を作らない
@@ -124,8 +132,9 @@ export const stageRouting = (net: Network, l2: L2Layer, links: LinkLayer): Routi
           const hop = first.get(o.uid);
           if (hop === undefined) continue;
           const metric = dist.get(o.uid) as number;
-          // 既定の経路の配布（default-information originate）: 配る機器への最短の道を、0.0.0.0/0 の経路にする
-          if (proto === 'ospf' && getComponent(o, 'ospf')?.defaultOriginate === true) routes.push({ dest: '0.0.0.0', prefix: 0, nextHop: hop, protocol: 'ospf', metric });
+          // 既定の経路の配布（default-information originate）: 配る機器への最短の道を、0.0.0.0/0 の経路にする。
+          // 配る機器が自分で使える既定の経路（つながっている口の先を指す静的経路）を持つときだけ配る（回線が切れれば配らない）
+          if (proto === 'ospf' && getComponent(o, 'ospf')?.defaultOriginate === true && hasDefaultRoute(o)) routes.push({ dest: '0.0.0.0', prefix: 0, nextHop: hop, protocol: 'ospf', metric });
           // RIP は 16 以上で届かない（rip.unreachable）
           if (proto === 'rip' && metric >= 16) continue;
           for (const oi of o.interfaces) {
