@@ -260,6 +260,8 @@ export interface Core {
   completed: string[];
   // 納品した案件の数（合格した納品の数。自社の情報の画面に出す。N66）
   deliveries: number;
+  // 合格させたことのある達成条件の型（型ごとに初めての納品で経験値を得る。xp.firstGoal）
+  firstGoals: string[];
   // なじみの依頼の回数と型紙（N70）
   familiarity: Familiarity;
   // 経理の割引（配線の費用に掛ける割合。店の割引と同じ値）

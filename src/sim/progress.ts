@@ -15,6 +15,7 @@ import { blindDelegation } from './blindDelegate';
 import { busyStaff, crewBlock } from './crew';
 import { warningsOf } from '../network/query/warnings';
 import { deliveryExpOf, levelOf } from './level';
+import { firstGoalGainOf } from './companyExp';
 import { BlindOutcome, BlindPlan, Core, Env, GoalCheck, Office, Outcome, Project, ReportFailure, TestOutcome, TestResult, Trace, connect, changesOf, contractLinks, delegationReason, designIssues, stateOfProject, fail, fixedNodes, focusedOf, hubFor, isPcIn, keepFocus, projectCostOf, requireDesign, withProject } from './project';
 
 // 増えた機器を型紙につなぐときのケーブル（一番安いもの）
@@ -344,8 +345,9 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
     const money = Math.round(p.contract.reward.money * lateFactor(lateDays, env.balance) * rewardRateOf(stars, env.balance));
     // 会社の経験値は、現在のレベルの必要経験値に割合と★の倍率を掛けた量で増える（deliveryExpOf）。評判は得た★の数だけ増える（N55）
     const expGain = deliveryExpOf(p.contract.unlockLevel, levelOf(core.companyExp, env.balance), rewardRateOf(stars, env.balance), env.balance);
-    // 任せた依頼は経験値を半分にする（N70）
-    const companyExp = core.companyExp + (p.delegated ? Math.max(1, Math.floor(expGain / DELEGATED_EXP_DIVISOR)) : expGain);
+    // 任せた依頼は経験値を半分にする（N70）。達成条件の型を初めて合格させた分は、型ごとに別に足す（xp.firstGoal）
+    const first = firstGoalGainOf(core.firstGoals, p.contract.goals.map((g) => g.type), core.companyExp, env.balance);
+    const companyExp = core.companyExp + (p.delegated ? Math.max(1, Math.floor(expGain / DELEGATED_EXP_DIVISOR)) : expGain) + first.gained;
     const reputation = core.reputation + stars;
     // 自社案件は、納品したネットワークを自社オフィスとして残し、効果を加える
     const office: Office = p.contract.inhouse
@@ -370,6 +372,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
         // なじみの依頼: ★2以上の納品を数え、設計を型紙として覚える（自社案件は対象外）（N70）
         familiarity: p.contract.inhouse ? core.familiarity : recordDelivery(core.familiarity, familiarKeyOf(p.kind, p.baseId, p.contract.map), stars, { nodes: p.nodes, links: p.links, plans: p.plans }),
         deliveries: core.deliveries + 1,
+        firstGoals: [...core.firstGoals, ...first.types],
       },
       report: {
         passed: true,

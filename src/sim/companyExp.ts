@@ -30,3 +30,11 @@ export const grantDailyExp = (
   const gained = Math.max(0, Math.min(amount, room));
   return { companyExp: state.companyExp + gained, expDay: day, expToday: today + gained, gained };
 };
+
+// 達成条件の型を初めて合格させた納品の経験値（xp.firstGoal）。done は今までに合格させた型、goalTypes は今回の案件の達成条件の型。
+// 型ごとに1回だけ数え、新しく合格させた型の一覧（types）と、得た量（gained）を返す
+export const firstGoalGainOf = (done: readonly string[], goalTypes: readonly string[], companyExp: number, balance: Balance): { types: string[]; gained: number } => {
+  const types = [...new Set(goalTypes)].filter((t) => !done.includes(t));
+  const amount = types.length === 0 ? 0 : expAmountOf(balance.xp.firstGoal, levelOf(companyExp, balance), balance);
+  return { types, gained: types.length * amount };
+};

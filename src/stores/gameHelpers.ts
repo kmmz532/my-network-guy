@@ -116,6 +116,7 @@ export const coreOf = (s: GameState): Core => ({
   owned: s.owned,
   completed: s.completed,
   deliveries: s.deliveries,
+  firstGoals: s.firstGoals,
   familiarity: s.familiarity,
   purchaseDiscount: purchaseDiscountOf(s),
   offers: s.offers,

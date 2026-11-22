@@ -37,6 +37,7 @@ const sample: Company = {
   owned: { pc_basic: 1 },
   completed: ['c001_direct_link'],
   deliveries: 0,
+  firstGoals: [],
   familiarity: EMPTY_FAMILIARITY,
   offers: [],
   nextOfferMinute: 0,
@@ -255,6 +256,19 @@ describe('v12 → v13', () => {
   it('色を持たない案件は、そのまま残す', () => {
     const v12 = { ...legacySample, active: [{ id: 'x', nodes: [], links: [], contract: { inhouse: false } }] };
     expect(migrate(12, v12).active[0]).toMatchObject({ id: 'x', nodes: [], links: [], testedOk: false });
+  });
+});
+
+describe('v63 → v64', () => {
+  const { firstGoals: _firstGoals, ...v63 } = sample;
+
+  it('初めての納品の記録は、移行前は空のまま', () => {
+    expect(migrate(63, v63).firstGoals).toEqual([]);
+  });
+
+  it('firstGoals が文字列の配列でなければ拒否する', () => {
+    expect(() => migrate(64, { ...sample, firstGoals: [1] })).toThrow();
+    expect(() => migrate(64, v63)).toThrow();
   });
 });
 

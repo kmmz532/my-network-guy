@@ -71,6 +71,9 @@
     "furniture": 0.01,
     "dailyCap": 0.03
   },
+  "xp": {
+    "firstGoal": 0.075
+  },
   "pricing": {
     "base": {
       "pc": 80000,

@@ -26,7 +26,7 @@ import printerJson from '../../resources/data/devices/printer.json';
 import furnitureDefsJson from '../../resources/data/furniture.json';
 import cablesJson from '../../resources/data/cables.json';
 
-export const SAVE_VERSION = 63;
+export const SAVE_VERSION = 64;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -76,6 +76,8 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v63 → v64: 合格させたことのある達成条件の型（firstGoals）を足す。移行前のセーブは、初めての納品の経験値を受け取っていないとして空から始める
+  63: (data) => ({ ...(data as object), firstGoals: [] }),
   // v62 → v63: 案内をしまった案件のID（guidesHidden）を足す。移行前は、しまった案内がないため空
   62: (data) => ({ ...(data as object), guidesHidden: [] }),
   // v61 → v62: 電波を出すアクセスポイント（と無線つきの家庭用ルーター）の無線の設定に、帯（band）を足す。移行前は 2.4GHz だけだったため '2.4'。
@@ -702,6 +704,8 @@ export const isCompany = (value: unknown): value is Company => {
     Object.values(owned).every((n) => Number.isInteger(n) && (n as number) >= 0) &&
     Array.isArray(v.completed) &&
     Number.isInteger(v.deliveries) &&
+    Array.isArray(v.firstGoals) &&
+    v.firstGoals.every((id) => typeof id === 'string') &&
     typeof v.familiarity === 'object' &&
     v.familiarity !== null &&
     v.completed.every((id) => typeof id === 'string') &&

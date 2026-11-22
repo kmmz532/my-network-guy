@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Balance } from '../data/schema';
 import balanceJson from '../../resources/data/balance.json';
-import { dayOf, grantDailyExp } from './companyExp';
+import { dayOf, firstGoalGainOf, grantDailyExp } from './companyExp';
 import { dailyExpCapOf, deliveryExpOf, expAmountOf, needOf } from './level';
 import { minutesPerDay } from './clock';
 
@@ -59,5 +59,23 @@ describe('deliveryExpOf（納品の経験値は現在のレベル・解放レベ
   it('★の倍率が高いほど多い。最小は1', () => {
     expect(deliveryExpOf(5, 5, 1.25, balance)).toBeGreaterThan(deliveryExpOf(5, 5, 1, balance));
     expect(deliveryExpOf(1, 1, 1, balance)).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('firstGoalGainOf（達成条件の型を初めて合格させた納品の経験値）', () => {
+  it('初めての型は、現在のレベルの必要経験値に xp.firstGoal を掛けた量を得る', () => {
+    const r = firstGoalGainOf([], ['ping'], 0, balance);
+    expect(r.types).toEqual(['ping']);
+    expect(r.gained).toBe(expAmountOf(balance.xp.firstGoal, 1, balance));
+  });
+  it('同じ型の2回目の合格では足さない', () => {
+    const r = firstGoalGainOf(['ping'], ['ping', 'ping'], 0, balance);
+    expect(r.types).toEqual([]);
+    expect(r.gained).toBe(0);
+  });
+  it('型ごとに1回。同じ案件の中の同じ型も1回として数える', () => {
+    const r = firstGoalGainOf(['ping'], ['ping', 'http', 'http'], 0, balance);
+    expect(r.types).toEqual(['http']);
+    expect(r.gained).toBe(expAmountOf(balance.xp.firstGoal, 1, balance));
   });
 });

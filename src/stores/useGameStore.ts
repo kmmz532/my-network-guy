@@ -69,6 +69,8 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   completed: string[];
   // 納品した案件の数（N66）
   deliveries: number;
+  // 合格させたことのある達成条件の型（セーブデータに入る）
+  firstGoals: string[];
   // なじみの依頼の回数と型紙（N70）
   familiarity: Familiarity;
   // 通信で覚えた ARP の表（画面の状態。保存しない。N69）。キーは「案件の ID または office」と機器の uid
@@ -207,6 +209,7 @@ export const useGameStore = create<GameState>((set, get, api) => {
     owned: { ...balance.initialStock },
     completed: [],
     deliveries: 0,
+    firstGoals: [],
     familiarity: EMPTY_FAMILIARITY,
     arpTable: {},
     offers: [],

@@ -59,6 +59,8 @@ describe('セーブのバージョン移行', () => {
       completed: [],
       // 納品した案件の数は、移行前は数えていないため 0 から始める（N66）
       deliveries: 0,
+      // 初めての納品の記録は移行前は空（xp.firstGoal）
+      firstGoals: [],
       // なじみの依頼は移行前は空（N70）
       familiarity: { counts: {}, blueprints: {} },
       guidesDone: [],

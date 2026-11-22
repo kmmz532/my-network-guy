@@ -33,6 +33,7 @@ const start = (): Core => ({
   owned: { pc_basic: 3, l2_switch_8p: 2 },
   completed: [],
   deliveries: 0,
+  firstGoals: [],
   familiarity: EMPTY_FAMILIARITY,
   purchaseDiscount: 0,
   offers: [],
