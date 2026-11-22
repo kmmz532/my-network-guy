@@ -18,7 +18,7 @@ const SIDE_SHIFT = 0.65;
 // 奥の椅子の上端（机のマスの上端から上へ、マス単位）。下半分は机に隠れる
 const BACK_RISE = 0.4;
 // 横の椅子の上端（机のマスの上端からの差、マス単位）。机の足元より少し奥に置く
-const SIDE_DROP = -0.1;
+const SIDE_DROP = 0;
 
 // 椅子の描く順。手前（up）は机の手前、ほかは机の後ろ
 export const chairDepth = (y: number, facing: Facing, ts: number): number => {

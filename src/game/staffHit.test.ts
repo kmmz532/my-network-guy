@@ -8,8 +8,8 @@ describe('席の社員の位置と当たり判定', () => {
     // up は手前（1マス下）、down は奥（1マス上）、left は右、right は左
     expect(deskStaffPos(2, 3, TS, 0, 'up')).toEqual({ x: 2 * TS + (TS - STAFF_W) / 2, y: 4 * TS - 6 });
     expect(deskStaffPos(2, 3, TS, 0, 'down')).toEqual({ x: 2 * TS + (TS - STAFF_W) / 2, y: 3 * TS - Math.round(0.4 * TS) - 2 });
-    expect(deskStaffPos(2, 3, TS, 0, 'left')).toEqual({ x: 2 * TS + Math.round(0.65 * TS) + (TS - STAFF_W) / 2, y: 3 * TS + Math.round(-0.1 * TS) - 8 });
-    expect(deskStaffPos(2, 3, TS, 0, 'right')).toEqual({ x: 2 * TS - Math.round(0.65 * TS) + (TS - STAFF_W) / 2, y: 3 * TS + Math.round(-0.1 * TS) - 8 });
+    expect(deskStaffPos(2, 3, TS, 0, 'left')).toEqual({ x: 2 * TS + Math.round(0.65 * TS) + (TS - STAFF_W) / 2, y: 3 * TS + Math.round(0 * TS) - 8 });
+    expect(deskStaffPos(2, 3, TS, 0, 'right')).toEqual({ x: 2 * TS - Math.round(0.65 * TS) + (TS - STAFF_W) / 2, y: 3 * TS + Math.round(0 * TS) - 8 });
     expect(deskStaffPos(2, 3, TS, 1, 'up').y).toBe(4 * TS - 7);
   });
 
