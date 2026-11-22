@@ -405,11 +405,6 @@
       "b": "n1"
     },
     {
-      "id": "wlan.weak_cipher",
-      "a": "n3",
-      "b": "n3"
-    },
-    {
       "id": "lag.mismatch",
       "a": "n6",
       "b": "n2"

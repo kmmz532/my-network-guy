@@ -295,32 +295,7 @@
   "warnings": [
     {
       "id": "wlan.open",
-      "a": "n1",
-      "b": "n1"
-    },
-    {
-      "id": "wlan.weak_cipher",
-      "a": "n2",
-      "b": "n2"
-    },
-    {
-      "id": "wlan.open",
       "a": "n4",
-      "b": "n4"
-    },
-    {
-      "id": "wlan.channel_overlap",
-      "a": "n1",
-      "b": "n2"
-    },
-    {
-      "id": "wlan.channel_overlap",
-      "a": "n1",
-      "b": "n4"
-    },
-    {
-      "id": "wlan.channel_overlap",
-      "a": "n2",
       "b": "n4"
     }
   ]

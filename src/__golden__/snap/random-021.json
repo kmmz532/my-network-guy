@@ -327,11 +327,6 @@
       "b": "n3"
     },
     {
-      "id": "wlan.weak_cipher",
-      "a": "n7",
-      "b": "n7"
-    },
-    {
       "id": "wlan.channel_overlap",
       "a": "n0",
       "b": "n2"
@@ -343,23 +338,8 @@
     },
     {
       "id": "wlan.channel_overlap",
-      "a": "n0",
-      "b": "n7"
-    },
-    {
-      "id": "wlan.channel_overlap",
       "a": "n2",
       "b": "n3"
-    },
-    {
-      "id": "wlan.channel_overlap",
-      "a": "n2",
-      "b": "n7"
-    },
-    {
-      "id": "wlan.channel_overlap",
-      "a": "n3",
-      "b": "n7"
     },
     {
       "id": "vrrp.gateway_real_ip",

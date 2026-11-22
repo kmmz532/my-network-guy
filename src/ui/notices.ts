@@ -29,6 +29,8 @@ export const NOTICE_KINDS = {
   pcMissing: { key: 'ui.notice.pcMissing', open: 'staffList', sticky: false },
   // 読み込んだセーブから、登録にない機材を取り除いた知らせ（押しても開く画面はない）
   devicesDropped: { key: 'ui.notice.devicesDropped', open: null, sticky: false },
+  // 移行で、無線なしの家庭用ルーターの無線のつながりを外した（押しても開く画面はない）
+  homeRouterWirelessOff: { key: 'ui.notice.homeRouterWirelessOff', open: null, sticky: false },
 } as const satisfies Record<string, NoticeSpec>;
 
 export type NoticeKind = keyof typeof NOTICE_KINDS;

@@ -467,11 +467,5 @@
       }
     ]
   ],
-  "warnings": [
-    {
-      "id": "wlan.channel_overlap",
-      "a": "n2",
-      "b": "n5"
-    }
-  ]
+  "warnings": []
 }

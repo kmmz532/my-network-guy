@@ -536,26 +536,6 @@
   ],
   "warnings": [
     {
-      "id": "wlan.weak_cipher",
-      "a": "n0",
-      "b": "n0"
-    },
-    {
-      "id": "wlan.channel_overlap",
-      "a": "n0",
-      "b": "n4"
-    },
-    {
-      "id": "wlan.channel_overlap",
-      "a": "n0",
-      "b": "n6"
-    },
-    {
-      "id": "wlan.channel_overlap",
-      "a": "n4",
-      "b": "n6"
-    },
-    {
       "id": "vrrp.gateway_real_ip",
       "a": "n1",
       "b": "n6"

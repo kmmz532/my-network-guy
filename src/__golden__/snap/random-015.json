@@ -304,11 +304,5 @@
       }
     ]
   ],
-  "warnings": [
-    {
-      "id": "wlan.weak_cipher",
-      "a": "n0",
-      "b": "n0"
-    }
-  ]
+  "warnings": []
 }

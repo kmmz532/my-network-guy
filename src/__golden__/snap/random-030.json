@@ -4,56 +4,43 @@
       "from": "n0",
       "to": "n1",
       "ok": false,
-      "reason": "gateway.unset",
-      "path": [
-        "n0"
-      ]
+      "reason": "wireless.unassociated",
+      "path": []
     },
     {
       "from": "n0",
       "to": "n2",
       "ok": false,
-      "reason": "ip.unreachable",
-      "path": [
-        "n0"
-      ]
+      "reason": "wireless.unassociated",
+      "path": []
     },
     {
       "from": "n0",
       "to": "n3",
-      "ok": true,
-      "reason": null,
-      "path": [
-        "n0",
-        "n3"
-      ]
+      "ok": false,
+      "reason": "wireless.unassociated",
+      "path": []
     },
     {
       "from": "n0",
       "to": "n5",
       "ok": false,
-      "reason": "ip.unreachable",
-      "path": [
-        "n0"
-      ]
+      "reason": "wireless.unassociated",
+      "path": []
     },
     {
       "from": "n0",
       "to": "n6",
       "ok": false,
-      "reason": "ip.unreachable",
-      "path": [
-        "n0"
-      ]
+      "reason": "wireless.unassociated",
+      "path": []
     },
     {
       "from": "n1",
       "to": "n0",
       "ok": false,
-      "reason": "gateway.unset",
-      "path": [
-        "n1"
-      ]
+      "reason": "wireless.unassociated",
+      "path": []
     },
     {
       "from": "n1",
@@ -95,10 +82,8 @@
       "from": "n2",
       "to": "n0",
       "ok": false,
-      "reason": "ip.unreachable",
-      "path": [
-        "n2"
-      ]
+      "reason": "wireless.unassociated",
+      "path": []
     },
     {
       "from": "n2",
@@ -140,12 +125,9 @@
     {
       "from": "n3",
       "to": "n0",
-      "ok": true,
-      "reason": null,
-      "path": [
-        "n3",
-        "n0"
-      ]
+      "ok": false,
+      "reason": "wireless.unassociated",
+      "path": []
     },
     {
       "from": "n3",
@@ -187,10 +169,8 @@
       "from": "n5",
       "to": "n0",
       "ok": false,
-      "reason": "ip.unreachable",
-      "path": [
-        "n5"
-      ]
+      "reason": "wireless.unassociated",
+      "path": []
     },
     {
       "from": "n5",
@@ -233,10 +213,8 @@
       "from": "n6",
       "to": "n0",
       "ok": false,
-      "reason": "ip.unreachable",
-      "path": [
-        "n6"
-      ]
+      "reason": "wireless.unassociated",
+      "path": []
     },
     {
       "from": "n6",
@@ -502,11 +480,5 @@
       }
     ]
   ],
-  "warnings": [
-    {
-      "id": "wlan.channel_overlap",
-      "a": "n1",
-      "b": "n3"
-    }
-  ]
+  "warnings": []
 }

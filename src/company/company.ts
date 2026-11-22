@@ -59,6 +59,8 @@ export interface Company {
   guidesDone: string[];
   // 案内をしまった案件のID（教材は lesson:<教材のID>）。しまった案内は、戻すまで吹き出しを出さない
   guidesHidden: string[];
+  // 移行が無線の端末のつながりを外したこと（読み込みで1回だけ知らせる。保存しない）
+  homeRouterWirelessOff?: boolean;
   // サンドボックスで開いている教材（なければ null）
   sandboxLesson: SandboxLesson | null;
   // 初めて出した用語（用語集の ID）。出したものは2回目から出さない
@@ -77,7 +79,8 @@ export const COMPANY_KEYS = [
   'familiarity', 'offers', 'nextOfferMinute', 'offerSeq', 'newArrivals', 'rng', 'active', 'focus', 'office', 'effects',
   'staff', 'staffSeq', 'candidates', 'guidesDone', 'guidesHidden', 'sandboxLesson', 'termsShown',
 ] as const satisfies readonly (keyof Company)[];
-type Missing = Exclude<keyof Company, (typeof COMPANY_KEYS)[number]>;
+// 読み込みの知らせだけに使い、保存しない項目（homeRouterWirelessOff）は除く
+type Missing = Exclude<keyof Company, (typeof COMPANY_KEYS)[number] | 'homeRouterWirelessOff'>;
 export const noMissing: [Missing] extends [never] ? true : never = true; // キーの書き漏れを型で落とす
 // 状態から会社を取り出す（保存する項目だけを写す）
 export const companyOf = (s: Company): Company => Object.fromEntries(COMPANY_KEYS.map((k) => [k, s[k]])) as unknown as Company;

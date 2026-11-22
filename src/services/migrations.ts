@@ -26,7 +26,7 @@ import printerJson from '../../resources/data/devices/printer.json';
 import furnitureDefsJson from '../../resources/data/furniture.json';
 import cablesJson from '../../resources/data/cables.json';
 
-export const SAVE_VERSION = 64;
+export const SAVE_VERSION = 65;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -76,6 +76,35 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v64 → v65: 無線なしの家庭用ルーター（home_router）は電波を出さない（能力 accessPoint を外した）。home_router に残っている無線の設定（SSID）を外し、そのSSIDにつながっていた無線の端末のつながりを切る。
+  // 有線の口0 のない端末で SSID が合うものを、つながっていた端末とみなす。つながっていた端末があれば、読み込みで1回だけ知らせる（homeRouterWirelessOff）
+  64: (data) => {
+    let cut = false;
+    const convert = <T extends { nodes: NetNode[]; links: NetLink[] }>(x: T): T => {
+      const routers = x.nodes.filter((n) => n.device === 'home_router' && n.components?.wireless !== undefined);
+      if (routers.length === 0) return x;
+      const ssids = new Set(routers.map((r) => r.components?.wireless?.ssid).filter((s): s is string => s !== undefined));
+      const wired = new Set(x.links.flatMap((l) => [`${l.a.node}:${l.a.port}`, `${l.b.node}:${l.b.port}`]));
+      if (x.nodes.some((n) => n.device !== 'home_router' && n.components?.wireless?.ssid !== undefined && ssids.has(n.components.wireless.ssid) && !wired.has(`${n.uid}:0`))) cut = true;
+      const nodes = x.nodes.map((n) => {
+        if (n.device !== 'home_router' || n.components?.wireless === undefined) return n;
+        const { wireless: _old, ...components } = n.components;
+        return { ...n, components };
+      });
+      return { ...x, nodes };
+    };
+    const d = data as { active: { nodes: NetNode[]; links: NetLink[] }[]; office: { nodes: NetNode[]; links: NetLink[] }; familiarity: { counts: object; blueprints: Record<string, { stars: number; design: { nodes: NetNode[]; links: NetLink[] } }> } };
+    const office = convert(d.office);
+    const active = d.active.map(convert);
+    const blueprints = Object.fromEntries(Object.entries(d.familiarity.blueprints).map(([k, b]) => [k, { ...b, design: convert(b.design) }]));
+    return {
+      ...d,
+      office,
+      active,
+      familiarity: { ...d.familiarity, blueprints },
+      ...(cut ? { homeRouterWirelessOff: true } : {}),
+    };
+  },
   // v63 → v64: 合格させたことのある達成条件の型（firstGoals）を足す。移行前のセーブは、初めての納品の経験値を受け取っていないとして空から始める
   63: (data) => ({ ...(data as object), firstGoals: [] }),
   // v62 → v63: 案内をしまった案件のID（guidesHidden）を足す。移行前は、しまった案内がないため空

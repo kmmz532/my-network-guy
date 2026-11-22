@@ -12,12 +12,9 @@
     {
       "from": "n1",
       "to": "n3",
-      "ok": true,
-      "reason": null,
-      "path": [
-        "n1",
-        "n3"
-      ]
+      "ok": false,
+      "reason": "wireless.unassociated",
+      "path": []
     },
     {
       "from": "n2",
@@ -32,29 +29,22 @@
       "from": "n2",
       "to": "n3",
       "ok": false,
-      "reason": "ip.unreachable",
-      "path": [
-        "n2"
-      ]
+      "reason": "wireless.unassociated",
+      "path": []
     },
     {
       "from": "n3",
       "to": "n1",
-      "ok": true,
-      "reason": null,
-      "path": [
-        "n3",
-        "n1"
-      ]
+      "ok": false,
+      "reason": "wireless.unassociated",
+      "path": []
     },
     {
       "from": "n3",
       "to": "n2",
       "ok": false,
-      "reason": "ip.unreachable",
-      "path": [
-        "n3"
-      ]
+      "reason": "wireless.unassociated",
+      "path": []
     }
   ],
   "https": [],
@@ -220,21 +210,5 @@
       }
     ]
   ],
-  "warnings": [
-    {
-      "id": "wlan.open",
-      "a": "n1",
-      "b": "n1"
-    },
-    {
-      "id": "wlan.weak_cipher",
-      "a": "n2",
-      "b": "n2"
-    },
-    {
-      "id": "wlan.channel_overlap",
-      "a": "n1",
-      "b": "n2"
-    }
-  ]
+  "warnings": []
 }

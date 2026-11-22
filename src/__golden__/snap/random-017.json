@@ -311,16 +311,5 @@
       }
     ]
   ],
-  "warnings": [
-    {
-      "id": "wlan.transition",
-      "a": "n2",
-      "b": "n2"
-    },
-    {
-      "id": "wlan.channel_overlap",
-      "a": "n2",
-      "b": "n4"
-    }
-  ]
+  "warnings": []
 }

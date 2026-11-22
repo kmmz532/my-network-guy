@@ -51,7 +51,9 @@ export const createSessionSlice: StateCreator<GameState, [], [], SessionSlice> =
           ? missingPcCount(save.staff, { pcDesks: pcDesksOf(save.office, isPcDevice), defs: gameEnv.furniture ?? {}, balance: gameEnv.balance, staff: save.staff })
           : 0;
         const pc = missing > 0 ? pushNotice([], 'pcMissing', { count: missing }, Date.now()) : [];
-        const notices = droppedCount > 0 ? pushNotice(pc, 'devicesDropped', { count: droppedCount }, Date.now()) : pc;
+        const dropped = droppedCount > 0 ? pushNotice(pc, 'devicesDropped', { count: droppedCount }, Date.now()) : pc;
+        // 移行で無線のつながりを外したときは、1回だけ知らせる
+        const notices = save.homeRouterWirelessOff === true ? pushNotice(dropped, 'homeRouterWirelessOff', {}, Date.now()) : dropped;
         return {
         mode: save.mode,
         name: save.name,

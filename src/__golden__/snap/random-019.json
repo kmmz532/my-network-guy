@@ -213,11 +213,5 @@
       }
     ]
   ],
-  "warnings": [
-    {
-      "id": "wlan.transition",
-      "a": "n0",
-      "b": "n0"
-    }
-  ]
+  "warnings": []
 }

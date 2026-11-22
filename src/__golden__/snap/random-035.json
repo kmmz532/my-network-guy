@@ -289,11 +289,5 @@
       }
     ]
   ],
-  "warnings": [
-    {
-      "id": "wlan.open",
-      "a": "n0",
-      "b": "n0"
-    }
-  ]
+  "warnings": []
 }

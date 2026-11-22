@@ -1409,6 +1409,7 @@
   "ui.notice.delegated": "任せた依頼が納品されました（+{money} 円）",
   "ui.notice.devicesDropped": "登録にない機器・ケーブル・家具を取り除きました（{count}件）",
   "ui.notice.hired": "{name}（{job}）を採用しました",
+  "ui.notice.homeRouterWirelessOff": "家庭用ルーター（無線なし）は電波を出さなくなりました。無線を使うには無線つきの家庭用ルーターを置いてください",
   "ui.notice.offersRefreshed": "新しい依頼が届きました",
   "ui.notice.payPause": "来月の給与を払えないため、時間を止めました。",
   "ui.notice.raiseWaiting": "{name}が昇給を待っています",

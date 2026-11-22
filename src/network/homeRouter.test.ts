@@ -1,4 +1,4 @@
-import { ping } from './engine';
+import { ping, wirelessAssociations } from './engine';
 import { analyze } from './engine/analyze';
 // 家庭用ルーター（N-家庭用ルーター）: LAN の口は内蔵スイッチとして1つのセグメントになる。VLAN は使わない
 import { describe, expect, it } from 'vitest';
@@ -20,6 +20,24 @@ const lan = (): Network => ({
   ],
   links: [l('l0', 'pc1', 0, 'hr', 1), l('l1', 'pc2', 0, 'hr', 2)],
   plans: {},
+});
+
+// 無線の端末（SSID が合う）。無線なしの家庭用ルーターは電波を出さないため、つながらない
+const wifiClient = (uid: string, x: number) => ({ ...n(uid, 'pc_wifi', [f(0, '192.168.1.30')], x), components: { wireless: { ssid: 'HOME', password: 'home1234' } } }) as NetNode;
+const wifiNet = (device: string): Network => ({
+  nodes: [{ ...n('hr', device, [f(1, '192.168.1.1')], 0), components: { wireless: { ssid: 'HOME', password: 'home1234', band: '2.4' } } } as NetNode, wifiClient('pc_w', 1)],
+  links: [],
+  plans: {},
+});
+
+describe('無線なしの家庭用ルーターは、無線の端末をつながない', () => {
+  it('無線の設定があっても、家庭用ルーター（無線なし）には無線の端末がつながらない', () => {
+    expect(wirelessAssociations(wifiNet('home_router'), gameEnv.engine)).toEqual([]);
+  });
+
+  it('同じ構成で、無線つきの家庭用ルーターには無線の端末がつながる（試験が空振りでないこと）', () => {
+    expect(wirelessAssociations(wifiNet('home_router_ap'), gameEnv.engine)).toHaveLength(1);
+  });
 });
 
 describe('家庭用ルーターの内蔵スイッチ', () => {

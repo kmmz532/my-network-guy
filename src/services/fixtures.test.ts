@@ -1,4 +1,4 @@
-import { ping } from '../network/engine';
+import { ping, wirelessAssociations } from '../network/engine';
 import { dhcpOf } from '../network/query/dhcp';
 // セーブの fixture（架空の内容）: 今の版の fixture があること、すべての fixture を最新版まで移行でき、検証に通り、計算が例外なく動くこと
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -158,6 +158,37 @@ describe('無線の帯の移行（アクセスポイントの無線の設定に 
     expect(wireless('ap_bare')).toEqual({ band: '2.4' });
     expect(wireless('hr_ap')).toEqual({ ssid: 'HOME', password: 'home1234', band: '2.4' });
     expect(nodes.find((n) => n.uid === 'hr_plain')?.components).toBeUndefined();
+  });
+});
+
+describe('無線なしの家庭用ルーターの移行（v64 → v65: 無線のつながりを外し、知らせる）', () => {
+  const v64 = () => {
+    const old = JSON.parse(readFileSync(join(dir, 'save-v64.json'), 'utf8')) as Fixture;
+    return structuredClone(Object.values(old)[0]);
+  };
+  const wifiNodes = (withClient: boolean) => [
+    { uid: 'hr_w', device: 'home_router', x: 1, y: 1, components: { wireless: { ssid: 'HOME', password: 'home1234', band: '2.4' } } },
+    ...(withClient ? [{ uid: 'pc_w', device: 'pc_wifi', x: 2, y: 1, components: { wireless: { ssid: 'HOME', password: 'home1234' } } }] : []),
+  ];
+
+  it('無線の端末がつながっていた家庭用ルーターは、移行後は無線の設定を持たず、つながりが切れて知らせる', () => {
+    const entry = v64();
+    const data = structuredClone(entry.data) as { office: { nodes: Record<string, unknown>[] } };
+    data.office.nodes.push(...wifiNodes(true));
+    const migrated = migrate(64, data);
+    expect(migrated.office.nodes.find((n) => n.uid === 'hr_w')?.components).toEqual({});
+    expect(migrated.office.nodes.find((n) => n.uid === 'pc_w')?.components).toEqual({ wireless: { ssid: 'HOME', password: 'home1234' } });
+    expect(migrated.homeRouterWirelessOff).toBe(true);
+    expect(wirelessAssociations({ nodes: migrated.office.nodes, links: migrated.office.links, plans: migrated.office.plans }, gameEnv.engine).filter((p) => p.client.uid === 'pc_w')).toEqual([]);
+  });
+
+  it('つながっていた端末がなければ、無線の設定は外すが、知らせは出さない', () => {
+    const entry = v64();
+    const data = structuredClone(entry.data) as { office: { nodes: Record<string, unknown>[] } };
+    data.office.nodes.push(...wifiNodes(false));
+    const migrated = migrate(64, data);
+    expect(migrated.office.nodes.find((n) => n.uid === 'hr_w')?.components).toEqual({});
+    expect(migrated.homeRouterWirelessOff).toBeUndefined();
   });
 });
 

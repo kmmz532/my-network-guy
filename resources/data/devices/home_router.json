@@ -8,8 +8,7 @@
         "nat",
         "services",
         "wan",
-        "firewall",
-        "accessPoint"
+        "firewall"
       ],
       "deskable": true,
       "price": 80000,
