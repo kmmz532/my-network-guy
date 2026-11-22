@@ -127,7 +127,8 @@ export const balanceSchema = z.object({
     dailyExp: nonNegativeInt,
     // printerArrivalBonus: つないでいるプリンターが1台あると、営業の依頼が届く確率に足す（N98）
     sales: z.object({ chancePerLevel: z.number().nonnegative(), maxChance: z.number().min(0).max(1), printerArrivalBonus: z.number().min(0).max(1), rewardWeightPerLevel: z.number().nonnegative(), rewardMulPerP: z.number().nonnegative() }),
-    accounting: z.object({ ratePerLevel: z.number().nonnegative(), maxRate: z.number().nonnegative() }),
+    // taxReturnPerP: 月末に、その月の報酬の合計の（P × この値）を節税として戻す。maxTaxReturn は、報酬の合計の何割までか
+    accounting: z.object({ ratePerLevel: z.number().nonnegative(), maxRate: z.number().nonnegative(), taxReturnPerP: z.number().nonnegative(), maxTaxReturn: z.number().min(0).max(1) }),
     // システムエンジニア（エンジニア枠）。担当でない日の開発の収入の率（月給に掛ける）。level が上がるほど率が上がる
     dev: z.object({ baseRate: z.number().nonnegative(), ratePerLevel: z.number().nonnegative() }),
     hr: z.object({

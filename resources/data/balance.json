@@ -184,7 +184,9 @@
     },
     "accounting": {
       "ratePerLevel": 0.05,
-      "maxRate": 0.5
+      "maxRate": 0.5,
+      "taxReturnPerP": 0.07,
+      "maxTaxReturn": 0.25
     },
     "dev": {
       "baseRate": 1.0,

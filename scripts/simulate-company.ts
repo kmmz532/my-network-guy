@@ -13,7 +13,7 @@ import { applyMoney } from '../src/sim/ledger';
 import { refreshOffers, salesArrival, earlyOfferDue, type OfferEnv, type OfferState } from '../src/contracts/offers';
 import { levelOf, levelUpsBetween } from '../src/sim/level';
 import { dailyOpsGainOf, firstGoalGainOf, grantDailyExp, type DailyExpState } from '../src/sim/companyExp';
-import { accountingRate, backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, salesArrivalChance, salesRewardMul } from '../src/sim/backOffice';
+import { accountingRate, backOfficeP, settleTaxReturn, devDailyIncome, hrCandidateBonus, hrJuniorRate, salesArrivalChance, salesRewardMul } from '../src/sim/backOffice';
 import { assignDesks, bonusEnvOf, initialOffice, pcDesksOf } from '../src/sim/furniture';
 import { DESK_ID, delegateModeOf, fixedNodes, isDeskFurniture, rewardWithMul, type Office } from '../src/sim/project';
 import { gainExp, initialStaff, payrollOf, rollCandidates, staffCapOf, staffPower } from '../src/sim/staff';
@@ -97,7 +97,7 @@ interface Active {
 }
 
 const run = (scn: Scenario, seed: number): RunResult => {
-  let clock: ClockState = { ...initialClock(balance), ledger: null };
+  let clock: ClockState = initialClock(balance);
   let office: Office = initialOffice(balance);
   const init = initialStaff(balance, seed * 7 + 1);
   const isSeat = (id: string) => isDeskFurniture(id, gameEnv);
@@ -256,6 +256,7 @@ const run = (scn: Scenario, seed: number): RunResult => {
 
   const monthEnd = (): void => {
     const month = clock.paidMonths;
+    clock = settleTaxReturn(clock, month - 1, pOf('accounting'), balance).clock;
     rows.push({ money: clock.money, level: level(), salary: payroll() });
     const hrP = pOf('hr');
     const wish = pending[0];

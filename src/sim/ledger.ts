@@ -20,6 +20,8 @@ export const LEDGER_CATEGORIES = [
   'interior',
   // 経理の割引で浮いた額（お金の増減ではない。支出とは別に記録する）
   'saved',
+  // 経理の節税（月末に、その月の報酬の一部が資金に戻る）
+  'taxReturn',
 ] as const;
 export type LedgerCategory = (typeof LEDGER_CATEGORIES)[number];
 
@@ -45,6 +47,10 @@ export const recordSaving = (clock: ClockState, amount: number): ClockState => {
   const updated: LedgerMonth = { month, totals: { ...current.totals, saved: current.totals.saved + amount } };
   return { ...clock, ledger: [...kept, updated].sort((a, b) => a.month - b.month) };
 };
+
+// 指定した月の分類の合計（記録がなければ0。帳簿がなければ0）
+export const ledgerTotalOf = (clock: ClockState, month: number, category: LedgerCategory): number =>
+  clock.ledger?.find((m) => m.month === month)?.totals[category] ?? 0;
 
 // お金を増減させる（amount は収入なら正、支出なら負）。帳簿が有効なら、今月の分類の合計に足す
 export const applyMoney = (clock: ClockState, amount: number, category: LedgerCategory): ClockState => {

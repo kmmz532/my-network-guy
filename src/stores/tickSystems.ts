@@ -19,7 +19,7 @@ import { busyStaff } from '../sim/crew';
 import { dailyExpOfStaff, devIdleStaffOf } from '../sim/staffDaily';
 import { tDyn } from '../i18n/t';
 import { settleRetirements } from '../sim/retire';
-import { backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate } from '../sim/backOffice';
+import { backOfficeP, settleTaxReturn, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate } from '../sim/backOffice';
 import { bonusEnvOf, pcDesksOf } from '../sim/furniture';
 import { advanceBuild } from '../sim/progress';
 import { proposalArrivals, type OfferState } from '../contracts/offers';
@@ -124,6 +124,12 @@ export const hrPowerOf = (s: GameState): number => backOfficeP(s.staff, 'hr', s.
 export const monthEndSystem = (s: GameState, next: Patch, clock: ClockState, hrP: number, env: TickEnv): Patch => {
   if (!(clock.paidMonths > s.clock.paidMonths)) return next;
   const amount = payrollOfState(s);
+  // 経理の節税。終わった月の報酬の合計の一部を資金に戻し、知らせる（破産していれば戻さない）
+  if (!clock.bankrupt) {
+    const tax = settleTaxReturn(next.clock ?? clock, clock.paidMonths - 1, backOfficeP(s.staff, 'accounting', s.office, bonusEnvOf({ staff: s.staff, office: s.office }, gameEnv)), balance);
+    next = { ...next, clock: tax.clock };
+    if (tax.amount > 0) next = { ...next, notices: pushNotice(next.notices ?? s.notices, 'taxReturn', { amount: tax.amount }, env.now) };
+  }
   // 退職の予定の社員は、今月末で退職する（退職金を払い、一覧から外す。今月の給与は上で払い済み・N90）
   const settled = settleRetirements({ clock: next.clock ?? clock, staff: next.staff ?? s.staff, active: s.active }, balance);
   next = { ...next, clock: settled.clock, staff: settled.staff, active: settled.active };

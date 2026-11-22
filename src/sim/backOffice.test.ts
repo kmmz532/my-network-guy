@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
-import { printerArrivalBonusOf, accountingRate, backOfficeP, devDailyIncome, devRate, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, hrSalaryRate, jobEffect, salesArrivalChance, salesRewardMul } from './backOffice';
+import { taxReturnRate, settleTaxReturn, printerArrivalBonusOf, accountingRate, backOfficeP, devDailyIncome, devRate, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, hrSalaryRate, jobEffect, salesArrivalChance, salesRewardMul } from './backOffice';
 import furnitureJson from '../../resources/data/furniture.json';
 import type { BonusEnv } from './furniture';
 import type { Furniture } from '../data/schema';
@@ -10,6 +10,8 @@ import type { Office } from './project';
 import { staffPower } from './staff';
 import type { Staff } from '../data/schema';
 import { jobOf } from './jobs';
+import { initialClock, minutesPerMonth, type ClockState } from './clock';
+import { applyMoney } from './ledger';
 
 const balance = balanceJson as unknown as Balance;
 
@@ -68,7 +70,7 @@ describe('職種ごとの効果（札と社員の詳細に出す増分）', () =
 
   it('経理は、加わった分だけ割引の割合が増える', () => {
     const e = jobEffect('accounting', who, 3, 2, balance);
-    expect(e).toEqual({ kind: 'accounting', rate: accountingRate(5, balance) - accountingRate(2, balance) });
+    expect(e).toEqual({ kind: 'accounting', rate: accountingRate(5, balance) - accountingRate(2, balance), taxReturn: taxReturnRate(5, balance) - taxReturnRate(2, balance) });
   });
 
   it('人事は、候補の増分と研修の倍率の増分を出す', () => {
@@ -160,5 +162,32 @@ describe('プリンターの効果（N98）', () => {
     const two = printerArrivalBonusOf(office([printer('p1', 1, 1), printer('p3', 3, 1), { ...printer('p2', 2, 1), device: 'pc_basic' }], [link('p1', 'p2'), link('p3', 'p2')]), isPrinter, balance);
     expect(one).toBe(balance.backOffice.sales.printerArrivalBonus);
     expect(two).toBe(one);
+  });
+});
+
+describe('経理の節税', () => {
+  const monthLength = minutesPerMonth(balance);
+  const withReward = (reward: number): ClockState => applyMoney({ ...initialClock(balance), minute: monthLength, ledger: [] }, reward, 'reward');
+  // 報酬を記録した月は 1。終わった月として 1 を渡す
+  const perP = balance.backOffice.accounting.taxReturnPerP;
+
+  it('経理の P に応じて、その月の報酬の合計に割合を掛けた額が資金に戻り、帳簿に残る', () => {
+    const c = withReward(1_000_000);
+    const r = settleTaxReturn(c, 1, 3, balance);
+    expect(r.amount).toBe(Math.round(1_000_000 * 3 * perP));
+    expect(r.clock.money).toBe(c.money + r.amount);
+    expect(r.clock.ledger?.[0].totals.taxReturn).toBe(r.amount);
+  });
+
+  it('割合は maxTaxReturn が上限', () => {
+    const c = withReward(1_000_000);
+    const r = settleTaxReturn(c, 1, 10_000, balance);
+    expect(r.amount).toBe(Math.round(1_000_000 * balance.backOffice.accounting.maxTaxReturn));
+  });
+
+  it('経理がいない（P が0）か、その月の報酬がなければ0', () => {
+    const c = withReward(1_000_000);
+    expect(settleTaxReturn(c, 1, 0, balance)).toEqual({ clock: c, amount: 0 });
+    expect(settleTaxReturn(c, 0, 5, balance).amount).toBe(0);
   });
 });

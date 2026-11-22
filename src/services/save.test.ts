@@ -260,6 +260,15 @@ describe('v12 → v13', () => {
   });
 });
 
+describe('v66 → v67', () => {
+  it('帳簿の各月に、経理の節税（taxReturn）を0で足す。帳簿のないサンドボックスは変えない', () => {
+    const ledger = [{ month: 0, totals: { reward: 100 } }];
+    const moved = migrate(66, { ...sample, clock: { ...sample.clock, ledger } });
+    expect(moved.clock.ledger?.[0].totals).toMatchObject({ reward: 100, taxReturn: 0 });
+    expect(migrate(66, { ...sample, clock: { ...sample.clock, ledger: null } }).clock.ledger).toBeNull();
+  });
+});
+
 describe('v65 → v66', () => {
   const { achievements: _achievements, ...v65 } = sample;
 

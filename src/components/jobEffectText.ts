@@ -15,7 +15,7 @@ export const jobEffectText = (e: JobEffect): string => {
       return e.candidates > 0 ? t('ui.effect.job.hr', { candidates: e.candidates, rate, cut: percent(e.salaryCut) }) : t('ui.effect.job.hrTraining', { rate, cut: percent(e.salaryCut) });
     }
     case 'accounting':
-      return t('ui.effect.job.accounting', { pct: percent(e.rate) });
+      return t('ui.effect.job.accounting', { pct: percent(e.rate), tax: percent(e.taxReturn) });
     case 'dev':
       return t('ui.effect.job.dev', { income: e.monthlyIncome.toLocaleString('ja-JP') });
   }

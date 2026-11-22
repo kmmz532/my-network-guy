@@ -26,7 +26,7 @@ import printerJson from '../../resources/data/devices/printer.json';
 import furnitureDefsJson from '../../resources/data/furniture.json';
 import cablesJson from '../../resources/data/cables.json';
 
-export const SAVE_VERSION = 66;
+export const SAVE_VERSION = 67;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -76,6 +76,12 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v66 → v67: 帳簿に、経理の節税（taxReturn）を足す。移行前は0。サンドボックス（帳簿なし）は変えない
+  66: (data) => {
+    const d = data as { clock: { ledger: { month: number; totals: object }[] | null } };
+    const ledger = d.clock.ledger === null ? null : d.clock.ledger.map((m) => ({ ...m, totals: { ...m.totals, taxReturn: 0 } }));
+    return { ...d, clock: { ...d.clock, ledger } };
+  },
   // v65 → v66: 自社の実績の一覧（achievements）を足す。移行前のセーブは、実績がないものとして空から始める（次の月末に判定する）
   65: (data) => ({ ...(data as object), achievements: [] }),
   // v64 → v65: 無線なしの家庭用ルーター（home_router）は電波を出さない（能力 accessPoint を外した）。home_router に残っている無線の設定（SSID）を外し、そのSSIDにつながっていた無線の端末のつながりを切る。

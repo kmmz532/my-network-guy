@@ -2,6 +2,8 @@
 // 効果の強さは、その職種の内勤（日勤・席の係数と家具の補正を掛けた実効 level）の合計 P で決まる。
 import type { Balance, JobId, Staff } from '../data/schema';
 import { jobOf, isBackOfficeJob, requiresPc } from './jobs';
+import type { ClockState } from './clock';
+import { applyMoney, ledgerTotalOf } from './ledger';
 import type { Office } from './project';
 import { furnitureBonus, seatOf, type BonusEnv } from './furniture';
 
@@ -42,6 +44,16 @@ export const backOfficeP = (staff: readonly Staff[], job: JobId, office: Office,
 export const accountingRate = (P: number, balance: Balance): number =>
   Math.min(balance.backOffice.accounting.maxRate, P * balance.backOffice.accounting.ratePerLevel);
 
+// 経理の節税の割合（報酬の合計に掛ける。上限 maxTaxReturn）
+export const taxReturnRate = (P: number, balance: Balance): number =>
+  Math.min(balance.backOffice.accounting.maxTaxReturn, P * balance.backOffice.accounting.taxReturnPerP);
+
+// 月末の節税。終わった月（month）の報酬の合計に、経理の割合を掛けた額を資金に戻す。戻した額も返す
+export const settleTaxReturn = (clock: ClockState, month: number, P: number, balance: Balance): { clock: ClockState; amount: number } => {
+  const amount = Math.round(ledgerTotalOf(clock, month, 'reward') * taxReturnRate(P, balance));
+  return amount > 0 ? { clock: applyMoney(clock, amount, 'taxReturn'), amount } : { clock, amount: 0 };
+};
+
 // 営業の依頼が1日に届く確率（能力が高いほど出やすい。上限 maxChance）
 export const salesArrivalChance = (P: number, balance: Balance): number =>
   Math.min(balance.backOffice.sales.maxChance, P * balance.backOffice.sales.chancePerLevel);
@@ -76,7 +88,7 @@ export const devDailyIncome = (member: Staff, balance: Balance): number =>
 export type JobEffect =
   | { kind: 'sales'; chance: number; rewardMul: number } // 依頼の出やすさの増分（0〜1）・報酬の倍率の増分
   | { kind: 'hr'; candidates: number; trainingRate: number; salaryCut: number } // 候補の増分（人）・研修の経験値の倍率の増分・月給の削減の増分（0〜1）
-  | { kind: 'accounting'; rate: number } // 割引の割合の増分（0〜1）
+  | { kind: 'accounting'; rate: number; taxReturn: number } // 割引の割合の増分（0〜1）・節税の割合の増分（0〜1）
   | { kind: 'dev'; monthlyIncome: number }; // 開発の収入（担当でない日の合計・月）
 
 export const jobEffect = (
@@ -98,7 +110,7 @@ export const jobEffect = (
         salaryCut: hrSalaryRate(P, balance) - hrSalaryRate(after, balance),
       };
     case 'accounting':
-      return { kind: 'accounting', rate: accountingRate(after, balance) - accountingRate(P, balance) };
+      return { kind: 'accounting', rate: accountingRate(after, balance) - accountingRate(P, balance), taxReturn: taxReturnRate(after, balance) - taxReturnRate(P, balance) };
     case 'dev':
       return { kind: 'dev', monthlyIncome: Math.round(member.salary * devRate(member.level, balance)) };
     default:

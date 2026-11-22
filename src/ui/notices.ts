@@ -13,6 +13,7 @@ interface NoticeSpec {
 
 export const NOTICE_KINDS = {
   salary: { key: 'ui.notice.salary', open: 'funds', sticky: false },
+  taxReturn: { key: 'ui.notice.taxReturn', open: 'funds', sticky: false },
   payPause: { key: 'ui.notice.payPause', open: 'funds', sticky: true },
   delegated: { key: 'ui.notice.delegated', open: 'offers', sticky: false },
   // ゲームの出来事（N97）
