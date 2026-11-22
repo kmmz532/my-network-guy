@@ -3,10 +3,41 @@
   "variantOf": "t_coworking",
   "unlockLevel": 11,
   "weight": 8,
-  "params": {
-    "pcCount": {
-      "min": 9,
-      "max": 12
+  "spawnGroups": [
+    {
+      "x": 1,
+      "y": 1,
+      "width": 9,
+      "height": 3,
+      "min": 4,
+      "max": 5,
+      "role": "tenanta",
+      "name": "入居者AのPC"
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "width": 9,
+      "height": 5,
+      "min": 4,
+      "max": 5,
+      "role": "tenantb",
+      "name": "入居者BのPC"
+    },
+    {
+      "x": 11,
+      "y": 1,
+      "width": 11,
+      "height": 3,
+      "min": 4,
+      "max": 5,
+      "role": "tenantc",
+      "name": "入居者CのPC"
     }
+  ],
+  "budget": {
+    "base": 51200,
+    "perPc": 2500,
+    "perTile": 0
   }
 }

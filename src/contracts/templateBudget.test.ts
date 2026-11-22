@@ -98,11 +98,20 @@ export const modelCost = (template: ContractTemplate, map: GameMap, placed: { x:
     hubs.push({ x: hub.x, y: hub.y });
     for (const p of pcs) cost += linkCost(dist(p, hub));
   }
-  // つなぐグループの組（isolated で分けた役割は別の組）
-  const sets: Pt[][] = isolatedRoles.size
-    ? [hubs.filter((_, i) => !isolatedRoles.has(groups[i].role ?? '')), hubs.filter((_, i) => isolatedRoles.has(groups[i].role ?? ''))].filter((x) => x.length > 0)
-    : [hubs];
-  for (const set of isolatedRoles.size ? sets : []) {
+  // つなぐグループの組。isolated で分けた役割の組は別のネットワークにし、分けられていないグループどうしだけをつなぐ
+  const separated = (i: number, j: number): boolean =>
+    template.goals.some((g) => {
+      if (g.type !== 'isolated') return false;
+      const has = (list: readonly string[], role: string | undefined) => role !== undefined && list.includes(`$role:${role}`);
+      return (has(g.from, groups[i].role) && has(g.to, groups[j].role)) || (has(g.from, groups[j].role) && has(g.to, groups[i].role));
+    });
+  const component = hubs.map((_, i) => i);
+  const find = (i: number): number => (component[i] === i ? i : (component[i] = find(component[i])));
+  if (isolatedRoles.size && goalCount('firewall') === 0) {
+    for (let i = 0; i < hubs.length; i++) for (let j = i + 1; j < hubs.length; j++) if (!separated(i, j)) component[find(j)] = find(i);
+  }
+  const sets: Pt[][] = isolatedRoles.size && goalCount('firewall') === 0 ? [...new Set(component.map((_, i) => find(i)))].map((c) => hubs.filter((_, i) => find(i) === c)) : [hubs];
+  for (const set of isolatedRoles.size && goalCount('firewall') === 0 ? sets : []) {
     if (set.length < 2) continue;
     const center = starHubOf(set.map((h) => ({ ...h, ref: '' })), map);
     if (set.length === 2 && dist(set[0], set[1]) <= utp.maxLengthTiles) cost += linkCost(dist(set[0], set[1]));
@@ -111,7 +120,7 @@ export const modelCost = (template: ContractTemplate, map: GameMap, placed: { x:
       for (const h of set) cost += linkCost(dist(h, center));
     }
   }
-  if (groups.length > 1 && !isolatedRoles.size) {
+  if (groups.length > 1 && (!isolatedRoles.size || goalCount('firewall') > 0)) {
     const center = starHubOf(hubs.map((h) => ({ ...h, ref: '' })), map);
     if (goalCount('firewall') > 0) {
       const fw = cheapest('firewall', groups.length);

@@ -10,27 +10,47 @@
   ],
   "weight": 12,
   "map": "coworking",
-  "params": {
-    "pcCount": {
-      "min": 6,
-      "max": 9
+  "spawnGroups": [
+    {
+      "x": 1,
+      "y": 1,
+      "width": 9,
+      "height": 3,
+      "min": 2,
+      "max": 3,
+      "role": "tenanta",
+      "name": "入居者AのPC"
+    },
+    {
+      "x": 1,
+      "y": 4,
+      "width": 9,
+      "height": 5,
+      "min": 2,
+      "max": 3,
+      "role": "tenantb",
+      "name": "入居者BのPC"
+    },
+    {
+      "x": 11,
+      "y": 1,
+      "width": 11,
+      "height": 3,
+      "min": 2,
+      "max": 3,
+      "role": "tenantc",
+      "name": "入居者CのPC"
     }
-  },
-  "spawnArea": {
-    "x": 1,
-    "y": 1,
-    "width": 9,
-    "height": 8
-  },
+  ],
   "deadlineDays": 9,
   "offerExpireDays": {
     "min": 30,
     "max": 90
   },
   "budget": {
-    "base": 900,
-    "perPc": 4250,
-    "perTile": 500
+    "base": 25600,
+    "perPc": 2200,
+    "perTile": 0
   },
   "reward": {
     "base": 70000,
@@ -39,7 +59,40 @@
   "goals": [
     {
       "type": "ping_all",
-      "nodes": "$all_pcs"
+      "nodes": [
+        "$role:tenanta"
+      ]
+    },
+    {
+      "type": "ping_all",
+      "nodes": [
+        "$role:tenantb"
+      ]
+    },
+    {
+      "type": "ping_all",
+      "nodes": [
+        "$role:tenantc"
+      ]
+    },
+    {
+      "type": "isolated",
+      "from": [
+        "$role:tenanta"
+      ],
+      "to": [
+        "$role:tenantb",
+        "$role:tenantc"
+      ]
+    },
+    {
+      "type": "isolated",
+      "from": [
+        "$role:tenantb"
+      ],
+      "to": [
+        "$role:tenantc"
+      ]
     }
   ],
   "announce": true

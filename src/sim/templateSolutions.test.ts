@@ -5,6 +5,8 @@ import { contractTemplates } from 'virtual:game-data';
 import balanceJson from '../../resources/data/balance.json';
 import furnitureJson from '../../resources/data/furniture.json';
 import clinicMap from '../../resources/data/maps/clinic.json';
+import coworkingMap from '../../resources/data/maps/coworking.json';
+import hotelFloorMap from '../../resources/data/maps/hotel_floor.json';
 import type { Balance, ContractTemplate, Furniture, GameMap } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { instantiateTemplate, starHubOf } from '../contracts/template';
@@ -93,7 +95,7 @@ const addr = (core: Core, uid: string, ip: string, port = 0): Core => ok(setInte
 // テストに合格するか
 const passes = (core: Core): boolean => ok(testDesign(core, env)).result.passed;
 
-// 検収まで進める。★3 で合格し、費用が予算以内であること
+// 検収まで進める。テストに合格し、施工を終えて検収された報告を返す
 const finish = (core: Core): Report => {
   const tested = ok(testDesign(core, env));
   if (!tested.result.passed) throw new Error(`テストに不合格: ${JSON.stringify(tested.result.goals.filter((g) => !g.ok))}`);
@@ -106,6 +108,9 @@ const finish = (core: Core): Report => {
   }
   throw new Error('施工が終わらない');
 };
+
+// 台数が収まる最も小さいスイッチ
+const switchFor = (ports: number): string => (ports <= 4 ? 'l2_switch_4p' : ports <= 8 ? 'l2_switch_8p' : 'l2_switch_16p');
 
 const SEEDS = [1, 2, 3, 4, 5, 6];
 const offerOf = (id: string, map: GameMap, seed: number): Offer => instantiateTemplate(templateOf(id), map, 0, seed).offer;
@@ -145,6 +150,55 @@ describe('t_clinic: 受付と診察室は別のネットワーク', () => {
     });
     it(`種 ${seed}: スイッチだけでつなぐと不合格`, () => {
       expect(passes(solve(offerOf('t_clinic', map, seed), false))).toBe(false);
+    });
+  }
+});
+
+// 役割（グループ）ごとにスイッチを1台置いて配線し、グループごとに別のネットワークのアドレスを振る。つながない（グループの間は届かない）
+const solveByRole = (offer: Offer, map: GameMap, roles: string[]): Core => {
+  let core = take(startCore(offer), offer.id);
+  let host = 10;
+  roles.forEach((role) => {
+    const pcs = offer.contract.placed.filter((p) => p.ref.startsWith(`${role}_`));
+    const hub = centerOf(pcs, map);
+    const sw = place(core, switchFor(pcs.length), hub.x, hub.y, map);
+    core = sw.core;
+    for (const p of pcs) {
+      core = wire(core, p.ref, sw.uid);
+      core = addr(core, p.ref, `192.168.1.${host++}`);
+    }
+  });
+  return core;
+};
+
+// 1台のスイッチにすべてをつなぐ（グループの間が届いてしまう）
+const solveOneSwitch = (offer: Offer, map: GameMap): Core => {
+  let core = take(startCore(offer), offer.id);
+  const pcs = offer.contract.placed;
+  const hub = centerOf(pcs, map);
+  const sw = place(core, 'l2_switch_24p', hub.x, hub.y, map);
+  core = sw.core;
+  pcs.forEach((p, i) => {
+    core = wire(core, p.ref, sw.uid);
+    core = addr(core, p.ref, `192.168.1.${10 + i}`);
+  });
+  return core;
+};
+
+describe.each([
+  ['t_coworking', coworkingMap, ['tenanta', 'tenantb', 'tenantc']],
+  ['t_hotel_floor', hotelFloorMap, ['rooma', 'roomb', 'roomc', 'roomd']],
+] as const)('%s: 入居者・部屋ごとにネットワークを分ける', (id, mapJson, roles) => {
+  const map = mapJson as unknown as GameMap;
+  for (const seed of SEEDS) {
+    it(`種 ${seed}: グループごとにスイッチを置き、つながないと合格し、費用が予算の 0.8 以下に収まる`, () => {
+      const report = finish(solveByRole(offerOf(id, map, seed), map, [...roles]));
+      expect(report.passed).toBe(true);
+      // ★3 の費用の条件（予算の 0.8 以下）。つながない配線は、ゲートウェイのない PC が設計の不備になり、★は2までになる（t_cafe_guest も同じ）
+      expect((report.cost ?? Infinity) / (report.budget ?? 1)).toBeLessThanOrEqual(0.8);
+    });
+    it(`種 ${seed}: 1台のスイッチにすべてをつなぐと不合格`, () => {
+      expect(passes(solveOneSwitch(offerOf(id, map, seed), map))).toBe(false);
     });
   }
 });

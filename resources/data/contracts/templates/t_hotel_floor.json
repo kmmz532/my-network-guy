@@ -16,32 +16,40 @@
       "y": 1,
       "width": 5,
       "height": 3,
-      "min": 1,
-      "max": 2
+      "min": 2,
+      "max": 3,
+      "role": "rooma",
+      "name": "101号室のPC"
     },
     {
       "x": 7,
       "y": 1,
       "width": 5,
       "height": 3,
-      "min": 1,
-      "max": 2
+      "min": 2,
+      "max": 3,
+      "role": "roomb",
+      "name": "102号室のPC"
     },
     {
       "x": 13,
       "y": 1,
       "width": 5,
       "height": 3,
-      "min": 1,
-      "max": 2
+      "min": 2,
+      "max": 3,
+      "role": "roomc",
+      "name": "103号室のPC"
     },
     {
       "x": 19,
       "y": 1,
       "width": 5,
       "height": 3,
-      "min": 1,
-      "max": 2
+      "min": 2,
+      "max": 3,
+      "role": "roomd",
+      "name": "104号室のPC"
     }
   ],
   "deadlineDays": 10,
@@ -50,9 +58,9 @@
     "max": 90
   },
   "budget": {
-    "base": 52000,
-    "perPc": 0,
-    "perTile": 500
+    "base": 33100,
+    "perPc": 2350,
+    "perTile": 0
   },
   "reward": {
     "base": 80000,
@@ -61,7 +69,57 @@
   "goals": [
     {
       "type": "ping_all",
-      "nodes": "$all_pcs"
+      "nodes": [
+        "$role:rooma"
+      ]
+    },
+    {
+      "type": "ping_all",
+      "nodes": [
+        "$role:roomb"
+      ]
+    },
+    {
+      "type": "ping_all",
+      "nodes": [
+        "$role:roomc"
+      ]
+    },
+    {
+      "type": "ping_all",
+      "nodes": [
+        "$role:roomd"
+      ]
+    },
+    {
+      "type": "isolated",
+      "from": [
+        "$role:rooma"
+      ],
+      "to": [
+        "$role:roomb",
+        "$role:roomc",
+        "$role:roomd"
+      ]
+    },
+    {
+      "type": "isolated",
+      "from": [
+        "$role:roomb"
+      ],
+      "to": [
+        "$role:roomc",
+        "$role:roomd"
+      ]
+    },
+    {
+      "type": "isolated",
+      "from": [
+        "$role:roomc"
+      ],
+      "to": [
+        "$role:roomd"
+      ]
     }
   ],
   "announce": true
