@@ -415,6 +415,47 @@ const scenes = {
     }
     throw new Error('社員のメニューが出なかった');
   },
+  // 4つの向き（上・下・左・右）の机を並べた自社オフィス。向きごとに、机のマスと椅子のマス（背中側）が空いている床を選んで机を置く
+  deskfacings: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      const st = g.getState();
+      g.setState({ owned: { ...st.owned, desk: (st.owned.desk ?? 0) + 4 } });
+      const hq = st.maps.hq;
+      const key = (x, y) => `${x},${y}`;
+      const used = new Set([...st.office.furniture.map((f) => key(f.x, f.y)), ...st.office.nodes.map((n) => key(n.x, n.y))]);
+      const isFloor = (x, y) => hq.legend[hq.tiles[y]?.[x]] === 'floor';
+      // 向きと、その椅子のマスの位置（机からの差。up は手前、down は奥、left は右、right は左）
+      const facings = [
+        ['up', 0, 1],
+        ['right', -1, 0],
+        ['down', 0, -1],
+        ['left', 1, 0],
+      ];
+      const spots = [];
+      for (const [facing, dx, dy] of facings) {
+        let spot = null;
+        for (let y = 1; y < hq.height - 1 && !spot; y++) {
+          for (let x = 1; x < hq.width - 1 && !spot; x++) {
+            const chair = [x + dx, y + dy];
+            if (isFloor(x, y) && isFloor(...chair) && !used.has(key(x, y)) && !used.has(key(...chair))) spot = [x, y, facing, chair];
+          }
+        }
+        if (!spot) throw new Error(`机を置く場所がない（${facing}）`);
+        used.add(key(spot[0], spot[1]));
+        used.add(key(...spot[3]));
+        spots.push(spot);
+      }
+      // 置いてから、向きを決める（撮影用に直接の向きを入れる。回す操作の確かめは試験で行う）
+      for (const [x, y, facing] of spots) {
+        if (g.getState().placeFurniture('desk', x, y) !== null) throw new Error('机を置けなかった');
+        const uid = g.getState().office.furniture.find((f) => f.x === x && f.y === y).uid;
+        g.setState({ office: { ...g.getState().office, furniture: g.getState().office.furniture.map((f) => (f.uid === uid ? { ...f, facing } : f)) } });
+      }
+    });
+    await page.waitForTimeout(500);
+  },
   // マップのポインタ操作（ホイール・中ボタンの移動・各道具での押す・ドラッグ・乗せる）を一通り行う。位置は決め打ちせず、画面全体を走査する。
   // 例外や console のエラーが出ないことを --check で確かめる
   pointer: async (page) => {
