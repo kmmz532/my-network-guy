@@ -3,10 +3,31 @@
   "variantOf": "t_school_lab",
   "unlockLevel": 14,
   "weight": 8,
-  "params": {
-    "pcCount": {
+  "spawnGroups": [
+    {
+      "x": 1,
+      "y": 2,
+      "width": 22,
+      "height": 9,
       "min": 14,
-      "max": 18
+      "max": 15,
+      "role": "student",
+      "name": "生徒のPC"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "width": 22,
+      "height": 1,
+      "min": 1,
+      "max": 1,
+      "role": "teacher",
+      "name": "先生のPC"
     }
+  ],
+  "budget": {
+    "base": 127800,
+    "perPc": 2700,
+    "perTile": 0
   }
 }

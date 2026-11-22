@@ -6,6 +6,7 @@ import balanceJson from '../../resources/data/balance.json';
 import furnitureJson from '../../resources/data/furniture.json';
 import clinicMap from '../../resources/data/maps/clinic.json';
 import coworkingMap from '../../resources/data/maps/coworking.json';
+import schoolLabMap from '../../resources/data/maps/school_lab.json';
 import hotelFloorMap from '../../resources/data/maps/hotel_floor.json';
 import type { Balance, ContractTemplate, Furniture, GameMap } from '../data/schema';
 import type { Offer } from '../contracts/template';
@@ -199,6 +200,43 @@ describe.each([
     });
     it(`種 ${seed}: 1台のスイッチにすべてをつなぐと不合格`, () => {
       expect(passes(solveOneSwitch(offerOf(id, map, seed), map))).toBe(false);
+    });
+  }
+});
+
+describe('t_school_lab: 生徒と先生のネットワークを分け、それぞれにプリンターを置く', () => {
+  const map = schoolLabMap as unknown as GameMap;
+  // 生徒のスイッチと先生のスイッチを別々に置き、それぞれにプリンターを1台つなぐ。2つのスイッチはつながない
+  const solve = (offer: Offer, separate: boolean): Core => {
+    let core = take(startCore(offer), offer.id);
+    let host = 10;
+    const groups = separate ? [['student'], ['teacher']] : [['student', 'teacher']];
+    for (const roles of groups) {
+      const pcs = offer.contract.placed.filter((p) => roles.some((r) => p.ref.startsWith(`${r}_`)));
+      const hub = centerOf(pcs, map);
+      const sw = place(core, separate ? 'l2_switch_16p' : 'l2_switch_24p', hub.x, hub.y, map);
+      core = sw.core;
+      for (const p of pcs) {
+        core = wire(core, p.ref, sw.uid);
+        core = addr(core, p.ref, `192.168.1.${host++}`);
+      }
+      const printers = separate ? 1 : 2;
+      for (let k = 0; k < printers; k++) {
+        const printer = place(core, 'printer_basic', hub.x, hub.y, map);
+        core = wire(printer.core, printer.uid, sw.uid);
+        core = addr(core, printer.uid, `192.168.1.${host++}`);
+      }
+    }
+    return core;
+  };
+  for (const seed of SEEDS) {
+    it(`種 ${seed}: 生徒と先生を別のスイッチにして、それぞれにプリンターをつなぐと合格し、費用が予算の 0.8 以下に収まる`, () => {
+      const report = finish(solve(offerOf('t_school_lab', map, seed), true));
+      expect(report.passed).toBe(true);
+      expect((report.cost ?? Infinity) / (report.budget ?? 1)).toBeLessThanOrEqual(0.8);
+    });
+    it(`種 ${seed}: 1台のスイッチにすべてをつなぐと不合格`, () => {
+      expect(passes(solve(offerOf('t_school_lab', map, seed), false))).toBe(false);
     });
   }
 });

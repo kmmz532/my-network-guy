@@ -149,11 +149,11 @@ export const modelCost = (template: ContractTemplate, map: GameMap, placed: { x:
     if (!router) throw new Error('ルーターがない');
     cost += router.price + linkCost(1);
   }
-  // プリンター（count printer）は、1台のスイッチに1本で足す
+  // プリンター（count printer）は、台数の分だけ、スイッチに1本ずつで足す
   if (goalCount('printer') > 0) {
     const printer = cheapest('printer', 1);
     if (!printer) throw new Error('プリンターがない');
-    cost += printer.price + linkCost(1);
+    cost += (printer.price + linkCost(1)) * goalCount('printer');
   }
   // 型で数える機器（count_device。GPUサーバーなど）は、その機器の価格と1本の配線を足す。サーバーの役も兼ねる
   const byDevice = template.goals.flatMap((g) => (g.type === 'count_device' ? [g] : []));
