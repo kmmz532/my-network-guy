@@ -14,18 +14,34 @@
     {
       "x": 1,
       "y": 1,
+      "width": 1,
+      "height": 1,
+      "min": 1,
+      "max": 1
+    },
+    {
+      "x": 38,
+      "y": 6,
+      "width": 1,
+      "height": 1,
+      "min": 1,
+      "max": 1
+    },
+    {
+      "x": 1,
+      "y": 1,
       "width": 8,
       "height": 6,
-      "min": 2,
-      "max": 3
+      "min": 1,
+      "max": 2
     },
     {
       "x": 30,
       "y": 1,
       "width": 9,
       "height": 6,
-      "min": 2,
-      "max": 3
+      "min": 1,
+      "max": 2
     }
   ],
   "deadlineDays": 10,

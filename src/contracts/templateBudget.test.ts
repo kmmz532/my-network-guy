@@ -21,6 +21,7 @@ import warehouseMap from '../../resources/data/maps/warehouse.json';
 import bankBranchMap from '../../resources/data/maps/bank_branch.json';
 import studioMap from '../../resources/data/maps/studio.json';
 import campusMap from '../../resources/data/maps/campus.json';
+import campusWideMap from '../../resources/data/maps/campus_wide.json';
 import hospitalWardMap from '../../resources/data/maps/hospital_ward.json';
 import { instantiateTemplate, pcCountRangeOf, spawnGroupsOf, starHubOf } from './template';
 import { registries } from '../registry/game';
@@ -42,6 +43,7 @@ const maps: Record<string, GameMap> = {
   bank_branch: bankBranchMap as unknown as GameMap,
   studio: studioMap as unknown as GameMap,
   campus: campusMap as unknown as GameMap,
+  campus_wide: campusWideMap as unknown as GameMap,
   hospital_ward: hospitalWardMap as unknown as GameMap,
 };
 
@@ -69,6 +71,33 @@ export const modelCost = (template: ContractTemplate, map: GameMap, placed: { x:
   // isolated の goals があるときは、互いに通信させない役割のグループを別のネットワークにする（つながりの組ごとに中継する）
   const isolatedRoles = new Set(template.goals.flatMap((g) => (g.type === 'isolated' ? g.from.map((r) => r.replace('$role:', '')) : [])));
   const groups = spawnGroupsOf(template);
+  // 1マスの置く範囲（端に固定した PC）があるひな形は、機器が UTP の上限を超えて離れる。PC を x の中央で左右に分け、左右に1台ずつスイッチを置いて結ぶ
+  // （左右のスイッチの間が上限を超えれば、中継のスイッチを足す。l3_switch の台数の目標があれば、スイッチは l3_switch で、間は光ファイバーでつなぐ）
+  if (groups.some((g) => g.width === 1 && g.height === 1)) {
+    const xs = placed.map((p) => p.x);
+    const mid = (Math.min(...xs) + Math.max(...xs)) / 2;
+    const sides = [placed.filter((p) => p.x <= mid), placed.filter((p) => p.x > mid)];
+    const viaL3 = goalCount('l3_switch') > 0;
+    let spanCost = 0;
+    const spanHubs: Pt[] = [];
+    for (const pcs of sides) {
+      const device = cheapest(viaL3 ? 'l3_switch' : 'l2_switch', pcs.length + 1);
+      if (!device) throw new Error('スイッチがない');
+      spanCost += device.price;
+      const hub = starHubOf(pcs, map);
+      spanHubs.push({ x: hub.x, y: hub.y });
+      for (const p of pcs) spanCost += linkCost(dist(p, hub));
+    }
+    const between = dist(spanHubs[0], spanHubs[1]);
+    if (viaL3 || between <= utp.maxLengthTiles) spanCost += linkCost(between);
+    else {
+      const center = starHubOf(spanHubs.map((h) => ({ ...h, ref: '' })), map);
+      const relay = cheapest('l2_switch', 2);
+      if (!relay) throw new Error('中継のスイッチがない');
+      spanCost += relay.price + spanHubs.reduce((sum, h) => sum + linkCost(dist(h, center)), 0);
+    }
+    return spanCost;
+  }
   let cost = 0;
   // グループごとの PC の位置
   const pcsOf: Pt[][] = [];
@@ -84,7 +113,9 @@ export const modelCost = (template: ContractTemplate, map: GameMap, placed: { x:
   const hubs: Pt[] = [];
   for (const pcs of pcsOf) {
     const need = pcs.length + uplink + (groups.length === 1 && goalCount('printer') > 0 ? 1 : 0);
-    const hubDevice = goalCount('router_switch') > 0 && groups.length === 1 ? cheapest('router_switch', need) : cheapest('l2_switch', need);
+    // 複数のグループを l3_switch の台数の目標で結ぶときは、グループごとのスイッチを l3_switch にする（光ファイバーの口が要る）
+    const viaL3 = goalCount('l3_switch') > 0 && groups.length > 1;
+    const hubDevice = goalCount('router_switch') > 0 && groups.length === 1 ? cheapest('router_switch', need) : cheapest(viaL3 ? 'l3_switch' : 'l2_switch', need);
     if (hubDevice) {
       cost += hubDevice.price;
     } else {
@@ -133,7 +164,7 @@ export const modelCost = (template: ContractTemplate, map: GameMap, placed: { x:
       cost += router.price;
       for (const h of hubs) cost += linkCost(dist(h, center));
     } else {
-      const direct = hubs.length === 2 && dist(hubs[0], hubs[1]) <= utp.maxLengthTiles;
+      const direct = hubs.length === 2 && (dist(hubs[0], hubs[1]) <= utp.maxLengthTiles || goalCount('l3_switch') > 0);
       if (direct) {
         cost += linkCost(dist(hubs[0], hubs[1]));
       } else {

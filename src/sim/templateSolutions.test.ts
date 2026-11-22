@@ -6,11 +6,16 @@ import balanceJson from '../../resources/data/balance.json';
 import furnitureJson from '../../resources/data/furniture.json';
 import clinicMap from '../../resources/data/maps/clinic.json';
 import coworkingMap from '../../resources/data/maps/coworking.json';
+import warehouseMap from '../../resources/data/maps/warehouse.json';
+import longHallMap from '../../resources/data/maps/long_hall.json';
+import campusWideMap from '../../resources/data/maps/campus_wide.json';
 import schoolLabMap from '../../resources/data/maps/school_lab.json';
 import hotelFloorMap from '../../resources/data/maps/hotel_floor.json';
 import type { Balance, ContractTemplate, Furniture, GameMap } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { instantiateTemplate, starHubOf } from '../contracts/template';
+import { tileKind } from '../data/tileKind';
+import { cableMaxLength } from '../registry/query';
 import { EMPTY_FAMILIARITY } from './familiar';
 import { initialOffice } from './furniture';
 import { initialStaff } from './staff';
@@ -239,4 +244,94 @@ describe('t_school_lab: 生徒と先生のネットワークを分け、それ�
       expect(passes(solve(offerOf('t_school_lab', map, seed), false))).toBe(false);
     });
   }
+});
+
+// どの床のマスにスイッチを1台置いても、すべての PC へ UTP が届かない（上限を超える PC がある）
+const noSingleHub = (offer: Offer, map: GameMap): boolean => {
+  const pcs = offer.contract.placed;
+  const limit = cableMaxLength(UTP);
+  for (let y = 0; y < map.height; y++) {
+    for (let x = 0; x < map.width; x++) {
+      if (tileKind(map, x, y) !== 'floor') continue;
+      if (pcs.every((p) => Math.abs(p.x - x) + Math.abs(p.y - y) <= limit)) return false;
+    }
+  }
+  return true;
+};
+
+// 近いほうのスイッチの番号
+const nearOf = (hubs: readonly { x: number; y: number }[], p: { x: number; y: number }): number =>
+  Math.abs(p.x - hubs[0].x) + Math.abs(p.y - hubs[0].y) <= Math.abs(p.x - hubs[1].x) + Math.abs(p.y - hubs[1].y) ? 0 : 1;
+
+// 左右に分けた PC を、それぞれ近いスイッチにつなぎ、スイッチどうしを結ぶ
+const solveSpan = (offer: Offer, map: GameMap, hubs: [{ x: number; y: number }, { x: number; y: number }], switchIds: [string, string], link: { cable: string; ports?: { a?: number; b?: number } }): Core => {
+  let core = take(startCore(offer), offer.id);
+  const pcs = offer.contract.placed;
+  const sw = hubs.map((h, i) => {
+    const r = place(core, switchIds[i], h.x, h.y, map);
+    core = r.core;
+    return r.uid;
+  });
+  pcs.forEach((p, i) => {
+    core = wire(core, p.ref, sw[nearOf(hubs, p)]);
+    core = addr(core, p.ref, `192.168.1.${10 + i}`);
+  });
+  return wire(core, sw[0], sw[1], link.cable, link.ports ?? {});
+};
+
+describe.each([
+  ['t_warehouse', warehouseMap, [{ x: 9, y: 5 }, { x: 25, y: 5 }]],
+  ['t_long_hall', longHallMap, [{ x: 14, y: 4 }, { x: 26, y: 4 }]],
+  ['t_long_hall_large', longHallMap, [{ x: 14, y: 4 }, { x: 26, y: 4 }]],
+] as const)('%s: 端から端まで UTP の上限を超えるため、スイッチを2台に分けて結ぶ', (id, mapJson, hubs) => {
+  const map = mapJson as unknown as GameMap;
+  for (const seed of SEEDS) {
+    it(`種 ${seed}: どの位置にスイッチを1台置いても届かず、左右にスイッチを置いて結ぶと合格し、費用が予算の 0.8 以下に収まる`, () => {
+      const offer = offerOf(id, map, seed);
+      expect(noSingleHub(offer, map)).toBe(true);
+      const sizes = [0, 1].map((i) => offer.contract.placed.filter((p) => nearOf(hubs, p) === i).length);
+      const report = finish(solveSpan(offer, map, [{ ...hubs[0] }, { ...hubs[1] }], [switchFor(sizes[0] + 1), switchFor(sizes[1] + 1)], { cable: UTP }));
+      expect(report.passed).toBe(true);
+      expect(report.stars).toBe(3);
+    });
+  }
+  it('位置の乱数を変えても（種 1〜60）、スイッチを1台置くだけでは届かない', () => {
+    for (let seed = 1; seed <= 60; seed++) expect(noSingleHub(offerOf(id, map, seed), map), `種 ${seed}`).toBe(true);
+  });
+});
+
+describe('t_campus: 校舎の間が UTP の上限を超えるため、光ファイバーで結ぶ', () => {
+  const map = campusWideMap as unknown as GameMap;
+  const solve = (offer: Offer): Core => {
+    const pcs = offer.contract.placed;
+    return solveSpan(
+      offer,
+      map,
+      [
+        starHubOf(pcs.filter((p) => p.y < 10), map),
+        starHubOf(pcs.filter((p) => p.y >= 10), map),
+      ],
+      ['l3_switch', 'l3_switch'],
+      // l3_switch の口は、RJ45 の 0〜7 のあとに SFP の 8・9
+      { cable: 'fiber_mm', ports: { a: 8, b: 8 } },
+    );
+  };
+  for (const seed of SEEDS) {
+    it(`種 ${seed}: 校舎ごとに l3_switch を置き、光ファイバーで結ぶと合格し、費用が予算の 0.8 以下に収まる`, () => {
+      const offer = offerOf('t_campus', map, seed);
+      expect(noSingleHub(offer, map)).toBe(true);
+      const report = finish(solve(offer));
+      expect(report.passed).toBe(true);
+      expect((report.cost ?? Infinity) / (report.budget ?? 1)).toBeLessThanOrEqual(0.8);
+    });
+  }
+  it('UTP で校舎の間を結ぼうとすると、長すぎて引けない', () => {
+    const offer = offerOf('t_campus', map, 1);
+    const pcs = offer.contract.placed;
+    let core = take(startCore(offer), offer.id);
+    const a = place(core, 'l3_switch', starHubOf(pcs.filter((p) => p.y < 10), map).x, 3, map);
+    core = a.core;
+    const b = place(core, 'l3_switch', starHubOf(pcs.filter((p) => p.y >= 10), map).x, 26, map);
+    expect(connect(b.core, a.uid, b.uid, UTP, env, 'focus', { a: 0, b: 0 }).ok).toBe(false);
+  });
 });
