@@ -543,6 +543,37 @@ const scenes = {
     await page.getByRole('button', { name: '依頼' }).first().click();
     await page.waitForTimeout(500);
   },
+  // 依頼の一覧に、提案の依頼（「提案」の札・依頼主の文・1.2倍の報酬）が届いた場面。届いている依頼の1件目を元に、提案の印を付けた依頼を足す
+  proposal: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      const s = g.getState();
+      const src = s.offers[0];
+      if (!src) throw new Error('元にする依頼がない');
+      const offer = {
+        ...src,
+        id: `${src.id}_proposal`,
+        proposal: true,
+        topic: 'vlan_isolation',
+        arrivedMinute: s.clock.minute + 1,
+        contract: { ...src.contract, id: `${src.id}_proposal`, reward: { money: Math.round(src.contract.reward.money * 1.2) } },
+      };
+      g.setState({ offers: [...s.offers, offer] });
+    });
+    await page.getByRole('button', { name: '依頼' }).first().click();
+    await page.waitForTimeout(500);
+  },
+  // 自社の情報の画面に、実績の一覧が出た場面
+  achievements: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      g.setState({ achievements: ['dmz', 'vlan_isolation'] });
+      g.getState().openWindow('company', '');
+    });
+    await page.waitForTimeout(500);
+  },
   // 案件を受注して設計に入った直後（案内の吹き出しが出る。スマホでの位置と、インベントリとの重なりを確かめる）
   guide: async (page) => {
     await scenes.career(page);

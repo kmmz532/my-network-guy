@@ -164,8 +164,11 @@ export function CompanyBody() {
         <Section>
           <div style={row}>
             <span>{t('ui.company.achievements')}</span>
-            <span>{achievements.length > 0 ? achievements.map((id) => tDyn(`achievement.${id}`)).join('・') : t('ui.company.achievements.none')}</span>
+            {achievements.length === 0 && <span>{t('ui.company.achievements.none')}</span>}
           </div>
+          {achievements.map((id) => (
+            <div key={id} style={{ marginTop: 2 }}>・{tDyn(`achievement.${id}`)}</div>
+          ))}
         </Section>
         <div style={{ paddingTop: 8 }}>
           <Text tone="warn">{next ? t('ui.company.next', { level: next.level }) : t('ui.company.max')}</Text>
