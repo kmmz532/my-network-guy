@@ -1,0 +1,135 @@
+{
+  "id": "o001_hq_three_branches",
+  "kind": "build",
+  "stage": 2,
+  "order": 260,
+  "requires": [
+    "r006_ospf_hello"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "hospital_ward",
+  "budget": 380000,
+  "deadlineDays": 7,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "hq_sw",
+      "device": "l2_switch_4p",
+      "x": 4,
+      "y": 2,
+      "locked": true,
+      "name": "本社のスイッチ"
+    },
+    {
+      "ref": "hq_pc1",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 1,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          { "port": 0, "ip": "10.0.0.11", "prefix": 24 }
+        ],
+        "gateway": "10.0.0.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "本社のPC1"
+    },
+    {
+      "ref": "hq_pc2",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          { "port": 0, "ip": "10.0.0.12", "prefix": 24 }
+        ],
+        "gateway": "10.0.0.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "本社のPC2"
+    },
+    {
+      "ref": "hq_srv",
+      "device": "server_basic",
+      "x": 6,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          { "port": 0, "ip": "10.0.0.10", "prefix": 24 }
+        ],
+        "gateway": "10.0.0.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "本社のサーバー"
+    },
+    {
+      "ref": "br_a",
+      "device": "pc_basic",
+      "x": 11,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          { "port": 0, "ip": "10.0.1.10", "prefix": 24 }
+        ],
+        "gateway": "10.0.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "支店AのPC"
+    },
+    {
+      "ref": "br_b",
+      "device": "pc_basic",
+      "x": 19,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          { "port": 0, "ip": "10.0.2.10", "prefix": 24 }
+        ],
+        "gateway": "10.0.2.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "支店BのPC"
+    },
+    {
+      "ref": "br_c",
+      "device": "pc_basic",
+      "x": 27,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          { "port": 0, "ip": "10.0.3.10", "prefix": 24 }
+        ],
+        "gateway": "10.0.3.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "支店CのPC"
+    }
+  ],
+  "links": [
+    { "cable": "utp_cat5e", "a": { "ref": "hq_pc1", "port": 0 }, "b": { "ref": "hq_sw", "port": 0 } },
+    { "cable": "utp_cat5e", "a": { "ref": "hq_pc2", "port": 0 }, "b": { "ref": "hq_sw", "port": 1 } },
+    { "cable": "utp_cat5e", "a": { "ref": "hq_srv", "port": 0 }, "b": { "ref": "hq_sw", "port": 2 } }
+  ],
+  "goals": [
+    { "type": "ping_all", "nodes": ["hq_pc1", "hq_pc2", "hq_srv", "br_a", "br_b", "br_c"] },
+    { "type": "no_static_route" }
+  ],
+  "reward": {
+    "money": 960000
+  },
+  "unlockLevel": 60
+}
