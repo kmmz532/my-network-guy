@@ -1,0 +1,162 @@
+{
+  "id": "o003_ospf_dr",
+  "kind": "repair",
+  "minChanges": 1,
+  "stage": 2,
+  "order": 280,
+  "requires": [
+    "o002_default_route_two_isps"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_two_rooms",
+  "budget": 40000,
+  "deadlineDays": 5,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "seg_sw",
+      "device": "l2_switch_4p",
+      "x": 4,
+      "y": 5,
+      "locked": true,
+      "name": "本社のスイッチ"
+    },
+    {
+      "ref": "r_core",
+      "device": "router_basic",
+      "x": 2,
+      "y": 2,
+      "locked": true,
+      "name": "中核のルーター",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.0.1",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "setup": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ospf": {
+              "area": 0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "ref": "r_a",
+      "device": "router_basic",
+      "x": 2,
+      "y": 8,
+      "locked": true,
+      "name": "部門Aのルーター",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.0.2",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "setup": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ospf": {
+              "area": 0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "ref": "r_b",
+      "device": "router_basic",
+      "x": 7,
+      "y": 8,
+      "locked": true,
+      "name": "部門Bのルーター",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "10.0.0.3",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "setup": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ospf": {
+              "area": 0
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "links": [
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "r_core",
+        "port": 0
+      },
+      "b": {
+        "ref": "seg_sw",
+        "port": 0
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "r_a",
+        "port": 0
+      },
+      "b": {
+        "ref": "seg_sw",
+        "port": 1
+      }
+    },
+    {
+      "cable": "utp_cat5e",
+      "a": {
+        "ref": "r_b",
+        "port": 0
+      },
+      "b": {
+        "ref": "seg_sw",
+        "port": 2
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "ospf_dr",
+      "node": "r_core"
+    }
+  ],
+  "reward": {
+    "money": 1300000
+  },
+  "unlockLevel": 78
+}
