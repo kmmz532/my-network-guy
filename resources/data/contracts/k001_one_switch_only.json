@@ -1,0 +1,187 @@
+{
+  "id": "k001_one_switch_only",
+  "stage": 1,
+  "order": 25,
+  "requires": [
+    "c002_small_office"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_small",
+  "budget": 25000,
+  "deadlineDays": 5,
+  "placed": [
+    {
+      "ref": "sw",
+      "device": "l2_switch_8p",
+      "x": 6,
+      "y": 5,
+      "locked": true,
+      "name": "事務所のスイッチ"
+    },
+    {
+      "ref": "pc1",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員のPC1"
+    },
+    {
+      "ref": "pc2",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員のPC2"
+    },
+    {
+      "ref": "pc3",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.13",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員のPC3"
+    },
+    {
+      "ref": "pc4",
+      "device": "pc_basic",
+      "x": 11,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.14",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員のPC4"
+    },
+    {
+      "ref": "pc5",
+      "device": "pc_basic",
+      "x": 11,
+      "y": 5,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.15",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員のPC5"
+    },
+    {
+      "ref": "pc6",
+      "device": "pc_basic",
+      "x": 11,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.16",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員のPC6"
+    },
+    {
+      "ref": "pc7",
+      "device": "pc_basic",
+      "x": 6,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.17",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "name": "社員のPC7"
+    }
+  ],
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": [
+        "pc1",
+        "pc2",
+        "pc3",
+        "pc4",
+        "pc5",
+        "pc6",
+        "pc7"
+      ]
+    },
+    {
+      "type": "max_devices",
+      "category": "l2_switch",
+      "max": 1
+    }
+  ],
+  "reward": {
+    "money": 90000
+  },
+  "unlockLevel": 5
+}
