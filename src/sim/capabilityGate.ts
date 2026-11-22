@@ -5,6 +5,7 @@ import type { OpFailReason } from './failReason';
 
 export const CAPABILITY_REFUSALS = {
   svi: 'svi.none',
+  subif: 'subif.none',
   switchport: 'port.mode',
   routedPort: 'port.mode',
   stp: 'port.mode',

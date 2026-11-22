@@ -13,7 +13,7 @@ export const ifaceIdOf = (node: NetNode, port: number): string | null => node.in
 
 // インターフェースの表示の名前。口は「ポート n」、SVI は「Vlan n」、束ねた口は「Po n」（SVI・束ねた口の port は判定の中だけの仮想の番号のため出さない）
 export const ifaceLabel = (i: Iface, tr: Tr): string =>
-  i.kind === 'svi' ? tr('ui.terminal.ifName.svi', { vlan: i.vlan ?? 0 }) : i.kind === 'po' ? tr('ui.terminal.ifName.po', { channel: i.channel ?? 0 }) : tr('ui.terminal.ifName.port', { port: i.port });
+  i.kind === 'svi' ? tr('ui.terminal.ifName.svi', { vlan: i.vlan ?? 0 }) : i.kind === 'sub' ? tr('ui.terminal.ifName.sub', { parent: i.parent ?? 0, vlan: i.vlan ?? 0 }) : i.kind === 'po' ? tr('ui.terminal.ifName.po', { channel: i.channel ?? 0 }) : tr('ui.terminal.ifName.port', { port: i.port });
 
 const IP_RE = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
 
@@ -41,12 +41,17 @@ export const port = (s: string): number | null => (/^\d+$/.test(s) ? Number(s) :
 export const vlanNumber = (s: string): number | null => (/^\d+$/.test(s) && Number(s) >= 1 && Number(s) <= 4094 ? Number(s) : null);
 
 // interface の後ろの名前を、対象のインターフェースに直す。口の名前は機器の種類の接頭辞（iface.ts）に合わせ、
-// g0/1・gi0/1・gigabitethernet0/1（ネットワーク機器）と eth0（端末）を読む。vlan10 は SVI。読めない名前・ない口は null
+// g0/1・gi0/1・gigabitethernet0/1（ネットワーク機器）と eth0（端末）を読む。vlan10 は SVI、g0/1.10 はサブインターフェース（親の口と VLAN）。読めない名前・ない口は null
 export const parseIfaceName = (device: string, text: string): TerminalSession['iface'] => {
   const svi = /^vlan(\d+)$/i.exec(text);
   if (svi !== null) {
     const vlan = vlanNumber(svi[1]);
     return vlan === null ? null : { kind: 'svi', vlan };
+  }
+  const sub = /^(?:g|gi|gigabitethernet)0\/(\d+)\.(\d+)$/i.exec(text);
+  if (sub !== null) {
+    const vlan = vlanNumber(sub[2]);
+    return vlan === null || Number(sub[1]) >= portCountOf(device) ? null : { kind: 'sub', port: Number(sub[1]), vlan };
   }
   const m = (ifacePrefixOf(device) === 'eth' ? /^eth(\d+)$/i : /^(?:g|gi|gigabitethernet)0\/(\d+)$/i).exec(text);
   if (m === null || Number(m[1]) >= portCountOf(device)) return null;
@@ -83,7 +88,7 @@ export const vlanListOf = (text: string): number[] | null => {
 // 語が、引数の型の形に合うか。形だけを見る（口が機器にあるか・経路があるかなどの中身は、命令の run が検査する）
 export const isArg = (kind: ArgKind, text: string): boolean => {
   switch (kind) {
-    case 'iface': return /^(?:(?:g|gi|gigabitethernet)0\/\d+|eth\d+|vlan\d+)$/i.test(text);
+    case 'iface': return /^(?:(?:g|gi|gigabitethernet)0\/\d+(?:\.\d+)?|eth\d+|vlan\d+)$/i.test(text);
     case 'ip': return isIp(text);
     case 'mask': return maskToPrefix(text) !== null;
     case 'wildcard': {

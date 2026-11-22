@@ -52,13 +52,16 @@ const briefTable = (ctx: CommandContext, tr: Tr): string[] => {
   const rows = node.interfaces.map((i) => {
     const up = i.kind === 'svi'
       ? true
-      : i.kind === 'po'
+      : i.kind === 'sub'
+        ? linked.has(i.parent as number) && !ctx.state.links.isShut(node.uid, i.parent as number)
+        : i.kind === 'po'
         ? node.ports.some((p) => p.channelGroup === i.channel && bundled.has(p.port))
         : linked.has(i.port) && !ctx.state.links.isShut(node.uid, i.port);
     const name = i.kind === 'svi' ? tr('ui.terminal.briefVlan', { vlan: i.vlan as number }) : i.kind === 'po' ? tr('ui.terminal.briefPo', { channel: i.channel as number }) : i.id;
     const ip = i.ip !== '' ? i.ip : tr(i.dhcp === true ? 'ui.terminal.briefDhcp' : 'ui.terminal.briefUnassigned');
-    const rank = i.kind === 'port' ? 0 : i.kind === 'svi' ? 1 : 2;
-    const no = i.kind === 'svi' ? (i.vlan as number) : i.kind === 'po' ? (i.channel as number) : i.port;
+    const rank = i.kind === 'port' || i.kind === 'sub' ? 0 : i.kind === 'svi' ? 1 : 2;
+    // 親の口の番号 × 10000 + VLAN（サブインターフェースは、親の口の次に並ぶ）
+    const no = i.kind === 'svi' ? (i.vlan as number) : i.kind === 'po' ? (i.channel as number) : i.kind === 'sub' ? (i.parent as number) * 10000 + (i.vlan as number) : i.port * 10000;
     return { rank, no, cells: [name, ip, tr(up ? 'ui.terminal.briefUp' : 'ui.terminal.briefDown')] };
   });
   rows.sort((a, b) => a.rank - b.rank || a.no - b.no);
@@ -158,6 +161,7 @@ const ipAddressInterface: CommandSpec = {
   run: (args, ctx, tr) => {
     const { iface } = ctx.session;
     if (iface?.kind === 'svi') return changed(ctx, tr, { kind: 'svi', vlan: iface.vlan, ip: args.ip, prefix: prefixOfMask(args.mask) });
+    if (iface?.kind === 'sub') return changed(ctx, tr, { kind: 'sub', parent: iface.port, vlan: iface.vlan, ip: args.ip, prefix: prefixOfMask(args.mask) });
     if (iface?.kind === 'po') return changed(ctx, tr, { kind: 'po', channel: iface.channel, ip: args.ip, prefix: prefixOfMask(args.mask) });
     return changed(ctx, tr, { kind: 'iface', port: sessionPortOf(ctx) as number, ip: args.ip, prefix: prefixOfMask(args.mask) });
   },
@@ -250,6 +254,7 @@ export const commands: readonly CommandSpec[] = [
     run: (_args, ctx, tr) => {
       const { iface } = ctx.session;
       if (iface?.kind === 'svi') return changed(ctx, tr, { kind: 'svi', vlan: iface.vlan, ip: '', prefix: 24 });
+      if (iface?.kind === 'sub') return changed(ctx, tr, { kind: 'sub', parent: iface.port, vlan: iface.vlan, ip: '', prefix: 24 });
       if (iface?.kind === 'po') return changed(ctx, tr, { kind: 'po', channel: iface.channel, ip: '', prefix: 24 });
       return changed(ctx, tr, { kind: 'iface', port: sessionPortOf(ctx) as number, ip: '', prefix: 24 });
     },
@@ -369,6 +374,7 @@ export const commands: readonly CommandSpec[] = [
       // SVI は口を持たないため、口の番号（仮想の番号）ではなく VLAN の番号で出す
       for (const i of node.interfaces) {
         if (i.kind === 'svi') lines.push(out(tr('ui.terminal.cfgVlanInterface', { vlan: i.vlan as number })));
+        else if (i.kind === 'sub') lines.push(out(tr('ui.terminal.cfgSubInterface', { name: i.id })));
         else lines.push(out(i.kind === 'po' ? tr('ui.terminal.cfgPoInterface', { channel: i.channel ?? 0 }) : tr('ui.terminal.cfgInterface', { port: i.port })));
       }
       for (const h of getComponent(node, 'resolver')?.hosts ?? []) lines.push(out(tr('ui.terminal.cfgHost', { name: h.name, ip: h.ip })));

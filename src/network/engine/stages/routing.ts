@@ -4,7 +4,7 @@ import { isRoutingCategory } from '../../category';
 import { computeBgp, type BgpEnv, type BgpResult } from '../../bgp';
 import { inSubnet, ipToInt, networkOf } from '../../ip';
 import { getComponent } from '../../components';
-import { isSviPort } from '../../category';
+import { isSubPort, isSviPort, subParentOf } from '../../category';
 import { OSPF_DEFAULT_REFERENCE_MBPS, OSPF_SVI_SPEED_MBPS, ospfCostOfSpeed, ospfMismatch, type OspfMismatch } from '../../ospf';
 import type { Iface, NetNode, Network, Route } from '../../types';
 import { deviceCategory, portSpeed } from '../../../registry/query';
@@ -42,17 +42,18 @@ export const stageRouting = (net: Network, l2: L2Layer, links: LinkLayer): Routi
     return node !== undefined && isRoutingCategory(deviceCategory(node.device));
   };
 
-  // 口の速さ（Mbps）。配線があればその速さ（まとまった口は論理リンクの速さ）、SVI は一定、配線がなければ口の定義の速さ
+  // 口の速さ（Mbps）。配線があればその速さ（まとまった口は論理リンクの速さ）、SVI は一定、配線がなければ口の定義の速さ。サブインターフェースは親の口の速さ
   const speedOfIface = (n: NetNode, i: Iface): number => {
     if (isSviPort(i.port)) return OSPF_SVI_SPEED_MBPS;
-    const linked = l2.linkAt({ node: n.uid, port: i.port });
+    const port = isSubPort(i.port) ? subParentOf(i.port) : i.port;
+    const linked = l2.linkAt({ node: n.uid, port });
     if (linked !== undefined) {
       const bundle = links.lag.bundles.find((b) => b.links.some((l) => l.uid === linked.link.uid));
       const speed = bundle !== undefined ? links.lagSpeeds.get(bundle.links[0].uid) : links.speeds.get(linked.link.uid);
       if (speed !== undefined) return speed;
     }
-    const own = portSpeed(n.device, i.port);
-    if (own === undefined) throw new Error(`口の速さがない: ${n.device}:${i.port}`);
+    const own = portSpeed(n.device, port);
+    if (own === undefined) throw new Error(`口の速さがない: ${n.device}:${port}`);
     return own;
   };
   const ospfCostOfIface = (n: NetNode, i: Iface): number =>

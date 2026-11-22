@@ -61,6 +61,7 @@ export const OP_FAIL_REASONS = [
   'stock',
   'stp.cost',
   'stp.priority',
+  'subif.none',
   'svi.max',
   'svi.none',
   'tile',

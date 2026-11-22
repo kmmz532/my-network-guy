@@ -1,5 +1,5 @@
 // L2 の層: L2 ドメイン（VLAN を考慮）・スパニングツリーの役割と止まる口・MAC の表
-import { isFabricPort, isL3FabricPort, isRelayPort, isRoutingCategory, isSviPort, isSwitchedRouterCategory, ROUTER_SWITCH_LAN_HOST_PORT, SVI_PORT_BASE } from '../../category';
+import { isFabricPort, isL3FabricPort, isRelayPort, isRoutingCategory, isSubPort, isSviPort, isSwitchedRouterCategory, ROUTER_SWITCH_LAN_HOST_PORT, subParentOf, subPortOf, subVlanOf, SVI_PORT_BASE } from '../../category';
 import { can } from '../../capabilities';
 import { macOf } from '../../mac';
 import { computeStp, type StpResult } from '../../stp';
@@ -67,6 +67,9 @@ export const stageL2 = (net: Network, links: LinkLayer): L2Layer => {
   const addressed = (uid: string): Iface[] => (nodes.get(uid)?.interfaces ?? []).filter((i) => !isRelayPort(catOf(uid), i.port));
   const hasIpOn = (uid: string, port: number): boolean => addressed(uid).some((i) => i.kind === 'port' && i.port === port);
   const svisOf = (uid: string): Iface[] => addressed(uid).filter((i) => i.kind === 'svi');
+  const subsOf = (uid: string): Iface[] => addressed(uid).filter((i) => i.kind === 'sub');
+  // 口の配線・停止・スパニングツリーを見る物理の口（サブインターフェースは親の口）
+  const physOf = (port: number): number => (isSubPort(port) ? subParentOf(port) : port);
   const isFabric = (uid: string, port: number): boolean =>
     isFabricPort(catOf(uid), port) || isL3FabricPort(catOf(uid), port, portCfg(uid, port), hasIpOn(uid, port));
   const isRelay = (uid: string, port: number): boolean =>
@@ -128,6 +131,7 @@ export const stageL2 = (net: Network, links: LinkLayer): L2Layer => {
   const vlanOf = (uid: string, port: number): number => {
     // SVI は、その VLAN の中にいる
     if (isSviPort(port)) return port - SVI_PORT_BASE;
+    if (isSubPort(port)) return subVlanOf(port);
     const cfg = portCfg(uid, port);
     if (cfg?.mode === 'trunk') return cfg.native ?? 1;
     return cfg?.vlan ?? 1;
@@ -135,6 +139,7 @@ export const stageL2 = (net: Network, links: LinkLayer): L2Layer => {
 
   const carries = (uid: string, port: number, vlan: number): boolean => {
     if (isSviPort(port)) return port - SVI_PORT_BASE === vlan;
+    if (isSubPort(port)) return subVlanOf(port) === vlan;
     const cfg = portCfg(uid, port);
     // 設定のない口（機器の口）は、届いたフレームをそのまま受け取る
     if (cfg === undefined) return !isL3FabricPort(catOf(uid), port, undefined, hasIpOn(uid, port)) || vlan === 1;
@@ -144,7 +149,7 @@ export const stageL2 = (net: Network, links: LinkLayer): L2Layer => {
 
   // operational が false のときは、口の停止とスパニングツリーを見ない（アドレスの計画の範囲）
   const traverse = (start: Endpoint, operational: boolean): L2Domain => {
-    const blocked = (uid: string, port: number): boolean => operational && (links.isShut(uid, port) || isStpBlocked(uid, port));
+    const blocked = (uid: string, port: number): boolean => operational && (links.isShut(uid, physOf(port)) || isStpBlocked(uid, physOf(port)));
     const members: Endpoint[] = [];
     const visited = new Set<string>();
     const startVlan = vlanOf(start.node, start.port);
@@ -179,19 +184,33 @@ export const stageL2 = (net: Network, links: LinkLayer): L2Layer => {
         members.push(ep);
       }
       if (isFabric(ep.node, ep.port)) relay ??= ep;
-      const linked = linkAt(ep);
+      const linked = linkAt({ node: ep.node, port: physOf(ep.port) });
       if (linked) {
         const { link, peer } = linked;
-        // 相手が access の口なら、フレームはその口の VLAN になる（機器側の口には VLAN の設定がないため）
         const cfgPeer = portCfg(peer.node, peer.port);
-        const peerVlan = cfgPeer?.mode === 'access' ? vlanOf(peer.node, peer.port) : vlan;
-        if (!blocked(peer.node, peer.port) && carries(peer.node, peer.port, peerVlan)) {
+        // 線の上でタグが付くフレーム: サブインターフェースから出るもの、trunk の native 以外の VLAN
+        const cfgSelf = portCfg(ep.node, ep.port);
+        const tagged = isSubPort(ep.port) || (cfgSelf?.mode === 'trunk' && vlan !== (cfgSelf.native ?? 1));
+        // routed の口（PC などの端末は除く）は、タグなしをその口のインターフェースが、タグ付きをその VLAN のサブインターフェースが受け取る
+        const peerRouted = !can(nodes.get(peer.node)?.device ?? '', 'endpoint') && (cfgPeer === undefined ? !isFabric(peer.node, peer.port) : cfgPeer.mode === 'routed');
+        let target: Endpoint | undefined = peer;
+        let peerVlan = vlan;
+        if (peerRouted && tagged) {
+          target = subsOf(peer.node).some((i) => i.parent === peer.port && i.vlan === vlan) ? { node: peer.node, port: subPortOf(peer.port, vlan) } : undefined;
+        } else if (isSubPort(ep.port)) {
+          // サブインターフェースのタグ付きのフレームは、access の口では受け取られない
+          if (cfgPeer?.mode === 'access') target = undefined;
+        } else if (cfgPeer?.mode === 'access') {
+          // 相手が access の口なら、フレームはその口の VLAN になる（機器側の口には VLAN の設定がないため）
+          peerVlan = vlanOf(peer.node, peer.port);
+        }
+        if (target !== undefined && !blocked(target.node, target.port) && carries(target.node, target.port, peerVlan)) {
           // 配線は、実際にたどったものだけを数える（輪の判定に使う）
           cables.add(links.lag.representative.get(link.uid) ?? link.uid);
           if (!tooLong && links.tooLong.has(link.uid)) {
             tooLong = ep;
           }
-          enqueue(peer, peerVlan);
+          enqueue(target, peerVlan);
         }
       }
       // 機器の内部のスイッチに入ったら、同じ VLAN を通す口をすべてたどる。SVI（VLAN のインターフェース）は、同じ VLAN のスイッチの中に入る
@@ -234,11 +253,11 @@ export const stageL2 = (net: Network, links: LinkLayer): L2Layer => {
     return out;
   };
 
-  // 計画の単位: 機器の口（配線の端と SVI）から広げ、まだどのドメインにも入っていない口だけを始点にする。
+  // 計画の単位: 機器の口（配線の端と SVI・サブインターフェース）から広げ、まだどのドメインにも入っていない口だけを始点にする。
   // 無線の端末は、つながるアクセスポイントのドメインに入るが、鍵には使わない（配線でつながった機器がなければ計画を持たない）
   const wirelessEps = new Set(links.associations.map((a) => key({ node: a.client.uid, port: 0 })));
   const starts = new Map<string, Endpoint>();
-  for (const ep of [...net.links.flatMap((l) => [l.a, l.b]), ...[...nodes.keys()].flatMap((uid) => svisOf(uid).map((i) => ({ node: uid, port: i.port })))]) {
+  for (const ep of [...net.links.flatMap((l) => [l.a, l.b]), ...[...nodes.keys()].flatMap((uid) => [...svisOf(uid), ...subsOf(uid)].map((i) => ({ node: uid, port: i.port })))]) {
     if (!isRelay(ep.node, ep.port)) starts.set(key(ep), ep);
   }
   const covered = new Set<string>();

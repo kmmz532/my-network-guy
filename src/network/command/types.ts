@@ -11,7 +11,7 @@ export type Token = { word: string } | { arg: ArgKind; name: string };
 
 export interface TerminalSession {
   mode: Mode;
-  iface: { kind: 'port'; port: number } | { kind: 'svi'; vlan: number } | { kind: 'po'; channel: number } | null; // interface モードの対象
+  iface: { kind: 'port'; port: number } | { kind: 'svi'; vlan: number } | { kind: 'sub'; port: number; vlan: number } | { kind: 'po'; channel: number } | null; // interface モードの対象
   process: number | null; // router ospf の番号・router bgp の AS 番号・crypto map の番号
   map?: string; // crypto-map モードの対象の名前
 }

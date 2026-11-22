@@ -11,6 +11,7 @@ import { commands as nat } from '../topics/nat/commands';
 import { commands as qos } from '../topics/qos/commands';
 import { commands as ospf } from '../topics/ospf/commands';
 import { commands as rip } from '../topics/rip/commands';
+import { commands as subif } from '../topics/subif/commands';
 import { commands as svi } from '../topics/svi/commands';
 import { commands as trunk } from '../topics/trunk/commands';
 import { commands as staticRoute } from '../topics/static_route/commands';
@@ -22,7 +23,7 @@ import { commands as core } from './core';
 import type { CommandSpec } from './types';
 
 const registry = new Registry<CommandSpec>('命令');
-for (const spec of [...svi, ...core, ...vlan, ...staticRoute, ...rip, ...ospf, ...bgp, ...vrrp, ...lag, ...loadBalancer, ...ipsecVpn, ...mtu, ...qos, ...nat, ...dhcp, ...stp, ...dns, ...wireless, ...trunk]) 
+for (const spec of [...svi, ...subif, ...core, ...vlan, ...staticRoute, ...rip, ...ospf, ...bgp, ...vrrp, ...lag, ...loadBalancer, ...ipsecVpn, ...mtu, ...qos, ...nat, ...dhcp, ...stp, ...dns, ...wireless, ...trunk]) 
   registry.register(spec);
 
 registry.freeze();

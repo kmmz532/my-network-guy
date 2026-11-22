@@ -7,7 +7,7 @@ export const INITIAL_SESSION: TerminalSession = { mode: 'exec', iface: null, pro
 // config の中のモード（interface・router-*）。config の命令は、これらのモードでも使う
 export const SUB_MODES: readonly Mode[] = ['interface', 'router-rip', 'router-ospf', 'router-bgp', 'crypto-map'];
 
-// interface モードの対象の口の番号。SVI を対象にしているときは null。interface モードで対象がないのは、モードの作り方の誤り
+// interface モードの対象の口の番号。SVI・サブインターフェース・束ねた口を対象にしているときは null。interface モードで対象がないのは、モードの作り方の誤り
 export const sessionPortOf = (ctx: CommandContext): number | null => {
   const { iface } = ctx.session;
   if (iface === null) throw new Error(`interface モードに対象がない: ${ctx.session.mode}`);

@@ -937,6 +937,93 @@
     {
       "line": "no ip dns server",
       "result": "done"
+    },
+    {
+      "node": "R1"
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "interface g0/1.10",
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "sub",
+        "port": 1,
+        "vlan": 10
+      }
+    },
+    {
+      "line": "encapsulation dot1q 10",
+      "lines": [
+        "out:ui.terminal.done"
+      ]
+    },
+    {
+      "line": "encapsulation dot1q 20",
+      "lines": [
+        "err:ui.terminal.errEncapsulation {\"vlan\":10}"
+      ]
+    },
+    {
+      "line": "ip address 192.168.10.1 255.255.255.0",
+      "result": "done"
+    },
+    {
+      "line": "exit",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "interface g0/1.20",
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "sub",
+        "port": 1,
+        "vlan": 20
+      }
+    },
+    {
+      "line": "ip address 192.168.20.1 255.255.255.0",
+      "result": "done"
+    },
+    {
+      "line": "no ip address",
+      "result": "done"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
+      "line": "show ip interface brief",
+      "lines": [
+        "out:ui.terminal.briefInterface  ui.terminal.briefIp  ui.terminal.briefStatus",
+        "out:g0/0                        0.0.0.0              ui.terminal.briefUp",
+        "out:g0/1                        10.0.12.1            ui.terminal.briefUp",
+        "out:g0/1.10                     192.168.10.1         ui.terminal.briefUp",
+        "out:g0/9                        10.0.5.1             ui.terminal.briefDown"
+      ]
+    },
+    {
+      "line": "show running-config",
+      "lines": [
+        "out:ui.terminal.cfgInterface {\"port\":1}",
+        "out:ui.terminal.cfgInterface {\"port\":9}",
+        "out:ui.terminal.cfgInterface {\"port\":0}",
+        "out:ui.terminal.cfgSubInterface {\"name\":\"g0/1.10\"}",
+        "out:ui.terminal.cfgAddress {\"ip\":\"10.0.12.1\",\"prefix\":30}",
+        "out:ui.terminal.cfgAddress {\"ip\":\"10.0.5.1\",\"prefix\":24}",
+        "out:ui.terminal.cfgAddress {\"ip\":\"0.0.0.0\",\"prefix\":24}",
+        "out:ui.terminal.cfgAddress {\"ip\":\"192.168.10.1\",\"prefix\":24}",
+        "out:ui.terminal.cfgRip",
+        "out:ui.terminal.cfgOspf {\"process\":1}"
+      ]
     }
   ],
   "network": {
@@ -1032,6 +1119,15 @@
             "ospf": {
               "area": 0
             }
+          },
+          {
+            "id": "g0/1.10",
+            "kind": "sub",
+            "port": 104106,
+            "parent": 1,
+            "vlan": 10,
+            "ip": "192.168.10.1",
+            "prefix": 24
           }
         ],
         "gateway": null,

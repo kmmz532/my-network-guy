@@ -6,13 +6,20 @@ import type { PortConfig } from './types';
 // SVI（VLAN のインターフェース・N138）は口を持たないため、判定の中だけ仮想の口の番号（1000 + VLAN）で表す
 export const SVI_PORT_BASE = 1000;
 export const sviPortOf = (vlan: number): number => SVI_PORT_BASE + vlan;
-export const isSviPort = (port: number): boolean => port >= SVI_PORT_BASE;
+export const isSviPort = (port: number): boolean => port >= SVI_PORT_BASE && port < SUB_PORT_BASE;
+
+// サブインターフェース（router-on-a-stick）も口を持たないため、判定の中だけ仮想の口の番号（SUB_PORT_BASE + 親の口 × 4096 + VLAN）で表す
+export const SUB_PORT_BASE = 100000;
+export const subPortOf = (parent: number, vlan: number): number => SUB_PORT_BASE + parent * 4096 + vlan;
+export const isSubPort = (port: number): boolean => port >= SUB_PORT_BASE;
+export const subParentOf = (port: number): number => Math.floor((port - SUB_PORT_BASE) / 4096);
+export const subVlanOf = (port: number): number => (port - SUB_PORT_BASE) % 4096;
 
 // L3スイッチの口の扱い（N138）: 設定の access・trunk は機器の内部のスイッチ（ファブリック）につなぐ。設定がなく IP もない口は既定の access（VLAN 1）。
 // routed の設定、または IP を持つ口（設定がなければ）は、ルーターの口として経路を持つ（今までと同じ動き）
 export const isL3FabricPort = (category: string, port: number, cfg: PortConfig | undefined, hasIp: boolean): boolean => {
-  // SVI の仮想の口は、口の扱いの対象ではない
-  if (isSviPort(port) || !(categoryCan(category, 'switchport') && categoryCan(category, 'routing'))) return false;
+  // SVI・サブインターフェースの仮想の口は、口の扱いの対象ではない
+  if (isSviPort(port) || isSubPort(port) || !(categoryCan(category, 'switchport') && categoryCan(category, 'routing'))) return false;
   if (cfg !== undefined) return cfg.mode === 'access' || cfg.mode === 'trunk';
   return !hasIp;
 };

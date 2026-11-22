@@ -9,7 +9,7 @@ import type { VrrpGroup } from '../network/vrrp';
 import type { DnsRecord, DnsService, FirewallRule, Iface, IspLine, NetNode, PortConfig, Route, Service } from '../network/types';
 import { initialService } from '../registry/services';
 import { MTU_MAX, MTU_MIN, WIRELESS_SECURITIES } from '../network/types';
-import { makeIface, makePo, makeSvi } from '../network/iface';
+import { makeIface, makePo, makeSub, makeSvi } from '../network/iface';
 import { refusalFor } from './capabilityGate';
 import { getComponent, withComponent } from '../network/components';
 import type { Components } from '../network/components';
@@ -287,6 +287,25 @@ export const setSvi = (core: Core, uid: string, vlan: number, ip: string, prefix
   const others = node.interfaces.filter((i) => !(i.kind === 'svi' && i.vlan === vlan));
   const interfaces: Iface[] = ip === '' ? others : [...others, makeSvi(vlan, ip, prefix)];
   if (interfaces.filter((i) => i.kind === 'svi').length > sviMaxOf(node.device)) return fail('svi.max');
+  const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, interfaces } : n));
+  const plans = fillPlans(analyze({ nodes, links: net.links, plans: net.plans }, env.engine));
+  return { ok: true, core: withNet(core, target, { ...net, nodes, plans }) };
+};
+
+// サブインターフェース（router-on-a-stick）を設定する。ip が '' なら外す。作れるのは subif の機器だけで、親は機器の口、VLAN は 1〜4094
+export const setSub = (core: Core, uid: string, parent: number, vlan: number, ip: string, prefix: number, env: Env, target: NetTarget = 'focus'): Outcome => {
+  const net = netOf(core, target);
+  if (typeof net === 'string') return fail(net);
+  const node = net.nodes.find((n) => n.uid === uid);
+  if (!node) return fail('none');
+  if (node.configLocked) return fail('locked');
+  const refusal = refusalFor(node.device, 'subif');
+  if (refusal) return fail(refusal);
+  if (!Number.isInteger(parent) || parent < 0 || parent >= portCountOf(node.device)) return fail('port.none');
+  if (!Number.isInteger(vlan) || vlan < 1 || vlan > 4094) return fail('vlan.range');
+  if (ip !== '' && !isIp(ip)) return fail('ip');
+  const others = node.interfaces.filter((i) => !(i.kind === 'sub' && i.parent === parent && i.vlan === vlan));
+  const interfaces: Iface[] = ip === '' ? others : [...others, makeSub(node.device, parent, vlan, ip, prefix)];
   const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, interfaces } : n));
   const plans = fillPlans(analyze({ nodes, links: net.links, plans: net.plans }, env.engine));
   return { ok: true, core: withNet(core, target, { ...net, nodes, plans }) };

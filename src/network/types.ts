@@ -17,12 +17,14 @@ export interface Iface {
   // 名前（eth0・g0/1 など。画面とターミナルで同じ名前を出す）
   id: string;
   // 種類: port（口のインターフェース）・svi（VLAN のインターフェース・N138）・po（束ねた口。チャネルの番号で持ち、
-  // 計算の入口（resolvePo）で、まとまった配線の代表の口の port に読み替える）。sub・lan は後続
-  kind: 'port' | 'svi' | 'po';
+  // 計算の入口（resolvePo）で、まとまった配線の代表の口の port に読み替える）・sub（ルーターのサブインターフェース）。lan は後続
+  kind: 'port' | 'svi' | 'po' | 'sub';
   // 口の番号（svi は判定の中だけの仮想の口・SVI_PORT_BASE + VLAN。po は物理の口を持たず PO_PORT。読み替えの後の構成には po は残らない）
   port: number;
-  // svi のときの VLAN 番号
+  // svi・sub のときの VLAN 番号（sub は名前 g0/1.10 の 10 と、タグ付きで運ぶ VLAN が同じ）
   vlan?: number;
+  // sub のときの親の物理の口の番号（port は判定の中だけの仮想の口・SUB_PORT_BASE + parent × 4096 + VLAN）
+  parent?: number;
   // po のときのチャネルの番号（口の設定の channelGroup と同じ）
   channel?: number;
   ip: string;

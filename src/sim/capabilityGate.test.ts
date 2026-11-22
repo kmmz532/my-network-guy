@@ -6,7 +6,7 @@ import type { NetNode } from '../network/types';
 import { CAPABILITY_REFUSALS, type GatedCapability } from './capabilityGate';
 import { initialOffice } from './furniture';
 import { REQUIRES } from '../network/components';
-import { setBgp, setChannel, setDhcp, setFirewallRules, setIsp, setLoadBalancer, setNat, setOspf, setPortMode, setRouting, setStp, setSvi, setVpn, setVrrp, setWireless, setWirelessMacs } from './netEdit';
+import { setBgp, setChannel, setDhcp, setFirewallRules, setIsp, setLoadBalancer, setNat, setOspf, setPortMode, setRouting, setStp, setSub, setSvi, setVpn, setVrrp, setWireless, setWirelessMacs } from './netEdit';
 import type { Core, Env, Outcome } from './project';
 
 const balance = balanceJson as unknown as Balance;
@@ -20,6 +20,7 @@ const coreOf = (device: string): Core =>
 
 const ATTEMPTS: Record<GatedCapability, { device: string; run: (core: Core) => Outcome }> = {
   svi: { device: 'pc_basic', run: (c) => setSvi(c, 'n', 10, '10.0.0.1', 24, env, 'office') },
+  subif: { device: 'pc_basic', run: (c) => setSub(c, 'n', 0, 10, '10.0.0.1', 24, env, 'office') },
   switchport: { device: 'pc_basic', run: (c) => setPortMode(c, 'n', 0, { kind: 'access', vlan: 10 }, 'office') },
   routedPort: { device: 'l2_switch_4p', run: (c) => setPortMode(c, 'n', 0, { kind: 'routed' }, 'office') },
   stp: { device: 'pc_basic', run: (c) => setStp(c, 'n', { op: 'priority', value: 4096 }, 'office') },
