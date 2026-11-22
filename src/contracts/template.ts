@@ -45,7 +45,7 @@ export const starHubOf = (points: readonly { x: number; y: number }[], map: Game
 };
 
 // 置く範囲の組（spawnGroups。spawnArea のときは1つのグループ）
-export interface SpawnGroup { x: number; y: number; width: number; height: number; min: number; max: number; role?: string; name?: string }
+export interface SpawnGroup { x: number; y: number; width: number; height: number; min: number; max: number; role?: string; name?: string; subnet?: number }
 
 export const spawnGroupsOf = (template: ContractTemplate): SpawnGroup[] => {
   if (template.spawnGroups !== undefined) return template.spawnGroups;
@@ -63,8 +63,21 @@ export const pcCountRangeOf = (template: ContractTemplate): { min: number; max: 
 };
 
 // 机と飾りの配置を1回作る。途中で机が並べられなければ null（rng は進んだ状態を返す）
+type PlacedConfig = NonNullable<Contract['placed'][number]['config']>;
+
+// 固定のネットワークの PC の設定（192.168.<subnet>.<host>/24、ゲートウェイは .1。設定は固定）
+const fixedConfig = (subnet: number, host: number): PlacedConfig => ({
+  interfaces: [{ port: 0, ip: `192.168.${subnet}.${host}`, prefix: 24 }],
+  gateway: `192.168.${subnet}.1`,
+  services: [],
+  locked: true,
+});
+
+// ネットワークごとの、次に振るホストの番号の初め
+const FIRST_FIXED_HOST = 11;
+
 interface LaidTemplate {
-  placed: { ref: string; device: string; x: number; y: number; locked: boolean; name?: string }[];
+  placed: { ref: string; device: string; x: number; y: number; locked: boolean; name?: string; config?: PlacedConfig }[];
   roles: Map<string, string[]>;
   furniture: FurnitureCell[];
   rng: number;
@@ -80,6 +93,7 @@ const layoutTemplate = (template: ContractTemplate, map: GameMap, rngState: numb
   const taken = new Set<string>((map.furniture ?? []).map((f) => `${f.x},${f.y}`));
   const desks: DeskCell[] = [];
   const furniture: FurnitureCell[] = [];
+  const nextHost = new Map<number, number>();
   for (const group of groups) {
     let named = 0;
     const count = randInt(rng, group.min, group.max);
@@ -96,14 +110,20 @@ const layoutTemplate = (template: ContractTemplate, map: GameMap, rngState: numb
       desks.push(d);
       // 机の向きは、並べ方の型で決めた向きを持たせる（N171）
       furniture.push({ id: DESK_FURNITURE, x: d.x, y: d.y, facing: d.facing });
+      let config: PlacedConfig | undefined;
+      if (group.subnet !== undefined) {
+        const host = nextHost.get(group.subnet) ?? FIRST_FIXED_HOST;
+        nextHost.set(group.subnet, host + 1);
+        config = fixedConfig(group.subnet, host);
+      }
       if (group.role !== undefined && group.name !== undefined) {
         const list = roles.get(group.role) ?? [];
         const ref = `${group.role}_${list.length + 1}`;
         roles.set(group.role, [...list, ref]);
         named++;
-        placed.push({ ref, device: 'pc_basic', x: d.x, y: d.y, locked: true, name: `${group.name}${named}` });
+        placed.push({ ref, device: 'pc_basic', x: d.x, y: d.y, locked: true, name: `${group.name}${named}`, ...(config ? { config } : {}) });
       } else {
-        placed.push({ ref: `pc_${placed.length + 1}`, device: 'pc_basic', x: d.x, y: d.y, locked: true });
+        placed.push({ ref: `pc_${placed.length + 1}`, device: 'pc_basic', x: d.x, y: d.y, locked: true, ...(config ? { config } : {}) });
       }
     }
     for (const s of laid.shelves) {
@@ -173,6 +193,7 @@ export const instantiateTemplate = (
     furniture,
     goals,
     inhouse: false,
+    ...(template.manualIp ? { manualIp: true } : {}),
     reward: {
       money: template.reward.base + template.reward.perPc * total,
     },

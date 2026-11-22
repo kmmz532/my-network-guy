@@ -672,6 +672,9 @@ const spawnGroupSchema = z.object({
   // 役割（目標の $role:<役割> で指す）と、PC の表示名（末尾に番号が付く）。どちらも書くか、どちらも書かない
   role: z.string().regex(/^[a-z]+$/).optional(),
   name: z.string().min(1).optional(),
+  // 固定で配るネットワーク（192.168.<subnet>.0/24）。PC に .11 から順にアドレスを振り、ゲートウェイを .1 にして、設定を固定する。
+  // 同じ番号のグループは同じネットワークになる。ネットワークの違う PC どうしは、ルーターでつながないと届かない
+  subnet: int.min(1).max(254).optional(),
 }).refine((g) => (g.role === undefined) === (g.name === undefined), { message: 'role と name は、どちらも書くか、どちらも書かない' });
 
 // 定型案件（ひな形）。変化形（variantOf）は読み込み時に元のひな形と合わせて完全な形にする（N51a）
@@ -715,6 +718,8 @@ export const templateSchema = z
     announce: z.boolean(),
     // 文言のキーに使う ID（変化形は元のひな形の ID。読み込み時に入る）
     textId: z.string().min(1).optional(),
+    // true なら、IPアドレスの自動割り当てを使わず、ルーターのアドレスなどを自分で入れる（案件の manualIp になる）
+    manualIp: z.boolean().optional(),
     // 机の並べ方の候補（N76）。省くと島型と壁沿い型
     layout: z.array(z.enum(['island', 'wall', 'reception'])).min(1).optional(),
     // 飾りの家具の候補（N76）。省くと事務所の既定

@@ -17,7 +17,8 @@
       "width": 5,
       "height": 7,
       "min": 1,
-      "max": 2
+      "max": 2,
+      "subnet": 1
     },
     {
       "x": 7,
@@ -25,7 +26,8 @@
       "width": 6,
       "height": 7,
       "min": 1,
-      "max": 2
+      "max": 2,
+      "subnet": 2
     },
     {
       "x": 14,
@@ -33,7 +35,8 @@
       "width": 5,
       "height": 7,
       "min": 1,
-      "max": 2
+      "max": 2,
+      "subnet": 2
     }
   ],
   "deadlineDays": 8,
@@ -42,7 +45,7 @@
     "max": 90
   },
   "budget": {
-    "base": 42000,
+    "base": 122000,
     "perPc": 0,
     "perTile": 500
   },
@@ -52,10 +55,16 @@
   },
   "goals": [
     {
+      "type": "count",
+      "category": "router",
+      "min": 1
+    },
+    {
       "type": "ping_all",
       "nodes": "$all_pcs"
     }
   ],
+  "manualIp": true,
   "announce": true,
   "layout": [
     "reception",

@@ -143,7 +143,7 @@
   "contract.t_campus.title": "キャンパスの2つの校舎（{pcCount}台）",
   "contract.t_clinic_records.story": "受付と診察室から、カルテのWebサーバーを見られるようにしてほしい。待合室の端末は患者さんが触るので、受付や診察室とは通信できないようにしたい。",
   "contract.t_clinic_records.title": "診療所のカルテのサーバー（{pcCount}台）",
-  "contract.t_clinic.story": "受付と2つの診察室の端末を、すべてつないでほしい。",
+  "contract.t_clinic.story": "受付と2つの診察室の端末を、すべてつないでほしい。受付と診察室は別のネットワークになっており、ルーターで結ぶ必要がある。",
   "contract.t_clinic.title": "診療所の受付と診察室（{pcCount}台）",
   "contract.t_coworking.story": "L字の部屋に並んだ{pcCount}台の席をつないでほしい。",
   "contract.t_coworking.title": "コワーキングスペース（{pcCount}台）",
