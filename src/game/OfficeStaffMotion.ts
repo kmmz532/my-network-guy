@@ -59,7 +59,7 @@ export class OfficeStaffMotion {
       // 休憩の途中の社員は、机の前にいないので選べない
       const b = this.breaks.get(member.uid);
       if (b && b.phase !== 'desk') return;
-      hits.push({ uid: member.uid, ...deskStaffPos(f.x, f.y, ts, deskTap(elapsed, k)) });
+      hits.push({ uid: member.uid, ...deskStaffPos(f.x, f.y, ts, deskTap(elapsed, k), f.facing ?? 'up') });
     });
     const unseated = unseatedStaff(s.office, s.staff, isDesk);
     this.walkers.forEach((w, k) => {

@@ -4,7 +4,7 @@ import { staffSpriteName, STAFF_PLACEHOLDER_LOOKS } from '../data/schema';
 import { seatedStaff, unseatedStaff } from '../sim/furniture';
 import { isDesk } from './OfficeStaffMotion';
 import { OfficeStaffMotion } from './OfficeStaffMotion';
-import { deskStaffPos, deskTap, STAFF_FRAME_MS, STAFF_W, wanderStaffPos } from './staffHit';
+import { deskStaffDepth, deskStaffPos, deskTap, STAFF_FRAME_MS, STAFF_W, wanderStaffPos } from './staffHit';
 import { spriteOf, texture } from './sprites';
 import { tDyn } from '../i18n/t';
 import { useGameStore } from '../stores/useGameStore';
@@ -50,8 +50,9 @@ export class StaffRenderer {
         this.drawStaff(at.x, at.y, member.look, member);
         return;
       }
-      const at = deskStaffPos(desk.x, desk.y, ts, deskTap(elapsed, k));
-      this.drawStaff(at.x, at.y, member.look, member, desk.facing ?? 'up');
+      const facing = desk.facing ?? 'up';
+      const at = deskStaffPos(desk.x, desk.y, ts, deskTap(elapsed, k), facing);
+      this.drawStaff(at.x, at.y, member.look, member, facing, deskStaffDepth(desk.x, desk.y, ts, facing));
       const seconds = elapsed / 1000 + k * 23;
       if (seconds % 60 < 3) {
         this.options.speech.draw(tDyn(`staff.quirk.${member.quirk}`), at.x + STAFF_W / 2, at.y);
@@ -99,7 +100,8 @@ export class StaffRenderer {
     });
   }
 
-  drawStaff(x: number, y: number, shirt: string, tag?: { name: string; job: string }, facing?: Facing): void {
+  // depth は描く順（足元の位置の代わり）。席の社員は椅子との前後で決める
+  drawStaff(x: number, y: number, shirt: string, tag?: { name: string; job: string }, facing?: Facing, depth?: number): void {
     const frame = Math.floor(this.options.elapsed() / (STAFF_FRAME_MS * 2)) % 2;
     // 社員のスプライトは服の色で区別し、staffSpriteName で絵を選ぶ。
     const tex = texture(spriteOf(`staff/${staffSpriteName(shirt)}_${frame}`));
@@ -112,7 +114,7 @@ export class StaffRenderer {
       sprite.scale.x = -1;
       sprite.position.x = left + STAFF_W;
     }
-    sprite.zIndex = top + STAFF_FOOT;
+    sprite.zIndex = depth ?? top + STAFF_FOOT;
     this.options.sprites.addChild(sprite);
     this.options.background.ellipse(left + 8, top + STAFF_FOOT, 6, 2).fill({ color: 0x000000, alpha: 0.25 });
     if (tag) this.drawNameTag(left + STAFF_W / 2, top, tag);

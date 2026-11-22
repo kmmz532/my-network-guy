@@ -4,9 +4,13 @@ import { STAFF_H, STAFF_W, deskStaffPos, deskTap, staffAt, wanderStaffPos, type 
 const TS = 32;
 
 describe('席の社員の位置と当たり判定', () => {
-  it('席の社員は机のマスの1マス下に、スプライトの幅の中央で描く', () => {
-    expect(deskStaffPos(2, 3, TS, 0)).toEqual({ x: 2 * TS + (TS - STAFF_W) / 2, y: 4 * TS - 6 });
-    expect(deskStaffPos(2, 3, TS, 1).y).toBe(4 * TS - 7);
+  it('席の社員は机のマスの背中側（椅子のマス）に、スプライトの幅の中央で描く。向きごとに背中側が変わる', () => {
+    // up は手前（1マス下）、down は奥（1マス上）、left は右、right は左
+    expect(deskStaffPos(2, 3, TS, 0, 'up')).toEqual({ x: 2 * TS + (TS - STAFF_W) / 2, y: 4 * TS - 6 });
+    expect(deskStaffPos(2, 3, TS, 0, 'down')).toEqual({ x: 2 * TS + (TS - STAFF_W) / 2, y: 2 * TS - 6 });
+    expect(deskStaffPos(2, 3, TS, 0, 'left')).toEqual({ x: 3 * TS + (TS - STAFF_W) / 2, y: 3 * TS - 6 });
+    expect(deskStaffPos(2, 3, TS, 0, 'right')).toEqual({ x: 1 * TS + (TS - STAFF_W) / 2, y: 3 * TS - 6 });
+    expect(deskStaffPos(2, 3, TS, 1, 'up').y).toBe(4 * TS - 7);
   });
 
   it('揺れは席ごとに、2コマで1周期ずらす', () => {
@@ -17,7 +21,7 @@ describe('席の社員の位置と当たり判定', () => {
   });
 
   it('スプライトの範囲の中では社員を返し、机のマスの上（スプライトの外）では null', () => {
-    const at = deskStaffPos(2, 3, TS, 0);
+    const at = deskStaffPos(2, 3, TS, 0, 'up');
     const hits: StaffHit[] = [{ uid: 's0', ...at }];
     expect(staffAt(hits, { x: at.x, y: at.y })).toBe('s0');
     expect(staffAt(hits, { x: at.x + STAFF_W - 1, y: at.y + STAFF_H - 1 })).toBe('s0');
@@ -38,7 +42,7 @@ describe('歩き回る社員の当たり判定', () => {
   });
 
   it('複数の社員のうち、押した位置にいる社員を返す', () => {
-    const a = deskStaffPos(0, 0, TS, 0);
+    const a = deskStaffPos(0, 0, TS, 0, 'up');
     const b = wanderStaffPos(4, 4, TS);
     const hits: StaffHit[] = [
       { uid: 's0', ...a },
