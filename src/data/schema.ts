@@ -553,6 +553,8 @@ export const goalSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('no_static_route') }),
   // 指定したルーターの BGP の隣接が、min 本以上確立している
   z.object({ type: z.literal('bgp_established'), node: z.string().min(1), min: z.number().int().positive() }),
+  // 指定したルーターがすべて、iBGP で学んだ経路を持ち、BGP で学んだ経路のネクストホップに届く（使えない経路がない）
+  z.object({ type: z.literal('bgp_usable'), nodes: z.array(z.string().min(1)).min(1) }),
   // 指定したルーターが、インターネットの経路（ISP が広告する宛先）の最適経路に、回線終端 via の ISP を選んでいる
   z.object({ type: z.literal('bgp_exit'), node: z.string().min(1), via: z.string().min(1) }),
   // 指定した機器のどれか1台の電源を切っても、残りの PC・サーバーがすべて互いに届く

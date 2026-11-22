@@ -65,6 +65,7 @@ export const GLOSSARY_OF_SETTING: readonly (readonly [Capability, string])[] = [
 export const GLOSSARY_OF_GOAL: Partial<Record<Goal['type'], string>> = {
   bgp_established: 'as_number',
   bgp_exit: 'local_pref',
+  bgp_usable: 'ebgp_ibgp',
   lag_bundled: 'lacp',
   stp_root: 'root_bridge',
   ospf_dr: 'dr_bdr',

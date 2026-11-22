@@ -224,6 +224,16 @@ const handlers: { [K in Goal['type']]: Evaluate<K> } = {
     const ok = staticFree && reach;
     return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
   },
+  // 指定したルーターがすべて、iBGP で学んだ経路を持ち、BGP で学んだ経路がすべて使える（ネクストホップに届く）
+  bgp_usable: (goal, state) => {
+    const { net, world: data } = state;
+    const view = analyze(withInternet(net, data) ?? net, data);
+    const ok = goal.nodes.every((uid) => {
+      const learned = (bgpTableOf(view, uid)?.candidates ?? []).filter((c) => !c.local);
+      return learned.some((c) => !c.ebgp) && learned.every((c) => c.valid);
+    });
+    return [{ ...none(goal, 'ping'), ok, result: { ok, path: [] } }];
+  },
   // 指定したルーターの、インターネットの経路の最適経路が、回線終端 via の ISP から学んだものである（出口の ISP）
   bgp_exit: (goal, state) => {
     const { net, world: data } = state;
@@ -509,6 +519,7 @@ const texts: { [K in Goal['type']]: Text<K> } = {
   survive_device_failure: (g, c) => ({ params: { nodes: names(g.nodes, c) } }),
   survive_link_failure: (g, c) => ({ params: { links: g.links.map(([a, b]) => `${c.nameOf(a)}〜${c.nameOf(b)}`).join('・') } }),
   bgp_established: (g, c) => ({ params: { node: c.nameOf(g.node), min: g.min } }),
+  bgp_usable: (g, c) => ({ params: { nodes: names(g.nodes, c) } }),
   bgp_exit: (g, c) => ({ params: { node: c.nameOf(g.node), isp: c.nameOf(g.via) } }),
   ospf_dr: (g, c) => ({ params: { node: c.nameOf(g.node) } }),
   http_by_name: (g, c) => ({ params: { from: names(g.from, c), name: g.name } }),
