@@ -1,7 +1,7 @@
 // 自社オフィスの家具と社員の規則（純粋関数）。配置と撤去、社員の席の数と雇用を扱う。
 import type { Balance, Furniture, GameMap, Staff } from '../data/schema';
 import { DESK_ID, emptyOffice, fail, isPcIn, officeLocked, type Core, type Env, type Office, type Outcome } from './project';
-import { tileKind } from '../data/tileKind';
+import { isCablePassable, tileKind } from '../data/tileKind';
 import type { NetLink, NetNode } from '../network/types';
 import cablesData from '../../resources/data/cables.json';
 import { rotateFacing } from './facing';
@@ -90,7 +90,7 @@ export const moveFurniture = (core: Core, uid: string, x: number, y: number, map
   };
 };
 
-// 床の上の最短の道筋（4方向）。始点と終点を含む。通れない場所（blocked）と床でないマスは通らない。道がなければ null
+// 配線の最短の道筋（4方向）。始点と終点を含む。通れない場所（blocked）と、配線の通れないマス（壁など）は通らない。道がなければ null。点検口と shaft は壁の中でも通れる（isCablePassable）
 const routeFloor = (map: GameMap, from: { x: number; y: number }, to: { x: number; y: number }, blocked: (x: number, y: number) => boolean): [number, number][] | null => {
   const key = (px: number, py: number) => `${px},${py}`;
   const prev = new Map<string, string | null>([[key(from.x, from.y), null]]);
@@ -105,7 +105,7 @@ const routeFloor = (map: GameMap, from: { x: number; y: number }, to: { x: numbe
       const k = key(nx, ny);
       if (prev.has(k)) continue;
       if (nx < 0 || ny < 0 || nx >= map.width || ny >= map.height) continue;
-      if (tileKind(map, nx, ny) !== 'floor') continue;
+      if (!isCablePassable(tileKind(map, nx, ny))) continue;
       if (k !== goal && blocked(nx, ny)) continue;
       prev.set(k, key(cx, cy));
       queue.push([nx, ny]);

@@ -5,6 +5,8 @@ import { assignDesks, effectRangeTiles, freeDesks, furnitureBonus, hasEffectRang
 import type { NetNode } from '../network/types';
 import balanceJson from '../../resources/data/balance.json';
 import furnitureJson from '../../resources/data/furniture.json';
+import twoFloorsJson from '../../resources/data/maps/two_floors.json';
+import oldBuildingJson from '../../resources/data/maps/old_building.json';
 import type { Balance, Furniture } from '../data/schema';
 import { createStaff } from './staff';
 import { emptyOffice, noEffects, type Core, type Env, type Office } from './project';
@@ -306,6 +308,44 @@ describe('座っている机の移動（N103）', () => {
     const fence = [{ uid: 'f1', id: 'plant', x: 0, y: 1 }, { uid: 'f2', id: 'plant', x: 2, y: 1 }, { uid: 'f3', id: 'plant', x: 1, y: 0 }, { uid: 'f4', id: 'plant', x: 1, y: 2 }];
     const office = withOffice({ furniture: [desk, ...fence], furnitureSeq: 5, nodes: [pc, { ...other, x: 1, y: 1 }], links: [link('l0', 'n0', 'n1', [[2, 2], [1, 2], [1, 1]])] });
     expect(reasonOf(moveFurniture({ ...core(), office } as Core, 'd0', 4, 2, map))).toBe('tile');
+  });
+});
+
+describe('ケーブルだけが通れるマス（shaft・hatch）', () => {
+  const twoFloors = twoFloorsJson as unknown as GameMap;
+  const oldBuilding = oldBuildingJson as unknown as GameMap;
+  const link = (uid: string, a: string, b: string, path: [number, number][]) => ({ uid, cable: 'utp_cat5e', a: { node: a, port: 0 }, b: { node: b, port: 0 }, path, paid: 0 });
+
+  it('階をまたぐ配線の道筋は、仕切りの shaft を通る（壁は越えない）', () => {
+    // 左の階の机（2,2）の PC を (3,2) へ動かす。右の階の PC（12,2）とのあいだは、仕切りの (8,4) の shaft を通るしかない
+    const desk = { uid: 'd0', id: 'desk', x: 2, y: 2 };
+    const left = { uid: 'n0', device: 'pc_basic', x: 2, y: 2 } as unknown as NetNode;
+    const right = { uid: 'n1', device: 'pc_basic', x: 12, y: 2 } as unknown as NetNode;
+    const office = { ...core().office, furniture: [desk], furnitureSeq: 1, nodes: [left, right], links: [link('l0', 'n0', 'n1', [[2, 2], [12, 2]])] } as Office;
+    const out = moveFurniture({ ...core(), office } as Core, 'd0', 3, 2, twoFloors);
+    expect(out.ok).toBe(true);
+    if (!out.ok) return;
+    expect(out.core.office.links[0].path).toContainEqual([8, 4]);
+  });
+
+  it('点検口は壁の上を通れる（配線の道筋が hatch の上を通る）', () => {
+    // 部屋1の机（2,3）から、部屋2の PC（8,3）へ。境の壁の hatch（6,3）を通る道筋が、ほかに最短はない
+    const desk = { uid: 'd0', id: 'desk', x: 2, y: 3 };
+    const left = { uid: 'n0', device: 'pc_basic', x: 2, y: 3 } as unknown as NetNode;
+    const right = { uid: 'n1', device: 'pc_basic', x: 8, y: 3 } as unknown as NetNode;
+    const office = { ...core().office, furniture: [desk], furnitureSeq: 1, nodes: [left, right], links: [link('l0', 'n0', 'n1', [[2, 3], [8, 3]])] } as Office;
+    const out = moveFurniture({ ...core(), office } as Core, 'd0', 4, 3, oldBuilding);
+    expect(out.ok).toBe(true);
+    if (!out.ok) return;
+    expect(out.core.office.links[0].path).toEqual([[4, 3], [5, 3], [6, 3], [7, 3], [8, 3]]);
+  });
+
+  it('shaft と hatch には、機器も家具も置けない（tile）', () => {
+    const c = core({ owned: { server_basic: 2, desk: 2 } });
+    expect(reasonOf(placeInOffice(c, 'server_basic', 8, 4, twoFloors, env))).toBe('tile');
+    expect(reasonOf(placeInOffice(c, 'server_basic', 6, 2, oldBuilding, env))).toBe('tile');
+    expect(reasonOf(placeFurniture(c, 'desk', 8, 4, twoFloors))).toBe('tile');
+    expect(reasonOf(placeFurniture(c, 'desk', 6, 2, oldBuilding))).toBe('tile');
   });
 });
 

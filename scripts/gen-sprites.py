@@ -1393,6 +1393,48 @@ def door_side():
     return img
 
 
+def hatch():
+    # 横の仕切りの壁の点検口（壁の正面の絵の上に、金属の蓋を描く）。ドアと同じく、壁の続きとして描く
+    img = wall_face()
+    d = ImageDraw.Draw(img)
+    rect(d, 8, 6, 16, 16, 'g', 'o')
+    rect(d, 10, 8, 12, 12, 'd')
+    d.line([(10, 14), (21, 14)], fill=C['g'])
+    px(d, 19, 17, 'y')
+    rect(d, 10, 25, 12, 3, 'W3')
+    return img
+
+
+def hatch_side():
+    # 縦の仕切りの壁の点検口（真上から見る）。仕切りの壁と同じ上面の色で塗り、蓋を細い金属の帯で描く
+    img, d = new(32, 32)
+    rect(d, 0, 0, 32, 32, 'W2')
+    d.line([(0, 0), (0, 31)], fill=C['o'])
+    d.line([(31, 0), (31, 31)], fill=C['o'])
+    rect(d, 1, 0, 30, 3, 'W3')
+    rect(d, 1, 29, 30, 3, 'W3')
+    rect(d, 11, 4, 10, 24, 'g', 'o')
+    d.line([(13, 6), (13, 25)], fill=C['d'])
+    px(d, 17, 15, 'y')
+    return img
+
+
+def shaft():
+    # 配線用の縦の穴（真上から見る）。仕切りの壁の縁の上面の色を両端に残し、中は暗い穴にはしごを描く
+    img, d = new(32, 32)
+    rect(d, 0, 0, 32, 32, 'W2')
+    d.line([(0, 0), (0, 31)], fill=C['o'])
+    d.line([(31, 0), (31, 31)], fill=C['o'])
+    rect(d, 1, 0, 30, 3, 'W3')
+    rect(d, 1, 29, 30, 3, 'W3')
+    rect(d, 8, 3, 16, 26, 'x1', 'o')
+    rect(d, 10, 5, 2, 22, 'g')
+    rect(d, 20, 5, 2, 22, 'g')
+    for y in range(7, 27, 4):
+        rect(d, 12, y, 8, 1, 'g')
+    return img
+
+
 def wall_window():
     img = wall_face()
     d = ImageDraw.Draw(img)
@@ -1967,6 +2009,9 @@ if __name__ == '__main__':
         'whiteboard': wall_whiteboard(),
         'door': door(),
         'door_side': door_side(),
+        'hatch': hatch(),
+        'hatch_side': hatch_side(),
+        'shaft': shaft(),
     }
     for name, img in tiles.items():
         save(img, f'tile/{name}.png')

@@ -134,6 +134,15 @@ export const drawTileMap = (map: GameMap): Container => {
         pillars.push([x, y]);
         continue;
       }
+      // 点検口は壁の上の蓋（ドアと同じ向きの決め方）。配線用の縦の穴は、穴の絵だけを描く
+      if (kind === 'hatch') {
+        put(isWall(kindAt(x, y - 1)) || isWall(kindAt(x, y + 1)) ? 'tile/hatch_side' : 'tile/hatch', x, y);
+        continue;
+      }
+      if (kind === 'shaft') {
+        put('tile/shaft', x, y);
+        continue;
+      }
       put(floorSprite(map.floorTiles?.[`${x},${y}`] ?? map.floor, x, y), x, y);
       if (kind && kind !== 'floor') furniture.push([kind, x, y]);
     }
