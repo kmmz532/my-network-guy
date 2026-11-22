@@ -9,11 +9,13 @@ import { lagBundlesOf } from '../query/lagBundles';
 import { portSpeedOf } from '../query/portSpeedOf';
 import { resolveName } from '../resolve';
 import { ifaceLabel, isIp, parseIfaceName, prefixOfMask } from './args';
-import { SUB_MODES, sessionPortOf } from './modes';
+import { SUB_MODES, interfaceOf, sessionPortOf } from './modes';
+import { can } from '../capabilities';
+import { ifacePrefixOf } from '../iface';
 import { questionLines, questionList } from './suggest';
 import { MTU_DEFAULT, type NetNode } from '../types';
 import { getComponent } from '../components';
-import { deviceCategory } from '../../registry/query';
+import { deviceCategory, portCountOf } from '../../registry/query';
 import type { TerminalLine, Tr } from '../terminal';
 import { changed, err, nameOf, out, shown } from './lines';
 import type { CommandContext, CommandResult, CommandSpec, TerminalSession } from './types';
@@ -181,6 +183,19 @@ const ipAddressInterfaceDhcp: CommandSpec = {
   },
 };
 
+// shutdown・no shutdown: 口を停止する・戻す。interface モードの形だけを受け付ける（exec・config に口の番号つきの形を置くと、sh が show と区別できなくなる）
+const shutdownSpec = (id: string, no: boolean): CommandSpec => ({
+  id: `core.${id}`,
+  modes: ['exec', 'config'],
+  tokens: [...(no ? [{ word: 'no' }] : []), { word: 'shutdown' }, { arg: 'number', name: 'port' }],
+  help: `ui.cmd.core.${id}`,
+  writes: true,
+  topic: null,
+  run: (args, ctx, tr) => changed(ctx, tr, { kind: 'portShutdown', port: Number(args.port), shut: !no }),
+});
+const shutdown = shutdownSpec('shutdown', false);
+const noShutdown = shutdownSpec('noShutdown', true);
+
 export const commands: readonly CommandSpec[] = [
   {
     id: 'core.configureTerminal',
@@ -204,6 +219,17 @@ export const commands: readonly CommandSpec[] = [
       return enter({ mode: 'interface', iface, process: null });
     },
   },
+  {
+    id: 'core.interfaceVlan',
+    modes: ['config'],
+    tokens: [{ word: 'interface' }, { word: 'vlan' }, { arg: 'vlan', name: 'vlan' }],
+    help: 'ui.cmd.core.interfaceVlan',
+    writes: false,
+    topic: null,
+    run: (args) => enter({ mode: 'interface', iface: { kind: 'svi', vlan: Number(args.vlan) }, process: null }),
+  },
+  interfaceOf(shutdown),
+  interfaceOf(noShutdown),
   {
     id: 'core.exit',
     modes: ['config', ...SUB_MODES],
@@ -336,15 +362,23 @@ export const commands: readonly CommandSpec[] = [
     run: (_args, ctx, tr) => {
       const { node } = ctx;
       const peers = peersOf(ctx);
-      const ports = portsOf(ctx, peers);
+      // 口は、機器にある口をすべて出す（つながっていない口・停止した口も見せる）
+      const ports = [...new Set([...portsOf(ctx, peers), ...Array.from({ length: portCountOf(node.device) }, (_, i) => i)])].sort((a, b) => a - b);
       if (ports.length === 0) return shown([out(tr('ui.terminal.noPort'))]);
-      // 速さは、つながった口は a-<速さ>（自動の交渉の結果）、つながっていない口は auto
+      // VLAN の列は、VLAN を学んだ後のスイッチだけに出す。速さは、つながった口は a-<速さ>（自動の交渉の結果）、つながっていない口は auto
+      const withVlan = can(node.device, 'switchport') && ctx.unlocked('vlan');
+      const vlanOf = (port: number): string => {
+        const cfg = node.ports.find((p) => p.port === port);
+        return cfg?.mode === 'trunk' ? 'trunk' : cfg?.mode === 'routed' ? 'routed' : String(cfg?.vlan ?? 1);
+      };
       const table: string[][] = [
-        [tr('ui.terminal.statusPort'), tr('ui.terminal.statusState'), tr('ui.terminal.statusSpeed')],
+        [tr('ui.terminal.statusPort'), tr('ui.terminal.statusState'), ...(withVlan ? [tr('ui.terminal.statusVlan')] : []), tr('ui.terminal.statusSpeed')],
         ...ports.map((port) => {
-          const linked = peers.has(port);
+          const shut = node.ports.some((p) => p.port === port && p.shutdown === true);
+          const linked = peers.has(port) && !shut;
           const speed = linked ? portSpeedOf(ctx.state, ctx.links, node.uid, node.device, port) : undefined;
-          return [String(port), tr(linked ? 'ui.terminal.statusConnected' : 'ui.terminal.statusNotconnect'), speed === undefined ? 'auto' : `a-${speed}`];
+          const state = shut ? 'ui.terminal.statusDisabled' : linked ? 'ui.terminal.statusConnected' : 'ui.terminal.statusNotconnect';
+          return [`${ifacePrefixOf(node.device)}${port}`, tr(state), ...(withVlan ? [vlanOf(port)] : []), speed === undefined ? 'auto' : `a-${speed}`];
         }),
       ];
       const widths = table[0].map((_, c) => Math.max(...table.map((r) => r[c].length)));

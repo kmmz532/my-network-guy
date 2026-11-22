@@ -43,7 +43,7 @@ describe('suggest', () => {
 
   it('interface の後は、まだ設定していない口の名前の先頭を予測する', () => {
     const ctx = ctxOf(config);
-    expect(suggest('interface ', ctx, []).candidates.map((c) => c.word).slice(0, 2)).toEqual(['port-channel', 'g0/1']);
+    expect(suggest('interface ', ctx, []).candidates.map((c) => c.word).slice(0, 3)).toEqual(['vlan', 'port-channel', 'g0/1']);
   });
 
   it('neighbor の後は、隣接する機器のアドレスを候補にする', () => {
@@ -75,8 +75,8 @@ describe('suggest', () => {
 
   it('教材の中（hideValues）では、予測と候補に引数の値を出さず、? には形だけを出す', () => {
     const ctx = ctxOf(config, { hideValues: true });
-    expect(suggest('interface ', ctx, [])).toMatchObject({ ghost: 'port-channel ', candidates: [{ word: 'port-channel' }] });
-    expect(questionList('interface ', ctx).map((c) => c.word)).toEqual(['port-channel', '<interface>']);
+    expect(suggest('interface ', ctx, [])).toMatchObject({ ghost: '', candidates: [{ word: 'vlan' }, { word: 'port-channel' }] });
+    expect(questionList('interface ', ctx).map((c) => c.word)).toEqual(['vlan', 'port-channel', '<interface>']);
     const bgp = ctxOf({ mode: 'router-bgp', iface: null, process: 65000 }, { hideValues: true });
     expect(suggest('neighbor ', bgp, []).candidates).toEqual([]);
     expect(questionList('neighbor ', bgp).map((c) => c.word)).toEqual(['<A.B.C.D>']);

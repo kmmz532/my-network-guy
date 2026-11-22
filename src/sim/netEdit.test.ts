@@ -8,7 +8,7 @@ import { initialOffice } from './furniture';
 import { placeInOffice } from './placement';
 import { getComponent } from '../network/components';
 import type { NetNode } from '../network/types';
-import { analyzeCore, removeHost, setBgp, setFirewallRules, setHost, setNameServer, setNat, setPortSecurity, setWireless, setWirelessMacs } from './netEdit';
+import { analyzeCore, removeHost, setBgp, setFirewallRules, setHost, setNameServer, setNat, setPortSecurity, setPortShutdown, setVlanDef, setWireless, setWirelessMacs } from './netEdit';
 import type { Core, Env } from './project';
 
 const balance = balanceJson as unknown as Balance;
@@ -241,5 +241,36 @@ describe('名前の引き方（resolver）', () => {
     expect('nameServer' in next).toBe(false);
     core = step(removeHost(core, 'pc', 'files', 'office'));
     expect(getComponent(core.office.nodes[0], 'resolver')?.hosts).toEqual([]);
+  });
+});
+
+describe('setVlanDef・setPortShutdown', () => {
+  const node = (uid: string, device: string): NetNode =>
+    ({ uid, device, x: 0, y: 0, locked: false, configLocked: false, interfaces: [], gateway: null, routes: [], services: [], ports: [] }) as NetNode;
+  const coreOf = (...nodes: NetNode[]): Core =>
+    ({ office: { ...initialOffice(balance), nodes }, active: [], focus: null, owned: {} }) as unknown as Core;
+  const ok = (r: ReturnType<typeof setVlanDef>): Core => {
+    if (!r.ok) throw new Error(`設定できない: ${r.reason}`);
+    return r.core;
+  };
+
+  it('VLAN は番号の順に宣言され、名前は後から付けられ、消すと外れる。宣言のない VLAN を消すのは拒否する', () => {
+    let core = ok(setVlanDef(coreOf(node('sw', 'l2_switch_8p')), 'sw', 20, { op: 'add' }, 'office'));
+    core = ok(setVlanDef(core, 'sw', 10, { op: 'name', name: 'eigyo' }, 'office'));
+    core = ok(setVlanDef(core, 'sw', 20, { op: 'add' }, 'office'));
+    expect(core.office.nodes[0].components?.vlanDefs).toEqual([{ id: 10, name: 'eigyo' }, { id: 20 }]);
+    core = ok(setVlanDef(core, 'sw', 10, { op: 'remove' }, 'office'));
+    expect(core.office.nodes[0].components?.vlanDefs).toEqual([{ id: 20 }]);
+    expect(setVlanDef(core, 'sw', 30, { op: 'remove' }, 'office')).toMatchObject({ ok: false, reason: 'vlan.none' });
+    expect(setVlanDef(core, 'sw', 5000, { op: 'add' }, 'office')).toMatchObject({ ok: false, reason: 'vlan.range' });
+  });
+
+  it('shutdown で口の設定に停止の印が付き、戻すと外れる。モードは変わらない', () => {
+    const portOf = (core: Core) => core.office.nodes[0].ports.find((p) => p.port === 1);
+    let core = ok(setPortShutdown(coreOf(node('sw', 'l2_switch_8p')), 'sw', 1, true, 'office'));
+    expect(portOf(core)).toMatchObject({ mode: 'access', shutdown: true });
+    core = ok(setPortShutdown(core, 'sw', 1, false, 'office'));
+    expect(portOf(core)?.shutdown).toBeUndefined();
+    expect(setPortShutdown(core, 'sw', 99, true, 'office')).toMatchObject({ ok: false, reason: 'port.none' });
   });
 });

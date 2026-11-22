@@ -21,7 +21,7 @@ import { buyDevice, sellDevice } from '../sim/shop';
 import {
   addRoute, autoRegisterZone, removeHost, removeRoute, setBgp, setChannel, setDhcp, setDnsForwarder, setDnsRecord, setDnsRole, removeDnsRecord, setFirewallRules, setGateway, setHost, setLoadBalancer, setVpn,
   setHostname, setInterface, setIsp, setName, setNameServer, setNat, setPac, setProxy, setMailDomain, setMailServer, setOspf, setPlan, setPortMode, setPower, setRouting, setService,
-  setIfaceTune, setPo, setPortQos, setPortSecurity, setWirelessMacs, setStp, setSub, setSvi, setVrrp, setWireless,
+  setIfaceTune, setPo, setPortShutdown, setVlanDef, setPortQos, setPortSecurity, setWirelessMacs, setStp, setSub, setSvi, setVrrp, setWireless,
 } from '../sim/netEdit';
 import type { ConfigChange, Operation } from './operation';
 import type { GameMode } from './company';
@@ -45,6 +45,8 @@ export const applyConfig = (core: Core, uid: string, change: ConfigChange, ctx: 
     case 'sub': return setSub(core, uid, change.parent, change.vlan, change.ip, change.prefix ?? 24, env, target);
     case 'po': return setPo(core, uid, change.channel, change.ip, change.prefix ?? 24, env, target);
     case 'portMode': return setPortMode(core, uid, change.port, change.mode, target);
+    case 'portShutdown': return setPortShutdown(core, uid, change.port, change.shut, target);
+    case 'vlanDef': return setVlanDef(core, uid, change.vlan, change.change, target);
     case 'gateway': return setGateway(core, uid, change.gateway, target);
     case 'routing': return setRouting(core, uid, change.change, target);
     case 'ospf': return setOspf(core, uid, change.change, target);

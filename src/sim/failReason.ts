@@ -73,6 +73,7 @@ export const OP_FAIL_REASONS = [
   'uplink.locked',
   'uplink.no_wan',
   'uplink.placed',
+  'vlan.none',
   'vlan.range',
   'vrrp.none',
   'vrrp.priority',

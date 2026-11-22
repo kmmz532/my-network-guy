@@ -1,7 +1,7 @@
 // 世界への操作の型。画面・端末・自動化はどれもこの型の値を作り、dispatch（stores/gameOps.ts）へ渡す。
 import type { Components } from '../network/components';
 import type { DnsRecord, FirewallRule, IspLine, Route, Service } from '../network/types';
-import type { BgpOp, ChannelOp, DhcpOp, End, NatOp, OspfOp, PortChoice, PortModeChange, MacListOp, StpOp, VrrpOp } from '../sim/project';
+import type { BgpOp, ChannelOp, DhcpOp, End, NatOp, OspfOp, PortChoice, PortModeChange, MacListOp, StpOp, VlanOp, VrrpOp } from '../sim/project';
 
 // 機器の設定の変更。どの機器かは Operation の uid で決める
 export type ConfigChange =
@@ -10,6 +10,8 @@ export type ConfigChange =
   | { kind: 'sub'; parent: number; vlan: number; ip: string; prefix?: number }
   | { kind: 'po'; channel: number; ip: string; prefix?: number }
   | { kind: 'portMode'; port: number; mode: PortModeChange }
+  | { kind: 'portShutdown'; port: number; shut: boolean }
+  | { kind: 'vlanDef'; vlan: number; change: VlanOp }
   | { kind: 'gateway'; gateway: string | null }
   | { kind: 'routing'; change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; wildcard?: string; area?: number; process?: number | null } }
   | { kind: 'ifaceTune'; port: number; key: 'mtu' | 'adjustMss'; value: number | null }

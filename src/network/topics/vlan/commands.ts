@@ -1,10 +1,11 @@
 // VLAN の論点の命令。
+import { getComponent } from '../../components';
 import { macTableOf } from '../../query/macTable';
 import { deviceCategory } from '../../../registry/query';
 import { changed, err, out, shown } from '../../command/lines';
 import type { CommandContext, CommandResult, CommandSpec } from '../../command/types';
 import type { Tr } from '../../terminal';
-import { interfaceOf, sessionPortOf } from '../../command/modes';
+import { enterRouter, interfaceOf, sessionPortOf } from '../../command/modes';
 import type { MacListOp } from '../../../sim/project';
 
 // スイッチの MAC の表は、同じ L2 のドメインの端末から求める。端末では使えない
@@ -19,9 +20,10 @@ const showMacAddressTable = (_args: unknown, ctx: CommandContext, tr: Tr): Comma
 // 口ごとの VLAN の設定（設定のない口は既定の VLAN 1）
 const showVlan = (_args: unknown, { node }: CommandContext, tr: Tr): CommandResult => {
   const cfgs = [...node.ports].sort((a, b) => a.port - b.port);
-  if (cfgs.length === 0) return shown([out(tr('ui.terminal.vlanNone'))]);
-  return shown(
-    cfgs.map((c) =>
+  if (cfgs.length === 0 && (getComponent(node, 'vlanDefs') ?? []).length === 0) return shown([out(tr('ui.terminal.vlanNone'))]);
+  const named = (getComponent(node, 'vlanDefs') ?? []).map((v) => out(tr('ui.terminal.vlanDeclared', { vlan: v.id, name: v.name ?? tr('ui.terminal.vlanUnnamed') })));
+  return shown([
+    ...cfgs.map((c) =>
       out(
         c.mode === 'access'
           ? tr('ui.terminal.vlanAccess', { port: c.port, vlan: c.vlan ?? 1 })
@@ -30,7 +32,8 @@ const showVlan = (_args: unknown, { node }: CommandContext, tr: Tr): CommandResu
             : tr('ui.terminal.vlanRouted', { port: c.port }),
       ),
     ),
-  );
+    ...named,
+  ]);
 };
 
 const PORT = { arg: 'number', name: 'port' } as const;
@@ -60,6 +63,39 @@ const switchportModeAccess: CommandSpec = {
     const current = ctx.node.ports.find((c) => c.port === port);
     return changed(ctx, tr, { kind: 'portMode', port, mode: { kind: 'access', vlan: current?.mode === 'access' ? (current.vlan ?? 1) : 1 } });
   },
+};
+
+// vlan <番号>: VLAN を宣言し、VLAN の設定（名前）のモードに入る。config からだけ入る
+const VLAN = { arg: 'vlan', name: 'vlan' } as const;
+const vlanEnter: CommandSpec = {
+  id: 'vlan.vlan',
+  modes: ['config'],
+  tokens: [{ word: 'vlan' }, VLAN],
+  help: 'ui.cmd.vlan.vlan',
+  writes: true,
+  topic: 'vlan',
+  run: (args, ctx, tr) => enterRouter(ctx, changed(ctx, tr, { kind: 'vlanDef', vlan: Number(args.vlan), change: { op: 'add' } }), 'vlan', Number(args.vlan)),
+};
+const vlanName: CommandSpec = {
+  id: 'vlan.name',
+  modes: ['vlan'],
+  tokens: [{ word: 'name' }, { arg: 'word', name: 'name' }],
+  help: 'ui.cmd.vlan.name',
+  writes: true,
+  topic: 'vlan',
+  run: (args, ctx, tr) => {
+    if (ctx.session.process === null) throw new Error('VLAN のモードに番号がない');
+    return changed(ctx, tr, { kind: 'vlanDef', vlan: ctx.session.process, change: { op: 'name', name: args.name } });
+  },
+};
+const noVlan: CommandSpec = {
+  id: 'vlan.noVlan',
+  modes: ['config'],
+  tokens: [{ word: 'no' }, { word: 'vlan' }, VLAN],
+  help: 'ui.cmd.vlan.noVlan',
+  writes: true,
+  topic: 'vlan',
+  run: (args, ctx, tr) => changed(ctx, tr, { kind: 'vlanDef', vlan: Number(args.vlan), change: { op: 'remove' } }),
 };
 
 // ポートセキュリティ（N153）: 口に登録した MAC アドレスの機器だけを通す
@@ -113,6 +149,9 @@ export const commands: readonly CommandSpec[] = [
     topic: 'vlan',
     run: showVlan,
   },
+  vlanEnter,
+  vlanName,
+  noVlan,
   switchportAccess,
   interfaceOf(switchportAccess),
   switchportModeAccess,

@@ -638,6 +638,9 @@ export type PortModeChange =
   | { kind: 'routed' }
   | { kind: 'trunk'; allowed?: number[] | null; native?: number };
 
+// VLAN の宣言の操作（vlan <番号> で作る・name で名前を付ける・no vlan で消す）
+export type VlanOp = { op: 'add' } | { op: 'name'; name: string } | { op: 'remove' };
+
 // OSPF の機器・インターフェースの設定（ルーター ID・既定の経路の配布・コスト・優先度・Hello・デッド）
 export type OspfOp =
   | { op: 'routerId'; ip: string | null }

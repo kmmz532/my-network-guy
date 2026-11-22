@@ -68,3 +68,26 @@ interface g0/3
 no switchport port-security
 end
 show port-security
+# 節: VLAN の宣言・名前・口の停止・SVI の interface vlan・show interfaces status
+@SW1
+configure terminal
+vlan 10
+name eigyo
+exit
+vlan 4095
+no vlan 30
+end
+show vlan brief
+configure terminal
+no vlan 10
+interface vlan 10
+exit
+interface g0/1
+shutdown
+end
+show interfaces status
+configure terminal
+interface g0/1
+no shutdown
+end
+show interfaces status

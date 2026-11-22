@@ -367,6 +367,148 @@
       "lines": [
         "out:ui.terminal.portSecurityNone"
       ]
+    },
+    {
+      "node": "SW1"
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "vlan 10",
+      "result": "done",
+      "mode": "vlan",
+      "process": 10
+    },
+    {
+      "line": "name eigyo",
+      "result": "done"
+    },
+    {
+      "line": "exit",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "vlan 4095",
+      "lines": [
+        "err:       ^",
+        "err:ui.terminal.invalidAt"
+      ]
+    },
+    {
+      "line": "no vlan 30",
+      "result": "fail",
+      "reason": "vlan.none"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
+      "line": "show vlan brief",
+      "lines": [
+        "out:ui.terminal.vlanAccess {\"port\":0,\"vlan\":10}",
+        "out:ui.terminal.vlanTrunk {\"port\":1,\"allowed\":\"10,20\",\"native\":1}",
+        "out:ui.terminal.vlanTrunk {\"port\":2,\"allowed\":\"ui.terminal.vlanAll\",\"native\":10}",
+        "out:ui.terminal.vlanTrunk {\"port\":3,\"allowed\":\"ui.terminal.vlanAll\",\"native\":10}",
+        "out:ui.terminal.vlanDeclared {\"vlan\":10,\"name\":\"eigyo\"}"
+      ]
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "no vlan 10",
+      "result": "done"
+    },
+    {
+      "line": "interface vlan 10",
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "svi",
+        "vlan": 10
+      }
+    },
+    {
+      "line": "exit",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "interface g0/1",
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "port",
+        "port": 1
+      }
+    },
+    {
+      "line": "shutdown",
+      "result": "done"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
+      "line": "show interfaces status",
+      "lines": [
+        "out:ui.terminal.statusPort  ui.terminal.statusState       ui.terminal.statusVlan  ui.terminal.statusSpeed",
+        "out:g0/0                    ui.terminal.statusConnected   10                      a-1000",
+        "out:g0/1                    ui.terminal.statusDisabled    trunk                   auto",
+        "out:g0/2                    ui.terminal.statusNotconnect  trunk                   auto",
+        "out:g0/3                    ui.terminal.statusNotconnect  trunk                   auto",
+        "out:g0/4                    ui.terminal.statusNotconnect  1                       auto",
+        "out:g0/5                    ui.terminal.statusNotconnect  1                       auto",
+        "out:g0/6                    ui.terminal.statusNotconnect  1                       auto",
+        "out:g0/7                    ui.terminal.statusConnected   1                       a-1000"
+      ]
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "interface g0/1",
+      "lines": [],
+      "mode": "interface",
+      "iface": {
+        "kind": "port",
+        "port": 1
+      }
+    },
+    {
+      "line": "no shutdown",
+      "result": "done"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
+      "line": "show interfaces status",
+      "lines": [
+        "out:ui.terminal.statusPort  ui.terminal.statusState       ui.terminal.statusVlan  ui.terminal.statusSpeed",
+        "out:g0/0                    ui.terminal.statusConnected   10                      a-1000",
+        "out:g0/1                    ui.terminal.statusConnected   trunk                   a-1000",
+        "out:g0/2                    ui.terminal.statusNotconnect  trunk                   auto",
+        "out:g0/3                    ui.terminal.statusNotconnect  trunk                   auto",
+        "out:g0/4                    ui.terminal.statusNotconnect  1                       auto",
+        "out:g0/5                    ui.terminal.statusNotconnect  1                       auto",
+        "out:g0/6                    ui.terminal.statusNotconnect  1                       auto",
+        "out:g0/7                    ui.terminal.statusConnected   1                       a-1000"
+      ]
     }
   ],
   "network": {
@@ -469,15 +611,6 @@
         "macSerial": 5,
         "ports": [
           {
-            "port": 1,
-            "mode": "trunk",
-            "allowed": [
-              10,
-              20
-            ],
-            "native": 1
-          },
-          {
             "port": 0,
             "mode": "access",
             "vlan": 10
@@ -491,6 +624,15 @@
             "port": 3,
             "mode": "trunk",
             "native": 10
+          },
+          {
+            "port": 1,
+            "mode": "trunk",
+            "allowed": [
+              10,
+              20
+            ],
+            "native": 1
           }
         ],
         "name": "SW1",

@@ -83,9 +83,11 @@
     {
       "line": "show interfaces status",
       "lines": [
-        "out:ui.terminal.statusPort  ui.terminal.statusState      ui.terminal.statusSpeed",
-        "out:0                       ui.terminal.statusConnected  a-1000",
-        "out:1                       ui.terminal.statusConnected  a-1000"
+        "out:ui.terminal.statusPort  ui.terminal.statusState       ui.terminal.statusSpeed",
+        "out:g0/0                    ui.terminal.statusConnected   a-1000",
+        "out:g0/1                    ui.terminal.statusConnected   a-1000",
+        "out:g0/2                    ui.terminal.statusNotconnect  auto",
+        "out:g0/3                    ui.terminal.statusNotconnect  auto"
       ]
     },
     {

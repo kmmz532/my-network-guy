@@ -5,7 +5,7 @@ import type { Tr, TerminalLine } from '../terminal';
 import type { EngineData, NetLink, NetNode } from '../types';
 import type { Trace } from '../../sim/project';
 
-export type Mode = 'exec' | 'config' | 'interface' | 'router-rip' | 'router-ospf' | 'router-bgp' | 'crypto-map' | 'route-map';
+export type Mode = 'exec' | 'config' | 'interface' | 'router-rip' | 'router-ospf' | 'router-bgp' | 'crypto-map' | 'route-map' | 'vlan';
 export type ArgKind = 'iface' | 'ip' | 'mask' | 'wildcard' | 'prefix' | 'vlan' | 'vlanList' | 'area' | 'asn' | 'vrid' | 'channel' | 'ssid' | 'psk' | 'cost' | 'number' | 'word' | 'hostname' | 'hostOrIp' | 'mac';
 export type Token = { word: string } | { arg: ArgKind; name: string };
 

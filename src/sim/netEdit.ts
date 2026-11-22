@@ -18,7 +18,7 @@ import { bandChannels, deviceBands } from '../registry/wireless';
 import { bandOf } from '../network/wirelessBand';
 import type { WirelessBand } from '../data/schema';
 import { registries } from '../registry/game';
-import { BgpOp, Project, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, MacListOp, StpOp, VrrpOp, fail, netOf, planDomainAt, withNet, zoneFromNodes } from './project';
+import { VlanOp, BgpOp, Project, ChannelOp, Core, DhcpOp, Env, NatOp, NetTarget, OspfOp, Outcome, PortModeChange, MacListOp, StpOp, VrrpOp, fail, netOf, planDomainAt, withNet, zoneFromNodes } from './project';
 import { deviceDef, portCountOf } from '../registry/query';
 import { analyze } from '../network/engine/analyze';
 import type { NetworkState } from '../network/engine/state';
@@ -373,6 +373,44 @@ export const setPortMode = (
   const nodes = net.nodes.map((n) => (n.uid === uid ? { ...node, ports } : n));
   return { ok: true, core: withNet(core, target, { ...net, nodes }) };
 };
+
+// 口を停止する・戻す（shutdown・no shutdown）。設定のない口は、既定のモードの設定を作って印を付ける
+export const setPortShutdown = (core: Core, uid: string, port: number, shut: boolean, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      if (!Number.isInteger(port) || port < 0 || port >= portCountOf(node.device)) return 'port.none';
+      const prev = node.ports.find((p) => p.port === port);
+      const base: PortConfig = prev ?? { port, mode: refusalFor(node.device, 'switchport') === null ? 'access' : 'routed' };
+      const next: PortConfig = { ...base, shutdown: shut ? true : undefined };
+      return { ...node, ports: [...node.ports.filter((p) => p.port !== port), next] };
+    },
+    target,
+  );
+
+// VLAN の宣言（スイッチだけ）。add は作る（あれば何もしない）、name は名前を付ける（なければ作る）、remove は消す
+export const setVlanDef = (core: Core, uid: string, vlan: number, change: VlanOp, target: NetTarget = 'focus'): Outcome =>
+  editNode(
+    core,
+    uid,
+    (node) => {
+      const refusal = refusalFor(node.device, 'switchport');
+      if (refusal) return refusal;
+      if (!Number.isInteger(vlan) || vlan < 1 || vlan > 4094) return 'vlan.range';
+      const list = getComponent(node, 'vlanDefs') ?? [];
+      const others = list.filter((v) => v.id !== vlan);
+      if (change.op === 'remove') {
+        if (others.length === list.length) return 'vlan.none';
+        const { vlanDefs: _gone, ...rest } = node.components ?? {};
+        return { ...node, components: others.length === 0 ? (Object.keys(rest).length === 0 ? undefined : rest) : { ...rest, vlanDefs: others } };
+      }
+      const prev = list.find((v) => v.id === vlan);
+      const next = change.op === 'name' ? { id: vlan, name: change.name } : (prev ?? { id: vlan });
+      return withComponent(node, 'vlanDefs', [...others, next].sort((a, b) => a.id - b.id));
+    },
+    target,
+  );
 
 // デフォルトゲートウェイを設定する。null で外す
 // RIP・OSPF の参加。RIP の network 文は、そのサブネットの口を参加させる。OSPF の network 文は、口のアドレスが prefix とワイルドカードで一致する口を、その文の area で参加させ、文を記録する。router rip / ospf は、参加を止める（on が false のとき全部）

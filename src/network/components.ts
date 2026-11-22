@@ -77,6 +77,8 @@ export const COMPONENT_SCHEMAS = {
   }),
   // メールの利用側（メールソフトの設定）。server は、送信を預けるメールサーバーのアドレス
   mailClient: z.object({ server: ipv4 }),
+  // 宣言した VLAN（vlan <番号>・name）。番号の昇順。口の設定の VLAN とは別に、名前を持つ
+  vlanDefs: z.array(z.object({ id: z.number().int().min(1).max(4094), name: z.string().min(1).optional() })),
   // DHCP のプール（サーバーが配る範囲。口のアドレスがプールのネットワークの中にある口で配る）
   dhcpServer: z.array(
     z.object({

@@ -104,3 +104,30 @@ describe('OSPF の番号（router ospf <n>）', () => {
     expect(runOn('show running-config', node('l2_switch_8p'), exec).lines).not.toContainEqual({ text: 'ui.terminal.cfgOspf', kind: 'out' });
   });
 });
+
+describe('VLAN の宣言・shutdown・interface vlan', () => {
+  const port1: TerminalSession = { mode: 'interface', iface: { kind: 'port', port: 1 }, process: null };
+  const vlanMode: TerminalSession = { mode: 'vlan', iface: null, process: 10 };
+
+  it('config の vlan <n> は VLAN を宣言して VLAN のモードに入り、name でそのモードの VLAN に名前を付ける。exec では使えない', () => {
+    const entered = run('vlan 10', config);
+    expect(entered.change).toEqual({ kind: 'vlanDef', vlan: 10, change: { op: 'add' } });
+    expect(entered.session).toEqual(vlanMode);
+    expect(run('name eigyo', vlanMode).change).toEqual({ kind: 'vlanDef', vlan: 10, change: { op: 'name', name: 'eigyo' } });
+    expect(run('no vlan 10', config).change).toEqual({ kind: 'vlanDef', vlan: 10, change: { op: 'remove' } });
+    expect(run('vlan 10', exec).change).toBeNull();
+    expect(run('exit', vlanMode).session).toEqual(config);
+  });
+
+  it('shutdown・no shutdown は interface モードの口に当たる。config では使えない', () => {
+    expect(run('shutdown', port1).change).toEqual({ kind: 'portShutdown', port: 1, shut: true });
+    expect(run('no shutdown', port1).change).toEqual({ kind: 'portShutdown', port: 1, shut: false });
+    expect(run('shutdown', config).change).toBeNull();
+  });
+
+  it('interface vlan 10 と interface vlan10 は、同じ SVI のモードに入る', () => {
+    const svi = { mode: 'interface', iface: { kind: 'svi', vlan: 10 }, process: null };
+    expect(run('interface vlan 10', config).session).toEqual(svi);
+    expect(run('interface vlan10', config).session).toEqual(svi);
+  });
+});

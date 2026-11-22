@@ -5,7 +5,7 @@ import type { CommandContext, CommandResult, CommandSpec, Mode, TerminalSession,
 export const INITIAL_SESSION: TerminalSession = { mode: 'exec', iface: null, process: null };
 
 // config の中のモード（interface・router-*）。config の命令は、これらのモードでも使う
-export const SUB_MODES: readonly Mode[] = ['interface', 'router-rip', 'router-ospf', 'router-bgp', 'crypto-map', 'route-map'];
+export const SUB_MODES: readonly Mode[] = ['interface', 'router-rip', 'router-ospf', 'router-bgp', 'crypto-map', 'route-map', 'vlan'];
 
 // interface モードの対象の口の番号。SVI・サブインターフェース・束ねた口を対象にしているときは null。interface モードで対象がないのは、モードの作り方の誤り
 export const sessionPortOf = (ctx: CommandContext): number | null => {
@@ -44,5 +44,6 @@ export const promptKeyOf = (mode: Mode): string => {
     case 'router-bgp': return 'ui.terminal.promptRouter';
     case 'crypto-map': return 'ui.terminal.promptCrypto';
     case 'route-map': return 'ui.terminal.promptRouteMap';
+    case 'vlan': return 'ui.terminal.promptVlan';
   }
 };
