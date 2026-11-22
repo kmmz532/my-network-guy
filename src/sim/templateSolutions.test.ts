@@ -9,6 +9,7 @@ import coworkingMap from '../../resources/data/maps/coworking.json';
 import warehouseMap from '../../resources/data/maps/warehouse.json';
 import longHallMap from '../../resources/data/maps/long_hall.json';
 import campusWideMap from '../../resources/data/maps/campus_wide.json';
+import factoryMap from '../../resources/data/maps/factory.json';
 import twoSitesMap from '../../resources/data/maps/office_two_sites.json';
 import schoolLabMap from '../../resources/data/maps/school_lab.json';
 import hotelFloorMap from '../../resources/data/maps/hotel_floor.json';
@@ -23,7 +24,7 @@ import { initialStaff } from './staff';
 import { connect, focusedOf, type Core, type Env, type Report } from './project';
 import { accept, advanceBuild, requestBuild, testDesign } from './progress';
 import { placeDevice } from './placement';
-import { addRoute, setInterface } from './netEdit';
+import { addRoute, setFirewallRules, setInterface } from './netEdit';
 import { deviceDef } from '../registry/query';
 import { buyDevice } from './shop';
 
@@ -122,6 +123,21 @@ const switchFor = (ports: number): string => (ports <= 4 ? 'l2_switch_4p' : port
 const SEEDS = [1, 2, 3, 4, 5, 6];
 const offerOf = (id: string, map: GameMap, seed: number): Offer => instantiateTemplate(templateOf(id), map, 0, seed).offer;
 const centerOf = (points: { x: number; y: number }[], map: GameMap) => starHubOf(points, map);
+// 最も遠い機器までが最も近い床のマス（広い範囲で、1台のスイッチから外れた PC がUTPの上限を超えないようにする）
+const reachCenterOf = (points: { x: number; y: number }[], map: GameMap): { x: number; y: number } => {
+  let best: { x: number; y: number; far: number; sum: number } | null = null;
+  for (let y = 0; y < map.height; y++) {
+    for (let x = 0; x < map.width; x++) {
+      if (tileKind(map, x, y) !== 'floor') continue;
+      const ds = points.map((p) => Math.abs(p.x - x) + Math.abs(p.y - y));
+      const far = Math.max(...ds);
+      const sum = ds.reduce((a, b) => a + b, 0);
+      if (best === null || far < best.far || (far === best.far && sum < best.sum)) best = { x, y, far, sum };
+    }
+  }
+  if (best === null) throw new Error('床のマスがない');
+  return best;
+};
 
 describe('t_clinic: 受付と診察室は別のネットワーク', () => {
   const map = clinicMap as unknown as GameMap;
@@ -378,6 +394,62 @@ describe('t_two_sites_lan: 拠点ごとに別のネットワークで、ルー�
       const offer = offerOf('t_two_sites_lan', map, seed);
       const core = solve(offer, false);
       expect(passes(core)).toBe(false);
+    });
+  }
+});
+
+describe('t_factory: 事務所と作業場の間にファイアウォールを置き、作業場からはサーバーだけに届く', () => {
+  const map = factoryMap as unknown as GameMap;
+  const SERVER = 'server_basic';
+  const solve = (offer: Offer, firewall: boolean): Core => {
+    let core = take(startCore(offer), offer.id);
+    const pcsOf = (role: string) => offer.contract.placed.filter((p) => p.ref.startsWith(`${role}_`));
+    const officeHub = reachCenterOf(pcsOf('office'), map);
+    const officeSw = place(core, SWITCH, officeHub.x, officeHub.y, map);
+    core = officeSw.core;
+    const workHub = reachCenterOf(pcsOf('work'), map);
+    const workSw = place(core, pcsOf('work').length + 1 <= 16 ? 'l2_switch_16p' : 'l2_switch_24p', workHub.x, workHub.y, map);
+    core = workSw.core;
+    pcsOf('office').forEach((p, i) => {
+      core = wire(core, p.ref, officeSw.uid);
+      core = addr(core, p.ref, `192.168.1.${10 + i}`);
+    });
+    const server = place(core, SERVER, officeHub.x, officeHub.y, map);
+    core = wire(server.core, server.uid, officeSw.uid);
+    core = addr(core, server.uid, '192.168.1.50');
+    pcsOf('work').forEach((p, i) => {
+      core = wire(core, p.ref, workSw.uid);
+      // スイッチだけの設計は、同じネットワークにする
+      core = addr(core, p.ref, firewall ? `192.168.2.${10 + i}` : `192.168.1.${100 + i}`);
+    });
+    const mid = reachCenterOf([officeHub, workHub], map);
+    if (!firewall) {
+      // 2つのスイッチの間に中継のスイッチを置いて、同じネットワークにする
+      const relay = place(core, 'l2_switch_4p', mid.x, mid.y, map);
+      core = wire(relay.core, officeSw.uid, relay.uid);
+      return wire(core, workSw.uid, relay.uid);
+    }
+    const fw = place(core, 'firewall', mid.x, mid.y, map);
+    core = fw.core;
+    core = wire(core, officeSw.uid, fw.uid, UTP, { b: 0 });
+    core = wire(core, workSw.uid, fw.uid, UTP, { b: 1 });
+    core = addr(core, fw.uid, '192.168.1.1');
+    core = addr(core, fw.uid, '192.168.2.1', 1);
+    // 規則の判定は既定で拒否。事務所の内側からの通信と、作業場からサーバーの HTTP だけを許可する
+    return ok(setFirewallRules(core, fw.uid, [
+      { src: '192.168.1.0/24', dst: 'any', service: 'any' },
+      { src: '192.168.2.0/24', dst: '192.168.1.50/32', service: 'http', port: 80 },
+    ])).core;
+  };
+  for (const [id, seed] of SEEDS.flatMap((x) => ['t_factory', 't_factory_large'].map((i) => [i, x] as const))) {
+    it(`${id} 種 ${seed}: ファイアウォールで分けると合格し、費用が予算の 0.8 以下に収まる`, () => {
+      const report = finish(solve(offerOf(id, map, seed), true));
+      expect(report.passed).toBe(true);
+      expect((report.cost ?? Infinity) / (report.budget ?? 1)).toBeLessThanOrEqual(0.8);
+      expect(report.stars).toBe(3);
+    });
+    it(`${id} 種 ${seed}: スイッチをつなぐだけでは、作業場から事務所の PC に届いてしまい不合格`, () => {
+      expect(passes(solve(offerOf(id, map, seed), false))).toBe(false);
     });
   }
 });

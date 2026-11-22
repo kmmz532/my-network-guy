@@ -1,12 +1,33 @@
 {
   "id": "t_factory_large",
   "variantOf": "t_factory",
-  "unlockLevel": 27,
+  "unlockLevel": 28,
   "weight": 8,
-  "params": {
-    "pcCount": {
-      "min": 22,
-      "max": 28
+  "spawnGroups": [
+    {
+      "x": 1,
+      "y": 1,
+      "width": 9,
+      "height": 10,
+      "min": 4,
+      "max": 4,
+      "role": "office",
+      "name": "事務所のPC"
+    },
+    {
+      "x": 11,
+      "y": 1,
+      "width": 20,
+      "height": 10,
+      "min": 18,
+      "max": 23,
+      "role": "work",
+      "name": "作業場のPC"
     }
+  ],
+  "budget": {
+    "base": 660100,
+    "perPc": 0,
+    "perTile": 850
   }
 }
