@@ -2,7 +2,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
-import { minutesPerMonth } from '../sim/clock';
+import { minutesPerDay, minutesPerMonth } from '../sim/clock';
+import { expAmountOf } from '../sim/level';
+import type { Staff } from '../data/schema';
 import { nightSpeedSystem, payPauseSystem, runTick } from './tickSystems';
 import { useGameStore } from './useGameStore';
 
@@ -44,6 +46,43 @@ describe('毎ティックの系', () => {
   it('納品の結果を開いている間は何も変えない', () => {
     useGameStore.setState({ showcase: { nodes: [], links: [], plans: {}, contract: { map: 'hq' } } as never });
     expect(runTick(st(), { now: 1, payPause: false, nightFast: false })).toEqual({});
+  });
+});
+
+// 日が替わる直前の時計（次のティックで日が替わる）
+const dayEnd = { minute: minutesPerDay - balance.time.gameMinutesPerTick, money: 10_000_000, paidMonths: 0, bankrupt: false, ledger: [] };
+const worker: Staff = {
+  shift: 'day',
+  uid: 's0',
+  name: 'staff.name.0',
+  look: 'blue',
+  quirk: 'q1',
+  job: 'network',
+  level: 1,
+  exp: 0,
+  salary: 200000,
+  certs: [],
+  training: null,
+  hiredMonth: 0,
+  leaving: false,
+  desk: null,
+  levelCap: 10,
+};
+const env = { now: 1, payPause: false, nightFast: false };
+
+describe('勤務日の運営の経験値（xp.dailyOps）', () => {
+  beforeEach(nearPayday);
+  it('社員がいる日が替わると、量を得る', () => {
+    useGameStore.setState({ companyExp: 0, staff: [worker], clock: dayEnd });
+    expect(runTick(st(), env).companyExp).toBe(expAmountOf(balance.xp.dailyOps, 1, balance));
+  });
+  it('社員がいない日（休日）には足さない', () => {
+    useGameStore.setState({ companyExp: 0, staff: [], clock: dayEnd });
+    expect(runTick(st(), env).companyExp).toBeUndefined();
+  });
+  it('日が替わらないティックでは足さない', () => {
+    useGameStore.setState({ companyExp: 0, staff: [worker], clock: { ...dayEnd, minute: 600 } });
+    expect(runTick(st(), env).companyExp).toBeUndefined();
   });
 });
 

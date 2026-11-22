@@ -143,7 +143,7 @@ export const balanceSchema = z.object({
   rental: z.object({ monthlyPerCustomer: z.number().int().nonnegative(), levelsPerCustomer: z.number().int().positive() }),
   exp: z.object({ delivery: z.number().nonnegative(), deliveryGapStep: z.number().nonnegative(), deliveryGapMin: z.number().nonnegative(), guide: z.number().nonnegative(), hire: z.number().nonnegative(), expansion: z.number().nonnegative(), furniture: z.number().nonnegative(), dailyCap: z.number().nonnegative() }),
   // 達成条件の型を初めて合格させた納品の経験値（現在のレベルの必要経験値に掛ける割合。型ごとに1回）
-  xp: z.object({ firstGoal: z.number().nonnegative() }),
+  xp: z.object({ firstGoal: z.number().nonnegative(), dailyOps: z.number().nonnegative() }),
   // 機材の価格の式（N35）: 基本の価格（分類）＋ポート1つあたり（分類）＋機能ごとの加算。機材の定価は、この式の値とそろえる
   pricing: z.object({
     base: z.record(z.string(), nonNegativeInt),

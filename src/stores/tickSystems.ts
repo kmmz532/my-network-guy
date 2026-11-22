@@ -1,13 +1,15 @@
 // 毎ティックの処理を、順序の決まった系の関数に分けたもの。どの系も状態と引数だけから結果を作り、時刻と設定は TickEnv で受け取る。
 // 順序は runTick が持つ: 給与の一時停止 → 時計と収入 → 日ごとの経験値 → 月末 → 研修 → 施工 → 夜の速さ → 依頼と通知。
-import { balance } from 'virtual:game-data';
+import { balance, levelMilestones } from 'virtual:game-data';
 import { advanceTick, minutesPerDay, toDate, type ClockState } from '../sim/clock';
 import { minutesPerMonth } from '../sim/clock';
 import { isOnShift } from '../sim/shift';
 import { nightSpeedStep } from '../sim/nightSpeed';
 import type { Staff } from '../data/schema';
 import { gainExp, rollCandidates, totalSalary } from '../sim/staff';
-import { levelOf } from '../sim/level';
+import { levelOf, levelUpsBetween } from '../sim/level';
+import { dailyOpsGainOf } from '../sim/companyExp';
+import { MODE_TRAITS } from '../company/company';
 import { finishTrainings } from '../sim/training';
 import { gameEnv, isPcDevice } from '../sim/env';
 import { rentalOf } from '../network/external';
@@ -20,7 +22,7 @@ import { settleRetirements } from '../sim/retire';
 import { backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice } from '../sim/backOffice';
 import { bonusEnvOf, pcDesksOf } from '../sim/furniture';
 import { advanceBuild } from '../sim/progress';
-import { coreOf, refresh, reportState, salesArrivalPatch, stateOfCore, trainingEnv, withLevelUps } from './gameHelpers';
+import { coreOf, refresh, reportState, salesArrivalPatch, stateOfCore, trainingEnv, unlockItems, withLevelUps } from './gameHelpers';
 import type { GameState, Speed } from './useGameStore';
 
 // ティックの外から渡す値（現在の時刻と設定）。系の中で Date.now() や loadSettings() を読まない
@@ -87,6 +89,20 @@ export const clockSystem = (s: GameState): ClockStep => {
     hasPc,
     devIdleUids: new Set(devIdle.map((m) => m.uid)),
   };
+};
+
+// 系3の前: 勤務日（日が替わり、雇用中の社員がいる日）に、運営の経験値を足す（xp.dailyOps）。社員がいない日（休日）には足さない。レベルが上がれば、報酬（お金・機器）を受け取る
+export const dailyOpsSystem = (s: GameState, c: ClockStep, next: Patch): Patch => {
+  // 依頼の届く遊び方（MODE_TRAITS の offers）だけ。サンドボックスには育成がない
+  if (!MODE_TRAITS[s.mode].offers || s.staff.length === 0) return next;
+  const gained = dailyOpsGainOf(s.companyExp, c.days, balance);
+  if (gained === 0) return next;
+  const companyExp = s.companyExp + gained;
+  const ups = levelUpsBetween(levelOf(s.companyExp, balance), levelOf(companyExp, balance), balance, levelMilestones, unlockItems);
+  const owned = { ...s.owned };
+  for (const u of ups) for (const d of u.devices) owned[d.device] = (owned[d.device] ?? 0) + d.count;
+  const money = ups.reduce((sum, u) => sum + u.money, 0);
+  return { ...next, companyExp, owned, clock: money > 0 ? applyMoney(c.clock, money, 'reward') : c.clock };
 };
 
 // 系3: 日が替わるたびに、出勤した社員が経験値を得る。社員の列が変わらなければ元の列を返す
@@ -219,6 +235,7 @@ export const runTick = (s: GameState, env: TickEnv): Patch => {
     ...(step.rentPenalty ? { reputation: Math.max(0, s.reputation - step.months) } : {}),
     ...(staff !== s.staff ? { staff } : {}),
   };
+  next = dailyOpsSystem(s, step, next);
   const hrP = hrPowerOf(s);
   next = monthEndSystem(s, next, step.clock, hrP, env);
   next = trainingSystem(s, next, hrP, env);

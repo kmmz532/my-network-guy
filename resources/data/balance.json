@@ -72,7 +72,8 @@
     "dailyCap": 0.03
   },
   "xp": {
-    "firstGoal": 0.075
+    "firstGoal": 0.075,
+    "dailyOps": 0.009
   },
   "pricing": {
     "base": {
