@@ -185,7 +185,7 @@
   "contract.t_two_rooms_lan.title": "2部屋のLAN（{pcCount}台）",
   "contract.t_two_rooms_server.story": "2つの部屋のどちらからも、社内のWebサーバーを見られるようにしてほしい。部屋ごとにネットワークを分けたい。",
   "contract.t_two_rooms_server.title": "設計事務所の社内サーバー（{pcCount}台）",
-  "contract.t_two_sites_lan.story": "本社と支社のPCを、拠点をまたいで互いに行き来できるようにする。",
+  "contract.t_two_sites_lan.story": "本社と支社のPCを、拠点をまたいで互いに行き来できるようにする。拠点ごとにネットワークが別で、拠点の間はLANケーブルで届かないため、各拠点にルーターを置き、光ファイバーで結ぶ。",
   "contract.t_two_sites_lan.title": "2拠点のPC接続（{pcCount}台）",
   "contract.t_warehouse_ends.story": "倉庫の左端の事務所と、右端の荷受け場の端末をつないでほしい。端から端まではかなり遠い。",
   "contract.t_warehouse_ends.title": "物流倉庫の両端（{pcCount}台）",

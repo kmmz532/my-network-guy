@@ -9,6 +9,7 @@ import coworkingMap from '../../resources/data/maps/coworking.json';
 import warehouseMap from '../../resources/data/maps/warehouse.json';
 import longHallMap from '../../resources/data/maps/long_hall.json';
 import campusWideMap from '../../resources/data/maps/campus_wide.json';
+import twoSitesMap from '../../resources/data/maps/office_two_sites.json';
 import schoolLabMap from '../../resources/data/maps/school_lab.json';
 import hotelFloorMap from '../../resources/data/maps/hotel_floor.json';
 import type { Balance, ContractTemplate, Furniture, GameMap } from '../data/schema';
@@ -22,7 +23,7 @@ import { initialStaff } from './staff';
 import { connect, focusedOf, type Core, type Env, type Report } from './project';
 import { accept, advanceBuild, requestBuild, testDesign } from './progress';
 import { placeDevice } from './placement';
-import { setInterface } from './netEdit';
+import { addRoute, setInterface } from './netEdit';
 import { deviceDef } from '../registry/query';
 import { buyDevice } from './shop';
 
@@ -334,4 +335,49 @@ describe('t_campus: 校舎の間が UTP の上限を超えるため、光ファ�
     const b = place(core, 'l3_switch', starHubOf(pcs.filter((p) => p.y >= 10), map).x, 26, map);
     expect(connect(b.core, a.uid, b.uid, UTP, env, 'focus', { a: 0, b: 0 }).ok).toBe(false);
   });
+});
+
+describe('t_two_sites_lan: 拠点ごとに別のネットワークで、ルーターが要る', () => {
+  const map = twoSitesMap as unknown as GameMap;
+  const SFP_PORT = 4;
+  // 拠点ごとにスイッチとルーターを置き、SFP 対応ルーターの SFP の口どうしを光ファイバーで結ぶ。相手の拠点への静的ルートを登録する
+  const solve = (offer: Offer, withRouters: boolean): Core => {
+    let core = take(startCore(offer), offer.id);
+    const sites = [1, 2].map((n) => offer.contract.placed.filter((p) => p.config?.interfaces[0].ip.startsWith(`192.168.${n}.`)));
+    const swIds: string[] = [];
+    const routerIds: string[] = [];
+    sites.forEach((pcs) => {
+      const hub = centerOf(pcs, map);
+      const sw = place(core, switchFor(pcs.length + 1), hub.x, hub.y, map);
+      core = sw.core;
+      swIds.push(sw.uid);
+      for (const p of pcs) core = wire(core, p.ref, sw.uid);
+      if (withRouters) {
+        const router = place(core, 'router_sfp', hub.x, hub.y, map);
+        core = wire(router.core, sw.uid, router.uid, UTP, { b: 0 });
+        routerIds.push(router.uid);
+      }
+    });
+    if (!withRouters) return core;
+    core = wire(core, routerIds[0], routerIds[1], 'fiber_mm', { a: SFP_PORT, b: SFP_PORT });
+    core = addr(core, routerIds[0], '192.168.1.1');
+    core = addr(core, routerIds[0], '192.168.30.1', SFP_PORT);
+    core = addr(core, routerIds[1], '192.168.2.1');
+    core = addr(core, routerIds[1], '192.168.30.2', SFP_PORT);
+    core = ok(addRoute(core, routerIds[0], { dest: '192.168.2.0', prefix: 24, nextHop: '192.168.30.2' })).core;
+    core = ok(addRoute(core, routerIds[1], { dest: '192.168.1.0', prefix: 24, nextHop: '192.168.30.1' })).core;
+    return core;
+  };
+  for (const seed of SEEDS) {
+    it(`種 ${seed}: 拠点ごとのルーターを光ファイバーで結ぶと合格し、★3 になる`, () => {
+      const report = finish(solve(offerOf('t_two_sites_lan', map, seed), true));
+      expect(report.passed).toBe(true);
+      expect(report.stars).toBe(3);
+    });
+    it(`種 ${seed}: ルーターを置かずに、スイッチだけでは結べない`, () => {
+      const offer = offerOf('t_two_sites_lan', map, seed);
+      const core = solve(offer, false);
+      expect(passes(core)).toBe(false);
+    });
+  }
 });

@@ -48,9 +48,9 @@ const maps: Record<string, GameMap> = {
 };
 
 const deviceList = registries.devices.all();
-const cheapest = (category: string, minPorts: number): DeviceDef | undefined =>
+const cheapest = (category: string, minPorts: number, sfp = false): DeviceDef | undefined =>
   deviceList
-    .filter((d) => d.category === category && d.ports.reduce((s, p) => s + p.count, 0) >= minPorts)
+    .filter((d) => d.category === category && d.ports.reduce((s, p) => s + p.count, 0) >= minPorts && (!sfp || d.ports.some((p) => p.type === 'sfp')))
     .sort((a, b) => a.price - b.price)[0];
 
 type Pt = { x: number; y: number };
@@ -158,6 +158,12 @@ export const modelCost = (template: ContractTemplate, map: GameMap, placed: { x:
       if (!fw) throw new Error('ファイアウォールがない');
       cost += fw.price;
       for (const h of hubs) cost += linkCost(dist(h, center));
+    } else if (goalCount('router') >= groups.length) {
+      // 拠点ごとにルーターを置き、SFP の口どうしを光ファイバーで結ぶ（拠点の間が上限を超える。ルーターは SFP の口があるもの）
+      const sfpRouter = cheapest('router', 1, true);
+      if (!sfpRouter) throw new Error('SFP のルーターがない');
+      cost += sfpRouter.price * groups.length + linkCost(1) * hubs.length;
+      for (let i = 1; i < hubs.length; i++) cost += linkCost(dist(hubs[i - 1], hubs[i]));
     } else if (goalCount('router') > 0) {
       const router = cheapest('router', groups.length);
       if (!router) throw new Error('ルーターがない');

@@ -9,27 +9,35 @@
   ],
   "weight": 12,
   "map": "office_two_sites",
-  "params": {
-    "pcCount": {
-      "min": 4,
-      "max": 6
+  "spawnGroups": [
+    {
+      "x": 1,
+      "y": 1,
+      "width": 8,
+      "height": 8,
+      "min": 2,
+      "max": 3,
+      "subnet": 1
+    },
+    {
+      "x": 31,
+      "y": 1,
+      "width": 8,
+      "height": 8,
+      "min": 2,
+      "max": 3,
+      "subnet": 2
     }
-  },
-  "spawnArea": {
-    "x": 1,
-    "y": 1,
-    "width": 38,
-    "height": 8
-  },
+  ],
   "deadlineDays": 12,
   "offerExpireDays": {
     "min": 30,
     "max": 90
   },
   "budget": {
-    "base": 0,
-    "perPc": 3650,
-    "perTile": 500
+    "base": 287350,
+    "perPc": 800,
+    "perTile": 0
   },
   "reward": {
     "base": 100000,
@@ -37,10 +45,16 @@
   },
   "goals": [
     {
+      "type": "count",
+      "category": "router",
+      "min": 2
+    },
+    {
       "type": "ping_all",
       "nodes": "$all_pcs"
     }
   ],
+  "manualIp": true,
   "announce": true,
   "unlockLevel": 18
 }
