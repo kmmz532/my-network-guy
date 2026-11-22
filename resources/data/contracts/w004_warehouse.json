@@ -1,0 +1,77 @@
+{
+  "id": "w004_warehouse",
+  "stage": 2,
+  "order": 268,
+  "requires": [
+    "w003_many_walls"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "map": "warehouse",
+  "budget": 90000,
+  "deadlineDays": 6,
+  "placed": [
+    {
+      "ref": "NB1",
+      "device": "laptop",
+      "x": 5,
+      "y": 4,
+      "locked": true,
+      "name": "棚の前のノートPC A",
+      "wireless": {
+        "ssid": "warehouse-wifi",
+        "password": "warehouse-pass-2026"
+      }
+    },
+    {
+      "ref": "NB2",
+      "device": "laptop",
+      "x": 13,
+      "y": 4,
+      "locked": true,
+      "name": "棚の前のノートPC B",
+      "wireless": {
+        "ssid": "warehouse-wifi",
+        "password": "warehouse-pass-2026"
+      }
+    },
+    {
+      "ref": "NB3",
+      "device": "laptop",
+      "x": 21,
+      "y": 4,
+      "locked": true,
+      "name": "棚の前のノートPC C",
+      "wireless": {
+        "ssid": "warehouse-wifi",
+        "password": "warehouse-pass-2026"
+      }
+    },
+    {
+      "ref": "NB4",
+      "device": "laptop",
+      "x": 29,
+      "y": 4,
+      "locked": true,
+      "name": "棚の前のノートPC D",
+      "wireless": {
+        "ssid": "warehouse-wifi",
+        "password": "warehouse-pass-2026"
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "wireless_clean"
+    },
+    {
+      "type": "wireless_clients",
+      "min": 4
+    }
+  ],
+  "reward": {
+    "money": 600000
+  },
+  "unlockLevel": 48
+}
