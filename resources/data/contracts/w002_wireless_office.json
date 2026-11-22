@@ -1,0 +1,130 @@
+{
+  "id": "w002_wireless_office",
+  "stage": 2,
+  "order": 266,
+  "requires": [],
+  "jobs": [
+    "network"
+  ],
+  "map": "office_small",
+  "budget": 45000,
+  "deadlineDays": 5,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "NB1",
+      "device": "laptop",
+      "x": 2,
+      "y": 2,
+      "locked": true,
+      "name": "社員のノートPC A",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.10.11",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "wireless": {
+        "ssid": "office-wifi",
+        "password": "office-pass-2026"
+      }
+    },
+    {
+      "ref": "NB2",
+      "device": "laptop",
+      "x": 11,
+      "y": 2,
+      "locked": true,
+      "name": "社員のノートPC B",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.10.12",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "wireless": {
+        "ssid": "office-wifi",
+        "password": "office-pass-2026"
+      }
+    },
+    {
+      "ref": "NB3",
+      "device": "laptop",
+      "x": 2,
+      "y": 7,
+      "locked": true,
+      "name": "社員のノートPC C",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.10.13",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "wireless": {
+        "ssid": "office-wifi",
+        "password": "office-pass-2026"
+      }
+    },
+    {
+      "ref": "NB4",
+      "device": "laptop",
+      "x": 11,
+      "y": 7,
+      "locked": true,
+      "name": "社員のノートPC D",
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.10.14",
+            "prefix": 24
+          }
+        ],
+        "gateway": null,
+        "services": [],
+        "locked": true
+      },
+      "wireless": {
+        "ssid": "office-wifi",
+        "password": "office-pass-2026"
+      }
+    }
+  ],
+  "goals": [
+    {
+      "type": "wireless_clients",
+      "min": 4
+    },
+    {
+      "type": "ping_all",
+      "nodes": [
+        "NB1",
+        "NB2",
+        "NB3",
+        "NB4"
+      ]
+    }
+  ],
+  "reward": {
+    "money": 450000
+  },
+  "unlockLevel": 42
+}
