@@ -124,7 +124,11 @@
     "count": 3
   },
   "offers": {
-    "earlyStreak": 5
+    "earlyStreak": 5,
+    "levelDecay": {
+      "floor": 0.1,
+      "halfLife": 10
+    }
   },
   "staff": {
     "initialCount": 2,

@@ -162,7 +162,11 @@ export const balanceSchema = z.object({
   // 依頼がまとめて届く確率（間隔ごと）と、まとめて届くときの件数の上限（2件以上）。省略すると、毎回1件ずつ届く
   offerBurst: z.object({ chance: z.number().min(0).max(1), count: int.min(2) }).optional(),
   // 序盤の納品（納品した案件の数が earlyStreak 以下）は、受けられる依頼がなければ次の依頼を今すぐ届ける
-  offers: z.object({ earlyStreak: nonNegativeInt }),
+  // 定型案件の重みの減り方。会社のレベルが解放のレベルより halfLife 上がるごとに重みは半分になり、floor 倍を下回らない
+  offers: z.object({
+    earlyStreak: nonNegativeInt,
+    levelDecay: z.object({ floor: z.number().min(0).max(1), halfLife: z.number().positive() }),
+  }),
   // 新しく解放した種類（announce）を、解放から arrivals 件届くまで weightFactor 倍の重みで出す（N51b）
   freshOffer: z.object({ arrivals: int.positive(), weightFactor: int.positive() }),
   // 提案の依頼（自社の実績の論点を学ぶ依頼）。報酬の倍率と、月末に届く件数の上限（営業の社員がいないとき・いるとき）

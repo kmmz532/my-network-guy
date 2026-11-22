@@ -59,6 +59,14 @@ export interface OfferEffects {
 }
 export const NO_OFFER_EFFECTS: OfferEffects = { rewardWeight: 0, arrivalChance: 0 };
 
+// 定型案件の重みに掛ける係数（解放のレベルと今の会社のレベルの差で減る）。解放の直後は 1、halfLife 上がるごとに半分、下限は floor
+export const levelDecayOf = (level: number, unlockLevel: number, decay: Balance['offers']['levelDecay']): number =>
+  Math.max(decay.floor, Math.pow(0.5, (level - unlockLevel) / decay.halfLife));
+
+// 変化形（textId）は元のひな形の解放のレベルを使う
+const rootUnlockLevelOf = (t: ContractTemplate, templates: readonly ContractTemplate[]): number =>
+  templates.find((r) => r.id === (t.textId ?? t.id))?.unlockLevel ?? t.unlockLevel;
+
 // achieved を渡すと提案の依頼を1件追加する（固定案件は出さず、実績のある論点を学ぶ定型案件だけから選ぶ）
 const addOffer = (state: OfferState, env: OfferEnv, rewardWeight = 0, fromSales = false, achieved?: readonly string[]): OfferState => {
   const taken = (baseId: string) => isTaken(state, baseId);
@@ -92,7 +100,8 @@ const addOffer = (state: OfferState, env: OfferEnv, rewardWeight = 0, fromSales 
     const arrived = state.newArrivals[t.id] ?? 0;
     const boost = t.announce && arrived < fresh.arrivals ? fresh.weightFactor : 1;
     const reward = t.reward.base > averageBase ? 1 + rewardWeight : 1;
-    return { ...t, weight: t.weight * boost * reward };
+    const decay = levelDecayOf(levelOfState(state, env), rootUnlockLevelOf(t, env.templates), env.balance.offers.levelDecay);
+    return { ...t, weight: t.weight * boost * reward * decay };
   });
   const picked = pickByWeight(weighted, state.rng);
   const map = env.mapOf(picked.item.map);
