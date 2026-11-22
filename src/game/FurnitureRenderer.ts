@@ -43,7 +43,7 @@ export class FurnitureRenderer {
     const sprite = new Sprite(tex);
     const at = chairTop(f.x, f.y, facing, ts);
     sprite.position.set(at.x + Math.round((ts - tex.width) / 2), at.y);
-    sprite.zIndex = chairDepth(f.x, f.y, facing, ts);
+    sprite.zIndex = chairDepth(f.y, facing, ts);
     this.options.sprites.addChild(sprite);
   }
 }

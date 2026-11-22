@@ -52,7 +52,7 @@ export class StaffRenderer {
       }
       const facing = desk.facing ?? 'up';
       const at = deskStaffPos(desk.x, desk.y, ts, deskTap(elapsed, k), facing);
-      this.drawStaff(at.x, at.y, member.look, member, facing, deskStaffDepth(desk.x, desk.y, ts, facing));
+      this.drawStaff(at.x, at.y, member.look, member, facing, deskStaffDepth(desk.y, ts, facing));
       const seconds = elapsed / 1000 + k * 23;
       if (seconds % 60 < 3) {
         this.options.speech.draw(tDyn(`staff.quirk.${member.quirk}`), at.x + STAFF_W / 2, at.y);
