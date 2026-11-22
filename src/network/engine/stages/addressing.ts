@@ -177,6 +177,9 @@ const complete = (input: Network, segs: readonly PlanDomain[], unbundledPo: Read
     return out;
   };
 
+  // 経路を持つ機器（ルーター・L3スイッチ・ファイアウォールなど）が、そのL2ドメインにつながっているか。ルーターのないドメインの端末は、ゲートウェイの不備にしない（ルーターは別のドメインにあってよい）
+  const hasRouterOn = (seg: PlanDomain): boolean => seg.members.some((m) => isRoutingCategory(cat(byUid.get(m.node)!)));
+
   const gatewayOf = new Map<string, string | null>();
   for (const n of input.nodes) {
     const c = cat(n);
@@ -192,7 +195,7 @@ const complete = (input: Network, segs: readonly PlanDomain[], unbundledPo: Read
       // 指定があり、同じセグメントのルーターのアドレス（VRRP の仮想 IP を含む）なら、それを使う。指定がない、またはどれとも合わないときは自動（最も小さい実の IP）
       const chosen = seg && n.gateway !== null && gatewayCandidates(seg).has(n.gateway) ? n.gateway : gw;
       gatewayOf.set(n.uid, chosen);
-      if (seg && gw === null && segs.length > 1) flag(n.uid, { reason: 'gateway.unset' });
+      if (seg && gw === null && segs.length > 1 && hasRouterOn(seg)) flag(n.uid, { reason: 'gateway.unset' });
     }
   }
 

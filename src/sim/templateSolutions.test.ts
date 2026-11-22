@@ -214,11 +214,10 @@ describe.each([
 ] as const)('%s: 入居者・部屋ごとにネットワークを分ける', (id, mapJson, roles) => {
   const map = mapJson as unknown as GameMap;
   for (const seed of SEEDS) {
-    it(`種 ${seed}: グループごとにスイッチを置き、つながないと合格し、費用が予算の 0.8 以下に収まる`, () => {
+    it(`種 ${seed}: グループごとにスイッチを置き、つながないと合格し、★3 になる`, () => {
       const report = finish(solveByRole(offerOf(id, map, seed), map, [...roles]));
       expect(report.passed).toBe(true);
-      // ★3 の費用の条件（予算の 0.8 以下）。つながない配線は、ゲートウェイのない PC が設計の不備になり、★は2までになる（t_cafe_guest も同じ）
-      expect((report.cost ?? Infinity) / (report.budget ?? 1)).toBeLessThanOrEqual(0.8);
+      expect(report.stars).toBe(3);
     });
     it(`種 ${seed}: 1台のスイッチにすべてをつなぐと不合格`, () => {
       expect(passes(solveOneSwitch(offerOf(id, map, seed), map))).toBe(false);
@@ -252,10 +251,10 @@ describe('t_school_lab: 生徒と先生のネットワークを分け、それ�
     return core;
   };
   for (const seed of SEEDS) {
-    it(`種 ${seed}: 生徒と先生を別のスイッチにして、それぞれにプリンターをつなぐと合格し、費用が予算の 0.8 以下に収まる`, () => {
+    it(`種 ${seed}: 生徒と先生を別のスイッチにして、それぞれにプリンターをつなぐと合格し、★3 になる`, () => {
       const report = finish(solve(offerOf('t_school_lab', map, seed), true));
       expect(report.passed).toBe(true);
-      expect((report.cost ?? Infinity) / (report.budget ?? 1)).toBeLessThanOrEqual(0.8);
+      expect(report.stars).toBe(3);
     });
     it(`種 ${seed}: 1台のスイッチにすべてをつなぐと不合格`, () => {
       expect(passes(solve(offerOf('t_school_lab', map, seed), false))).toBe(false);

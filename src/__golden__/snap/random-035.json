@@ -268,12 +268,6 @@
   ],
   "issues": [
     [
-      "n1",
-      {
-        "reason": "gateway.unset"
-      }
-    ],
-    [
       "n2",
       {
         "reason": "segment.unset",

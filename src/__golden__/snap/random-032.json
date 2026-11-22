@@ -457,12 +457,6 @@
       }
     ],
     [
-      "n3",
-      {
-        "reason": "gateway.unset"
-      }
-    ],
-    [
       "n4",
       {
         "reason": "segment.unset",

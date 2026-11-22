@@ -263,15 +263,22 @@ describe('機器の不備（issues）', () => {
     expect(out.nodes.find((n) => n.uid === 'a')?.gateway).toBe('192.168.1.2');
   });
 
-  it('セグメントが2つ以上あって同じセグメントにルーターがなければ gateway.unset になる', () => {
+  it('セグメントが2つ以上あっても、PC のいるセグメントにルーターがなければ gateway.unset にしない', () => {
     const net: Network = {
       nodes: [pc('a', '192.168.1.11'), pc('b', '192.168.1.12'), pc('c', '192.168.2.11'), pc('d', '192.168.2.12')],
       links: [link('l0', 'a:0', 'b:0'), link('l1', 'c:0', 'd:0')],
       plans: { 'a:0': seg('192.168.1.0'), 'c:0': seg('192.168.2.0') },
     };
-    const { issues } = addressing(net);
-    expect(Object.keys(issues).sort()).toEqual(['a', 'b', 'c', 'd']);
-    expect(Object.values(issues).every((i) => i.reason === 'gateway.unset')).toBe(true);
+    expect(addressing(net).issues).toEqual({});
+  });
+
+  it('PC のいるセグメントにルーターがあるのにゲートウェイがなければ gateway.unset になる', () => {
+    const net: Network = {
+      nodes: [pc('a', '192.168.1.11'), router('r'), pc('c', '192.168.2.11'), pc('d', '192.168.2.12')],
+      links: [link('l0', 'a:0', 'r:0'), link('l1', 'c:0', 'd:0')],
+      plans: { 'a:0': seg('192.168.1.0'), 'c:0': seg('192.168.2.0') },
+    };
+    expect(addressing(net).issues.a).toMatchObject({ reason: 'gateway.unset' });
   });
 
   it('1つだけのセグメントでルーターがなくても、ゲートウェイの不備にはしない', () => {

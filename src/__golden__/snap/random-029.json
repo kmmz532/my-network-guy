@@ -227,12 +227,6 @@
   ],
   "issues": [
     [
-      "n0",
-      {
-        "reason": "gateway.unset"
-      }
-    ],
-    [
       "n2",
       {
         "reason": "ip.unset"

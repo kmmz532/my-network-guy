@@ -344,12 +344,6 @@
       }
     ],
     [
-      "n1",
-      {
-        "reason": "gateway.unset"
-      }
-    ],
-    [
       "n2",
       {
         "reason": "ip.unset"
@@ -360,12 +354,6 @@
       {
         "reason": "segment.unset",
         "ip": "10.0.20.1"
-      }
-    ],
-    [
-      "n5",
-      {
-        "reason": "gateway.unset"
       }
     ],
     [

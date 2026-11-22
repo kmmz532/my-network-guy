@@ -299,12 +299,6 @@
       }
     ],
     [
-      "n5",
-      {
-        "reason": "gateway.unset"
-      }
-    ],
-    [
       "n6",
       {
         "reason": "segment.unset",
