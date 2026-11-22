@@ -4,7 +4,7 @@ import { ospfNeighborsOf } from '../../query/ospfNeighbors';
 import { changed, err, nameOf, out, portMissing, shown } from '../../command/lines';
 import type { CommandSpec } from '../../command/types';
 import { getComponent } from '../../components';
-import { areaOf, ifaceIdOf, ifaceLabel } from '../../command/args';
+import { areaOf, ifaceIdOf, ifaceLabel, prefixOfMask } from '../../command/args';
 import { enterRouter, interfaceOf } from '../../command/modes';
 
 const PORT = { arg: 'number', name: 'port' } as const;
@@ -130,6 +130,24 @@ export const commands: readonly CommandSpec[] = [
     writes: true,
     topic: 'ospf',
     run: (args, ctx, tr) => changed(ctx, tr, { kind: 'routing', change: { proto: 'ospf', ip: args.ip, wildcard: args.wildcard, area: areaOf(args.area), on: true } }),
+  },
+  {
+    id: 'ospf.areaRange',
+    modes: ['exec', 'config', 'router-ospf'],
+    tokens: [{ word: 'area' }, { arg: 'area', name: 'area' }, { word: 'range' }, { arg: 'ip', name: 'ip' }, { arg: 'mask', name: 'mask' }],
+    help: 'ui.cmd.ospf.areaRange',
+    writes: true,
+    topic: 'ospf',
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'ospf', change: { op: 'range', area: areaOf(args.area), dest: args.ip, prefix: prefixOfMask(args.mask), on: true } }),
+  },
+  {
+    id: 'ospf.noAreaRange',
+    modes: ['exec', 'config', 'router-ospf'],
+    tokens: [{ word: 'no' }, { word: 'area' }, { arg: 'area', name: 'area' }, { word: 'range' }, { arg: 'ip', name: 'ip' }, { arg: 'mask', name: 'mask' }],
+    help: 'ui.cmd.ospf.noAreaRange',
+    writes: true,
+    topic: 'ospf',
+    run: (args, ctx, tr) => changed(ctx, tr, { kind: 'ospf', change: { op: 'range', area: areaOf(args.area), dest: args.ip, prefix: prefixOfMask(args.mask), on: false } }),
   },
   {
     id: 'ospf.router',

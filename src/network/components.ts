@@ -19,6 +19,8 @@ export const COMPONENT_SCHEMAS = {
     referenceBandwidth: z.number().int().positive().optional(),
     process: z.number().int().nonnegative().optional(),
     networks: z.array(z.object({ prefix: ipv4, wildcard: ipv4, area: z.number().int().nonnegative() })).optional(),
+    // area range（ABR の経路の集約）。そのエリアの、範囲に含まれる経路を1本にまとめて、ほかのエリアへ渡す
+    ranges: z.array(z.object({ area: z.number().int().nonnegative(), dest: ipv4, prefix: z.number().int().min(0).max(32) })).optional(),
   }),
   // スパニングツリーのブリッジ優先度（既定 32768、4096 刻み。小さいほどルートになりやすい。省略は既定）
   stp: z.object({ priority: z.number().int().nonnegative() }),

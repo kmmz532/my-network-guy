@@ -35,6 +35,8 @@ describe('RIP・OSPF の設定コマンド', () => {
     expect(viaTree('no default-information originate', tr)).toEqual({ kind: 'action', action: { kind: 'ospf', change: { op: 'defaultOriginate', on: false } } });
     const withIface = commandContextOf({ node: { interfaces: [{ port: 1, id: 'i1' }] } as NetNode, nodes: [], links: [], data: {} as EngineData, state: {} as NetworkState }, false);
     expect(runLine('ip ospf hello-interval 1 30', withIface, tr).change).toEqual({ kind: 'ospf', change: { op: 'iface', id: 'i1', key: 'hello', value: 30 } });
+    expect(viaTree('area 1 range 10.0.0.0 255.255.0.0', tr)).toEqual({ kind: 'action', action: { kind: 'ospf', change: { op: 'range', area: 1, dest: '10.0.0.0', prefix: 16, on: true } } });
+    expect(viaTree('no area 1 range 10.0.0.0 255.255.0.0', tr)).toEqual({ kind: 'action', action: { kind: 'ospf', change: { op: 'range', area: 1, dest: '10.0.0.0', prefix: 16, on: false } } });
     expect(viaTree('network 10.0.1.0 0.0.0.255 area 0.0.0.1', tr)).toEqual({ kind: 'action', action: { kind: 'routing', change: { proto: 'ospf', ip: '10.0.1.0', wildcard: '0.0.0.255', area: 1, on: true } } });
   });
 });

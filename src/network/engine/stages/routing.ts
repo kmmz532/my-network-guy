@@ -85,6 +85,8 @@ export const stageRouting = (net: Network, l2: L2Layer, links: LinkLayer): Routi
           }
         }
       }
+      // ABR（エリア 0 と、集約するエリアの両方に口がある機器）の area range
+      const ranges = proto === 'ospf' ? routers.flatMap((b) => (b.interfaces.some((i) => i.ospf?.area === 0) ? (getComponent(b, 'ospf')?.ranges ?? []).filter((g) => b.interfaces.some((i) => i.ospf?.area === g.area)) : [])) : [];
       for (const r of routers) {
         // 自分のインターフェース（参加している）と同じサブネットは、直結の経路として扱うため、経路を作らない
         const own = r.interfaces.filter(joined);
@@ -115,6 +117,8 @@ export const stageRouting = (net: Network, l2: L2Layer, links: LinkLayer): Routi
           if (!changed) break;
         }
         const routes: Route[] = [];
+        // ABR の area range にまとめられる経路（まとめた宛先ごとに、含まれる経路を集める）
+        const summaries = new Map<string, { dest: string; prefix: number; hops: { hop: string; metric: number }[] }>();
         for (const o of routers) {
           if (o.uid === r.uid || dist.get(o.uid) === undefined) continue;
           const hop = first.get(o.uid);
@@ -128,8 +132,20 @@ export const stageRouting = (net: Network, l2: L2Layer, links: LinkLayer): Routi
             if (!joined(oi)) continue;
             if (own.some((x) => inSubnet(oi.ip, x.ip, x.prefix))) continue;
             const interArea = proto === 'ospf' && !own.some((x) => x.ospf?.area === oi.ospf?.area);
-            routes.push({ dest: networkOf(oi.ip, oi.prefix), prefix: oi.prefix, nextHop: hop, protocol: proto, metric, ...(interArea ? { interArea: true } : {}) });
+            const dest = networkOf(oi.ip, oi.prefix);
+            const range = interArea ? ranges.find((g) => g.area === oi.ospf!.area && oi.prefix >= g.prefix && inSubnet(dest, g.dest, g.prefix)) : undefined;
+            if (range !== undefined) {
+              const key = `${range.dest}/${range.prefix}`;
+              (summaries.get(key) ?? summaries.set(key, { dest: range.dest, prefix: range.prefix, hops: [] }).get(key)!).hops.push({ hop, metric });
+              continue;
+            }
+            routes.push({ dest, prefix: oi.prefix, nextHop: hop, protocol: proto, metric, ...(interArea ? { interArea: true } : {}) });
           }
+        }
+        // まとめた経路: コストは含まれる経路の最大、ネクストホップは最も近い経路のもの（同じなら小さいアドレス）
+        for (const s of summaries.values()) {
+          const nearest = s.hops.reduce((a, b) => (b.metric < a.metric || (b.metric === a.metric && ipToInt(b.hop) < ipToInt(a.hop)) ? b : a));
+          routes.push({ dest: s.dest, prefix: s.prefix, nextHop: nearest.hop, protocol: 'ospf', metric: Math.max(...s.hops.map((h) => h.metric)), interArea: true });
         }
         out.set(r.uid, [...(out.get(r.uid) ?? []), ...routes]);
       }

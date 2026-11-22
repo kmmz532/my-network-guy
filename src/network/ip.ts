@@ -13,6 +13,9 @@ export const networkOf = (ip: string, prefix: number): string => {
 export const inSubnet = (ip: string, network: string, prefix: number): boolean =>
   ((ipToInt(ip) & maskOf(prefix)) >>> 0) === ((ipToInt(network) & maskOf(prefix)) >>> 0);
 
+// プレフィックス長のサブネットマスク（24 なら 255.255.255.0）
+export const maskOfPrefix = (prefix: number): string => [24, 16, 8, 0].map((s) => (maskOf(prefix) >>> s) & 255).join('.');
+
 // プレフィックス長のワイルドカード（サブネットマスクの 0 と 1 を反対にした値。24 なら 0.0.0.255）
 export const wildcardOf = (prefix: number): string => {
   const n = (~maskOf(prefix)) >>> 0;

@@ -2,7 +2,7 @@ import { renameNode } from '../network/nodeName';
 import { isMac } from '../network/mac';
 import type { OpFailReason } from './failReason';
 import { inSubnet, ipToInt } from '../network/engine';
-import { inWildcard } from '../network/ip';
+import { inWildcard, networkOf } from '../network/ip';
 import { PREFIX_MAX, PREFIX_MIN, hostCapacity, networkAddress } from '../network/segments';
 import { fillPlans } from '../network/query/plans';
 import type { VrrpGroup } from '../network/vrrp';
@@ -429,6 +429,13 @@ export const setOspf = (core: Core, uid: string, change: OspfOp, target: NetTarg
       if (refusal) return refusal;
       const prev = getComponent(node, 'ospf') ?? {};
       if (change.op === 'routerId') return withComponent(node, 'ospf', { ...prev, routerId: change.ip ?? undefined });
+      if (change.op === 'range') {
+        const dest = networkOf(change.dest, change.prefix);
+        const same = (r: { area: number; dest: string; prefix: number }) => r.area === change.area && r.dest === dest && r.prefix === change.prefix;
+        const rest = (prev.ranges ?? []).filter((r) => !same(r));
+        const ranges = change.on ? [...rest, { area: change.area, dest, prefix: change.prefix }] : rest;
+        return withComponent(node, 'ospf', { ...prev, ranges: ranges.length > 0 ? ranges : undefined });
+      }
       if (change.op === 'referenceBandwidth') return withComponent(node, 'ospf', { ...prev, referenceBandwidth: change.mbps ?? undefined });
       return withComponent(node, 'ospf', { ...prev, defaultOriginate: change.on });
     },

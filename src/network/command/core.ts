@@ -1,6 +1,7 @@
 // 論点のない命令: help・show ip・show ip interface brief・show interfaces・show running-config・show arp・ping・traceroute。
 // 命令は CommandSpec 1つ。tokens が語の並び、run が実行で、出力の行を返す（設定は変えない）。
 import { ping } from '../engine';
+import { maskOfPrefix } from '../ip';
 import { isL2Category, isRoutingCategory } from '../category';
 import { framesOf } from '../frames';
 import { macOf } from '../mac';
@@ -388,6 +389,7 @@ export const commands: readonly CommandSpec[] = [
       if (node.interfaces.some((i) => i.rip === true)) lines.push(out(tr('ui.terminal.cfgRip')));
       const ospfProcess = getComponent(node, 'ospf')?.process;
       if (ospfProcess !== undefined) lines.push(out(tr('ui.terminal.cfgOspf', { process: ospfProcess })));
+      for (const r of getComponent(node, 'ospf')?.ranges ?? []) lines.push(out(tr('ui.terminal.cfgOspfRange', { area: r.area, dest: r.dest, mask: maskOfPrefix(r.prefix) })));
       for (const r of node.routes) lines.push(out(tr('ui.terminal.cfgRoute', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop })));
       return shown(lines.length > 0 ? lines : [out(tr('ui.terminal.cfgEmpty'))]);
     },

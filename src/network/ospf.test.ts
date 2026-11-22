@@ -127,6 +127,38 @@ describe('エリアの間の経路（ABR）', () => {
   });
 });
 
+describe('エリアの集約（area range）', () => {
+  // PC1 — R1(エリア1) — R2(ABR: エリア1・0。集約を持つ) — R3(エリア0) — PC3
+  const summarized = (dest = '10.0.0.0', area = 1): Network => ({
+    nodes: [
+      node('pc1', 'pc_basic', [f(0, '10.0.1.10')], { gateway: '10.0.1.1' }),
+      node('r1', 'router_basic', [f(0, '10.0.1.1', { area: 1 }), f(1, '10.0.12.1', { area: 1 })]),
+      node('r2', 'router_basic', [f(0, '10.0.12.2', { area: 1 }), f(1, '10.0.23.1', { area: 0 })], { components: { ospf: { ranges: [{ area, dest, prefix: 16 }] } } }),
+      node('r3', 'router_basic', [f(0, '10.0.23.2', { area: 0 }), f(1, '10.0.3.1', { area: 0 })]),
+      node('pc3', 'pc_basic', [f(0, '10.0.3.10')], { gateway: '10.0.3.1' }),
+    ],
+    links: [link('a', 'pc1', 0, 'r1', 0), link('b', 'r1', 1, 'r2', 0), link('c', 'r2', 1, 'r3', 0), link('d', 'r3', 1, 'pc3', 0)],
+    plans: {},
+  });
+  it('エリア 1 の経路が1本にまとまり、個々の経路は出ず、通信は通る', () => {
+    const r3 = learnedRoutesOf(analyze(summarized(), data), 'r3', 'ospf');
+    const inRange = r3.filter((r) => r.dest.startsWith('10.0.') && ['10.0.1.0', '10.0.12.0', '10.0.0.0'].includes(r.dest));
+    expect(inRange).toEqual([expect.objectContaining({ dest: '10.0.0.0', prefix: 16, interArea: true, nextHop: '10.0.23.1' })]);
+    const individual = learnedRoutesOf(analyze(summarized(), data), 'r3', 'ospf').filter((r) => r.dest === '10.0.1.0' || r.dest === '10.0.12.0');
+    expect(individual).toEqual([]);
+    const net = analyze(summarized(), data);
+    expect(evaluateGoal({ type: 'ping', from: 'pc3', to: 'pc1' }, net)[0].ok).toBe(true);
+    expect(evaluateGoal({ type: 'ping', from: 'pc1', to: 'pc3' }, net)[0].ok).toBe(true);
+  });
+  it('範囲に含まれる経路がなければ、まとめた経路も出ない', () => {
+    const r3 = learnedRoutesOf(analyze(summarized('192.168.0.0'), data), 'r3', 'ospf');
+    expect(r3.some((r) => r.prefix === 16)).toBe(false);
+    expect(r3.some((r) => r.dest === '10.0.1.0')).toBe(true);
+    const otherArea = learnedRoutesOf(analyze(summarized('10.0.0.0', 2), data), 'r3', 'ospf');
+    expect(otherArea.some((r) => r.prefix === 16)).toBe(false);
+  });
+});
+
 describe('ルーター ID の重複の警告', () => {
   it('同じルーター ID の2台に ospf.duplicate_router_id を出す', () => {
     const net: Network = {
