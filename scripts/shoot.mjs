@@ -691,6 +691,7 @@ const scenes = {
   mapSchool: newMapScene('t_school_lab_shoot', 'school_lab', '学校のパソコン室', [[2, 3], [5, 3], [8, 3], [11, 3], [14, 3], [17, 3], [2, 7], [5, 7], [8, 7], [11, 7]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
   // N51a: 長い廊下でつながる2部屋（long_hall。左右の部屋に3台ずつ）
   mapHall: newMapScene('t_long_hall_shoot', 'long_hall', '長い廊下の2部屋', [[2, 2], [6, 2], [4, 6], [32, 2], [36, 2], [34, 6]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
+  mapTwoSites: newMapScene('t_two_sites_lan_shoot', 'office_two_sites', '2拠点の地図（道路をはさむ）', [[2, 3], [2, 7], [38, 3], [38, 7]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
   // N51a: 小さな工場の作業場（factory。柱の列の間に16台）
   mapFactory: newMapScene('t_factory_shoot', 'factory', '工場の作業場', [[2, 1], [5, 1], [9, 1], [12, 1], [17, 1], [20, 1], [25, 1], [28, 1], [2, 10], [5, 10], [9, 10], [12, 10], [17, 10], [20, 10], [25, 10], [28, 10]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
   // 追加したマップ（カフェの客席）

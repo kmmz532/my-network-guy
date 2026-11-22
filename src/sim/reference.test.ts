@@ -49,6 +49,7 @@ const env: Env = {
 
 const UTP = 'utp_cat5e';
 const SWITCH = 'l2_switch_8p';
+const SWITCH_4P = 'l2_switch_4p';
 const ROUTER = 'router_basic';
 // SFP 対応ルーターと、その SFP の口の番号（RJ45 の口0〜3の後）
 const ROUTER_SFP = 'router_sfp';
@@ -230,19 +231,19 @@ describe('模範解答: 固定案件', () => {
     expectReference(finish(core).report);
   });
 
-  it('c005 2拠点: 拠点ごとにスイッチとルーターを置き、SFP 対応ルーターの SFP の口どうしを光ファイバーで結んで、相手の拠点への静的ルートを登録する（拠点の間は UTP の20マスでは届かない・道路をまたぐ）', () => {
+  it('c005 2拠点: 拠点ごとにスイッチとルーターを置き、SFP 対応ルーターの SFP の口どうしを光ファイバーで結んで、相手の拠点への静的ルートを登録する（拠点の間は道路の21マスで、UTP の20マスでは届かない）', () => {
     let core = take(startCore([fixedOffer(c005)]), 'c005_two_sites');
     core = buy(core, ROUTER_SFP);
     core = buy(core, ROUTER_SFP);
-    core = buy(core, SWITCH);
-    core = buy(core, SWITCH);
+    core = buy(core, SWITCH_4P);
+    core = buy(core, SWITCH_4P);
     const routerA = place(core, ROUTER_SFP, 8, 5, sitesMap);
     core = routerA.core;
-    const routerB = place(core, ROUTER_SFP, 31, 5, sitesMap);
+    const routerB = place(core, ROUTER_SFP, 32, 5, sitesMap);
     core = routerB.core;
-    const swA = place(core, SWITCH, 2, 5, sitesMap);
+    const swA = place(core, SWITCH_4P, 2, 5, sitesMap);
     core = swA.core;
-    const swB = place(core, SWITCH, 37, 5, sitesMap);
+    const swB = place(core, SWITCH_4P, 38, 5, sitesMap);
     core = swB.core;
     core = wire(core, 'hq_a', swA.uid);
     core = wire(core, 'hq_b', swA.uid);
@@ -258,7 +259,26 @@ describe('模範解答: 固定案件', () => {
     core = addr(core, routerB.uid, '192.168.30.2', SFP_PORT);
     core = ok(addRoute(core, routerA.uid, { dest: '192.168.20.0', prefix: 24, nextHop: '192.168.30.2' })).core;
     core = ok(addRoute(core, routerB.uid, { dest: '192.168.1.0', prefix: 24, nextHop: '192.168.30.1' })).core;
-    expectReference(finish(core).report);
+    // 想定の最安の設計（ルーター2・スイッチ2・光ファイバー1本・UTP）の費用は予算の 0.8 倍になるため、★3 の上限と同じ
+    expectReference(finish(core).report, 0.8);
+  });
+
+  it('c005 2拠点: 道路（road）のマスには機器を置けない', () => {
+    const core = take(startCore([fixedOffer(c005)]), 'c005_two_sites');
+    const r = placeDevice(buy(core, SWITCH_4P), SWITCH_4P, 20, 5, sitesMap, env);
+    expect(r.ok).toBe(false);
+  });
+
+  it('c005 2拠点: 拠点の間を UTP だけでつなぐと、上限の20マスを超えて配線できない', () => {
+    let core = take(startCore([fixedOffer(c005)]), 'c005_two_sites');
+    core = buy(core, ROUTER_SFP);
+    core = buy(core, ROUTER_SFP);
+    const routerA = place(core, ROUTER_SFP, 8, 5, sitesMap);
+    core = routerA.core;
+    const routerB = place(core, ROUTER_SFP, 32, 5, sitesMap);
+    core = routerB.core;
+    const r = connect(core, routerA.uid, routerB.uid, UTP, env, 'focus', { a: 0, b: 0 });
+    expect(r).toMatchObject({ ok: false, reason: 'cableTooLong' });
   });
 
   it('c006 外部接続: スイッチの先にファイアウォールを置き、回線終端へつないで NAPT で ISP の先（インターネット）へ出る', () => {

@@ -26,4 +26,4 @@
 
 ## 数値を変えるとき
 
-`balance.json` を編集したら、`node scripts/simulate-balance.mjs` で資金の推移を確かめてください（[開発用のツール](tools.md)）。案件を足すときは、`contracts/` に1ファイル追加し、ショップの解禁条件（`shop.json`）と合わせます。
+`balance.json` を編集したら、`npm run simulate:company` で会社の釣り合いを確かめてください（[開発用のツール](tools.md)）。案件を足すときは、`contracts/` に1ファイル追加し、ショップの解禁条件（`shop.json`）と合わせます。

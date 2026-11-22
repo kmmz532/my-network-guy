@@ -47,7 +47,7 @@
   "contract.c004_web_server.hint": "サーバーのネットワークも、ルーターにつなごう",
   "contract.c004_web_server.story": "社内向けのWebサーバーを入れたので、社員のPCから見られるようにしてほしい。",
   "contract.c004_web_server.title": "社内Webサーバーの接続",
-  "contract.c005_two_sites.hint": "ルーター同士を結び、相手拠点への経路を登録しよう",
+  "contract.c005_two_sites.hint": "拠点の間は屋外で、中継の機器を置けない。長い距離は光ファイバーでつなごう。ルーター同士を結び、相手拠点への経路を登録しよう",
   "contract.c005_two_sites.story": "本社と支社の間で、拠点をまたぐ通信が必要になった。",
   "contract.c005_two_sites.title": "2拠点接続",
   "contract.c006_office_external.hint": "ファイアウォールを回線終端につなぎ、内側と外側のポートにアドレスと NAPT を設定しよう。規則は変換の前の社内のアドレスで書く",

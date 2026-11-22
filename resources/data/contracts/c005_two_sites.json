@@ -9,7 +9,7 @@
     "network"
   ],
   "map": "office_two_sites",
-  "budget": 254000,
+  "budget": 220250,
   "deadlineDays": 14,
   "placed": [
     {
@@ -55,7 +55,7 @@
     {
       "ref": "br_a",
       "device": "pc_basic",
-      "x": 37,
+      "x": 38,
       "y": 3,
       "locked": true,
       "config": {
@@ -75,7 +75,7 @@
     {
       "ref": "br_b",
       "device": "pc_basic",
-      "x": 37,
+      "x": 38,
       "y": 7,
       "locked": true,
       "config": {

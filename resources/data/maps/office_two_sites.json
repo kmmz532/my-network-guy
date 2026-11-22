@@ -1,6 +1,6 @@
 {
   "id": "office_two_sites",
-  "width": 40,
+  "width": 41,
   "height": 10,
   "tileSize": 32,
   "floor": "wood",
@@ -14,15 +14,15 @@
     "r": "road"
   },
   "tiles": [
-    "##W##W##C#gggggggggggggggggggg##P##W##W#",
-    "#........#gggggggggggggggggggg#........#",
-    "#........#gggggggggggggggggggg#........#",
-    "#........#gggggggggggggggggggg#........#",
-    "#........#gggggggggggggggggggg#........#",
-    "#........#rrrrrrrrrrrrrrrrrrrr#........#",
-    "#........#gggggggggggggggggggg#........#",
-    "#........#gggggggggggggggggggg#........#",
-    "#........#gggggggggggggggggggg#........#",
-    "##########                    ##########"
+    "##W##W##C#ggggggggggggggggggggg##P##W##W#",
+    "#........#ggggggggggggggggggggg#........#",
+    "#........#ggggggggggggggggggggg#........#",
+    "#........#ggggggggggggggggggggg#........#",
+    "#........#ggggggggggggggggggggg#........#",
+    "#........#rrrrrrrrrrrrrrrrrrrrr#........#",
+    "#........#ggggggggggggggggggggg#........#",
+    "#........#ggggggggggggggggggggg#........#",
+    "#........#ggggggggggggggggggggg#........#",
+    "##########                     ##########"
   ]
 }

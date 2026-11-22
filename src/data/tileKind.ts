@@ -8,8 +8,8 @@ export const VOID_KIND = 'void';
 const BLOCKING_KINDS: ReadonlySet<string> = new Set(['wall', 'pillar', 'counter', 'shelf', 'rack', 'window', 'clock', 'poster', 'whiteboard']);
 export const isBlocked = (kind: string | undefined): boolean => kind !== undefined && BLOCKING_KINDS.has(kind);
 
-// ケーブルだけが通れるマス。点検口（hatch）は部屋の境の壁の上にあり、shaft（配線用の縦の穴）は階と階をつなぐ。機器・家具は置けない
-const CABLE_ONLY_KINDS: ReadonlySet<string> = new Set(['hatch', 'shaft']);
+// ケーブルだけが通れるマス。点検口（hatch）は部屋の境の壁の上にあり、shaft（配線用の縦の穴）は階と階をつなぐ。道路（road）は建物の間の屋外で、配線は通れるが機器は置けない。機器・家具は置けない
+const CABLE_ONLY_KINDS: ReadonlySet<string> = new Set(['hatch', 'shaft', 'road']);
 export const isCableOnly = (kind: string | undefined): boolean => kind !== undefined && CABLE_ONLY_KINDS.has(kind);
 
 // 配線の道筋が通れるマス（床と、ケーブルだけが通れるマス）。壁は通れない
