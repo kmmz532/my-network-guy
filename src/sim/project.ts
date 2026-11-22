@@ -669,7 +669,12 @@ export type NatOp =
   | { op: 'noStatic'; port: number };
 
 // BGP の設定（N147）。router bgp で自分の AS を決め、neighbor と network を足す
-export type BgpOp = { op: 'asn'; asn: number } | { op: 'off' } | { op: 'neighbor'; ip: string; remoteAs: number } | { op: 'removeNeighbor'; ip: string } | { op: 'removeNetwork'; dest: string; prefix: number } | { op: 'attr'; ip: string; key: 'nextHopSelf'; value: boolean } | { op: 'attr'; ip: string; key: 'localPref' | 'med' | 'prepend'; value: number } | { op: 'network'; dest: string; prefix: number };
+export type BgpOp = { op: 'asn'; asn: number } | { op: 'off' } | { op: 'neighbor'; ip: string; remoteAs: number } | { op: 'removeNeighbor'; ip: string } | { op: 'removeNetwork'; dest: string; prefix: number } | { op: 'attr'; ip: string; key: 'nextHopSelf'; value: boolean } | { op: 'attr'; ip: string; key: 'localPref' | 'med' | 'prepend'; value: number } | { op: 'network'; dest: string; prefix: number }
+  | { op: 'routeMap'; name: string; seq: number }
+  | { op: 'removeRouteMap'; name: string }
+  | { op: 'routeMapSet'; name: string; seq: number; key: 'localPref' | 'med'; value: number }
+  | { op: 'routeMapSet'; name: string; seq: number; key: 'prepend'; value: number[] }
+  | { op: 'neighborRouteMap'; ip: string; dir: 'in' | 'out'; name: string | null };
 
 // 配線の片方の端（a か b）を、同じ機器の別のポートへ挿し替える。埋まったポートには挿せない。
 // ケーブルの長さは変わらないため費用は変えない。ポートのIPアドレスは、ポートの番号に付いたまま残す。

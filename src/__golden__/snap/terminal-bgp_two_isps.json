@@ -98,6 +98,163 @@
     {
       "line": "router bgp 65001",
       "result": "done"
+    },
+    {
+      "line": "neighbor 198.51.100.1 remote-as 65100",
+      "result": "done"
+    },
+    {
+      "line": "neighbor 203.0.113.1 remote-as 65200",
+      "result": "done"
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "route-map PREFER_B permit 10",
+      "result": "done",
+      "mode": "route-map",
+      "process": 10
+    },
+    {
+      "line": "set local-preference 200",
+      "result": "done"
+    },
+    {
+      "line": "set metric 50",
+      "result": "done"
+    },
+    {
+      "line": "set as-path prepend 65001 65001",
+      "result": "done"
+    },
+    {
+      "line": "set as-path prepend 65001 65001 65001",
+      "result": "done"
+    },
+    {
+      "line": "set as-path prepend 65001 65001 65001 65001",
+      "result": "done"
+    },
+    {
+      "line": "set as-path prepend 65001 65001 65001 65001 65001",
+      "result": "done"
+    },
+    {
+      "line": "set as-path prepend 65001 65001 65001 65001 65001 65001",
+      "result": "done"
+    },
+    {
+      "line": "set as-path prepend 65001 65001 65001 65001 65001 65001 65001",
+      "lines": [
+        "err:                                                          ^",
+        "err:ui.terminal.invalidAt"
+      ]
+    },
+    {
+      "line": "set as-path prepend 65001",
+      "result": "done"
+    },
+    {
+      "line": "set metric abc",
+      "lines": [
+        "err:             ^",
+        "err:ui.terminal.invalidAt"
+      ]
+    },
+    {
+      "line": "exit",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "neighbor 203.0.113.1 route-map PREFER_B in",
+      "result": "done"
+    },
+    {
+      "line": "neighbor 198.51.100.1 route-map PREFER_B out",
+      "result": "done"
+    },
+    {
+      "line": "neighbor 198.51.100.1 route-map NONE out",
+      "result": "fail",
+      "reason": "bgp.no_route_map"
+    },
+    {
+      "line": "neighbor 10.9.9.9 route-map PREFER_B in",
+      "result": "fail",
+      "reason": "bgp.no_neighbor"
+    },
+    {
+      "line": "no neighbor 198.51.100.1 route-map out",
+      "result": "done"
+    },
+    {
+      "line": "no neighbor 203.0.113.1 route-map in",
+      "result": "done"
+    },
+    {
+      "line": "neighbor 203.0.113.1 route-map PREFER_B in",
+      "result": "done"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
+      "line": "show running-config",
+      "lines": [
+        "out:ui.terminal.cfgInterface {\"port\":0}",
+        "out:ui.terminal.cfgInterface {\"port\":1}",
+        "out:ui.terminal.cfgInterface {\"port\":2}",
+        "out:ui.terminal.cfgAddress {\"ip\":\"10.0.1.1\",\"prefix\":24}",
+        "out:ui.terminal.cfgAddress {\"ip\":\"198.51.100.2\",\"prefix\":24}",
+        "out:ui.terminal.cfgAddress {\"ip\":\"203.0.113.2\",\"prefix\":24}",
+        "out:ui.terminal.cfgBgp {\"asn\":65001}",
+        "out:ui.terminal.cfgBgpNeighbor {\"ip\":\"198.51.100.1\",\"asn\":65100}",
+        "out:ui.terminal.cfgBgpNeighbor {\"ip\":\"203.0.113.1\",\"asn\":65200}",
+        "out:ui.terminal.cfgBgpRouteMapRef {\"ip\":\"203.0.113.1\",\"name\":\"PREFER_B\",\"dir\":\"in\"}",
+        "out:ui.terminal.cfgRouteMap {\"name\":\"PREFER_B\",\"seq\":10}",
+        "out:ui.terminal.cfgSetLocalPref {\"value\":200}",
+        "out:ui.terminal.cfgSetMetric {\"value\":50}",
+        "out:ui.terminal.cfgSetPrepend {\"path\":\"65001\"}"
+      ]
+    },
+    {
+      "line": "configure terminal",
+      "lines": [],
+      "mode": "config"
+    },
+    {
+      "line": "no route-map PREFER_B",
+      "result": "done"
+    },
+    {
+      "line": "no route-map PREFER_B",
+      "result": "error",
+      "text": "ui.error.bgp.no_route_map"
+    },
+    {
+      "line": "end",
+      "lines": [],
+      "mode": "exec"
+    },
+    {
+      "line": "show running-config",
+      "lines": [
+        "out:ui.terminal.cfgInterface {\"port\":0}",
+        "out:ui.terminal.cfgInterface {\"port\":1}",
+        "out:ui.terminal.cfgInterface {\"port\":2}",
+        "out:ui.terminal.cfgAddress {\"ip\":\"10.0.1.1\",\"prefix\":24}",
+        "out:ui.terminal.cfgAddress {\"ip\":\"198.51.100.2\",\"prefix\":24}",
+        "out:ui.terminal.cfgAddress {\"ip\":\"203.0.113.2\",\"prefix\":24}",
+        "out:ui.terminal.cfgBgp {\"asn\":65001}",
+        "out:ui.terminal.cfgBgpNeighbor {\"ip\":\"198.51.100.1\",\"asn\":65100}",
+        "out:ui.terminal.cfgBgpNeighbor {\"ip\":\"203.0.113.1\",\"asn\":65200}"
+      ]
     }
   ],
   "network": {
@@ -164,8 +321,18 @@
         "components": {
           "bgp": {
             "asn": 65001,
-            "neighbors": [],
-            "networks": []
+            "neighbors": [
+              {
+                "ip": "198.51.100.1",
+                "remoteAs": 65100
+              },
+              {
+                "ip": "203.0.113.1",
+                "remoteAs": 65200
+              }
+            ],
+            "networks": [],
+            "routeMaps": []
           }
         }
       },

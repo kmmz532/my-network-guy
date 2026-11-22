@@ -27,8 +27,10 @@ export const COMPONENT_SCHEMAS = {
   // BGP の設定（BGP を動かす機器だけ持つ。neighbors は隣接の相手、networks は広告する宛先）
   bgp: z.object({
     asn: z.number().int().nonnegative(),
-    neighbors: z.array(z.object({ ip: ipv4, remoteAs: z.number().int().nonnegative(), nextHopSelf: z.boolean().optional(), localPref: z.number().int().optional(), med: z.number().int().optional(), prepend: z.number().int().nonnegative().optional() })),
+    neighbors: z.array(z.object({ ip: ipv4, remoteAs: z.number().int().nonnegative(), nextHopSelf: z.boolean().optional(), localPref: z.number().int().optional(), med: z.number().int().optional(), prepend: z.number().int().nonnegative().optional(), routeMapIn: z.string().optional(), routeMapOut: z.string().optional() })),
     networks: z.array(z.object({ dest: ipv4, prefix: z.number().int().min(0).max(32) })),
+    // route-map（permit の項目。set local-preference・set metric・set as-path prepend を持つ）
+    routeMaps: z.array(z.object({ name: z.string().min(1), seq: z.number().int().positive(), localPref: z.number().int().optional(), med: z.number().int().optional(), prepend: z.array(z.number().int().positive()).optional() })).optional(),
   }),
   // 無線の設定（アクセスポイントは SSID・パスワード・帯（band。必須）・チャネル・VLAN・MAC フィルター・暗号化の方式を持つ。無線の端末は SSID とパスワードを持ち、合うアクセスポイントにつながる）
   // macs は登録した端末の MAC だけを通す。省略なら制限しない。security の省略は wpa2。wpa2wpa3 は WPA2/WPA3 の移行モード

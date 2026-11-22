@@ -19,3 +19,32 @@ show ip bgp
 no router bgp
 router bgp abc
 router bgp 65001
+neighbor 198.51.100.1 remote-as 65100
+neighbor 203.0.113.1 remote-as 65200
+configure terminal
+route-map PREFER_B permit 10
+set local-preference 200
+set metric 50
+set as-path prepend 65001 65001
+set as-path prepend 65001 65001 65001
+set as-path prepend 65001 65001 65001 65001
+set as-path prepend 65001 65001 65001 65001 65001
+set as-path prepend 65001 65001 65001 65001 65001 65001
+set as-path prepend 65001 65001 65001 65001 65001 65001 65001
+set as-path prepend 65001
+set metric abc
+exit
+neighbor 203.0.113.1 route-map PREFER_B in
+neighbor 198.51.100.1 route-map PREFER_B out
+neighbor 198.51.100.1 route-map NONE out
+neighbor 10.9.9.9 route-map PREFER_B in
+no neighbor 198.51.100.1 route-map out
+no neighbor 203.0.113.1 route-map in
+neighbor 203.0.113.1 route-map PREFER_B in
+end
+show running-config
+configure terminal
+no route-map PREFER_B
+no route-map PREFER_B
+end
+show running-config

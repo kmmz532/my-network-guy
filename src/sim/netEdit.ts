@@ -754,6 +754,39 @@ export const setBgp = (core: Core, uid: string, change: BgpOp, target: NetTarget
         }
         case 'network':
           return withComponent(node, 'bgp', { ...cur, networks: [...cur.networks.filter((n) => !(n.dest === change.dest && n.prefix === change.prefix)), { dest: change.dest, prefix: change.prefix }] });
+        case 'routeMap': {
+          const maps = cur.routeMaps ?? [];
+          if (maps.some((m) => m.name === change.name && m.seq === change.seq)) return node;
+          return withComponent(node, 'bgp', { ...cur, routeMaps: [...maps, { name: change.name, seq: change.seq }].sort((a, b) => a.name.localeCompare(b.name) || a.seq - b.seq) });
+        }
+        case 'removeRouteMap': {
+          return withComponent(node, 'bgp', {
+            ...cur,
+            routeMaps: (cur.routeMaps ?? []).filter((m) => m.name !== change.name),
+            neighbors: cur.neighbors.map(({ routeMapIn, routeMapOut, ...rest }) => ({
+              ...rest,
+              ...(routeMapIn !== undefined && routeMapIn !== change.name ? { routeMapIn } : {}),
+              ...(routeMapOut !== undefined && routeMapOut !== change.name ? { routeMapOut } : {}),
+            })),
+          });
+        }
+        case 'routeMapSet': {
+          if (!(cur.routeMaps ?? []).some((m) => m.name === change.name && m.seq === change.seq)) return 'bgp.no_route_map';
+          return withComponent(node, 'bgp', { ...cur, routeMaps: (cur.routeMaps ?? []).map((m) => (m.name === change.name && m.seq === change.seq ? { ...m, [change.key]: change.value } : m)) });
+        }
+        case 'neighborRouteMap': {
+          if (!cur.neighbors.some((n) => n.ip === change.ip)) return 'bgp.no_neighbor';
+          const key = change.dir === 'in' ? 'routeMapIn' : 'routeMapOut';
+          if (change.name !== null && !(cur.routeMaps ?? []).some((m) => m.name === change.name)) return 'bgp.no_route_map';
+          return withComponent(node, 'bgp', {
+            ...cur,
+            neighbors: cur.neighbors.map((n) => {
+              if (n.ip !== change.ip) return n;
+              const { [key]: _old, ...rest } = n;
+              return change.name === null ? rest : { ...rest, [key]: change.name };
+            }),
+          });
+        }
       }
     },
     target,

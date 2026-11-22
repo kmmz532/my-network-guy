@@ -2,6 +2,7 @@
 // 理由を足すときは、ここと言語ファイルの両方に足す（src/i18n/failureText.test.ts が対応を確かめる）
 export const OP_FAIL_REASONS = [
   'bgp.no_neighbor',
+  'bgp.no_route_map',
   'busy',
   'cable',
   'cable.port_type',

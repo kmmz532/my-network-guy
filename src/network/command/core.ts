@@ -391,6 +391,26 @@ export const commands: readonly CommandSpec[] = [
       if (ospfProcess !== undefined) lines.push(out(tr('ui.terminal.cfgOspf', { process: ospfProcess })));
       for (const r of getComponent(node, 'ospf')?.ranges ?? []) lines.push(out(tr('ui.terminal.cfgOspfRange', { area: r.area, dest: r.dest, mask: maskOfPrefix(r.prefix) })));
       for (const r of node.routes) lines.push(out(tr('ui.terminal.cfgRoute', { dest: r.dest, prefix: r.prefix, nextHop: r.nextHop })));
+      const bgp = getComponent(node, 'bgp');
+      if (bgp) {
+        lines.push(out(tr('ui.terminal.cfgBgp', { asn: bgp.asn })));
+        for (const n of bgp.neighbors) {
+          lines.push(out(tr('ui.terminal.cfgBgpNeighbor', { ip: n.ip, asn: n.remoteAs })));
+          if (n.nextHopSelf === true) lines.push(out(tr('ui.terminal.cfgBgpNextHopSelf', { ip: n.ip })));
+          if (n.localPref !== undefined) lines.push(out(tr('ui.terminal.cfgBgpNeighborAttr', { ip: n.ip, attr: 'local-preference', value: n.localPref })));
+          if (n.med !== undefined) lines.push(out(tr('ui.terminal.cfgBgpNeighborAttr', { ip: n.ip, attr: 'med', value: n.med })));
+          if (n.prepend !== undefined) lines.push(out(tr('ui.terminal.cfgBgpNeighborAttr', { ip: n.ip, attr: 'prepend', value: n.prepend })));
+          if (n.routeMapIn !== undefined) lines.push(out(tr('ui.terminal.cfgBgpRouteMapRef', { ip: n.ip, name: n.routeMapIn, dir: 'in' })));
+          if (n.routeMapOut !== undefined) lines.push(out(tr('ui.terminal.cfgBgpRouteMapRef', { ip: n.ip, name: n.routeMapOut, dir: 'out' })));
+        }
+        for (const n of bgp.networks) lines.push(out(tr('ui.terminal.cfgBgpNetwork', { dest: n.dest, mask: maskOfPrefix(n.prefix) })));
+        for (const m of bgp.routeMaps ?? []) {
+          lines.push(out(tr('ui.terminal.cfgRouteMap', { name: m.name, seq: m.seq })));
+          if (m.localPref !== undefined) lines.push(out(tr('ui.terminal.cfgSetLocalPref', { value: m.localPref })));
+          if (m.med !== undefined) lines.push(out(tr('ui.terminal.cfgSetMetric', { value: m.med })));
+          if (m.prepend !== undefined) lines.push(out(tr('ui.terminal.cfgSetPrepend', { path: m.prepend.join(' ') })));
+        }
+      }
       return shown(lines.length > 0 ? lines : [out(tr('ui.terminal.cfgEmpty'))]);
     },
   },

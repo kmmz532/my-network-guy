@@ -5,6 +5,9 @@ import type { CommandContext, CommandResult, CommandSpec } from '../../command/t
 import type { Tr } from '../../terminal';
 import { prefixOfMask } from '../../command/args';
 import { enterRouter } from '../../command/modes';
+import { getComponent } from '../../components';
+import type { BgpOp } from '../../../sim/project';
+import type { Token } from '../../command/types';
 
 const showSummary = (_args: unknown, ctx: CommandContext, tr: Tr): CommandResult => {
   const bgp = bgpTableOf(ctx.state, ctx.node.uid);
@@ -24,6 +27,28 @@ const showTable = (_args: unknown, ctx: CommandContext, tr: Tr): CommandResult =
     out(tr('ui.terminal.bgpRoute', { mark: `${c.best ? '>' : ' '}${c.valid ? '*' : ' '}`, dest: c.dest, prefix: c.prefix, nextHop: c.nextHop ?? '0.0.0.0', lp: c.localPref, med: c.med, path: c.path.join(' ') || 'i' })),
   );
   return shown(lines.length > 0 ? [out(tr('ui.terminal.bgpHeader')), ...lines] : [out(tr('ui.terminal.bgpNone'))]);
+};
+
+// route-map モードの命令の共通の形。対象の項目がなければ誤りを返す
+const editRouteMap = (ctx: CommandContext, tr: Tr, change: (name: string, seq: number) => BgpOp): CommandResult => {
+  const { map, process: seq } = ctx.session;
+  if (map === undefined || seq === null) throw new Error('route-map モードに対象がない');
+  return changed(ctx, tr, { kind: 'bgp', change: change(map, seq) });
+};
+
+// set as-path prepend の AS 番号の最大の個数。命令の語の並びは固定の長さのため、個数ごとに命令を登録する
+const MAX_PREPEND = 6;
+const prependCommand = (count: number): CommandSpec => {
+  const asns: Token[] = Array.from({ length: count }, (_, k) => ({ arg: 'asn', name: `as${k}` }));
+  return {
+    id: `bgp.setPrepend${count}`,
+    modes: ['route-map'],
+    tokens: [{ word: 'set' }, { word: 'as-path' }, { word: 'prepend' }, ...asns],
+    help: 'ui.cmd.bgp.setPrepend',
+    writes: true,
+    topic: 'bgp',
+    run: (args, ctx, tr) => editRouteMap(ctx, tr, (name, seq) => ({ op: 'routeMapSet', name, seq, key: 'prepend', value: Array.from({ length: count }, (_, k) => Number(args[`as${k}`])) })),
+  };
 };
 
 export const commands: readonly CommandSpec[] = [
@@ -117,6 +142,71 @@ export const commands: readonly CommandSpec[] = [
     topic: 'bgp',
     run: (args, ctx, tr) => enterRouter(ctx, changed(ctx, tr, { kind: 'bgp', change: { op: 'asn', asn: Number(args.asn) } }), 'router-bgp', Number(args.asn)),
   },
+  {
+    id: 'bgp.routeMap',
+    modes: ['exec', 'config'],
+    tokens: [{ word: 'route-map' }, { arg: 'word', name: 'name' }, { word: 'permit' }, { arg: 'cost', name: 'seq' }],
+    help: 'ui.cmd.bgp.routeMap',
+    writes: true,
+    topic: 'bgp',
+    run: (args, ctx, tr) => {
+      const seq = Number(args.seq);
+      const result = changed(ctx, tr, { kind: 'bgp', change: { op: 'routeMap', name: args.name, seq } });
+      // 項目のモードへは、config から入るときだけ入る（exec の形はモードを変えない）
+      return ctx.session.mode === 'config' && result.change !== null ? { ...result, session: { mode: 'route-map', iface: null, process: seq, map: args.name } } : result;
+    },
+  },
+  {
+    id: 'bgp.noRouteMap',
+    modes: ['exec', 'config'],
+    tokens: [{ word: 'no' }, { word: 'route-map' }, { arg: 'word', name: 'name' }],
+    help: 'ui.cmd.bgp.noRouteMap',
+    writes: true,
+    topic: 'bgp',
+    run: (args, ctx, tr) => {
+      if (!(getComponent(ctx.node, 'bgp')?.routeMaps ?? []).some((m) => m.name === args.name)) return shown([err(tr('ui.error.bgp.no_route_map'))]);
+      return changed(ctx, tr, { kind: 'bgp', change: { op: 'removeRouteMap', name: args.name } });
+    },
+  },
+  {
+    id: 'bgp.setLocalPref',
+    modes: ['route-map'],
+    tokens: [{ word: 'set' }, { word: 'local-preference' }, { arg: 'number', name: 'value' }],
+    help: 'ui.cmd.bgp.setLocalPref',
+    writes: true,
+    topic: 'bgp',
+    run: (args, ctx, tr) => editRouteMap(ctx, tr, (name, seq) => ({ op: 'routeMapSet', name, seq, key: 'localPref', value: Number(args.value) })),
+  },
+  {
+    id: 'bgp.setMetric',
+    modes: ['route-map'],
+    tokens: [{ word: 'set' }, { word: 'metric' }, { arg: 'number', name: 'value' }],
+    help: 'ui.cmd.bgp.setMetric',
+    writes: true,
+    topic: 'bgp',
+    run: (args, ctx, tr) => editRouteMap(ctx, tr, (name, seq) => ({ op: 'routeMapSet', name, seq, key: 'med', value: Number(args.value) })),
+  },
+  ...Array.from({ length: MAX_PREPEND }, (_, k) => prependCommand(k + 1)),
+  ...(['in', 'out'] as const).flatMap((dir): CommandSpec[] => [
+    {
+      id: `bgp.neighborRouteMap${dir}`,
+      modes: ['exec', 'config', 'router-bgp'],
+      tokens: [{ word: 'neighbor' }, { arg: 'ip', name: 'ip' }, { word: 'route-map' }, { arg: 'word', name: 'name' }, { word: dir }],
+      help: 'ui.cmd.bgp.neighborRouteMap',
+      writes: true,
+      topic: 'bgp',
+      run: (args, ctx, tr) => changed(ctx, tr, { kind: 'bgp', change: { op: 'neighborRouteMap', ip: args.ip, dir, name: args.name } }),
+    },
+    {
+      id: `bgp.noNeighborRouteMap${dir}`,
+      modes: ['exec', 'config', 'router-bgp'],
+      tokens: [{ word: 'no' }, { word: 'neighbor' }, { arg: 'ip', name: 'ip' }, { word: 'route-map' }, { word: dir }],
+      help: 'ui.cmd.bgp.noNeighborRouteMap',
+      writes: true,
+      topic: 'bgp',
+      run: (args, ctx, tr) => changed(ctx, tr, { kind: 'bgp', change: { op: 'neighborRouteMap', ip: args.ip, dir, name: null } }),
+    },
+  ]),
   {
     id: 'bgp.noRouter',
     modes: ['exec', 'config'],

@@ -5,6 +5,7 @@
 import { ipToInt } from './engine';
 import type { NetNode } from './types';
 import { getComponent } from './components';
+import type { BgpConfig } from './types';
 
 export const BGP_DEFAULT_LOCAL_PREF = 100;
 
@@ -50,6 +51,14 @@ export interface BgpResult {
 }
 
 const keyOf = (dest: string, prefix: number) => `${dest}/${prefix}`;
+
+// 隣接に適用した route-map（番号の最も小さい項目）。名前が設定にない指定は、設定の誤りとして例外にする
+const routeMapOf = (cfg: BgpConfig, name: string | undefined) => {
+  if (name === undefined) return undefined;
+  const entries = (cfg.routeMaps ?? []).filter((m) => m.name === name).sort((a, b) => a.seq - b.seq);
+  if (entries.length === 0) throw new Error(`route-map がない: ${name}`);
+  return entries[0];
+};
 
 // 同じ宛先の候補から最適経路を選ぶ（ネクストホップに届く候補だけが対象）
 const better = (a: BgpCandidate, b: BgpCandidate): boolean => {
@@ -113,12 +122,15 @@ export const computeBgp = (routers: NetNode[], env: BgpEnv): Map<string, BgpResu
         const mine = getComponent(r, 'bgp')!.neighbors.find((n) => n.ip === s.ip)!;
         // 相手（広告する側）の、自分（r）に向けた設定（プリペンド・next-hop-self）
         const peerNb = getComponent(peer, 'bgp')!.neighbors.find((n) => n.remoteAs === getComponent(r, 'bgp')!.asn && r.interfaces.some((i) => i.ip === n.ip))!;
+        // route-map は、直接の命令（local-preference・med・prepend）と同じ効果に読み替える。in の local-preference と med、out の med と prepend（番号の並び）を使い、route-map の指定が直接の命令より優先する
+        const rmIn = routeMapOf(getComponent(r, 'bgp')!, mine.routeMapIn);
+        const rmOut = routeMapOf(getComponent(peer, 'bgp')!, peerNb.routeMapOut);
         const peerBest = bestOf(tables.get(peer.uid)!);
         for (const c of peerBest.values()) {
           // iBGP で学んだ経路は、別の iBGP の相手へ伝えない
           if (!s.ebgp && !c.local && !c.ebgp) continue;
           // 受け取る側（r）が自分の AS を含む経路は捨てる（ループ）
-          const advPath = s.ebgp ? [getComponent(peer, 'bgp')!.asn, ...Array.from({ length: peerNb.prepend ?? 0 }, () => getComponent(peer, 'bgp')!.asn), ...c.path] : c.path;
+          const advPath = s.ebgp ? [getComponent(peer, 'bgp')!.asn, ...Array.from({ length: peerNb.prepend ?? 0 }, () => getComponent(peer, 'bgp')!.asn), ...(rmOut?.prepend ?? []), ...c.path] : c.path;
           if (advPath.includes(getComponent(r, 'bgp')!.asn)) continue;
           // eBGP は、相手のアドレスがネクストホップ。iBGP は、そのまま（next-hop-self なら相手のアドレス）
           const peerAddr = s.ip;
@@ -128,8 +140,8 @@ export const computeBgp = (routers: NetNode[], env: BgpEnv): Map<string, BgpResu
             dest: c.dest,
             prefix: c.prefix,
             path: advPath,
-            localPref: s.ebgp ? (mine.localPref ?? BGP_DEFAULT_LOCAL_PREF) : c.localPref,
-            med: mine.med ?? 0,
+            localPref: s.ebgp ? (rmIn?.localPref ?? mine.localPref ?? BGP_DEFAULT_LOCAL_PREF) : c.localPref,
+            med: rmIn?.med ?? rmOut?.med ?? mine.med ?? 0,
             ebgp: s.ebgp,
             local: false,
             nextHop,

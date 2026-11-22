@@ -124,8 +124,19 @@ export interface PortConfig {
 export interface BgpConfig {
   asn: number;
   // nextHopSelf: iBGP の相手へ、自分のアドレスをネクストホップにして広告する。localPref・med: この相手から受け取る経路の属性。prepend: この相手へ広告するときに自分の AS を足す回数
-  neighbors: { ip: string; remoteAs: number; nextHopSelf?: boolean; localPref?: number; med?: number; prepend?: number }[];
+  // routeMapIn・routeMapOut: この相手から受け取る・この相手へ広告するときに使う route-map の名前
+  neighbors: { ip: string; remoteAs: number; nextHopSelf?: boolean; localPref?: number; med?: number; prepend?: number; routeMapIn?: string; routeMapOut?: string }[];
   networks: { dest: string; prefix: number }[];
+  routeMaps?: BgpRouteMap[];
+}
+
+// route-map の1つの項目（permit のみ。条件は持たず、同じ名前では番号の最も小さい項目だけを使う）。localPref は in で、med は in と out で、prepend（足す AS 番号の並び）は out で効く
+export interface BgpRouteMap {
+  name: string;
+  seq: number;
+  localPref?: number;
+  med?: number;
+  prepend?: number[];
 }
 
 // 回線の情報。asn があれば、ISP は BGP で経路をやり取りする（自社のルーターの AS 番号を相手として持つ）

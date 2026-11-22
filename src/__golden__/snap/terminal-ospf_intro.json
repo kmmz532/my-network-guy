@@ -28,6 +28,7 @@
         "out:  auto-cost            ui.cmd.ospf.autoCostReferenceBandwidth",
         "out:  area                 ui.cmd.ospf.areaRange",
         "out:  neighbor             ui.cmdWord.neighbor",
+        "out:  route-map            ui.cmd.bgp.routeMap",
         "out:  vrrp                 ui.cmdWord.vrrp",
         "out:  channel-group        ui.cmdWord.channel-group",
         "out:  crypto               ui.cmdWord.crypto",

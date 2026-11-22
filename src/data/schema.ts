@@ -486,8 +486,9 @@ const placedSetupSchema = z.object({
   bgp: z
     .object({
       asn: int.positive(),
-      neighbors: z.array(z.object({ ip: ipv4, remoteAs: int.positive(), nextHopSelf: z.boolean().optional(), localPref: int.optional(), med: int.optional(), prepend: nonNegativeInt.optional() })),
+      neighbors: z.array(z.object({ ip: ipv4, remoteAs: int.positive(), nextHopSelf: z.boolean().optional(), localPref: int.optional(), med: int.optional(), prepend: nonNegativeInt.optional(), routeMapIn: z.string().optional(), routeMapOut: z.string().optional() })),
       networks: z.array(z.object({ dest: ipv4, prefix: z.number().int().min(0).max(32) })),
+      routeMaps: z.array(z.object({ name: z.string().min(1), seq: int.positive(), localPref: int.optional(), med: int.optional(), prepend: z.array(int.positive()).optional() })).optional(),
     })
     .optional(),
   dhcpPools: z
