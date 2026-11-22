@@ -12,6 +12,7 @@
     "shoot": "node scripts/shoot.mjs",
     "smoke": "node scripts/shoot.mjs all --check --out dist-shoot",
     "simulate:offers": "vite-node scripts/simulate-offers.ts",
+    "simulate:company": "vite-node scripts/simulate-company.ts",
     "bump": "node scripts/bump.mjs patch",
     "bump:patch": "node scripts/bump.mjs patch",
     "bump:minor": "node scripts/bump.mjs minor",

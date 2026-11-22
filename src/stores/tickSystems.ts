@@ -16,10 +16,10 @@ import { rentalOf } from '../network/external';
 import { applyMoney } from '../sim/ledger';
 import { pushNotice } from '../ui/notices';
 import { busyStaff } from '../sim/crew';
-import { isDevJob, isFieldEngineerJob, jobOf } from '../sim/jobs';
+import { dailyExpOfStaff, devIdleStaffOf } from '../sim/staffDaily';
 import { tDyn } from '../i18n/t';
 import { settleRetirements } from '../sim/retire';
-import { backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice } from '../sim/backOffice';
+import { backOfficeP, devDailyIncome, hrCandidateBonus, hrJuniorRate, hrTrainingRate } from '../sim/backOffice';
 import { bonusEnvOf, pcDesksOf } from '../sim/furniture';
 import { advanceBuild } from '../sim/progress';
 import { proposalArrivals, type OfferState } from '../contracts/offers';
@@ -79,7 +79,7 @@ export const clockSystem = (s: GameState): ClockStep => {
   // 机の上の PC（N102）。システムエンジニア・人事・経理は、自分の机に PC がないと働けない（収入・経験値・効果が出ない）
   const pcDesks = pcDesksOf(s.office, isPcDevice);
   const hasPc = (m: Staff): boolean => m.desk !== null && pcDesks.includes(m.desk);
-  const devIdle = days > 0 && s.mode === 'career' ? s.staff.filter((m) => isDevJob(m.job) && m.training === null && !crewUids.has(m.uid) && hasPc(m)) : [];
+  const devIdle = days > 0 && s.mode === 'career' ? devIdleStaffOf(s.staff, crewUids, hasPc) : [];
   const devIncome = devIdle.reduce((sum, m) => sum + devDailyIncome(m, balance) * days, 0);
   const clock = devIncome > 0 ? applyMoney(rentedClock, devIncome, 'dev') : rentedClock;
   return {
@@ -110,17 +110,9 @@ export const dailyOpsSystem = (s: GameState, c: ClockStep, next: Patch): Patch =
 // 系3: 日が替わるたびに、出勤した社員が経験値を得る。社員の列が変わらなければ元の列を返す
 // 日ごとの経験値（N102）: 内勤は出勤した日（営業はPCがなくても、人事・経理とシステムエンジニアは PC のある机のみ）。現場のエンジニアは、担当でない日に PC があれば自習で少し
 export const dailyExpSystem = (s: GameState, c: ClockStep): Staff[] => {
-  const dailyExpOf = (m: Staff): number | null => {
-    if (c.devIdleUids.has(m.uid)) return balance.backOffice.dailyExp * c.days;
-    if (isBackOffice(m.job)) return m.shift === 'day' && m.training === null && (jobOf(m.job).effect === 'sales' || c.hasPc(m)) ? balance.backOffice.dailyExp * c.days : null;
-    if (isFieldEngineerJob(m.job) && m.training === null && !c.crewUids.has(m.uid) && c.hasPc(m)) {
-      return balance.backOffice.dailyExp * (jobOf(m.job).pcBonus?.idleExpRate ?? 0) * c.days;
-    }
-    return null;
-  };
   if (!(c.days > 0 && s.mode === 'career')) return s.staff;
   return s.staff.map((m) => {
-    const exp = dailyExpOf(m);
+    const exp = dailyExpOfStaff(m, c, balance);
     return exp === null ? m : gainExp(m, exp, balance.staff.expPerLevel);
   });
 };

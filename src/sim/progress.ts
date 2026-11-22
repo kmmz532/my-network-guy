@@ -6,16 +6,16 @@ import { earlyOfferDue } from '../contracts/offers';
 import { evaluateContract } from '../network/goals';
 import { linkLength } from '../network/engine';
 import { isOnShift } from './shift';
-import { rate, repairStarsOf, rewardRateOf, type Stars } from './rating';
-import { DELEGATE_MIN_COUNT, DELEGATED_EXP_DIVISOR, DELEGATED_STAR_CAP, familiarKeyOf, missingFixed, positionsMatch, recordDelivery, type Blueprint } from './familiar';
-import { dueDayOf, lateDaysOf, lateFactor } from './deadline';
+import { rate, repairStarsOf, type Stars } from './rating';
+import { DELEGATE_MIN_COUNT, DELEGATED_STAR_CAP, familiarKeyOf, missingFixed, positionsMatch, recordDelivery, type Blueprint } from './familiar';
+import { dueDayOf, lateDaysOf } from './deadline';
 import { bonusEnvOf, furnitureBonus, type BonusEnv } from './furniture';
 import { gainExp, staffPower } from './staff';
 import { blindDelegation } from './blindDelegate';
 import { busyStaff, crewBlock } from './crew';
 import { warningsOf } from '../network/query/warnings';
-import { deliveryExpOf, levelOf } from './level';
 import { firstGoalGainOf } from './companyExp';
+import { blindCostOf, settlementOf } from './settlement';
 import { BlindOutcome, BlindPlan, Core, Env, GoalCheck, Office, Outcome, Project, ReportFailure, TestOutcome, TestResult, Trace, connect, changesOf, contractLinks, delegationReason, designIssues, stateOfProject, fail, fixedNodes, focusedOf, hubFor, isPcIn, keepFocus, projectCostOf, requireDesign, withProject } from './project';
 
 // 増えた機器を型紙につなぐときのケーブル（一番安いもの）
@@ -277,10 +277,8 @@ export const delegateBlind = (core: Core, offerId: string, crew: string[], env: 
 const settleBlind = (core: Core, p: Project, plan: BlindPlan, env: Env): Outcome => {
   const contract = p.contract;
   const { stars, costRatio, rework } = plan;
-  const cost = Math.round(contract.budget * costRatio);
-  const money = Math.round(contract.reward.money * rewardRateOf(stars, env.balance));
-  const fullExp = deliveryExpOf(contract.unlockLevel, levelOf(core.companyExp, env.balance), rewardRateOf(stars, env.balance), env.balance);
-  const expGain = Math.max(1, Math.floor(fullExp / DELEGATED_EXP_DIVISOR));
+  const cost = blindCostOf(contract.budget, costRatio);
+  const { money, expGain } = settlementOf({ reward: contract.reward.money, unlockLevel: contract.unlockLevel, stars, lateDays: 0, delegated: true, companyExp: core.companyExp }, env.balance);
   let clock = applyMoney(core.clock, -cost, 'construction');
   clock = applyMoney(clock, money, 'reward');
   // 報酬の機器はインベントリに入る（型紙で任せた依頼と同じ）
@@ -341,13 +339,11 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
     const rawStars = changes !== undefined ? repairRate(p, changes, cost.total, lateDays > 0, issues, env) : rate(cost.total, p.contract.budget, p.rework, lateDays > 0, issues, env.balance);
     // 任せた依頼は★の上限が2（N70）
     const stars = (p.delegated ? Math.min(DELEGATED_STAR_CAP, rawStars) : rawStars) as typeof rawStars;
-    // 報酬は、期日の割合と★ごとの倍率を掛けた額
-    const money = Math.round(p.contract.reward.money * lateFactor(lateDays, env.balance) * rewardRateOf(stars, env.balance));
-    // 会社の経験値は、現在のレベルの必要経験値に割合と★の倍率を掛けた量で増える（deliveryExpOf）。評判は得た★の数だけ増える（N55）
-    const expGain = deliveryExpOf(p.contract.unlockLevel, levelOf(core.companyExp, env.balance), rewardRateOf(stars, env.balance), env.balance);
+    // 報酬は、期日の割合と★ごとの倍率を掛けた額。会社の経験値は、現在のレベルの必要経験値に割合と★の倍率を掛けた量（任せた依頼は半分）。評判は得た★の数だけ増える（N55）
+    const { money, expGain } = settlementOf({ reward: p.contract.reward.money, unlockLevel: p.contract.unlockLevel, stars, lateDays, delegated: p.delegated === true, companyExp: core.companyExp }, env.balance);
     // 任せた依頼は経験値を半分にする（N70）。達成条件の型を初めて合格させた分は、型ごとに別に足す（xp.firstGoal）
     const first = firstGoalGainOf(core.firstGoals, p.contract.goals.map((g) => g.type), core.companyExp, env.balance);
-    const companyExp = core.companyExp + (p.delegated ? Math.max(1, Math.floor(expGain / DELEGATED_EXP_DIVISOR)) : expGain) + first.gained;
+    const companyExp = core.companyExp + expGain + first.gained;
     const reputation = core.reputation + stars;
     // 自社案件は、納品したネットワークを自社オフィスとして残し、効果を加える
     const office: Office = p.contract.inhouse
