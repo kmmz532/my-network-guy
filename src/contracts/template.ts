@@ -2,7 +2,7 @@
 import type { Contract, ContractTemplate, Goal, GameMap } from '../data/schema';
 import { randInt, rand } from '../sim/rng';
 import { spawnGroupsOf } from './spawn';
-import { budgetOf } from './budget';
+import { optimalCostOf, rewardOf } from './budget';
 import type { ChallengeKind } from './challenge';
 import { DEFAULT_DECOR, DEFAULT_LAYOUT, layoutDesks, placeDecor, type DeskCell, type FurnitureCell } from './layout';
 
@@ -154,6 +154,8 @@ export const instantiateTemplate = (
     if (g.type === 'http_from') return { ...g, nodes: expand(g.nodes) };
     return g;
   });
+  // 最安の設計の費用。予算（× margin）と報酬の下限の基準
+  const cost = optimalCostOf(template, map, placed, furniture);
   const contract: Contract = {
     id: `${template.id}_${seq}`,
     stage: template.stage,
@@ -164,7 +166,7 @@ export const instantiateTemplate = (
     jobs: template.jobs,
     map: template.map,
     // 予算は、最安の設計の費用に余裕の倍率を掛けた額（budget.ts）
-    budget: budgetOf(template, map, placed, furniture),
+    budget: Math.ceil(cost * template.budget.margin),
     // PC の後に、固定の機器を置く（予算には含めない）
     placed: [...placed, ...(template.placed ?? [])],
     ...(template.links ? { links: template.links } : {}),
@@ -174,7 +176,7 @@ export const instantiateTemplate = (
     inhouse: false,
     ...(template.manualIp ? { manualIp: true } : {}),
     reward: {
-      money: template.reward.base + template.reward.perPc * total,
+      money: rewardOf(template, cost, total),
     },
   };
   return {

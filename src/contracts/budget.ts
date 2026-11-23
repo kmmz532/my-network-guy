@@ -221,6 +221,14 @@ export const optimalCostOf = (template: ContractTemplate, map: GameMap, placed: 
 export const budgetOf = (template: ContractTemplate, map: GameMap, placed: readonly Pt[], furniture: readonly Pt[]): number =>
   Math.ceil(optimalCostOf(template, map, placed, furniture) * template.budget.margin);
 
+// 報酬の下限（最安の設計の費用の倍率）。ひな形の報酬（base + perPc × 台数）がこれを下回るときは、費用 × この倍率に引き上げる。
+// 機器の費用は会社が払うため、★3で納品しても赤字にならないようにする
+export const MIN_REWARD_RATIO = 1.5;
+
+// 案件の報酬。ひな形の式（base + perPc × 台数）と、費用 × MIN_REWARD_RATIO の大きいほう
+export const rewardOf = (template: ContractTemplate, cost: number, pcCount: number): number =>
+  Math.max(template.reward.base + template.reward.perPc * pcCount, Math.ceil(cost * MIN_REWARD_RATIO));
+
 // 台数が収まる最も安いスイッチの ID（試験の想定の解答が使う）
 export const cheapestSwitchId = (ports: number): string => {
   const d = cheapest('l2_switch', ports);

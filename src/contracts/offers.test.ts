@@ -8,7 +8,7 @@ import type { Balance, Contract, ContractTemplate, GameMap } from '../data/schem
 import { minutesPerDay } from '../sim/clock';
 import { expAtLevel } from '../sim/level';
 import { declineOffer, earlyOfferDue, MAX_OFFERS, offerHint, refreshOffers, sortOffers, type OfferEnv, type OfferState } from './offers';
-import { budgetOf } from './budget';
+import { budgetOf, optimalCostOf, rewardOf } from './budget';
 import { instantiateTemplate, pcCountRangeOf, spawnGroupsOf } from './template';
 
 const area = spawnGroupsOf(templateJson as unknown as ContractTemplate)[0];
@@ -72,7 +72,8 @@ describe('定型案件の生成', () => {
     const n = offer.params.pcCount;
     expect(offer.contract.goals).toEqual([{ type: 'ping_all', nodes: offer.contract.placed.map((p) => p.ref) }]);
     expect(offer.contract.budget).toBe(budgetOf(template, map, offer.contract.placed, offer.contract.furniture ?? []));
-    expect(offer.contract.reward.money).toBe(template.reward.base + template.reward.perPc * n);
+    const pcs = offer.contract.placed.filter((p) => p.device === 'pc_basic');
+    expect(offer.contract.reward.money).toBe(rewardOf(template, optimalCostOf(template, map, pcs, offer.contract.furniture ?? []), n));
     expect(offer.id).toBe('t_small_lan_3');
   });
 });
