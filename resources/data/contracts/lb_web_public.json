@@ -116,7 +116,7 @@
     { "type": "survive_device_failure", "nodes": ["WEB1", "WEB2"] }
   ],
   "reward": {
-    "money": 800000
+    "money": 680000
   },
   "unlockLevel": 86
 }

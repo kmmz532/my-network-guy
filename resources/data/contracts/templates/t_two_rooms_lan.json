@@ -21,7 +21,7 @@
   },
   "deadlineDays": 10,
   "reward": {
-    "base": 60000,
-    "perPc": 15000
+    "base": 43000,
+    "perPc": 11000
   }
 }

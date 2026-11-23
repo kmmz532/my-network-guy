@@ -32,8 +32,8 @@
     "margin": 1.25
   },
   "reward": {
-    "base": 50000,
-    "perPc": 10000
+    "base": 36000,
+    "perPc": 7000
   },
   "goals": [
     {

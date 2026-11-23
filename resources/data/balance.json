@@ -184,7 +184,7 @@
       "maxChance": 0.5,
       "printerArrivalBonus": 0.05,
       "rewardWeightPerLevel": 0.05,
-      "rewardMulPerP": 0.05
+      "rewardMulPerP": 0.08
     },
     "accounting": {
       "ratePerLevel": 0.05,

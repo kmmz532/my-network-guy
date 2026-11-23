@@ -33,10 +33,16 @@ import type { NetNode } from '../src/network/types';
 
 const trials = Number(process.argv[2] ?? 10);
 const months = Number(process.argv[3] ?? 24);
+// 第4引数に skills を渡すと、遊び方の3段階の表だけを出す（調整の確認用）
+const skillsOnly = process.argv[4] === 'skills';
 
 // 固定案件の想定の解答の費用。固定案件は予算を手で決めており、最安の設計の費用を求められないため、予算の 0.75 倍（★3の費用の割合 0.8 以下）とする
 const FIXED_COST_RATIO = 0.75;
 const PC_ID = 'pc_basic';
+// 遊び方の段階。★3は最安の設計・期日の日に納品（これまでの仮定）。★2は予算の 0.95 倍の費用。★1は予算の 1.05 倍の費用で、設計の時間が 1.5 倍かかり、期日を過ぎて納品する
+type Skill = 1 | 2 | 3;
+const SKILL_COST_RATIO: Record<1 | 2, number> = { 1: 1.05, 2: 0.95 };
+const SKILL_TIME_MUL: Record<Skill, number> = { 1: 1.5, 2: 1, 3: 1 };
 
 const maps: Record<string, GameMap> = {};
 for (const [id, load] of Object.entries(mapLoaders)) maps[id] = (await load()).default;
@@ -53,14 +59,15 @@ interface Scenario {
   hires: JobId[];
   // 型紙なしで任せられる依頼は、任せる
   delegate: boolean;
+  skill: Skill;
 }
 
 const SCENARIOS: Scenario[] = [
-  { id: 'a', label: '(a) 技術職だけ', hires: [], delegate: false },
-  { id: 'b', label: '(b) 営業を1人足す', hires: ['sales'], delegate: false },
-  { id: 'c', label: '(c) 人事・経理を足す', hires: ['hr', 'accounting'], delegate: false },
-  { id: 'd', label: '(d) システムエンジニアを足す', hires: ['dev'], delegate: false },
-  { id: 'e', label: '(e) 型紙なしの任せる依頼を主に使う', hires: [], delegate: true },
+  { id: 'a', label: '(a) 技術職だけ', hires: [], delegate: false, skill: 3 },
+  { id: 'b', label: '(b) 営業を1人足す', hires: ['sales'], delegate: false, skill: 3 },
+  { id: 'c', label: '(c) 人事・経理を足す', hires: ['hr', 'accounting'], delegate: false, skill: 3 },
+  { id: 'd', label: '(d) システムエンジニアを足す', hires: ['dev'], delegate: false, skill: 3 },
+  { id: 'e', label: '(e) 型紙なしの任せる依頼を主に使う', hires: [], delegate: true, skill: 3 },
 ];
 
 interface Row {
@@ -73,6 +80,9 @@ interface RunResult {
   rows: Row[];
   bankrupt: boolean;
   minMoney: number;
+  // 最初の1か月・3か月の資金の最低と、月末の資金
+  minFirst1: number;
+  minFirst3: number;
   // 職種 → 雇った月（月末の番号）。雇わなかった職種は含まない
   hiredMonth: Partial<Record<JobId, number>>;
   // 雇った社員の月給
@@ -80,6 +90,8 @@ interface RunResult {
   deliveries: number;
   // 依頼の報酬の合計と、依頼の費用（機材の購入・施工）の合計
   earned: number;
+  // earned のうち、固定案件の報酬
+  earnedFixed: number;
   spent: number;
   delegated: number;
   selfDesigned: number;
@@ -89,6 +101,8 @@ interface RunResult {
 interface Active {
   offer: Offer;
   due: number | null;
+  // 自分で設計する依頼を納品する日（設計の時間を掛けた日数のぶん、期日より後になる）
+  finish: number | null;
   mode: 'self' | 'blind';
   crew: string[];
   // 型紙なしの結果（受注のときに決める）と、施工の進み
@@ -126,6 +140,7 @@ const run = (scn: Scenario, seed: number): RunResult => {
   let furnitureSeq = office.furnitureSeq;
   let deliveries = 0;
   let earned = 0;
+  let earnedFixed = 0;
   let spent = 0;
   let delegatedCount = 0;
   let selfCount = 0;
@@ -135,6 +150,8 @@ const run = (scn: Scenario, seed: number): RunResult => {
   const hiredSalary: RunResult['hiredSalary'] = {};
   const rows: Row[] = [];
   let minMoney = clock.money;
+  let minFirst1 = clock.money;
+  let minFirst3 = clock.money;
 
   const bonusEnv = () => bonusEnvOf({ staff, office }, gameEnv);
   const pOf = (job: JobId): number => backOfficeP(staff, job, office, bonusEnv());
@@ -153,6 +170,7 @@ const run = (scn: Scenario, seed: number): RunResult => {
 
   // 定型案件の費用は最安の設計の費用。案件の ID は <ひな形の ID> に連番が付いた形
   const costOf = (o: Offer): number => {
+    if (scn.skill !== 3) return Math.round(o.contract.budget * SKILL_COST_RATIO[scn.skill]);
     if (o.kind === 'fixed') return Math.round(o.contract.budget * FIXED_COST_RATIO);
     const templateId = o.contract.id.replace(/(_\d+)+$/, '');
     const template = contractTemplates.find((t) => t.id === templateId);
@@ -224,6 +242,7 @@ const run = (scn: Scenario, seed: number): RunResult => {
     }
     clock = applyMoney(clock, money, 'reward');
     earned += money;
+    if (a.offer.kind === 'fixed') earnedFixed += money;
     addExp(expGain + first);
     deliveries++;
     offers = {
@@ -245,7 +264,9 @@ const run = (scn: Scenario, seed: number): RunResult => {
     const offer = withSalesMul(eligible.reduce((best, o) => (expectedNet(o) > expectedNet(best) ? o : best)));
     offers = { ...offers, offers: offers.offers.filter((o) => o.id !== offer.id), excluded: [...offers.excluded, offer.baseId] };
     const mode = scn.delegate && delegateModeOf(familiarity, offer) !== null ? 'blind' : 'self';
-    const a: Active = { offer, due: dueDayOf(clock.minute, offer.contract.deadlineDays), mode, crew: crew.map((m) => m.uid), progress: 0, total: 0 };
+    const due = dueDayOf(clock.minute, offer.contract.deadlineDays);
+    const extra = due === null ? 0 : Math.ceil((offer.contract.deadlineDays ?? 0) * (SKILL_TIME_MUL[scn.skill] - 1));
+    const a: Active = { offer, due, finish: due === null ? null : due + extra, mode, crew: crew.map((m) => m.uid), progress: 0, total: 0 };
     if (mode === 'self') {
       clock = applyMoney(clock, -price(offer), 'purchase');
       spent += price(offer);
@@ -283,6 +304,8 @@ const run = (scn: Scenario, seed: number): RunResult => {
     const before = clock;
     clock = advanceTick(clock, balance, payroll());
     minMoney = Math.min(minMoney, clock.money);
+    if (before.paidMonths < 1) minFirst1 = Math.min(minFirst1, clock.money);
+    if (before.paidMonths < 3) minFirst3 = Math.min(minFirst3, clock.money);
     const onShift = isOnShift(clock.minute % minutesPerDay, 'day', balance);
     // 勤務中の施工: 担当の経験値と、型紙なしの進み
     if (active && onShift) {
@@ -316,20 +339,61 @@ const run = (scn: Scenario, seed: number): RunResult => {
         offers = { ...offers, rng: roll.state };
         if (roll.value < chance) offers = salesArrival({ ...offers, minute: clock.minute, companyExp }, offerEnv, pOf('sales') * balance.backOffice.sales.rewardWeightPerLevel);
       }
-      if (active?.mode === 'self' && active.due !== null && dayOf(clock.minute) > active.due) settle(active);
+      if (active?.mode === 'self' && active.finish !== null && dayOf(clock.minute) > active.finish) settle(active);
       if (!active) accept();
     }
   }
-  return { rows, bankrupt: clock.bankrupt, minMoney, hiredMonth, hiredSalary, deliveries, earned, spent, delegated: delegatedCount, selfDesigned: selfCount, stars };
+  return { rows, bankrupt: clock.bankrupt, minMoney, minFirst1, minFirst3, hiredMonth, hiredSalary, deliveries, earned, earnedFixed, spent, delegated: delegatedCount, selfDesigned: selfCount, stars };
 };
 
 const mean = (xs: number[]): number => (xs.length === 0 ? NaN : xs.reduce((s, x) => s + x, 0) / xs.length);
 const yen = (n: number): string => `${Math.round(n / 1000).toLocaleString('en-US')}k`;
 const seeds = Array.from({ length: trials }, (_, i) => i + 1);
 
+// 遊び方の3段階（技術職だけ）で、序盤の資金の基準を確かめる
+const EXPAND_COST = balance.office.expand.baseCost;
+const printSkills = (): void => {
+  const results = new Map<Skill, RunResult[]>();
+  for (const skill of [1, 2, 3] as Skill[]) {
+    const scn: Scenario = { id: `skill${skill}`, label: `★${skill}`, hires: [], delegate: false, skill };
+    results.set(skill, seeds.map((sd) => run(scn, sd)));
+  }
+  const at = (rs: RunResult[], m: number): number => mean(rs.map((r) => r.rows[m - 1]?.money ?? NaN));
+  const salaryOf = (rs: RunResult[]): number => mean(rs.map((r) => r.rows[0].salary));
+  console.log(`
+遊び方の3段階（技術職だけ・千円。月給は最初の月末の月給の合計・拡張 ${yen(EXPAND_COST)}）`);
+  console.log('  段階  1か月の最低  3か月の最低  1か月末  2か月末  月給  最後の月  倒産');
+  for (const skill of [1, 2, 3] as Skill[]) {
+    const rs = results.get(skill)!;
+    console.log(
+      `  ★${skill}  ${yen(Math.min(...rs.map((r) => r.minFirst1))).padStart(10)}  ${yen(Math.min(...rs.map((r) => r.minFirst3))).padStart(10)}  ${yen(at(rs, 1)).padStart(7)}  ${yen(at(rs, 2)).padStart(7)}  ${yen(salaryOf(rs)).padStart(5)}  ${yen(at(rs, months)).padStart(8)}  ${rs.filter((r) => r.bankrupt).length}/${trials}`,
+    );
+  }
+  const r1 = results.get(1)!;
+  const r2 = results.get(2)!;
+  const r3 = results.get(3)!;
+  const pass = (ok: boolean): string => (ok ? '合格' : '不合格');
+  console.log(`  ★3の報酬のうち固定案件の割合: ${((mean(r3.map((r) => r.earnedFixed)) / mean(r3.map((r) => r.earned))) * 100).toFixed(0)}%・納品 ${mean(r3.map((r) => r.deliveries)).toFixed(0)} 件`);
+  console.log('遊び方の基準');
+  const c1 = Math.min(...r1.map((r) => r.minFirst3)) >= salaryOf(r1);
+  console.log(`  1. ★1（設計の時間 1.5 倍）でも最初の3か月の資金の最低（0を下回れば倒産）が月給1か月分以上: 最低 ${yen(Math.min(...r1.map((r) => r.minFirst3)))}・月給 ${yen(salaryOf(r1))} → ${pass(c1)}`);
+  const c2 = Math.min(...r2.map((r) => r.rows[0].money)) - EXPAND_COST >= salaryOf(r2);
+  console.log(`  2. ★2で、1か月目のうちに拡張を買っても月給1か月分が残る: 1か月末の最低 ${yen(Math.min(...r2.map((r) => r.rows[0].money)))} - 拡張 ${yen(EXPAND_COST)} ≥ 月給 ${yen(salaryOf(r2))} → ${pass(c2)}`);
+  const hireLine = (rs: RunResult[], m: number): number => 3 * salaryOf(rs) * 1 + 0 * m;
+  const c3 = Math.max(at(r3, 1), at(r3, 2)) > hireLine(r3, 2);
+  console.log(`  3. ★3で、2か月目までに社員を増やせる（資金が月給の3か月分を超える）: 1か月末 ${yen(at(r3, 1))}・2か月末 ${yen(at(r3, 2))}・3か月分 ${yen(hireLine(r3, 2))} → ${pass(c3)}`);
+  const c4 = [r1, r2, r3].every((rs) => Math.min(...rs.map((r) => r.minFirst1)) >= 1.5 * salaryOf(rs));
+  console.log(`  4. 最初の1か月は、どの段階でも資金の最低が月給の1.5か月分以上: ${[r1, r2, r3].map((rs, i) => `★${i + 1} ${yen(Math.min(...rs.map((r) => r.minFirst1)))}`).join('・')}（月給の1.5か月分 ${yen(1.5 * salaryOf(r3))}） → ${pass(c4)}`);
+  console.log(`  6. ★3の${months}か月後の資金（目安は 7,200k〜9,700k）: ${yen(at(r3, months))}`);
+};
+if (skillsOnly) {
+  printSkills();
+  process.exit(0);
+}
+
 // 進め方ごとの試行
 const runs = new Map<string, RunResult[]>();
-const SOLO: Scenario[] = (['sales', 'hr', 'accounting', 'dev'] as JobId[]).map((job) => ({ id: `solo-${job}`, label: `${job} だけ`, hires: [job], delegate: false }));
+const SOLO: Scenario[] = (['sales', 'hr', 'accounting', 'dev'] as JobId[]).map((job) => ({ id: `solo-${job}`, label: `${job} だけ`, hires: [job], delegate: false, skill: 3 }));
 for (const scn of [...SCENARIOS, ...SOLO]) runs.set(scn.id, seeds.map((s) => run(scn, s)));
 
 console.log(`試行 ${trials} 回の平均（資金は千円・月給の合計は千円）。月数 ${months}・案件の枠 ${balance.office.projectSlots}・想定の費用は、定型案件が最安の設計の費用・固定案件が予算の ${FIXED_COST_RATIO} 倍`);
@@ -403,3 +467,5 @@ const levelAt = (id: string, m: number): number => mean(runs.get(id)!.map((r) =>
 const m12 = Math.min(12, months);
 const slower = levelAt('e', months) < levelAt('a', months) && levelAt('e', m12) < levelAt('a', m12);
 console.log(`3. 任せる依頼だけの進め方は、自分で設計する進め方よりレベルが遅い: ${m12} か月目 (e) ${levelAt('e', m12).toFixed(1)} / (a) ${levelAt('a', m12).toFixed(1)}・${months} か月目 (e) ${levelAt('e', months).toFixed(1)} / (a) ${levelAt('a', months).toFixed(1)} → ${slower ? '合格' : '不合格'}`);
+
+printSkills();

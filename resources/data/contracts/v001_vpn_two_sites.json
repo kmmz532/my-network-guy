@@ -73,7 +73,7 @@
     { "type": "ping", "from": "HQ_PC", "to": "BR_PC" }
   ],
   "reward": {
-    "money": 560000
+    "money": 475000
   },
   "unlockLevel": 57
 }
