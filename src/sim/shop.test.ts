@@ -63,6 +63,9 @@ describe('セーブのバージョン移行', () => {
       firstGoals: [],
       // 自社の実績は移行前は空（v66）
       achievements: [],
+      clearedAt: null,
+      medals: [],
+      records: { threeStars: 0, biggest: null },
       // なじみの依頼は移行前は空（N70）
       familiarity: { counts: {}, blueprints: {} },
       guidesDone: [],

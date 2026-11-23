@@ -34,6 +34,9 @@ const base = (): Partial<GameState> => ({
   offers: [],
   active: [],
   achievements: [],
+  clearedAt: null,
+  medals: [],
+  records: { threeStars: 0, biggest: null },
 });
 
 // 公開の Web（dmz）: 回線の機器→ルーター（静的 NAT で外のポート80をサーバーへ）→ スイッチ2台。PC は別のスイッチで、ケーブルが切れると PC とサーバーが分かれる

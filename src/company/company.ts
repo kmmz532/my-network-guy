@@ -35,6 +35,12 @@ export interface Company {
   firstGoals: string[];
   // 自社の実績（月末に、自社オフィスの構成が満たしている論点）
   achievements: string[];
+  // クリア（最後の山場 z001 の納品）したゲームの時刻（分。日付は toDate で求める）。未クリアは null
+  clearedAt: number | null;
+  // 挑戦の依頼を★3で納品して得た勲章（型紙のID）
+  medals: string[];
+  // 会社の歩みの記録（エンディングの札に出す。移行前の分は数えていない）
+  records: CompanyRecords;
   // なじみの依頼の回数と型紙（N70）
   familiarity: Familiarity;
   // 依頼一覧（案件の内容を含む）
@@ -69,6 +75,12 @@ export interface Company {
   termsShown: string[];
 }
 
+// 会社の歩みの記録。★3の納品の数と、報酬が最も大きかった納品（型紙の ID は kind が template のとき）
+export interface CompanyRecords {
+  threeStars: number;
+  biggest: { kind: 'fixed' | 'template'; baseId: string; money: number } | null;
+}
+
 export interface SandboxLesson {
   id: string;
   step: number;
@@ -77,7 +89,7 @@ export interface SandboxLesson {
 
 // 保存する項目（Company のすべてのキー。Company の宣言の順）
 export const COMPANY_KEYS = [
-  'mode', 'name', 'clock', 'companyExp', 'reputation', 'expDay', 'expToday', 'owned', 'completed', 'deliveries', 'firstGoals', 'achievements',
+  'mode', 'name', 'clock', 'companyExp', 'reputation', 'expDay', 'expToday', 'owned', 'completed', 'deliveries', 'firstGoals', 'achievements', 'clearedAt', 'medals', 'records',
   'familiarity', 'offers', 'nextOfferMinute', 'offerSeq', 'newArrivals', 'rng', 'active', 'focus', 'office', 'effects',
   'staff', 'staffSeq', 'candidates', 'guidesDone', 'guidesHidden', 'sandboxLesson', 'termsShown',
 ] as const satisfies readonly (keyof Company)[];

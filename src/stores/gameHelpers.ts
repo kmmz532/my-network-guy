@@ -22,6 +22,7 @@ import type { TileSource } from '../company/tiles';
 import { furnitureOf } from '../contracts/layout';
 import { MODE_TRAITS } from '../company/company';
 import { startGuideDue } from '../sim/guide';
+import { FINAL_CONTRACT_ID } from '../sim/ending';
 import { loadSettings } from '../settings/settings';
 
 export interface PlannedNet {
@@ -268,7 +269,19 @@ export const withCapNotice = (prev: GameState, patch: Partial<GameState>): Parti
   return { ...patch, notices: pushNotice(patch.notices ?? prev.notices, 'capRaised', { cap: after }, Date.now()) };
 };
 
-export const withLevelUps = (prev: GameState, patch: Partial<GameState>): Partial<GameState> => withCapNotice(prev, withDelegatedNotice(prev, attachLevelUps(prev, patch)));
+// 納品の記録を、結果の報告から状態に足す。★3の数と最も大きな案件を数え、最後の山場（FINAL_CONTRACT_ID）を初めて納品したら、クリアの時刻を残す
+export const withDeliveryRecords = (prev: GameState, patch: Partial<GameState>): Partial<GameState> => {
+  const report = patch.lastReport;
+  if (!report?.passed || report.source === undefined) return patch;
+  const money = report.money ?? 0;
+  const biggest = prev.records.biggest === null || money > prev.records.biggest.money ? { ...report.source, money } : prev.records.biggest;
+  const records = { threeStars: prev.records.threeStars + (report.stars === 3 ? 1 : 0), biggest };
+  const cleared = prev.clearedAt === null && report.source.kind === 'fixed' && report.source.baseId === FINAL_CONTRACT_ID;
+  return { ...patch, records, ...(cleared ? { clearedAt: (patch.clock ?? prev.clock).minute } : {}) };
+};
+
+export const withLevelUps = (prev: GameState, patch: Partial<GameState>): Partial<GameState> =>
+  withCapNotice(prev, withDelegatedNotice(prev, withDeliveryRecords(prev, attachLevelUps(prev, patch))));
 
 export const attachLevelUps = (prev: GameState, patch: Partial<GameState>): Partial<GameState> => {
   const report = patch.lastReport;

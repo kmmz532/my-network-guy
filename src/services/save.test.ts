@@ -39,6 +39,9 @@ const sample: Company = {
   deliveries: 0,
   firstGoals: [],
   achievements: [],
+  clearedAt: null,
+  medals: [],
+  records: { threeStars: 0, biggest: null },
   familiarity: EMPTY_FAMILIARITY,
   offers: [],
   nextOfferMinute: 0,
@@ -710,5 +713,23 @@ describe('v51 → v52（DNS の役割をサービスの一覧へ）', () => {
       { protocol: 'dns', role: 'auth', zone: [{ type: 'A', name: 'files.corp.test', value: '10.1.0.20' }] },
     ]);
     expect(out.office.nodes[1].services).toEqual([{ protocol: 'http', port: 80 }]);
+  });
+});
+
+describe('v67 → v68', () => {
+  const { clearedAt: _clearedAt, medals: _medals, records: _records, ...v67 } = sample;
+
+  it('移行前の会社は、未クリア・勲章なし・歩みの記録は0から始まる', () => {
+    const moved = migrate(67, v67);
+    expect(moved.clearedAt).toBeNull();
+    expect(moved.medals).toEqual([]);
+    expect(moved.records).toEqual({ threeStars: 0, biggest: null });
+  });
+
+  it('クリアの記録・勲章・歩みの記録の形が不正なら拒否する', () => {
+    expect(() => migrate(68, { ...sample, clearedAt: 'x' })).toThrow();
+    expect(() => migrate(68, { ...sample, medals: [1] })).toThrow();
+    expect(() => migrate(68, { ...sample, records: { threeStars: 1 } })).toThrow();
+    expect(() => migrate(68, v67)).toThrow();
   });
 });

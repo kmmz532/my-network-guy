@@ -26,7 +26,7 @@ import printerJson from '../../resources/data/devices/printer.json';
 import furnitureDefsJson from '../../resources/data/furniture.json';
 import cablesJson from '../../resources/data/cables.json';
 
-export const SAVE_VERSION = 67;
+export const SAVE_VERSION = 68;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -76,6 +76,8 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v67 → v68: クリアの記録（clearedAt）・勲章（medals）・会社の歩みの記録（records）を足す。移行前は、未クリア・勲章なし・記録は0から始める
+  67: (data) => ({ ...(data as object), clearedAt: null, medals: [], records: { threeStars: 0, biggest: null } }),
   // v66 → v67: 帳簿に、経理の節税（taxReturn）を足す。移行前は0。サンドボックス（帳簿なし）は変えない
   66: (data) => {
     const d = data as { clock: { ledger: { month: number; totals: object }[] | null } };
@@ -693,6 +695,13 @@ const isOfficeSize = (value: unknown): boolean => {
   return typeof s === 'object' && s !== null && Number.isInteger(s.w) && Number.isInteger(s.h);
 };
 
+const isRecords = (value: unknown): boolean => {
+  const r = value as { threeStars?: unknown; biggest?: { kind?: unknown; baseId?: unknown; money?: unknown } | null } | null;
+  if (typeof r !== 'object' || r === null || !Number.isInteger(r.threeStars)) return false;
+  const b = r.biggest;
+  return b === null || (typeof b === 'object' && b !== undefined && (b.kind === 'fixed' || b.kind === 'template') && typeof b.baseId === 'string' && Number.isInteger(b.money));
+};
+
 const isSandboxLesson = (value: unknown): boolean => {
   if (value === null) return true;
   const l = value as { id?: unknown; step?: unknown; done?: unknown } | undefined;
@@ -745,6 +754,10 @@ export const isCompany = (value: unknown): value is Company => {
     v.firstGoals.every((id) => typeof id === 'string') &&
     Array.isArray(v.achievements) &&
     v.achievements.every((id) => typeof id === 'string') &&
+    (v.clearedAt === null || Number.isInteger(v.clearedAt)) &&
+    Array.isArray(v.medals) &&
+    v.medals.every((id) => typeof id === 'string') &&
+    isRecords(v.records) &&
     typeof v.familiarity === 'object' &&
     v.familiarity !== null &&
     v.completed.every((id) => typeof id === 'string') &&

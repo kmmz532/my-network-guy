@@ -11,7 +11,7 @@ import { initialClock, type ClockState } from '../sim/clock';
 import type { Offer } from '../contracts/template';
 import type { GameMap, JobId, Staff } from '../data/schema';
 import { DEFAULT_COMPANY_NAME } from '../services/migrations';
-import type { GameMode, SandboxLesson } from '../company/company';
+import type { CompanyRecords, GameMode, SandboxLesson } from '../company/company';
 
 import { type NoticeItem } from '../ui/notices';
 import { EMPTY_FAMILIARITY, type Familiarity } from '../sim/familiar';
@@ -73,6 +73,12 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   firstGoals: string[];
   // 自社の実績（セーブデータに入る）
   achievements: string[];
+  // クリアしたゲームの時刻（分）。未クリアは null（セーブデータに入る）
+  clearedAt: number | null;
+  // 挑戦の依頼を★3で納品して得た勲章（セーブデータに入る）
+  medals: string[];
+  // 会社の歩みの記録（セーブデータに入る）
+  records: CompanyRecords;
   // なじみの依頼の回数と型紙（N70）
   familiarity: Familiarity;
   // 通信で覚えた ARP の表（画面の状態。保存しない。N69）。キーは「案件の ID または office」と機器の uid
@@ -213,6 +219,9 @@ export const useGameStore = create<GameState>((set, get, api) => {
     deliveries: 0,
     firstGoals: [],
     achievements: [],
+    clearedAt: null,
+    medals: [],
+    records: { threeStars: 0, biggest: null },
     familiarity: EMPTY_FAMILIARITY,
     arpTable: {},
     offers: [],
