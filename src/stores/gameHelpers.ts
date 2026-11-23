@@ -72,6 +72,7 @@ export const salesArrivalPatch = (s: GameState, days: number): Partial<GameState
     nextOfferMinute: s.nextOfferMinute,
     offerSeq: s.offerSeq,
     newArrivals: s.newArrivals,
+    cleared: s.clearedAt !== null,
     rng: s.rng,
   };
   const env = offerEnv(s.maps);
@@ -185,6 +186,7 @@ export const offerHintOf = (s: GameState): OfferHint =>
       nextOfferMinute: s.nextOfferMinute,
       offerSeq: s.offerSeq,
       newArrivals: s.newArrivals,
+      cleared: s.clearedAt !== null,
       rng: s.rng,
     },
     offerEnv(s.maps),
@@ -204,6 +206,7 @@ export const refresh = (s: GameState): Partial<GameState> => {
       nextOfferMinute: s.nextOfferMinute,
       offerSeq: s.offerSeq,
       newArrivals: s.newArrivals,
+      cleared: s.clearedAt !== null,
       rng: s.rng,
     },
     offerEnv(s.maps),

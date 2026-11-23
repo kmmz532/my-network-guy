@@ -33,6 +33,7 @@ const shareOf = (arrivals: number): number => {
       offerSeq: 0,
       // B は規定の件数に達している（重みは元に戻る）
       newArrivals: { fresh_a: arrivals, fresh_b: 2 },
+      cleared: false,
       rng: seed,
     } as OfferState;
     const next = refreshOffers(state, env);

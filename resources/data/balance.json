@@ -358,5 +358,10 @@
     "rewardMul": 1.2,
     "perMonth": 1,
     "perMonthWithSales": 2
+  },
+  "challenge": {
+    "share": 0.2,
+    "budgetMul": 0.7,
+    "deadlineMul": 0.5
   }
 }

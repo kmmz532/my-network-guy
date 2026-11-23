@@ -172,6 +172,7 @@ export const achievementsSystem = (s: GameState, next: Patch, env: TickEnv): Pat
     nextOfferMinute: s.nextOfferMinute,
     offerSeq: s.offerSeq,
     newArrivals: s.newArrivals,
+    cleared: s.clearedAt !== null,
     rng: next.rng ?? s.rng,
   };
   const after = proposalArrivals(before, offerEnv(s.maps), settled.list, count);

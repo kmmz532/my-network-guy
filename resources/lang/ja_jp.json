@@ -1466,6 +1466,7 @@
   "ui.offer.blocked.fixed": "「{title}」を完了すると届きます",
   "ui.offer.blocked.level": "Lv {need} で届きます（今は Lv {now}）",
   "ui.offer.burst": "まとめて{count}件届きました",
+  "ui.offer.challenge": "挑戦",
   "ui.offer.crew": "担当",
   "ui.offer.crew.tip": "チェックした社員が施工を担当します。施工の速さは担当の施工力の合計に比例し、案件に向いている職種の社員は1.5倍になります。担当を減らすと施工が遅くなります。",
   "ui.offer.deadline": "施工の期日 {days}日",

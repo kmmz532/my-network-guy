@@ -3,6 +3,7 @@ import type { Contract, ContractTemplate, Goal, GameMap } from '../data/schema';
 import { randInt, rand } from '../sim/rng';
 import { spawnGroupsOf } from './spawn';
 import { budgetOf } from './budget';
+import type { ChallengeKind } from './challenge';
 import { DEFAULT_DECOR, DEFAULT_LAYOUT, layoutDesks, placeDecor, type DeskCell, type FurnitureCell } from './layout';
 
 // 依頼先の机（PC の下に敷く家具）と棚（窓口型）の家具 ID
@@ -26,6 +27,8 @@ export interface Offer {
   // 自社の実績を見た依頼主からの提案の依頼（報酬が高い。topic はその実績の論点）
   proposal?: true;
   topic?: string;
+  // 挑戦の依頼（クリアの後）。既存の型紙に足した条件の種類。受注した案件にも引き継ぐ
+  challenge?: ChallengeKind;
 }
 
 export interface InstantiateResult {

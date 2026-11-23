@@ -120,6 +120,7 @@ export const accept = (core: Core, offerId: string, slots: number, crew: string[
     kind: offer.kind,
     baseId: offer.baseId,
     params: offer.params,
+    ...(offer.challenge !== undefined ? { challenge: offer.challenge } : {}),
     contract: { ...offer.contract, reward: { ...offer.contract.reward, money: rewardWithMul(offer.contract.reward.money, core.rewardMul) } },
     nodes,
     links,

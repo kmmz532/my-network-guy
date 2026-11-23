@@ -12,6 +12,7 @@ import type { Facing } from './facing';
 import { isSubPort, isSviPort, isSwitchedRouterCategory, subParentOf, subVlanOf, SVI_PORT_BASE } from '../network/category';
 import { engineWithSite, siteFurnitureOf } from './walls';
 import type { Offer } from '../contracts/template';
+import type { ChallengeKind } from '../contracts/challenge';
 
 import { ipToInt } from '../network/engine';
 import type { IssueDetail } from '../network/engine/stages/addressing';
@@ -59,6 +60,8 @@ export interface Project {
   rework: number;
   // 社員に任せた依頼（N70）。★は2が上限、経験値は半分
   delegated?: boolean;
+  // 挑戦の依頼（クリアの後）に足された条件の種類。★3で納品すると勲章を得る
+  challenge?: ChallengeKind;
   // 型紙なしで任せた依頼の結果（受注のときに決め、施工が終わったら納品する）
   blind?: BlindPlan;
   // 施工済みの機器・配線の uid（差分だけを施工するため）

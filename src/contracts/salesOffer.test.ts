@@ -17,7 +17,7 @@ const env: OfferEnv = {
   mapOf: (id) => (id === 'office_small' ? map : undefined),
 };
 const state = (seed: number): OfferState =>
-  ({ minute: 0, companyExp: 0, completed: [], offers: [], excluded: [], nextOfferMinute: 0, offerSeq: 0, newArrivals: {}, rng: seed }) as OfferState;
+  ({ minute: 0, companyExp: 0, completed: [], offers: [], excluded: [], nextOfferMinute: 0, offerSeq: 0, newArrivals: {}, cleared: false, rng: seed }) as OfferState;
 
 describe('営業の効果', () => {
   it('追加の到着の数だけ、依頼が増える（印つき）', () => {

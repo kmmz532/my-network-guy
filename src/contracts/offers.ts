@@ -8,6 +8,7 @@ import { randInt } from '../sim/rng';
 import { levelOf } from '../sim/level';
 import type { OfferSort } from '../settings/settings';
 import { proposalTopicOf } from '../sim/achievements';
+import { challengeKindsOf, challengeOf } from './challenge';
 
 export const MAX_OFFERS = 30;
 
@@ -22,6 +23,8 @@ export interface OfferState {
   offerSeq: number;
   // 新しく解放した種類（announce）が届いた件数（解放から数える。ひな形の ID → 件数。N51b）
   newArrivals: Readonly<Record<string, number>>;
+  // クリアした会社か（届く依頼の一部が、挑戦の依頼になる）
+  cleared: boolean;
   rng: number;
 }
 
@@ -124,6 +127,17 @@ const addOffer = (state: OfferState, env: OfferEnv, rewardWeight = 0, fromSales 
     const days = randInt(rng, span.min, span.max);
     rng = days.state;
     offer = { ...offer, expiresMinute: state.minute + days.value * minutesPerDay };
+  }
+  // クリアした会社は、届く依頼のうち share の割合が、条件を1つ足した挑戦の依頼になる（提案の依頼は変えない）
+  if (state.cleared && topic === null) {
+    const roll = rand(rng);
+    rng = roll.state;
+    if (roll.value < env.balance.challenge.share) {
+      const kinds = challengeKindsOf(offer);
+      const pick = randInt(rng, 0, kinds.length - 1);
+      rng = pick.state;
+      offer = challengeOf(offer, picked.item, kinds[pick.value], env.balance);
+    }
   }
   return {
     ...state,

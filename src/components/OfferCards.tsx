@@ -203,6 +203,11 @@ function OfferCard({
             {t('ui.offer.inhouse')}
           </Badge>
         )}
+        {offer.challenge !== undefined && (
+          <Badge color="var(--fg)" fill="var(--bg-confirm)" border="var(--bg-confirm)" layout={{ marginRight: 6 }}>
+            {t('ui.offer.challenge')}
+          </Badge>
+        )}
         {offer.proposal === true && (
           <Badge color="var(--fg)" fill="var(--bg-confirm)" border="var(--bg-confirm)" layout={{ marginRight: 6 }}>
             {t('ui.offer.proposal')}

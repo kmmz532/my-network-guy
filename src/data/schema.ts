@@ -171,6 +171,8 @@ export const balanceSchema = z.object({
   freshOffer: z.object({ arrivals: int.positive(), weightFactor: int.positive() }),
   // 提案の依頼（自社の実績の論点を学ぶ依頼）。報酬の倍率と、月末に届く件数の上限（営業の社員がいないとき・いるとき）
   proposal: z.object({ rewardMul: z.number().positive(), perMonth: nonNegativeInt, perMonthWithSales: nonNegativeInt }),
+  // 挑戦の依頼（クリアの後）。届く依頼のうち share の割合を、予算が budgetMul 倍・期限が deadlineMul 倍・スイッチの台数の上限のどれかを足した変化形にする
+  challenge: z.object({ share: z.number().min(0).max(1), budgetMul: z.number().positive().max(1), deadlineMul: z.number().positive().max(1) }),
   staff: z.object({
     initialCount: int.positive(),
     // 社員の level の上限の段階（10 の倍数。昇給で1段階ずつ上がる・N101）
