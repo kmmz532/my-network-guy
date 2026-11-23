@@ -11,6 +11,10 @@ import './global.css';
 if (import.meta.env.DEV || import.meta.env.VITE_SHOOT) {
   (window as unknown as { __game: typeof useGameStore; __ui: typeof useUiStore }).__game = useGameStore;
   (window as unknown as { __game: typeof useGameStore; __ui: typeof useUiStore }).__ui = useUiStore;
+  // 撮影用: 最後の山場の想定の解答と、固定の依頼の一覧（通常のビルドには含めない）
+  void Promise.all([import('./shoot/finalCampusSolved'), import('virtual:game-data')]).then(([solution, data]) => {
+    (window as unknown as { __shoot: unknown }).__shoot = { solution, contracts: data.contracts };
+  });
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

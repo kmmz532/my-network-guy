@@ -12,9 +12,9 @@ import { isPresentOnShift, minuteInShift } from '../sim/shift';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import type { Point } from './animation';
 import { breakMoveStep, deskMove, type BreakMove } from './breakMove';
-import { bfsRoute, commuteStep, type Commute } from './commute';
+import { bfsRoute, commuteStep, walkPath, type Commute } from './commute';
 import { deskStaffPos, deskTap, wanderStaffPos, type StaffHit } from './staffHit';
-import { wanderStep, type Walker } from './wander';
+import { routeFrom, wanderStep, type Walker } from './wander';
 
 // 席になる家具（机）かどうか（社員が座る）
 export const isDesk = (id: string): boolean => isDeskFurniture(id, gameEnv);
@@ -38,6 +38,8 @@ export class OfficeStaffMotion {
   walkers: Walker[] = [];
   // 机の社員の出勤・退勤の状態（キーは社員の uid）
   private commutes = new Map<string, Commute>();
+  // エンディングで歩き手が向かっているマス（キーは歩き手の番号）
+  private gatherTargets = new Map<number, Point>();
   // 休憩の動き（キーは社員の uid。机にいる社員は desk）
   private breaks = new Map<string, BreakMove>();
 
@@ -156,6 +158,21 @@ export class OfficeStaffMotion {
       this.walkers.push({ x: start.x, y: start.y, path: [], pause: 0 });
     }
     this.walkers.length = count;
-    this.walkers = this.walkers.map((w) => wanderStep(w, dt, floor, Math.random));
+    // エンディングの間は、席のない社員も、席のある社員の次の並びのマスへ歩いて集まる
+    if (s.ending !== 'playing') {
+      this.gatherTargets.clear();
+      this.walkers = this.walkers.map((w) => wanderStep(w, dt, floor, Math.random));
+      return;
+    }
+    const spots = gatherSpotsOf(floor.filter((p) => tileKind(map, p.x, p.y) === 'floor'), new Set(s.office.furniture.map((f) => `${f.x},${f.y}`)));
+    const seated = seatedStaff(s.office, s.staff, isDesk).length;
+    this.walkers = this.walkers.map((w, k) => {
+      const spot = spots[(seated + k) % spots.length];
+      const target = this.gatherTargets.get(k);
+      const path = target?.x === spot.x && target.y === spot.y ? w.path : routeFrom({ x: Math.round(w.x), y: Math.round(w.y) }, spot);
+      this.gatherTargets.set(k, spot);
+      const walked = walkPath({ x: w.x, y: w.y }, path, Math.min(dt, COMMUTE_MAX_FRAME_MS));
+      return { x: walked.at.x, y: walked.at.y, path: walked.path, pause: 0 };
+    });
   }
 }

@@ -574,6 +574,92 @@ const scenes = {
     });
     await page.waitForTimeout(500);
   },
+  // 最後の山場 z001 の納品の直前の状態を作る。レベル98の会社が受注し、想定の解答を設計に入れ、テストに合格して、施工を終えるまで進める（結果の報告が出た状態で止まる）。社員は6人にする
+  finalready: async (page) => {
+    await scenes.career(page);
+    await page.waitForFunction(() => window.__shoot !== undefined, null, { timeout: 30000 });
+    await page.evaluate(() => {
+      const g = window.__game;
+      const { solution, contracts } = window.__shoot;
+      const contract = contracts.find((c) => c.id === 'z001_final_campus');
+      g.getState().debugAddMoney(5000000);
+      g.getState().debugSetCompanyLevel(98);
+      // 創業から2年と5か月たった時刻にする（給与は払い済みの月数にそろえる）
+      const minute = (2 * 12 + 5) * 30 * 24 * 60 + 9 * 60;
+      g.setState((st) => ({ clock: { ...st.clock, minute, paidMonths: 2 * 12 + 5 } }));
+      g.setState({ completed: contracts.filter((c) => c.id !== contract.id).map((c) => c.id) });
+      const extra = [2, 3, 4, 5].map((n) => ({ ...g.getState().staff[0], uid: `s_shoot_${n}`, name: `staff.name.${n}`, desk: null, hiredMonth: 0 }));
+      g.setState({ staff: [...g.getState().staff, ...extra] });
+      const offer = { id: contract.id, kind: 'fixed', baseId: contract.id, params: {}, contract, arrivedMinute: g.getState().clock.minute };
+      g.setState({ offers: [...g.getState().offers, offer] });
+      const s = g.getState();
+      const reason = s.accept(offer.id, s.staff.slice(0, 2).map((m) => m.uid));
+      if (reason) throw new Error(`受注できない: ${reason}`);
+      const net = solution.solvedFinalCampus();
+      g.setState((st) => ({ active: st.active.map((p) => (p.id === offer.id ? { ...p, nodes: net.nodes, links: net.links, plans: net.plans, cost: solution.cableCostOfFinalCampus(net) } : p)) }));
+    });
+    await page.evaluate(runBuild, true);
+    // 結果の画面が出るまで待つ
+    await page.waitForTimeout(2200);
+    const report = await page.evaluate(() => {
+      const r = window.__game.getState().lastReport;
+      return r === null ? null : { passed: r.passed, stars: r.stars, lateDays: r.lateDays, designIssues: r.designIssues, rework: r.rework, cost: r.cost, budget: r.budget };
+    });
+    console.log('z001 の結果: ' + JSON.stringify(report));
+    if (report === null || !report.passed) throw new Error('z001 が納品できなかった');
+  },
+  // エンディングの札（社員が部屋の中央に集まった後、会社の歩みの札が1枚ずつ出る）
+  ending: async (page) => {
+    await scenes.finalready(page);
+    await page.evaluate(() => window.__game.getState().dismissReport());
+    await page.waitForTimeout(6000 + 1000);
+  },
+  // エンディングで、社員が机から部屋の中央へ歩いて集まる途中
+  endinggather: async (page) => {
+    await scenes.finalready(page);
+    await page.evaluate(() => window.__game.getState().dismissReport());
+    await page.waitForTimeout(2500);
+  },
+  // エンディングの札（最も大きな案件）
+  endingbiggest: async (page) => {
+    await scenes.finalready(page);
+    await page.evaluate(() => window.__game.getState().dismissReport());
+    await page.waitForTimeout(6000 + 3 * 3000 + 1000);
+  },
+  // エンディングのスタッフロール
+  endingcredits: async (page) => {
+    await scenes.finalready(page);
+    await page.evaluate(() => window.__game.getState().dismissReport());
+    // 集まる 6 秒 + 札 6 枚 × 3 秒 + スタッフロール 1 つ目の途中
+    await page.waitForTimeout(6000 + 6 * 3000 + 3000 + 1000);
+  },
+  // クリアした会社に届いた、挑戦の依頼（「挑戦」の札）の一覧
+  challenge: async (page) => {
+    await scenes.career(page);
+    await page.waitForFunction(() => window.__shoot !== undefined, null, { timeout: 30000 });
+    await page.evaluate(() => {
+      const g = window.__game;
+      const { contracts } = window.__shoot;
+      g.getState().debugSetCompanyLevel(98);
+      g.setState({ completed: contracts.map((c) => c.id), clearedAt: 1000, offers: [] });
+      for (let i = 0; i < 400 && g.getState().offers.filter((o) => o.challenge !== undefined).length < 3; i++) g.getState().debugRefreshOffers();
+      if (g.getState().offers.filter((o) => o.challenge !== undefined).length === 0) throw new Error('挑戦の依頼が届かなかった');
+    });
+    await page.getByRole('button', { name: '依頼' }).first().click();
+    await page.waitForTimeout(600);
+  },
+  // 自社の情報の画面に、勲章の一覧が出た場面
+  medals: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      g.setState({ clearedAt: 1000, achievements: ['dmz'], medals: ['t_small_lan', 't_cafe', 't_two_rooms_server'] });
+      g.getState().openWindow('company', '');
+      // 勲章の欄まで見えるよう、窓を縦に広げる
+      g.setState((s) => ({ windows: s.windows.map((w) => ({ ...w, h: 640 })) }));
+    });
+    await page.waitForTimeout(500);
+  },
   // 案件を受注して設計に入った直後（案内の吹き出しが出る。スマホでの位置と、インベントリとの重なりを確かめる）
   guide: async (page) => {
     await scenes.career(page);
