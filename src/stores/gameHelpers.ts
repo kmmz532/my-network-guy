@@ -277,7 +277,7 @@ export const withDeliveryRecords = (prev: GameState, patch: Partial<GameState>):
   const biggest = prev.records.biggest === null || money > prev.records.biggest.money ? { ...report.source, money } : prev.records.biggest;
   const records = { threeStars: prev.records.threeStars + (report.stars === 3 ? 1 : 0), biggest };
   const cleared = prev.clearedAt === null && report.source.kind === 'fixed' && report.source.baseId === FINAL_CONTRACT_ID;
-  return { ...patch, records, ...(cleared ? { clearedAt: (patch.clock ?? prev.clock).minute } : {}) };
+  return { ...patch, records, ...(cleared ? { clearedAt: (patch.clock ?? prev.clock).minute, ending: 'pending' as const } : {}) };
 };
 
 export const withLevelUps = (prev: GameState, patch: Partial<GameState>): Partial<GameState> =>

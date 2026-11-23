@@ -157,6 +157,9 @@ export interface GameState extends WindowsSlice, DesignSlice, StaffSlice, Office
   closeTermNotice: () => void;
   // 納品した直後の案件（結果を閉じるまでマップに表示する）
   showcase: Project | null;
+  // エンディング（保存しない）。pending は最後の山場を納品した直後（結果を閉じたら始める）、playing は流している間。流している間は時間を止め、終わったら元の速さに戻す
+  ending: 'pending' | 'playing' | null;
+  endingSpeed: Speed;
   // 操作の種類
   tool: Tool;
   // 最後のテストまたは検収の判定（案件ごと）。設計を変えると消える（保存しない）
@@ -265,6 +268,8 @@ export const useGameStore = create<GameState>((set, get, api) => {
     introduceTerm: (id) => set((s) => (s.termsShown.includes(id) ? {} : { termsShown: [...s.termsShown, id], termNotice: id })),
     closeTermNotice: () => set((s) => (s.termNotice === null ? {} : { termNotice: null })),
     showcase: null,
+    ending: null,
+    endingSpeed: 0,
     check: null,
     helpUid: null,
     testNudge: 0,

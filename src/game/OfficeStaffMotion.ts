@@ -24,6 +24,15 @@ const COMMUTE_MAX_FRAME_MS = 100;
 // 休憩の場所にする家具（自社オフィス）
 const BREAK_FURNITURE = ['coffee', 'water', 'sofa'];
 
+// 社員が集まるマス。床のうち家具のないマスを、部屋の中央に近い順に並べる
+export const gatherSpotsOf = (floor: readonly Point[], furniture: ReadonlySet<string>): Point[] => {
+  if (floor.length === 0) throw new Error('集まる床がない');
+  const cx = (Math.min(...floor.map((p) => p.x)) + Math.max(...floor.map((p) => p.x))) / 2;
+  const cy = (Math.min(...floor.map((p) => p.y)) + Math.max(...floor.map((p) => p.y))) / 2;
+  const free = floor.filter((p) => !furniture.has(`${p.x},${p.y}`));
+  return (free.length > 0 ? free : [...floor]).sort((a, b) => Math.hypot(a.x - cx, a.y - cy) - Math.hypot(b.x - cx, b.y - cy));
+};
+
 export class OfficeStaffMotion {
   // 席のない社員（自社オフィスを歩き回る）
   walkers: Walker[] = [];
@@ -97,20 +106,24 @@ export class OfficeStaffMotion {
     const minuteOfDay = s.clock.minute % dayMinutes;
     const day = Math.floor(s.clock.minute / dayMinutes);
     const frameDt = Math.min(dt, COMMUTE_MAX_FRAME_MS);
+    // エンディングの間は、全社員が出社して、部屋の中央に集まる
+    const gathering = s.ending === 'playing';
+    const gatherSpots = gathering ? gatherSpotsOf(floor, new Set(s.office.furniture.map((f) => `${f.x},${f.y}`))) : [];
     const seen = new Set<string>();
     seated.forEach(({ member, desk: f }, k) => {
       seen.add(member.uid);
       // 出社と退社は、社員の勤務の区分（日勤・夜勤）で決まる（N48）
-      const present = isPresentOnShift(minuteOfDay, member.shift, balance);
+      const present = gathering || isPresentOnShift(minuteOfDay, member.shift, balance);
       const cur = this.commutes.get(member.uid) ?? { state: present ? 'seated' : 'away', at: { x: f.x, y: f.y }, path: [] };
       // 1フレームで進みすぎないよう、歩かせる時間を上限で抑える（フレームが飛んだときに一気に歩き終えない）
       const next = commuteStep(cur, frameDt, present, { x: f.x, y: f.y }, door, route);
       this.commutes.set(member.uid, next);
       // 休憩は、机にいる社員だけ。休憩の場所は、社員ごとに決まった場所（なければ床の決まった場所）
       const plan = breakPlanOf(member.uid, day, balance, member.shift);
-      const onBreak = next.state === 'seated' && breakAt(minuteInShift(minuteOfDay, member.shift, balance), plan) !== null;
-      const spot =
-        restSpots.length > 0
+      const onBreak = next.state === 'seated' && (gathering || breakAt(minuteInShift(minuteOfDay, member.shift, balance), plan) !== null);
+      const spot = gathering
+        ? gatherSpots[k % gatherSpots.length]
+        : restSpots.length > 0
           ? restSpots[k % restSpots.length]
           : (floor[(k * 7) % Math.max(1, floor.length)] ?? { x: f.x, y: f.y });
       const prev = this.breaks.get(member.uid) ?? deskMove({ x: f.x, y: f.y });

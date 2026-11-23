@@ -489,7 +489,9 @@ export class Scene {
     // 疎通テストの流れ（粒）は実時間で進める。時間を止めていても（設計中など）流れが動く
     this.realElapsed += ticker.deltaMS;
     // ゲームの速度（一時停止は 0）に合わせて、社員の移動・アニメーション・つぶやきの時間を進める
-    const dt = ticker.deltaMS * useGameStore.getState().speed;
+    // エンディングの間は時間を止めているが、社員が歩く動きは実時間で進める
+    const { speed, ending } = useGameStore.getState();
+    const dt = ticker.deltaMS * (ending === 'playing' ? 1 : speed);
     this.elapsed += dt;
     // 画面の大きさが変わったら、マップの位置と倍率を合わせ直す（resize の順に関係なく、描画の時点で拾う）
     this.cam.syncSize();

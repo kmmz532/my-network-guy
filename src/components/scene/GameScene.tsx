@@ -17,6 +17,7 @@ import { HiringPanel } from '../HiringPanel';
 import { Modal } from '../Modal';
 import { Heading } from '../ui/Heading';
 import { ReportModal } from '../Overlay';
+import { Ending } from '../Ending';
 import { PausedBuildPrompt } from '../PausedBuildPrompt';
 import { PortMenu } from '../PortMenu';
 import { ContextMenuLayer } from '../ContextMenuLayer';
@@ -119,6 +120,7 @@ const GameScene = () => {
       <UpdateNotice />
       {pausedPrompt && <PausedBuildPrompt />}
       <ReportModal />
+      <Ending />
       <GameOver onRetry={() => onExit('newCareer')} />
     </div>
   );

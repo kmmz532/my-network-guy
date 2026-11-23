@@ -17,6 +17,9 @@ import type { StateCreator } from 'zustand';
 
 export interface UiSlice {
   dismissReport: () => void;
+  // エンディングを始める（結果を閉じて、時間を止める）・終えて元の速さに戻る
+  startEnding: () => void;
+  finishEnding: () => void;
   // 通知を押して閉じる（開く画面があれば開く）
   openNotice: (id: number) => void;
   dismissNotice: (id: number) => void;
@@ -65,6 +68,8 @@ export interface UiSlice {
 export const createUiSlice: StateCreator<GameState, [], [], UiSlice> = (set, get) => {
   return {
     dismissReport: () => set({ lastReport: null, showcase: null, traces: [] }),
+    startEnding: () => set((s) => (s.ending === 'pending' ? { ending: 'playing', endingSpeed: s.speed, speed: 0 } : {})),
+    finishEnding: () => set((s) => (s.ending === 'playing' ? { ending: null, speed: s.endingSpeed } : {})),
     dismissNotice: (id) => set((s) => ({ notices: dismissNotice(s.notices, id) })),
     tickNotices: () => set((s) => ({ notices: promoteNotices(s.notices, Date.now()) })),
     openNotice: (id) => {

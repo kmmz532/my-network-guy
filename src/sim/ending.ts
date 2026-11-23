@@ -34,3 +34,29 @@ export const endingFactsOf = (
     longest: longest === null ? null : { name: longest.name, months: monthNow - longest.hiredMonth },
   };
 };
+
+// エンディングの流れ。社員が集まる → 会社の歩みの札を1枚ずつ → スタッフロール → 最後の言葉
+export type EndingPhase = { kind: 'gather' } | { kind: 'card'; index: number } | { kind: 'credits'; index: number } | { kind: 'last' };
+
+// スタッフロールの見出し（言語ファイルの ui.ending.credit.<見出し>）
+export const CREDIT_HEADINGS = ['plan', 'build', 'art'] as const;
+
+// 次の段階。札は factCount 枚、スタッフロールは見出しの数だけ出す。最後の言葉の次はない（null）
+export const nextEndingPhase = (phase: EndingPhase, factCount: number): EndingPhase | null => {
+  switch (phase.kind) {
+    case 'gather':
+      return { kind: 'card', index: 0 };
+    case 'card':
+      return phase.index + 1 < factCount ? { kind: 'card', index: phase.index + 1 } : { kind: 'credits', index: 0 };
+    case 'credits':
+      return phase.index + 1 < CREDIT_HEADINGS.length ? { kind: 'credits', index: phase.index + 1 } : { kind: 'last' };
+    case 'last':
+      return null;
+  }
+};
+
+// スタッフロールを押して飛ばす。最後の言葉へ進む
+export const skipCredits = (): EndingPhase => ({ kind: 'last' });
+
+// 段階ごとに自動で進むまでの時間（ms）。最後の言葉は押すまで残す
+export const ENDING_MS = { gather: 6000, card: 3000, credits: 2400 } as const;
