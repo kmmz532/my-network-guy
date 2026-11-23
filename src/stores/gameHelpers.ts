@@ -11,6 +11,7 @@ import type { NetLink, NetNode } from '../network/types';
 import { gameEnv } from '../sim/env';
 import { applyMoney } from '../sim/ledger';
 import { pushNotice } from '../ui/notices';
+import { medalNameOf } from '../contracts/medal';
 import { accountingRate, backOfficeP, printerArrivalBonusOf, salesArrivalChance, salesRewardMul } from '../sim/backOffice';
 import { assignDesks, initialOffice, bonusEnvOf } from '../sim/furniture';
 import { type NetTarget, type Core, type Project, type Office, type Report } from '../sim/project';
@@ -279,8 +280,11 @@ export const withDeliveryRecords = (prev: GameState, patch: Partial<GameState>):
   const money = report.money ?? 0;
   const biggest = prev.records.biggest === null || money > prev.records.biggest.money ? { ...report.source, money } : prev.records.biggest;
   const records = { threeStars: prev.records.threeStars + (report.stars === 3 ? 1 : 0), biggest };
+  // 挑戦の依頼を★3で納品すると、型紙ごとに勲章を1つ得る（得た勲章は重ねない）
+  const medal = report.challenge !== undefined && report.stars === 3 && report.source.kind === 'template' && !prev.medals.includes(report.source.baseId) ? report.source.baseId : null;
   const cleared = prev.clearedAt === null && report.source.kind === 'fixed' && report.source.baseId === FINAL_CONTRACT_ID;
-  return { ...patch, records, ...(cleared ? { clearedAt: (patch.clock ?? prev.clock).minute, ending: 'pending' as const } : {}) };
+  const notices = medal === null ? {} : { notices: pushNotice(patch.notices ?? prev.notices, 'medalGained', { name: medalNameOf(medal) }, Date.now()) };
+  return { ...patch, records, ...(medal === null ? {} : { medals: [...prev.medals, medal] }), ...notices, ...(cleared ? { clearedAt: (patch.clock ?? prev.clock).minute, ending: 'pending' as const } : {}) };
 };
 
 export const withLevelUps = (prev: GameState, patch: Partial<GameState>): Partial<GameState> =>

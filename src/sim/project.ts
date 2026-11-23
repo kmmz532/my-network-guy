@@ -151,7 +151,9 @@ export interface Report {
   // 納品した案件（納品後の表示に使う）
   delivered?: Project;
   // 納品した依頼の出どころ（固定か定型か・文言の元の ID）。会社の歩みの記録とクリアの判定に使う
-  source?: { kind: 'fixed' | 'template'; baseId: string };
+  source?: { kind: 'fixed' | 'template'; baseId: string; params: Record<string, number> };
+  // 挑戦の依頼を納品したとき、足されていた条件の種類（★3なら勲章を得る）
+  challenge?: ChallengeKind;
   // 次の依頼を届ける時刻（序盤の納品で早める。納品のときだけ設定する）
   offerAt?: number;
   // 任せた依頼の納品。レベルアップがなければ、結果画面は出さずに通知で伝える（ストアで判断する）

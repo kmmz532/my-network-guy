@@ -8,7 +8,7 @@ import type { Report } from '../sim/project';
 import { withDeliveryRecords } from './gameHelpers';
 import { useGameStore } from './useGameStore';
 
-const finalReport: Report = { passed: true, traces: [], failures: [], stars: 3, money: 2550000, source: { kind: 'fixed', baseId: FINAL_CONTRACT_ID } };
+const finalReport: Report = { passed: true, traces: [], failures: [], stars: 3, money: 2550000, source: { kind: 'fixed', baseId: FINAL_CONTRACT_ID, params: {} } };
 const deliver = (r: Report) => useGameStore.setState(withDeliveryRecords(useGameStore.getState(), { lastReport: r }));
 
 beforeEach(() => {
@@ -34,7 +34,7 @@ describe('エンディングが出る回数', () => {
   });
 
   it('ほかの依頼の納品では始まらない', () => {
-    deliver({ ...finalReport, source: { kind: 'fixed', baseId: 'b004_ibgp_two_routers' } });
+    deliver({ ...finalReport, source: { kind: 'fixed', baseId: 'b004_ibgp_two_routers', params: {} } });
     expect(useGameStore.getState().ending).toBeNull();
   });
 
@@ -48,7 +48,7 @@ describe('会社の歩み', () => {
   const member = (uid: string, hiredMonth: number): Staff => ({ uid, name: `staff.name.${uid}`, hiredMonth }) as unknown as Staff;
   it('創業からの年とか月、最も長く勤めた社員の勤続の月数を求める', () => {
     const facts = endingFactsOf(
-      { clearedAt: (14 * minutesPerMonth(balance)) + 100, deliveries: 80, records: { threeStars: 30, biggest: { kind: 'fixed', baseId: FINAL_CONTRACT_ID, money: 1 } }, staff: [member('a', 6), member('b', 2), member('c', 10)] },
+      { clearedAt: (14 * minutesPerMonth(balance)) + 100, deliveries: 80, records: { threeStars: 30, biggest: { kind: 'fixed', baseId: FINAL_CONTRACT_ID, params: {}, money: 1 } }, staff: [member('a', 6), member('b', 2), member('c', 10)] },
       balance,
     );
     expect(facts).toMatchObject({ years: 1, months: 2, deliveries: 80, threeStars: 30, staffCount: 3, longest: { name: 'staff.name.b', months: 12 } });

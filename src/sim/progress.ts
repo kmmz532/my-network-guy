@@ -308,7 +308,7 @@ const settleBlind = (core: Core, p: Project, plan: BlindPlan, env: Env): Outcome
     },
     report: {
       passed: true,
-      source: { kind: p.kind, baseId: p.baseId },
+      source: { kind: p.kind, baseId: p.baseId, params: p.params },...(p.challenge !== undefined ? { challenge: p.challenge } : {}),
       offerAt: earlyOfferDue(core.deliveries + 1, core.offers.length, env.balance) ? core.clock.minute : undefined,
       traces: [],
       failures: [],
@@ -384,7 +384,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
       report: {
         passed: true,
         delivered: p,
-        source: { kind: p.kind, baseId: p.baseId },
+        source: { kind: p.kind, baseId: p.baseId, params: p.params },...(p.challenge !== undefined ? { challenge: p.challenge } : {}),
         offerAt: earlyOfferDue(core.deliveries + 1, core.offers.length, env.balance) ? core.clock.minute : undefined,
         traces,
         stars,

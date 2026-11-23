@@ -696,10 +696,10 @@ const isOfficeSize = (value: unknown): boolean => {
 };
 
 const isRecords = (value: unknown): boolean => {
-  const r = value as { threeStars?: unknown; biggest?: { kind?: unknown; baseId?: unknown; money?: unknown } | null } | null;
+  const r = value as { threeStars?: unknown; biggest?: { kind?: unknown; baseId?: unknown; params?: unknown; money?: unknown } | null } | null;
   if (typeof r !== 'object' || r === null || !Number.isInteger(r.threeStars)) return false;
   const b = r.biggest;
-  return b === null || (typeof b === 'object' && b !== undefined && (b.kind === 'fixed' || b.kind === 'template') && typeof b.baseId === 'string' && Number.isInteger(b.money));
+  return b === null || (typeof b === 'object' && b !== undefined && (b.kind === 'fixed' || b.kind === 'template') && typeof b.baseId === 'string' && typeof b.params === 'object' && b.params !== null && Number.isInteger(b.money));
 };
 
 const isSandboxLesson = (value: unknown): boolean => {

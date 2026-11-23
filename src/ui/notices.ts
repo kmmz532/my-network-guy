@@ -27,6 +27,8 @@ export const NOTICE_KINDS = {
   retired: { key: 'ui.notice.retired', open: 'staffList', sticky: false },
   // 自社の実績の登録・取り消し（月末）と、実績を見た依頼主からの提案の依頼
   achievementGained: { key: 'ui.notice.achievementGained', open: null, sticky: false },
+  // 挑戦の依頼を★3で納品して、勲章を得た
+  medalGained: { key: 'ui.notice.medalGained', open: null, sticky: false },
   achievementLost: { key: 'ui.notice.achievementLost', open: null, sticky: false },
   proposalArrival: { key: 'ui.notice.proposalArrival', open: 'offers', sticky: false },
   // 上限に達して、昇給を待っている社員（N101）

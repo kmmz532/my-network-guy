@@ -78,7 +78,7 @@ export interface Company {
 // 会社の歩みの記録。★3の納品の数と、報酬が最も大きかった納品（型紙の ID は kind が template のとき）
 export interface CompanyRecords {
   threeStars: number;
-  biggest: { kind: 'fixed' | 'template'; baseId: string; money: number } | null;
+  biggest: { kind: 'fixed' | 'template'; baseId: string; params: Record<string, number>; money: number } | null;
 }
 
 export interface SandboxLesson {

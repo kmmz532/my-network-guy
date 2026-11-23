@@ -11,6 +11,7 @@ import { Text } from './ui/Text';
 import { Link } from './ui/Link';
 import { ProgressBar } from './ui/ProgressBar';
 import { UnlockCards, unlockNameOf } from './UnlockList';
+import { medalNameOf } from '../contracts/medal';
 import { Tooltip } from './Tooltip';
 import { tipText } from '../input/keymap';
 import { outsideCheck } from '../network/external';
@@ -67,6 +68,8 @@ export function CompanyBody() {
   const office = useGameStore((s) => s.office);
   const money = useGameStore((s) => s.clock.money);
   const achievements = useGameStore((s) => s.achievements);
+  const medals = useGameStore((s) => s.medals);
+  const cleared = useGameStore((s) => s.clearedAt !== null);
   // 机に PC がなく働けない社内の職種の人数（N102）
   const noPcCount = useGameStore((s) => {
     const pcDesks = pcDesksOf(s.office, isPcDevice);
@@ -170,6 +173,18 @@ export function CompanyBody() {
             <div key={id} style={{ marginTop: 2 }}>・{tDyn(`achievement.${id}`)}</div>
           ))}
         </Section>
+        {/* 勲章は、クリアの後の挑戦の依頼を★3で納品して得る。実績と同じ形で並べる */}
+        {cleared && (
+          <Section>
+            <div style={row}>
+              <span>{t('ui.company.medals')}</span>
+              {medals.length === 0 && <span>{t('ui.company.medals.none')}</span>}
+            </div>
+            {medals.map((id) => (
+              <div key={id} style={{ marginTop: 2 }}>・{medalNameOf(id)}</div>
+            ))}
+          </Section>
+        )}
         <div style={{ paddingTop: 8 }}>
           <Text tone="warn">{next ? t('ui.company.next', { level: next.level }) : t('ui.company.max')}</Text>
           {next && unlocks.length === 0 && <Text tone="soft">{t('ui.company.nothing')}</Text>}

@@ -22,7 +22,7 @@ const factCardsOf = (f: EndingFacts): { key: string; label: string; value: strin
     { key: 'years', label: t('ui.ending.label.years'), value: t('ui.ending.value.years', { years: f.years, months: f.months }) },
     { key: 'deliveries', label: t('ui.ending.label.deliveries'), value: t('ui.ending.value.count', { count: f.deliveries }) },
     { key: 'threeStars', label: t('ui.ending.label.threeStars'), value: t('ui.ending.value.count', { count: f.threeStars }) },
-    { key: 'biggest', label: t('ui.ending.label.biggest'), value: t('ui.ending.value.biggest', { title: tDyn(`contract.${f.biggest.baseId}.title`), money: yen(f.biggest.money) }) },
+    { key: 'biggest', label: t('ui.ending.label.biggest'), value: t('ui.ending.value.biggest', { title: tDyn(`contract.${f.biggest.baseId}.title`, f.biggest.params), money: yen(f.biggest.money) }) },
     { key: 'staff', label: t('ui.ending.label.staff'), value: t('ui.ending.value.people', { count: f.staffCount }) },
     { key: 'longest', label: t('ui.ending.label.longest'), value: t('ui.ending.value.longest', { name: tDyn(f.longest.name), ...tenure }) },
   ];
