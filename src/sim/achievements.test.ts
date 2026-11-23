@@ -65,6 +65,30 @@ describe('実績の判定', () => {
     expect(achievedOf(ringOffice(false), gameEnv)).not.toContain('redundancy');
   });
 
+  it('redundancy: 輪のないスイッチ2台（1本でつながり、それぞれに PC）は付かない', () => {
+    const two = officeOf(
+      [n('sw_a', 'l2_switch_8p', [], 0), n('sw_b', 'l2_switch_8p', [], 1), pc('pc_a', '192.168.1.11', 2), pc('pc_b', '192.168.1.12', 3)],
+      [l('1', 'pc_a', 0, 'sw_a', 0), l('2', 'pc_b', 0, 'sw_b', 0), l('3', 'sw_a', 1, 'sw_b', 1)],
+    );
+    expect(achievedOf(two, gameEnv)).not.toContain('redundancy');
+  });
+
+  it('redundancy: 輪がなく、PC のつながらない行き止まりのスイッチがあっても付かない', () => {
+    const spur = officeOf(
+      [n('sw_a', 'l2_switch_8p', [], 0), n('sw_b', 'l2_switch_8p', [], 1), pc('pc_a', '192.168.1.11', 2), pc('pc_b', '192.168.1.12', 3)],
+      [l('1', 'pc_a', 0, 'sw_a', 0), l('2', 'pc_b', 0, 'sw_a', 1), l('3', 'sw_a', 2, 'sw_b', 0)],
+    );
+    expect(achievedOf(spur, gameEnv)).not.toContain('redundancy');
+  });
+
+  it('redundancy: 輪があっても、輪の外の1本が切れると届かなくなる構成は付かない', () => {
+    const ringWithSpur = officeOf(
+      [...ringOffice(true).nodes, n('sw_c', 'l2_switch_8p', [], 5), pc('pc_c', '192.168.1.13', 6)],
+      [...ringOffice(true).links, l('6', 'core', 2, 'sw_c', 0), l('7', 'pc_c', 0, 'sw_c', 1)],
+    );
+    expect(achievedOf(ringWithSpur, gameEnv)).not.toContain('redundancy');
+  });
+
   it('機器のない自社オフィスは、実績がない', () => {
     expect(achievedOf(officeOf([], []), gameEnv)).toEqual([]);
   });

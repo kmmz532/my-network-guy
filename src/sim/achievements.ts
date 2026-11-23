@@ -3,6 +3,7 @@
 import type { Goal } from '../data/schema';
 import { analyze } from '../network/engine/analyze';
 import type { NetworkState } from '../network/engine/state';
+import type { NetLink } from '../network/types';
 import { evaluateGoal } from '../network/goals';
 import { isPcCategory } from '../data/categories';
 import { deviceCategory } from '../registry/query';
@@ -52,7 +53,7 @@ const vlanIsolationHolds = (state: NetworkState): boolean => {
   return true;
 };
 
-// 機器どうし（PC・サーバー以外）の配線のどれか1組を外しても、PC・サーバーの間が届く
+// 機器どうし（PC・サーバー以外）の配線のどれか1組を外しても、PC・サーバーの間が届き、かつその組のどれか1組は輪の一部である
 const redundancyHolds = (state: NetworkState): boolean => {
   const isEnd = (uid: string): boolean => {
     const n = state.net.nodes.find((x) => x.uid === uid);
@@ -65,7 +66,25 @@ const redundancyHolds = (state: NetworkState): boolean => {
     if (isEnd(l.a.node) || isEnd(l.b.node)) continue;
     if (!links.some(([a, b]) => (a === l.a.node && b === l.b.node) || (a === l.b.node && b === l.a.node))) links.push([l.a.node, l.b.node]);
   }
-  return links.length > 0 && passes({ type: 'survive_link_failure', links }, state);
+  // 組 [a, b] の配線を外したあと、a から b へ届くか。途中は機器どうしの配線だけを通り、PC・サーバーは通さない
+  const reachesWithout = ([a, b]: [string, string]): boolean => {
+    const removed = (l: NetLink) => (l.a.node === a && l.b.node === b) || (l.a.node === b && l.b.node === a);
+    const seen = new Set([a]);
+    const stack = [a];
+    while (stack.length > 0) {
+      const u = stack.pop()!;
+      if (u === b) return true;
+      for (const l of state.net.links) {
+        if (removed(l)) continue;
+        const v = l.a.node === u ? l.b.node : l.b.node === u ? l.a.node : null;
+        if (v === null || seen.has(v) || (v !== b && isEnd(v))) continue;
+        seen.add(v);
+        stack.push(v);
+      }
+    }
+    return false;
+  };
+  return links.length > 0 && passes({ type: 'survive_link_failure', links }, state) && links.some((pair) => reachesWithout(pair));
 };
 
 const HOLDS: Record<AchievementId, (state: NetworkState) => boolean> = {
