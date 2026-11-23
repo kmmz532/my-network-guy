@@ -36,6 +36,42 @@ const base = (): Partial<GameState> => ({
   achievements: [],
 });
 
+// 公開の Web（dmz）: 回線の機器→ルーター（静的 NAT で外のポート80をサーバーへ）→ スイッチ2台。PC は別のスイッチで、ケーブルが切れると PC とサーバーが分かれる
+const fn = (port: number, ip: string, nat?: 'inside' | 'outside'): Iface => ({ id: `g0/${port}`, kind: 'port', port, ip, prefix: 24, ...(nat ? { nat } : {}) });
+const publicWebOffice = (): Partial<GameState> => ({
+  office: {
+    ...emptyOffice({ w: 10, h: 8 }),
+    nodes: [
+      n('uplink', 'uplink', [], 0),
+      n('r', 'router_basic', [fn(0, '198.51.100.2', 'outside'), fn(1, '192.168.1.1', 'inside')], 1, {
+        routes: [{ dest: '0.0.0.0', prefix: 0, nextHop: '198.51.100.1' }],
+        components: { nat: { napt: true, statics: [{ port: 80, insideIp: '192.168.1.80', insidePort: 80 }] } },
+      }),
+      n('sw1', 'l2_switch_8p', [], 2),
+      n('sw2', 'l2_switch_8p', [], 3),
+      n('pc', 'pc_basic', [f(0, '192.168.1.11')], 4, { gateway: '192.168.1.1' }),
+      n('srv', 'server_basic', [f(0, '192.168.1.80')], 5, { gateway: '192.168.1.1', services: [{ protocol: 'http', port: 80 }] }),
+    ],
+    links: [l('1', 'uplink', 0, 'r', 0), l('2', 'r', 1, 'sw2', 0), l('3', 'sw1', 0, 'sw2', 1), l('4', 'pc', 0, 'sw1', 1), l('5', 'srv', 0, 'sw2', 2)],
+  },
+});
+
+// 冗長な社内LAN（redundancy）: 3台のスイッチを輪につなぎ、PC とサーバーをつなぐ
+const ringOffice = (): Partial<GameState> => ({
+  office: {
+    ...emptyOffice({ w: 10, h: 8 }),
+    nodes: [
+      n('core', 'l2_switch_8p', [], 0),
+      n('sw_a', 'l2_switch_8p', [], 1),
+      n('sw_b', 'l2_switch_8p', [], 2),
+      n('pc_a', 'pc_basic', [f(0, '192.168.1.11')], 3),
+      n('pc_b', 'pc_basic', [f(0, '192.168.1.12')], 4),
+      n('srv', 'server_basic', [f(0, '192.168.1.50')], 5),
+    ],
+    links: [l('1', 'core', 0, 'sw_a', 1), l('2', 'core', 1, 'sw_b', 1), l('3', 'sw_a', 0, 'sw_b', 0), l('4', 'pc_a', 0, 'sw_a', 2), l('5', 'pc_b', 0, 'sw_b', 2), l('6', 'srv', 0, 'core', 2)],
+  },
+});
+
 beforeEach(() => {
   useGameStore.setState(base());
 });
@@ -61,6 +97,20 @@ describe('提案の依頼の届く数', () => {
     expect(offer.topic).toBe('vlan_isolation');
     const pcs = offer.contract.placed.length;
     expect(offer.contract.reward.money).toBe(Math.round((template.reward.base + template.reward.perPc * pcs) * balance.proposal.rewardMul));
+  });
+
+  it('公開のサーバーを静的 NAT で外へ出した会社（dmz）には、t_public_web の提案が届く', () => {
+    useGameStore.setState({ staff: [], ...publicWebOffice() });
+    const [offer] = proposalsAfter({});
+    expect(offer.baseId).toBe('t_public_web');
+    expect(offer.topic).toBe('dmz');
+  });
+
+  it('つながりに止まる配線がある（ケーブルが1本切れると届かない）会社（redundancy）には、t_redundant_core の提案が届く', () => {
+    useGameStore.setState({ staff: [], ...ringOffice() });
+    const [offer] = proposalsAfter({});
+    expect(offer.baseId).toBe('t_redundant_core');
+    expect(offer.topic).toBe('redundancy');
   });
 
   it('実績がなければ、提案の依頼は届かない', () => {

@@ -723,6 +723,9 @@ export const templateSchema = z
       .optional(),
     // 置く範囲（複数）。複数の部屋に PC を分けて置くときに使う（N51a）
     spawnGroups: z.array(spawnGroupSchema).min(1).optional(),
+    // 固定の機器（回線の機器・公開のサーバー・中心のスイッチなど）と、最初から引かれている配線。案件に、PC と並べて置く（予算には含めない）
+    placed: z.array(contractPlacedSchema).optional(),
+    links: z.array(wireSchema).optional(),
     budget: templateBudgetSchema,
     reward: z.object({
       base: nonNegativeInt,

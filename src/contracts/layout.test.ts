@@ -81,7 +81,8 @@ describe('ひな形の配置（instantiateTemplate）', () => {
         expect(offer.params.pcCount).toBeLessThanOrEqual(max);
         const furniture = furnitureOf(map.furniture, contract.furniture);
         const cells = new Set(furniture.map((f) => key(f.x, f.y)));
-        for (const p of contract.placed) {
+        // 固定の機器（回線・サーバー・スイッチ）は机の上に置かない。机に敷かれるのは PC だけ
+        for (const p of contract.placed.filter((x) => x.device === 'pc_basic')) {
           expect(cells.has(key(p.x, p.y))).toBe(true);
           expect(range.some((g) => p.x >= g.x && p.x < g.x + g.width && p.y >= g.y && p.y < g.y + g.height)).toBe(true);
         }

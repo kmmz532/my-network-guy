@@ -13,6 +13,8 @@ import factoryMap from '../../resources/data/maps/factory.json';
 import twoSitesMap from '../../resources/data/maps/office_two_sites.json';
 import schoolLabMap from '../../resources/data/maps/school_lab.json';
 import hotelFloorMap from '../../resources/data/maps/hotel_floor.json';
+import officeSmallMap from '../../resources/data/maps/office_small.json';
+import officeTwoRoomsMap from '../../resources/data/maps/office_two_rooms.json';
 import type { Balance, ContractTemplate, Furniture, GameMap } from '../data/schema';
 import type { Offer } from '../contracts/template';
 import { cheapestSwitchId } from '../contracts/budget';
@@ -25,7 +27,7 @@ import { initialStaff } from './staff';
 import { connect, focusedOf, type Core, type Env, type Report } from './project';
 import { accept, advanceBuild, requestBuild, testDesign } from './progress';
 import { placeDevice } from './placement';
-import { addRoute, setFirewallRules, setInterface } from './netEdit';
+import { addRoute, setFirewallRules, setInterface, setNat } from './netEdit';
 import { deviceDef } from '../registry/query';
 import { buyDevice } from './shop';
 
@@ -437,6 +439,79 @@ describe('t_factory: 事務所と作業場の間にファイアウォールを�
     });
     it(`${id} 種 ${seed}: スイッチをつなぐだけでは、作業場から事務所の PC に届いてしまい不合格`, () => {
       expect(passes(solve(offerOf(id, map, seed), false))).toBe(false);
+    });
+  }
+});
+
+// 公開の Web: 社内のスイッチに PC とサーバーをつなぎ、ルーターで回線と社内をつなぐ。回線側に回線のアドレス、社内側に 192.168.1.1 を入れ、静的 NAT で外のポート80をサーバーへ向け、NAPT で社内から外へ出す
+describe('t_public_web: 静的 NAT で、外から公開のサーバーへ HTTP が届く', () => {
+  const map = officeTwoRoomsMap as unknown as GameMap;
+  const solve = (offer: Offer, withRouter: boolean): Core => {
+    let core = take(startCore(offer), offer.id);
+    const pcs = offer.contract.placed.filter((p) => p.device === 'pc_basic');
+    const server = offer.contract.placed.find((p) => p.ref === 'web')!;
+    const uplink = offer.contract.placed.find((p) => p.device === 'uplink')!;
+    const attached = [...pcs, server];
+    const hub = reachCenterOf(attached, map, offer.contract.furniture);
+    const sw = place(core, switchFor(pcs.length + 2), hub.x, hub.y, map);
+    core = sw.core;
+    for (const p of attached) core = wire(core, p.ref, sw.uid);
+    if (!withRouter) return core;
+    const mid = starHubOf([uplink, { x: hub.x, y: hub.y }], map, undefined, offer.contract.furniture);
+    const router = place(core, ROUTER, mid.x, mid.y, map);
+    core = router.core;
+    core = wire(core, uplink.ref, router.uid, UTP, { b: 0 });
+    core = wire(core, router.uid, sw.uid, UTP, { a: 1 });
+    core = addr(core, router.uid, '198.51.100.2', 0);
+    core = addr(core, router.uid, '192.168.1.1', 1);
+    core = ok(addRoute(core, router.uid, { dest: '0.0.0.0', prefix: 0, nextHop: '198.51.100.1' })).core;
+    const ifaceOf = (port: number): string => focusedOf(core)!.nodes.find((n) => n.uid === router.uid)!.interfaces.find((i) => i.port === port)!.id;
+    core = ok(setNat(core, router.uid, { op: 'iface', id: ifaceOf(0), nat: 'outside' })).core;
+    core = ok(setNat(core, router.uid, { op: 'iface', id: ifaceOf(1), nat: 'inside' })).core;
+    core = ok(setNat(core, router.uid, { op: 'napt', on: true })).core;
+    return ok(setNat(core, router.uid, { op: 'static', port: 80, insideIp: '192.168.1.80', insidePort: 80 })).core;
+  };
+  for (const seed of SEEDS) {
+    it(`種 ${seed}: ルーターの静的 NAT で公開のサーバーへ届き、社内の PC は外へ出られると合格し、★3 になる`, () => {
+      const report = finish(solve(offerOf('t_public_web', map, seed), true));
+      expect(report.passed).toBe(true);
+      expect(report.stars).toBe(3);
+    });
+    it(`種 ${seed}: スイッチだけでつなぐと、外から届かず不合格`, () => {
+      expect(passes(solve(offerOf('t_public_web', map, seed), false))).toBe(false);
+    });
+  }
+});
+
+// 止まらない社内ネットワーク: 固定の3台のスイッチが輪になっている。PC は近いスイッチへつなぎ、中心のスイッチの優先度を下げてルートにすると、どのケーブルが切れても届く
+describe('t_redundant_core: 3台のスイッチを輪につなぐと、ケーブルが1本切れても届く', () => {
+  const map = officeSmallMap as unknown as GameMap;
+  // 固定の3台のスイッチを、すべての組で配線して輪にする（ring）。PC は一番近いスイッチへつなぐ。輪にしなければ、1本切れると届かない
+  const solve = (offer: Offer, ring: boolean): Core => {
+    let core = take(startCore(offer), offer.id);
+    if (ring) for (const [a, b] of [['core', 'sw_a'], ['core', 'sw_b'], ['sw_a', 'sw_b']]) core = wire(core, a, b);
+    else core = wire(core, 'core', 'sw_a');
+    const sw = ['sw_a', 'sw_b', 'core'];
+    for (const p of offer.contract.placed.filter((x) => x.device === 'pc_basic')) {
+      const near = sw.reduce((best, s) => {
+        const at = offer.contract.placed.find((x) => x.ref === s)!;
+        const d = Math.abs(p.x - at.x) + Math.abs(p.y - at.y);
+        return d < best.d ? { s, d } : best;
+      }, { s: sw[0], d: Infinity }).s;
+      core = wire(core, p.ref, near);
+    }
+    const server = place(core, 'server_basic', 3, 5, map);
+    core = wire(server.core, server.uid, 'sw_a');
+    return addr(core, server.uid, '192.168.1.50');
+  };
+  for (const seed of SEEDS) {
+    it(`種 ${seed}: 輪にすると合格し、★3 になる`, () => {
+      const report = finish(solve(offerOf('t_redundant_core', map, seed), true));
+      expect(report.passed).toBe(true);
+      expect(report.stars).toBe(3);
+    });
+    it(`種 ${seed}: 輪にせず1本のつなぎでは、ケーブルが切れると届かず不合格`, () => {
+      expect(passes(solve(offerOf('t_redundant_core', map, seed), false))).toBe(false);
     });
   }
 });

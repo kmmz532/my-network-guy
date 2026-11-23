@@ -1,0 +1,92 @@
+{
+  "id": "t_redundant_core",
+  "stage": 1,
+  "unlockLevel": 72,
+  "requires": [
+    "st001_switch_ring"
+  ],
+  "jobs": [
+    "network"
+  ],
+  "weight": 12,
+  "map": "office_small",
+  "spawnGroups": [
+    {
+      "x": 1,
+      "y": 1,
+      "width": 12,
+      "height": 4,
+      "min": 3,
+      "max": 5,
+      "subnet": 1
+    }
+  ],
+  "placed": [
+    {
+      "ref": "sw_a",
+      "device": "l2_switch_8p",
+      "x": 3,
+      "y": 6,
+      "locked": true,
+      "name": "1階のスイッチ"
+    },
+    {
+      "ref": "sw_b",
+      "device": "l2_switch_8p",
+      "x": 9,
+      "y": 6,
+      "locked": true,
+      "name": "2階のスイッチ"
+    },
+    {
+      "ref": "core",
+      "device": "l2_switch_8p",
+      "x": 6,
+      "y": 7,
+      "locked": true,
+      "name": "中心のスイッチ"
+    }
+  ],
+  "deadlineDays": 12,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "auto": true,
+    "margin": 1.25
+  },
+  "reward": {
+    "base": 288000,
+    "perPc": 36000
+  },
+  "goals": [
+    {
+      "type": "ping_all",
+      "nodes": "$all_pcs"
+    },
+    {
+      "type": "survive_link_failure",
+      "links": [
+        [
+          "core",
+          "sw_a"
+        ],
+        [
+          "core",
+          "sw_b"
+        ],
+        [
+          "sw_a",
+          "sw_b"
+        ]
+      ]
+    },
+    {
+      "type": "count",
+      "category": "server",
+      "min": 1
+    }
+  ],
+  "announce": true
+}

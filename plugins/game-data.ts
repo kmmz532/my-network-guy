@@ -510,12 +510,18 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
     }
     ensure(mapsById.has(template.map) || template.map === OFFICE_MAP_ID, `${owner}: 未定義のマップ ${template.map}`);
     for (const d of template.decor ?? []) ensure(furnitureIds.has(d), `${owner}: decor の家具 ${d} が未定義`);
-    // テンプレートの機器は実行時に生成されるため、goals の参照は $role:<役割> だけを書ける。役割は spawnGroups の role にあること
+    // テンプレートの PC は実行時に生成されるため、goals の参照は $role:<役割> か、固定の機器（placed）の ref だけを書ける。役割は spawnGroups の role にあること
     const roles = new Set((template.spawnGroups ?? []).flatMap((g) => (g.role === undefined ? [] : [g.role])));
+    const fixedRefs = new Set((template.placed ?? []).map((p) => p.ref));
     for (const goal of template.goals) {
       for (const ref of goalRefs(goal)) {
-        ensure(ref.startsWith('$role:') && roles.has(ref.slice('$role:'.length)), `${owner}: goals の参照 ${ref} が spawnGroups の役割にない`);
+        const ok = ref.startsWith('$role:') ? roles.has(ref.slice('$role:'.length)) : fixedRefs.has(ref);
+        ensure(ok, `${owner}: goals の参照 ${ref} が spawnGroups の役割にも placed にもない`);
       }
+    }
+    if (template.placed !== undefined) checkPlacement(owner, template.placed, mapsById.get(template.map));
+    for (const w of template.links ?? []) {
+      ensure(fixedRefs.has(w.a.ref) && fixedRefs.has(w.b.ref), `${owner}: links の配線の端 ${w.a.ref}・${w.b.ref} が placed にない`);
     }
   }
 

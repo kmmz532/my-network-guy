@@ -63,7 +63,8 @@ const layoutTemplate = (template: ContractTemplate, map: GameMap, rngState: numb
   const groups = spawnGroupsOf(template);
   const kinds = template.layout ?? DEFAULT_LAYOUT;
   // 歩けない床（地図の家具・机・棚）。後の机と飾りは、これを避けて置く
-  const taken = new Set<string>((map.furniture ?? []).map((f) => `${f.x},${f.y}`));
+  // 固定の機器の置き場所も、PC の机には使わない
+  const taken = new Set<string>([...(map.furniture ?? []).map((f) => `${f.x},${f.y}`), ...(template.placed ?? []).map((p) => `${p.x},${p.y}`)]);
   const desks: DeskCell[] = [];
   const furniture: FurnitureCell[] = [];
   const nextHost = new Map<number, number>();
@@ -161,7 +162,9 @@ export const instantiateTemplate = (
     map: template.map,
     // 予算は、最安の設計の費用に余裕の倍率を掛けた額（budget.ts）
     budget: budgetOf(template, map, placed, furniture),
-    placed,
+    // PC の後に、固定の機器を置く（予算には含めない）
+    placed: [...placed, ...(template.placed ?? [])],
+    ...(template.links ? { links: template.links } : {}),
     // 机・棚・飾りの家具（N76）。予算には含めない
     furniture,
     goals,

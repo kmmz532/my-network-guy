@@ -1,0 +1,90 @@
+{
+  "id": "t_public_web",
+  "stage": 1,
+  "unlockLevel": 32,
+  "requires": [
+    "c006_office_external"
+  ],
+  "jobs": [
+    "security"
+  ],
+  "weight": 12,
+  "map": "office_two_rooms",
+  "spawnGroups": [
+    {
+      "x": 1,
+      "y": 1,
+      "width": 8,
+      "height": 8,
+      "min": 3,
+      "max": 5,
+      "subnet": 1
+    }
+  ],
+  "placed": [
+    {
+      "ref": "line",
+      "device": "uplink",
+      "x": 18,
+      "y": 5,
+      "locked": true,
+      "isp": {
+        "name": "ISP-A",
+        "network": "198.51.100.0",
+        "prefix": 24,
+        "ispIp": "198.51.100.1"
+      },
+      "name": "回線終端"
+    },
+    {
+      "ref": "web",
+      "device": "server_basic",
+      "x": 14,
+      "y": 3,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.80",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [
+          {
+            "protocol": "http",
+            "port": 80
+          }
+        ],
+        "locked": true
+      },
+      "name": "店のWebサーバー"
+    }
+  ],
+  "deadlineDays": 14,
+  "offerExpireDays": {
+    "min": 30,
+    "max": 90
+  },
+  "budget": {
+    "auto": true,
+    "margin": 1.25
+  },
+  "reward": {
+    "base": 187000,
+    "perPc": 12000
+  },
+  "goals": [
+    {
+      "type": "public_http",
+      "to": "web",
+      "port": 80
+    },
+    {
+      "type": "outside_reachable"
+    }
+  ],
+  "announce": true,
+  "manualIp": true
+}

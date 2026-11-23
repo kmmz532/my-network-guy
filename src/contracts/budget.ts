@@ -6,7 +6,7 @@ import { cableDef, deviceCategory } from '../registry/query';
 import { spawnGroupsOf, starHubOf } from './spawn';
 
 // 費用を求められる目標の型と、台数の目標の種類（ほかは、この設計に含まれない）
-const COSTED_GOALS = new Set(['ping_all', 'count', 'count_device', 'reach_category', 'http_all', 'http_from', 'isolated', 'blocked_all']);
+const COSTED_GOALS = new Set(['ping_all', 'count', 'count_device', 'reach_category', 'http_all', 'http_from', 'isolated', 'blocked_all', 'public_http', 'outside_reachable', 'survive_link_failure']);
 const COSTED_CATEGORIES = new Set(['router', 'router_switch', 'server', 'printer', 'firewall', 'l3_switch']);
 
 const deviceList = registries.devices.all();
@@ -28,6 +28,40 @@ const linkCost = (d: number): number => {
   return c.pricePerLink + c.pricePerTile * d;
 };
 
+// 公開の Web（public_http）の最安の設計。PC とサーバー（固定）を1台のスイッチにつなぎ、そのスイッチと回線の機器の間にルーターを置く。
+// ルーターの位置は、回線の機器とスイッチの間（starHubOf の中点）。サーバーは固定の機器（template.placed）で、費用は配線だけ
+const publicWebCostOf = (template: ContractTemplate, map: GameMap, placed: readonly Pt[], furniture: readonly Pt[]): number => {
+  const goal = template.goals.find((g): g is Extract<Goal, { type: 'public_http' }> => g.type === 'public_http');
+  const server = template.placed?.find((p) => p.ref === goal?.to);
+  const uplink = template.placed?.find((p) => p.device === 'uplink');
+  if (!server || !uplink) throw new Error(`${template.id}: 公開のサーバーか回線の機器がない`);
+  const sw = cheapest('l2_switch', placed.length + 2);
+  const router = cheapest('router', 2);
+  if (!sw || !router) throw new Error(`${template.id}: スイッチかルーターがない`);
+  const attached = [...placed, server];
+  const hub = starHubOf(attached, map, utp.maxLengthTiles, furniture);
+  const mid = starHubOf([uplink, hub], map, undefined, furniture);
+  let cost = sw.price + router.price + linkCost(dist(uplink, mid)) + linkCost(dist(mid, hub));
+  for (const p of attached) cost += linkCost(dist(p, hub));
+  return cost;
+};
+
+// 固定のスイッチの輪（survive_link_failure）の最安の設計。固定のスイッチどうしを、すべての組で配線して輪にする。PC は一番近いスイッチへつなぐ。サーバーは台数の目標の数だけ、1本の配線で足す
+const ringCostOf = (template: ContractTemplate, placed: readonly Pt[]): number => {
+  const switches = (template.placed ?? []).filter((p) => deviceCategory(p.device) === 'l2_switch');
+  if (switches.length === 0) throw new Error(`${template.id}: 輪のスイッチがない`);
+  let cost = 0;
+  for (let i = 0; i < switches.length; i++) for (let j = i + 1; j < switches.length; j++) cost += linkCost(dist(switches[i], switches[j]));
+  for (const p of placed) cost += Math.min(...switches.map((s) => linkCost(dist(p, s))));
+  const servers = template.goals.reduce((s, g) => s + (g.type === 'count' && countedKindOf(g) === 'server' ? g.min : 0), 0);
+  if (servers > 0) {
+    const server = cheapest('server', 1);
+    if (!server) throw new Error(`${template.id}: サーバーがない`);
+    cost += servers * (server.price + linkCost(1));
+  }
+  return cost;
+};
+
 // 最安の設計の費用（機器と配線）。PC 自体は案件で置かれているため含めない。
 // 設計: 各グループの PC を、その範囲の配線の中心に置いたスイッチ1台（台数が収まる最も安いもの）でつなぐ。
 // 目標に count があれば、その機器を最も安い値段で足す。グループが複数のときは、ルーターか中継のスイッチで結ぶ。
@@ -38,6 +72,8 @@ export const optimalCostOf = (template: ContractTemplate, map: GameMap, placed: 
     const kind = countedKindOf(g);
     if (kind !== null && !COSTED_CATEGORIES.has(kind)) throw new Error(`${template.id}: 台数の目標の種類 ${kind} は最安の設計の費用を求められない`);
   }
+  if (template.goals.some((g) => g.type === 'public_http')) return publicWebCostOf(template, map, placed, furniture);
+  if (template.goals.some((g) => g.type === 'survive_link_failure')) return ringCostOf(template, placed);
   const goalCount = (category: string) =>
     template.goals.filter((g) => countedKindOf(g) === category).reduce((s, g) => s + (g.type === 'count' ? g.min : 0), 0);
   const hasHttp = template.goals.some((g) => g.type === 'http_all' || g.type === 'http_from');

@@ -56,7 +56,9 @@ describe.each(contractTemplates.map((t) => [t.id, t] as const))('最安の設計
   it.each(['min', 'max'] as const)('台数の%s で、最安の設計の費用が予算の 80% 以下に収まる', (which) => {
     const range = pcCountRangeOf(template);
     const contract = withCount(template, map, which === 'min' ? range.min : range.max);
-    const cost = optimalCostOf(template, map, contract.placed, contract.furniture ?? []);
+    // 固定の機器（回線・サーバー・スイッチ）は予算に含めず、PC だけを渡す（instantiateTemplate と同じ）
+    const pcs = contract.placed.filter((p) => p.device === 'pc_basic');
+    const cost = optimalCostOf(template, map, pcs, contract.furniture ?? []);
     expect(cost / contract.budget).toBeLessThanOrEqual(0.8);
   });
 });
