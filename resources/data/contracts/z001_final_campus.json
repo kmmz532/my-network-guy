@@ -1,0 +1,241 @@
+{
+  "id": "z001_final_campus",
+  "kind": "build",
+  "stage": 2,
+  "order": 320,
+  "requires": [
+    "b004_ibgp_two_routers"
+  ],
+  "jobs": [
+    "network",
+    "security"
+  ],
+  "map": "office_two_sites",
+  "budget": 289000,
+  "deadlineDays": 21,
+  "manualIp": true,
+  "placed": [
+    {
+      "ref": "hq_1",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "本社のPC1"
+    },
+    {
+      "ref": "hq_2",
+      "device": "pc_basic",
+      "x": 2,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "本社のPC2"
+    },
+    {
+      "ref": "acc_srv",
+      "device": "server_basic",
+      "x": 3,
+      "y": 4,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.1.50",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.1.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "経理サーバー"
+    },
+    {
+      "ref": "web",
+      "device": "server_basic",
+      "x": 6,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.100.80",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.100.1",
+        "services": [
+          {
+            "protocol": "http",
+            "port": 80
+          }
+        ],
+        "locked": true
+      },
+      "name": "公開のWebサーバー"
+    },
+    {
+      "ref": "br_1",
+      "device": "pc_basic",
+      "x": 38,
+      "y": 2,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.2.21",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.2.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "支社のPC1"
+    },
+    {
+      "ref": "br_2",
+      "device": "pc_basic",
+      "x": 38,
+      "y": 7,
+      "locked": true,
+      "config": {
+        "interfaces": [
+          {
+            "port": 0,
+            "ip": "192.168.2.22",
+            "prefix": 24
+          }
+        ],
+        "gateway": "192.168.2.1",
+        "services": [],
+        "locked": true
+      },
+      "name": "支社のPC2"
+    },
+    {
+      "ref": "edge_a",
+      "device": "edge_router",
+      "x": 7,
+      "y": 3,
+      "locked": false,
+      "config": {
+        "interfaces": [],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "本社の境界ルーター"
+    },
+    {
+      "ref": "edge_b",
+      "device": "edge_router",
+      "x": 33,
+      "y": 5,
+      "locked": false,
+      "config": {
+        "interfaces": [],
+        "gateway": null,
+        "services": [],
+        "locked": false
+      },
+      "name": "支社の境界ルーター"
+    },
+    {
+      "ref": "isp_a",
+      "device": "uplink",
+      "x": 14,
+      "y": 2,
+      "locked": true,
+      "isp": {
+        "name": "ISP-A",
+        "network": "198.51.100.0",
+        "prefix": 24,
+        "ispIp": "198.51.100.1",
+        "asn": 65001
+      },
+      "name": "ISP-A"
+    },
+    {
+      "ref": "isp_b",
+      "device": "uplink",
+      "x": 26,
+      "y": 8,
+      "locked": true,
+      "isp": {
+        "name": "ISP-B",
+        "network": "203.0.113.0",
+        "prefix": 24,
+        "ispIp": "203.0.113.1",
+        "asn": 65002
+      },
+      "name": "ISP-B"
+    }
+  ],
+  "goals": [
+    {
+      "type": "isolated",
+      "from": [
+        "hq_1",
+        "hq_2",
+        "br_1",
+        "br_2"
+      ],
+      "to": [
+        "acc_srv"
+      ]
+    },
+    {
+      "type": "no_static_route"
+    },
+    {
+      "type": "bgp_established",
+      "node": "edge_a",
+      "min": 2
+    },
+    {
+      "type": "bgp_established",
+      "node": "edge_b",
+      "min": 2
+    },
+    {
+      "type": "public_http",
+      "to": "web",
+      "port": 80
+    },
+    {
+      "type": "survive_uplink_failure"
+    }
+  ],
+  "reward": {
+    "money": 2550000
+  },
+  "unlockLevel": 98
+}
