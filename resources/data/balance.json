@@ -232,8 +232,8 @@
         "h": 15
       },
       "unlockLevels": [
-        3,
-        8,
+        11,
+        13,
         15,
         25,
         36
@@ -340,14 +340,14 @@
   },
   "featureUnlocks": {
     "nightShift": 10,
-    "floorChange": 5,
+    "floorChange": 7,
     "uplink": 50
   },
   "floors": [
     { "id": "wood", "unlockLevel": 1, "costPerTile": 0 },
-    { "id": "tile", "unlockLevel": 5, "costPerTile": 300 },
-    { "id": "carpet", "unlockLevel": 8, "costPerTile": 500 },
-    { "id": "linoleum", "unlockLevel": 12, "costPerTile": 400 },
+    { "id": "tile", "unlockLevel": 7, "costPerTile": 300 },
+    { "id": "carpet", "unlockLevel": 14, "costPerTile": 500 },
+    { "id": "linoleum", "unlockLevel": 17, "costPerTile": 400 },
     { "id": "concrete", "unlockLevel": 15, "costPerTile": 600 }
   ],
   "freshOffer": {

@@ -1,7 +1,7 @@
 {
   "id": "t_clinic_records",
   "stage": 1,
-  "unlockLevel": 8,
+  "unlockLevel": 9,
   "requires": [
     "c004_web_server"
   ],

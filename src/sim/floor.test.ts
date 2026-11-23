@@ -64,19 +64,19 @@ describe('部屋の判定（N92）', () => {
 });
 
 describe('床の張り替え（N92）', () => {
-  it('床の張り替えは、会社のレベル5（featureUnlocks.floorChange）から', () => {
+  it('床の張り替えは、会社のレベル7（featureUnlocks.floorChange）から', () => {
     expect(changeOfficeFloor(core(base, 4), 'main', 'tile', balance)).toEqual({ ok: false, reason: 'floor.locked' });
   });
 
-  it('床の種類は、それぞれの解禁のレベルで使える（タイルは5、カーペットは8）', () => {
-    expect(changeOfficeFloor(core(base, 5), 'main', 'tile', balance).ok).toBe(true);
-    expect(changeOfficeFloor(core(base, 5), 'main', 'carpet', balance)).toEqual({ ok: false, reason: 'floor.locked' });
-    expect(changeOfficeFloor(core(base, 8), 'main', 'carpet', balance).ok).toBe(true);
+  it('床の種類は、それぞれの解禁のレベルで使える（タイルは7、カーペットは14）', () => {
+    expect(changeOfficeFloor(core(base, 7), 'main', 'tile', balance).ok).toBe(true);
+    expect(changeOfficeFloor(core(base, 7), 'main', 'carpet', balance)).toEqual({ ok: false, reason: 'floor.locked' });
+    expect(changeOfficeFloor(core(base, 14), 'main', 'carpet', balance).ok).toBe(true);
   });
 
   it('費用は、1マスの費用 × その部屋の床のマス数。その場で払い、帳簿は内装', () => {
     const tile = balance.floors.find((f) => f.id === 'tile')!;
-    const out = changeOfficeFloor(core(base, 5, 1000000), 'main', 'tile', balance);
+    const out = changeOfficeFloor(core(base, 7, 1000000), 'main', 'tile', balance);
     expect(out.ok).toBe(true);
     if (!out.ok) return;
     expect(out.core.clock.money).toBe(1000000 - tile.costPerTile * 36);
@@ -86,24 +86,24 @@ describe('床の張り替え（N92）', () => {
 
   it('経理の割引が、張り替えの費用に効く', () => {
     const tile = balance.floors.find((f) => f.id === 'tile')!;
-    const out = changeOfficeFloor({ ...core(base, 5), purchaseDiscount: 0.5 }, 'main', 'tile', balance);
+    const out = changeOfficeFloor({ ...core(base, 7), purchaseDiscount: 0.5 }, 'main', 'tile', balance);
     expect(out.ok && out.core.clock.money).toBe(1000000 - Math.round(tile.costPerTile * 36 * 0.5));
   });
 
   it('お金が足りなければ、張り替えられない（money）', () => {
-    expect(changeOfficeFloor(core(base, 5, 0), 'main', 'tile', balance)).toEqual({ ok: false, reason: 'money' });
+    expect(changeOfficeFloor(core(base, 7, 0), 'main', 'tile', balance)).toEqual({ ok: false, reason: 'money' });
   });
 
   it('別室の床は、その部屋だけ変わる', () => {
     const office: Office = { ...base, size: { w: 12, h: 6 }, annexes: ['right'] };
-    const out = changeOfficeFloor(core(office, 5), 'right', 'tile', balance);
+    const out = changeOfficeFloor(core(office, 7), 'right', 'tile', balance);
     expect(out.ok && out.core.office.floors).toEqual({ right: 'tile' });
     expect(out.ok && floorOfRoom(out.core.office, 'main')).toBe('wood');
   });
 
   it('一度買った床は、買い切り。戻して敷き直しても、代金は1回だけ（N125）', () => {
     const tile = balance.floors.find((f) => f.id === 'tile')!;
-    const bought = changeOfficeFloor(core(base, 5, 1000000), 'main', 'tile', balance);
+    const bought = changeOfficeFloor(core(base, 7, 1000000), 'main', 'tile', balance);
     if (!bought.ok) throw new Error('購入できない');
     expect(bought.core.office.bought).toEqual(['wood', 'tile']);
     const back = changeOfficeFloor(bought.core, 'main', 'wood', balance);
@@ -116,13 +116,13 @@ describe('床の張り替え（N92）', () => {
   it('買い切りの床は、部屋を広げた別室にも無料で敷ける（N125）', () => {
     const tile = balance.floors.find((f) => f.id === 'tile')!;
     const office: Office = { ...base, bought: ['wood', 'tile'], size: { w: 12, h: 6 }, annexes: ['right'] };
-    const out = changeOfficeFloor(core(office, 5, 0), 'right', 'tile', balance);
+    const out = changeOfficeFloor(core(office, 7, 0), 'right', 'tile', balance);
     expect(out.ok).toBe(true);
     expect(out.ok && tile.costPerTile).toBeGreaterThan(0);
   });
 
   it('床と同じ種類に変えるときは、費用なし', () => {
-    const out = changeOfficeFloor(core(base, 5, 0), 'main', 'wood', balance);
+    const out = changeOfficeFloor(core(base, 7, 0), 'main', 'wood', balance);
     expect(out.ok).toBe(true);
   });
 });

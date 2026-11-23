@@ -1,7 +1,7 @@
 {
   "id": "t_library_catalog",
   "stage": 1,
-  "unlockLevel": 9,
+  "unlockLevel": 15,
   "requires": [
     "c004_web_server"
   ],

@@ -429,10 +429,10 @@ describe('別室の仕切りの壁を延ばす', () => {
 
 describe('拡張の解放のレベル（N45）', () => {
   it('次の拡張の解放のレベルに届かないと拡張できない', () => {
-    // 1回目の拡張は Lv3 から
+    // 1回目の拡張は Lv11 から
     const start = { size: { w: 5, h: 5 }, innerWalls: [], doors: [], annexes: [], nodes: [], links: [], seq: 0, furniture: [], furnitureSeq: 0 } as never;
-    expect(expandOffice({ ...core(1_000_000), office: start }, 'right', config, 2)).toEqual({ ok: false, reason: 'level' });
-    expect(expandOffice({ ...core(1_000_000), office: start }, 'right', config, 3).ok).toBe(true);
+    expect(expandOffice({ ...core(1_000_000), office: start }, 'right', config, 10)).toEqual({ ok: false, reason: 'level' });
+    expect(expandOffice({ ...core(1_000_000), office: start }, 'right', config, 11).ok).toBe(true);
   });
 });
 

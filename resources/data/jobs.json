@@ -31,7 +31,7 @@
 		{
 			"id": "security",
 			"group": "field",
-			"unlockLevel": 7,
+			"unlockLevel": 17,
 			"pc": "bonus",
 			"pcBonus": {
 				"buildRate": 0.05,
@@ -45,7 +45,7 @@
 		{
 			"id": "dev",
 			"group": "dev",
-			"unlockLevel": 6,
+			"unlockLevel": 14,
 			"pc": "required",
 			"salaryRate": 1,
 			"effect": "devIncome",
@@ -55,7 +55,7 @@
 		{
 			"id": "sales",
 			"group": "backOffice",
-			"unlockLevel": 3,
+			"unlockLevel": 9,
 			"pc": "bonus",
 			"pcBonus": {
 				"effectRate": 1.2

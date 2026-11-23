@@ -8,10 +8,10 @@ import { rollCandidates, staffCapOf, unlockedJobsOf } from './staff';
 const balance = balanceJson as unknown as Balance;
 
 describe('会社のレベルによる採用', () => {
-  it('職種は、解放のレベルに届いたものだけ（Lv1 はネットワークだけ、Lv5 でインフラ）', () => {
+  it('職種は、解放のレベルに届いたものだけ（Lv1 はネットワークだけ、Lv5 でインフラ・人事）', () => {
     expect(unlockedJobsOf(1)).toEqual([]);
     expect(unlockedJobsOf(2)).toEqual(['network']);
-    expect(unlockedJobsOf(5)).toEqual(['network', 'infra', 'sales', 'hr']);
+    expect(unlockedJobsOf(5)).toEqual(['network', 'infra', 'hr']);
   });
 
   it('人数の上限は、会社のレベル以上での最も新しい上限', () => {

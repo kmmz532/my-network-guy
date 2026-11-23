@@ -24,7 +24,7 @@
         "switch"
       ],
       "sprite": "device/home_router",
-      "unlockLevel": 20
+      "unlockLevel": 21
     },
     {
       "id": "home_router_ap",
@@ -53,7 +53,7 @@
         "wireless"
       ],
       "sprite": "device/home_router_ap",
-      "unlockLevel": 30,
+      "unlockLevel": 28,
       "wlan": {
         "bands": [
           "2.4",

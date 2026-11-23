@@ -23,7 +23,7 @@
     "check:lang": "node scripts/lang.mjs status",
     "check:spec": "node scripts/check-spec.mjs",
     "check:unlocks": "vite-node scripts/check-unlocks.ts --quiet",
-    "verify": "tsc --noEmit && eslint src && node scripts/vitest.mjs run && npm run check:json && npm run check:lang && npm run check:spec",
+    "verify": "tsc --noEmit && eslint src && node scripts/vitest.mjs run && npm run check:json && npm run check:lang && npm run check:spec && npm run check:unlocks",
     "prepare": "node scripts/install-hooks.mjs",
     "site": "node docs/site/build.mjs"
   },

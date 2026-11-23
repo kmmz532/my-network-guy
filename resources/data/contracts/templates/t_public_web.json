@@ -1,7 +1,7 @@
 {
   "id": "t_public_web",
   "stage": 1,
-  "unlockLevel": 32,
+  "unlockLevel": 38,
   "requires": [
     "c006_office_external"
   ],
