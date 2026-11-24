@@ -252,7 +252,7 @@ function OfferCard({
           <Text as="span" tone="warn">{t('ui.offer.expires', { days: Math.max(0, Math.ceil((offer.expiresMinute - now) / minutesPerDay)) })}</Text>
         )}
         <Text as="span" tone="warn">
-          <Icon name="icon/money" /> {yen(rewardWithMul(offer.contract.reward.money, rewardMul))}
+          <Icon name="icon/money" /> {yen(rewardWithMul(offer.contract.reward, rewardMul))}
         </Text>
         {/* 断る・任せる・受注を1つのまとまりにして右寄せにする。折り返さない（スマホで受注が次の行に落ちないように・N109b） */}
         <div style={phone ? { display: 'flex', flexWrap: 'nowrap', gap: 6, width: '100%', alignItems: 'center', justifyContent: 'flex-end' } : { display: 'flex', gap: 6, marginLeft: 'auto', flexShrink: 0, alignItems: 'center' }}>

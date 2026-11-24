@@ -177,6 +177,8 @@ export const instantiateTemplate = (
     ...(template.manualIp ? { manualIp: true } : {}),
     reward: {
       money: rewardOf(template, cost, total),
+      // 報酬のうち、機器の費用の分（営業・提案の倍率を掛けない）
+      equipment: cost,
     },
   };
   return {

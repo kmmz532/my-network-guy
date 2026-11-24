@@ -178,7 +178,7 @@ const run = (scn: Scenario, seed: number): RunResult => {
     return optimalCostOf(template, maps[o.contract.map], o.contract.placed, o.contract.furniture ?? []);
   };
   // 営業の効果。受注する依頼の報酬は、ゲームと同じく倍率を掛けた額
-  const withSalesMul = (o: Offer): Offer => ({ ...o, contract: { ...o.contract, reward: { ...o.contract.reward, money: rewardWithMul(o.contract.reward.money, salesRewardMul(pOf('sales'), balance)) } } });
+  const withSalesMul = (o: Offer): Offer => ({ ...o, contract: { ...o.contract, reward: { ...o.contract.reward, money: rewardWithMul(o.contract.reward, salesRewardMul(pOf('sales'), balance)) } } });
   const expectedNet = (o: Offer): number => {
     const days = (o.contract.deadlineDays ?? Infinity) + 1;
     const star3 = settlementOf({ reward: withSalesMul(o).contract.reward.money, unlockLevel: o.contract.unlockLevel, stars: 3, lateDays: 0, delegated: false, companyExp }, balance);

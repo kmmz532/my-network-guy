@@ -314,8 +314,11 @@ export const fail = (reason: OpFailReason): Outcome => ({ ok: false, reason });
 // 配線の定価から、払う額（経理の割引のあと）。割引がなければ定価のまま
 export const paidCable = (core: Core, list: number): number => Math.round(list * (1 - core.purchaseDiscount));
 
-// 受注した依頼の報酬（営業の倍率を掛けた額）
-export const rewardWithMul = (money: number, rewardMul: number): number => Math.round(money * rewardMul);
+// 報酬に倍率（営業・提案）を掛ける。倍率は手間賃だけに掛け、機器の費用の分（equipment）は増やさない
+export const rewardWithMul = (reward: { money: number; equipment?: number }, mul: number): number => {
+  const equipment = reward.equipment ?? 0;
+  return equipment + Math.round((reward.money - equipment) * mul);
+};
 
 // 型紙をつなぐ先（N70）: 近くのスイッチかルーターのうち、空きのポートがあるもの。足りない機器は、ここにつなぐ
 const isHubCategory = (category: string): boolean =>

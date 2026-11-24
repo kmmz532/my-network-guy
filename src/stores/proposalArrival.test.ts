@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { balance, contracts, contractTemplates } from 'virtual:game-data';
 import type { GameMap, Staff } from '../data/schema';
 import type { Iface, NetLink, NetNode, PortConfig } from '../network/types';
-import { optimalCostOf, rewardOf } from '../contracts/budget';
+import { laborOf, optimalCostOf } from '../contracts/budget';
 import { emptyOffice } from '../sim/project';
 import { achievementsSystem } from './tickSystems';
 import { useGameStore, type GameState } from './useGameStore';
@@ -101,7 +101,7 @@ describe('提案の依頼の届く数', () => {
     expect(offer.topic).toBe('vlan_isolation');
     const pcs = offer.contract.placed.filter((p) => p.device === 'pc_basic');
     const cost = optimalCostOf(template, maps[template.map], pcs, offer.contract.furniture ?? []);
-    expect(offer.contract.reward.money).toBe(Math.round(rewardOf(template, cost, pcs.length) * balance.proposal.rewardMul));
+    expect(offer.contract.reward.money).toBe(cost + Math.round(laborOf(template, pcs.length) * balance.proposal.rewardMul));
   });
 
   it('公開のサーバーを静的 NAT で外へ出した会社（dmz）には、t_public_web の提案が届く', () => {

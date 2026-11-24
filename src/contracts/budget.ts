@@ -1,4 +1,5 @@
 // 定型案件の予算。最安の設計の費用に余裕の倍率（template.budget.margin）を掛けた額にする。
+import { balance } from 'virtual:game-data';
 import type { ContractTemplate, GameMap, Goal } from '../data/schema';
 import type { DeviceDef } from '../registry/defs';
 import { registries } from '../registry/game';
@@ -221,13 +222,12 @@ export const optimalCostOf = (template: ContractTemplate, map: GameMap, placed: 
 export const budgetOf = (template: ContractTemplate, map: GameMap, placed: readonly Pt[], furniture: readonly Pt[]): number =>
   Math.ceil(optimalCostOf(template, map, placed, furniture) * template.budget.margin);
 
-// 報酬の下限（最安の設計の費用の倍率）。ひな形の報酬（base + perPc × 台数）がこれを下回るときは、費用 × この倍率に引き上げる。
-// 機器の費用は会社が払うため、★3で納品しても赤字にならないようにする
-export const MIN_REWARD_RATIO = 1.5;
+// 手間賃。ひな形の式（base + perPc × 台数）に、全ひな形一律の倍率（balance.labor.mul）を掛ける
+export const laborOf = (template: ContractTemplate, pcCount: number): number =>
+  Math.round((template.reward.base + template.reward.perPc * pcCount) * balance.labor.mul);
 
-// 案件の報酬。ひな形の式（base + perPc × 台数）と、費用 × MIN_REWARD_RATIO の大きいほう
-export const rewardOf = (template: ContractTemplate, cost: number, pcCount: number): number =>
-  Math.max(template.reward.base + template.reward.perPc * pcCount, Math.ceil(cost * MIN_REWARD_RATIO));
+// 案件の報酬。依頼主が最安の設計の費用を払い、そのうえで手間賃を払う。利益は手間賃になる
+export const rewardOf = (template: ContractTemplate, cost: number, pcCount: number): number => cost + laborOf(template, pcCount);
 
 // 台数が収まる最も安いスイッチの ID（試験の想定の解答が使う）
 export const cheapestSwitchId = (ports: number): string => {

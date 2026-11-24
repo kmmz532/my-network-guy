@@ -7,6 +7,7 @@ import { instantiateTemplate, pickByWeight, type Offer } from './template';
 import { randInt } from '../sim/rng';
 import { levelOf } from '../sim/level';
 import type { OfferSort } from '../settings/settings';
+import { rewardWithMul } from '../sim/project';
 import { proposalTopicOf } from '../sim/achievements';
 import { challengeKindsOf, challengeOf } from './challenge';
 
@@ -120,7 +121,7 @@ const addOffer = (state: OfferState, env: OfferEnv, rewardWeight = 0, fromSales 
   // 営業が持ってきた依頼には印を付ける（一覧で区別する）
   if (fromSales) (offer as Offer & { fromSales?: true }).fromSales = true;
   if (topic !== null) {
-    offer = { ...offer, proposal: true, topic, contract: { ...offer.contract, reward: { ...offer.contract.reward, money: Math.round(offer.contract.reward.money * env.balance.proposal.rewardMul) } } };
+    offer = { ...offer, proposal: true, topic, contract: { ...offer.contract, reward: { ...offer.contract.reward, money: rewardWithMul(offer.contract.reward, env.balance.proposal.rewardMul) } } };
   }
   const span = picked.item.offerExpireDays;
   if (span) {

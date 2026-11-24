@@ -121,7 +121,7 @@ export const accept = (core: Core, offerId: string, slots: number, crew: string[
     baseId: offer.baseId,
     params: offer.params,
     ...(offer.challenge !== undefined ? { challenge: offer.challenge } : {}),
-    contract: { ...offer.contract, reward: { ...offer.contract.reward, money: rewardWithMul(offer.contract.reward.money, core.rewardMul) } },
+    contract: { ...offer.contract, reward: { ...offer.contract.reward, money: rewardWithMul(offer.contract.reward, core.rewardMul) } },
     nodes,
     links,
     seq: inhouse ? office.seq : links.length,

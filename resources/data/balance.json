@@ -184,12 +184,12 @@
       "maxChance": 0.5,
       "printerArrivalBonus": 0.05,
       "rewardWeightPerLevel": 0.05,
-      "rewardMulPerP": 0.06
+      "rewardMulPerP": 0.25
     },
     "accounting": {
       "ratePerLevel": 0.05,
       "maxRate": 0.5,
-      "taxReturnPerP": 0.07,
+      "taxReturnPerP": 0.06,
       "maxTaxReturn": 0.25
     },
     "dev": {
@@ -358,6 +358,9 @@
     "rewardMul": 1.2,
     "perMonth": 1,
     "perMonthWithSales": 2
+  },
+  "labor": {
+    "mul": 0.2
   },
   "challenge": {
     "share": 0.2,

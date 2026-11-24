@@ -172,6 +172,8 @@ export const balanceSchema = z.object({
   // 提案の依頼（自社の実績の論点を学ぶ依頼）。報酬の倍率と、月末に届く件数の上限（営業の社員がいないとき・いるとき）
   proposal: z.object({ rewardMul: z.number().positive(), perMonth: nonNegativeInt, perMonthWithSales: nonNegativeInt }),
   // 挑戦の依頼（クリアの後）。届く依頼のうち share の割合を、予算が budgetMul 倍・期限が deadlineMul 倍・スイッチの台数の上限のどれかを足した変化形にする
+  // 定型案件の手間賃（ひな形の base + perPc × 台数）の一律の倍率
+  labor: z.object({ mul: z.number().positive() }),
   challenge: z.object({ share: z.number().min(0).max(1), budgetMul: z.number().positive().max(1), deadlineMul: z.number().positive().max(1) }),
   staff: z.object({
     initialCount: int.positive(),
@@ -664,6 +666,8 @@ export const contractSchema = z.object({
   flows: z.array(flowSchema).optional(),
   reward: z.object({
     money: nonNegativeInt,
+    // 報酬のうち、機器の費用の分（定型案件。営業・提案の倍率は、これを除いた手間賃だけに掛ける）
+    equipment: nonNegativeInt.optional(),
     // 納品でインベントリに入る機材（自社案件の報酬。N34）
     devices: z.array(z.object({ device: z.string().min(1), count: int.positive() })).optional(),
   }),

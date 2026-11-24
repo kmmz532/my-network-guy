@@ -1,4 +1,4 @@
-// 定型案件の予算は、最安の設計の費用に余裕の倍率を掛けた額になる。最安の設計の費用が、予算の 80% 以下（★3）に収まることと、報酬が費用の 1.5 倍以上になることを、台数の最小・最大で確かめる。
+// 定型案件の予算は、最安の設計の費用に余裕の倍率を掛けた額になる。最安の設計の費用が、予算の 80% 以下（★3）に収まることと、報酬が費用に手間賃を足した額になる（赤字にならない）ことを、台数の最小・最大で確かめる。
 import { describe, expect, it } from 'vitest';
 import { contractTemplates } from 'virtual:game-data';
 import type { ContractTemplate, GameMap } from '../data/schema';
@@ -19,7 +19,7 @@ import studioMap from '../../resources/data/maps/studio.json';
 import campusMap from '../../resources/data/maps/campus.json';
 import campusWideMap from '../../resources/data/maps/campus_wide.json';
 import hospitalWardMap from '../../resources/data/maps/hospital_ward.json';
-import { MIN_REWARD_RATIO, optimalCostOf } from './budget';
+import { laborOf, optimalCostOf } from './budget';
 import { instantiateTemplate, pcCountRangeOf } from './template';
 
 const maps: Record<string, GameMap> = {
@@ -62,11 +62,13 @@ describe.each(contractTemplates.map((t) => [t.id, t] as const))('最安の設計
     expect(cost / contract.budget).toBeLessThanOrEqual(0.8);
   });
 
-  it.each(['min', 'max'] as const)('台数の%s で、報酬が最安の設計の費用の 1.5 倍以上になる（★3で納品して赤字にならない）', (which) => {
+  it.each(['min', 'max'] as const)('台数の%s で、報酬が最安の設計の費用より大きく、報酬 − 費用が手間賃に一致する', (which) => {
     const range = pcCountRangeOf(template);
     const contract = withCount(template, map, which === 'min' ? range.min : range.max);
     const pcs = contract.placed.filter((p) => p.device === 'pc_basic');
     const cost = optimalCostOf(template, map, pcs, contract.furniture ?? []);
-    expect(contract.reward.money / cost).toBeGreaterThanOrEqual(MIN_REWARD_RATIO);
+    expect(contract.reward.money).toBeGreaterThan(cost);
+    expect(contract.reward.money - cost).toBe(laborOf(template, pcs.length));
+    expect(contract.reward.equipment).toBe(cost);
   });
 });
