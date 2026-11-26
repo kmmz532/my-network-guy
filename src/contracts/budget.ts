@@ -20,6 +20,8 @@ const cheapest = (category: string, minPorts: number, sfp = false): DeviceDef | 
 const countedKindOf = (g: Goal): string | null => (g.type === 'count' ? g.category : null);
 
 type Pt = { x: number; y: number };
+// 設計の費用と、追加するスイッチ（l2_switch）の台数。固定の機器（template.placed）のスイッチは含まない
+type Design = { cost: number; switches: number };
 const dist = (a: Pt, b: Pt) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 const utp = cableDef('utp_cat5e');
 const fiber = cableDef('fiber_sm');
@@ -31,7 +33,7 @@ const linkCost = (d: number): number => {
 
 // 公開の Web（public_http）の最安の設計。PC とサーバー（固定）を1台のスイッチにつなぎ、そのスイッチと回線の機器の間にルーターを置く。
 // ルーターの位置は、回線の機器とスイッチの間（starHubOf の中点）。サーバーは固定の機器（template.placed）で、費用は配線だけ
-const publicWebCostOf = (template: ContractTemplate, map: GameMap, placed: readonly Pt[], furniture: readonly Pt[]): number => {
+const publicWebCostOf = (template: ContractTemplate, map: GameMap, placed: readonly Pt[], furniture: readonly Pt[]): Design => {
   const goal = template.goals.find((g): g is Extract<Goal, { type: 'public_http' }> => g.type === 'public_http');
   const server = template.placed?.find((p) => p.ref === goal?.to);
   const uplink = template.placed?.find((p) => p.device === 'uplink');
@@ -44,11 +46,11 @@ const publicWebCostOf = (template: ContractTemplate, map: GameMap, placed: reado
   const mid = starHubOf([uplink, hub], map, undefined, furniture);
   let cost = sw.price + router.price + linkCost(dist(uplink, mid)) + linkCost(dist(mid, hub));
   for (const p of attached) cost += linkCost(dist(p, hub));
-  return cost;
+  return { cost, switches: 1 };
 };
 
 // 固定のスイッチの輪（survive_link_failure）の最安の設計。固定のスイッチどうしを、すべての組で配線して輪にする。PC は一番近いスイッチへつなぐ。サーバーは台数の目標の数だけ、1本の配線で足す
-const ringCostOf = (template: ContractTemplate, placed: readonly Pt[]): number => {
+const ringCostOf = (template: ContractTemplate, placed: readonly Pt[]): Design => {
   const switches = (template.placed ?? []).filter((p) => deviceCategory(p.device) === 'l2_switch');
   if (switches.length === 0) throw new Error(`${template.id}: 輪のスイッチがない`);
   let cost = 0;
@@ -60,14 +62,14 @@ const ringCostOf = (template: ContractTemplate, placed: readonly Pt[]): number =
     if (!server) throw new Error(`${template.id}: サーバーがない`);
     cost += servers * (server.price + linkCost(1));
   }
-  return cost;
+  return { cost, switches: 0 };
 };
 
 // 最安の設計の費用（機器と配線）。PC 自体は案件で置かれているため含めない。
 // 設計: 各グループの PC を、その範囲の配線の中心に置いたスイッチ1台（台数が収まる最も安いもの）でつなぐ。
 // 目標に count があれば、その機器を最も安い値段で足す。グループが複数のときは、ルーターか中継のスイッチで結ぶ。
 // 値段は、機器とケーブルの定義から引く。求められない目標の型は例外で止める
-export const optimalCostOf = (template: ContractTemplate, map: GameMap, placed: readonly Pt[], furniture: readonly Pt[]): number => {
+const optimalDesignOf = (template: ContractTemplate, map: GameMap, placed: readonly Pt[], furniture: readonly Pt[]): Design => {
   for (const g of template.goals) {
     if (!COSTED_GOALS.has(g.type)) throw new Error(`${template.id}: 目標 ${g.type} は最安の設計の費用を求められない`);
     const kind = countedKindOf(g);
@@ -91,11 +93,13 @@ export const optimalCostOf = (template: ContractTemplate, map: GameMap, placed: 
     const sides = [placed.filter((p) => p.x <= mid), placed.filter((p) => p.x > mid)];
     const viaL3 = goalCount('l3_switch') > 0;
     let spanCost = 0;
+    let spanSwitches = 0;
     const spanHubs: Pt[] = [];
     for (const pcs of sides) {
       const device = cheapest(viaL3 ? 'l3_switch' : 'l2_switch', pcs.length + 1);
       if (!device) throw new Error('スイッチがない');
       spanCost += device.price;
+      if (!viaL3) spanSwitches += 1;
       const hub = starHubOf(pcs, map, utp.maxLengthTiles, furniture);
       spanHubs.push({ x: hub.x, y: hub.y });
       for (const p of pcs) spanCost += linkCost(dist(p, hub));
@@ -107,10 +111,12 @@ export const optimalCostOf = (template: ContractTemplate, map: GameMap, placed: 
       const relay = cheapest('l2_switch', 2);
       if (!relay) throw new Error('中継のスイッチがない');
       spanCost += relay.price + spanHubs.reduce((sum, h) => sum + linkCost(dist(h, center)), 0);
+      spanSwitches += 1;
     }
-    return spanCost;
+    return { cost: spanCost, switches: spanSwitches };
   }
   let cost = 0;
+  let switches = 0;
   // グループごとの PC の位置。範囲は instantiate の並びの順（pc_1 から連番）
   const pcsOfRaw: Pt[][] = [];
   let k = 0;
@@ -129,12 +135,14 @@ export const optimalCostOf = (template: ContractTemplate, map: GameMap, placed: 
     const hubDevice = goalCount('router_switch') > 0 && groups.length === 1 ? cheapest('router_switch', need) : cheapest(viaL3 ? 'l3_switch' : 'l2_switch', need);
     if (hubDevice) {
       cost += hubDevice.price;
+      if (deviceCategory(hubDevice.id) === 'l2_switch') switches += 1;
     } else {
       // 1台に収まらないときは、最大のポート数のスイッチを複数使い、1本ずつ（1マス）でつなぐ
       const largest = deviceList.filter((d) => deviceCategory(d.id) === 'l2_switch').sort((a, b) => b.ports.reduce((s, p) => s + p.count, 0) - a.ports.reduce((s, p) => s + p.count, 0))[0];
       const ports = largest.ports.reduce((s, p) => s + p.count, 0);
       const count = Math.ceil(need / ports);
       cost += count * largest.price + (count - 1) * linkCost(1);
+      switches += count;
     }
     const hub = starHubOf(pcs, map, utp.maxLengthTiles, furniture);
     hubs.push({ x: hub.x, y: hub.y });
@@ -158,7 +166,9 @@ export const optimalCostOf = (template: ContractTemplate, map: GameMap, placed: 
     const center = starHubOf(set.map((h) => ({ ...h, ref: '' })), map, undefined, furniture);
     if (set.length === 2 && dist(set[0], set[1]) <= utp.maxLengthTiles) cost += linkCost(dist(set[0], set[1]));
     else {
-      cost += (cheapest('l2_switch', set.length)?.price ?? 0);
+      const isolatedSwitch = cheapest('l2_switch', set.length);
+      cost += isolatedSwitch?.price ?? 0;
+      switches += isolatedSwitch ? 1 : 0;
       for (const h of set) cost += linkCost(dist(h, center));
     }
   }
@@ -188,6 +198,7 @@ export const optimalCostOf = (template: ContractTemplate, map: GameMap, placed: 
         const relay = cheapest('l2_switch', hubs.length);
         if (!relay) throw new Error('中継のスイッチがない');
         cost += relay.price;
+        switches += 1;
         for (const h of hubs) cost += linkCost(dist(h, center));
       }
     }
@@ -209,14 +220,23 @@ export const optimalCostOf = (template: ContractTemplate, map: GameMap, placed: 
     const d = deviceList.find((x) => x.id === g.device);
     if (!d) throw new Error(`機器 ${g.device} がない`);
     cost += (d.price + linkCost(1)) * g.min;
+    if (deviceCategory(d.id) === 'l2_switch') switches += g.min;
   }
   if ((goalCount('server') > 0 || hasHttp) && byDevice.length === 0) {
     const server = cheapest('server', 1);
     if (!server) throw new Error('サーバーがない');
     cost += server.price + linkCost(1);
   }
-  return cost;
+  return { cost, switches };
 };
+
+// 最安の設計の費用（機器と配線）
+export const optimalCostOf = (template: ContractTemplate, map: GameMap, placed: readonly Pt[], furniture: readonly Pt[]): number =>
+  optimalDesignOf(template, map, placed, furniture).cost;
+
+// 最安の設計が使うスイッチ（l2_switch）の台数。固定の機器（template.placed）のスイッチを含む（挑戦の依頼の上限と比べる）
+export const optimalSwitchCountOf = (template: ContractTemplate, map: GameMap, placed: readonly Pt[], furniture: readonly Pt[]): number =>
+  optimalDesignOf(template, map, placed, furniture).switches + (template.placed ?? []).filter((p) => deviceCategory(p.device) === 'l2_switch').length;
 
 // 案件の予算（切り上げた整数）。最安の設計の費用は、予算の 1 / margin になる
 export const budgetOf = (template: ContractTemplate, map: GameMap, placed: readonly Pt[], furniture: readonly Pt[]): number =>
