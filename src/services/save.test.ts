@@ -263,6 +263,15 @@ describe('v12 → v13', () => {
   });
 });
 
+describe('v68 → v69', () => {
+  it('帳簿の各月に、報酬のうち機器の費用の分（rewardEquipment）を0で足す。帳簿のないサンドボックスは変えない', () => {
+    const ledger = [{ month: 0, totals: { reward: 100 } }];
+    const moved = migrate(68, { ...sample, clock: { ...sample.clock, ledger } });
+    expect(moved.clock.ledger?.[0].totals).toMatchObject({ reward: 100, rewardEquipment: 0 });
+    expect(migrate(68, { ...sample, clock: { ...sample.clock, ledger: null } }).clock.ledger).toBeNull();
+  });
+});
+
 describe('v66 → v67', () => {
   it('帳簿の各月に、経理の節税（taxReturn）を0で足す。帳簿のないサンドボックスは変えない', () => {
     const ledger = [{ month: 0, totals: { reward: 100 } }];

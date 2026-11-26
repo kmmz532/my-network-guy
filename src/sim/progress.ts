@@ -1,4 +1,4 @@
-import { applyMoney } from './ledger';
+import { applyMoney, recordRewardEquipment } from './ledger';
 import type { Staff } from '../data/schema';
 import { engineWithSite, siteFurnitureOf } from './walls';
 import type { Offer } from '../contracts/template';
@@ -15,7 +15,7 @@ import { blindDelegation, delegateBuildMinutesOf } from './blindDelegate';
 import { busyStaff, crewBlock } from './crew';
 import { warningsOf } from '../network/query/warnings';
 import { firstGoalGainOf } from './companyExp';
-import { blindCostOf, settlementOf } from './settlement';
+import { blindCostOf, equipmentShareOf, settlementOf } from './settlement';
 import { BlindOutcome, BlindPlan, Core, Env, GoalCheck, Office, Outcome, Project, ReportFailure, TestOutcome, TestResult, Trace, connect, changesOf, contractLinks, delegationReason, designIssues, stateOfProject, fail, fixedNodes, focusedOf, hubFor, isPcIn, keepFocus, projectCostOf, requireDesign, rewardWithMul, withProject } from './project';
 
 // 増えた機器を型紙につなぐときのケーブル（一番安いもの）
@@ -290,7 +290,7 @@ const settleBlind = (core: Core, p: Project, plan: BlindPlan, env: Env): Outcome
   const cost = blindCostOf(contract.budget, costRatio);
   const { money, expGain } = settlementOf({ reward: contract.reward.money, unlockLevel: contract.unlockLevel, stars, lateDays: 0, delegated: true, companyExp: core.companyExp }, env.balance);
   let clock = applyMoney(core.clock, -cost, 'construction');
-  clock = applyMoney(clock, money, 'reward');
+  clock = recordRewardEquipment(applyMoney(clock, money, 'reward'), equipmentShareOf(money, contract.reward));
   // 報酬の機器はインベントリに入る（型紙で任せた依頼と同じ）
   const owned = { ...core.owned };
   for (const r of contract.reward.devices ?? []) owned[r.device] = (owned[r.device] ?? 0) + r.count;
@@ -372,7 +372,7 @@ export const inspect = (core: Core, env: Env, id: string): Outcome => {
         office,
         effects,
         owned,
-        clock: applyMoney(core.clock, money, 'reward'),
+        clock: recordRewardEquipment(applyMoney(core.clock, money, 'reward'), equipmentShareOf(money, p.contract.reward)),
         companyExp,
         reputation,
         completed: p.kind === 'fixed' ? [...core.completed, p.baseId] : core.completed,

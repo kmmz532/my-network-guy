@@ -44,13 +44,14 @@ export const backOfficeP = (staff: readonly Staff[], job: JobId, office: Office,
 export const accountingRate = (P: number, balance: Balance): number =>
   Math.min(balance.backOffice.accounting.maxRate, P * balance.backOffice.accounting.ratePerLevel);
 
-// 経理の節税の割合（報酬の合計に掛ける。上限 maxTaxReturn）
+// 経理の節税の割合（手間賃の合計に掛ける。上限 maxTaxReturn）
 export const taxReturnRate = (P: number, balance: Balance): number =>
   Math.min(balance.backOffice.accounting.maxTaxReturn, P * balance.backOffice.accounting.taxReturnPerP);
 
-// 月末の節税。終わった月（month）の報酬の合計に、経理の割合を掛けた額を資金に戻す。戻した額も返す
+// 月末の節税。終わった月（month）の手間賃（報酬の合計から機器の費用の分を除いた額）に、経理の割合を掛けた額を資金に戻す。戻した額も返す
 export const settleTaxReturn = (clock: ClockState, month: number, P: number, balance: Balance): { clock: ClockState; amount: number } => {
-  const amount = Math.round(ledgerTotalOf(clock, month, 'reward') * taxReturnRate(P, balance));
+  const labor = ledgerTotalOf(clock, month, 'reward') - ledgerTotalOf(clock, month, 'rewardEquipment');
+  const amount = Math.round(labor * taxReturnRate(P, balance));
   return amount > 0 ? { clock: applyMoney(clock, amount, 'taxReturn'), amount } : { clock, amount: 0 };
 };
 

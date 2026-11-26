@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import balanceJson from '../../resources/data/balance.json';
 import type { Balance } from '../data/schema';
+import { equipmentShareOf } from './settlement';
 import { taxReturnRate, settleTaxReturn, printerArrivalBonusOf, accountingRate, backOfficeP, devDailyIncome, devRate, hrCandidateBonus, hrJuniorRate, hrTrainingRate, isBackOffice, hrSalaryRate, jobEffect, salesArrivalChance, salesRewardMul } from './backOffice';
 import furnitureJson from '../../resources/data/furniture.json';
 import type { BonusEnv } from './furniture';
@@ -11,7 +12,7 @@ import { staffPower } from './staff';
 import type { Staff } from '../data/schema';
 import { jobOf } from './jobs';
 import { initialClock, minutesPerMonth, type ClockState } from './clock';
-import { applyMoney } from './ledger';
+import { applyMoney, recordRewardEquipment } from './ledger';
 
 const balance = balanceJson as unknown as Balance;
 
@@ -29,9 +30,11 @@ describe('内勤の効果', () => {
   });
 
   it('営業の依頼が1日に届く確率は、能力に応じて上がり、上限で止まる', () => {
-    expect(salesArrivalChance(0, balance)).toBe(0);
-    expect(salesArrivalChance(3, balance)).toBeGreaterThan(salesArrivalChance(1, balance));
-    expect(salesArrivalChance(1000, balance)).toBe(balance.backOffice.sales.maxChance);
+    // 今の設定は chancePerLevel が 0（営業は依頼の届きやすさに効かない）。式の振る舞いは、0 でない値で確かめる
+    const withChance = { ...balance, backOffice: { ...balance.backOffice, sales: { ...balance.backOffice.sales, chancePerLevel: 0.1 } } } as Balance;
+    expect(salesArrivalChance(0, withChance)).toBe(0);
+    expect(salesArrivalChance(3, withChance)).toBeGreaterThan(salesArrivalChance(1, withChance));
+    expect(salesArrivalChance(1000, withChance)).toBe(withChance.backOffice.sales.maxChance);
   });
 });
 
@@ -177,6 +180,21 @@ describe('経理の節税', () => {
     expect(r.amount).toBe(Math.round(1_000_000 * 3 * perP));
     expect(r.clock.money).toBe(c.money + r.amount);
     expect(r.clock.ledger?.[0].totals.taxReturn).toBe(r.amount);
+  });
+
+  it('機器の費用の分（rewardEquipment）は節税の対象から除き、手間賃の分だけに掛かる', () => {
+    const c = recordRewardEquipment(withReward(1_000_000), 600_000);
+    expect(settleTaxReturn(c, 1, 3, balance).amount).toBe(Math.round(400_000 * 3 * perP));
+  });
+
+  it('固定の依頼（機器の費用の分を持たない）は、報酬の全額が対象になる', () => {
+    expect(equipmentShareOf(1_000_000, { money: 1_000_000 })).toBe(0);
+    const c = recordRewardEquipment(withReward(1_000_000), equipmentShareOf(1_000_000, { money: 1_000_000 }));
+    expect(settleTaxReturn(c, 1, 3, balance).amount).toBe(Math.round(1_000_000 * 3 * perP));
+  });
+
+  it('受け取った報酬の機器の費用の分は、額面の割合で按分する', () => {
+    expect(equipmentShareOf(500_000, { money: 1_000_000, equipment: 600_000 })).toBe(300_000);
   });
 
   it('割合は maxTaxReturn が上限', () => {

@@ -24,5 +24,9 @@ export const settlementOf = (input: SettlementInput, balance: Balance): { money:
   return { money, expGain: input.delegated ? Math.max(1, Math.floor(full / balance.delegate.expDivisor)) : full };
 };
 
+// 受け取った報酬（money）のうち、機器の費用の分。報酬の額面（reward.money）に占める equipment の割合で按分する。equipment を持たない依頼は 0（全額が手間賃）
+export const equipmentShareOf = (money: number, reward: { money: number; equipment?: number }): number =>
+  reward.equipment === undefined || reward.money <= 0 ? 0 : Math.round((money * Math.min(reward.equipment, reward.money)) / reward.money);
+
 // 型紙なしで任せた依頼の費用（予算 × 費用の割合）
 export const blindCostOf = (budget: number, costRatio: number): number => Math.round(budget * costRatio);

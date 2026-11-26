@@ -10,7 +10,7 @@ import type { GameMap, Staff, JobId } from '../src/data/schema';
 import type { Offer } from '../src/contracts/template';
 import { optimalCostOf } from '../src/contracts/budget';
 import { advanceTick, initialClock, minutesPerDay, minutesPerMonth, type ClockState } from '../src/sim/clock';
-import { applyMoney } from '../src/sim/ledger';
+import { applyMoney, recordRewardEquipment } from '../src/sim/ledger';
 import { refreshOffers, salesArrival, earlyOfferDue, type OfferEnv, type OfferState } from '../src/contracts/offers';
 import { levelOf, levelUpsBetween } from '../src/sim/level';
 import { dailyOpsGainOf, firstGoalGainOf, grantDailyExp, type DailyExpState } from '../src/sim/companyExp';
@@ -22,7 +22,7 @@ import { dailyExpOfStaff, devIdleStaffOf } from '../src/sim/staffDaily';
 import { isFieldEngineerJob, requiresPc } from '../src/sim/jobs';
 import { isOnShift } from '../src/sim/shift';
 import { rate } from '../src/sim/rating';
-import { blindCostOf, settlementOf } from '../src/sim/settlement';
+import { blindCostOf, equipmentShareOf, settlementOf } from '../src/sim/settlement';
 import { blindDelegation, delegateBuildMinutesOf } from '../src/sim/blindDelegate';
 import { EMPTY_FAMILIARITY, familiarKeyOf, recordDelivery, type Familiarity } from '../src/sim/familiar';
 import { dayOf, dueDayOf, lateDaysOf } from '../src/sim/deadline';
@@ -240,7 +240,7 @@ const run = (scn: Scenario, seed: number): RunResult => {
       familiarity = recordDelivery(familiarity, familiarKeyOf(a.offer.kind, a.offer.baseId, c.map), starsGot, { nodes: fixedNodes(c), links: [], plans: {} });
       selfCount++;
     }
-    clock = applyMoney(clock, money, 'reward');
+    clock = recordRewardEquipment(applyMoney(clock, money, 'reward'), equipmentShareOf(money, c.reward));
     earned += money;
     if (a.offer.kind === 'fixed') earnedFixed += money;
     addExp(expGain + first);
@@ -462,6 +462,17 @@ for (const job of ['sales', 'hr', 'accounting', 'dev'] as JobId[]) {
   );
 }
 console.log(`   → ${effectPass ? '合格' : '不合格'}`);
+
+// 2年後の資金の平均が、技術職だけ (a) の何倍以下か。内勤を1人足す (b)(d) は 1.85 倍、2人足す (c) は 1.95 倍（内勤で伸びすぎない）
+const LONG_RATIO_MAX: Record<string, number> = { b: 1.85, c: 1.95, d: 1.85 };
+const moneyEnd = (id: string): number => mean(runs.get(id)!.map((r) => r.rows[months - 1]?.money ?? NaN));
+const longLines = Object.entries(LONG_RATIO_MAX).map(([id, max]) => {
+  const ratio = moneyEnd(id) / moneyEnd('a');
+  return { id, max, ratio, ok: ratio <= max };
+});
+console.log(`4. 内勤を足した進め方の ${months} か月後の資金の平均は、(a) の何倍以下（(a) ${yen(moneyEnd('a'))}）。1人足す (b)(d) は 1.85 倍・2人足す (c) は 1.95 倍`);
+for (const l of longLines) console.log(`   (${l.id}) ${yen(moneyEnd(l.id))}  ${l.ratio.toFixed(2)} 倍（上限 ${l.max} 倍） → ${l.ok ? '合格' : '不合格'}`);
+console.log(`   → ${longLines.every((l) => l.ok) ? '合格' : '不合格'}`);
 
 const levelAt = (id: string, m: number): number => mean(runs.get(id)!.map((r) => r.rows[m - 1]?.level ?? NaN));
 const m12 = Math.min(12, months);

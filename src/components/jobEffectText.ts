@@ -8,7 +8,7 @@ const percent = (v: number): string => (Math.round(v * 1000) / 10).toLocaleStrin
 export const jobEffectText = (e: JobEffect): string => {
   switch (e.kind) {
     case 'sales':
-      return t('ui.effect.job.sales', { pct: percent(e.chance), reward: percent(e.rewardMul) });
+      return t('ui.effect.job.sales', { reward: percent(e.rewardMul) });
     case 'hr': {
       const rate = (Math.round(e.trainingRate * 100) / 100).toFixed(2);
       // 候補は人数が増えるときだけ書く（0人の増分は出さない）

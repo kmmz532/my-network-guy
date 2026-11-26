@@ -2,7 +2,7 @@
 import { balance } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import { levelOf } from '../sim/level';
-import { LEDGER_CATEGORIES, type LedgerCategory } from '../sim/ledger';
+import { LEDGER_CATEGORIES, MEMO_CATEGORIES, type LedgerCategory } from '../sim/ledger';
 import { minutesPerDay, minutesPerMonth } from '../sim/clock';
 import { rentalOf } from '../network/external';
 import { gameEnv } from '../sim/env';
@@ -29,8 +29,8 @@ export function FundsBody() {
   const outlook = clock.money + rent.daily * daysLeft - salary;
   // 直近の月の収支（分類の合計）。古いものから並べる
   const history = [...ledger].sort((a, b) => a.month - b.month);
-  // 収支の合計はお金の増減だけ（経理で浮いた額は含めない）
-  const net = (m: { totals: Record<LedgerCategory, number> }) => LEDGER_CATEGORIES.filter((c) => c !== 'saved').reduce((s, c) => s + m.totals[c], 0);
+  // 収支の合計はお金の増減だけ（経理で浮いた額・報酬の内訳は含めない）
+  const net = (m: { totals: Record<LedgerCategory, number> }) => LEDGER_CATEGORIES.filter((c) => !MEMO_CATEGORIES.includes(c)).reduce((s, c) => s + m.totals[c], 0);
   const maxAbs = Math.max(1, ...history.map((m) => Math.abs(net(m))));
   // 行の中身（行の区切りは Section が引く）
   const rowLine = { display: 'flex', justifyContent: 'space-between', gap: 8 } as const;

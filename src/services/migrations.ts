@@ -26,7 +26,7 @@ import printerJson from '../../resources/data/devices/printer.json';
 import furnitureDefsJson from '../../resources/data/furniture.json';
 import cablesJson from '../../resources/data/cables.json';
 
-export const SAVE_VERSION = 68;
+export const SAVE_VERSION = 69;
 
 // 社名の既定（新しく始めるときの初期値・移行前のセーブの社名）
 export const DEFAULT_COMPANY_NAME = 'パケットカンパニー';
@@ -76,6 +76,12 @@ type Migration = (data: unknown) => unknown;
 
 // n → n+1 の変換。古い形式に足りない項目を補う
 export const migrations: Record<number, Migration> = {
+  // v68 → v69: 帳簿に、報酬のうち機器の費用の分（rewardEquipment）を足す。移行前は0。サンドボックス（帳簿なし）は変えない
+  68: (data) => {
+    const d = data as { clock: { ledger: { month: number; totals: object }[] | null } };
+    const ledger = d.clock.ledger === null ? null : d.clock.ledger.map((m) => ({ ...m, totals: { ...m.totals, rewardEquipment: 0 } }));
+    return { ...d, clock: { ...d.clock, ledger } };
+  },
   // v67 → v68: クリアの記録（clearedAt）・勲章（medals）・会社の歩みの記録（records）を足す。移行前は、未クリア・勲章なし・記録は0から始める
   67: (data) => ({ ...(data as object), clearedAt: null, medals: [], records: { threeStars: 0, biggest: null } }),
   // v66 → v67: 帳簿に、経理の節税（taxReturn）を足す。移行前は0。サンドボックス（帳簿なし）は変えない

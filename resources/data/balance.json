@@ -180,14 +180,14 @@
   "backOffice": {
     "dailyExp": 20,
     "sales": {
-      "chancePerLevel": 0.1,
+      "chancePerLevel": 0,
       "maxChance": 0.5,
       "printerArrivalBonus": 0.05,
-      "rewardWeightPerLevel": 0.05,
-      "rewardMulPerP": 0.25
+      "rewardWeightPerLevel": 0,
+      "rewardMulPerP": 0.21
     },
     "accounting": {
-      "ratePerLevel": 0.05,
+      "ratePerLevel": 0.034,
       "maxRate": 0.5,
       "taxReturnPerP": 0.06,
       "maxTaxReturn": 0.25

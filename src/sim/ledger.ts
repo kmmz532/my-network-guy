@@ -20,8 +20,10 @@ export const LEDGER_CATEGORIES = [
   'interior',
   // 経理の割引で浮いた額（お金の増減ではない。支出とは別に記録する）
   'saved',
-  // 経理の節税（月末に、その月の報酬の一部が資金に戻る）
+  // 経理の節税（月末に、その月の手間賃（報酬から機器の費用の分を除いた額）の一部が資金に戻る）
   'taxReturn',
+  // 報酬のうち、機器の費用の分（お金の増減ではない。報酬の内訳として記録し、節税の対象から除く）
+  'rewardEquipment',
 ] as const;
 export type LedgerCategory = (typeof LEDGER_CATEGORIES)[number];
 
@@ -37,16 +39,25 @@ export const LEDGER_MONTHS = 12;
 export const emptyTotals = (): Record<LedgerCategory, number> =>
   Object.fromEntries(LEDGER_CATEGORIES.map((c) => [c, 0])) as Record<LedgerCategory, number>;
 
-// 経理の割引で浮いた額を、今月の節約に記録する（資金は変えない）。帳簿がなければ何もしない
-export const recordSaving = (clock: ClockState, amount: number): ClockState => {
+// お金の増減ではない分類（内訳の記録）。収支の合計には含めない
+export const MEMO_CATEGORIES: readonly LedgerCategory[] = ['saved', 'rewardEquipment'];
+
+// 資金を変えずに、今月の分類の合計に記録する。帳簿がなければ何もしない
+const recordMemo = (clock: ClockState, amount: number, category: LedgerCategory): ClockState => {
   if (amount <= 0 || clock.ledger === null) return clock;
   const monthLength = balanceJson.time.daysPerMonth * 24 * 60;
   const month = Math.floor(clock.minute / monthLength);
   const kept = clock.ledger.filter((m) => m.month > month - LEDGER_MONTHS && m.month !== month);
   const current = clock.ledger.find((m) => m.month === month) ?? { month, totals: emptyTotals() };
-  const updated: LedgerMonth = { month, totals: { ...current.totals, saved: current.totals.saved + amount } };
+  const updated: LedgerMonth = { month, totals: { ...current.totals, [category]: current.totals[category] + amount } };
   return { ...clock, ledger: [...kept, updated].sort((a, b) => a.month - b.month) };
 };
+
+// 経理の割引で浮いた額を、今月の節約に記録する（資金は変えない）
+export const recordSaving = (clock: ClockState, amount: number): ClockState => recordMemo(clock, amount, 'saved');
+
+// 納品した報酬のうち、機器の費用の分を記録する（資金は変えない）
+export const recordRewardEquipment = (clock: ClockState, amount: number): ClockState => recordMemo(clock, amount, 'rewardEquipment');
 
 // 指定した月の分類の合計（記録がなければ0。帳簿がなければ0）
 export const ledgerTotalOf = (clock: ClockState, month: number, category: LedgerCategory): number =>
