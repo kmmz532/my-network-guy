@@ -109,6 +109,7 @@ describe('handleKey（キーの処理）', () => {
       zoomOut: () => calls.push('out'),
       fit: () => calls.push('fit'),
       pan: (dx, dy) => calls.push(`pan:${dx},${dy}`),
+      tileRect: () => null,
     });
     try {
       expect(handleKey({ ...input('+'), target: null })).toBe(true);

@@ -694,7 +694,7 @@ const gameDataModule = (data: GameData): string => {
       Object.fromEntries(
         data.guides.map((g) => [
           g.contract,
-          g.steps.map((s, i) => ({ key: guideKey(g.contract, i), target: s.target, done: s.done })),
+          g.steps.map((s, i) => ({ key: guideKey(g.contract, i), target: s.target, done: s.done, gesture: s.gesture ?? 'tap', ...(s.to === undefined ? {} : { to: s.to }) })),
         ]),
       ),
     )};`,

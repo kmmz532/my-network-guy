@@ -14,7 +14,12 @@ export interface GuideStep {
   key: string;
   target: string;
   done: string;
+  // 指で見せる動き。drag は target から to へなぞる（教材の手順は持たず、tap として見せる）
+  gesture?: Gesture;
+  to?: string;
 }
+
+export type Gesture = 'tap' | 'drag' | 'hold';
 
 // 完了の条件の書式（done の値）
 //   tool:<道具>         道具を選んでいる（select・wire・remove）

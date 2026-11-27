@@ -11,7 +11,7 @@
       "contract": "c001_direct_link",
       "steps": [
         { "target": "tool.wire", "done": "tool:wire" },
-        { "target": "pc_a", "done": "links:>=1" },
+        { "target": "pc_a", "done": "links:>=1", "gesture": "drag", "to": "pc_b" },
         { "target": "pc_a", "done": "ip:pc_a" },
         { "target": "pc_b", "done": "ip:pc_b" },
         { "target": "test", "done": "test:pass" }

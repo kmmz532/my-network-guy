@@ -668,6 +668,12 @@ const scenes = {
     await page.getByRole('button', { name: '受注' }).first().click();
     await page.waitForTimeout(800);
   },
+  // 最初の案件の配線の手順（指が PC-A から PC-B へ、点線の跡を残してなぞる途中）
+  guidedrag: async (page) => {
+    await scenes.guide(page);
+    await page.evaluate(() => window.__game.getState().setTool('wire'));
+    await page.waitForTimeout(1000);
+  },
   // 新しくプレイした直後（時間は止まり、依頼のボタンが光って「依頼が届いています。開いてみよう」が出る）
   startguide: async (page) => {
     await scenes.career(page);

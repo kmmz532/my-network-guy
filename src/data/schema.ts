@@ -826,7 +826,11 @@ export const guidesFileSchema = z.object({
           z.object({
             target: z.string().min(1),
             done: z.string().refine((v) => parseCondition(v) !== null, '完了の条件の書式が正しくない'),
-          }),
+            // 指で見せる動き（省略時は tap）。drag は target から to へなぞる
+            gesture: z.enum(['tap', 'drag', 'hold']).optional(),
+            to: z.string().min(1).optional(),
+          })
+          .refine((s) => (s.gesture === 'drag') === (s.to !== undefined), 'drag には to が要り、ほかの動きには to を書かない'),
         )
         .min(1),
     }),

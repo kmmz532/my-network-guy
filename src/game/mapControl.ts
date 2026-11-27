@@ -9,6 +9,8 @@ export interface MapCommands {
   fit: () => void;
   // 画面上で動かす（dx・dy は px）
   pan: (dx: number, dy: number) => void;
+  // マスの画面の位置（client の px）。マップを出していないときは null
+  tileRect: (tx: number, ty: number) => { left: number; top: number; width: number; height: number } | null;
 }
 
 let bound: MapCommands | null = null;
@@ -26,4 +28,5 @@ export const mapCommands: MapCommands = {
   zoomOut: () => bound?.zoomOut(),
   fit: () => bound?.fit(),
   pan: (dx, dy) => bound?.pan(dx, dy),
+  tileRect: (tx, ty) => bound?.tileRect(tx, ty) ?? null,
 };

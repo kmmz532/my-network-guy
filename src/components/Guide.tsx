@@ -18,6 +18,8 @@ import { Button } from './ui/Button';
 import { TOOL_HINTS } from '../sim/toolHint';
 import { termOfStep } from '../network/glossaryOf';
 import { Glow } from './ui/Glow';
+import { GuideFinger, type Point } from './GuideFinger';
+import { mapCommands } from '../game/mapControl';
 
 // 社員の吹き出しに出す用語の文（「名前: 説明」）。名前と説明を組み立てるのは、ここの1か所だけ
 const termLine = (id: string): string => tDyn('ui.notice.term', { name: tDyn(`termName.${id}`), text: tDyn(`glossary.${id}`) });
@@ -265,6 +267,36 @@ export function Guide() {
     };
   }, [glowName, measureGlow]);
 
+  // 指を出す位置（画面の px）。機器（ポートの指定 pc_a:0 は機器の位置）はマップのマスの中心、ほかは data-guide の部品の中心
+  const [finger, setFinger] = useState<{ of: string; from: Point; to: Point | null } | null>(null);
+  const fingerFrom = step === null ? null : step.target;
+  const fingerTo = step === null ? null : (step.to ?? null);
+  // 測った位置がいまの手順の対象のものか（手順が替わった直後の、前の手順の位置で描かないため）
+  const fingerOf = `${fingerFrom}>${fingerTo ?? ''}`;
+  useEffect(() => {
+    if (fingerFrom === null) {
+      setFinger(null);
+      return;
+    }
+    const pointOf = (target: string): Point | null => {
+      const node = nodes.find((n) => n.uid === target.split(':')[0]);
+      const r = node ? mapCommands.tileRect(node.x, node.y) : (document.querySelector(`[data-guide="${target}"]`)?.getBoundingClientRect() ?? null);
+      return r && r.width > 0 ? { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) } : null;
+    };
+    const same = (a: Point | null, b: Point | null) => a === b || (a !== null && b !== null && a.x === b.x && a.y === b.y);
+    const measure = () => {
+      const from = pointOf(fingerFrom);
+      const to = fingerTo === null ? null : pointOf(fingerTo);
+      // 終点が測れない drag は、指を出さない
+      const next = from === null || (fingerTo !== null && to === null) ? null : { of: `${fingerFrom}>${fingerTo ?? ''}`, from, to };
+      setFinger((prev) => (prev === next || (prev !== null && next !== null && prev.of === next.of && same(prev.from, next.from) && same(prev.to, next.to)) ? prev : next));
+    };
+    measure();
+    // マップを動かしたり窓を動かしたりしても追えるように、一定の間隔で測り直す
+    const timer = window.setInterval(measure, 200);
+    return () => window.clearInterval(timer);
+  }, [fingerFrom, fingerTo, nodes]);
+
   if (step === null && termNotice === null && hint === null) return null;
   const skip = () => {
     closeTermNotice();
@@ -283,6 +315,9 @@ export function Guide() {
           box={{ left: glow.left - GLOW_OUTSET_PX, top: glow.top - GLOW_OUTSET_PX, width: glow.width + GLOW_OUTSET_PX * 2, height: glow.height + GLOW_OUTSET_PX * 2 }}
           zIndex={GUIDE_Z}
         />
+      )}
+      {step !== null && finger !== null && finger.of === fingerOf && (
+        <GuideFinger playKey={`${id}:${step.key}`} gesture={step.gesture ?? 'tap'} from={finger.from} to={finger.to} zIndex={GUIDE_Z} />
       )}
       <div
         role="status"

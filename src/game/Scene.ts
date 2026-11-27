@@ -248,6 +248,13 @@ export class Scene {
       zoomOut: () => this.cam.zoomBy(-1),
       fit: () => this.cam.fit(),
       pan: (dx, dy) => this.cam.panBy(dx, dy),
+      tileRect: (tx, ty) => {
+        const cam = this.cam.current;
+        if (!cam) return null;
+        const ts = this.tileSize();
+        const rect = this.app.canvas.getBoundingClientRect();
+        return { left: rect.left + cam.x + tx * ts * cam.zoom, top: rect.top + cam.y + ty * ts * cam.zoom, width: ts * cam.zoom, height: ts * cam.zoom };
+      },
     });
     this.refresh();
   }
