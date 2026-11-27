@@ -68,5 +68,66 @@
         { "target": "test", "done": "test:pass" }
       ]
     }
+  ],
+  "firsts": [
+    {
+      "id": "hud",
+      "when": "accepted:c001_direct_link",
+      "steps": [
+        { "target": "hud.money", "done": "next:money" },
+        { "target": "hud.money", "done": "next:bankrupt" },
+        { "target": "hud.date", "done": "next:date" },
+        { "target": "hud.level", "done": "next:level" },
+        { "target": "hud.speed", "done": "next:speed" }
+      ]
+    },
+    {
+      "id": "remove_tool",
+      "when": "tool:remove",
+      "steps": [
+        { "target": "tool.remove", "done": "next:remove" },
+        { "target": "undo", "done": "next:undo" }
+      ]
+    },
+    {
+      "id": "device_window",
+      "when": "window:device",
+      "steps": [
+        { "target": "-", "done": "next:move" },
+        { "target": "-", "done": "next:close" }
+      ]
+    },
+    {
+      "id": "rear_tab",
+      "when": "tab:*:rear",
+      "steps": [{ "target": "-", "done": "next:rear" }]
+    },
+    {
+      "id": "terminal_tab",
+      "when": "tab:*:terminal",
+      "steps": [
+        { "target": "-", "done": "next:what" },
+        { "target": "-", "done": "next:help" },
+        { "target": "-", "done": "next:optional" }
+      ]
+    },
+    {
+      "id": "shop",
+      "when": "window:shop",
+      "steps": [
+        { "target": "inventory", "done": "next:inventory" },
+        { "target": "-", "done": "next:sell" }
+      ]
+    },
+    {
+      "id": "staff",
+      "when": "window:staffList",
+      "steps": [{ "target": "-", "done": "next:staff" }]
+    },
+    {
+      "id": "funds",
+      "when": "window:funds",
+      "steps": [{ "target": "-", "done": "next:funds" }]
+    }
   ]
 }

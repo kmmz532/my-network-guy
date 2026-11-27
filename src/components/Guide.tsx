@@ -2,13 +2,13 @@
 // 操作は縛らない。条件を満たしたら次の手順へ進み、最後まで行くと案件の案内を終える（guidesDone に入る）。「しまう」は終えず、案件の欄の札から戻せる（guidesHidden に入る）
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { usePhone } from '../ui/usePhone';
-import { guides } from 'virtual:game-data';
+import { guideFirsts, guides } from 'virtual:game-data';
 import { lessonEntryOf } from '../sim/lessonCatalog';
 import { lessonCatalog } from '../stores/lessonCatalog';
 import { deviceCategory } from '../registry/query';
 import { t, tDyn } from '../i18n/t';
 import { loadSettings } from '../settings/settings';
-import { guideProgress, resolveRef, START_GUIDE, startGuideDue, type GuideState } from '../sim/guide';
+import { FIRST_PREFIX, guideProgress, nextFirstGuide, resolveRef, START_GUIDE, startGuideDue, type GuideState } from '../sim/guide';
 import { MODE_TRAITS } from '../company/company';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
@@ -122,15 +122,15 @@ export function Guide() {
   const startDue = settings.guide && startGuideDue({ offers: MODE_TRAITS[mode].offers, guidesDone, deviceDone: settings.startGuideDone, completed });
   const startSteps = startDue ? guides[START_GUIDE] : null;
   const showStart = startDue && lesson === undefined && project === null && activeProjects.length === 0;
-  const id = lesson ? `lesson:${lesson.id}` : project?.phase === 'design' ? project.baseId : showStart ? START_GUIDE : null;
-  const steps = lesson
+  const contractId = lesson ? `lesson:${lesson.id}` : project?.phase === 'design' ? project.baseId : showStart ? START_GUIDE : null;
+  const contractSteps = lesson
     ? loadSettings().guide
       ? lesson.guide.map((s, i) => ({ key: `lesson.${lesson.id}.step.${i + 1}`, target: s.target, done: s.done }))
       : null
-    : id === START_GUIDE
+    : contractId === START_GUIDE
       ? startSteps
-      : id !== null && (!guidesDone.includes(id) || guidesReplay.includes(id)) && loadSettings().guide
-        ? (guides[id] ?? null)
+      : contractId !== null && (!guidesDone.includes(contractId) || guidesReplay.includes(contractId)) && loadSettings().guide
+        ? (guides[contractId] ?? null)
         : null;
   const lessonGoals = lesson && check !== null && check.projectId === 'hq' ? check.goals.map((g) => g.ok) : [];
 
@@ -153,6 +153,21 @@ export function Guide() {
     lessonGoals,
     answers: lessonAnswers,
   };
+
+  // 初めての出会いの案内（N175）。依頼が届く遊び方で、案件・教材の案内を出していないときに、出す条件を初めて満たしたものを1つ出す。
+  // 出し始めたら、条件が外れても終えるまで出す（窓を閉じても消えない）。終えたら guidesDone に入り、次に満たしたものを出す
+  const [firstOn, setFirstOn] = useState<string | null>(null);
+  const firstsAllowed = settings.guide && MODE_TRAITS[mode].offers && lesson === undefined && contractSteps === null;
+  const firstDue = firstsAllowed && firstOn === null ? nextFirstGuide(guideFirsts, guidesDone, state) : null;
+  useEffect(() => {
+    if (firstDue !== null) setFirstOn(firstDue);
+  }, [firstDue]);
+  useEffect(() => {
+    if (firstOn !== null && guidesDone.includes(firstOn)) setFirstOn(null);
+  }, [firstOn, guidesDone]);
+  const firstLive = firstsAllowed && firstOn !== null && !guidesDone.includes(firstOn) ? firstOn : null;
+  const id = firstLive ?? contractId;
+  const steps = firstLive !== null ? guides[firstLive] : contractSteps;
 
   // デバッグの指定の手順（N54）は、表示の計算に直接使う（効果で上書きすると、下の効果が古い値に戻すため）
   const debugStart = debugGuide !== null && debugGuide.id === id ? debugGuide.step - 1 : null;
@@ -339,7 +354,9 @@ export function Guide() {
     closeTermNotice();
     closeToolHint();
     if (step === null || id === null) return;
-    setGuideHidden(id, true);
+    // 初めての出会いの案内は、閉じたら終えたものにする（戻す札を残さない）
+    if (id.startsWith(FIRST_PREFIX)) markGuideDone(id);
+    else setGuideHidden(id, true);
   };
   // スマホの吹き出しは、HUD と案件の欄の下に置く（ツールバー・インベントリ・シートの操作の欄とは重ならない）
   const topBelowHud = phone ? belowHud() : 0;

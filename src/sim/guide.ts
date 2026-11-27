@@ -5,6 +5,9 @@ import { WINDOW_KINDS, type WindowKind } from '../ui/windows';
 // 案件に属さない、新しく始めた直後の案内の ID（guides.json の contract・文言 guide.start.<n>・guidesDone・guidesHidden に使う）
 export const START_GUIDE = 'start';
 
+// 初めての出会いの案内（N175）の ID の頭（guides.json の firsts の id に付ける。guidesDone・文言 guide.first.<id>.<n>）
+export const FIRST_PREFIX = 'first.';
+
 // 新しく始めた直後の案内を出す会社か。依頼が届く遊び方で、まだ終えておらず（会社のセーブ・この端末のどちらも）、案件を1つも完了していないとき
 export const startGuideDue = (s: { offers: boolean; guidesDone: readonly string[]; deviceDone: boolean; completed: readonly string[] }): boolean =>
   s.offers && !s.guidesDone.includes(START_GUIDE) && !s.deviceDone && s.completed.length === 0;
@@ -208,6 +211,8 @@ const conditionDone = (raw: Condition, s: GuideState): boolean => {
       // 「次へ」を押したことは、構成に残らない手順の記録（seen）で保つ
       return false;
     case 'tab':
+      // * は、開いているどれかの機器
+      if (c.ref === '*') return s.openRefs.some((ref) => s.deviceTabs?.[ref] === c.tab);
       return s.openRefs.includes(c.ref) && s.deviceTabs?.[c.ref] === c.tab;
     case 'placed':
       return s.nodes.some((n) => s.categoryOf(n.device) === c.category);
@@ -242,6 +247,10 @@ const conditionDone = (raw: Condition, s: GuideState): boolean => {
 };
 
 // 手順の完了の条件を満たしているか。書式が正しくなければ満たしていないものとする
+// 次に出す初めての出会いの案内（N175）: まだ終えておらず、出す条件を満たした最初のもの。なければ null
+export const nextFirstGuide = (firsts: readonly { id: string; when: string }[], done: readonly string[], state: GuideState): string | null =>
+  firsts.find((f) => !done.includes(f.id) && guideStepDone({ key: '', target: '', done: f.when }, state))?.id ?? null;
+
 export const guideStepDone = (step: GuideStep, state: GuideState): boolean => {
   const c = parseCondition(step.done);
   return c !== null && conditionDone(c, state);

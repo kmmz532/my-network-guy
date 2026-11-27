@@ -3,7 +3,7 @@ import { guides } from 'virtual:game-data';
 import ja from '../../resources/lang/ja_jp.json';
 import type { NetLink, NetNode } from '../network/types';
 import { deviceCategory } from '../registry/query';
-import { guideProgress, guideStepDone, parseCondition, type GuideState, type GuideStep } from './guide';
+import { guideProgress, guideStepDone, nextFirstGuide, parseCondition, type GuideState, type GuideStep } from './guide';
 
 const node = (uid: string, device: string, extra: Partial<NetNode> = {}): NetNode => ({
   uid,
@@ -177,9 +177,23 @@ describe('guideProgress（c001）', () => {
   });
 });
 
+describe('nextFirstGuide（初めての出会いの案内）', () => {
+  const firsts = [
+    { id: 'first.remove', when: 'tool:remove' },
+    { id: 'first.term', when: 'tab:*:terminal' },
+  ];
+  it('条件を満たした最初のものを出し、終えたものは2回目に出さない', () => {
+    const s = { ...base(), tool: 'remove', openRefs: ['pc_a'], deviceTabs: { pc_a: 'terminal' } };
+    expect(nextFirstGuide(firsts, [], s)).toBe('first.remove');
+    expect(nextFirstGuide(firsts, ['first.remove'], s)).toBe('first.term');
+    expect(nextFirstGuide(firsts, ['first.remove', 'first.term'], s)).toBeNull();
+    expect(nextFirstGuide(firsts, [], base())).toBeNull();
+  });
+});
+
 describe('実際の案内のデータ', () => {
   it('案件ごとに手順があり、文言は20文字以内で、キーが言語ファイルにある', () => {
-    expect(Object.keys(guides).sort()).toEqual(
+    expect(Object.keys(guides).filter((k) => !k.startsWith('first.')).sort()).toEqual(
       ['c001_direct_link', 'c002_small_office', 'c003_departments', 'c004_web_server', 'i001_office_lan', 'start'],
     );
     const dict = ja as Record<string, string>;

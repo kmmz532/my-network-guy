@@ -75,25 +75,27 @@ const Header = ({ headerRef }: { headerRef: RefObject<HTMLElement> }) => {
             <Icon name="icon/money" scale={1.5} /> ∞
             </span>
         ) : (
-            <Button variant="plain" size="bare" label={t('ui.funds.open')} onClick={() => openWindow('funds', '')}>
+            <Button variant="plain" size="bare" guide="hud.money" label={t('ui.funds.open')} onClick={() => openWindow('funds', '')}>
             <Icon name="icon/money" scale={1.5} /> <Text as="span" size="l">{clock.money.toLocaleString('ja-JP')}</Text>
             </Button>
         )}
         {!sandbox && (
-        <Button variant="plain" size="bare" label={t('ui.company.title')} onClick={() => openWindow('company', '')}>
+        <Button variant="plain" size="bare" guide="hud.level" label={t('ui.company.title')} onClick={() => openWindow('company', '')}>
             {/* 会社のレベルの印と、今のレベルの中の経験値のゲージ（N66）。押すと自社の情報の画面を開く */}
             <LevelMark level={levelNow} />
             <ExpGauge companyExp={companyExp} width={phone ? 56 : 96} />
         </Button>
         )}
         {!sandbox && (
+        <span data-guide="hud.date">
         <Text as="span" size="l" layout={{ marginLeft: '8px' }}>
             {/* <Icon name="icon/calendar" scale={1.5} />  */}
             {t('ui.hud.date', { year: date.year, month: date.month, day: date.day })}
         </Text>
+        </span>
         )}
         {!sandbox && (
-        <span style={{ display: 'flex', gap: 4 }}>
+        <span data-guide="hud.speed" style={{ display: 'flex', gap: 4 }}>
             {SPEEDS.map((s) => (
             <ToolbarButton key={s} label={tDyn(`ui.speed.${s}`)} tip={s === 0 ? tipText('ui.speed.0', 'pause', !phone) : tDyn(`ui.speed.${s}`)} on={speed === s} onClick={() => setSpeed(s)}>
                 {s === 0 ? (

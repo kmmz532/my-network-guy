@@ -11,6 +11,8 @@ declare module 'virtual:game-data' {
   export const contractTemplates: ContractTemplate[];
   // 初めての概念の案内。固定案件のID → 手順の列（sim/guide.ts の GuideStep）
   export const guides: Record<string, import('./sim/guide').GuideStep[]>;
+  // 初めての出会いの案内（N175）。案内の ID（first.<id>。手順は guides）と、出す条件
+  export const guideFirsts: { id: string; when: string }[];
   // 教材（学習モード）
   export const lessons: Lesson[];
   // 演習（学習モード）

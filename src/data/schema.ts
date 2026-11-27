@@ -835,6 +835,21 @@ export const guidesFileSchema = z.object({
         .min(1),
     }),
   ),
+  // 初めての出会いの案内（N175）。when の条件（完了の条件と同じ書式）を初めて満たしたときに、1回だけ出す。文言は guide.first.<id>.<n>
+  firsts: z.array(
+    z.object({
+      id: z.string().regex(/^[a-z0-9_]+$/),
+      when: z.string().refine((v) => parseCondition(v) !== null, '出す条件の書式が正しくない'),
+      steps: z
+        .array(
+          z.object({
+            target: z.string().min(1),
+            done: z.string().refine((v) => parseCondition(v) !== null, '完了の条件の書式が正しくない'),
+          }),
+        )
+        .min(1),
+    }),
+  ),
 });
 
 // 演習（学習モード。構成と問いと答えの判定）。正解はデータに書かず、構成から求める。問題の文は言語ファイルの drill.<id>.q.<問いの id>

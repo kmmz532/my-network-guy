@@ -39,7 +39,7 @@ import {
   type TrainingCourse,
   type CertDef,
 } from '../src/data/schema';
-import { START_GUIDE } from '../src/sim/guide';
+import { FIRST_PREFIX, START_GUIDE } from '../src/sim/guide';
 
 const BASE_LANG = 'ja_jp';
 // 案内の1手順の文言の最大の文字数（CORE.md「4. 最初の20分の流れ」）
@@ -79,6 +79,7 @@ interface GameData {
   contracts: Contract[];
   templates: ContractTemplate[];
   guides: GuideFile[];
+  firsts: { id: string; when: string }[];
   lessons: Lesson[];
   drills: Drill[];
   maps: GameMap[];
@@ -172,7 +173,10 @@ export const loadData = (dataDir: string, langDir: string, spriteDir: string): G
   const training = parseWith(trainingFileSchema, readJson(join(dataDir, 'training.json')), 'training.json').courses;
   const certs = parseWith(certFileSchema, readJson(join(dataDir, 'certs.json')), 'certs.json').certs;
   const levelMilestones = parseWith(levelsFileSchema, readJson(join(dataDir, 'levels.json')), 'levels.json').milestones;
-  const guides = parseWith(guidesFileSchema, readJson(join(dataDir, 'guides.json')), 'guides.json').guides;
+  const guidesFile = parseWith(guidesFileSchema, readJson(join(dataDir, 'guides.json')), 'guides.json');
+  // 初めての出会いの案内は、案件の案内と同じ形（contract は first.<id>）にまとめて扱う
+  const guides = [...guidesFile.guides, ...guidesFile.firsts.map((f) => ({ contract: `${FIRST_PREFIX}${f.id}`, steps: f.steps }))];
+  const firsts = guidesFile.firsts.map((f) => ({ id: `${FIRST_PREFIX}${f.id}`, when: f.when }));
 
   const lessons = jsonFiles(join(dataDir, 'lessons')).map((file) => {
     const lesson = parseWith(lessonSchema, readJson(file), file);
@@ -227,6 +231,7 @@ export const loadData = (dataDir: string, langDir: string, spriteDir: string): G
     contracts,
     templates,
     guides,
+    firsts,
     lessons,
     drills,
     maps,
@@ -361,7 +366,7 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
   unique(data.guides, (g) => g.contract, 'guides.json');
   for (const g of data.guides) {
     ensure(
-      g.contract === START_GUIDE || data.contracts.some((c) => c.id === g.contract),
+      g.contract === START_GUIDE || g.contract.startsWith(FIRST_PREFIX) || data.contracts.some((c) => c.id === g.contract),
       `guides.json: 固定案件 ${g.contract} がない`,
     );
   }
@@ -690,6 +695,7 @@ const gameDataModule = (data: GameData): string => {
     `export const contractTemplates = ${JSON.stringify(data.templates)};`,
     `export const lessons = ${JSON.stringify(data.lessons)};`,
     `export const drills = ${JSON.stringify(data.drills)};`,
+    `export const guideFirsts = ${JSON.stringify(data.firsts)};`,
     `export const guides = ${JSON.stringify(
       Object.fromEntries(
         data.guides.map((g) => [

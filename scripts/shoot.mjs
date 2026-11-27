@@ -720,6 +720,13 @@ const scenes = {
     await page.locator('[data-guide="place"]').click();
     await page.waitForTimeout(400);
   },
+  // 初めてショップを開いたとき（N175。インベントリのボタンが光り、「買った物はインベントリに入ります」と「次へ」が出る）
+  guidefirstshop: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => window.__game.getState().markGuideDone('start'));
+    await page.getByRole('button', { name: 'ショップ' }).first().click();
+    await page.waitForTimeout(800);
+  },
   // 新しくプレイした直後（時間は止まり、依頼のボタンが光って「依頼が届いています。開いてみよう」が出る）
   startguide: async (page) => {
     await scenes.career(page);
