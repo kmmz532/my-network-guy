@@ -42,6 +42,25 @@ const runBuild = (untilResult) => {
 
 // 場面の一覧。page は開いたページ。game は開発中だけ window.__game（ゲームの状態）として使える
 // N51a の新しい地図の依頼を1件受注した状態（配置は確かめるための固定の位置）
+// ひな形から依頼を作って受注した現場（N76 の配置の撮影）。案内は終えたものにして、画面に重ねない
+const layoutScene = async (page, templateId, seed) => {
+  await scenes.career(page);
+  await page.evaluate(
+    ({ templateId, seed }) => {
+      const g = window.__game.getState();
+      for (const id of ['start', 'c001_direct_link', 'first.site', 'first.hud']) g.markGuideDone(id);
+      g.debugOfferFromTemplate(templateId, seed);
+      const s = window.__game.getState();
+      // 作った依頼は一覧の先頭に入る（変化形は baseId が元のひな形になるため、ID では探さない）
+      const offer = s.offers[0];
+      const reason = s.accept(offer.id, s.staff.map((m) => m.uid));
+      if (reason !== null) throw new Error(`受注できない: ${reason}`);
+    },
+    { templateId, seed },
+  );
+  await page.waitForTimeout(1200);
+};
+
 const newMapScene = (offerId, map, title, pcs, goals) => async (page) => {
   await scenes.career(page);
   await page.evaluate(
@@ -862,6 +881,13 @@ const scenes = {
   mapFactory: newMapScene('t_factory_shoot', 'factory', '工場の作業場', [[2, 1], [5, 1], [9, 1], [12, 1], [17, 1], [20, 1], [25, 1], [28, 1], [2, 10], [5, 10], [9, 10], [12, 10], [17, 10], [20, 10], [25, 10], [28, 10]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
   // 追加したマップ（カフェの客席）
   mapCafe: newMapScene('t_cafe_shoot', 'cafe', 'カフェの客席', [[2, 5], [6, 5], [10, 5], [13, 6]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
+  // 依頼先の配置（N76）。ひな形から依頼を作って受注し、机の並びと飾りの家具を撮る
+  layoutSmallLan: async (page) => layoutScene(page, 't_small_lan', 3),
+  layoutSmallLanLarge: async (page) => layoutScene(page, 't_printer_share_large', 5),
+  layoutTwoRooms: async (page) => layoutScene(page, 't_two_rooms_lan', 2),
+  layoutCafe: async (page) => layoutScene(page, 't_cafe', 4),
+  layoutClinic: async (page) => layoutScene(page, 't_clinic', 6),
+  layoutLibrary: async (page) => layoutScene(page, 't_library', 7),
   // 追加したマップ（診療所）
   mapClinic: newMapScene('t_clinic_shoot', 'clinic', '診療所', [[2, 2], [9, 2], [16, 2], [3, 6]], [{ type: 'ping_all', nodes: '$all_pcs' }]),
   // 追加したマップ（図書館）

@@ -6,6 +6,7 @@ import { applyMoney } from '../../sim/ledger';
 import { crewBlock } from '../../sim/crew';
 import { accept } from '../../sim/progress';
 import { START_GUIDE } from '../../sim/guide';
+import { instantiateTemplate } from '../../contracts/template';
 import { saveSettings } from '../../settings/settings';
 
 import { coreOf, focusedProject, offerEnv, refresh, unlockItems } from '../gameHelpers';
@@ -31,6 +32,8 @@ export interface DebugSlice {
   debugResetGuides: () => void;
   // デバッグ（N54）: 依頼を今すぐ引き直す（届く時刻を今に合わせ、判定を1回行う）
   debugRefreshOffers: () => void;
+  // ひな形と乱数の種を指定して、依頼を1件届ける（撮影で、依頼先の配置を確かめる・N76）
+  debugOfferFromTemplate: (templateId: string, seed: number) => void;
   // デバッグ（N54）: 施工中の案件を、時間を進めて最後まで進める（検収の結果が出るまで）
   debugFinishBuild: () => void;
   // デバッグ（N54）: 案内を指定の手順から出す（案件を受注して設計に入る）。受注できないときは理由を返し、何も変えない
@@ -85,6 +88,16 @@ export const createDebugSlice: StateCreator<GameState, [], [], DebugSlice> = (se
     setGuideShelved: (shelved) => set({ guideShelved: shelved }),
     debugResetGuides: () => set({ guidesDone: [], guidesHidden: [], guidesReplay: [] }),
     debugRefreshOffers: () => set((s) => refresh({ ...s, nextOfferMinute: s.clock.minute })),
+    debugOfferFromTemplate: (templateId, seed) =>
+      set((s) => {
+        const env = offerEnv(s.maps);
+        const template = env.templates.find((t) => t.id === templateId);
+        if (!template) throw new Error(`ひな形 ${templateId} がない`);
+        const map = env.mapOf(template.map);
+        if (!map) throw new Error(`地図 ${template.map} がない`);
+        const made = instantiateTemplate(template, map, s.offerSeq, seed);
+        return { offers: [{ ...made.offer, arrivedMinute: s.clock.minute }, ...s.offers], offerSeq: s.offerSeq + 1 };
+      }),
     debugFinishBuild: () => {
       // 施工の進みは時間で決まるため、既存の tick を速い速さで回す（速さは終わったら戻す）
       const before = get().speed;
