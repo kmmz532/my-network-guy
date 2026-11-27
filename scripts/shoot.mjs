@@ -434,25 +434,22 @@ const scenes = {
         ['down', 0, -1],
         ['left', 1, 0],
       ];
-      const spots = [];
+      // 椅子のマスが空いている場所を左上から探し、実際に置けた（通路をふさがない）場所に置く。置いてから、向きを決める（撮影用に直接の向きを入れる。回す操作の確かめは試験で行う）
       for (const [facing, dx, dy] of facings) {
-        let spot = null;
-        for (let y = 1; y < hq.height - 1 && !spot; y++) {
-          for (let x = 1; x < hq.width - 1 && !spot; x++) {
+        let done = false;
+        for (let y = 1; y < hq.height - 1 && !done; y++) {
+          for (let x = 1; x < hq.width - 1 && !done; x++) {
             const chair = [x + dx, y + dy];
-            if (isFloor(x, y) && isFloor(...chair) && !used.has(key(x, y)) && !used.has(key(...chair))) spot = [x, y, facing, chair];
+            if (!isFloor(x, y) || !isFloor(...chair) || used.has(key(x, y)) || used.has(key(...chair))) continue;
+            if (g.getState().placeFurniture('desk', x, y) !== null) continue;
+            const uid = g.getState().office.furniture.find((f) => f.x === x && f.y === y).uid;
+            g.setState({ office: { ...g.getState().office, furniture: g.getState().office.furniture.map((f) => (f.uid === uid ? { ...f, facing } : f)) } });
+            used.add(key(x, y));
+            used.add(key(...chair));
+            done = true;
           }
         }
-        if (!spot) throw new Error(`机を置く場所がない（${facing}）`);
-        used.add(key(spot[0], spot[1]));
-        used.add(key(...spot[3]));
-        spots.push(spot);
-      }
-      // 置いてから、向きを決める（撮影用に直接の向きを入れる。回す操作の確かめは試験で行う）
-      for (const [x, y, facing] of spots) {
-        if (g.getState().placeFurniture('desk', x, y) !== null) throw new Error('机を置けなかった');
-        const uid = g.getState().office.furniture.find((f) => f.x === x && f.y === y).uid;
-        g.setState({ office: { ...g.getState().office, furniture: g.getState().office.furniture.map((f) => (f.uid === uid ? { ...f, facing } : f)) } });
+        if (!done) throw new Error(`机を置く場所がない（${facing}）`);
       }
     });
     await page.waitForTimeout(500);
