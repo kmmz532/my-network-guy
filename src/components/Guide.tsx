@@ -2,13 +2,17 @@
 // 操作は縛らない。条件を満たしたら次の手順へ進み、最後まで行くと案件の案内を終える（guidesDone に入る）。「しまう」は終えず、案件の欄の札から戻せる（guidesHidden に入る）
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { usePhone } from '../ui/usePhone';
-import { guideFirsts, guides } from 'virtual:game-data';
+import { balance, guideFirsts, guides } from 'virtual:game-data';
+import { levelOf } from '../sim/level';
+import { toDate } from '../sim/clock';
+import { payrollOfState } from '../stores/gameHelpers';
+import { useSaveSession } from '../services/saveSession';
 import { lessonEntryOf } from '../sim/lessonCatalog';
 import { lessonCatalog } from '../stores/lessonCatalog';
 import { deviceCategory } from '../registry/query';
 import { t, tDyn } from '../i18n/t';
 import { loadSettings } from '../settings/settings';
-import { FIRST_PREFIX, guideProgress, nextFirstGuide, resolveRef, START_GUIDE, startGuideDue, type GuideState } from '../sim/guide';
+import { FIRST_PREFIX, GUIDE_FLAGS, type GuideFlag, guideProgress, nextFirstGuide, resolveRef, START_GUIDE, startGuideDue, type GuideState } from '../sim/guide';
 import { MODE_TRAITS } from '../company/company';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
@@ -134,6 +138,36 @@ export function Guide() {
         : null;
   const lessonGoals = lesson && check !== null && check.projectId === 'hq' ? check.goals.map((g) => g.ok) : [];
 
+  // 初めての出会いの案内の旗（sim/guide.ts の GUIDE_FLAGS）
+  const clock = useGameStore((s) => s.clock);
+  const companyExp = useGameStore((s) => s.companyExp);
+  const staff = useGameStore((s) => s.staff);
+  const office = useGameStore((s) => s.office);
+  const noticeCount = useGameStore((s) => s.notices.length);
+  const savedAt = useSaveSession((s) => s.savedAt);
+  const mapMoved = useUiStore((s) => s.mapMoved);
+  const hiringOpen = useUiStore((s) => s.hiring !== null);
+  const focusId = useGameStore((s) => s.focus);
+  const date = toDate(clock.minute, balance);
+  // 家具の旗は、始めから置いてある机・椅子では立てず、この画面を開いた後に増えたときに立てる
+  const furnitureAtStart = useRef(office.furniture.length);
+  const flagOn: Record<GuideFlag, boolean> = {
+    tested: project !== null && check !== null && check.projectId === project.id,
+    failed: project !== null && check !== null && check.projectId === project.id && check.goals.some((g) => !g.ok),
+    building: activeProjects.some((p) => p.phase === 'build'),
+    delivered: completed.length > 0,
+    levelup: levelOf(companyExp, balance) >= 2,
+    payday: date.year > 1 || date.month > 1,
+    lowfunds: staff.length > 0 && clock.money < payrollOfState({ staff, office }) * 2,
+    notice: noticeCount > 0,
+    saved: savedAt !== null,
+    moved: mapMoved,
+    site: focusId !== null && activeProjects.some((p) => p.id === focusId && !p.contract.inhouse),
+    inhouse: activeProjects.some((p) => p.contract.inhouse),
+    furniture: office.furniture.length > furnitureAtStart.current,
+    hiring: hiringOpen,
+  };
+  const flags = GUIDE_FLAGS.filter((f) => flagOn[f]);
   const nodes = project ? project.nodes : officeNodes;
   const links = project ? project.links : officeLinks;
   const state: GuideState = {
@@ -144,6 +178,7 @@ export function Guide() {
     testPassed: project !== null && check !== null && check.projectId === project.id && check.goals.length > 0 && check.goals.every((g) => g.ok),
     openRefs: windows.filter((w) => w.kind === 'device').flatMap((w) => w.tabs),
     deviceTabs,
+    flags,
     categoryOf: deviceCategory,
     commands: lessonCommands,
     framesOpened: windows.some((w) => w.kind === 'frames'),

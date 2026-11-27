@@ -10,7 +10,8 @@ import { join } from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
-const PORT = 5199;
+// 撮影のサーバーのポート。ほかの作業が 5199 を使っているときは、環境変数 SHOOT_PORT で変える
+const PORT = Number(process.env.SHOOT_PORT ?? 5199);
 const URL_BASE = `http://localhost:${PORT}/my-network-guy/`;
 const args = process.argv.slice(2);
 const landscape = args.includes('--phone-landscape');
@@ -725,6 +726,14 @@ const scenes = {
     await scenes.career(page);
     await page.evaluate(() => window.__game.getState().markGuideDone('start'));
     await page.getByRole('button', { name: 'ショップ' }).first().click();
+    await page.waitForTimeout(800);
+  },
+  // 初めてマップを拡大したとき（N175。「右ドラッグとホイールで動かせます」と「次へ」が出る）
+  guidefirstmove: async (page) => {
+    await scenes.career(page);
+    await page.evaluate(() => window.__game.getState().markGuideDone('start'));
+    await page.mouse.move(640, 360);
+    await page.mouse.wheel(0, -300);
     await page.waitForTimeout(800);
   },
   // 新しくプレイした直後（時間は止まり、依頼のボタンが光って「依頼が届いています。開いてみよう」が出る）

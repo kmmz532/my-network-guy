@@ -5,6 +5,17 @@ import { WINDOW_KINDS, type WindowKind } from '../ui/windows';
 // 案件に属さない、新しく始めた直後の案内の ID（guides.json の contract・文言 guide.start.<n>・guidesDone・guidesHidden に使う）
 export const START_GUIDE = 'start';
 
+// 初めての出会いの案内の条件 flag:<名前> に使う、ゲームの出来事の旗
+//   tested    いま見ている案件でテストを押した   failed   そのテストが不合格
+//   building  施工中の案件がある                  delivered  案件を1つ以上納品した
+//   levelup   会社のレベルが2以上                 payday   月末の給与を1回以上払った（2か月目に入った）
+//   lowfunds  資金が月の給与の2か月分を下回った   notice   通知が出ている
+//   saved     自動保存した                        moved    マップを動かした・拡大した
+//   site      現場の地図を見ている                inhouse  自社の案件を受注している
+//   furniture 家具を置いた                        hiring   採用の画面を開いている
+export const GUIDE_FLAGS = ['tested', 'failed', 'building', 'delivered', 'levelup', 'payday', 'lowfunds', 'notice', 'saved', 'moved', 'site', 'inhouse', 'furniture', 'hiring'] as const;
+export type GuideFlag = (typeof GUIDE_FLAGS)[number];
+
 // 初めての出会いの案内（N175）の ID の頭（guides.json の firsts の id に付ける。guidesDone・文言 guide.first.<id>.<n>）
 export const FIRST_PREFIX = 'first.';
 
@@ -33,6 +44,7 @@ export type Gesture = 'tap' | 'drag' | 'hold';
 //   gateway:<ref>      機器のゲートウェイを設定している
 //   service:<ref>       機器にサービス（http など）が動いている
 //   open:<ref>          機器の画面を開いている
+//   flag:<名前>         ゲームの出来事の旗（GUIDE_FLAGS）が立っている。画面が状態から求めて渡す
 //   next:<名前>         吹き出しの「次へ」を押した（見せるだけの手順。名前は読み手のための目印）
 //   tab:<ref>:<タブ>    機器の画面を開いていて、そのタブ（rear・config・service・terminal）を選んでいる
 //   placed:<カテゴリ>   そのカテゴリの機器を置いている
@@ -56,6 +68,7 @@ export type Condition =
   | { kind: 'service'; ref: string }
   | { kind: 'open'; ref: string }
   | { kind: 'next' }
+  | { kind: 'flag'; flag: GuideFlag }
   | { kind: 'tab'; ref: string; tab: string }
   | { kind: 'placed'; category: string }
   | { kind: 'owned'; device: string }
@@ -97,6 +110,8 @@ export const parseCondition = (text: string): Condition | null => {
       return { kind: 'open', ref: value };
     case 'next':
       return { kind: 'next' };
+    case 'flag':
+      return (GUIDE_FLAGS as readonly string[]).includes(value) ? { kind: 'flag', flag: value as GuideFlag } : null;
     case 'tab': {
       const m2 = /^(.+):(rear|config|service|terminal)$/.exec(value);
       return m2 ? { kind: 'tab', ref: m2[1], tab: m2[2] } : null;
@@ -145,6 +160,8 @@ export interface GuideState {
   testPassed: boolean;
   // 機器の画面が開いている機器の uid
   openRefs: string[];
+  // 立っている出来事の旗
+  flags?: readonly GuideFlag[];
   // 機器の画面ごとの、選んでいるタブ（機器の uid → タブ）
   deviceTabs?: Readonly<Record<string, string>>;
   // 機材のカテゴリ（ゲームデータから作る）
@@ -207,6 +224,8 @@ const conditionDone = (raw: Condition, s: GuideState): boolean => {
     }
     case 'open':
       return s.openRefs.includes(c.ref);
+    case 'flag':
+      return (s.flags ?? []).includes(c.flag);
     case 'next':
       // 「次へ」を押したことは、構成に残らない手順の記録（seen）で保つ
       return false;

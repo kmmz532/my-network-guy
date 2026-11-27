@@ -3,6 +3,7 @@
 import { Rectangle, type Application, type Container } from 'pixi.js';
 import type { GameMap } from '../data/schema';
 import { useGameStore } from '../stores/useGameStore';
+import { useUiStore } from '../stores/useUiStore';
 import { isPhoneNow } from '../ui/usePhone';
 import { fitCamera, fitZoom, panCamera, resizeCamera, screenToMap, stepZoom, zoomCamera, type Camera, type Size } from './camera';
 import { distOf, midOf, type Point } from './animation';
@@ -106,6 +107,7 @@ export class MapCamera {
     const cam = this.camera;
     if (!cam) return;
     this.set(zoomCamera(cam, this.mapSize(), this.view, stepZoom(cam.zoom, dir), anchor));
+    useUiStore.getState().markMapMoved();
   }
 
   fit(): void {
@@ -180,7 +182,10 @@ export class MapCamera {
   movePan(p: Point): boolean {
     const pan = this.pan;
     if (!pan) return false;
-    if (pan.active) this.panBy(p.x - pan.last.x, p.y - pan.last.y);
+    if (pan.active) {
+      this.panBy(p.x - pan.last.x, p.y - pan.last.y);
+      useUiStore.getState().markMapMoved();
+    }
     pan.last = p;
     return pan.active;
   }

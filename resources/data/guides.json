@@ -128,6 +128,121 @@
       "id": "funds",
       "when": "window:funds",
       "steps": [{ "target": "-", "done": "next:funds" }]
+    },
+    {
+      "id": "move_map",
+      "when": "flag:moved",
+      "steps": [
+        { "target": "-", "done": "next:pc" },
+        { "target": "-", "done": "next:phone" }
+      ]
+    },
+    {
+      "id": "test",
+      "when": "flag:tested",
+      "steps": [
+        { "target": "-", "done": "next:dots" },
+        { "target": "-", "done": "next:check" }
+      ]
+    },
+    {
+      "id": "test_fail",
+      "when": "flag:failed",
+      "steps": [
+        { "target": "-", "done": "next:reason" },
+        { "target": "test", "done": "next:retry" }
+      ]
+    },
+    {
+      "id": "build",
+      "when": "flag:building",
+      "steps": [
+        { "target": "-", "done": "next:what" },
+        { "target": "-", "done": "next:meanwhile" }
+      ]
+    },
+    {
+      "id": "delivered",
+      "when": "flag:delivered",
+      "steps": [
+        { "target": "-", "done": "next:stars" },
+        { "target": "hud.level", "done": "next:exp" }
+      ]
+    },
+    {
+      "id": "site",
+      "when": "flag:site",
+      "steps": [
+        { "target": "place", "done": "next:back" }
+      ]
+    },
+    {
+      "id": "inventory",
+      "when": "window:inventory",
+      "steps": [
+        { "target": "-", "done": "next:list" },
+        { "target": "-", "done": "next:desk" }
+      ]
+    },
+    {
+      "id": "inhouse",
+      "when": "flag:inhouse",
+      "steps": [
+        { "target": "-", "done": "next:own" }
+      ]
+    },
+    {
+      "id": "furniture",
+      "when": "flag:furniture",
+      "steps": [
+        { "target": "-", "done": "next:range" },
+        { "target": "-", "done": "next:rotate" }
+      ]
+    },
+    {
+      "id": "hiring",
+      "when": "flag:hiring",
+      "steps": [
+        { "target": "-", "done": "next:payroll" },
+        { "target": "-", "done": "next:seat" }
+      ]
+    },
+    {
+      "id": "payday",
+      "when": "flag:payday",
+      "steps": [
+        { "target": "hud.money", "done": "next:paid" }
+      ]
+    },
+    {
+      "id": "lowfunds",
+      "when": "flag:lowfunds",
+      "steps": [
+        { "target": "hud.money", "done": "next:low" },
+        { "target": "offers", "done": "next:choose" }
+      ]
+    },
+    {
+      "id": "levelup",
+      "when": "flag:levelup",
+      "steps": [
+        { "target": "hud.level", "done": "next:unlock" }
+      ]
+    },
+    {
+      "id": "notice",
+      "when": "flag:notice",
+      "steps": [
+        { "target": "-", "done": "next:open" }
+      ]
+    },
+    {
+      "id": "saved",
+      "when": "flag:saved",
+      "steps": [
+        { "target": "-", "done": "next:auto" },
+        { "target": "-", "done": "next:export" }
+      ]
     }
   ]
 }
