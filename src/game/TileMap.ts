@@ -2,16 +2,13 @@
 import { Container, Graphics, Sprite } from 'pixi.js';
 import type { GameMap } from '../data/schema';
 import { spriteOf, texture } from './sprites';
-import { tileKind, VOID_KIND } from '../data/tileKind';
+import { isWall, tileKind, VOID_KIND } from '../data/tileKind';
 
 // 柱と、柱と同じ箱の形で描く障害物（カウンター・本棚・倉庫の棚）。床ではない・壁でもない。隣の壁の上面や影を出さない。
 // 柱は色で塗り、ほかは天面（tile/<種類>_top）と下の段の正面（tile/<種類>_face）の絵を敷く
 const BLOCK_KINDS: ReadonlySet<string> = new Set(['pillar', 'counter', 'shelf', 'rack']);
 const isPillar = (kind: string | undefined): boolean => kind !== undefined && BLOCK_KINDS.has(kind);
 
-// 奥の壁に掛ける物。壁として扱い、真下が床のときに壁の正面へ描く
-const wallDecor = new Set(['window', 'clock', 'poster', 'whiteboard']);
-const isWall = (kind: string | undefined): boolean => kind === 'wall' || (kind !== undefined && wallDecor.has(kind));
 
 // 左右・手前の壁は上面（厚み）だけが見える（ART.md「視点」）
 export const CAP = 5;

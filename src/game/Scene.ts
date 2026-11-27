@@ -24,6 +24,7 @@ import { balance } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import type { NetNode } from '../network/types';
 import { CAP as WALL_CAP, drawTileMap } from './TileMap';
+import { siteOutlineOf } from './siteOutline';
 import { bindMapCommands } from './mapControl';
 import { addKeyLayer, captureKeys } from '../input/keyRouter';
 import { MapCamera } from './MapCamera';
@@ -584,12 +585,10 @@ export class Scene {
 
     const project = this.project();
     if (!project) return;
-    // 現場の地図の縁に、依頼の色の細い枠を描く（N170）。左右と手前の壁は、マスの部屋側の上面（CAP）だけが見えるため、その外側に合わせる
+    // 現場の地図の縁に、依頼の色の細い枠を描く（N170）。見えている部屋の部分の外周に沿って引く（L 字の部屋でも、何もない場所を囲まない）
     if (map.id !== 'hq') {
-      const left = ts - WALL_CAP - SITE_FRAME_PX / 2;
-      const right = (map.width - 1) * ts + WALL_CAP + SITE_FRAME_PX / 2;
-      const bottom = (map.height - 1) * ts + WALL_CAP + SITE_FRAME_PX / 2;
-      this.g.rect(left, -SITE_FRAME_PX / 2, right - left, bottom + SITE_FRAME_PX / 2).stroke({ width: SITE_FRAME_PX, color: SITE_FRAME_COLOR });
+      for (const seg of siteOutlineOf(map, WALL_CAP)) this.g.moveTo(seg.x1, seg.y1).lineTo(seg.x2, seg.y2);
+      this.g.stroke({ width: SITE_FRAME_PX, color: SITE_FRAME_COLOR });
     }
     const building = project.phase === 'build';
     const isBuilt = (uid: string, kind: 'nodes' | 'links') => project.built[kind].includes(uid);

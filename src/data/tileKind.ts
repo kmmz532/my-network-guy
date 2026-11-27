@@ -4,6 +4,10 @@
 export const VOID_CHAR = ' ';
 export const VOID_KIND = 'void';
 
+// 壁のマス。奥の壁に掛ける物（窓・時計など）も壁として扱い、真下が床のときに壁の正面へ描く（game/TileMap.ts）
+const WALL_DECOR: ReadonlySet<string> = new Set(['window', 'clock', 'poster', 'whiteboard']);
+export const isWall = (kind: string | undefined): boolean => kind === 'wall' || (kind !== undefined && WALL_DECOR.has(kind));
+
 // 通れず、機器・家具も置けないマス（壁・壁に掛ける物・柱・カウンター・本棚・倉庫の棚）。判定はここだけで行う（N51b）
 const BLOCKING_KINDS: ReadonlySet<string> = new Set(['wall', 'pillar', 'counter', 'shelf', 'rack', 'window', 'clock', 'poster', 'whiteboard']);
 export const isBlocked = (kind: string | undefined): boolean => kind !== undefined && BLOCKING_KINDS.has(kind);
