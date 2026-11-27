@@ -370,6 +370,13 @@ const validateReferences = (data: GameData, spriteDir: string): void => {
       `guides.json: 固定案件 ${g.contract} がない`,
     );
   }
+  // 機器の分類ごとに、初めて置いたときの案内（firsts の cat_<分類>）が要る。新しい分類を足したら、案内も書く（書き忘れを止める）
+  for (const category of new Set(data.devices.map((d) => d.category))) {
+    ensure(
+      data.guides.some((g) => g.contract === `${FIRST_PREFIX}cat_${category}`),
+      `guides.json: 機器の分類 ${category} の初めての案内（firsts の cat_${category}）がない`,
+    );
+  }
 
   // 教材: ref の重複・配線の端の機器と口・機材とケーブルの ID を確かめる
   unique(data.lessons, (l) => l.id, 'lessons/');

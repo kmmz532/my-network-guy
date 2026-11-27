@@ -243,6 +243,66 @@
         { "target": "-", "done": "next:auto" },
         { "target": "-", "done": "next:export" }
       ]
+    },
+    {
+      "id": "cat_access_point",
+      "when": "placed:access_point",
+      "steps": [{ "target": "@access_point", "done": "next:about" }]
+    },
+    {
+      "id": "cat_firewall",
+      "when": "placed:firewall",
+      "steps": [{ "target": "@firewall", "done": "next:about" }]
+    },
+    {
+      "id": "cat_home_router",
+      "when": "placed:home_router",
+      "steps": [{ "target": "@home_router", "done": "next:about" }]
+    },
+    {
+      "id": "cat_l2_switch",
+      "when": "placed:l2_switch",
+      "steps": [{ "target": "@l2_switch", "done": "next:about" }]
+    },
+    {
+      "id": "cat_l3_switch",
+      "when": "placed:l3_switch",
+      "steps": [{ "target": "@l3_switch", "done": "next:about" }]
+    },
+    {
+      "id": "cat_load_balancer",
+      "when": "placed:load_balancer",
+      "steps": [{ "target": "@load_balancer", "done": "next:about" }]
+    },
+    {
+      "id": "cat_pc",
+      "when": "placed:pc",
+      "steps": [{ "target": "@pc", "done": "next:about" }]
+    },
+    {
+      "id": "cat_printer",
+      "when": "placed:printer",
+      "steps": [{ "target": "@printer", "done": "next:about" }]
+    },
+    {
+      "id": "cat_router",
+      "when": "placed:router",
+      "steps": [{ "target": "@router", "done": "next:about" }]
+    },
+    {
+      "id": "cat_router_switch",
+      "when": "placed:router_switch",
+      "steps": [{ "target": "@router_switch", "done": "next:about" }]
+    },
+    {
+      "id": "cat_server",
+      "when": "placed:server",
+      "steps": [{ "target": "@server", "done": "next:about" }]
+    },
+    {
+      "id": "cat_uplink",
+      "when": "placed:uplink",
+      "steps": [{ "target": "@uplink", "done": "next:about" }]
     }
   ]
 }
