@@ -27,6 +27,15 @@ export const GLOSSARY_OF_FAILURE: Partial<Record<FailureReason, string>> = {
 
 // 教材の案内の手順（文言のキー）ごとに、その手順で初めて出す用語。対応のない手順は説明を出さない
 export const GLOSSARY_OF_STEP: Record<string, string> = {
+  // 最初の案件の流れで初めて出る基本の用語（N165）
+  'guide.c001_direct_link.2': 'lan_cable',
+  'guide.c001_direct_link.6': 'ip_address',
+  'guide.c001_direct_link.10': 'ping',
+  'guide.c002_small_office.2': 'switch',
+  'guide.c003_departments.1': 'router',
+  'guide.c003_departments.8': 'gateway',
+  'guide.c004_web_server.1': 'server',
+  'guide.c004_web_server.2': 'service',
   'lesson.bgp_two_isps.step.2': 'as_number',
   'lesson.bgp_two_isps.step.3': 'ebgp_ibgp',
   'lesson.bgp_two_isps.step.5': 'as_path',
