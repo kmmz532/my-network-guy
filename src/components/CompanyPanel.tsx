@@ -48,14 +48,16 @@ export function ExpGauge({ companyExp, width }: { companyExp: number; width: num
     const id = window.setTimeout(() => setGain((g) => (g && g.at === at ? null : g)), GAIN_MS);
     return () => window.clearTimeout(id);
   }, [companyExp]);
+  // 増えた経験値（+N）は、棒の中では高さ（8 px）で切れて読めないため、棒のすぐ上の右寄せに出す
   return (
-    <ProgressBar fraction={fraction} color={GAUGE_COLOR} size="m" layout={{ width }}>
+    <span style={{ position: 'relative', display: 'inline-block' }}>
+      <ProgressBar fraction={fraction} color={GAUGE_COLOR} size="m" layout={{ width }} />
       {gain && (
-        <span style={{ position: 'absolute', right: 2, top: '50%', transform: 'translateY(-50%)', lineHeight: 1, whiteSpace: 'nowrap', textShadow: '0 0 2px #3b2a33, 0 0 1px #3b2a33' }}>
+        <span style={{ position: 'absolute', right: 0, bottom: 'calc(100% + 1px)', lineHeight: 1, whiteSpace: 'nowrap', textShadow: '0 0 2px #3b2a33, 0 0 1px #3b2a33', pointerEvents: 'none' }}>
           <Text as="span" size="s" bold>+{gain.amount}</Text>
         </span>
       )}
-    </ProgressBar>
+    </span>
   );
 }
 
