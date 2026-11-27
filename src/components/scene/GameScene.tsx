@@ -11,6 +11,7 @@ import { loadSettings } from '../../settings/settings';
 import { useGameStore } from '../../stores/useGameStore';
 import { usePhone } from '../../ui/usePhone';
 import { FocusTransition } from '../FocusTransition';
+import { PlaceLabel } from '../PlaceLabel';
 import { FocusSwitch } from '../FocusSwitch';
 import { Guide } from '../Guide';
 import Header from '../Header';
@@ -104,6 +105,7 @@ const GameScene = () => {
         <FocusSwitch />
         <TaskPanel />
       </div>
+      <PlaceLabel top={hudTop} />
       <Windows />
       <PortMenu />
       <ContextMenuLayer />

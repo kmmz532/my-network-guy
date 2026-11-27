@@ -462,7 +462,10 @@ export class Scene {
     // 設定で切っているときは、色を変えない（白）
     const tint: Rgb = loadSettings().dayTint ? dayTintOf(s.clock.minute % dayMinutes) : { r: 1, g: 1, b: 1 };
     // 背景（マップの外の青）も、同じ時刻の色にする。色は今の背景の色（#2f4f8f）に掛ける
-    const bg = { r: 0x2f * tint.r, g: 0x4f * tint.g, b: 0x8f * tint.b };
+    // 現場（自社オフィスでない地図）では、マップの外を茶色にして、自社オフィスと見分ける（N170）
+    const site = map !== null && map.id !== 'hq';
+    const base = site ? SITE_BG : OFFICE_BG;
+    const bg = { r: base.r * tint.r, g: base.g * tint.g, b: base.b * tint.b };
     const bgHex = toHex({ r: bg.r / 255, g: bg.g / 255, b: bg.b / 255 });
     this.app.renderer.background.color = bgHex;
     if (!map) {
@@ -581,6 +584,13 @@ export class Scene {
 
     const project = this.project();
     if (!project) return;
+    // 現場の地図の縁に、依頼の色の細い枠を描く（N170）。左右と手前の壁は、マスの部屋側の上面（CAP）だけが見えるため、その外側に合わせる
+    if (map.id !== 'hq') {
+      const left = ts - WALL_CAP - SITE_FRAME_PX / 2;
+      const right = (map.width - 1) * ts + WALL_CAP + SITE_FRAME_PX / 2;
+      const bottom = (map.height - 1) * ts + WALL_CAP + SITE_FRAME_PX / 2;
+      this.g.rect(left, -SITE_FRAME_PX / 2, right - left, bottom + SITE_FRAME_PX / 2).stroke({ width: SITE_FRAME_PX, color: SITE_FRAME_COLOR });
+    }
     const building = project.phase === 'build';
     const isBuilt = (uid: string, kind: 'nodes' | 'links') => project.built[kind].includes(uid);
 
@@ -759,3 +769,10 @@ const cableWidthOf = (nodes: readonly { uid: string; device: string }[], link: {
   const speed = Math.min(cablesById[link.cable].bandwidthMbps, speedAt(link.a), speedAt(link.b));
   return speed <= 100 ? 1 : speed >= 10000 ? 6 : 3;
 };
+
+// マップの外の地の色（時刻の色を掛ける前）。自社オフィスは青、現場は茶色（N170）
+const OFFICE_BG = { r: 0x2f, g: 0x4f, b: 0x8f };
+const SITE_BG = { r: 0x5a, g: 0x42, b: 0x2c };
+// 現場の地図の縁の枠（依頼の色・太さはマップの px）
+const SITE_FRAME_COLOR = 0xf5c542;
+const SITE_FRAME_PX = 3;
