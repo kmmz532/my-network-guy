@@ -1277,6 +1277,45 @@ const scenes = {
     });
     await page.waitForTimeout(1000);
   },
+  // 背面のタブで口を選んだところ（N139。口の停止と、モードと VLAN の設定が出る）
+  rearport: async (page) => {
+    await scenes.vlanSetup(page);
+    await page.getByRole('tab', { name: '背面' }).click();
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      const w = g.windows.find((x) => x.kind === 'device');
+      g.placeWindow(w.id, { x: 760, y: 40, w: 500, h: 620 });
+    });
+    await page.getByText('つながっていない').first().click();
+    await page.waitForTimeout(300);
+    await page.waitForTimeout(200);
+  },
+  // VLAN のタブ（N139。VLAN ごとの名前・アクセスの口・トランクの口）
+  vlantab: async (page) => {
+    await scenes.vlanSetup(page);
+    await page.getByRole('tab', { name: 'VLAN' }).click();
+    await page.waitForTimeout(500);
+  },
+  // VLAN の撮影の準備: スイッチを置き、口 0〜1 を VLAN 10、口 2 を VLAN 20、口 7 をトランクにして、VLAN 10 に名前を付ける
+  vlanSetup: async (page) => {
+    await scenes.sandbox(page);
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      g.buy('l2_switch_8p');
+      const reason = window.__game.getState().place('l2_switch_8p', 6, 6);
+      if (reason) throw new Error(`置けない: ${reason}`);
+      const s = window.__game.getState();
+      const node = s.office.nodes.find((n) => n.device === 'l2_switch_8p');
+      s.openWindow('device', node.uid);
+    });
+    await page.getByRole('tab', { name: 'ターミナル' }).click();
+    const input = page.locator('input[aria-label]').last();
+    for (const line of ['enable', 'configure terminal', 'vlan 10', 'name eigyo', 'exit', 'vlan 20', 'exit', 'interface g0/0', 'switchport mode access', 'switchport access vlan 10', 'exit', 'interface g0/1', 'switchport mode access', 'switchport access vlan 10', 'exit', 'interface g0/2', 'switchport mode access', 'switchport access vlan 20', 'exit', 'interface g0/7', 'switchport mode trunk', 'end']) {
+      await input.fill(line);
+      await input.press('Enter');
+    }
+    await page.waitForTimeout(300);
+  },
   // 修理の依頼（r002）を受けて、ルーターの既定のゲートウェイを直し、納品した結果画面（変更の数の行）
   repairresult: async (page) => {
     await scenes.career(page);

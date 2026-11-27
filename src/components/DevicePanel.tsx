@@ -9,6 +9,7 @@ import { isL2Category, seenSourcesOf, type NetworkState } from '../network/publi
 import { focusedProject, netOfDevice, useGameStore, type GameState } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
 import { RearTab as DeviceRear } from './DeviceRear';
+import { VlanTab } from './VlanTab';
 import { DeviceSettings } from './DeviceSettings';
 import { TrimmedIcon } from './Icon';
 import { TerminalTab } from './TerminalTab';
@@ -24,7 +25,7 @@ import { services } from '../registry/services';
 import { can } from '../network/capabilities';
 import { termOfSettings, termsOfLesson } from '../network/glossaryOf';
 
-type Tab = 'rear' | 'config' | 'service' | 'terminal';
+type Tab = 'rear' | 'vlan' | 'config' | 'service' | 'terminal';
 // 機器ごとの、最後に開いた欄。窓を開き直したり機器を押し直したりしても、その欄から開く（初めての機器は背面）
 const lastTab = new Map<string, Tab>();
 
@@ -107,7 +108,9 @@ function DeviceView({
   const isServer = category === CATEGORY.server;
   // 設定できるもの（IPアドレスなど）がない機器（L2 スイッチ）は、設定タブを出さない
   const hasConfig = !isL2Category(category);
-  const tabIds: Tab[] = ['rear', ...(hasConfig ? (['config'] as const) : []), ...(isServer ? (['service'] as const) : []), 'terminal'];
+  // VLAN のタブは、口に VLAN を設定できる機器（switchport）だけに出す
+  const hasVlan = can(node.device, 'switchport');
+  const tabIds: Tab[] = ['rear', ...(hasVlan ? (['vlan'] as const) : []), ...(hasConfig ? (['config'] as const) : []), ...(isServer ? (['service'] as const) : []), 'terminal'];
   const [tab, setTabState] = useState<Tab>(() => pickTab(lastTab.get(node.uid), tabIds));
   const current = pickTab(tab, tabIds);
   // 選んでいるタブを、案内の条件のためにストアに置く
@@ -146,6 +149,7 @@ function DeviceView({
       <Tabs<Tab>
         items={[
           { id: 'rear', label: t('ui.panel.tab.rear') },
+          ...(hasVlan ? [{ id: 'vlan' as const, label: t('ui.panel.tab.vlan') }] : []),
           ...(hasConfig ? [{ id: 'config' as const, label: t('ui.panel.tab.config'), guide: `tab.${node.uid}.config` }] : []),
           ...(isServer ? [{ id: 'service' as const, label: t('ui.panel.tab.service') }] : []),
           { id: 'terminal', label: t('ui.panel.tab.terminal') },
@@ -164,6 +168,7 @@ function DeviceView({
           <DeviceSettings node={node} readOnly={readOnly} detailOpen={detailOpen} onToggleDetail={onToggleDetail} onError={setError} />
         )}
         {current === 'service' && isServer && <ServiceTab node={node} nodes={nodes} state={netState} readOnly={readOnly} onError={setError} />}
+        {current === 'vlan' && hasVlan && <VlanTab node={node} />}
         {current === 'terminal' && <TerminalTab node={node} nodes={nodes} links={links} state={netState} readOnly={readOnly} />}
       </TabPanel>
     </div>

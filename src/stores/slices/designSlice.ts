@@ -48,6 +48,8 @@ export interface DesignSlice {
   setPo: (uid: string, channel: number, ip: string, prefix?: number) => string | null;
   setPortMode: (uid: string, port: number, mode: PortModeChange) => string | null;
   setPortSecurity: (uid: string, port: number, change: MacListOp) => string | null;
+  // 口の停止（shutdown）。背面のタブで口を押したときの設定（NET.md §8）
+  setPortShutdown: (uid: string, port: number, shut: boolean) => string | null;
   setWirelessMacs: (uid: string, change: MacListOp) => string | null;
   setGateway: (uid: string, gateway: string | null) => string | null;
   setRouting: (uid: string, change: { proto: 'rip' | 'ospf'; on: boolean; ip?: string; wildcard?: string; area?: number; process?: number | null }) => string | null;
@@ -202,6 +204,7 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
     setPo: (uid, channel, ip, prefix = 24) => dispatch({ kind: 'config', uid, change: { kind: 'po', channel, ip, prefix } }, tileOf(uid)),
     setPortMode: (uid, port, mode) => dispatch({ kind: 'config', uid, change: { kind: 'portMode', port, mode } }, tileOf(uid)),
     setWirelessMacs: (uid, change) => dispatch({ kind: 'config', uid, change: { kind: 'wirelessMacs', change } }, tileOf(uid)),
+    setPortShutdown: (uid, port, shut) => dispatch({ kind: 'config', uid, change: { kind: 'portShutdown', port, shut } }, tileOf(uid)),
     setPortSecurity: (uid, port, change) => dispatch({ kind: 'config', uid, change: { kind: 'portSecurity', port, change } }, tileOf(uid)),
     setGateway: (uid, gateway) => dispatch({ kind: 'config', uid, change: { kind: 'gateway', gateway } }, tileOf(uid)),
     setVrrp: (uid, change) => dispatch({ kind: 'config', uid, change: { kind: 'vrrp', change } }, tileOf(uid)),

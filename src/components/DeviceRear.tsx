@@ -3,7 +3,7 @@
 // つながったポートのプラグをドラッグすると、同じ背面の空きポートへ挿し替える（4 px 未満の動きは押したものとして扱う）。
 import { trackDrag } from '../input/trackDrag';
 import { nodeLabel } from './nodeLabel';
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { Fragment, useEffect, useRef, useState, type PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { spriteOf, spriteUrl } from '../game/sprites';
 import { t, tDyn } from '../i18n/t';
@@ -25,6 +25,8 @@ import { Swatch } from './ui/Swatch';
 import { Led } from './ui/Led';
 import { Text } from './ui/Text';
 import { MacListField } from './MacListField';
+import { VlanPortField } from './VlanPortField';
+import { Checkbox } from './ui/Checkbox';
 import { can } from '../network/capabilities';
 import { macOf } from '../network/mac';
 import { portHoverAt, replugTargetAt, swapTargetAt, type PortBox, type PortHover } from './rearDrag';
@@ -69,6 +71,7 @@ export function RearTab({ node, nodes, links, readOnly, onError }: Props) {
   const removeLink = useGameStore((s) => s.removeLink);
   const replug = useGameStore((s) => s.replug);
   const swapPlugs = useGameStore((s) => s.swapPlugs);
+  const setPortShutdown = useGameStore((s) => s.setPortShutdown);
   const [selected, setSelected] = useState<number | null>(null);
   const [replugging, setReplugging] = useState<{ linkUid: string; end: End } | null>(null);
   // マウスを乗せているポート（明るく描く）
@@ -309,7 +312,8 @@ ${rest}`);
         const peer = link ? peerOf(link) : undefined;
         const peerName = peer?.peer ? `${nodeLabel(useGameStore.getState(), peer.peer, nodes)} ${portLabel(deviceCategory(peer.peer.device), peer.end.port)}` : '';
         return (
-          <ListRow key={p} layout={{ marginBottom: 3 }} active={selected === p} onClick={() => press(p)}>
+          <Fragment key={p}>
+          <ListRow layout={{ marginBottom: 3 }} active={selected === p} onClick={() => press(p)}>
             <div>
               <Text as="span" bold layout={{ marginRight: 6 }}>{portLabel(category, p)}</Text>
               <Text as="span" tone={link ? 'ok' : 'note'}>{link ? peerName : t('ui.rear.free')}</Text>
@@ -329,6 +333,16 @@ ${rest}`);
               </Text>
             )}
           </ListRow>
+          {/* 選んだ口の設定（停止・モードと VLAN。NET.md §8）は、その口の行のすぐ下に出す */}
+          {!active && selected === p && (
+            <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <Checkbox label={t('ui.rear.shutdownPort')} checked={node.ports.find((c) => c.port === p)?.shutdown === true} disabled={readOnly || node.configLocked === true} onChange={(on) => onError(setPortShutdown(node.uid, p, on))}>
+                {t('ui.rear.shutdownPort')}
+              </Checkbox>
+              {can(node.device, 'switchport') && <VlanPortField node={node} port={p} readOnly={readOnly || node.configLocked === true} onError={onError} />}
+            </div>
+          )}
+          </Fragment>
         );
       })}
 
