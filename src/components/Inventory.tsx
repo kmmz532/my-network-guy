@@ -6,7 +6,8 @@ import { shop as catalogShop } from 'virtual:game-data';
 import { t, tDyn } from '../i18n/t';
 import { focusedProject } from '../stores/useGameStore';
 import { inventoryItems, inventoryMode, type InventoryItem } from '../sim/inventory';
-import { Tabs, TabPanel } from './Tabs';
+import { Tabs } from './Tabs';
+import { TabbedBody } from './TabbedBody';
 import { mapViewOf } from '../game/mapView';
 import { useGameStore } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
@@ -84,7 +85,9 @@ export function InventoryBody() {
   };
   return (
     // ウィンドウの高さいっぱいに枠を伸ばし、品目は幅に合わせて複数行に並べる
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+    <TabbedBody
+      scrollKey={`${tab}:${query}`}
+      tabs={
       <Tabs
         idPrefix="inventory-tab"
         ariaLabel={t('ui.inventory.title')}
@@ -98,15 +101,16 @@ export function InventoryBody() {
         tone="shop"
         style={{ paddingLeft: 8 }}
       />
-      <TabPanel tone="shop" id="inventory-panel" labelledBy={`inventory-tab-${tab}`} layout={{ flex: 1 }}>
-        <SearchField value={query} onChange={setQuery} />
+      }
+      panel={{ tone: 'shop', id: 'inventory-panel', labelledBy: `inventory-tab-${tab}` }}
+      head={<SearchField value={query} onChange={setQuery} />}
+    >
         {query !== '' && items.length === 0 ? (
           <div style={{ padding: 8 }}>{t('ui.search.none')}</div>
         ) : (
           <Inventory layout="grid" items={items} owned={owned} sandbox={sandbox} placing={placing} onPick={pick} onShop={() => useGameStore.getState().openWindow('shop', '')} />
         )}
-      </TabPanel>
-    </div>
+    </TabbedBody>
   );
 }
 

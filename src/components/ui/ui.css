@@ -644,6 +644,16 @@ input.ui-text-input--full {
   zoom: var(--ui-scale, 1);
 }
 
+/* 中身がスクロールを持つウィンドウ（scroll="inner"）。本体は動かさず、中身をウィンドウの高さに合わせる */
+.ui-window__body--inner {
+  overflow-y: hidden;
+}
+
+.ui-window__content--inner {
+  height: calc(100% / var(--ui-scale, 1));
+  min-height: 0;
+}
+
 /* 右下の取っ手は大きさを変えられることの目印（動きは右下の角の判定が受け持つ） */
 .ui-window__grip {
   position: absolute;

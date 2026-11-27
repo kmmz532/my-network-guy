@@ -168,6 +168,8 @@ export function Windows() {
               />
             ) : null
           }
+          // インベントリ・店・依頼は、中身（TabbedBody）がスクロールを持つ
+          scroll={w.kind === 'offers' || w.kind === 'shop' || w.kind === 'inventory' ? 'inner' : undefined}
           rect={narrow ? narrowRect(vp) : clampRect(w, vp)}
           movable={!narrow}
           // スマホもパソコンと同じく、右上の×で閉じる

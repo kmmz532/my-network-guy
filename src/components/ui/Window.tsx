@@ -17,11 +17,14 @@ interface Props {
   frameProps?: Pick<HTMLAttributes<HTMLDivElement>, 'onPointerDownCapture' | 'onMouseDown'>;
   barProps?: Pick<HTMLAttributes<HTMLDivElement>, 'onPointerDown' | 'onPointerMove' | 'onPointerUp' | 'onPointerCancel' | 'onAuxClick'>;
   handles?: ReactNode;
+  // inner: 中身（TabbedBody）がスクロールを持つ。本体はスクロールせず、中身の高さをウィンドウの高さに合わせる。
+  // 上に固定する部分（タブ・検索・並べ替え）があるウィンドウ（インベントリ・店・依頼）だけが使い、ほかは本体ごとスクロールする（指定なし）
+  scroll?: 'inner';
   layout?: Layout;
   children: ReactNode;
 }
 
-export function Window({ title, closeLabel, closeText, onClose, rect, movable, tabs, frameProps, barProps, handles, layout, children }: Props) {
+export function Window({ title, closeLabel, closeText, onClose, rect, movable, tabs, frameProps, barProps, handles, scroll, layout, children }: Props) {
   return (
     <div role="dialog" className="ui-window" style={{ ...layoutStyle(layout), left: rect.x, top: rect.y, width: rect.w, height: rect.h }} {...frameProps}>
       <div className={`ui-window__bar${movable ? ' ui-window__bar--movable' : ''}`} {...barProps}>
@@ -40,9 +43,9 @@ export function Window({ title, closeLabel, closeText, onClose, rect, movable, t
         </div>
       </div>
       {tabs}
-      <div className="ui-window__body">
+      <div className={`ui-window__body${scroll === 'inner' ? ' ui-window__body--inner' : ''}`}>
         {/* 中身はウィンドウの高さいっぱいまで伸ばせる（インベントリの枠など）。zoom を掛けるため、高さは倍率で割る */}
-        <div className="ui-window__content">{children}</div>
+        <div className={`ui-window__content${scroll === 'inner' ? ' ui-window__content--inner' : ''}`}>{children}</div>
       </div>
       {handles}
       {movable && <div aria-hidden="true" className="ui-window__grip" />}

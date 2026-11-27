@@ -15,7 +15,8 @@ import { Icon } from './Icon';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Text } from './ui/Text';
-import { Tabs, TabPanel } from './Tabs';
+import { Tabs } from './Tabs';
+import { TabbedBody } from './TabbedBody';
 import { matchesQuery } from '../ui/search';
 import { SearchField } from './SearchField';
 import { ItemIcon as SharedItemIcon } from './ItemIcon';
@@ -54,7 +55,9 @@ export function ShopBody() {
   const furnitureRows = furnitureIds.filter((id) => matchesQuery(query, [tDyn(`furniture.${id}.name`), tDyn(`furniture.${id}.kana`), id]));
 
   return (
-    <div>
+    <TabbedBody
+      scrollKey={`${section}:${query}`}
+      tabs={
       <Tabs
         idPrefix="shop-tab"
         ariaLabel={t('ui.shop.title')}
@@ -64,9 +67,10 @@ export function ShopBody() {
         tone="shop"
         style={{ paddingLeft: 8 }}
       />
-      <TabPanel tone="shop" id="shop-panel" labelledBy={`shop-tab-${section}`}>
-        <SearchField value={query} onChange={setQuery} />
-        <div style={{ maxHeight: 'min(60vh, 480px)', overflowY: 'auto', paddingRight: 4 }}>
+      }
+      panel={{ tone: 'shop', id: 'shop-panel', labelledBy: `shop-tab-${section}` }}
+      head={<SearchField value={query} onChange={setQuery} />}
+    >
           {section === 'device' &&
             deviceRows.map((id) => {
               const d = deviceDef(id);
@@ -131,8 +135,6 @@ export function ShopBody() {
                 </Card>
               );
             })}
-        </div>
-      </TabPanel>
-    </div>
+    </TabbedBody>
   );
 }

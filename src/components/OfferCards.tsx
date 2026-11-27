@@ -30,6 +30,7 @@ import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Text } from './ui/Text';
 import { Badge } from './ui/Badge';
+import { TabbedBody } from './TabbedBody';
 
 // 依頼の一覧。Enter は一番上の依頼の受注（主のボタン）
 
@@ -58,7 +59,11 @@ export function OfferBody({ onClose }: { onClose: () => void }) {
   const companyExp = useGameStore((s) => s.companyExp);
 
   return (
-    <div style={{ minWidth: 300 }}>
+    <TabbedBody
+      panel={{ tone: 'window' }}
+      scrollKey={sort}
+      head={
+      <div style={{ minWidth: 300 }}>
       <Text tone="soft" size="sm" layout={{ marginBottom: 8 }}>
         {burst >= 2 && <Text tone="warn" size="sm">{t('ui.offer.burst', { count: burst })}</Text>}
         <div>{t('ui.offer.next', { days: hint.days })}</div>
@@ -80,8 +85,10 @@ export function OfferBody({ onClose }: { onClose: () => void }) {
           layout={{ marginBottom: 8 }}
         />
       )}
-      {/* 新しい依頼を上に並べる。件数が多いときは、この中だけスクロールする */}
-      <div className="scroll-edge" style={{ maxHeight: 'min(60vh, 520px)', overflowY: 'auto', paddingRight: 4 }}>
+      </div>
+      }
+    >
+        {/* 新しい依頼を上に並べる。件数が多いときは、板の中だけスクロールする */}
         {sortOffers(offers, sort).map((offer, i) => (
           <OfferCard
             key={offer.id}
@@ -97,8 +104,7 @@ export function OfferBody({ onClose }: { onClose: () => void }) {
             onDecline={() => declineOffer(offer.id)}
           />
         ))}
-      </div>
-    </div>
+    </TabbedBody>
   );
 }
 

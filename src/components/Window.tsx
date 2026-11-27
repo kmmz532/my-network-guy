@@ -19,6 +19,8 @@ interface Props {
   onClose: () => void;
   // タイトルの帯の下に出すタブの帯（タブが1つのときは null）
   tabs?: ReactNode;
+  // 中身（TabbedBody）がスクロールを持つ（ui/Window.tsx の scroll）
+  scroll?: 'inner';
   children: ReactNode;
 }
 
@@ -46,7 +48,7 @@ const RESIZE_HANDLES: { name: string; edges: Edges; cursor: string; style: CSSPr
   { name: 'sw', edges: { s: true, w: true }, cursor: 'nesw-resize', style: { bottom: 0, left: 0, width: CORNER_PX, height: CORNER_PX } },
 ];
 
-export function Window({ title, rect, movable, closeLabel, closeText, onFocus, onMove, onResize, onClose, tabs, children }: Props) {
+export function Window({ title, rect, movable, closeLabel, closeText, onFocus, onMove, onResize, onClose, tabs, scroll, children }: Props) {
   const drag = useRef<Drag | null>(null);
 
   // 押したら、そのウィンドウを手前に出し、つかんだ位置を覚える。左ボタン以外のマウスは無視する
@@ -80,6 +82,7 @@ export function Window({ title, rect, movable, closeLabel, closeText, onFocus, o
       rect={rect}
       movable={movable}
       tabs={tabs}
+      scroll={scroll}
       frameProps={{
         onPointerDownCapture: onFocus,
         // 中ボタンの既定の動き（自動スクロール）を止める

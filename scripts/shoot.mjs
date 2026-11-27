@@ -794,6 +794,21 @@ const scenes = {
     await page.getByRole('button', { name: 'ショップ' }).first().click();
     await page.waitForTimeout(500);
   },
+  // 品目の多い店を小さめのウィンドウで開き、一覧を下へスクロールしたところ（N105。タブと検索欄が上に残るかを見る）
+  shopscroll: async (page) => {
+    await scenes.sandbox(page);
+    await page.getByRole('button', { name: 'ショップ' }).first().click();
+    await page.waitForTimeout(400);
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      const w = g.windows.find((x) => x.kind === 'shop');
+      g.placeWindow(w.id, { x: 760, y: 60, w: 480, h: 420 });
+    });
+    await page.waitForTimeout(300);
+    await page.mouse.move(1000, 380);
+    await page.mouse.wheel(0, 600);
+    await page.waitForTimeout(500);
+  },
   // デバッグのパネル（?debug=1 のときだけ出る。N54）
   debug: async (page) => {
     await page.goto(`${URL_BASE}?debug=1`);
