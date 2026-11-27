@@ -1295,6 +1295,7 @@
   "ui.error.occupied": "机の上に機材があります",
   "ui.error.ospf.not_joined": "そのポートは OSPF に参加していません（network 文で参加させてください）",
   "ui.error.owned": "取得済みです",
+  "ui.error.passage": "通路がふさがるため、ここには置けません",
   "ui.error.phase": "施工中は変更できません",
   "ui.error.po.member_has_ip": "束ねたメンバーのポートには、IPアドレスを設定できません（ポートチャネルに設定してください）",
   "ui.error.port": "空いているポートがない",

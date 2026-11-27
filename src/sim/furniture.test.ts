@@ -79,6 +79,12 @@ describe('家具を置く', () => {
     expect(reasonOf(placeFurniture(core({ owned: { plant: 1 } }), 'plant', 1, 1, map))).toBe('tile');
   });
 
+  it('部屋の床が分断される（通路がふさがる）マスには置けない（passage）', () => {
+    // (1,0) の机と (1,1) の壁の左で、(0,1) をふさぐと (0,0) が取り残される
+    expect(reasonOf(placeFurniture(core({ owned: { plant: 1 } }), 'plant', 0, 1, map))).toBe('passage');
+    expect(reasonOf(placeFurniture(core({ owned: { plant: 1 } }), 'plant', 3, 1, map))).toBeNull();
+  });
+
   it('家具のあるマスには置けない（tile）', () => {
     expect(reasonOf(placeFurniture(core({ owned: { plant: 1 } }), 'plant', 1, 0, map))).toBe('tile');
   });

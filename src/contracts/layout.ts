@@ -2,7 +2,7 @@
 import type { GameMap } from '../data/schema';
 import { tileKind } from '../data/tileKind';
 import { rand, randInt } from '../sim/rng';
-import type { Facing } from '../sim/facing';
+import { chairTileOf, type Facing } from '../sim/facing';
 
 export type LayoutKind = 'island' | 'wall' | 'reception';
 
@@ -93,7 +93,7 @@ export const layoutDesks = (
   n: number,
   kinds: readonly LayoutKind[],
   taken: ReadonlySet<string>,
-  desksSoFar: readonly Cell[],
+  desksSoFar: readonly DeskCell[],
   rngState: number,
 ): { laid: LaidOut | null; rng: number } => {
   let rng = rngState;
@@ -110,7 +110,9 @@ export const layoutDesks = (
     const shelves = plan.shelfRow ? desks.map((d) => ({ x: d.x, y: rect.y })) : [];
     if (!shelves.every((c) => free(c) && !desks.some((d) => d.x === c.x && d.y === c.y))) continue;
     const blocked = new Set([...taken, ...shelves.map((s) => key(s.x, s.y))]);
-    if (!deskReachable(map, blocked, [...desksSoFar, ...desks])) continue;
+    const before = new Set([...taken, ...desksSoFar.map((d) => key(d.x, d.y))]);
+    const after = new Set([...blocked, ...desksSoFar.map((d) => key(d.x, d.y)), ...desks.map((d) => key(d.x, d.y))]);
+    if (!passageKept(map, before, after, [...desksSoFar, ...desks])) continue;
     return { laid: { desks, shelves, rng }, rng };
   }
   return { laid: null, rng };
@@ -184,11 +186,50 @@ export const deskReachable = (map: GameMap, blocked: ReadonlySet<string>, desks:
   return true;
 };
 
+// 空いた床（床で、ふさがれておらず、机でもないマス）のまとまりの数。部屋の床が机や家具で分断されると増える
+export const freeFloorPieces = (map: GameMap, blocked: ReadonlySet<string>): number => {
+  const seen = new Set<string>();
+  let pieces = 0;
+  for (let y = 0; y < map.height; y++) {
+    for (let x = 0; x < map.width; x++) {
+      if (!isFloor(map, x, y) || blocked.has(key(x, y)) || seen.has(key(x, y))) continue;
+      pieces++;
+      const stack: Cell[] = [{ x, y }];
+      seen.add(key(x, y));
+      while (stack.length > 0) {
+        const cur = stack.pop() as Cell;
+        for (const [dx, dy] of NEIGHBOURS) {
+          const nx = cur.x + dx;
+          const ny = cur.y + dy;
+          if (isFloor(map, nx, ny) && !blocked.has(key(nx, ny)) && !seen.has(key(nx, ny))) {
+            seen.add(key(nx, ny));
+            stack.push({ x: nx, y: ny });
+          }
+        }
+      }
+    }
+  }
+  return pieces;
+};
+
+// 置いた後も通路が保たれるか（N95 の通路の判定）。before は置く前のふさがったマス、after は置いた後のふさがったマス（どちらも机を含める）。
+//   1. 空いた床のまとまりの数が、置く前より増えない（部屋が分断されない。地図の固定の家具の間の通路も守る）
+//   2. 各机の椅子のマス（向きで決まる背中側）が、空いた床である
+//   3. 全部の机へ、床を通って行ける（deskReachable）
+export const passageKept = (map: GameMap, before: ReadonlySet<string>, after: ReadonlySet<string>, desks: readonly DeskCell[]): boolean => {
+  if (freeFloorPieces(map, after) > freeFloorPieces(map, before)) return false;
+  for (const d of desks) {
+    const chair = chairTileOf(d.x, d.y, d.facing);
+    if (!isFloor(map, chair.x, chair.y) || after.has(key(chair.x, chair.y))) return false;
+  }
+  return deskReachable(map, after, desks);
+};
+
 // 飾りの家具を、床の残りに置く。机の周りの1マスと、PC を置く範囲の中には置かない。壁際を優先し、置いたあとも全部の机へ行けることを確かめる
 export const placeDecor = (
   map: GameMap,
   blocked: ReadonlySet<string>,
-  desks: readonly Cell[],
+  desks: readonly DeskCell[],
   avoid: readonly Rect[],
   decor: readonly string[],
   rngState: number,
@@ -216,12 +257,14 @@ export const placeDecor = (
   }
   candidates.sort((a, b) => b.score - a.score || a.tie - b.tie);
 
-  const now = new Set(blocked);
+  // 机のマスもふさがったマスとして数える（空いた床のまとまりを比べるため）
+  const now = new Set([...blocked, ...deskKeys]);
   const furniture: FurnitureCell[] = [];
   for (const c of candidates) {
     if (furniture.length >= target) break;
+    const before = new Set(now);
     now.add(key(c.x, c.y));
-    if (!deskReachable(map, now, desks)) {
+    if (!passageKept(map, before, now, desks)) {
       now.delete(key(c.x, c.y));
       continue;
     }

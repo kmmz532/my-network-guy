@@ -39,6 +39,7 @@ export const OP_FAIL_REASONS = [
   'nat.static_invalid',
   'none',
   'occupied',
+  'passage',
   'ospf.not_joined',
   'mac.format',
   'owned',

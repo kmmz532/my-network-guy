@@ -5,6 +5,7 @@ import { isCablePassable, tileKind } from '../data/tileKind';
 import type { NetLink, NetNode } from '../network/types';
 import cablesData from '../../resources/data/cables.json';
 import { chairTileOf, rotateFacing } from './facing';
+import { freeFloorPieces } from '../contracts/layout';
 
 
 // 自社オフィスの初期状態。バランス値の初期の大きさの部屋に、バランス値の初期の机の位置に机を置く
@@ -16,6 +17,10 @@ export const initialOffice = (balance: Balance): Office => {
 
 // 自社オフィスの家具を置く。在庫があり、家具のない床のマスで、機材もないときだけ置ける
 // sandbox のときは在庫を数えない（置いても在庫は減らず、撤去しても増えない）
+// 家具と機器でふさがったマス（通路の判定に使う）
+const occupiedCells = (furniture: readonly { x: number; y: number }[], nodes: readonly { x: number; y: number }[]): Set<string> =>
+  new Set([...furniture, ...nodes].map((c) => `${c.x},${c.y}`));
+
 export const placeFurniture = (core: Core, id: string, x: number, y: number, map: GameMap, sandbox = false): Outcome => {
   if (officeLocked(core)) return fail('inhouse');
   if (!sandbox && (core.owned[id] ?? 0) < 1) return fail('stock');
@@ -24,6 +29,9 @@ export const placeFurniture = (core: Core, id: string, x: number, y: number, map
   const office = core.office;
   if (office.furniture.some((f) => f.x === x && f.y === y)) return fail('tile');
   if (office.nodes.some((n) => n.x === x && n.y === y)) return fail('tile');
+  // 置いた後に部屋の床が分断される（通路がふさがる）なら置けない（N95）
+  const before = occupiedCells(office.furniture, office.nodes);
+  if (freeFloorPieces(map, new Set([...before, `${x},${y}`])) > freeFloorPieces(map, before)) return fail('passage');
   return {
     ok: true,
     core: {
@@ -50,6 +58,15 @@ export const moveFurniture = (core: Core, uid: string, x: number, y: number, map
   if (tileKind(map, x, y) !== 'floor') return fail('tile');
   if (office.furniture.some((f) => f.uid !== uid && f.x === x && f.y === y)) return fail('tile');
   if (office.nodes.some((n) => n.x === x && n.y === y)) return fail('tile');
+  // 動かした後に部屋の床が分断される（通路がふさがる）なら動かせない（N95）。動かす家具の元のマスは空く
+  {
+    const before = occupiedCells(office.furniture, office.nodes);
+    const after = occupiedCells(
+      office.furniture.map((f) => (f.uid === uid ? { ...f, x, y } : f)),
+      office.nodes.map((n) => (n.x === target.x && n.y === target.y ? { ...n, x, y } : n)),
+    );
+    if (freeFloorPieces(map, after) > freeFloorPieces(map, before)) return fail('passage');
+  }
   // 机の上の機器（PC など）は、机と一緒に動く（N103）。つながっているケーブルは、動いた機器からもう一方の機器まで道筋を引き直す
   const dx = x - target.x;
   const dy = y - target.y;

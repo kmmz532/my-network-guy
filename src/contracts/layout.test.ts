@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { contractTemplates } from 'virtual:game-data';
 import type { ContractTemplate, GameMap } from '../data/schema';
 import { tileKind } from '../data/tileKind';
-import { DECOR_RATIO, deskReachable, furnitureOf, layoutDesks, placeDecor } from './layout';
+import { DECOR_RATIO, deskReachable, freeFloorPieces, furnitureOf, layoutDesks, passageKept, placeDecor } from './layout';
+import { chairTileOf } from '../sim/facing';
 import { instantiateTemplate, pcCountRangeOf, spawnGroupsOf } from './template';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -97,6 +98,45 @@ describe('ひな形の配置（instantiateTemplate）', () => {
   });
 });
 
+
+// 通路の判定（N95）: 机と家具を置いても部屋の床が分断されず、椅子のマスが空いている
+describe('通路の判定（passageKept）', () => {
+  // 3×5 の部屋の真ん中の列に本棚を2つ置き、間に1マスの通路を残した地図
+  const corridor: GameMap = { ...officeSmall, width: 5, height: 5, tiles: ['#####', '#...#', '#...#', '#...#', '#####'], furniture: [] } as GameMap;
+
+  it('1マスの通路に机を置くと、床が分断されるため置けない', () => {
+    const shelves = new Set([key(2, 1), key(2, 3)]);
+    const desk = { x: 2, y: 2, facing: 'left' as const };
+    const after = new Set([...shelves, key(2, 2)]);
+    expect(freeFloorPieces(corridor, after)).toBeGreaterThan(freeFloorPieces(corridor, shelves));
+    expect(passageKept(corridor, shelves, after, [desk])).toBe(false);
+  });
+
+  it('椅子のマス（背中側）がふさがる向きの机は選ばれない', () => {
+    // 右向きの机の椅子は左隣。左隣が壁なら置けない
+    expect(passageKept(corridor, new Set(), new Set([key(1, 2)]), [{ x: 1, y: 2, facing: 'right' }])).toBe(false);
+    expect(passageKept(corridor, new Set(), new Set([key(1, 2)]), [{ x: 1, y: 2, facing: 'left' }])).toBe(true);
+  });
+
+  it('図書館のひな形は、乱数を100回変えても、本棚の間の通路がふさがらず、椅子のマスが空いている', () => {
+    for (const id of ['t_library', 't_library_large']) {
+      const t = templateOf(id);
+      const map = loadMap(t.map);
+      const fixed = new Set((map.furniture ?? []).map((f) => key(f.x, f.y)));
+      const base = freeFloorPieces(map, fixed);
+      for (let seed = 1; seed <= 100; seed++) {
+        const { offer } = instantiateTemplate(t, map, 0, seed);
+        const placed = furnitureOf(map.furniture, offer.contract.furniture);
+        const cells = new Set(placed.map((f) => key(f.x, f.y)));
+        expect(freeFloorPieces(map, cells)).toBeLessThanOrEqual(base);
+        for (const d of (offer.contract.furniture ?? []).filter((f) => f.facing !== undefined)) {
+          const chair = chairTileOf(d.x, d.y, d.facing!);
+          expect(cells.has(key(chair.x, chair.y))).toBe(false);
+        }
+      }
+    }
+  });
+});
 
 // 机の向き（N171）: 島型の2列は向かい合い、壁沿いは壁に向かい、窓口は手前を向く
 describe('机の向き（N171）', () => {
