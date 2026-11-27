@@ -1591,6 +1591,11 @@ textarea.ui-text-area--data:focus {
   background: var(--bg-scrim-panel);
 }
 
+.ui-scrim--fade {
+  position: fixed;
+  pointer-events: none;
+}
+
 /* DragGhost: ドラッグ中の品目の絵 */
 .ui-drag-ghost {
   position: fixed;

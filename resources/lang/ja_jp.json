@@ -1312,6 +1312,8 @@
   "ui.floor.wood": "木",
   "ui.focus.label": "画面の対象",
   "ui.focus.office": "自社オフィス",
+  "ui.focus.toOffice": "← 自社オフィス",
+  "ui.focus.toSite": "→ 現場: {title}",
   "ui.followup.close": "発展の問いを閉じる",
   "ui.followup.title": "発展の問い（任意）",
   "ui.frames.col.dstIp": "宛先 IP",

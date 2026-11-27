@@ -10,6 +10,7 @@ import { tickLoop } from '../../services/tickLoop';
 import { loadSettings } from '../../settings/settings';
 import { useGameStore } from '../../stores/useGameStore';
 import { usePhone } from '../../ui/usePhone';
+import { FocusTransition } from '../FocusTransition';
 import { FocusSwitch } from '../FocusSwitch';
 import { Guide } from '../Guide';
 import Header from '../Header';
@@ -108,6 +109,7 @@ const GameScene = () => {
       <ContextMenuLayer />
       <Toolbar />
       <Guide />
+      <FocusTransition />
       {DEBUG_ENABLED && (
         <Suspense fallback={null}>
           <DebugPanel />
