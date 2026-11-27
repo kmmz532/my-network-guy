@@ -19,10 +19,12 @@ interface Props {
   onClick?: () => void;
   onPointerDown?: (e: ReactPointerEvent<HTMLButtonElement>) => void;
   layout?: Layout;
+  // 案内（data-guide）の目印
+  guide?: string;
   children: ReactNode;
 }
 
-export function Tile({ size, count, selected = false, unavailable = false, interactive = false, label, onClick, onPointerDown, layout, children }: Props) {
+export function Tile({ size, count, selected = false, unavailable = false, interactive = false, label, onClick, onPointerDown, layout, guide, children }: Props) {
   const cls = ['ui-tile', `ui-tile--${size}`, interactive && 'ui-tile--button', selected && 'ui-tile--selected', unavailable && 'ui-tile--unavailable']
     .filter(Boolean)
     .join(' ');
@@ -46,6 +48,7 @@ export function Tile({ size, count, selected = false, unavailable = false, inter
       style={layoutStyle(layout)}
       aria-label={label}
       aria-disabled={unavailable}
+      data-guide={guide}
       onClick={onClick}
       onPointerDown={onPointerDown}
     >

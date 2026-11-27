@@ -25,9 +25,14 @@
     {
       "contract": "c002_small_office",
       "steps": [
-        { "target": "shop", "done": "owned:l2_switch_8p" },
+        { "target": "shop", "done": "window:shop" },
+        { "target": "buy.l2_switch_8p", "done": "owned:l2_switch_8p" },
         { "target": "inventory", "done": "placed:l2_switch" },
-        { "target": "tool.wire", "done": "links:>=3" }
+        { "target": "tool.wire", "done": "tool:wire" },
+        { "target": "pc_a", "done": "linked:pc_a", "gesture": "drag", "to": "@l2_switch" },
+        { "target": "pc_b", "done": "linked:pc_b", "gesture": "drag", "to": "@l2_switch" },
+        { "target": "pc_c", "done": "linked:pc_c", "gesture": "drag", "to": "@l2_switch" },
+        { "target": "test", "done": "test:pass" }
       ]
     },
     {
@@ -43,15 +48,21 @@
       "contract": "c003_departments",
       "steps": [
         { "target": "inventory", "done": "placed:router" },
-        { "target": "tool.wire", "done": "links:>=2" },
-        { "target": "tool.select", "done": "ips:router" },
-        { "target": "sales_a", "done": "gateway:sales_a" }
+        { "target": "tool.wire", "done": "tool:wire" },
+        { "target": "@router", "done": "links:>=2" },
+        { "target": "tool.select", "done": "tool:select" },
+        { "target": "@router", "done": "open:@router" },
+        { "target": "tab.@router.config", "done": "tab:@router:config" },
+        { "target": "ip.@router.0", "done": "ips:router" },
+        { "target": "sales_a", "done": "gateway:sales_a" },
+        { "target": "test", "done": "test:pass" }
       ]
     },
     {
       "contract": "c004_web_server",
       "steps": [
         { "target": "web", "done": "open:web" },
+        { "target": "tab.web.service", "done": "tab:web:service" },
         { "target": "web", "done": "service:web" },
         { "target": "test", "done": "test:pass" }
       ]

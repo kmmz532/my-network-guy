@@ -8,7 +8,7 @@ import { lessonCatalog } from '../stores/lessonCatalog';
 import { deviceCategory } from '../registry/query';
 import { t, tDyn } from '../i18n/t';
 import { loadSettings } from '../settings/settings';
-import { guideProgress, START_GUIDE, startGuideDue, type GuideState } from '../sim/guide';
+import { guideProgress, resolveRef, START_GUIDE, startGuideDue, type GuideState } from '../sim/guide';
 import { MODE_TRAITS } from '../company/company';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
 import { useUiStore } from '../stores/useUiStore';
@@ -209,14 +209,17 @@ export function Guide() {
     if (term !== null) introduceTerm(term);
   }, [stepKey, closeTermNotice, introduceTerm]);
   // 対象が機器（案件の機器の ref）なら、マップの機器を光らせるため、ストアに置く（描画は行わない）
-  const deviceTarget = step !== null && nodes.some((n) => n.uid === step.target) ? step.target : null;
+  // 対象の @<カテゴリ> は、そのカテゴリの最初の機器（プレイヤーが置く機器は ref が決まらないため）。まだなければ、そのまま返す
+  const refOf = (target: string): string => resolveRef(target, nodes, deviceCategory);
+  const stepRef = step === null ? null : refOf(step.target);
+  const deviceTarget = stepRef !== null && nodes.some((n) => n.uid === stepRef) ? stepRef : null;
   useEffect(() => {
     setGuideTarget(deviceTarget);
   }, [deviceTarget, setGuideTarget]);
   useEffect(() => () => setGuideTarget(null), [setGuideTarget]);
 
   // 対象がツールバーのボタン（data-guide の名前）なら、その位置を測って枠を重ねる。画面の大きさが変わったら測り直す
-  const glowName = step !== null ? (deviceTarget === null ? step.target : null) : hint !== null ? hint.target : null;
+  const glowName = step !== null ? (deviceTarget === null ? stepRef : null) : hint !== null ? hint.target : null;
   // 対象のボタンの位置を測って枠に入れる（画面の px のまま。同じ位置なら状態を変えない）
   const measureGlow = useCallback(() => {
     if (glowName === null) return;
@@ -282,8 +285,8 @@ export function Guide() {
       return;
     }
     const pointOf = (target: string): Point | null => {
-      const node = nodes.find((n) => n.uid === target.split(':')[0]);
-      const r = node ? mapCommands.tileRect(node.x, node.y) : (document.querySelector(`[data-guide="${target}"]`)?.getBoundingClientRect() ?? null);
+      const node = nodes.find((n) => n.uid === refOf(target).split(':')[0]);
+      const r = node ? mapCommands.tileRect(node.x, node.y) : (document.querySelector(`[data-guide="${refOf(target)}"]`)?.getBoundingClientRect() ?? null);
       return r && r.width > 0 ? { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) } : null;
     };
     const same = (a: Point | null, b: Point | null) => a === b || (a !== null && b !== null && a.x === b.x && a.y === b.y);

@@ -85,6 +85,13 @@ describe('guideStepDone', () => {
     expect(guideStepDone({ key: 'k', target: 'x', done: 'owned:l2_switch_8p' }, { ...s, owned: { l2_switch_8p: 1 } })).toBe(true);
     expect(guideStepDone({ key: 'k', target: 'x', done: 'open:pc_a' }, { ...s, openRefs: ['pc_a'] })).toBe(true);
   });
+
+  it('@<カテゴリ> は、そのカテゴリの最初の機器として判定する（置いていなければ満たさない）', () => {
+    const s = base();
+    expect(guideStepDone({ key: 'k', target: 'x', done: 'open:@pc' }, { ...s, openRefs: ['pc_a'] })).toBe(true);
+    expect(guideStepDone({ key: 'k', target: 'x', done: 'tab:@pc:config' }, { ...s, openRefs: ['pc_a'], deviceTabs: { pc_a: 'config' } })).toBe(true);
+    expect(guideStepDone({ key: 'k', target: 'x', done: 'open:@router' }, { ...s, openRefs: ['pc_a'] })).toBe(false);
+  });
 });
 
 describe('guideProgress（c001）', () => {

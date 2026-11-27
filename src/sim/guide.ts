@@ -168,7 +168,12 @@ const ipReady = (node: NetNode, links: NetLink[]): boolean => {
   return ports.length > 0 && ports.every((p) => node.interfaces.some((i) => i.port === p && i.ip !== ''));
 };
 
-const conditionDone = (c: Condition, s: GuideState): boolean => {
+// 対象・条件の中の @<カテゴリ> を、そのカテゴリの最初の機器の uid に置き換える（プレイヤーが置く機器は ref が決まらないため）。まだ置いていなければ、そのまま残す
+export const resolveRef = (text: string, nodes: readonly NetNode[], categoryOf: (device: string) => string): string =>
+  text.replace(/@([a-z0-9_]+)/g, (whole, category: string) => nodes.find((n) => categoryOf(n.device) === category)?.uid ?? whole);
+
+const conditionDone = (raw: Condition, s: GuideState): boolean => {
+  const c = 'ref' in raw ? { ...raw, ref: resolveRef(raw.ref, s.nodes, s.categoryOf) } : raw;
   const node = (ref: string) => s.nodes.find((n) => n.uid === ref);
   switch (c.kind) {
     case 'tool':

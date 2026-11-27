@@ -87,7 +87,7 @@ export function ShopBody() {
                       {!sandbox && <Text tone="soft" size="s">{t('ui.shop.sellPrice', { price: yen(Math.floor(d.price * balance.sellRate)) })}</Text>}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 64 }}>
-                      <Button variant="secondary" disabled={money < cost(d.price)} onClick={() => buy(id)}>
+                      <Button variant="secondary" guide={`buy.${id}`} disabled={money < cost(d.price)} onClick={() => buy(id)}>
                         {t('ui.shop.buy')}
                       </Button>
                       {!sandbox && (

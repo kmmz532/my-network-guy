@@ -216,6 +216,7 @@ ${t('ui.inventory.blocked.design')}` : name} key={key}>
                 size="item"
                 interactive
                 label={name}
+                guide={`inv.${item.id}`}
                 selected={!blocked && placing === item.id}
                 unavailable={blocked}
                 count={sandbox ? '∞' : (owned[item.id] ?? 0)}
