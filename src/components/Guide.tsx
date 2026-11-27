@@ -212,14 +212,44 @@ export function Guide() {
   // 対象の @<カテゴリ> は、そのカテゴリの最初の機器（プレイヤーが置く機器は ref が決まらないため）。まだなければ、そのまま返す
   const refOf = (target: string): string => resolveRef(target, nodes, deviceCategory);
   const stepRef = step === null ? null : refOf(step.target);
-  const deviceTarget = stepRef !== null && nodes.some((n) => n.uid === stepRef) ? stepRef : null;
+  // 詰まったときの手助け（N166）。テストで不合格になったら、止まった機器を先に指す。押したら、いまの手順の指に戻す
+  const failCheck = step !== null && project !== null && check !== null && check.projectId === project.id && check.goals.some((g) => !g.ok) ? check : null;
+  const failNode = failCheck === null ? null : (failCheck.goals.flatMap((g) => g.failures).find((f) => nodes.some((n) => n.uid === f.node))?.node ?? null);
+  const [failAck, setFailAck] = useState<object | null>(null);
+  const showFail = failNode !== null && failAck !== failCheck;
+  // なぞる手順で、指した2台と違う機器どうしをつないだら、元に戻すのボタンを指す。押したら消す
+  const [undoHint, setUndoHint] = useState(false);
+  const dragStep = useRef<{ from: string; to: string } | null>(null);
+  const linkCount = useRef(links.length);
+  useEffect(() => {
+    const prev = linkCount.current;
+    linkCount.current = links.length;
+    const drag = dragStep.current;
+    if (drag === null || links.length <= prev) return;
+    const added = links[links.length - 1];
+    const ends = [added.a.node, added.b.node];
+    if (!(ends.includes(drag.from) && ends.includes(drag.to))) setUndoHint(true);
+  }, [links]);
+  useEffect(() => {
+    dragStep.current = step !== null && step.gesture === 'drag' && step.to !== undefined ? { from: refOf(step.target), to: refOf(step.to) } : null;
+  });
+  useEffect(() => {
+    if (!showFail && !undoHint) return;
+    const ack = () => {
+      setFailAck(failCheck);
+      setUndoHint(false);
+    };
+    window.addEventListener('pointerdown', ack, true);
+    return () => window.removeEventListener('pointerdown', ack, true);
+  }, [showFail, undoHint, failCheck]);
+  const deviceTarget = showFail ? failNode : stepRef !== null && nodes.some((n) => n.uid === stepRef) ? stepRef : null;
   useEffect(() => {
     setGuideTarget(deviceTarget);
   }, [deviceTarget, setGuideTarget]);
   useEffect(() => () => setGuideTarget(null), [setGuideTarget]);
 
   // 対象がツールバーのボタン（data-guide の名前）なら、その位置を測って枠を重ねる。画面の大きさが変わったら測り直す
-  const glowName = step !== null ? (deviceTarget === null ? stepRef : null) : hint !== null ? hint.target : null;
+  const glowName = step !== null ? (deviceTarget === null ? (undoHint ? 'undo' : stepRef) : null) : hint !== null ? hint.target : null;
   // 対象のボタンの位置を測って枠に入れる（画面の px のまま。同じ位置なら状態を変えない）
   const measureGlow = useCallback(() => {
     if (glowName === null) return;
@@ -275,8 +305,9 @@ export function Guide() {
 
   // 指を出す位置（画面の px）。機器（ポートの指定 pc_a:0 は機器の位置）はマップのマスの中心、ほかは data-guide の部品の中心
   const [finger, setFinger] = useState<{ of: string; from: Point; to: Point | null } | null>(null);
-  const fingerFrom = step === null ? null : step.target;
-  const fingerTo = step === null ? null : (step.to ?? null);
+  const fingerFrom = step === null ? null : showFail ? failNode : undoHint ? 'undo' : step.target;
+  const fingerTo = step === null || showFail || undoHint ? null : (step.to ?? null);
+  const fingerGesture = showFail || undoHint ? 'tap' : (step?.gesture ?? 'tap');
   // 測った位置がいまの手順の対象のものか（手順が替わった直後の、前の手順の位置で描かないため）
   const fingerOf = `${fingerFrom}>${fingerTo ?? ''}`;
   useEffect(() => {
@@ -323,7 +354,7 @@ export function Guide() {
         />
       )}
       {step !== null && finger !== null && finger.of === fingerOf && (
-        <GuideFinger playKey={`${id}:${step.key}`} gesture={step.gesture ?? 'tap'} from={finger.from} to={finger.to} zIndex={GUIDE_Z} />
+        <GuideFinger playKey={`${id}:${step.key}:${fingerOf}`} gesture={fingerGesture} from={finger.from} to={finger.to} zIndex={GUIDE_Z} />
       )}
       <div
         role="status"

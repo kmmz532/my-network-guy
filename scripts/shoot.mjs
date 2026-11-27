@@ -696,6 +696,12 @@ const scenes = {
     await page.locator('[data-guide="tab.pc_a.config"]').click();
     await page.waitForTimeout(800);
   },
+  // 案内中にテストで不合格になった直後（指が止まった機器を押す）
+  guidefail: async (page) => {
+    await scenes.guidetab(page);
+    await page.evaluate(() => window.__game.getState().test());
+    await page.waitForTimeout(900);
+  },
   // 新しくプレイした直後（時間は止まり、依頼のボタンが光って「依頼が届いています。開いてみよう」が出る）
   startguide: async (page) => {
     await scenes.career(page);
