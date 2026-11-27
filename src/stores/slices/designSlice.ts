@@ -13,7 +13,7 @@ import { lessonCatalog } from '../lessonCatalog';
 import { mapOfOffice } from '../../sim/office';
 
 import { closeRef } from '../../ui/windows';
-import { type PortChoice, type PortModeChange, type MacListOp, type StpOp, type ChannelOp, type DhcpOp, type VrrpOp, type OspfOp, type NatOp, type BgpOp, emptyOffice, type End } from '../../sim/project';
+import { type PortChoice, type PortModeChange, type MacListOp, type VlanOp, type StpOp, type ChannelOp, type DhcpOp, type VrrpOp, type OspfOp, type NatOp, type BgpOp, emptyOffice, type End } from '../../sim/project';
 import { testDesign } from '../../sim/progress';
 
 import { coreOf, focusedProject, netTargetOf } from '../gameHelpers';
@@ -45,6 +45,10 @@ export interface DesignSlice {
   // 機器の設定（設計中のみ）。失敗したら理由を返す
   setIface: (uid: string, port: number, ip: string, prefix?: number) => string | null;
   setSvi: (uid: string, vlan: number, ip: string, prefix?: number) => string | null;
+  // サブインターフェース（親の口と VLAN。ip が '' なら外す）。ターミナルの interface g0/<口>.<VLAN> と同じ
+  setSub: (uid: string, parent: number, vlan: number, ip: string, prefix?: number) => string | null;
+  // VLAN の宣言（足す・名前・消す）。ターミナルの vlan・name・no vlan と同じ
+  setVlanDef: (uid: string, vlan: number, change: VlanOp) => string | null;
   setPo: (uid: string, channel: number, ip: string, prefix?: number) => string | null;
   setPortMode: (uid: string, port: number, mode: PortModeChange) => string | null;
   setPortSecurity: (uid: string, port: number, change: MacListOp) => string | null;
@@ -200,6 +204,8 @@ export const createDesignSlice: StateCreator<GameState, [], [], DesignSlice> = (
       return reason;
     },
     setIface: (uid, port, ip, prefix = 24) => dispatch({ kind: 'config', uid, change: { kind: 'iface', port, ip, prefix } }, tileOf(uid)),
+    setSub: (uid, parent, vlan, ip, prefix = 24) => dispatch({ kind: 'config', uid, change: { kind: 'sub', parent, vlan, ip, prefix } }, tileOf(uid)),
+    setVlanDef: (uid, vlan, change) => dispatch({ kind: 'config', uid, change: { kind: 'vlanDef', vlan, change } }, tileOf(uid)),
     setSvi: (uid, vlan, ip, prefix = 24) => dispatch({ kind: 'config', uid, change: { kind: 'svi', vlan, ip, prefix } }, tileOf(uid)),
     setPo: (uid, channel, ip, prefix = 24) => dispatch({ kind: 'config', uid, change: { kind: 'po', channel, ip, prefix } }, tileOf(uid)),
     setPortMode: (uid, port, mode) => dispatch({ kind: 'config', uid, change: { kind: 'portMode', port, mode } }, tileOf(uid)),

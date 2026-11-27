@@ -168,7 +168,7 @@ function DeviceView({
           <DeviceSettings node={node} readOnly={readOnly} detailOpen={detailOpen} onToggleDetail={onToggleDetail} onError={setError} />
         )}
         {current === 'service' && isServer && <ServiceTab node={node} nodes={nodes} state={netState} readOnly={readOnly} onError={setError} />}
-        {current === 'vlan' && hasVlan && <VlanTab node={node} />}
+        {current === 'vlan' && hasVlan && <VlanTab node={node} readOnly={readOnly} onError={setError} />}
         {current === 'terminal' && <TerminalTab node={node} nodes={nodes} links={links} state={netState} readOnly={readOnly} />}
       </TabPanel>
     </div>

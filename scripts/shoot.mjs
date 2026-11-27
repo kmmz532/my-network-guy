@@ -1631,6 +1631,23 @@ const scenes = {
     await page.getByText('設定', { exact: true }).click();
     await page.waitForTimeout(500);
   },
+  // ルーターのサブインターフェースの欄（N139。口 1 に VLAN 10 と 20 のアドレスを持たせた状態）
+  subif: async (page) => {
+    await scenes.career(page);
+    await openDevice(page, 'router_basic');
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      const n = g.office.nodes.find((x) => x.device === 'router_basic');
+      for (const [vlan, ip] of [[10, '192.168.10.1'], [20, '192.168.20.1']]) {
+        const reason = window.__game.getState().setSub(n.uid, 1, vlan, ip, 24);
+        if (reason !== null) throw new Error(`サブインターフェースを作れない: ${reason}`);
+      }
+    });
+    await page.getByText('設定', { exact: true }).click();
+    await page.waitForTimeout(300);
+    await page.getByText('サブインターフェース（1つの口で VLAN ごとのアドレス）').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+  },
   // 束ねた口（Po）の欄。チャネル1は口 0・1 を束ねて IP を入れ、チャネル2は口 2・3 を束ねて IP の欄を出した状態
   poline: async (page) => {
     await scenes.career(page);
