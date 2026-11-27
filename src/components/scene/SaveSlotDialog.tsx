@@ -6,7 +6,7 @@ import { Dialog } from '../ui/Dialog';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { ListRow } from '../ui/ListRow';
 import { FileButton } from '../ui/FileButton';
-import { t } from '../../i18n/t';
+import { t, tDyn } from '../../i18n/t';
 import { balance } from 'virtual:game-data';
 import { levelOf } from '../../sim/level';
 import { toDate } from '../../sim/clock';
@@ -18,8 +18,8 @@ import { Button } from '../ui/Button';
 import { Text } from '../ui/Text';
 import { TextInput } from '../ui/TextInput';
 
-// 一覧に一度に出す会社の高さ（続けて遊ぶ一覧の行は約145px。5件ぶんを上限にし、画面が低いときは画面に収まる高さにする。残りは一覧の中で縦にスクロールする）
-const SAVE_LIST_MAX = 'min(765px, calc(100vh - 200px))';
+// 一覧に一度に出す会社の高さ（1行は約48px と行の間 4px。5件ぶんを上限にし、画面が低いときは画面に収まる高さにする。残りは一覧の中で縦にスクロールする）
+const SAVE_LIST_MAX = 'min(260px, calc(100vh - 260px))';
 
 // 会社の要約（経営は Lv・年目・月・日。サンドボックスは広さ）。一覧と確認の文言で使う
 export const companySummary = (save: CompanySave): string => {
@@ -83,19 +83,20 @@ function NameForm({ initial, submitLabel, onSubmit, onCancel }: { initial: strin
 }
 
 export function SaveSlotDialog(props: Props) {
-  // スマホは、行を押すと操作を開く（一覧の行の下に並べる）。開いている行は1つだけ（N133）
   const phone = usePhone();
-  const [openSlot, setOpenSlot] = useState<number | null>(null);
-  // 一覧（続けて遊ぶ）を開いたときは、Enter で先頭（最後に遊んだ会社）を始める（PC・N157）
+  // 選んでいる枠。最初は、最後に遊んだ会社を選んでおく（Enter・「始める」ですぐ続きを遊べる）
+  const [selected, setSelected] = useState<number | null>(() => sortByRecent(props.saves)[0]?.slot ?? null);
+  // 一覧（続けて遊ぶ）を開いたときは、Enter で選んでいる会社を始める（PC・N157）
   useEffect(() => {
-    if (props.view.kind !== 'list' || props.view.purpose !== 'play' || props.saves.length === 0) return;
-    const first = sortByRecent(props.saves)[0];
+    if (props.view.kind !== 'list' || props.view.purpose !== 'play') return;
+    const save = props.saves.find((s) => s.slot === selected);
+    if (!save) return;
     return addKeyLayer((e) => {
       if (e.key !== 'Enter' || phone) return false;
-      props.onPlay(first);
+      props.onPlay(save);
       return true;
     });
-  }, [props.view, props.saves, phone]);
+  }, [props.view, props.saves, phone, selected]);
   const { view, mode, saves, broken, suggested, notice, onView, onPlay, onStartIn, onRename, onDuplicate, onExport, onDelete, onDeleteBroken, onImport, onNewHere, importing, onOverwriteWith } = props;
   const close = () => onView(null);
   const toList = (purpose: 'play' | 'overwrite') => onView({ kind: 'list', purpose });
@@ -159,11 +160,18 @@ export function SaveSlotDialog(props: Props) {
     );
   }
 
-  // 一覧（始める・社名を変える・複製・書き出す・消す。上書きの一覧では、上書きする枠を選ぶ）
+  // 一覧（保存枠の選択の形。2026-11-16 の設計）。1件を1行（社名・遊び方・Lv・最後に遊んだ日時）にし、行を押すと選び、選んだ行をもう一度押すと始める。
+  // 操作は一覧の下に2段で固定する。上段: 始める（上書きの一覧では上書きする）・新しく作る・ファイルから読み込む。下段: 名前を変える・複製・書き出す・削除・戻る。
+  // 会社を選んでいない間は、始めると会社の操作は押せない。読めない会社は選べるが、削除だけができる
   const purpose = view.purpose;
+  const sorted = sortByRecent(saves);
+  const chosen = sorted.find((s) => s.slot === selected) ?? null;
+  const chosenBroken = broken.find((b) => b.slot === selected) ?? null;
+  const start = (save: CompanySave) => (purpose === 'play' ? onPlay(save) : onView({ kind: 'confirmOverwrite', save }));
+  const modeLabel = (save: CompanySave) => tDyn(`ui.company.mode.${save.data.mode}`);
   return (
     <Dialog onClose={close}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 280, maxWidth: 380 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: phone ? undefined : 560, maxWidth: '100%' }}>
         <Text size="l">{purpose === 'overwrite' ? t('ui.company.list.overwrite') : t('ui.company.list.title')}</Text>
         {notice !== '' && (
           <Text size="sm" tone="warn">
@@ -171,15 +179,11 @@ export function SaveSlotDialog(props: Props) {
           </Text>
         )}
         {saves.length === 0 && broken.length === 0 && <Text tone="soft">{t('ui.company.list.empty')}</Text>}
-        <div style={{ maxHeight: SAVE_LIST_MAX, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, paddingRight: 4 }}>
-          {sortByRecent(saves).map((save, index) => (
-            <ListRow key={save.slot}>
-              <div
-                style={{ cursor: phone ? 'pointer' : 'default' }}
-                // スマホは、先頭（最後に遊んだ会社）の行を押すとすぐ始める。ほかの行は押すと操作を開く（N157）
-                onClick={phone ? () => (purpose === 'play' && index === 0 ? onPlay(save) : setOpenSlot(openSlot === save.slot ? null : save.slot)) : undefined}
-              >
-                <Text size="l">
+        <div role="listbox" aria-label={t('ui.company.list.title')} style={{ maxHeight: SAVE_LIST_MAX, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4, paddingRight: 4 }}>
+          {sorted.map((save, index) => (
+            <ListRow key={save.slot} active={save.slot === selected} onClick={() => (save.slot === selected ? start(save) : setSelected(save.slot))}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+                <Text as="span" size="l" layout={{ flex: 1, minWidth: 0 }}>
                   {save.data.name}
                   {purpose === 'play' && index === 0 && (
                     <Text as="span" size="s" tone="warn" layout={{ marginLeft: 8 }}>
@@ -187,62 +191,58 @@ export function SaveSlotDialog(props: Props) {
                     </Text>
                   )}
                 </Text>
+                <Text as="span" size="s" tone="soft">
+                  {modeLabel(save)}・{companySummary(save)}・{savedAtText(save.savedAt)}
+                </Text>
               </div>
-              <Text size="s" tone="soft">
-                {companySummary(save)}・{t('ui.company.list.saved', { at: savedAtText(save.savedAt) })}
-              </Text>
-              {(!phone || openSlot === save.slot) && (
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flexDirection: phone ? 'column' : 'row' }}>
-                {purpose === 'play' ? (
-                  <>
-                    <Button variant="primary" onClick={() => onPlay(save)}>
-                      {t('ui.company.play')}
-                    </Button>
-                    <Button variant="secondary" onClick={() => onView({ kind: 'rename', save })}>
-                      {t('ui.company.rename')}
-                    </Button>
-                    <Button variant="secondary" onClick={() => onDuplicate(save)}>
-                      {t('ui.company.duplicate')}
-                    </Button>
-                    <Button variant="secondary" onClick={() => onExport(save)}>
-                      {t('ui.company.export')}
-                    </Button>
-                    <Button variant="danger" onClick={() => onView({ kind: 'delete', save })}>
-                      {t('ui.company.delete')}
-                    </Button>
-                  </>
-                ) : (
-                  <Button variant="danger" onClick={() => onView({ kind: 'confirmOverwrite', save })}>
-                    {t('ui.company.overwrite')}
-                  </Button>
-                )}
-              </div>
-              )}
             </ListRow>
           ))}
           {broken.map((b) => (
-            <ListRow key={`broken-${b.slot}`}>
+            <ListRow key={`broken-${b.slot}`} active={b.slot === selected} onClick={() => setSelected(b.slot)}>
               <Text tone="soft">{t('ui.company.list.broken')}</Text>
-              {purpose === 'play' && (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  <Button variant="danger" onClick={() => onView({ kind: 'deleteBroken', slot: b.slot })}>
-                    {t('ui.company.delete')}
-                  </Button>
-                </div>
-              )}
             </ListRow>
           ))}
         </div>
-        {purpose === 'play' && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Button variant="primary" onClick={onNewHere}>
-              {mode === 'sandbox' ? t('ui.company.newSandbox') : t('ui.company.newCompany')}
-            </Button>
-            <FileButton variant="secondary" accept=".json,application/json" onFile={onImport}>
-              {t('ui.company.import')}
-            </FileButton>
-          </div>
-        )}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Button variant="primary" disabled={chosen === null} onClick={() => chosen && start(chosen)}>
+            {purpose === 'play' ? t('ui.company.play') : t('ui.company.overwrite')}
+          </Button>
+          {purpose === 'play' && (
+            <>
+              <Button variant="secondary" onClick={onNewHere}>
+                {mode === 'sandbox' ? t('ui.company.newSandbox') : t('ui.company.newCompany')}
+              </Button>
+              <FileButton variant="secondary" accept=".json,application/json" onFile={onImport}>
+                {t('ui.company.import')}
+              </FileButton>
+            </>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {purpose === 'play' && (
+            <>
+              <Button variant="secondary" disabled={chosen === null} onClick={() => chosen && onView({ kind: 'rename', save: chosen })}>
+                {t('ui.company.rename')}
+              </Button>
+              <Button variant="secondary" disabled={chosen === null} onClick={() => chosen && onDuplicate(chosen)}>
+                {t('ui.company.duplicate')}
+              </Button>
+              <Button variant="secondary" disabled={chosen === null} onClick={() => chosen && onExport(chosen)}>
+                {t('ui.company.export')}
+              </Button>
+              <Button
+                variant="danger"
+                disabled={chosen === null && chosenBroken === null}
+                onClick={() => (chosen ? onView({ kind: 'delete', save: chosen }) : chosenBroken && onView({ kind: 'deleteBroken', slot: chosenBroken.slot }))}
+              >
+                {t('ui.company.delete')}
+              </Button>
+            </>
+          )}
+          <Button variant="secondary" onClick={close}>
+            {t('ui.company.back')}
+          </Button>
+        </div>
       </div>
     </Dialog>
   );
