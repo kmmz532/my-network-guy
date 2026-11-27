@@ -19,7 +19,8 @@
         { "target": "pc_b", "done": "open:pc_b" },
         { "target": "tab.pc_b.config", "done": "tab:pc_b:config" },
         { "target": "ip.pc_b.0", "done": "ip:pc_b" },
-        { "target": "test", "done": "test:pass" }
+        { "target": "test", "done": "test:pass" },
+        { "target": "place", "done": "next:place" }
       ]
     },
     {

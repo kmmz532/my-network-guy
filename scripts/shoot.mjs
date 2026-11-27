@@ -702,6 +702,24 @@ const scenes = {
     await page.evaluate(() => window.__game.getState().test());
     await page.waitForTimeout(900);
   },
+  // 最初の案件のテストに合格した後（指が上端の場所の札を押し、「自社へはこの札で戻れます」と「次へ」が出る）
+  guideplace: async (page) => {
+    await scenes.guidetab(page);
+    await page.evaluate(() => {
+      const g = window.__game.getState();
+      g.setIface('pc_a', 0, '192.168.1.10', 24);
+      g.setIface('pc_b', 0, '192.168.1.11', 24);
+      g.test();
+      g.debugStartGuide('c001_direct_link', 11);
+    });
+    await page.waitForTimeout(2500);
+  },
+  // 場所の札を押して、場所の一覧を開いたところ
+  placelist: async (page) => {
+    await scenes.guide(page);
+    await page.locator('[data-guide="place"]').click();
+    await page.waitForTimeout(400);
+  },
   // 新しくプレイした直後（時間は止まり、依頼のボタンが光って「依頼が届いています。開いてみよう」が出る）
   startguide: async (page) => {
     await scenes.career(page);

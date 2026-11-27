@@ -30,6 +30,7 @@ export type Gesture = 'tap' | 'drag' | 'hold';
 //   gateway:<ref>      機器のゲートウェイを設定している
 //   service:<ref>       機器にサービス（http など）が動いている
 //   open:<ref>          機器の画面を開いている
+//   next:<名前>         吹き出しの「次へ」を押した（見せるだけの手順。名前は読み手のための目印）
 //   tab:<ref>:<タブ>    機器の画面を開いていて、そのタブ（rear・config・service・terminal）を選んでいる
 //   placed:<カテゴリ>   そのカテゴリの機器を置いている
 //   owned:<機材ID>      在庫に機材がある（ショップで買った）
@@ -51,6 +52,7 @@ export type Condition =
   | { kind: 'gateway'; ref: string }
   | { kind: 'service'; ref: string }
   | { kind: 'open'; ref: string }
+  | { kind: 'next' }
   | { kind: 'tab'; ref: string; tab: string }
   | { kind: 'placed'; category: string }
   | { kind: 'owned'; device: string }
@@ -90,6 +92,8 @@ export const parseCondition = (text: string): Condition | null => {
       return { kind: 'service', ref: value };
     case 'open':
       return { kind: 'open', ref: value };
+    case 'next':
+      return { kind: 'next' };
     case 'tab': {
       const m2 = /^(.+):(rear|config|service|terminal)$/.exec(value);
       return m2 ? { kind: 'tab', ref: m2[1], tab: m2[2] } : null;
@@ -200,6 +204,9 @@ const conditionDone = (raw: Condition, s: GuideState): boolean => {
     }
     case 'open':
       return s.openRefs.includes(c.ref);
+    case 'next':
+      // 「次へ」を押したことは、構成に残らない手順の記録（seen）で保つ
+      return false;
     case 'tab':
       return s.openRefs.includes(c.ref) && s.deviceTabs?.[c.ref] === c.tab;
     case 'placed':
@@ -243,7 +250,7 @@ export const guideStepDone = (step: GuideStep, state: GuideState): boolean => {
 // 構成に残らない条件（道具の選択・画面を開いたこと・パケットの欄を開いたこと・シーケンス図を開いたこと・窓を開いたこと）。一度満たした手順を記録しておかないと、操作を終えた時点で条件が外れる
 export const isTransient = (step: GuideStep): boolean => {
   const c = parseCondition(step.done);
-  return c !== null && (c.kind === 'tool' || c.kind === 'open' || c.kind === 'tab' || c.kind === 'frames' || c.kind === 'sequence' || c.kind === 'window');
+  return c !== null && (c.kind === 'tool' || c.kind === 'open' || c.kind === 'tab' || c.kind === 'next' || c.kind === 'frames' || c.kind === 'sequence' || c.kind === 'window');
 };
 
 // 案内の進み具合。手順の位置は、条件と今の構成から求める（満たしていない最初の手順がいまの手順）。

@@ -400,7 +400,13 @@ export function Guide() {
             {termNotice !== null && <div style={{ marginTop: 2 }}>{termLine(termNotice)}</div>}
           </span>
           {/* 外枠は指の操作を通すため、押せる部分だけ受け取る */}
-          <span style={{ pointerEvents: 'auto', flexShrink: 0, display: 'flex' }}>
+          <span style={{ pointerEvents: 'auto', flexShrink: 0, display: 'flex', gap: 4 }}>
+            {/* 見せるだけの手順（next:）は、「次へ」で進める */}
+            {step !== null && id !== null && current !== null && step.done.startsWith('next:') && (
+              <Button variant="primary" size="fit" onClick={() => markGuideSeen([`${id}:${current.index}`])}>
+                {t('ui.guide.forward')}
+              </Button>
+            )}
             <Button variant="secondary" size="fit" onClick={skip}>
               {step !== null ? t('ui.guide.skip') : t('ui.notice.close')}
             </Button>

@@ -123,7 +123,9 @@ describe('guideProgress（c001）', () => {
     state = { ...state, nodes: [state.nodes[0], ipOf('pc_b', '192.168.1.11')] };
     expect(key(state, [0, 2, 3, 4, 6, 7])).toBe('guide.c001_direct_link.10');
     state = { ...state, testPassed: true };
-    expect(key(state, [0, 2, 3, 4, 6, 7])).toBeNull();
+    expect(key(state, [0, 2, 3, 4, 6, 7])).toBe('guide.c001_direct_link.11');
+    // 見せるだけの手順は、「次へ」の記録で終える
+    expect(key(state, [0, 2, 3, 4, 6, 7, 10])).toBeNull();
   });
 
   it('構成を戻すと、手順も戻る', () => {
