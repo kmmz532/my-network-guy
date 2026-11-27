@@ -28,9 +28,11 @@ interface TabProps {
   onKeyDown: (e: KeyboardEvent<HTMLButtonElement>) => void;
   onPointerDown?: (e: PointerEvent<HTMLDivElement>) => void;
   onAuxClick?: (e: MouseEvent<HTMLDivElement>) => void;
+  // 案内（data-guide）の目印
+  guide?: string;
 }
 
-export function Tab({ tone, tabId, active, disabled, height, id, labelRef, icon, label, closeLabel, onClose, onSelect, onKeyDown, onPointerDown, onAuxClick }: TabProps) {
+export function Tab({ tone, tabId, active, disabled, height, id, labelRef, icon, label, closeLabel, onClose, onSelect, onKeyDown, onPointerDown, onAuxClick, guide }: TabProps) {
   const closable = onClose !== undefined && closeLabel !== undefined;
   const cls = ['ui-tab', `ui-tab--${tone}`, active && 'ui-tab--active', closable && 'ui-tab--closable', disabled && 'ui-tab--disabled', height !== undefined && 'ui-tab--fixed'].filter(Boolean).join(' ');
   return (
@@ -42,6 +44,7 @@ export function Tab({ tone, tabId, active, disabled, height, id, labelRef, icon,
         id={id}
         ref={labelRef}
         aria-selected={active}
+        data-guide={guide}
         aria-disabled={disabled || undefined}
         disabled={disabled}
         tabIndex={active ? 0 : -1}

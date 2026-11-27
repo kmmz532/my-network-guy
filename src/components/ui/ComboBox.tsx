@@ -34,9 +34,11 @@ export interface ComboBoxProps {
   onCommit: (v: string) => string | null;
   // 配置。幅の既定は 140 px
   layout?: Layout;
+  // 案内（data-guide）の目印
+  guide?: string;
 }
 
-export function ComboBox({ label, value, options, disabled, isValid, formatError, allowEmpty = false, onCommit, layout }: ComboBoxProps) {
+export function ComboBox({ label, value, options, disabled, isValid, formatError, allowEmpty = false, onCommit, layout, guide }: ComboBoxProps) {
   const id = useId();
   const listId = `${id}-list`;
   const phone = usePhone();
@@ -170,6 +172,7 @@ export function ComboBox({ label, value, options, disabled, isValid, formatError
       <input
         ref={inputRef}
         role="combobox"
+        data-guide={guide}
         aria-label={label}
         aria-expanded={listVisible}
         aria-controls={listId}

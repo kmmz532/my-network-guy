@@ -98,12 +98,25 @@ describe('guideProgress（c001）', () => {
     expect(key(state, [0])).toBe('guide.c001_direct_link.2');
     state = { ...state, links: [link('l1', ['pc_a', 0], ['pc_b', 0])] };
     expect(key(state, [0])).toBe('guide.c001_direct_link.3');
-    state = { ...state, nodes: [ipOf('pc_a', '192.168.1.10'), state.nodes[1]] };
+    // 選択の道具に持ち替えるまで、PC を開く手順へ進まない
+    state = { ...state, openRefs: ['pc_a'] };
+    expect(key(state, [0])).toBe('guide.c001_direct_link.3');
+    state = { ...state, tool: 'select', openRefs: [] };
     expect(key(state, [0])).toBe('guide.c001_direct_link.4');
+    state = { ...state, openRefs: ['pc_a'], deviceTabs: { pc_a: 'rear' } };
+    expect(key(state, [0, 2, 3])).toBe('guide.c001_direct_link.5');
+    state = { ...state, deviceTabs: { pc_a: 'config' } };
+    expect(key(state, [0, 2, 3])).toBe('guide.c001_direct_link.6');
+    state = { ...state, nodes: [ipOf('pc_a', '192.168.1.10'), state.nodes[1]] };
+    expect(key(state, [0, 2, 3, 4])).toBe('guide.c001_direct_link.7');
+    state = { ...state, openRefs: ['pc_a', 'pc_b'], deviceTabs: { pc_a: 'config', pc_b: 'rear' } };
+    expect(key(state, [0, 2, 3, 4, 6])).toBe('guide.c001_direct_link.8');
+    state = { ...state, deviceTabs: { pc_a: 'config', pc_b: 'config' } };
+    expect(key(state, [0, 2, 3, 4, 6])).toBe('guide.c001_direct_link.9');
     state = { ...state, nodes: [state.nodes[0], ipOf('pc_b', '192.168.1.11')] };
-    expect(key(state, [0])).toBe('guide.c001_direct_link.5');
+    expect(key(state, [0, 2, 3, 4, 6, 7])).toBe('guide.c001_direct_link.10');
     state = { ...state, testPassed: true };
-    expect(key(state, [0])).toBeNull();
+    expect(key(state, [0, 2, 3, 4, 6, 7])).toBeNull();
   });
 
   it('構成を戻すと、手順も戻る', () => {
@@ -151,7 +164,7 @@ describe('guideProgress（c001）', () => {
   });
 
   it('開始位置より前の手順は済んだものとして飛ばす', () => {
-    expect(guideProgress(c001, base(), [], 2).current?.index).toBe(2);
+    expect(guideProgress(c001, base(), [], 3).current?.index).toBe(3);
   });
 });
 

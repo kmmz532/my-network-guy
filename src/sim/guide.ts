@@ -30,6 +30,7 @@ export type Gesture = 'tap' | 'drag' | 'hold';
 //   gateway:<ref>      機器のゲートウェイを設定している
 //   service:<ref>       機器にサービス（http など）が動いている
 //   open:<ref>          機器の画面を開いている
+//   tab:<ref>:<タブ>    機器の画面を開いていて、そのタブ（rear・config・service・terminal）を選んでいる
 //   placed:<カテゴリ>   そのカテゴリの機器を置いている
 //   owned:<機材ID>      在庫に機材がある（ショップで買った）
 //   test:pass           いま設計中の案件のテストに合格している
@@ -50,6 +51,7 @@ export type Condition =
   | { kind: 'gateway'; ref: string }
   | { kind: 'service'; ref: string }
   | { kind: 'open'; ref: string }
+  | { kind: 'tab'; ref: string; tab: string }
   | { kind: 'placed'; category: string }
   | { kind: 'owned'; device: string }
   | { kind: 'test' }
@@ -88,6 +90,10 @@ export const parseCondition = (text: string): Condition | null => {
       return { kind: 'service', ref: value };
     case 'open':
       return { kind: 'open', ref: value };
+    case 'tab': {
+      const m2 = /^(.+):(rear|config|service|terminal)$/.exec(value);
+      return m2 ? { kind: 'tab', ref: m2[1], tab: m2[2] } : null;
+    }
     case 'placed':
       return { kind: 'placed', category: value };
     case 'owned':
@@ -132,6 +138,8 @@ export interface GuideState {
   testPassed: boolean;
   // 機器の画面が開いている機器の uid
   openRefs: string[];
+  // 機器の画面ごとの、選んでいるタブ（機器の uid → タブ）
+  deviceTabs?: Readonly<Record<string, string>>;
   // 機材のカテゴリ（ゲームデータから作る）
   categoryOf: (device: string) => string;
   // 教材を開いている間に打ったターミナルの命令（教材の外では省く）
@@ -187,6 +195,8 @@ const conditionDone = (c: Condition, s: GuideState): boolean => {
     }
     case 'open':
       return s.openRefs.includes(c.ref);
+    case 'tab':
+      return s.openRefs.includes(c.ref) && s.deviceTabs?.[c.ref] === c.tab;
     case 'placed':
       return s.nodes.some((n) => s.categoryOf(n.device) === c.category);
     case 'owned':
@@ -228,7 +238,7 @@ export const guideStepDone = (step: GuideStep, state: GuideState): boolean => {
 // 構成に残らない条件（道具の選択・画面を開いたこと・パケットの欄を開いたこと・シーケンス図を開いたこと・窓を開いたこと）。一度満たした手順を記録しておかないと、操作を終えた時点で条件が外れる
 export const isTransient = (step: GuideStep): boolean => {
   const c = parseCondition(step.done);
-  return c !== null && (c.kind === 'tool' || c.kind === 'open' || c.kind === 'frames' || c.kind === 'sequence' || c.kind === 'window');
+  return c !== null && (c.kind === 'tool' || c.kind === 'open' || c.kind === 'tab' || c.kind === 'frames' || c.kind === 'sequence' || c.kind === 'window');
 };
 
 // 案内の進み具合。手順の位置は、条件と今の構成から求める（満たしていない最初の手順がいまの手順）。

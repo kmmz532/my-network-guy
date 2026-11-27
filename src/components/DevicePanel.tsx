@@ -110,6 +110,11 @@ function DeviceView({
   const tabIds: Tab[] = ['rear', ...(hasConfig ? (['config'] as const) : []), ...(isServer ? (['service'] as const) : []), 'terminal'];
   const [tab, setTabState] = useState<Tab>(() => pickTab(lastTab.get(node.uid), tabIds));
   const current = pickTab(tab, tabIds);
+  // 選んでいるタブを、案内の条件のためにストアに置く
+  const setDeviceTab = useUiStore((s) => s.setDeviceTab);
+  useEffect(() => {
+    setDeviceTab(node.uid, current);
+  }, [node.uid, current, setDeviceTab]);
   const setTab = (next: Tab) => {
     lastTab.set(node.uid, next);
     setTabState(next);
@@ -141,7 +146,7 @@ function DeviceView({
       <Tabs<Tab>
         items={[
           { id: 'rear', label: t('ui.panel.tab.rear') },
-          ...(hasConfig ? [{ id: 'config' as const, label: t('ui.panel.tab.config') }] : []),
+          ...(hasConfig ? [{ id: 'config' as const, label: t('ui.panel.tab.config'), guide: `tab.${node.uid}.config` }] : []),
           ...(isServer ? [{ id: 'service' as const, label: t('ui.panel.tab.service') }] : []),
           { id: 'terminal', label: t('ui.panel.tab.terminal') },
         ]}

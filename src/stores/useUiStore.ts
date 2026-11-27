@@ -68,6 +68,9 @@ interface UiState {
   // 機器の画面で開く欄の要求（メニューの「設定を開く」）。開いたあとに消す
   deviceTabRequest: { uid: string; tab: 'config' } | null;
   setDeviceTabRequest: (request: { uid: string; tab: 'config' } | null) => void;
+  // 機器の画面ごとの、選んでいるタブ（機器の uid → タブ）。案内の条件 tab:<ref>:<タブ> に使う。保存しない
+  deviceTabs: Record<string, string>;
+  setDeviceTab: (uid: string, tab: string) => void;
   // インベントリの欄から品目をドラッグしている間の位置（保存しない）
   itemDrag: ItemDrag | null;
   // 失敗した操作の理由を、失敗した地点（マップのタイル）に出す（保存しない）
@@ -97,6 +100,8 @@ export const useUiStore = create<UiState>((set) => ({
   setFurnitureRange: (uid) => set({ furnitureRange: uid }),
   deviceTabRequest: null,
   setDeviceTabRequest: (request) => set({ deviceTabRequest: request }),
+  deviceTabs: {},
+  setDeviceTab: (uid, tab) => set((s) => (s.deviceTabs[uid] === tab ? s : { deviceTabs: { ...s.deviceTabs, [uid]: tab } })),
   itemDrag: null,
   flash: null,
   linkPulse: null,

@@ -11,6 +11,7 @@ import { loadSettings } from '../settings/settings';
 import { guideProgress, START_GUIDE, startGuideDue, type GuideState } from '../sim/guide';
 import { MODE_TRAITS } from '../company/company';
 import { focusedProject, useGameStore } from '../stores/useGameStore';
+import { useUiStore } from '../stores/useUiStore';
 import { staffSpriteName } from '../data/schema';
 import { Icon } from './Icon';
 import { Bubble } from './ui/Bubble';
@@ -61,6 +62,7 @@ export function Guide() {
   const check = useGameStore((s) => s.check);
   const windows = useGameStore((s) => s.windows);
   const guidesDone = useGameStore((s) => s.guidesDone);
+  const deviceTabs = useUiStore((s) => s.deviceTabs);
   const guidesReplay = useGameStore((s) => s.guidesReplay);
   // 吹き出しの顔の絵の名前。社員の見た目は絵の名前に変換して使う。社員のいないサンドボックスでは既定の見た目で出す
   const staffLook = useGameStore((s) => staffSpriteName(s.staff[0]?.look ?? 'blue'));
@@ -141,6 +143,7 @@ export function Guide() {
     owned,
     testPassed: project !== null && check !== null && check.projectId === project.id && check.goals.length > 0 && check.goals.every((g) => g.ok),
     openRefs: windows.filter((w) => w.kind === 'device').flatMap((w) => w.tabs),
+    deviceTabs,
     categoryOf: deviceCategory,
     commands: lessonCommands,
     framesOpened: windows.some((w) => w.kind === 'frames'),

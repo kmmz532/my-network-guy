@@ -185,6 +185,7 @@ export function DeviceSettings({ node, readOnly, detailOpen, onToggleDetail, onE
             isValid={isIpText}
             formatError={t('ui.error.ip')}
             onCommit={(ip) => commitIp(port, ip)}
+            guide={`ip.${node.uid}.${port}`}
           />
         </div>
         {iface && isRoutingCategory(category ?? '') && (

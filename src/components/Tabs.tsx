@@ -18,6 +18,8 @@ export interface TabItem<T extends string> {
   closeLabel?: string;
   // 押せないタブ
   disabled?: boolean;
+  // 案内（data-guide）の目印
+  guide?: string;
 }
 
 interface Props<T extends string> {
@@ -207,6 +209,7 @@ export function Tabs<T extends string>({
               }}
               icon={item.icon}
               label={item.label}
+              guide={item.guide}
               closeLabel={item.closeLabel}
               onClose={close ? () => close(item.id) : undefined}
               onSelect={() => onSelect(item.id)}

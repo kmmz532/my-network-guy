@@ -12,8 +12,13 @@
       "steps": [
         { "target": "tool.wire", "done": "tool:wire" },
         { "target": "pc_a", "done": "links:>=1", "gesture": "drag", "to": "pc_b" },
-        { "target": "pc_a", "done": "ip:pc_a" },
-        { "target": "pc_b", "done": "ip:pc_b" },
+        { "target": "tool.select", "done": "tool:select" },
+        { "target": "pc_a", "done": "open:pc_a" },
+        { "target": "tab.pc_a.config", "done": "tab:pc_a:config" },
+        { "target": "ip.pc_a.0", "done": "ip:pc_a" },
+        { "target": "pc_b", "done": "open:pc_b" },
+        { "target": "tab.pc_b.config", "done": "tab:pc_b:config" },
+        { "target": "ip.pc_b.0", "done": "ip:pc_b" },
         { "target": "test", "done": "test:pass" }
       ]
     },
